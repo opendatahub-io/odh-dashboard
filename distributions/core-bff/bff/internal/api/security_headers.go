@@ -5,18 +5,22 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
-// SetSecurityHeaders applies browser security headers on normal HTTP replies.
-// Common security headers are set on every response. Cache-Control is selective
-// (no-store on API paths). Console also sends Pragma: no-cache and no-store on every response.
-// Module proxy replies force no-store in ModifyResponse (see forceNoStoreCacheHeaders).
+// SetSecurityHeaders applies the browser security headers that belong on every response.
+// The CSP is not one of them: only the documents this server produces itself get it, from
+// withDocumentCSP. Cache-Control is selective (no-store on API paths). Module proxy replies
+// force no-store in ModifyResponse (see forceNoStoreCacheHeaders).
 func (app *App) SetSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sw := &securityHeadersWriter{ResponseWriter: w, req: r}
+		sw := &securityHeadersWriter{
+			writeOnce: writeOnce{ResponseWriter: w},
+			req:       r,
+		}
 		next.ServeHTTP(sw, r)
 		// Handlers that return without writing leave headers unset; finalize so
 		// security headers and /api no-store still apply. Skip after Hijack.
@@ -26,20 +30,18 @@ func (app *App) SetSecurityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-type securityHeadersWriter struct {
+// writeOnce owns the status-line bookkeeping shared by the response wrappers.
+// Informational 1xx responses are not final, so they do not mark the writer committed and
+// a later final status (for example 404 after 103) can still be written.
+type writeOnce struct {
 	http.ResponseWriter
-	req         *http.Request
 	wroteHeader bool
-	hijacked    bool
 }
 
-func (w *securityHeadersWriter) WriteHeader(statusCode int) {
+func (w *writeOnce) WriteHeader(statusCode int) {
 	if w.wroteHeader {
 		return
 	}
-	applySecurityHeaders(w.Header(), w.req.URL.Path)
-	// Informational 1xx responses are not final; HTTP allows a later final status.
-	// Do not mark the writer committed so the real status (e.g. 404 after 103) can still be written.
 	if statusCode >= 100 && statusCode < 200 {
 		w.ResponseWriter.WriteHeader(statusCode)
 		return
@@ -48,6 +50,25 @@ func (w *securityHeadersWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
+// Unwrap lets http.ResponseController reach the underlying writer.
+func (w *writeOnce) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
+type securityHeadersWriter struct {
+	writeOnce
+	req      *http.Request
+	hijacked bool
+}
+
+func (w *securityHeadersWriter) WriteHeader(statusCode int) {
+	if !w.wroteHeader {
+		applySecurityHeaders(w.Header(), w.req.URL.Path)
+	}
+	w.writeOnce.WriteHeader(statusCode)
+}
+
+// Write must dispatch through this wrapper's WriteHeader, so it is not inherited.
 func (w *securityHeadersWriter) Write(b []byte) (int, error) {
 	if !w.wroteHeader {
 		w.WriteHeader(http.StatusOK)
@@ -64,13 +85,9 @@ func (w *securityHeadersWriter) Flush() {
 	}
 }
 
-// Unwrap lets http.ResponseController reach the underlying writer for
-// SetReadDeadline, SetWriteDeadline, and EnableFullDuplex. Flush and Hijack
-// are implemented directly on this wrapper.
-func (w *securityHeadersWriter) Unwrap() http.ResponseWriter {
-	return w.ResponseWriter
-}
-
+// Flush and Hijack are implemented directly on this wrapper; Unwrap is promoted from
+// writeOnce so http.ResponseController can reach SetReadDeadline, SetWriteDeadline, and
+// EnableFullDuplex.
 func (w *securityHeadersWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	h, ok := w.ResponseWriter.(http.Hijacker)
 	if !ok {
@@ -89,12 +106,83 @@ func applySecurityHeaders(h http.Header, urlPath string) {
 	h.Set(constants.HeaderXFrameOptions, constants.XFrameOptionsDeny)
 	h.Set(constants.HeaderXDNSPrefetchControl, constants.XDNSPrefetchControlOff)
 	h.Set(constants.HeaderReferrerPolicy, constants.ReferrerPolicyStrictOriginWhenCrossOrigin)
-
 	if !isApiPath(urlPath) {
 		return
 	}
 
 	h.Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
+}
+
+// withDocumentCSP applies the CSP to the HTML documents served by next.
+//
+// It is mounted only on the SPA static handler, which is where this server produces its own
+// documents: index.html for `/`, for a direct index.html request, and as the fallback that
+// renders deep links. Other handlers can also return HTML, but those documents are not this
+// application's shell and own their own headers — module proxy replies belong to an upstream
+// UI (for example the MLflow document), and the Swagger UI page is dev-only tooling.
+// Attaching the dashboard policy to them would impose `frame-ancestors 'none'` and
+// `script-src 'self'` on a document this project does not control.
+//
+// The content type is only known once the handler writes the status line, hence the wrapper.
+func withDocumentCSP(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		docWriter := &documentCSPWriter{writeOnce{ResponseWriter: w}}
+		next.ServeHTTP(docWriter, r)
+		if !docWriter.wroteHeader {
+			docWriter.WriteHeader(http.StatusOK)
+		}
+	})
+}
+
+// documentCSPWriter adds the CSP when the handler is about to write a document.
+type documentCSPWriter struct {
+	writeOnce
+}
+
+func (w *documentCSPWriter) WriteHeader(statusCode int) {
+	if !w.wroteHeader && isHTMLResponse(w.Header().Get(constants.HeaderContentType)) {
+		w.Header().Set(cspHeaderName(), constants.ContentSecurityPolicy)
+	}
+	w.writeOnce.WriteHeader(statusCode)
+}
+
+// Write must dispatch through this wrapper's WriteHeader, so it is not inherited.
+func (w *documentCSPWriter) Write(b []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(b)
+}
+
+// cspHeaderName resolves the CSP header name from CSP_MODE. "report-only" emits the
+// Report-Only header; "enforce" and any unknown value emit the enforcing header so a
+// typo fails closed. Both modes send the same directive string — only the name changes.
+//
+// TEMPORARY: unset or empty also emits the Report-Only header. Switch this branch to the
+// enforcing header once deployments running Report-Only have been observed to report no
+// unexpected violations.
+func cspHeaderName() string {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(constants.CSPModeEnvVar))) {
+	case "", "report-only":
+		return constants.HeaderCSPReportOnly
+	default:
+		return constants.HeaderContentSecurityPolicy
+	}
+}
+
+// CSPModeUnset reports whether CSP_MODE is unset or empty: the TEMPORARY case where the
+// policy is served as Report-Only without an explicit operator choice. Callers warn at
+// startup so the fallback is visible instead of silent.
+func CSPModeUnset() bool {
+	return strings.TrimSpace(os.Getenv(constants.CSPModeEnvVar)) == ""
+}
+
+// isHTMLResponse reports whether the handler set an HTML document content type.
+// Only documents get a CSP; JSON APIs and static assets do not. Handlers set Content-Type
+// before WriteHeader, so it is final by the time the CSP wrapper decides.
+func isHTMLResponse(contentType string) bool {
+	mediaType, _, _ := strings.Cut(contentType, ";")
+	return strings.EqualFold(strings.TrimSpace(mediaType), constants.ContentTypeHTML)
 }
 
 // isApiPath reports host and module API paths after PathPrefix strip.

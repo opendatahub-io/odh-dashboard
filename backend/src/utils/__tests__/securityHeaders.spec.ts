@@ -1,14 +1,30 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import {
+  CONTENT_SECURITY_POLICY,
+  CONTENT_SECURITY_POLICY_DIRECTIVES,
+  SEGMENT_TELEMETRY_ORIGIN,
+} from '@odh-dashboard/app-config/security-policy';
 import { CACHE_HEADER_IMMUTABLE, CACHE_HEADER_NO_CACHE } from '../cacheHeaders';
 import {
   CACHE_CONTROL_NO_STORE,
+  CSP_HEADER_ENFORCE,
+  CSP_HEADER_REPORT_ONLY,
+  CSP_MODE_ENV_VAR,
   CROSS_ORIGIN_OPENER_POLICY,
   REFERRER_POLICY,
   X_CONTENT_TYPE_OPTIONS,
   X_DNS_PREFETCH_CONTROL,
   X_FRAME_OPTIONS,
+  applyContentSecurityPolicy,
   applySecurityHeaders,
+  getCspMode,
+  isImplicitCspReportOnly,
   isApiPath,
+  isHtmlContentType,
+  resolveCspHeaderName,
+  resolveCspMode,
   resolveStaticProxyCacheControl,
   rewriteNoStoreCacheHeaders,
   rewriteStaticProxyCacheHeaders,
@@ -86,6 +102,292 @@ describe('applySecurityHeaders', () => {
     expect(headers['cache-control']).toBeUndefined();
   });
 });
+
+const parseCsp = (): Record<string, string[]> =>
+  Object.fromEntries(
+    CONTENT_SECURITY_POLICY.split('; ').map((part) => {
+      const [directive, ...values] = part.split(' ');
+      return [directive, values];
+    }),
+  );
+
+describe('isHtmlContentType', () => {
+  it.each(['text/html', 'text/html; charset=utf-8', 'TEXT/HTML'])(
+    'treats %s as HTML',
+    (contentType) => {
+      expect(isHtmlContentType(contentType)).toBe(true);
+    },
+  );
+
+  it.each([
+    undefined,
+    '',
+    'text/plain',
+    'application/json; charset=utf-8',
+    'application/javascript',
+    'image/png',
+    'text/htmlx',
+  ])('does not treat %s as HTML', (contentType) => {
+    expect(isHtmlContentType(contentType)).toBe(false);
+  });
+});
+
+describe('Content-Security-Policy', () => {
+  it('sets the enforcing policy on HTML documents', () => {
+    process.env[CSP_MODE_ENV_VAR] = 'enforce';
+    try {
+      const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
+      applyContentSecurityPolicy(reply);
+      expect(headers['content-security-policy']).toBe(CONTENT_SECURITY_POLICY);
+      expect(headers['content-security-policy-report-only']).toBeUndefined();
+    } finally {
+      delete process.env[CSP_MODE_ENV_VAR];
+    }
+  });
+
+  it('sends the Report-Only header by default, with the same directive string', () => {
+    delete process.env[CSP_MODE_ENV_VAR];
+    const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
+    applyContentSecurityPolicy(reply);
+    expect(headers['content-security-policy-report-only']).toBe(CONTENT_SECURITY_POLICY);
+    expect(headers['content-security-policy']).toBeUndefined();
+  });
+
+  it('sends the Report-Only header in report-only mode, with the same directive string', () => {
+    const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
+    applyContentSecurityPolicy(reply, 'report-only');
+    expect(headers['content-security-policy-report-only']).toBe(CONTENT_SECURITY_POLICY);
+    expect(headers['content-security-policy']).toBeUndefined();
+  });
+
+  it('never sends both header names in one response', () => {
+    for (const mode of ['enforce', 'report-only'] as const) {
+      const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
+      applyContentSecurityPolicy(reply, mode);
+      const names = Object.keys(headers).filter((name) =>
+        name.startsWith('content-security-policy'),
+      );
+      expect(names).toEqual([resolveCspHeaderName(mode).toLowerCase()]);
+    }
+  });
+
+  it('does not send a CSP header on non-documents in report-only mode', () => {
+    const { reply, headers } = mockReply({ 'content-type': 'application/json' });
+    applyContentSecurityPolicy(reply, 'report-only');
+    expect(Object.keys(headers).filter((name) => name.includes('security-policy'))).toEqual([]);
+  });
+
+  it.each(['application/json', 'application/javascript', 'text/css', 'image/png'])(
+    'omits the policy for %s',
+    (contentType) => {
+      const { reply, headers } = mockReply({ 'content-type': contentType });
+      applyContentSecurityPolicy(reply);
+      expect(headers['content-security-policy']).toBeUndefined();
+      expect(headers['content-security-policy-report-only']).toBeUndefined();
+    },
+  );
+
+  it('is not applied app-wide: applySecurityHeaders leaves documents alone', () => {
+    const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
+    applySecurityHeaders(mockRequest('/projects'), reply);
+    expect(headers['content-security-policy']).toBeUndefined();
+    expect(headers['content-security-policy-report-only']).toBeUndefined();
+  });
+
+  it('allowlists the telemetry origin only where the Segment client needs it', () => {
+    const csp = parseCsp();
+
+    expect(csp['script-src']).toContain(SEGMENT_TELEMETRY_ORIGIN);
+    expect(csp['connect-src']).toContain(SEGMENT_TELEMETRY_ORIGIN);
+
+    for (const directive of [
+      'default-src',
+      'base-uri',
+      'object-src',
+      'style-src',
+      'img-src',
+      'font-src',
+      'media-src',
+      'frame-src',
+      'frame-ancestors',
+    ]) {
+      expect(csp[directive]).not.toContain(SEGMENT_TELEMETRY_ORIGIN);
+    }
+  });
+
+  it('keeps the document locked down and the preview surfaces usable', () => {
+    const csp = parseCsp();
+
+    expect(csp['default-src']).toEqual(["'self'"]);
+    expect(csp['base-uri']).toEqual(["'self'"]);
+    expect(csp['object-src']).toEqual(["'none'"]);
+    expect(csp['form-action']).toEqual(["'self'"]);
+    expect(csp['worker-src']).toEqual(expect.arrayContaining(["'self'", 'blob:']));
+    expect(csp['frame-ancestors']).toEqual(["'none'"]);
+    expect(csp['frame-src']).toContain('https:');
+    expect(csp['img-src']).toEqual(expect.arrayContaining(['https:', 'data:', 'blob:']));
+    expect(csp['media-src']).toEqual(expect.arrayContaining(['https:', 'data:', 'blob:']));
+    expect(csp['style-src']).toContain("'unsafe-inline'");
+  });
+
+  it('never allows plain http:', () => {
+    const insecure = Object.values(parseCsp())
+      .flat()
+      .filter((value) => value === 'http:' || value.startsWith('http://'));
+    expect(insecure).toEqual([]);
+  });
+});
+
+describe('CSP_MODE', () => {
+  const originalMode = process.env[CSP_MODE_ENV_VAR];
+
+  afterEach(() => {
+    if (originalMode === undefined) {
+      delete process.env[CSP_MODE_ENV_VAR];
+    } else {
+      process.env[CSP_MODE_ENV_VAR] = originalMode;
+    }
+  });
+
+  it.each(['report-only', 'REPORT-ONLY', ' report-only '])('treats %p as report-only', (value) => {
+    expect(resolveCspMode(value)).toBe('report-only');
+  });
+
+  it.each([undefined, ''])('defaults to report-only for %p', (value) => {
+    expect(resolveCspMode(value)).toBe('report-only');
+  });
+
+  it.each(['enforce', 'ENFORCE', 'off', 'nonsense'])(
+    'fails closed to enforcement for %p',
+    (value) => {
+      expect(resolveCspMode(value)).toBe('enforce');
+    },
+  );
+
+  it('reads CSP_MODE from the environment', () => {
+    process.env[CSP_MODE_ENV_VAR] = 'report-only';
+    expect(getCspMode()).toBe('report-only');
+    process.env[CSP_MODE_ENV_VAR] = '';
+    expect(getCspMode()).toBe('report-only');
+  });
+
+  it.each([undefined, '', '   '])('reports %p as an implicit report-only fallback', (value) => {
+    expect(isImplicitCspReportOnly(value)).toBe(true);
+  });
+
+  it.each(['report-only', 'enforce', 'off'])(
+    'does not treat the explicit value %p as an implicit fallback',
+    (value) => {
+      expect(isImplicitCspReportOnly(value)).toBe(false);
+    },
+  );
+
+  it('maps modes to header names', () => {
+    expect(resolveCspHeaderName('enforce')).toBe(CSP_HEADER_ENFORCE);
+    expect(resolveCspHeaderName('report-only')).toBe(CSP_HEADER_REPORT_ONLY);
+  });
+
+  it('sends the mode-selected header when the SPA route renders a document', () => {
+    process.env[CSP_MODE_ENV_VAR] = 'report-only';
+    const { reply, headers } = mockReply({ 'content-type': 'text/html' });
+    applyContentSecurityPolicy(reply);
+    expect(headers[CSP_HEADER_REPORT_ONLY.toLowerCase()]).toBe(CONTENT_SECURITY_POLICY);
+    expect(headers[CSP_HEADER_ENFORCE.toLowerCase()]).toBeUndefined();
+  });
+});
+
+describe('CSP parity across the Node backend, the dev server and core-bff', () => {
+  const repoRoot = path.resolve(__dirname, '../../../..');
+
+  it('serves the shared policy as Report-Only, widening only the declared directives', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { createDevCspMiddleware } = require(path.join(repoRoot, 'frontend/config/cspPolicy.js'));
+
+    const served: Record<string, string> = {};
+    createDevCspMiddleware(4010)(
+      { method: 'GET', headers: { accept: 'text/html' } },
+      { setHeader: (name: string, value: string) => (served[name] = value) },
+      () => undefined,
+    );
+
+    const dev = new Map(
+      (served['Content-Security-Policy-Report-Only'] ?? '').split('; ').map((part) => {
+        const [name, ...tokens] = part.split(' ');
+        return [name, tokens.join(' ')] as const;
+      }),
+    );
+
+    expect([...dev.keys()]).toEqual(CONTENT_SECURITY_POLICY_DIRECTIVES.map(([name]) => name));
+    CONTENT_SECURITY_POLICY_DIRECTIVES.filter(
+      ([name]) => !['script-src', 'connect-src', 'frame-src'].includes(name),
+    ).forEach(([name, value]) => expect(dev.get(name)).toBe(value));
+
+    expect(dev.get('script-src')).toContain("'unsafe-eval'");
+    expect(dev.get('connect-src')).toContain('ws:');
+    expect(dev.get('connect-src')).toContain('http://localhost:4010');
+    expect(dev.get('frame-src')).toContain('http://localhost:4010');
+  });
+
+  it('matches the Go core-bff constant', () => {
+    const goSource = fs.readFileSync(
+      path.join(repoRoot, 'distributions/core-bff/bff/internal/constants/headers.go'),
+      'utf8',
+    );
+
+    expect(readGoStringConst(goSource, 'ContentSecurityPolicy')).toBe(CONTENT_SECURITY_POLICY);
+  });
+
+  it('matches the directive order of the Go constant', () => {
+    const goSource = fs.readFileSync(
+      path.join(repoRoot, 'distributions/core-bff/bff/internal/constants/headers.go'),
+      'utf8',
+    );
+    const goValue = readGoStringConst(goSource, 'ContentSecurityPolicy');
+
+    expect(goValue.split('; ').map((part) => part.split(' ')[0])).toEqual(
+      CONTENT_SECURITY_POLICY_DIRECTIVES.map(([directive]) => directive),
+    );
+  });
+});
+
+/**
+ * Reads a Go constant built from concatenated string literals and identifiers,
+ * resolving identifiers against other constants in the same file. Used only for the
+ * cross-language parity assertion.
+ */
+const readGoStringConst = (source: string, name: string, seen: string[] = []): string => {
+  if (seen.includes(name)) {
+    throw new Error(`Circular Go constant reference: ${name}`);
+  }
+  const declaration = new RegExp(`(?<![\\w])${name}\\s*=\\s*`).exec(source);
+  if (!declaration) {
+    throw new Error(`Go constant not found: ${name}`);
+  }
+
+  const rest = source.slice(declaration.index + declaration[0].length).split('\n');
+  let expression = '';
+  for (const line of rest) {
+    // Strip trailing comments, but never a `//` that is inside a string literal
+    // (e.g. the telemetry origin URL).
+    const commentIndex = line.indexOf('//');
+    const quotesBefore = line.slice(0, commentIndex).split('"').length - 1;
+    const withoutComment =
+      commentIndex >= 0 && quotesBefore % 2 === 0 ? line.slice(0, commentIndex) : line;
+    expression += ` ${withoutComment}`;
+    if (!withoutComment.trimEnd().endsWith('+')) {
+      break;
+    }
+  }
+
+  const tokens = expression.match(/"[^"]*"|[A-Za-z_]\w*/g) ?? [];
+  return tokens
+    .map((token) =>
+      token.startsWith('"')
+        ? token.slice(1, -1)
+        : readGoStringConst(source, token, [...seen, name]),
+    )
+    .join('');
+};
 
 describe('resolveStaticProxyCacheControl', () => {
   it.each([

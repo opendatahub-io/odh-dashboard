@@ -49,6 +49,10 @@ export const initializeApp = async (
     wildcard: false,
     // Do not auto-serve index.html for '/'; let the view route render it
     index: false,
+    // Do not register index.html as a static file either. The SPA route renders it for
+    // `/index.html` as well, so the shell document only ever comes from the handler that
+    // applies the CSP.
+    globIgnore: ['index.html'],
     setHeaders: (reply, filePath) => {
       reply.header('Cache-Control', getCacheControlForStaticFile(filePath));
     },

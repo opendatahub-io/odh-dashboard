@@ -6,6 +6,7 @@ import { registerPatchContentTypeParsers } from './utils/patchContentTypeParsers
 import { AddressInfo } from 'net';
 import https from 'https';
 import { getTrustedCAs } from './utils/caBundles';
+import { CSP_MODE_ENV_VAR, isImplicitCspReportOnly } from './utils/securityHeaders';
 
 const transport =
   APP_ENV === 'development'
@@ -40,6 +41,17 @@ const app = fastify({
 
 // Fastify 5 requires explicit parsers for K8s PATCH content types (json-patch and merge-patch).
 registerPatchContentTypeParsers(app);
+
+// TEMPORARY: without CSP_MODE the policy is sent as Report-Only, which reports violations
+// but blocks nothing. Make that fallback visible at startup instead of silent.
+if (isImplicitCspReportOnly(process.env[CSP_MODE_ENV_VAR])) {
+  app.log.warn(
+    `${CSP_MODE_ENV_VAR} is unset or empty: the Content-Security-Policy is sent as ` +
+      'Report-Only, so violations are reported but nothing is blocked. Set ' +
+      `${CSP_MODE_ENV_VAR}=enforce to enforce the policy, or ${CSP_MODE_ENV_VAR}=report-only ` +
+      'to silence this warning.',
+  );
+}
 
 app.register(initializeApp);
 

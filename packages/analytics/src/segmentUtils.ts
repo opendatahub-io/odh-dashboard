@@ -37,6 +37,13 @@ const isCompletePageContext = (
 ): page is TrackingPageContext =>
   !!page && PAGE_CONTEXT_KEYS.every((key) => typeof page[key] === 'string');
 
+/**
+ * Whether the Segment SDK is initialized and can accept events. Delivery silently drops
+ * events while it is unavailable, so callers that persist a deduplication window should
+ * consult this first to avoid suppressing a later occurrence that would be delivered.
+ */
+export const isSegmentReady = (): boolean => Boolean(window.analytics);
+
 export const fireTrackingEvent = (
   eventName: string,
   properties: BaseTrackingEventProperties,
