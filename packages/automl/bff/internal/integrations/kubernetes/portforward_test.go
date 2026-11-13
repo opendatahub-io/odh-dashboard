@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	corekubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
@@ -87,6 +89,16 @@ func TestForwardURL_DefaultPorts(t *testing.T) {
 
 	t.Run("http defaults to port 80", func(t *testing.T) {
 		result, err := pfm.ForwardURL(context.Background(), "http://my-service.my-namespace.svc.cluster.local/api")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result != "http://localhost:12345/api" {
+			t.Errorf("got %q, want %q", result, "http://localhost:12345/api")
+		}
+	})
+
+	t.Run("short service form rewrites to the cached forward", func(t *testing.T) {
+		result, err := pfm.ForwardURL(context.Background(), "http://my-service.my-namespace.svc/api")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -243,23 +255,11 @@ func TestPortForwardTransport_NonClusterRequest(t *testing.T) {
 // TestPortForwardTransport_ClusterRequestRewrite verifies that cluster-internal
 // URLs are rewritten to localhost when a cached forward exists.
 func TestPortForwardTransport_ClusterRequestRewrite(t *testing.T) {
-	// Set up a test HTTP server on a known port to receive the forwarded request
-	var receivedHost string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedHost = r.URL.Host
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	// Extract the port from the test server URL
 	pfm := &PortForwardManager{
 		forwards: make(map[string]*activeForward),
 		logger:   slog.Default(),
 	}
 
-	// We can't easily match the test server port with a cached forward,
-	// so instead verify the URL rewrite logic by checking that ForwardURL
-	// changes the host when a cached forward exists.
 	pfm.forwards["my-ns/my-svc:8080"] = &activeForward{
 		localPort: 54322,
 		stopChan:  make(chan struct{}),
@@ -267,7 +267,13 @@ func TestPortForwardTransport_ClusterRequestRewrite(t *testing.T) {
 	}
 
 	transport := &portForwardRoundTripper{
-		base:    http.DefaultTransport,
+		base: testRoundTripper(func(req *http.Request) (*http.Response, error) {
+			hostPort, ok := corekubernetes.TrustedPortForwardEndpoint(req.Context())
+			if !ok || hostPort != "localhost:54322" {
+				t.Errorf("trusted port-forward endpoint = %q, present = %v", hostPort, ok)
+			}
+			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("")), Request: req}, nil
+		}),
 		manager: pfm,
 		logger:  slog.Default(),
 	}
@@ -277,14 +283,11 @@ func TestPortForwardTransport_ClusterRequestRewrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The RoundTrip will rewrite the URL to localhost:54322, which won't have
-	// a server listening — that's expected. We just verify the rewrite happened.
-	_, err = transport.RoundTrip(req)
-	// Connection will be refused since nothing listens on 54322, but the URL
-	// rewrite should have happened. We can't easily verify the rewritten URL
-	// from the outside, so we verify by checking ForwardURL directly.
-	_ = err
-	_ = receivedHost
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip error: %v", err)
+	}
+	defer resp.Body.Close()
 
 	// Verify the URL rewrite directly
 	rewritten, fwdErr := pfm.ForwardURL(context.Background(), "http://my-svc.my-ns.svc.cluster.local:8080/api/v1/test")
@@ -294,6 +297,12 @@ func TestPortForwardTransport_ClusterRequestRewrite(t *testing.T) {
 	if rewritten != "http://localhost:54322/api/v1/test" {
 		t.Errorf("ForwardURL rewrite = %q, want %q", rewritten, "http://localhost:54322/api/v1/test")
 	}
+}
+
+type testRoundTripper func(*http.Request) (*http.Response, error)
+
+func (f testRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
 
 // === Close ===

@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	corekubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -69,6 +70,14 @@ func TestForwardURL_RewritesExactServiceFQDNAndResolvesNamespace(t *testing.T) {
 	if got != "http://localhost:4567/v1?x=1" {
 		t.Fatalf("ForwardURL() = %q, want rewritten URL", got)
 	}
+
+	got, err = manager.ForwardURL(context.Background(), "team-a", "http://milvus.team-a.svc:19530/v1?x=1")
+	if err != nil {
+		t.Fatalf("short-form ForwardURL() error = %v", err)
+	}
+	if got != "http://localhost:4567/v1?x=1" {
+		t.Fatalf("short-form ForwardURL() = %q, want rewritten URL", got)
+	}
 }
 
 func TestForwardURL_DoesNotRewriteUnsupportedHostsOrUserinfo(t *testing.T) {
@@ -91,6 +100,43 @@ func TestForwardURL_DoesNotRewriteUnsupportedHostsOrUserinfo(t *testing.T) {
 	if err.Error() != "service URL userinfo is not supported" {
 		t.Fatalf("userinfo error = %q, want sanitized error", err)
 	}
+}
+
+func TestPortForwardWrapTransportMarksTrustedEndpoint(t *testing.T) {
+	manager := &PortForwardManager{
+		forwards: make(map[string]*activeForward),
+		logger:   slog.Default(),
+	}
+	manager.forwards["team-a/milvus:19530"] = &activeForward{
+		localPort: 4567,
+		stopChan:  make(chan struct{}),
+		errChan:   make(chan error, 1),
+	}
+
+	wrapper := PortForwardWrapTransport(manager, slog.Default())
+	wrapped := wrapper(testRoundTripper(func(req *http.Request) (*http.Response, error) {
+		hostPort, ok := corekubernetes.TrustedPortForwardEndpoint(req.Context())
+		if !ok || hostPort != "localhost:4567" {
+			t.Errorf("trusted port-forward endpoint = %q, present = %v", hostPort, ok)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("")), Request: req}, nil
+	}))
+
+	request, err := http.NewRequest(http.MethodGet, "http://milvus.team-a.svc.cluster.local:19530/v1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := wrapped.RoundTrip(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+}
+
+type testRoundTripper func(*http.Request) (*http.Response, error)
+
+func (f testRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
 
 func TestCreateForward_ContextCancellationStopsStartup(t *testing.T) {
