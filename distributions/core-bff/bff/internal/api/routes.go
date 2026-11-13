@@ -24,7 +24,7 @@ const (
 // Routes builds the full HTTP handler tree: API router, proxies, static files, and middleware.
 func (app *App) Routes() http.Handler {
 	serviceMux := app.newServiceMux()
-	staticHandler := app.newStaticHandler()
+	staticHandler := withDocumentCSP(app.newStaticHandler())
 	return httpcontract.Middleware(app.EnableTelemetry(app.SetSecurityHeaders(app.RecoverPanic(app.EnableCORS(app.newCombinedMux(serviceMux, staticHandler))))), app.logger)
 }
 
