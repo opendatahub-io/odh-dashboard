@@ -1,21 +1,18 @@
 export enum SubscriptionsFilterOptions {
-  keyword = 'keyword',
   subscription = 'subscription',
   group = 'group',
   model = 'model',
 }
 
-/** MaaS governance subscriptions tab: free-text keyword search. */
+/** Shared subscriptions filters: subscription text search, plus group and model selections. */
 export const subscriptionsFilterOptions = {
-  [SubscriptionsFilterOptions.keyword]: 'Keyword',
-};
-
-/** Model access viewer: Subscription / Group / Model typeahead selects. */
-export const modelAccessFilterOptions = {
   [SubscriptionsFilterOptions.subscription]: 'Subscription',
   [SubscriptionsFilterOptions.group]: 'Group',
   [SubscriptionsFilterOptions.model]: 'Model',
 };
+
+/** Distinguishes a model substring query from a selected Kubernetes resource name. */
+export const MODEL_TEXT_FILTER_PREFIX = 'model-text:';
 
 export type SubscriptionsFilterSelection = { label: string; value: string };
 
@@ -25,7 +22,6 @@ export type SubscriptionsFilterDataType = Record<
 >;
 
 export const initialSubscriptionsFilterData: SubscriptionsFilterDataType = {
-  [SubscriptionsFilterOptions.keyword]: '',
   [SubscriptionsFilterOptions.subscription]: undefined,
   [SubscriptionsFilterOptions.group]: undefined,
   [SubscriptionsFilterOptions.model]: undefined,

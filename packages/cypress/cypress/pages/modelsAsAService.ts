@@ -666,7 +666,7 @@ class SubscriptionsPage {
   }
 
   findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscriptions-filter-input');
+    return cy.findByTestId('subscriptions-subscription-filter-input');
   }
 
   findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
