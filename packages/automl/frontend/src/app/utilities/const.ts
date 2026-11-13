@@ -75,7 +75,7 @@ export const PRESET_FASTER = 'speed';
 export const PRESET_BETTER_QUALITY = 'balanced';
 export const PRESET_QUALITY = 'quality';
 export const PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY, PRESET_QUALITY] as const;
-export const TIMESERIES_PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY] as const;
+export const TIMESERIES_PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY, PRESET_QUALITY] as const;
 
 export const PRESET_LABELS: Record<string, string> = {
   [PRESET_FASTER]: 'Faster',

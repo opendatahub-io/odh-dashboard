@@ -674,6 +674,45 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
+      it('should create a timeseries pipeline run with the quality preset', async () => {
+        const requestBody = {
+          display_name: 'contract-test-timeseries-quality',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TIMESERIES_CSV_FILE,
+          task_type: 'timeseries',
+          target: 'target',
+          id_column: 'item_id',
+          timestamp_column: 'timestamp',
+          preset: 'quality',
+        };
+        expect(requestBody).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/CreateTimeSeriesRunRequest',
+        });
+
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, requestBody);
+        type RunEnvelope = { data?: { run_id?: unknown } };
+        const runIdCandidate = result.success
+          ? (result.response.data as RunEnvelope | null | undefined)?.data?.run_id
+          : undefined;
+        const runId = typeof runIdCandidate === 'string' ? runIdCandidate : undefined;
+
+        try {
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+            status: 200,
+          });
+        } finally {
+          if (runId) {
+            const terminateResult = await apiClient.post(
+              `/api/v1/pipeline-runs/${runId}/terminate?namespace=${NS}`,
+              {},
+            );
+            expect(terminateResult.success).toBe(true);
+          }
+        }
+      });
+
       it('should create a single-item timeseries run without an ID column', async () => {
         const key = 'single-item-contract.csv';
         const csv = `date,sales\n${Array.from(

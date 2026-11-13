@@ -46,6 +46,7 @@ var ValidTabularPresets = map[string]bool{
 var ValidTimeseriesPresets = map[string]bool{
 	"speed":    true,
 	"balanced": true,
+	"quality":  true,
 }
 
 // ValidBinaryEvalMetrics lists valid eval_metric values for binary classification.
