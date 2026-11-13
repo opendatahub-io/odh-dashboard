@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - data-registry-approvers
+
+reviewers:
+  - data-registry-reviewers
+
+labels:
+  - area/data-registry
+  - area/manifests
+
+options:
+  no_parent_owners: true

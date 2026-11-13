@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - data-connect-hub-approvers
+
+reviewers:
+  - data-connect-hub-reviewers
+
+labels:
+  - area/data-connect-hub
+  - area/manifests
+
+options:
+  no_parent_owners: true

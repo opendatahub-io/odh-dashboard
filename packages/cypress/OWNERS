@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - quality-e2e-testing-approvers
+
+reviewers:
+  - quality-e2e-testing-reviewers
+
+labels:
+  - area/quality
+  - area/components
+
+options:
+  no_parent_owners: true

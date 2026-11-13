@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - model-registry-catalog-approvers
+
+reviewers:
+  - model-registry-catalog-reviewers
+
+labels:
+  - area/model-registry
+  - area/components
+
+options:
+  no_parent_owners: true

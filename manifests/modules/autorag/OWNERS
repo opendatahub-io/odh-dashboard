@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - autorag-approvers
+
+reviewers:
+  - autorag-reviewers
+
+labels:
+  - area/autorag
+  - area/manifests
+
+options:
+  no_parent_owners: true

@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - mlflow-approvers
+
+reviewers:
+  - mlflow-reviewers
+
+labels:
+  - area/mlflow
+  - area/components
+
+options:
+  no_parent_owners: true

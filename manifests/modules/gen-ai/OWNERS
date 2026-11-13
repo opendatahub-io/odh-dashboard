@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - gen-ai-approvers
+
+reviewers:
+  - gen-ai-reviewers
+
+labels:
+  - area/gen-ai
+  - area/manifests
+
+options:
+  no_parent_owners: true

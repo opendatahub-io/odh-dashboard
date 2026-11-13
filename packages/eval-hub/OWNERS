@@ -1,5 +1,12 @@
 # OWNERS
 
-approvers: []
-reviewers: []
-labels: ['area/mod-arch']
+approvers:
+  - eval-hub-approvers
+reviewers:
+  - eval-hub-reviewers
+labels:
+  - area/eval-hub
+  - area/components
+
+options:
+  no_parent_owners: true

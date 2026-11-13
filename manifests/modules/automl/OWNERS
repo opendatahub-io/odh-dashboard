@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - automl-approvers
+
+reviewers:
+  - automl-reviewers
+
+labels:
+  - area/automl
+  - area/manifests
+
+options:
+  no_parent_owners: true

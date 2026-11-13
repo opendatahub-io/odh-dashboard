@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - ai-trusty-approvers
+
+reviewers:
+  - ai-trusty-reviewers
+
+labels:
+  - area/ai-safety-trusty
+  - area/components
+
+options:
+  no_parent_owners: true

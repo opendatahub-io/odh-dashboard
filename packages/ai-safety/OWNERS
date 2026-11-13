@@ -5,4 +5,8 @@ approvers:
 reviewers:
   - ai-safety-reviewers
 labels:
-  - 'area/ai-safety'
+  - area/ai-safety-trusty
+  - area/components
+
+options:
+  no_parent_owners: true
