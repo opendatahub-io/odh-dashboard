@@ -14,7 +14,7 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type {
   Collection,
   CollectionResolution,
-  HardwareProfile,
+  HardwareProfileInfo,
   KueueAvailability,
   SourceMode,
 } from '~/app/types';
@@ -125,17 +125,14 @@ const clonedCollectionResolution: CollectionResolution = {
 const kueueAvailability: KueueAvailability = {
   enabled: true,
   scheduling_ready: true,
-  cluster_enabled: true,
-  namespace_managed: true,
-  local_queues_available: true,
-  local_queue_names: ['default'],
 };
 
-const hardwareProfile: HardwareProfile = {
+const hardwareProfile: HardwareProfileInfo = {
   name: 'default-profile',
   display_name: 'Default profile',
-  enabled: true,
-  local_queue_name: 'default',
+  scheduling_type: 'queue',
+  queue_name: 'default',
+  identifiers: [],
 };
 
 type Deferred<T> = {
@@ -254,6 +251,43 @@ describe('StartEvaluationRunModal', () => {
     renderModal();
 
     expect(screen.queryByTestId('start-evaluation-run-prerequisite')).not.toBeInTheDocument();
+  });
+
+  it('should replace the form with skeletons while the LocalQueue request is in flight', () => {
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: false,
+      error: undefined,
+    });
+    mockUseKueueAvailability.mockReturnValue({
+      availability: undefined,
+      loaded: false,
+      error: undefined,
+    });
+    renderModal();
+
+    expect(screen.getByTestId('start-evaluation-form-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('start-evaluation-form')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('hardware-profile-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByTestId('start-evaluation-run-collection-name')).toBeInTheDocument();
+    expect(screen.getByTestId('start-evaluation-submit')).toBeDisabled();
+  });
+
+  it('should replace the skeletons with the form when the request errors', () => {
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: true,
+      error: new Error('info request failed'),
+    });
+    mockUseKueueAvailability.mockReturnValue({
+      availability: undefined,
+      loaded: true,
+      error: undefined,
+    });
+    renderModal();
+
+    expect(screen.queryByTestId('start-evaluation-form-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByTestId('start-evaluation-form')).toBeInTheDocument();
   });
 
   it('shows a required HardwareProfile before collapsed advanced configuration for Kueue', () => {

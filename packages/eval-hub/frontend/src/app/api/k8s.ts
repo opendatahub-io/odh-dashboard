@@ -26,11 +26,7 @@ import {
   EvaluationJobsResponse,
   EvaluationJobsResult,
   InferenceServicesResponse,
-  KueueAvailability,
-  KueueWorkloadStatus,
-  KueueWorkloadStatusesResponse,
-  HardwareProfile,
-  HardwareProfilesResponse,
+  InfoResponse,
   ListCollectionsParams,
   ListEvaluationJobsParams,
   NamespaceKind,
@@ -209,57 +205,16 @@ export const getEvalHubHealth =
       throw new Error('Invalid health response format');
     });
 
-export const getKueueAvailability =
+export const getInfo =
   (hostPath: string, namespace: string) =>
-  (opts: APIOptions): Promise<KueueAvailability> =>
+  (opts: APIOptions): Promise<InfoResponse> =>
     handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/kueue/availability`,
-        { namespace },
-        opts,
-      ),
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/info`, { namespace }, opts),
     ).then((response) => {
-      if (isModArchResponse<KueueAvailability>(response)) {
+      if (isModArchResponse<InfoResponse>(response)) {
         return response.data;
       }
-      throw new Error('Invalid Kueue availability response format');
-    });
-
-export const getKueueWorkloadStatuses =
-  (hostPath: string, namespace: string, evaluationIds: string[]) =>
-  (opts: APIOptions): Promise<KueueWorkloadStatus[]> =>
-    handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/kueue/workloads`,
-        // eslint-disable-next-line camelcase -- Query parameter follows the BFF OpenAPI contract.
-        { namespace, evaluation_ids: evaluationIds.join(',') },
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<KueueWorkloadStatusesResponse>(response)) {
-        return response.data.items;
-      }
-      throw new Error('Invalid Kueue Workload status response format');
-    });
-
-export const getHardwareProfiles =
-  (hostPath: string, namespace: string) =>
-  (opts: APIOptions): Promise<HardwareProfile[]> =>
-    handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/hardwareprofiles`,
-        { namespace },
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<HardwareProfilesResponse | HardwareProfile[]>(response)) {
-        const { data } = response;
-        return Array.isArray(data) ? data : data.items;
-      }
-      throw new Error('Invalid HardwareProfile response format');
+      throw new Error('Invalid info response format');
     });
 
 export const validateHardwareProfiles =

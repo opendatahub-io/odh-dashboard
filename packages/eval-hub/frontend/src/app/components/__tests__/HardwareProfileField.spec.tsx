@@ -2,23 +2,19 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import HardwareProfileField from '~/app/components/HardwareProfileField';
-import type { HardwareProfile, KueueAvailability } from '~/app/types';
+import type { HardwareProfileInfo, KueueAvailability } from '~/app/types';
 
 const availability: KueueAvailability = {
   enabled: true,
   scheduling_ready: true,
-  cluster_enabled: true,
-  namespace_managed: true,
-  local_queues_available: true,
-  local_queue_names: ['gpu-default'],
 };
 
-const profile: HardwareProfile = {
+const profile: HardwareProfileInfo = {
   name: 'gpu-small',
   display_name: 'GPU Small',
-  enabled: true,
-  local_queue_name: 'gpu-default',
-  resources: [{ identifier: 'nvidia.com/gpu', display_name: 'GPU', default: '1' }],
+  scheduling_type: 'queue',
+  queue_name: 'gpu-default',
+  identifiers: [{ identifier: 'nvidia.com/gpu', display_name: 'GPU', default_count: '1' }],
 };
 
 describe('HardwareProfileField', () => {
@@ -30,7 +26,7 @@ describe('HardwareProfileField', () => {
     expect(screen.queryByTestId('hardware-profile-select')).not.toBeInTheDocument();
   });
 
-  it('renders queue-compatible profiles and reports the selection', () => {
+  it('renders the profiles offered by the info API and reports the selection', () => {
     const onSelect = jest.fn();
     render(
       <HardwareProfileField
@@ -50,36 +46,28 @@ describe('HardwareProfileField', () => {
     expect(onSelect).toHaveBeenCalledWith(profile);
   });
 
-  it('only offers profiles whose LocalQueue is currently available', () => {
-    const unavailableProfile: HardwareProfile = {
+  it('falls back to the profile name when display_name is missing', () => {
+    const unnamedProfile: HardwareProfileInfo = {
       ...profile,
-      name: 'gpu-stale',
-      display_name: 'Stale GPU',
-      local_queue_name: 'deleted-queue',
+      display_name: undefined,
     };
     render(
       <HardwareProfileField
         availability={availability}
-        profiles={[profile, unavailableProfile]}
+        profiles={[unnamedProfile]}
         loaded
-        selectedProfile={unavailableProfile.name}
+        selectedProfile={unnamedProfile.name}
         onSelect={jest.fn()}
       />,
     );
 
-    expect(screen.getByTestId('hardware-profile-toggle')).toHaveTextContent(
-      'Select hardware profile',
-    );
-    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
-
-    expect(screen.getByTestId(`hardware-profile-option-${profile.name}`)).toBeInTheDocument();
-    expect(
-      screen.queryByTestId(`hardware-profile-option-${unavailableProfile.name}`),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('hardware-profile-toggle')).toHaveTextContent('gpu-small');
+    fireEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+    expect(screen.getByText('gpu-small details')).toBeInTheDocument();
   });
 
   it('labels an insufficient profile without disabling its selection', () => {
-    const insufficientProfile: HardwareProfile = {
+    const insufficientProfile: HardwareProfileInfo = {
       ...profile,
       compatibility: {
         compatible: false,
@@ -130,19 +118,19 @@ describe('HardwareProfileField', () => {
         profiles={[
           {
             ...profile,
-            resources: [
+            identifiers: [
               {
                 identifier: 'cpu',
                 display_name: 'CPU',
-                default: '4',
-                minimum: '2',
-                maximum: '8',
+                default_count: '4',
+                min_count: '2',
+                max_count: '8',
               },
               {
                 identifier: 'memory',
                 display_name: 'Memory',
-                default: '16Gi',
-                maximum: '32Gi',
+                default_count: '16Gi',
+                max_count: '32Gi',
               },
             ],
           },
@@ -181,21 +169,20 @@ describe('HardwareProfileField', () => {
             ...profile,
             display_name: 'Kueue GPU Profile',
             description: 'GPU profile with queue scheduling.',
-            cluster_queue_name: 'gpu-cluster',
-            resources: [
+            identifiers: [
               {
                 identifier: 'cpu',
                 display_name: 'CPU',
-                default: '4',
-                minimum: '2',
-                maximum: '8',
+                default_count: '4',
+                min_count: '2',
+                max_count: '8',
               },
               {
                 identifier: 'memory',
                 display_name: 'Memory',
-                default: '16Gi',
-                minimum: '8Gi',
-                maximum: '32Gi',
+                default_count: '16Gi',
+                min_count: '8Gi',
+                max_count: '32Gi',
               },
             ],
           },
@@ -214,7 +201,113 @@ describe('HardwareProfileField', () => {
     expect(details).toHaveTextContent('Default = 4 Cores, Min = 2 Cores, Max = 8 Cores');
     expect(details).toHaveTextContent('Default = 16 GiB, Min = 8 GiB, Max = 32 GiB');
     expect(details).toHaveTextContent('Local queuegpu-default');
-    expect(details).toHaveTextContent('Cluster queuegpu-cluster');
+  });
+
+  it('flags an inactive LocalQueue in the selected profile details', () => {
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[
+          {
+            ...profile,
+            queue_availability: {
+              status: 'inactive',
+              reason: 'ClusterQueueIsInactive',
+              message: 'queue is paused',
+            },
+          },
+        ]}
+        loaded
+        selectedProfile={profile.name}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+    const details = screen.getByTestId('hardware-profile-details-popover-content');
+    expect(details).toHaveTextContent('Local queuegpu-default — queue is paused');
+  });
+
+  it('falls back to the reason when an inactive LocalQueue reports no message', () => {
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[
+          {
+            ...profile,
+            queue_availability: {
+              status: 'unknown',
+              reason: 'ClusterQueueIsInactive',
+            },
+          },
+        ]}
+        loaded
+        selectedProfile={profile.name}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+    const details = screen.getByTestId('hardware-profile-details-popover-content');
+    expect(details).toHaveTextContent('Local queuegpu-default — ClusterQueueIsInactive');
+  });
+
+  it('uses a generic note when an inactive LocalQueue reports no reason or message', () => {
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[
+          {
+            ...profile,
+            queue_availability: {
+              status: 'inactive',
+            },
+          },
+        ]}
+        loaded
+        selectedProfile={profile.name}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+    const details = screen.getByTestId('hardware-profile-details-popover-content');
+    expect(details).toHaveTextContent('Local queuegpu-default — queue is not active');
+  });
+
+  it('keeps offered profiles selectable when every LocalQueue is inactive or unknown', () => {
+    const onSelect = jest.fn();
+    render(
+      <HardwareProfileField
+        availability={{
+          ...availability,
+          scheduling_ready: false,
+        }}
+        profiles={[
+          {
+            ...profile,
+            queue_availability: {
+              status: 'inactive',
+              reason: 'ClusterQueueIsInactive',
+              message: 'queue is paused',
+            },
+          },
+        ]}
+        loaded
+        onSelect={onSelect}
+      />,
+    );
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('GPU Small'));
+
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ name: profile.name, queue_name: profile.queue_name }),
+    );
   });
 
   it('stays hidden when Kueue is unavailable', () => {
@@ -224,7 +317,6 @@ describe('HardwareProfileField', () => {
           ...availability,
           enabled: false,
           scheduling_ready: false,
-          namespace_managed: false,
         }}
         profiles={[]}
         loaded
@@ -241,8 +333,6 @@ describe('HardwareProfileField', () => {
         availability={{
           ...availability,
           scheduling_ready: false,
-          local_queues_available: false,
-          local_queue_names: [],
         }}
         profiles={[]}
         loaded
@@ -276,29 +366,6 @@ describe('HardwareProfileField', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the no-compatible-profiles state when all profiles use unavailable queues', () => {
-    const unavailableProfile: HardwareProfile = {
-      ...profile,
-      local_queue_name: 'deleted-queue',
-    };
-
-    render(
-      <HardwareProfileField
-        availability={availability}
-        profiles={[unavailableProfile]}
-        loaded
-        onSelect={jest.fn()}
-      />,
-    );
-
-    expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
-    expect(
-      screen.getByText(
-        /No compatible hardware profiles are configured for this project. An evaluation cannot start/,
-      ),
-    ).toBeInTheDocument();
-  });
-
   it('shows an error when loading Kueue or HardwareProfiles fails', () => {
     render(
       <HardwareProfileField
@@ -313,6 +380,27 @@ describe('HardwareProfileField', () => {
     expect(
       screen.getByText(
         'Unable to load HardwareProfiles Resolve this error before starting an evaluation.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('unwraps the embedded service message when the error body is JSON', () => {
+    render(
+      <HardwareProfileField
+        profiles={[]}
+        loaded
+        error={
+          new Error(
+            'EvalHub error on operation GetInfo: {"message_code":"internal_server_error","message":"An internal server error occurred: \'Failed to list tenant hardware profiles\'.","trace":"6ea3c2e1-0cc8-4a51-8b30-56973561be19"}',
+          )
+        }
+        onSelect={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "An internal server error occurred: 'Failed to list tenant hardware profiles'. Resolve this error before starting an evaluation.",
       ),
     ).toBeInTheDocument();
   });

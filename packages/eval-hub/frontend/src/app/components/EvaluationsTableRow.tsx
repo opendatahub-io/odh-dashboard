@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Button, Checkbox, Tooltip } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
+import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import {
@@ -34,9 +34,6 @@ type EvaluationsTableRowProps = {
   onShowStatus: (job: EvaluationJob) => void;
   isSelected: boolean;
   onSelectionChange: (checked: boolean) => void;
-  kueueWorkloadStatus?: KueueWorkloadStatus;
-  isKueueWorkloadStatusLoading?: boolean;
-  isKueueEnabled: boolean;
 };
 
 const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
@@ -51,9 +48,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   onShowStatus,
   isSelected,
   onSelectionChange,
-  kueueWorkloadStatus,
-  isKueueWorkloadStatusLoading = false,
-  isKueueEnabled,
 }) => {
   const navigate = useNavigate();
   const [showStopModal, setShowStopModal] = React.useState(false);
@@ -77,13 +71,19 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const effectiveJob = polledJobData ?? job;
   // Detail polling can omit hardware_config.queue even when the list response included it.
   // Keep the list assignment available so a queued run does not briefly fall back to Pending.
-  const queue =
-    getEvaluationQueue(effectiveJob) ?? getEvaluationQueue(job) ?? kueueWorkloadStatus?.queue_name;
-  // RHOAIENG-99645: queue assignments can persist in evaluation responses after the Kueue
-  // integration is disabled — only surface the queued display when the integration is enabled.
-  const isQueued = isKueueEnabled && currentState === 'pending' && Boolean(queue);
-  const isKueueStatusLoading =
-    currentState === 'pending' && isKueueWorkloadStatusLoading && !kueueWorkloadStatus && !queue;
+  const queue = getEvaluationQueue(effectiveJob) ?? getEvaluationQueue(job);
+  const isQueued = currentState === 'pending' && Boolean(queue);
+  // The status modal receives this job as its only queue source — carry the fallback
+  // assignment through so opening the modal keeps the Queued classification.
+  /* eslint-disable camelcase -- API field name */
+  const statusModalJob =
+    queue !== undefined && getEvaluationQueue(effectiveJob) === undefined
+      ? {
+          ...effectiveJob,
+          hardware_config: { ...effectiveJob.hardware_config, queue: job.hardware_config?.queue },
+        }
+      : effectiveJob;
+  /* eslint-enable camelcase */
 
   React.useEffect(() => {
     if (!isInProgress) {
@@ -176,7 +176,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const actions: IAction[] = [
     {
       title: 'View evaluation status',
-      onClick: () => onShowStatus(effectiveJob),
+      onClick: () => onShowStatus(statusModalJob),
     },
     ...(canStop
       ? [
@@ -247,10 +247,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           <EvaluationStatusLabel
             state={displayState}
             isQueued={isQueued}
-            isLoading={isKueueStatusLoading}
             isPreStartFailure={isPreStart}
-            kueueWorkloadStatus={kueueWorkloadStatus}
-            onClick={() => onShowStatus(effectiveJob)}
+            queueName={queue}
+            onClick={() => onShowStatus(statusModalJob)}
           />
           {(displayState === 'failed' || displayState === 'partially_failed') &&
           effectiveBenchmarks.length > 1 ? (

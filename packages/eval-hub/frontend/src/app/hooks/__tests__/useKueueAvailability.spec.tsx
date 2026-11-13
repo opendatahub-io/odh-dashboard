@@ -1,14 +1,16 @@
+/* eslint-disable camelcase -- API contract field names */
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { getKueueAvailability } from '~/app/api/k8s';
+import { waitFor } from '@testing-library/react';
+import { getInfo } from '~/app/api/k8s';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useKueueAvailability } from '~/app/hooks/useKueueAvailability';
 
 jest.mock('~/app/api/k8s', () => ({
-  getKueueAvailability: jest.fn(),
+  getInfo: jest.fn(),
 }));
 
-const mockGetKueueAvailability = jest.mocked(getKueueAvailability);
+const mockGetInfo = jest.mocked(getInfo);
 
 const createWrapper = (queryClient: QueryClient) => {
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
@@ -19,23 +21,116 @@ const createWrapper = (queryClient: QueryClient) => {
 const makeQueryClient = () =>
   new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 30000 } } });
 
-// RHOAIENG-99645: the Kueue integration is disabled, so the hook must report the off
-// state (loaded, no availability, no error) without ever fetching.
+const queueProfile = (queueName: string, status: string) => ({
+  name: `profile-${queueName}`,
+  scheduling_type: 'queue',
+  queue_name: queueName,
+  identifiers: [],
+  queue_availability: { status },
+});
+
 describe('useKueueAvailability', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('reports the disabled state without fetching', () => {
+  it('derives availability from the info API hardware profiles', async () => {
+    mockGetInfo.mockReturnValue((() =>
+      Promise.resolve({
+        hardware_profiles: [
+          queueProfile('gpu', 'active'),
+          queueProfile('cpu', 'inactive'),
+          { name: 'node-profile', scheduling_type: 'node', identifiers: [] },
+        ],
+      })) as ReturnType<typeof mockGetInfo>);
+
     const result = renderHook(() => useKueueAvailability('test-ns'), {
       wrapper: createWrapper(makeQueryClient()),
     });
 
-    expect(result.result.current).toEqual({
-      availability: undefined,
-      loaded: true,
-      error: undefined,
+    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+
+    expect(result.result.current.availability).toEqual({
+      enabled: true,
+      scheduling_ready: true,
     });
-    expect(mockGetKueueAvailability).not.toHaveBeenCalled();
+    expect(result.result.current.error).toBeUndefined();
+  });
+
+  it('reports no availability when the tenant has no hardware profiles', async () => {
+    mockGetInfo.mockReturnValue((() => Promise.resolve({ hardware_profiles: [] })) as ReturnType<
+      typeof mockGetInfo
+    >);
+
+    const result = renderHook(() => useKueueAvailability('test-ns'), {
+      wrapper: createWrapper(makeQueryClient()),
+    });
+
+    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+
+    expect(result.result.current.availability).toEqual({
+      enabled: false,
+      scheduling_ready: false,
+    });
+  });
+
+  it('reports scheduling not ready when no queue-backed profile is active', async () => {
+    mockGetInfo.mockReturnValue((() =>
+      Promise.resolve({
+        hardware_profiles: [queueProfile('cpu', 'inactive')],
+      })) as ReturnType<typeof mockGetInfo>);
+
+    const result = renderHook(() => useKueueAvailability('test-ns'), {
+      wrapper: createWrapper(makeQueryClient()),
+    });
+
+    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+
+    expect(result.result.current.availability).toEqual({
+      enabled: true,
+      scheduling_ready: false,
+    });
+  });
+
+  it('ignores node-scheduled profiles when deriving availability', async () => {
+    mockGetInfo.mockReturnValue((() =>
+      Promise.resolve({
+        hardware_profiles: [{ name: 'node-profile', scheduling_type: 'node', identifiers: [] }],
+      })) as ReturnType<typeof mockGetInfo>);
+
+    const result = renderHook(() => useKueueAvailability('test-ns'), {
+      wrapper: createWrapper(makeQueryClient()),
+    });
+
+    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+
+    expect(result.result.current.availability).toEqual({
+      enabled: false,
+      scheduling_ready: false,
+    });
+  });
+
+  it('does not fetch without a namespace', () => {
+    const result = renderHook(() => useKueueAvailability(undefined), {
+      wrapper: createWrapper(makeQueryClient()),
+    });
+
+    expect(mockGetInfo).not.toHaveBeenCalled();
+    expect(result.result.current.availability).toBeUndefined();
+  });
+
+  it('surfaces fetch errors', async () => {
+    mockGetInfo.mockReturnValue((() => Promise.reject(new Error('unavailable'))) as ReturnType<
+      typeof mockGetInfo
+    >);
+
+    const result = renderHook(() => useKueueAvailability('test-ns'), {
+      wrapper: createWrapper(makeQueryClient()),
+    });
+
+    await waitFor(() => expect(result.result.current.loaded).toBe(true));
+
+    expect(result.result.current.error).toBeInstanceOf(Error);
+    expect(result.result.current.availability).toBeUndefined();
   });
 });

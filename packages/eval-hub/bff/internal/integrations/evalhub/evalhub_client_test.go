@@ -1339,3 +1339,110 @@ func TestEvalHubClient_GetCollection_ParsesStatus(t *testing.T) {
 	assert.Equal(t, 1, result.Status.RunCount)
 	assert.Contains(t, string(raw), `"derived_from": "tool-use-v1"`)
 }
+
+func TestEvalHubClient_GetInfo(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/info", r.URL.Path)
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(InfoResponse{
+			Version: "1.2.3",
+			HardwareProfiles: []HardwareProfileInfo{
+				{
+					Name:              "gpu-small",
+					SchedulingType:    "queue",
+					QueueName:         "gpu",
+					PriorityClassName: "high",
+					Identifiers: []HardwareProfileIdentifier{
+						{Identifier: "cpu", ResourceType: "cpu", DefaultCount: "4", MinCount: "2", MaxCount: "8"},
+					},
+					QueueAvailability: &QueueAvailability{Status: "active", Reason: "Ready"},
+				},
+				{
+					Name:           "cpu-direct",
+					SchedulingType: "node",
+					Identifiers: []HardwareProfileIdentifier{
+						{Identifier: "cpu", ResourceType: "cpu", DefaultCount: "1"},
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	resp, err := client.GetInfo(context.Background(), "my-ns")
+
+	require.NoError(t, err)
+	assert.Equal(t, "1.2.3", resp.Version)
+	require.Len(t, resp.HardwareProfiles, 2)
+	queueProfile := resp.HardwareProfiles[0]
+	assert.Equal(t, "gpu-small", queueProfile.Name)
+	assert.Equal(t, "queue", queueProfile.SchedulingType)
+	assert.Equal(t, "gpu", queueProfile.QueueName)
+	assert.Equal(t, "high", queueProfile.PriorityClassName)
+	require.Len(t, queueProfile.Identifiers, 1)
+	assert.Equal(t, "4", queueProfile.Identifiers[0].DefaultCount)
+	require.NotNil(t, queueProfile.QueueAvailability)
+	assert.Equal(t, "active", queueProfile.QueueAvailability.Status)
+	nodeProfile := resp.HardwareProfiles[1]
+	assert.Equal(t, "node", nodeProfile.SchedulingType)
+	assert.Nil(t, nodeProfile.QueueAvailability)
+}
+
+func TestEvalHubClient_GetInfo_NormalizesNilHardwareProfiles(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/info", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"version":"1.2.3"}`)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	resp, err := client.GetInfo(context.Background(), "my-ns")
+
+	require.NoError(t, err)
+	require.NotNil(t, resp.HardwareProfiles)
+	assert.Empty(t, resp.HardwareProfiles)
+}
+
+func TestEvalHubClient_GetInfo_NormalizesNilIdentifiers(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/info", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"version":"1.2.3","hardware_profiles":[{"name":"cpu-direct","scheduling_type":"node"}]}`)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	resp, err := client.GetInfo(context.Background(), "my-ns")
+
+	require.NoError(t, err)
+	require.Len(t, resp.HardwareProfiles, 1)
+	require.NotNil(t, resp.HardwareProfiles[0].Identifiers)
+	assert.Empty(t, resp.HardwareProfiles[0].Identifiers)
+}
+
+func TestEvalHubClient_GetInfo_RequiresNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://example.invalid", "", false, nil, "/api/v1")
+	_, err := client.GetInfo(context.Background(), "")
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
+}
+
+func TestEvalHubClient_GetInfo_ForwardsBearerToken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(InfoResponse{HardwareProfiles: []HardwareProfileInfo{}})
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "test-token", false, nil, "/api/v1")
+	_, err := client.GetInfo(context.Background(), "my-ns")
+
+	require.NoError(t, err)
+}

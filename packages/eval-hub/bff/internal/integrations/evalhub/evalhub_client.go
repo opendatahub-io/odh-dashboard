@@ -89,6 +89,52 @@ type EvalHubClientInterface interface {
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (EvaluationJobLogsResponse, error)
 	GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (EvaluationJobLogsResponse, error)
+	GetInfo(ctx context.Context, namespace string) (*InfoResponse, error)
+}
+
+// InfoResponse is the response from the EvalHub global info API. HardwareProfiles
+// lists the enabled hardware profiles available to the tenant, as filtered by the
+// service (queue-backed profiles only appear when their LocalQueue exists in the
+// tenant namespace).
+type InfoResponse struct {
+	Version          string                `json:"version"`
+	Build            string                `json:"build"`
+	BuildDate        string                `json:"build_date"`
+	GitHash          string                `json:"git_hash"`
+	HardwareProfiles []HardwareProfileInfo `json:"hardware_profiles"`
+}
+
+// HardwareProfileInfo describes an enabled platform hardware profile available
+// to a tenant, mirroring the service's info API contract.
+type HardwareProfileInfo struct {
+	Name              string                      `json:"name"`
+	DisplayName       string                      `json:"display_name,omitempty"`
+	Description       string                      `json:"description,omitempty"`
+	SchedulingType    string                      `json:"scheduling_type,omitempty"` // "node" or "queue"
+	Identifiers       []HardwareProfileIdentifier `json:"identifiers"`
+	QueueName         string                      `json:"queue_name,omitempty"`
+	PriorityClassName string                      `json:"priority_class_name,omitempty"`
+	QueueAvailability *QueueAvailability          `json:"queue_availability,omitempty"`
+}
+
+// HardwareProfileIdentifier describes a resource and its allowed quantities.
+// Counts are strings so both integer counts and Kubernetes quantities (e.g. 2Gi)
+// have a consistent representation.
+type HardwareProfileIdentifier struct {
+	Identifier   string `json:"identifier"`
+	DisplayName  string `json:"display_name,omitempty"`
+	ResourceType string `json:"resource_type,omitempty"` // "cpu", "memory", or "accelerator"
+	MinCount     string `json:"min_count,omitempty"`
+	DefaultCount string `json:"default_count,omitempty"`
+	MaxCount     string `json:"max_count,omitempty"`
+}
+
+// QueueAvailability reports the tenant LocalQueue's Active condition for
+// queue-backed profiles.
+type QueueAvailability struct {
+	Status  string `json:"status"` // "active", "inactive", or "unknown"
+	Reason  string `json:"reason,omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 // HealthResponse represents the eval-hub health check response.
@@ -640,6 +686,30 @@ func (c *EvalHubClient) HealthCheck(ctx context.Context, namespace string) (*Hea
 	resp, err := get[HealthResponse](c, ctx, "/health", headers)
 	if err != nil {
 		return nil, wrapClientError(err, "HealthCheck")
+	}
+	return resp, nil
+}
+
+// GetInfo retrieves build metadata and the tenant's available hardware profiles
+// from the EvalHub info API. The profile list is tenant-scoped via the X-Tenant
+// header; local runtimes return an empty hardware_profiles array.
+func (c *EvalHubClient) GetInfo(ctx context.Context, namespace string) (*InfoResponse, error) {
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := get[InfoResponse](c, ctx, "/info", headers)
+	if err != nil {
+		return nil, wrapClientError(err, "GetInfo")
+	}
+	if resp.HardwareProfiles == nil {
+		resp.HardwareProfiles = []HardwareProfileInfo{}
+	}
+	for i := range resp.HardwareProfiles {
+		if resp.HardwareProfiles[i].Identifiers == nil {
+			resp.HardwareProfiles[i].Identifiers = []HardwareProfileIdentifier{}
+		}
 	}
 	return resp, nil
 }

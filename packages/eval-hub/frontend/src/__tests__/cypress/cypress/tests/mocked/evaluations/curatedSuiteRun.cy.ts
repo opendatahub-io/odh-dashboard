@@ -44,6 +44,7 @@ const setupIntercepts = () => {
   cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
     body: { data: { experiments: [] } },
   });
+  cy.interceptApi('GET /api/:apiVersion/info', { path: API_VERSION }, { hardware_profiles: [] });
   cy.interceptApi(
     'POST /api/:apiVersion/evaluations/verify-connection',
     { path: API_VERSION },

@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { HardwareProfile, HardwareProfileResource } from '~/app/types';
+import type { HardwareProfileIdentifier, HardwareProfileInfo } from '~/app/types';
 import {
   formatHardwareProfileDetails,
   formatHardwareProfileResourceDetails,
@@ -9,7 +9,7 @@ import {
 
 describe('formatHardwareProfileResourceValue', () => {
   it('should format singular and plural CPU values', () => {
-    const resource: HardwareProfileResource = {
+    const resource: HardwareProfileIdentifier = {
       identifier: 'cpu',
       display_name: 'CPU',
     };
@@ -20,7 +20,7 @@ describe('formatHardwareProfileResourceValue', () => {
   });
 
   it('should normalize memory values to GiB', () => {
-    const resource: HardwareProfileResource = {
+    const resource: HardwareProfileIdentifier = {
       identifier: 'memory',
       display_name: 'Memory',
     };
@@ -30,7 +30,7 @@ describe('formatHardwareProfileResourceValue', () => {
   });
 
   it('should preserve values that do not match a resource-specific format', () => {
-    const resource: HardwareProfileResource = {
+    const resource: HardwareProfileIdentifier = {
       identifier: 'nvidia.com/gpu',
       display_name: 'GPU',
     };
@@ -46,9 +46,9 @@ describe('formatHardwareProfileResourceSummary', () => {
       formatHardwareProfileResourceSummary({
         identifier: 'cpu',
         display_name: 'CPU',
-        default: '4',
-        minimum: '2',
-        maximum: '8',
+        default_count: '4',
+        min_count: '2',
+        max_count: '8',
       }),
     ).toBe('CPU: Default = 4, Minimum = 2, Maximum = 8');
   });
@@ -57,7 +57,7 @@ describe('formatHardwareProfileResourceSummary', () => {
     expect(
       formatHardwareProfileResourceSummary({
         identifier: 'memory',
-        default: '16Gi',
+        default_count: '16Gi',
       }),
     ).toBe('memory: Default = 16Gi');
   });
@@ -69,9 +69,9 @@ describe('formatHardwareProfileResourceDetails', () => {
       formatHardwareProfileResourceDetails({
         identifier: 'cpu',
         display_name: 'CPU',
-        default: '4',
-        minimum: '2',
-        maximum: '8',
+        default_count: '4',
+        min_count: '2',
+        max_count: '8',
       }),
     ).toBe('Default = 4 Cores, Min = 2 Cores, Max = 8 Cores');
 
@@ -79,8 +79,8 @@ describe('formatHardwareProfileResourceDetails', () => {
       formatHardwareProfileResourceDetails({
         identifier: 'memory',
         display_name: 'Memory',
-        default: '16Gi',
-        maximum: '32GiB',
+        default_count: '16Gi',
+        max_count: '32GiB',
       }),
     ).toBe('Default = 16 GiB, Max = 32 GiB');
   });
@@ -88,13 +88,12 @@ describe('formatHardwareProfileResourceDetails', () => {
 
 describe('formatHardwareProfileDetails', () => {
   it('should include configured resources and the LocalQueue', () => {
-    const profile: HardwareProfile = {
+    const profile: HardwareProfileInfo = {
       name: 'gpu-profile',
       display_name: 'GPU Profile',
-      enabled: true,
-      local_queue_name: 'gpu-default',
-      resources: [
-        { identifier: 'cpu', display_name: 'CPU', default: '4' },
+      queue_name: 'gpu-default',
+      identifiers: [
+        { identifier: 'cpu', display_name: 'CPU', default_count: '4' },
         { identifier: 'memory', display_name: 'Memory' },
       ],
     };
@@ -103,10 +102,10 @@ describe('formatHardwareProfileDetails', () => {
   });
 
   it('should return an empty string when no resources or queue are configured', () => {
-    const profile: HardwareProfile = {
+    const profile: HardwareProfileInfo = {
       name: 'empty-profile',
       display_name: 'Empty Profile',
-      enabled: true,
+      identifiers: [],
     };
 
     expect(formatHardwareProfileDetails(profile)).toBe('');

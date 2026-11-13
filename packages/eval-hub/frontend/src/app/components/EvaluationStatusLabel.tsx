@@ -4,13 +4,12 @@ import {
   BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  ExclamationTriangleIcon,
   InProgressIcon,
   OffIcon,
   PendingIcon,
   QuestionCircleIcon,
 } from '@patternfly/react-icons';
-import { EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
+import { EvaluationJobState } from '~/app/types';
 import { getEvaluationDisplayState } from '~/app/utilities/evaluationUtils';
 
 type StatusConfig = {
@@ -21,9 +20,7 @@ type StatusConfig = {
   isFilled?: boolean;
 };
 
-const statusMap: Partial<
-  Record<EvaluationJobState | 'not_started' | 'queued' | 'admitted' | 'inadmissible', StatusConfig>
-> = {
+const statusMap: Partial<Record<EvaluationJobState | 'not_started' | 'queued', StatusConfig>> = {
   pending: {
     label: 'Pending',
     color: 'purple',
@@ -33,16 +30,6 @@ const statusMap: Partial<
     label: 'Queued',
     color: 'purple',
     icon: <PendingIcon />,
-  },
-  admitted: {
-    label: 'Admitted',
-    color: 'blue',
-    icon: <InProgressIcon className="ai-u-spin" />,
-  },
-  inadmissible: {
-    label: 'Inadmissible',
-    status: 'warning',
-    icon: <ExclamationTriangleIcon />,
   },
   running: {
     label: 'Running',
@@ -92,29 +79,14 @@ const unknownStatusConfig: StatusConfig = {
   icon: <QuestionCircleIcon />,
 };
 
-export const getKueueTooltipText = (status: KueueWorkloadStatus): string => {
-  switch (status.state) {
-    case 'queued':
-      return 'Waiting for Kueue to allocate resources.';
-    case 'preempted':
-      return 'Kueue released this evaluation’s resources. It is waiting to be scheduled again.';
-    case 'admitted':
-      return 'Kueue allocated resources to this evaluation.';
-    case 'inadmissible':
-      return 'Kueue could not admit this evaluation.';
-    default:
-      return '';
-  }
-};
-
 type EvaluationStatusLabelProps = {
   state: EvaluationJobState;
   isQueued?: boolean;
   isLoading?: boolean;
   /** When true and state is 'failed', renders the "Not started" badge — no benchmark ever received a started_at timestamp. */
   isPreStartFailure?: boolean;
-  /** A live Kueue Workload status that can describe its active scheduling state. */
-  kueueWorkloadStatus?: KueueWorkloadStatus;
+  /** The LocalQueue the evaluation is waiting in, shown in the queued-state tooltip. */
+  queueName?: string;
   onClick?: () => void;
 };
 
@@ -123,7 +95,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
   isQueued,
   isLoading = false,
   isPreStartFailure,
-  kueueWorkloadStatus,
+  queueName,
   onClick,
 }) => {
   if (isLoading) {
@@ -137,11 +109,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
     );
   }
 
-  const effectiveState = getEvaluationDisplayState(state, {
-    isQueued,
-    isPreStartFailure,
-    kueueWorkloadStatus,
-  });
+  const effectiveState = getEvaluationDisplayState(state, { isQueued, isPreStartFailure });
   const config = statusMap[effectiveState] ?? unknownStatusConfig;
 
   const label = (
@@ -157,26 +125,16 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
     </Label>
   );
 
-  const shouldShowKueueDetails =
-    (effectiveState === 'queued' ||
-      effectiveState === 'admitted' ||
-      effectiveState === 'inadmissible') &&
-    (kueueWorkloadStatus?.state === 'queued' ||
-      kueueWorkloadStatus?.state === 'preempted' ||
-      kueueWorkloadStatus?.state === 'admitted' ||
-      kueueWorkloadStatus?.state === 'inadmissible');
-
-  if (!shouldShowKueueDetails) {
+  if (effectiveState !== 'queued') {
     return label;
   }
 
   return (
     <Tooltip
       content={
-        <>
-          <div>{getKueueTooltipText(kueueWorkloadStatus)}</div>
-          {kueueWorkloadStatus.message ? <div>{kueueWorkloadStatus.message}</div> : null}
-        </>
+        queueName
+          ? `Waiting in queue ${queueName} for resources to be allocated.`
+          : 'Waiting for resources to be allocated.'
       }
     >
       <span>{label}</span>

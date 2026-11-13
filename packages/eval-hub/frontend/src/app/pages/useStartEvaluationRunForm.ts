@@ -5,7 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
-import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
+import { createEvaluationJob, getInfo, validateHardwareProfiles } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,
   type RunSourceSelectedProperties,
@@ -549,15 +549,13 @@ export function useStartEvaluationRunForm({
   const requiresHardwareProfile = kueueAvailability?.enabled === true;
   // Reconfigured jobs can reference profiles or queues that no longer exist. Derive the
   // current selection from the available profiles so hidden, stale form values are never sent.
-  const selectedHardwareProfile =
-    kueueAvailability?.scheduling_ready === true
-      ? hardwareProfiles.find(
-          (profile) =>
-            profile.name === hardwareProfile &&
-            !!profile.local_queue_name &&
-            kueueAvailability.local_queue_names.includes(profile.local_queue_name),
-        )
-      : undefined;
+  // The service only returns queue-backed profiles while their LocalQueue exists in
+  // the tenant namespace, so membership in the list is the availability check. Queue
+  // activity is advisory: an inactive or unknown LocalQueue still accepts the submission,
+  // which then waits for admission.
+  const selectedHardwareProfile = hardwareProfiles.find(
+    (profile) => profile.name === hardwareProfile,
+  );
 
   const isValid = React.useMemo(() => {
     if (
@@ -674,7 +672,7 @@ export function useStartEvaluationRunForm({
     (profileName: string | undefined) => {
       const profile = hardwareProfiles.find((candidate) => candidate.name === profileName);
       form.setValue('hardwareProfile', profile?.name, { shouldValidate: true });
-      form.setValue('queue', profile?.local_queue_name, { shouldValidate: true });
+      form.setValue('queue', profile?.queue_name, { shouldValidate: true });
     },
     [form, hardwareProfiles],
   );
@@ -901,7 +899,7 @@ export function useStartEvaluationRunForm({
       passCriteriaOverride,
       primaryScoreOverride,
       hardwareProfile: selectedHardwareProfile?.name,
-      queue: selectedHardwareProfile?.local_queue_name,
+      queue: selectedHardwareProfile?.queue_name,
     });
 
     trackEvalHubEvent(
@@ -960,24 +958,57 @@ export function useStartEvaluationRunForm({
         throw clusterUrlParseError;
       }
       if (selectedHardwareProfile) {
-        // Refresh the structural profile and LocalQueue selection without depending on
-        // advisory provider compatibility, which may be unavailable or lack provider IDs.
-        const currentProfiles = await getHardwareProfiles(
+        // Structural revalidation — blocking. The service re-filters queue-backed
+        // profiles per call, so a deleted LocalQueue drops its profile from the
+        // response.
+        const currentInfo = await getInfo(
           '',
           namespace ?? '',
         )({
           signal: controller.signal,
         });
         if (
-          !currentProfiles.some(
+          !currentInfo.hardware_profiles.some(
             (profile) =>
               profile.name === selectedHardwareProfile.name &&
-              profile.local_queue_name === selectedHardwareProfile.local_queue_name,
+              profile.queue_name === selectedHardwareProfile.queue_name,
           )
         ) {
           throw new Error(
             'The selected HardwareProfile or LocalQueue is no longer available. Refresh the page and select another hardware profile.',
           );
+        }
+        // Compatibility revalidation — advisory. The selector's "Insufficient
+        // resources" label comes from a cached query keyed by profile and provider
+        // names, so server-side resource changes since the form loaded can leave it
+        // stale. Re-run the validation against the submitted providers and warn;
+        // submission stays allowed. Validation is skipped when the submission has no
+        // provider IDs or the call fails, matching the selector's nonblocking behavior.
+        const submissionProviderIds = Array.from(
+          new Set(
+            getProviderIds(benchmark, activeCollection)
+              .map((providerId) => providerId.trim())
+              .filter(Boolean),
+          ),
+        );
+        if (submissionProviderIds.length > 0) {
+          try {
+            const validation = await validateHardwareProfiles('', namespace ?? '', {
+              hardware_profiles: [selectedHardwareProfile.name],
+              provider_ids: submissionProviderIds,
+            })({ signal: controller.signal });
+            const compatibility = validation.items.find(
+              (item) => item.hardware_profile === selectedHardwareProfile.name,
+            );
+            if (compatibility?.compatible === false) {
+              notification.warning(
+                'Hardware profile may be undersized',
+                `"${selectedHardwareProfile.display_name ?? selectedHardwareProfile.name}" may not meet the benchmark provider's minimum resource requirements. The evaluation is still submitted and may wait for resources or fail to schedule.`,
+              );
+            }
+          } catch {
+            // Advisory only — proceed with the submission.
+          }
         }
       }
       await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });

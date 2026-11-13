@@ -1,9 +1,4 @@
-import {
-  BenchmarkState,
-  EvaluationJob,
-  EvaluationJobState,
-  KueueWorkloadStatus,
-} from '~/app/types';
+import { BenchmarkState, EvaluationJob, EvaluationJobState } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
@@ -32,16 +27,6 @@ export const getLatestEvaluationJob = (
 
 export const isEvaluationJobQueued = (job: EvaluationJob): boolean =>
   job.status.state === 'pending' && Boolean(getEvaluationQueue(job));
-
-/** Formats a positive queue position with its English ordinal suffix. */
-export const formatOrdinal = (position: number): string => {
-  const lastTwoDigits = position % 100;
-  const suffix =
-    lastTwoDigits >= 11 && lastTwoDigits <= 13
-      ? 'th'
-      : (['th', 'st', 'nd', 'rd'][position % 10] ?? 'th');
-  return `${position}${suffix}`;
-};
 
 export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> => {
   if (job.benchmarks?.length) {
@@ -400,29 +385,23 @@ const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
 
 export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
 
-export type EvaluationDisplayState =
-  EvaluationJobState | 'not_started' | 'queued' | 'admitted' | 'inadmissible';
+export type EvaluationDisplayState = EvaluationJobState | 'not_started' | 'queued';
 
 type EvaluationDisplayStateOptions = {
   isQueued?: boolean;
   isPreStartFailure?: boolean;
-  kueueWorkloadStatus?: KueueWorkloadStatus;
 };
 
 /**
  * Resolves the single user-facing status for an evaluation.
  *
- * EvalHub owns the evaluation lifecycle and final outcome, so its terminal
- * states always win. Before that, a live Kueue Workload shows whether it is
- * waiting for resources or has admitted the evaluation to its LocalQueue.
+ * EvalHub owns the evaluation lifecycle and final outcome, so its states
+ * always win. A pending evaluation assigned to a Kueue queue is shown as
+ * queued — waiting for resources to be admitted.
  */
 export const getEvaluationDisplayState = (
   state: EvaluationJobState,
-  {
-    isQueued = false,
-    isPreStartFailure = false,
-    kueueWorkloadStatus,
-  }: EvaluationDisplayStateOptions = {},
+  { isQueued = false, isPreStartFailure = false }: EvaluationDisplayStateOptions = {},
 ): EvaluationDisplayState => {
   if (state === 'failed' && isPreStartFailure) {
     return 'not_started';
@@ -436,19 +415,7 @@ export const getEvaluationDisplayState = (
   if (state === 'stopping') {
     return state;
   }
-  switch (kueueWorkloadStatus?.state) {
-    case 'queued':
-    case 'preempted':
-      return 'queued';
-    case 'admitted':
-      return state === 'pending' ? 'admitted' : state;
-    case 'inadmissible':
-      return 'inadmissible';
-    case 'finished':
-      return state;
-    default:
-      return state === 'pending' && isQueued ? 'queued' : state;
-  }
+  return state === 'pending' && isQueued ? 'queued' : state;
 };
 
 /** Only completed runs with the MLflow data required by compare can be selected. */

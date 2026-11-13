@@ -7,7 +7,7 @@
 
 ## Design Intent
 
-- **BFF**: Between React UI and the cluster plus external **eval-hub service**; authenticates, applies RBAC, returns typed JSON for collections, jobs, namespaces, and user resolution.
+- **BFF**: Between React UI and the cluster plus external **eval-hub service**; authenticates, applies RBAC, returns typed JSON for collections, jobs, namespaces, and user resolution. Hardware profile and queue discovery is proxied from the eval-hub service info API (`GET /api/v1/info`) with the caller's token — the BFF performs no direct Kueue or HardwareProfile CR reads.
 - **Serving by deployment mode**:
   - Standalone/kubeflow: typically serve the SPA from the BFF static flow.
   - Federated: BFF is API-only; main dashboard loads the bundle at runtime.
@@ -21,6 +21,7 @@
 | **EvaluationRun** | One evaluation pipeline execution against a model version, with inputs, outputs, and scores. |
 | **EvaluationMetric** | Named, configurable measure (e.g. accuracy, F1) applied during a run. |
 | **ModelBenchmark** | Aggregated comparison of runs across versions or endpoints. |
+| **Hardware profile** | Queue-scheduled resource profile from the info API (`HardwareProfileInfo`): `identifiers` with min/default/max counts, `queue_name`, and `queue_availability`. |
 | **eval-hub service** | External orchestration service the BFF proxies for run CRUD and results. |
 
 ## Interactions
@@ -31,7 +32,7 @@
 | model-registry | Package | Model versions used as evaluation targets. |
 | model-serving | Package | Deployed endpoints to evaluate against. |
 | Kubeflow Pipelines | External service | Can orchestrate evaluation pipeline execution. |
-| eval-hub service | External service | Proxied by the BFF for evaluations API. |
+| eval-hub service | External service | Proxied by the BFF for the evaluations API and the info API (hardware profiles with queue availability). |
 | Kubernetes | Cluster API | CRDs, RBAC, namespace and user context. |
 
 ## Known Issues / Gotchas
@@ -40,4 +41,5 @@
 - Default `STYLE_THEME` is `mui-theme` in standalone/kubeflow; federated Makefile flow sets PatternFly.
 - Port 4002 is shared conventionally with other packages — avoid two BFFs on the same port.
 - Contract tests expect `GET /healthcheck` on the BFF.
+- The Queued job status is derived (`status.state = pending` plus a set `hardware_config.queue`) — it is not polled from Kueue. Live workload statuses and queue position are not available.
 - Reconfiguring a run supports S3 prerecorded references only: stored PVC, Git, and Hugging Face references marked `pre_recorded_data` are dropped when a run is reconfigured through the UI (the collection's test-data fields are hidden, so the user cannot see or restore them). Runs created through the API with non-S3 prerecorded references lose those references on reconfigure.
