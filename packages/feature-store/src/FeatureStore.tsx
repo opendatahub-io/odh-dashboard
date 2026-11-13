@@ -5,7 +5,7 @@ import {
   LineageCenterProvider,
   useLineageCenter,
 } from '@odh-dashboard/internal/components/lineage/context/LineageCenterContext';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 import {
   FEATURE_STORE_EVENTS,
@@ -34,6 +34,7 @@ type FeatureStoreProps = Omit<
   | 'headerContent'
 >;
 const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
+  const trackEvent = useTrackEvent();
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(FeatureStoreTabs.METRICS);
   const { triggerCenter } = useLineageCenter();
   const lineageTabRef = React.useRef<HTMLDivElement>(null);
@@ -96,7 +97,7 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
           activeKey={activeTabKey}
           onSelect={(e, tabIndex) => {
             if (tabIndex !== activeTabKey) {
-              fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+              trackEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
                 tabName: String(tabIndex),
                 pageType: 'overview',
                 resourceType: RESOURCE_TYPES.FEATURE_STORE,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import FeatureStoreDataSourcesTable from './FeatureStoreDataSourceTable';
 import { FeatureStoreToolbar } from '../../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
@@ -16,6 +16,7 @@ const FeatureStoreDataSourceListView = ({
 }: {
   dataSources: DataSourceList;
 }): React.ReactElement => {
+  const trackEvent = useTrackEvent();
   const [filterData, setFilterData] = React.useState<
     Record<string, string | { label: string; value: string } | undefined>
   >({});
@@ -54,12 +55,12 @@ const FeatureStoreDataSourceListView = ({
   );
 
   const onClearFilters = React.useCallback(() => {
-    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+    trackEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
       action: 'clearAll',
       resourceType: 'dataSource',
     } satisfies FilterRemovedProperties);
     setFilterData({});
-  }, []);
+  }, [trackEvent]);
 
   const filteredDataSources = React.useMemo(() => {
     let filtered = processedDataSources;

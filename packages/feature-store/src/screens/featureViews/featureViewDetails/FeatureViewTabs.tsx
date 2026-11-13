@@ -4,7 +4,7 @@ import {
   LineageCenterProvider,
   useLineageCenter,
 } from '@odh-dashboard/internal/components/lineage/context/LineageCenterContext';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import FeatureViewLineageTab from './FeatureViewLineageTab';
 import FeatureViewDetailsView from './FeatureViewDetailsTab';
 import FeatureViewMaterialization from './FeatureViewMaterialization';
@@ -33,6 +33,7 @@ const getTabTitleWithTooltip = (title: string, tooltip: React.ReactNode) => (
 );
 
 const FeatureViewTabsInner: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
+  const trackEvent = useTrackEvent();
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(FeatureViewTab.DETAILS);
   const { triggerCenter } = useLineageCenter();
 
@@ -51,7 +52,7 @@ const FeatureViewTabsInner: React.FC<FeatureViewTabsProps> = ({ featureView }) =
       data-testid="feature-view-details-page"
       onSelect={(e, tabIndex) => {
         if (tabIndex !== activeTabKey) {
-          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+          trackEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
             tabName: String(tabIndex),
             pageType: 'detail',
             resourceType: RESOURCE_TYPES.FEATURE_VIEW,
