@@ -34,6 +34,9 @@ import {
   retryPipelineRun,
   getArtifact,
   listArtifacts,
+  listTasks,
+  listArtifactTasks,
+  getTask,
   getPipelineByName,
 } from '#~/api';
 import { PipelineAPIs } from '#~/concepts/pipelines/types';
@@ -57,6 +60,7 @@ const usePipelineAPIState = (
       getPipelineRun: getPipelineRun(path),
       getPipelineRecurringRun: getPipelineRecurringRun(path),
       getPipelineVersion: getPipelineVersion(path),
+      getTask: getTask(path),
       deletePipeline: deletePipeline(path),
       deletePipelineRun: deletePipelineRun(path),
       deletePipelineRecurringRun: deletePipelineRecurringRun(path),
@@ -79,6 +83,8 @@ const usePipelineAPIState = (
       stopPipelineRun: stopPipelineRun(path),
       getArtifact: getArtifact(path),
       listArtifacts: listArtifacts(path),
+      listTasks: listTasks(path),
+      listArtifactTasks: listArtifactTasks(path),
       updatePipelineRecurringRun: updatePipelineRecurringRun(path),
       uploadPipeline: uploadPipeline(path),
       uploadPipelineVersion: uploadPipelineVersion(path),
