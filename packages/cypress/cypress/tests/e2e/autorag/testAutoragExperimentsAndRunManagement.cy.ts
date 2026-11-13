@@ -1,9 +1,7 @@
 import yaml from 'js-yaml';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { deleteAutoXS3TestFiles } from '../../../utils/oc_commands/autoXS3Cleanup';
-import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { cleanupAutoXResources, setupAutoXProject } from '../../../utils/automlCleanup';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { autoragResultsPage } from '../../../pages/autorag/resultsPage';
@@ -44,13 +42,14 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
       .fixture('e2e/autorag/testAutoragExperimentsAndRunManagement.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
-        projectName = `${testData.projectNamePrefix}-${uuid}`;
         cleanupReady = true;
       })
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
         maasFixture = fixture;
-        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        return setupAutoXProject(testData, uuid).then((namespace) => {
+          projectName = namespace;
+        });
       }),
   );
 
@@ -59,14 +58,15 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
       return;
     }
 
-    cleanupAutoragInfrastructure(
-      projectName,
-      testData.maasSecretName,
-      testData.vectorDbSecretName,
-      connectionOwnership,
-    );
-    deleteAutoXS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    if (projectName) {
+      cleanupAutoragInfrastructure(
+        projectName,
+        testData.maasSecretName,
+        testData.vectorDbSecretName,
+        connectionOwnership,
+      );
+    }
+    cleanupAutoXResources();
   });
 
   it(

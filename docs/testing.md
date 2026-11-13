@@ -436,6 +436,39 @@ Cypress uses several environment variables to control test behavior and configur
 - **Effect**: Configures the global timeout for all tests
 - **Usage**: `CY_TEST_TIMEOUT_SECONDS=300 pnpm run cypress:run`
 
+### Recovering AutoML and AutoRAG Test Cleanup
+
+AutoML and AutoRAG E2E runs write cleanup manifests under `packages/cypress/results/e2e/automl-cleanup`. Use the recovery command when a test process stops before its `after` hook completes:
+
+```bash
+cd packages/cypress
+pnpm run cleanup:automl
+```
+
+The command defaults to dry-run and prints the recorded uploaded keys, run output prefixes, and cleanup state. Review that output before applying cleanup. Applying cleanup requires the intended cluster context, a stable project where temporary S3 cleanup Jobs can run, and the test configuration with S3 credentials:
+
+```bash
+CY_TEST_CONFIG=/path/to/test-variables.yml \
+  pnpm run cleanup:automl --apply \
+  --context=<oc-context> \
+  --namespace=<stable-cleanup-project>
+```
+
+Use `--manifest-dir=<path>` to select another manifest directory. Set
+`CY_AUTOX_CLEANUP_CONTEXT` and `CY_AUTOX_CLEANUP_NAMESPACE` to supply the context and executor
+project through the environment instead of flags; the legacy `CY_AUTOML_CLEANUP_CONTEXT` and
+`CY_AUTOML_CLEANUP_NAMESPACE` names also work. Set `CY_S3_CLEANUP_IMAGE` (or `AWS_CLI_IMAGE`)
+to override the default AWS CLI image.
+
+Recovery verifies the cluster, bucket, and S3 endpoint recorded in each manifest, and checks the
+namespace UID and per-attempt ownership label before terminating runs or deleting a project. It
+refuses to delete a project whose identity no longer matches. The dry-run prints the recorded S3
+endpoint. If the E2E test run set `CYPRESS_DSPA_S3_ENDPOINT` during provisioning, set the same value
+when applying cleanup; the command rejects endpoints that do not match the configured bucket or
+explicit override.
+
+Recovery runs S3 cleanup in a TTL-managed Job. The Job owns its credential Secret after creation; later recovery runs remove labeled, unowned Secrets that are at least one hour old, covering interruption between Secret and Job creation.
+
 ### Page Objects
 
 Page Objects are TypeScript objects / classes used to encapsulate all the selectors and functions related to a particular page or UI element. The functions exposed by a page object use the following prefixes:

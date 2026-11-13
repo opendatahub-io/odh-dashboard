@@ -1,9 +1,7 @@
 import yaml from 'js-yaml';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { deleteAutoXS3TestFiles } from '../../../utils/oc_commands/autoXS3Cleanup';
-import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { cleanupAutoXResources, setupAutoXProject } from '../../../utils/automlCleanup';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { cleanupAutoragInfrastructure } from '../../../utils/oc_commands/autoragInfra';
 import type { AutoragTestData } from '../../../types';
@@ -43,13 +41,14 @@ describe('AutoRAG Optimization E2E', () => {
       .fixture('e2e/autorag/testAutoragOptimization.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
-        projectName = `${testData.projectNamePrefix}-${uuid}`;
         cleanupReady = true;
       })
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
         maasFixture = fixture;
-        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        return setupAutoXProject(testData, uuid).then((namespace) => {
+          projectName = namespace;
+        });
       }),
   );
 
@@ -58,14 +57,15 @@ describe('AutoRAG Optimization E2E', () => {
       return;
     }
 
-    cleanupAutoragInfrastructure(
-      projectName,
-      testData.maasSecretName,
-      testData.vectorDbSecretName,
-      connectionOwnership,
-    );
-    deleteAutoXS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    if (projectName) {
+      cleanupAutoragInfrastructure(
+        projectName,
+        testData.maasSecretName,
+        testData.vectorDbSecretName,
+        connectionOwnership,
+      );
+    }
+    cleanupAutoXResources();
   });
 
   it(
@@ -126,13 +126,14 @@ describe('AutoRAG Optimization completion results E2E', () => {
       .fixture('e2e/autorag/testAutoragOptimization.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
-        projectName = `${testData.projectNamePrefix}-${completionUuid}`;
         cleanupReady = true;
       })
       .then(() => checkAutoragMaaSReadiness())
       .then((fixture) => {
         maasFixture = fixture;
-        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        return setupAutoXProject(testData, completionUuid).then((namespace) => {
+          projectName = namespace;
+        });
       }),
   );
 
@@ -141,14 +142,15 @@ describe('AutoRAG Optimization completion results E2E', () => {
       return;
     }
 
-    cleanupAutoragInfrastructure(
-      projectName,
-      testData.maasSecretName,
-      testData.vectorDbSecretName,
-      connectionOwnership,
-    );
-    deleteAutoXS3TestFiles(projectName, testData.awsBucket, `*${completionUuid}*`);
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    if (projectName) {
+      cleanupAutoragInfrastructure(
+        projectName,
+        testData.maasSecretName,
+        testData.vectorDbSecretName,
+        connectionOwnership,
+      );
+    }
+    cleanupAutoXResources();
   });
 
   it(

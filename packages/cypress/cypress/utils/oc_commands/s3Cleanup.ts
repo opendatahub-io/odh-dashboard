@@ -1,20 +1,10 @@
-import { applyOpenShiftYaml } from './baseCommands';
 import { getFeastS3Config, getS3CaBundle } from './feastS3';
+import { DEFAULT_AWS_CLI_IMAGE } from '../../../src/automlCleanupCommands';
+import { AWS_CLI_TASK_CLEANUP_HEADROOM_MS } from '../../../src/awsCliPodTaskConstants';
+import type { AwsCliPodTaskOptions } from '../../../src/awsCliPodTask';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
-import type { AWSS3Buckets } from '../../types';
+import type { AWSS3Buckets, CommandLineResult } from '../../types';
 import { AWS_BUCKETS } from '../s3Buckets';
-
-/** Shell-escape a value by wrapping in single quotes (handles embedded quotes). */
-const shQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
-
-const S3_CA_MOUNT_DIR = '/tmp/s3-ca';
-const S3_CA_FILE = 'ca.pem';
-const S3_CA_PATH = `${S3_CA_MOUNT_DIR}/${S3_CA_FILE}`;
-const S3_CA_SECRET_KEY = 'AWS_CA_BUNDLE_PEM';
-
-/** Pinned fallback image for clusters that can pull from the public registry. */
-const DEFAULT_AWS_CLI_IMAGE =
-  'amazon/aws-cli:2.27.50@sha256:48c3d4212e2f5b0e24bdc6af7708f9412ce65425a79575e0f78b8f8c0dcd70ab';
 
 const K8S_DNS_LABEL = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 
@@ -27,155 +17,81 @@ const assertK8sDnsLabel = (kind: string, value: string): void => {
 const getAwsPipelines = (): AWSS3Buckets =>
   (Cypress.env('AWS_PIPELINES') as AWSS3Buckets | undefined) ?? AWS_BUCKETS;
 
-const getAwsCliImage = (): string =>
-  (Cypress.env('AWS_CLI_IMAGE') as string | undefined) || DEFAULT_AWS_CLI_IMAGE;
-
 type AwsCliPodOptions = {
   namespace: string;
   podName: string;
   region: string;
   awsCliArgs: string[];
+  command?: string[];
   failOnNonZeroExit?: boolean;
   timeout?: number;
 };
 
 /**
- * Run the AWS CLI in an ephemeral in-cluster pod.
+ * Run the AWS CLI in an ephemeral in-cluster Job.
  *
- * Credentials are mounted from a temporary Secret via `--overrides`
- * (`envFrom.secretRef`), so the `oc run` argv (and therefore Cypress `[EXEC]`
- * logs) never contain the keys.
- * The Secret is deleted after the pod exits, including when `oc run` fails.
+ * The Node-side task creates a credential Secret owned by a TTL-managed Job,
+ * collects failure diagnostics, then deletes both resources after completion.
  */
 export const runAwsCliInCluster = ({
   namespace,
   podName,
   region,
   awsCliArgs,
+  command,
   failOnNonZeroExit = false,
-  timeout = 120000,
-}: AwsCliPodOptions): Cypress.Chainable<Cypress.Exec> => {
+  timeout = 420000,
+}: AwsCliPodOptions): Cypress.Chainable<CommandLineResult> => {
   assertK8sDnsLabel('namespace', namespace);
   assertK8sDnsLabel('pod name', podName);
 
-  const secretName = `${podName}-creds`;
-  assertK8sDnsLabel('secret name', secretName);
-
   const buckets = getAwsPipelines();
-  const awsCliImage = getAwsCliImage();
-  const caBundle = getS3CaBundle();
-
-  const secretStringData: Record<string, string> = {
-    AWS_ACCESS_KEY_ID: buckets.AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY: buckets.AWS_SECRET_ACCESS_KEY,
-    AWS_DEFAULT_REGION: region,
+  const image =
+    (Cypress.env('CY_S3_CLEANUP_IMAGE') as string | undefined) ||
+    (Cypress.env('AWS_CLI_IMAGE') as string | undefined) ||
+    DEFAULT_AWS_CLI_IMAGE;
+  const taskOptions: AwsCliPodTaskOptions = {
+    namespace,
+    podName,
+    image,
+    region,
+    awsAccessKeyId: buckets.AWS_ACCESS_KEY_ID,
+    awsSecretAccessKey: buckets.AWS_SECRET_ACCESS_KEY,
+    awsCaBundle: getS3CaBundle(),
+    awsCliArgs,
+    command,
+    timeout,
   };
-  if (caBundle) {
-    secretStringData[S3_CA_SECRET_KEY] = caBundle;
-  }
-
-  const secretManifest = JSON.stringify({
-    apiVersion: 'v1',
-    kind: 'Secret',
-    metadata: {
-      name: secretName,
-      namespace,
-    },
-    stringData: secretStringData,
-  });
-
-  const deleteCredentials = () =>
-    cy.exec(`oc delete secret ${shQuote(secretName)} -n ${shQuote(namespace)} --ignore-not-found`, {
-      failOnNonZeroExit: false,
+  return cy
+    .task<CommandLineResult>('runAwsCliInCluster', taskOptions, {
       log: false,
+      timeout: timeout + AWS_CLI_TASK_CLEANUP_HEADROOM_MS,
+    })
+    .then((result): Cypress.Chainable<CommandLineResult> => {
+      if (result.exitCode === 0) {
+        return cy.wrap(result, { log: false });
+      }
+
+      const detail = maskSensitiveInfo(`${result.stderr}\n${result.stdout}`.slice(0, 6000));
+      if (failOnNonZeroExit) {
+        throw new Error(`AWS CLI Job ${podName} or its cleanup failed: ${detail}`);
+      }
+      return cy
+        .log(
+          `WARNING: AWS CLI Job ${podName} or its cleanup failed; S3 objects or temporary resources may remain. Job diagnostics: ${detail}`,
+        )
+        .then(() => cy.wrap(result, { log: false }));
     });
-
-  const container: Record<string, unknown> = {
-    name: podName,
-    image: awsCliImage,
-    args: awsCliArgs,
-    envFrom: [{ secretRef: { name: secretName } }],
-    securityContext: {
-      runAsUser: 1001,
-      runAsGroup: 1001,
-      runAsNonRoot: true,
-      allowPrivilegeEscalation: false,
-      seccompProfile: { type: 'RuntimeDefault' },
-      capabilities: { drop: ['ALL'] },
-    },
-  };
-  if (caBundle) {
-    container.env = [{ name: 'AWS_CA_BUNDLE', value: S3_CA_PATH }];
-    container.volumeMounts = [{ name: 's3-ca', mountPath: S3_CA_MOUNT_DIR, readOnly: true }];
-  }
-
-  // `--overrides` replaces `spec.containers` wholesale, so it must carry image and args.
-  const podOverrides = JSON.stringify({
-    spec: {
-      containers: [container],
-      ...(caBundle
-        ? {
-            volumes: [
-              {
-                name: 's3-ca',
-                secret: {
-                  secretName,
-                  items: [{ key: S3_CA_SECRET_KEY, path: S3_CA_FILE }],
-                },
-              },
-            ],
-          }
-        : {}),
-    },
-  });
-
-  return applyOpenShiftYaml(secretManifest).then(() => {
-    // failOnNonZeroExit must be false so Cypress still runs Secret cleanup after a
-    // non-zero oc run. Re-throw after deletion when the caller asked to fail.
-    return cy
-      .exec(
-        `oc run ${shQuote(podName)} -n ${shQuote(namespace)} ` +
-          `--image=${shQuote(awsCliImage)} ` +
-          `--restart=Never --rm --attach --tty=false ` +
-          `--overrides=${shQuote(podOverrides)}`,
-        { failOnNonZeroExit: false, log: false, timeout },
-      )
-      .then((result) =>
-        deleteCredentials().then(() => {
-          if (result.exitCode === 0) {
-            return cy.wrap(result, { log: false });
-          }
-          const maskedStderr = maskSensitiveInfo(result.stderr);
-          if (failOnNonZeroExit) {
-            throw new Error(
-              `AWS CLI pod ${podName} exited with code ${result.exitCode}: ${maskedStderr}`,
-            );
-          }
-          cy.log(
-            `WARNING: AWS CLI pod ${podName} exited with code ${result.exitCode}; ` +
-              `S3 objects may have been left behind: ${maskedStderr}`,
-          );
-          return cy.wrap(result, { log: false });
-        }),
-      );
-  });
 };
 
 /**
  * Delete S3 objects whose keys match a given prefix pattern.
  *
- * Runs an ephemeral pod with the AWS CLI image to execute
- * `aws s3 rm --recursive`.  The pod is auto-removed via `--rm`.
+ * Best-effort — failures are logged but do not fail the test run so that
+ * project cleanup can still proceed.
  *
- * Best-effort — failures are logged but do not fail the test run so
- * that project cleanup can still proceed.
- *
- * Must be called **before** `deleteOpenShiftProject` because the pod
- * runs inside that namespace.
- *
- * @param namespace  Namespace to run the cleanup pod in
- * @param bucketKey  Which bucket config to use
- * @param prefix     S3 key prefix glob to delete (e.g. `*<uuid>*`)
+ * Must be called before deleting the OpenShift project because the Job runs
+ * inside that namespace.
  */
 export const deleteS3TestFiles = (
   namespace: string,
@@ -221,20 +137,9 @@ const assertValidNamespace = (namespace: string): void => {
 const endpointArgs = (endpoint: string): string[] => (endpoint ? ['--endpoint-url', endpoint] : []);
 
 /**
- * Prepares the S3 location for the namespace-scoped Feast registry.
+ * Creates the namespace-scoped Feast registry prefix in S3.
  *
- * Path: `s3://<bucket>/feast-test/<namespace>/credit_scoring_local/`
- *
- * Uses `S3.BUCKET_1` from the test config. On disconnected clusters the pipeline
- * rewrites that endpoint (and `S3.AWS_CA_BUNDLE`) to the injected MinIO, so the
- * same AWS CLI pod targets MinIO without any test-side branching.
- *
- * Does not seed registry.pb — the FeatureStore CR (`feast.yaml`) creates the
- * registry object, and later test steps (e.g. saved dataset) write into it.
- *
- * Must run after the OpenShift project exists and before `createFeatureStoreCR`.
- *
- * @param namespace The test namespace (S3 path segment and pod namespace)
+ * Must run after the OpenShift project exists and before createFeatureStoreCR.
  */
 export const createRegistryStep = (namespace: string): void => {
   assertValidNamespace(namespace);
@@ -266,10 +171,8 @@ export const createRegistryStep = (namespace: string): void => {
 /**
  * Delete the Feast registry files for a given test namespace from S3.
  *
- * Removes `feast-test/<namespace>/` recursively from BUCKET_1.
- * Must be called before `deleteOpenShiftProject` (pod runs in that namespace).
- *
- * @param namespace The test namespace (also used as the S3 path segment)
+ * Must be called before deleting the OpenShift project because the pod runs
+ * inside that namespace.
  */
 export const deleteFeastRegistryFiles = (namespace: string): void => {
   assertValidNamespace(namespace);
