@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import CreateSuiteFromGoalPage from '~/app/pages/CreateSuiteFromGoalPage';
 import { verifyConnection } from '~/app/api/k8s';
@@ -31,6 +32,10 @@ jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
 
 const mockUseInferenceServices = jest.mocked(useInferenceServices);
 const mockVerifyConnection = jest.mocked(verifyConnection);
+const tracking = { trackEvent: jest.fn(), trackPageEvent: jest.fn() };
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <AnalyticsTrackingProvider value={tracking}>{children}</AnalyticsTrackingProvider>
+);
 
 const inferenceServiceFixtures: InferenceServiceItem[] = [
   {
@@ -76,7 +81,7 @@ const createPageElement = () => (
 );
 
 const renderPage = async () => {
-  const rendered = render(createPageElement());
+  const rendered = render(createPageElement(), { wrapper: TrackingWrapper });
   await act(async () => {
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 0);
