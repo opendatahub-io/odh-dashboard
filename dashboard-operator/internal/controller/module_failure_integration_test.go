@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -113,29 +114,43 @@ func TestIntegration_ModuleDeploymentFailureStopsReconcile(t *testing.T) {
 
 func TestIntegration_ModuleDeploymentFailureStopsRemovedTeardown(t *testing.T) {
 	ctx := context.Background()
+	const targetNamespace = "removed-failure-rbac-target"
+	target := optedInNamespace(targetNamespace)
+	require.NoError(t, k8sClient.Create(ctx, target))
 	manifests := createIntegrationManifests(t, []string{"maas", "gen-ai"})
 	writeMaaSPortalManifest(t, manifests)
 	r := newManifestReconciler(manifests)
 	r.Platform = cluster.SelfManagedRhoai
+	r.NamespacedRBACAdmissionEnabled = true
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		Gateway:    &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:    disableAllModulesExcept("maas", "genAi"),
-		MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:            disableAllModulesExcept("maas", "genAi"),
+		MaaSPortal:         &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+		NotebooksNamespace: targetNamespace,
 	})
 	require.NoError(t, k8sClient.Create(ctx, dashboard))
 	t.Cleanup(func() {
 		deleteDashboard(t)
 		cleanupMaaSPortalResources(t, r)
 		cleanupModuleResources(t)
+		deleteIgnoreNotFound(t, target)
 	})
 	reconcile(t, r)
 	reconcile(t, r)
 	coreConfigKey := types.NamespacedName{Name: "dashboard-core-config", Namespace: integrationNamespace}
 	assertExists(t, &corev1.ConfigMap{}, coreConfigKey)
+	rbacRoleKey := types.NamespacedName{Name: "dashboard-notebooks-role", Namespace: targetNamespace}
+	rbacBindingKey := types.NamespacedName{Name: "dashboard-notebooks-rolebinding", Namespace: targetNamespace}
+	assertExists(t, &rbacv1.Role{}, rbacRoleKey)
+	assertExists(t, &rbacv1.RoleBinding{}, rbacBindingKey)
 	modulePath := filepath.Join(manifests, "modules", "gen-ai", "kustomization.yaml")
 	validManifest, err := os.ReadFile(modulePath)
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(modulePath, []byte("invalid: ["), 0644))
+	target = &corev1.Namespace{}
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: targetNamespace}, target))
+	delete(target.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, k8sClient.Update(ctx, target))
 	dashboard = getDashboard(t)
 	dashboard.Spec.ManagementState = "Removed"
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
@@ -144,6 +159,8 @@ func TestIntegration_ModuleDeploymentFailureStopsRemovedTeardown(t *testing.T) {
 	require.ErrorContains(t, err, "failed to render manifests for module genAi")
 	assert.Equal(t, "ModuleDeployFailed", conditionReason(getDashboard(t), string(common.ConditionTypeProvisioningSucceeded)))
 	assertExists(t, &corev1.ConfigMap{}, coreConfigKey)
+	assertGone(t, &rbacv1.Role{}, rbacRoleKey)
+	assertGone(t, &rbacv1.RoleBinding{}, rbacBindingKey)
 
 	require.NoError(t, os.WriteFile(modulePath, validManifest, 0644))
 	reconcile(t, r)

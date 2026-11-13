@@ -578,6 +578,63 @@ func TestReconcile_Deletion(t *testing.T) {
 	}
 }
 
+func TestReconcile_DeletionRevokesNamespacedRBACBeforeRedirectFailure(t *testing.T) {
+	s := testScheme(t)
+	controller := true
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              v1alpha1.DashboardInstanceName,
+			UID:               types.UID("dashboard-uid"),
+			Finalizers:        []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{Time: time.Now()},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			LegacyRedirects: &v1alpha1.LegacyRedirectsSpec{
+				ManagementSpec: common.ManagementSpec{ManagementState: common.Managed},
+			},
+		},
+	}
+	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-notebooks-role", Namespace: testNamespace,
+		Labels: map[string]string{"dashboard.opendatahub.io/namespaced-rbac": "true", labels.PlatformPartOf: "dashboard"},
+	}}
+	binding := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-notebooks-rolebinding", Namespace: testNamespace,
+		Labels: map[string]string{"dashboard.opendatahub.io/namespaced-rbac": "true", labels.PlatformPartOf: "dashboard"},
+	}}
+	redirectConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-redirect-config", Namespace: testNamespace,
+		OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: v1alpha1.GroupVersion.String(), Kind: v1alpha1.DashboardKind,
+			Name: dashboard.Name, UID: dashboard.UID, Controller: &controller,
+		}},
+	}}
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, role, binding, redirectConfig).
+		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(ctx context.Context, delegate client.WithWatch, object client.Object, opts ...client.DeleteOption) error {
+				if object.GetName() == redirectConfig.Name {
+					return errors.New("forced redirect cleanup failure")
+				}
+				return delegate.Delete(ctx, object, opts...)
+			},
+		}).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client: cli, APIReader: cli, Scheme: s,
+		ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub,
+		Namespace: testNamespace, ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.ErrorContains(t, err, "failed to cleanup legacy dashboard redirects")
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(role), &rbacv1.Role{})))
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(binding), &rbacv1.RoleBinding{})))
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(redirectConfig), &corev1.ConfigMap{}))
+}
+
 func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
 	s := testScheme(t)
 

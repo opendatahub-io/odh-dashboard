@@ -52,10 +52,9 @@ func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashb
 		if err := r.validateNamespacedRBACTarget(ctx, ns); err != nil {
 			errs = append(errs, fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err))
 		} else {
+			desired[namespacedRBACKey(ns, "notebooks")] = true
 			if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "notebooks", notebooksRBACRules()); err != nil {
 				errs = append(errs, fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err))
-			} else {
-				desired[namespacedRBACKey(ns, "notebooks")] = true
 			}
 		}
 	}
@@ -64,10 +63,9 @@ func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashb
 		if err := r.validateNamespacedRBACTarget(ctx, ns); err != nil {
 			errs = append(errs, fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err))
 		} else {
+			desired[namespacedRBACKey(ns, "model-registry")] = true
 			if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "model-registry", modelRegistryRBACRules()); err != nil {
 				errs = append(errs, fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err))
-			} else {
-				desired[namespacedRBACKey(ns, "model-registry")] = true
 			}
 		}
 	}
@@ -118,57 +116,82 @@ func (r *DashboardReconciler) gcStaleNamespacedRBAC(ctx context.Context, desired
 	logger := log.FromContext(ctx)
 	var errs []error
 	staleRoleKeys := map[string]bool{}
-	saName := dashboardSAName(r.Platform)
 
 	// Read directly without a label selector so the dashboard recipient cannot
 	// hide a grant from the manager's label-scoped cache by removing mutable
-	// discovery labels. Exact operator-reserved names, RoleRefs, and the dashboard
-	// ServiceAccount subject identify grants even after labels have been stripped.
+	// discovery labels. The operator-reserved binding name and its immutable
+	// RoleRef identify grants even after labels and subjects have been changed.
 	var rbList rbacv1.RoleBindingList
 	if err := r.apiReader().List(ctx, &rbList); err != nil {
-		errs = append(errs, fmt.Errorf("listing namespaced RBAC RoleBindings for GC: %w", err))
-	} else {
-		for i := range rbList.Items {
-			rb := &rbList.Items[i]
-			suffix, reservedName := managedRoleBindingSuffix(rb.Name)
-			managedByLabel := hasNamespacedRBACManagedLabels(rb.Labels)
-			managedByIdentity := reservedName && roleBindingGrantsDashboardAccess(rb, suffix, saName, r.ApplicationsNamespace)
-			if !managedByLabel && !managedByIdentity {
-				continue
-			}
+		return fmt.Errorf("listing namespaced RBAC RoleBindings for GC: %w", err)
+	}
 
-			ns := rb.Namespace
-			if desired[namespacedRBACKey(ns, suffix)] {
-				continue
-			}
-			logger.Info("GC stale namespaced RBAC RoleBinding", "name", rb.Name, "namespace", ns)
-			if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
-				errs = append(errs, fmt.Errorf("deleting stale RoleBinding %s/%s: %w", ns, rb.Name, err))
-			}
-			if reservedName {
-				staleRoleKeys[namespacedRBACKey(ns, suffix)] = true
-			}
+	staleBindings := make([]*rbacv1.RoleBinding, 0)
+	for i := range rbList.Items {
+		rb := &rbList.Items[i]
+		suffix, reservedName := managedRoleBindingSuffix(rb.Name)
+		managedByLabel := hasNamespacedRBACManagedLabels(rb.Labels)
+		managedByIdentity := reservedName && roleBindingUsesManagedRole(rb, suffix)
+		if !managedByLabel && !managedByIdentity {
+			continue
+		}
+
+		key := namespacedRBACKey(rb.Namespace, suffix)
+		if desired[key] {
+			continue
+		}
+		staleBindings = append(staleBindings, rb)
+		if reservedName {
+			staleRoleKeys[key] = true
 		}
 	}
 
 	var roleList rbacv1.RoleList
 	if err := r.apiReader().List(ctx, &roleList); err != nil {
-		errs = append(errs, fmt.Errorf("listing namespaced RBAC Roles for GC: %w", err))
-	} else {
-		for i := range roleList.Items {
-			role := &roleList.Items[i]
-			suffix, reservedName := managedRoleSuffix(role.Name)
-			key := namespacedRBACKey(role.Namespace, suffix)
-			if !hasNamespacedRBACManagedLabels(role.Labels) && (!reservedName || !staleRoleKeys[key]) {
-				continue
+		return fmt.Errorf("listing namespaced RBAC Roles for GC: %w", err)
+	}
+
+	blockedBindingKeys := map[string]bool{}
+	for i := range roleList.Items {
+		role := &roleList.Items[i]
+		suffix, reservedName := managedRoleSuffix(role.Name)
+		key := namespacedRBACKey(role.Namespace, suffix)
+		if !hasNamespacedRBACManagedLabels(role.Labels) && (!reservedName || !staleRoleKeys[key]) {
+			continue
+		}
+		if desired[key] {
+			continue
+		}
+		logger.Info("GC stale namespaced RBAC Role", "name", role.Name, "namespace", role.Namespace)
+		if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting stale Role %s/%s: %w", role.Namespace, role.Name, err))
+			blockedBindingKeys[key] = true
+			continue
+		}
+		if reservedName {
+			remaining := &rbacv1.Role{}
+			if err := r.apiReader().Get(ctx, client.ObjectKeyFromObject(role), remaining); err == nil {
+				errs = append(errs, fmt.Errorf("waiting for stale Role %s/%s deletion", role.Namespace, role.Name))
+				blockedBindingKeys[key] = true
+			} else if !k8serrors.IsNotFound(err) {
+				errs = append(errs, fmt.Errorf("confirming stale Role %s/%s deletion: %w", role.Namespace, role.Name, err))
+				blockedBindingKeys[key] = true
 			}
-			if desired[key] {
-				continue
-			}
-			logger.Info("GC stale namespaced RBAC Role", "name", role.Name, "namespace", role.Namespace)
-			if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
-				errs = append(errs, fmt.Errorf("deleting stale Role %s/%s: %w", role.Namespace, role.Name, err))
-			}
+		}
+	}
+
+	// Delete bindings only after their reserved Roles are confirmed gone. Keeping
+	// the binding until then preserves durable discovery evidence across retries
+	// even when the recipient stripped all mutable management labels.
+	for _, rb := range staleBindings {
+		suffix, reservedName := managedRoleBindingSuffix(rb.Name)
+		key := namespacedRBACKey(rb.Namespace, suffix)
+		if reservedName && blockedBindingKeys[key] {
+			continue
+		}
+		logger.Info("GC stale namespaced RBAC RoleBinding", "name", rb.Name, "namespace", rb.Namespace)
+		if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting stale RoleBinding %s/%s: %w", rb.Namespace, rb.Name, err))
 		}
 	}
 
@@ -202,16 +225,10 @@ func managedRoleBindingSuffix(name string) (string, bool) {
 	}
 }
 
-func roleBindingGrantsDashboardAccess(rb *rbacv1.RoleBinding, suffix, saName, saNamespace string) bool {
-	if rb.RoleRef.APIGroup != rbacv1.GroupName || rb.RoleRef.Kind != "Role" || rb.RoleRef.Name != fmt.Sprintf("dashboard-%s-role", suffix) {
-		return false
-	}
-	for _, subject := range rb.Subjects {
-		if subject.Kind == rbacv1.ServiceAccountKind && subject.Name == saName && subject.Namespace == saNamespace {
-			return true
-		}
-	}
-	return false
+func roleBindingUsesManagedRole(rb *rbacv1.RoleBinding, suffix string) bool {
+	return rb.RoleRef.APIGroup == rbacv1.GroupName &&
+		rb.RoleRef.Kind == "Role" &&
+		rb.RoleRef.Name == fmt.Sprintf("dashboard-%s-role", suffix)
 }
 
 // roleNameSuffix extracts the component suffix from "dashboard-<suffix>-role".

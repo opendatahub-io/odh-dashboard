@@ -435,10 +435,10 @@ service account, even though it can patch other namespace metadata, from
 granting itself access.
 
 Removing the consent label causes the controller to revoke the managed Role and
-RoleBinding before other deployment work runs. Revocation recognizes the
-operator-reserved RoleBinding identity and Dashboard service-account subject as
-well as management labels, so stripping mutable labels cannot hide an active
-grant from cleanup.
+RoleBinding before other deployment, removal, or finalizer work runs. Revocation
+recognizes the operator-reserved RoleBinding name and immutable RoleRef as well
+as management labels, so changing subjects or stripping mutable labels cannot
+hide an active grant from cleanup.
 
 An empty writer list is fail-closed: the webhook denies changes to protected
 fields and labels, and the controller removes existing cross-namespace grants
