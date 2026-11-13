@@ -11,7 +11,11 @@ import {
   modelServerSelectFieldSchema,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
-import { getDisplayNameFromK8sResource, isCompatibleWithIdentifier } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  isCompatibleWithIdentifier,
+  IdentifierResourceType,
+} from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import {
   isUnsupportedUnaccepted,
@@ -93,17 +97,21 @@ const getOptions = (
   return result;
 };
 
-const computeSuggestion = (options: ModelServerOption[]): ModelServerOption | undefined => {
-  if (options.length === 1) {
-    return options[0];
-  }
-
-  const compatibleOptions = options.filter((option) => option.compatibleWithHardwareProfile);
-  if (compatibleOptions.length === 1) {
-    return compatibleOptions[0];
-  }
-
-  return undefined;
+const computeSuggestion = (
+  configs: LLMInferenceServiceConfigKind[],
+  hardwareProfile?: HardwareProfileKind,
+): ModelServerOption | undefined => {
+  // Even a sole config needs an accelerator match; CPU, memory, and untyped identifiers do not qualify.
+  // A config can match any Accelerator-typed identifier in the hardware profile, not just the first one.
+  const accelerators =
+    hardwareProfile?.spec.identifiers?.filter(
+      (identifier) => identifier.resourceType === IdentifierResourceType.ACCELERATOR,
+    ) ?? [];
+  // Config-list order wins over accelerator order. With no accelerator identifiers, nothing matches.
+  const config = configs.find((candidate) =>
+    accelerators.some((identifier) => isCompatibleWithIdentifier(identifier.identifier, candidate)),
+  );
+  return config ? getOptionFromLLMInferenceServiceConfig(config, hardwareProfile) : undefined;
 };
 
 export type LLMConfigOptionsFieldValue = {
@@ -176,8 +184,10 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
         return existingFieldData;
       }
 
-      const options = getOptions(externalData, dependencies?.hardwareProfile);
-      const suggestion = computeSuggestion(options);
+      const suggestion = computeSuggestion(
+        externalData?.configs ?? [],
+        dependencies?.hardwareProfile,
+      );
 
       if (suggestion) {
         return {

@@ -297,14 +297,19 @@ const computeSuggestion = (
     );
   }
 
+  // A unique model-format match alone is not enough: automatic selection requires an accelerator.
   const accelerator = getAcceleratorIdentifierFromHardwareProfile(hardwareProfile);
-  if (accelerator) {
-    filtered = filtered?.filter((template) =>
-      isCompatibleWithIdentifier(accelerator, getServingRuntimeFromTemplate(template)),
-    );
+  if (!accelerator) {
+    return undefined;
   }
 
-  if (filtered?.length === 1) {
+  filtered = filtered?.filter((template) =>
+    isCompatibleWithIdentifier(accelerator, getServingRuntimeFromTemplate(template)),
+  );
+
+  if (filtered && filtered.length > 0) {
+    // Filtering preserves the supplied template order (including project/global precedence).
+    // Multiple matches are valid: use the first rather than forcing a manual choice.
     const suggestedTemplate = filtered[0];
     return {
       name: suggestedTemplate.metadata.name,
