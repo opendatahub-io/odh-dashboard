@@ -6,6 +6,12 @@
     max-width: var(--pf-t--global--breakpoint--sm);
   }
 
+  &__empty-image {
+    width: calc(var(--pf-t--global--spacer--4xl) * 5);
+    max-width: 100%;
+    height: auto;
+  }
+
   &__project-list.pf-v6-c-data-list.pf-m-grid-none {
     --pf-v6-c-data-list__cell--PaddingBlockStart: var(--pf-t--global--spacer--sm);
     --pf-v6-c-data-list__item-content--md--PaddingBlockEnd: var(--pf-t--global--spacer--sm);

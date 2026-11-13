@@ -155,6 +155,11 @@ export type SupportedModelFormats = {
   priority?: number;
 };
 
+export const NamespacePhase = {
+  Active: 'Active',
+  Terminating: 'Terminating',
+} as const;
+
 export type ProjectKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
@@ -165,7 +170,7 @@ export type ProjectKind = K8sResourceCommon & {
     name: string;
   };
   status?: {
-    phase: 'Active' | 'Terminating';
+    phase: (typeof NamespacePhase)[keyof typeof NamespacePhase];
   };
 };
 

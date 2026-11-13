@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { render, renderHook, screen, waitFor } from '@testing-library/react';
 import { useK8sWatchResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
+import { PluginStore } from '@odh-dashboard/plugin-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
 import { useTrackEvent, useTrackPageEvent } from '@odh-dashboard/analytics/react';
 import { HardwareProfilesContext } from '@odh-dashboard/ui-core/context/HardwareProfilesContext';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import RhaiiAppProvider from '../RhaiiAppProvider';
+import RhaiiAppProviderComponent from '../RhaiiAppProvider';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   ...jest.requireActual('@openshift/dynamic-plugin-sdk-utils'),
@@ -20,6 +23,13 @@ jest.mock('../ProjectsContextProvider', () => ({
 }));
 
 const ORIGINAL_TILT_FIXTURES = process.env.RHAII_TILT_FIXTURES;
+let pluginStore: PluginStore;
+
+const RhaiiAppProvider: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <PluginStoreProvider store={pluginStore}>
+    <RhaiiAppProviderComponent>{children}</RhaiiAppProviderComponent>
+  </PluginStoreProvider>
+);
 
 const ConnectionTypesConsumer: React.FC = () => {
   const [connectionTypes] = useWatchConnectionTypes();
@@ -40,6 +50,7 @@ const ConnectionTypesConsumer: React.FC = () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  pluginStore = new PluginStore({});
   const profiles: HardwareProfileKind[] = [
     {
       apiVersion: 'infrastructure.opendatahub.io/v1',
@@ -65,6 +76,28 @@ afterEach(() => {
   }
   jest.restoreAllMocks();
   delete (globalThis as { fetch?: typeof fetch }).fetch;
+});
+
+describe('RhaiiAppProvider unified selector gate', () => {
+  it.each([
+    [undefined, false],
+    [false, false],
+    [true, true],
+  ])('should expose %s through the area contract', (flag, expected) => {
+    if (flag !== undefined) {
+      pluginStore.setFeatureFlags({ 'unified-project-selector': flag });
+    }
+    const Status: React.FC = () => {
+      const { status } = useIsAreaAvailable(SupportedArea.UNIFIED_PROJECT_SELECTOR);
+      return <span data-testid="ups-status">{String(status)}</span>;
+    };
+    render(
+      <RhaiiAppProvider>
+        <Status />
+      </RhaiiAppProvider>,
+    );
+    expect(screen.getByTestId('ups-status').textContent).toBe(String(expected));
+  });
 });
 
 describe('RhaiiAppProvider Tilt fixture composition', () => {

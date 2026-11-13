@@ -117,6 +117,18 @@ describe('RHOAI working project adapter', () => {
     expect(update).toHaveBeenLastCalledWith(source[0]);
   });
 
+  it('should keep shared user selection synchronous', () => {
+    const source = [project('a'), project('b')];
+    const update = jest.fn();
+    render(<Harness source={source} onUpdate={update} />);
+    act(() => {
+      expect(selection.selectProject({ name: 'b' })).toBeUndefined();
+    });
+    expect(update).toHaveBeenLastCalledWith(source[1]);
+    expect(screen.getByTestId('masthead')).toHaveTextContent('b');
+    expect(screen.getByTestId('route')).toHaveTextContent('b');
+  });
+
   it('should update the display label from refreshed source records without changing selection', () => {
     const source = [project('a', 'Old label')];
     const update = jest.fn();

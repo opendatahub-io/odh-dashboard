@@ -35,6 +35,7 @@ export type {
 
 export {
   KnownLabels,
+  NamespacePhase,
   MetadataAnnotation,
   HardwareProfileFeatureVisibility,
   DataScienceStackComponent,
