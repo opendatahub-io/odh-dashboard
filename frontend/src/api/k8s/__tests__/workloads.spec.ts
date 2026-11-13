@@ -83,6 +83,25 @@ function workloadWithJobNameLabel(workloadName: string, jobName: string): Worklo
   return wl;
 }
 
+/** Workload whose owner is declared via Kueue annotations (without ownerReferences). */
+function workloadWithOwnerAnnotations(
+  workloadName: string,
+  ownerName: string,
+  ownerGvk: string,
+): WorkloadKind {
+  const wl = mockWorkloadK8sResource({ k8sName: workloadName, namespace: 'test-project' });
+  if (wl.metadata) {
+    wl.metadata.annotations = {
+      ...wl.metadata.annotations,
+      'kueue.x-k8s.io/job-owner-name': ownerName,
+      'kueue.x-k8s.io/job-owner-gvk': ownerGvk,
+    };
+    // Owners defined via annotation omit ownerReferences in the Workload CR.
+    wl.metadata.ownerReferences = [];
+  }
+  return wl;
+}
+
 describe('buildWorkloadMapForNotebooks', () => {
   const notebook = (n: string) => mockNotebookK8sResource({ name: n });
 
@@ -162,6 +181,71 @@ describe('buildWorkloadMapForNotebooks', () => {
 
     expect(result['preempt-winner']).toBe(wl);
     expect(result['preempt-victim']).toBeNull();
+  });
+
+  describe('RHOAIENG-96121: similarly named Workbenches', () => {
+    const SS_GVK = 'apps/v1, Kind=StatefulSet';
+
+    it('maps a StatefulSet-owned Workload only to its exact Workbench, not a shorter one', () => {
+      const notebooks = [notebook('test-workbench'), notebook('test-workbench-2')];
+      const wl = workloadWithOwnerRefs('wl-wb2', [
+        { kind: 'StatefulSet', name: 'test-workbench-2' },
+      ]);
+
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+
+      expect(result['test-workbench-2']).toBe(wl);
+      expect(result['test-workbench']).toBeNull();
+    });
+
+    it('applies the same guard to Pod ownerRefs named like another Workbench', () => {
+      const notebooks = [notebook('test-workbench'), notebook('test-workbench-2')];
+      const wl = workloadWithOwnerRefs('wl-wb2-pod', [{ kind: 'Pod', name: 'test-workbench-2' }]);
+
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+
+      expect(result['test-workbench-2']).toBe(wl);
+      expect(result['test-workbench']).toBeNull();
+    });
+
+    it('still matches a legitimate replica suffix when no conflicting Workbench exists', () => {
+      const notebooks = [notebook('solo-workbench')];
+      const wl = workloadWithOwnerRefs('wl-solo', [
+        { kind: 'StatefulSet', name: 'solo-workbench-0' },
+      ]);
+
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+
+      expect(result['solo-workbench']).toBe(wl);
+    });
+
+    it('matches by job-owner-name annotation validated as StatefulSet', () => {
+      const notebooks = [notebook('test-workbench')];
+      const wl = workloadWithOwnerAnnotations('wl-ann', 'test-workbench', SS_GVK);
+
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+
+      expect(result['test-workbench']).toBe(wl);
+    });
+
+    it('ignores the job-owner-name annotation when the GVK is not a StatefulSet', () => {
+      const notebooks = [notebook('test-workbench')];
+      const wl = workloadWithOwnerAnnotations('wl-ann-bad', 'test-workbench', 'batch/v1, Kind=Job');
+
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+
+      expect(result['test-workbench']).toBeNull();
+    });
+
+    it('maps a job-owner-name annotation only to its exact Workbench', () => {
+      const notebooks = [notebook('test-workbench'), notebook('test-workbench-2')];
+      const wl = workloadWithOwnerAnnotations('wl-ann-wb2', 'test-workbench-2', SS_GVK);
+
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+
+      expect(result['test-workbench-2']).toBe(wl);
+      expect(result['test-workbench']).toBeNull();
+    });
   });
 
   it('compares ownerRef kind case-insensitively', () => {
