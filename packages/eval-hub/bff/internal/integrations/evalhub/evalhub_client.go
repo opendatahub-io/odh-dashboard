@@ -82,6 +82,8 @@ type EvalHubClientInterface interface {
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
 	CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error)
+	CreateCollectionGeneration(ctx context.Context, namespace string, req CreateCollectionGenerationRequest) (*CollectionGenerationResource, error)
+	GetCollectionGeneration(ctx context.Context, id string, namespace string) (*CollectionGenerationResource, error)
 	GetCollection(ctx context.Context, id string, namespace string) (*Collection, json.RawMessage, error)
 	PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error)
 	DeleteCollection(ctx context.Context, id string, namespace string) error
@@ -198,6 +200,54 @@ type JobModel struct {
 
 type ModelAuth struct {
 	SecretRef string `json:"secret_ref,omitempty"`
+}
+
+// CreateCollectionGenerationRequest asks EvalHub to generate a dry-run benchmark collection proposal.
+type CreateCollectionGenerationRequest struct {
+	EvaluationGoal   string   `json:"evaluation_goal"`
+	Model            JobModel `json:"model"`
+	ProviderFilter   string   `json:"provider_filter,omitempty"`
+	MaxBenchmarks    *int     `json:"max_benchmarks,omitempty"`
+	Strictness       string   `json:"strictness,omitempty"`
+	GenerationEffort string   `json:"generation_effort,omitempty"`
+}
+
+// CollectionGenerationResourceMetadata identifies the durable generation resource.
+type CollectionGenerationResourceMetadata struct {
+	ID        string `json:"id"`
+	Tenant    string `json:"tenant"`
+	Owner     string `json:"owner"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+// CollectionGenerationRequestSummary is the normalized request stored with a generation resource.
+type CollectionGenerationRequestSummary struct {
+	EvaluationGoal   string   `json:"evaluation_goal"`
+	Model            JobModel `json:"model"`
+	ProviderFilter   string   `json:"provider_filter,omitempty"`
+	MaxBenchmarks    int      `json:"max_benchmarks"`
+	Strictness       string   `json:"strictness"`
+	GenerationEffort string   `json:"generation_effort"`
+}
+
+// CollectionGenerationStatus describes the generation lifecycle. Progress and error payloads
+// remain raw JSON so the BFF can preserve their exact upstream structure.
+type CollectionGenerationStatus struct {
+	State       string          `json:"state"`
+	StartedAt   string          `json:"started_at,omitempty"`
+	CompletedAt string          `json:"completed_at,omitempty"`
+	Progress    json.RawMessage `json:"progress,omitempty"`
+	Error       json.RawMessage `json:"error,omitempty"`
+}
+
+// CollectionGenerationResource is a durable dry-run collection proposal. Result is absent until
+// the generation reaches completed and remains raw JSON to preserve proposal fields.
+type CollectionGenerationResource struct {
+	Resource CollectionGenerationResourceMetadata `json:"resource"`
+	Request  CollectionGenerationRequestSummary   `json:"request"`
+	Status   CollectionGenerationStatus           `json:"status"`
+	Result   json.RawMessage                      `json:"result,omitempty"`
 }
 
 type JobPrimaryScore struct {
@@ -886,6 +936,37 @@ func (c *EvalHubClient) CreateCollection(ctx context.Context, namespace string, 
 	resp, err := post[Collection](c, ctx, path, req, headers)
 	if err != nil {
 		return nil, wrapClientError(err, "CreateCollection")
+	}
+	return resp, nil
+}
+
+// CreateCollectionGeneration starts a tenant-scoped dry-run collection generation.
+// The namespace is sent as X-Tenant rather than as an upstream query parameter.
+func (c *EvalHubClient) CreateCollectionGeneration(ctx context.Context, namespace string, req CreateCollectionGenerationRequest) (*CollectionGenerationResource, error) {
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := post[CollectionGenerationResource](c, ctx, "/evaluations/collections/generation", req, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "CreateCollectionGeneration")
+	}
+	return resp, nil
+}
+
+// GetCollectionGeneration retrieves a tenant-scoped collection generation resource by ID.
+func (c *EvalHubClient) GetCollectionGeneration(ctx context.Context, id string, namespace string) (*CollectionGenerationResource, error) {
+	path := fmt.Sprintf("/evaluations/collections/generation/%s", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := get[CollectionGenerationResource](c, ctx, path, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "GetCollectionGeneration")
 	}
 	return resp, nil
 }

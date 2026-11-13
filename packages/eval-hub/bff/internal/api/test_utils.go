@@ -233,6 +233,12 @@ func (e *erroringEHClient) ListCollections(_ context.Context, _ evalhub.ListColl
 func (e *erroringEHClient) CreateCollection(_ context.Context, _ string, _ evalhub.CreateCollectionRequest) (*evalhub.Collection, error) {
 	return nil, fmt.Errorf("erroring client")
 }
+func (e *erroringEHClient) CreateCollectionGeneration(_ context.Context, _ string, _ evalhub.CreateCollectionGenerationRequest) (*evalhub.CollectionGenerationResource, error) {
+	return nil, fmt.Errorf("erroring client")
+}
+func (e *erroringEHClient) GetCollectionGeneration(_ context.Context, _ string, _ string) (*evalhub.CollectionGenerationResource, error) {
+	return nil, fmt.Errorf("erroring client")
+}
 func (e *erroringEHClient) ListProviders(_ context.Context, _ string, _, _ int) (evalhub.ProvidersResponse, error) {
 	return evalhub.ProvidersResponse{}, nil
 }
