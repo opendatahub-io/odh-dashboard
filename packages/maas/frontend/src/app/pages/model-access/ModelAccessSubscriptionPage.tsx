@@ -13,7 +13,8 @@ import SubscriptionDetailsSection from '~/app/pages/subscriptions/viewSubscripti
 import SubscriptionGroupsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionGroupsSection';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
-import { CallerOrganizationContext, useCallerOrganization } from '~/app/shared/GroupName';
+import { CallerOrganizationContext } from '~/app/shared/GroupName';
+import { useCallerOrganization } from '~/app/hooks/useCallerOrganization';
 import { MODEL_ACCESS_PATH } from './utils';
 
 const toMaaSSubscription = (sub: UserSubscription): MaaSSubscription => ({
@@ -44,7 +45,7 @@ const toMaaSSubscription = (sub: UserSubscription): MaaSSubscription => ({
 const ModelAccessSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const [subscription, loaded, loadError] = useGetUserSubscription(subscriptionName);
-  const organization = useCallerOrganization();
+  const [organization] = useCallerOrganization();
 
   const maasSubscription = subscription ? toMaaSSubscription(subscription) : undefined;
 

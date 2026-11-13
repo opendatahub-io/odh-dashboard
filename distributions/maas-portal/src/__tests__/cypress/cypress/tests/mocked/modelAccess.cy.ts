@@ -146,6 +146,24 @@ describe('Grid Model access', () => {
     cy.findByTestId('subscription-row').should('have.length', 1);
   });
 
+  it('finds a subscription by its group as shown, with the organization name', () => {
+    const orgId = '53d4f57e-3588-55e8-b96c-4ec54a7c42fa';
+    setupPortalMocks({ isMaaSAdmin: true });
+    cy.intercept('GET', maasApi('/whoami'), {
+      data: { sub: 'portal-user', isAdmin: true, orgId, orgName: 'Grid Tenant 2' },
+    }).as('whoami');
+    const [premium, ...others] = mockSubscriptions();
+    cy.intercept('GET', maasApi('/admin-subscriptions'), {
+      data: [{ ...premium, owner: { groups: [{ name: `${orgId}/ai-grid-bob` }] } }, ...others],
+    }).as('adminSubscriptions');
+    portal.visit('/maas/model-access');
+    cy.wait(['@whoami', '@adminSubscriptions']);
+
+    cy.findByTestId('model-access-subscription-filter-input').type('Grid Tenant 2/ai-grid-bob');
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
+    cy.findByRole('link', { name: 'Premium Team Subscription' }).should('be.visible');
+  });
+
   it('filters admin subscriptions by group', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     portal.visit('/maas/model-access');

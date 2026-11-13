@@ -114,6 +114,27 @@ describe('ModelAccessSubscriptionPage', () => {
     );
   });
 
+  it("should show the caller's organization groups by the organization's name", async () => {
+    mockRestGET.mockImplementation((_host: string, path: string) =>
+      Promise.resolve({
+        data: path.endsWith('/whoami')
+          ? {
+              sub: 'carol',
+              isAdmin: true,
+              orgId: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa',
+              orgName: 'Grid Tenant 1',
+            }
+          : subscription(),
+      }),
+    );
+    renderPage();
+    const groups = await screen.findByTestId('subscription-groups-table');
+    expect(await screen.findAllByTestId('group-name')).toHaveLength(2);
+    expect(groups).toHaveTextContent('Grid Tenant 1/ai-grid-users');
+    expect(groups).toHaveTextContent('Grid Tenant 1/data-science');
+    expect(groups).not.toHaveTextContent('42c3e46f-2477-44d7-a85b-d3b43f6b31fa');
+  });
+
   it('should omit the subscription status field', async () => {
     renderPage();
     await screen.findByText('Premium Team Subscription');
