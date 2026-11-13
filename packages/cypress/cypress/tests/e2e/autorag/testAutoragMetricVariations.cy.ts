@@ -6,7 +6,10 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
-import { cleanupAutoragInfrastructure } from '../../../utils/oc_commands/autoragInfra';
+import {
+  cleanupAutoragInfrastructure,
+  provisionAutoragPgvector,
+} from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
   checkAutoragMaaSReadiness,
@@ -47,13 +50,15 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         projectName = `${testData.projectNamePrefix}-${uuid}`;
         cleanupReady = true;
       })
-      .then(() => checkAutoragMaaSReadiness())
+      .then(() => checkAutoragMaaSReadiness(testData))
       .then((fixture) => {
         maasFixture = fixture;
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-        configureAutoragRun(testData, projectName, uuid, fixture, {
-          createConnections: true,
-          connectionOwnership,
+        return provisionAutoragPgvector(projectName).then(() => {
+          configureAutoragRun(testData, projectName, uuid, fixture, {
+            createConnections: true,
+            connectionOwnership,
+          });
         });
       }),
   );
@@ -75,7 +80,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
 
   it(
     'Can submit a run with untouched default metric (overall_score)',
-    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
+    { tags: ['@AutoRAG', '@AutoRAGCI', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
       configureAutoragRun(
         { ...testData, runName: `${testData.runName}-default` },
@@ -101,7 +106,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
 
   it(
     'Can submit a run with answer_correctness metric',
-    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
+    { tags: ['@AutoRAG', '@AutoRAGCI', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
       configureAutoragRun(testData, projectName, uuid, getMaaSFixture());
 
@@ -125,7 +130,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
 
   it(
     'Can submit a run with faithfulness metric',
-    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
+    { tags: ['@AutoRAG', '@AutoRAGCI', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
       configureAutoragRun(
         { ...testData, runName: `${testData.runName}-faith` },
@@ -159,7 +164,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
 
   it(
     'Can submit a run with overall_score metric',
-    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
+    { tags: ['@AutoRAG', '@AutoRAGCI', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
       configureAutoragRun(
         { ...testData, runName: `${testData.runName}-overall` },

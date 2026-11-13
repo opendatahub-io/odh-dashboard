@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: autorag-pgvector-credentials
+  labels:
+    app.kubernetes.io/name: autorag-pgvector
+    app.kubernetes.io/part-of: autorag-e2e
+    odh-dashboard.io/e2e-owner: __PGVECTOR_OWNER__
+type: Opaque
+stringData:
+  password: __PGVECTOR_PASSWORD__
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: autorag-pgvector-init
+  labels:
+    app.kubernetes.io/name: autorag-pgvector
+    app.kubernetes.io/part-of: autorag-e2e
+    odh-dashboard.io/e2e-owner: __PGVECTOR_OWNER__
+data:
+  enable-pgvector.sh: |
+    #!/bin/bash
+    psql -U postgres -d "${POSTGRESQL_DATABASE}" -c "CREATE EXTENSION IF NOT EXISTS vector;"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autorag-pgvector
+  labels:
+    app.kubernetes.io/name: autorag-pgvector
+    app.kubernetes.io/part-of: autorag-e2e
+    odh-dashboard.io/e2e-owner: __PGVECTOR_OWNER__
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: autorag-pgvector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: autorag-pgvector
+        app.kubernetes.io/part-of: autorag-e2e
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: postgresql
+          image: '__PGVECTOR_IMAGE__'
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          env:
+            - name: POSTGRESQL_DATABASE
+              value: autorag_test_db
+            - name: POSTGRESQL_USER
+              value: autorag_test_user
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: autorag-pgvector-credentials
+                  key: password
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:
+            exec:
+              command: ['pg_isready', '-U', 'autorag_test_user', '-d', 'autorag_test_db']
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            exec:
+              command: ['pg_isready', '-U', 'autorag_test_user', '-d', 'autorag_test_db']
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ['pg_isready', '-U', 'autorag_test_user', '-d', 'autorag_test_db']
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: ['ALL']
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/pgsql/data
+            - name: init-scripts
+              mountPath: /opt/app-root/src/postgresql-start
+              readOnly: true
+      volumes:
+        - name: pgdata
+          emptyDir: {}
+        - name: init-scripts
+          configMap:
+            name: autorag-pgvector-init
+            defaultMode: 493
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: autorag-pgvector
+  labels:
+    app.kubernetes.io/name: autorag-pgvector
+    app.kubernetes.io/part-of: autorag-e2e
+    odh-dashboard.io/e2e-owner: __PGVECTOR_OWNER__
+spec:
+  selector:
+    app.kubernetes.io/name: autorag-pgvector
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: autorag-pgvector
+  labels:
+    app.kubernetes.io/name: autorag-pgvector
+    app.kubernetes.io/part-of: autorag-e2e
+    odh-dashboard.io/e2e-owner: __PGVECTOR_OWNER__
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: autorag-pgvector
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432

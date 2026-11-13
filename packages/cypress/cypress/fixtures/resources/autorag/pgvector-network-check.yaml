@@ -1,0 +1,113 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: __PGVECTOR_NETWORK_CHECK_JOB__
+  labels:
+    app.kubernetes.io/name: autorag-pgvector-network-check
+    app.kubernetes.io/part-of: autorag-e2e
+    odh-dashboard.io/e2e-owner: __PGVECTOR_OWNER__
+spec:
+  backoffLimit: __PGVECTOR_NETWORK_CHECK_BACKOFF_LIMIT__
+  activeDeadlineSeconds: __PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS__
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: autorag-pgvector-network-check
+        app.kubernetes.io/part-of: autorag-e2e
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      containers:
+        - name: network-check
+          image: '__PGVECTOR_IMAGE__'
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: ['ALL']
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: autorag-pgvector-credentials
+                  key: password
+            - name: PGCONNECT_TIMEOUT
+              value: '__PGVECTOR_NETWORK_CHECK_CONNECT_TIMEOUT_SECONDS__'
+          command: ['/bin/sh', '-c']
+          args:
+            - |
+              i=0
+              last_exit_code=1
+              last_error_category='connection or query failure'
+              error_file=/tmp/autorag-pgvector-probe-error
+              report_failure() {
+                sanitized_error=$(sed -E \
+                  -e 's/autorag-pgvector\.[^[:space:]]+/<pgvector-host>/g' \
+                  -e 's/autorag_test_user/<pgvector-user>/g' \
+                  -e 's/autorag_test_db/<pgvector-database>/g' \
+                  -e 's/(password|passwd|PGPASSWORD)[[:space:]]*[:=]?[[:space:]]*[^[:space:]]*/\1=<redacted>/Ig' \
+                  "$error_file" | tr '\n' ' ' | cut -c1-240)
+                rm -f "$error_file"
+                if [ -n "$sanitized_error" ]; then
+                  echo "Authenticated PGVector probe failed (${last_error_category}; psql exit code ${last_exit_code}; details: ${sanitized_error})." >&2
+                else
+                  echo "Authenticated PGVector probe failed (${last_error_category}; psql exit code ${last_exit_code})." >&2
+                fi
+                exit "$last_exit_code"
+              }
+              while [ "$i" -lt __PGVECTOR_NETWORK_CHECK_ATTEMPTS__ ]; do
+                last_error_category='connection or query failure'
+                psql -h "autorag-pgvector.${POD_NAMESPACE}.svc.cluster.local" \
+                  -p 5432 -U autorag_test_user -d autorag_test_db \
+                  -v ON_ERROR_STOP=1 \
+                  -tAc "SET statement_timeout = '__PGVECTOR_NETWORK_CHECK_QUERY_TIMEOUT_MS__ms'; SELECT 1" \
+                  >/dev/null 2>"$error_file"
+                last_exit_code=$?
+                if [ "$last_exit_code" -eq 0 ]; then
+                  rm -f "$error_file"
+                  exit 0
+                fi
+                if grep -Eqi 'password authentication failed|no password supplied' "$error_file"; then
+                  last_error_category='authentication failure'
+                elif grep -Eqi 'could not translate host name|name or service not known' "$error_file"; then
+                  last_error_category='DNS resolution failure'
+                elif grep -Eqi 'timeout expired|connection timed out' "$error_file"; then
+                  last_error_category='connection timeout'
+                elif grep -Eqi 'connection refused|no route to host|could not connect to server' "$error_file"; then
+                  last_error_category='network connection failure'
+                elif grep -Eqi 'no pg_hba.conf entry' "$error_file"; then
+                  last_error_category='PostgreSQL access policy failure'
+                elif grep -Eqi 'SSL error|certificate verify failed|TLS' "$error_file"; then
+                  last_error_category='TLS failure'
+                elif grep -Eqi 'database .* does not exist' "$error_file"; then
+                  last_error_category='database configuration failure'
+                elif grep -Eqi 'role .* does not exist' "$error_file"; then
+                  last_error_category='user configuration failure'
+                elif grep -Eqi 'server closed the connection unexpectedly' "$error_file"; then
+                  last_error_category='database connection failure'
+                fi
+                case "$last_error_category" in
+                  'authentication failure'|'PostgreSQL access policy failure'|'TLS failure'|'database configuration failure'|'user configuration failure')
+                    report_failure
+                    ;;
+                esac
+                i=$((i + 1))
+                if [ "$i" -lt __PGVECTOR_NETWORK_CHECK_ATTEMPTS__ ]; then
+                  rm -f "$error_file"
+                  sleep __PGVECTOR_NETWORK_CHECK_RETRY_INTERVAL_SECONDS__
+                fi
+              done
+              report_failure
