@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"sync/atomic"
 	"testing"
 
@@ -70,7 +72,15 @@ func (c *runtimeCatalogKubeClient) GetServiceDetailsByName(_ context.Context, na
 	if namespace != "catalog-ns" || name != repositories.ModelCatalogServiceName || component != k8s.ComponentLabelValueCatalog {
 		return k8s.ServiceDetails{}, fmt.Errorf("unexpected catalog discovery request")
 	}
-	return k8s.ServiceDetails{Name: name, ExternalAddressRest: c.address, IsHTTPS: c.https}, c.discoveryError
+	host, portText, err := net.SplitHostPort(c.address)
+	if err != nil {
+		return k8s.ServiceDetails{}, err
+	}
+	port, err := strconv.Atoi(portText)
+	if err != nil {
+		return k8s.ServiceDetails{}, err
+	}
+	return k8s.ServiceDetails{Name: name, ServiceDNSName: host, HTTPPort: int32(port), IsHTTPS: c.https, ExternalAddressRest: c.address}, c.discoveryError
 }
 
 type runtimeCatalogKubeFactory struct{ client *runtimeCatalogKubeClient }

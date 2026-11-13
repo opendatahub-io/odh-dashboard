@@ -5,6 +5,7 @@ type ServiceDetails struct {
 	DisplayName         string
 	Description         string
 	ClusterIP           string
+	ServiceDNSName      string
 	HTTPPort            int32
 	IsHTTPS             bool
 	ExternalAddressRest string
