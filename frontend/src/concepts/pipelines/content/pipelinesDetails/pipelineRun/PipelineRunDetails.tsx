@@ -136,7 +136,7 @@ const PipelineRunDetails: React.FC<
     <PipelineRunDrawerRightContent
       task={selectedNode.data.pipelineTask}
       upstreamTaskName={selectedNode.runAfterTasks?.[0]}
-      onClose={() => setSelectedIds(undefined)}
+      onClose={() => setSelectedIds([])}
       executions={drawerExecutions}
       run={run}
     />

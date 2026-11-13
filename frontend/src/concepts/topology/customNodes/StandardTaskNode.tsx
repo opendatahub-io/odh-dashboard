@@ -3,10 +3,14 @@ import {
   DEFAULT_WHEN_OFFSET,
   DEFAULT_WHEN_SIZE,
   GraphElement,
+  isNode,
+  Node,
+  NodeModel,
   observer,
   RunStatus,
   ScaleDetailsLevel,
   TaskNode,
+  useCombineRefs,
   useHover,
   WhenDecorator,
   WithContextMenuProps,
@@ -19,83 +23,103 @@ import {
   PendingIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
-import { PipelineNodeModelExpanded } from '#~/concepts/topology/types';
+import { PipelineNodeModelExpanded, StandardTaskNodeData } from '#~/concepts/topology/types';
 import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
+import { getPipelineTaskStatusLabel } from '#~/concepts/topology/utils';
+import PipelineNodeButton from '#~/concepts/topology/PipelineNodeButton';
+import { hideSvgTaskLabelsFromKeyboard } from '#~/concepts/topology/a11yUtils';
+
+type StandardTaskNodeInnerProps = {
+  element: Node<NodeModel, StandardTaskNodeData>;
+} & WithContextMenuProps &
+  WithSelectionProps;
+
+const StandardTaskNodeInner: React.FunctionComponent<StandardTaskNodeInnerProps> = observer(
+  ({ element, onSelect, selected, ...rest }) => {
+    const data = element.getData();
+    const [hover, hoverRef] = useHover<SVGGElement>();
+    const nodeRef = React.useRef<SVGGElement>(null);
+    const combinedRef = useCombineRefs(hoverRef, nodeRef);
+    React.useLayoutEffect(() => hideSvgTaskLabelsFromKeyboard(nodeRef.current));
+    const detailsLevel = element.getGraph().getDetailsLevel();
+    const state = data?.pipelineTask.status?.state;
+
+    const status = React.useMemo(() => {
+      switch (state) {
+        case ExecutionStateKF.CACHED:
+          return RunStatus.Succeeded;
+        case ExecutionStateKF.RUNNING:
+          return RunStatus.InProgress;
+        default:
+          return data?.runStatus;
+      }
+    }, [state, data?.runStatus]);
+
+    const customStatusIcon = React.useMemo(() => {
+      switch (state) {
+        case ExecutionStateKF.CANCELED:
+          return <BanIcon />;
+        case ExecutionStateKF.CANCELING:
+          return <SyncAltIcon />;
+        case ExecutionStateKF.CACHED:
+          return <OutlinedWindowRestoreIcon />;
+        case ExecutionStateKF.SKIPPED:
+          return <AngleDoubleRightIcon />;
+        case ExecutionStateKF.PENDING:
+          return <PendingIcon />;
+        default:
+          return undefined;
+      }
+    }, [state]);
+
+    const statusLabel = getPipelineTaskStatusLabel(state, status);
+    const taskName = element.getLabel();
+    const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
+
+    return (
+      <g ref={combinedRef}>
+        <TaskNode
+          element={element}
+          onSelect={onSelect}
+          selected={selected}
+          scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
+          status={status}
+          customStatusIcon={customStatusIcon}
+          hideDetailsAtMedium
+          hiddenDetailsShownStatuses={[
+            RunStatus.Succeeded,
+            RunStatus.Cancelled,
+            RunStatus.Failed,
+            RunStatus.Running,
+          ]}
+          whenOffset={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_OFFSET : 0}
+          whenSize={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_SIZE : 0}
+          {...rest}
+        >
+          {data?.pipelineTask.whenStatus && (
+            <WhenDecorator
+              element={element}
+              status={data.pipelineTask.whenStatus}
+              leftOffset={DEFAULT_WHEN_OFFSET}
+            />
+          )}
+        </TaskNode>
+        <PipelineNodeButton element={element} ariaLabel={ariaLabel} onSelect={onSelect} />
+      </g>
+    );
+  },
+);
 
 type StandardTaskNodeProps = {
   element: GraphElement<PipelineNodeModelExpanded>;
 } & WithContextMenuProps &
   WithSelectionProps;
 
-const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({
-  element,
-  onSelect,
-  selected,
-  ...rest
-}) => {
-  const data = element.getData();
-  const [hover, hoverRef] = useHover<SVGGElement>();
-  const detailsLevel = element.getGraph().getDetailsLevel();
-  const state = data?.pipelineTask.status?.state;
-
-  const status = React.useMemo(() => {
-    switch (state) {
-      case ExecutionStateKF.CACHED:
-        return RunStatus.Succeeded;
-      case ExecutionStateKF.RUNNING:
-        return RunStatus.InProgress;
-      default:
-        return data?.runStatus;
-    }
-  }, [state, data?.runStatus]);
-
-  const customStatusIcon = React.useMemo(() => {
-    switch (state) {
-      case ExecutionStateKF.CANCELED:
-        return <BanIcon />;
-      case ExecutionStateKF.CANCELING:
-        return <SyncAltIcon />;
-      case ExecutionStateKF.CACHED:
-        return <OutlinedWindowRestoreIcon />;
-      case ExecutionStateKF.SKIPPED:
-        return <AngleDoubleRightIcon />;
-      case ExecutionStateKF.PENDING:
-        return <PendingIcon />;
-      default:
-        return undefined;
-    }
-  }, [state]);
-
-  return (
-    <g ref={hoverRef}>
-      <TaskNode
-        element={element}
-        onSelect={onSelect}
-        selected={selected}
-        scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
-        status={status}
-        customStatusIcon={customStatusIcon}
-        hideDetailsAtMedium
-        hiddenDetailsShownStatuses={[
-          RunStatus.Succeeded,
-          RunStatus.Cancelled,
-          RunStatus.Failed,
-          RunStatus.Running,
-        ]}
-        whenOffset={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_OFFSET : 0}
-        whenSize={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_SIZE : 0}
-        {...rest}
-      >
-        {data?.pipelineTask.whenStatus && (
-          <WhenDecorator
-            element={element}
-            status={data.pipelineTask.whenStatus}
-            leftOffset={DEFAULT_WHEN_OFFSET}
-          />
-        )}
-      </TaskNode>
-    </g>
-  );
+const StandardTaskNode: React.FunctionComponent<StandardTaskNodeProps> = ({ element, ...rest }) => {
+  if (!isNode(element)) {
+    throw new Error('StandardTaskNode must be used only on Node elements');
+  }
+  return <StandardTaskNodeInner element={element} {...rest} />;
 };
 
 export default observer(StandardTaskNode);

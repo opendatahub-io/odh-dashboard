@@ -1,9 +1,23 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import { RunStatus } from '@patternfly/react-topology';
+import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 import NodeStatusIcon from '#~/concepts/topology/NodeStatusIcon';
 
 describe('NodeStatusIcon', () => {
+  it('should show cached status without a run status', () => {
+    const { getByLabelText } = render(<NodeStatusIcon executionState={ExecutionStateKF.CACHED} />);
+    expect(getByLabelText('Cached')).toBeInTheDocument();
+  });
+
+  it('should show cached status when the execution is cached but the run status is skipped', () => {
+    const { getByLabelText } = render(
+      <NodeStatusIcon runStatus={RunStatus.Skipped} executionState={ExecutionStateKF.CACHED} />,
+    );
+    expect(getByLabelText('Cached')).toBeInTheDocument();
+    expect(getByLabelText('Cached')).toHaveClass('pf-v6-c-icon');
+  });
+
   it('should render icon for RunStatus.Pending', () => {
     const { container } = render(<NodeStatusIcon runStatus={RunStatus.Pending} />);
     expect(container.querySelector('.pf-v6-c-icon')).toBeInTheDocument();
@@ -60,11 +74,13 @@ describe('NodeStatusIcon', () => {
     expect(content).not.toHaveClass('pf-m-danger');
   });
 
-  it('should render with no status modifier for unknown status', () => {
+  it('should not render an empty icon or tooltip for an unknown status', () => {
     const { container } = render(<NodeStatusIcon runStatus="unknown-status" />);
-    const content = container.querySelector('.pf-v6-c-icon__content');
-    expect(content).not.toHaveClass('pf-m-info');
-    expect(content).not.toHaveClass('pf-m-success');
-    expect(content).not.toHaveClass('pf-m-danger');
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('should not render an empty icon or tooltip without a status', () => {
+    const { container } = render(<NodeStatusIcon />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

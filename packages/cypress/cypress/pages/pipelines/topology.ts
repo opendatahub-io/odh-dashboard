@@ -43,7 +43,7 @@ class TaskDrawer extends Contextual<HTMLElement> {
   }
 
   shouldHaveTaskName(name: string) {
-    return this.find().findByTestId('pipeline-task-name').should('contain.text', name);
+    return this.find().findByTestId('pipeline-drawer-task-title').should('contain.text', name);
   }
 }
 
@@ -61,6 +61,75 @@ class PipelinesTopology {
 
   findTaskNode(name: string) {
     return cy.get(`[data-id="${name}"][data-kind="node"][data-type="DEFAULT_TASK_NODE"]`);
+  }
+
+  findTaskButton(name: string) {
+    return cy.findByTestId(`pipeline-node-button-${name}`);
+  }
+
+  findGroupToggle(name: string) {
+    return cy.findByTestId(`pipeline-group-toggle-${name}`);
+  }
+
+  findGroupNode(name: string) {
+    return cy.get(`[data-id="${name}"][data-kind="node"]`).first();
+  }
+
+  findExpandedGroupHoverSurface() {
+    // PatternFly renders expanded group bodies in a portal without a test ID.
+    return cy
+      .get('.pf-topology__group')
+      .filter((_, group) => group.querySelector('.pf-topology__group__background') !== null)
+      .last();
+  }
+
+  findGroupActionIcon(name: string) {
+    // PatternFly owns this SVG action icon; scope its class selector to the named group.
+    return cy.findByTestId(`pipeline-group-label-${name}`).find('.pf-topology__node__action-icon');
+  }
+
+  findGroupButton(name: string) {
+    return cy.findByTestId(`pipeline-group-button-${name}`);
+  }
+
+  findGroupTask(name: string) {
+    return cy.findByTestId(`pipeline-group-task-${name}`);
+  }
+
+  findGroupDetails(name: string) {
+    return cy.findByTestId(`pipeline-group-details-${name}`);
+  }
+
+  findExpandedGroupDetails(name: string) {
+    return cy.findByTestId(`pipeline-expanded-group-details-${name}`);
+  }
+
+  findGraphButtons() {
+    return cy.get(
+      'button[data-testid^="pipeline-node-button-"], ' +
+        'button[data-testid^="pipeline-group-button-"], ' +
+        'button[data-testid^="pipeline-group-toggle-"], ' +
+        'button[data-testid^="pipeline-expanded-group-details-"]',
+    );
+  }
+
+  findFocusedGraphButton() {
+    return cy.get('button[data-pipeline-node-id]:focus');
+  }
+
+  findGroupLabelText(name: string) {
+    // PatternFly owns the SVG pill text; scope its class to the named group label.
+    return cy
+      .findByTestId(`pipeline-group-label-${name}`)
+      .find('.pf-topology-pipelines__pill-text');
+  }
+
+  findDrawerTaskTitle() {
+    return cy.findByTestId('pipeline-drawer-task-title');
+  }
+
+  findDrawerCloseButton() {
+    return cy.findByRole('button', { name: 'Close drawer panel' });
   }
 
   findTaskNodes() {
@@ -113,6 +182,14 @@ class PipelinesTopology {
     return cy.get(
       `[data-id="GROUP.root.ARTIFACT.${name}"][data-kind="node"][data-type="ICON_TASK_NODE"]`,
     );
+  }
+
+  findArtifactIcon(name: string) {
+    return cy.findByTestId(`pipeline-artifact-icon-${name}`);
+  }
+
+  findArtifactVisual(name: string) {
+    return cy.findByTestId(`pipeline-artifact-visual-${name}`);
   }
 }
 
