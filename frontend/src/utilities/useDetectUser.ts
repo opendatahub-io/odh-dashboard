@@ -6,28 +6,35 @@ import { POLL_INTERVAL } from './const';
 
 const useDetectUser = (): void => {
   const dispatch = useAppDispatch();
+  const hasDetectedUser = React.useRef(false);
 
   React.useEffect(() => {
     let watchHandle: ReturnType<typeof setTimeout>;
     let cancelled = false;
     dispatch(getUserPending());
-    const detectUser = () => {
+    function detectUser(): void {
+      let responseReceived = false;
       axios
         .get('/api/status')
         .then((response) => {
+          responseReceived = true;
           if (cancelled) {
             return;
           }
           dispatch(getUserFulfilled(response.data));
+          hasDetectedUser.current = true;
         })
         .catch((e) => {
-          if (cancelled) {
+          if (cancelled || (hasDetectedUser.current && !responseReceived && !e?.response)) {
             return;
           }
-          dispatch(getUserRejected(e.response.data));
+          const error = responseReceived
+            ? new Error('Unable to process user status response')
+            : e?.response?.data ?? new Error(e?.message ?? 'Unknown error occurred');
+          dispatch(getUserRejected(error));
         });
       watchHandle = setTimeout(detectUser, POLL_INTERVAL);
-    };
+    }
     detectUser();
 
     return () => {
