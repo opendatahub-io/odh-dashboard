@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - connections-approvers
+
+reviewers:
+  - connections-reviewers
+
+labels:
+  - area/connections
+  - area/components
+
+options:
+  no_parent_owners: true

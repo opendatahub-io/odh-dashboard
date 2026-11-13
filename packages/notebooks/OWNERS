@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - notebooks-approvers
+
+reviewers:
+  - notebooks-reviewers
+
+labels:
+  - area/workbenches
+  - area/components
+
+options:
+  no_parent_owners: true

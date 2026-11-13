@@ -1,4 +1,7 @@
-# Most specific is intended to win
+# Filters are additive: every matching filter contributes approvers, reviewers, and labels.
+# Package ownership lives in packages/<pkg>/OWNERS and manifest module ownership in
+# manifests/modules/<module>/OWNERS (both with options.no_parent_owners: true).
+# Root filters cover the remaining path-based areas.
 filters:
   # Allow team approvers to approve changes to their own sections in OWNERS_ALIASES
   'OWNERS_ALIASES':
@@ -24,7 +27,7 @@ filters:
       - mlflow-approvers
       - distributions-approvers
 
-  # Catchall
+  # Catchall for shared/root files and any path without a more specific owner.
   '.*':
     approvers:
       - openshift-cherrypick-robot
@@ -45,60 +48,37 @@ filters:
     labels:
       - area/frontend
 
+  # Only labels packages that do not have their own packages/<pkg>/OWNERS yet.
   'packages/.*':
     labels:
       - area/components
 
-  'manifests/.*':
-    reviewers:
-      - platform-reviewers
-    labels:
-      - area/manifests
-
-  # Dashboard Module Controller (operator)
-  'dashboard-operator/.*':
-    approvers:
-      - platform-approvers
-    reviewers:
-      - platform-reviewers
-    labels:
-      - 'area/platform'
-
-  # Cypress tests
-  'packages/cypress/.*':
-    approvers:
-      - quality-e2e-testing-approvers
-    reviewers:
-      - quality-e2e-testing-reviewers
-    labels:
-      - 'area/quality'
-
   # Model Registry / Catalog
-  '(frontend/src/(api|concepts|pages|routes)/(modelCatalog|modelRegistry|modelRegistrySettings)/|packages/model-registry/|manifests/modules/model-registry/).*':
+  'frontend/src/(api|concepts|pages|routes)/(modelCatalog|modelRegistry|modelRegistrySettings)/.*':
     approvers:
       - model-registry-catalog-approvers
     reviewers:
       - model-registry-catalog-reviewers
     labels:
-      - 'area/model-registry'
+      - area/model-registry
 
   # Model Serving
-  '(frontend/src/(api|concepts|pages)/(modelServing|modelServingKServe)|packages/(model-serving|kserve|llmd-serving))/.*':
+  'frontend/src/(api|concepts|pages)/(modelServing|modelServingKServe)/.*':
     approvers:
       - model-serving-metrics-approvers
     reviewers:
       - model-serving-metrics-reviewers
     labels:
-      - 'area/model-serving'
+      - area/model-serving
 
   # Tooling & Plugins
-  '(frontend/src/plugins/|packages/(plugin-core|jest-config|eslint-config|plugin-template|tsconfig))/.*':
+  'frontend/src/plugins/.*':
     approvers:
       - platform-approvers
     reviewers:
       - platform-reviewers
     labels:
-      - 'area/platform'
+      - area/platform
 
   # Pipelines
   'frontend/src/(api|concepts|pages|routes)/pipelines/.*':
@@ -107,7 +87,7 @@ filters:
     reviewers:
       - pipelines-reviewers
     labels:
-      - 'area/pipelines'
+      - area/pipelines
 
   # TrustyAI
   'frontend/src/(api|concepts|pages)/trustyai/.*':
@@ -116,12 +96,12 @@ filters:
     reviewers:
       - ai-trusty-reviewers
     labels:
-      - 'area/ai-trusty'
+      - area/ai-safety-trusty
 
   # Distributed Workloads
   'frontend/src/(concepts|pages)/distributedWorkloads/.*':
     labels:
-      - 'area/distributed-workloads'
+      - area/distributed-workloads
 
   # Connections
   'frontend/src/(concepts|pages)/connectionTypes/.*':
@@ -130,7 +110,7 @@ filters:
     reviewers:
       - connections-reviewers
     labels:
-      - 'area/connections'
+      - area/connections
 
   # Accelerator / Profiles
   'frontend/src/(api|concepts)/(acceleratorProfiles|hardwareProfiles)/.*':
@@ -139,7 +119,7 @@ filters:
     reviewers:
       - hardware-profiles-reviewers
     labels:
-      - 'area/hardware-profiles'
+      - area/hardware-profiles
 
   # Workbenches
   'frontend/src/(api|concepts)/(notebooks|notebookController)/.*':
@@ -148,121 +128,4 @@ filters:
     reviewers:
       - workbenches-reviewers
     labels:
-      - 'area/workbenches'
-
-  # Gen AI
-  '(packages/gen-ai|manifests/modules/gen-ai)/.*':
-    approvers:
-      - gen-ai-approvers
-    reviewers:
-      - gen-ai-reviewers
-    labels:
-      - 'area/gen-ai'
-
-  # Models as a Service (MaaS)
-  '(packages/maas|manifests/modules/maas)/.*':
-    approvers:
-      - maas-approvers
-    reviewers:
-      - maas-reviewers
-    labels:
-      - 'area/maas'
-
-  # Notebooks
-  '(manifests/modules/notebooks|packages/notebooks)/.*':
-    approvers:
-      - notebooks-approvers
-    reviewers:
-      - notebooks-reviewers
-    labels:
-      - 'area/notebooks'
-
-  # AutoRAG
-  '(packages/autorag|manifests/modules/autorag)/.*':
-    approvers:
-      - autorag-approvers
-    reviewers:
-      - autorag-reviewers
-    labels:
-      - 'area/autorag'
-
-  # AutoX Core (shared by AutoML and AutoRAG)
-  'packages/autox-core/.*':
-    approvers:
-      - automl-approvers
-      - autorag-approvers
-    reviewers:
-      - automl-reviewers
-      - autorag-reviewers
-
-  # AutoML
-  '(packages/automl|manifests/modules/automl)/.*':
-    approvers:
-      - automl-approvers
-    reviewers:
-      - automl-reviewers
-    labels:
-      - 'area/automl'
-
-  # Eval Hub
-  '(packages/eval-hub|manifests/modules/eval-hub)/.*':
-    approvers:
-      - eval-hub-approvers
-    reviewers:
-      - eval-hub-reviewers
-    labels:
-      - 'area/eval-hub'
-
-  # Agent Ops
-  '(packages/agent-ops|manifests/modules/agent-ops)/.*':
-    approvers:
-      - agent-ops-approvers
-    reviewers:
-      - agent-ops-reviewers
-    labels:
-      - 'area/agent-ops'
-
-  # Distributions
-  'distributions/.*':
-    approvers:
-      - distributions-approvers
-    reviewers:
-      - distributions-reviewers
-    labels:
-      - 'area/distributions'
-
-  # Data Registry
-  '(packages/data-registry|manifests/modules/data-registry)/.*':
-    approvers:
-      - data-registry-approvers
-    reviewers:
-      - data-registry-reviewers
-    labels:
-      - 'area/data-registry'
-
-  # Data Connect Hub
-  '(packages/data-connect-hub|manifests/modules/data-connect-hub)/.*':
-    approvers:
-      - data-connect-hub-approvers
-    reviewers:
-      - data-connect-hub-reviewers
-    labels:
-      - 'area/data-connect-hub'
-
-  # AI Safety
-  '(packages/ai-safety|manifests/modules/ai-safety)/.*':
-    approvers:
-      - ai-safety-approvers
-    reviewers:
-      - ai-safety-reviewers
-    labels:
-      - 'area/ai-safety'
-
-  # MLflow
-  '(packages/mlflow.*|manifests/modules/mlflow)/.*':
-    approvers:
-      - mlflow-approvers
-    reviewers:
-      - mlflow-reviewers
-    labels:
-      - 'area/mlflow'
+      - area/workbenches

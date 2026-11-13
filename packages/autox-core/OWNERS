@@ -1,0 +1,17 @@
+# OWNERS
+
+approvers:
+  - automl-approvers
+  - autorag-approvers
+
+reviewers:
+  - automl-reviewers
+  - autorag-reviewers
+
+labels:
+  - area/automl
+  - area/autorag
+  - area/components
+
+options:
+  no_parent_owners: true

@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - maas-approvers
+
+reviewers:
+  - maas-reviewers
+
+labels:
+  - area/maas
+  - area/manifests
+
+options:
+  no_parent_owners: true

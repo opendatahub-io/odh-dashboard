@@ -23,3 +23,7 @@ reviewers:
 
 labels:
   - area/maas
+  - area/components
+
+options:
+  no_parent_owners: true

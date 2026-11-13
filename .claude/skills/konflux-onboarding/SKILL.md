@@ -375,6 +375,7 @@ For Type A packages, check if `manifests/modules/<name>/` exists. If not, scaffo
 - `cluster-role.yaml` + `cluster-role-binding.yaml` — Module-specific RBAC
 - `kustomization.yaml` — Kustomize entry referencing all resources
 - `params.env` — Kustomize parameter defaults (image reference)
+- `OWNERS` — Approvers/reviewers are the `<name>-approvers` and `<name>-reviewers` aliases from `OWNERS_ALIASES` (created by `/module-onboarding`), with `labels: [area/<name>, area/manifests]` and `options.no_parent_owners: true` (without it Prow inherits the root catch-all and `general-approvers` can approve the module)
 
 Reference existing modules in `manifests/modules/` (e.g., `data-connect-hub/`, `gen-ai/`) for the exact patterns and field values. The container/Service port is `module-federation.service.port` from `packages/<name>/package.json`.
 
