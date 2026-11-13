@@ -13,10 +13,10 @@ import {
 import { Link } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import {
-  evaluationBenchmarksRoute,
   evaluationBenchmarkSuitesRoute,
   evaluationCreateSuiteRoute,
   evaluationEvaluateNavigationState,
+  evaluationSingleBenchmarkRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
@@ -107,18 +107,21 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
                     size="xl"
                     className="evalhub-browse-benchmarks-card__title"
                   >
-                    Browse all benchmarks
+                    Run an individual benchmark
                   </Title>
                   <Content component="p" className="evalhub-browse-benchmarks-card__description">
-                    Explore 100+ individual benchmarks across all evaluation frameworks to run a
-                    one-off evaluation.
+                    Select a benchmark to evaluate an AI asset.
                   </Content>
                 </FlexItem>
                 <FlexItem>
                   <Button
                     variant="secondary"
                     component={(props) => (
-                      <Link {...props} to={evaluationBenchmarksRoute(namespace)} />
+                      <Link
+                        {...props}
+                        to={evaluationSingleBenchmarkRoute(namespace)}
+                        state={evaluationEvaluateNavigationState}
+                      />
                     )}
                     onClick={() =>
                       trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED, {
@@ -127,7 +130,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
                     }
                     data-testid="browse-all-benchmarks-explore"
                   >
-                    Explore
+                    Browse benchmarks
                   </Button>
                 </FlexItem>
               </Flex>

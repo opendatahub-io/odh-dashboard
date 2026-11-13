@@ -4,11 +4,9 @@ import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
 import { mockProvider } from '~/__mocks__/mockProvider';
 import { mockBenchmark } from '~/__mocks__/mockBenchmark';
-import { mockCollection, mockCollectionsListResponse } from '~/__mocks__/mockCollection';
 import { mockEvaluationJob } from '~/__mocks__/mockEvaluationJob';
 import { startEvaluationRunPage } from '~/__tests__/cypress/cypress/pages/startEvaluationRunPage';
-import { chooseBenchmarkPage } from '~/__tests__/cypress/cypress/pages/chooseBenchmarkPage';
-import { chooseCollectionPage } from '~/__tests__/cypress/cypress/pages/chooseCollectionPage';
+import { singleBenchmarkWizardPage } from '~/__tests__/cypress/cypress/pages/singleBenchmarkWizardPage';
 import { ToastNotification } from '~/__tests__/cypress/cypress/pages/components/Notification';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
@@ -79,14 +77,6 @@ const rawMetricProvider = mockProvider({
   ],
 });
 
-const testCollection = mockCollection({
-  id: 'col-safety',
-  name: 'Safety Suite',
-  category: 'Safety',
-  description: 'Safety evaluation collection.',
-  benchmarkIds: ['harmful_request_refusal', 'toxigen'],
-});
-
 const initBaseIntercepts = () => {
   cy.interceptApi(
     'GET /api/:apiVersion/user',
@@ -106,12 +96,6 @@ const initBaseIntercepts = () => {
 
   cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, []);
 
-  cy.interceptApi(
-    'GET /api/:apiVersion/evaluations/collections',
-    { path: API_VERSION },
-    mockCollectionsListResponse([]),
-  );
-
   mockInferenceServices([]);
   mockVerifyConnectionSuccess();
 };
@@ -129,31 +113,28 @@ const fillExternalModelFields = (modelName: string, endpointUrl: string) => {
   cy.wait('@verifyConnection');
 };
 
-const navigateToBenchmarkStart = (
+const navigateToBenchmarkConfiguration = (
   provider = testProvider,
   benchmarkId = testProvider.benchmarks?.[0].id ?? '',
 ) => {
   cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, [provider]);
 
-  chooseBenchmarkPage.visit(NAMESPACE);
-  chooseBenchmarkPage
-    .findBenchmarkCard(provider.resource.id, benchmarkId)
-    .findByTestId('select-benchmark-button')
+  singleBenchmarkWizardPage.visit(NAMESPACE);
+  singleBenchmarkWizardPage.findBreadcrumb().should('contain.text', 'Benchmarks');
+  singleBenchmarkWizardPage
+    .findSelectBenchmarkButton({ providerId: provider.resource.id, benchmarkId })
     .click();
-
   startEvaluationRunPage.findForm().should('exist');
+  startEvaluationRunPage
+    .findActiveBreadcrumb()
+    .should('contain.text', provider.benchmarks?.find(({ id }) => id === benchmarkId)?.name);
 };
 
-const navigateToCollectionStart = () => {
-  cy.interceptApi(
-    'GET /api/:apiVersion/evaluations/collections',
-    { path: API_VERSION },
-    mockCollectionsListResponse([testCollection]),
-  );
-
-  chooseCollectionPage.visit(NAMESPACE);
-  chooseCollectionPage.findUseBenchmarkSuiteButton('col-safety').click();
-
+const navigateToBenchmarkStart = (
+  provider = testProvider,
+  benchmarkId = testProvider.benchmarks?.[0].id ?? '',
+) => {
+  navigateToBenchmarkConfiguration(provider, benchmarkId);
   startEvaluationRunPage.findForm().should('exist');
 };
 
@@ -167,11 +148,37 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findBenchmarkNameDisplay().should('contain.text', 'Alpha Bench');
+    startEvaluationRunPage.findBenchmarkParameterInput('num_examples').should('have.value', '817');
+    startEvaluationRunPage.findBenchmarkParameterInput('num_few_shot').should('have.value', '0');
     startEvaluationRunPage.findEvaluationNameInput().should('not.have.value', '');
     startEvaluationRunPage.findSourceModeToggle().should('not.exist');
     startEvaluationRunPage.findModelPickerToggle().should('exist');
+    startEvaluationRunPage.findEvaluationRunDetailsHeading().should('not.exist');
+    startEvaluationRunPage
+      .findAdvancedConfigurationToggle()
+      .should('contain.text', 'Advanced configuration');
+    startEvaluationRunPage.findBenchmarkSettingsHeading().should('be.visible');
+    startEvaluationRunPage
+      .findTestDataSourceHeading()
+      .should('be.visible')
+      .and('have.class', 'pf-v6-u-font-size-md');
     startEvaluationRunPage.findSubmitButton().should('exist');
     startEvaluationRunPage.findCancelButton().should('exist');
+  });
+
+  it('should expand advanced benchmark parameters at the bottom of benchmark settings', () => {
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage
+      .findAdvancedBenchmarkParametersToggle()
+      .should('contain.text', 'Show advanced benchmark parameters')
+      .click();
+
+    startEvaluationRunPage
+      .findAdvancedBenchmarkParametersToggle()
+      .should('contain.text', 'Hide advanced benchmark parameters');
+    startEvaluationRunPage.findAdvancedBenchmarkParametersContent().should('be.visible');
+    startEvaluationRunPage.findAdditionalArgsUpload().should('be.visible');
   });
 
   it('should default to new experiment mode when no experiments exist', () => {
@@ -246,24 +253,46 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
   });
 
   it('should display threshold slider pre-populated from benchmark metadata', () => {
-    navigateToBenchmarkStart();
+    navigateToBenchmarkConfiguration();
 
     startEvaluationRunPage.findBenchmarkThreshold().should('exist');
-    startEvaluationRunPage
-      .findBenchmarkThreshold()
-      .find('input[type="number"]')
-      .should('have.value', '25');
+    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '25');
+  });
+
+  it('should submit benchmark-declared parameter values from their dedicated fields', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-eval-benchmark-parameters',
+      name: 'benchmark-parameters-eval',
+      state: 'running',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createJobWithBenchmarkParameters',
+    );
+
+    navigateToBenchmarkStart();
+    startEvaluationRunPage.findBenchmarkParameterInput('num_examples').clear().type('42');
+
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createJobWithBenchmarkParameters').then((interception) => {
+      expect(interception.request.body.benchmarks[0].parameters).to.deep.include({
+        num_examples: 42,
+        num_few_shot: 0,
+      });
+    });
   });
 
   it('should display primary scorer metric dropdown with correct default', () => {
-    navigateToBenchmarkStart();
+    navigateToBenchmarkConfiguration();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().should('exist');
     startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'Accuracy');
   });
 
   it('should allow changing the primary scorer metric', () => {
-    navigateToBenchmarkStart();
+    navigateToBenchmarkConfiguration();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
     startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
@@ -311,8 +340,8 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
       'createRawMetricJob',
     );
 
-    navigateToBenchmarkStart(rawMetricProvider, 'constant');
-    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
+    navigateToBenchmarkConfiguration(rawMetricProvider, 'constant');
+    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '10');
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
@@ -336,12 +365,9 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
       'createJobThresholdOverride',
     );
 
-    navigateToBenchmarkStart();
+    navigateToBenchmarkConfiguration();
 
-    startEvaluationRunPage
-      .findBenchmarkThreshold()
-      .find('input[type="number"]')
-      .type('{selectall}50');
+    startEvaluationRunPage.findBenchmarkThresholdInput().type('{selectall}50');
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
@@ -365,7 +391,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
       'createJobWithMetric',
     );
 
-    navigateToBenchmarkStart();
+    navigateToBenchmarkConfiguration();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
     startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
@@ -382,86 +408,13 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
   });
 
   it('should preserve the threshold when the primary metric changes', () => {
-    navigateToBenchmarkStart(rawMetricProvider, 'constant');
-    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
+    navigateToBenchmarkConfiguration(rawMetricProvider, 'constant');
+    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '10');
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
     startEvaluationRunPage.findPrimaryScorerMetricOption('mean_ttft_ms').click();
 
-    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
-  });
-});
-
-describe('Start Evaluation Run - Collection Threshold', () => {
-  beforeEach(() => {
-    initBaseIntercepts();
-    mockMlflowExperiments([]);
-  });
-
-  it('should display collection threshold defaulting to 70 when no pass_criteria in metadata', () => {
-    navigateToCollectionStart();
-
-    startEvaluationRunPage.findBenchmarkThreshold().should('exist');
-    startEvaluationRunPage
-      .findBenchmarkThreshold()
-      .find('input[type="number"]')
-      .should('have.value', '70');
-  });
-
-  it('should not display primary scorer metric dropdown for collection flow', () => {
-    navigateToCollectionStart();
-
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('not.exist');
-  });
-
-  it('should submit overridden collection threshold when user modifies the slider value', () => {
-    const createdJob = mockEvaluationJob({
-      id: 'new-eval-col-threshold-override',
-      name: 'col-threshold-override-eval',
-      state: 'running',
-      collectionId: 'col-safety',
-    });
-
-    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
-      'createCollectionJobThresholdOverride',
-    );
-
-    navigateToCollectionStart();
-
-    startEvaluationRunPage
-      .findBenchmarkThreshold()
-      .find('input[type="number"]')
-      .type('{selectall}85');
-
-    fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
-    startEvaluationRunPage.findSubmitButton().click();
-
-    cy.wait('@createCollectionJobThresholdOverride').then((interception) => {
-      expect(interception.request.body.pass_criteria).to.have.property('threshold', 0.85);
-    });
-  });
-
-  it('should include top-level pass_criteria in collection submission', () => {
-    const createdJob = mockEvaluationJob({
-      id: 'new-eval-col-threshold',
-      name: 'col-threshold-eval',
-      state: 'running',
-      collectionId: 'col-safety',
-    });
-
-    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
-      'createCollectionJobThreshold',
-    );
-
-    navigateToCollectionStart();
-
-    fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
-    startEvaluationRunPage.findSubmitButton().click();
-
-    cy.wait('@createCollectionJobThreshold').then((interception) => {
-      expect(interception.request.body).to.have.property('pass_criteria');
-      expect(interception.request.body.pass_criteria).to.have.property('threshold', 0.7);
-    });
+    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '10');
   });
 });
 
@@ -486,59 +439,7 @@ describe('Start Evaluation Run - Submission Error', () => {
 
     startEvaluationRunPage.findForm().should('exist');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
-    cy.url().should('include', '/create/start');
-  });
-});
-
-describe('Start Evaluation Run - Collection Mode', () => {
-  beforeEach(() => {
-    initBaseIntercepts();
-    mockMlflowExperiments([]);
-  });
-
-  it('should render form with correct collection summary', () => {
-    navigateToCollectionStart();
-
-    startEvaluationRunPage.findBenchmarkNameDisplay().should('contain.text', 'Safety Suite');
-    startEvaluationRunPage.findEvaluationNameInput().should('not.have.value', '');
-    startEvaluationRunPage.findSubmitButton().should('exist');
-  });
-
-  it('should submit collection evaluation job with correct payload', () => {
-    const createdJob = mockEvaluationJob({
-      id: 'new-eval-002',
-      name: 'collection-eval',
-      state: 'running',
-      collectionId: 'col-safety',
-    });
-
-    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
-      'createCollectionJob',
-    );
-
-    navigateToCollectionStart();
-
-    fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
-    startEvaluationRunPage.findSubmitButton().should('be.enabled');
-    startEvaluationRunPage.findSubmitButton().click();
-
-    cy.wait('@createCollectionJob').then((interception) => {
-      expect(interception.request.body).to.have.property('collection');
-      expect(interception.request.body.collection).to.have.property('id', 'col-safety');
-      expect(interception.request.body.collection).to.have.property('benchmarks');
-      expect(interception.request.body.collection.benchmarks).to.have.length(2);
-      expect(interception.request.body.collection.benchmarks[0]).to.have.property(
-        'id',
-        'harmful_request_refusal',
-      );
-      expect(interception.request.body).to.not.have.property('benchmarks');
-    });
-
-    const successToast = new ToastNotification('Evaluation started');
-    successToast.find().should('exist');
-
-    cy.url().should('include', `/evaluation/${NAMESPACE}`);
-    cy.url().should('not.include', '/create');
+    cy.url().should('include', `/create/start?type=benchmark`);
   });
 });
 
@@ -554,6 +455,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     ]);
 
     navigateToBenchmarkStart();
+    startEvaluationRunPage.findAdvancedConfigurationToggle().click();
 
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
   });
@@ -563,6 +465,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
 
     navigateToBenchmarkStart();
     cy.wait('@mlflowExperiments');
+    startEvaluationRunPage.findAdvancedConfigurationToggle().click();
 
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
     startEvaluationRunPage.findExperimentModeNew().click();
@@ -586,6 +489,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     }).as('mlflowExperimentsDelayed');
 
     navigateToBenchmarkStart();
+    startEvaluationRunPage.findAdvancedConfigurationToggle().click();
 
     startEvaluationRunPage.findExperimentModeNew().click();
     startEvaluationRunPage.findExperimentModeNew().should('be.checked');
@@ -615,6 +519,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     }).as('mlflowExperimentsDelayed');
 
     navigateToBenchmarkStart();
+    startEvaluationRunPage.findAdvancedConfigurationToggle().click();
 
     startEvaluationRunPage.findExperimentModeNew().click();
     startEvaluationRunPage.findExperimentModeExisting().click();
@@ -636,12 +541,15 @@ describe('Start Evaluation Run - Cancel', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should navigate back to benchmark selection on cancel', () => {
+  it('should return to the benchmark selector with the benchmark still selected on cancel', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findCancelButton().click();
 
-    cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/single-benchmark`);
+    singleBenchmarkWizardPage
+      .findBenchmarkCard({ providerId: testProvider.resource.id, benchmarkId: 'bench-alpha' })
+      .should('have.attr', 'data-selected', 'true');
   });
 });
 
@@ -768,12 +676,9 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should render the test data section for single benchmark runs but not collection flows', () => {
-    navigateToBenchmarkStart();
+  it('should render the test data section for a single benchmark run', () => {
+    navigateToBenchmarkConfiguration();
     startEvaluationRunPage.findTestDataRefSourceToggle().should('exist');
-
-    navigateToCollectionStart();
-    startEvaluationRunPage.findTestDataRefSourceToggle().should('not.exist');
   });
 
   it('should submit a test data ref with the job request', () => {
@@ -787,7 +692,7 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
       'createJobWithTestData',
     );
 
-    navigateToBenchmarkStart();
+    navigateToBenchmarkConfiguration();
 
     startEvaluationRunPage.findTestDataRefSourceToggle().click();
     startEvaluationRunPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
@@ -807,7 +712,7 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
   });
 
   it('should block submission when required test data fields are empty', () => {
-    navigateToBenchmarkStart();
+    navigateToBenchmarkConfiguration();
 
     startEvaluationRunPage.findTestDataRefSourceToggle().click();
     startEvaluationRunPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
@@ -817,7 +722,6 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
       .findTestDataRefFieldError('claimName')
       .should('contain.text', 'Claim name is required.');
 
-    fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 });

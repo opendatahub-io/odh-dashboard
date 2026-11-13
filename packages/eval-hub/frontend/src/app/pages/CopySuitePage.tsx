@@ -20,9 +20,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getCollection } from '~/app/api/k8s';
 import {
   evaluationBenchmarkSuitesNavigationState,
-  evaluationCollectionSelectionNavigationState,
   evaluationBenchmarkSuitesRoute,
-  evaluationCollectionsRoute,
   evaluationCuratedBenchmarkSuitesRoute,
   evaluationEvaluateNavigationState,
   evaluationEvaluateRoute,
@@ -111,11 +109,6 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     typeof navigationState === 'object' &&
     'source' in navigationState &&
     navigationState.source === evaluationBenchmarkSuitesNavigationState.source;
-  const isCollectionSelectionOrigin =
-    navigationState &&
-    typeof navigationState === 'object' &&
-    'source' in navigationState &&
-    navigationState.source === evaluationCollectionSelectionNavigationState.source;
   const navigationEvaluationTarget =
     navigationState &&
     typeof navigationState === 'object' &&
@@ -128,20 +121,17 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     isEvaluateOrigin ||
     isGalleryOrigin ||
     isBenchmarkSuitesOrigin ||
-    isCollectionSelectionOrigin ||
     navigationEvaluationTarget !== undefined;
   const sourceEvaluationTarget: CuratedEvaluationTarget | undefined = hasExplicitOrigin
     ? navigationEvaluationTarget
     : [sourceCollection?.evaluation_targets?.[0]].find(isCuratedEvaluationTarget);
-  const cancelRoute = isCollectionSelectionOrigin
-    ? evaluationCollectionsRoute(namespace)
-    : isGalleryOrigin
-      ? evaluationGalleryRoute(namespace)
-      : isBenchmarkSuitesOrigin
-        ? evaluationBenchmarkSuitesRoute(namespace)
-        : sourceEvaluationTarget
-          ? evaluationCuratedBenchmarkSuitesRoute(namespace, sourceEvaluationTarget)
-          : evaluationEvaluateRoute(namespace);
+  const cancelRoute = isGalleryOrigin
+    ? evaluationGalleryRoute(namespace)
+    : isBenchmarkSuitesOrigin
+      ? evaluationBenchmarkSuitesRoute(namespace)
+      : sourceEvaluationTarget
+        ? evaluationCuratedBenchmarkSuitesRoute(namespace, sourceEvaluationTarget)
+        : evaluationEvaluateRoute(namespace);
 
   const {
     providers,
@@ -252,20 +242,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
 
   const breadcrumbItems: React.ReactElement[] = [];
 
-  if (isCollectionSelectionOrigin) {
-    breadcrumbItems.push(
-      <BreadcrumbItem
-        key="collectionSelection"
-        render={() =>
-          renderBreadcrumbLink(
-            evaluationCollectionsRoute(namespace),
-            'Select collection',
-            'copy-suite-breadcrumb-select-collection',
-          )
-        }
-      />,
-    );
-  } else if (isGalleryOrigin) {
+  if (isGalleryOrigin) {
     breadcrumbItems.push(
       <BreadcrumbItem
         key="gallery"
@@ -499,7 +476,6 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             onClose={() => setIsRunModalOpen(false)}
             namespace={namespace}
             collection={pendingCollection}
-            isCollectionFlow
             defaultEvaluationName={form.suiteName}
             modalId={
               isCreateMode

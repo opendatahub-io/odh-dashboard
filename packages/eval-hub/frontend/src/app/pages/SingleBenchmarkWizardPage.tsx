@@ -29,7 +29,7 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
@@ -65,11 +65,19 @@ import {
 
 const PAGE_SIZES = [12, 24, 36];
 
-const ChooseStandardisedBenchmarksPage: React.FC = () => {
+const SingleBenchmarkWizardPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const projectDisplayName = useProjectDisplayName(namespace);
   const { providers, loaded, loadError } = useProviders(namespace ?? '');
+  const navigationState =
+    typeof location.state === 'object' && location.state !== null ? location.state : undefined;
+  const navigationSource = navigationState?.source;
+  const selectedBenchmarkKey =
+    typeof navigationState?.selectedBenchmarkKey === 'string'
+      ? navigationState.selectedBenchmarkKey
+      : undefined;
 
   const handleRunBenchmark = React.useCallback(
     (b: FlatBenchmark) => {
@@ -91,10 +99,14 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
         benchmarkId: b.id,
       });
       navigate(`${evaluationStartRoute(namespace)}?${params.toString()}`, {
-        state: { benchmark: b },
+        state: {
+          benchmark: b,
+          source: navigationSource,
+          selectedBenchmarkKey: `${b.providerId}:${b.id}`,
+        },
       });
     },
-    [navigate, namespace],
+    [navigate, namespace, navigationSource],
   );
 
   const allBenchmarks = React.useMemo<FlatBenchmark[]>(
@@ -199,7 +211,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
 
     if (!isClosingSelectedBenchmark) {
       trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED, {
-        source: 'catalogTable',
+        source: 'catalogGrid',
       });
     }
 
@@ -221,7 +233,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark"
-            description="Select a benchmark to run on your model, agent, or dataset."
+            description="Select a benchmark to evaluate a model."
             breadcrumb={
               <ContextBreadcrumb
                 pageName="Evaluations"
@@ -229,7 +241,9 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                 homePath={evaluationsBaseRoute(namespace)}
                 projectHomePath={projectHomeRoute(namespace)}
               >
-                <BreadcrumbItem isActive>Select benchmark</BreadcrumbItem>
+                <BreadcrumbItem isActive data-testid="single-benchmark-breadcrumb">
+                  Benchmarks
+                </BreadcrumbItem>
               </ContextBreadcrumb>
             }
             loaded={loaded}
@@ -464,8 +478,10 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                             key={`${benchmark.providerId}-${benchmark.id}`}
                             benchmark={benchmark}
                             isSelected={
-                              selectedBenchmark?.id === benchmark.id &&
-                              selectedBenchmark.providerId === benchmark.providerId
+                              selectedBenchmark
+                                ? selectedBenchmark.id === benchmark.id &&
+                                  selectedBenchmark.providerId === benchmark.providerId
+                                : selectedBenchmarkKey === `${benchmark.providerId}:${benchmark.id}`
                             }
                             onSelect={() => handleSelectBenchmark(benchmark)}
                             onRunBenchmark={() => handleRunBenchmark(benchmark)}
@@ -506,4 +522,4 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   );
 };
 
-export default ChooseStandardisedBenchmarksPage;
+export default SingleBenchmarkWizardPage;

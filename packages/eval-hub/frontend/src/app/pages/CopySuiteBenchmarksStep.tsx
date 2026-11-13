@@ -47,10 +47,8 @@ type CopySuiteBenchmarksStepProps = {
   onSaveAndRun: () => void;
   onSaveOnly: () => void;
   onBack: () => void;
-  primaryActionLabel?: string;
   primaryActionTestId?: string;
   secondaryActionLabel?: string;
-  showSecondaryAction?: boolean;
   onCancel: () => void;
 };
 
@@ -69,10 +67,8 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   onSaveAndRun,
   onSaveOnly,
   onBack,
-  primaryActionLabel = 'Save and run',
   primaryActionTestId = 'copy-suite-save-and-run',
   secondaryActionLabel = 'Add to my collections',
-  showSecondaryAction = true,
   onCancel,
 }) => {
   const { config } = useModularArchContext();
@@ -270,18 +266,16 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
           isDisabled={!isValid || isSubmitting}
           isLoading={isSubmitting}
         >
-          {primaryActionLabel}
+          Save and run
         </Button>
-        {showSecondaryAction ? (
-          <Button
-            variant="secondary"
-            data-testid="copy-suite-save-only"
-            onClick={onSaveOnly}
-            isDisabled={!isValid || isSubmitting}
-          >
-            {secondaryActionLabel}
-          </Button>
-        ) : null}
+        <Button
+          variant="secondary"
+          data-testid="copy-suite-save-only"
+          onClick={onSaveOnly}
+          isDisabled={!isValid || isSubmitting}
+        >
+          {secondaryActionLabel}
+        </Button>
         <Button
           variant="link"
           data-testid="copy-suite-cancel-step-2"

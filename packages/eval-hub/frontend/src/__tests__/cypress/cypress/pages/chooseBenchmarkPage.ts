@@ -1,6 +1,6 @@
 class ChooseBenchmarkPage {
   visit(namespace: string) {
-    cy.visit(`/evaluation/${namespace}/create/benchmarks`);
+    cy.visit(`/evaluation/${namespace}/create/single-benchmark`);
     this.waitForLoad();
   }
 

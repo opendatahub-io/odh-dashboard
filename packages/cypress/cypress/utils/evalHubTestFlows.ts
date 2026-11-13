@@ -16,6 +16,7 @@ import {
 import { evaluationsPage } from '../pages/evalHub/evaluationsPage';
 import { createEvaluationPage } from '../pages/evalHub/createEvaluationPage';
 import { evaluationResultsPage } from '../pages/evalHub/evaluationResultsPage';
+import { singleBenchmarkWizardPage } from '../pages/evalHub/singleBenchmarkWizardPage';
 
 // EvalHub API cleanup helpers
 const EVAL_HUB_API_MAX_ATTEMPTS = 6;
@@ -368,6 +369,7 @@ export type SingleBenchmarkEvaluationOptions = {
   evaluationRunName: string;
   inferenceServiceName: string;
   mlflowExperimentName: string;
+  numExamples?: number;
   hardwareProfileName?: string;
   additionalBenchmarkParams?: string;
 };
@@ -540,11 +542,12 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
     evaluationRunName,
     inferenceServiceName,
     mlflowExperimentName,
+    numExamples,
     hardwareProfileName,
     additionalBenchmarkParams,
   } = opts;
 
-  cy.step('Open the benchmark gallery from the Evaluate tab');
+  cy.step('Open individual benchmark selection from the Evaluate tab');
   const navigationTimeout = { timeout: 120000 };
   evaluationsPage
     .findBrowseAllBenchmarksExplore(navigationTimeout)
@@ -553,37 +556,48 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
   // Re-query immediately before clicking because the Evaluate tab can re-render while its
   // curated collection data finishes loading, detaching the original button subject.
   evaluationsPage.findBrowseAllBenchmarksExplore(navigationTimeout).click();
-  cy.location('pathname', navigationTimeout).should('match', /\/create\/benchmarks$/);
-  createEvaluationPage.findBenchmarksGallery(navigationTimeout).should('be.visible');
+  cy.location('pathname', navigationTimeout).should('match', /\/create\/single-benchmark$/);
+  singleBenchmarkWizardPage.findBreadcrumb(navigationTimeout).should('contain.text', 'Benchmarks');
+  singleBenchmarkWizardPage.findBenchmarksGallery(navigationTimeout).should('be.visible');
 
-  cy.step(`Select benchmark: ${benchmarkCardTitle}`);
-  createEvaluationPage
-    .findBenchmarkCard(benchmarkProviderId, benchmarkId)
+  cy.step(`Select benchmark from the grid: ${benchmarkCardTitle}`);
+  singleBenchmarkWizardPage
+    .findBenchmarkSearch(navigationTimeout)
+    .should('be.visible')
+    .clear()
+    .type(benchmarkId);
+  singleBenchmarkWizardPage
+    .findBenchmarkCard({ benchmarkId, providerId: benchmarkProviderId }, navigationTimeout)
     .scrollIntoView()
-    .within(() => {
-      createEvaluationPage.findSelectBenchmarkButton().click();
-    });
-  createEvaluationPage.findStartEvaluationForm({ timeout: 120000 }).should('exist');
-
-  selectNewMlflowExperiment(mlflowExperimentName);
+    .should('be.visible')
+    .and('contain.text', benchmarkCardTitle);
+  singleBenchmarkWizardPage
+    .findSelectBenchmarkButton({ benchmarkId, providerId: benchmarkProviderId }, navigationTimeout)
+    .should('be.enabled')
+    .click();
+  createEvaluationPage.findStartEvaluationForm(navigationTimeout).should('be.visible');
+  createEvaluationPage
+    .findStartEvaluationRunBreadcrumb()
+    .should('contain.text', benchmarkCardTitle);
 
   cy.step('Enter evaluation name');
-  createEvaluationPage.findBenchmarkNameDisplay().should('contain.text', benchmarkCardTitle);
+  createEvaluationPage
+    .findStartEvaluationRunBenchmarkName()
+    .should('contain.text', benchmarkCardTitle);
   createEvaluationPage.findEvaluationNameInput().clear().type(evaluationRunName);
 
   cy.step('Select deployed model from cluster picker');
   createEvaluationPage.findModelPickerToggle().click();
-  createEvaluationPage.findModelOption(inferenceServiceName).click();
+  createEvaluationPage.findModelOption(inferenceServiceName).should('be.visible').click();
+  createEvaluationPage.findModelPickerToggle().should('contain.text', inferenceServiceName);
 
-  if (additionalBenchmarkParams?.trim()) {
-    cy.step('Add benchmark parameters');
-    createEvaluationPage.findBenchmarkParametersCheckbox().check({ force: true });
-    createEvaluationPage
-      .findAdditionalBenchmarkParamsTextarea()
-      .should('be.visible')
-      .clear()
-      .type(additionalBenchmarkParams.trim(), { parseSpecialCharSequences: false });
-  }
+  cy.step('Configure advanced run settings');
+  createEvaluationPage
+    .findAdvancedConfigurationToggle()
+    .should('have.attr', 'aria-expanded', 'false')
+    .click()
+    .should('have.attr', 'aria-expanded', 'true');
+  selectNewMlflowExperiment(mlflowExperimentName);
 
   cy.step(
     hardwareProfileName
@@ -591,6 +605,25 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
       : 'Verify no hardware profile is required',
   );
   configureEvaluationHardwareProfile(hardwareProfileName);
+
+  if (numExamples !== undefined) {
+    cy.step('Set the dedicated Num examples parameter');
+    createEvaluationPage
+      .findSingleBenchmarkParameterInput('num_examples')
+      .should('be.visible')
+      .clear()
+      .type(String(numExamples));
+  }
+
+  if (additionalBenchmarkParams?.trim()) {
+    cy.step('Configure advanced benchmark parameters');
+    createEvaluationPage.findAdvancedBenchmarkParametersToggle().click();
+    createEvaluationPage
+      .findAdditionalArgsInput()
+      .should('be.visible')
+      .clear()
+      .type(additionalBenchmarkParams.trim(), { parseSpecialCharSequences: false });
+  }
 
   cy.step('Submit evaluation and confirm it appears in the list');
   const usesOfflineData = interceptEvalHubOfflineDataRequest();

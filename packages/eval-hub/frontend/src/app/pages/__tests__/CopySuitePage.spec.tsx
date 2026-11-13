@@ -11,7 +11,6 @@ import { useCopySuiteForm, type CopySuiteBenchmark } from '~/app/pages/useCopySu
 import CopySuitePage, { CreateSuitePage, EditSuitePage } from '~/app/pages/CopySuitePage';
 import {
   evaluationBenchmarkSuitesNavigationState,
-  evaluationCollectionSelectionNavigationState,
   evaluationEvaluateNavigationState,
   evaluationGalleryNavigationState,
 } from '~/app/routes';
@@ -324,26 +323,6 @@ const renderBenchmarkSuitesOriginPage = (collectionId = 'source-collection') =>
         {
           pathname: `/evaluation/test-namespace/create/collections/${collectionId}/copy`,
           state: evaluationBenchmarkSuitesNavigationState,
-        },
-      ]}
-    >
-      <LocationDisplay />
-      <Routes>
-        <Route
-          path="/evaluation/:namespace/create/collections/:collectionId/copy"
-          element={<CopySuitePage />}
-        />
-      </Routes>
-    </MemoryRouter>,
-  );
-
-const renderCollectionSelectionOriginPage = () =>
-  render(
-    <MemoryRouter
-      initialEntries={[
-        {
-          pathname: '/evaluation/test-namespace/create/collections/source-collection/copy',
-          state: evaluationCollectionSelectionNavigationState,
         },
       ]}
     >
@@ -776,32 +755,6 @@ describe('CopySuitePage', () => {
     expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
       expect.objectContaining({ cancelRoute: '/evaluation/test-namespace/collections' }),
-    );
-  });
-
-  it('should show the select collection breadcrumb and return route when opened from there', () => {
-    mockUseFetchState.mockReturnValue([
-      {
-        ...sourceCollection,
-        // eslint-disable-next-line camelcase
-        evaluation_targets: ['model'],
-      },
-      true,
-      undefined,
-      jest.fn(),
-    ]);
-
-    renderCollectionSelectionOriginPage();
-
-    expect(screen.getByRole('link', { name: 'Select collection' })).toHaveAttribute(
-      'href',
-      '/evaluation/test-namespace/create/collections',
-    );
-    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
-    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
-      expect.objectContaining({
-        cancelRoute: '/evaluation/test-namespace/create/collections',
-      }),
     );
   });
 

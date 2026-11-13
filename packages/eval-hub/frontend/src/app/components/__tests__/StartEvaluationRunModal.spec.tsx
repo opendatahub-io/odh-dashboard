@@ -179,7 +179,6 @@ const renderModal = (
         onClose={onClose}
         namespace="test-namespace"
         collection={modalCollection}
-        isCollectionFlow
         defaultEvaluationName="Copied suite"
         defaultSourceMode={options.defaultSourceMode}
         trackingSource="copy_suite"
@@ -293,7 +292,7 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.getByTestId('model-picker-toggle')).toBeInTheDocument();
   });
 
-  it('should not render benchmark parameters in any modal view', () => {
+  it('should not render benchmark parameters for a collection run', () => {
     renderModal();
 
     expect(screen.queryByTestId('show-additional-args')).not.toBeInTheDocument();

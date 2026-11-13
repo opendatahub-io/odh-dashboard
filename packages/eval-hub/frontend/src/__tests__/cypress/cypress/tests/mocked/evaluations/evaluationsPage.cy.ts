@@ -233,7 +233,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.visitEvaluate(NAMESPACE);
     evaluationsPage.findEvaluateTab().should('contain.text', 'Benchmark collections');
     evaluationsPage.findBrowseAllBenchmarksExploreButton().click();
-    cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/single-benchmark`);
   });
 
   it('should switch to Runs and render its content description', () => {

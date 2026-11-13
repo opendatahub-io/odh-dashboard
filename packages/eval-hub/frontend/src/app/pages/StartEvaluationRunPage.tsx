@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import {
   ActionGroup,
@@ -7,6 +8,7 @@ import {
   Checkbox,
   Content,
   Divider,
+  ExpandableSection,
   FileUpload,
   Form,
   FormGroup,
@@ -30,7 +32,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import {
   MlflowExperimentSelector,
@@ -38,8 +40,7 @@ import {
 } from '@odh-dashboard/internal/concepts/mlflow';
 import {
   evaluationsBaseRoute,
-  evaluationBenchmarksRoute,
-  evaluationCollectionsRoute,
+  evaluationSingleBenchmarkRoute,
   projectHomeRoute,
 } from '~/app/routes';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
@@ -54,7 +55,11 @@ import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField'
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import HardwareProfileField from '~/app/components/HardwareProfileField';
+import DynamicBenchmarkParameterFields from '~/app/components/DynamicBenchmarkParameterFields';
+import { updateBenchmarkParameter } from '~/app/pages/useCopySuiteForm';
+import type { CopySuiteBenchmarkParameter } from '~/app/schemas/copySuite.schema';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
+import type { FlatBenchmark } from '~/app/types';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
@@ -71,24 +76,50 @@ type StartEvaluationRunPageProps = {
   sourceJobId?: string;
 };
 
+const getBenchmarkParameterDefaults = (
+  benchmark: FlatBenchmark | undefined,
+): CopySuiteBenchmarkParameter[] => {
+  const parameters: CopySuiteBenchmarkParameter[] = [];
+  if (benchmark?.dataset_size != null) {
+    parameters.push({ key: 'num_examples', type: 'number', value: benchmark.dataset_size });
+  }
+  if (benchmark?.num_few_shot != null) {
+    parameters.push({ key: 'num_few_shot', type: 'number', value: benchmark.num_few_shot });
+  }
+  return parameters;
+};
+
 const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   initialValues,
   sourceJobId,
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const projectDisplayName = useProjectDisplayName(namespace);
   const isReconfigure = !!sourceJobId;
 
   const selectionResult = useEvaluationSelection(namespace, isReconfigure);
 
   const benchmark = isReconfigure ? initialValues?.benchmark : selectionResult.benchmark;
-  const collection = isReconfigure ? initialValues?.collection : selectionResult.collection;
-  const isCollectionFlow = isReconfigure
-    ? (initialValues?.isCollectionFlow ?? false)
-    : selectionResult.isCollectionFlow;
+  const reconfigureCollection = isReconfigure ? initialValues?.collection : undefined;
+  const isCollectionReconfigure = isReconfigure && (initialValues?.isCollectionFlow ?? false);
+  const isSingleBenchmarkFlow = !isReconfigure && !!benchmark;
   const dataLoaded = isReconfigure ? true : selectionResult.dataLoaded;
   const loadError = isReconfigure ? undefined : selectionResult.loadError;
+
+  const [benchmarkParameters, setBenchmarkParameters] = React.useState(() =>
+    getBenchmarkParameterDefaults(benchmark),
+  );
+  const benchmarkParameterValues = React.useMemo(
+    () =>
+      Object.fromEntries(
+        benchmarkParameters.flatMap((parameter) =>
+          parameter.value == null ? [] : [[parameter.key, parameter.value]],
+        ),
+      ),
+    [benchmarkParameters],
+  );
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',
@@ -101,16 +132,41 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     warning: isWarning,
   } = useInferenceServices(namespace ?? '');
 
-  const previousRoute = isCollectionFlow
-    ? evaluationCollectionsRoute(namespace)
-    : evaluationBenchmarksRoute(namespace);
-  const handleCancel = React.useCallback(() => navigate(previousRoute), [navigate, previousRoute]);
+  const previousRoute = evaluationSingleBenchmarkRoute(namespace);
+  const navigationSource =
+    location.state && typeof location.state === 'object' && 'source' in location.state
+      ? location.state.source
+      : undefined;
+  const selectionReturnState = React.useMemo(
+    () =>
+      isSingleBenchmarkFlow
+        ? {
+            source: navigationSource,
+            selectedBenchmarkKey: `${benchmark.providerId}:${benchmark.id}`,
+          }
+        : undefined,
+    [benchmark, isSingleBenchmarkFlow, navigationSource],
+  );
+  const handleCancel = React.useCallback(
+    () =>
+      navigate(previousRoute, selectionReturnState ? { state: selectionReturnState } : undefined),
+    [navigate, previousRoute, selectionReturnState],
+  );
+
+  const benchmarkParameterValuesForRun = isSingleBenchmarkFlow
+    ? benchmarkParameterValues
+    : undefined;
+  const benchmarkParameterKeysForRun = isSingleBenchmarkFlow
+    ? benchmarkParameters.map(({ key }) => key)
+    : undefined;
 
   const form = useStartEvaluationRunForm({
     namespace,
     benchmark,
-    collection,
-    isCollectionFlow,
+    collection: reconfigureCollection,
+    isCollectionFlow: isCollectionReconfigure,
+    benchmarkParameterValues: benchmarkParameterValuesForRun,
+    benchmarkParameterKeys: benchmarkParameterKeysForRun,
     experiments,
     experimentsLoaded,
     initialValues,
@@ -130,23 +186,19 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
       EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
       { surface: 'create_run_page' },
       {
-        collectionType: collection
-          ? collection.resource.read_only
-            ? 'system'
-            : 'custom'
-          : 'unknown',
-        providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+        collectionType: 'unknown',
+        providerType: benchmark?.providerId,
       },
     );
-  }, [benchmark, collection, dataLoaded, isReconfigure, loadError]);
+  }, [benchmark, dataLoaded, isReconfigure, loadError]);
 
-  const breadcrumbFlowLabel = isCollectionFlow ? 'Select collection' : 'Select benchmark';
+  const breadcrumbFlowLabel = isSingleBenchmarkFlow ? 'Benchmarks' : 'Select benchmark';
 
   const getBreadcrumbItems = (): React.ReactElement[] => {
     const items: React.ReactElement[] = [];
     if (isReconfigure) {
       items.push(
-        <BreadcrumbItem key="active" isActive>
+        <BreadcrumbItem key="active" isActive data-testid="start-evaluation-breadcrumb-active">
           Reconfigure evaluation
         </BreadcrumbItem>,
       );
@@ -154,10 +206,14 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
       items.push(
         <BreadcrumbItem
           key="suite"
-          render={() => <Link to={previousRoute}>{breadcrumbFlowLabel}</Link>}
+          render={() => (
+            <Link to={previousRoute} state={selectionReturnState}>
+              {breadcrumbFlowLabel}
+            </Link>
+          )}
         />,
-        <BreadcrumbItem key="active" isActive>
-          Start evaluation run
+        <BreadcrumbItem key="active" isActive data-testid="start-evaluation-breadcrumb-active">
+          {isSingleBenchmarkFlow ? benchmark.name : 'Start evaluation run'}
         </BreadcrumbItem>,
       );
     }
@@ -167,6 +223,9 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   // ── Model dropdown state ────────────────────────────────────────────
 
   const [isModelOpen, setIsModelOpen] = React.useState(false);
+  const [isAdvancedConfigurationOpen, setIsAdvancedConfigurationOpen] = React.useState(false);
+  const [isAdvancedBenchmarkParametersOpen, setIsAdvancedBenchmarkParametersOpen] =
+    React.useState(false);
 
   const handleModelSelect = React.useCallback(
     (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
@@ -221,7 +280,385 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     );
   }
 
+  // A create run page requires a benchmark selected in the wizard. The hook
+  // redirects stale or incomplete start URLs to Evaluate, so don't render the
+  // reconfigure layout while that redirect is taking place.
+  if (!isReconfigure && !benchmark) {
+    return (
+      <Bullseye>
+        <Spinner aria-label="Loading benchmark selection" />
+      </Bullseye>
+    );
+  }
+
   const showExternalModelFields = form.sourceMode === 'model' && form.modelSelection === 'external';
+
+  const mlflowExperimentFields = (
+    <FormGroup label="MLflow Experiment" isRequired fieldId="mlflow-experiment">
+      <Radio
+        id="experiment-existing"
+        data-testid="experiment-mode-existing"
+        name="experiment-mode"
+        label="Select existing experiment"
+        isChecked={form.experimentMode === 'existing'}
+        onChange={() => {
+          form.setExperimentMode('existing');
+          form.setNewExperimentName('');
+          // Allow auto-selection when experiments load after switching back from new mode.
+          form.experimentManuallyChangedRef.current = false;
+        }}
+      />
+
+      {form.experimentMode === 'existing' && namespace && (
+        <div
+          className="eval-hub-start-evaluation-run__mlflow-selector"
+          style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          <MlflowExperimentSelector
+            workspace={namespace}
+            selection={form.selectedExperiment?.name}
+            onSelect={(exp) => {
+              form.setSelectedExperiment(exp);
+              form.experimentManuallyChangedRef.current = true;
+            }}
+          />
+        </div>
+      )}
+
+      <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+        <Radio
+          id="experiment-new"
+          data-testid="experiment-mode-new"
+          name="experiment-mode"
+          label="Create new experiment"
+          isChecked={form.experimentMode === 'new'}
+          onChange={() => {
+            form.setExperimentMode('new');
+            form.setSelectedExperiment(undefined);
+            form.experimentManuallyChangedRef.current = true;
+            form.setNewExperimentName((prev) =>
+              prev.trim() === '' ? DEFAULT_EXPERIMENT_NAME : prev,
+            );
+          }}
+        />
+      </div>
+
+      {form.experimentMode === 'new' && (
+        <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+          <TextInput
+            id="new-experiment-name"
+            data-testid="new-experiment-name-input"
+            value={form.newExperimentName}
+            onChange={(_e, val) => form.setNewExperimentName(val)}
+            placeholder="Enter experiment name"
+          />
+        </div>
+      )}
+    </FormGroup>
+  );
+
+  const modelAndSourceFields = (
+    <>
+      {form.sourceMode === 'model' && (
+        <FormGroup
+          className="evalhub-form-group--with-description"
+          label={
+            <FormGroupLabel
+              label="Model"
+              description="Select a model from your project's AI asset endpoints, or specify an external endpoint."
+              isRequired
+              helpPopover={{
+                ariaLabel: 'More info for model selection',
+                content:
+                  'The list contains models that have been published as AI asset endpoints in this project.',
+              }}
+            />
+          }
+          fieldId="model-picker"
+        >
+          <Select
+            id="model-picker-menu"
+            data-testid="model-picker-select"
+            isOpen={isModelOpen}
+            selected={
+              form.modelSelection === 'external'
+                ? EXTERNAL_ENDPOINT_VALUE
+                : form.selectedInferenceService?.name
+            }
+            onSelect={handleModelSelect}
+            onOpenChange={setIsModelOpen}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                id="model-picker"
+                ref={toggleRef}
+                onClick={() => setIsModelOpen((prev) => !prev)}
+                isExpanded={isModelOpen}
+                isFullWidth
+                data-testid="model-picker-toggle"
+              >
+                {modelDropdownDisplayValue}
+              </MenuToggle>
+            )}
+            shouldFocusToggleOnSelect
+          >
+            <SelectList>
+              {isLoaded && inferenceServices.length > 0 ? (
+                <>
+                  {inferenceServices.map((is) => {
+                    const incompatibleReason = getIncompatibleModelReason(is);
+                    const isDisabled = !!incompatibleReason;
+
+                    return (
+                      <SelectOption
+                        key={is.name}
+                        value={is.name}
+                        data-testid={`model-option-${is.name}`}
+                        isDisabled={isDisabled}
+                        isSelected={
+                          form.modelSelection === 'cluster' &&
+                          form.selectedInferenceService?.name === is.name
+                        }
+                        description={incompatibleReason}
+                      >
+                        {is.name}
+                        {isDisabled && (
+                          <Icon
+                            status="danger"
+                            iconSize="sm"
+                            style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                          >
+                            <ExclamationCircleIcon />
+                          </Icon>
+                        )}
+                      </SelectOption>
+                    );
+                  })}
+                  <Divider />
+                </>
+              ) : null}
+              <SelectOption
+                key={EXTERNAL_ENDPOINT_VALUE}
+                value={EXTERNAL_ENDPOINT_VALUE}
+                data-testid="model-option-external"
+                isSelected={form.modelSelection === 'external'}
+              >
+                Other (External endpoint)
+              </SelectOption>
+            </SelectList>
+          </Select>
+          {isLoadError ? (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="warning">
+                  Could not load cluster models. You can still use an external endpoint.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : null}
+          {!isLoadError && isWarning ? (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="warning">{isWarning}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : null}
+        </FormGroup>
+      )}
+
+      {showExternalModelFields ? (
+        <SourceModelFields
+          modelName={form.modelName}
+          onModelNameChange={form.setModelName}
+          endpointUrl={form.endpointUrl}
+          onEndpointUrlChange={form.setEndpointUrl}
+          apiKeySecretRef={form.apiKeySecretRef}
+          onApiKeyChange={form.setApiKeySecretRef}
+          endpointUrlError={form.endpointUrlError}
+          touched={form.touched}
+          markTouched={form.markTouched}
+          connectionValidation={form.connectionValidation}
+          canVerifyConnection={form.canVerifyConnection}
+          onVerifyConnection={form.handleVerifyConnection}
+        />
+      ) : null}
+
+      {form.sourceMode === 'prerecorded' ? (
+        <SourcePrerecordedFields
+          sourceName={form.sourceName}
+          onSourceNameChange={form.setSourceName}
+          datasetUrl={form.datasetUrl}
+          onDatasetUrlChange={form.setDatasetUrl}
+          accessToken={form.accessToken}
+          onAccessTokenChange={form.setAccessToken}
+          datasetUrlError={form.datasetUrlError}
+          accessTokenError={form.accessTokenError}
+          touched={form.touched}
+          markTouched={form.markTouched}
+        />
+      ) : null}
+    </>
+  );
+
+  const benchmarkNameField = (
+    <FormGroup
+      label={
+        isCollectionReconfigure
+          ? 'Collection'
+          : isSingleBenchmarkFlow
+            ? 'Selected benchmark'
+            : 'Benchmark'
+      }
+      fieldId="benchmark-name"
+    >
+      <Content component="p" data-testid="benchmark-name-display">
+        {form.benchmarkDisplayName}
+      </Content>
+    </FormGroup>
+  );
+  const testDataFields =
+    !isCollectionReconfigure && form.sourceMode === 'model' ? (
+      <BenchmarkTestDataRefFields
+        value={form.testDataRef}
+        idPrefix="start-evaluation"
+        testIdPrefix="start-evaluation-test-data-ref"
+        sectionTitle={isSingleBenchmarkFlow ? 'Test data source' : undefined}
+        sourceLabel={isSingleBenchmarkFlow ? 'Source' : undefined}
+        isRequired={form.testDataRefRequired}
+        errors={form.testDataRefErrors}
+        onChange={form.setTestDataRef}
+      />
+    ) : null;
+  const hardwareProfileField = (
+    <HardwareProfileField
+      availability={form.kueueAvailability}
+      profiles={form.hardwareProfiles}
+      loaded={form.hardwareProfilesLoaded}
+      error={form.hardwareProfilesError}
+      compatibilityError={form.hardwareProfileCompatibilityError}
+      selectedProfile={form.hardwareProfile}
+      onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+      isRequired={form.requiresHardwareProfile}
+    />
+  );
+  const thresholdField = (
+    <BenchmarkThresholdField
+      value={form.threshold}
+      onChange={form.handleThresholdChange}
+      label={isCollectionReconfigure ? 'Collection threshold' : 'Benchmark threshold'}
+      fieldId="benchmark-threshold"
+      metric={isCollectionReconfigure ? undefined : form.primaryMetric}
+    />
+  );
+  const primaryMetricField =
+    !isCollectionReconfigure && form.availableMetrics.length > 0 ? (
+      <PrimaryScorerMetricField
+        metrics={form.availableMetrics}
+        selected={form.primaryMetric}
+        onChange={form.handlePrimaryMetricChange}
+      />
+    ) : null;
+  const dynamicBenchmarkParameterFields =
+    isSingleBenchmarkFlow && benchmarkParameters.length > 0 ? (
+      <DynamicBenchmarkParameterFields
+        parameters={benchmarkParameters}
+        itemId="single-benchmark"
+        isDisabled={form.isSubmitting}
+        parameterErrors={form.benchmarkParameterErrors}
+        onChange={(key, value) =>
+          setBenchmarkParameters((parameters) => updateBenchmarkParameter(parameters, key, value))
+        }
+      />
+    ) : null;
+  const additionalArgumentsFileUpload = (
+    <FormGroup fieldId="additional-args">
+      <FileUpload
+        id="additional-args"
+        data-testid="additional-args-upload"
+        type="text"
+        value={form.additionalArgs}
+        filename={form.additionalArgsFilename}
+        filenamePlaceholder="Drag and drop a file or upload"
+        onFileInputChange={form.handleAdditionalArgsFileChange}
+        onTextChange={form.handleAdditionalArgsTextChange}
+        onClearClick={form.handleAdditionalArgsClear}
+        browseButtonText="Upload"
+        allowEditingUploadedText
+        textAreaPlaceholder={
+          isSingleBenchmarkFlow
+            ? '{\n  "other_parameter": "value"\n}'
+            : '{\n  "num_examples": 10\n}'
+        }
+        dropzoneProps={{
+          accept: { 'application/json': ['.json'] },
+        }}
+      />
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>Upload a JSON file</HelperTextItem>
+        </HelperText>
+      </FormHelperText>
+    </FormGroup>
+  );
+  const additionalArgumentFields = (
+    <>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+        <FlexItem>
+          <Checkbox
+            id="show-additional-args"
+            data-testid="show-additional-args"
+            label="Benchmark parameters"
+            isChecked={form.showAdditionalArgs}
+            onChange={(_e, checked) => form.setShowAdditionalArgs(checked)}
+          />
+        </FlexItem>
+        <FlexItem>
+          <LabelHelpPopover
+            ariaLabel="More info for benchmark parameters"
+            content="Enter the benchmark parameters for this evaluation run, or upload a JSON file containing them."
+          />
+        </FlexItem>
+      </Flex>
+      {form.showAdditionalArgs && !isSingleBenchmarkFlow ? additionalArgumentsFileUpload : null}
+    </>
+  );
+  const advancedBenchmarkParametersFields = (
+    <ExpandableSection
+      className="pf-v6-u-mt-0"
+      toggleText={
+        isAdvancedBenchmarkParametersOpen
+          ? 'Hide advanced benchmark parameters'
+          : 'Show advanced benchmark parameters'
+      }
+      isExpanded={isAdvancedBenchmarkParametersOpen}
+      onToggle={(_event, expanded) => {
+        setIsAdvancedBenchmarkParametersOpen(expanded);
+        if (expanded) {
+          form.setShowAdditionalArgs(true);
+        }
+      }}
+      data-testid="start-evaluation-run-advanced-benchmark-parameters-toggle"
+    >
+      {form.showAdditionalArgs ? (
+        <div
+          className="pf-v6-u-ml-lg"
+          data-testid="start-evaluation-run-advanced-benchmark-parameters-content"
+        >
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Content component="h3">Benchmark parameters</Content>
+            </FlexItem>
+            <FlexItem>
+              <LabelHelpPopover
+                ariaLabel="More info for benchmark parameters"
+                content="Enter the benchmark parameters for this evaluation run, or upload a JSON file containing them."
+              />
+            </FlexItem>
+          </Flex>
+          {additionalArgumentsFileUpload}
+        </div>
+      ) : null}
+    </ExpandableSection>
+  );
 
   return (
     <ApplicationsPage
@@ -259,302 +696,46 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             />
           </FormGroup>
 
-          {/* ── MLflow Experiment ───────────────────────────────── */}
-          <FormGroup label="MLflow Experiment" isRequired fieldId="mlflow-experiment">
-            <Radio
-              id="experiment-existing"
-              data-testid="experiment-mode-existing"
-              name="experiment-mode"
-              label="Select existing experiment"
-              isChecked={form.experimentMode === 'existing'}
-              onChange={() => {
-                form.setExperimentMode('existing');
-                form.setNewExperimentName('');
-                // Allow auto-selection when experiments load after switching back from new mode.
-                form.experimentManuallyChangedRef.current = false;
-              }}
-            />
-
-            {form.experimentMode === 'existing' && namespace && (
-              <div
-                className="eval-hub-start-evaluation-run__mlflow-selector"
-                style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+          {isSingleBenchmarkFlow ? (
+            <>
+              {modelAndSourceFields}
+              <ExpandableSection
+                toggleText="Advanced configuration"
+                isExpanded={isAdvancedConfigurationOpen}
+                onToggle={(_event, expanded) => setIsAdvancedConfigurationOpen(expanded)}
+                data-testid="start-evaluation-run-advanced-toggle"
               >
-                <MlflowExperimentSelector
-                  workspace={namespace}
-                  selection={form.selectedExperiment?.name}
-                  onSelect={(exp) => {
-                    form.setSelectedExperiment(exp);
-                    form.experimentManuallyChangedRef.current = true;
-                  }}
-                />
-              </div>
-            )}
-
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-              <Radio
-                id="experiment-new"
-                data-testid="experiment-mode-new"
-                name="experiment-mode"
-                label="Create new experiment"
-                isChecked={form.experimentMode === 'new'}
-                onChange={() => {
-                  form.setExperimentMode('new');
-                  form.setSelectedExperiment(undefined);
-                  form.experimentManuallyChangedRef.current = true;
-                  form.setNewExperimentName((prev) =>
-                    prev.trim() === '' ? DEFAULT_EXPERIMENT_NAME : prev,
-                  );
-                }}
-              />
-            </div>
-
-            {form.experimentMode === 'new' && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                <TextInput
-                  id="new-experiment-name"
-                  data-testid="new-experiment-name-input"
-                  value={form.newExperimentName}
-                  onChange={(_e, val) => form.setNewExperimentName(val)}
-                  placeholder="Enter experiment name"
-                />
-              </div>
-            )}
-          </FormGroup>
-
-          {/* ── Model mode: model picker ───────────────────────── */}
-          {form.sourceMode === 'model' && (
-            <FormGroup
-              className="evalhub-form-group--with-description"
-              label={
-                <FormGroupLabel
-                  label="Model"
-                  description="Select a model from your project's AI asset endpoints, or specify an external endpoint."
-                  isRequired
-                  helpPopover={{
-                    ariaLabel: 'More info for model selection',
-                    content:
-                      'The list contains models that have been published as AI asset endpoints in this project.',
-                  }}
-                />
-              }
-              fieldId="model-picker"
-            >
-              <Select
-                id="model-picker-menu"
-                data-testid="model-picker-select"
-                isOpen={isModelOpen}
-                selected={
-                  form.modelSelection === 'external'
-                    ? EXTERNAL_ENDPOINT_VALUE
-                    : form.selectedInferenceService?.name
-                }
-                onSelect={handleModelSelect}
-                onOpenChange={setIsModelOpen}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    id="model-picker"
-                    ref={toggleRef}
-                    onClick={() => setIsModelOpen((prev) => !prev)}
-                    isExpanded={isModelOpen}
-                    isFullWidth
-                    data-testid="model-picker-toggle"
-                  >
-                    {modelDropdownDisplayValue}
-                  </MenuToggle>
-                )}
-                shouldFocusToggleOnSelect
+                <div className="pf-v6-u-ml-lg" data-testid="start-evaluation-run-advanced-content">
+                  {mlflowExperimentFields}
+                  {hardwareProfileField}
+                </div>
+              </ExpandableSection>
+              <Content
+                component="h2"
+                className="pf-v6-u-mt-md pf-v6-u-mb-0"
+                data-testid="benchmark-settings-heading"
               >
-                <SelectList>
-                  {isLoaded && inferenceServices.length > 0 ? (
-                    <>
-                      {inferenceServices.map((is) => {
-                        const incompatibleReason = getIncompatibleModelReason(is);
-                        const isDisabled = !!incompatibleReason;
-
-                        return (
-                          <SelectOption
-                            key={is.name}
-                            value={is.name}
-                            data-testid={`model-option-${is.name}`}
-                            isDisabled={isDisabled}
-                            isSelected={
-                              form.modelSelection === 'cluster' &&
-                              form.selectedInferenceService?.name === is.name
-                            }
-                            description={incompatibleReason}
-                          >
-                            {is.name}
-                            {isDisabled && (
-                              <Icon
-                                status="danger"
-                                iconSize="sm"
-                                style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
-                              >
-                                <ExclamationCircleIcon />
-                              </Icon>
-                            )}
-                          </SelectOption>
-                        );
-                      })}
-                      <Divider />
-                    </>
-                  ) : null}
-                  <SelectOption
-                    key={EXTERNAL_ENDPOINT_VALUE}
-                    value={EXTERNAL_ENDPOINT_VALUE}
-                    data-testid="model-option-external"
-                    isSelected={form.modelSelection === 'external'}
-                  >
-                    Other (External endpoint)
-                  </SelectOption>
-                </SelectList>
-              </Select>
-              {isLoadError ? (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem variant="warning">
-                      Could not load cluster models. You can still use an external endpoint.
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              ) : null}
-              {!isLoadError && isWarning ? (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem variant="warning">{isWarning}</HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              ) : null}
-            </FormGroup>
+                Benchmark settings
+              </Content>
+              {benchmarkNameField}
+              {thresholdField}
+              {primaryMetricField}
+              {dynamicBenchmarkParameterFields}
+              {testDataFields}
+              {advancedBenchmarkParametersFields}
+            </>
+          ) : (
+            <>
+              {mlflowExperimentFields}
+              {modelAndSourceFields}
+              {testDataFields}
+              {hardwareProfileField}
+              {benchmarkNameField}
+              {thresholdField}
+              {primaryMetricField}
+              {additionalArgumentFields}
+            </>
           )}
-
-          {/* ── Model (external) fields ────────────────────────── */}
-          {showExternalModelFields && (
-            <SourceModelFields
-              modelName={form.modelName}
-              onModelNameChange={form.setModelName}
-              endpointUrl={form.endpointUrl}
-              onEndpointUrlChange={form.setEndpointUrl}
-              apiKeySecretRef={form.apiKeySecretRef}
-              onApiKeyChange={form.setApiKeySecretRef}
-              endpointUrlError={form.endpointUrlError}
-              touched={form.touched}
-              markTouched={form.markTouched}
-              connectionValidation={form.connectionValidation}
-              canVerifyConnection={form.canVerifyConnection}
-              onVerifyConnection={form.handleVerifyConnection}
-            />
-          )}
-
-          {/* ── Pre-recorded responses fields ──────────────────── */}
-          {form.sourceMode === 'prerecorded' && (
-            <SourcePrerecordedFields
-              sourceName={form.sourceName}
-              onSourceNameChange={form.setSourceName}
-              datasetUrl={form.datasetUrl}
-              onDatasetUrlChange={form.setDatasetUrl}
-              accessToken={form.accessToken}
-              onAccessTokenChange={form.setAccessToken}
-              datasetUrlError={form.datasetUrlError}
-              accessTokenError={form.accessTokenError}
-              touched={form.touched}
-              markTouched={form.markTouched}
-            />
-          )}
-
-          {/* ── Test data (single benchmark, model mode) ─────── */}
-          {!isCollectionFlow && form.sourceMode === 'model' ? (
-            <BenchmarkTestDataRefFields
-              value={form.testDataRef}
-              idPrefix="start-evaluation"
-              testIdPrefix="start-evaluation-test-data-ref"
-              isRequired={form.testDataRefRequired}
-              errors={form.testDataRefErrors}
-              onChange={form.setTestDataRef}
-            />
-          ) : null}
-
-          <HardwareProfileField
-            availability={form.kueueAvailability}
-            profiles={form.hardwareProfiles}
-            loaded={form.hardwareProfilesLoaded}
-            error={form.hardwareProfilesError}
-            compatibilityError={form.hardwareProfileCompatibilityError}
-            selectedProfile={form.hardwareProfile}
-            onSelect={(profile) => form.setHardwareProfile(profile?.name)}
-            isRequired={form.requiresHardwareProfile}
-          />
-
-          {/* ── Benchmark display ──────────────────────────────── */}
-          <FormGroup label={isCollectionFlow ? 'Collection' : 'Benchmark'} fieldId="benchmark-name">
-            <Content component="p" data-testid="benchmark-name-display">
-              {form.benchmarkDisplayName}
-            </Content>
-          </FormGroup>
-
-          {/* ── Threshold ──────────────────────────────────────── */}
-          <BenchmarkThresholdField
-            value={form.threshold}
-            onChange={form.handleThresholdChange}
-            label={isCollectionFlow ? 'Collection threshold' : 'Benchmark threshold'}
-            fieldId="benchmark-threshold"
-            metric={isCollectionFlow ? undefined : form.primaryMetric}
-          />
-
-          {/* ── Primary scorer metric ──────────────────────────── */}
-          {!isCollectionFlow && form.availableMetrics.length > 0 ? (
-            <PrimaryScorerMetricField
-              metrics={form.availableMetrics}
-              selected={form.primaryMetric}
-              onChange={form.handlePrimaryMetricChange}
-            />
-          ) : null}
-
-          {/* ── Benchmark parameters ───────────────────────────── */}
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-            <FlexItem>
-              <Checkbox
-                id="show-additional-args"
-                data-testid="show-additional-args"
-                label="Benchmark parameters"
-                isChecked={form.showAdditionalArgs}
-                onChange={(_e, checked) => form.setShowAdditionalArgs(checked)}
-              />
-            </FlexItem>
-            <FlexItem>
-              <LabelHelpPopover
-                ariaLabel="More info for benchmark parameters"
-                content="Enter the benchmark parameters for this evaluation run, or upload a JSON file containing them."
-              />
-            </FlexItem>
-          </Flex>
-          {form.showAdditionalArgs ? (
-            <FormGroup fieldId="additional-args">
-              <FileUpload
-                id="additional-args"
-                data-testid="additional-args-upload"
-                type="text"
-                value={form.additionalArgs}
-                filename={form.additionalArgsFilename}
-                filenamePlaceholder="Drag and drop a file or upload"
-                onFileInputChange={form.handleAdditionalArgsFileChange}
-                onTextChange={form.handleAdditionalArgsTextChange}
-                onClearClick={form.handleAdditionalArgsClear}
-                browseButtonText="Upload"
-                allowEditingUploadedText
-                textAreaPlaceholder={'{\n  "num_examples": 10\n}'}
-                dropzoneProps={{
-                  accept: { 'application/json': ['.json'] },
-                }}
-              />
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>Upload a JSON file</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            </FormGroup>
-          ) : null}
 
           {/* ── Actions ────────────────────────────────────────── */}
           <ActionGroup>

@@ -236,6 +236,7 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
         inferenceServiceName: testData.inferenceServiceName,
         mlflowExperimentName,
         hardwareProfileName: config.hardwareProfileName,
+        numExamples: testData.numExamples,
         additionalBenchmarkParams: testData.additionalBenchmarkParams,
       });
 

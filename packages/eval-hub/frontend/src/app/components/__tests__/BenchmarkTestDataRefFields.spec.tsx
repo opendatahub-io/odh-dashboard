@@ -27,6 +27,14 @@ describe('BenchmarkTestDataRefFields', () => {
     expect(screen.queryByTestId('test-test-data-ref-claimName')).not.toBeInTheDocument();
   });
 
+  it('should render a section heading and separate source label when provided', () => {
+    renderFields({ sectionTitle: 'Test data source', sourceLabel: 'Source' });
+
+    expect(screen.getByTestId('test-test-data-ref-heading')).toHaveTextContent('Test data source');
+    expect(screen.getByText('Source')).toBeInTheDocument();
+    expect(screen.getByTestId('test-test-data-ref-source-toggle')).toBeInTheDocument();
+  });
+
   it('should offer all source options', () => {
     renderFields();
 

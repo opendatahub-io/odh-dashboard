@@ -516,7 +516,6 @@ const EvaluationsPage: React.FC = () => {
           onClose={() => setCollectionToRun(undefined)}
           namespace={namespace}
           collection={collectionToRun}
-          isCollectionFlow
           modalId="evaluations-page-start-evaluation-run-modal"
           trackingSource="evaluations_page"
           onSuccess={handleRunSuccess}

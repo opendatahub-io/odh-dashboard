@@ -8,9 +8,7 @@ import ToastNotifications from './components/ToastNotifications';
 import EvaluationsPage from './pages/EvaluationsPage';
 import BenchmarkSuitesPage from './pages/BenchmarkSuitesPage';
 import CuratedBenchmarkSuitesPage from './pages/CuratedBenchmarkSuitesPage';
-import NewEvaluationRunPage from './pages/NewEvaluationRunPage';
-import ChooseBenchmarkCollectionPage from './pages/ChooseBenchmarkCollectionPage';
-import ChooseStandardisedBenchmarksPage from './pages/ChooseStandardisedBenchmarksPage';
+import SingleBenchmarkWizardPage from './pages/SingleBenchmarkWizardPage';
 import StartEvaluationRunPage from './pages/StartEvaluationRunPage';
 import EvaluationResultsPage from './pages/EvaluationResultsPage';
 import CompareEvaluationsPage from './pages/CompareEvaluationsPage';
@@ -50,8 +48,6 @@ const AppRoutes: React.FC = () => (
           path={`:namespace/${evaluationComparePathSegment}`}
           element={<CompareEvaluationsPage />}
         />
-        <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
-        <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
         <Route path=":namespace/create/collections/new" element={<CreateSuitePage />} />
         <Route
           path=":namespace/create/collections/:collectionId/edit"
@@ -61,7 +57,7 @@ const AppRoutes: React.FC = () => (
           path=":namespace/create/collections/:collectionId/copy"
           element={<CopySuitePage />}
         />
-        <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />
+        <Route path=":namespace/create/single-benchmark" element={<SingleBenchmarkWizardPage />} />
         <Route path=":namespace/create/start" element={<StartEvaluationRunPage />} />
         <Route path=":namespace/reconfigure/:jobId" element={<EvaluationReconfigureLoader />} />
       </Route>

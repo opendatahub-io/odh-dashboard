@@ -28,11 +28,9 @@ import {
   MlflowExperimentSelector,
   useMlflowExperiments,
 } from '@odh-dashboard/internal/concepts/mlflow';
-import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
-import BenchmarkTestDataRefFields from '~/app/components/BenchmarkTestDataRefFields';
 import HardwareProfileField from '~/app/components/HardwareProfileField';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import {
@@ -40,10 +38,11 @@ import {
   EXTERNAL_ENDPOINT_VALUE,
   useStartEvaluationRunForm,
 } from '~/app/pages/useStartEvaluationRunForm';
-import type { Collection, CollectionResolution, FlatBenchmark, SourceMode } from '~/app/types';
+import type { Collection, CollectionResolution, SourceMode } from '~/app/types';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
+import type { StartEvaluationRunFormValues } from '~/app/schemas/startEvaluationRun.schema';
 import './StartEvaluationRunModal.scss';
 
 type StartEvaluationRunModalProps = {
@@ -51,10 +50,9 @@ type StartEvaluationRunModalProps = {
   onClose: () => void;
   namespace: string | undefined;
   collection?: Collection;
-  benchmark?: FlatBenchmark;
-  isCollectionFlow: boolean;
   defaultEvaluationName?: string;
   defaultSourceMode?: SourceMode;
+  initialRunValues?: Partial<StartEvaluationRunFormValues>;
   modalId?: string;
   resolveCollection?: (
     signal?: AbortSignal,
@@ -75,10 +73,9 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   onClose,
   namespace,
   collection,
-  benchmark,
-  isCollectionFlow,
   defaultEvaluationName,
   defaultSourceMode,
+  initialRunValues,
   modalId = 'start-evaluation-run-modal',
   resolveCollection,
   onClonePendingChange,
@@ -108,12 +105,12 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
               ? 'system'
               : 'custom'
             : 'unknown',
-          providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+          providerType: collection?.benchmarks?.[0]?.provider_id,
         },
       );
     }
     wasOpenRef.current = isOpen;
-  }, [benchmark, collection, isOpen, trackingSource]);
+  }, [collection, isOpen, trackingSource]);
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',
@@ -128,14 +125,14 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
 
   const form = useStartEvaluationRunForm({
     namespace,
-    benchmark,
     collection,
-    isCollectionFlow,
-    allowDeferredCollection: isCollectionFlow && !collection && !!resolveCollection,
+    isCollectionFlow: true,
+    allowDeferredCollection: !collection && !!resolveCollection,
     experiments,
     experimentsLoaded,
     defaultEvaluationName,
     defaultSourceMode,
+    initialRunValues,
     trackingSource,
     onSuccess,
     onCancel: onClose,
@@ -455,18 +452,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                 />
               ) : null}
 
-              {!isCollectionFlow && form.sourceMode === 'model' ? (
-                <BenchmarkTestDataRefFields
-                  value={form.testDataRef}
-                  idPrefix="start-evaluation-run-modal"
-                  testIdPrefix="start-evaluation-run-modal-test-data-ref"
-                  isDisabled={isCloning}
-                  isRequired={form.testDataRefRequired}
-                  errors={form.testDataRefErrors}
-                  onChange={form.setTestDataRef}
-                />
-              ) : null}
-
               <HardwareProfileField
                 availability={form.kueueAvailability}
                 profiles={form.hardwareProfiles}
@@ -547,17 +532,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                     </div>
                   ) : null}
                 </FormGroup>
-
-                {!isCollectionFlow ? (
-                  <BenchmarkThresholdField
-                    value={form.threshold}
-                    onChange={form.handleThresholdChange}
-                    label="Benchmark threshold"
-                    fieldId="benchmark-threshold"
-                    metric={form.primaryMetric}
-                    isDisabled={isCloning}
-                  />
-                ) : null}
               </ExpandableSection>
             </fieldset>
           </Form>

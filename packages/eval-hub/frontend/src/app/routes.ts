@@ -28,10 +28,6 @@ export const evaluationBenchmarkSuitesNavigationState = {
   source: 'benchmark-suites',
 } as const;
 
-export const evaluationCollectionSelectionNavigationState = {
-  source: 'collection-selection',
-} as const;
-
 export const evaluationCuratedBenchmarkSuitesNavigationState = (evaluationTarget: string) =>
   ({ sourceEvaluationTarget: evaluationTarget }) as const;
 
@@ -50,8 +46,8 @@ export const evaluationCuratedBenchmarkSuitesRoute = (
 ): string =>
   `${evaluationBenchmarkSuitesRoute(namespace)}/${evaluationTarget ?? ':evaluationTarget'}`;
 
-export const evaluationBenchmarksRoute = (namespace?: string): string =>
-  `${evaluationCreateRoute(namespace)}/benchmarks`;
+export const evaluationSingleBenchmarkRoute = (namespace?: string): string =>
+  `${evaluationCreateRoute(namespace)}/single-benchmark`;
 
 export const evaluationStartRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/start`;

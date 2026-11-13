@@ -38,6 +38,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
     <Card
       className="evalhub-benchmark-card m-clickable"
       isSelected={isSelected}
+      data-selected={isSelected}
       data-testid={`benchmark-card-${benchmark.providerId}-${benchmark.id}`}
     >
       {benchmark.category && (
