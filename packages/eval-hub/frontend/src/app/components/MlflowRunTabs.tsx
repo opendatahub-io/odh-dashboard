@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Alert, AlertActionLink, Bullseye, Spinner } from '@patternfly/react-core';
 import { loadRemote } from '@module-federation/runtime';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 
 export interface MlflowRunTabsProps {
   experimentId: string;
@@ -28,6 +28,8 @@ const RETRY_DELAY_MS = 1000;
  * exhausted, instead of a silently blank section.
  */
 const MlflowRunTabs: React.FC<MlflowRunTabsProps> = (props) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const [attempt, setAttempt] = React.useState(0);
   const [remoteComponent, setRemoteComponent] =
     React.useState<React.ComponentType<MlflowRunTabsProps> | null>(null);
@@ -78,7 +80,7 @@ const MlflowRunTabs: React.FC<MlflowRunTabsProps> = (props) => {
         clearTimeout(retryTimer);
       }
     };
-  }, [attempt]);
+  }, [trackEvalHubEvent, attempt]);
 
   if (loadState === 'error') {
     return (
