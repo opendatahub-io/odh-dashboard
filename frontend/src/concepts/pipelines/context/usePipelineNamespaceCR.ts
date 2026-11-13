@@ -73,7 +73,7 @@ const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
   // state1: fetched successfully; whether or not  it is actually there
   // state0: the actual thing that was fetched
   const resourceLoaded = state[1] && !!state[0];
-  const pipelineApiServerReady = dspaLoaded(state);
+  const pipelineApiServerReady = isDspaAllReady(state);
 
   React.useEffect(() => {
     setIsStarting(resourceLoaded && !pipelineApiServerReady);

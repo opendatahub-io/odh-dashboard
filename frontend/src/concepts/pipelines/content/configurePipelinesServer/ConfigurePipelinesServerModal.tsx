@@ -199,7 +199,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               const serverLoaded = dspaLoaded([response[0], true]);
               const serverAllReady = isDspaAllReady([response[0], true]);
 
-              if (hasServerTimedOut([response[0], true], serverLoaded)) {
+              if (hasServerTimedOut([response[0], true], serverAllReady)) {
                 const errorMessage =
                   response[0]?.status?.conditions?.find((condition) => condition.type === 'Ready')
                     ?.message || `${pollingNamespace} pipeline server creation timed out`;

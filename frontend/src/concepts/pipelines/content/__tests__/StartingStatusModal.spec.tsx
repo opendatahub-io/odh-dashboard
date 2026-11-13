@@ -172,6 +172,34 @@ describe('StartingStatusModal', () => {
 
     expect(screen.getByTestId('inProgressDescription')).toBeInTheDocument();
   });
+
+  it('should show failure instead of a spinner when initialization has timed out', () => {
+    const pipelineState = createMockConditions([
+      { type: 'APIServerReady', status: 'True', message: 'API server ready' },
+      {
+        type: 'Ready',
+        status: 'False',
+        reason: K8sDspaConditionReason.Deploying,
+        lastTransitionTime: new Date().toISOString(),
+      },
+    ]);
+    pipelineState.pipelinesServer.timedOut = true;
+    pipelineState.pipelinesServer.isStarting = true;
+    mockUsePipelinesAPI.mockReturnValue(pipelineState);
+
+    render(<StartingStatusModal onClose={mockOnClose} onDelete={mockOnDelete} />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Pipeline Initialization Failed' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('errorDescription')).toHaveTextContent(
+      'Pipeline server creation failed. Delete the server below to retry now',
+    );
+    expect(screen.queryByTestId('inProgressDescription')).not.toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('pipeline-delete-from-modal')).toBeEnabled();
+  });
+
   it('should show error message when there is an error', () => {
     mockUsePipelinesAPI.mockReturnValue(
       createMockConditions([
