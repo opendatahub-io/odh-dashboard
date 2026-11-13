@@ -377,6 +377,19 @@ describe('dashboardUtils', () => {
       expect(hasNamespaceVariable(dashboard)).toBe(true);
     });
 
+    it('should return true for Models TextVariable namespace stub', () => {
+      // Production Models CRs ship TextVariable stub; transform injects StaticList at runtime.
+      // DashboardView uses this to hide Models when the user has no projects.
+      const dashboard = {
+        ...createMockDashboard('dashboard-1-model'),
+        spec: {
+          variables: [{ kind: 'TextVariable', spec: { name: 'namespace', value: '' } }],
+        },
+      } as unknown as DashboardResource;
+
+      expect(hasNamespaceVariable(dashboard)).toBe(true);
+    });
+
     it('should return false when namespace variable is absent', () => {
       const dashboard = {
         ...createMockDashboard('dashboard-cluster-admin'),

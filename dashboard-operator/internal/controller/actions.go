@@ -360,11 +360,12 @@ func deployObservabilityManifests(
 		return fmt.Errorf("failed to render observability manifests from %s: %w", m, err)
 	}
 
+	// Always rewrite dashboard/MaaS Perses ingress peers for custom applicationsNamespace.
+	if err := setPersesAccessApplicationsNamespace(rendered, applicationsNamespace); err != nil {
+		return err
+	}
 	if maasPortalSupportedPlatform(platform) {
 		if err := setMaaSUsageDashboardRoleBindingNamespace(rendered, applicationsNamespace); err != nil {
-			return err
-		}
-		if err := setMaaSPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
 			return err
 		}
 		if err := preserveLegacyMaaSPortalNetworkAccess(ctx, reader, rendered, applicationsNamespace); err != nil {
