@@ -28,7 +28,7 @@ class MaaSPortalPage {
     return cy.findByRole('navigation', { name: 'Navigation', ...options });
   }
 
-  findNavLink(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+  findNavLink(name: string | RegExp): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findNavigation().findByRole('link', { name });
   }
 

@@ -154,8 +154,11 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       maasPortalPage.loginWithCachedSession(portalUrl, adminUser);
 
       cy.step('Open Model Access and verify that subscriptions are available');
-      maasPortalPage.findNavLink('Model Access').should('be.visible').click();
-      maasPortalPage.shouldShowPageTitle('Model Access');
+      maasPortalPage
+        .findNavLink(/model access/i)
+        .should('be.visible')
+        .click();
+      maasPortalPage.findPageTitle().should('match', /model access/i);
       subscriptionsTab.findSubscriptionsTable().should('be.visible');
       subscriptionsTab.findSubscriptionRows().should('have.length.greaterThan', 0);
 
@@ -163,7 +166,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       maasPortalPage.loginWithCachedSession(portalUrl, portalUser);
 
       cy.step('Verify that Model Access is not available to the regular user');
-      maasPortalPage.findNavLink('Model Access').should('not.exist');
+      maasPortalPage.findNavLink(/model access/i).should('not.exist');
 
       cy.step('Open API keys for the regular user');
       maasPortalPage.findNavLink('API keys').should('be.visible').click();
