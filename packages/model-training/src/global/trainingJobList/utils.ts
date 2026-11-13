@@ -17,6 +17,7 @@ import {
   WorkloadCondition,
   WorkloadKind,
 } from '@odh-dashboard/k8s-core';
+import { isInadmissibleQuotaCondition } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import {
@@ -169,6 +170,7 @@ export const getStatusInfo = (
  */
 const extractWorkloadConditions = (
   conditions: WorkloadCondition[],
+  { extendedInadmissible = false }: { extendedInadmissible?: boolean } = {},
 ): Record<string, WorkloadCondition | undefined> => {
   return {
     Failed: conditions.find(
@@ -191,12 +193,14 @@ const extractWorkloadConditions = (
       ({ type, status }) =>
         type === WorkloadConditionType.Preempted && status === ConditionStatus.True,
     ),
-    Inadmissible: conditions.find(
-      ({ type, status, reason }) =>
-        type === WorkloadConditionType.QuotaReserved &&
-        status === ConditionStatus.False &&
-        reason === 'Inadmissible',
-    ),
+    Inadmissible: extendedInadmissible
+      ? conditions.find(isInadmissibleQuotaCondition)
+      : conditions.find(
+          ({ type, status, reason }) =>
+            type === WorkloadConditionType.QuotaReserved &&
+            status === ConditionStatus.False &&
+            reason === 'Inadmissible',
+        ),
     Pending: conditions.find(
       ({ type, status }) =>
         type === WorkloadConditionType.QuotaReserved && status === ConditionStatus.False,
@@ -258,7 +262,9 @@ export const getTrainingJobStatusWithWorkload = (
   basicStatus: TrainingJobState,
 ): { status: TrainingJobState; isLoading: boolean } => {
   const conditions = workload.status?.conditions || [];
-  const workloadConditionsMap = extractWorkloadConditions(conditions);
+  const workloadConditionsMap = extractWorkloadConditions(conditions, {
+    extendedInadmissible: true,
+  });
 
   // System rejection (takes priority over failure states)
   if (workloadConditionsMap.Inadmissible) {
@@ -570,6 +576,7 @@ export const getStatusAlert = (
     reason?: string;
     type?: string;
   }>,
+  options?: { extendedInadmissible?: boolean },
 ): {
   title: string;
   description?: string;
@@ -611,7 +618,9 @@ export const getStatusAlert = (
 
   // Priority 2: Workload conditions (reuse extractWorkloadConditions for consistency)
   if ((!description || title === statusInfo.alertTitle) && workloadConditions) {
-    const workloadConditionsMap = extractWorkloadConditions(workloadConditions);
+    const workloadConditionsMap = extractWorkloadConditions(workloadConditions, {
+      extendedInadmissible: options?.extendedInadmissible,
+    });
     let condition: WorkloadCondition | undefined;
 
     if (status === TrainingJobState.FAILED) {

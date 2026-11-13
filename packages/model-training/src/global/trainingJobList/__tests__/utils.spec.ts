@@ -776,6 +776,70 @@ describe('getTrainingJobStatus', () => {
     expect(result.isLoading).toBe(false);
   });
 
+  it('should return INADMISSIBLE when reason=Pending and message contains maximum capacity', async () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set trainer: insufficient unused quota for " +
+          'nvidia.com/gpu in flavor default-flavor, 2 > maximum capacity 0',
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
+
+    const result = await getTrainingJobStatus(job);
+    expect(result.status).toBe(TrainingJobState.INADMISSIBLE);
+    expect(result.isLoading).toBe(false);
+  });
+
+  it('should return INADMISSIBLE when reason=Pending and message contains unavailable in clusterqueue', async () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Pending',
+        message: 'flavor default-flavor is unavailable in ClusterQueue cluster-queue',
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
+
+    const result = await getTrainingJobStatus(job);
+    expect(result.status).toBe(TrainingJobState.INADMISSIBLE);
+    expect(result.isLoading).toBe(false);
+  });
+
+  it('should return QUEUED (not INADMISSIBLE) for generic Pending reason without capacity message', async () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+      status: TrainingJobState.CREATED,
+      jobsStatus: [],
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Pending',
+        message: 'insufficient unused quota for cpu',
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
+
+    const result = await getTrainingJobStatus(job);
+    // Generic "insufficient unused quota" is a temporary block, not permanent Inadmissible
+    expect(result.status).toBe(TrainingJobState.QUEUED);
+  });
+
   it('should return FAILED from Workload Finished condition', async () => {
     const job = mockTrainJobK8sResource({
       name: TEST_JOB_NAME,
@@ -1117,6 +1181,72 @@ describe('getTrainingJobStatusWithWorkload', () => {
 
     expect(getTrainingJobStatusWithWorkload(job, workload, TrainingJobState.FAILED).status).toBe(
       TrainingJobState.INADMISSIBLE,
+    );
+  });
+
+  it('should detect Inadmissible from reason=Pending with maximum capacity message', () => {
+    const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Pending',
+        message: '2 > maximum capacity 0 for nvidia.com/gpu',
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+      {
+        type: WorkloadConditionType.Finished,
+        status: ConditionStatus.True,
+        reason: 'JobFailed',
+        message: 'Job failed',
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    // Inadmissible should still take priority over Failed
+    expect(getTrainingJobStatusWithWorkload(job, workload, TrainingJobState.FAILED)).toEqual(
+      expect.objectContaining({ status: TrainingJobState.INADMISSIBLE }),
+    );
+  });
+
+  it('should NOT flicker to RUNNING when workload is Inadmissible and jobsStatus has active jobs', () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+      jobsStatus: [{ name: 'trainer', active: 1 }],
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Inadmissible',
+        message: 'ClusterQueue is inactive',
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    // Even with active jobs, Inadmissible takes priority (no flicker)
+    expect(getTrainingJobStatusWithWorkload(job, workload, TrainingJobState.CREATED)).toEqual(
+      expect.objectContaining({ status: TrainingJobState.INADMISSIBLE }),
+    );
+  });
+
+  it('should return INADMISSIBLE for Pending + capacity message even with active jobsStatus', () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+      jobsStatus: [{ name: 'trainer', active: 2 }],
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set trainer: insufficient unused quota for " +
+          'nvidia.com/gpu in flavor default-flavor, 2 > maximum capacity 0',
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    // Inadmissible must win over active jobs — prevents Queued↔Running flicker
+    expect(getTrainingJobStatusWithWorkload(job, workload, TrainingJobState.CREATED)).toEqual(
+      expect.objectContaining({ status: TrainingJobState.INADMISSIBLE }),
     );
   });
 

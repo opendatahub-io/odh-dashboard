@@ -36,9 +36,55 @@ export const useWorkloadForJob = (
   );
 };
 
+/**
+ * TrainJob-specific hook: watches ALL Workloads in the namespace and filters
+ * client-side.  The Training Operator creates a JobSet with the same name as
+ * the TrainJob, and Kueue labels the Workload with the JobSet UID — not the
+ * TrainJob UID.  A label-selector watch by TrainJob UID therefore misses it.
+ *
+ * Matching rules:
+ *  1. kueue.x-k8s.io/job-uid === TrainJob UID  (requires defined UID)
+ *  2. ownerReferences contains a JobSet whose name === TrainJob name
+ *
+ * Results are sorted by creationTimestamp descending so consumers selecting
+ * workloads[0] get the most recent (stable) result.
+ */
 export const useWorkloadForTrainJob = (
   job: TrainJobKind | null,
-): CustomWatchK8sResult<WorkloadKind[]> => useWorkloadForJob(job);
+): CustomWatchK8sResult<WorkloadKind[]> => {
+  const [allWorkloads, loaded, error] = useK8sWatchResourceList(
+    job
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(WorkloadModel),
+          namespace: job.metadata.namespace,
+        }
+      : null,
+    WorkloadModel,
+  );
+
+  const matchingWorkloads = React.useMemo((): WorkloadKind[] => {
+    if (!job || !loaded) return [];
+    const jobUid = job.metadata.uid;
+    const jobName = job.metadata.name;
+    return allWorkloads
+      .filter((w): w is WorkloadKind => {
+        const labels = w.metadata?.labels ?? {};
+        // Direct UID match — only when the TrainJob UID is defined
+        if (jobUid && labels['kueue.x-k8s.io/job-uid'] === jobUid) return true;
+        // JobSet owner reference match — the JobSet has the same name as the TrainJob
+        const owners = w.metadata?.ownerReferences ?? [];
+        return owners.some((o) => o.kind === 'JobSet' && o.name === jobName);
+      })
+      .toSorted((a, b) => {
+        const tsA = a.metadata?.creationTimestamp ?? '';
+        const tsB = b.metadata?.creationTimestamp ?? '';
+        return tsB.localeCompare(tsA); // newest first
+      });
+  }, [allWorkloads, job, loaded]);
+
+  return [matchingWorkloads, loaded, error];
+};
 
 export const useWorkload = (job: UnifiedJobKind | null): WorkloadKind | null => {
   const [workloads, loaded] = useWorkloadForJob(job);
