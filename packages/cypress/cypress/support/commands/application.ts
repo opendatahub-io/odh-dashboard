@@ -311,7 +311,7 @@ const handleKeycloakLogin = (credentials: UserAuthConfig): void => {
 /**
  * Helper function to handle standard OpenShift OAuth login
  */
-const handleOAuthLogin = (credentials: UserAuthConfig): void => {
+const handleOAuthLogin = (credentials: UserAuthConfig, targetUrl: string): void => {
   cy.log('OAuth login flow detected - completing authentication');
 
   // Look for and click the auth provider link
@@ -334,6 +334,13 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
 
   cy.url().should('not.include', '/login/');
   cy.url().should('not.include', '/oauth');
+  const isMaaSPortal = new URL(targetUrl).pathname.startsWith('/maas-portal/');
+  if (isMaaSPortal) {
+    cy.findByRole('navigation', { name: 'Navigation' }).should('be.visible');
+    cy.location('origin').should('eq', new URL(targetUrl).origin);
+    return;
+  }
+
   cy.findByRole('banner', { name: 'page masthead' }).should('be.visible');
 
   const expectedOrigins = [new URL(baseUrl).origin];
@@ -348,9 +355,12 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
 };
 
 Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {
+  const baseUrl = Cypress.config('baseUrl') || '';
+  const isLocalProxyVisit =
+    Cypress.env('E2E_PROXY') && new URL(relativeUrl, baseUrl).origin === new URL(baseUrl).origin;
   if (Cypress.env('MOCK')) {
     cy.visit(relativeUrl);
-  } else if (Cypress.env('E2E_PROXY')) {
+  } else if (isLocalProxyVisit) {
     cy.request('POST', '/e2e-login', {
       username: credentials.USERNAME,
       password: credentials.PASSWORD,
@@ -407,7 +417,7 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
         currentUrl.includes('/oauth/authorize') ||
         currentUrl.includes('oauth-openshift')
       ) {
-        handleOAuthLogin(credentials);
+        handleOAuthLogin(credentials, fullUrl);
       }
     });
   }

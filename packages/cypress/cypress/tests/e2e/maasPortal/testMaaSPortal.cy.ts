@@ -20,17 +20,12 @@ import { deleteOpenShiftProjectBestEffort } from '../../../utils/oc_commands/pro
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { createAndVerifyProject } from '../../../utils/projectChecker';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import {
-  apiKeysPage,
-  copyApiKeyModal,
-  createApiKeyModal,
-  revokeAPIKeyModal,
-  subscriptionsTab,
-} from '../../../pages/modelsAsAService';
+import { apiKeysPage, revokeAPIKeyModal, subscriptionsTab } from '../../../pages/modelsAsAService';
 import { maasPortalPage } from '../../../pages/maasPortal';
 import { MAAS_PORTAL_ADMIN_USER, MAAS_PORTAL_USER } from '../../../utils/e2eUsers';
 import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
 import { verifyMaaSApiKeyRevoked } from '../../../utils/maasApiKeyRevocation';
+import { createPortalApiKeyAndVerifyInference } from '../../../utils/maasPortalApiKeyFlow';
 import type { UserAuthConfig } from '../../../types';
 
 const testSuffix = `${generateTestUUID()}-${Date.now().toString(36).slice(-5)}`;
@@ -171,75 +166,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       maasPortalPage.findNavLink('API keys').should('be.visible').click();
       apiKeysPage.findTitle().should('contain.text', 'API keys');
 
-      cy.step('Create an API key using an available subscription');
-      apiKeysPage.findCreateApiKeyButton().click();
-      createApiKeyModal.shouldBeOpen();
-      createApiKeyModal.findSubscriptionToggle().click();
-      createApiKeyModal.findSubscriptionOption(subscriptionName).should('be.visible').click();
-      createApiKeyModal.findNameInput().type(apiKeyName);
-      createApiKeyModal.findSubmitButton().should('be.enabled').click();
-
-      cy.step('Verify the API key details modal without asserting secret values');
-      copyApiKeyModal.shouldBeOpen();
-      copyApiKeyModal.findApiKeyName().should('contain.text', apiKeyName);
-      copyApiKeyModal.findSubscriptionName().should('not.be.empty');
-      copyApiKeyModal.findApiKeyTokenInput().should('exist');
-      copyApiKeyModal.findApiKeyExpirationDate().should('not.be.empty');
-      copyApiKeyModal.expandAccessDetails();
-      copyApiKeyModal.findBaseURL().invoke('val').should('not.be.empty');
-      copyApiKeyModal.findModelID().invoke('val').should('not.be.empty');
-      copyApiKeyModal.findUsageExample().should('contain.text', '/v1/chat/completions');
-      copyApiKeyModal
-        .findEndpointCompatibilityAlert()
-        .scrollIntoView()
-        .should('be.visible')
-        .and('contain.text', 'Endpoint compatibility');
-
-      cy.step('Run the copied usage example with the newly created API key');
-      stubClipboard('copiedApiKey', { log: false });
-      copyApiKeyModal.findApiKeyTokenCopyButton().click();
-      getClipboardContent('copiedApiKey', { log: false }).then((apiKeys) => {
-        const apiKey = apiKeys[0];
-        expect(typeof apiKey, 'created API key type').to.equal('string');
-        expect(apiKey.length, 'created API key length').to.be.greaterThan(0);
-        cy.wrap(apiKey, { log: false }).as('storedApiKey');
-        copyApiKeyModal
-          .findBaseURL()
-          .invoke('val')
-          .then((baseUrl) => {
-            copyApiKeyModal
-              .findModelID()
-              .invoke('val')
-              .then((model) => {
-                const modelId = String(model ?? '');
-                expect(modelId.length, 'created model ID length').to.be.greaterThan(0);
-                cy.wrap(modelId).as('createdModelId');
-                const gatewayBaseUrl = String(baseUrl ?? '').replace(/\/$/, '');
-
-                cy.request({
-                  method: 'POST',
-                  url: `${gatewayBaseUrl}/v1/chat/completions`,
-                  headers: {
-                    Authorization: `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: {
-                    model: modelId,
-                    messages: [{ role: 'user', content: 'Hello' }],
-                  },
-                  failOnStatusCode: false,
-                  log: false,
-                }).then((response) => {
-                  expect(response.status).to.equal(200);
-                });
-              });
-          });
-      });
-
-      cy.step('Acknowledge the API key was copied and close the modal');
-      copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
-      copyApiKeyModal.findCloseButton().should('be.enabled').click();
-      copyApiKeyModal.shouldBeOpen(false);
+      createPortalApiKeyAndVerifyInference(portalUrl, subscriptionName, apiKeyName);
 
       cy.step('Switch to the administrator MaaS Portal session and revoke the created API key');
       maasPortalPage.loginWithCachedSession(portalUrl, adminUser);

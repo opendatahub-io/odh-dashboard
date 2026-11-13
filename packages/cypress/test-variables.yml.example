@@ -47,6 +47,7 @@ GEMINI_API_KEY: ''
 OCI_SECRET_VALUE: cmhvYWlfZGFzaGJvYXJkK3Job
 OCI_MODEL_URI: quay.io/my_user/my_oci_model:latest
 MAAS_URL: https://maas.apps.your-cluster.com
+# Used by the Keycloak Portal E2E spec; the OpenShift spec discovers its URL.
 MAAS_PORTAL_URL: https://maas.apps.your-cluster.com/maas-portal/
 ENABLE_MAAS_PORTAL_E2E: false
 # Portal identity-provider credentials, required when ENABLE_MAAS_PORTAL_E2E is true.

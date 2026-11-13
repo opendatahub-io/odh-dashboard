@@ -1,6 +1,12 @@
 import type { UserAuthConfig } from '../types';
 
 class MaaSPortalPage {
+  visitWithOpenShiftLogin(url: string, credentials: UserAuthConfig): void {
+    cy.visitWithLogin(url, credentials);
+    cy.location('origin', { timeout: 30000 }).should('eq', new URL(url).origin);
+    this.findNavigation({ timeout: 30000 }).should('be.visible');
+  }
+
   visitWithLogin(url: string, credentials: UserAuthConfig): void {
     cy.visitWithLogin(url, credentials);
   }
@@ -63,6 +69,13 @@ class MaaSPortalPage {
 
   ensureModelEndpointsLoaded(): void {
     cy.findByTestId('ai-models-table', { timeout: 30000 }).should('be.visible');
+  }
+
+  findModelEndpointRow(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId('ai-models-table')
+      .find('tr:has(td)')
+      .filter((_, row) => row.textContent.includes(modelName));
   }
 
   findEndpointDetailsModal(): Cypress.Chainable<JQuery<HTMLElement>> {
