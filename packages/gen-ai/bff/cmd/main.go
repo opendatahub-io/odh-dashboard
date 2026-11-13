@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,6 +35,8 @@ func main() {
 
 	// General BFF configuration
 	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 8080), "API server port")
+	flag.StringVar(&cfg.Host, "host", getEnvAsString("HOST", ""), "API server listen host (empty binds all interfaces)")
+	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Explicit local-development mode (required for --allow-local-model-endpoints)")
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.StringVar(&cfg.StaticAssetsDir, "static-assets-dir", "./static", "Configure frontend static assets root directory")
@@ -68,6 +72,7 @@ func main() {
 	// TLS configuration
 	flag.Func("bundle-paths", "CA bundle file paths (comma-separated list)", newBundlePathParser(&cfg.BundlePaths, getEnvAsString("BUNDLE_PATHS", "")))
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification")
+	flag.BoolVar(&cfg.AllowLocalModelEndpoints, "allow-local-model-endpoints", getEnvAsBool("ALLOW_LOCAL_MODEL_ENDPOINTS", false), "Allow verifying model endpoints on localhost/loopback (local development only)")
 
 	// RBAC configuration
 	flag.BoolVar(&cfg.EnableLlamaStackRBAC, "enable-llamastack-rbac", getEnvAsBool("ENABLE_LLAMASTACK_RBAC", false), "Enable RBAC endpoint filtering on LlamaStack configurations")
@@ -115,6 +120,13 @@ func main() {
 	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify, certFile); err != nil {
 		os.Exit(1)
 	}
+	bindHost, err := validateAllowLocalModelEndpoints(cfg.AllowLocalModelEndpoints, cfg.DevMode, cfg.Host, certFile)
+	if err != nil {
+		os.Exit(1)
+	}
+	if err := validateListenHost(cfg.Host); err != nil {
+		os.Exit(1)
+	}
 
 	if cfg.LogLevel == slog.LevelDebug {
 		log.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -146,7 +158,7 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Addr:         net.JoinHostPort(bindHost, strconv.Itoa(cfg.Port)),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  8 * time.Minute, // Allow larger file uploads (up to 10MB)
@@ -165,7 +177,7 @@ func main() {
 	serverClosed := make(chan struct{})
 	go func() {
 		defer close(serverClosed)
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled, "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
+		logger.Info("starting server", "addr", net.JoinHostPort(sanitizedHost(bindHost), strconv.Itoa(cfg.Port)), "TLS enabled", tlsEnabled, "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
 		if tlsEnabled {
 			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, certFile, keyFile)
 		} else {
@@ -231,4 +243,184 @@ func validateInsecureSkipVerify(insecureSkipVerify bool, certFile string) error 
 		"use_case", "local development only - NEVER use in production",
 	)
 	return nil
+}
+
+// validateAllowLocalModelEndpoints validates the AllowLocalModelEndpoints
+// configuration at startup, mirroring the InsecureSkipVerify fail-fast check.
+// An empty certFile alone is not evidence of local development: the setting is
+// accepted only when dev mode is explicitly enabled and the server is bound to
+// a loopback interface. It returns the address the listener should bind: the
+// validated loopback IP when local model endpoints are enabled (so the
+// listener does not re-resolve the hostname and can never bind a different,
+// non-loopback address), and the configured host unchanged otherwise.
+func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode bool, host string, certFile string) (string, error) {
+	if !allowLocalModelEndpoints {
+		return host, nil
+	}
+
+	if certFile != "" {
+		slog.Error("SECURITY: AllowLocalModelEndpoints cannot be used when TLS certificates are mounted",
+			"cert_file", certFile,
+			"allow_local_model_endpoints", allowLocalModelEndpoints,
+			"fix", "Remove --allow-local-model-endpoints flag and ALLOW_LOCAL_MODEL_ENDPOINTS env var",
+		)
+		return "", errors.New("AllowLocalModelEndpoints cannot be used when TLS certificates are mounted (deployed environment detected)")
+	}
+
+	if !devMode {
+		slog.Error("SECURITY: AllowLocalModelEndpoints is only allowed in local development mode",
+			"allow_local_model_endpoints", allowLocalModelEndpoints,
+			"fix", "Remove --allow-local-model-endpoints flag and ALLOW_LOCAL_MODEL_ENDPOINTS env var, or enable --dev-mode for local development",
+		)
+		return "", errors.New("AllowLocalModelEndpoints is only allowed in local development mode (--dev-mode)")
+	}
+
+	loopbackIP, ok := resolveLoopbackIP(host)
+	if !ok {
+		slog.Error("SECURITY: AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface",
+			"host", sanitizedHost(host),
+			"fix", "Pass --host localhost (or 127.0.0.1) when using --allow-local-model-endpoints",
+		)
+		return "", errors.New("AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface (--host)")
+	}
+
+	slog.Warn("SECURITY WARNING: verifying localhost/loopback model endpoints is ENABLED (AllowLocalModelEndpoints=true)",
+		"use_case", "local development only - NEVER use in production",
+	)
+	return loopbackIP.String(), nil
+}
+
+// isPlausibleHost reports whether h is a value the listener could reasonably
+// bind: empty (all interfaces), an IP literal, a scoped IPv6 address
+// (fe80::1%eth0), or a DNS hostname (letters, digits, dots, hyphens). A zone
+// is only valid on IPv6 addresses, which contain a colon.
+func isPlausibleHost(h string) bool {
+	if h == "" {
+		return true
+	}
+	if net.ParseIP(h) != nil {
+		return true
+	}
+	if zone := strings.Index(h, "%"); zone > 0 {
+		return strings.Contains(h[:zone], ":") &&
+			net.ParseIP(h[:zone]) != nil &&
+			strings.Trim(h[zone+1:], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._") == ""
+	}
+	return strings.Trim(h, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-") == ""
+}
+
+// stripLeadingScheme removes a scheme prefix ("https://") only when it starts
+// the value and the prefix is composed of valid scheme characters, so
+// scheme-like text embedded in path or query data is not mistaken for a
+// prefix and mangled.
+func stripLeadingScheme(host string) string {
+	i := strings.Index(host, "://")
+	if i <= 0 {
+		return host
+	}
+	for _, r := range host[:i] {
+		if !strings.ContainsRune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-.", r) {
+			return host
+		}
+	}
+	return host[i+3:]
+}
+
+// sanitizedHost strips any scheme prefix and userinfo credentials from a
+// configured host before logging, so a password-bearing HOST or --host value
+// never appears in logs. A value that still carries path or query data after
+// scheme stripping cannot be summarized safely — the path or query may hold a
+// token, possibly one containing "@" or scheme-like text that would otherwise
+// drive the stripping — and neither can a malformed value; both are replaced
+// with a redacted marker before userinfo is considered.
+func sanitizedHost(host string) string {
+	host = stripLeadingScheme(host)
+	if strings.ContainsAny(host, "/?#") {
+		return "[redacted]"
+	}
+	if at := strings.LastIndex(host, "@"); at >= 0 {
+		host = host[at+1:]
+	}
+	if !isPlausibleHost(host) {
+		return "[redacted]"
+	}
+	return host
+}
+
+// validateListenHost rejects listen hosts that carry a scheme prefix, embed
+// userinfo credentials or path/query data, or are not a valid IP or DNS
+// hostname. Such hosts can never work as listen addresses, and their raw
+// values would otherwise leak through net/http listener errors when startup
+// fails. Scheme prefixes are rejected rather than stripped so validation and
+// the bound address cannot disagree.
+func validateListenHost(host string) error {
+	h := host
+	if strings.Contains(h, "://") {
+		slog.Error("SECURITY: --host must not include a scheme",
+			"host", sanitizedHost(host),
+			"fix", "Pass a plain host or IP, e.g. --host localhost",
+		)
+		return errors.New("--host must not include a scheme")
+	}
+	if at := strings.LastIndex(h, "@"); at >= 0 {
+		slog.Error("SECURITY: --host must not contain userinfo credentials",
+			"host", sanitizedHost(host),
+			"fix", "Pass a plain host or IP, e.g. --host localhost",
+		)
+		return errors.New("--host must not contain userinfo credentials")
+	}
+	if strings.ContainsAny(h, "/?#") {
+		slog.Error("SECURITY: --host must not contain path or query data",
+			"host", sanitizedHost(host),
+			"fix", "Pass a plain host or IP, e.g. --host localhost",
+		)
+		return errors.New("--host must not contain path or query data")
+	}
+	// An empty host binds all interfaces; anything else must be an IP literal
+	// (optionally scoped, e.g. fe80::1%eth0) or a DNS hostname so a malformed
+	// value — including colon-bearing values that are not IP literals, like
+	// "host:port" — fails here instead of inside the listener, whose error
+	// echoes the raw value into the logs.
+	if !isPlausibleHost(h) {
+		slog.Error("SECURITY: --host must be a valid hostname or IP address",
+			"host", sanitizedHost(host),
+			"fix", "Pass a plain host or IP, e.g. --host localhost",
+		)
+		return errors.New("--host must be a valid hostname or IP address")
+	}
+	return nil
+}
+
+// lookupHostFn resolves a hostname to its addresses; a variable so tests can
+// inject deterministic results instead of depending on the environment's DNS.
+var lookupHostFn = net.LookupHost
+
+// resolveLoopbackIP reports whether host is an IP literal that is loopback or
+// a hostname that resolves exclusively to loopback addresses, and returns that
+// loopback address so callers can bind the validated address instead of
+// re-resolving the hostname. Hostnames are resolved rather than trusted, so a
+// hosts-file entry pointing "localhost" at a non-loopback address does not
+// bypass the check.
+func resolveLoopbackIP(host string) (net.IP, bool) {
+	if ip := net.ParseIP(host); ip != nil {
+		return ip, ip.IsLoopback()
+	}
+	addrs, err := lookupHostFn(host)
+	if err != nil {
+		return nil, false
+	}
+	if len(addrs) == 0 {
+		return nil, false
+	}
+	var first net.IP
+	for _, addr := range addrs {
+		ip := net.ParseIP(addr)
+		if ip == nil || !ip.IsLoopback() {
+			return nil, false
+		}
+		if first == nil {
+			first = ip
+		}
+	}
+	return first, true
 }

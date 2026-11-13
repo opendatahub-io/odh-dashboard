@@ -588,12 +588,26 @@ paths:
     description: >-
       Verifies that an external model endpoint is accessible, properly authenticated, and OpenAI-compatible.
       Tests the connection by sending a minimal request to the endpoint and validating the response format.
+      In-cluster base URLs only skip SSRF validation when the Service hostname belongs to the caller's
+      authorized namespace and its backing Service is a selector-backed, non-ExternalName Service readable
+      by the caller; other in-cluster hosts undergo normal SSRF validation. Verifying an in-cluster
+      endpoint requires the caller to be able to get the backing Service, list its EndpointSlices, and
+      list the Pods matching the Service's selector (all granted by the standard edit and admin roles);
+      trusted connections are pinned to the validated Pod addresses.
       This is a stateless operation that does not create any resources.
     post:
       tags:
         - ExternalModels
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace of the caller, scoping which in-cluster Services are trusted
+          required: true
+          schema:
+            type: string
+            example: 'llm'
       requestBody:
         required: true
         description: External model verification request
@@ -639,6 +653,31 @@ paths:
                       message:
                         type: string
                         example: 'API key is invalid or unauthorized'
+        '403':
+          description: >-
+            Caller lacks permission to get the in-cluster Service backing an
+            in-cluster base_url, list its EndpointSlices, or list the Pods
+            matching the Service's selector (all required to verify in-cluster
+            endpoints); or the base_url targets a Service DNS name in another
+            namespace (in-cluster service endpoints are only allowed in the
+            caller's own namespace); or the base_url targets an in-cluster
+            Service DNS name whose backing resources cannot be verified
+            against the Kubernetes API (e.g. ExternalName, selectorless, or no
+            verified endpoints)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'FORBIDDEN'
+                      message:
+                        type: string
+                        example: 'verifying an in-cluster endpoint requires permission to get the Service my-ns/my-model, which the caller lacks'
         '408':
           description: Request timeout - endpoint did not respond in time
           content:
@@ -656,7 +695,7 @@ paths:
                         type: string
                         example: 'Request timed out connecting to external model'
         '503':
-          description: Connection failed - could not reach the endpoint
+          description: Connection failed - could not reach the endpoint, or a Kubernetes API lookup required to verify an in-cluster endpoint (Service, EndpointSlices, Pods) failed
           content:
             application/json:
               schema:

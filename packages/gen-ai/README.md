@@ -330,6 +330,9 @@ docker build \
 The BFF supports the following configuration options:
 
 - `PORT`: HTTP server port (default: 8080)
+- `HOST`: API server listen host (default: empty, binds all interfaces)
+- `DEV_MODE`: Explicit local-development mode (default: false; required for `ALLOW_LOCAL_MODEL_ENDPOINTS`)
+- `ALLOW_LOCAL_MODEL_ENDPOINTS`: Allow verifying model endpoints on localhost/loopback addresses (default: false; local development only — requires `DEV_MODE=true` and a `HOST` bound to loopback, and is refused when a TLS cert file is configured; see [docs/developer/BFF_OVERVIEW.md](docs/developer/BFF_OVERVIEW.md))
 - `STATIC_ASSETS_DIR`: Directory for static assets (default: "./static")
 - `LOG_LEVEL`: Logging level (default: "INFO" for production, "debug" for development via Makefile)
 - `ALLOWED_ORIGINS`: CORS allowed origins (default: none)
