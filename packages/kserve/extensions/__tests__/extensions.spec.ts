@@ -10,12 +10,11 @@ const servingRuntimeTemplatesTab = extensions.find(
     extension.properties.id === 'serving-runtime-templates',
 );
 
-describe('KServe platform shell vs UI capability gating', () => {
+describe('KServe UI capability gating', () => {
   const kserveArea = extensions.find(
     (extension) =>
       extension.type === 'app.area' && extension.properties.id === SupportedArea.K_SERVE,
   );
-  const platform = extensions.find((extension) => extension.type === 'model-serving.platform');
   const watchDeployments = extensions.find(
     (extension) => extension.type === 'model-serving.platform/watch-deployments',
   );
@@ -35,16 +34,9 @@ describe('KServe platform shell vs UI capability gating', () => {
     );
   });
 
-  it('should register the single-model platform shell without the KServe area flag', () => {
-    expect(platform).toBeDefined();
-    expect(platform?.properties).toEqual(
-      expect.objectContaining({
-        id: KSERVE_ID,
-      }),
-    );
-    expect(platform?.flags).toEqual({
-      required: [SupportedArea.MODEL_SERVING],
-    });
+  it('should not register the shared single-model platform shell', () => {
+    // The platform shell is shared by KServe and LLMD and belongs to model-serving.
+    expect(extensions.map((extension) => extension.type)).not.toContain('model-serving.platform');
   });
 
   it('should keep InferenceService watch/delete capabilities behind the KServe area', () => {
@@ -67,10 +59,9 @@ describe('KServe platform shell vs UI capability gating', () => {
     });
   });
 
-  it('should gate every KServe platform capability except the shell on the KServe area', () => {
+  it('should gate every KServe platform capability on the KServe area', () => {
     const kserveCapabilityExtensions = extensions.filter(
       (extension) =>
-        extension.type !== 'model-serving.platform' &&
         extension.type !== 'app.area' &&
         'platform' in extension.properties &&
         extension.properties.platform === KSERVE_ID,

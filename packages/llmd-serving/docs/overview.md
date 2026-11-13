@@ -8,7 +8,7 @@
 ## Design Intent
 
 - **No BFF**: CRUD for `LLMInferenceService` in `src/api/` uses the OpenShift dynamic plugin SDK from the browser with the main dashboard's in-cluster credentials.
-- **Extension points**: `extensions/extensions.ts` registers `model-serving.platform/watch-deployments`, `model-serving.deployment/deploy`, `model-serving.deployment/form-data`, `model-serving.deployment/wizard-field`, and `model-serving.deployments-table/start-stop-action`; host `model-serving` orchestrates; this package supplies LLM-d-specific behavior only.
+- **Extension points**: `extensions/extensions.ts` registers `model-serving.platform/watch-deployments`, `model-serving.deployment/deploy`, `model-serving.deployment/form-data`, `model-serving.deployment/wizard-field`, and `model-serving.deployments-table/start-stop-action`; host `model-serving` orchestrates and supplies the shared single-model platform shell; this package supplies LLM-d-specific behavior only.
 - **No Module Federation remote**: Dashboard loads via monorepo exports (e.g. `./extensions`, `./types`, test helpers under `./__tests__/utils`).
 - **API**: Group `serving.kserve.io`, resource `llminferenceservices`, version `v1alpha2`; shapes in `src/types.ts` as `LLMInferenceServiceKind`.
 
@@ -16,8 +16,9 @@
 
 - Follow the repository [package topology](../../../docs/package-topology.md): `llmd-serving` is a
   spoke of the `model-serving` hub, and feature packages may depend on core shared libraries.
-- The remaining `@odh-dashboard/internal` imports and KServe-area activation are transitional; do
-  not introduce new uses of either boundary.
+- The remaining `@odh-dashboard/internal` imports are transitional; do not introduce new uses of
+  that boundary. LLMD requires the model-serving shell area and the KServe DSC component, but not
+  the KServe feature area or KServe UI extensions.
 
 | Legacy import                                               | Modular import                                         | Symbols                                     |
 | ----------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------- |

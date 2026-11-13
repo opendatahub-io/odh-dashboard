@@ -1,7 +1,7 @@
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { isWizardTrackingPropertiesExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
-import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import extensions from '../extensions';
 import { extractLlmdDeploymentTrackingProperties } from '../../src/tracking/llmdWizardTracking';
 import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../../src/settings/llmInferenceServiceConfigs/paths';
@@ -101,15 +101,15 @@ describe('LLMD serving area extension', () => {
     (extension) => extension.type === 'app.area' && extension.properties.id === 'llmd-serving',
   );
 
-  it('should require the KServe DSC component instead of the KServe area', () => {
+  it('should require the KServe DSC component and model-serving shell instead of the KServe area', () => {
     expect(llmdArea).toBeDefined();
     expect(llmdArea?.properties).toEqual(
       expect.objectContaining({
         featureFlags: ['disableLLMd'],
         requiredComponents: [DataScienceStackComponent.K_SERVE],
+        reliantAreas: [SupportedArea.MODEL_SERVING],
       }),
     );
-    expect(llmdArea?.properties).not.toHaveProperty('reliantAreas');
   });
 });
 

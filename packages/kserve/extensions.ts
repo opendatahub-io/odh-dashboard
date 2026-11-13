@@ -1,11 +1,6 @@
 // eslint-disable-next-line no-restricted-syntax
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line no-restricted-syntax
-import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line no-restricted-syntax
-import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import type {
-  ModelServingPlatformExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingMetricsExtension,
@@ -164,7 +159,6 @@ export const kserveFormDataExtension: ModelServingDeploymentFormDataExtension<KS
 
 const extensions: (
   | AreaExtension
-  | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentFormDataExtension<KServeDeployment>
   | ModelServingAuthExtension<KServeDeployment>
@@ -208,38 +202,6 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.K_SERVE],
-    },
-  },
-  {
-    type: 'model-serving.platform',
-    properties: {
-      id: KSERVE_ID,
-      manage: {
-        namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
-        priority: 0,
-        default: true,
-        projectRequirements: {
-          labels: {
-            'modelmesh-enabled': 'false',
-          },
-        },
-      },
-      enableCardText: {
-        title: 'Enable model serving',
-        description:
-          'Enable users to serve models using the single-model serving platform which deploys each model on its own dedicated model server. ',
-        selectText: 'Select single-model',
-        enabledText: 'Single-model serving enabled',
-        objectType: ProjectObjectType.singleModel,
-      },
-      deployedModelsView: {
-        startHintTitle: 'Start by deploying a model',
-        startHintDescription: 'Each model is deployed on its own model server',
-        deployButtonText: 'Deploy model',
-      },
-    },
-    flags: {
-      required: [SupportedArea.MODEL_SERVING],
     },
   },
   {

@@ -419,6 +419,7 @@ const extensions: (
     properties: {
       id: LLMD_SERVING_ID,
       requiredComponents: [DataScienceStackComponent.K_SERVE],
+      reliantAreas: [SupportedArea.MODEL_SERVING],
       featureFlags: ['disableLLMd'],
     },
   },
