@@ -13,10 +13,10 @@ export type SegmentTrackingOptions = {
 export const createSegmentTracking = (
   getOptions: () => SegmentTrackingOptions,
 ): { trackEvent: TrackEvent; trackPageEvent: TrackPageEvent } => ({
-  trackEvent: (eventName, properties) => {
+  trackEvent: (eventName, properties, eventOptions) => {
     const options = getOptions();
     if (options.enabled !== false) {
-      fireTrackingEvent(eventName, properties, options);
+      fireTrackingEvent(eventName, properties, options, eventOptions);
     }
   },
   trackPageEvent: () => {

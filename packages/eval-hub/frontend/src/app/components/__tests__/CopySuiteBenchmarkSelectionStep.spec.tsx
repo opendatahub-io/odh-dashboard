@@ -1,16 +1,13 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Provider } from '~/app/types';
 
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
-}));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
+const { mockTrackEvent, render } = setupTrackingTest();
 
 jest.mock('~/app/components/CopySuiteBenchmarkDetailsOverlay', () => ({
   __esModule: true,
@@ -549,20 +546,27 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     fireEvent.change(searchInput, {
       target: { value: '  knowledge  ' },
     });
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
 
     fireEvent.keyDown(searchInput, { key: 'Enter' });
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_CATALOG_FILTER_APPLIED,
-      { filterType: 'search', value: '9' },
+      {
+        event_source: 'evalhub_ui',
+        collection_type: 'unknown',
+        provider_type: 'unknown',
+        filterType: 'search',
+        value: '9',
+      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
 
-    mockTrackEvalHubEvent.mockClear();
+    mockTrackEvent.mockClear();
     fireEvent.change(searchInput, {
       target: { value: '' },
     });
     fireEvent.keyDown(searchInput, { key: 'Enter' });
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should paginate the benchmark catalog', () => {
@@ -660,9 +664,16 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-catalog-name-mmlu'));
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED, {
-      source: 'suiteEditor',
-    });
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED,
+      {
+        event_source: 'evalhub_ui',
+        collection_type: 'unknown',
+        provider_type: 'unknown',
+        source: 'suiteEditor',
+      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+    );
     expect(screen.getByTestId('benchmark-catalog-checkbox-mmlu')).not.toBeChecked();
     expect(screen.getByTestId('copy-suite-benchmark-details-overlay')).toHaveTextContent(
       'Select benchmark',

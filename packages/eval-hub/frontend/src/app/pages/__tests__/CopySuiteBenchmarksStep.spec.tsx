@@ -1,8 +1,11 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { FormProvider, useForm } from 'react-hook-form';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
 import { copySuiteDefaultValues, type CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
+
+const { render } = setupTrackingTest();
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),

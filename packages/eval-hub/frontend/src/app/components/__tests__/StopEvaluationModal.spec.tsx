@@ -1,8 +1,11 @@
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import { cancelEvaluationJob } from '~/app/api/k8s';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
+
+const { render } = setupTrackingTest();
 
 jest.mock('~/app/api/k8s', () => ({
   cancelEvaluationJob: jest.fn(),

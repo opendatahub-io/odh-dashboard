@@ -56,7 +56,7 @@ import {
   projectHomeRoute,
 } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import {
   formatCategory,
@@ -71,6 +71,8 @@ const isCollectionSortOption = (value: unknown): value is BenchmarkSortOption =>
   typeof value === 'string' && COLLECTION_SORT_VALUES.includes(value);
 
 const ChooseBenchmarkCollectionPage: React.FC = () => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
@@ -152,7 +154,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
         navigateToRun(c);
       }
     },
-    [navigateToRun],
+    [trackEvalHubEvent, navigateToRun],
   );
 
   const handleDrawerRunCollection = React.useCallback(

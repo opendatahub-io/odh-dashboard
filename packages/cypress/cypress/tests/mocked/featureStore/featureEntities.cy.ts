@@ -13,6 +13,7 @@ import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatu
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { captureTracking, expectTrackingEvents } from '../../../utils/analytics';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';
 import { featureEntitiesTable } from '../../../pages/featureStore/featureEntities';
 import { featureEntityDetails } from '../../../pages/featureStore/featureEntityDetails';
@@ -563,6 +564,7 @@ describe('Global Search in Feature Entities', () => {
 
     mockEntityDetailsIntercept();
     featureStoreGlobal.visitEntities();
+    captureTracking();
 
     featureStoreGlobal.findGlobalSearchInput().clear().type('user');
     cy.wait('@globalSearch');
@@ -572,6 +574,14 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchItem('entity', 'user_id').click();
 
     cy.url().should('include', `/feature-store/entities/${fsProjectName}/user_id`);
+    // One smoke check verifies that feature events reach the host tracking adapter.
+    expectTrackingEvents('Feature Store Search Result Selected', (events) => {
+      expect(events.length).to.be.greaterThan(0);
+      expect(events[0]).to.deep.include({
+        resultType: 'entity',
+        pageType: 'list',
+      });
+    });
   });
 
   it('should display no results message for empty search', () => {

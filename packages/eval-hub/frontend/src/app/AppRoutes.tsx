@@ -15,7 +15,7 @@ import StartEvaluationRunPage from './pages/StartEvaluationRunPage';
 import EvaluationResultsPage from './pages/EvaluationResultsPage';
 import CompareEvaluationsPage from './pages/CompareEvaluationsPage';
 import ChooseCompareBenchmarksPage from './pages/ChooseCompareBenchmarksPage';
-import { evaluationComparePathSegment } from './routes';
+import { evaluationComparePathSegment } from './routeSegments';
 import EvaluationReconfigureLoader from './pages/EvaluationReconfigureLoader';
 import CopySuitePage, { CreateSuitePage, EditSuitePage } from './pages/CopySuitePage';
 
