@@ -1,9 +1,12 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import type { ProjectIdentity } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 
 export type WorkingProjectRouteSyncOptions = {
   activeProjectName?: string;
   routeProjectName?: string;
+  projects: readonly ProjectIdentity[];
+  selectProject: (project: ProjectIdentity) => void;
   enabled: boolean;
   getProjectLocation: (projectName: string) => ProjectRouteLocation | null;
 };
@@ -58,19 +61,48 @@ export const updateProjectQueryParam = (
 export const useWorkingProjectRouteSync = ({
   activeProjectName,
   routeProjectName,
+  projects,
+  selectProject,
   enabled,
   getProjectLocation,
 }: WorkingProjectRouteSyncOptions): void => {
   const navigate = useNavigate();
   const location = useLocation();
+  const handledRouteProject = React.useRef<string | undefined>();
+  const pendingRouteProject = React.useRef<string | undefined>();
 
-  React.useEffect(() => {
-    if (
-      !enabled ||
-      !routeProjectName ||
-      !activeProjectName ||
-      routeProjectName === activeProjectName
-    ) {
+  React.useLayoutEffect(() => {
+    if (!enabled || !routeProjectName) {
+      handledRouteProject.current = undefined;
+      pendingRouteProject.current = undefined;
+      return;
+    }
+
+    const routeProject = projects.find(({ name }) => name === routeProjectName);
+    if (!routeProject) {
+      handledRouteProject.current = undefined;
+      pendingRouteProject.current = undefined;
+      return;
+    }
+
+    if (handledRouteProject.current !== routeProjectName) {
+      handledRouteProject.current = routeProjectName;
+      if (routeProjectName !== activeProjectName) {
+        pendingRouteProject.current = routeProjectName;
+        selectProject(routeProject);
+        return;
+      }
+    }
+
+    if (pendingRouteProject.current) {
+      if (pendingRouteProject.current !== activeProjectName) {
+        return;
+      }
+      pendingRouteProject.current = undefined;
+      return;
+    }
+
+    if (!activeProjectName || routeProjectName === activeProjectName) {
       return;
     }
 
@@ -87,5 +119,14 @@ export const useWorkingProjectRouteSync = ({
     if (!isCurrentLocation) {
       navigate(nextLocation, { replace: true });
     }
-  }, [activeProjectName, enabled, getProjectLocation, location, navigate, routeProjectName]);
+  }, [
+    activeProjectName,
+    enabled,
+    getProjectLocation,
+    location,
+    navigate,
+    projects,
+    routeProjectName,
+    selectProject,
+  ]);
 };
