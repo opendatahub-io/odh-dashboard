@@ -12,12 +12,7 @@ describe('create', () => {
   beforeEach(() => {
     asProductAdminUser();
 
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableConnectionTypes: false,
-      }),
-    );
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptOdh('GET /api/connection-types', [
       mockConnectionTypeConfigMap({
         displayName: 'URI - v1',
@@ -131,12 +126,7 @@ describe('duplicate', () => {
   beforeEach(() => {
     asProductAdminUser();
 
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableConnectionTypes: false,
-      }),
-    );
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptOdh(
       'GET /api/connection-types/:name',
       { path: { name: 'existing' } },
@@ -224,12 +214,7 @@ describe('edit', () => {
   beforeEach(() => {
     asProductAdminUser();
 
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableConnectionTypes: false,
-      }),
-    );
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
   });
 
   it('should duplicate connection into create page', () => {

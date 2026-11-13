@@ -10,7 +10,7 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   buildFilterLabelList,
   handleLabelDelete,
@@ -35,6 +35,7 @@ function FeatureStoreFilterToolbar<T extends string>({
   trackingResourceType,
   ...toolbarGroupProps
 }: FeatureStoreFilterToolbarProps<T>): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const keys = React.useMemo(() => Object.keys(filterOptions) as T[], [filterOptions]);
 
@@ -114,7 +115,7 @@ function FeatureStoreFilterToolbar<T extends string>({
                 labels={allActiveFilterItems}
                 deleteLabel={(category, labelToDelete) => {
                   if (trackingResourceType) {
-                    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+                    trackEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
                       action: 'removeOne',
                       filterAttribute: String(filterKey),
                       resourceType: trackingResourceType,

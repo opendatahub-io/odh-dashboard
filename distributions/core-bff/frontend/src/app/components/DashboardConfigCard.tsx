@@ -23,7 +23,6 @@ const FLAGS: FlagDef[] = [
   { key: 'disableTracking', label: 'Tracking', inverted: true },
   { key: 'disablePipelines', label: 'Pipelines', inverted: true },
   { key: 'modelAsService', label: 'Model as Service' },
-  { key: 'disableConnectionTypes', label: 'Connection Types', inverted: true },
   { key: 'disableFineTuning', label: 'Fine Tuning', inverted: true },
   { key: 'mlflow', label: 'MLflow' },
 ];

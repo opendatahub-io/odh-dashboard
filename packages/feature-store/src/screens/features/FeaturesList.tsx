@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { featureTableFilterOptions } from './const';
 import FeaturesTable from './FeaturesTable';
 import { applyFeatureFilters, applyFeatureTagFilters } from './utils';
@@ -23,6 +23,7 @@ const FeaturesList = ({
   fsProject,
   initialFilter = {},
 }: FeaturesListProps): React.ReactElement => {
+  const trackEvent = useTrackEvent();
   const [filterData, setFilterData] =
     React.useState<Record<string, string | { label: string; value: string } | undefined>>(
       initialFilter,
@@ -50,13 +51,13 @@ const FeaturesList = ({
   );
 
   const onClearFilters = React.useCallback(() => {
-    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+    trackEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
       action: 'clearAll',
       resourceType: 'feature',
     } satisfies FilterRemovedProperties);
     setFilterData({});
     setTagFilters([]);
-  }, []);
+  }, [trackEvent]);
 
   const filteredFeatures = React.useMemo(() => {
     let filtered = applyFeatureFilters(processedFeatures, filterData, {});

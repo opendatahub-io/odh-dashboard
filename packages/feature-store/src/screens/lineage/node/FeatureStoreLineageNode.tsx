@@ -19,7 +19,7 @@ import {
   LineageSourceAnchor,
   LineageTargetAnchor,
 } from '@odh-dashboard/internal/components/lineage/anchors/customAnchors';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { LINEAGE_PILL_ICON_SIZE } from '../../../utils/featureStoreObjects.tsx';
 import FeatureStoreLineagePillIcon from '../../../components/FeatureStoreLineagePillIcon';
 import {
@@ -34,6 +34,7 @@ type LineageNodeProps = {
 
 const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = observer(
   ({ element, onSelect, selected }) => {
+    const trackEvent = useTrackEvent();
     const data = element.getData();
     const [hover, hoverRef] = useHover<SVGGElement>();
     const detailsLevel = element.getGraph().getDetailsLevel();
@@ -115,7 +116,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           pillElement,
         });
 
-        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NODE_SELECTED, {
+        trackEvent(FEATURE_STORE_EVENTS.LINEAGE_NODE_SELECTED, {
           nodeType: data?.entityType || 'unknown',
           pageType: lineagePageType,
         } satisfies LineageNodeSelectedProperties);
@@ -123,7 +124,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
         // Call original selection handler with proper signature
         onSelect?.(e);
       },
-      [setClickPosition, onSelect, data?.entityType, lineagePageType],
+      [trackEvent, setClickPosition, onSelect, data?.entityType, lineagePageType],
     );
 
     // Get node bounds for positioning

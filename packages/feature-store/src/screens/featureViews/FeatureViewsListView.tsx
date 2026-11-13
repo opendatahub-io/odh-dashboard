@@ -1,6 +1,6 @@
 import React from 'react';
 import useDebounceCallback from '@odh-dashboard/internal/utilities/useDebounceCallback';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { applyFeatureViewFilters } from './utils';
 import { featureViewTableFilterOptions } from './const';
 import FeatureViewsTable from './FeatureViewsTable';
@@ -29,6 +29,7 @@ const FeatureViewsListView = ({
     featureService?: string;
   };
 }): React.ReactElement => {
+  const trackEvent = useTrackEvent();
   const [filterData, setFilterData] = React.useState<
     Record<string, string | { label: string; value: string } | undefined>
   >({});
@@ -68,14 +69,14 @@ const FeatureViewsListView = ({
   );
 
   const onClearFilters = React.useCallback(() => {
-    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+    trackEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
       action: 'clearAll',
       resourceType: 'featureView',
     } satisfies FilterRemovedProperties);
     setFilterData({});
     setDebouncedFilterData({});
     setTagFilters([]);
-  }, []);
+  }, [trackEvent]);
 
   const filteredFeatureViews = React.useMemo(() => {
     let filtered = applyFeatureViewFilters(

@@ -17,7 +17,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { MetricCardItem, processMetricsData } from './utils';
 import { MetricsCountResponse } from '../../types/metrics';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
@@ -33,6 +33,7 @@ type MetricCardsProps = {
 };
 
 const MetricCard = ({ item, loaded }: { item: MetricCardItem; loaded: boolean }) => {
+  const trackEvent = useTrackEvent();
   const totalCount = item.count;
   return (
     <Card isFullHeight data-testid={`feature-store-metrics-card-${item.title.toLowerCase()}`}>
@@ -70,7 +71,7 @@ const MetricCard = ({ item, loaded }: { item: MetricCardItem; loaded: boolean })
               to={item.route}
               aria-label={`Go to ${item.title} page`}
               onClick={() => {
-                fireMiscTrackingEvent(FEATURE_STORE_EVENTS.OVERVIEW_CARD_CLICKED, {
+                trackEvent(FEATURE_STORE_EVENTS.OVERVIEW_CARD_CLICKED, {
                   cardType: 'resourceSummary',
                   targetResourceType: getFeatureStoreObjectTypeFromTitle(item.title),
                 } satisfies OverviewCardClickedProperties);
