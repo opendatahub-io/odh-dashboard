@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { toOrdinal } from '@odh-dashboard/k8s-core/kueue/messageUtils';
-import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
+import TruncatedText from '../components/TruncatedText';
 
 type QueuePositionTextProps = {
   position: number;

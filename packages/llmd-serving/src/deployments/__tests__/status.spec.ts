@@ -12,7 +12,7 @@ describe('getLLMdDeploymentConditions', () => {
 
     expect(conditions[0]).toEqual({
       type: 'DeploymentRequested',
-      label: 'Deployment requested',
+      label: 'Request deployment',
       status: 'True',
       lastTransitionTime: '2026-05-19T16:40:38Z',
     });

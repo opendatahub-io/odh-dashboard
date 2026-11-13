@@ -44,6 +44,7 @@ import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { QueueNameText } from '@odh-dashboard/ui-core/kueue/KueueSubtitleText';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/k8s-core/kueue/types';
 import {
@@ -152,7 +153,14 @@ const ConditionDescription: React.FC<{
           component={ContentVariants.small}
           style={messageColor ? { color: messageColor } : undefined}
         >
-          {condition.message}
+          {condition.message && condition.type === 'CreatePod' ? (
+            <QueueNameText
+              text={condition.message}
+              queue={deploymentStatus?.kueueStatus?.queueName}
+            />
+          ) : (
+            condition.message
+          )}
         </Content>
       )}
     </>
@@ -328,7 +336,7 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
         data-testid="deployment-status-modal-header"
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>{displayName} status</FlexItem>
+            <FlexItem>{displayName}</FlexItem>
             <FlexItem>
               <ModelStatusIcon
                 state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
@@ -340,6 +348,7 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
             </FlexItem>
           </Flex>
         }
+        description="Model deployment status"
       />
       <ModalBody>
         <Stack hasGutter>

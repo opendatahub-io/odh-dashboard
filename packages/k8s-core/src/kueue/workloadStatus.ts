@@ -256,7 +256,7 @@ export const aggregateKueueStatusForModel = (
 
   const totalPods = Math.max(statuses.length, options?.activePodCount ?? 0);
   // Multi-replica partial admission — total includes live Pods even when not all have a
-  // correlated Workload CR yet (scale-up / watch lag), so e.g. "3 of 5 pods admitted" can show.
+  // correlated Workload CR yet (scale-up / watch lag).
   const podAdmissionCounts =
     totalPods > 1
       ? {
