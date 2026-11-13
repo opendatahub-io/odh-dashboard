@@ -266,17 +266,42 @@ Cypress.Commands.addQuery(
 const handleKeycloakLogin = (credentials: UserAuthConfig): void => {
   cy.log('Keycloak login flow detected - completing authentication');
 
-  // Keycloak login form - wait for the username field to be visible
-  cy.get('#username, input[name="username"]', { timeout: 15000 }).should('be.visible');
+  const usernameSelector = '#username, input[name="username"]';
+  const passwordSelector = '#password, input[name="password"]';
+  const submitSelector =
+    '#kc-login:visible, input[type="submit"]:visible, button[type="submit"]:visible';
+  const findVisibleUsername = () =>
+    cy.get(usernameSelector, { timeout: 15000 }).filter(':visible').first();
+  const findVisiblePassword = () =>
+    cy.get(passwordSelector, { timeout: 15000 }).filter(':visible').first();
 
-  // Fill in credentials on Keycloak form
-  cy.get('#username, input[name="username"]').clear();
-  cy.get('#username, input[name="username"]').type(credentials.USERNAME);
-  cy.get('#password, input[name="password"]').clear();
-  cy.get('#password, input[name="password"]').type(credentials.PASSWORD, { log: false });
+  // Some Keycloak deployments collect the username first, then show the password form.
+  findVisibleUsername().should('be.visible');
+
+  findVisibleUsername().clear();
+  findVisibleUsername().type(credentials.USERNAME);
+  findVisibleUsername().should('have.value', credentials.USERNAME);
+  cy.get('body').then(($body) => {
+    if (!$body.find(passwordSelector).filter(':visible').length) {
+      cy.get(submitSelector, { timeout: 15000 }).should('be.visible').click();
+      // Wait for the broker's second step without assuming a tenant-specific
+      // Keycloak URL or identity-provider name.
+      findVisiblePassword().should('be.visible');
+    }
+  });
+
+  // Wait for the final form after a username-only Keycloak step and refill the
+  // username because some broker flows replace the form during navigation.
+  findVisibleUsername().should('be.visible');
+  findVisibleUsername().clear();
+  findVisibleUsername().type(credentials.USERNAME);
+  findVisibleUsername().should('have.value', credentials.USERNAME);
+  findVisiblePassword().should('be.visible');
+  findVisiblePassword().clear();
+  findVisiblePassword().type(credentials.PASSWORD, { log: false });
 
   // Click the Sign In button
-  cy.get('#kc-login, input[type="submit"], button[type="submit"]').click();
+  cy.get(submitSelector).should('be.enabled').click();
 
   // Wait for redirect back to dashboard
   cy.url({ timeout: 30000 }).should('not.include', 'keycloak');
@@ -286,7 +311,7 @@ const handleKeycloakLogin = (credentials: UserAuthConfig): void => {
 /**
  * Helper function to handle standard OpenShift OAuth login
  */
-const handleOAuthLogin = (credentials: UserAuthConfig): void => {
+const handleOAuthLogin = (credentials: UserAuthConfig, targetUrl: string): void => {
   cy.log('OAuth login flow detected - completing authentication');
 
   // Look for and click the auth provider link
@@ -309,6 +334,13 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
 
   cy.url().should('not.include', '/login/');
   cy.url().should('not.include', '/oauth');
+  const isMaaSPortal = new URL(targetUrl).pathname.startsWith('/maas-portal/');
+  if (isMaaSPortal) {
+    cy.findByRole('navigation', { name: 'Navigation' }).should('be.visible');
+    cy.location('origin').should('eq', new URL(targetUrl).origin);
+    return;
+  }
+
   cy.findByRole('banner', { name: 'page masthead' }).should('be.visible');
 
   const expectedOrigins = [new URL(baseUrl).origin];
@@ -323,9 +355,12 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
 };
 
 Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {
+  const baseUrl = Cypress.config('baseUrl') || '';
+  const isLocalProxyVisit =
+    Cypress.env('E2E_PROXY') && new URL(relativeUrl, baseUrl).origin === new URL(baseUrl).origin;
   if (Cypress.env('MOCK')) {
     cy.visit(relativeUrl);
-  } else if (Cypress.env('E2E_PROXY')) {
+  } else if (isLocalProxyVisit) {
     cy.request('POST', '/e2e-login', {
       username: credentials.USERNAME,
       password: credentials.PASSWORD,
@@ -382,7 +417,7 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
         currentUrl.includes('/oauth/authorize') ||
         currentUrl.includes('oauth-openshift')
       ) {
-        handleOAuthLogin(credentials);
+        handleOAuthLogin(credentials, fullUrl);
       }
     });
   }
