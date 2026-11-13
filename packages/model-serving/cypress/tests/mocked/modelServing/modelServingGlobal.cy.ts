@@ -244,6 +244,22 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findDeployModelButton().should('be.enabled');
   });
 
+  it('Should show the no platforms message when no deployment methods are available', () => {
+    initIntercepts({
+      servingRuntimes: [],
+      inferenceServices: [],
+    });
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableKServe: true,
+        disableLLMd: true,
+      }),
+    );
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findNoPlatformsMessage().should('exist');
+  });
+
   it('Should not get stuck in loading state when no projects exist as user', () => {
     // Use basic user
     initIntercepts({

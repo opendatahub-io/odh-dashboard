@@ -59,6 +59,7 @@ import {
 
 type HandlersProps = {
   disableKServe?: boolean;
+  disableLLMd?: boolean;
   disableKServeAuth?: boolean;
   disableServingRuntimeParams?: boolean;
   disableKServeRaw?: boolean;
@@ -83,6 +84,7 @@ type HandlersProps = {
 
 const initIntercepts = ({
   disableKServe = false,
+  disableLLMd = false,
   disableKServeMetrics,
   disableKServeAuth,
   disableServingRuntimeParams = true,
@@ -136,6 +138,7 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableKServe,
+      disableLLMd,
       disableKServeAuth,
       disableServingRuntimeParams,
       disableKServeRaw,
@@ -273,10 +276,10 @@ describe('Serving Runtime List', () => {
     it('No model serving platform available', () => {
       initIntercepts({
         disableKServe: true,
+        disableLLMd: true,
         inferenceServices: [],
         servingRuntimes: [],
       });
-
       projectDetails.visitSection('test-project', 'model-server');
 
       cy.findByText('No model serving platform selected').should('be.visible');

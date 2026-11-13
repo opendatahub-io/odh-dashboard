@@ -18,6 +18,7 @@ import {
   useProjectServingPlatform,
   type ModelServingPlatform,
 } from '../../concepts/useProjectServingPlatform';
+import { useModelServingDeployMethods } from '../../concepts/useModelServingDeployMethods';
 import { DeployButton } from '../deploy/DeployButton';
 import { PlatformSelectionGallery } from '../platforms/platformSelection';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
@@ -29,6 +30,7 @@ const galleryWidth = {
 
 const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({ platforms }) => {
   const { currentProject } = React.useContext(CurrentProjectContext);
+  const { hasDeployMethods } = useModelServingDeployMethods();
 
   const {
     activePlatform,
@@ -39,7 +41,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
     clearProjectPlatformError,
   } = useProjectServingPlatform(currentProject, platforms);
 
-  if (platforms.length === 0 && !activePlatform) {
+  if (!hasDeployMethods || (platforms.length === 0 && !activePlatform)) {
     return <EmptyModelServingPlatformSection />;
   }
 

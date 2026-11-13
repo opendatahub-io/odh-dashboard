@@ -2,7 +2,7 @@
 
 ## Overview
 
-- Implements the KServe single-model serving platform as a pluggable extension of `@odh-dashboard/model-serving`.
+- Implements KServe model serving capabilities as a pluggable extension of `@odh-dashboard/model-serving`; the shared single-model platform shell is registered by model-serving.
 - Provides UI logic and Kubernetes API usage to deploy, configure, monitor, and delete models using KServe `InferenceService` resources (one dedicated model server per deployment).
 
 ## Design Intent
@@ -34,7 +34,7 @@
 
 | Dependency                                                                                     | Type            | Details                                                     |
 | ---------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------- |
-| `@odh-dashboard/model-serving`                                                                 | Parent package  | Registers KServe extensions; wizard, types, auth utilities  |
+| `@odh-dashboard/model-serving`                                                                 | Parent package  | Registers the shared single-model platform shell; provides wizard, types, and auth utilities |
 | `@odh-dashboard/internal`                                                                      | Shared library  | K8s types, API helpers, feature flags, RBAC                 |
 | Main dashboard backend (`/api/k8s/`)                                                           | HTTP proxy      | All cluster API traffic from the browser                    |
 | `@odh-dashboard/model-registry`                                                                | Sibling package | Pre-filled deploy wizard data for registered model versions |

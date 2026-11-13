@@ -9,7 +9,7 @@
 
 - **No package-local BFF:** all API traffic goes through the main dashboard backend (e.g. `/api/k8s/`) or equivalent cluster proxy; the UI never talks to a dedicated model-serving Go/Node service.
 - **Module Federation remote (hybrid):** model-serving operates in two modes. The `src/` subtree is consumed directly as a library via package `exports`. The `frontend/` subtree builds as a standalone MF remote (`modelServing`) producing `remoteEntry.js` on port 9109, exposing `./extensions` and `./extension-points`. Shared dependencies (React, PatternFly, all `@odh-dashboard/*` packages) are managed automatically by `OdhFederationPlugin` as singletons.
-- **Hub-and-spoke architecture:** model-serving is the hub. Platform packages (`packages/kserve`, `packages/nim-serving`, `packages/llmd-serving`) are spokes that implement extension points such as `model-serving.platform`, `watch-deployments`, and `deployment/deploy`. These platform packages form a **cohort** with model-serving — they are added and removed together.
+- **Hub-and-spoke architecture:** model-serving is the hub and registers the shared single-model `model-serving.platform` shell used by KServe and LLM-d. Platform packages (`packages/kserve`, `packages/nim-serving`, `packages/llmd-serving`) are spokes that implement capabilities such as `watch-deployments` and `deployment/deploy`. These platform packages form a **cohort** with model-serving — they are added and removed together.
 - **Data flow:** Kubernetes → main backend → React; platform-specific behaviour is injected through extension points instead of branching inside every component.
 
 ## Key Concepts
@@ -22,7 +22,7 @@
 | **ModelMesh** | Multi-model serving sharing server pods. |
 | **Endpoint URL** | HTTP(S) URL for inference; shown in table and detail views. |
 | **Deployment** | Package abstraction `Deployment<M, S>` wrapping model + server + status + endpoints. |
-| **Platform extension** | `model-serving.platform` (and related) registered by a platform package. |
+| **Platform extension** | `model-serving.platform` registration for project enablement and platform shell presentation; the shared single-model registration lives in model-serving. |
 | **Extension point** | Interfaces in `extension-points/index.ts` for wizard, table, delete, auth, metrics. |
 | **Feature flag** | `disableModelServing` in `OdhDashboardConfig` hides the entire area. |
 
