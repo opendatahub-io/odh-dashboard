@@ -1,0 +1,112 @@
+# Multi-stage workspace-aware Dockerfile for Module Federation packages (RHOAI downstream)
+# This Dockerfile is designed to build federated modules that depend on workspace packages
+# Build from repository root: docker build --file ./Dockerfile.konflux.ai-safety .
+
+# Source code arguments - can be overridden for different modules
+ARG MODULE_NAME=ai-safety
+ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
+ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
+
+# SHA-pinned base images for RHOAI builds
+ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:9.8@sha256:18efae02a19cdfbda303ff98d096cfcc2e123f300aff146e7dab1e75b9116dec
+ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.26@sha256:0e3894cea4fc077084245e8aa2befc8a7d91a4f60fbf850f0b5b555cbe62ee26
+ARG DISTROLESS_BASE_IMAGE=registry.redhat.io/ubi9/ubi-minimal-pqc:9.8@sha256:d638f3b49b79575329aacdae2739f954effe2467c12147711e73445c4fc97819
+
+# UI build stage
+FROM ${NODE_BASE_IMAGE} AS ui-builder
+
+ARG UI_SOURCE_CODE
+ARG MODULE_NAME
+ARG DEPLOYMENT_MODE=federated
+ENV DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
+ARG PLATFORM_MODE
+
+WORKDIR /usr/src/workspace
+
+# Install the pinned pnpm CLI from the npm-prefetched bootstrap package.
+COPY --chown=default:root prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
+
+### Workspace setup
+# Copy root workspace manifest and lockfile for pnpm workspace resolution
+# Hermeto rewrites .npmrc to point pnpm at its prefetched, offline tarball mirror.
+COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+# Copy the frontend workspace manifest so its dependencies can be resolved if referenced
+COPY --chown=default:root frontend/package.json ./frontend/
+# Copy required shared workspace packages needed for module builds
+COPY --chown=default:root packages/analytics/ ./packages/analytics/
+COPY --chown=default:root packages/app-config/ ./packages/app-config/
+COPY --chown=default:root packages/foundation/ ./packages/foundation/
+COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
+COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
+COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
+# Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
+COPY --chown=default:root frontend/src/ ./frontend/src/
+COPY --chown=default:root scripts/ ./scripts/
+
+# Copy the specific module source code
+COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
+
+# Change file ownership to the assemble user
+USER default
+
+# Install pnpm and workspace dependencies. Lifecycle scripts are restricted by
+# pnpm-workspace.yaml allowBuilds; Cypress binary installation is disabled explicitly.
+# Install the pinned pnpm CLI from the npm-prefetched bootstrap package.
+ENV PATH="/usr/src/workspace/prefetch/pnpm/node_modules/.bin:${PATH}"
+RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit --no-fund --no-progress \
+    && test "$(pnpm --version)" = "11.22.0" # NOSONAR
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile --offline # NOSONAR
+
+# Build the module
+WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
+RUN pnpm run build:prod
+
+# BFF build stage
+FROM ${GOLANG_BASE_IMAGE} AS bff-builder
+
+ARG BFF_SOURCE_CODE
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /usr/src/app
+
+# Copy the Go Modules manifests
+COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
+
+# Download dependencies
+RUN go mod download
+
+# Copy the go source files
+COPY pkg/tls/ /pkg/tls/
+COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
+COPY ${BFF_SOURCE_CODE}/internal/ internal/
+
+# Build the Go application
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
+
+# Final stage
+FROM ${DISTROLESS_BASE_IMAGE}
+
+ARG UI_SOURCE_CODE
+
+WORKDIR /
+COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
+USER 65532:65532
+
+# Expose port 8080
+EXPOSE 8080
+
+ENTRYPOINT ["/bff"]
+
+LABEL com.redhat.component="odh-mod-arch-ai-safety-container" \
+      name="managed-open-data-hub/odh-mod-arch-ai-safety-rhel9" \
+      description="odh-mod-arch-ai-safety" \
+      summary="odh-mod-arch-ai-safety" \
+      maintainer="['managed-open-data-hub@redhat.com']" \
+      io.openshift.expose-services="" \
+      io.k8s.display-name="odh-mod-arch-ai-safety" \
+      io.k8s.description="odh-mod-arch-ai-safety" \
+      com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
