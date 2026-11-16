@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { useTrackEvent } from '@odh-dashboard/analytics/react';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useProjectNotebookStates from '@odh-dashboard/internal/pages/projects/notebook/useProjectNotebookStates';
@@ -41,6 +43,7 @@ type InfrastructureWorkloadsHeaderProps = {
   refreshTime: string;
   onProjectSelection: (projectName: string) => void;
   onRefresh: () => void;
+  showProjectSelector: boolean;
 };
 
 const InfrastructureWorkloadsHeader: React.FC<InfrastructureWorkloadsHeaderProps> = ({
@@ -48,6 +51,7 @@ const InfrastructureWorkloadsHeader: React.FC<InfrastructureWorkloadsHeaderProps
   refreshTime,
   onProjectSelection,
   onRefresh,
+  showProjectSelector,
 }) => (
   <Stack
     hasGutter
@@ -92,13 +96,15 @@ const InfrastructureWorkloadsHeader: React.FC<InfrastructureWorkloadsHeaderProps
         {WORKLOADS_PAGE_DESCRIPTION}
       </Content>
     </StackItem>
-    <StackItem>
-      <ProjectSelector
-        namespace={preferredProject?.metadata.name ?? ''}
-        onSelection={onProjectSelection}
-        showTitle
-      />
-    </StackItem>
+    {showProjectSelector && (
+      <StackItem>
+        <ProjectSelector
+          namespace={preferredProject?.metadata.name ?? ''}
+          onSelection={onProjectSelection}
+          showTitle
+        />
+      </StackItem>
+    )}
   </Stack>
 );
 
@@ -305,13 +311,20 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
   canAccessAdminMetrics,
 }) => {
   const trackEvent = useTrackEvent();
+  const isUnifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
   const {
     projects,
     preferredProject,
     updatePreferredProject,
     loaded: projectsLoaded,
   } = React.useContext(ProjectsContext);
-  const notebooks = useProjectNotebookStates(preferredProject?.metadata.name);
+  const { activeProject } = useWorkingProject();
+  const selectedProject = isUnifiedProjectSelectorEnabled
+    ? projects.find((project) => project.metadata.name === activeProject?.name) ?? null
+    : preferredProject;
+  const notebooks = useProjectNotebookStates(selectedProject?.metadata.name);
   const { refresh: refreshNotebooks } = notebooks;
   const {
     workloads,
@@ -321,17 +334,28 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
     error,
     refresh,
     failedSources,
-  } = useInfrastructureWorkloads(preferredProject?.metadata.name, preferredProject);
+  } = useInfrastructureWorkloads(selectedProject?.metadata.name, selectedProject);
   const tabLoadedAt = React.useRef(Date.now());
   const [lastRefreshed, setLastRefreshed] = React.useState(() => new Date());
   const [currentTime, setCurrentTime] = React.useState(() => Date.now());
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
   React.useEffect(() => {
-    if (projectsLoaded && !preferredProject && projects.length > 0) {
+    if (
+      !isUnifiedProjectSelectorEnabled &&
+      projectsLoaded &&
+      !selectedProject &&
+      projects.length > 0
+    ) {
       updatePreferredProject(projects[0]);
     }
-  }, [preferredProject, projects, projectsLoaded, updatePreferredProject]);
+  }, [
+    isUnifiedProjectSelectorEnabled,
+    selectedProject,
+    projects,
+    projectsLoaded,
+    updatePreferredProject,
+  ]);
 
   React.useEffect(() => {
     const interval = window.setInterval(() => setCurrentTime(Date.now()), 20_000);
@@ -379,17 +403,16 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
 
   const refreshTime = relativeTime(currentTime, lastRefreshed.getTime());
   const admissionsAvailable =
-    kueueAvailable &&
-    preferredProject !== null &&
-    isKueueManagedDataScienceProject(preferredProject);
+    kueueAvailable && selectedProject !== null && isKueueManagedDataScienceProject(selectedProject);
 
   return (
     <Stack hasGutter>
       <InfrastructureWorkloadsHeader
-        preferredProject={preferredProject}
+        preferredProject={selectedProject}
         refreshTime={refreshTime}
         onProjectSelection={handleProjectSelection}
         onRefresh={handleRefresh}
+        showProjectSelector={!isUnifiedProjectSelectorEnabled}
       />
       <div data-testid="infrastructure-workloads">
         <Stack>
@@ -400,7 +423,7 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
               workloads={workloads}
               kueueAvailable={admissionsAvailable}
               canAccessAdminMetrics={canAccessAdminMetrics}
-              namespace={preferredProject?.metadata.name}
+              namespace={selectedProject?.metadata.name}
               refreshTrigger={refreshTrigger}
               kueueEnabled={kueueEnabled}
               hardwareProfilesLoading={hardwareProfilesLoading}

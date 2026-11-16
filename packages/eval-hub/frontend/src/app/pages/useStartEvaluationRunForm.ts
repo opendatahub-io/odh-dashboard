@@ -14,7 +14,7 @@ import {
   type RunMetricSelectedProperties,
   type RunParameterChangedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import type { EvalHubTrackingContext } from '~/app/tracking/evalhubTracking';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
@@ -175,6 +175,8 @@ export function useStartEvaluationRunForm({
   onCancel,
   onRunFailure,
 }: UseStartEvaluationRunFormParams) {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const navigate = useNavigate();
   const notification = useNotification();
   const isReconfigure = !!initialValues;
@@ -321,7 +323,7 @@ export function useStartEvaluationRunForm({
       };
       trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, props, trackingContext);
     },
-    [form, trackingContext],
+    [trackEvalHubEvent, form, trackingContext],
   );
 
   const handlePrimaryMetricChange = React.useCallback(
@@ -341,7 +343,14 @@ export function useStartEvaluationRunForm({
       };
       trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props, trackingContext);
     },
-    [defaultPrimaryMetric, form, getDefaultThresholdForMetric, primaryMetric, trackingContext],
+    [
+      trackEvalHubEvent,
+      defaultPrimaryMetric,
+      form,
+      getDefaultThresholdForMetric,
+      primaryMetric,
+      trackingContext,
+    ],
   );
 
   const setEvaluationName = React.useCallback(
@@ -389,7 +398,7 @@ export function useStartEvaluationRunForm({
         trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, props, trackingContext);
       }
     },
-    [form, setConnectionValidation, trackingContext],
+    [trackEvalHubEvent, form, setConnectionValidation, trackingContext],
   );
 
   const handleSourceModeChange = React.useCallback(
@@ -400,7 +409,7 @@ export function useStartEvaluationRunForm({
       const props: RunSourceSelectedProperties = { sourceType: mode };
       trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, props, trackingContext);
     },
-    [form, setConnectionValidation, trackingContext],
+    [trackEvalHubEvent, form, setConnectionValidation, trackingContext],
   );
 
   const selectedExperiment = React.useMemo(
@@ -769,6 +778,7 @@ export function useStartEvaluationRunForm({
     }
     navigate(evaluationsBaseRoute(namespace));
   }, [
+    trackEvalHubEvent,
     additionalArgs,
     apiKeySecretRef,
     evaluationName,

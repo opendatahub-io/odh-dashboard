@@ -108,7 +108,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,bidirectionalYamlWizardGa=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -134,12 +134,12 @@ describe('A user can deploy an LLMD model', () => {
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.yaml
         .findYAMLViewerToggle(YAMLViewerToggleOption.YAML)
-        .should('exist')
+        .should('be.enabled')
         .click();
-      modelServingWizard.yaml.findYAMLEditorEmptyState().should('be.visible');
+      modelServingWizard.yaml.findYAMLEditorStartEditingState().should('be.visible');
       modelServingWizard.yaml
         .findYAMLViewerToggle(YAMLViewerToggleOption.FORM)
-        .should('exist')
+        .should('be.enabled')
         .click();
       modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
 
@@ -163,7 +163,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
       modelServingWizard.yaml
         .findYAMLViewerToggle(YAMLViewerToggleOption.YAML)
-        .should('exist')
+        .should('be.enabled')
         .click();
       modelServingWizard.yaml.findYAMLCodeEditor().waitForReady();
 
@@ -184,7 +184,7 @@ describe('A user can deploy an LLMD model', () => {
       // Back to Form view
       modelServingWizard.yaml
         .findYAMLViewerToggle(YAMLViewerToggleOption.FORM)
-        .should('exist')
+        .should('be.enabled')
         .click();
       // Verify replica settings are available for LLMD
       modelServingWizard.findNumReplicasInputField().should('exist').should('have.value', '1');
@@ -249,7 +249,7 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Enter Manual YAML editor Mode');
       modelServingWizard.yaml
         .findYAMLViewerToggle(YAMLViewerToggleOption.YAML)
-        .should('exist')
+        .should('be.enabled')
         .click();
       modelServingWizard.yaml.findManualEditModeButton().click();
       modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();

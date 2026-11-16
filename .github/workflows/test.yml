@@ -66,6 +66,12 @@ jobs:
       - name: Validate module federation ports
         run: pnpm run validate:ports
 
+      - name: Test dashboard feature flag validator
+        run: pnpm run test:validate-flags
+
+      - name: Validate dashboard feature flags match across copies
+        run: pnpm run validate:flags
+
       - name: Check for uncommitted changes
         run: git diff --exit-code
 

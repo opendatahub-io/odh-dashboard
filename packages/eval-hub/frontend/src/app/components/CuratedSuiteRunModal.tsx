@@ -121,6 +121,7 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
       onClose={onClose}
       namespace={namespace}
       collection={collection}
+      isCollectionFlow
       description={CURATED_SUITE_RUN_DESCRIPTION}
       prerequisite={runPrerequisite || undefined}
       modalId="curated-suite-start-evaluation-run-modal"

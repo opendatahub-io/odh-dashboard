@@ -25,7 +25,7 @@ const toExtractionError = (error: unknown): Error =>
 export type UseExtractFormDataFromDeploymentReturn = {
   /** The extracted form data from the deployment, undefined while loading or on error */
   formData: InitialWizardFormData | undefined;
-  /** Whether all required data is still loading */
+  /** Whether extraction has settled — successfully loaded or terminally failed (see `errors`) */
   loaded: boolean;
   /** Any errors that occurred during data loading */
   errors: Error[] | undefined;
@@ -295,9 +295,12 @@ export const useExtractFormDataFromDeployment = (
   return React.useMemo(
     () => ({
       formData,
-      loaded,
+      // `loaded` means settled, not just successful: a terminal failure must not read as
+      // pending, or consumers gating on it (the edit-navigation queue, the YAML form
+      // toggle) wait forever instead of running their error-recovery path
+      loaded: loaded || !!loadingError,
       errors,
     }),
-    [formData, loaded, errors],
+    [formData, loaded, loadingError, errors],
   );
 };

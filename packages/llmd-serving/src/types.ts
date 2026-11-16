@@ -44,6 +44,15 @@ export enum TopologyType {
   MULTI_NODE_DISAGGREGATED = 'workload-multi-node-data-parallel-pd',
 }
 
+export type TopologyTypeFieldData = { topologyType: TopologyType };
+
+export const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFieldData => {
+  if (data === null || typeof data !== 'object' || !('topologyType' in data)) {
+    return false;
+  }
+  return Object.values(TopologyType).some((type) => type === data.topologyType);
+};
+
 export const TopologyTypeDescriptions: Record<TopologyType, string> = {
   [TopologyType.SINGLE_NODE]:
     "Each replica runs on a single node. Use when your model fits in a single GPU's memory.",

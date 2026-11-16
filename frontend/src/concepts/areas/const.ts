@@ -22,6 +22,7 @@ export const techPreviewFlags = {
   genAiTracing: false,
   guardrails: false,
   modelAsService: true,
+  mySubscriptions: false,
   inferencePriorityField: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,

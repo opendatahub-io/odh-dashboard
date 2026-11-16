@@ -41,7 +41,7 @@ import {
   EVAL_HUB_EVENTS,
   type BenchmarkCatalogFilterType,
 } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import BenchmarkCard from '~/app/components/BenchmarkCard';
 import { formatCategory, getMetricDisplayName } from '~/app/components/benchmarkUtils';
@@ -66,6 +66,7 @@ import {
 const PAGE_SIZES = [12, 24, 36];
 
 const SingleBenchmarkWizardPage: React.FC = () => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -106,7 +107,7 @@ const SingleBenchmarkWizardPage: React.FC = () => {
         },
       });
     },
-    [navigate, namespace, navigationSource],
+    [trackEvalHubEvent, navigate, namespace, navigationSource],
   );
 
   const allBenchmarks = React.useMemo<FlatBenchmark[]>(
@@ -166,7 +167,7 @@ const SingleBenchmarkWizardPage: React.FC = () => {
         value: normalizedSelectedValues.join(', '),
       });
     },
-    [],
+    [trackEvalHubEvent],
   );
 
   const handleSearchCommit = React.useCallback(

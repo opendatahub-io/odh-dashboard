@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck - Overlay file copied into the starter repo where path aliases are configured.
 import React from 'react';
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
+import { createStandaloneAnalytics } from '@odh-dashboard/analytics/standalone';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -12,7 +14,9 @@ import {
 } from 'mod-arch-core';
 import {
   BFF_API_VERSION,
+  APP_VERSION,
   DEPLOYMENT_MODE,
+  DEV_MODE,
   MANDATORY_NAMESPACE,
   URL_PREFIX,
 } from '~/app/utilities/const';
@@ -23,6 +27,8 @@ import { ProductProvider } from '~/odh/ProductProvider';
 import { registerGenAiRemote } from '~/odh/registerGenAiRemote';
 
 registerGenAiRemote();
+
+const standaloneAnalytics = createStandaloneAnalytics({ devMode: DEV_MODE, version: APP_VERSION });
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
@@ -45,26 +51,28 @@ const modularArchConfig: ModularArchConfig = {
 
 root.render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <PluginStoreContextProvider>
-          <ModularArchContextProvider config={modularArchConfig}>
-            <BrowserStorageContextProvider>
-              <NotificationContextProvider>
-                <ProductProvider>
-                  {/* Mirrors the "/gen-ai-studio/autorag/*" mount point used in federated mode
+    <AnalyticsTrackingProvider value={standaloneAnalytics}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <PluginStoreContextProvider>
+            <ModularArchContextProvider config={modularArchConfig}>
+              <BrowserStorageContextProvider>
+                <NotificationContextProvider>
+                  <ProductProvider>
+                    {/* Mirrors the "/gen-ai-studio/autorag/*" mount point used in federated mode
                     (see frontend/src/odh/extensions.ts) so standalone/mock mode resolves the
                     same URLs — AppRoutes and its Link/navigate calls assume this prefix. */}
-                  <Routes>
-                    <Route path={`${rootPathname}/*`} element={<App />} />
-                    <Route path="*" element={<Navigate to={rootPathname} replace />} />
-                  </Routes>
-                </ProductProvider>
-              </NotificationContextProvider>
-            </BrowserStorageContextProvider>
-          </ModularArchContextProvider>
-        </PluginStoreContextProvider>
-      </Router>
-    </QueryClientProvider>
+                    <Routes>
+                      <Route path={`${rootPathname}/*`} element={<App />} />
+                      <Route path="*" element={<Navigate to={rootPathname} replace />} />
+                    </Routes>
+                  </ProductProvider>
+                </NotificationContextProvider>
+              </BrowserStorageContextProvider>
+            </ModularArchContextProvider>
+          </PluginStoreContextProvider>
+        </Router>
+      </QueryClientProvider>
+    </AnalyticsTrackingProvider>
   </React.StrictMode>,
 );

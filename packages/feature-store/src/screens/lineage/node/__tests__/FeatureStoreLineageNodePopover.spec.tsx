@@ -1,10 +1,13 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { LineageNode } from '@odh-dashboard/internal/components/lineage/types';
 import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
+import { TrackingProvider } from '../../../../__tests__/unit/testUtils/TrackingProvider';
 import { useFeatureStoreProject } from '../../../../FeatureStoreContext';
 import FeatureStoreLineageNodePopover from '../FeatureStoreLineageNodePopover';
+
+const render = (ui: React.ReactElement) => rtlRender(<TrackingProvider>{ui}</TrackingProvider>);
 
 jest.mock('../../../../FeatureStoreContext');
 jest.mock('@odh-dashboard/internal/components/lineage/LineageClickContext');

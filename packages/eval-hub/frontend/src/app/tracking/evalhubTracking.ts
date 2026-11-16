@@ -1,18 +1,17 @@
 /* eslint-disable camelcase */
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import type { FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
+import type {
+  FormTrackingEventProperties,
+  TrackingOutcome,
+  TrackEvent,
+  TrackEventOptions,
+} from '@odh-dashboard/analytics/types';
+import { sanitizeEvalHubPageContext } from './evalhubPageContextRedaction';
 import { evaluationErrorCategory, type EvaluationStatusMessage } from './evaluationErrorCategory';
-import { registerEvalHubPageContextRedaction } from './evalhubPageContextRedaction';
 import {
   EVAL_HUB_EVENT_PROPERTY_ALLOWLIST,
   type EvalHubEventName,
   type EvalHubEventProperties,
 } from './evalhubTrackingConstants';
-
-export type { EvalHubCollectionSurface } from './evalhubTrackingConstants';
 
 declare global {
   interface Window {
@@ -115,32 +114,34 @@ const getFormTrackingProperties = (
   return formProperties;
 };
 
-export const trackEvalHubEvent = <TEventName extends EvalHubEventName>(
+const prepareEvalHubEvent = <TEventName extends EvalHubEventName>(
   eventName: TEventName,
   properties: EvalHubEventProperties[TEventName],
   context: EvalHubTrackingContext = {},
-): void => {
-  registerEvalHubPageContextRedaction();
+): Parameters<TrackEvent>[1] => {
   const enrichedProps = {
     ...dropDisallowedProperties(eventName, sanitizeProperties(properties, context)),
     event_source: 'evalhub_ui',
     collection_type: context.collectionType ?? 'unknown',
     provider_type: context.providerType ?? 'unknown',
   };
-
-  // Use fireFormTrackingEvent for events with a form outcome (submit/cancel)
   const outcome = 'outcome' in properties ? properties.outcome : undefined;
-  if (isTrackingOutcome(outcome)) {
-    fireFormTrackingEvent(eventName, getFormTrackingProperties(enrichedProps, outcome));
-  } else {
-    fireMiscTrackingEvent(eventName, enrichedProps);
-  }
+  return isTrackingOutcome(outcome)
+    ? getFormTrackingProperties(enrichedProps, outcome)
+    : enrichedProps;
 };
 
-const trackEvalHubEventOnceInScope = <TEventName extends EvalHubEventName>(
+export type EvalHubTrackEvent = <TEventName extends EvalHubEventName>(
   eventName: TEventName,
-  key: string,
   properties: EvalHubEventProperties[TEventName],
+  context?: EvalHubTrackingContext,
+) => void;
+
+const trackEvalHubEventOnceInScope = (
+  trackEvent: EvalHubTrackEvent,
+  eventName: EvalHubEventName,
+  key: string,
+  properties: EvalHubEventProperties[EvalHubEventName],
   context: EvalHubTrackingContext = {},
   viewKeys?: Set<string>,
 ): void => {
@@ -151,24 +152,14 @@ const trackEvalHubEventOnceInScope = <TEventName extends EvalHubEventName>(
   }
   emittedEvents.add(dedupeKey);
   viewKeys?.add(dedupeKey);
-  trackEvalHubEvent(eventName, properties, context);
+  trackEvent(eventName, properties, context);
 };
 
-export const trackEvalHubEventOnce: EvalHubTrackingOnce = (
-  eventName,
-  key,
-  properties,
-  context,
-): void => {
-  trackEvalHubEventOnceInScope(eventName, key, properties, context);
-};
-
-export const createEvalHubTrackingScope = (): EvalHubTrackingScope => {
+const createEvalHubTrackingScope = (trackEvent: EvalHubTrackEvent): EvalHubTrackingScope => {
   const viewKeys = new Set<string>();
-
   return {
     trackEventOnce: (eventName, key, properties, context) =>
-      trackEvalHubEventOnceInScope(eventName, key, properties, context, viewKeys),
+      trackEvalHubEventOnceInScope(trackEvent, eventName, key, properties, context, viewKeys),
     clear: () => {
       const emittedEvents = getEmittedEvents();
       viewKeys.forEach((dedupeKey) => emittedEvents.delete(dedupeKey));
@@ -180,4 +171,32 @@ export const createEvalHubTrackingScope = (): EvalHubTrackingScope => {
 const getEmittedEvents = (): Set<string> => {
   window.__evalHubTrackingEvents ??= new Set<string>();
   return window.__evalHubTrackingEvents;
+};
+
+export type { EvalHubCollectionSurface } from './evalhubTrackingConstants';
+
+export type EvalHubTracking = {
+  trackEvent: EvalHubTrackEvent;
+  trackEventOnce: EvalHubTrackingOnce;
+  createScope: () => EvalHubTrackingScope;
+};
+
+const deliveryOptions: TrackEventOptions = {
+  pageContextPolicy: (page) => ({
+    ...page,
+    ...sanitizeEvalHubPageContext(page, window.location.origin),
+  }),
+};
+
+export const createEvalHubTracking = (deliver: TrackEvent): EvalHubTracking => {
+  const trackEvent: EvalHubTrackEvent = (eventName, properties, context) => {
+    deliver(eventName, prepareEvalHubEvent(eventName, properties, context), deliveryOptions);
+  };
+  const trackEventOnce: EvalHubTrackingOnce = (eventName, key, properties, context) =>
+    trackEvalHubEventOnceInScope(trackEvent, eventName, key, properties, context);
+  return {
+    trackEvent,
+    trackEventOnce,
+    createScope: () => createEvalHubTrackingScope(trackEvent),
+  };
 };

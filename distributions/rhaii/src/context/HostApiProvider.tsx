@@ -19,6 +19,7 @@ import {
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import type { K8sResourceCommon, SecretKind } from '@odh-dashboard/k8s-core';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
+import { checkAccess } from './checkAccess';
 
 const ProjectDetailsContext = React.createContext(null);
 const MODEL_SERVING_CONTEXT_VALUE = {
@@ -102,7 +103,7 @@ const patchSecretWithProtocolAnnotation = (
 
 const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
   dashboardNamespace,
-  checkAccess: () => Promise.resolve(false),
+  checkAccess,
   fetchDashboardConfig: () =>
     Promise.reject(new Error('DashboardConfig is not available in the RHAII host.')),
   fetchClusterSettings: () =>

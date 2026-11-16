@@ -61,7 +61,7 @@ import type { CopySuiteBenchmarkParameter } from '~/app/schemas/copySuite.schema
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import type { FlatBenchmark } from '~/app/types';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   useStartEvaluationRunForm,
@@ -93,6 +93,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   initialValues,
   sourceJobId,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -190,7 +192,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
         providerType: benchmark?.providerId,
       },
     );
-  }, [benchmark, dataLoaded, isReconfigure, loadError]);
+  }, [trackEvalHubEvent, benchmark, dataLoaded, isReconfigure, loadError]);
 
   const breadcrumbFlowLabel = isSingleBenchmarkFlow ? 'Benchmarks' : 'Select benchmark';
 
