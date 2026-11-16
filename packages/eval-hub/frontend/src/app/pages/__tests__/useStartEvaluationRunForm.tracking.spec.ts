@@ -197,7 +197,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
     expect(renderResult.result.current.isValid).toBe(false);
   });
 
-  it('requires a HardwareProfile in a Kueue-managed namespace', async () => {
+  it('allows submission without a HardwareProfile in a Kueue-managed namespace', async () => {
     mockHardwareProfiles = [mockCompatibleHardwareProfile];
     mockKueueAvailability = mockKueueEnabled;
     const renderResult = renderForm();
@@ -208,17 +208,19 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       renderResult.result.current.setNewExperimentName('EvalHub');
     });
 
-    await waitFor(() => expect(renderResult.result.current.requiresHardwareProfile).toBe(true));
-    expect(renderResult.result.current.isValid).toBe(false);
+    await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+    expect(renderResult.result.current.hardwareProfile).toBeUndefined();
 
-    act(() => {
-      renderResult.result.current.setHardwareProfile(mockCompatibleHardwareProfile.name);
+    await act(async () => {
+      await renderResult.result.current.handleSubmit();
     });
 
-    await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+    expect(mockGetInfo).not.toHaveBeenCalled();
+    expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1);
+    expect(mockCreateEvaluationJob.mock.calls[0][2]).not.toHaveProperty('hardware_config');
   });
 
-  it('requires a HardwareProfile when a Kueue-managed namespace has no compatible profiles', async () => {
+  it('stays submittable when a Kueue-managed namespace has no compatible profiles', async () => {
     mockKueueAvailability = mockKueueEnabled;
     const renderResult = renderForm();
 
@@ -228,11 +230,11 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       renderResult.result.current.setNewExperimentName('EvalHub');
     });
 
-    await waitFor(() => expect(renderResult.result.current.requiresHardwareProfile).toBe(true));
-    expect(renderResult.result.current.isValid).toBe(false);
+    await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+    expect(renderResult.result.current.hardwareProfile).toBeUndefined();
   });
 
-  it('blocks submission when Kueue or HardwareProfiles cannot be loaded', async () => {
+  it('stays submittable when Kueue or HardwareProfiles cannot be loaded', async () => {
     mockKueueAvailability = mockKueueEnabled;
     mockHardwareProfilesError = new Error('Unable to load HardwareProfiles');
     const renderResult = renderForm();
@@ -243,7 +245,8 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       renderResult.result.current.setNewExperimentName('EvalHub');
     });
 
-    await waitFor(() => expect(renderResult.result.current.isValid).toBe(false));
+    await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+    expect(renderResult.result.current.hardwareProfile).toBeUndefined();
   });
 
   describe('Evaluations Run Source Selected', () => {
@@ -868,12 +871,12 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       expect(mockCreateEvaluationJob.mock.calls[0][2]).not.toHaveProperty('hardware_config');
     });
 
-    it('should reject a reconfigured profile that is no longer offered by the info API', () => {
+    it('should drop a stale reconfigured profile and stay submittable', () => {
       mockKueueAvailability = mockKueueEnabled;
       mockHardwareProfiles = [{ ...mockCompatibleHardwareProfile, name: 'other-profile' }];
       const renderResult = renderForm({ initialValues: reconfigureValues });
 
-      expect(renderResult.result.current.isValid).toBe(false);
+      expect(renderResult.result.current.isValid).toBe(true);
       expect(renderResult.result.current.hardwareProfile).toBeUndefined();
     });
 

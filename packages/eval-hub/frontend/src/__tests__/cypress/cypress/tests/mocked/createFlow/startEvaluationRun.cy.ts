@@ -665,11 +665,16 @@ describe('Start Evaluation Run - Queue-backed Hardware Profiles', () => {
     new ToastNotification('Evaluation started').find().should('exist');
   });
 
-  it('should show a hardware profile error state and block submission when the info API fails', () => {
+  it('should show a hardware profile warning and keep submission available when the info API fails', () => {
     cy.intercept(
       { method: 'GET', pathname: '/eval-hub/api/v1/info' },
       { statusCode: 500, body: { message: 'Info unavailable' } },
     ).as('queueInfoError');
+    cy.interceptApi(
+      'POST /api/:apiVersion/evaluations/jobs',
+      { path: API_VERSION },
+      mockEvaluationJob({ id: 'default-eval', name: 'Default evaluation' }),
+    ).as('createDefaultJob');
 
     navigateToBenchmarkStart();
     cy.wait('@queueInfoError');
@@ -680,10 +685,40 @@ describe('Start Evaluation Run - Queue-backed Hardware Profiles', () => {
       .and('contain.text', 'Hardware profiles unavailable');
     startEvaluationRunPage
       .findHardwareProfileHelperText()
-      .should('contain.text', 'Resolve this error before starting an evaluation.');
+      .should('contain.text', 'You can still start the evaluation without a hardware profile.');
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
-    startEvaluationRunPage.findSubmitButton().should('be.disabled');
+    startEvaluationRunPage.findSubmitButton().should('be.enabled').click();
+
+    cy.wait('@createDefaultJob').then((interception) => {
+      expect(interception.request.body).not.to.have.property('hardware_config');
+    });
+  });
+
+  it('should submit without a hardware profile by default', () => {
+    mockQueueScheduling({
+      profiles: [compatibleProfile],
+    });
+    cy.interceptApi(
+      'POST /api/:apiVersion/evaluations/jobs',
+      { path: API_VERSION },
+      mockEvaluationJob({ id: 'default-eval', name: 'Default evaluation' }),
+    ).as('createDefaultJob');
+
+    navigateToBenchmarkStart();
+    cy.wait('@queueInfo');
+    cy.wait('@validateHardwareProfiles');
+
+    startEvaluationRunPage
+      .findHardwareProfileToggle()
+      .should('be.enabled')
+      .and('contain.text', 'Default (no hardware profile)');
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().should('be.enabled').click();
+
+    cy.wait('@createDefaultJob').then((interception) => {
+      expect(interception.request.body).not.to.have.property('hardware_config');
+    });
   });
 });
 

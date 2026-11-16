@@ -285,7 +285,7 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.getByTestId('start-evaluation-form')).toBeInTheDocument();
   });
 
-  it('shows a required HardwareProfile before collapsed advanced configuration for Kueue', () => {
+  it('shows the HardwareProfile with its default option before collapsed advanced configuration for Kueue', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: kueueAvailability,
       loaded: true,
@@ -303,9 +303,7 @@ describe('StartEvaluationRunModal', () => {
     const advancedToggle = screen.getByTestId('start-evaluation-run-advanced-toggle');
 
     expect(hardwareProfileToggle).toBeInTheDocument();
-    expect(
-      screen.queryByText('Select a hardware profile to schedule this evaluation through Kueue.'),
-    ).not.toBeInTheDocument();
+    expect(hardwareProfileToggle).toHaveTextContent('Default (no hardware profile)');
     expect(
       hardwareProfileToggle.compareDocumentPosition(advancedToggle) &
         Node.DOCUMENT_POSITION_FOLLOWING,

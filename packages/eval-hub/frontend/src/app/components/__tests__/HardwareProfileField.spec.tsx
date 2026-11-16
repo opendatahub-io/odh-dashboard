@@ -94,21 +94,43 @@ describe('HardwareProfileField', () => {
     expect(onSelect).toHaveBeenCalledWith(insufficientProfile);
   });
 
-  it('marks the HardwareProfile as required without adding redundant helper text', () => {
+  it('offers the default no-profile option preselected without a required marker', () => {
     const { container } = render(
       <HardwareProfileField
         availability={availability}
         profiles={[profile]}
         loaded
-        isRequired
         onSelect={jest.fn()}
       />,
     );
 
-    expect(container.querySelector('.pf-v6-c-form__label-required')).toHaveTextContent('*');
+    expect(container.querySelector('.pf-v6-c-form__label-required')).not.toBeInTheDocument();
+    expect(screen.getByTestId('hardware-profile-toggle')).toHaveTextContent(
+      'Default (no hardware profile)',
+    );
     expect(
-      screen.queryByText('Select a hardware profile to schedule this evaluation through Kueue.'),
-    ).not.toBeInTheDocument();
+      screen.getByText('Runs on the default cluster resources without Kueue queue scheduling.'),
+    ).toBeInTheDocument();
+  });
+
+  it('reports the default option selection as no profile', () => {
+    const onSelect = jest.fn();
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[profile]}
+        loaded
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('GPU Small'));
+    expect(onSelect).toHaveBeenCalledWith(profile);
+
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Default (no hardware profile)'));
+    expect(onSelect).toHaveBeenCalledWith(undefined);
   });
 
   it('describes the selected resources and LocalQueue', () => {
@@ -327,7 +349,8 @@ describe('HardwareProfileField', () => {
     expect(screen.queryByTestId('hardware-profile-select')).not.toBeInTheDocument();
   });
 
-  it('explains when a managed namespace has no LocalQueues', () => {
+  it('keeps the default option selectable when no profiles are offered', () => {
+    const onSelect = jest.fn();
     render(
       <HardwareProfileField
         availability={{
@@ -336,34 +359,18 @@ describe('HardwareProfileField', () => {
         }}
         profiles={[]}
         loaded
-        onSelect={jest.fn()}
+        onSelect={onSelect}
       />,
     );
 
-    expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
-    expect(
-      screen.getByText(
-        /No LocalQueues are configured for this project. An evaluation cannot start/,
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it('explains when Kueue is available but no compatible profiles are configured', () => {
-    render(
-      <HardwareProfileField
-        availability={availability}
-        profiles={[]}
-        loaded
-        onSelect={jest.fn()}
-      />,
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeEnabled();
+    expect(screen.getByTestId('hardware-profile-toggle')).toHaveTextContent(
+      'Default (no hardware profile)',
     );
-
-    expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
-    expect(
-      screen.getByText(
-        /No compatible hardware profiles are configured for this project. An evaluation cannot start/,
-      ),
-    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+    expect(screen.getByTestId('hardware-profile-option-default')).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Default (no hardware profile)'));
+    expect(onSelect).toHaveBeenCalledWith(undefined);
   });
 
   it('shows an error when loading Kueue or HardwareProfiles fails', () => {
@@ -379,7 +386,7 @@ describe('HardwareProfileField', () => {
     expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
     expect(
       screen.getByText(
-        'Unable to load HardwareProfiles Resolve this error before starting an evaluation.',
+        'Unable to load HardwareProfiles You can still start the evaluation without a hardware profile.',
       ),
     ).toBeInTheDocument();
   });
@@ -400,7 +407,7 @@ describe('HardwareProfileField', () => {
 
     expect(
       screen.getByText(
-        "An internal server error occurred: 'Failed to list tenant hardware profiles'. Resolve this error before starting an evaluation.",
+        "An internal server error occurred: 'Failed to list tenant hardware profiles'. You can still start the evaluation without a hardware profile.",
       ),
     ).toBeInTheDocument();
   });

@@ -518,7 +518,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                   compatibilityError={form.hardwareProfileCompatibilityError}
                   selectedProfile={form.hardwareProfile}
                   onSelect={(profile) => form.setHardwareProfile(profile?.name)}
-                  isRequired={form.requiresHardwareProfile}
                   disabled={isCloning}
                 />
 

@@ -551,11 +551,8 @@ export function useStartEvaluationRunForm({
   const hasExperiment =
     (experimentMode === 'existing' && !!selectedExperimentName?.trim()) ||
     (experimentMode === 'new' && newExperimentName.trim() !== '');
-  // A Kueue-managed namespace must schedule its evaluations through a
-  // HardwareProfile. This remains true while its LocalQueues or compatible
-  // profiles are unavailable, so an incomplete Kueue configuration cannot be
-  // bypassed by falling back to provider-default scheduling.
-  const requiresHardwareProfile = kueueAvailability?.enabled === true;
+  // Hardware profile selection is never a blocker: with no profile selected, the job
+  // is submitted without hardware_config and runs on the regular K8s path outside Kueue.
   // Reconfigured jobs can reference profiles or queues that no longer exist. Derive the
   // current selection from the available profiles so hidden, stale form values are never sent.
   // The service only returns queue-backed profiles while their LocalQueue exists in
@@ -569,11 +566,9 @@ export function useStartEvaluationRunForm({
   const isValid = React.useMemo(() => {
     if (
       !hardwareProfilesLoaded ||
-      hardwareProfilesError ||
       evaluationName.trim() === '' ||
       !hasBenchmarks ||
-      !hasExperiment ||
-      (requiresHardwareProfile && !selectedHardwareProfile)
+      !hasExperiment
     ) {
       return false;
     }
@@ -608,9 +603,6 @@ export function useStartEvaluationRunForm({
     sourceName,
     selectedInferenceServiceName,
     hardwareProfilesLoaded,
-    hardwareProfilesError,
-    requiresHardwareProfile,
-    selectedHardwareProfile,
   ]);
 
   const canVerifyConnection = React.useMemo(() => {
@@ -1153,7 +1145,6 @@ export function useStartEvaluationRunForm({
     hardwareProfilesError,
     hardwareProfileCompatibilityError,
     kueueAvailability,
-    requiresHardwareProfile,
     hardwareProfile: selectedHardwareProfile?.name,
     setHardwareProfile,
   };

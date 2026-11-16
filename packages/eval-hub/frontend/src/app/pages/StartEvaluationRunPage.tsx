@@ -485,7 +485,6 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             compatibilityError={form.hardwareProfileCompatibilityError}
             selectedProfile={form.hardwareProfile}
             onSelect={(profile) => form.setHardwareProfile(profile?.name)}
-            isRequired={form.requiresHardwareProfile}
           />
 
           {/* ── Benchmark display ──────────────────────────────── */}
