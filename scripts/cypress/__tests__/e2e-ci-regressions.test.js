@@ -310,6 +310,20 @@ it('runs added, modified, and renamed specs explicitly, and rejects deleting sol
   assert.match(deleted.errors.join('\n'), /only coverage for @A/);
 });
 
+it('limits tag jobs to specs that contain the selected tag', () => {
+  const otherSpec = `${cypress}/tests/e2e/other.cy.ts`;
+  const plan = planFor({
+    inventory: inventoryFor({
+      [spec]: sourceFor(DEFAULT_TAG),
+      [otherSpec]: sourceFor('@A'),
+    }),
+  });
+  assert.equal(plan.valid, true, plan.errors.join('\n'));
+  const job = plan.matrix.find((entry) => entry.run_mode === 'tag' && entry.tag === DEFAULT_TAG);
+  assert.ok(job);
+  assert.deepEqual(job.specs, [spec]);
+});
+
 it('preserves residual impacted specs and gives broad tag jobs the full execution budget', () => {
   const sources = { [spec]: sourceFor(DEFAULT_TAG) };
   for (let index = 0; index < 7; index += 1) {

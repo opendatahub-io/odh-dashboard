@@ -287,7 +287,9 @@ server, Thanos, and Feast. Small impact sets run as explicit specs; larger sets 
 the narrowest available package CI tags. Deleting Cypress support code, or
 encountering a broad impact set that cannot be mapped to package CI tags, falls back
 to the canonical `@SmokeSet1`–`@SmokeSet5` and `@SanitySet1`–`@SanitySet5` tag
-groups.
+groups. Tag jobs pass the planner-resolved spec list to Cypress, so unrelated specs
+are not loaded; the support-file registration filter still selects individual tests
+inside those specs by tag.
 
 Every selected tag must resolve to at least one executable test before the
 workflow starts. A selection fails when a required spec cannot be scheduled or a

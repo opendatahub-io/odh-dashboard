@@ -816,21 +816,27 @@ const sanitizeTagDir = (value) => {
 const tagDirKey = 'tag_dir';
 const runModeKey = 'run_mode';
 
-const buildTagJobs = (selectedTags, autoTags = []) =>
+const specsForTags = (tags, inventory) =>
+  Object.values(inventory)
+    .filter((entry) => entry.executableTags.some((tag) => tags.includes(tag)))
+    .map((entry) => entry.path)
+    .toSorted();
+
+const buildTagJobs = (selectedTags, autoTags = [], inventory = {}) =>
   groupTagsForJobs(selectedTags, autoTags).map((tags) => ({
     tag: tags.join(' '),
     [tagDirKey]: sanitizeTagDir(tags.join('__')),
-    specs: [],
+    specs: specsForTags(tags, inventory),
     [runModeKey]: 'tag',
     // Tag count does not bound cluster setup, training, or model-serving duration.
     timeout: 360,
   }));
 
-const buildNamedTagJobs = (tagGroups, prefix) =>
+const buildNamedTagJobs = (tagGroups, prefix, inventory = {}) =>
   tagGroups.map((tags, index) => ({
     tag: tags.join(' '),
     [tagDirKey]: `${sanitizeTagDir(prefix)}-${String(index + 1).padStart(2, '0')}`,
-    specs: [],
+    specs: specsForTags(tags, inventory),
     [runModeKey]: 'tag',
     // Tag count does not bound cluster setup, training, or model-serving duration.
     timeout: 360,
@@ -1193,6 +1199,7 @@ const buildSelectionPlan = ({
       impactedTagJobs = buildNamedTagJobs(
         groupTagsForJobs(fullCoverageTags, fullCoverageTags),
         'full-coverage',
+        inventory,
       );
       if (explicitImpactSpecs.length > 0) {
         details.push(
@@ -1220,6 +1227,7 @@ const buildSelectionPlan = ({
         impactedTagJobs = buildNamedTagJobs(
           groupTagsForJobs(fullCoverageTags, fullCoverageTags),
           'full-coverage',
+          inventory,
         );
         if (explicitImpactSpecs.length > 0) {
           details.push(
@@ -1232,6 +1240,7 @@ const buildSelectionPlan = ({
       impactedTagJobs = buildNamedTagJobs(
         groupTagsForJobs(impactTags.tags, impactTags.tags),
         'impacted-tag',
+        inventory,
       );
       explicitImpactSpecs = impactTags.uncoveredSpecs;
     }
@@ -1267,7 +1276,7 @@ const buildSelectionPlan = ({
   const plannedTestCountKey = 'planned_test_count';
 
   const matrix = [
-    ...buildTagJobs(effectiveSelectedTags, effectiveAutoTags),
+    ...buildTagJobs(effectiveSelectedTags, effectiveAutoTags, inventory),
     ...createSpecJobs(explicitChangedSpecs, 'ChangedSpec'),
     ...impactedTagJobs,
     ...createSpecJobs(explicitImpactSpecs, 'ImpactedSpec'),
