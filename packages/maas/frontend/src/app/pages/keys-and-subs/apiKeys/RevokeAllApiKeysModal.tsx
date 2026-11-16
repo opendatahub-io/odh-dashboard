@@ -12,7 +12,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { bulkRevokeApiKeys } from '~/app/api/api-keys';

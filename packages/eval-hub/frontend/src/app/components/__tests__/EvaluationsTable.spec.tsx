@@ -1,12 +1,16 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, fireEvent, within, act } from '@testing-library/react';
+import { screen, fireEvent, within, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+const { mockTrackEvent, render } = setupTrackingTest();
 
 const mockOnRefresh = jest.fn();
 const mockOnShowStatus = jest.fn();
@@ -27,12 +31,6 @@ jest.mock('@odh-dashboard/ui-core', () => ({
     </div>
   ),
 }));
-
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
-}));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -92,7 +90,7 @@ const mockJobs: EvaluationJob[] = [
 
 for (let index = 0; index < mockJobs.length; index += 1) {
   const currentJob = mockJobs[index];
-  /* eslint-disable camelcase */
+
   mockJobs[index] = {
     ...currentJob,
     resource: {
@@ -117,7 +115,6 @@ for (let index = 0; index < mockJobs.length; index += 1) {
       },
     ],
   };
-  /* eslint-enable camelcase */
 }
 
 describe('EvaluationsTable', () => {
@@ -216,7 +213,6 @@ describe('EvaluationsTable', () => {
   });
 
   it('should route to choose benchmarks when any selected row is a suite', () => {
-    /* eslint-disable camelcase */
     const suiteJob = mockEvaluationJob({
       id: 'suite-job',
       name: 'Suite evaluation',
@@ -246,7 +242,6 @@ describe('EvaluationsTable', () => {
       },
       benchmarks: [{ id: 'MMLU', provider_id: 'lm_evaluation_harness', benchmark_index: 0 }],
     };
-    /* eslint-enable camelcase */
 
     renderTable({ evaluations: [suiteJob, singleJob], loaded: true });
 
@@ -333,31 +328,45 @@ describe('EvaluationsTable', () => {
         const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
 
         fireEvent.change(searchInput, { target: { value: '  Alpha  ' } });
-        expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+        expect(mockTrackEvent).not.toHaveBeenCalled();
 
         act(() => {
           jest.advanceTimersByTime(500);
         });
-        expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+        expect(mockTrackEvent).toHaveBeenCalledWith(
           EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
-          { filterAttribute: 'name', valueShape: 'string(5)' },
+          {
+            event_source: 'evalhub_ui',
+            collection_type: 'unknown',
+            provider_type: 'unknown',
+            filterAttribute: 'name',
+            valueShape: 'string(5)',
+          },
+          expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
         );
 
-        mockTrackEvalHubEvent.mockClear();
+        mockTrackEvent.mockClear();
         fireEvent.change(searchInput, { target: { value: '' } });
         act(() => {
           jest.advanceTimersByTime(500);
         });
-        expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+        expect(mockTrackEvent).not.toHaveBeenCalled();
 
         fireEvent.click(screen.getByTestId('filter-type-toggle'));
         fireEvent.click(screen.getByRole('option', { name: 'Status' }));
         fireEvent.click(screen.getByTestId('filter-status-toggle'));
         fireEvent.click(screen.getByRole('option', { name: 'Failed' }));
 
-        expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+        expect(mockTrackEvent).toHaveBeenCalledWith(
           EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
-          { filterAttribute: 'status', value: 'failed' },
+          {
+            event_source: 'evalhub_ui',
+            collection_type: 'unknown',
+            provider_type: 'unknown',
+            filterAttribute: 'status',
+            value: 'failed',
+          },
+          expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
         );
       } finally {
         jest.useRealTimers();
@@ -378,9 +387,10 @@ describe('EvaluationsTable', () => {
           jest.advanceTimersByTime(500);
         });
 
-        expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+        expect(mockTrackEvent).not.toHaveBeenCalledWith(
           EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
           expect.objectContaining({ filterAttribute: 'name' }),
+          expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
         );
       } finally {
         jest.useRealTimers();
@@ -400,7 +410,7 @@ describe('EvaluationsTable', () => {
           jest.advanceTimersByTime(500);
         });
 
-        expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+        expect(mockTrackEvent).not.toHaveBeenCalled();
       } finally {
         jest.useRealTimers();
       }

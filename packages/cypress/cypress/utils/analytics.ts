@@ -5,7 +5,11 @@ export const captureTracking = (): Cypress.Chainable =>
   cy.window().then((win) => {
     const log = cy.spy(win.console, 'log');
     const track = cy.stub();
-    Object.assign(win, { analytics: { ...win.analytics, track } });
+    // Route changes can also emit page/identity operations while custom events are observed.
+    // Stub every delivery operation so the capture works without an initialized SDK.
+    Object.assign(win, {
+      analytics: { ...win.analytics, track, page: cy.stub(), identify: cy.stub() },
+    });
     return cy.wrap({ log, track }).as('trackingCapture');
   });
 

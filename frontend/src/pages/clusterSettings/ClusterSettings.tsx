@@ -2,7 +2,8 @@ import * as React from 'react';
 import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type {
   ClusterSettingsType,
   ModelServingPlatformEnabled,

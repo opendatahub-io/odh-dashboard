@@ -41,6 +41,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Prototype Reading Skills](docs/prototype-reading.md) | `/prototype-tickets` and `/prototype-spec` — extracting PF component details from UX prototype forks |
 | [Upstream Sync](docs/upstream-sync.md) | How to sync upstream changes into monorepo packages |
 | [Konflux Build Simulation](docs/KONFLUX_BUILD_SIMULATION.md) | PR build validation, hermetic pnpm install checks, Docker builds, and runtime checks |
+| [Security and CVE Handling](docs/security-cve.md) | CVE signal sources, Dependabot/Renovate automation, PR gates, fixing CVEs on `main` and release branches |
 | [Workspace Dockerfiles](docs/workspace-dockerfiles.md) | Workspace-aware module builds with prefetched pnpm and offline dependencies |
 
 ---

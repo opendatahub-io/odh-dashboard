@@ -1,8 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome, type TrackEvent } from '@odh-dashboard/analytics/types';
 import type { ConnectionType } from '~/app/types';
 
 export const DATA_CONNECT_HUB_EVENT_NAMES = {
@@ -110,14 +106,14 @@ export const getConnectionCreationErrorCategory = (error: unknown): string => {
   return 'unknown_error';
 };
 
-export const fireDataConnectHubTrackEvent = (event: DataConnectHubEvent): void => {
+// Both legacy form and misc wrappers delivered the same name and properties.
+// Host injection preserves that delivery without the misc wrapper's development-only warning.
+export const fireDataConnectHubTrackEvent = (
+  trackEvent: TrackEvent,
+  event: DataConnectHubEvent,
+): void => {
   try {
-    if (event.eventName === DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated) {
-      fireFormTrackingEvent(event.eventName, event.properties);
-      return;
-    }
-
-    fireMiscTrackingEvent(event.eventName, event.properties);
+    trackEvent(event.eventName, event.properties);
   } catch {
     return;
   }

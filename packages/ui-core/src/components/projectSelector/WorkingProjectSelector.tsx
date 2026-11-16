@@ -36,7 +36,14 @@ import {
   SearchIcon,
 } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { type ProjectIdentity, useWorkingProject } from '../../context/WorkingProjectContext';
+import {
+  type ProjectIdentity,
+  type WorkingProjectStatus,
+  useWorkingProject,
+  WorkingProjectSelectorLabelValue,
+  WorkingProjectStatusLabelValue,
+  WorkingProjectStatusValue,
+} from '../../context/WorkingProjectContext';
 import DashboardModalFooter from '../DashboardModalFooter';
 import SimpleSelect from '../SimpleSelect';
 import './WorkingProjectSelector.scss';
@@ -51,16 +58,15 @@ type Props = {
   emptyListContent: React.ReactNode;
 };
 
+const getWorkingProjectLabel = (status: WorkingProjectStatus): string =>
+  WorkingProjectStatusLabelValue[status];
+
 const WorkingProjectSelector: React.FC<Props> = (props) => {
   const { status, activeProject } = useWorkingProject();
   const [open, setOpen] = React.useState(false);
   const label = activeProject
     ? `Project: ${activeProject.displayName || activeProject.name}`
-    : status === 'loading'
-    ? 'Loading projects'
-    : status === 'empty-list'
-    ? 'No projects'
-    : 'Projects unavailable';
+    : getWorkingProjectLabel(status);
 
   return (
     <>
@@ -69,17 +75,17 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
         className="odh-working-project-selector"
         data-testid="working-project-selector"
         aria-haspopup="dialog"
-        isDisabled={status === 'loading'}
-        isLoading={status === 'loading'}
+        isDisabled={status === WorkingProjectStatusValue.Loading}
+        isLoading={status === WorkingProjectStatusValue.Loading}
         icon={
-          status === 'empty-list' ? (
+          status === WorkingProjectStatusValue.EmptyList ? (
             <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
           ) : (
             <OutlinedFolderIcon />
           )
         }
         onClick={() => {
-          if (status === 'empty-list' && props.onCreateProject) {
+          if (status === WorkingProjectStatusValue.EmptyList && props.onCreateProject) {
             props.onCreateProject(true);
           } else {
             setOpen(true);
@@ -143,37 +149,51 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void }> = ({
         ))
     );
   });
-  const canSelectProject = status === 'listed' || status === 'listing-unavailable';
+  const canSelectProject =
+    status === WorkingProjectStatusValue.Listed ||
+    status === WorkingProjectStatusValue.ListingUnavailable ||
+    status === WorkingProjectStatusValue.NoProjectSelected ||
+    status === WorkingProjectStatusValue.RouteInvalid;
   const activeLabel = activeProject?.displayName || activeProject?.name;
   const projectHref = activeProject ? getProjectHref?.(activeProject.name) : undefined;
 
   return (
     <Modal
-      variant={status === 'empty-list' ? 'medium' : 'large'}
+      variant={status === WorkingProjectStatusValue.EmptyList ? 'medium' : 'large'}
       isOpen
       onClose={onClose}
       aria-labelledby={headingId}
       aria-describedby={
-        status === 'listed' || status === 'listing-unavailable' ? descriptionId : undefined
+        status === WorkingProjectStatusValue.Listed ||
+        status === WorkingProjectStatusValue.ListingUnavailable
+          ? descriptionId
+          : undefined
       }
     >
       <ModalHeader
-        title={status === 'empty-list' ? 'No projects' : 'Working project'}
+        title={
+          status === WorkingProjectStatusValue.EmptyList
+            ? WorkingProjectStatusLabelValue[WorkingProjectStatusValue.EmptyList]
+            : WorkingProjectSelectorLabelValue.ModalTitle
+        }
         labelId={headingId}
         descriptorId={descriptionId}
         description={
-          status === 'listed' || status === 'listing-unavailable'
+          status === WorkingProjectStatusValue.Listed ||
+          status === WorkingProjectStatusValue.NoProjectSelected ||
+          status === WorkingProjectStatusValue.ListingUnavailable
             ? 'Choose the project you want to work in.'
             : undefined
         }
       />
       <ModalBody>
         <Stack hasGutter>
-          {status === 'loading' ? (
+          {status === WorkingProjectStatusValue.Loading ? (
             <Content>Loading projects…</Content>
-          ) : status === 'empty-list' ? (
+          ) : status === WorkingProjectStatusValue.EmptyList ? (
             emptyListContent
-          ) : status === 'project-source-error' || status === 'provider-absent' ? (
+          ) : status === WorkingProjectStatusValue.ProjectSourceError ||
+            status === WorkingProjectStatusValue.ProviderAbsent ? (
             <Alert isInline variant="danger" title="Projects unavailable">
               Unable to load projects. Try again later.
             </Alert>
@@ -320,7 +340,7 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void }> = ({
       </ModalBody>
       <ModalFooter>
         <Flex className="pf-v6-u-w-100" justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-          {onCreateProject && status === 'listed' && (
+          {onCreateProject && status === WorkingProjectStatusValue.Listed && (
             <FlexItem>
               <Button
                 variant="secondary"

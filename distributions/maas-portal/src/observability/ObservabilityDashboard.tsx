@@ -25,7 +25,7 @@ import { useObservabilityDashboardData } from './useObservabilityDashboardData';
 import { PORTAL_BASE_PATH } from '../portalPaths';
 
 const DASHBOARD_PATH = '/observe-and-monitor/dashboard';
-const DASHBOARD_TITLE = 'Observability metrics';
+const DASHBOARD_TITLE = 'Observability';
 const DASHBOARD_DESCRIPTION =
   'Monitor the health, performance, and resource usage of your AI workloads, cluster, and models.';
 
@@ -50,13 +50,13 @@ const AccessDenied: React.FC = () => (
     <EmptyState
       headingLevel="h1"
       icon={ExclamationCircleIcon}
-      titleText="Access to observability dashboards is denied"
+      titleText="No access"
       variant={EmptyStateVariant.lg}
       data-testid="portal-observability-access-denied"
     >
       <EmptyStateBody>
-        You do not have permission to view observability dashboards. Contact your administrator to
-        request access.
+        You don&apos;t have permission to view the observability dashboard. To request permission,
+        contact your administrator.
       </EmptyStateBody>
     </EmptyState>
   </PageSection>

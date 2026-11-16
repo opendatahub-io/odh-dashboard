@@ -8,7 +8,7 @@ import {
   ModalVariant,
 } from '@patternfly/react-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { ExternalProvider } from '~/app/types/external-models';
 import CreateExternalProviderForm from '~/app/pages/external-providers/createProvider/CreateExternalProviderForm';
 import { useEditExternalProviderForm } from '~/app/pages/external-providers/createProvider/useEditExternalProviderForm';

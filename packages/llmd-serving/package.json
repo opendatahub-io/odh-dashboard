@@ -24,6 +24,7 @@
     "./__mocks__/mockLLMInferenceServiceConfigK8sResource": "./src/__mocks__/mockLLMInferenceServiceConfigK8sResource.ts"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "workspace:*",
     "@odh-dashboard/foundation": "workspace:*",
     "@odh-dashboard/hardware-profiles": "workspace:*",
     "@odh-dashboard/internal": "workspace:*",

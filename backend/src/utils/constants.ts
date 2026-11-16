@@ -15,6 +15,20 @@ export const DEV_IMPERSONATE_TOKEN = DEV_MODE ? process.env.DEV_IMPERSONATE_TOKE
 export const DEV_OAUTH_PREFIX = process.env.DEV_OAUTH_PREFIX || 'oauth-openshift.apps';
 export const APP_ENV = process.env.APP_ENV;
 
+/**
+ * The only valid name for the cluster-scoped `Auth` singleton
+ * (`services.platform.opendatahub.io/v1alpha1`).
+ *
+ * The operator pins this via `AuthInstanceName`, and the CRD enforces it with the CEL rule
+ * `self.metadata.name == 'auth'` ("Auth name must be auth"), so the API server rejects any
+ * other name at admission.
+ *
+ * Use this for BOTH reading the CR and naming it in a SelfSubjectAccessReview. An SSAR
+ * naming a different resource authorizes against an object that cannot exist -- it only
+ * returns allowed=true while the granting ClusterRole omits `resourceNames`.
+ */
+export const AUTH_SINGLETON_NAME = 'auth';
+
 export const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
 export const KUBE_RBAC_USER_HEADER = 'x-auth-request-user';
 export const KUBE_RBAC_GROUPS_HEADER = 'x-auth-request-groups';
@@ -77,7 +91,6 @@ export const blankDashboardCR: DashboardConfig = {
       disableModelRegistry: false,
       disableModelRegistrySecureDB: false,
       disableServingRuntimeParams: false,
-      disableConnectionTypes: false,
       disableStorageClasses: false,
       disableNIMModelServing: false,
       disableAdminConnectionTypes: false,
@@ -88,9 +101,11 @@ export const blankDashboardCR: DashboardConfig = {
       genAiStudio: true,
       genAiTracing: false,
       guardrails: false,
+      aiSafety: false,
       automl: true,
       autorag: true,
       modelAsService: true,
+      mySubscriptions: false,
       inferencePriorityField: false,
       aiAssetCustomEndpoints: false,
       disableFineTuning: true,
@@ -103,10 +118,12 @@ export const blankDashboardCR: DashboardConfig = {
       skillRegistry: false,
       genAiMcpRegistryServers: false,
       agentOps: false,
+      agentOpsDeploy: false,
       agentsCatalog: false,
       toolCalling: false,
       trainingJobs: true,
       disableLLMd: false,
+      llmdTemplates: false,
       projectRBAC: true,
       roleManagement: true,
       deploymentWizardYAMLViewer: false,
@@ -124,6 +141,7 @@ export const blankDashboardCR: DashboardConfig = {
       modelCapabilities: false,
       observabilityDashboard: true,
       nimWizard: true,
+      nimServiceOperator: false,
     },
     notebookController: {
       enabled: true,

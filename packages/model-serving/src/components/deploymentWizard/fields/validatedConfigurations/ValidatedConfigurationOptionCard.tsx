@@ -9,7 +9,7 @@ import {
   Content,
   Popover,
 } from '@patternfly/react-core';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   formatValidatedOptionValueForDisplay,
   slugifyValidatedOptionTitle,

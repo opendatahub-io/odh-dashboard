@@ -8,7 +8,7 @@ export enum LimitedSupportEvent {
   RISK_DISMISSED = 'Model Serving Unsupported Runtime Risk Dismissed',
 }
 
-export type RuntimeResourceType = 'serving-runtime-template' | 'llm-accelerator-config';
+export type RuntimeResourceType = 'serving-runtime-template' | 'llm-inference-service-config';
 
 type CommonResourceProperties = {
   runtimeResourceType: RuntimeResourceType;

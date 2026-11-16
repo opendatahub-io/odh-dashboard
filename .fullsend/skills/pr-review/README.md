@@ -212,6 +212,8 @@ refuses approve regardless of findings.
 
 `test-impact-review` may return **`fail`**, which maps to `request-changes`. Per-aspect N/A: Automation/Efficiency may be N/A for non-product-code heads (lockfile/manifest/docs with nothing to unit-test), or when there are no tests to evaluate for Efficiency; **Evidence depth remains required** for those heads, satisfied by required-CI coverage or — for non-behavioral edits such as localization strings, docs, or formatting — an explicit scope statement (e.g. “localization only; no behavior change”). The check does not inspect current CI status; the merge gate enforces it. Do not N/A the whole check solely because the change is non-code.
 
+Committed tests that exercise the changed scenario are runtime evidence: the check judges their steps and assertions, not whether they have executed. Required-CI status checks and the merge gate own execution, so an unrun or not-yet-green test is not an evidence gap.
+
 ### Signals (`risk` / `confidence`)
 
 Refuse approve (→ `comment`, not `request-changes`) when levels match
@@ -492,6 +494,130 @@ unlisted category withholds the whole projection.
 The first re-review of a PR whose sticky comment predates the marker runs as a
 first review.
 
+## Tracing
+
+Fullsend on the Pi runtime exports only `run`, `sandbox_create` and `agent` spans.
+[`fullsend-trace.yaml`](../../../.github/workflows/fullsend-trace.yaml) runs after each
+`fullsend` run completes (`workflow_run`, or a manual dispatch with a past run ID to
+backfill). It downloads that run's `fullsend-review` artifact and
+[`trace-bridge.py`](../../scripts/trace-bridge.py) sends spans to MLflow under the run's own
+trace ID.
+
+**Setup.** Repo variable `FULLSEND_TRACE_OTLP_ENDPOINT` (`<mlflow>/v1/traces`; RHOAI
+MLflow 3.17+ serves it at `<route>/mlflow/v1/traces`), and an environment
+`fullsend-trace` whose deployment branches are limited to the default branch, holding the
+secret `FULLSEND_TRACE_OTLP_HEADERS` (`Authorization=Bearer%20<token>,x-mlflow-experiment-id=<id>`,
+plus `X-MLFLOW-WORKSPACE=<namespace>` for RHOAI). Keep the secret only in that environment,
+never as a repository secret: anyone who can push a branch could dispatch an edited copy of
+this workflow or the bridge from it and read a repository secret. Use a credential that can only write
+traces to one experiment. The endpoint must be `https` (plain `http` only for localhost),
+and redirects are not followed. Without the variable the job is skipped. The bridge
+re-sends Fullsend's run and agent spans, so Fullsend's own
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` can stay unset. If Fullsend exports its own spans later,
+add `--no-base-spans` (or use `recover: bridge-only`).
+
+**Exported data.**
+
+| Span | Contents |
+| --- | --- |
+| `persona <name>` | Sub-agent model, cost, tokens, duration, stop reason, tool counts, files read by category, guidance opened and missed |
+| `execute_tool <name>` | Tool name, repo-relative path, search pattern, or for shell commands the programs run and paths named; duration, result size, error |
+| `context_coverage` | Rules/ADRs that apply to the PR (`fetch-guidance-context.sh`), which were opened, which were missed |
+| `review_result` | Verdict, finding counts, risk, confidence, dispatched/skipped producers, adapter status, real cost |
+
+Trace tags (`fullsend.pr`, `fullsend.verdict`, `fullsend.cost_usd`,
+`fullsend.guidance.coverage`, …) make the MLflow trace table filterable. MLflow's own cost
+column ignores cache discounts; use `fullsend.cost_usd`.
+
+"Opened" means a successful `read`, or a file argument to `cat`/`head`/`sed`-style programs
+in a shell command whose success is established: it is in the command's last list
+(after the last `;` or newline), joined only by `&&`, and not piped into another command.
+Searches, failed reads, paths that only appear in prompts, redirection targets
+(`cat > f`), heredoc bodies, reads masked by a later command (`cat f; ls`), an `||`
+fallback (`cat f || true`) or a pipe (`cat f | head`), negated pipelines (`! cat f`,
+`! true | cat f`), background jobs (`cat f &`), input redirections to programs that
+don't show the file (`grep -q x < f`), reads whose output is sent away (`cat f >/dev/null`,
+`cat f >& file`, `cat f 2>/dev/null 1>&2`; redirections are followed in order), `sed -i`, bodies of functions that may never be called (`f() { cat f; }`), and
+anything after an `exit` that may have ended the shell (`exit 0`, `exit`, `exit $x`; a literal
+nonzero `exit 1` can't have, in a command that succeeded) do not count. Relative paths are resolved against
+a top-level `cd` whose success is established (by the same rule); after any other directory change they are dropped. Coverage needs
+`.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the
+reviewed commit: when the selector is missing, or the PR head has moved past that commit
+(a later push or a backfill), the trace is sent without `context_coverage` data.
+
+**Trust and retention.** The artifact is untrusted (the sandbox read PR code), so it is only
+parsed as JSON; nothing from it is executed or interpolated into a shell. The job checks
+out the default branch only, without persisted credentials, and its token has `actions`,
+`contents` and `pull-requests` read access. Exported data excludes file contents, model
+messages, prompts and tool results; only paths, search patterns and an allowlist of tool
+arguments leave the artifact. Shell command text is never exported: a command becomes the
+list of programs it runs plus the files it reads with a read program (`cat`, `head`,
+`sed`, …) or redirects to or from. Other arguments, including those of `git`, `grep` and
+`echo`, quoted text, heredoc bodies and inline scripts, stay behind. Fields from the sandbox (`agent-result.json`,
+transcripts, usage) are checked for shape and dropped when malformed; numbers must be
+finite. Credential-looking values, text under sensitive key names and `--token`-style
+flags are redacted, including in span names and attribute keys. Fullsend's own spans keep
+only IDs, name, kind, times, status code and an allowlist of metadata attributes (model,
+token counts, cost, tool-call and turn counts, harness, mint and HTTP status); content
+attributes such as `gen_ai.output.messages`, events, links and status messages are dropped.
+They must sit in the host's run directory with well-formed IDs. Strings
+are capped at 1,000 characters. What MLflow keeps follows the MLflow instance's own
+retention; anyone who can read the experiment can read these traces.
+
+**Failure behavior.** The job runs outside the review, so it cannot change a review's
+outcome. Only runs of this repository's `.github/workflows/fullsend.yaml` for events that use the
+base repository's definition (`pull_request_target`, `issue_comment`, `issues`,
+`workflow_dispatch`, `schedule`; all but `pull_request_target` must run from the default
+branch, and a `pull_request_target` run's PR must target it and not have been retargeted since
+the run started, since a run from another ref
+or a PR into another branch could use an edited file) are traced; a fork PR could edit that file and run it on
+`pull_request` or `pull_request_review`, so those runs are skipped. A run whose artifact
+list has no `fullsend-review` artifact is skipped; an
+artifact API or download error fails the job so it can be rerun. On a rerun (`run_attempt` > 1) the reviewed commit is unknown, because the review
+fetched the PR's head when it ran, so the commit, coverage and verdict are left out. The PR identity comes from a `pull_request_target`
+Fullsend run's own head commit, repository and branch, which must match exactly one PR
+(comment- and review-triggered runs report the default branch, so they carry none); the bridge gets it as
+`--pr-number` and ignores the PR fields the sandbox wrote. There are two stages. The
+trust check before the download (trusted workflow, event, branch and, for
+`pull_request_target`, a single default-branch PR not retargeted since the run) skips the
+trace when its answer is negative: the job succeeds and nothing is exported. A GitHub API
+error during that check fails the job instead, so it can be rerun. After that, the PR metadata
+lookups are optional: without a single match, or when a lookup fails, the trace is still
+sent, just without PR identity or the missing metadata. The reviewed commit (`fullsend.head_sha`) comes from the
+same run, and `fullsend.verdict` only from the Fullsend bot's review posted during it; the
+artifact's `action` is exported separately as `fullsend.verdict.claimed` (for example
+`failure`, which posts no review). The matched PR must also contain the reviewed commit. A failed PR, files, run
+or review lookup only drops that optional metadata (author, coverage, posted verdict);
+the spans are still sent. If guidance selection fails, the trace is sent without coverage.
+If the endpoint is unreachable, the job fails and the review is unaffected; rerun it from
+the Actions tab. If the bridge's spans are already in MLflow (its `fullsend.bridge.version`
+tag is set, or the `fullsend.pr` tag that bridge version 1 used as its marker), a rerun
+only refreshes tags, because re-sending spans doubles MLflow's token
+totals. An export the endpoint only partly accepts (HTTP 200 with
+`partialSuccess.rejectedSpans`) fails the job without writing the marker, and so does a
+marker write that keeps failing after an export. A rerun then finds the trace without the
+marker and stops rather than guess which spans MLflow holds. Check the trace, then run the
+workflow manually with `recover`: `mark-only` records the marker when the spans are
+complete (it stops if MLflow doesn't have the trace), `resend` sends all spans again (the ones already accepted count twice, so never use it on a
+trace that already has either bridge marker), and
+`bridge-only` adds only the bridge's spans to a trace Fullsend exported itself (it stops if
+MLflow doesn't have the trace yet). Use
+`bridge-only` only when the bridge never sent to that trace: after a bridge export whose
+marker write failed it would send the bridge spans twice, so use `mark-only` there. To
+back this up, a bridge-only export records `fullsend.bridge.pending` on the trace before
+sending, failed or timed-out exports and marker writes try to record it too (best effort: if
+MLflow rejects that tag write as well, check the trace before choosing `bridge-only`), and `bridge-only` refuses
+a trace that has it. A
+malformed `agent-result.json` doesn't stop the export and doesn't affect the PR identity,
+author, coverage or posted verdict: in the workflow those come from the run and GitHub (the
+bridge's own `shared.md` fallback is only for runs without `--pr-number`). It only loses the
+artifact's own fields, such as the claimed verdict, risk and findings. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
+and then stops a normal run instead of exporting; rerun it. `recover: resend` goes
+ahead even when the lookup keeps failing; `recover: mark-only` doesn't, because it needs the
+lookup to confirm the trace is in MLflow. The bridge's run summary in the Actions log has counts and tags
+only, never the PR, run URL, file or guidance paths (missed guidance is a count); the
+workflow's own notices can still name a run ID or PR number.
+
 ## CodeRabbit coexistence
 
 CodeRabbit (the org-wide GitHub App) is **not** a peer reviewer here.
@@ -547,3 +673,5 @@ PR opened/updated (non-draft)
 | [`.fullsend/scripts/pre-review.sh`](../../scripts/pre-review.sh) | Host preflight / adapter prep |
 | [`.fullsend/scripts/validate-dimensions.sh`](../../scripts/validate-dimensions.sh) | Registry contract |
 | [`.github/workflows/fullsend.yaml`](../../../.github/workflows/fullsend.yaml) | Event routing |
+| [`.github/workflows/fullsend-trace.yaml`](../../../.github/workflows/fullsend-trace.yaml) | Post-review trace export to MLflow (see [Tracing](#tracing)) |
+| [`.fullsend/scripts/trace-bridge.py`](../../scripts/trace-bridge.py) | Turns a `fullsend-review` artifact into OTLP spans; `--self-test` |

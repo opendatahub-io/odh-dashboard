@@ -1,7 +1,7 @@
 import React from 'react';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
-import type { IdentifyEventProperties } from '@odh-dashboard/ui-core/types/analytics';
+import type { IdentifyEventProperties } from '@odh-dashboard/analytics/types';
 import { computeAnonymousUserId } from '@odh-dashboard/analytics';
 import { useUser } from '#~/redux/selectors';
 

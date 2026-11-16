@@ -1,13 +1,18 @@
 import * as React from 'react';
 import { act, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
+import { RouteProjectKindValue } from '@odh-dashboard/foundation';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   ProjectsContext,
   type ProjectsContextType,
 } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
+import {
+  useWorkingProject,
+  WorkingProjectStatusValue,
+} from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import RhoaiWorkingProjectAdapter from '#~/concepts/projects/RhoaiWorkingProjectAdapter';
 import { toWorkingProjectIdentity } from '#~/concepts/projects/workingProjectAdapterUtils';
@@ -18,7 +23,22 @@ const project = (name: string, displayName = name, isDSProject = true): ProjectK
 let selection: ReturnType<typeof useWorkingProject>;
 const Consumer: React.FC<{ label: string }> = ({ label }) => {
   selection = useWorkingProject();
-  return <span data-testid={label}>{selection.activeProject?.name ?? 'none'}</span>;
+  return (
+    <>
+      <span data-testid={label}>{selection.activeProject?.name ?? 'none'}</span>
+      <span data-testid={`${label}-status`}>{selection.status}</span>
+    </>
+  );
+};
+
+const RouteRegistrationConsumer: React.FC<{
+  route: Parameters<
+    NonNullable<ReturnType<typeof useWorkingProject>['registerProjectRouteSync']>
+  >[0];
+}> = ({ route }) => {
+  const { registerProjectRouteSync } = useWorkingProject();
+  React.useLayoutEffect(() => registerProjectRouteSync?.(route), [registerProjectRouteSync, route]);
+  return null;
 };
 
 const Harness: React.FC<{
@@ -26,7 +46,8 @@ const Harness: React.FC<{
   loaded?: boolean;
   error?: Error;
   onUpdate?: (project: ProjectKind | null) => void;
-}> = ({ source, loaded = true, error, onUpdate }) => {
+  initialEntry?: string;
+}> = ({ source, loaded = true, error, onUpdate, initialEntry = '/' }) => {
   const [preferred, setPreferred] = React.useState<ProjectKind | null>(null);
   const update = React.useCallback(
     (next: ProjectKind | null) => {
@@ -49,12 +70,14 @@ const Harness: React.FC<{
     [source, preferred, update, loaded, error],
   );
   return (
-    <ProjectsContext.Provider value={context}>
-      <RhoaiWorkingProjectAdapter>
-        <Consumer label="masthead" />
-        <Consumer label="route" />
-      </RhoaiWorkingProjectAdapter>
-    </ProjectsContext.Provider>
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <ProjectsContext.Provider value={context}>
+        <RhoaiWorkingProjectAdapter>
+          <Consumer label="masthead" />
+          <Consumer label="route" />
+        </RhoaiWorkingProjectAdapter>
+      </ProjectsContext.Provider>
+    </MemoryRouter>
   );
 };
 
@@ -142,4 +165,77 @@ describe('RHOAI working project adapter', () => {
     expect(update).toHaveBeenCalledTimes(1);
     storage.mockRestore();
   });
+
+  it('should keep another invalid route registration after recovering the active route', () => {
+    const recoverActiveRoute = jest.fn();
+    const recoverOtherRoute = jest.fn();
+    const source = [project('available-project')];
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ProjectsContext.Provider
+          value={{
+            projects: source,
+            modelServingProjects: source,
+            nonActiveProjects: [],
+            preferredProject: null,
+            updatePreferredProject: jest.fn(),
+            loaded: true,
+            loadError: undefined,
+            waitForProject: () => Promise.resolve(),
+          }}
+        >
+          <RhoaiWorkingProjectAdapter>
+            <RouteRegistrationConsumer
+              route={{ kind: RouteProjectKindValue.Invalid, recover: recoverActiveRoute }}
+            />
+            <RouteRegistrationConsumer
+              route={{ kind: RouteProjectKindValue.Invalid, recover: recoverOtherRoute }}
+            />
+            <Consumer label="masthead" />
+          </RhoaiWorkingProjectAdapter>
+        </ProjectsContext.Provider>
+      </MemoryRouter>,
+    );
+
+    act(() => selection.selectProject({ name: 'available-project' }));
+
+    expect(recoverActiveRoute).not.toHaveBeenCalled();
+    expect(recoverOtherRoute).toHaveBeenCalledWith('available-project');
+  });
+
+  it.each([
+    {
+      name: 'loading',
+      loaded: false,
+      error: undefined,
+      expectedStatus: WorkingProjectStatusValue.Loading,
+    },
+    {
+      name: 'project source error',
+      loaded: true,
+      error: new Error('unavailable'),
+      expectedStatus: WorkingProjectStatusValue.ProjectSourceError,
+    },
+    {
+      name: 'loaded invalid route',
+      loaded: true,
+      error: undefined,
+      expectedStatus: WorkingProjectStatusValue.RouteInvalid,
+    },
+  ])(
+    'should report the correct status for an invalid project route while $name',
+    ({ loaded, error, expectedStatus }) => {
+      render(
+        <Harness
+          source={[project('available-project')]}
+          loaded={loaded}
+          error={error}
+          initialEntry="/projects/missing-project"
+        />,
+      );
+
+      expect(screen.getByTestId('masthead-status')).toHaveTextContent(expectedStatus);
+    },
+  );
 });

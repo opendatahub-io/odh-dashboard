@@ -21,7 +21,7 @@ const MaaSModelsPage: React.FC = () => {
   return (
     <ApplicationsPage
       title="Model endpoints"
-      description="Browse the Models-as-a-Service endpoints available through your subscriptions."
+      description="Browse model endpoints that your subscriptions grant you access to."
       loaded
       empty={false}
     >
@@ -30,12 +30,12 @@ const MaaSModelsPage: React.FC = () => {
           <Alert
             isInline
             variant="danger"
-            title="Unable to load MaaS models"
+            title="Unable to load page"
             data-testid="maas-models-error"
           >
-            <p>There was a problem loading your subscription models. Try again.</p>
+            <p>Refresh the page, or try again later.</p>
             <Button variant="link" onClick={refresh} data-testid="maas-models-retry">
-              Retry
+              Refresh
             </Button>
           </Alert>
         ) : !loaded ? (

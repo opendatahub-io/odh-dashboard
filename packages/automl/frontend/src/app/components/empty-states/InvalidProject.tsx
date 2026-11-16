@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   InvalidProject as InvalidProjectFeature,
   type InvalidProjectProps,
@@ -5,8 +6,17 @@ import {
 import React from 'react';
 import { fireAutomlProjectDropdownOptionSelected } from '~/app/utilities/tracking';
 
-const InvalidProject = (props: InvalidProjectProps): React.JSX.Element => (
-  <InvalidProjectFeature {...props} onProjectSelected={fireAutomlProjectDropdownOptionSelected} />
-);
+const InvalidProject = (props: InvalidProjectProps): React.JSX.Element => {
+  const trackEvent = useTrackEvent();
+
+  return (
+    <InvalidProjectFeature
+      {...props}
+      onProjectSelected={(projectName) =>
+        fireAutomlProjectDropdownOptionSelected(trackEvent, projectName)
+      }
+    />
+  );
+};
 
 export default InvalidProject;

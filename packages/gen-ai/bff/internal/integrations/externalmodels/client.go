@@ -61,6 +61,13 @@ type ClientOptions struct {
 	SkipTLSVerification bool
 	// RootCAs for TLS verification (defaults to system pool if not provided)
 	RootCAs *x509.CertPool
+	// PinnedDialAddresses restricts the transport's dial destinations to these
+	// address:port targets (backend ports, not Service ports), bypassing DNS
+	// entirely. Used to pin trusted in-cluster connections to the Pod addresses
+	// validated by the caller's repository-level trust decision, so later routing
+	// mutations cannot redirect the request. The HTTP Host header and TLS server
+	// name are unaffected.
+	PinnedDialAddresses []string
 }
 
 // ExternalModelsClient handles communication with external model endpoints
@@ -110,6 +117,16 @@ func isPrivateIP(ip net.IP) bool {
 	return false
 }
 
+// ValidateBaseURLFormat checks syntactic URL validity (parseable, HTTP or
+// HTTPS scheme, non-empty hostname) without DNS lookups so callers can reject
+// malformed URLs as INVALID_CONFIGURATION before DNS-dependent host
+// classification and trust resolution, which can otherwise turn an invalid
+// URL into an availability or trust error. HTTP is permitted at this stage;
+// the caller re-validates with the authoritative allow-HTTP decision.
+func ValidateBaseURLFormat(baseURL string) error {
+	return validateBaseURL(baseURL, true)
+}
+
 // validateBaseURL performs basic URL validation without DNS lookup
 // Returns *ExternalModelError for validation failures
 func validateBaseURL(baseURL string, allowHTTP bool) error {
@@ -134,6 +151,11 @@ func validateBaseURL(baseURL string, allowHTTP bool) error {
 }
 
 // validateRequestSSRF performs SSRF protection at request time (prevents DNS rebinding attacks)
+// for hosts that were not trusted by the caller's repository-level trust decision
+// (see repositories.resolveTrustedHost). Trusted hosts skip this check by design;
+// their connections are instead pinned to the validated Pod addresses via
+// ClientOptions.PinnedDialAddresses, so the transport's DNS resolution cannot
+// diverge from the validated Service.
 func validateRequestSSRF(hostname string, logger *slog.Logger) error {
 	ips, err := net.LookupIP(hostname)
 	if err != nil {
@@ -207,6 +229,34 @@ func NewExternalModelsClient(
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse // Prevent redirect-based SSRF
 		},
+	}
+
+	if len(opts.PinnedDialAddresses) > 0 {
+		if transport == nil {
+			transport = &http.Transport{}
+		}
+		if tr, ok := transport.(*http.Transport); ok {
+			targets := opts.PinnedDialAddresses
+			dialer := &net.Dialer{Timeout: 10 * time.Second}
+			// The verification client is one-shot; retained idle connections on
+			// its dedicated transport cannot be reused by later clients and only
+			// hold backend sockets open.
+			tr.DisableKeepAlives = true
+			// The address chosen by the transport's resolver is ignored entirely;
+			// the connection is dialed only to the validated targets.
+			tr.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+				var lastErr error
+				for _, target := range targets {
+					conn, err := dialer.DialContext(ctx, network, target)
+					if err == nil {
+						return conn, nil
+					}
+					lastErr = err
+				}
+				return nil, fmt.Errorf("pinned dial: no validated address reachable: %w", lastErr)
+			}
+			httpClient.Transport = tr
+		}
 	}
 
 	return &ExternalModelsClient{

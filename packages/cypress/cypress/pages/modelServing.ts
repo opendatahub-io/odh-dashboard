@@ -4,10 +4,10 @@ import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
 import { NIMWizardFields } from './modelServing/NIMWizardFields';
+import { DeploymentWizardYaml } from './modelServing/DeploymentWizardYaml';
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
-import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
 import { ModelLocationSelectOption } from '../utils/modelServingConstants';
 import { OOTBConnectionTypes } from '../types';
@@ -984,6 +984,8 @@ class ModelServingSection {
 class ModelServingWizard extends Wizard {
   nim = new NIMWizardFields();
 
+  yaml = new DeploymentWizardYaml();
+
   constructor(private edit = false) {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
@@ -1748,26 +1750,6 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('review-item-huggingFaceApiKey-value');
   }
 
-  findYAMLViewerToggle(toggle: string) {
-    return cy.findByRole('button', { name: toggle });
-  }
-
-  findYAMLCodeEditor() {
-    return new DashboardCodeEditor(() => cy.findByTestId('yaml-editor'));
-  }
-
-  findYAMLEditorEmptyState() {
-    return cy.findByTestId('yaml-editor-empty-state');
-  }
-
-  findManualEditModeButton() {
-    return cy.findByTestId('manual-edit-mode-button');
-  }
-
-  findSwitchToYAMLEditorConfirmButton() {
-    return cy.findByTestId('switch-to-manual-yaml-editor');
-  }
-
   findDeploymentMethodRadio(key: DeploymentMethodKey) {
     return cy.findByTestId(`deployment-method-${key}`);
   }
@@ -1817,10 +1799,6 @@ class ModelServingWizard extends Wizard {
         cy.wrap(radios.first()).click();
       }
     });
-  }
-
-  findYAMLEditFallbackAlert() {
-    return cy.findByTestId('yaml-fallback-alert');
   }
 
   navigateToAdvancedSettings() {

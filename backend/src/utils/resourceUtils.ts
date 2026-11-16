@@ -29,7 +29,7 @@ import {
   ResourceWatcherTimeUpdate,
 } from './resourceWatcher';
 import { getComponentFeatureFlags } from './features';
-import { blankDashboardCR } from './constants';
+import { AUTH_SINGLETON_NAME, blankDashboardCR } from './constants';
 import { getLink, getRouteForClusterId, getServiceLink } from './componentUtils';
 import { isHttpError } from '../utils';
 import { FastifyRequest } from 'fastify';
@@ -602,7 +602,12 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
 
 const fetchAuthKind = (fastify: KubeFastifyInstance): Promise<AuthKind[]> => {
   return fastify.kube.customObjectsApi
-    .getClusterCustomObject('services.platform.opendatahub.io', 'v1alpha1', 'auths', 'auth')
+    .getClusterCustomObject(
+      'services.platform.opendatahub.io',
+      'v1alpha1',
+      'auths',
+      AUTH_SINGLETON_NAME,
+    )
     .then((response) => response.body as AuthKind)
     .then((auth) => [auth]);
 };

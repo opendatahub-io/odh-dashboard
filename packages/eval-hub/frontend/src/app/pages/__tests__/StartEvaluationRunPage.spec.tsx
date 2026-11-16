@@ -1,13 +1,16 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
+
 import StartEvaluationRunPage from '~/app/pages/StartEvaluationRunPage';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, FlatBenchmark } from '~/app/types';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
+
+const { mockTrackEvent, render } = setupTrackingTest();
 
 type SelectionResult = {
   benchmark: FlatBenchmark | undefined;
@@ -81,17 +84,10 @@ jest.mock('~/app/api/k8s', () => ({
   createEvaluationJob: jest.fn(() => () => Promise.resolve({})),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
 }));
-
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const benchmark: FlatBenchmark = {
   id: 'benchmark-a',
@@ -159,14 +155,15 @@ describe('StartEvaluationRunPage', () => {
   it('should track job create opened when the full-page create form loads', () => {
     renderPage();
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
       expect.objectContaining({
         surface: 'create_run_page',
         collection_type: 'unknown',
         provider_type: 'provider-a',
       }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -181,20 +178,21 @@ describe('StartEvaluationRunPage', () => {
 
     renderPage();
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
       expect.objectContaining({
         surface: 'create_run_page',
         collection_type: 'custom',
         provider_type: 'provider-b',
       }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
   it('should track job create opened only once per page opening', () => {
     const { rerender } = renderPage();
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
 
     // A new selection object identity on a later render must not re-emit.
     mockUseEvaluationSelection.mockReturnValue({
@@ -206,7 +204,7 @@ describe('StartEvaluationRunPage', () => {
     });
     rerender(getPageTree());
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should not track job create opened while the selection is loading', () => {
@@ -221,7 +219,7 @@ describe('StartEvaluationRunPage', () => {
     renderPage();
 
     expect(screen.getByLabelText('Loading evaluation data')).toBeInTheDocument();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should not track job create opened when the selection fails to load', () => {
@@ -236,13 +234,13 @@ describe('StartEvaluationRunPage', () => {
     renderPage();
 
     expect(screen.getByTestId('start-evaluation-load-error')).toBeInTheDocument();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should not track job create opened for the reconfigure flow', () => {
     renderPage({ initialValues: reconfigureValues, sourceJobId: 'job-123' });
 
     expect(screen.getByTestId('start-evaluation-form')).toBeInTheDocument();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 });

@@ -1,23 +1,102 @@
+import { PluginStore } from '@odh-dashboard/plugin-core';
+import { isWizardTrackingPropertiesExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import extensions from '../extensions';
-import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../src/settings/llmAcceleratorConfigs/paths';
+import { extractLlmdDeploymentTrackingProperties } from '../../src/tracking/llmdWizardTracking';
+import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../../src/settings/llmInferenceServiceConfigs/paths';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';
 import { ROUTING_CONFIGS_TAB_PATH } from '../../src/settings/routingConfigs/paths';
+
+describe('llm-d deployment tracking registration', () => {
+  it.each([true, false])(
+    'should contribute configuration properties with gateway enabled=%s',
+    async (gatewayEnabled) => {
+      const store = new PluginStore({ llmd: extensions });
+      store.setFeatureFlags({
+        'llmd-serving': true,
+        'llmd-topology-configs': true,
+        'llmd-gateway-field': gatewayEnabled,
+      });
+      const contributors = store.getExtensions().filter(isWizardTrackingPropertiesExtension);
+      expect(contributors).toHaveLength(1);
+      expect(contributors[0].flags).toEqual({ required: ['llmd-serving'] });
+      // Jest does not transform dynamic imports in extension CodeRefs. The Cypress cases
+      // exercise resolution; here verify filtering and invoke the real extractor directly.
+      expect(String(contributors[0].properties.getProperties)).toContain(
+        'extractLlmdDeploymentTrackingProperties',
+      );
+      const extractor = extractLlmdDeploymentTrackingProperties;
+      const fields: Record<string, unknown> = {
+        deploymentMethod: { method: 'llm-inference-service-llmd' },
+        numReplicas: { data: 2 },
+        'llmd-serving/topology-type': { topologyType: 'workload-single-node' },
+        'llmd-serving/custom-topology-config': { selectedConfig: 'default' },
+        ...(gatewayEnabled ? { 'llmd-serving/gateway': { selections: [] } } : {}),
+      };
+      const properties = extractor(fields as WizardFormData['state']);
+      expect(properties).toMatchObject({
+        isDefaultTopology: true,
+      });
+      if (gatewayEnabled) {
+        expect(properties).toMatchObject({
+          numberOfGateways: 0,
+          usesMaasDefault: false,
+          usesOpenShiftInference: false,
+          usesCustomGateway: false,
+        });
+      } else {
+        for (const key of [
+          'numberOfGateways',
+          'usesMaasDefault',
+          'usesOpenShiftInference',
+          'usesCustomGateway',
+        ]) {
+          expect(properties).not.toHaveProperty(key);
+        }
+        expect(
+          store
+            .getExtensions()
+            .filter(
+              (ext) =>
+                'fieldId' in ext.properties && ext.properties.fieldId === 'llmd-serving/gateway',
+            ),
+        ).toHaveLength(0);
+      }
+    },
+  );
+
+  it('should remain registered without topology and disappear without serving', () => {
+    const store = new PluginStore({ llmd: extensions });
+    store.setFeatureFlags({
+      'llmd-serving': true,
+      'llmd-topology-configs': false,
+      'llmd-gateway-field': false,
+    });
+    expect(store.getExtensions().filter(isWizardTrackingPropertiesExtension)).toHaveLength(1);
+    store.setFeatureFlags({
+      'llmd-serving': false,
+      'llmd-topology-configs': true,
+      'llmd-gateway-field': true,
+    });
+    expect(store.getExtensions().filter(isWizardTrackingPropertiesExtension)).toHaveLength(0);
+  });
+});
 
 const routeExtensions = extensions.filter((extension) => extension.type === 'app.route');
 
 const acceleratorTab = extensions.find(
   (extension) =>
     extension.type === 'app.tab-route/tab' &&
-    extension.properties.id === 'llm-accelerator-configurations',
+    extension.properties.id === 'llm-inference-service-configurations',
 );
 
 const acceleratorFormPaths = [
-  `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/add`,
-  `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/edit/:configName`,
-  `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/duplicate/:configName`,
+  `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/add`,
+  `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/edit/:configName`,
+  `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/duplicate/:configName`,
 ];
 
-describe('LLM accelerator configuration extensions', () => {
+describe('LLM inference service configuration extensions', () => {
   it('should register one renamed install target with the settings gates and presentation metadata', () => {
     const targets = extensions.filter(
       (extension) => extension.type === 'model-serving.runtime-image/install-target',
@@ -27,9 +106,11 @@ describe('LLM accelerator configuration extensions', () => {
     expect(targets[0].properties).toEqual(
       expect.objectContaining({
         id: 'llmInferenceServiceConfig',
-        label: 'LLM accelerator configuration',
+        label: 'LLM inference service configuration',
         description: expect.any(String),
-        selectedState: expect.objectContaining({ listName: 'LLM accelerator configurations' }),
+        selectedState: expect.objectContaining({
+          listName: 'LLM inference service configurations',
+        }),
       }),
     );
   });
@@ -38,14 +119,14 @@ describe('LLM accelerator configuration extensions', () => {
     expect(acceleratorTab?.properties).toEqual(
       expect.objectContaining({
         pageId: 'model-deployment-settings',
-        id: 'llm-accelerator-configurations',
-        title: 'LLM accelerator configurations',
+        id: 'llm-inference-service-configurations',
+        title: 'LLM inference service configurations',
         group: '3_accelerator',
       }),
     );
   });
 
-  it('should gate the accelerator tab on its own feature areas only', () => {
+  it('should gate the inference service configuration tab on its own feature areas only', () => {
     expect(acceleratorTab?.flags).toEqual({
       required: ['llmd-serving', 'ADMIN_USER', 'vllm-on-maas'],
     });
@@ -226,7 +307,7 @@ const getFieldIdForApplyExtension = (ext: unknown): string | undefined => {
 };
 
 describe('llmd-serving apply extension ordering', () => {
-  it('registers the accelerator apply after the topology config apply', () => {
+  it('registers the inference service configuration apply after the topology config apply', () => {
     const applyIds = extensions.map(getFieldIdForApplyExtension).filter(Boolean) as string[];
     const topoIdx = applyIds.indexOf('llmd-serving/custom-topology-config');
     const accelIdx = applyIds.indexOf('llmd-serving/accelerator-config');

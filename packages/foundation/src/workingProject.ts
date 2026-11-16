@@ -4,18 +4,44 @@ export interface WorkingProjectIdentity {
   displayName?: string;
 }
 
+export const RouteProjectKindValue = {
+  Invalid: 'invalid',
+  Project: 'project',
+} as const;
+
+export type RouteProjectKind = (typeof RouteProjectKindValue)[keyof typeof RouteProjectKindValue];
+
+export const WorkingProjectListStatusValue = {
+  /** The host successfully listed the available projects. */
+  Listed: 'listed',
+  /** Only individually validated identities are known; no default can be inferred. */
+  ListingUnavailable: 'listing-unavailable',
+  /** The host is still loading the project source. */
+  Loading: 'loading',
+  /** The host failed to load the project source. */
+  Error: 'error',
+} as const;
+
+export type WorkingProjectListStatus =
+  (typeof WorkingProjectListStatusValue)[keyof typeof WorkingProjectListStatusValue];
+
 /**
  * Route parsing belongs to the surface; a viewed-project URL is not a working-project route.
  * A route project name is not active until the provider confirms existence and access.
  */
-export type RouteProjectInput = null | { kind: 'invalid' } | { kind: 'project'; name: string };
+export type RouteProjectInput =
+  | null
+  | { kind: typeof RouteProjectKindValue.Invalid; recover?: (projectName: string) => void }
+  | { kind: typeof RouteProjectKindValue.Project; name: string };
 
 export type WorkingProjectList<T extends WorkingProjectIdentity> =
-  | { status: 'listed'; projects: readonly T[] }
-  /** Only individually validated identities are known; no default can be inferred. */
-  | { status: 'listing-unavailable'; projects: readonly T[] }
-  | { status: 'loading' }
-  | { status: 'error' };
+  | { status: typeof WorkingProjectListStatusValue.Listed; projects: readonly T[] }
+  | {
+      status: typeof WorkingProjectListStatusValue.ListingUnavailable;
+      projects: readonly T[];
+    }
+  | { status: typeof WorkingProjectListStatusValue.Loading }
+  | { status: typeof WorkingProjectListStatusValue.Error };
 
 export interface WorkingProjectResolution<T extends WorkingProjectIdentity> {
   /** The same ordered collection should be used by the selector and default selection. */
@@ -62,14 +88,16 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
   removedRouteFallback,
 }: ResolveWorkingProjectInput<T>): WorkingProjectResolution<T> => {
   const orderedProjects =
-    list.status === 'listed' || list.status === 'listing-unavailable'
+    list.status === WorkingProjectListStatusValue.Listed ||
+    list.status === WorkingProjectListStatusValue.ListingUnavailable
       ? orderWorkingProjects(list.projects)
       : [];
   const find = (name: string | null | undefined): T | null =>
     orderedProjects.find((project) => project.name === name) ?? null;
-  const requestedName = route?.kind === 'project' ? route.name : route === null ? storedName : null;
+  const requestedName =
+    route?.kind === RouteProjectKindValue.Project ? route.name : route === null ? storedName : null;
 
-  if (route?.kind === 'invalid') {
+  if (route?.kind === RouteProjectKindValue.Invalid) {
     return {
       orderedProjects,
       activeProject: null,
@@ -77,7 +105,7 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
     };
   }
 
-  if (list.status === 'listing-unavailable') {
+  if (list.status === WorkingProjectListStatusValue.ListingUnavailable) {
     return {
       orderedProjects,
       activeProject: find(requestedName) ?? find(currentName),
@@ -85,7 +113,7 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
     };
   }
 
-  if (list.status !== 'listed') {
+  if (list.status !== WorkingProjectListStatusValue.Listed) {
     return {
       orderedProjects,
       activeProject: null,
@@ -95,7 +123,7 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
 
   // A missing deep link is not a request for another project's data. The only
   // exception is removal of the project that was already active in this session.
-  if (route?.kind === 'project' && !find(route.name)) {
+  if (route?.kind === RouteProjectKindValue.Project && !find(route.name)) {
     if (removedRouteFallback?.routeName === route.name) {
       const fallback = find(removedRouteFallback.projectName);
       if (fallback) {
@@ -129,7 +157,9 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
     ? orderedProjects.find((project) => isAiProject?.(project)) ?? orderedProjects[0]
     : null;
   const shouldRetainRemovedRoute =
-    route?.kind === 'project' && !find(route.name) && currentName === route.name;
+    route?.kind === RouteProjectKindValue.Project &&
+    !find(route.name) &&
+    currentName === route.name;
   return {
     orderedProjects,
     activeProject: defaultProject,

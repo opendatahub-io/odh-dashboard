@@ -5,8 +5,12 @@ import {
 } from './oc_commands/project';
 import { ensureAdminOcSession } from './oc_commands/baseCommands';
 
-export const createAndVerifyProject = (projectName: string): Cypress.Chainable<boolean> =>
-  createOpenShiftProject(projectName).then((result) => {
+export const createAndVerifyProject = (
+  projectName: string,
+  onProjectCleanupRequired?: () => void,
+): Cypress.Chainable<boolean> => {
+  onProjectCleanupRequired?.();
+  return createOpenShiftProject(projectName).then((result) => {
     expect(result.exitCode).to.equal(0);
     return verifyOpenShiftProjectExists(projectName).then((exists) => {
       if (!exists) {
@@ -15,6 +19,7 @@ export const createAndVerifyProject = (projectName: string): Cypress.Chainable<b
       return cy.wrap(true);
     });
   });
+};
 
 // Best-effort cleanup for after() hooks — failures are logged, never thrown.
 export const cleanupTestProject = (projectName: string): void => {
@@ -30,7 +35,10 @@ export const cleanupTestProject = (projectName: string): void => {
   });
 };
 
-export const createCleanProject = (projectName: string): Cypress.Chainable<boolean> =>
+export const createCleanProject = (
+  projectName: string,
+  onProjectCleanupRequired?: () => void,
+): Cypress.Chainable<boolean> =>
   verifyOpenShiftProjectExists(projectName).then((exists) => {
     if (exists) {
       cy.log(`Project ${projectName} already exists. Deleting it.`);
@@ -53,10 +61,10 @@ export const createCleanProject = (projectName: string): Cypress.Chainable<boole
         };
         return checkDeleted().then(() => {
           cy.log(`Creating project ${projectName}`);
-          return createAndVerifyProject(projectName);
+          return createAndVerifyProject(projectName, onProjectCleanupRequired);
         });
       });
     }
     cy.log(`Creating project ${projectName}`);
-    return createAndVerifyProject(projectName);
+    return createAndVerifyProject(projectName, onProjectCleanupRequired);
   });

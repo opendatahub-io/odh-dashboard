@@ -33,6 +33,15 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
+const NEMO_GUARDRAILS_LOCAL_PORT = Number(Cypress.env('CY_NEMO_GUARDRAILS_LOCAL_PORT') ?? 9443);
+
+if (
+  !Number.isInteger(NEMO_GUARDRAILS_LOCAL_PORT) ||
+  NEMO_GUARDRAILS_LOCAL_PORT < 1 ||
+  NEMO_GUARDRAILS_LOCAL_PORT > 65535
+) {
+  throw new Error('CY_NEMO_GUARDRAILS_LOCAL_PORT must be a valid TCP port');
+}
 
 const SHARED_STATE_SUITE_CONFIG = {
   testIsolation: false,
@@ -187,15 +196,14 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       cy.step('Wait for OGX Server to be ready');
       waitForOGXServerReady(projectName);
 
-      cy.step('Wait for NemoGuardrails to be ready');
-      waitForNemoGuardrailsReady(projectName);
-
-      cy.step('Start port-forward for NeMo Guardrails');
-      // Local port must match the BFF's NEMO_GUARDRAILS_URL (https://localhost:9443 — see
-      // packages/gen-ai/.env.local.example); otherwise the BFF fails closed with
-      // guardrail_service_unavailable and no violation alert is ever rendered.
-      startPortForward(projectName, 'nemoguardrails', 9443, 3000, 443).then((handle) => {
-        nemoPortForwardHandle = handle;
+      cy.step('Wait for NemoGuardrails and its published Service to be ready');
+      // Local port must match the BFF's NEMO_GUARDRAILS_URL. Override the default 9443
+      // with CY_NEMO_GUARDRAILS_LOCAL_PORT when the local BFF uses another port.
+      waitForNemoGuardrailsReady(projectName).then(({ namespace, name, port }) => {
+        cy.step('Start port-forward for the published NeMo Guardrails Service');
+        startPortForward(namespace, name, NEMO_GUARDRAILS_LOCAL_PORT, 3000, port).then((handle) => {
+          nemoPortForwardHandle = handle;
+        });
       });
 
       cy.step('Wait for playground service to be created');

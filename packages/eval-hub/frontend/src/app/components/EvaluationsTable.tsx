@@ -28,7 +28,7 @@ import {
   EVAL_HUB_EVENTS,
   type EvaluationRunsFilterAttribute,
 } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import {
   getEvaluationName,
   getBenchmarkName,
@@ -159,6 +159,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   onRefresh,
   onShowStatus,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const navigate = useNavigate();
   // Pause polling when the browser tab is backgrounded to reduce server load
   const isPollingEnabled = usePageVisibility();
@@ -177,17 +179,20 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
 
   // Text filter values are user-entered names — track only a redacted shape, debounced so
   // analytics fire when typing pauses instead of on every keystroke.
-  const trackTextFilterApplied = React.useCallback((filter: TextFilterOption, value: string) => {
-    const normalizedValue = value.trim();
-    if (!normalizedValue) {
-      return;
-    }
+  const trackTextFilterApplied = React.useCallback(
+    (filter: TextFilterOption, value: string) => {
+      const normalizedValue = value.trim();
+      if (!normalizedValue) {
+        return;
+      }
 
-    trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED, {
-      filterAttribute: getRunsFilterAttribute(filter),
-      valueShape: `string(${normalizedValue.length})`,
-    });
-  }, []);
+      trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED, {
+        filterAttribute: getRunsFilterAttribute(filter),
+        valueShape: `string(${normalizedValue.length})`,
+      });
+    },
+    [trackEvalHubEvent],
+  );
   const trackTextFilterAppliedDebounced = React.useMemo(
     () => debounce(trackTextFilterApplied, 500),
     [trackTextFilterApplied],
@@ -329,7 +334,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
         return next;
       });
     },
-    [evaluations],
+    [trackEvalHubEvent, evaluations],
   );
 
   const handleCompare = React.useCallback(() => {
@@ -374,7 +379,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
         return job ? getEvaluationName(job) : run.jobId;
       }),
     });
-  }, [evaluations, namespace, navigate, selectedEvaluationIds]);
+  }, [trackEvalHubEvent, evaluations, namespace, navigate, selectedEvaluationIds]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: {

@@ -9,19 +9,19 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
 import SubscriptionsToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsToolbar';
 import {
   initialSubscriptionsFilterData,
+  MODEL_TEXT_FILTER_PREFIX,
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
   SubscriptionsFilterSelection,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 import DeleteSubscriptionModal from '~/app/pages/subscriptions/DeleteSubscriptionModal';
-import ModelAccessToolbar from '~/app/pages/model-access/ModelAccessToolbar';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
@@ -37,12 +37,6 @@ type SubscriptionsTabProps = {
    * and the delete confirmation modal. Defaults to false (admin governance page).
    */
   readOnly?: boolean;
-  /**
-   * Filter through Subscription / Group / Model typeahead selects (model access viewer)
-   * instead of the free-text keyword search. Filter options derive from the loaded
-   * subscriptions, so no additional fetches are required.
-   */
-  attributeFilters?: boolean;
 
   /** Overrides the subscription name link target. Defaults to the governance view page. */
   getSubscriptionDetailUrl?: (name: string) => string;
@@ -56,7 +50,6 @@ const asFilterSelection = (
 const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   returnTo,
   readOnly = false,
-  attributeFilters = false,
   getSubscriptionDetailUrl,
 }) => {
   const {
@@ -78,28 +71,30 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   const onClearFilters = React.useCallback(() => setFilterData(initialSubscriptionsFilterData), []);
 
   const filteredSubscriptions = React.useMemo(() => {
-    const keyword = filterData[SubscriptionsFilterOptions.keyword];
-    const keywordText = typeof keyword === 'string' ? keyword.toLowerCase() : '';
-    const subscriptionFilter = asFilterSelection(
+    const subscriptionText = asFilterSelection(
       filterData[SubscriptionsFilterOptions.subscription],
-    );
+    )?.value.toLowerCase();
     const groupFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.group]);
     const modelFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.model]);
+    const modelText = modelFilter?.value.startsWith(MODEL_TEXT_FILTER_PREFIX)
+      ? modelFilter.value.slice(MODEL_TEXT_FILTER_PREFIX.length).toLowerCase()
+      : undefined;
 
-    if (!keywordText && !subscriptionFilter && !groupFilter && !modelFilter) {
+    if (!subscriptionText && !groupFilter && !modelFilter) {
       return subscriptions;
     }
 
     return subscriptions.filter((subscription) => {
       if (
-        keywordText &&
-        !subscription.name.toLowerCase().includes(keywordText) &&
-        !(subscription.displayName ?? '').toLowerCase().includes(keywordText) &&
-        !(subscription.description ?? '').toLowerCase().includes(keywordText)
+        subscriptionText &&
+        ![
+          subscription.name,
+          subscription.displayName,
+          subscription.description,
+          ...subscription.owner.groups.map((group) => group.name),
+          ...subscription.modelRefs.flatMap((ref) => [ref.name, ref.displayName]),
+        ].some((text) => text?.toLowerCase().includes(subscriptionText))
       ) {
-        return false;
-      }
-      if (subscriptionFilter && subscription.name !== subscriptionFilter.value) {
         return false;
       }
       if (
@@ -108,7 +103,15 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
       ) {
         return false;
       }
-      if (modelFilter && !subscription.modelRefs.some((ref) => ref.name === modelFilter.value)) {
+      if (
+        modelFilter &&
+        !subscription.modelRefs.some((ref) =>
+          modelText !== undefined
+            ? ref.name.toLowerCase().includes(modelText) ||
+              ref.displayName?.toLowerCase().includes(modelText)
+            : ref.name === modelFilter.value,
+        )
+      ) {
         return false;
       }
       return true;
@@ -165,20 +168,14 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
             subscriptions={filteredSubscriptions}
             onClearFilters={onClearFilters}
             toolbarContent={
-              attributeFilters ? (
-                <ModelAccessToolbar
-                  filterData={filterData}
-                  onFilterUpdate={onFilterUpdate}
-                  subscriptions={subscriptions}
-                />
-              ) : (
-                <SubscriptionsToolbar
-                  filterData={filterData}
-                  onFilterUpdate={onFilterUpdate}
-                  returnTo={returnTo}
-                  showCreateButton={!readOnly}
-                />
-              )
+              <SubscriptionsToolbar
+                filterData={filterData}
+                onFilterUpdate={onFilterUpdate}
+                subscriptions={subscriptions}
+                returnTo={returnTo}
+                showCreateButton={!readOnly}
+                testIdPrefix={readOnly ? 'model-access' : 'subscriptions'}
+              />
             }
             setDeleteSubscription={setDeleteSubscription}
             returnTo={returnTo}

@@ -1,4 +1,6 @@
-ODH_DASHBOARD_URL: "http://odh-dashboard-opendatahub.apps.my-cluster.test.redhat.com"
+ODH_DASHBOARD_URL: "https://odh-dashboard-opendatahub.apps.my-cluster.test.redhat.com"
+# Optional canonical host used by OpenShift OAuth when it differs from ODH_DASHBOARD_URL.
+ODH_DASHBOARD_CANONICAL_URL: ""
 PRODUCT: ODH
 ODH_DASHBOARD_PROJECT_NAME: Open Data Hub
 APPLICATIONS_NAMESPACE: opendatahub
@@ -48,3 +50,12 @@ MAAS_URL: https://maas.apps.your-cluster.com
 MAAS_API_KEY: your-api-key-here
 MAAS_GENERATION_MODEL_ID: your-generation-model-id
 MAAS_EMBEDDING_MODEL_ID: your-embedding-model-id
+
+FILEMAPPING:
+  e2e/dataScienceProjects/testModelTokenAuth.yaml: e2e/dataScienceProjects/testModelTokenAuth.s390x.yaml
+  e2e/dataScienceProjects/testDeployOCIModel.yaml: e2e/dataScienceProjects/testDeployOCIModel.s390x.yaml
+  e2e/dataScienceProjects/testModelPvcDeployment.yaml: e2e/dataScienceProjects/testModelPvcDeployment.s390x.yaml
+  resources/yaml/pvc-loader-pod.yaml: resources/yaml/pvc-loader-pod.s390x.yaml
+  e2e/dataScienceProjects/testSingleModelAdminCreation.yaml: e2e/dataScienceProjects/testSingleModelAdminCreation.s390x.yaml
+  e2e/hardwareProfiles/testModelServingTolerations.yaml: e2e/hardwareProfiles/testModelServingTolerations.s390x.yaml
+  e2e/dataScienceProjects/testWorkbenchStorageClasses.yaml: e2e/dataScienceProjects/testWorkbenchStorageClasses.s390x.yaml

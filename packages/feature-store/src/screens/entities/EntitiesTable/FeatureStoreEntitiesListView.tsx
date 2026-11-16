@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import FeatureStoreEntitiesTable from './FeatureStoreEntitiesTable';
 import { EntityList } from '../../../types/entities';
 import { FeatureStoreToolbar } from '../../../components/FeatureStoreToolbar';
@@ -18,6 +18,7 @@ const FeatureStoreEntitiesListView = ({
 }: {
   entities: EntityList;
 }): React.ReactElement => {
+  const trackEvent = useTrackEvent();
   const [filterData, setFilterData] = React.useState<
     Record<string, string | { label: string; value: string } | undefined>
   >({});
@@ -44,13 +45,13 @@ const FeatureStoreEntitiesListView = ({
   );
 
   const onClearFilters = React.useCallback(() => {
-    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+    trackEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
       action: 'clearAll',
       resourceType: 'entity',
     } satisfies FilterRemovedProperties);
     setFilterData({});
     setTagFilters([]);
-  }, []);
+  }, [trackEvent]);
 
   const filteredEntities = React.useMemo(() => {
     let filtered = processedEntities;
