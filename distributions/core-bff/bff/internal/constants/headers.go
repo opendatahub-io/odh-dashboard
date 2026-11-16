@@ -1,5 +1,7 @@
 package constants
 
+import "strings"
+
 const (
 	HeaderAuthorization               = "Authorization"
 	HeaderContentType                 = "Content-Type"
@@ -79,6 +81,12 @@ const (
 	// allowlisted unconditionally so enabling tracking never breaks under the policy.
 	SegmentTelemetryOrigin = "https://console.redhat.com"
 
+	// CSPNoncePlaceholder is substituted into ContentSecurityPolicy and into the shell HTML
+	// with the same per-request nonce, so the only inline script the browser runs is the
+	// theme bootstrap. Must match CSP_NONCE_PLACEHOLDER in
+	// packages/app-config/src/security-policy.ts.
+	CSPNoncePlaceholder = "__CSP_NONCE__"
+
 	// ContentSecurityPolicy is the policy for this application's own documents: index.html
 	// as served for `/`, for a direct index.html request, and as the deep-link fallback.
 	// Proxied upstream documents and dev-only tooling (the Swagger UI page) keep their own
@@ -91,7 +99,7 @@ const (
 	ContentSecurityPolicy = "default-src 'self'; " +
 		"base-uri 'self'; " +
 		"object-src 'none'; " +
-		"script-src 'self' " + SegmentTelemetryOrigin + "; " +
+		"script-src 'self' " + SegmentTelemetryOrigin + " 'nonce-" + CSPNoncePlaceholder + "'; " +
 		"style-src 'self' 'unsafe-inline'; " +
 		"img-src 'self' https: data: blob:; " +
 		"font-src 'self' data:; " +
@@ -111,3 +119,9 @@ const (
 	// enforcing header once deployments running Report-Only report no unexpected violations.
 	CSPModeEnvVar = "CSP_MODE"
 )
+
+// ContentSecurityPolicyWithNonce returns the policy with the per-request nonce in place of
+// CSPNoncePlaceholder. The same nonce is substituted into the document body.
+func ContentSecurityPolicyWithNonce(nonce string) string {
+	return strings.ReplaceAll(ContentSecurityPolicy, CSPNoncePlaceholder, nonce)
+}

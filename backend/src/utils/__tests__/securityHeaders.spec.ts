@@ -2,8 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
+  buildContentSecurityPolicy,
   CONTENT_SECURITY_POLICY,
   CONTENT_SECURITY_POLICY_DIRECTIVES,
+  CSP_NONCE_PLACEHOLDER,
   SEGMENT_TELEMETRY_ORIGIN,
 } from '@odh-dashboard/app-config/security-policy';
 import { CACHE_HEADER_IMMUTABLE, CACHE_HEADER_NO_CACHE } from '../cacheHeaders';
@@ -160,6 +162,18 @@ describe('Content-Security-Policy', () => {
     expect(headers['content-security-policy']).toBeUndefined();
   });
 
+  it('appends the per-request nonce to script-src', () => {
+    const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
+    applyContentSecurityPolicy(reply, 'enforce', 'test-nonce-123');
+    expect(headers['content-security-policy']).toBe(buildContentSecurityPolicy('test-nonce-123'));
+    expect(headers['content-security-policy']).toContain("'nonce-test-nonce-123'");
+    expect(
+      CONTENT_SECURITY_POLICY_DIRECTIVES.filter(([name]) => name !== 'script-src').every(
+        ([name, value]) => headers['content-security-policy'].includes(`${name} ${value}`),
+      ),
+    ).toBe(true);
+  });
+
   it('never sends both header names in one response', () => {
     for (const mode of ['enforce', 'report-only'] as const) {
       const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
@@ -304,14 +318,30 @@ describe('CSP parity across the Node backend, the dev server and core-bff', () =
     const { createDevCspMiddleware } = require(path.join(repoRoot, 'frontend/config/cspPolicy.js'));
 
     const served: Record<string, string> = {};
-    createDevCspMiddleware(4010)(
+    let body = '';
+    createDevCspMiddleware(
+      4010,
+      [],
+      () => `<html><script nonce="${CSP_NONCE_PLACEHOLDER}">x</script></html>`,
+    )(
       { method: 'GET', headers: { accept: 'text/html' } },
-      { setHeader: (name: string, value: string) => (served[name] = value) },
+      {
+        setHeader: (name: string, value: string) => (served[name] = value),
+        end: (chunk?: string) => {
+          body = chunk ?? '';
+        },
+      },
       () => undefined,
     );
 
+    const policy = served['Content-Security-Policy-Report-Only'] ?? '';
+    const nonce = /'nonce-([^']+)'/.exec(policy)?.[1] ?? '';
+    expect(nonce).not.toBe('');
+    expect(body).toContain(`nonce="${nonce}"`);
+    expect(body).not.toContain(CSP_NONCE_PLACEHOLDER);
+
     const dev = new Map(
-      (served['Content-Security-Policy-Report-Only'] ?? '').split('; ').map((part) => {
+      policy.split('; ').map((part) => {
         const [name, ...tokens] = part.split(' ');
         return [name, tokens.join(' ')] as const;
       }),
@@ -334,7 +364,12 @@ describe('CSP parity across the Node backend, the dev server and core-bff', () =
       'utf8',
     );
 
-    expect(readGoStringConst(goSource, 'ContentSecurityPolicy')).toBe(CONTENT_SECURITY_POLICY);
+    const nonce = 'parity-nonce';
+    const goPolicy = readGoStringConst(goSource, 'ContentSecurityPolicy').replaceAll(
+      CSP_NONCE_PLACEHOLDER,
+      nonce,
+    );
+    expect(goPolicy).toBe(buildContentSecurityPolicy(nonce));
   });
 
   it('matches the directive order of the Go constant', () => {

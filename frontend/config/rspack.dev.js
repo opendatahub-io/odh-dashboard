@@ -251,7 +251,21 @@ module.exports = merge(
 
         // Shared policy + declared dev delta, Report-Only, documents only. Proxied
         // documents are excluded: they belong to the server being proxied.
-        middlewares.unshift(createDevCspMiddleware(PORT, proxyContexts));
+        middlewares.unshift(
+          createDevCspMiddleware(PORT, proxyContexts, () => {
+            const { outputFileSystem, options } = devServer.compiler;
+            try {
+              return outputFileSystem.readFileSync(
+                path.join(options.output.path, 'index.html'),
+                'utf8',
+              );
+            } catch {
+              // Not compiled yet: fall through without a policy rather than send a header
+              // whose nonce is not in the document.
+              return undefined;
+            }
+          }),
+        );
 
         // onListening fires when the port opens — before the first compile.
         // Log availability only after a successful compilation so early page
