@@ -20,7 +20,7 @@ import {
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const MAX_VISIBLE_BENCHMARK_SUITES = 5;
@@ -42,6 +42,8 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
   onEditCollection,
   onDuplicateCollection,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const heading = 'Recent benchmark collections';
 
   return (

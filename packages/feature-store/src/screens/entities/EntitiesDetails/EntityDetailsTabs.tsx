@@ -1,6 +1,6 @@
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import * as React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import EntityDetailsView from './EntityDetailsView';
 import { Entity } from '../../../types/entities';
 import FeatureViewTab from '../../components/FeatureViewTab';
@@ -16,6 +16,7 @@ type EntityDetailsTabsProps = {
 };
 
 const EntityDetailsTabs: React.FC<EntityDetailsTabsProps> = ({ entity }) => {
+  const trackEvent = useTrackEvent();
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(EntityDetailsTab.DETAILS);
 
   return (
@@ -26,7 +27,7 @@ const EntityDetailsTabs: React.FC<EntityDetailsTabsProps> = ({ entity }) => {
       data-testid="entity-details-page"
       onSelect={(e, tabIndex) => {
         if (tabIndex !== activeTabKey) {
-          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+          trackEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
             tabName: String(tabIndex),
             pageType: 'detail',
             resourceType: RESOURCE_TYPES.ENTITY,

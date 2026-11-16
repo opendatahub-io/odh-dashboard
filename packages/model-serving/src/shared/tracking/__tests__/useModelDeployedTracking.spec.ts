@@ -33,6 +33,27 @@ const createMinimalFormState = (
   } as unknown as WizardFormState);
 
 describe('getBaseModelDeployedTrackingProperties', () => {
+  it.each([
+    'legacy',
+    'llm-inference-service-llmd',
+    'llm-inference-service-simple-vllm',
+    'another-platform-method',
+  ])('should report the selected platform method %s without interpreting it', (method) => {
+    const state = createMinimalFormState();
+    state.deploymentMethod = { method };
+    expect(getBaseModelDeployedTrackingProperties(state).deploymentMethod).toBe(method);
+  });
+  it('should leave deploymentMethod undefined before selection', () => {
+    expect(
+      getBaseModelDeployedTrackingProperties(createMinimalFormState()).deploymentMethod,
+    ).toBeUndefined();
+  });
+
+  it('should omit an empty deployment method from tracking properties', () => {
+    const state = createMinimalFormState();
+    state.deploymentMethod = { method: '' };
+    expect(getBaseModelDeployedTrackingProperties(state).deploymentMethod).toBeUndefined();
+  });
   it('should emit servingRuntimeSource "preinstalled" when platform.opendatahub.io/part-of label is present', () => {
     const formState = createMinimalFormState({
       templateLabels: { 'platform.opendatahub.io/part-of': 'modelcontroller' },

@@ -32,7 +32,7 @@ const toMaaSSubscription = (sub: UserSubscription): MaaSSubscription => ({
 });
 
 /**
- * Read-only subscription overview for the Model Access page.
+ * Read-only subscription overview for the Model access page.
  *
  * Reuses the MaaS governance subscription detail sections (details, groups,
  * models) fed by the maas-api passthrough (`GET /subscriptions/{id}`), so it
@@ -61,7 +61,7 @@ const ModelAccessSubscriptionPage: React.FC = () => {
     <Breadcrumb>
       <BreadcrumbItem>
         <Link to={MODEL_ACCESS_PATH} data-testid="breadcrumb-model-access-link">
-          Model Access
+          Model access
         </Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>{displaySubscriptionName}</BreadcrumbItem>

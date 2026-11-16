@@ -1,9 +1,16 @@
 /** @jest-environment node */
+const fs = require('fs');
+const path = require('path');
+const { rspack } = require('@rspack/core');
 const rspackCommon = require('../rspack.common');
 
 jest.mock('@rspack/core', () => ({
   rspack: {
-    HtmlRspackPlugin: class {},
+    HtmlRspackPlugin: class {
+      constructor(options) {
+        this.options = options;
+      }
+    },
     DefinePlugin: class {},
   },
 }));
@@ -28,4 +35,19 @@ describe('shared asset loaders', () => {
       name: filename,
     });
   });
+});
+
+describe('page icon', () => {
+  it.each(['production', 'development'])(
+    'should emit the Red Hat AI favicon under the public path in %s',
+    (mode) => {
+      const config = rspackCommon({ mode, publicPath: '/maas-portal/' });
+      const html = config.plugins.find((plugin) => plugin instanceof rspack.HtmlRspackPlugin);
+      const favicon = path.resolve(__dirname, '../../src/images/red-hat-ai-favicon.svg');
+      expect(html.options.favicon).toBe(favicon);
+      expect(fs.existsSync(favicon)).toBe(true);
+      // The plugin links the icon as output.publicPath + its file name.
+      expect(config.output.publicPath).toBe('/maas-portal/');
+    },
+  );
 });

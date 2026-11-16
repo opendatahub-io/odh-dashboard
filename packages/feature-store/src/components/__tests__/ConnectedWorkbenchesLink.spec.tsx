@@ -1,10 +1,16 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
+import { TrackingProvider } from '../../__tests__/unit/testUtils/TrackingProvider';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { useFeatureStoreAccessibleProjects } from '../../hooks/useFeatureStoreAccessibleProjects';
 import ConnectedWorkbenchesLink from '../ConnectedWorkbenchesLink';
+
+const trackEvent = jest.fn();
+
+const render = (ui: React.ReactElement) =>
+  rtlRender(<TrackingProvider trackEvent={trackEvent}>{ui}</TrackingProvider>);
 
 jest.mock('@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed');
 jest.mock('@odh-dashboard/internal/concepts/userSSAR/utils', () => ({
@@ -85,6 +91,12 @@ describe('ConnectedWorkbenchesLink', () => {
       await user.click(screen.getByTestId('connected-workbenches-link'));
 
       expect(screen.getByTestId('connected-workbenches-modal')).toBeInTheDocument();
+      expect(trackEvent.mock.calls).toEqual([
+        [
+          'Feature Store Workbench Connection Viewed',
+          { featureStoreProject: 'credit_scoring_local' },
+        ],
+      ]);
     });
 
     it('should close the modal when onClose is called', async () => {
@@ -137,6 +149,7 @@ describe('ConnectedWorkbenchesLink', () => {
       await user.click(screen.getByTestId('connected-workbenches-link'));
 
       expect(screen.queryByTestId('connected-workbenches-modal')).not.toBeInTheDocument();
+      expect(trackEvent).not.toHaveBeenCalled();
     });
   });
 

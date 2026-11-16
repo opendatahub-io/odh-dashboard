@@ -1,22 +1,15 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationStatusModal from '~/app/components/EvaluationStatusModal';
 import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs, LogFetchError } from '~/app/api/k8s';
 import { EvaluationJob } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
-const mockTrackEvalHubEvent = jest.fn();
-
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  createEvalHubTrackingScope: () => ({
-    trackEventOnce: jest.fn(),
-    clear: jest.fn(),
-  }),
-  trackEvalHubEvent: (...args: unknown[]) => mockTrackEvalHubEvent(...args),
-}));
+const { mockTrackEvent, render } = setupTrackingTest();
 
 jest.mock('~/app/api/k8s', () => ({
   ...jest.requireActual('~/app/api/k8s'),
@@ -137,13 +130,15 @@ describe('EvaluationStatusModal tab defaults', () => {
 
     fireEvent.click(screen.getByTestId('events-log-tab'));
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
       expect.objectContaining({ tab: 'events_log' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
       expect.objectContaining({ source: 'status_tab' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -151,16 +146,17 @@ describe('EvaluationStatusModal tab defaults', () => {
     renderModal(mockEvaluationJob({ state: 'running' }));
 
     fireEvent.click(screen.getByTestId('events-log-tab'));
-    mockTrackEvalHubEvent.mockClear();
+    mockTrackEvent.mockClear();
 
     fireEvent.click(screen.getByTestId('events-log-tab'));
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('progress-tab'));
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
       expect.objectContaining({ tab: 'progress' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -174,17 +170,19 @@ describe('EvaluationStatusModal tab defaults', () => {
     renderModal(job, polledJob);
 
     fireEvent.click(screen.getByTestId('progress-view-logs-0'));
-    mockTrackEvalHubEvent.mockClear();
+    mockTrackEvent.mockClear();
 
     fireEvent.click(screen.getByTestId('events-log-tab'));
 
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+    expect(mockTrackEvent).not.toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
       expect.anything(),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
       expect.objectContaining({ source: 'status_tab' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -1081,9 +1079,10 @@ describe('EvaluationStatusModal view benchmark logs', () => {
     fireEvent.click(screen.getByTestId('progress-view-logs-0'));
 
     expect(screen.getByTestId('events-log-tab')).toHaveAttribute('aria-selected', 'true');
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
       expect.objectContaining({ benchmarkIndex: 0, source: 'progress_benchmark' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 });
@@ -1620,9 +1619,10 @@ describe('EvaluationStatusModal reconfigure button', () => {
 
     fireEvent.click(screen.getByTestId('status-modal-view-results-button'));
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_RESULTS_VIEWED,
       expect.objectContaining({ evaluationName: expect.any(String) }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -1662,9 +1662,10 @@ describe('EvaluationStatusModal reconfigure button', () => {
 
     fireEvent.click(screen.getByTestId('status-modal-reconfigure-button'));
     expect(mockOnReconfigure).toHaveBeenCalledWith(job);
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_RECONFIGURE_SELECTED,
       expect.objectContaining({ previousState: 'failed' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 });

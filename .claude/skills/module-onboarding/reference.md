@@ -111,6 +111,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
                       description: 'When true, enables the My Module features.'
 ```
 
+### 6. Runtime defaults — `backend/src/utils/constants.ts` and core BFF
+
+Add `myModule: false` to `blankDashboardCR` (plus the `backend/src/types.ts` type) and `` MyModule bool `json:"myModule"` `` with a `false` default to `distributions/core-bff/bff/internal/models/dashboard_config.go`. `pnpm run validate:flags` checks all copies.
+
 Plus ownership (`OWNERS`, `OWNERS_ALIASES`, `packages/<name>/OWNERS`) and `.github/dependabot.yml` (`/packages/<name>/bff` in the `gomod` directories).
 
 ## Extension Types Reference

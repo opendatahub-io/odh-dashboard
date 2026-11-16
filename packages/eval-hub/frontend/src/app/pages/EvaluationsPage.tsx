@@ -51,7 +51,7 @@ import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
 import type { Collection, EvaluationJob } from '~/app/types';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import EvaluateTab from './EvaluateTab';
 import GalleryTab from './GalleryTab';
@@ -69,6 +69,8 @@ const EVALUATE_DESCRIPTION =
 const RUNS_DESCRIPTION = 'Start and manage evaluation runs for models, agents, and datasets.';
 
 const EvaluationsPage: React.FC = () => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const { namespace } = useParams<{ namespace: string }>();
   const { clusterAdmin } = useUser();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -163,7 +165,7 @@ const EvaluationsPage: React.FC = () => {
         navigate(route, { state: evaluationEvaluateNavigationState });
       }
     },
-    [navigate, namespace, selectedCollectionIsSystem],
+    [trackEvalHubEvent, navigate, namespace, selectedCollectionIsSystem],
   );
 
   const handleEvaluateDuplicateCollection = React.useCallback(
@@ -183,7 +185,7 @@ const EvaluationsPage: React.FC = () => {
         state: evaluationEvaluateNavigationState,
       });
     },
-    [navigate, namespace],
+    [trackEvalHubEvent, navigate, namespace],
   );
 
   const handleEditCollection = React.useCallback(
@@ -203,7 +205,7 @@ const EvaluationsPage: React.FC = () => {
         state: evaluationEvaluateNavigationState,
       });
     },
-    [navigate, namespace],
+    [trackEvalHubEvent, navigate, namespace],
   );
 
   const handleRunSuccess = React.useCallback(async () => {

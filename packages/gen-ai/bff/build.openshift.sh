@@ -50,7 +50,8 @@ echo "--------------------------------"
 oc new-app ${REPO_URL}#${BRANCH} \
   --context-dir=${CONTEXT_DIR} \
   --strategy=docker \
-  --name=genai-bff
+  --name=genai-bff \
+  --labels=app.kubernetes.io/name=gen-ai
 
 # Expose the service
 oc create route edge --service=genai-bff
