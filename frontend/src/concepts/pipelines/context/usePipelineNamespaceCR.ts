@@ -5,7 +5,9 @@ import useFetchState, {
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { DSPipelineKind } from '#~/k8sTypes';
 import { getPipelinesCR, listPipelinesCR } from '#~/api';
-import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
+import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils';
+import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon';
 
 type State = DSPipelineKind | null;
 
@@ -21,19 +23,15 @@ export const isDspaAllReady = ([state, loaded]: FetchState<State> | [State, bool
 
 export const hasServerTimedOut = (
   [state, loaded]: FetchState<State> | [State, boolean],
-  isDspaLoaded: boolean,
+  isDspaReady: boolean,
 ): boolean => {
-  if (!state || !loaded || isDspaLoaded) {
+  if (!state || !loaded || isDspaReady) {
     return false;
   }
 
-  const createTime = state.metadata.creationTimestamp;
-  if (!createTime) {
-    return false;
-  }
+  const readyCondition = state.status?.conditions?.find((condition) => condition.type === 'Ready');
 
-  // If we are here, and 5 mins have past, we are having issues
-  return Date.now() - new Date(createTime).getTime() > SERVER_TIMEOUT;
+  return !!readyCondition && getStatusFromCondition(readyCondition) === StatusType.ERROR;
 };
 
 const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
@@ -73,11 +71,11 @@ const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
   // state1: fetched successfully; whether or not  it is actually there
   // state0: the actual thing that was fetched
   const resourceLoaded = state[1] && !!state[0];
-  const pipelineApiServerReady = isDspaAllReady(state);
+  const isDspaReady = isDspaAllReady(state);
 
   React.useEffect(() => {
-    setIsStarting(resourceLoaded && !pipelineApiServerReady);
-  }, [pipelineApiServerReady, resourceLoaded]);
+    setIsStarting(resourceLoaded && !isDspaReady);
+  }, [isDspaReady, resourceLoaded]);
 
   return state;
 };
