@@ -16,6 +16,7 @@ const productionTargets = {
     environment: {
       DEPLOYMENT_MODE: 'federated',
       PUBLIC_PATH: '/_mf/modelServing/',
+      MODEL_SERVING_EXTENSION_PROFILE: 'deployments',
       COVERAGE: 'false',
     },
   },

@@ -63,7 +63,7 @@ k8s_resource(
 # ── Model Serving (KServe backend) ───────────────────────────────────────────
 
 node_bin = os.environ.get("NVM_BIN", "")
-remote_env = {}
+remote_env = {"MODEL_SERVING_EXTENSION_PROFILE": "deployments"}
 if node_bin:
     remote_env["PATH"] = node_bin + ":" + os.environ.get("PATH", "")
 def shell_quote(value):
