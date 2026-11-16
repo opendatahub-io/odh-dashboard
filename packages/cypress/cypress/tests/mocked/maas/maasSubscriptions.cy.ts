@@ -211,7 +211,11 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findRows().should('have.length', 8);
 
     subscriptionsPage.filterByTypeahead('subscription', 'enterprise');
-    subscriptionsPage.findRows().should('have.length', 1);
+    // The fragment matches the Enterprise subscription's display name and the
+    // Premium subscription's description
+    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.getRow('Premium Team Subscription').should('exist');
+    subscriptionsPage.getRow('Enterprise Multi-Group Llama Access').should('exist');
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
 

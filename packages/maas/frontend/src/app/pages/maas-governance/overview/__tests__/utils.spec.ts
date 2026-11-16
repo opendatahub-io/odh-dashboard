@@ -21,7 +21,9 @@ const group = (name: string, overrides?: Partial<GroupOverviewItem>): GroupOverv
       modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models', tokenRateLimits: [] }],
     },
   ],
-  authPolicies: [{ name: `${name}-policy`, displayName: `${name} Policy`, groups: [name] }],
+  authPolicies: [
+    { name: `${name}-policy`, displayName: `${name} Policy`, groups: [name], modelRefs: [] },
+  ],
   ...overrides,
 });
 
@@ -88,6 +90,33 @@ describe('filterOverviewGroups', () => {
       [OverviewFilterOptions.project]: 'other-ns',
     });
     expect(none).toHaveLength(0);
+  });
+
+  it('should match model and project filters against authorization policy model refs', () => {
+    const policyOnly: GroupOverviewItem = {
+      name: 'policy-only-users',
+      subscriptions: [],
+      authPolicies: [
+        {
+          name: 'policy-only-policy',
+          groups: ['policy-only-users'],
+          modelRefs: [{ name: 'llama-3-70b', namespace: 'llama-ns' }],
+        },
+      ],
+    };
+    const all = [...groups, policyOnly];
+
+    const byModel = filterOverviewGroups(all, {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.modelName]: 'llama',
+    });
+    expect(byModel.map((g) => g.name)).toEqual(['policy-only-users']);
+
+    const byProject = filterOverviewGroups(all, {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.project]: 'llama-ns',
+    });
+    expect(byProject.map((g) => g.name)).toEqual(['policy-only-users']);
   });
 
   it('should return an empty array for empty input', () => {

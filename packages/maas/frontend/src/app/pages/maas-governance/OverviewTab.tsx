@@ -105,7 +105,9 @@ const OverviewTab: React.FC = () => {
     );
   }
 
-  if (rows.length === 0) {
+  // Groups can exist without registered models; only show the model empty state
+  // when there is no group data either, so the view toggle stays reachable.
+  if (rows.length === 0 && groupRows.length === 0) {
     const hasGovernanceResources = subscriptions.length > 0 || policies.length > 0;
     const noModels = modelRefs.length === 0;
     return (

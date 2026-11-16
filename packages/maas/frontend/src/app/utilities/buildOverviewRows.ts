@@ -145,7 +145,10 @@ export const buildOverviewGroups = (
   for (const policy of policies) {
     const policyGroups = groupNames(policy.subjects.groups);
     for (const group of policyGroups ?? []) {
-      entry(group).authPolicies.push(toOverviewPolicy(policy, policyGroups));
+      entry(group).authPolicies.push({
+        ...toOverviewPolicy(policy, policyGroups),
+        modelRefs: policy.modelRefs,
+      });
     }
   }
 

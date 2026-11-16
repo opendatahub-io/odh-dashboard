@@ -168,6 +168,7 @@ describe('buildOverviewGroups', () => {
     expect(groups[0].subscriptions.map((s) => s.name)).toEqual(['premium-team-sub']);
     expect(groups[0].subscriptions[0].modelRefs).toHaveLength(2);
     expect(groups[0].authPolicies.map((p) => p.name)).toEqual(['premium-team-sub-policy']);
+    expect(groups[0].authPolicies[0].modelRefs).toEqual(policies[0].modelRefs);
   });
 
   it('should return an empty array when no groups exist', () => {

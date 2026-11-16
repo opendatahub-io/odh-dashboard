@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SubscriptionsFilterToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsFilterToolbar';
 import { MaaSSubscription } from '~/app/types/subscriptions';
@@ -9,12 +9,12 @@ import {
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 
 type TypeaheadSelectProps = {
-  selectOptions: { value: string; content: string }[];
+  selectOptions: { value: string; content: string; isCreateOption?: boolean }[];
   filterFunction?: (
     filterValue: string,
     options: { value: string; content: string }[],
   ) => unknown[];
-  isCreatable?: boolean;
+  onInputChange?: (newValue: string) => void;
 };
 
 let typeaheadProps: TypeaheadSelectProps;
@@ -102,10 +102,6 @@ describe('SubscriptionsFilterToolbar', () => {
       model: undefined,
     });
 
-    // A committed fragment has no matching option value; the field must stay creatable
-    // so the "Filter by" option can commit it
-    expect(typeaheadProps.isCreatable).toBe(true);
-
     // Fragment matching filters options by label or resource name, case-insensitively
     const filterFunction = typeaheadProps.filterFunction!;
     expect(filterFunction).toBeDefined();
@@ -114,5 +110,21 @@ describe('SubscriptionsFilterToolbar', () => {
       content: string;
     }[];
     expect(results.map((option) => option.value)).toContain('granite-8b');
+
+    // Typing offers a "Filter by" fragment option even when the text exactly
+    // matches an existing option, so exact-match queries stay committable as
+    // partial-text fragments
+    act(() => {
+      typeaheadProps.onInputChange!('granite-8b');
+    });
+    const withFragment = filterFunction('granite-8b', typeaheadProps.selectOptions) as {
+      value: string;
+      content: string;
+      isCreateOption?: boolean;
+    }[];
+    expect(withFragment).toHaveLength(2);
+    expect(withFragment[1]).toEqual(
+      expect.objectContaining({ content: 'Filter by "granite-8b"', isCreateOption: true }),
+    );
   });
 });

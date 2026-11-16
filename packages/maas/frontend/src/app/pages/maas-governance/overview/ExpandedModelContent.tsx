@@ -3,7 +3,11 @@ import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/rea
 import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
+import {
+  ModelOverviewSubscription,
+  ModelOverviewPolicy,
+  ModelSubscriptionRef,
+} from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { useGovernanceResourceAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
@@ -215,7 +219,7 @@ const SectionEmptyState: React.FC<EmptyStateProps> = ({ title, subtitle }) => (
 );
 
 type SubscriptionsSectionProps = {
-  subscriptions: ModelOverviewSubscription[];
+  subscriptions: Array<ModelOverviewSubscription & { modelRefs?: ModelSubscriptionRef[] }>;
   expandedSubs: Set<string>;
   onToggleSub: (name: string) => void;
   onToggleAll: () => void;
@@ -294,7 +298,14 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
             >
               <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
                 <strong className="pf-v6-u-mr-md">Token limits</strong>
-                {formatTokenLimits(sub.tokenRateLimits ?? [])}
+                {sub.modelRefs
+                  ? // Group rows carry per-model limits on their model refs
+                    sub.modelRefs.map((ref) => (
+                      <span key={ref.name} className="pf-v6-u-mr-md">
+                        {ref.displayName ?? ref.name}: {formatTokenLimits(ref.tokenRateLimits)}
+                      </span>
+                    ))
+                  : formatTokenLimits(sub.tokenRateLimits ?? [])}
               </Content>
               <GroupChips
                 groups={sub.groups ?? []}
@@ -403,7 +414,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
 };
 
 type ExpandedModelContentProps = {
-  subscriptions: ModelOverviewSubscription[];
+  subscriptions: Array<ModelOverviewSubscription & { modelRefs?: ModelSubscriptionRef[] }>;
   policies: ModelOverviewPolicy[];
   returnTo: string;
 };

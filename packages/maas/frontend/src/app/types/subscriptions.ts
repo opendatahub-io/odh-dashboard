@@ -238,8 +238,13 @@ export type GroupOverviewSubscription = ModelOverviewSubscription & {
   modelRefs: ModelSubscriptionRef[];
 };
 
+/** Authorization policy as shown in a group row; carries model refs for model/project filtering. */
+export type GroupOverviewPolicy = ModelOverviewPolicy & {
+  modelRefs: ModelRef[];
+};
+
 export type GroupOverviewItem = {
   name: string;
   subscriptions: GroupOverviewSubscription[];
-  authPolicies: ModelOverviewPolicy[];
+  authPolicies: GroupOverviewPolicy[];
 };

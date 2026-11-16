@@ -26,7 +26,7 @@ const mockGroup = (name: string): GroupOverviewItem => ({
       modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models', tokenRateLimits: [] }],
     },
   ],
-  authPolicies: [{ name: `${name}-policy` }],
+  authPolicies: [{ name: `${name}-policy`, modelRefs: [] }],
 });
 
 describe('GroupsTable', () => {

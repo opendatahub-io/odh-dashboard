@@ -123,22 +123,26 @@ const groupMatchesAuthPolicyName = (row: GroupOverviewItem, filter: FilterSelect
         textIncludes(policy.displayName, filter.fragment),
   );
 
+/** Model refs referenced by a group through both subscriptions and authorization policies. */
+const groupModelRefs = (
+  row: GroupOverviewItem,
+): Array<{ name: string; namespace: string; displayName?: string }> => [
+  ...row.subscriptions.flatMap((sub) => sub.modelRefs),
+  ...row.authPolicies.flatMap((policy) => policy.modelRefs),
+];
+
 const groupMatchesModelName = (row: GroupOverviewItem, filter: FilterSelection): boolean =>
-  row.subscriptions.some((sub) =>
-    sub.modelRefs.some((ref) =>
-      filter.exact
-        ? textEquals(ref.name, filter.exact)
-        : textIncludes(ref.name, filter.fragment) || textIncludes(ref.displayName, filter.fragment),
-    ),
+  groupModelRefs(row).some((ref) =>
+    filter.exact
+      ? textEquals(ref.name, filter.exact)
+      : textIncludes(ref.name, filter.fragment) || textIncludes(ref.displayName, filter.fragment),
   );
 
 const groupMatchesProject = (row: GroupOverviewItem, filter: FilterSelection): boolean =>
-  row.subscriptions.some((sub) =>
-    sub.modelRefs.some((ref) =>
-      filter.exact
-        ? textEquals(ref.namespace, filter.exact)
-        : textIncludes(ref.namespace, filter.fragment),
-    ),
+  groupModelRefs(row).some((ref) =>
+    filter.exact
+      ? textEquals(ref.namespace, filter.exact)
+      : textIncludes(ref.namespace, filter.fragment),
   );
 
 export const filterOverviewGroups = (

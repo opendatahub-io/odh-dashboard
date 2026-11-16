@@ -89,7 +89,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
         [SubscriptionsFilterOptions.model]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={modelOptions}
-            placeholder="Filter by model name, ID, or description"
+            placeholder="Filter by model name or ID"
             testId={`${testIdPrefix}-model-filter-toggle`}
             onChange={onChange}
             value={value}

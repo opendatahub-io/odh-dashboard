@@ -368,10 +368,10 @@ describe('ModelAccessPage', () => {
 
     await user.clear(input);
     await user.type(input, 'xabx');
-    // An exact match with an existing option hides the create option; selecting the
-    // option filters by its resource name instead.
-    expect(screen.queryByRole('option', { name: 'Filter by "xabx"' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('option', { name: 'xabx' }));
+    // The fragment option stays available even when the text exactly matches an
+    // existing option, so the query can still commit as a text filter
+    expect(screen.getByRole('option', { name: 'Filter by "xabx"' })).toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: 'Filter by "xabx"' }));
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'xabx' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
