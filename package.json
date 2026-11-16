@@ -82,7 +82,7 @@
     "test:cypress:e2e": "concurrently -P -k -s first --hide 0 \"pnpm cypress:server:e2e\" \"pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true pnpm --filter odh-dashboard-frontend cypress:run:chrome {@}\" --",
     "start:dev": "run-p -l dev:backend dev:frontend",
     "start:dev:ext": "turbo run start:dev:ext",
-    "test:lockfile-sync": "node --test scripts/__tests__/check-lockfile-sync.test.js"
+    "test:lockfile-sync": "node --test scripts/__tests__/check-lockfile-sync.test.js && node scripts/check-lockfile-sync.js"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.12.3",

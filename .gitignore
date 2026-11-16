@@ -106,3 +106,4 @@ vendor/
 # AgentReady reports
 .agentready/
 assessment-output.txt
+.rspack-profile-*
