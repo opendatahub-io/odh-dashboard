@@ -115,14 +115,10 @@ overrides:
   'brace-expansion@^2': '2.1.4'
   'brace-expansion@^5': '5.0.9'
 
-# monaco-editor 0.56 introduced a package `exports` map that mangles deep
-# subpath imports ("monaco-editor/esm/vs/..." resolves to a doubled path),
-# breaking the monaco-yaml 5.x dependency chain: monaco-types' type
-# re-exports and monaco-worker-manager's runtime editor-worker import both
-# use those deep paths. The patches rewrite the two imports to the
-# exports-compatible subpaths. Drop both when monaco-types and
-# monaco-worker-manager publish releases compatible with monaco-editor's
-# exports map (both are at their latest published versions as of 2026-11).
+# monaco-editor 0.56's exports map breaks the deep imports that
+# monaco-types and monaco-worker-manager (via monaco-yaml) rely on.
+# The patches rewrite those imports to exports-compatible paths.
+# Drop both once upstream supports monaco-editor 0.56.
 patchedDependencies:
   monaco-types@0.1.2: patches/monaco-types@0.1.2.patch
   monaco-worker-manager@2.0.1: patches/monaco-worker-manager@2.0.1.patch
