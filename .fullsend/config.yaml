@@ -131,6 +131,9 @@ create_issues:
         repos:
             - opendatahub-io/odh-dashboard
             - fullsend-ai/fullsend
+# Shared Fullsend inference project (same one opendatahub-io/notebooks uses).
+# The workflows read the matching FULLSEND_GCP_PROJECT_ID and
+# FULLSEND_GCP_WIF_PROVIDER secrets; keep them in step with this block.
 inference:
-    project: ambient-code-platform
-    wif_provider: projects/888214980327/locations/global/workloadIdentityPools/fullsend-inference/providers/gh-opendatahub-io-odh-dashboard
+    project: it-gcp-adlc-user-rhai
+    wif_provider: projects/950291184545/locations/global/workloadIdentityPools/fullsend-inference/providers/gh-opendatahub-io-odh-dashboard
