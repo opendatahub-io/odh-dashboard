@@ -55,7 +55,7 @@ import {
 } from '~/app/components/benchmarkUtils';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
-import { createEvalHubTrackingScope, trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import type {
   BenchmarkCollectionFilterType,
   EvalHubCollectionSurface,
@@ -313,6 +313,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   onDuplicateCollection,
   onSelectCollection,
 }) => {
+  const { createEvalHubTrackingScope, trackEvalHubEvent } = useEvalHubTracking();
+
   const [nameFilter, setNameFilter] = React.useState('');
   const [domainFilter, setDomainFilter] = React.useState<string[]>([]);
   const [evaluatesFilter, setEvaluatesFilter] = React.useState<string[]>([]);
@@ -354,7 +356,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
         { collectionType: scope === 'system' ? 'system' : 'custom' },
       );
     },
-    [scope, trackingSurface],
+    [trackEvalHubEvent, scope, trackingSurface],
   );
 
   const handleToggleCollectionFilter = React.useCallback(
@@ -863,7 +865,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       notification.error('Unable to delete collection', message);
       setCollectionToDelete(null);
     }
-  }, [collectionToDelete, deleteCollection, notification]);
+  }, [trackEvalHubEvent, collectionToDelete, deleteCollection, notification]);
 
   const handleDeleteClose = React.useCallback(() => {
     resetDeleteMutation();

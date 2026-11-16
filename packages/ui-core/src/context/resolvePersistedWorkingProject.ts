@@ -1,4 +1,4 @@
-import { resolveWorkingProject } from '@odh-dashboard/foundation';
+import { resolveWorkingProject, WorkingProjectListStatusValue } from '@odh-dashboard/foundation';
 import type {
   ResolveWorkingProjectInput,
   WorkingProjectIdentity,
@@ -41,6 +41,9 @@ export const persistResolvedWorkingProject = <T extends WorkingProjectIdentity>(
   }
 
   const providerKnownProjects =
-    list.status === 'listed' || list.status === 'listing-unavailable' ? list.projects : [];
+    list.status === WorkingProjectListStatusValue.Listed ||
+    list.status === WorkingProjectListStatusValue.ListingUnavailable
+      ? list.projects
+      : [];
   return persistWorkingProject(storage, result.activeProject, providerKnownProjects);
 };

@@ -24,3 +24,4 @@ For any other `result_fields` names, return a JSON object containing only those 
 - Do not add keys.
 - Risk `why` names the binding blast-radius dimensions for this head. It is not finding severity, not raw size alone, and not a glossary of the levels.
 - Confidence `why` names the binding concern among intent, verified evidence, and the completeness ceiling, after the formula in the producer skill.
+- Do not make a committed test's execution status a confidence concern. Judge a test in the diff by reading whether it exercises the changed scenario; required CI and the merge gate own execution, and an unrun test is not an "author-reported" evidence gap.

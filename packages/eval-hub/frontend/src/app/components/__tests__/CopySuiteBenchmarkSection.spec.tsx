@@ -1,8 +1,11 @@
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import CopySuiteBenchmarkSection from '~/app/components/CopySuiteBenchmarkSection';
 import type { CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
 import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
+
+const { render } = setupTrackingTest();
 
 jest.mock('~/app/components/BenchmarkThresholdField', () => ({
   __esModule: true,

@@ -55,6 +55,7 @@ aliases:
     - DaoDaoNoCode
     - srtanish1992
     - nananosirova
+    - danreed-rh
   hardware-profiles-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -67,6 +68,7 @@ aliases:
     - mturley
     - YuliaKrimerman
     - ppadti
+    - danreed-rh
   model-registry-catalog-reviewers:
     - manaswinidas
     - mturley
@@ -109,6 +111,7 @@ aliases:
     - Gkrumbach07
     - DaoDaoNoCode
     - srtanish1992
+    - danreed-rh
   pipelines-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -201,7 +204,7 @@ aliases:
     - paulovmr
     - thaorell
     - jesuino
-    - bobbravo2 
+    - bobbravo2
   notebooks-reviewers:
     - andyatmiami
     - ederign
@@ -315,12 +318,31 @@ aliases:
     - GAUNSD
     - MatthewAThompson
 
+  # AI Safety
+  ai-safety-approvers:
+    - chrjones-rh
+    - GAUNSD
+    - NickGagan
+    - nickmazzi
+    - tamdavid-git
+  ai-safety-reviewers:
+    - chrjones-rh
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - jkyaw
+    - MatthewAThompson
+    - NickGagan
+    - nickmazzi
+    - tamdavid-git
+
   # MLflow
   mlflow-approvers:
     - caponetto
     - DaoDaoNoCode
     - Gkrumbach07
     - nananosirova
+    - danreed-rh
   mlflow-reviewers:
     - caponetto
     - DaoDaoNoCode

@@ -14,9 +14,6 @@ jest.mock('@odh-dashboard/internal/services/templateService', () => ({
 jest.mock('@odh-dashboard/internal/services/dashboardService', () => ({
   patchDashboardConfigTemplateDisablementBackend: jest.fn(),
 }));
-jest.mock('../tracking/servingRuntimeTemplateTracking', () => ({
-  fireServingRuntimeTemplateDeleted: jest.fn(),
-}));
 
 const mockDelete = jest.mocked(deleteTemplateBackend);
 const mockPatchDisablement = jest.mocked(patchDashboardConfigTemplateDisablementBackend);
@@ -28,7 +25,7 @@ const renderModal = (disabled = false) => {
     displayName: 'My Runtime',
   });
   const onClose = jest.fn();
-  const { wrapper } = createTestProviders({ dashboardNamespace: 'custom-dashboard' });
+  const { wrapper, tracking } = createTestProviders({ dashboardNamespace: 'custom-dashboard' });
   const context = {
     refreshData: jest.fn(),
     servingRuntimeTemplates: [[template], true, undefined],
@@ -46,7 +43,7 @@ const renderModal = (disabled = false) => {
     </CustomServingRuntimeContext.Provider>,
     { wrapper },
   );
-  return { onClose, template };
+  return { onClose, template, tracking };
 };
 
 const confirmDeletion = () => {
@@ -76,21 +73,27 @@ describe('DeleteCustomServingRuntimeModal', () => {
   });
 
   it('should cancel without changing the template or dashboard configuration', () => {
-    const { onClose } = renderModal();
+    const { onClose, tracking } = renderModal();
     fireEvent.click(screen.getByTestId('cancel-button'));
 
     expect(onClose).toHaveBeenCalledWith(false);
+    expect(tracking.trackEvent.mock.calls).toEqual([
+      ['Model Serving Serving Runtime Template Deleted', { outcome: 'cancel' }],
+    ]);
     expect(mockDelete).not.toHaveBeenCalled();
     expect(mockPatchDisablement).not.toHaveBeenCalled();
   });
 
   it('should use the host namespace for settings and the template namespace for deletion', async () => {
-    const { onClose, template } = renderModal(true);
+    const { onClose, template, tracking } = renderModal(true);
     mockDelete.mockResolvedValue(template);
 
     confirmDeletion();
 
     await waitFor(() => expect(onClose).toHaveBeenCalledWith(true));
+    expect(tracking.trackEvent.mock.calls).toEqual([
+      ['Model Serving Serving Runtime Template Deleted', { outcome: 'submit', success: true }],
+    ]);
     expect(mockPatchDisablement).toHaveBeenCalledWith([], 'custom-dashboard');
     expect(mockDelete).toHaveBeenCalledWith('my-runtime', 'runtime-namespace');
   });
@@ -117,7 +120,7 @@ describe('DeleteCustomServingRuntimeModal', () => {
 
   it('should display an inline error and permit retry after a failed deletion', async () => {
     mockDelete.mockRejectedValueOnce(new Error('Delete denied'));
-    const { onClose, template } = renderModal();
+    const { onClose, template, tracking } = renderModal();
     mockDelete.mockResolvedValueOnce(template);
 
     confirmDeletion();
@@ -127,6 +130,9 @@ describe('DeleteCustomServingRuntimeModal', () => {
     );
     expect(screen.getByTestId('delete-button')).toBeEnabled();
     expect(onClose).not.toHaveBeenCalled();
+    expect(tracking.trackEvent.mock.calls).toEqual([
+      ['Model Serving Serving Runtime Template Deleted', { outcome: 'submit', success: false }],
+    ]);
 
     fireEvent.click(screen.getByTestId('delete-button'));
     await waitFor(() => expect(onClose).toHaveBeenCalledWith(true));

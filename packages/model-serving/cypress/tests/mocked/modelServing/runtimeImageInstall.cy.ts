@@ -14,7 +14,7 @@ import {
   asProjectEditUser,
 } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import { runtimeImageInstallPage } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/runtimeImageInstall';
-import { llmAcceleratorConfigurations } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/llmAcceleratorConfigurations';
+import { llmInferenceServiceConfigurations } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/llmInferenceServiceConfigurations';
 import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
 
 const acceleratorConfigModel = {
@@ -151,7 +151,7 @@ describe('Runtime image Install extension navigation', () => {
     runtimeImageInstallPage.findServingRuntimeRadio().should('exist');
   });
 
-  it('should create a prefilled LLM accelerator config and redirect to its list', () => {
+  it('should create a prefilled LLM inference service config and redirect to its list', () => {
     asProductAdminUser();
     initialize();
     const createdConfig = mockLLMInferenceServiceConfigK8sResource({
@@ -180,13 +180,13 @@ describe('Runtime image Install extension navigation', () => {
       .findSingleTargetAlert()
       .should(
         'contain.text',
-        'This runtime image only supports the LLM accelerator configuration install target.',
+        'This runtime image only supports the LLM inference service configuration install target.',
       );
     runtimeImageInstallPage.findNext().click();
-    llmAcceleratorConfigurations.findNameInput().should('have.value', 'vLLM 0.6.0');
-    llmAcceleratorConfigurations.findVersionInput().should('have.value', '0.6.0');
+    llmInferenceServiceConfigurations.findNameInput().should('have.value', 'vLLM 0.6.0');
+    llmInferenceServiceConfigurations.findVersionInput().should('have.value', '0.6.0');
     cy.testA11y();
-    llmAcceleratorConfigurations.findSubmitButton().should('be.enabled').click();
+    llmInferenceServiceConfigurations.findSubmitButton().should('be.enabled').click();
     cy.wait('@createAcceleratorConfig').then(({ request }) => {
       expect(request.body.apiVersion).to.equal('serving.kserve.io/v1alpha2');
       expect(request.body.kind).to.equal('LLMInferenceServiceConfig');
@@ -211,8 +211,8 @@ describe('Runtime image Install extension navigation', () => {
         image: 'quay.io/example/vllm:0.6.0',
       });
     });
-    cy.url().should('include', '/llm-accelerator-configurations');
-    llmAcceleratorConfigurations.getRowByName('vllm-0-6-0').find().should('exist');
+    cy.url().should('include', '/llm-inference-service-configurations');
+    llmInferenceServiceConfigurations.getRowByName('vllm-0-6-0').find().should('exist');
   });
 
   it('should install a prefilled Serving runtime template and redirect to its list', () => {

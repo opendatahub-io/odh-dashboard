@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -72,6 +73,7 @@ type ConnectionDetailsContentProps = {
 };
 
 const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ namespace }) => {
+  const trackEvent = useTrackEvent();
   const { connectionId = '' } = useParams<'connectionId'>();
   const { search } = useLocation();
   const { isAllowed: canVerifyConnection, loaded: verifyAccessLoaded } = useConnectionAccess(
@@ -249,7 +251,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                     return;
                   }
                   setActionsOpen(false);
-                  fireDataConnectHubTrackEvent({
+                  fireDataConnectHubTrackEvent(trackEvent, {
                     eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
                     properties: {
                       project: namespace,

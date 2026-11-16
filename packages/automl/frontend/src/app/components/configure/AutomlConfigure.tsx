@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   isConnectionType,
   isConnectionTypeDataField,
@@ -131,6 +132,7 @@ function AutomlConfigure({
   onRecommendationChange,
   onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const automlConnectionTypes = React.useMemo(
@@ -345,12 +347,15 @@ function AutomlConfigure({
   const hasFiredTrainingDataMilestoneRef = useRef(false);
   const hasFiredTargetColumnMilestoneRef = useRef(false);
 
-  const fireTrainingDataMilestoneOnce = useCallback((mode: 'select' | 'upload') => {
-    if (!hasFiredTrainingDataMilestoneRef.current) {
-      hasFiredTrainingDataMilestoneRef.current = true;
-      fireAutomlTrainingDataConfigured(mode);
-    }
-  }, []);
+  const fireTrainingDataMilestoneOnce = useCallback(
+    (mode: 'select' | 'upload') => {
+      if (!hasFiredTrainingDataMilestoneRef.current) {
+        hasFiredTrainingDataMilestoneRef.current = true;
+        fireAutomlTrainingDataConfigured(trackEvent, mode);
+      }
+    },
+    [trackEvent],
+  );
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
@@ -933,7 +938,7 @@ function AutomlConfigure({
                                     // only ever runs in response to one.
                                     if (!hasFiredTargetColumnMilestoneRef.current) {
                                       hasFiredTargetColumnMilestoneRef.current = true;
-                                      fireAutomlTargetColumnConfigured();
+                                      fireAutomlTargetColumnConfigured(trackEvent);
                                     }
                                     // Surface configure-step progress to the page so exit tracking
                                     // (cancel/abandon/breadcrumb) reports how far the user actually
@@ -1236,7 +1241,7 @@ function AutomlConfigure({
             }
           }}
           onOutcome={(outcome) =>
-            fireAutomlS3ConnectionCreated({
+            fireAutomlS3ConnectionCreated(trackEvent, {
               outcome:
                 outcome.outcome === 'submit' ? TrackingOutcome.submit : TrackingOutcome.cancel,
               ...(outcome.success === false && { error: 'actionFailed' }),

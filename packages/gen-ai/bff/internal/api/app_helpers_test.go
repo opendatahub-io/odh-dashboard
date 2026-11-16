@@ -51,7 +51,9 @@ func NewK8sLSTestApp() App {
 	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
 	Expect(err).NotTo(HaveOccurred())
 	return App{
-		config:                  config.EnvConfig{Port: 4000},
+		// Loopback endpoints are trusted so verify-handler tests can use local
+		// httptest servers as model endpoints.
+		config:                  config.EnvConfig{Port: 4000, AllowLocalModelEndpoints: true},
 		logger:                  slog.Default(),
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: lsmocks.NewMockClientFactory(),

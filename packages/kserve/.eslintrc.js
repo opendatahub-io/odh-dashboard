@@ -1,1 +1,7 @@
-module.exports = require('@odh-dashboard/eslint-config').recommendedReactTypescript(__dirname);
+const { recommendedReactTypescript, featureAnalytics } = require('@odh-dashboard/eslint-config');
+
+const config = recommendedReactTypescript(__dirname);
+module.exports = {
+  ...config,
+  overrides: [...(config.overrides || []), { files: ['src/**/*.{ts,tsx}'], ...featureAnalytics }],
+};

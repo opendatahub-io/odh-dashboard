@@ -167,6 +167,8 @@ module.exports = merge(
             COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
             path.resolve(ROOT_NODE_MODULES, '@patternfly'),
+            // pnpm may nest monaco under .pnpm/; match by package name
+            /[\\/]monaco-editor[\\/]/,
           ],
           use: ['style-loader', 'css-loader'],
         },

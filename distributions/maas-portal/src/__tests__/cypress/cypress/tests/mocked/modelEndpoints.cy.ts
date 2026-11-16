@@ -37,6 +37,14 @@ describe('Grid Model endpoints', () => {
     maasModelsPage.findTable().should('contain.text', 'Llama 3');
   });
 
+  it('redirects /maas to Model endpoints', () => {
+    cy.intercept('GET', modelsPath, { data: [model()] }).as('models');
+    portal.visit('/maas');
+    cy.wait('@models');
+    cy.location('pathname').should('eq', portalPath('/maas/models'));
+    maasModelsPage.findTitle().should('have.text', 'Model endpoints');
+  });
+
   it('shows row values and opens a subscription from the endpoint details modal', () => {
     const modelId = 'publishers/models-as-a-service/models/granite-3-8b-instruct';
     const baseUrl = 'https://inference.example.test';
@@ -105,7 +113,7 @@ describe('Grid Model endpoints', () => {
     cy.intercept('GET', modelsPath, { statusCode: 503, body: {} }).as('modelsError');
     portal.visit('/maas/models');
     cy.wait('@modelsError');
-    maasModelsPage.findError().should('contain.text', 'Unable to load MaaS models');
+    maasModelsPage.findError().should('contain.text', 'Unable to load page');
     cy.intercept('GET', modelsPath, { data: [model()] }).as('modelsRetry');
     maasModelsPage.findRetry().click();
     cy.wait('@modelsRetry');

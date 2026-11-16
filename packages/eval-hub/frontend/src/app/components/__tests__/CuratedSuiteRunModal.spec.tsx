@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { act, render } from '@testing-library/react';
+import { act } from '@testing-library/react';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { cloneCollection } from '~/app/api/k8s';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { useDeleteCollectionMutation } from '~/app/hooks/collections';
@@ -8,6 +9,8 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { findReusableCollectionCopy } from '~/app/utils/collectionReuse';
 import type { Collection, CollectionResolution } from '~/app/types';
 import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
+
+const { render } = setupTrackingTest();
 
 const mockStartEvaluationRunModal = jest.fn();
 const mockCloneCollection = jest.mocked(cloneCollection);

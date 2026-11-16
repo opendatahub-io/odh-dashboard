@@ -4,14 +4,19 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ImportCollectionModal from '~/app/components/ImportCollectionModal';
 import { mockCollection } from '~/__mocks__/mockCollection';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { IMPORT_COLLECTION_TEMPLATE } from '~/app/utils/collectionImport';
 
 const mockMutate = jest.fn();
 
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
+const mockTrackEvalHubEvent = jest.fn();
+
+jest.mock('~/app/tracking/useEvalHubTracking', () => ({
+  useEvalHubTracking: () => ({
+    trackEvalHubEvent: mockTrackEvalHubEvent,
+    trackEvalHubEventOnce: jest.fn(),
+    createEvalHubTrackingScope: jest.fn(),
+  }),
 }));
 
 jest.mock('~/app/hooks/useDarkMode', () => ({
@@ -57,8 +62,6 @@ jest.mock('~/app/hooks/collections', () => ({
     mutate: (...args: unknown[]) => mockMutate(...args),
   }),
 }));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const renderModal = (isOpen = true) =>
   render(

@@ -10,7 +10,7 @@ import {
 } from '~/app/routes';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import type { Collection } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 type GalleryTabProps = {
@@ -26,6 +26,8 @@ const GalleryTab: React.FC<GalleryTabProps> = ({
   onSelectCollection,
   onRunSuccess,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const navigate = useNavigate();
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
 
@@ -35,19 +37,22 @@ const GalleryTab: React.FC<GalleryTabProps> = ({
     });
   }, [navigate, namespace]);
 
-  const trackCustomizeCollection = React.useCallback((collection: Collection) => {
-    trackEvalHubEvent(
-      EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
-      {
-        collectionName: collection.name,
-        surface: 'curated_gallery',
-      },
-      {
-        collectionType: collection.resource.read_only ? 'system' : 'custom',
-        providerType: collection.benchmarks?.[0]?.provider_id,
-      },
-    );
-  }, []);
+  const trackCustomizeCollection = React.useCallback(
+    (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+        {
+          collectionName: collection.name,
+          surface: 'curated_gallery',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
+    },
+    [trackEvalHubEvent],
+  );
 
   const handleCustomizeCollection = React.useCallback(
     (collection: Collection) => {

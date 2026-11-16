@@ -1,6 +1,6 @@
 import React from 'react';
 import { jest } from '@jest/globals';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import * as ReactRouterDom from 'react-router-dom';
@@ -12,7 +12,7 @@ import { useConnection } from '~/app/hooks/useConnection';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
-import * as trackingUtilities from '~/app/utilities/tracking';
+import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import * as snippets from '~/app/utilities/dchSnippets';
 import type { Connection } from '~/app/types';
 
@@ -31,14 +31,6 @@ jest.mock('@patternfly/react-code-editor', () => ({
       {code}
     </pre>
   ),
-}));
-jest.mock('~/app/utilities/tracking', () => ({
-  DATA_CONNECT_HUB_EVENT_NAMES: {
-    deleteInitiated: 'Connections Connection Delete Initiated',
-  },
-  getConnectionTypeProvider: (connectionType?: { resource: { provider: string } }) =>
-    connectionType?.resource.provider,
-  fireDataConnectHubTrackEvent: jest.fn(),
 }));
 jest.mock('~/app/api/dch', () => ({
   deleteConnection: jest.fn(),
@@ -76,7 +68,11 @@ const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
-const mockTrackEvent = jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent);
+const mockTrackEvent = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={mockTrackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: TrackingWrapper });
 const refresh = jest.fn(() => Promise.resolve(undefined));
 
 const connection: Connection = {
@@ -406,9 +402,9 @@ describe('ConnectionDetails', () => {
       ),
     ).toBeNull();
     await user.click(deleteItem);
-    expect(mockTrackEvent).toHaveBeenCalledWith({
-      eventName: 'Connections Connection Delete Initiated',
-      properties: { project: 'test-project', connectionTypeProvider: 'postgresql' },
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Connection Delete Initiated', {
+      project: 'test-project',
+      connectionTypeProvider: 'postgresql',
     });
     await user.click(screen.getByTestId('delete-confirm'));
 
@@ -614,7 +610,10 @@ describe('ConnectionDetails', () => {
       const ActualConnectionDetails = jest.requireActual<{
         default: React.ComponentType;
       }>('~/app/pages/ConnectionDetails').default;
-      render(
+      const ActualTrackingProvider = jest.requireActual<
+        typeof import('~/__tests__/unit/testUtils/TrackingProvider')
+      >('~/__tests__/unit/testUtils/TrackingProvider').default;
+      rtlRender(
         <MemoryRouter
           initialEntries={[
             '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440009?project=test-project',
@@ -627,6 +626,11 @@ describe('ConnectionDetails', () => {
             />
           </Routes>
         </MemoryRouter>,
+        {
+          wrapper: ({ children }) => (
+            <ActualTrackingProvider trackEvent={mockTrackEvent}>{children}</ActualTrackingProvider>
+          ),
+        },
       );
     });
 
@@ -696,7 +700,10 @@ describe('ConnectionDetails', () => {
 
     const ActualConnectionDetails = require('~/app/pages/ConnectionDetails')
       .default as React.ComponentType;
-    const renderResult = render(
+    const ActualTrackingProvider = jest.requireActual<
+      typeof import('~/__tests__/unit/testUtils/TrackingProvider')
+    >('~/__tests__/unit/testUtils/TrackingProvider').default;
+    const renderResult = rtlRender(
       <MemoryRouter
         initialEntries={[
           '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440001?project=test-project',
@@ -709,6 +716,11 @@ describe('ConnectionDetails', () => {
           />
         </Routes>
       </MemoryRouter>,
+      {
+        wrapper: ({ children }) => (
+          <ActualTrackingProvider trackEvent={mockTrackEvent}>{children}</ActualTrackingProvider>
+        ),
+      },
     );
 
     await user.click(await screen.findByTestId('connection-verify-button'));

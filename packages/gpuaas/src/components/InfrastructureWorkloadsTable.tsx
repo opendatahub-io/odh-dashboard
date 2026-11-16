@@ -23,7 +23,7 @@ import { useNotebookStatus } from '@odh-dashboard/internal/utilities/notebookCon
 import { EventStatus } from '@odh-dashboard/internal/types';
 import { startNotebook, stopNotebook } from '@odh-dashboard/internal/api';
 import { fireWorkbenchStatusModalAction } from '@odh-dashboard/internal/concepts/kueue/workbenchTracking';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { isRayJob, isTrainJob } from '@odh-dashboard/model-training/types';
 import InfrastructureWorkloadsToolbar from './InfrastructureWorkloadsToolbar';
 import { HardwareProfileCell, StatusCell } from './InfrastructureWorkloadComponents';
@@ -208,6 +208,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   overviewStatusFilters,
   onOverviewStatusFiltersChange,
 }) => {
+  const trackEvent = useTrackEvent();
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [searchValue, setSearchValue] = React.useState('');
   const searchTrackingTimeoutRef = React.useRef<number>();
@@ -334,29 +335,32 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
       (count, values) => count + values.length,
       0,
     );
-    fireMiscTrackingEvent(
+    trackEvent(
       GPUAAS_EVENTS.WORKLOADS_TAB_FILTERS_CLEARED,
       getWorkloadsFilterClearTrackingProperties(filterCount, 0),
     );
     setSearchValue('');
     setFilterValues({ type: [], hardwareProfile: [] });
     onOverviewStatusFiltersChange([]);
-  }, [onOverviewStatusFiltersChange, selectedFilterValues]);
+  }, [onOverviewStatusFiltersChange, selectedFilterValues, trackEvent]);
 
   React.useEffect(() => () => window.clearTimeout(searchTrackingTimeoutRef.current), []);
 
-  const handleSearchChange = React.useCallback((value: string) => {
-    setSearchValue(value);
-    window.clearTimeout(searchTrackingTimeoutRef.current);
-    if (shouldTrackWorkloadsSearch(value)) {
-      searchTrackingTimeoutRef.current = window.setTimeout(() => {
-        fireMiscTrackingEvent(
-          GPUAAS_EVENTS.WORKLOADS_TAB_WORKLOAD_SEARCH_USED,
-          getWorkloadsSearchTrackingProperties(value),
-        );
-      }, 500);
-    }
-  }, []);
+  const handleSearchChange = React.useCallback(
+    (value: string) => {
+      setSearchValue(value);
+      window.clearTimeout(searchTrackingTimeoutRef.current);
+      if (shouldTrackWorkloadsSearch(value)) {
+        searchTrackingTimeoutRef.current = window.setTimeout(() => {
+          trackEvent(
+            GPUAAS_EVENTS.WORKLOADS_TAB_WORKLOAD_SEARCH_USED,
+            getWorkloadsSearchTrackingProperties(value),
+          );
+        }, 500);
+      }
+    },
+    [trackEvent],
+  );
 
   const clearFilterChip = React.useCallback(
     (type: InfrastructureWorkloadsFilterType, value: string) => {
@@ -364,7 +368,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
         (count, values) => count + values.length,
         0,
       );
-      fireMiscTrackingEvent(
+      trackEvent(
         GPUAAS_EVENTS.WORKLOADS_TAB_FILTERS_CLEARED,
         getWorkloadsFilterClearTrackingProperties(
           filterCount,
@@ -373,7 +377,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
       );
       updateFilterValue(type, value);
     },
-    [selectedFilterValues, updateFilterValue],
+    [selectedFilterValues, updateFilterValue, trackEvent],
   );
 
   const columns = React.useMemo(
@@ -388,24 +392,24 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
         return;
       }
 
-      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_ATTRIBUTE_FILTER_APPLIED, {
+      trackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_ATTRIBUTE_FILTER_APPLIED, {
         filterType: type,
         filterValue: value,
       });
       updateFilterValue(type, value);
     },
-    [clearFilterChip, selectedFilterValues, updateFilterValue],
+    [clearFilterChip, selectedFilterValues, updateFilterValue, trackEvent],
   );
 
   const handleSort = React.useCallback(
     (columnIndex: number, direction: 'asc' | 'desc') => {
       const column = columns[columnIndex];
-      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_COLUMN_SORTED, {
+      trackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_COLUMN_SORTED, {
         columnName: column.label,
         direction,
       });
     },
-    [columns],
+    [columns, trackEvent],
   );
 
   return (
@@ -416,7 +420,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
           isExpanded={isExpanded}
           onToggle={(_event, nextExpanded) => {
             setIsExpanded(nextExpanded);
-            fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
+            trackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
               sectionName: 'workloads',
               action: nextExpanded ? 'expand' : 'collapse',
             });
@@ -471,7 +475,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
                 columns={columns}
                 onSort={handleSort}
                 onPagination={(action, currentPage) =>
-                  fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_PAGINATION_USED, {
+                  trackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_PAGINATION_USED, {
                     action,
                     currentPage,
                   })
@@ -485,11 +489,11 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
                     kueueEnabled={kueueEnabled}
                     hardwareProfilesLoading={hardwareProfilesLoading}
                     onStatusClick={() => {
-                      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_LABEL_CLICKED, {
+                      trackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_LABEL_CLICKED, {
                         workloadStatus: workload.status.label,
                         workloadType: workload.type,
                       });
-                      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_WORKLOAD_DETAILS_OPENED, {
+                      trackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_WORKLOAD_DETAILS_OPENED, {
                         workloadStatus: workload.status.label,
                         workloadType: workload.type,
                         source: 'status-label',

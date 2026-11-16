@@ -30,7 +30,7 @@ import { useCollectionsQuery, useImportCollectionMutation } from '~/app/hooks/co
 import useDarkMode from '~/app/hooks/useDarkMode';
 import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
 import type { Collection, ImportCollectionResponse } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { EvalHubCollectionSurface } from '~/app/tracking/evalhubTrackingConstants';
 import EvalHubCodeEditor, { type CodeEditorDiagnostic } from '~/app/components/EvalHubCodeEditor';
@@ -55,6 +55,8 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
   const [success, setSuccess] = React.useState<ImportCollectionResponse | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [isDragActive, setIsDragActive] = React.useState(false);
+
+  const { trackEvalHubEvent } = useEvalHubTracking();
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const importMutation = useImportCollectionMutation(namespace);
@@ -153,7 +155,7 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
         setSubmitError(error.message);
       },
     });
-  }, [importMutation, surface, text]);
+  }, [importMutation, surface, text, trackEvalHubEvent]);
 
   return (
     <Modal

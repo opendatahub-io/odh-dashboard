@@ -121,7 +121,7 @@ export const isModelServingDeploy = <D extends Deployment = Deployment>(
 
 export type AssembleModelResourceFn<D extends Deployment = Deployment> = (
   wizardData: WizardFormData,
-  existingDeployment?: D,
+  existingDeployment?: DeploymentAssemblyResources<D>,
   applyFieldData?: DeploymentAssemblyFn<D>,
   connectionSecretName?: string, // todo remove
 ) => D;

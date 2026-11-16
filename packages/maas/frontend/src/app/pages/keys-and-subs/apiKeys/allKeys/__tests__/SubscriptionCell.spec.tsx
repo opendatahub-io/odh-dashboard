@@ -11,7 +11,7 @@ describe('SubscriptionCell', () => {
     window.history.replaceState({}, '', originalPathname);
   });
 
-  it('should link to the subscription details in Model Access on the MaaS Portal', () => {
+  it('should link to the subscription details in Model access on the MaaS Portal', () => {
     window.history.replaceState({}, '', '/maas-portal/maas/keys-and-subs/api-keys');
 
     render(

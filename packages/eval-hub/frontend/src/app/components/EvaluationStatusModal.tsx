@@ -56,7 +56,7 @@ import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
 import { useKueueAvailability } from '~/app/hooks/useKueueAvailability';
 import { useKueueWorkloadStatuses } from '~/app/hooks/useKueueWorkloadStatuses';
 import usePageVisibility from '~/app/hooks/usePageVisibility';
-import { createEvalHubTrackingScope, trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import EvaluationEventLog from './EvaluationEventLog';
@@ -325,6 +325,8 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   onRequestStop,
   onRequestReconfigure,
 }) => {
+  const { createEvalHubTrackingScope, trackEvalHubEvent } = useEvalHubTracking();
+
   const [activeTab, setActiveTab] = React.useState<string>('progress');
   const [logBenchmarkIndex, setLogBenchmarkIndex] = React.useState<number | undefined>();
   const [isFailureSummaryExpanded, setIsFailureSummaryExpanded] = React.useState(false);

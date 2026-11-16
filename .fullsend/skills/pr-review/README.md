@@ -212,6 +212,8 @@ refuses approve regardless of findings.
 
 `test-impact-review` may return **`fail`**, which maps to `request-changes`. Per-aspect N/A: Automation/Efficiency may be N/A for non-product-code heads (lockfile/manifest/docs with nothing to unit-test), or when there are no tests to evaluate for Efficiency; **Evidence depth remains required** for those heads, satisfied by required-CI coverage or — for non-behavioral edits such as localization strings, docs, or formatting — an explicit scope statement (e.g. “localization only; no behavior change”). The check does not inspect current CI status; the merge gate enforces it. Do not N/A the whole check solely because the change is non-code.
 
+Committed tests that exercise the changed scenario are runtime evidence: the check judges their steps and assertions, not whether they have executed. Required-CI status checks and the merge gate own execution, so an unrun or not-yet-green test is not an evidence gap.
+
 ### Signals (`risk` / `confidence`)
 
 Refuse approve (→ `comment`, not `request-changes`) when levels match

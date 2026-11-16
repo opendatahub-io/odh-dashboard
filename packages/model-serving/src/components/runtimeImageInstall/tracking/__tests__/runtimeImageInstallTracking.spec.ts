@@ -28,8 +28,10 @@ describe('toConfigurationType', () => {
     expect(toConfigurationType('servingRuntimeTemplate')).toBe('serving-runtime-template');
   });
 
-  it('should map llmInferenceServiceConfig to llm-accelerator-configuration', () => {
-    expect(toConfigurationType('llmInferenceServiceConfig')).toBe('llm-accelerator-configuration');
+  it('should map llmInferenceServiceConfig to llm-inference-service-configuration', () => {
+    expect(toConfigurationType('llmInferenceServiceConfig')).toBe(
+      'llm-inference-service-configuration',
+    );
   });
 });
 
@@ -69,14 +71,14 @@ describe('fireConfigurationSelected', () => {
     );
   });
 
-  it('should call trackEvent for llm accelerator configuration selection', () => {
+  it('should call trackEvent for llm inference service configuration selection', () => {
     fireConfigurationSelected(mockTrackEvent, {
-      configurationType: 'llm-accelerator-configuration',
+      configurationType: 'llm-inference-service-configuration',
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(
       RuntimeImageInstallTrackingEvent.CONFIGURATION_SELECTED,
-      { configurationType: 'llm-accelerator-configuration' },
+      { configurationType: 'llm-inference-service-configuration' },
     );
   });
 });
@@ -103,12 +105,12 @@ describe('fireCreateCompleted', () => {
   it('should call trackEvent on cancel', () => {
     fireCreateCompleted(mockTrackEvent, {
       outcome: TrackingOutcome.cancel,
-      configurationType: 'llm-accelerator-configuration',
+      configurationType: 'llm-inference-service-configuration',
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
       outcome: TrackingOutcome.cancel,
-      configurationType: 'llm-accelerator-configuration',
+      configurationType: 'llm-inference-service-configuration',
     });
   });
 
