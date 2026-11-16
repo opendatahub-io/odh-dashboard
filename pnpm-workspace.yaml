@@ -125,4 +125,4 @@ overrides:
 # exports map (both are at their latest published versions as of 2026-11).
 patchedDependencies:
   monaco-types@0.1.2: patches/monaco-types@0.1.2.patch
-  monaco-worker@2.0.1: patches/monaco-worker-manager@2.0.1.patch
+  monaco-worker-manager@2.0.1: patches/monaco-worker-manager@2.0.1.patch
