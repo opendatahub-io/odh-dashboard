@@ -29,7 +29,12 @@
           var contrast = localStorage.getItem('app-shell.contrastMode');
           var glass = contrast === 'glass';
           var highContrast = contrast === 'high-contrast';
-          if (contrast === null || contrast === 'system') {
+          if (
+            contrast !== 'default' &&
+            contrast !== 'glass' &&
+            contrast !== 'high-contrast' &&
+            contrast !== 'system'
+          ) {
             highContrast = window.matchMedia('(prefers-contrast: more)').matches;
             glass =
               !highContrast &&

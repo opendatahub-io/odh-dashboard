@@ -133,17 +133,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // no-op: storage unavailable
       }
       setColorSchemeState(scheme);
+      const resolved: Theme = scheme === 'system' ? (prefersDark ? 'dark' : 'light') : scheme;
       window.dispatchEvent(
         new CustomEvent('odh-theme-change', {
           detail: {
-            theme: scheme === 'dark' ? 'dark' : 'light',
+            theme: resolved,
             colorScheme: scheme,
             contrastMode,
           },
         }),
       );
     },
-    [contrastMode],
+    [contrastMode, prefersDark],
   );
 
   const setTheme = useCallback((t: Theme) => setColorScheme(t), [setColorScheme]);

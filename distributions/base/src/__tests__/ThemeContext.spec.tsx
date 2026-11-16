@@ -135,6 +135,22 @@ describe('base shell ThemeProvider', () => {
     expect(localStorage.getItem('app-shell.colorScheme')).toBe('dark');
   });
 
+  it('should resolve System to dark in the change event when the OS prefers dark', () => {
+    mediaState['(prefers-color-scheme: dark)'] = true;
+    renderProvider();
+    const events: CustomEvent[] = [];
+    window.addEventListener('odh-theme-change', (e) => events.push(e as CustomEvent));
+    act(() => {
+      latestCtx?.setColorScheme('system');
+    });
+    expect(latestCtx?.theme).toBe('dark');
+    expect(events[0].detail).toEqual({
+      theme: 'dark',
+      colorScheme: 'system',
+      contrastMode: 'system',
+    });
+  });
+
   it('should follow live OS contrast changes while the system mode is active', () => {
     renderProvider();
     expect(html()).toHaveClass('pf-v6-theme-glass');
