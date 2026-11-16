@@ -111,22 +111,35 @@ func queryClusterBranding(client kubernetes.Interface, logger *slog.Logger) stri
 	return cc.Customization.Branding
 }
 
-// resolveStartupPlatform determines the runtime platform.
-// Policy: explicit configuration is always trusted. When the probe result disagrees
-// with the configured value, a warning is logged but the configured value wins.
-// This lets operators force a platform for testing or mixed environments.
-func resolveStartupPlatform(ci clusterInfo, probeErr error, explicit bool, configured config.PlatformType, logger *slog.Logger) config.PlatformType {
+// resolveStartupPlatform determines the runtime platform and reports whether
+// that determination is trustworthy.
+//
+// Policy: explicit configuration is always trusted. When the probe result
+// disagrees with the configured value, a warning is logged but the configured
+// value wins. This lets operators force a platform for testing or mixed
+// environments.
+//
+// The second return value is false only when the platform was *guessed*
+// because the probe failed. The guess is XKS, which is the least-privilege
+// answer for deciding which API calls to make, but it must not be treated as
+// positive evidence of xKS for anything security-relevant: a transient
+// forbidden or timed-out probe on a real OpenShift cluster lands here. See
+// config.ResolveAdmissionMode, which keeps the restrictive admission contract
+// when confidence is false.
+func resolveStartupPlatform(
+	ci clusterInfo, probeErr error, explicit bool, configured config.PlatformType, logger *slog.Logger,
+) (config.PlatformType, bool) {
 	if !explicit && probeErr != nil {
-		logger.Warn("ClusterVersion probe returned ambiguous error, defaulting to XKS (least privilege); set PLATFORM_TYPE to override",
+		logger.Warn("ClusterVersion probe returned ambiguous error, defaulting to XKS (least privilege) but treating the platform as unconfirmed; set ODH_PLATFORM_TYPE to override",
 			slog.Any("error", probeErr))
-		return config.PlatformXKS
+		return config.PlatformXKS, false
 	}
 
 	detected := inferPlatform(ci)
 
 	if !explicit {
 		logger.Info("Auto-detected platform", slog.String("platform", detected.String()))
-		return detected
+		return detected, true
 	}
 
 	if probeErr == nil && detected != configured {
@@ -134,7 +147,7 @@ func resolveStartupPlatform(ci clusterInfo, probeErr error, explicit bool, confi
 			slog.String("configured", configured.String()),
 			slog.String("detected", detected.String()))
 	}
-	return configured
+	return configured, true
 }
 
 func inferPlatform(ci clusterInfo) config.PlatformType {
@@ -144,7 +157,29 @@ func inferPlatform(ci clusterInfo) config.PlatformType {
 	return config.PlatformXKS
 }
 
-func initStartupClusterInfo(cfg config.EnvConfig, k8sResult k8sSetupResult, logger *slog.Logger) (clusterInfo, config.PlatformType) {
+// clusterInfoQuery probes OpenShift-only configuration APIs (ClusterVersion and
+// the console-config ConfigMap). It is a seam so tests can assert that an xKS
+// startup never reaches it.
+type clusterInfoQuery func(kubernetes.Interface, dynamic.Interface, *slog.Logger) (clusterInfo, error)
+
+func initStartupClusterInfo(
+	cfg config.EnvConfig, k8sResult k8sSetupResult, logger *slog.Logger,
+) (clusterInfo, config.PlatformType, bool) {
+	return initStartupClusterInfoWith(cfg, k8sResult, logger, queryClusterInfo)
+}
+
+// initStartupClusterInfoWith resolves cluster metadata and the effective platform.
+//
+// On xKS the OpenShift configuration probe is skipped entirely: the dashboard
+// service account is not expected to hold permissions on config.openshift.io,
+// and issuing the request anyway would make startup depend on RBAC the xKS
+// profile deliberately omits.
+//
+// The third return value reports whether the resolved platform is confirmed
+// rather than guessed after a failed probe. See resolveStartupPlatform.
+func initStartupClusterInfoWith(
+	cfg config.EnvConfig, k8sResult k8sSetupResult, logger *slog.Logger, query clusterInfoQuery,
+) (clusterInfo, config.PlatformType, bool) {
 	ci := clusterInfo{clusterBranding: defaultClusterBranding}
 	explicitPlatform := cfg.PlatformType != ""
 
@@ -159,25 +194,28 @@ func initStartupClusterInfo(cfg config.EnvConfig, k8sResult k8sSetupResult, logg
 			ci.serverURL = kubeconfig.Host
 		}
 		ci.currentContext = helpers.GetCurrentContext()
-		return ci, cfg.PlatformType
+		return ci, cfg.PlatformType, true
 	}
 
 	if cfg.MockK8Client {
 		dynClient, dynErr := dynamic.NewForConfig(k8sResult.testEnv.Config)
 		if dynErr != nil {
 			logger.Warn("Failed to create dynamic client for startup queries", slog.Any("error", dynErr))
-			return ci, resolveStartupPlatform(ci, dynErr, explicitPlatform, cfg.PlatformType, logger)
+			platform, confirmed := resolveStartupPlatform(ci, dynErr, explicitPlatform, cfg.PlatformType, logger)
+			return ci, platform, confirmed
 		}
-		ci, probeErr := queryClusterInfo(k8sResult.clientset, dynClient, logger)
+		ci, probeErr := query(k8sResult.clientset, dynClient, logger)
 		ci.serverURL = k8sResult.testEnv.Config.Host
 		ci.currentContext = helpers.GetCurrentContext()
-		return ci, resolveStartupPlatform(ci, probeErr, explicitPlatform, cfg.PlatformType, logger)
+		platform, confirmed := resolveStartupPlatform(ci, probeErr, explicitPlatform, cfg.PlatformType, logger)
+		return ci, platform, confirmed
 	}
 
 	kubeconfig, kcErr := helpers.GetKubeconfig()
 	if kcErr != nil {
 		logger.Warn("Failed to get kubeconfig for startup queries", slog.Any("error", kcErr))
-		return ci, resolveStartupPlatform(ci, kcErr, explicitPlatform, cfg.PlatformType, logger)
+		platform, confirmed := resolveStartupPlatform(ci, kcErr, explicitPlatform, cfg.PlatformType, logger)
+		return ci, platform, confirmed
 	}
 
 	typedClient, tcErr := kubernetes.NewForConfig(kubeconfig)
@@ -189,10 +227,12 @@ func initStartupClusterInfo(cfg config.EnvConfig, k8sResult k8sSetupResult, logg
 		if clientErr == nil {
 			clientErr = dcErr
 		}
-		return ci, resolveStartupPlatform(ci, clientErr, explicitPlatform, cfg.PlatformType, logger)
+		platform, confirmed := resolveStartupPlatform(ci, clientErr, explicitPlatform, cfg.PlatformType, logger)
+		return ci, platform, confirmed
 	}
-	ci, probeErr := queryClusterInfo(typedClient, dynClient, logger)
+	ci, probeErr := query(typedClient, dynClient, logger)
 	ci.serverURL = kubeconfig.Host
 	ci.currentContext = helpers.GetCurrentContext()
-	return ci, resolveStartupPlatform(ci, probeErr, explicitPlatform, cfg.PlatformType, logger)
+	platform, confirmed := resolveStartupPlatform(ci, probeErr, explicitPlatform, cfg.PlatformType, logger)
+	return ci, platform, confirmed
 }

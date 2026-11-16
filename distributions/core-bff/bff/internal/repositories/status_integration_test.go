@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,8 @@ import (
 	k8stesting "k8s.io/client-go/testing"
 )
 
-// mockUserAllowedClient implements a minimal KubernetesClientInterface for testing resolveIsAllowed.
+// mockUserAllowedClient implements a minimal KubernetesClientInterface for
+// testing the admission contract.
 type mockUserAllowedClient struct {
 	k8s.KubernetesClientInterface
 	allowed bool
@@ -29,53 +31,146 @@ func (m *mockUserAllowedClient) IsUserAllowed(_ context.Context, _ *k8s.RequestI
 	return m.allowed, m.err
 }
 
-func TestResolveIsAllowed_CRDAbsent_AllowsEveryone(t *testing.T) {
-	authRepo := NewAuthRepository(newFakeDynClientCRDAbsent())
-	client := &mockUserAllowedClient{allowed: false}
-
-	allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, authRepo)
-	require.NoError(t, err)
-	assert.True(t, allowed)
+func admit(
+	client k8s.KubernetesClientInterface, authRepo *AuthRepository, mode config.AdmissionMode, isAdmin bool,
+) admissionDecision {
+	return resolveAdmission(context.Background(), mode, isAdmin, client, &k8s.RequestIdentity{}, authRepo)
 }
 
-func TestResolveIsAllowed_SystemAuthenticated_AllowsEveryone(t *testing.T) {
-	authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{models.SystemAuthenticated}))
-	client := &mockUserAllowedClient{allowed: false}
+func TestResolveAdmission_AuthResourceMode(t *testing.T) {
+	t.Run("CRD absent admits everyone", func(t *testing.T) {
+		client := &mockUserAllowedClient{allowed: false}
+		got := admit(client, NewAuthRepository(newFakeDynClientCRDAbsent()), config.AdmissionModeAuthResource, false)
 
-	allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, authRepo)
-	require.NoError(t, err)
-	assert.True(t, allowed)
+		assert.True(t, got.Admitted)
+		assert.Equal(t, CodeAdmissionCRDAbsent, got.Code)
+		assert.Zero(t, client.calls, "no access review is needed when there is no group restriction")
+	})
+
+	t.Run("system:authenticated admits everyone", func(t *testing.T) {
+		client := &mockUserAllowedClient{allowed: false}
+		authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{models.SystemAuthenticated}))
+
+		got := admit(client, authRepo, config.AdmissionModeAuthResource, false)
+
+		assert.True(t, got.Admitted)
+		assert.Equal(t, CodeAdmissionSystemAuthenticated, got.Code)
+		assert.Zero(t, client.calls)
+	})
+
+	t.Run("a restricted group defers to the access review", func(t *testing.T) {
+		for _, granted := range []bool{true, false} {
+			client := &mockUserAllowedClient{allowed: granted}
+			authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
+
+			got := admit(client, authRepo, config.AdmissionModeAuthResource, false)
+
+			assert.Equal(t, granted, got.Admitted)
+			assert.Equal(t, CodeAdmissionReview, got.Code)
+			assert.Equal(t, 1, client.calls)
+		}
+	})
+
+	t.Run("an admin is admitted without a second review", func(t *testing.T) {
+		client := &mockUserAllowedClient{allowed: false}
+		authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
+
+		got := admit(client, authRepo, config.AdmissionModeAuthResource, true)
+
+		assert.True(t, got.Admitted)
+		assert.Equal(t, CodeAdmissionAdmin, got.Code)
+		assert.Zero(t, client.calls)
+	})
+
+	t.Run("a failed review is not success", func(t *testing.T) {
+		client := &mockUserAllowedClient{allowed: true, err: fmt.Errorf("CANARY review failure")}
+		authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
+
+		got := admit(client, authRepo, config.AdmissionModeAuthResource, false)
+
+		assert.False(t, got.Admitted)
+		assert.Equal(t, CodeAdmissionReviewUnavailable, got.Code)
+	})
 }
 
-func TestResolveIsAllowed_NoEscapeHatch_FallsToSSAR_Allowed(t *testing.T) {
-	authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
-	client := &mockUserAllowedClient{allowed: true}
+// Each Auth failure mode defers to the caller's own review rather than denying
+// outright, and reports a distinct code so the cause is visible in logs.
+func TestResolveAdmission_AuthFailureModesDeferToTheReview(t *testing.T) {
+	authGR := models.AuthGVR.GroupResource()
 
-	allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, authRepo)
-	require.NoError(t, err)
-	assert.True(t, allowed)
+	cases := []struct {
+		name     string
+		authRepo func() *AuthRepository
+		wantCode string
+	}{
+		{
+			name:     "instance not provisioned",
+			authRepo: func() *AuthRepository { return NewAuthRepository(newFakeDynClientInstanceAbsent()) },
+			wantCode: CodeAdmissionAuthInstanceMissing,
+		},
+		{
+			name: "service account forbidden",
+			authRepo: func() *AuthRepository {
+				return NewAuthRepository(newFakeDynClientFailingWith(
+					k8serrors.NewForbidden(authGR, models.AuthInstanceName, errors.New("CANARY_AUTH"))))
+			},
+			wantCode: CodeAdmissionAuthForbidden,
+		},
+		{
+			name: "upstream unavailable",
+			authRepo: func() *AuthRepository {
+				return NewAuthRepository(newFakeDynClientFailingWith(k8serrors.NewServiceUnavailable("CANARY_AUTH")))
+			},
+			wantCode: CodeAdmissionAuthUnavailable,
+		},
+	}
+
+	for _, tc := range cases {
+		for _, granted := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s/review=%v", tc.name, granted), func(t *testing.T) {
+				client := &mockUserAllowedClient{allowed: granted}
+
+				got := admit(client, tc.authRepo(), config.AdmissionModeAuthResource, false)
+
+				assert.Equal(t, granted, got.Admitted, "the caller's own review decides")
+				assert.Equal(t, tc.wantCode, got.Code)
+				assert.Equal(t, 1, client.calls)
+			})
+		}
+	}
 }
 
-func TestResolveIsAllowed_NoEscapeHatch_FallsToSSAR_Denied(t *testing.T) {
-	authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
-	client := &mockUserAllowedClient{allowed: false}
+// AC: authorized non-admin users bootstrap with the agreed minimal permissions,
+// including deployments where the Auth resource is outside the profile.
+func TestResolveAdmission_AuthenticatedModeNeedsNoAuthResourcePermissions(t *testing.T) {
+	cases := []struct {
+		name     string
+		authRepo *AuthRepository
+	}{
+		{"CRD absent", NewAuthRepository(newFakeDynClientCRDAbsent())},
+		{"instance not provisioned", NewAuthRepository(newFakeDynClientInstanceAbsent())},
+		{"restricted group", NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))},
+		{"no dynamic client at all", NewAuthRepository(nil)},
+	}
 
-	allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, authRepo)
-	require.NoError(t, err)
-	assert.False(t, allowed)
-}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// A review that would deny, to prove it is never consulted.
+			client := &mockUserAllowedClient{allowed: false, err: errors.New("CANARY_REVIEW")}
 
-func TestResolveIsAllowed_FailedReviewIsNotSuccess(t *testing.T) {
-	authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
-	client := &mockUserAllowedClient{allowed: true, err: fmt.Errorf("CANARY review failure")}
-	allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, authRepo)
-	require.Error(t, err)
-	assert.False(t, allowed)
+			got := admit(client, tc.authRepo, config.AdmissionModeAuthenticated, false)
+
+			assert.True(t, got.Admitted)
+			assert.Equal(t, CodeAdmissionAuthenticated, got.Code)
+			assert.Zero(t, client.calls, "authenticated mode must not depend on an Auth-resource review")
+		})
+	}
 }
 
 type statusReviewClient struct {
 	mockUserAllowedClient
 	adminErr error
+	isAdmin  bool
 }
 
 func (m *statusReviewClient) GetUser(context.Context, *k8s.RequestIdentity) (string, error) {
@@ -83,7 +178,7 @@ func (m *statusReviewClient) GetUser(context.Context, *k8s.RequestIdentity) (str
 }
 
 func (m *statusReviewClient) IsUserAdmin(context.Context, *k8s.RequestIdentity) (bool, error) {
-	return false, m.adminErr
+	return m.isAdmin, m.adminErr
 }
 
 func TestGetStatusReviewFailuresPreserveAuthenticatedSession(t *testing.T) {
@@ -99,8 +194,10 @@ func TestGetStatusReviewFailuresPreserveAuthenticatedSession(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			client := &statusReviewClient{adminErr: tc.adminErr, mockUserAllowedClient: mockUserAllowedClient{allowed: tc.allowed, err: tc.allowedErr}}
-			repo := NewStatusRepository(nil, "test", NewAuthRepository(newFakeDynClientWithAuth(nil)))
+			repo := NewStatusRepository(nil, "test", NewAuthRepository(newFakeDynClientWithAuth(nil)), config.AdmissionModeAuthResource)
+
 			status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, statusClusterInfo{})
+
 			require.NoError(t, err)
 			require.Equal(t, "user", status.Kube.UserName)
 			require.False(t, status.Kube.IsAdmin)
@@ -108,6 +205,43 @@ func TestGetStatusReviewFailuresPreserveAuthenticatedSession(t *testing.T) {
 			require.Equal(t, 1, client.calls)
 		})
 	}
+}
+
+// AC: errors do not silently grant access or unexpectedly lock out otherwise
+// authorized users. On xKS a non-admin bootstraps even when every Auth-resource
+// path fails, while admin capability still degrades to false.
+func TestGetStatus_XKSNonAdminBootstrapsWithoutAuthResource(t *testing.T) {
+	client := &statusReviewClient{
+		adminErr:              errors.New("CANARY_ADMIN"),
+		mockUserAllowedClient: mockUserAllowedClient{allowed: false, err: errors.New("CANARY_ALLOWED")},
+	}
+	repo := NewStatusRepository(nil, "rhaii", NewAuthRepository(newFakeDynClientCRDAbsent()), config.AdmissionModeAuthenticated)
+
+	status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, statusClusterInfo{})
+
+	require.NoError(t, err)
+	assert.Equal(t, "user", status.Kube.UserName)
+	assert.True(t, status.Kube.IsAllowed, "admission must not depend on the Auth resource")
+	assert.False(t, status.Kube.IsAdmin, "an unavailable admin review degrades the UI capability, not admission")
+	assert.Zero(t, client.calls)
+}
+
+// Identity is the one hard requirement: no identity means no session to report.
+func TestGetStatus_UnresolvedIdentityFailsTheRequest(t *testing.T) {
+	repo := NewStatusRepository(nil, "test", NewAuthRepository(newFakeDynClientCRDAbsent()), config.AdmissionModeAuthenticated)
+
+	_, err := repo.GetStatus(context.Background(), &identityFailureClient{}, &k8s.RequestIdentity{}, statusClusterInfo{})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get user")
+}
+
+type identityFailureClient struct {
+	mockUserAllowedClient
+}
+
+func (identityFailureClient) GetUser(context.Context, *k8s.RequestIdentity) (string, error) {
+	return "", errors.New("CANARY_IDENTITY")
 }
 
 type statusClusterInfo struct{}
@@ -141,23 +275,15 @@ func TestGetStatusAuthFailureFallsBackToSSAR(t *testing.T) {
 					return true, &unstructured.Unstructured{Object: map[string]any{"spec": "invalid"}}, auth.failure
 				})
 				client := &statusReviewClient{mockUserAllowedClient: mockUserAllowedClient{allowed: review.allowed, err: review.failure}}
-				repo := NewStatusRepository(nil, "test", NewAuthRepository(dynamicClient))
+				repo := NewStatusRepository(nil, "test", NewAuthRepository(dynamicClient), config.AdmissionModeAuthResource)
+
 				status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, statusClusterInfo{})
+
 				require.Equal(t, 1, client.calls, "Auth failures must reach the caller's SSAR")
 				require.NoError(t, err)
 				require.Equal(t, review.allowed && review.failure == nil, status.Kube.IsAllowed)
 				require.False(t, status.Kube.IsAdmin)
 			})
 		}
-	}
-}
-
-func TestResolveIsAllowedMissingAuthInstanceFallsBackToSSAR(t *testing.T) {
-	for _, granted := range []bool{false, true} {
-		client := &mockUserAllowedClient{allowed: granted}
-		allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, NewAuthRepository(newFakeDynClientInstanceAbsent()))
-		require.NoError(t, err)
-		require.Equal(t, granted, allowed)
-		require.Equal(t, 1, client.calls)
 	}
 }

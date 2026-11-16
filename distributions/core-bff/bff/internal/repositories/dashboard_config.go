@@ -102,6 +102,15 @@ func (r *DashboardConfigRepository) PatchRawDashboardConfig(
 	return result.Object, nil
 }
 
+// readOnlyBootstrap reports whether configuration bootstrap must not write.
+// On xKS the OdhDashboardConfig CR is outside the selected profile: the
+// installation owner provisions configuration, or it is supplied through the
+// agreed xKS configuration source. The dashboard reads and falls back to
+// defaults, never creates. OpenShift keeps the RHOAI auto-create behaviour.
+func (r *DashboardConfigRepository) readOnlyBootstrap() bool {
+	return r.platform.IsXKS()
+}
+
 func (r *DashboardConfigRepository) fetchOrCreateDashboardCR(
 	ctx context.Context,
 	namespace, name string,
@@ -119,13 +128,33 @@ func (r *DashboardConfigRepository) fetchOrCreateDashboardCR(
 		return r.handleFetchError(err, namespace, name)
 	}
 
+	if r.readOnlyBootstrap() {
+		slog.Debug("OdhDashboardConfig instance not provisioned; bootstrap is read-only, using defaults",
+			slog.String("namespace", namespace), slog.String("name", name),
+			slog.String("code", "CONFIG_INSTANCE_MISSING"))
+		return blankDefaults()
+	}
+
 	return r.autoCreateDashboardCR(ctx, namespace, name)
 }
 
+// handleFetchError maps each non-NotFound read failure to its own documented
+// outcome. A CRD that is not installed and a read the service account may not
+// perform both mean "no configuration in this profile", so both degrade to
+// defaults rather than failing a bootstrap the caller cannot fix. Any other
+// failure is a real upstream problem and surfaces as an error.
 func (r *DashboardConfigRepository) handleFetchError(err error, namespace, name string) (map[string]any, error) {
 	if k8sutil.IsDiscoveryError(err) {
 		slog.Debug("OdhDashboardConfig CRD not installed, using defaults",
-			slog.String("namespace", namespace), slog.String("name", name))
+			slog.String("namespace", namespace), slog.String("name", name),
+			slog.String("code", "CONFIG_CRD_ABSENT"))
+		return blankDefaults()
+	}
+	if k8serrors.IsForbidden(err) && r.readOnlyBootstrap() {
+		// Reduced service-account RBAC must not become a bootstrap dependency.
+		slog.Warn("service account may not read OdhDashboardConfig; using defaults",
+			slog.String("namespace", namespace), slog.String("name", name),
+			slog.String("code", "CONFIG_FORBIDDEN"))
 		return blankDefaults()
 	}
 	return nil, fmt.Errorf("failed to get dashboard config: %w", err)

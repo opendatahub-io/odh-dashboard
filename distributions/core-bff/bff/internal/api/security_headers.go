@@ -95,6 +95,30 @@ func applySecurityHeaders(h http.Header, urlPath string) {
 	}
 
 	h.Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
+	// API replies are per-identity. no-store already forbids storage, but Vary
+	// also stops an intermediary that ignores it from keying one user's
+	// bootstrap response for another. Both token headers are listed because
+	// either may carry the caller identity depending on the edge.
+	addVary(h, constants.HeaderAuthorization, constants.HeaderForwardedToken, constants.HeaderCookie)
+}
+
+// addVary appends header names to Vary without duplicating entries a handler
+// or an upstream proxy already set.
+func addVary(h http.Header, names ...string) {
+	existing := map[string]bool{}
+	for _, v := range h.Values(constants.HeaderVary) {
+		for _, part := range strings.Split(v, ",") {
+			if p := strings.TrimSpace(part); p != "" {
+				existing[strings.ToLower(p)] = true
+			}
+		}
+	}
+	for _, name := range names {
+		if !existing[strings.ToLower(name)] {
+			h.Add(constants.HeaderVary, name)
+			existing[strings.ToLower(name)] = true
+		}
+	}
 }
 
 // isApiPath reports host and module API paths after PathPrefix strip.

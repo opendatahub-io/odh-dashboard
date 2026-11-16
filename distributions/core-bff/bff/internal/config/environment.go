@@ -124,10 +124,16 @@ type EnvConfig struct {
 	// AllowedOrigins lists CORS allowed origins.
 	AllowedOrigins []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
-	// If provided, the application will attempt to load these files and add the
-	// certificates to the HTTP client's Root CAs for outbound TLS connections.
-	// Missing or unreadable files are ignored.
+	// The certificates are added to the Root CAs used for every outbound TLS
+	// connection. Individual missing or unreadable files are skipped; see
+	// BundlePathsRequired for what happens when none of them load.
 	BundlePaths []string
+
+	// BundlePathsRequired is true when BUNDLE_PATHS was supplied explicitly
+	// (environment or CLI) rather than defaulted. An explicit trust bundle that
+	// yields no usable certificate fails startup instead of silently falling
+	// back to the system pool, which would be a trust downgrade.
+	BundlePathsRequired bool
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
@@ -156,6 +162,11 @@ type EnvConfig struct {
 	// ─── CORE BFF ───────────────────────────────────────────────
 	// PlatformType indicates the target platform.
 	PlatformType PlatformType
+
+	// AdmissionMode selects the dashboard admission contract used by the
+	// bootstrap endpoints. Empty means "resolve from the platform at startup"
+	// (see ResolveAdmissionMode).
+	AdmissionMode AdmissionMode
 
 	// Namespace is the Kubernetes namespace where the dashboard is deployed.
 	Namespace string

@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
-	"strings"
 )
 
 func getEnvAsInt(name string, defaultVal int) int {
@@ -40,28 +39,4 @@ func parseLevel(s string) slog.Level {
 		return slog.LevelInfo
 	}
 	return level
-}
-
-func newOriginParser(allowList *[]string, defaultVal string) func(s string) error {
-	return func(s string) error {
-		value := defaultVal
-
-		if s != "" {
-			value = s
-		}
-
-		if value == "" {
-			return nil
-		}
-
-		for _, str := range strings.Split(value, ",") {
-			origin := strings.TrimSpace(str)
-			if origin == "" {
-				continue
-			}
-			*allowList = append(*allowList, origin)
-		}
-
-		return nil
-	}
 }

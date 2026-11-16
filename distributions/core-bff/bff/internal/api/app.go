@@ -72,6 +72,7 @@ type k8sSetupResult struct {
 
 // NewApp creates a new BFF application instance with all dependencies initialized.
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
+	// cfg implements slog.LogValuer, so this never emits credential values.
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
 
 	rootCAs := initRootCAs(cfg.BundlePaths, logger)
@@ -81,8 +82,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
-	ci, resolvedPlatform := initStartupClusterInfo(cfg, k8sResult, logger)
+	ci, resolvedPlatform, platformConfirmed := initStartupClusterInfo(cfg, k8sResult, logger)
 	cfg.PlatformType = resolvedPlatform
+	logger.Info("resolved bootstrap admission contract",
+		slog.String("platform", resolvedPlatform.String()),
+		slog.Bool("platformConfirmed", platformConfirmed),
+		slog.String("admissionMode", config.ResolveAdmissionMode(cfg.AdmissionMode, resolvedPlatform, platformConfirmed).String()))
 	bffFactory := initBFFClientFactory(cfg, rootCAs, logger)
 
 	openAPIHandler, err := NewOpenAPIHandler(logger)
@@ -96,6 +101,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory: k8sResult.factory,
 		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
 			Platform:          resolvedPlatform,
+			PlatformConfirmed: platformConfirmed,
+			AdmissionMode:     cfg.AdmissionMode,
 			SADynClient:       k8sResult.saDynClient,
 			SAClientset:       k8sResult.saClientset,
 			Namespace:         cfg.Namespace,
@@ -184,6 +191,14 @@ func initBFFClientFactory(cfg config.EnvConfig, rootCAs *x509.CertPool, logger *
 
 	logger.Info("Using real BFF client factory")
 	return bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
+}
+
+// PlatformType returns the platform resolved at startup (configured value if
+// explicit, otherwise the detected one). Callers outside the package need it to
+// make platform-dependent decisions after NewApp, such as whether serving TLS
+// may read the OpenShift cluster TLS profile.
+func (app *App) PlatformType() config.PlatformType {
+	return app.config.PlatformType
 }
 
 func (app *App) Shutdown() error {

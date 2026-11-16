@@ -140,13 +140,13 @@ func TestResolveStartupPlatform_ProbeError_DefaultsToXKS(t *testing.T) {
 		schema.GroupResource{Group: "config.openshift.io", Resource: "clusterversions"},
 		clusterVersionName, nil,
 	)
-	result := resolveStartupPlatform(ci, probeErr, false, "", testLogger())
+	result, _ := resolveStartupPlatform(ci, probeErr, false, "", testLogger())
 	assert.Equal(t, config.PlatformXKS, result)
 }
 
 func TestResolveStartupPlatform_NoError_DetectsXKS(t *testing.T) {
 	ci := clusterInfo{}
-	result := resolveStartupPlatform(ci, nil, false, "", testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, false, "", testLogger())
 	assert.Equal(t, config.PlatformXKS, result)
 }
 
@@ -156,31 +156,31 @@ func TestResolveStartupPlatform_ExplicitOverridesProbeError(t *testing.T) {
 		schema.GroupResource{Group: "config.openshift.io", Resource: "clusterversions"},
 		clusterVersionName, nil,
 	)
-	result := resolveStartupPlatform(ci, probeErr, true, config.PlatformXKS, testLogger())
+	result, _ := resolveStartupPlatform(ci, probeErr, true, config.PlatformXKS, testLogger())
 	assert.Equal(t, config.PlatformXKS, result)
 }
 
 func TestResolveStartupPlatform_ExplicitOpenShift_MismatchDetected(t *testing.T) {
 	ci := clusterInfo{}
-	result := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
 	assert.Equal(t, config.PlatformOpenShift, result)
 }
 
 func TestResolveStartupPlatform_ExplicitOpenShift_MatchesProbe(t *testing.T) {
 	ci := clusterInfo{clusterID: "real-cluster-id"}
-	result := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
 	assert.Equal(t, config.PlatformOpenShift, result)
 }
 
 func TestResolveStartupPlatform_ExplicitXKS_NoProbeError(t *testing.T) {
 	ci := clusterInfo{clusterID: "real-cluster-id"}
-	result := resolveStartupPlatform(ci, nil, true, config.PlatformXKS, testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, true, config.PlatformXKS, testLogger())
 	assert.Equal(t, config.PlatformXKS, result)
 }
 
 func TestResolveStartupPlatform_AutoDetect_OpenShift(t *testing.T) {
 	ci := clusterInfo{clusterID: "abc-123"}
-	result := resolveStartupPlatform(ci, nil, false, "", testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, false, "", testLogger())
 	assert.Equal(t, config.PlatformOpenShift, result)
 }
 
