@@ -453,7 +453,7 @@ Claude Code roles.
 | [`references/re-review.md`](references/re-review.md) | Upstream text; categories map to dimensions through the registry instead of a fixed table |
 | `issue-labels` | Not vendored. The base's `skills/issue-labels/github` loads: v0.48 keys skills on their declared name, so it no longer collides with `pr-review/github` |
 | [`SKILL.md`](SKILL.md) | Local orchestrator. Carries upstream's time budget, runtime-aware dispatch, PR-head materialisation, commit-message and same-repository issue context for intent-coherence, challenger accounting and re-review contract, expressed through the registry |
-| `scripts/pre-review.sh` | Rebased onto upstream's `2da538b` bundle; the bundled forge libraries are upstream text. Local additions (host-adapter registry and runner, dispatch normalisation, skip signal, registry-driven prior-review validation, self-test) sit on top; its header lists them |
+| `scripts/pre-review.sh` | Rebased onto upstream's `2da538b` bundle; the bundled forge libraries are upstream text. Local additions (host-adapter registry and runner, dispatch normalisation, skip signal, registry-driven prior-review validation, PR image capture and staging, self-test) sit on top; its header lists them |
 | `scripts/post-review.sh` | Local script, derived from `bb167e2` (the last upstream revision before the multi-forge rewrite), plus four changes from `ce2eedd`: the prior-findings projection, `label_actions` hardening, the PR file-list retry, and a failed job when the result is a `failure`. Nothing later is carried; see below |
 
 Not carried from that revision:

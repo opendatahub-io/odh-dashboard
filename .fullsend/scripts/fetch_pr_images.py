@@ -104,6 +104,14 @@ class Limits:
     max_dimension: int = 8192
     max_pixels: int = 40_000_000
     timeout: float = 20.0
+    # Independent fetch-attempt budget. Rejected, failed, or unsupported
+    # images still cost a request, so cap attempts separately from the
+    # accepted-image count; this bounds work when a PR carries many stale or
+    # unusable links.
+    max_attempts: int = 24
+    # Wall-clock ceiling for the whole capture. pre-review.sh waits on this
+    # step, so it must fail open promptly instead of serializing timeouts.
+    capture_timeout: float = 120.0
 
     @classmethod
     def from_env(cls) -> "Limits":
@@ -123,6 +131,8 @@ class Limits:
             max_dimension=number("REVIEW_PR_IMAGE_MAX_DIMENSION", cls.max_dimension),
             max_pixels=number("REVIEW_PR_IMAGE_MAX_PIXELS", cls.max_pixels),
             timeout=number("REVIEW_PR_IMAGE_TIMEOUT", cls.timeout),
+            max_attempts=number("REVIEW_PR_IMAGES_MAX_ATTEMPTS", cls.max_attempts),
+            capture_timeout=number("REVIEW_PR_IMAGES_MAX_SECONDS", cls.capture_timeout),
         )
 
 
@@ -131,6 +141,10 @@ class Media:
     url: str
     caption: str = ""
     origin: str = "body"
+    # Sanitized text of the originating issue comment, when the image came
+    # from the thread rather than the PR body. Staged as untrusted context so
+    # a comment-only image keeps the author's framing.
+    context: str = ""
 
 
 @dataclass
@@ -150,6 +164,13 @@ def _caption(raw: str) -> str:
     text = html.unescape(raw or "")
     text = _CONTROL.sub(" ", text)
     return re.sub(r"\s+", " ", text).strip()[:200]
+
+
+def _comment_context(raw: str) -> str:
+    """Sanitized comment text used to frame a comment-origin image."""
+    text = _CONTROL.sub(" ", raw or "")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:2000]
 
 
 def extract_media(text: str, origin: str = "body") -> list:
@@ -226,12 +247,56 @@ def _png(data: bytes):
     return width, height, False
 
 
+def _skip_gif_sub_blocks(data: bytes, pos: int) -> int:
+    """Advance past a run of GIF sub-blocks ending in a zero-length terminator."""
+    while pos < len(data):
+        size = data[pos]
+        pos += 1
+        if size == 0:
+            break
+        pos += size
+    return pos
+
+
+def _gif_frame_count(data: bytes) -> int:
+    """Count image frames by walking GIF blocks. Returns -1 when malformed."""
+    if len(data) < 13:
+        return -1
+    packed = data[10]
+    pos = 13
+    if packed & 0x80:  # global color table present
+        pos += 3 * (1 << ((packed & 0x07) + 1))
+    frames = 0
+    while pos < len(data):
+        block = data[pos]
+        if block == 0x3B:  # trailer
+            break
+        if block == 0x21:  # extension: skip introducer, label, and sub-blocks
+            pos = _skip_gif_sub_blocks(data, pos + 2)
+        elif block == 0x2C:  # image descriptor
+            if pos + 10 > len(data):
+                return -1
+            ipacked = data[pos + 9]
+            pos += 10
+            if ipacked & 0x80:  # local color table present
+                pos += 3 * (1 << ((ipacked & 0x07) + 1))
+            if pos >= len(data):
+                return -1
+            pos = _skip_gif_sub_blocks(data, pos + 1)  # skip LZW min code size
+            frames += 1
+        else:
+            return -1
+    return frames
+
+
 def _gif(data: bytes):
-    if len(data) < 10 or data[:6] not in (b"GIF87a", b"GIF89a"):
+    if len(data) < 13 or data[:6] not in (b"GIF87a", b"GIF89a"):
         return None
     width, height = struct.unpack("<HH", data[6:10])
-    animated = data.count(b"\x00\x21\xf9\x04") > 1
-    return width, height, animated
+    frames = _gif_frame_count(data)
+    if frames < 1:
+        return None
+    return width, height, frames > 1
 
 
 def _jpeg(data: bytes):
@@ -306,6 +371,20 @@ def _loggable(url: str) -> str:
     return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
 
 
+def _workflow_safe(text) -> str:
+    """Escape a value for an Actions workflow command (`::notice::`,
+    `::warning::`).
+
+    GitHub unescapes `%25`, `%0D`, and `%0A`, so escape the percent first and
+    then the line breaks. Strip any remaining control characters (including the
+    ESC of ANSI escapes) so a crafted URL or exception message cannot inject a
+    workflow-command marker or terminal control sequence.
+    """
+    text = str(text)
+    text = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    return _CONTROL.sub("", text)
+
+
 def _request_for(url: str) -> urllib.request.Request:
     """Media request. Deliberately credential-free: no Authorization header."""
     headers = {"User-Agent": USER_AGENT, "Accept": "image/*,*/*;q=0.8"}
@@ -365,6 +444,8 @@ def capture(
     repo: str = "",
     pr_number: Optional[int] = None,
     head_sha: str = "",
+    comment_error: Optional[str] = None,
+    deadline: Optional[float] = None,
 ) -> CaptureResult:
     """Capture every allowed attachment. Never raises for a media failure."""
     media = extract_media(body) + list(comments)
@@ -384,6 +465,7 @@ def capture(
         "status": "empty",
         "images": [],
         "skipped": [],
+        "limitations": [],
     }
 
     image_dir = out_dir / IMAGE_DIR_NAME
@@ -391,6 +473,9 @@ def capture(
     files = []
     total_bytes = 0
     index = 0
+    attempts = 0
+    if deadline is None:
+        deadline = time.monotonic() + limits.capture_timeout
 
     def skip(item: Media, reason: str) -> None:
         manifest["skipped"].append({"url": item.url, "reason": reason})
@@ -399,9 +484,25 @@ def capture(
         if index >= limits.max_images:
             skip(item, "image-limit")
             continue
+        if time.monotonic() >= deadline:
+            # Global capture deadline: stop starting fetches so a slow or
+            # hostile PR cannot hold pre-review.sh open past its budget.
+            skip(item, "capture-deadline")
+            continue
+        if attempts >= limits.max_attempts:
+            # Attempt budget counts every request, including ones that fail or
+            # are rejected after download, so a PR full of dead links cannot
+            # trigger unbounded sequential fetches.
+            skip(item, "attempt-limit")
+            continue
+        if total_bytes >= limits.max_total_bytes:
+            # Accepted bytes already fill the budget; do not download more.
+            skip(item, "total-bytes-limit")
+            continue
         if not url_allowed(item.url):
             skip(item, "host-not-allowlisted")
             continue
+        attempts += 1
         try:
             data = fetch(item.url)
         except Exception as error:  # noqa: BLE001 - fail open on any fetch problem
@@ -435,22 +536,29 @@ def capture(
         path.write_bytes(data)
         files.append(path)
         total_bytes += len(data)
-        manifest["images"].append(
-            {
-                "index": index,
-                "path": name,
-                "source_url": item.url,
-                "caption": item.caption,
-                "origin": item.origin,
-                "bytes": len(data),
-                "width": width,
-                "height": height,
-                "sha256": hashlib.sha256(data).hexdigest(),
-            }
-        )
+        entry = {
+            "index": index,
+            "path": name,
+            "source_url": item.url,
+            "caption": item.caption,
+            "origin": item.origin,
+            "bytes": len(data),
+            "width": width,
+            "height": height,
+            "sha256": hashlib.sha256(data).hexdigest(),
+        }
+        if item.context:
+            entry["source_context"] = item.context
+        manifest["images"].append(entry)
+
+    if comment_error:
+        manifest["limitations"].append(comment_error)
+        warning_lines.append("PR image capture incomplete: {}".format(comment_error))
 
     if manifest["images"]:
-        manifest["status"] = "partial" if manifest["skipped"] else "ok"
+        manifest["status"] = (
+            "partial" if (manifest["skipped"] or manifest["limitations"]) else "ok"
+        )
     elif ordered:
         manifest["status"] = "error"
     if manifest["status"] == "error":
@@ -462,10 +570,20 @@ def capture(
 # ---------------------------------------------------------------------------
 # GitHub comments
 # ---------------------------------------------------------------------------
-def fetch_comments(repo: str, pr_number: Optional[int], token: str, timeout: float) -> list:
+def fetch_comments(
+    repo: str, pr_number: Optional[int], token: str, timeout: float
+) -> "tuple[list, Optional[str]]":
+    """Return ``(comments, error)``.
+
+    ``comments`` are the successfully collected comment images. ``error`` is a
+    short limitation token when pagination stopped early (HTTP error, timeout,
+    decode failure, or the page cap), so the caller can record that thread
+    images may be missing instead of reporting an unqualified success.
+    """
     if not repo or not pr_number:
-        return []
+        return [], None
     comments = []
+    error = None
     url = "https://api.github.com/repos/{}/issues/{}/comments?per_page=100".format(repo, pr_number)
     opener = urllib.request.build_opener()
     pages = 0
@@ -484,8 +602,10 @@ def fetch_comments(repo: str, pr_number: Optional[int], token: str, timeout: flo
                 payload = json.loads(response.read().decode("utf-8") or "[]")
                 link = response.headers.get("Link", "")
         except (urllib.error.URLError, TimeoutError, ValueError):
+            error = "comment-fetch-failed"
             break
         if not isinstance(payload, list):
+            error = "comment-payload-invalid"
             break
         for comment in payload:
             if not isinstance(comment, dict):
@@ -495,13 +615,20 @@ def fetch_comments(repo: str, pr_number: Optional[int], token: str, timeout: flo
                 continue
             body = comment.get("body") or ""
             identifier = comment.get("id", "unknown")
-            comments.extend(extract_media(body, "comment:{}".format(identifier)))
+            found = extract_media(body, "comment:{}".format(identifier))
+            context = _comment_context(body)
+            if context:
+                for media in found:
+                    media.context = context
+            comments.extend(found)
         next_url = ""
         for part in link.split(","):
             if 'rel="next"' in part:
                 next_url = part.split(";")[0].strip().strip("<>")
         url = next_url
-    return comments
+    if url and pages >= 5 and error is None:
+        error = "comment-pagination-truncated"
+    return comments, error
 
 
 # ---------------------------------------------------------------------------
@@ -561,6 +688,12 @@ def _self_test() -> int:
         b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\x0dIHDR" + struct.pack(">II", 10, 20) + b"\x00" * 5
     )[:3] == ("png", 10, 20))
     check("sniff: rejects text", sniff_image(b"not an image") is None)
+    check("workflow-safe escapes percent", _workflow_safe("a%b") == "a%25b")
+    check("workflow-safe escapes newline", _workflow_safe("a\nb") == "a%0Ab")
+    check(
+        "workflow-safe strips ansi control",
+        _workflow_safe("a\x1b[31mb") == "a[31mb",
+    )
 
     print("{} failure(s)".format(len(failures)))
     return 1 if failures else 0
@@ -597,8 +730,11 @@ def main(argv=None) -> int:
         comments_token = os.environ.get("REVIEW_TOKEN") or os.environ.get("GH_TOKEN") or ""
         limits = Limits.from_env()
         comments = []
+        comment_error = None
         if not args.no_comments:
-            comments = fetch_comments(args.repo, args.pr_number, comments_token, limits.timeout)
+            comments, comment_error = fetch_comments(
+                args.repo, args.pr_number, comments_token, limits.timeout
+            )
         result = capture(
             _read_body(args),
             comments,
@@ -608,9 +744,10 @@ def main(argv=None) -> int:
             repo=args.repo,
             pr_number=args.pr_number,
             head_sha=args.head_sha,
+            comment_error=comment_error,
         )
     except Exception as error:  # noqa: BLE001 - the review must not fail here
-        print("::warning::PR image capture failed: {}".format(error))
+        print("::warning::PR image capture failed: {}".format(_workflow_safe(error)))
         if args.strict:
             return 1
         return 0
@@ -622,9 +759,14 @@ def main(argv=None) -> int:
         )
     )
     for entry in manifest["skipped"]:
-        print("::notice::PR image skipped: {} ({})".format(_loggable(entry["url"]), entry["reason"]))
+        print(
+            "::notice::PR image skipped: {} ({})".format(
+                _workflow_safe(_loggable(entry["url"])),
+                _workflow_safe(entry["reason"]),
+            )
+        )
     for warning in result.warnings:
-        print("::warning::{}".format(warning))
+        print("::warning::{}".format(_workflow_safe(warning)))
     if args.strict and manifest["status"] == "error":
         return 1
     return 0

@@ -618,10 +618,14 @@ what is not on disk yet:
 
 When the image manifest exists, append its entries to the same file. The
 entry carries the `source_url` so a reviewer can find the image in the PR
-body and read the author's own framing around it. This lists paths, captions
-and URLs only; no image bytes pass through your output:
+body and read the author's own framing around it. Images captured from an
+issue comment also carry `source_context`, the sanitized text of the
+originating comment; that image's `source_url` is not in the PR body, so the
+reviewer reads the framing from `source_context` instead. This lists paths,
+captions, URLs and comment text only; no image bytes pass through your output:
 
 ```bash
+CONTEXT_FILE="${FULLSEND_OUTPUT_DIR:-/tmp}/context/shared.md"
 IMAGE_MANIFEST=/sandbox/workspace/odh-review/pr-images/manifest.json
 if [[ ! -f "${IMAGE_MANIFEST}" && -f /sandbox/workspace/odh-review/pr-images.json ]]; then
   IMAGE_MANIFEST=/sandbox/workspace/odh-review/pr-images.json
@@ -629,7 +633,7 @@ fi
 if [[ -f "${IMAGE_MANIFEST}" ]]; then
   printf '\n## Attached PR images\n\nHost-captured copies of images referenced by the PR body or thread. Each entry names the URL it was captured from and the caption, if any.\n\n' >> "${CONTEXT_FILE}"
   if [[ -f /sandbox/workspace/odh-review/pr-images/manifest.json ]]; then
-    jq -r '.images[]? | "- /sandbox/workspace/odh-review/pr-images/\(.path) — \(if (.caption // "") == "" then "no caption" else .caption end) [\(.origin)] — source: \(.source_url)"' "${IMAGE_MANIFEST}" >> "${CONTEXT_FILE}"
+    jq -r '.images[]? | "- /sandbox/workspace/odh-review/pr-images/\(.path) — \(if (.caption // "") == "" then "no caption" else .caption end) [\(.origin)] — source: \(.source_url)\(if (.source_context // "") == "" then "" else " — comment: " + .source_context end)"' "${IMAGE_MANIFEST}" >> "${CONTEXT_FILE}"
   else
     printf -- '- image files were not extracted into the sandbox; visual proof is unavailable\n' >> "${CONTEXT_FILE}"
   fi
@@ -1817,6 +1821,13 @@ Every non-failure result must include:
 - Signal members: each name in each selected `signal:*` row's `result_fields` that the row returned, or that the step 6g failure map defines. If the row omitted a name and the map does not define it, omit that member and record the gap in `inspected.could_not_verify`. Do not invent or re-derive levels in the orchestrator. The host may still floor signal levels after you write the file.
 - Section members: every name in each selected `section:*` row's `result_fields` (or the section named by `output` when `result_fields` is omitted), projected from `producers.json` `sections`. When that row was not run because its `context_file` was missing or the snapshot `status` was `none` / `error`, write the schema member as `{"status":"none"}` when the schema allows `status`.
 - `checks[]` from `check:*` returns in `producers.json` `checks` (top-level array, not nested under `producers`). Preserve `could-not-verify` rather than converting a check into a finding.
+- Image-verification limitations: when a `check:*` result states that image
+  or visual evidence could not be inspected (missing, unreadable, or unrelated
+  to the claim, e.g. a `Could not verify image evidence:` line), copy that
+  limitation verbatim into `inspected.could_not_verify`. The check's closed
+  `id`/`status`/`summary`/`details` contract has no dedicated field, so without
+  this copy the caveat stops at the check row and never reaches the review's
+  evidence-inspection record.
 - `todo`: array of `{category,text}` objects (preferred) or plain strings, synthesized in this final pass from the assembled report (not from one earlier section). The host renders them under sticky `## TODO` grouped by plain-text category labels. Recipe, in order, omit empties:
   1. `category: "findings"` — one bullet per finding that blocks or needs human judgment, pointing at its remediation (or file + description when remediation is absent).
   2. `category: "checks"` — one bullet per check whose `status` is `fail`, using that check's `summary`.

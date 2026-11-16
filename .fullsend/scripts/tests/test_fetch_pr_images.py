@@ -13,6 +13,7 @@ import struct
 import sys
 import tarfile
 import tempfile
+import time
 import unittest
 import unittest.mock
 import urllib.error
@@ -42,10 +43,21 @@ def png_bytes(width=10, height=20, payload=b""):
     )
 
 
-def gif_bytes(width=10, height=20, frames=1):
-    body = b"GIF89a" + struct.pack("<HH", width, height) + b"\x00\x00\x00"
-    body += b"\x00\x21\xf9\x04" * frames
-    return body + b";"
+def gif_bytes(width=10, height=20, frames=1, last_gct_byte=0xFF):
+    """Build a structurally valid GIF with ``frames`` image frames.
+
+    The logical-screen descriptor declares a two-entry global color table whose
+    final byte is ``last_gct_byte`` (nonzero by default). That byte sits
+    immediately before the first graphics-control extension, so a naive
+    ``\x00\x21\xf9\x04`` byte scan counts one fewer frame than actually
+    present -- the regression this fixture guards.
+    """
+    header = b"GIF89a" + struct.pack("<HH", width, height) + bytes([0x80, 0x00, 0x00])
+    gct = bytes([0, 0, 0, 0, 0, last_gct_byte & 0xFF])
+    gce = b"\x21\xf9\x04\x00\x00\x00\x00\x00"
+    descriptor = b"\x2c" + struct.pack("<HHHH", 0, 0, width, height) + b"\x00"
+    image_data = b"\x02" + b"\x02\x44\x01" + b"\x00"
+    return header + gct + (gce + descriptor + image_data) * frames + b";"
 
 
 def jpeg_bytes(width=10, height=20):
@@ -209,6 +221,15 @@ class SniffTests(unittest.TestCase):
     def test_animated_gif(self):
         self.assertTrue(images.sniff_image(gif_bytes(frames=2))[3])
 
+    def test_animated_gif_after_nonzero_color_table_byte(self):
+        # The first graphics-control extension follows the last (nonzero)
+        # global-color-table byte, so the old byte scan counted only one match
+        # and treated a two-frame animation as a still.
+        data = gif_bytes(frames=2, last_gct_byte=0xFF)
+        self.assertEqual(data.count(b"\x00\x21\xf9\x04"), 1)
+        self.assertEqual(images._gif_frame_count(data), 2)
+        self.assertTrue(images.sniff_image(data)[3])
+
     def test_webp(self):
         self.assertEqual(images.sniff_image(webp_bytes()), ("webp", 10, 20, False))
 
@@ -225,11 +246,14 @@ class CaptureTests(unittest.TestCase):
     def tearDown(self):
         self._temp.cleanup()
 
-    def capture(self, body, mapping=None, fails=(), limits=None, comments=()):
+    def capture(self, body, mapping=None, fails=(), limits=None, comments=(),
+                deadline=None, comment_error=None):
         mapping = mapping or {}
         failures = set(fails)
+        self.calls = []
 
         def fetch(url):
+            self.calls.append(url)
             if url in failures:
                 raise RuntimeError("http-404")
             return mapping.get(url, png_bytes())
@@ -243,6 +267,8 @@ class CaptureTests(unittest.TestCase):
             repo="o/r",
             pr_number=7,
             head_sha="a" * 40,
+            comment_error=comment_error,
+            deadline=deadline,
         )
 
     def test_success_writes_files_manifest_and_tarball(self):
@@ -331,11 +357,101 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(len(result.manifest["images"]), 12)
         self.assertEqual([e["reason"] for e in result.manifest["skipped"]], ["image-limit"] * 2)
 
+    def test_failed_attempts_consume_attempt_budget(self):
+        body = "".join("![s%d](%si%d)" % (i, ATTACHMENT, i) for i in range(5))
+        result = self.capture(
+            body,
+            fails=[ATTACHMENT + "i%d" % i for i in range(5)],
+            limits=images.Limits(max_attempts=2),
+        )
+        self.assertEqual(len(self.calls), 2)
+        reasons = [e["reason"] for e in result.manifest["skipped"]]
+        self.assertEqual(reasons[:2], ["http-404", "http-404"])
+        self.assertEqual(reasons[2:], ["attempt-limit"] * 3)
+
+    def test_unsupported_media_consumes_attempt_budget(self):
+        body = "".join("![s%d](%si%d)" % (i, ATTACHMENT, i) for i in range(3))
+        mapping = {ATTACHMENT + "i%d" % i: b"plain text" for i in range(3)}
+        result = self.capture(
+            body, mapping=mapping, limits=images.Limits(max_attempts=1)
+        )
+        self.assertEqual(len(self.calls), 1)
+        reasons = [e["reason"] for e in result.manifest["skipped"]]
+        self.assertEqual(reasons[0], "not-a-supported-image")
+        self.assertEqual(reasons[1:], ["attempt-limit"] * 2)
+
+    def test_byte_budget_stops_further_downloads(self):
+        body = "![a](%sa)![b](%sb)" % (ATTACHMENT, ATTACHMENT)
+        result = self.capture(
+            body, limits=images.Limits(max_total_bytes=len(png_bytes()))
+        )
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(
+            [e["reason"] for e in result.manifest["skipped"]], ["total-bytes-limit"]
+        )
+
+    def test_capture_deadline_stops_fetches(self):
+        result = self.capture(
+            "![a](%sa)![b](%sb)" % (ATTACHMENT, ATTACHMENT),
+            deadline=time.monotonic() - 1,
+        )
+        self.assertEqual(self.calls, [])
+        self.assertEqual(
+            [e["reason"] for e in result.manifest["skipped"]],
+            ["capture-deadline", "capture-deadline"],
+        )
+
+    def test_comment_fetch_limitation_is_recorded(self):
+        result = self.capture(
+            "![a](%sa)" % ATTACHMENT, comment_error="comment-fetch-failed"
+        )
+        self.assertIn("comment-fetch-failed", result.manifest["limitations"])
+        self.assertTrue(any("comment-fetch-failed" in w for w in result.warnings))
+        self.assertEqual(result.manifest["status"], "partial")
+
+    def test_comment_media_carries_source_context(self):
+        media = images.Media(ATTACHMENT + "c", "cap", "comment:9", "before state")
+        manifest = self.capture("", comments=[media]).manifest
+        self.assertEqual(manifest["images"][0]["source_context"], "before state")
+
     def test_empty_pr_writes_empty_manifest(self):
         result = self.capture("no images here")
         self.assertEqual(result.manifest["status"], "empty")
         manifest = json.loads((self.out / "pr-images" / "manifest.json").read_text())
         self.assertEqual(manifest["images"], [])
+
+
+class FetchCommentsTests(unittest.TestCase):
+    def test_error_is_reported_and_partial_result_kept(self):
+        opener = unittest.mock.MagicMock()
+        opener.open.side_effect = urllib.error.URLError("boom")
+        with unittest.mock.patch.object(
+            images.urllib.request, "build_opener", return_value=opener
+        ):
+            comments, error = images.fetch_comments("o/r", 7, "", 1.0)
+        self.assertEqual(comments, [])
+        self.assertEqual(error, "comment-fetch-failed")
+
+    def test_ok_returns_no_error_and_stages_comment_context(self):
+        body = "Before state, see ![x](%sc)" % ATTACHMENT
+        response = unittest.mock.MagicMock()
+        response.read.return_value = json.dumps(
+            [{"id": 1, "user": {"type": "User"}, "body": body}]
+        ).encode("utf-8")
+        response.headers = {"Link": ""}
+        context_manager = unittest.mock.MagicMock()
+        context_manager.__enter__.return_value = response
+        context_manager.__exit__.return_value = False
+        opener = unittest.mock.MagicMock()
+        opener.open.return_value = context_manager
+        with unittest.mock.patch.object(
+            images.urllib.request, "build_opener", return_value=opener
+        ):
+            comments, error = images.fetch_comments("o/r", 7, "", 1.0)
+        self.assertIsNone(error)
+        self.assertEqual(len(comments), 1)
+        self.assertEqual(comments[0].origin, "comment:1")
+        self.assertEqual(comments[0].context, body)
 
 
 class MainLoggingTests(unittest.TestCase):
@@ -358,6 +474,25 @@ class MainLoggingTests(unittest.TestCase):
             self.assertNotIn("SECRETSIGNEDTOKEN", logged)
             manifest = json.loads((Path(out) / "pr-images.json").read_text())
             self.assertEqual(manifest["skipped"][0]["url"], signed)
+
+    def test_workflow_safe_strips_control_and_escapes(self):
+        self.assertEqual(
+            images._workflow_safe("a%b\r\nc\x1b[0m"), "a%25b%0D%0Ac[0m"
+        )
+
+    def test_skipped_notice_escapes_injection(self):
+        with tempfile.TemporaryDirectory() as out:
+            buffer = io.StringIO()
+            with unittest.mock.patch.object(
+                images, "fetch_media", side_effect=RuntimeError("boom\n::error::pwned%")
+            ), contextlib.redirect_stdout(buffer):
+                rc = images.main(
+                    ["--body", "![x](%sx)" % ATTACHMENT, "--out-dir", out, "--no-comments"]
+                )
+            logged = buffer.getvalue()
+        self.assertEqual(rc, 0)
+        self.assertNotIn("\n::error::pwned", logged)
+        self.assertIn("%0A::error::pwned%25", logged)
 
 
 if __name__ == "__main__":
