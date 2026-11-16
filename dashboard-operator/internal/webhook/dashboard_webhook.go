@@ -81,15 +81,22 @@ func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map
 		previousValue = previous.Labels[v1alpha1.NamespacedRBACOptInLabel]
 	}
 
-	if previousValue == current.Labels[v1alpha1.NamespacedRBACOptInLabel] {
+	currentValue := current.Labels[v1alpha1.NamespacedRBACOptInLabel]
+	if previousValue == currentValue {
 		return admission.Allowed("")
+	}
+	// Revocation is always safe: anyone already authorized by Kubernetes to
+	// update the Namespace may remove consent. Only granting consent is reserved
+	// for the trusted platform writers.
+	if currentValue != "true" {
+		return admission.Allowed("namespaced RBAC consent revoked")
 	}
 	if _, allowed := allowedWriters[req.UserInfo.Username]; allowed {
 		return admission.Allowed("")
 	}
 
 	return admission.Denied(fmt.Sprintf(
-		"user %q may not change namespace label %s; it is managed by the ODH orchestrator",
+		"user %q may not grant namespace consent with label %s; it is managed by the ODH orchestrator",
 		req.UserInfo.Username,
 		v1alpha1.NamespacedRBACOptInLabel,
 	))

@@ -290,11 +290,12 @@ func TestDashboardHandler_ProtectsNamespaceOptInLabel(t *testing.T) {
 			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
 		},
 		{
-			name:      "deny untrusted writer removing consent",
+			name:      "allow namespace administrator removing consent",
 			operation: admissionv1.Update,
 			username:  "alice",
 			oldRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
 			newRaw:    namespaceRaw(t, nil),
+			allowed:   true,
 		},
 		{
 			name:      "allow orchestrator changing consent",

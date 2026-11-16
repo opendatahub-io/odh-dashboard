@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -26,7 +27,8 @@ const (
 	dashboardSANameODH   = "odh-dashboard"
 	dashboardSANameRHOAI = "rhods-dashboard"
 
-	namespacedRBACManagedLabel = "dashboard.opendatahub.io/namespaced-rbac"
+	namespacedRBACManagedLabel        = "dashboard.opendatahub.io/namespaced-rbac"
+	namespacedRBACInventoryAnnotation = "dashboard.opendatahub.io/namespaced-rbac-grants"
 )
 
 // dashboardSAName returns the dashboard ServiceAccount name for the given platform.
@@ -43,6 +45,10 @@ func dashboardSAName(platform cluster.Platform) string {
 // for the dashboard SA in the notebooks and model-registry namespaces, then GCs
 // any resources left over in namespaces that are no longer in the desired set.
 func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+	if err := r.ensureNamespacedRBACGrantInventory(ctx, dashboard); err != nil {
+		return err
+	}
+
 	saName := dashboardSAName(r.Platform)
 	saNamespace := r.ApplicationsNamespace
 
@@ -50,30 +56,14 @@ func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashb
 	var errs []error
 
 	if ns := dashboard.Spec.NotebooksNamespace; ns != "" {
-		if err := r.validateNamespacedRBACTarget(ctx, ns); err != nil {
+		if err := r.reconcileNamespacedRBACGrant(ctx, dashboard, desired, saName, saNamespace, ns, "notebooks", notebooksRBACRules()); err != nil {
 			errs = append(errs, fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err))
-		} else {
-			key := namespacedRBACKey(ns, "notebooks")
-			desired[key] = true
-			if err := r.recordNamespacedRBACGrant(ctx, dashboard, key); err != nil {
-				errs = append(errs, fmt.Errorf("recording notebooks namespace RBAC in %s: %w", ns, err))
-			} else if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "notebooks", notebooksRBACRules()); err != nil {
-				errs = append(errs, fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err))
-			}
 		}
 	}
 
 	if ns := dashboard.Spec.ModelRegistryNamespace; ns != "" {
-		if err := r.validateNamespacedRBACTarget(ctx, ns); err != nil {
+		if err := r.reconcileNamespacedRBACGrant(ctx, dashboard, desired, saName, saNamespace, ns, "model-registry", modelRegistryRBACRules()); err != nil {
 			errs = append(errs, fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err))
-		} else {
-			key := namespacedRBACKey(ns, "model-registry")
-			desired[key] = true
-			if err := r.recordNamespacedRBACGrant(ctx, dashboard, key); err != nil {
-				errs = append(errs, fmt.Errorf("recording model-registry namespace RBAC in %s: %w", ns, err))
-			} else if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "model-registry", modelRegistryRBACRules()); err != nil {
-				errs = append(errs, fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err))
-			}
 		}
 	}
 
@@ -86,12 +76,30 @@ func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashb
 	return errors.Join(errs...)
 }
 
+func (r *DashboardReconciler) reconcileNamespacedRBACGrant(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	desired map[string]bool,
+	saName, saNamespace, namespace, suffix string,
+	rules []rbacv1.PolicyRule,
+) error {
+	if r.NamespacedRBACAdmissionEnabled {
+		if err := r.validateNamespacedRBACTarget(ctx, namespace); err != nil {
+			return err
+		}
+	}
+
+	key := namespacedRBACKey(namespace, suffix)
+	desired[key] = true
+	if err := r.recordNamespacedRBACGrant(ctx, dashboard, key); err != nil {
+		return fmt.Errorf("recording grant: %w", err)
+	}
+	return r.applyNamespacedRBAC(ctx, saName, saNamespace, namespace, suffix, rules)
+}
+
 // validateNamespacedRBACTarget requires explicit consent from the target
 // namespace before the dashboard service account receives access there.
 func (r *DashboardReconciler) validateNamespacedRBACTarget(ctx context.Context, namespace string) error {
-	if !r.NamespacedRBACAdmissionEnabled {
-		return errors.New("namespaced RBAC requires the validating webhook and at least one trusted writer")
-	}
 	target := &corev1.Namespace{}
 	if err := r.apiReader().Get(ctx, client.ObjectKey{Name: namespace}, target); err != nil {
 		return fmt.Errorf("getting target namespace: %w", err)
@@ -102,11 +110,15 @@ func (r *DashboardReconciler) validateNamespacedRBACTarget(ctx context.Context, 
 	return nil
 }
 
-// cleanupNamespacedRBAC deletes all cross-namespace Roles and RoleBindings previously
-// recorded by reconcileNamespacedRBAC. The status inventory keeps stale resources
-// discoverable even when namespace fields or recipient-controlled metadata change.
+// cleanupNamespacedRBAC deletes all cross-namespace Roles and RoleBindings
+// previously recorded by reconcileNamespacedRBAC. The Dashboard annotation
+// inventory keeps stale resources discoverable even when namespace fields or
+// recipient-controlled metadata change.
 // Called on Dashboard deletion and ManagementState=Removed.
 func (r *DashboardReconciler) cleanupNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+	if err := r.ensureNamespacedRBACGrantInventory(ctx, dashboard); err != nil {
+		return err
+	}
 	return r.gcStaleNamespacedRBAC(ctx, dashboard, map[string]bool{})
 }
 
@@ -121,26 +133,132 @@ func splitNamespacedRBACKey(key string) (string, string, bool) {
 	return namespace, suffix, found && namespace != "" && (suffix == "notebooks" || suffix == "model-registry")
 }
 
-func (r *DashboardReconciler) recordNamespacedRBACGrant(ctx context.Context, dashboard *v1alpha1.Dashboard, key string) error {
-	for _, existing := range dashboard.Status.NamespacedRBACGrants {
-		if existing == key {
-			return nil
-		}
+func namespacedRBACGrantInventory(dashboard *v1alpha1.Dashboard) (map[string]bool, error) {
+	inventory := map[string]bool{}
+	raw := dashboard.Annotations[namespacedRBACInventoryAnnotation]
+	if raw == "" {
+		return inventory, nil
 	}
 
-	previous := append([]string(nil), dashboard.Status.NamespacedRBACGrants...)
-	dashboard.Status.NamespacedRBACGrants = append(dashboard.Status.NamespacedRBACGrants, key)
-	sort.Strings(dashboard.Status.NamespacedRBACGrants)
+	var keys []string
+	if err := json.Unmarshal([]byte(raw), &keys); err != nil {
+		return nil, fmt.Errorf("parsing namespaced RBAC grant inventory: %w", err)
+	}
+	for _, key := range keys {
+		if _, _, valid := splitNamespacedRBACKey(key); !valid {
+			return nil, fmt.Errorf("invalid namespaced RBAC grant inventory key %q", key)
+		}
+		inventory[key] = true
+	}
+	return inventory, nil
+}
+
+func (r *DashboardReconciler) setNamespacedRBACGrantInventory(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	inventory map[string]bool,
+) error {
+	keys := make([]string, 0, len(inventory))
+	for key := range inventory {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	encoded, err := json.Marshal(keys)
+	if err != nil {
+		return fmt.Errorf("encoding namespaced RBAC grant inventory: %w", err)
+	}
+	raw := string(encoded)
+	current, recorded := dashboard.Annotations[namespacedRBACInventoryAnnotation]
+	if recorded && current == raw {
+		return nil
+	}
+
 	// Unsaved objects are used by focused unit tests. Real API objects always
 	// have a UID and must persist inventory before any privilege is created.
 	if dashboard.UID == "" {
+		if dashboard.Annotations == nil {
+			dashboard.Annotations = map[string]string{}
+		}
+		dashboard.Annotations[namespacedRBACInventoryAnnotation] = raw
 		return nil
 	}
-	if err := r.Status().Update(ctx, dashboard); err != nil {
-		dashboard.Status.NamespacedRBACGrants = previous
+
+	// Patch a copy so decoding the API response cannot overwrite spec or status
+	// values calculated earlier in this reconcile. Only metadata and the new
+	// resourceVersion are merged back into the active object.
+	before := dashboard.DeepCopy()
+	updated := dashboard.DeepCopy()
+	if updated.Annotations == nil {
+		updated.Annotations = map[string]string{}
+	}
+	updated.Annotations[namespacedRBACInventoryAnnotation] = raw
+	if err := r.Patch(ctx, updated, client.MergeFrom(before)); err != nil {
 		return fmt.Errorf("persisting namespaced RBAC grant inventory: %w", err)
 	}
+	dashboard.Annotations = updated.Annotations
+	dashboard.ResourceVersion = updated.ResourceVersion
 	return nil
+}
+
+// ensureNamespacedRBACGrantInventory performs one label-selected migration for
+// grants created before the durable inventory existed. Persisting even an empty
+// JSON array is the migration marker, so steady-state reconciles never sweep
+// Roles or RoleBindings cluster-wide.
+func (r *DashboardReconciler) ensureNamespacedRBACGrantInventory(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+	if _, recorded := dashboard.Annotations[namespacedRBACInventoryAnnotation]; recorded {
+		_, err := namespacedRBACGrantInventory(dashboard)
+		return err
+	}
+
+	inventory := map[string]bool{}
+	// Current spec targets are already controller-owned identities, even if a
+	// recipient stripped the labels from resources created by an older version.
+	if dashboard.Spec.NotebooksNamespace != "" {
+		inventory[namespacedRBACKey(dashboard.Spec.NotebooksNamespace, "notebooks")] = true
+	}
+	if dashboard.Spec.ModelRegistryNamespace != "" {
+		inventory[namespacedRBACKey(dashboard.Spec.ModelRegistryNamespace, "model-registry")] = true
+	}
+	matchLabels := client.MatchingLabels{
+		namespacedRBACManagedLabel: "true",
+		labels.PlatformPartOf:      strings.ToLower(v1alpha1.DashboardKind),
+	}
+	var roles rbacv1.RoleList
+	if err := r.apiReader().List(ctx, &roles, matchLabels); err != nil {
+		return fmt.Errorf("discovering legacy namespaced RBAC Roles: %w", err)
+	}
+	for i := range roles.Items {
+		role := &roles.Items[i]
+		if suffix, reserved := managedRoleSuffix(role.Name); reserved {
+			inventory[namespacedRBACKey(role.Namespace, suffix)] = true
+		}
+	}
+
+	var bindings rbacv1.RoleBindingList
+	if err := r.apiReader().List(ctx, &bindings, matchLabels); err != nil {
+		return fmt.Errorf("discovering legacy namespaced RBAC RoleBindings: %w", err)
+	}
+	for i := range bindings.Items {
+		binding := &bindings.Items[i]
+		if suffix, reserved := managedRoleBindingSuffix(binding.Name); reserved {
+			inventory[namespacedRBACKey(binding.Namespace, suffix)] = true
+		}
+	}
+
+	return r.setNamespacedRBACGrantInventory(ctx, dashboard, inventory)
+}
+
+func (r *DashboardReconciler) recordNamespacedRBACGrant(ctx context.Context, dashboard *v1alpha1.Dashboard, key string) error {
+	inventory, err := namespacedRBACGrantInventory(dashboard)
+	if err != nil {
+		return err
+	}
+	if inventory[key] {
+		return nil
+	}
+	inventory[key] = true
+	return r.setNamespacedRBACGrantInventory(ctx, dashboard, inventory)
 }
 
 // gcStaleNamespacedRBAC removes managed Roles and RoleBindings whose (namespace, name)
@@ -153,40 +271,9 @@ func (r *DashboardReconciler) gcStaleNamespacedRBAC(
 ) error {
 	logger := log.FromContext(ctx)
 	var errs []error
-	known := map[string]bool{}
-	for _, key := range dashboard.Status.NamespacedRBACGrants {
-		if _, _, valid := splitNamespacedRBACKey(key); valid {
-			known[key] = true
-		}
-	}
-
-	// Read directly without a label selector so the dashboard recipient cannot
-	// hide a grant from the manager's label-scoped cache by removing mutable
-	// discovery labels.
-	var rbList rbacv1.RoleBindingList
-	if err := r.apiReader().List(ctx, &rbList); err != nil {
-		return fmt.Errorf("listing namespaced RBAC RoleBindings for GC: %w", err)
-	}
-	var roleList rbacv1.RoleList
-	if err := r.apiReader().List(ctx, &roleList); err != nil {
-		return fmt.Errorf("listing namespaced RBAC Roles for GC: %w", err)
-	}
-
-	// Migrate pre-inventory grants from their canonical names or labels. Once
-	// recorded in status, discovery no longer depends on recipient-owned objects.
-	for i := range roleList.Items {
-		role := &roleList.Items[i]
-		suffix, reservedName := managedRoleSuffix(role.Name)
-		if reservedName && hasNamespacedRBACManagedLabels(role.Labels) {
-			known[namespacedRBACKey(role.Namespace, suffix)] = true
-		}
-	}
-	for i := range rbList.Items {
-		rb := &rbList.Items[i]
-		suffix, reservedName := managedRoleBindingSuffix(rb.Name)
-		if reservedName && (hasNamespacedRBACManagedLabels(rb.Labels) || roleBindingUsesManagedRole(rb, suffix)) {
-			known[namespacedRBACKey(rb.Namespace, suffix)] = true
-		}
+	known, err := namespacedRBACGrantInventory(dashboard)
+	if err != nil {
+		return err
 	}
 
 	staleKeys := make([]string, 0, len(known))
@@ -225,18 +312,19 @@ func (r *DashboardReconciler) gcStaleNamespacedRBAC(
 			errs = append(errs, fmt.Errorf("getting stale Role %s/%s: %w", namespace, roleName, err))
 		}
 
-		for i := range rbList.Items {
-			rb := &rbList.Items[i]
-			reservedSuffix, reservedName := managedRoleBindingSuffix(rb.Name)
-			referencesRole := rb.Namespace == namespace && rb.RoleRef.APIGroup == rbacv1.GroupName &&
-				rb.RoleRef.Kind == "Role" && rb.RoleRef.Name == roleName
-			reservedBinding := rb.Namespace == namespace && reservedName && reservedSuffix == suffix
-			if !referencesRole && !reservedBinding {
-				continue
-			}
-			logger.Info("GC stale namespaced RBAC RoleBinding", "name", rb.Name, "namespace", rb.Namespace)
-			if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
-				errs = append(errs, fmt.Errorf("deleting stale RoleBinding %s/%s: %w", rb.Namespace, rb.Name, err))
+		var bindings rbacv1.RoleBindingList
+		if err := r.apiReader().List(ctx, &bindings, client.InNamespace(namespace)); err != nil {
+			errs = append(errs, fmt.Errorf("listing stale RoleBindings in %s: %w", namespace, err))
+		} else {
+			for i := range bindings.Items {
+				rb := &bindings.Items[i]
+				if !roleBindingBelongsToGrant(rb, suffix) {
+					continue
+				}
+				logger.Info("GC stale namespaced RBAC RoleBinding", "name", rb.Name, "namespace", rb.Namespace)
+				if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
+					errs = append(errs, fmt.Errorf("deleting stale RoleBinding %s/%s: %w", rb.Namespace, rb.Name, err))
+				}
 			}
 		}
 
@@ -246,25 +334,10 @@ func (r *DashboardReconciler) gcStaleNamespacedRBAC(
 				errs = append(errs, fmt.Errorf("deleting stale Role %s/%s: %w", namespace, roleName, err))
 			}
 		}
-	}
 
-	// Confirm cleanup from a fresh API-server snapshot. Inventory is retained
-	// until both the Role and every binding to it are gone, so retries remain safe.
-	var remainingBindings rbacv1.RoleBindingList
-	if err := r.apiReader().List(ctx, &remainingBindings); err != nil {
-		errs = append(errs, fmt.Errorf("confirming namespaced RBAC RoleBinding cleanup: %w", err))
-		remainingBindings.Items = rbList.Items
-	}
-	remainingKeys := map[string]bool{}
-	for key := range known {
-		remainingKeys[key] = true
-	}
-	for _, key := range staleKeys {
-		namespace, suffix, _ := splitNamespacedRBACKey(key)
-		roleName := fmt.Sprintf("dashboard-%s-role", suffix)
 		roleGone := false
 		remainingRole := &rbacv1.Role{}
-		if err := r.apiReader().Get(ctx, client.ObjectKey{Namespace: namespace, Name: roleName}, remainingRole); k8serrors.IsNotFound(err) {
+		if err := r.apiReader().Get(ctx, roleKey, remainingRole); k8serrors.IsNotFound(err) {
 			roleGone = true
 		} else if err != nil {
 			errs = append(errs, fmt.Errorf("confirming stale Role %s/%s cleanup: %w", namespace, roleName, err))
@@ -277,32 +350,34 @@ func (r *DashboardReconciler) gcStaleNamespacedRBAC(
 		}
 
 		bindingGone := true
-		for i := range remainingBindings.Items {
-			rb := &remainingBindings.Items[i]
-			reservedSuffix, reservedName := managedRoleBindingSuffix(rb.Name)
-			if rb.Namespace == namespace && ((rb.RoleRef.APIGroup == rbacv1.GroupName && rb.RoleRef.Kind == "Role" && rb.RoleRef.Name == roleName) ||
-				(reservedName && reservedSuffix == suffix)) {
-				bindingGone = false
-				break
+		var remainingBindings rbacv1.RoleBindingList
+		if err := r.apiReader().List(ctx, &remainingBindings, client.InNamespace(namespace)); err != nil {
+			errs = append(errs, fmt.Errorf("confirming stale RoleBinding cleanup in %s: %w", namespace, err))
+			bindingGone = false
+		} else {
+			for i := range remainingBindings.Items {
+				if roleBindingBelongsToGrant(&remainingBindings.Items[i], suffix) {
+					bindingGone = false
+					break
+				}
 			}
 		}
 		if roleGone && bindingGone {
-			delete(remainingKeys, key)
+			delete(known, key)
 		}
 	}
 
-	dashboard.Status.NamespacedRBACGrants = dashboard.Status.NamespacedRBACGrants[:0]
-	for key := range remainingKeys {
-		dashboard.Status.NamespacedRBACGrants = append(dashboard.Status.NamespacedRBACGrants, key)
+	if err := r.setNamespacedRBACGrantInventory(ctx, dashboard, known); err != nil {
+		errs = append(errs, err)
 	}
-	sort.Strings(dashboard.Status.NamespacedRBACGrants)
 
 	return errors.Join(errs...)
 }
 
-func hasNamespacedRBACManagedLabels(resourceLabels map[string]string) bool {
-	return resourceLabels[namespacedRBACManagedLabel] == "true" &&
-		resourceLabels[labels.PlatformPartOf] == strings.ToLower(v1alpha1.DashboardKind)
+func roleBindingBelongsToGrant(rb *rbacv1.RoleBinding, suffix string) bool {
+	reservedSuffix, reservedName := managedRoleBindingSuffix(rb.Name)
+	return roleBindingUsesManagedRole(rb, suffix) ||
+		(reservedName && reservedSuffix == suffix)
 }
 
 func managedRoleSuffix(name string) (string, bool) {

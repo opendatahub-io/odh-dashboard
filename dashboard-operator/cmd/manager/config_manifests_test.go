@@ -245,10 +245,14 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 		admissionregistrationv1.Update,
 	}, namespaceRule.Operations)
 	assert.Equal(t, []string{""}, namespaceRule.APIGroups)
-	assert.ElementsMatch(t, []string{"namespaces", "namespaces/status", "namespaces/finalize"}, namespaceRule.Resources)
-	require.Len(t, vwc.Webhooks[0].MatchConditions, 1)
-	assert.Equal(t, "namespaced-rbac-consent-label-changed", vwc.Webhooks[0].MatchConditions[0].Name)
-	assert.Contains(t, vwc.Webhooks[0].MatchConditions[0].Expression,
+	assert.Equal(t, []string{"namespaces"}, namespaceRule.Resources)
+	require.Len(t, vwc.Webhooks[0].MatchConditions, 2)
+	assert.Equal(t, "namespaced-rbac-target-fields-changed", vwc.Webhooks[0].MatchConditions[0].Name)
+	assert.Contains(t, vwc.Webhooks[0].MatchConditions[0].Expression, "oldObject == null")
+	assert.Contains(t, vwc.Webhooks[0].MatchConditions[0].Expression, "object.?spec.notebooksNamespace.orValue('')")
+	assert.Equal(t, "namespaced-rbac-consent-label-changed", vwc.Webhooks[0].MatchConditions[1].Name)
+	assert.Contains(t, vwc.Webhooks[0].MatchConditions[1].Expression, "oldObject == null")
+	assert.Contains(t, vwc.Webhooks[0].MatchConditions[1].Expression,
 		"object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('')")
 	ref := vwc.Webhooks[0].ClientConfig.Service
 	require.NotNil(t, ref, "webhook must call an in-cluster Service")

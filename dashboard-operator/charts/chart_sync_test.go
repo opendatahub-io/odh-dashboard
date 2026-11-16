@@ -76,6 +76,7 @@ func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
 			"--set", "namePrefix=",
 			"--set", "webhook.enabled=true",
 			"--set", "webhook.certManager.enabled=true",
+			"--set", "webhook.enforceNamespacedRBACConsent=true",
 			"--set", "webhook.namespacedRBACWriters[0]=system:serviceaccount:opendatahub:operator",
 		)
 		if err != nil {
@@ -100,15 +101,31 @@ func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
 		if !strings.Contains(output, "--namespaced-rbac-writers=system:serviceaccount:opendatahub:operator") {
 			t.Fatal("expected rendered manager args to include namespaced RBAC writer identity")
 		}
+		if !strings.Contains(output, "--enforce-namespaced-rbac-consent") {
+			t.Fatal("expected rendered manager args to enable namespaced RBAC consent enforcement")
+		}
 		if !strings.Contains(output, "- CREATE\n          - UPDATE") {
 			t.Fatal("expected webhook to validate both CREATE and UPDATE operations")
 		}
-		if !strings.Contains(output, "- CREATE\n          - UPDATE\n        resources:\n          - namespaces\n          - namespaces/status\n          - namespaces/finalize") {
+		if !strings.Contains(output, "- CREATE\n          - UPDATE\n        resources:\n          - namespaces") {
 			t.Fatal("expected webhook to protect namespace consent-label creates and updates")
 		}
-		if !strings.Contains(output, "name: namespaced-rbac-consent-label-changed") ||
+		if !strings.Contains(output, "name: namespaced-rbac-target-fields-changed") ||
+			!strings.Contains(output, "object.?spec.notebooksNamespace.orValue('')") ||
+			!strings.Contains(output, "name: namespaced-rbac-consent-label-changed") ||
+			!strings.Contains(output, "oldObject == null") ||
 			!strings.Contains(output, "object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('')") {
-			t.Fatal("expected webhook to filter unrelated namespace updates in the API server")
+			t.Fatal("expected webhook to filter unrelated Dashboard and namespace updates in the API server")
+		}
+	})
+
+	t.Run("consent enforcement rejects incomplete webhook configuration", func(t *testing.T) {
+		_, err := renderChartTemplate(
+			chartDir,
+			"--set", "webhook.enforceNamespacedRBACConsent=true",
+		)
+		if err == nil {
+			t.Fatalf("expected enforcement configuration error, got %v", err)
 		}
 	})
 

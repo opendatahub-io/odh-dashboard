@@ -416,6 +416,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			Message:  rbacErr.Error(),
 		})
 		err = errors.Join(err, rbacErr)
+	} else if !r.NamespacedRBACAdmissionEnabled &&
+		(dashboard.Spec.NotebooksNamespace != "" || dashboard.Spec.ModelRegistryNamespace != "") {
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACConsentNotEnforced"),
+			conditions.WithMessage("Namespaced RBAC uses legacy grants until the platform enables consent enforcement"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
 	}
 
 	releases := []common.ComponentRelease{{

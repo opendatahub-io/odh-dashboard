@@ -470,6 +470,42 @@ func TestReconcile(t *testing.T) {
 	}
 }
 
+func TestReconcile_LegacyNamespacedRBACReportsInformationalDegradedCondition(t *testing.T) {
+	scheme := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Generation: 1,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{NotebooksNamespace: testNamespace},
+	}
+	cli := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(dashboard, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}, admittedRoute(testNamespace)).
+		WithStatusSubresource(dashboard).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		APIReader:             cli,
+		Scheme:                scheme,
+		ManifestsBasePath:     createMinimalManifests(t),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.NoError(t, err)
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	degraded := conditions.FindStatusCondition(updated, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
+	assert.Equal(t, "NamespacedRBACConsentNotEnforced", degraded.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, degraded.Severity)
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Namespace: testNamespace, Name: "dashboard-notebooks-role"}, &rbacv1.Role{}))
+}
+
 func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	scheme := testScheme(t)
 	manifests := t.TempDir()

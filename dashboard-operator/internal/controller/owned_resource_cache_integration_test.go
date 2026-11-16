@@ -175,7 +175,7 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	}
 	require.NoError(t, reconciler.ReconcileNamespacedRBAC(ctx, dashboard))
 	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(dashboard), dashboard))
-	require.Equal(t, []string{externalNamespace + "/notebooks"}, dashboard.Status.NamespacedRBACGrants)
+	require.Equal(t, []string{externalNamespace + "/notebooks"}, namespacedRBACGrantInventory(t, dashboard))
 	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(driftedRole), driftedRole))
 	assert.Equal(t, "dashboard", driftedRole.Labels[platformlabels.PlatformPartOf])
 	assert.Equal(t, "true", driftedRole.Labels["dashboard.opendatahub.io/namespaced-rbac"])
@@ -214,7 +214,7 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	assert.True(t, apierrors.IsNotFound(directClient.Get(ctx, client.ObjectKeyFromObject(driftedRoleBinding), &rbacv1.RoleBinding{})))
 	assert.True(t, apierrors.IsNotFound(directClient.Get(ctx, client.ObjectKeyFromObject(replacementBinding), &rbacv1.RoleBinding{})))
 	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(dashboard), dashboard))
-	require.Equal(t, []string{externalNamespace + "/notebooks"}, dashboard.Status.NamespacedRBACGrants)
+	require.Equal(t, []string{externalNamespace + "/notebooks"}, namespacedRBACGrantInventory(t, dashboard))
 
 	driftedRole.Finalizers = nil
 	require.NoError(t, directClient.Update(ctx, driftedRole))
@@ -223,7 +223,7 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond)
 	err = reconciler.ReconcileNamespacedRBAC(ctx, dashboard)
 	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
-	assert.Empty(t, dashboard.Status.NamespacedRBACGrants)
+	assert.Empty(t, namespacedRBACGrantInventory(t, dashboard))
 }
 
 // TestIntegration_ManagerCacheWatchesMetadataOnly proves that the GVKs converted

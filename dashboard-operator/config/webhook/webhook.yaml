@@ -32,12 +32,17 @@ webhooks:
           - UPDATE
         resources:
           - namespaces
-          - namespaces/status
-          - namespaces/finalize
     matchConditions:
+      - name: namespaced-rbac-target-fields-changed
+        expression: >-
+          request.resource.resource != 'dashboards' ||
+          oldObject == null ||
+          object.?spec.notebooksNamespace.orValue('') != oldObject.?spec.notebooksNamespace.orValue('') ||
+          object.?spec.modelRegistryNamespace.orValue('') != oldObject.?spec.modelRegistryNamespace.orValue('')
       - name: namespaced-rbac-consent-label-changed
         expression: >-
           request.resource.resource != 'namespaces' ||
+          oldObject == null ||
           object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('') !=
           oldObject.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('')
     sideEffects: None

@@ -50,6 +50,7 @@ func main() {
 		enableWebhook         bool
 		webhookPort           int
 		namespacedRBACWriters string
+		enforceRBACConsent    bool
 	)
 
 	flag.StringVar(&manifestsBasePath, "manifests-base-path", "/opt/manifests/dashboard", "Base path for dashboard manifests")
@@ -61,6 +62,7 @@ func main() {
 	flag.BoolVar(&enableWebhook, "enable-webhook", false, "Enable the validating webhook server (requires TLS certs)")
 	flag.IntVar(&webhookPort, "webhook-port", 9443, "Port the webhook server binds to")
 	flag.StringVar(&namespacedRBACWriters, "namespaced-rbac-writers", "", "Comma-separated usernames allowed to set namespaced RBAC target fields")
+	flag.BoolVar(&enforceRBACConsent, "enforce-namespaced-rbac-consent", false, "Require explicit target namespace consent before granting namespaced RBAC")
 
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
@@ -74,6 +76,10 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	setupLog := ctrl.Log.WithName("setup")
+	if enforceRBACConsent && (!enableWebhook || len(writers) == 0) {
+		setupLog.Error(fmt.Errorf("consent enforcement requires the webhook and at least one trusted writer"), "invalid namespaced RBAC configuration")
+		os.Exit(1)
+	}
 
 	if operatorNamespace == "" {
 		operatorNamespace = os.Getenv("OPERATOR_NAMESPACE")
@@ -140,7 +146,7 @@ func main() {
 		Platform:                       platform,
 		Namespace:                      operatorNamespace,
 		ApplicationsNamespace:          applicationsNamespace,
-		NamespacedRBACAdmissionEnabled: enableWebhook && len(writers) > 0,
+		NamespacedRBACAdmissionEnabled: enforceRBACConsent,
 	}); err != nil {
 		setupLog.Error(err, "unable to create Dashboard controller")
 		os.Exit(1)

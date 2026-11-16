@@ -416,9 +416,11 @@ The ValidatingWebhookConfiguration uses cert-manager's `inject-ca-from` annotati
 
 #### Namespaced RBAC authorization
 
-The Dashboard service account only receives cross-namespace Roles and
-RoleBindings when all of these conditions are true:
+When consent enforcement is enabled, the Dashboard service account only
+receives cross-namespace Roles and RoleBindings when all of these conditions
+are true:
 
+- `webhook.enforceNamespacedRBACConsent` is `true`;
 - the validating webhook is enabled;
 - `webhook.namespacedRBACWriters` contains at least one exact Kubernetes username;
 - the target namespace has
@@ -426,27 +428,34 @@ RoleBindings when all of these conditions are true:
 - the orchestrator sets `spec.notebooksNamespace` or
   `spec.modelRegistryNamespace` on the singleton Dashboard CR.
 
-The webhook protects both target fields and the namespace consent label. Only
-the exact usernames in `webhook.namespacedRBACWriters` may create a namespace
-with that label or change the label later. API-server match conditions skip the
-webhook for unrelated namespace updates, so normal namespace administration
-does not depend on Dashboard operator availability. This prevents the Dashboard
-service account, even though it can patch other namespace metadata, from
-granting itself access.
+The webhook protects both target fields and consent grants. Only the exact
+usernames in `webhook.namespacedRBACWriters` may set the namespace label to
+`true`; anyone already authorized by Kubernetes to update the namespace may
+remove it and revoke consent. API-server match conditions skip the webhook for
+unrelated Dashboard and namespace updates. This prevents the Dashboard service
+account, even though it can patch other namespace metadata, from granting
+itself access without making normal updates depend on webhook availability.
 
 Removing the consent label causes the controller to revoke the managed Role and
 RoleBinding before other deployment, removal, or finalizer work runs. Revocation
-uses an operator-owned inventory in Dashboard status, so changing subjects,
-stripping mutable labels, replacing the reserved RoleBinding, or changing its
-name cannot hide an active grant from cleanup. The controller first empties the
-Role rules, then removes every RoleBinding that references the reserved Role and
-deletes the Role. It retains the inventory entry and reports a NotReady condition
-until deletion is confirmed, including when a finalizer delays Role deletion.
+uses an operator-owned inventory annotation on the singleton Dashboard, so
+changing subjects, stripping mutable labels, replacing the reserved
+RoleBinding, or changing its name cannot hide an active grant from cleanup. A
+one-time label-selected migration records grants made by older versions; normal
+reconciliation then uses direct Role reads and namespace-scoped RoleBinding
+lists. The controller first empties the Role rules, then removes every
+RoleBinding that references the reserved Role and deletes the Role. It retains
+the inventory entry and reports a NotReady condition until deletion is
+confirmed, including when a finalizer delays Role deletion.
 
-An empty writer list is fail-closed: the webhook denies changes to protected
-fields and labels, and the controller removes existing cross-namespace grants
-instead of creating new ones. Operator-managed RHOAI and ODH installations
-normally configure the applicable platform operator service account username:
+Consent enforcement defaults to `false` so a dashboard-operator image can be
+upgraded before the platform operator installs the webhook. In this transition
+mode the controller preserves the legacy grants without requiring a consent
+label and reports an informational `NamespacedRBACConsentNotEnforced` Degraded
+condition when a target is configured. Enabling enforcement without the
+webhook and at least one trusted writer is rejected at chart rendering and
+manager startup. Operator-managed RHOAI and ODH installations normally
+configure the applicable platform operator service account username:
 
 ```text
 system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager
@@ -455,8 +464,15 @@ system:serviceaccount:openshift-operators:opendatahub-operator-controller-manage
 ```
 
 For a standalone manager invocation, the equivalent setting is the
-comma-separated `--namespaced-rbac-writers` flag. Usernames are matched
-exactly; Kubernetes groups and wildcard values are not supported.
+comma-separated `--namespaced-rbac-writers` flag together with
+`--enforce-namespaced-rbac-consent`. Usernames are matched exactly; Kubernetes
+groups and wildcard values are not supported.
+
+The platform operator change that enables enforcement must update the chart
+configuration and `RELATED_IMAGE_ODH_DASHBOARD_OPERATOR_IMAGE` in the same ODH
+or RHOAI release change. Enabling the new flag with an older image causes an
+unknown-flag startup failure; deploying the new image with older configuration
+is safe because it remains in legacy transition mode.
 
 ### Metrics TLS
 

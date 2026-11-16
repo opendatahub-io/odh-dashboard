@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"sort"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -62,6 +63,19 @@ func (r *DashboardReconciler) ReconcileNamespacedRBAC(ctx context.Context, dashb
 	return r.reconcileNamespacedRBAC(ctx, dashboard)
 }
 
+func NamespacedRBACGrantInventory(dashboard *v1alpha1.Dashboard) ([]string, error) {
+	inventory, err := namespacedRBACGrantInventory(dashboard)
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]string, 0, len(inventory))
+	for key := range inventory {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys, nil
+}
+
 func (r *DashboardReconciler) CleanupNamespacedRBAC(ctx context.Context) error {
 	return r.cleanupNamespacedRBAC(ctx, &v1alpha1.Dashboard{})
 }
@@ -73,8 +87,8 @@ func (r *DashboardReconciler) ReconcileDegradedCondition(
 	r.reconcileDegradedCondition(cm, statuses)
 }
 
-func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired map[string]bool) error {
-	return r.gcStaleNamespacedRBAC(ctx, &v1alpha1.Dashboard{}, desired)
+func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard, desired map[string]bool) error {
+	return r.gcStaleNamespacedRBAC(ctx, dashboard, desired)
 }
 
 var ConsoleLinkGVK = consoleLinkGVK
