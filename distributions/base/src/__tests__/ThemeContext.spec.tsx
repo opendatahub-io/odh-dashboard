@@ -151,6 +151,14 @@ describe('base shell ThemeProvider', () => {
     });
   });
 
+  it('should treat stored System contrast the same as absent for OS resolution parity', () => {
+    mediaState['(prefers-contrast: more)'] = true;
+    localStorage.setItem('app-shell.contrastMode', 'system');
+    renderProvider();
+    expect(html()).toHaveClass('pf-v6-theme-high-contrast');
+    expect(html()).not.toHaveClass('pf-v6-theme-glass');
+  });
+
   it('should follow live OS contrast changes while the system mode is active', () => {
     renderProvider();
     expect(html()).toHaveClass('pf-v6-theme-glass');
