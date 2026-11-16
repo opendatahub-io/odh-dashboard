@@ -20,18 +20,20 @@ const getFilterSelection = (
     const trimmed = value.trim().toLowerCase();
     return trimmed ? { fragment: trimmed } : {};
   }
-  return { exact: value.value.toLowerCase() };
+  // Exact selections carry the resource identifier verbatim (e.g. group names
+  // are case-sensitive), so they are compared without case conversion.
+  return { exact: value.value };
 };
 
 const textIncludes = (text: string | undefined, keyword: string | undefined): boolean =>
   keyword ? (text?.toLowerCase().includes(keyword) ?? false) : false;
 
 const textEquals = (text: string | undefined, keyword: string | undefined): boolean =>
-  keyword ? text?.toLowerCase() === keyword : false;
+  keyword ? text === keyword : false;
 
 const modelMatchesModelName = (row: ModelOverviewItem, filter: FilterSelection): boolean =>
   filter.exact
-    ? textEquals(row.id, filter.exact) || textEquals(row.modelDetails.displayName, filter.exact)
+    ? textEquals(row.id, filter.exact)
     : textIncludes(row.id, filter.fragment) ||
       textIncludes(row.modelDetails.displayName, filter.fragment) ||
       textIncludes(row.modelDetails.description, filter.fragment);

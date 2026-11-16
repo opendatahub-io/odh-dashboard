@@ -4,7 +4,7 @@ import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { ModelOverviewItem } from '~/app/types/subscriptions';
+import { GroupOverviewItem, ModelOverviewItem } from '~/app/types/subscriptions';
 import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
 import {
   EventTrackingFilterAttribute,
@@ -21,6 +21,8 @@ type OverviewToolbarProps = {
   ) => void;
   /** Source of the typeahead filter options; values match on resource names. */
   rows: ModelOverviewItem[];
+  /** Groups view resources; merged into the filter options so they stay selectable even when no models are registered. */
+  groupRows: GroupOverviewItem[];
   returnTo?: string;
 };
 
@@ -28,6 +30,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
   filterData,
   onFilterUpdate,
   rows,
+  groupRows,
   returnTo,
 }) => {
   const { modelOptions, projectOptions, groupOptions, subscriptionOptions, authPolicyOptions } =
@@ -49,6 +52,17 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           policy.groups?.forEach((group) => groupLabels.set(group, group));
         });
       });
+      groupRows.forEach((row) => {
+        groupLabels.set(row.name, row.name);
+        row.subscriptions.forEach((sub) => {
+          subscriptionLabels.set(sub.name, sub.displayName ?? sub.name);
+          sub.groups?.forEach((group) => groupLabels.set(group, group));
+        });
+        row.authPolicies.forEach((policy) => {
+          authPolicyLabels.set(policy.name, policy.displayName ?? policy.name);
+          policy.groups?.forEach((group) => groupLabels.set(group, group));
+        });
+      });
       return {
         modelOptions: toSelectOptions(modelLabels),
         projectOptions: toSelectOptions(projectLabels),
@@ -56,7 +70,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         subscriptionOptions: toSelectOptions(subscriptionLabels),
         authPolicyOptions: toSelectOptions(authPolicyLabels),
       };
-    }, [rows]);
+    }, [rows, groupRows]);
 
   const fireFiltered = (filterAttribute: EventTrackingFilterAttribute) =>
     fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {

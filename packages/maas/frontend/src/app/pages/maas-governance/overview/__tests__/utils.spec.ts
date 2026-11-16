@@ -1,10 +1,13 @@
-import { GroupOverviewItem } from '~/app/types/subscriptions';
+import { GroupOverviewItem, ModelOverviewItem } from '~/app/types/subscriptions';
 import {
   initialOverviewFilterData,
   OverviewFilterDataType,
   OverviewFilterOptions,
 } from '~/app/pages/maas-governance/overview/const';
-import { filterOverviewGroups } from '~/app/pages/maas-governance/overview/utils';
+import {
+  filterOverviewGroups,
+  filterOverviewModels,
+} from '~/app/pages/maas-governance/overview/utils';
 
 const filters = (partial: Partial<OverviewFilterDataType>): OverviewFilterDataType => ({
   ...initialOverviewFilterData,
@@ -40,6 +43,15 @@ describe('filterOverviewGroups', () => {
       [OverviewFilterOptions.groupName]: { label: 'Alpha', value: 'alpha-users' },
     });
     expect(filtered.map((g) => g.name)).toEqual(['alpha-users']);
+  });
+
+  it('should distinguish groups that differ only by case on exact selection', () => {
+    const caseGroups = [group('Team'), group('team')];
+    const filtered = filterOverviewGroups(caseGroups, {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.groupName]: { label: 'Team', value: 'Team' },
+    });
+    expect(filtered.map((g) => g.name)).toEqual(['Team']);
   });
 
   it('should filter by group name fragment', () => {
@@ -121,5 +133,39 @@ describe('filterOverviewGroups', () => {
 
   it('should return an empty array for empty input', () => {
     expect(filterOverviewGroups([], filters({}))).toEqual([]);
+  });
+});
+
+describe('filterOverviewModels', () => {
+  const modelRow = (id: string, displayName: string): ModelOverviewItem => ({
+    id,
+    namespace: 'maas-models',
+    modelDetails: { displayName } as ModelOverviewItem['modelDetails'],
+    subscriptions: [],
+    authPolicies: [],
+  });
+
+  const modelRows = [modelRow('granite-3-8b-instruct', 'Granite 3 8B')];
+
+  it('should match an exact model selection only against the resource id', () => {
+    const filtered = filterOverviewModels(modelRows, {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.modelName]: { label: 'Granite 3 8B', value: 'granite-3-8b-instruct' },
+    });
+    expect(filtered.map((r) => r.id)).toEqual(['granite-3-8b-instruct']);
+
+    const byDisplayName = filterOverviewModels(modelRows, {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.modelName]: { label: 'Granite 3 8B', value: 'Granite 3 8B' },
+    });
+    expect(byDisplayName).toEqual([]);
+  });
+
+  it('should match a model name fragment against the display name', () => {
+    const filtered = filterOverviewModels(modelRows, {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.modelName]: 'granite 3',
+    });
+    expect(filtered.map((r) => r.id)).toEqual(['granite-3-8b-instruct']);
   });
 });

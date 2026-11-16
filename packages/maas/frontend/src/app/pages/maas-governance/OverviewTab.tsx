@@ -141,6 +141,7 @@ const OverviewTab: React.FC = () => {
         filterData={filterData}
         onFilterUpdate={onFilterUpdate}
         rows={rows}
+        groupRows={groupRows}
         returnTo={OVERVIEW_RETURN_TO}
       />
     </>
