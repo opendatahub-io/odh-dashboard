@@ -23,6 +23,7 @@ import {
   Button,
   Skeleton,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
 import { getKueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
@@ -48,6 +49,7 @@ import {
   getStatusInfo,
   getStatusFlags,
   getStatusAlert,
+  getTrainJobPodBlockers,
   getSectionStatusesFromJobsStatus,
   getSectionExistence,
   JobSectionName,
@@ -56,6 +58,7 @@ import { useWorkloadForTrainJob } from './hooks/useWorkloadForTrainJob';
 import { useWatchTrainJobEvents } from '../../api/events';
 import { TrainJobKind } from '../../k8sTypes';
 import { JobDisplayState, TrainingJobState } from '../../types';
+import useTrainJobPods from '../../hooks/useTrainJobPods';
 
 type TrainingJobStatusModalProps = {
   job: TrainJobKind;
@@ -98,6 +101,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   const status = jobStatus || getTrainingJobStatusSync(job);
   const displayName = getDisplayNameFromK8sResource(job);
   const [workloads, workloadLoaded, workloadError] = useWorkloadForTrainJob(job);
+  const { training, loaded: podsLoaded, error: podsError } = useTrainJobPods(job);
   const workload = React.useMemo(() => {
     if (!workloadLoaded || workloads.length === 0) return null;
     return workloads[0];
@@ -124,6 +128,15 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   const statusFlags = React.useMemo(() => getStatusFlags(status), [status]);
   const { isFailed, isPaused, inProgress, isComplete, isInadmissible } = statusFlags;
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
+  const podBlockers =
+    podsLoaded &&
+    !podsError &&
+    !isPaused &&
+    !isComplete &&
+    !isFailed &&
+    status !== TrainingJobState.DELETING
+      ? getTrainJobPodBlockers(training)
+      : [];
 
   // Close status modal and trigger pause action
   const handlePauseClick = React.useCallback(() => {
@@ -175,20 +188,18 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
             workload.spec.queueName,
           );
     return (
-      <StackItem style={{ maxHeight: '50%', overflowY: 'auto', flexShrink: 0 }}>
-        <Content
-          component="p"
-          className="pf-v6-u-text-break-word"
-          style={{ color: info.status === 'danger' ? DangerColor.var : RegularColor.var }}
-          aria-live="polite"
-          data-testid="training-job-status-summary"
-        >
-          <Icon isInline status={info.status}>
-            <info.IconComponent className={info.iconClassName} />
-          </Icon>{' '}
-          {message}
-        </Content>
-      </StackItem>
+      <Content
+        component="p"
+        className="pf-v6-u-text-break-word"
+        style={{ color: info.status === 'danger' ? DangerColor.var : RegularColor.var }}
+        aria-live="polite"
+        data-testid="training-job-status-summary"
+      >
+        <Icon isInline status={info.status}>
+          <info.IconComponent className={info.iconClassName} />
+        </Icon>{' '}
+        {message}
+      </Content>
     );
   };
 
@@ -323,6 +334,8 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
     );
   };
 
+  const queueDetails = renderQueueDetails();
+
   return (
     <Modal
       variant={ModalVariant.small}
@@ -352,7 +365,29 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
         style={{ height: '400px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         <Stack hasGutter style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {renderQueueDetails()}
+          {queueDetails || podBlockers.length > 0 ? (
+            <StackItem style={{ maxHeight: '50%', overflowY: 'auto', flexShrink: 0 }}>
+              <Stack hasGutter>
+                {queueDetails}
+                {podBlockers.map((message) => (
+                  <StackItem key={message}>
+                    <Content
+                      component="p"
+                      className="pf-v6-u-text-break-word"
+                      style={{ color: DangerColor.var }}
+                      aria-live="polite"
+                      data-testid="training-job-pod-summary"
+                    >
+                      <Icon isInline status="danger">
+                        <ExclamationCircleIcon />
+                      </Icon>{' '}
+                      {message}
+                    </Content>
+                  </StackItem>
+                ))}
+              </Stack>
+            </StackItem>
+          ) : null}
           {renderStatus()}
           <StackItem>
             <Tabs

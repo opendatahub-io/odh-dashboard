@@ -532,6 +532,14 @@ class TrainingJobStatusModal extends Modal {
     return cy.findByTestId('expand-progress');
   }
 
+  findPodSummary() {
+    return this.find().findByTestId('training-job-pod-summary');
+  }
+
+  findStatusSummary() {
+    return this.find().findByTestId('training-job-status-summary');
+  }
+
   findEventsLogTab() {
     return cy.findByTestId('expand-logs');
   }

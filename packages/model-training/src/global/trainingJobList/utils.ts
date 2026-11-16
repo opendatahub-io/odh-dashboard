@@ -14,6 +14,7 @@ import {
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import {
   getDisplayNameFromK8sResource,
+  PodKind,
   WorkloadCondition,
   WorkloadKind,
 } from '@odh-dashboard/k8s-core';
@@ -544,6 +545,71 @@ const updateTitleAndDescription = (
     title: currentTitle === fallbackTitle ? extracted.title : currentTitle,
     description: currentDescription || extracted.description,
   };
+};
+
+export const getTrainJobPodBlockers = (pods: PodKind[]): string[] => {
+  const messages = new Set<string>();
+  pods.forEach((pod) => {
+    if (
+      pod.metadata.deletionTimestamp ||
+      ['Succeeded', 'Failed'].includes(pod.status?.phase ?? '')
+    ) {
+      return;
+    }
+    const scheduling = pod.status?.conditions?.find(
+      (condition) =>
+        condition.type === 'PodScheduled' &&
+        condition.status === 'False' &&
+        condition.reason === 'Unschedulable',
+    );
+    if (scheduling) {
+      const reported = scheduling.message ?? '';
+      const shortages: string[] = [];
+      if (/\bInsufficient cpu\b/i.test(reported)) {
+        shortages.push('CPU');
+      }
+      if (/\bInsufficient memory\b/i.test(reported)) {
+        shortages.push('memory');
+      }
+      if (/\bInsufficient nvidia\.com\/gpu\b/i.test(reported)) {
+        shortages.push('GPU');
+      }
+      const causes = shortages.length ? [`insufficient ${shortages.join(' and ')}`] : [];
+      if (
+        /had untolerated taint|didn't match (?:Pod's )?node (?:affinity|selector)/i.test(reported)
+      ) {
+        causes.push('node restrictions');
+      }
+      messages.add(
+        `Unable to schedule a worker${causes.length ? `: ${causes.join(' and ')}` : ''}.`,
+      );
+    }
+    const containers = [
+      ...(pod.status?.initContainerStatuses ?? []),
+      ...(pod.status?.containerStatuses ?? []),
+    ];
+    containers.forEach((container) => {
+      const waiting = container.state?.waiting;
+      if (typeof waiting !== 'object') {
+        return;
+      }
+      switch (waiting.reason) {
+        case 'ErrImagePull':
+        case 'ImagePullBackOff':
+          messages.add('Unable to pull the container image.');
+          break;
+        case 'InvalidImageName':
+          messages.add('The container image name is invalid.');
+          break;
+        case 'CrashLoopBackOff':
+          messages.add('The container failed and is waiting to restart.');
+          break;
+        default:
+          break;
+      }
+    });
+  });
+  return [...messages].toSorted();
 };
 
 /**
