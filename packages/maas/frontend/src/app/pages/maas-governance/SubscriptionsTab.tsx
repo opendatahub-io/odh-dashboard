@@ -93,9 +93,11 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
           subscription.name,
           subscription.displayName,
           subscription.description,
-          ...subscription.owner.groups.map((group) => group.name),
-          // On Model access, also the group as it is shown: "<org-name>/<group>".
-          ...subscription.owner.groups.map((group) => groupLabel(group.name, organization)),
+          // The group's name, and on Model access also as it is shown: "<org-name>/<group>".
+          ...subscription.owner.groups.flatMap((group) => [
+            group.name,
+            groupLabel(group.name, organization),
+          ]),
           ...subscription.modelRefs.flatMap((ref) => [ref.name, ref.displayName]),
         ].some((text) => text?.toLowerCase().includes(subscriptionText))
       ) {
