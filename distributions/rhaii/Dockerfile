@@ -20,6 +20,7 @@ WORKDIR /usr/src/workspace
 COPY --chown=default:root prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
 COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --chown=default:root .npmrc ./
+COPY --chown=default:root patches ./patches
 
 # Copy workspace packages required by the RHAII distribution
 COPY --chown=default:root frontend/package.json ./frontend/
