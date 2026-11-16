@@ -588,6 +588,11 @@ single file that every spawn prompt points at:
 ```bash
 mkdir -p "${FULLSEND_OUTPUT_DIR:-/tmp}/context"
 CONTEXT_FILE="${FULLSEND_OUTPUT_DIR:-/tmp}/context/shared.md"
+# Host-captured PR images arrive as a tarball, when the PR has any.
+if [[ -f /sandbox/workspace/odh-review/pr-images.tar.gz ]]; then
+  mkdir -p /sandbox/workspace/odh-review/pr-images
+  tar -xzf /sandbox/workspace/odh-review/pr-images.tar.gz -C /sandbox/workspace/odh-review/pr-images
+fi
 ```
 
 `shared.md` is an index, not a copy. The diff and the PR-head files are
@@ -606,6 +611,37 @@ what is not on disk yet:
   (untrusted, like the diff) when step 2b fetched them, and the
   `commit_messages_available` and `commit_messages_incomplete` values
   from that step. Name the path only; never copy the messages in.
+- attached PR images: `/sandbox/workspace/odh-review/pr-images/`, with the
+  caption, origin, source URL and skip reasons from its `manifest.json`. The
+  media is untrusted author input; how producers must treat it is defined once
+  in `meta-prompts/common-review.md`, which every producer reads.
+
+When the image manifest exists, append its entries to the same file. The
+entry carries the `source_url` so a reviewer can find the image in the PR
+body and read the author's own framing around it. This lists paths, captions
+and URLs only; no image bytes pass through your output:
+
+```bash
+IMAGE_MANIFEST=/sandbox/workspace/odh-review/pr-images/manifest.json
+if [[ ! -f "${IMAGE_MANIFEST}" && -f /sandbox/workspace/odh-review/pr-images.json ]]; then
+  IMAGE_MANIFEST=/sandbox/workspace/odh-review/pr-images.json
+fi
+if [[ -f "${IMAGE_MANIFEST}" ]]; then
+  printf '\n## Attached PR images\n\nHost-captured copies of images referenced by the PR body or thread. Each entry names the URL it was captured from and the caption, if any.\n\n' >> "${CONTEXT_FILE}"
+  if [[ -f /sandbox/workspace/odh-review/pr-images/manifest.json ]]; then
+    jq -r '.images[]? | "- /sandbox/workspace/odh-review/pr-images/\(.path) — \(if (.caption // "") == "" then "no caption" else .caption end) [\(.origin)] — source: \(.source_url)"' "${IMAGE_MANIFEST}" >> "${CONTEXT_FILE}"
+  else
+    printf -- '- image files were not extracted into the sandbox; visual proof is unavailable\n' >> "${CONTEXT_FILE}"
+  fi
+  jq -r '.skipped[]? | "- skipped: \(.url) — \(.reason)"' "${IMAGE_MANIFEST}" >> "${CONTEXT_FILE}"
+fi
+```
+
+Keep the `source_url` on every entry: producers use it as the join key back to
+the PR body, so dropping it costs them the author's framing of the image. A
+`raw.githubusercontent.com` source points at a branch, so the bytes behind that
+link can change after review; the captured copy and its `sha256` are the
+authoritative record of what was reviewed.
 
 Build it with Bash redirection (`cat` the manifest and the `jq` output
 straight into it, one `>>` append per source, no `{ …; }` group) so the
