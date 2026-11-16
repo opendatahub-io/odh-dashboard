@@ -195,7 +195,7 @@ Add to the end of `DashboardCommonConfig` (`frontend/src/k8sTypes.ts` only re-ex
 
 ### 4. Flag default + state map — `frontend/src/concepts/areas/const.ts`
 
-**a)** Add the flag default to `techPreviewFlags` (as `agentOps`, `dataRegistry` and `dataConnectHub` do). Use `devTemporaryFeatureFlags` only for short-lived dev switches that never ship in the CRD.
+**a)** Add the flag default to `techPreviewFlags` (as `agentOps`, `dataRegistry` and `dataConnectHub` do). Use `devTemporaryFeatureFlags` only for short-lived dev switches; they still need the CRD, backend and core BFF entries below.
 
 ```typescript
 <camelCase>: false,
@@ -218,6 +218,8 @@ Add the flag under `spec.dashboardConfig.properties` (after `dataConnectHub`), o
                       type: boolean
                       description: 'When true, enables the <Title Case> features.'
 ```
+
+**Runtime defaults:** add `<camelCase>: false,` to `blankDashboardCR` in `backend/src/utils/constants.ts` (and `<camelCase>: boolean;` to `DashboardConfig` in `backend/src/types.ts`), and the matching field plus `false` default to `DashboardFeatureFlags` / `BlankDashboardCR` in `distributions/core-bff/bff/internal/models/dashboard_config.go`. Then run `pnpm run validate:flags`.
 
 ### 6. Ownership — `OWNERS`, `OWNERS_ALIASES`, `packages/<name>/OWNERS`
 

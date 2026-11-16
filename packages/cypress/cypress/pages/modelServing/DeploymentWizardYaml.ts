@@ -15,6 +15,11 @@ export class DeploymentWizardYaml extends SubComponentBase {
     return this.findScope().findByTestId('yaml-editor-empty-state');
   }
 
+  // check for the built-in empty state (no test-ids available)
+  findYAMLEditorStartEditingState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findScope().findByText('Start editing');
+  }
+
   findManualEditModeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findScope().findByTestId('manual-edit-mode-button');
   }

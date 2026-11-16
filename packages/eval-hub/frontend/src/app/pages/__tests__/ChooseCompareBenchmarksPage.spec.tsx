@@ -1,8 +1,11 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import ChooseCompareBenchmarksPage from '~/app/pages/ChooseCompareBenchmarksPage';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
+
+const { render } = setupTrackingTest();
 
 const mockUseEvaluationJobs = jest.fn();
 const mockUseCollectionNameMap = jest.fn();

@@ -55,6 +55,7 @@ aliases:
     - DaoDaoNoCode
     - srtanish1992
     - nananosirova
+    - danreed-rh
   hardware-profiles-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -67,6 +68,7 @@ aliases:
     - mturley
     - YuliaKrimerman
     - ppadti
+    - danreed-rh
   model-registry-catalog-reviewers:
     - manaswinidas
     - mturley
@@ -109,6 +111,7 @@ aliases:
     - Gkrumbach07
     - DaoDaoNoCode
     - srtanish1992
+    - danreed-rh
   pipelines-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -339,6 +342,7 @@ aliases:
     - DaoDaoNoCode
     - Gkrumbach07
     - nananosirova
+    - danreed-rh
   mlflow-reviewers:
     - caponetto
     - DaoDaoNoCode
