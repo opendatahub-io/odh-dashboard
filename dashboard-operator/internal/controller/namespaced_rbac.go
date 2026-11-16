@@ -361,6 +361,9 @@ func (r *DashboardReconciler) gcStaleNamespacedRBAC(
 					break
 				}
 			}
+			if !bindingGone {
+				errs = append(errs, fmt.Errorf("waiting for stale RoleBindings in %s deletion", namespace))
+			}
 		}
 		if roleGone && bindingGone {
 			delete(known, key)

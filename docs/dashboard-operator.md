@@ -445,8 +445,9 @@ one-time label-selected migration records grants made by older versions; normal
 reconciliation then uses direct Role reads and namespace-scoped RoleBinding
 lists. The controller first empties the Role rules, then removes every
 RoleBinding that references the reserved Role and deletes the Role. It retains
-the inventory entry and reports a NotReady condition until deletion is
-confirmed, including when a finalizer delays Role deletion.
+the inventory entry until deletion is confirmed, including when a finalizer
+delays deletion. Normal and Removed-state reconciliation reports this as
+NotReady; Dashboard CR deletion retains its finalizer and retries cleanup.
 
 Consent enforcement defaults to `false` so a dashboard-operator image can be
 upgraded before the platform operator installs the webhook. In this transition

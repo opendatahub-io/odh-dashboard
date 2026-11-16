@@ -262,6 +262,53 @@ func TestReconcileNamespacedRBAC_DoesNotAdoptReservedNamesWithoutOwnershipLabels
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(foreignBinding), &rbacv1.RoleBinding{}))
 }
 
+func TestReconcileNamespacedRBAC_MigratesCurrentTargetWithStrippedLabelsAndReplacementBinding(t *testing.T) {
+	legacyRole := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{Name: "dashboard-notebooks-role", Namespace: testNotebooksNS},
+		Rules:      []rbacv1.PolicyRule{{APIGroups: []string{""}, Resources: []string{"secrets"}, Verbs: []string{"get"}}},
+	}
+	replacement := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "replacement-dashboard-access", Namespace: testNotebooksNS},
+		RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: legacyRole.Name},
+		Subjects:   []rbacv1.Subject{{Kind: rbacv1.GroupKind, APIGroup: rbacv1.GroupName, Name: "legacy-dashboard-users"}},
+	}
+	r, cli := newReconciler(t, cluster.OpenDataHub, legacyRole, replacement)
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.Role{}, testNotebooksNS, legacyRole.Name))
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.RoleBinding{}, testNotebooksNS, replacement.Name))
+	assert.Empty(t, namespacedRBACGrantInventory(t, dashboard))
+}
+
+func TestReconcileNamespacedRBAC_InventoryPersistenceFailurePreventsGrant(t *testing.T) {
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	dashboard.UID = types.UID("dashboard-uid")
+	r, cli := newReconciler(t, cluster.OpenDataHub, dashboard)
+	patchErr := errors.New("injected Dashboard patch failure")
+	watchClient, ok := cli.(client.WithWatch)
+	require.True(t, ok)
+	r.Client = interceptor.NewClient(watchClient, interceptor.Funcs{
+		Patch: func(ctx context.Context, delegate client.WithWatch, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+			if _, isDashboard := obj.(*v1alpha1.Dashboard); isDashboard {
+				return patchErr
+			}
+			return delegate.Patch(ctx, obj, patch, opts...)
+		},
+	})
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorIs(t, err, patchErr)
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+	assert.NotContains(t, dashboard.Annotations, "dashboard.opendatahub.io/namespaced-rbac-grants")
+}
+
 func TestReconcileNamespacedRBAC_EnforcementDisabledPreservesLegacyGrant(t *testing.T) {
 	unlabelled := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "legacy-notebooks"}}
 	r, cli := newReconciler(t, cluster.SelfManagedRhoai, unlabelled)
@@ -434,6 +481,34 @@ func TestReconcileNamespacedRBAC_FinalizedRoleIsNeutralizedBeforeDeletion(t *tes
 	err = r.ReconcileNamespacedRBAC(context.Background(), dashboard)
 	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
 	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.Role{}, testNotebooksNS, role.Name))
+	assert.Empty(t, namespacedRBACGrantInventory(t, dashboard))
+}
+
+func TestReconcileNamespacedRBAC_FinalizedRoleBindingRetainsInventoryAndRetries(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+
+	binding := getRoleBinding(t, cli, testNotebooksNS, "dashboard-notebooks-rolebinding")
+	binding.Finalizers = []string{"test.dashboard.opendatahub.io/hold"}
+	require.NoError(t, cli.Update(context.Background(), binding))
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, "waiting for stale RoleBindings")
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.Role{}, testNotebooksNS, "dashboard-notebooks-role"))
+	pending := getRoleBinding(t, cli, testNotebooksNS, binding.Name)
+	assert.NotNil(t, pending.DeletionTimestamp)
+	require.Equal(t, []string{testNotebooksNS + "/notebooks"}, namespacedRBACGrantInventory(t, dashboard))
+
+	pending.Finalizers = nil
+	require.NoError(t, cli.Update(context.Background(), pending))
+	err = r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.RoleBinding{}, testNotebooksNS, binding.Name))
 	assert.Empty(t, namespacedRBACGrantInventory(t, dashboard))
 }
 
