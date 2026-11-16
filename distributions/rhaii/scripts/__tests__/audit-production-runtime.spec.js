@@ -135,6 +135,9 @@ describe('production audit command', () => {
     expect(dockerfile).toContain(
       `ENV PUBLIC_PATH=${productionTargets['model-serving'].environment.PUBLIC_PATH}`,
     );
+    expect(dockerfile).toContain(
+      `ENV MODEL_SERVING_EXTENSION_PROFILE=${productionTargets['model-serving'].environment.MODEL_SERVING_EXTENSION_PROFILE}`,
+    );
     for (const target of Object.values(productionTargets)) {
       expect(dockerfile).toContain(`WORKDIR /usr/src/workspace/${target.workspace}`);
     }

@@ -11,7 +11,7 @@ packages:
       featureFlags:
         kserve: true
     - package: '@odh-dashboard/llmd-serving'
-      extensionsPath: ./extensions
+      extensionsPath: ./extensions/deployments
       featureFlags:
         llmd-serving: true
 

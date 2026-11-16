@@ -68,6 +68,7 @@ RUN pnpm run build
 WORKDIR /usr/src/workspace/packages/model-serving/frontend
 ENV DEPLOYMENT_MODE=federated
 ENV PUBLIC_PATH=/_mf/modelServing/
+ENV MODEL_SERVING_EXTENSION_PROFILE=deployments
 RUN pnpm run build:prod
 
 # ── Stage 2: BFF Builder ─────────────────────────────────────────────────────

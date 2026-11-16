@@ -1,5 +1,4 @@
 import type {
-  AreaExtension,
   OverviewSectionExtension,
   ProjectDetailsTab,
   RouteExtension,
@@ -12,11 +11,9 @@ import type {
   WizardFieldApplyExtension,
   WizardFieldExtractorExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import type { DeploymentMethodSelectFieldType } from '../src/components/deploymentWizard/fields/DeploymentMethodSelectField';
 import type { ModelCapabilitiesFieldType } from '../src/components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField';
 
 const ADMIN_USER = 'ADMIN_USER';
-const BIDIRECTIONAL_YAML_WIZARD_GA = 'bidirectionalYamlWizardGa';
 
 // Base path of the Model deployment settings tabbed page.
 const MODEL_DEPLOYMENT_SETTINGS_PATH =
@@ -70,45 +67,7 @@ const modelCapabilitiesExtract: WizardFieldExtractorExtension<string[]> = {
   },
 };
 
-const deploymentMethodFieldExtension: WizardFieldExtension<DeploymentMethodSelectFieldType> = {
-  type: 'model-serving.deployment/wizard-field',
-  properties: {
-    field: () =>
-      import('../src/components/deploymentWizard/fields/DeploymentMethodSelectField').then(
-        (m) => m.DeploymentMethodSelectFieldWizardField,
-      ),
-  },
-  flags: {
-    required: [SupportedArea.MODEL_SERVING],
-  },
-};
-
-const extensions: (
-  | AreaExtension
-  | ProjectDetailsTab
-  | RouteExtension
-  | OverviewSectionExtension
-  | TabRoutePageExtension
-  | TabRouteTabExtension
-  | WizardFieldExtension<DeploymentMethodSelectFieldType>
-  | WizardFieldExtension<ModelCapabilitiesFieldType>
-  | WizardFieldApplyExtension<string[]>
-  | WizardFieldExtractorExtension<string[]>
-)[] = [
-  {
-    type: 'app.area',
-    properties: {
-      id: SupportedArea.MODEL_SERVING,
-      featureFlags: ['disableModelServing'],
-    },
-  },
-  {
-    type: 'app.area',
-    properties: {
-      id: BIDIRECTIONAL_YAML_WIZARD_GA,
-      devFlags: [BIDIRECTIONAL_YAML_WIZARD_GA],
-    },
-  },
+export const projectExtensions: (ProjectDetailsTab | OverviewSectionExtension)[] = [
   {
     type: 'app.project-details/tab',
     properties: {
@@ -131,32 +90,9 @@ const extensions: (
       required: [SupportedArea.MODEL_SERVING],
     },
   },
-  // Deployments tab in the Models tabbed page
-  {
-    type: 'app.tab-route/tab',
-    flags: {
-      required: [SupportedArea.MODEL_SERVING],
-    },
-    properties: {
-      pageId: 'models-tab-page',
-      id: 'deployments',
-      title: 'Deployments',
-      singleTabTitle: 'Model deployments',
-      component: () => import('../src/GlobalModelsRoutes'),
-      group: '3_deployments',
-    },
-  },
-  // Deployment wizard route (still needs its own route)
-  {
-    type: 'app.route',
-    properties: {
-      path: '/ai-hub/models/deployments/deploy/*',
-      component: () => import('../src/ModelDeploymentWizardRoutes'),
-    },
-    flags: {
-      required: [SupportedArea.MODEL_SERVING],
-    },
-  },
+];
+
+export const legacyRouteExtensions: RouteExtension[] = [
   // Redirects from old URLs
   {
     type: 'app.route',
@@ -184,10 +120,15 @@ const extensions: (
       required: [SupportedArea.MODEL_SERVING],
     },
   },
-  deploymentMethodFieldExtension,
-  modelCapabilitiesFieldExtension,
-  modelCapabilitiesApply,
-  modelCapabilitiesExtract,
+];
+
+export const modelCapabilitiesExtensions: (
+  | WizardFieldExtension<ModelCapabilitiesFieldType>
+  | WizardFieldApplyExtension<string[]>
+  | WizardFieldExtractorExtension<string[]>
+)[] = [modelCapabilitiesFieldExtension, modelCapabilitiesApply, modelCapabilitiesExtract];
+
+export const settingsExtensions: (TabRoutePageExtension | TabRouteTabExtension)[] = [
   // Model deployment settings tabbed page
   {
     type: 'app.tab-route/page',
@@ -219,5 +160,3 @@ const extensions: (
     },
   },
 ];
-
-export default extensions;

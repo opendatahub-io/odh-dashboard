@@ -15,7 +15,8 @@
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix"
   },
   "exports": {
-    "./extensions": "./extensions/extensions.ts",
+    "./extensions": "./extensions/index.ts",
+    "./extensions/deployments": "./extensions/deployments.ts",
     "./types": "./src/types.ts",
     "./status": "./src/deployments/status.ts",
     "./formUtils": "./src/formUtils.ts",
