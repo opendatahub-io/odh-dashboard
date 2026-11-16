@@ -1,7 +1,8 @@
+import { randomBytes } from 'node:crypto';
 import { FastifyHttpProxyOptions } from '@fastify/http-proxy';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { IncomingHttpHeaders } from 'http';
-import { CONTENT_SECURITY_POLICY } from '@odh-dashboard/app-config/security-policy';
+import { buildContentSecurityPolicy } from '@odh-dashboard/app-config/security-policy';
 import { getCacheControlForStaticFile, isStaticAsset } from './cacheHeaders';
 
 /**
@@ -159,14 +160,26 @@ export const isHtmlContentType = (value: unknown): boolean => {
  * reply that happens to be HTML keeps the upstream UI's headers rather than receiving the
  * dashboard policy.
  */
+/**
+ * A fresh, unpredictable nonce for one document response. Base64url so it needs no
+ * escaping inside the HTML attribute or the CSP header.
+ */
+// eslint-disable-next-line no-restricted-properties -- Buffer#toString is the encoding API here, not object formatting
+export const createCspNonce = (): string => randomBytes(16).toString('base64url');
+
+/**
+ * Applies the CSP to an HTML reply. The nonce must be the one written into the document
+ * (`CSP_NONCE_PLACEHOLDER`); the header and the body are produced together in the route.
+ */
 export const applyContentSecurityPolicy = (
   reply: FastifyReply,
   mode: CspMode = getCspMode(),
+  nonce?: string,
 ): void => {
   if (!isHtmlContentType(reply.getHeader('content-type'))) {
     return;
   }
-  reply.header(resolveCspHeaderName(mode), CONTENT_SECURITY_POLICY);
+  reply.header(resolveCspHeaderName(mode), buildContentSecurityPolicy(nonce));
 };
 
 /**

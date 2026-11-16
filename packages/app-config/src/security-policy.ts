@@ -52,11 +52,33 @@ export const CONTENT_SECURITY_POLICY_DIRECTIVES: ReadonlyArray<CspDirective> = [
   ['frame-ancestors', "'none'"],
 ];
 
-/** Serializes directives into a header value. */
-export const serializeContentSecurityPolicy = (directives: ReadonlyArray<CspDirective>): string =>
-  directives.map(([directive, value]) => `${directive} ${value}`).join('; ');
+/**
+ * Placeholder in the shell HTML that each server replaces with the per-request nonce
+ * before sending the document. It is also the nonce the CSP header is built with, so the
+ * inline theme bootstrap is the only inline script the browser will run.
+ */
+export const CSP_NONCE_PLACEHOLDER = '__CSP_NONCE__';
 
-/** Serialized `Content-Security-Policy` header value. */
-export const CONTENT_SECURITY_POLICY = serializeContentSecurityPolicy(
-  CONTENT_SECURITY_POLICY_DIRECTIVES,
-);
+/**
+ * Serializes directives into a header value, appending `'nonce-<nonce>'` to `script-src`
+ * when a nonce is supplied. Every document is rendered per request, so the nonce is never
+ * shared between responses.
+ */
+export const serializeContentSecurityPolicy = (
+  directives: ReadonlyArray<CspDirective>,
+  nonce?: string,
+): string =>
+  directives
+    .map(([directive, value]) =>
+      directive === 'script-src' && nonce
+        ? `${directive} ${value} 'nonce-${nonce}'`
+        : `${directive} ${value}`,
+    )
+    .join('; ');
+
+/** Serialized `Content-Security-Policy` header value; pass the document's nonce. */
+export const buildContentSecurityPolicy = (nonce?: string): string =>
+  serializeContentSecurityPolicy(CONTENT_SECURITY_POLICY_DIRECTIVES, nonce);
+
+/** Serialized policy without a nonce. Only for tests and non-document contexts. */
+export const CONTENT_SECURITY_POLICY = buildContentSecurityPolicy();

@@ -184,6 +184,9 @@ func TestContentSecurityPolicy(t *testing.T) {
 		assert.Contains(t, directives[directive], "data:")
 	}
 
+	// script-src admits exactly one inline script: the theme bootstrap, by nonce.
+	assert.Contains(t, directives["script-src"], "'nonce-"+constants.CSPNoncePlaceholder+"'")
+
 	// The Segment origin belongs to the directives that load and call it, and nowhere else.
 	assert.Contains(t, directives["script-src"], constants.SegmentTelemetryOrigin)
 	assert.Contains(t, directives["connect-src"], constants.SegmentTelemetryOrigin)
@@ -392,8 +395,61 @@ func TestCSPModesShareTheDirectiveString(t *testing.T) {
 		ServeHTTP(reportOnly, httptest.NewRequest(http.MethodGet, "/", nil))
 
 	assert.Equal(t,
-		enforced.Header().Get(constants.HeaderContentSecurityPolicy),
-		reportOnly.Header().Get(constants.HeaderCSPReportOnly),
+		policyWithoutNonce(t, enforced.Header().Get(constants.HeaderContentSecurityPolicy)),
+		policyWithoutNonce(t, reportOnly.Header().Get(constants.HeaderCSPReportOnly)),
+	)
+}
+
+// The shell must carry the same nonce the header advertises: a mismatch fails closed and
+// the theme bootstrap never runs.
+func TestShellDocumentCarriesTheHeaderNonce(t *testing.T) {
+	t.Setenv(constants.CSPModeEnvVar, "enforce")
+
+	tmpDir := t.TempDir()
+	shell := `<html><head><script nonce="` + constants.CSPNoncePlaceholder + `">x</script></head></html>`
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, constants.IndexHTMLFileName), []byte(shell), 0600))
+
+	app := newTestApp(func(a *App) { a.config.StaticAssetsDir = tmpDir })
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	for _, requestPath := range []string{"/", "/projects", "/" + constants.IndexHTMLFileName} {
+		t.Run(requestPath, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + requestPath)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			policy := resp.Header.Get(constants.HeaderContentSecurityPolicy)
+			nonce := cspNonce(t, policy)
+			assert.NotEqual(t, constants.CSPNoncePlaceholder, nonce)
+			assert.Contains(t, string(body), `nonce="`+nonce+`"`)
+			assert.NotContains(t, string(body), constants.CSPNoncePlaceholder)
+		})
+	}
+}
+
+// Each document gets its own nonce.
+func TestShellDocumentNonceIsPerResponse(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, constants.IndexHTMLFileName), []byte(`<html></html>`), 0600))
+
+	app := newTestApp(func(a *App) { a.config.StaticAssetsDir = tmpDir })
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	first, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer first.Body.Close()
+	second, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer second.Body.Close()
+
+	assert.NotEqual(t,
+		cspNonce(t, first.Header.Get(constants.HeaderCSPReportOnly)+first.Header.Get(constants.HeaderContentSecurityPolicy)),
+		cspNonce(t, second.Header.Get(constants.HeaderCSPReportOnly)+second.Header.Get(constants.HeaderContentSecurityPolicy)),
 	)
 }
 

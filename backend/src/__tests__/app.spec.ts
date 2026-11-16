@@ -3,7 +3,8 @@ import * as os from 'os';
 import * as path from 'path';
 import { fastify, FastifyInstance } from 'fastify';
 import {
-  CONTENT_SECURITY_POLICY,
+  buildContentSecurityPolicy,
+  CSP_NONCE_PLACEHOLDER,
   SEGMENT_TELEMETRY_ORIGIN,
 } from '@odh-dashboard/app-config/security-policy';
 import {
@@ -41,7 +42,9 @@ describe('app static and view wiring', () => {
     // Mirrors frontend/src/index.html — ejs delimiter is '?' (set in app.ts)
     fs.writeFileSync(
       path.join(publicDir, 'index.html'),
-      '<!doctype html><html><head><script id="mf-remotes-json" type="application/json"><?- mfRemotesJson ?></script></head><body>app</body></html>',
+      '<!doctype html><html><head><script nonce="' +
+        CSP_NONCE_PLACEHOLDER +
+        '">1</script><script id="mf-remotes-json" type="application/json"><?- mfRemotesJson ?></script></head><body>app</body></html>',
     );
     fs.writeFileSync(path.join(publicDir, HASHED_ASSET), 'console.log(1);');
     fs.writeFileSync(path.join(publicDir, 'vendor.js'), 'console.log(2);');
@@ -109,13 +112,25 @@ describe('app static and view wiring', () => {
       expect(headers['referrer-policy']).toBe(REFERRER_POLICY);
     };
 
-    const expectEnforcingCsp = (headers: Record<string, unknown>): void => {
-      expect(headers['content-security-policy']).toBe(CONTENT_SECURITY_POLICY);
+    const nonceOf = (policy: unknown): string =>
+      /'nonce-([^']+)'/.exec(String(policy ?? ''))?.[1] ?? '';
+
+    // Every response carries its own nonce, in the header and in the document body.
+    const expectEnforcingCsp = (headers: Record<string, unknown>): string => {
+      const policy = headers['content-security-policy'];
+      const nonce = nonceOf(policy);
+      expect(nonce).not.toBe('');
+      expect(policy).toBe(buildContentSecurityPolicy(nonce));
+      return nonce;
     };
 
-    const expectReportOnlyCsp = (headers: Record<string, unknown>): void => {
-      expect(headers['content-security-policy-report-only']).toBe(CONTENT_SECURITY_POLICY);
+    const expectReportOnlyCsp = (headers: Record<string, unknown>): string => {
+      const policy = headers['content-security-policy-report-only'];
+      const nonce = nonceOf(policy);
+      expect(nonce).not.toBe('');
+      expect(policy).toBe(buildContentSecurityPolicy(nonce));
       expect(headers['content-security-policy']).toBeUndefined();
+      return nonce;
     };
 
     const expectNoCsp = (headers: Record<string, unknown>): void => {
@@ -129,7 +144,9 @@ describe('app static and view wiring', () => {
 
       expect(response.statusCode).toBe(200);
       expectBrowserSecurityHeaders(response.headers);
-      expectReportOnlyCsp(response.headers);
+      const nonce = expectReportOnlyCsp(response.headers);
+      expect(response.body).toContain(`nonce="${nonce}"`);
+      expect(response.body).not.toContain(CSP_NONCE_PLACEHOLDER);
       expect(response.headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
     });
 
@@ -169,10 +186,7 @@ describe('app static and view wiring', () => {
         const response = await app.inject({ method: 'GET', url: '/projects' });
 
         expect(response.statusCode).toBe(200);
-        expect(response.headers['content-security-policy-report-only']).toBe(
-          CONTENT_SECURITY_POLICY,
-        );
-        expect(response.headers['content-security-policy']).toBeUndefined();
+        expectReportOnlyCsp(response.headers);
       } finally {
         if (originalMode === undefined) {
           delete process.env.CSP_MODE;
@@ -188,8 +202,7 @@ describe('app static and view wiring', () => {
       try {
         const response = await app.inject({ method: 'GET', url: '/projects' });
 
-        expect(response.headers['content-security-policy']).toBe(CONTENT_SECURITY_POLICY);
-        expect(response.headers['content-security-policy-report-only']).toBeUndefined();
+        expectEnforcingCsp(response.headers);
       } finally {
         if (originalMode === undefined) {
           delete process.env.CSP_MODE;
@@ -320,7 +333,11 @@ describe('app static and view wiring', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.headers['content-type']).toContain('text/html');
-      expect(response.headers['content-security-policy-report-only']).toBe(CONTENT_SECURITY_POLICY);
+      const policy = String(response.headers['content-security-policy-report-only'] ?? '');
+      const nonce = /'nonce-([^']+)'/.exec(policy)?.[1];
+      expect(nonce).toBeTruthy();
+      expect(policy).toBe(buildContentSecurityPolicy(nonce));
+      expect(response.body).toContain(`nonce="${nonce}"`);
     });
 
     it('should not auto-serve index.html for the static root', async () => {
@@ -359,7 +376,8 @@ describe('app static and view wiring', () => {
       );
 
       expect(response.statusCode).toBe(200);
-      expect(response.body.match(/<script/g)).toHaveLength(1);
+      // Two script elements: the inline bootstrap and the JSON data block.
+      expect(response.body.match(/<script/g)).toHaveLength(2);
       expect(response.body).not.toContain(SCRIPT_BREAKOUT);
       expect(jsonMatch).not.toBeNull();
       expect(JSON.parse(jsonMatch?.[1] ?? '')).toEqual([

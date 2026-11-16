@@ -4,7 +4,8 @@ Design record for the CSP the dashboard serves on the HTML documents it renders 
 policy is defined once in `packages/app-config/src/security-policy.ts`
 (`@odh-dashboard/app-config/security-policy`); the Node backend and the rspack dev server
 import it, and the Go core-bff keeps a literal mirror whose string and directive order are
-asserted by `backend/src/utils/__tests__/securityHeaders.spec.ts`.
+asserted by `backend/src/utils/__tests__/securityHeaders.spec.ts`. Every document is
+rendered with a per-response nonce (see [Nonce](#nonce)).
 
 It is attached only to documents a server renders itself: the SPA shell for `/` and every
 `text/html` deep link, on the Node backend and on the Go core-bff (which also serves the
@@ -36,21 +37,45 @@ ignores that directive there — so framing protection in those deployments stil
 
 ## Final directive set
 
-| Directive         | Value                               | Why                                                                                       |
-| ----------------- | ----------------------------------- | ----------------------------------------------------------------------------------------- |
-| `default-src`     | `'self'`                            | Baseline for every fetch type not listed below                                            |
-| `base-uri`        | `'self'`                            | Blocks `<base>` injection that could redirect relative script URLs                        |
-| `object-src`      | `'none'`                            | No plugin content is loaded; blocks `<object>`/`<embed>` injection                        |
-| `script-src`      | `'self' https://console.redhat.com` | App bundles plus the Segment CDN bundle                                                   |
-| `style-src`       | `'self' 'unsafe-inline'`            | CSS-in-JS in module frontends and Monaco inject styles at runtime                         |
-| `img-src`         | `'self' https: data: blob:`         | Icons, gen-ai `blob:` previews, and remote images embedded in rendered markdown artifacts |
-| `font-src`        | `'self' data:`                      | PatternFly icon fonts                                                                     |
-| `media-src`       | `'self' https: data: blob:`         | gen-ai `blob:` audio/video previews and remote media embedded in markdown artifacts       |
-| `connect-src`     | `'self' https://console.redhat.com` | SPA API calls, `/wss` WebSocket proxy, Segment event API                                  |
-| `frame-src`       | `'self' https:`                     | KFP artifact `RENDER` iframes (cross-origin object storage)                               |
-| `form-action`     | `'self'`                            | Restricts form submission targets; does **not** inherit from `default-src`                |
-| `worker-src`      | `'self' blob:`                      | Monaco and similar editors start workers from the same origin or `blob:` URLs             |
-| `frame-ancestors` | `'none'`                            | Matches the shipped `X-Frame-Options: DENY`                                               |
+| Directive         | Value                                                      | Why                                                                                       |
+| ----------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `default-src`     | `'self'`                                                   | Baseline for every fetch type not listed below                                            |
+| `base-uri`        | `'self'`                                                   | Blocks `<base>` injection that could redirect relative script URLs                        |
+| `object-src`      | `'none'`                                                   | No plugin content is loaded; blocks `<object>`/`<embed>` injection                        |
+| `script-src`      | `'self' https://console.redhat.com 'nonce-<per response>'` | App bundles, the Segment CDN bundle, and the shell's one inline script                    |
+| `style-src`       | `'self' 'unsafe-inline'`                                   | CSS-in-JS in module frontends and Monaco inject styles at runtime                         |
+| `img-src`         | `'self' https: data: blob:`                                | Icons, gen-ai `blob:` previews, and remote images embedded in rendered markdown artifacts |
+| `font-src`        | `'self' data:`                                             | PatternFly icon fonts                                                                     |
+| `media-src`       | `'self' https: data: blob:`                                | gen-ai `blob:` audio/video previews and remote media embedded in markdown artifacts       |
+| `connect-src`     | `'self' https://console.redhat.com`                        | SPA API calls, `/wss` WebSocket proxy, Segment event API                                  |
+| `frame-src`       | `'self' https:`                                            | KFP artifact `RENDER` iframes (cross-origin object storage)                               |
+| `form-action`     | `'self'`                                                   | Restricts form submission targets; does **not** inherit from `default-src`                |
+| `worker-src`      | `'self' blob:`                                             | Monaco and similar editors start workers from the same origin or `blob:` URLs             |
+| `frame-ancestors` | `'none'`                                                   | Matches the shipped `X-Frame-Options: DENY`                                               |
+
+## Nonce
+
+The SPA shell carries one inline `<script>` — the PatternFly theme bootstrap that must run
+before the bundle so tokens are correct on first paint. It is admitted by a per-request nonce
+rather than by `'unsafe-inline'`, a hash, or an external file:
+
+1. The server mints a nonce (`crypto.randomBytes(16).toString('base64url')` in Node, the same
+   via `crypto/rand` in core-bff) for one document response.
+2. The nonce is appended to `script-src` in the CSP header for that response only.
+3. The same nonce replaces `CSP_NONCE_PLACEHOLDER` (`__CSP_NONCE__`) in the shell's
+   `nonce` attribute before the body is written.
+
+Header and body must come from the same response, so each serving path renders the shell
+itself: the Node backend renders `index.html` to a string with `fastify.view` and substitutes
+the nonce before `reply.send`; the rspack dev server serves the compiled shell out of the
+compiler's output filesystem; core-bff reads `index.html` instead of handing it to
+`http.ServeFile`. If a server cannot supply the shell (the dev server before its first
+successful compile) it sends no policy at all — a document without a policy is safe, a
+document whose nonce does not match its header is not.
+
+The nonce is never reused: `theme-bootstrap`-style inline scripts are the only permitted inline
+script, and adding another one means adding a `nonce` attribute to it, not widening
+`script-src`. `script-src` is the only directive the nonce widens.
 
 No directive allows plain `http:`, and there is no `report-uri` or `report-to` (see
 [Violation reporting](#violation-reporting)).

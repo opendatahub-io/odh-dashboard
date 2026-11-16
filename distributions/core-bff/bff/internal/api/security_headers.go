@@ -2,6 +2,9 @@ package api
 
 import (
 	"bufio"
+	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"net/http"
@@ -155,7 +158,14 @@ func addVary(h http.Header, names ...string) {
 // The content type is only known once the handler writes the status line, hence the wrapper.
 func withDocumentCSP(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		docWriter := &documentCSPWriter{writeOnce{ResponseWriter: w}}
+		nonce, err := newCSPNonce()
+		if err != nil {
+			http.Error(w, "could not generate CSP nonce", http.StatusInternalServerError)
+			return
+		}
+		r = r.WithContext(context.WithValue(r.Context(), cspNonceKey{}, nonce))
+
+		docWriter := &documentCSPWriter{writeOnce: writeOnce{ResponseWriter: w}, nonce: nonce}
 		next.ServeHTTP(docWriter, r)
 		if !docWriter.wroteHeader {
 			docWriter.WriteHeader(http.StatusOK)
@@ -163,14 +173,36 @@ func withDocumentCSP(next http.Handler) http.Handler {
 	})
 }
 
-// documentCSPWriter adds the CSP when the handler is about to write a document.
+// cspNonceKey carries the per-request nonce from withDocumentCSP to the handler that writes
+// the document body, so the header and the shell carry the same value.
+type cspNonceKey struct{}
+
+// newCSPNonce returns an unpredictable nonce for one response. Base64url keeps it safe in
+// both the CSP header and the HTML attribute without escaping.
+func newCSPNonce() (string, error) {
+	var raw [16]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(raw[:]), nil
+}
+
+// cspNonceFromRequest returns the nonce withDocumentCSP generated for this request.
+func cspNonceFromRequest(r *http.Request) string {
+	nonce, _ := r.Context().Value(cspNonceKey{}).(string)
+	return nonce
+}
+
+// documentCSPWriter adds the CSP when the handler is about to write a document. The
+// header carries the same nonce the handler writes into the shell.
 type documentCSPWriter struct {
 	writeOnce
+	nonce string
 }
 
 func (w *documentCSPWriter) WriteHeader(statusCode int) {
 	if !w.wroteHeader && isHTMLResponse(w.Header().Get(constants.HeaderContentType)) {
-		w.Header().Set(cspHeaderName(), constants.ContentSecurityPolicy)
+		w.Header().Set(cspHeaderName(), constants.ContentSecurityPolicyWithNonce(w.nonce))
 	}
 	w.writeOnce.WriteHeader(statusCode)
 }
