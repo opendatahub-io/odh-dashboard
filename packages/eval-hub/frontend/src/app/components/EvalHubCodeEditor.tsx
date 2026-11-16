@@ -7,14 +7,24 @@ loader.config({ monaco });
 // Match DashboardCodeEditor so a host-provided PatternFly editor also finds local Monaco.
 Object.assign(window, { monaco });
 
+export type CodeEditorDiagnostic = {
+  message: string;
+  severity: 'error' | 'warning';
+  /** 1-based line the diagnostic anchors to. */
+  line: number;
+};
+
 type EvalHubCodeEditorProps = Omit<
   CodeEditorProps,
   'ref' | 'code' | 'onChange' | 'onEditorDidMount'
 > & {
   code: string;
   onChange: (value: string) => void;
-  /** 1-based line to highlight as the source of a parse error. */
-  errorLine?: number;
+  /**
+   * Diagnostics rendered as Monaco markers — squiggles, margin icons, and
+   * hover messages — for line-addressable errors and warnings.
+   */
+  diagnostics?: CodeEditorDiagnostic[];
 };
 
 /**
@@ -26,43 +36,45 @@ type EvalHubCodeEditorProps = Omit<
  * scrollBeyondLastLine is off so Monaco does not reserve a viewport of empty
  * scroll space below the last line, which would render a scrollbar for
  * definitions that already fit the editor.
- *
- * errorLine marks the offending line with a gutter bar and a tinted line
- * background, matching the line number in the parse error message.
  */
 const EvalHubCodeEditor: React.FC<EvalHubCodeEditorProps> = ({
   code,
   onChange,
-  errorLine,
+  diagnostics = [],
   options,
   ...props
 }) => {
-  const decorationsRef = React.useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
+  const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
-  const applyErrorDecoration = React.useCallback((line: number | undefined) => {
-    const decorations = decorationsRef.current;
-    if (!decorations) {
+  const applyDiagnostics = React.useCallback((list: CodeEditorDiagnostic[]) => {
+    const model = editorRef.current?.getModel();
+    if (!model) {
       return;
     }
-    if (line == null || line < 1) {
-      decorations.clear();
-      return;
-    }
-    decorations.set([
-      {
-        range: new monaco.Range(line, 1, line, 1),
-        options: {
-          isWholeLine: true,
-          className: 'evalhub-code-editor__error-line',
-          linesDecorationsClassName: 'evalhub-code-editor__error-line-gutter',
-        },
-      },
-    ]);
+    monaco.editor.setModelMarkers(
+      model,
+      'evalhub-import',
+      list.map((diagnostic) => {
+        const lineCount = model.getLineCount();
+        const lineNumber = Math.min(Math.max(diagnostic.line, 1), lineCount);
+        return {
+          message: diagnostic.message,
+          severity:
+            diagnostic.severity === 'error'
+              ? monaco.MarkerSeverity.Error
+              : monaco.MarkerSeverity.Warning,
+          startLineNumber: lineNumber,
+          startColumn: 1,
+          endLineNumber: lineNumber,
+          endColumn: model.getLineContent(lineNumber).length + 1,
+        };
+      }),
+    );
   }, []);
 
   React.useEffect(() => {
-    applyErrorDecoration(errorLine);
-  }, [applyErrorDecoration, errorLine, code]);
+    applyDiagnostics(diagnostics);
+  }, [applyDiagnostics, diagnostics, code]);
 
   return (
     <CodeEditor
@@ -72,9 +84,9 @@ const EvalHubCodeEditor: React.FC<EvalHubCodeEditorProps> = ({
       options={{ automaticLayout: true, scrollBeyondLastLine: false, ...options }}
       onChange={(value) => onChange(value)}
       onEditorDidMount={(editor) => {
-        decorationsRef.current = editor.createDecorationsCollection([]);
-        // The effect above may have run before the collection existed.
-        applyErrorDecoration(errorLine);
+        editorRef.current = editor;
+        // The effect above may have run before the editor existed.
+        applyDiagnostics(diagnostics);
       }}
       {...props}
     />

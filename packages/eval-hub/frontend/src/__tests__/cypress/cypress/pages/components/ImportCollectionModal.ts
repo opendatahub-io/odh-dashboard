@@ -51,9 +51,14 @@ export class ImportCollectionModal extends Modal {
     return this.findEditor().findByTestId('import-collection-file-input');
   }
 
-  /** The Monaco decoration marking the YAML syntax error line. */
-  findErrorLine(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findEditor().find('.evalhub-code-editor__error-line');
+  /** Monaco's error marker squiggle (parse errors). */
+  findErrorSquiggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findEditor().find('.squiggly-error');
+  }
+
+  /** Monaco's warning marker squiggles (advisory warnings). */
+  findWarningSquiggles(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findEditor().find('.squiggly-warning');
   }
 
   /**
@@ -110,20 +115,16 @@ export class ImportCollectionModal extends Modal {
     return this.find().findByTestId('import-collection-file-error');
   }
 
-  findParseError(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('import-collection-parse-error');
-  }
-
-  findWarnings(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('import-collection-warnings');
-  }
-
   findCollisionAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('import-collection-collision');
   }
 
   findMultiDocAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('import-collection-multi-doc');
+  }
+
+  findTemplateAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('import-collection-template');
   }
 
   findSuccessAlert(): Cypress.Chainable<JQuery<HTMLElement>> {

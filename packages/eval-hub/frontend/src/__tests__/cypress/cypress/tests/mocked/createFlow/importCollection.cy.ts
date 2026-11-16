@@ -79,6 +79,13 @@ describe('Import collection', () => {
 
     importCollectionModal.shouldBeOpen();
     importCollectionModal.getValue().should('match', /name: my-collection/);
+    // The unchanged sample template is not importable as-is.
+    importCollectionModal.findTemplateAlert().should('contain.text', 'sample template');
+    importCollectionModal.findSubmitButton().should('be.disabled');
+
+    importCollectionModal.setValue(validContent);
+    importCollectionModal.findTemplateAlert().should('not.exist');
+    importCollectionModal.findSubmitButton().should('be.enabled');
   });
 
   it('should open the import dialog from the create tile on the Benchmark collections tab', () => {
@@ -89,29 +96,28 @@ describe('Import collection', () => {
     importCollectionModal.shouldBeOpen();
   });
 
-  it('should show a parse error with the line number and disable submission for invalid YAML', () => {
+  it('should mark the invalid YAML line in the editor and disable submission', () => {
     evaluationsPage.visitBenchmarkSuites(NAMESPACE);
     evaluationsPage.findImportCollectionButton().click();
 
     importCollectionModal.setValue('name: broken\n  bad_indent: true\n');
-    importCollectionModal.findParseError().should('contain.text', 'line 2');
-    // The offending line is highlighted in the editor.
-    importCollectionModal.findErrorLine().should('exist');
+    // The offending line carries an error marker (squiggle + margin icon).
+    importCollectionModal.findErrorSquiggle().should('exist');
     importCollectionModal.findSubmitButton().should('be.disabled');
 
     importCollectionModal.setValue(validContent);
-    importCollectionModal.findErrorLine().should('not.exist');
+    importCollectionModal.findErrorSquiggle().should('not.exist');
   });
 
-  it('should show pre-submission warnings for a definition missing a description', () => {
+  it('should mark pre-submission warnings in the editor', () => {
     evaluationsPage.visitBenchmarkSuites(NAMESPACE);
     evaluationsPage.findImportCollectionButton().click();
 
     importCollectionModal.setValue(
       'name: warn-me\ncategory: safety\nmystery: 1\nbenchmarks:\n  - id: bench-alpha\n    provider_id: test-provider\n',
     );
-    importCollectionModal.findWarnings().should('contain.text', 'No description provided');
-    importCollectionModal.findWarnings().should('contain.text', 'Unrecognized field "mystery"');
+    // Missing description plus the unrecognized field produce warning markers.
+    importCollectionModal.findWarningSquiggles().should('have.length.at.least', 2);
     importCollectionModal.findSubmitButton().should('be.enabled');
   });
 

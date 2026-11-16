@@ -15,9 +15,11 @@ import { TimesIcon, UploadIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import {
   applyImportName,
+  findImportWarningLine,
   findNameCollision,
   getImportWarnings,
   IMPORT_COLLECTION_TEMPLATE,
+  isUnmodifiedTemplate,
   parseImportContent,
   proposeUniqueName,
   readFileAsUTF8Text,
@@ -31,7 +33,7 @@ import type { Collection, ImportCollectionResponse } from '~/app/types';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { EvalHubCollectionSurface } from '~/app/tracking/evalhubTrackingConstants';
-import EvalHubCodeEditor from '~/app/components/EvalHubCodeEditor';
+import EvalHubCodeEditor, { type CodeEditorDiagnostic } from '~/app/components/EvalHubCodeEditor';
 import './ImportCollectionModal.scss';
 
 type ImportCollectionModalProps = {
@@ -74,10 +76,26 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
   }, [isOpen]);
 
   const parsed = React.useMemo(() => parseImportContent(text), [text]);
-  const warnings = React.useMemo(
-    () => (parsed.doc ? getImportWarnings(parsed.doc) : []),
-    [parsed.doc],
-  );
+  // Line-addressable diagnostics render in the editor as Monaco markers
+  // (squiggles with hover messages); only issues that have no line — file,
+  // encoding, collision, and submission errors — use alerts.
+  const diagnostics = React.useMemo<CodeEditorDiagnostic[]>(() => {
+    const result: CodeEditorDiagnostic[] = [];
+    if (parsed.error !== undefined) {
+      result.push({ severity: 'error', message: parsed.error, line: parsed.errorLine ?? 1 });
+    }
+    if (parsed.doc !== null) {
+      getImportWarnings(parsed.doc).forEach((warning) => {
+        result.push({
+          severity: 'warning',
+          message: warning.message,
+          line: findImportWarningLine(text, warning),
+        });
+      });
+    }
+    return result;
+  }, [parsed, text]);
+  const isTemplate = parsed.doc !== null && isUnmodifiedTemplate(parsed.doc);
   const parsedName =
     parsed.doc && typeof parsed.doc.name === 'string' && parsed.doc.name.trim() !== ''
       ? parsed.doc.name.trim()
@@ -91,6 +109,8 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
   const canSubmit =
     parsed.doc !== null &&
     parsed.error === undefined &&
+    // The unedited sample template is not importable as-is.
+    !isTemplate &&
     // A name collision must be resolved (suggested name accepted or edited)
     // before the import can be submitted.
     collision === undefined &&
@@ -184,14 +204,18 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
               />
             </StackItem>
           ) : null}
-          {!success && parsed.error ? (
-            <StackItem key="parse-error">
+          {!success && isTemplate ? (
+            <StackItem key="template">
               <Alert
-                variant="danger"
-                title={parsed.error}
-                data-testid="import-collection-parse-error"
+                variant="info"
+                title="Edit the sample definition before importing"
+                data-testid="import-collection-template"
                 isInline
-              />
+              >
+                The definition matches the unchanged sample template. Update the name, description,
+                and benchmarks to define your collection — Import stays disabled until it is
+                changed.
+              </Alert>
             </StackItem>
           ) : null}
           {!success && parsed.documentCount > 1 ? (
@@ -222,22 +246,6 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
                 Importing never modifies existing collections. Resolve the conflict by accepting the
                 suggested name or editing the name in the definition below — Import stays disabled
                 until the name is unique.
-              </Alert>
-            </StackItem>
-          ) : null}
-          {!success && warnings.length > 0 ? (
-            <StackItem key="warnings">
-              <Alert
-                variant="warning"
-                title="Review before importing"
-                data-testid="import-collection-warnings"
-                isInline
-              >
-                <ul>
-                  {warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
               </Alert>
             </StackItem>
           ) : null}
@@ -308,7 +316,7 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
               <EvalHubCodeEditor
                 className="evalhub-import-collection-modal__editor-upload"
                 code={text}
-                errorLine={parsed.errorLine}
+                diagnostics={diagnostics}
                 onChange={setText}
                 isDarkTheme={isDarkTheme}
                 isLanguageLabelVisible

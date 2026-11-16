@@ -57,19 +57,3 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
-// Monaco decoration classes applied by EvalHubCodeEditor to the YAML syntax
-// error line: a tinted line background plus a danger-colored bar in the line
-// number gutter, matching the line number in the parse error message.
-.evalhub-code-editor__error-line {
-  background-color: color-mix(
-    in srgb,
-    var(--pf-t--global--color--status--danger--default) 15%,
-    transparent
-  );
-}
-
-.evalhub-code-editor__error-line-gutter {
-  background-color: var(--pf-t--global--color--status--danger--default);
-  width: var(--pf-t--global--border--width--control--clicked);
-  margin-inline-end: var(--pf-t--global--spacer--xs);
-}

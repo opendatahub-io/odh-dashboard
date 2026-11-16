@@ -20,7 +20,7 @@ jest.mock('~/app/hooks/useDarkMode', () => ({
 }));
 
 // Monaco cannot run in jsdom; stub the editor wrapper as a controlled
-// textarea that surfaces the error line it is asked to highlight.
+// textarea that surfaces the diagnostics it is asked to mark.
 jest.mock('monaco-editor', () => ({ __esModule: true, editor: {} }), { virtual: true });
 jest.mock('@monaco-editor/react', () => ({ loader: { config: jest.fn() } }));
 jest.mock('@patternfly/react-code-editor', () => ({
@@ -32,15 +32,15 @@ jest.mock('~/app/components/EvalHubCodeEditor', () => ({
   default: ({
     code,
     onChange,
-    errorLine,
+    diagnostics,
   }: {
     code: string;
     onChange: (value: string) => void;
-    errorLine?: number;
+    diagnostics?: { message: string; severity: string; line: number }[];
   }) => (
     <textarea
       data-testid="import-collection-editor-textarea"
-      data-error-line={errorLine}
+      data-diagnostics={JSON.stringify(diagnostics ?? [])}
       value={code}
       onChange={(event) => onChange(event.target.value)}
     />
@@ -72,8 +72,14 @@ const renderModal = (isOpen = true) =>
     </MemoryRouter>,
   );
 
+const validContent =
+  'name: importable\ncategory: safety\nbenchmarks:\n  - id: a\n    provider_id: b\n';
+
 const findEditor = (): HTMLTextAreaElement =>
   screen.getByTestId('import-collection-editor-textarea') as HTMLTextAreaElement;
+
+const getDiagnostics = (): { message: string; severity: string; line: number }[] =>
+  JSON.parse(findEditor().dataset.diagnostics ?? '[]');
 
 const typeContent = async (content: string) => {
   // Clear the template, then type the new content.
@@ -99,23 +105,33 @@ describe('ImportCollectionModal', () => {
     });
   });
 
-  it('should show a parse error with the line number for invalid YAML and disable submit', async () => {
+  it('should mark the invalid YAML line as an error diagnostic and disable submit', async () => {
     renderModal();
     await typeContent('name: broken\n  bad_indent: true\n');
-    expect(screen.getByTestId('import-collection-parse-error').textContent).toContain('line 2');
-    // The offending line is passed to the editor for highlighting.
-    expect(findEditor()).toHaveAttribute('data-error-line', '2');
+    expect(getDiagnostics()).toContainEqual({
+      message: expect.stringContaining('line 2'),
+      severity: 'error',
+      line: 2,
+    });
     expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
   });
 
-  it('should show pre-submission warnings for missing description and unrecognized fields', async () => {
+  it('should mark missing description and unrecognized fields as warning diagnostics', async () => {
     renderModal();
     await typeContent(
       'name: warn-me\ncategory: safety\nmystery: 1\nbenchmarks:\n  - id: quality\n    provider_id: garak\n',
     );
-    const warnings = screen.getByTestId('import-collection-warnings');
-    expect(warnings.textContent).toContain('No description provided');
-    expect(warnings.textContent).toContain('Unrecognized field "mystery"');
+    const messages = getDiagnostics()
+      .filter((diagnostic) => diagnostic.severity === 'warning')
+      .map((diagnostic) => diagnostic.message);
+    expect(messages).toContainEqual(expect.stringContaining('No description provided'));
+    expect(messages).toContainEqual(expect.stringContaining('Unrecognized field "mystery"'));
+    // The unrecognized field points at its own line.
+    expect(getDiagnostics()).toContainEqual({
+      message: expect.stringContaining('Unrecognized field "mystery"'),
+      severity: 'warning',
+      line: 3,
+    });
     expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
   });
 
@@ -144,8 +160,14 @@ describe('ImportCollectionModal', () => {
     expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
   });
 
-  it('should disable the submit button while the import is pending', () => {
+  it('should disable the submit button while the definition matches the sample template', async () => {
     renderModal();
+    expect(screen.getByTestId('import-collection-template').textContent).toContain(
+      'unchanged sample template',
+    );
+    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+    await typeContent(validContent);
+    expect(screen.queryByTestId('import-collection-template')).not.toBeInTheDocument();
     expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
   });
 
@@ -156,6 +178,7 @@ describe('ImportCollectionModal', () => {
         options.onSuccess({ collection: createdCollection, warnings: ['ignored "id"'] }),
     );
     renderModal();
+    await typeContent(validContent);
     fireEvent.click(screen.getByTestId('import-collection-submit'));
     const success = await screen.findByTestId('import-collection-success');
     expect(success.textContent).toContain('imported');
@@ -164,7 +187,7 @@ describe('ImportCollectionModal', () => {
       EVAL_HUB_EVENTS.COLLECTION_IMPORT_SUCCEEDED,
       { surface: 'collection_gallery' },
     );
-    expect(mockMutate).toHaveBeenCalledWith(IMPORT_COLLECTION_TEMPLATE, expect.anything());
+    expect(mockMutate).toHaveBeenCalledWith(validContent, expect.anything());
   });
 
   it('should keep the dialog open with the error when submission fails', async () => {
@@ -174,6 +197,7 @@ describe('ImportCollectionModal', () => {
       ),
     );
     renderModal();
+    await typeContent(validContent);
     fireEvent.click(screen.getByTestId('import-collection-submit'));
     const error = await screen.findByTestId('import-collection-submit-error');
     expect(error.textContent).toContain('not found or not accessible');

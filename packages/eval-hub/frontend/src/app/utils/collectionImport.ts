@@ -1,4 +1,5 @@
 import yaml from 'js-yaml';
+import isEqual from 'lodash-es/isEqual';
 import type { Collection } from '~/app/types';
 
 // The platform ceiling for ConfigMaps and Secrets, which is where the EvalHub
@@ -171,26 +172,53 @@ export const parseImportContent = (text: string): ParsedImportContent => {
   return { doc: first, documentCount: nonNull.length };
 };
 
+const DEFAULT_TEMPLATE_DOC: Record<string, unknown> | null = parseImportContent(
+  IMPORT_COLLECTION_TEMPLATE,
+).doc;
+
+/**
+ * True when the definition is semantically identical to the sample template
+ * the modal opens with. Importing it as-is would create a placeholder
+ * collection, so the modal blocks submission until it is edited.
+ */
+export const isUnmodifiedTemplate = (doc: Record<string, unknown>): boolean =>
+  DEFAULT_TEMPLATE_DOC !== null && isEqual(doc, DEFAULT_TEMPLATE_DOC);
+
+export type ImportWarning = {
+  message: string;
+  /** Top-level collection field the warning points at, when it has one. */
+  field?: string;
+  /** Benchmark entry the warning points at, when it is benchmark-scoped. */
+  benchmarkId?: string;
+  /** Field within the benchmark entry, when it has one. */
+  benchmarkField?: string;
+};
+
 /**
  * Advisory warnings shown before the user confirms the import — a
  * client-side mirror of the BFF's pre-submission checks. The server's
- * validation on submission is authoritative.
+ * validation on submission is authoritative. Each warning carries the
+ * anchors needed to point an editor marker at its source line.
  */
-export const getImportWarnings = (doc: Record<string, unknown>): string[] => {
-  const warnings: string[] = [];
+export const getImportWarnings = (doc: Record<string, unknown>): ImportWarning[] => {
+  const warnings: ImportWarning[] = [];
   Object.keys(doc)
     .toSorted()
     .forEach((field) => {
       if (SERVER_MANAGED_COLLECTION_FIELDS.has(field)) {
-        warnings.push(`Field "${field}" is managed by the server and will be ignored.`);
+        warnings.push({
+          message: `Field "${field}" is managed by the server and will be ignored.`,
+          field,
+        });
       } else if (!KNOWN_COLLECTION_FIELDS.has(field)) {
-        warnings.push(`Unrecognized field "${field}" will be ignored.`);
+        warnings.push({ message: `Unrecognized field "${field}" will be ignored.`, field });
       }
     });
   if (typeof doc.description !== 'string' || doc.description.trim() === '') {
-    warnings.push(
-      'No description provided. Consider adding one so the collection is easy to identify.',
-    );
+    warnings.push({
+      message:
+        'No description provided. Consider adding one so the collection is easy to identify.',
+    });
   }
   const benchmarks = Array.isArray(doc.benchmarks) ? doc.benchmarks : [];
   benchmarks.forEach((entry, index) => {
@@ -202,15 +230,63 @@ export const getImportWarnings = (doc: Record<string, unknown>): string[] => {
       .toSorted()
       .forEach((field) => {
         if (SERVER_MANAGED_BENCHMARK_FIELDS.has(field)) {
-          warnings.push(
-            `Benchmark "${id}": field "${field}" is managed by the server and will be ignored.`,
-          );
+          warnings.push({
+            message: `Benchmark "${id}": field "${field}" is managed by the server and will be ignored.`,
+            benchmarkId: id,
+            benchmarkField: field,
+          });
         } else if (!KNOWN_BENCHMARK_FIELDS.has(field)) {
-          warnings.push(`Benchmark "${id}": unrecognized field "${field}" will be ignored.`);
+          warnings.push({
+            message: `Benchmark "${id}": unrecognized field "${field}" will be ignored.`,
+            benchmarkId: id,
+            benchmarkField: field,
+          });
         }
       });
   });
   return warnings;
+};
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Resolves the 1-based line a warning anchors to in the raw content: the
+ * warning field's own line when present, the field's line within its
+ * benchmark entry for benchmark-scoped warnings, the benchmark's id line
+ * when only the entry is known, and line 1 for file-level warnings.
+ */
+export const findImportWarningLine = (text: string, warning: ImportWarning): number => {
+  const lines = text.split('\n');
+  if (warning.benchmarkId !== undefined) {
+    const benchmarkPattern = new RegExp(
+      `^\\s*-\\s*id:\\s*['"]?${escapeRegExp(warning.benchmarkId)}['"]?\\s*$`,
+    );
+    const benchmarkLine = lines.findIndex((line) => benchmarkPattern.test(line));
+    if (benchmarkLine === -1) {
+      return 1;
+    }
+    if (warning.benchmarkField !== undefined) {
+      const fieldPattern = new RegExp(`^\\s+${escapeRegExp(warning.benchmarkField)}:`);
+      for (let index = benchmarkLine + 1; index < lines.length; index++) {
+        const line = lines[index];
+        // Stop at the next benchmark entry or at a top-level key.
+        if (/^\S/.test(line) || /^\s*-\s/.test(line)) {
+          break;
+        }
+        if (fieldPattern.test(line)) {
+          return index + 1;
+        }
+      }
+    }
+    return benchmarkLine + 1;
+  }
+  if (warning.field !== undefined) {
+    const fieldLine = lines.findIndex((line) => line.startsWith(`${warning.field}:`));
+    if (fieldLine !== -1) {
+      return fieldLine + 1;
+    }
+  }
+  return 1;
 };
 
 /** Case-insensitive match against the collections visible to the user. */

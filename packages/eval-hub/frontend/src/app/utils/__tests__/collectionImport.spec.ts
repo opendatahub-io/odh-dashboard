@@ -2,10 +2,12 @@
 import { mockCollection } from '~/__mocks__/mockCollection';
 import {
   applyImportName,
+  findImportWarningLine,
   findNameCollision,
   getImportWarnings,
   IMPORT_COLLECTION_TEMPLATE,
   isNameConflictError,
+  isUnmodifiedTemplate,
   parseImportContent,
   proposeUniqueName,
 } from '~/app/utils/collectionImport';
@@ -86,10 +88,12 @@ describe('parseImportContent', () => {
 describe('getImportWarnings', () => {
   it('should warn about a missing description', () => {
     const warnings = getImportWarnings({ name: 'x', category: 'safety', benchmarks: [] });
-    expect(warnings).toContainEqual(expect.stringContaining('No description provided'));
+    expect(warnings).toContainEqual(
+      expect.objectContaining({ message: expect.stringContaining('No description provided') }),
+    );
   });
 
-  it('should warn about server-managed and unrecognized collection fields', () => {
+  it('should warn about server-managed and unrecognized collection fields with field anchors', () => {
     const warnings = getImportWarnings({
       name: 'x',
       description: 'd',
@@ -99,26 +103,37 @@ describe('getImportWarnings', () => {
       mystery: true,
       benchmarks: [],
     });
-    expect(warnings).toContainEqual('Field "id" is managed by the server and will be ignored.');
-    expect(warnings).toContainEqual(
-      'Field "curation_order" is managed by the server and will be ignored.',
-    );
-    expect(warnings).toContainEqual('Unrecognized field "mystery" will be ignored.');
+    expect(warnings).toContainEqual({
+      message: 'Field "id" is managed by the server and will be ignored.',
+      field: 'id',
+    });
+    expect(warnings).toContainEqual({
+      message: 'Field "curation_order" is managed by the server and will be ignored.',
+      field: 'curation_order',
+    });
+    expect(warnings).toContainEqual({
+      message: 'Unrecognized field "mystery" will be ignored.',
+      field: 'mystery',
+    });
   });
 
-  it('should warn about server-managed and unrecognized benchmark fields', () => {
+  it('should warn about server-managed and unrecognized benchmark fields with benchmark anchors', () => {
     const warnings = getImportWarnings({
       name: 'x',
       description: 'd',
       category: 'safety',
       benchmarks: [{ id: 'quality', provider_id: 'garak', url: 'https://x', mystery: 1 }],
     });
-    expect(warnings).toContainEqual(
-      'Benchmark "quality": field "url" is managed by the server and will be ignored.',
-    );
-    expect(warnings).toContainEqual(
-      'Benchmark "quality": unrecognized field "mystery" will be ignored.',
-    );
+    expect(warnings).toContainEqual({
+      message: 'Benchmark "quality": field "url" is managed by the server and will be ignored.',
+      benchmarkId: 'quality',
+      benchmarkField: 'url',
+    });
+    expect(warnings).toContainEqual({
+      message: 'Benchmark "quality": unrecognized field "mystery" will be ignored.',
+      benchmarkId: 'quality',
+      benchmarkField: 'mystery',
+    });
   });
 
   it('should return no warnings for a clean definition', () => {
@@ -129,6 +144,57 @@ describe('getImportWarnings', () => {
       benchmarks: [{ id: 'quality', provider_id: 'garak', weight: 1 }],
     });
     expect(warnings).toEqual([]);
+  });
+});
+
+describe('findImportWarningLine', () => {
+  const text = [
+    'name: warn-me',
+    'category: safety',
+    'mystery: 1',
+    'benchmarks:',
+    '  - id: quality',
+    '    provider_id: garak',
+    '    url: https://example.com',
+    '  - id: other',
+    '    provider_id: garak',
+    '    weight: 1',
+  ].join('\n');
+
+  it('should resolve a top-level field to its own line', () => {
+    expect(findImportWarningLine(text, { message: 'mystery', field: 'mystery' })).toBe(3);
+  });
+
+  it('should resolve a benchmark field to its line within the benchmark entry', () => {
+    expect(
+      findImportWarningLine(text, {
+        message: 'url',
+        benchmarkId: 'quality',
+        benchmarkField: 'url',
+      }),
+    ).toBe(7);
+  });
+
+  it('should not resolve a benchmark field against a later benchmark entry', () => {
+    // "weight" only exists under the "other" entry; a warning scoped to
+    // "quality" falls back to quality's id line instead.
+    expect(
+      findImportWarningLine(text, {
+        message: 'weight',
+        benchmarkId: 'quality',
+        benchmarkField: 'weight',
+      }),
+    ).toBe(5);
+  });
+
+  it('should resolve a benchmark-scoped warning without a field to the benchmark id line', () => {
+    expect(findImportWarningLine(text, { message: 'benchmark', benchmarkId: 'other' })).toBe(8);
+  });
+
+  it('should fall back to line 1 for file-level warnings or unresolvable anchors', () => {
+    expect(findImportWarningLine(text, { message: 'no description' })).toBe(1);
+    expect(findImportWarningLine(text, { message: 'missing', field: 'absent-field' })).toBe(1);
+    expect(findImportWarningLine(text, { message: 'missing', benchmarkId: 'not-there' })).toBe(1);
   });
 });
 
@@ -204,5 +270,42 @@ describe('IMPORT_COLLECTION_TEMPLATE', () => {
     expect(result.error).toBeUndefined();
     expect(result.doc?.name).toBe('my-collection');
     expect(getImportWarnings(result.doc ?? {})).toEqual([]);
+  });
+});
+
+describe('isUnmodifiedTemplate', () => {
+  it('should match the parsed template', () => {
+    const { doc } = parseImportContent(IMPORT_COLLECTION_TEMPLATE);
+    expect(isUnmodifiedTemplate(doc ?? {})).toBe(true);
+  });
+
+  it('should match a semantically identical definition regardless of format or key order', () => {
+    const { doc } = parseImportContent(
+      JSON.stringify({
+        benchmarks: [
+          {
+            pass_criteria: { threshold: 0.25 },
+            primary_score: { metric: 'acc_norm', lower_is_better: false },
+            weight: 1.0,
+            provider_id: 'lm_evaluation_harness',
+            id: 'arc_easy',
+          },
+        ],
+        domains: ['knowledge_and_reasoning'],
+        description: 'A short description of what this collection evaluates.\n',
+        name: 'my-collection',
+      }),
+    );
+    expect(isUnmodifiedTemplate(doc ?? {})).toBe(true);
+  });
+
+  it('should not match a renamed definition', () => {
+    const { doc } = parseImportContent(applyImportName(IMPORT_COLLECTION_TEMPLATE, 'renamed'));
+    expect(isUnmodifiedTemplate(doc ?? {})).toBe(false);
+  });
+
+  it('should not match a definition with changed content', () => {
+    const { doc } = parseImportContent(validYAML);
+    expect(isUnmodifiedTemplate(doc ?? {})).toBe(false);
   });
 });
