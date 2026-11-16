@@ -37,6 +37,7 @@ import (
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
+const conditionNamespacedRBACConsent = "NamespacedRBACConsentEnforced"
 
 var operatorDeploymentName = getOperatorDeploymentName()
 
@@ -416,12 +417,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			Message:  rbacErr.Error(),
 		})
 		err = errors.Join(err, rbacErr)
-	} else if !r.NamespacedRBACAdmissionEnabled &&
-		(dashboard.Spec.NotebooksNamespace != "" || dashboard.Spec.ModelRegistryNamespace != "") {
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("NamespacedRBACConsentNotEnforced"),
-			conditions.WithMessage("Namespaced RBAC uses legacy grants until the platform enables consent enforcement"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
+	} else {
+		r.setNamespacedRBACTransitionCondition(dashboard)
 	}
 
 	releases := []common.ComponentRelease{{
@@ -452,6 +449,25 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	return result, err
+}
+
+func (r *DashboardReconciler) setNamespacedRBACTransitionCondition(dashboard *v1alpha1.Dashboard) {
+	if r.namespacedRBACConsentEnforced(dashboard) ||
+		(dashboard.Spec.NotebooksNamespace == "" && dashboard.Spec.ModelRegistryNamespace == "") {
+		conditions.RemoveStatusCondition(dashboard, conditionNamespacedRBACConsent)
+		return
+	}
+
+	// Transition state is orthogonal to workload health. Keep it in its own
+	// informational condition so it cannot overwrite Degraded or recompute
+	// an explicit Ready=False from modules or routing.
+	conditions.SetStatusCondition(dashboard, common.Condition{
+		Type:     conditionNamespacedRBACConsent,
+		Status:   metav1.ConditionFalse,
+		Severity: common.ConditionSeverityInfo,
+		Reason:   "NamespacedRBACConsentNotEnforced",
+		Message:  "Namespaced RBAC uses legacy grants until the platform enables consent enforcement",
+	})
 }
 
 // updateStatusIfChanged compares the final conditions with persisted state so

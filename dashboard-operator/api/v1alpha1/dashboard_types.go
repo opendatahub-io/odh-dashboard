@@ -10,6 +10,12 @@ const (
 	DashboardInstanceName    = "default-dashboard"
 	DashboardKind            = "Dashboard"
 	NamespacedRBACOptInLabel = "dashboard.opendatahub.io/allow-namespaced-rbac"
+	// NamespacedRBACInventoryAnnotation is controller-owned durable state used
+	// to find grants after recipient-controlled resource metadata changes.
+	NamespacedRBACInventoryAnnotation = "dashboard.opendatahub.io/namespaced-rbac-grants"
+	// NamespacedRBACConsentEnforcedAnnotation makes enforcement monotonic after
+	// the platform completes its transition from legacy grants.
+	NamespacedRBACConsentEnforcedAnnotation = "dashboard.opendatahub.io/namespaced-rbac-consent-enforced"
 )
 
 // ModuleOverrideState is a tri-state enum for module enablement overrides.

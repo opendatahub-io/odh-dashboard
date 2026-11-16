@@ -8,6 +8,7 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +39,12 @@ func NewSingletonHandler(reader client.Reader) *admission.Webhook {
 // NewDashboardHandler returns an admission webhook that enforces both the
 // singleton constraint and orchestrator-only writes to cross-namespace RBAC
 // target fields.
-func NewDashboardHandler(reader client.Reader, namespacedRBACWriters []string) *admission.Webhook {
+func NewDashboardHandler(
+	reader client.Reader,
+	namespacedRBACWriters []string,
+	enforceNamespacedRBACConsent bool,
+	controllerWriter string,
+) *admission.Webhook {
 	allowedWriters := make(map[string]struct{}, len(namespacedRBACWriters))
 	for _, writer := range namespacedRBACWriters {
 		if writer != "" {
@@ -48,7 +54,14 @@ func NewDashboardHandler(reader client.Reader, namespacedRBACWriters []string) *
 
 	return &admission.Webhook{
 		Handler: admission.HandlerFunc(func(ctx context.Context, req admission.Request) admission.Response {
+			enforceConsent, err := namespacedRBACConsentEnforced(ctx, reader, enforceNamespacedRBACConsent)
+			if err != nil {
+				return admission.Errored(http.StatusInternalServerError, err)
+			}
 			if req.Resource == (metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}) {
+				if !enforceConsent {
+					return admission.Allowed("")
+				}
 				return validateNamespacedRBACOptInWriter(req, allowedWriters)
 			}
 			if req.Resource != (metav1.GroupVersionResource{Group: DashboardGVK.Group, Version: DashboardGVK.Version, Resource: "dashboards"}) {
@@ -57,9 +70,28 @@ func NewDashboardHandler(reader client.Reader, namespacedRBACWriters []string) *
 			if singleton := platformwebhook.ValidateSingletonCreation(ctx, reader, &req, DashboardGVK); !singleton.Allowed {
 				return singleton
 			}
-			return validateNamespacedRBACTargetWriter(req, allowedWriters)
+			return validateDashboardNamespacedRBACWrite(
+				req,
+				allowedWriters,
+				enforceConsent,
+				controllerWriter,
+			)
 		}),
 	}
+}
+
+func namespacedRBACConsentEnforced(ctx context.Context, reader client.Reader, configured bool) (bool, error) {
+	if configured {
+		return true, nil
+	}
+	dashboard := &v1alpha1.Dashboard{}
+	if err := reader.Get(ctx, client.ObjectKey{Name: v1alpha1.DashboardInstanceName}, dashboard); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("reading namespaced RBAC consent enforcement state: %w", err)
+	}
+	return dashboard.Annotations[v1alpha1.NamespacedRBACConsentEnforcedAnnotation] == "true", nil
 }
 
 func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map[string]struct{}) admission.Response {
@@ -102,7 +134,12 @@ func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map
 	))
 }
 
-func validateNamespacedRBACTargetWriter(req admission.Request, allowedWriters map[string]struct{}) admission.Response {
+func validateDashboardNamespacedRBACWrite(
+	req admission.Request,
+	allowedWriters map[string]struct{},
+	enforceNamespacedRBACConsent bool,
+	controllerWriter string,
+) admission.Response {
 	if req.SubResource != "" || (req.Operation != admissionv1.Create && req.Operation != admissionv1.Update) {
 		return admission.Allowed("")
 	}
@@ -112,12 +149,25 @@ func validateNamespacedRBACTargetWriter(req admission.Request, allowedWriters ma
 		return admission.Errored(http.StatusBadRequest, fmt.Errorf("decoding Dashboard: %w", err))
 	}
 
-	protectedFieldsChanged := current.Spec.NotebooksNamespace != "" || current.Spec.ModelRegistryNamespace != ""
+	var previous v1alpha1.Dashboard
 	if req.Operation == admissionv1.Update {
-		var previous v1alpha1.Dashboard
 		if err := json.Unmarshal(req.OldObject.Raw, &previous); err != nil {
 			return admission.Errored(http.StatusBadRequest, fmt.Errorf("decoding previous Dashboard: %w", err))
 		}
+	}
+
+	if protectedNamespacedRBACAnnotationChanged(&previous, &current) && req.UserInfo.Username != controllerWriter {
+		return admission.Denied(fmt.Sprintf(
+			"user %q may not change controller-owned namespaced RBAC annotations",
+			req.UserInfo.Username,
+		))
+	}
+	if !enforceNamespacedRBACConsent {
+		return admission.Allowed("")
+	}
+
+	protectedFieldsChanged := current.Spec.NotebooksNamespace != "" || current.Spec.ModelRegistryNamespace != ""
+	if req.Operation == admissionv1.Update {
 		protectedFieldsChanged = previous.Spec.NotebooksNamespace != current.Spec.NotebooksNamespace ||
 			previous.Spec.ModelRegistryNamespace != current.Spec.ModelRegistryNamespace
 	}
@@ -133,4 +183,16 @@ func validateNamespacedRBACTargetWriter(req admission.Request, allowedWriters ma
 		"user %q may not set spec.notebooksNamespace or spec.modelRegistryNamespace; these fields are managed by the ODH orchestrator",
 		req.UserInfo.Username,
 	))
+}
+
+func protectedNamespacedRBACAnnotationChanged(previous, current *v1alpha1.Dashboard) bool {
+	for _, key := range []string{
+		v1alpha1.NamespacedRBACInventoryAnnotation,
+		v1alpha1.NamespacedRBACConsentEnforcedAnnotation,
+	} {
+		if previous.Annotations[key] != current.Annotations[key] {
+			return true
+		}
+	}
+	return false
 }

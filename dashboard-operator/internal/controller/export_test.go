@@ -87,6 +87,10 @@ func (r *DashboardReconciler) ReconcileDegradedCondition(
 	r.reconcileDegradedCondition(cm, statuses)
 }
 
+func (r *DashboardReconciler) SetNamespacedRBACTransitionCondition(dashboard *v1alpha1.Dashboard) {
+	r.setNamespacedRBACTransitionCondition(dashboard)
+}
+
 func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard, desired map[string]bool) error {
 	return r.gcStaleNamespacedRBAC(ctx, dashboard, desired)
 }

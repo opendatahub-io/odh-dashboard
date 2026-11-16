@@ -153,7 +153,17 @@ func main() {
 	}
 
 	if enableWebhook {
-		mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewDashboardHandler(mgr.GetAPIReader(), writers))
+		serviceAccountName := os.Getenv("OPERATOR_SERVICE_ACCOUNT_NAME")
+		if serviceAccountName == "" {
+			serviceAccountName = "dashboard-operator"
+		}
+		controllerWriter := fmt.Sprintf("system:serviceaccount:%s:%s", operatorNamespace, serviceAccountName)
+		mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewDashboardHandler(
+			mgr.GetAPIReader(),
+			writers,
+			enforceRBACConsent,
+			controllerWriter,
+		))
 		setupLog.Info("Registered Dashboard validation webhook", "path", "/validate-dashboard")
 	}
 

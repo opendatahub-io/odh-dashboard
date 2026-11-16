@@ -500,10 +500,45 @@ func TestReconcile_LegacyNamespacedRBACReportsInformationalDegradedCondition(t *
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
 	degraded := conditions.FindStatusCondition(updated, string(common.ConditionTypeDegraded))
 	require.NotNil(t, degraded)
-	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
-	assert.Equal(t, "NamespacedRBACConsentNotEnforced", degraded.Reason)
-	assert.Equal(t, common.ConditionSeverityInfo, degraded.Severity)
+	assert.Equal(t, metav1.ConditionFalse, degraded.Status)
+	assert.Equal(t, "NoDegradation", degraded.Reason)
+	transition := conditions.FindStatusCondition(updated, "NamespacedRBACConsentEnforced")
+	require.NotNil(t, transition)
+	assert.Equal(t, metav1.ConditionFalse, transition.Status)
+	assert.Equal(t, "NamespacedRBACConsentNotEnforced", transition.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, transition.Severity)
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Namespace: testNamespace, Name: "dashboard-notebooks-role"}, &rbacv1.Role{}))
+}
+
+func TestNamespacedRBACTransitionConditionPreservesWorkloadHealth(t *testing.T) {
+	dashboard := newRBACDashboard(testNamespace, "")
+	conditions.SetStatusCondition(dashboard, common.Condition{
+		Type:     string(common.ConditionTypeDegraded),
+		Status:   metav1.ConditionTrue,
+		Severity: common.ConditionSeverityError,
+		Reason:   "ModulesDegraded",
+		Message:  "one module degraded",
+	})
+	conditions.SetStatusCondition(dashboard, common.Condition{
+		Type:    string(common.ConditionTypeReady),
+		Status:  metav1.ConditionFalse,
+		Reason:  "RouteNotReady",
+		Message: "route is not admitted",
+	})
+	r := &ctrlpkg.DashboardReconciler{}
+
+	r.SetNamespacedRBACTransitionCondition(dashboard)
+
+	degraded := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, "ModulesDegraded", degraded.Reason)
+	ready := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeReady))
+	require.NotNil(t, ready)
+	assert.Equal(t, metav1.ConditionFalse, ready.Status)
+	assert.Equal(t, "RouteNotReady", ready.Reason)
+	transition := conditions.FindStatusCondition(dashboard, "NamespacedRBACConsentEnforced")
+	require.NotNil(t, transition)
+	assert.Equal(t, metav1.ConditionFalse, transition.Status)
 }
 
 func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {

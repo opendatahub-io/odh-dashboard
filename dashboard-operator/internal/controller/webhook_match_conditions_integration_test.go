@@ -95,6 +95,10 @@ func TestIntegration_WebhookMatchConditionsUseRealAPIServer(t *testing.T) {
 	require.NoError(t, cli.Update(context.Background(), dashboard))
 	require.Equal(t, 2, webhookCalls(t, &mu, calls, "namespaces"))
 	require.Equal(t, 2, webhookCalls(t, &mu, calls, "dashboards"))
+
+	dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation] = "[]"
+	require.NoError(t, cli.Update(context.Background(), dashboard))
+	require.Equal(t, 3, webhookCalls(t, &mu, calls, "dashboards"), "controller-owned annotation changes must invoke the webhook")
 }
 
 func webhookCalls(t *testing.T, mu *sync.Mutex, calls map[string]int, resource string) int {

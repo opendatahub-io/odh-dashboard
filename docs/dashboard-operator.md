@@ -428,7 +428,9 @@ are true:
 - the orchestrator sets `spec.notebooksNamespace` or
   `spec.modelRegistryNamespace` on the singleton Dashboard CR.
 
-The webhook protects both target fields and consent grants. Only the exact
+The webhook protects target fields, consent grants, and the controller-owned
+grant inventory and enforcement-state annotations. Only the dashboard operator
+service account may change those annotations. Only the exact
 usernames in `webhook.namespacedRBACWriters` may set the namespace label to
 `true`; anyone already authorized by Kubernetes to update the namespace may
 remove it and revoke consent. API-server match conditions skip the webhook for
@@ -452,8 +454,12 @@ NotReady; Dashboard CR deletion retains its finalizer and retries cleanup.
 Consent enforcement defaults to `false` so a dashboard-operator image can be
 upgraded before the platform operator installs the webhook. In this transition
 mode the controller preserves the legacy grants without requiring a consent
-label and reports an informational `NamespacedRBACConsentNotEnforced` Degraded
-condition when a target is configured. Enabling enforcement without the
+label and reports a separate informational `NamespacedRBACConsentEnforced=False`
+condition with reason `NamespacedRBACConsentNotEnforced` when a target is
+configured. This condition does not replace workload degradation or readiness
+status. Enabling enforcement writes durable controller-owned state, so a later
+deployment that accidentally omits the flag remains fail-closed. Enabling
+enforcement without the
 webhook and at least one trusted writer is rejected at chart rendering and
 manager startup. Operator-managed RHOAI and ODH installations normally
 configure the applicable platform operator service account username:
@@ -473,7 +479,9 @@ The platform operator change that enables enforcement must update the chart
 configuration and `RELATED_IMAGE_ODH_DASHBOARD_OPERATOR_IMAGE` in the same ODH
 or RHOAI release change. Enabling the new flag with an older image causes an
 unknown-flag startup failure; deploying the new image with older configuration
-is safe because it remains in legacy transition mode.
+is safe because it remains in legacy transition mode. In that mode the webhook
+keeps its existing singleton behavior and does not restrict target fields or
+namespace consent until enforcement is explicitly enabled.
 
 ### Metrics TLS
 

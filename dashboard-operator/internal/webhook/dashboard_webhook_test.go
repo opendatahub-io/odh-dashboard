@@ -97,8 +97,13 @@ func TestSingletonHandler_WithExistingInstance(t *testing.T) {
 
 func dashboardRaw(t *testing.T, notebooksNamespace, modelRegistryNamespace string) []byte {
 	t.Helper()
+	return dashboardRawWithAnnotations(t, notebooksNamespace, modelRegistryNamespace, nil)
+}
+
+func dashboardRawWithAnnotations(t *testing.T, notebooksNamespace, modelRegistryNamespace string, annotations map[string]string) []byte {
+	t.Helper()
 	raw, err := json.Marshal(&v1alpha1.Dashboard{
-		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Annotations: annotations},
 		Spec: v1alpha1.DashboardSpec{
 			NotebooksNamespace:     notebooksNamespace,
 			ModelRegistryNamespace: modelRegistryNamespace,
@@ -113,6 +118,8 @@ func TestDashboardHandler_ProtectsNamespacedRBACTargetFields(t *testing.T) {
 	handler := dashwebhook.NewDashboardHandler(
 		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
 		[]string{orchestrator},
+		true,
+		"system:serviceaccount:opendatahub:dashboard-operator",
 	)
 
 	tests := []struct {
@@ -220,6 +227,8 @@ func TestDashboardHandler_EmptyWriterListFailsClosed(t *testing.T) {
 	handler := dashwebhook.NewDashboardHandler(
 		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
 		nil,
+		true,
+		"system:serviceaccount:opendatahub:dashboard-operator",
 	)
 
 	resp := handler.Handle(context.Background(), admission.Request{
@@ -237,6 +246,97 @@ func TestDashboardHandler_EmptyWriterListFailsClosed(t *testing.T) {
 	assert.Contains(t, resp.Result.Message, "managed by the ODH orchestrator")
 }
 
+func TestDashboardHandler_LegacyModePreservesExistingAdmissionContract(t *testing.T) {
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		nil,
+		false,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+	)
+
+	targetUpdate := handler.Handle(context.Background(), admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Update,
+		Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+		UserInfo:  authenticationv1.UserInfo{Username: "system:serviceaccount:legacy:orchestrator"},
+		Object:    runtime.RawExtension{Raw: dashboardRaw(t, "rhods-notebooks", "")},
+		OldObject: runtime.RawExtension{Raw: dashboardRaw(t, "", "")},
+	}})
+	assert.True(t, targetUpdate.Allowed, "legacy webhook configuration must not require the new writer list")
+
+	consentUpdate := handler.Handle(context.Background(), admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Update,
+		Resource:  metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"},
+		UserInfo:  authenticationv1.UserInfo{Username: "alice"},
+		Object: runtime.RawExtension{Raw: namespaceRaw(t, map[string]string{
+			v1alpha1.NamespacedRBACOptInLabel: "true",
+		})},
+		OldObject: runtime.RawExtension{Raw: namespaceRaw(t, nil)},
+	}})
+	assert.True(t, consentUpdate.Allowed, "consent policy is inactive during the bounded legacy transition")
+}
+
+func TestDashboardHandler_ProtectsControllerOwnedAnnotations(t *testing.T) {
+	const controllerWriter = "system:serviceaccount:opendatahub:dashboard-operator"
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		nil,
+		false,
+		controllerWriter,
+	)
+
+	for _, key := range []string{
+		v1alpha1.NamespacedRBACInventoryAnnotation,
+		v1alpha1.NamespacedRBACConsentEnforcedAnnotation,
+	} {
+		t.Run(key, func(t *testing.T) {
+			oldRaw := dashboardRaw(t, "", "")
+			newRaw := dashboardRawWithAnnotations(t, "", "", map[string]string{key: "true"})
+			request := func(username string) admission.Request {
+				return admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: admissionv1.Update,
+					Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+					UserInfo:  authenticationv1.UserInfo{Username: username},
+					Object:    runtime.RawExtension{Raw: newRaw},
+					OldObject: runtime.RawExtension{Raw: oldRaw},
+				}}
+			}
+
+			denied := handler.Handle(context.Background(), request("alice"))
+			assert.False(t, denied.Allowed)
+			require.NotNil(t, denied.Result)
+			assert.Contains(t, denied.Result.Message, "controller-owned")
+			assert.True(t, handler.Handle(context.Background(), request(controllerWriter)).Allowed)
+		})
+	}
+}
+
+func TestDashboardHandler_DurableEnforcementSurvivesMissingFlag(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	persisted := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{
+		Name: v1alpha1.DashboardInstanceName,
+		Annotations: map[string]string{
+			v1alpha1.NamespacedRBACConsentEnforcedAnnotation: "true",
+		},
+	}}
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(persisted).Build(),
+		[]string{orchestrator},
+		false,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+	)
+
+	request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Update,
+		Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+		UserInfo:  authenticationv1.UserInfo{Username: "alice"},
+		Object:    runtime.RawExtension{Raw: dashboardRaw(t, "arbitrary", "")},
+		OldObject: runtime.RawExtension{Raw: dashboardRaw(t, "", "")},
+	}}
+	assert.False(t, handler.Handle(context.Background(), request).Allowed)
+	request.UserInfo.Username = orchestrator
+	assert.True(t, handler.Handle(context.Background(), request).Allowed)
+}
+
 func namespaceRaw(t *testing.T, labels map[string]string) []byte {
 	t.Helper()
 	raw, err := json.Marshal(&corev1.Namespace{
@@ -251,6 +351,8 @@ func TestDashboardHandler_ProtectsNamespaceOptInLabel(t *testing.T) {
 	handler := dashwebhook.NewDashboardHandler(
 		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
 		[]string{orchestrator},
+		true,
+		"system:serviceaccount:opendatahub:dashboard-operator",
 	)
 
 	for _, tt := range []struct {

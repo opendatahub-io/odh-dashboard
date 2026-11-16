@@ -289,6 +289,7 @@ func TestReconcileNamespacedRBAC_MigratesCurrentTargetWithStrippedLabelsAndRepla
 func TestReconcileNamespacedRBAC_InventoryPersistenceFailurePreventsGrant(t *testing.T) {
 	dashboard := newRBACDashboard(testNotebooksNS, "")
 	dashboard.UID = types.UID("dashboard-uid")
+	dashboard.Annotations = map[string]string{v1alpha1.NamespacedRBACConsentEnforcedAnnotation: "true"}
 	r, cli := newReconciler(t, cluster.OpenDataHub, dashboard)
 	patchErr := errors.New("injected Dashboard patch failure")
 	watchClient, ok := cli.(client.WithWatch)
@@ -317,6 +318,26 @@ func TestReconcileNamespacedRBAC_EnforcementDisabledPreservesLegacyGrant(t *test
 	require.NoError(t, err)
 	assert.Len(t, listRoles(t, cli), 1)
 	assert.Len(t, listRoleBindings(t, cli), 1)
+}
+
+func TestReconcileNamespacedRBAC_EnforcementCannotBeDowngradedAfterEnablement(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+	assert.Equal(t, "true", dashboard.Annotations[v1alpha1.NamespacedRBACConsentEnforcedAnnotation])
+
+	// Simulate an image/chart rollback that accidentally drops the flag after
+	// the cluster has already entered enforced mode.
+	r.NamespacedRBACAdmissionEnabled = false
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
 }
 
 func TestReconcileNamespacedRBAC_RejectsUnlabelledNamespace(t *testing.T) {
@@ -368,6 +389,30 @@ func TestReconcileNamespacedRBAC_RemovingOptInRevokesExistingGrant(t *testing.T)
 	require.ErrorContains(t, err, "dashboard.opendatahub.io/allow-namespaced-rbac=true")
 	assert.Empty(t, listRoles(t, cli))
 	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_RepairsCorruptInventoryBeforeRevocation(t *testing.T) {
+	for _, corrupt := range []string{"not-json", "[]"} {
+		t.Run(corrupt, func(t *testing.T) {
+			dashboard := newRBACDashboard(testNotebooksNS, "")
+			dashboard.UID = types.UID("persisted-dashboard")
+			r, cli := newReconciler(t, cluster.OpenDataHub, dashboard)
+			require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+			dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation] = corrupt
+			require.NoError(t, cli.Update(context.Background(), dashboard))
+
+			namespace := &corev1.Namespace{}
+			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+			delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+			require.NoError(t, cli.Update(context.Background(), namespace))
+
+			err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+			require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+			assert.Empty(t, listRoles(t, cli))
+			assert.Empty(t, listRoleBindings(t, cli))
+			assert.Empty(t, namespacedRBACGrantInventory(t, dashboard))
+		})
+	}
 }
 
 func TestReconcileNamespacedRBAC_RemovingOptInRevokesGrantAfterLabelsAreStripped(t *testing.T) {
