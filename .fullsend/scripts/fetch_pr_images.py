@@ -110,7 +110,12 @@ _BARE_URL = re.compile(
 )
 _TRAILING_PUNCTUATION = ".,;:!?"
 
-_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+# C0/C1 controls plus the Unicode line and paragraph separators. Every
+# single-line guarantee here depends on this set: `\s` already covers them for
+# the whitespace-collapsing sanitizers, but URL cleaning truncates on a match,
+# and a raw U+2028 inside a JSON string still renders as a line break in a
+# consumer that splits on Unicode line terminators.
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")
 
 
 @dataclass
@@ -176,20 +181,38 @@ class CaptureResult:
 # URL extraction and validation
 # ---------------------------------------------------------------------------
 def _clean_url(raw: str) -> str:
-    return html.unescape(raw.strip()).rstrip(_TRAILING_PUNCTUATION)
+    """Normalized URL, cut at the first control character.
+
+    HTML entities are decoded first, so `&#10;` becomes a newline and `&#8232;`
+    a line separator; raw control and line-break characters cannot appear in a
+    URL, and keeping them would put author text into manifest fields that other
+    layers render. Truncating leaves a clean join key for everything the author
+    actually wrote as a URL.
+    """
+    text = html.unescape(raw or "").strip()
+    control = _CONTROL.search(text)
+    if control:
+        text = text[: control.start()]
+    return text.rstrip(_TRAILING_PUNCTUATION)
+
+
+def _single_line(raw, limit: int = 200) -> str:
+    """Collapse a value to one line of bounded length.
+
+    Used for every field that leaves this script for a line-oriented consumer:
+    captions, comment context, and skip reasons.
+    """
+    text = _CONTROL.sub(" ", str(raw or ""))
+    return re.sub(r"\s+", " ", text).strip()[:limit]
 
 
 def _caption(raw: str) -> str:
-    text = html.unescape(raw or "")
-    text = _CONTROL.sub(" ", text)
-    return re.sub(r"\s+", " ", text).strip()[:200]
+    return _single_line(html.unescape(raw or ""))
 
 
 def _comment_context(raw: str) -> str:
     """Sanitized comment text used to frame a comment-origin image."""
-    text = _CONTROL.sub(" ", raw or "")
-    text = re.sub(r"\s+", " ", text).strip()
-    return text[:2000]
+    return _single_line(raw, limit=2000)
 
 
 def extract_media(text: str, origin: str = "body") -> list:
@@ -305,15 +328,24 @@ def _skip_gif_sub_blocks(data: bytes, pos: int) -> int:
     return pos
 
 
-def _gif_frame_count(data: bytes) -> int:
-    """Count image frames by walking GIF blocks. Returns -1 when malformed."""
+def _gif_descriptors(data: bytes):
+    """Walk GIF blocks and describe the frames.
+
+    Returns ``(frame_count, max_width, max_height)``, where the sizes are the
+    largest right and bottom extents of any image descriptor (``left + width``,
+    ``top + height``), or ``None`` when the stream is malformed. The logical
+    screen alone is not a bound: a descriptor can declare frame dimensions and
+    offsets far beyond it.
+    """
     if len(data) < 13:
-        return -1
+        return None
     packed = data[10]
     pos = 13
     if packed & 0x80:  # global color table present
         pos += 3 * (1 << ((packed & 0x07) + 1))
     frames = 0
+    max_width = 0
+    max_height = 0
     while pos < len(data):
         block = data[pos]
         if block == 0x3B:  # trailer
@@ -322,28 +354,43 @@ def _gif_frame_count(data: bytes) -> int:
             pos = _skip_gif_sub_blocks(data, pos + 2)
         elif block == 0x2C:  # image descriptor
             if pos + 10 > len(data):
-                return -1
+                return None
+            left, top, width, height = struct.unpack("<HHHH", data[pos + 1:pos + 9])
             ipacked = data[pos + 9]
             pos += 10
             if ipacked & 0x80:  # local color table present
                 pos += 3 * (1 << ((ipacked & 0x07) + 1))
             if pos >= len(data):
-                return -1
+                return None
             pos = _skip_gif_sub_blocks(data, pos + 1)  # skip LZW min code size
             frames += 1
+            max_width = max(max_width, left + width)
+            max_height = max(max_height, top + height)
         else:
-            return -1
-    return frames
+            return None
+    return frames, max_width, max_height
+
+
+def _gif_frame_count(data: bytes) -> int:
+    """Count image frames by walking GIF blocks. Returns -1 when malformed."""
+    descriptors = _gif_descriptors(data)
+    return -1 if descriptors is None else descriptors[0]
 
 
 def _gif(data: bytes):
     if len(data) < 13 or data[:6] not in (b"GIF87a", b"GIF89a"):
         return None
     width, height = struct.unpack("<HH", data[6:10])
-    frames = _gif_frame_count(data)
+    descriptors = _gif_descriptors(data)
+    if descriptors is None:
+        return None
+    frames, frame_right, frame_bottom = descriptors
     if frames < 1:
         return None
-    return width, height, frames > 1
+    # Report the union of the logical screen and every descriptor extent so the
+    # ingress dimension and pixel limits also cover frames a small logical
+    # screen would hide.
+    return max(width, frame_right), max(height, frame_bottom), frames > 1
 
 
 def _jpeg(data: bytes):
@@ -397,8 +444,16 @@ class _ValidatingRedirect(urllib.request.HTTPRedirectHandler):
 def _loggable(url: str) -> str:
     """URL for logs. Drops query/fragment, which can carry signed tokens
     (`private-user-images` URLs embed `?jwt=`). The manifest keeps the full
-    URL because it is the join key back to the PR body."""
-    parts = urllib.parse.urlsplit(url)
+    URL because it is the join key back to the PR body.
+
+    Malformed URLs (`https://[`) raise from ``urlsplit``; logging runs outside
+    the capture fail-open handler, so fall back to a constant rather than let a
+    bad link abort the remaining notices.
+    """
+    try:
+        parts = urllib.parse.urlsplit(url)
+    except ValueError:
+        return "<malformed-url>"
     return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
 
 
@@ -539,7 +594,8 @@ def capture(
         deadline = time.monotonic() + limits.capture_timeout
 
     def skip(item: Media, reason: str) -> None:
-        manifest["skipped"].append({"url": item.url, "reason": reason})
+        # Reasons can carry exception text; keep the manifest single-line.
+        manifest["skipped"].append({"url": item.url, "reason": _single_line(reason)})
 
     current = None
     try:
