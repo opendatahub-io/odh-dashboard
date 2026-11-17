@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import FeatureStoreProjectSelector from './FeatureStoreProjectSelector';
 import { useFeatureStoreObject } from '../../apiHooks/useFeatureStoreObject';
 import { FeatureStoreObject } from '../../const';
@@ -18,6 +18,7 @@ type FeatureStoreProjectSelectorNavigatorProps = {
 const FeatureStoreProjectSelectorNavigator: React.FC<FeatureStoreProjectSelectorNavigatorProps> = ({
   getRedirectPath,
 }) => {
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
   const currentFeatureStoreObject = useFeatureStoreObject();
   const { currentProject, updatePreferredFeatureStoreProject } = useFeatureStoreProject();
@@ -26,7 +27,7 @@ const FeatureStoreProjectSelectorNavigator: React.FC<FeatureStoreProjectSelector
   return (
     <FeatureStoreProjectSelector
       onSelection={(featureStoreObject: FeatureStoreObject, featureStoreProject?: string) => {
-        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.PROJECT_SELECTED, {
+        trackEvent(FEATURE_STORE_EVENTS.PROJECT_SELECTED, {
           isSwitch: !!currentProject && currentProject !== (featureStoreProject || ''),
           storeCount: featureStoreProjects.projects.length,
           pageType: currentFeatureStoreObject === FeatureStoreObject.OVERVIEW ? 'overview' : 'list',

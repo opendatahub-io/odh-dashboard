@@ -41,7 +41,6 @@ export type DashboardConfig = K8sResourceCommon & {
       disableModelRegistry: boolean;
       disableModelRegistrySecureDB: boolean;
       disableServingRuntimeParams: boolean;
-      disableConnectionTypes: boolean;
       disableStorageClasses: boolean;
       disableNIMModelServing: boolean;
       disableAdminConnectionTypes: boolean;
@@ -60,6 +59,7 @@ export type DashboardConfig = K8sResourceCommon & {
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
+      mySubscriptions: boolean;
       inferencePriorityField: boolean;
       mlflow: boolean;
       workbenchesV2: boolean;
@@ -68,10 +68,12 @@ export type DashboardConfig = K8sResourceCommon & {
       skillRegistry: boolean;
       genAiMcpRegistryServers: boolean;
       agentOps: boolean;
+      agentOpsDeploy: boolean;
       agentsCatalog: boolean;
       toolCalling: boolean;
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
+      llmdTemplates: boolean;
       projectRBAC: boolean;
       roleManagement: boolean;
       deploymentWizardYAMLViewer: boolean;
@@ -89,6 +91,7 @@ export type DashboardConfig = K8sResourceCommon & {
       modelCapabilities: boolean;
       observabilityDashboard: boolean;
       nimWizard: boolean;
+      nimServiceOperator: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {

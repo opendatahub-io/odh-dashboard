@@ -6,7 +6,7 @@ import { subscriptionsPage } from '@odh-dashboard/cypress/cypress/pages/modelsAs
 import { portal } from '../../pages/portal';
 import { maasApi, portalPath, setupPortalMocks } from '../../support/portal';
 
-describe('Grid Model Access', () => {
+describe('Grid Model access', () => {
   it('shows the read-only subscription table and deep links for a MaaS admin', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     cy.intercept('GET', maasApi('/subscriptions/premium-team-sub'), {
@@ -14,9 +14,9 @@ describe('Grid Model Access', () => {
     }).as('subscriptionDetails');
     portal.visit('/maas/models');
     cy.wait('@whoami');
-    portal.findNavLink('Model Access').click();
+    portal.findNavLink('Model access').click();
     cy.location('pathname').should('eq', portalPath('/maas/model-access'));
-    cy.findByTestId('app-page-title').should('have.text', 'Model Access');
+    cy.findByTestId('app-page-title').should('have.text', 'Model access');
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team');
     cy.findByRole('columnheader', { name: 'Status' }).should('not.exist');
     cy.findByRole('button', { name: /create subscription/i }).should('not.exist');
@@ -35,11 +35,11 @@ describe('Grid Model Access', () => {
     cy.findByTestId('subscriptions-table').should('be.visible');
   });
 
-  it('does not expose Model Access to non-admin users', () => {
+  it('does not expose Model access to non-admin users', () => {
     setupPortalMocks();
     portal.visit('/maas/models');
     cy.wait('@whoami');
-    portal.findNavLink('Model Access').should('not.exist');
+    portal.findNavLink('Model access').should('not.exist');
   });
 
   it('expands the group and model counts to show their rows', () => {

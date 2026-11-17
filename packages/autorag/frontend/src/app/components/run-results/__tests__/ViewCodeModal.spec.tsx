@@ -2,17 +2,17 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 jest.mock('react-router', () => ({
   useParams: () => ({ namespace: 'test-ns' }),
@@ -73,7 +73,7 @@ describe('ViewCodeModal', () => {
   });
 
   it('should render the modal and all four language tabs', () => {
-    render(<ViewCodeModal {...defaultProps} />);
+    renderWithTracking(<ViewCodeModal {...defaultProps} />);
 
     expect(screen.getByTestId('playground-view-code-modal')).toBeInTheDocument();
     expect(screen.getByText('curl')).toBeInTheDocument();
@@ -83,13 +83,13 @@ describe('ViewCodeModal', () => {
   });
 
   it('should not render modal content when closed', () => {
-    render(<ViewCodeModal {...defaultProps} isOpen={false} />);
+    renderWithTracking(<ViewCodeModal {...defaultProps} isOpen={false} />);
 
     expect(screen.queryByTestId('playground-view-code-modal')).not.toBeInTheDocument();
   });
 
   it('should generate snippets for the AutoRAG BFF with the configured secret parameters', () => {
-    render(<ViewCodeModal {...defaultProps} />);
+    renderWithTracking(<ViewCodeModal {...defaultProps} />);
 
     expect(
       screen.getAllByText(/\/autorag\/api\/v1\/responses\?namespace=test-ns/),
@@ -101,7 +101,7 @@ describe('ViewCodeModal', () => {
 
   it('should show an unavailable state when the MaaS secret is missing', () => {
     mockViewCodeParameters = { vector_db_secret_name: 'vector-db-secret' };
-    render(<ViewCodeModal {...defaultProps} />);
+    renderWithTracking(<ViewCodeModal {...defaultProps} />);
 
     expect(
       screen.getByText(/A MaaS connection is required to generate code snippets/),
@@ -111,7 +111,7 @@ describe('ViewCodeModal', () => {
 
   it('should show an unavailable state when the database secret is missing', () => {
     mockViewCodeParameters = { maas_secret_name: 'maas-secret' };
-    render(<ViewCodeModal {...defaultProps} />);
+    renderWithTracking(<ViewCodeModal {...defaultProps} />);
 
     expect(
       screen.getByText(/The database connection is unavailable for this historical run/),
@@ -120,7 +120,7 @@ describe('ViewCodeModal', () => {
   });
 
   it('should call onClose when the modal is closed', () => {
-    render(<ViewCodeModal {...defaultProps} />);
+    renderWithTracking(<ViewCodeModal {...defaultProps} />);
     fireEvent.click(screen.getByLabelText('Close'));
 
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
@@ -129,15 +129,14 @@ describe('ViewCodeModal', () => {
   it('should fire tracking when a snippet is copied', async () => {
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
-    render(<ViewCodeModal {...defaultProps} />);
+    renderWithTracking(<ViewCodeModal {...defaultProps} />);
 
     fireEvent.click(screen.getByLabelText('Copy curl snippet'));
 
     await waitFor(() => {
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED,
-        { action: 'copied' },
-      );
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED, {
+        action: 'copied',
+      });
     });
   });
 });

@@ -1,9 +1,12 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
+
 import CompareEvaluationsPage from '~/app/pages/CompareEvaluationsPage';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+const { mockTrackEvent, render } = setupTrackingTest();
 
 jest.mock('mod-arch-core', () => ({
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone' },
@@ -44,17 +47,10 @@ jest.mock('~/app/components/MlflowCompareRuns', () => {
   return MlflowCompareRuns;
 });
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
 }));
-
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const renderPage = (initialEntry: string) =>
   render(
@@ -79,7 +75,7 @@ describe('CompareEvaluationsPage', () => {
   it('should show empty state when params are missing', () => {
     renderPage('/test-project/compare-runs');
     expect(screen.queryByTestId('mlflow-compare-runs')).not.toBeInTheDocument();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should render compare using runs and experiments params', () => {
@@ -91,10 +87,11 @@ describe('CompareEvaluationsPage', () => {
   it('should track comparison view rendered once the remote compare UI renders', () => {
     renderPage(validCompareUrl(['run-3', 'run-4'], ['exp-3', 'exp-4']));
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED,
       expect.objectContaining({ surface: 'comparison_view', countOfRuns: 2 }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -104,6 +101,6 @@ describe('CompareEvaluationsPage', () => {
     renderPage(validCompareUrl(['run-5', 'run-6'], ['exp-5', 'exp-6']));
 
     expect(screen.getByTestId('mlflow-compare-runs')).toBeInTheDocument();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 });

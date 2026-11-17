@@ -80,6 +80,14 @@ RHOAI uses the shared Segment adapter with its existing runtime metadata and SDK
 
 Standalone roots call `createStandaloneAnalytics({ devMode, version })` from `@odh-dashboard/analytics/standalone` once outside React rendering and pass the result to `AnalyticsTrackingProvider`. The application supplies its build-time values. The factory logs events in development mode; otherwise, it forwards through an existing `window.analytics` and remains silent when none exists. It reads the current `window.clusterID` per operation, defaulting to `''`. It neither initializes the SDK nor changes consent or identity ownership. Hosts with different metadata or delivery policies use `createSegmentTracking(getOptions)` explicitly.
 
+### Per-event page-context policy
+
+`TrackEvent` accepts optional delivery options as its third argument. A feature can supply a `pageContextPolicy` callback, typed entirely from `@odh-dashboard/analytics/types`, to sanitize the page context captured for that event. Existing two-argument calls retain their behavior.
+
+The concrete adapter uses the SDK's page-context utility, including canonical URL handling, then applies the policy before forwarding a native `context.page` override. The policy must return all five page fields (`path`, `url`, `referrer`, `search`, and `title`) as strings. Incomplete results cause a synchronous error, and exceptions thrown by the policy propagate to the caller. Both prevent SDK delivery. Policies are per-event, are never serialized, and need no registration or shared registry.
+
+Disabled delivery, development logging, and absent SDKs do not evaluate policies. Page and identity operations are unchanged. Hosts forwarding custom events must pass all `TrackEvent` arguments to their concrete adapter; explicit no-op hosts continue discarding events. Deploy updated concrete adapters before consumers start supplying policy options; older adapters do not apply this capability.
+
 ### SDK Initialization
 
 `initSegment` initializes the shared browser client on `window.analytics`. It skips initialization when disabled or given an empty key. It does **not** stop an existing client, and repeated enabled calls load a client again.

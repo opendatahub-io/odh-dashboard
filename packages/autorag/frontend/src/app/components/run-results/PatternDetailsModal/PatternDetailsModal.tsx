@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {
@@ -97,6 +98,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   onViewCode,
   onRunIndexingPipeline,
 }) => {
+  const trackEvent = useTrackEvent();
   const [activeTabKey, setActiveTabKey] = React.useState<string>(OVERVIEW_KEY);
   const [isPrinting, setIsPrinting] = React.useState(false);
 
@@ -245,7 +247,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             optimizationMetric={optimizationMetric}
             onPatternChange={onPatternChange}
             onDownload={() => {
-              fireAutoragPatternDetailsDownloadInitiated();
+              fireAutoragPatternDetailsDownloadInitiated(trackEvent);
               setIsPrinting(true);
             }}
             onSaveNotebook={onSaveNotebook}
@@ -422,6 +424,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             Number.isFinite(comparisonScore)
           ) {
             fireAutoragPatternsCompared(
+              trackEvent,
               comparisonEnabled ? 'changed' : 'initial',
               comparisonRank - primaryRank,
               comparisonScore - primaryScore,

@@ -1,6 +1,7 @@
-import type React from 'react';
+import React from 'react';
 import { renderHook } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
+import { TrackingProvider } from '../../../../__tests__/unit/testUtils/TrackingProvider';
 import { useSearchHandlers, type ISearchItem } from '../useSearchHandlers';
 import { UseSearchStateReturn } from '../useSearchState';
 import * as searchUtils from '../../utils/searchUtils';
@@ -60,9 +61,46 @@ describe('useSearchHandlers', () => {
     jest.restoreAllMocks();
   });
 
+  it('should deliver selection through the current provider before callbacks and navigation', () => {
+    const first = jest.fn();
+    const second = jest.fn();
+    const options = {
+      ...mockOptions,
+      onSelect: jest.fn(() => expect(second).toHaveBeenCalledTimes(1)),
+    };
+    const item: ISearchItem = {
+      id: 'private-id',
+      title: 'private-title',
+      description: 'private-description',
+      category: 'Entities',
+      type: 'entity',
+      project: 'private-project',
+    };
+    mockGetFeatureStoreRoute.mockReturnValue('/entity-route');
+    let currentTrackEvent = first;
+    const wrapper = ({ children }: React.PropsWithChildren) =>
+      React.createElement(TrackingProvider, { trackEvent: currentTrackEvent }, children);
+    const { result, rerender } = renderHook(() => useSearchHandlers(mockState, options), {
+      wrapper,
+    });
+    const change = result.current.handleSearchChange;
+    currentTrackEvent = second;
+    rerender();
+    expect(result.current.handleSearchChange).toBe(change);
+    result.current.handleResultSelect(item);
+    expect(first).not.toHaveBeenCalled();
+    expect(second.mock.calls).toEqual([
+      ['Feature Store Search Result Selected', { resultType: 'entity', pageType: 'list' }],
+    ]);
+    expect(options.onSelect).toHaveBeenCalledWith(item);
+    expect(mockNavigate).toHaveBeenCalledWith('/entity-route');
+  });
+
   describe('handleSearchChange test cases', () => {
     it('should update search value and trigger debounced search', () => {
-      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       const mockEvent = {} as React.FormEvent<HTMLInputElement>;
       result.current.handleSearchChange(mockEvent, 'test query');
@@ -77,7 +115,9 @@ describe('useSearchHandlers', () => {
     });
 
     it('should call onClear for empty value', () => {
-      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       const mockEvent = {} as React.FormEvent<HTMLInputElement>;
       result.current.handleSearchChange(mockEvent, '');
@@ -89,7 +129,9 @@ describe('useSearchHandlers', () => {
     });
 
     it('should trim whitespace and call onClear for whitespace-only value', () => {
-      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       const mockEvent = {} as React.FormEvent<HTMLInputElement>;
       result.current.handleSearchChange(mockEvent, '   ');
@@ -101,7 +143,9 @@ describe('useSearchHandlers', () => {
     });
 
     it('should trim leading and trailing spaces from search value', () => {
-      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       const mockEvent = {} as React.FormEvent<HTMLInputElement>;
       result.current.handleSearchChange(mockEvent, '  hello world  ');
@@ -118,7 +162,9 @@ describe('useSearchHandlers', () => {
 
   describe('handleSearchClear test cases', () => {
     it('should clear search value and call onClear callback', () => {
-      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       result.current.handleSearchClear();
 
@@ -131,7 +177,9 @@ describe('useSearchHandlers', () => {
       const optionsWithoutOnClear = { ...mockOptions };
       delete optionsWithoutOnClear.onClear;
 
-      const { result } = renderHook(() => useSearchHandlers(mockState, optionsWithoutOnClear));
+      const { result } = renderHook(() => useSearchHandlers(mockState, optionsWithoutOnClear), {
+        wrapper: TrackingProvider,
+      });
 
       expect(() => result.current.handleSearchClear()).not.toThrow();
       expect(mockState.setSearchValue).toHaveBeenCalledWith('');
@@ -152,7 +200,9 @@ describe('useSearchHandlers', () => {
     it('should clear search, close menu, and navigate to route', () => {
       mockGetFeatureStoreRoute.mockReturnValue('/test-route');
 
-      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       result.current.handleResultSelect(mockSearchItem);
 
@@ -173,7 +223,9 @@ describe('useSearchHandlers', () => {
       delete optionsWithoutProject.project;
       mockGetFeatureStoreRoute.mockReturnValue('/test-route');
 
-      const { result } = renderHook(() => useSearchHandlers(mockState, optionsWithoutProject));
+      const { result } = renderHook(() => useSearchHandlers(mockState, optionsWithoutProject), {
+        wrapper: TrackingProvider,
+      });
 
       result.current.handleResultSelect(mockSearchItem);
 
@@ -189,7 +241,9 @@ describe('useSearchHandlers', () => {
       const optionsWithEmptyProject = { ...mockOptions, project: '' };
       mockGetFeatureStoreRoute.mockReturnValue('/test-route');
 
-      const { result } = renderHook(() => useSearchHandlers(mockState, optionsWithEmptyProject));
+      const { result } = renderHook(() => useSearchHandlers(mockState, optionsWithEmptyProject), {
+        wrapper: TrackingProvider,
+      });
 
       result.current.handleResultSelect(mockSearchItem);
 
@@ -208,7 +262,9 @@ describe('useSearchHandlers', () => {
       };
       mockGetFeatureStoreRoute.mockReturnValue('/test-route');
 
-      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       result.current.handleResultSelect(itemWithFeatureView);
 
@@ -224,7 +280,9 @@ describe('useSearchHandlers', () => {
     it('should not navigate when no route is returned', () => {
       mockGetFeatureStoreRoute.mockReturnValue(null);
 
-      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
       result.current.handleResultSelect(mockSearchItem);
       expect(mockNavigate).not.toHaveBeenCalled();
     });
@@ -232,7 +290,9 @@ describe('useSearchHandlers', () => {
     it('should not navigate when item has no type', () => {
       const itemWithoutType = { ...mockSearchItem, type: '' };
 
-      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       result.current.handleResultSelect(itemWithoutType);
       expect(mockGetFeatureStoreRoute).not.toHaveBeenCalled();
@@ -245,7 +305,7 @@ describe('useSearchHandlers', () => {
       mockState.isSearchOpen = true;
       mockState.searchValue = 'test';
 
-      renderHook(() => useSearchHandlers(mockState, mockOptions));
+      renderHook(() => useSearchHandlers(mockState, mockOptions), { wrapper: TrackingProvider });
 
       const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
       document.dispatchEvent(escapeEvent);
@@ -260,7 +320,7 @@ describe('useSearchHandlers', () => {
       mockState.isSearchOpen = false;
       mockState.searchValue = 'test';
 
-      renderHook(() => useSearchHandlers(mockState, mockOptions));
+      renderHook(() => useSearchHandlers(mockState, mockOptions), { wrapper: TrackingProvider });
 
       const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
       document.dispatchEvent(escapeEvent);
@@ -274,7 +334,7 @@ describe('useSearchHandlers', () => {
       mockState.isSearchOpen = false;
       mockState.searchValue = '';
 
-      renderHook(() => useSearchHandlers(mockState, mockOptions));
+      renderHook(() => useSearchHandlers(mockState, mockOptions), { wrapper: TrackingProvider });
 
       const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
       document.dispatchEvent(escapeEvent);
@@ -287,7 +347,7 @@ describe('useSearchHandlers', () => {
     it('should not react to other keys', () => {
       mockState.isSearchOpen = true;
 
-      renderHook(() => useSearchHandlers(mockState, mockOptions));
+      renderHook(() => useSearchHandlers(mockState, mockOptions), { wrapper: TrackingProvider });
 
       const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
       document.dispatchEvent(enterEvent);
@@ -303,7 +363,7 @@ describe('useSearchHandlers', () => {
       const outsideElement = document.createElement('div');
       document.body.appendChild(outsideElement);
 
-      renderHook(() => useSearchHandlers(mockState, mockOptions));
+      renderHook(() => useSearchHandlers(mockState, mockOptions), { wrapper: TrackingProvider });
 
       const mouseEvent = new MouseEvent('mousedown', { bubbles: true });
       Object.defineProperty(mouseEvent, 'target', { value: outsideElement });
@@ -318,7 +378,7 @@ describe('useSearchHandlers', () => {
     });
 
     it('should not close search when clicking on search input', () => {
-      renderHook(() => useSearchHandlers(mockState, mockOptions));
+      renderHook(() => useSearchHandlers(mockState, mockOptions), { wrapper: TrackingProvider });
 
       const mouseEvent = new MouseEvent('mousedown', { bubbles: true });
       Object.defineProperty(mouseEvent, 'target', { value: mockState.searchInputRef.current });
@@ -330,7 +390,7 @@ describe('useSearchHandlers', () => {
     });
 
     it('should not close search when clicking on search menu', () => {
-      renderHook(() => useSearchHandlers(mockState, mockOptions));
+      renderHook(() => useSearchHandlers(mockState, mockOptions), { wrapper: TrackingProvider });
 
       const mouseEvent = new MouseEvent('mousedown', { bubbles: true });
       Object.defineProperty(mouseEvent, 'target', { value: mockState.searchMenuRef.current });
@@ -348,7 +408,9 @@ describe('useSearchHandlers', () => {
         searchMenuRef: { current: null },
       };
 
-      renderHook(() => useSearchHandlers(stateWithNullRefs, mockOptions));
+      renderHook(() => useSearchHandlers(stateWithNullRefs, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       const outsideElement = document.createElement('div');
       const mouseEvent = new MouseEvent('mousedown', { bubbles: true });
@@ -359,7 +421,9 @@ describe('useSearchHandlers', () => {
 
   describe('cleanup test cases', () => {
     it('should remove event listeners on unmount', () => {
-      const { unmount } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { unmount } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
 
       const addEventListenerCalls = (document.addEventListener as jest.Mock).mock.calls.length;
       unmount();
@@ -367,7 +431,9 @@ describe('useSearchHandlers', () => {
     });
 
     it('should clear timeout on unmount', () => {
-      const { result, unmount } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+      const { result, unmount } = renderHook(() => useSearchHandlers(mockState, mockOptions), {
+        wrapper: TrackingProvider,
+      });
       const mockEvent = {} as React.FormEvent<HTMLInputElement>;
       result.current.handleSearchChange(mockEvent, 'test');
       unmount();

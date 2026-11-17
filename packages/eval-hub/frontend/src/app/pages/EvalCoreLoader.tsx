@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
-import { evaluationRootSegment } from '~/app/routes';
+import { evaluationRootSegment } from '~/app/routeSegments';
 
 const EvalCoreLoader: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();

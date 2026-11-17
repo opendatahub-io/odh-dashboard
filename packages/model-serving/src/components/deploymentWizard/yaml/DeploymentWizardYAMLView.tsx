@@ -17,7 +17,15 @@ import { CodeIcon } from '@patternfly/react-icons';
 import { useThemeContext } from '@odh-dashboard/ui-core';
 import { EnterYAMLEditModal } from './EnterYAMLEditModal';
 import { YamlParseResult } from './yamlUtils';
+import {
+  configureDeploymentWizardMonacoYaml,
+  DEPLOYMENT_WIZARD_YAML_MODEL_URI,
+} from './configureDeploymentWizardMonacoYaml';
+import { ensureMonacoYamlEnvironment } from './ensureMonacoYamlEnvironment';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
+
+// Configure this remote's Monaco loader + yaml worker before PF CodeEditor mounts.
+ensureMonacoYamlEnvironment();
 
 type DeploymentWizardYAMLViewProps = {
   code?: YamlParseResult;
@@ -41,6 +49,30 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
   const { theme } = useThemeContext();
 
   const [isEnterYAMLEditModalOpen, setIsEnterYAMLEditModalOpen] = React.useState(false);
+  const monacoYamlRef = React.useRef<ReturnType<typeof configureDeploymentWizardMonacoYaml> | null>(
+    null,
+  );
+
+  const handleBeforeMount = React.useCallback(
+    (monacoInstance: Parameters<typeof configureDeploymentWizardMonacoYaml>[0]) => {
+      // Select the bundled editor before PatternFly finishes mounting. The configure
+      // call below publishes this beforeMount instance on window.monaco afterwards.
+      ensureMonacoYamlEnvironment();
+      monacoYamlRef.current?.dispose();
+      monacoYamlRef.current = configureDeploymentWizardMonacoYaml(monacoInstance);
+    },
+    [],
+  );
+
+  React.useEffect(
+    () => () => {
+      monacoYamlRef.current?.dispose();
+      monacoYamlRef.current = null;
+    },
+    [],
+  );
+
+  const isYamlEditMode = viewMode === 'yaml-edit';
 
   return (
     <Stack hasGutter style={{ height: '100%' }}>
@@ -84,6 +116,8 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
       )}
       <StackItem isFilled data-testid="yaml-editor">
         <CodeEditor
+          // Remount when entering edit so monaco-yaml beforeMount runs after preview.
+          key={isYamlEditMode ? 'yaml-edit' : 'yaml-preview'}
           emptyState={
             viewMode === 'yaml-preview' ? (
               <Bullseye>
@@ -114,7 +148,15 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
           isReadOnly={viewMode === 'yaml-preview'}
           isCopyEnabled
           isDownloadEnabled
-          isUploadEnabled={viewMode === 'yaml-edit'}
+          isUploadEnabled={isYamlEditMode}
+          editorProps={
+            isYamlEditMode
+              ? {
+                  beforeMount: handleBeforeMount,
+                  path: DEPLOYMENT_WIZARD_YAML_MODEL_URI,
+                }
+              : undefined
+          }
           onEditorDidMount={(editor) => {
             editor.focus();
           }}

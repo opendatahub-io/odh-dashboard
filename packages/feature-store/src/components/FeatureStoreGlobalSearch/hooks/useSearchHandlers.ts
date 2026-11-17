@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { UseSearchStateReturn } from './useSearchState';
 import { getFeatureStoreRoute } from '../utils/searchUtils';
 import {
@@ -37,6 +37,7 @@ export const useSearchHandlers = (
   state: UseSearchStateReturn,
   options: UseSearchHandlersOptions = {},
 ): UseSearchHandlersReturn => {
+  const trackEvent = useTrackEvent();
   const { onSearchChange, onClear, onSelect, project, pageType } = options;
   const navigate = useNavigate();
 
@@ -88,7 +89,7 @@ export const useSearchHandlers = (
       setSearchValue('');
       setIsSearchOpen(false);
 
-      fireMiscTrackingEvent(FEATURE_STORE_EVENTS.SEARCH_RESULT_SELECTED, {
+      trackEvent(FEATURE_STORE_EVENTS.SEARCH_RESULT_SELECTED, {
         resultType: selectedItem.type,
         pageType: pageType || 'list',
       } satisfies SearchResultSelectedProperties);
@@ -110,7 +111,7 @@ export const useSearchHandlers = (
         }
       }
     },
-    [onSelect, navigate, project, pageType, setSearchValue, setIsSearchOpen],
+    [trackEvent, onSelect, navigate, project, pageType, setSearchValue, setIsSearchOpen],
   );
 
   const handleSearchClear = React.useCallback(() => {

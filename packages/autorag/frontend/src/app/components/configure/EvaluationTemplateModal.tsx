@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import CodeSnippetModal from '~/app/components/common/CodeSnippetModal';
 import { fireAutoragEvaluationTemplateDownloaded } from '~/app/utilities/tracking';
@@ -32,6 +33,7 @@ type EvaluationTemplateModalProps = {
 };
 
 function EvaluationTemplateModal(props: EvaluationTemplateModalProps): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   return (
     <CodeSnippetModal
       id="evaluation-template"
@@ -42,7 +44,7 @@ function EvaluationTemplateModal(props: EvaluationTemplateModalProps): React.JSX
       downloadText="Download template"
       downloadFileName="evaluation-template.json"
       onClose={props.onClose}
-      onDownload={fireAutoragEvaluationTemplateDownloaded}
+      onDownload={() => fireAutoragEvaluationTemplateDownloaded(trackEvent)}
     />
   );
 }
