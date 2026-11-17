@@ -183,7 +183,7 @@ describe('buildWorkloadMapForNotebooks', () => {
     expect(result['preempt-victim']).toBeNull();
   });
 
-  describe('RHOAIENG-96121: similarly named Workbenches', () => {
+  describe('similarly named Workbenches', () => {
     const SS_GVK = 'apps/v1, Kind=StatefulSet';
 
     it('maps a StatefulSet-owned Workload only to its exact Workbench, not a shorter one', () => {
@@ -198,14 +198,13 @@ describe('buildWorkloadMapForNotebooks', () => {
       expect(result['test-workbench']).toBeNull();
     });
 
-    it('applies the same guard to Pod ownerRefs named like another Workbench', () => {
+    it('maps a Pod replica to the parent StatefulSet notebook, not to a same-named Workbench', () => {
       const notebooks = [notebook('test-workbench'), notebook('test-workbench-2')];
       const wl = workloadWithOwnerRefs('wl-wb2-pod', [{ kind: 'Pod', name: 'test-workbench-2' }]);
-
       const result = buildWorkloadMapForNotebooks([wl], notebooks);
 
-      expect(result['test-workbench-2']).toBe(wl);
-      expect(result['test-workbench']).toBeNull();
+      expect(result['test-workbench']).toBe(wl);
+      expect(result['test-workbench-2']).toBeNull();
     });
 
     it('still matches a legitimate replica suffix when no conflicting Workbench exists', () => {
@@ -245,6 +244,26 @@ describe('buildWorkloadMapForNotebooks', () => {
 
       expect(result['test-workbench-2']).toBe(wl);
       expect(result['test-workbench']).toBeNull();
+    });
+
+    it('does not let workbench parent-0 claim a Pod owned by StatefulSet parent', () => {
+      const notebooks = [notebook('parent'), notebook('parent-0')];
+      const wl = workloadWithOwnerRefs('wl-parent-pod', [{ kind: 'Pod', name: 'parent-0' }]);
+
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+
+      expect(result.parent).toBe(wl);
+      expect(result['parent-0']).toBeNull();
+    });
+
+    it('maps Pod parent-0 to parent regardless of notebook iteration order', () => {
+      const notebooks = [notebook('parent-0'), notebook('parent')];
+      const wl = workloadWithOwnerRefs('wl-parent-pod-rev', [{ kind: 'Pod', name: 'parent-0' }]);
+
+      const result = buildWorkloadMapForNotebooks([wl], notebooks);
+
+      expect(result.parent).toBe(wl);
+      expect(result['parent-0']).toBeNull();
     });
   });
 

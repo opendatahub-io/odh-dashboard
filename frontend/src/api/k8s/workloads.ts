@@ -48,21 +48,48 @@ const findStatefulSetOwnerNameFromAnnotations = (wl: WorkloadKind): string | und
 /**
  * Matches the name of a StatefulSet/Pod `ownerRef` to a notebook. The numeric replica suffix
  * (`<notebook>-<n>`) is only respected as a fallback; it is ignored when `ownerName` is
- * itself another known notebook—preventing `test-workbench-2` from matching `test-workbench`
+ * itself another known notebook—preventing `test-workbench-2` from matching `test-workbench`.
+ *
+ * For Pod ownerRefs, the replica suffix of THIS notebook always takes priority: a Pod named
+ * `parent-0` belongs to notebook `parent` even when a separate notebook `parent-0` exists
  * (RHOAIENG-96121).
  */
 const isStatefulSetPodName = (
   ownerName: string,
   notebookName: string,
   knownNotebookNames: ReadonlySet<string>,
+  ownerKind: string,
 ): boolean => {
-  if (ownerName === notebookName) return true;
-  // The ownerName belongs to another Workbench — never treat it as a replica suffix.
-  if (knownNotebookNames.has(ownerName)) return false;
+  if (ownerName === notebookName) {
+    // Pod ownerRefs: if ownerName matches `<other-notebook>-<n>` where the other notebook
+    // exists, the Pod is a replica of that parent StatefulSet — reject this exact match so
+    // the parent notebook claims the Workload instead.
+    if (ownerKind === 'pod') {
+      const lastDash = ownerName.lastIndexOf('-');
+      if (lastDash > 0) {
+        const possibleParent = ownerName.slice(0, lastDash);
+        const suffix = ownerName.slice(lastDash + 1);
+        if (suffix.length > 0 && /^\d+$/.test(suffix) && knownNotebookNames.has(possibleParent)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   const prefix = `${notebookName}-`;
   if (!ownerName.startsWith(prefix)) return false;
   const suffix = ownerName.slice(prefix.length);
-  return suffix.length > 0 && /^\d+$/.test(suffix);
+  if (suffix.length === 0 || !/^\d+$/.test(suffix)) return false;
+
+  // ownerName is `<notebookName>-<n>`.
+  // Pod ownerRefs: the Pod IS the replica of this notebook's StatefulSet — always match.
+  if (ownerKind === 'pod') return true;
+
+  // StatefulSet ownerRefs: if ownerName is another Workbench, the StatefulSet belongs to
+  // that workbench, not to this one. Only fall back to suffix matching when no such
+  // workbench exists.
+  return !knownNotebookNames.has(ownerName);
 };
 
 const workloadMatchesNotebook = (
@@ -74,11 +101,10 @@ const workloadMatchesNotebook = (
   for (const ref of owners) {
     const ownerKind = ref.kind.toLowerCase();
     if ((ownerKind === 'job' || ownerKind === 'notebook') && ref.name === notebookName) return true;
-    if (
-      (ownerKind === 'statefulset' || ownerKind === 'pod') &&
-      isStatefulSetPodName(ref.name, notebookName, knownNotebookNames)
-    ) {
-      return true;
+    if (ownerKind === 'statefulset' || ownerKind === 'pod') {
+      if (isStatefulSetPodName(ref.name, notebookName, knownNotebookNames, ownerKind)) {
+        return true;
+      }
     }
   }
   return false;
