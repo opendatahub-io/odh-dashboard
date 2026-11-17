@@ -115,7 +115,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findTitle().should('contain.text', 'Create benchmark collection');
   });
 
-  it('should validate the suite name and preserve settings when returning from the next step', () => {
+  it('should validate the collection name and preserve settings when returning from the next step', () => {
     cy.intercept('**/generation/**').as('suiteBuilderGenerationApi');
     initIntercepts({ providers: [mockProvider()] });
     evaluationsPage.visit(NAMESPACE);

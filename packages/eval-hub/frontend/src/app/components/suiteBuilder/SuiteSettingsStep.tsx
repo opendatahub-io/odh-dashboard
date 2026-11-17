@@ -41,10 +41,10 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({ canContinueSettin
   return (
     <div className="evalhub-goal-suite-page__step" data-testid="suite-settings-step">
       <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-sm">
-        Suite settings
+        Collection settings
       </Title>
       <Content component="p" className="pf-v6-u-mb-lg">
-        Set the suite name, description, and optional recommendation settings.
+        Set the collection name, description, and optional recommendation settings.
       </Content>
       <Form
         id="suite-settings-form"
@@ -52,7 +52,7 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({ canContinueSettin
         noValidate
         onSubmit={handleSettingsSubmit}
       >
-        <FormGroup label="Suite name" fieldId="goal-suite-name" isRequired>
+        <FormGroup label="Collection name" fieldId="goal-suite-name" isRequired>
           <Controller
             name="suiteName"
             control={control}

@@ -101,17 +101,22 @@ describe('CreateSuiteFromGoalPage', () => {
     });
   });
 
-  it('should require only a suite name before allowing the next step', async () => {
+  it('should require only a collection name before allowing the next step', async () => {
     await renderPage();
 
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
-    expect(screen.getByTestId('page-title')).toHaveTextContent('Create suite');
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Create collection');
     expect(screen.getByTestId('page-description')).toHaveTextContent(
-      'Configure your suite, describe your goal, and choose benchmarks.',
+      'Configure your collection, describe your goal, and choose benchmarks.',
     );
     expect(
-      screen.getByText('Set the suite name, description, and optional recommendation settings.'),
+      screen.getByText(
+        'Set the collection name, description, and optional recommendation settings.',
+      ),
     ).toBeInTheDocument();
+    expect(screen.getByText('Collection name')).toBeInTheDocument();
+    expect(screen.getByText('Create collection', { selector: 'li' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Collection creation steps')).toBeInTheDocument();
     expect(screen.getByTestId('goal-suite-evaluates')).toHaveTextContent('Model');
     const maxBenchmarksSlider = screen.getByRole('slider', { name: 'Number of benchmarks' });
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuemin', '1');
@@ -148,7 +153,7 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
 
     expect(await screen.findByTestId('suite-builder-name-error')).toHaveTextContent(
-      'Enter a suite name.',
+      'Enter a collection name.',
     );
     fireEvent.submit(screen.getByTestId('suite-settings-form'));
     expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
@@ -176,7 +181,7 @@ describe('CreateSuiteFromGoalPage', () => {
     fireEvent.click(screen.getByTestId('next-suite-settings'));
     expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Collection settings/ }));
     expect(screen.getByRole('slider', { name: 'Number of benchmarks' })).toHaveAttribute(
       'aria-valuenow',
       '13',
@@ -240,7 +245,7 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('define-goal-example-adversarial-content')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('define-goal-view-examples'));
     expect(screen.queryByTestId('define-goal-example-code-generation')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Collection settings/ }));
     fireEvent.click(screen.getByRole('button', { name: /Define goal/ }));
     expect(screen.getByTestId('define-goal-example-answer-quality')).toHaveAttribute(
       'aria-pressed',
@@ -350,7 +355,7 @@ describe('CreateSuiteFromGoalPage', () => {
       'aria-pressed',
       'false',
     );
-    fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Collection settings/ }));
 
     expect(screen.getByTestId('goal-suite-name')).toHaveValue('Reasoning suite');
     expect(screen.getByTestId('goal-suite-description')).toHaveValue(

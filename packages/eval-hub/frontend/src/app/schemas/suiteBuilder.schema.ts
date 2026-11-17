@@ -3,7 +3,7 @@ import * as z from 'zod';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
 
 export const suiteSettingsSchema = z.object({
-  suiteName: z.string().trim().min(1, 'Enter a suite name.'),
+  suiteName: z.string().trim().min(1, 'Enter a collection name.'),
   suiteDescription: z.string(),
   maxBenchmarks: z.number().int().min(1).max(20),
   strictness: z.enum(['', 'lenient', 'moderate', 'strict']),

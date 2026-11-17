@@ -16,7 +16,7 @@ const RECOMMENDATION_MODEL = {
 };
 
 describe('suite builder schemas', () => {
-  it('should trim and require the suite name', () => {
+  it('should trim and require the collection name', () => {
     expect(
       suiteSettingsSchema.parse({
         ...suiteBuilderDefaultValues,

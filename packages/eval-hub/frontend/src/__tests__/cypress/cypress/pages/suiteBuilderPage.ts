@@ -61,7 +61,7 @@ class SuiteBuilderPage {
 
   findCurrentStep(stepId: 'suite-settings' | 'define-goal' | 'benchmark-overview' | 'review') {
     const stepTitles = {
-      'suite-settings': 'Suite settings',
+      'suite-settings': 'Collection settings',
       'define-goal': 'Define goal',
       'benchmark-overview': 'Benchmark overview',
       review: 'Review',

@@ -91,8 +91,8 @@ const CreateSuiteFromGoalPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Create suite"
-      description="Configure your suite, describe your goal, and choose benchmarks."
+      title="Create collection"
+      description="Configure your collection, describe your goal, and choose benchmarks."
       breadcrumb={
         <div className="pf-v6-u-pb-md">
           <ContextBreadcrumb
@@ -101,7 +101,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
             homePath={evaluationsBaseRoute(namespace)}
             projectHomePath={projectHomeRoute(namespace)}
           >
-            <BreadcrumbItem isActive>Create suite</BreadcrumbItem>
+            <BreadcrumbItem isActive>Create collection</BreadcrumbItem>
           </ContextBreadcrumb>
         </div>
       }
@@ -114,7 +114,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
             className="evalhub-goal-suite-wizard"
             height="100%"
             isVisitRequired
-            navAriaLabel="Suite creation steps"
+            navAriaLabel="Collection creation steps"
             footer={
               <SuiteBuilderFooter
                 cancelRoute={cancelRoute}
@@ -123,7 +123,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
               />
             }
           >
-            <WizardStep name="Suite settings" id="suite-settings">
+            <WizardStep name="Collection settings" id="suite-settings">
               <SuiteSettingsStep canContinueSettings={canContinueSettings} />
             </WizardStep>
             <WizardStep name="Define goal" id="define-goal" isDisabled={!canContinueSettings}>
