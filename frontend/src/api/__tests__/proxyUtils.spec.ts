@@ -45,6 +45,32 @@ describe('proxyGET', () => {
     });
   });
 
+  it('repeats array query keys and omits empty arrays', async () => {
+    mockFetch.mockResolvedValue({
+      status: 200,
+      text: jest.fn().mockResolvedValue(textValue),
+    } as unknown as Response);
+
+    await proxyGET(host, path, {
+      // eslint-disable-next-line camelcase
+      run_ids: ['run-1', 'run-2'],
+      // eslint-disable-next-line camelcase
+      task_ids: [],
+      // eslint-disable-next-line camelcase
+      artifact_ids: ['artifact-1'],
+      // eslint-disable-next-line camelcase
+      page_size: 5,
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'test/test?run_ids=run-1&run_ids=run-2&artifact_ids=artifact-1&page_size=5',
+      {
+        body: undefined,
+        method: 'GET',
+      },
+    );
+  });
+
   it('should handle errors and rethrows', async () => {
     mockFetch.mockRejectedValue(new Error('error'));
 

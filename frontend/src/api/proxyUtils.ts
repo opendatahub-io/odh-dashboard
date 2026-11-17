@@ -17,6 +17,33 @@ export class ProxyTransientError extends Error {
   }
 }
 
+/**
+ * grpc-gateway `collectionFormat: multi` expects repeated keys (`run_ids=a&run_ids=b`).
+ * `URLSearchParams` stringifies an array as one comma-joined value, which the API reads as a single id.
+ * Empty arrays are omitted. Scalar falsy values stay omitted, matching previous callers.
+ */
+const serializeQueryParams = (queryParams: Record<string, unknown>): string | null => {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(queryParams).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item) {
+          searchParams.append(key, String(item));
+        }
+      });
+      return;
+    }
+
+    if (value) {
+      searchParams.append(key, String(value));
+    }
+  });
+
+  const serialized = searchParams.toString();
+  return serialized || null;
+};
+
 type CallProxyJSONOptions = {
   queryParams?: Record<string, unknown>;
   parseJSON?: boolean;
@@ -37,19 +64,7 @@ const callProxyJSON = <T>(
 ): Promise<T> => {
   const { method, ...otherOptions } = requestInit;
 
-  const sanitizedQueryParams = queryParams
-    ? Object.entries(queryParams).reduce((acc, [key, value]) => {
-        if (value) {
-          return { ...acc, [key]: value };
-        }
-
-        return acc;
-      }, {})
-    : null;
-
-  const searchParams = sanitizedQueryParams
-    ? new URLSearchParams(sanitizedQueryParams).toString()
-    : null;
+  const searchParams = queryParams ? serializeQueryParams(queryParams) : null;
 
   let requestData: string | undefined;
   let contentType: string | undefined;

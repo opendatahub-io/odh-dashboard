@@ -69,6 +69,16 @@ describe('pipeline topology parseUtils', () => {
       expect(result).toBeUndefined();
     });
 
+    it('returns undefined when task_details is absent', () => {
+      const testRunDetails: RunDetailsKF = {
+        pipeline_context_id: 'pipeline-context-id',
+        pipeline_run_context_id: 'pipeline-run-context-id',
+      };
+
+      const result = parseRuntimeInfoFromRunDetails(testTaskId, testRunDetails);
+      expect(result).toBeUndefined();
+    });
+
     it('returns undefined when no task details are empty', () => {
       const testRunDetails: RunDetailsKF = {
         pipeline_context_id: 'pipeline-context-id',

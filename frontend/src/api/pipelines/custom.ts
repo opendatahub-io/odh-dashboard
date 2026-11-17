@@ -38,6 +38,14 @@ import {
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
 
+/** Reject path and query injection in one KFP resource id, then encode the segment. */
+const pipelineResourceSegment = (id: string): string => {
+  if (!id || id === '.' || id === '..' || /[/?#\\]/.test(id)) {
+    throw new Error('Invalid pipeline resource id');
+  }
+  return encodeURIComponent(id);
+};
+
 const commonPipelineQueryParams = (params?: PipelineParams) => ({
   // eslint-disable-next-line camelcase
   sort_by: params?.sortField
@@ -85,7 +93,9 @@ export const getArtifact: GetArtifactAPI = (hostPath) => (opts, artifactId, view
 
 /** ArtifactService.GetArtifact. Storage download/render stays on {@link getArtifact}. */
 export const getArtifactResource: GetArtifactResourceAPI = (hostPath) => (opts, artifactId) =>
-  handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/artifacts/${artifactId}`, {}, opts));
+  handlePipelineFailures(
+    proxyGET(hostPath, `/apis/v2beta1/artifacts/${pipelineResourceSegment(artifactId)}`, {}, opts),
+  );
 
 export const getPipeline: GetPipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/pipelines/${pipelineId}`, {}, opts));
@@ -119,7 +129,14 @@ export const getPipelineVersion: GetPipelineVersionAPI =
 
 export const getTask: GetTaskAPI = (hostPath) => (opts, runId, taskId) =>
   handlePipelineFailures(
-    proxyGET(hostPath, `/apis/v2beta1/runs/${runId}/tasks/${taskId}`, {}, opts),
+    proxyGET(
+      hostPath,
+      `/apis/v2beta1/runs/${pipelineResourceSegment(runId)}/tasks/${pipelineResourceSegment(
+        taskId,
+      )}`,
+      {},
+      opts,
+    ),
   );
 
 export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
@@ -180,7 +197,7 @@ export const listTasks: ListTasksAPI = (hostPath) => (opts, runId, params) =>
   handlePipelineFailures(
     proxyGET(
       hostPath,
-      `/apis/v2beta1/runs/${runId}/tasks`,
+      `/apis/v2beta1/runs/${pipelineResourceSegment(runId)}/tasks`,
       {
         // ListTasksRequest.parent_id — not PipelineTask.parent_task_id.
         // eslint-disable-next-line camelcase

@@ -215,6 +215,14 @@ describe('getArtifactResource', () => {
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
   });
+
+  it('should reject an artifact id with a query delimiter', () => {
+    proxyGETMock.mockClear();
+    expect(() => getArtifactResource('hostPath')({}, 'artifact-1?view=DOWNLOAD')).toThrow(
+      'Invalid pipeline resource id',
+    );
+    expect(proxyGETMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('getPipeline', () => {
@@ -271,6 +279,17 @@ describe('getTask', () => {
     );
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+
+  it('should reject a task id that changes the request path', () => {
+    proxyGETMock.mockClear();
+    expect(() => getTask('hostPath')({}, 'runId', '../other-task')).toThrow(
+      'Invalid pipeline resource id',
+    );
+    expect(() => getTask('hostPath')({}, 'run/other', 'taskId')).toThrow(
+      'Invalid pipeline resource id',
+    );
+    expect(proxyGETMock).not.toHaveBeenCalled();
   });
 });
 
@@ -464,6 +483,28 @@ describe('listTasks', () => {
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
   });
+
+  it('should omit optional list params when they are not provided', () => {
+    expect(listTasks('hostPath')({}, 'runId')).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/runs/runId/tasks',
+      {
+        parent_id: undefined,
+        page_size: undefined,
+        page_token: undefined,
+        filter: undefined,
+        order_by: undefined,
+      },
+      {},
+    );
+  });
+
+  it('should reject a run id that changes the request path', () => {
+    proxyGETMock.mockClear();
+    expect(() => listTasks('hostPath')({}, 'run/other')).toThrow('Invalid pipeline resource id');
+    expect(proxyGETMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('listArtifactTasks', () => {
@@ -472,11 +513,14 @@ describe('listArtifactTasks', () => {
       listArtifactTasks('hostPath')(
         {},
         {
-          runIds: ['run-1'],
-          taskIds: ['task-1'],
+          runIds: ['run-1', 'run-2'],
+          taskIds: ['task-1', 'task-2'],
           artifactIds: ['artifact-1'],
           type: IOTypeKF.OUTPUT,
           pageSize: 5,
+          pageToken: 'token',
+          sortBy: 'created_at desc',
+          filter: 'filter',
         },
       ),
     ).toBe(mockResultPromise);
@@ -485,14 +529,14 @@ describe('listArtifactTasks', () => {
       'hostPath',
       '/apis/v2beta1/artifact_tasks',
       {
-        run_ids: ['run-1'],
-        task_ids: ['task-1'],
+        run_ids: ['run-1', 'run-2'],
+        task_ids: ['task-1', 'task-2'],
         artifact_ids: ['artifact-1'],
         type: IOTypeKF.OUTPUT,
         page_size: 5,
-        page_token: undefined,
-        sort_by: undefined,
-        filter: undefined,
+        page_token: 'token',
+        sort_by: 'created_at desc',
+        filter: 'filter',
       },
       {},
     );
