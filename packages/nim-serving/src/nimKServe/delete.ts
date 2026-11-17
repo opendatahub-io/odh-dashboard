@@ -1,6 +1,7 @@
 import { deletePvc } from '@odh-dashboard/internal/api';
 import type { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { K8sStatusError, type K8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 
 type DeletePVC = (
   name: string,
@@ -32,9 +33,12 @@ export const deleteLegacyNIMDeployment = async ({
     try {
       const status = await deletePVCResource(pvcName, namespace, options);
       if (typeof status?.status === 'string' && status.status !== 'Success') {
-        throw new Error(status.message);
+        throw new K8sStatusError(status);
       }
     } catch (error: unknown) {
+      if (getGenericErrorCode(error) === 404) {
+        return;
+      }
       if (options?.dryRun) {
         throw new Error(
           `Nothing was deleted. Dry run deletion failed: PVC ${pvcName}: ${

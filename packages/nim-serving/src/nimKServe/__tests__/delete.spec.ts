@@ -1,3 +1,9 @@
+import { K8sStatusError } from '@odh-dashboard/k8s-core';
+import {
+  mock200Status,
+  mock403Error,
+  mock404Error,
+} from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { deleteLegacyNIMDeployment } from '../delete';
 
 describe('deleteLegacyNIMDeployment', () => {
@@ -88,6 +94,78 @@ describe('deleteLegacyNIMDeployment', () => {
 
     expect(deletePVCResource).toHaveBeenCalledWith('nim-cache', 'project', { dryRun: true });
     expect(deletePrimaryDeployment).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([true, false])(
+    'should delete the deployment when the PVC is not found (dry run: %s)',
+    async (dryRun) => {
+      const deletePrimaryDeployment = jest.fn().mockResolvedValue(undefined);
+      const deletePVCResource = jest.fn().mockRejectedValue(new K8sStatusError(mock404Error({})));
+      if (!dryRun) {
+        deletePVCResource.mockResolvedValueOnce(mock200Status({}));
+      }
+
+      await expect(
+        deleteLegacyNIMDeployment({
+          deletePrimaryDeployment,
+          namespace,
+          pvcName,
+          deletePVC: true,
+          deletePVCResource,
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(deletePrimaryDeployment).toHaveBeenNthCalledWith(1, { dryRun: true });
+      expect(deletePrimaryDeployment).toHaveBeenNthCalledWith(2);
+      expect(deletePVCResource).toHaveBeenCalledTimes(2);
+      expect(deletePVCResource).toHaveBeenNthCalledWith(1, pvcName, namespace, { dryRun: true });
+      expect(deletePVCResource).toHaveBeenNthCalledWith(2, pvcName, namespace, undefined);
+    },
+  );
+
+  it('should treat a returned not-found PVC status as already deleted', async () => {
+    const deletePrimaryDeployment = jest.fn().mockResolvedValue(undefined);
+    const deletePVCResource = jest.fn().mockResolvedValue(mock404Error({}));
+
+    await expect(
+      deleteLegacyNIMDeployment({
+        deletePrimaryDeployment,
+        namespace,
+        pvcName,
+        deletePVC: true,
+        deletePVCResource,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(deletePrimaryDeployment).toHaveBeenCalledTimes(2);
+    expect(deletePVCResource).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([true, false])('should report a forbidden PVC deletion (dry run: %s)', async (dryRun) => {
+    const deletePrimaryDeployment = jest.fn().mockResolvedValue(undefined);
+    const deletePVCResource = jest
+      .fn()
+      .mockRejectedValue(new K8sStatusError(mock403Error({ message: 'forbidden' })));
+    if (!dryRun) {
+      deletePVCResource.mockResolvedValueOnce(mock200Status({}));
+    }
+
+    await expect(
+      deleteLegacyNIMDeployment({
+        deletePrimaryDeployment,
+        namespace,
+        pvcName,
+        deletePVC: true,
+        deletePVCResource,
+      }),
+    ).rejects.toThrow(
+      dryRun
+        ? 'Nothing was deleted. Dry run deletion failed: PVC nim-cache: forbidden'
+        : 'Unable to delete PVC nim-cache: forbidden',
+    );
+
+    expect(deletePrimaryDeployment).toHaveBeenCalledTimes(dryRun ? 1 : 2);
+    expect(deletePVCResource).toHaveBeenCalledTimes(dryRun ? 1 : 2);
   });
 
   it('should surface a failed PVC deletion status', async () => {
