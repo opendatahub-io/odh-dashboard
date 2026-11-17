@@ -1,17 +1,18 @@
 import * as React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { classifyError } from '~/app/utilities/errorClassifier';
+
+const trackEvent = jest.fn();
 
 // Mock dependencies
 jest.mock('@patternfly/chatbot', () => ({
   FileDetailsLabel: jest.fn(({ fileName }: { fileName: string }) => fileName),
 }));
 jest.mock('~/app/hooks/useGenAiAPI');
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+
 jest.mock('~/app/utilities/errorClassifier', () => ({
   classifyError: jest.fn(),
 }));
@@ -35,10 +36,17 @@ jest.mock('~/app/utilities', () => {
 });
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
-  useContext: jest.fn(),
+  useContext: (context: React.Context<unknown>) => {
+    const { GenAiContext } = jest.requireActual('~/app/context/GenAiContext');
+    const { ChatbotContext } = jest.requireActual('~/app/context/ChatbotContext');
+    if (context === GenAiContext || context === ChatbotContext) {
+      return mockUseContext(context);
+    }
+    return jest.requireActual<typeof React>('react').useContext(context);
+  },
 }));
 
-const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+const mockUseContext = jest.fn();
 const mockUseGenAiAPI = jest.mocked(useGenAiAPI);
 const mockClassifyError = jest.mocked(classifyError);
 
@@ -96,21 +104,23 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          ...defaultProps,
-          documentAttachments: [
-            {
-              // eslint-disable-next-line camelcase -- matches the document-attachment API contract
-              file_id: 'policy.txt',
-              filename: 'policy.txt',
-              // eslint-disable-next-line camelcase -- matches the document-attachment API contract
-              content_type: 'text/plain',
-              size: 42,
-              text: 'A document that exceeds the configured test context window.',
-            },
-          ],
-        }),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages({
+            ...defaultProps,
+            documentAttachments: [
+              {
+                // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+                file_id: 'policy.txt',
+                filename: 'policy.txt',
+                // eslint-disable-next-line camelcase -- matches the document-attachment API contract
+                content_type: 'text/plain',
+                size: 42,
+                text: 'A document that exceeds the configured test context window.',
+              },
+            ],
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await result.current.handleMessageSend('Summarize this document');
@@ -141,7 +151,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Test message');
 
@@ -170,7 +182,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Test RAG query');
 
@@ -200,7 +214,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Inappropriate message');
 
@@ -230,7 +246,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Use MCP tool');
 
@@ -260,7 +278,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Complex query');
 
@@ -290,7 +310,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Query');
 
@@ -320,7 +342,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Use tools');
 
@@ -344,7 +368,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Test message');
 
@@ -366,7 +392,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Test message');
 
@@ -412,12 +440,14 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          ...defaultProps,
-          isStreamingEnabled: false,
-          modelId: 'test-model-id',
-        }),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages({
+            ...defaultProps,
+            isStreamingEnabled: false,
+            modelId: 'test-model-id',
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await result.current.handleMessageSend('Test message');
@@ -465,12 +495,14 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          ...defaultProps,
-          isStreamingEnabled: true,
-          modelId: 'streaming-model',
-        }),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages({
+            ...defaultProps,
+            isStreamingEnabled: true,
+            modelId: 'streaming-model',
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await result.current.handleMessageSend('Test streaming');
@@ -520,7 +552,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Test message');
 
@@ -559,7 +593,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Test message');
 
@@ -599,7 +635,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Test message');
 
@@ -642,7 +680,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       // First attempt fails
       await result.current.handleMessageSend('Original message');
@@ -699,7 +739,9 @@ describe('useChatbotMessages - Error Handling', () => {
           api: { createResponse: mockCreateResponse },
           apiAvailable: true,
         } as unknown as ReturnType<typeof useGenAiAPI>);
-        const { result } = renderHook(() => useChatbotMessages(defaultProps));
+        const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
         const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
 
         await act(async () => {
@@ -775,7 +817,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Test message');
 
@@ -833,7 +877,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('First message');
 
@@ -893,7 +939,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       // Manually add a bot message with error (simulating edge case)
       await result.current.handleMessageSend('Test');
@@ -950,11 +998,13 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          ...defaultProps,
-          modelId: 'llama-3.1-8b',
-        }),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages({
+            ...defaultProps,
+            modelId: 'llama-3.1-8b',
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await result.current.handleMessageSend('Test');
@@ -1001,7 +1051,9 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+      const { result } = renderHook(() => useChatbotMessages(defaultProps), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.handleMessageSend('Test');
 
@@ -1040,11 +1092,13 @@ describe('useChatbotMessages - Error Handling', () => {
         apiAvailable: true,
       } as unknown as ReturnType<typeof useGenAiAPI>);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages({
-          ...defaultProps,
-          isStreamingEnabled: true,
-        }),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages({
+            ...defaultProps,
+            isStreamingEnabled: true,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await result.current.handleMessageSend('Test');

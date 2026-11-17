@@ -1,14 +1,13 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import GuardrailsPanel from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
@@ -63,29 +62,26 @@ describe('GuardrailsPanel - Event Tracking', () => {
   describe('Guardrail Model Selection Tracking', () => {
     it('should fire tracking event when a guardrail model is selected', async () => {
       const user = userEvent.setup();
-      render(<GuardrailsPanel {...defaultProps} />);
+      render(<GuardrailsPanel {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
       const modelToggle = screen.getByTestId('guardrail-model-toggle');
       await user.click(modelToggle);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
-        'Guardrails Model Dropdown Option Selected',
-        {
-          selectedModel: 'model-2',
-        },
-      );
+      expect(trackEvent).toHaveBeenCalledWith('Guardrails Model Dropdown Option Selected', {
+        selectedModel: 'model-2',
+      });
     });
   });
 
   describe('User Input Guardrails Switch Tracking', () => {
     it('should fire tracking event when user input switch is toggled on', async () => {
       const user = userEvent.setup();
-      render(<GuardrailsPanel {...defaultProps} />);
+      render(<GuardrailsPanel {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
       const inputSwitch = screen.getByTestId('user-input-guardrails-switch');
       await user.click(inputSwitch);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
+      expect(trackEvent).toHaveBeenCalledWith('Guardrails Enabled', {
         isEnabled: true,
         inputEnabled: true,
         outputEnabled: false,
@@ -95,12 +91,12 @@ describe('GuardrailsPanel - Event Tracking', () => {
     it('should fire tracking event when user input switch is toggled off', async () => {
       const user = userEvent.setup();
       useChatbotConfigStore.getState().updateGuardrailUserInputEnabled('default', true);
-      render(<GuardrailsPanel {...defaultProps} />);
+      render(<GuardrailsPanel {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
       const inputSwitch = screen.getByTestId('user-input-guardrails-switch');
       await user.click(inputSwitch);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
+      expect(trackEvent).toHaveBeenCalledWith('Guardrails Enabled', {
         isEnabled: false,
         inputEnabled: false,
         outputEnabled: false,
@@ -111,12 +107,12 @@ describe('GuardrailsPanel - Event Tracking', () => {
   describe('Model Output Guardrails Switch Tracking', () => {
     it('should fire tracking event when model output switch is toggled on', async () => {
       const user = userEvent.setup();
-      render(<GuardrailsPanel {...defaultProps} />);
+      render(<GuardrailsPanel {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
       const outputSwitch = screen.getByTestId('model-output-guardrails-switch');
       await user.click(outputSwitch);
 
-      expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
+      expect(trackEvent).toHaveBeenCalledWith('Guardrails Enabled', {
         isEnabled: true,
         inputEnabled: false,
         outputEnabled: true,
@@ -126,8 +122,8 @@ describe('GuardrailsPanel - Event Tracking', () => {
 
   describe('No Tracking on Initial Render', () => {
     it('should not fire tracking events when component is rendered', () => {
-      render(<GuardrailsPanel {...defaultProps} />);
-      expect(fireMiscTrackingEvent).not.toHaveBeenCalled();
+      render(<GuardrailsPanel {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
+      expect(trackEvent).not.toHaveBeenCalled();
     });
   });
 });

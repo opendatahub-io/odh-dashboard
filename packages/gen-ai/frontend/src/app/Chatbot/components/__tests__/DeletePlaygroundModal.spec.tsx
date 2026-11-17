@@ -1,16 +1,17 @@
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
+const trackEvent = jest.fn();
+
 jest.mock('~/app/hooks/useGenAiAPI');
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils');
 
 jest.mock('~/app/shared/DeleteModal', () => ({
   __esModule: true,
@@ -47,7 +48,7 @@ jest.mock('~/app/shared/DeleteModal', () => ({
 }));
 
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockFireFormTrackingEvent = jest.mocked(trackEvent);
 const mockDeleteLSD = jest.fn();
 
 const mockLsdStatus = {
@@ -114,6 +115,7 @@ describe('DeletePlaygroundModal', () => {
       <TestWrapper>
         <DeletePlaygroundModal {...defaultProps} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByText('Delete playground?')).toBeInTheDocument();
@@ -131,6 +133,7 @@ describe('DeletePlaygroundModal', () => {
       <TestWrapper>
         <DeletePlaygroundModal onCancel={mockOnCancel} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
@@ -162,6 +165,7 @@ describe('DeletePlaygroundModal', () => {
           <DeletePlaygroundModal onCancel={mockOnCancel} />
         </ChatbotContext.Provider>
       </GenAiContext.Provider>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     const deleteButton = screen.getByRole('button', { name: /delete/i });
@@ -192,6 +196,7 @@ describe('DeletePlaygroundModal', () => {
       <TestWrapper>
         <DeletePlaygroundModal {...defaultProps} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     const deleteButton = screen.getByRole('button', { name: /delete/i });

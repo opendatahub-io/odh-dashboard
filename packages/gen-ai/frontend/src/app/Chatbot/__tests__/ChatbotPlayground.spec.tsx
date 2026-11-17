@@ -2,10 +2,7 @@
 import * as React from 'react';
 import { render, screen, act, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { PLAYGROUND_DOCUMENT_EVENTS } from '~/app/tracking/playgroundDocumentTrackingConstants';
 
 // ───────────────────── Mock functions ─────────────────────
@@ -219,11 +216,6 @@ jest.mock('~/app/hooks/useGenAiImageUploadEnabled', () => ({
 jest.mock('~/app/hooks/useGenAiAudioUploadEnabled', () => ({
   __esModule: true,
   default: jest.fn(() => true),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireFormTrackingEvent: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/ui-core/components/DashboardModalFooter', () => {
@@ -534,8 +526,10 @@ import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import type { DocumentAttachment, MCPServerFromAPI } from '~/app/types';
 
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const trackEvent = jest.fn();
+
+const mockFireFormTrackingEvent = jest.mocked(trackEvent);
+const mockFireMiscTrackingEvent = jest.mocked(trackEvent);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSetLastInput = (ChatbotContext as any)._currentValue.setLastInput as jest.Mock;
@@ -553,6 +547,7 @@ const renderPlayground = (props: Partial<React.ComponentProps<typeof ChatbotPlay
         {...props}
       />
     </MemoryRouter>,
+    { wrapper: createTrackingWrapper(trackEvent) },
   );
 
 const createFile = (name: string, type = 'text/plain', size = 100): File =>
@@ -1004,11 +999,11 @@ describe('ChatbotPlayground — document upload and messaging', () => {
         'photo.png failed to upload. Please try again.',
         'Image Upload Error',
       );
-      expect(fireFormTrackingEvent).toHaveBeenCalledWith(
+      expect(trackEvent).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ success: false, error: 'unknown_error' }),
       );
-      expect(JSON.stringify(jest.mocked(fireFormTrackingEvent).mock.calls)).not.toContain(message);
+      expect(JSON.stringify(jest.mocked(trackEvent).mock.calls)).not.toContain(message);
     });
 
     it('sets alwaysShowSendButton=true when image is uploaded', async () => {
@@ -1449,6 +1444,7 @@ describe('ChatbotPlayground — audio transcription', () => {
           clearAllMessagesRef={clearAllMessagesRef}
         />
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     act(() => {
@@ -1569,6 +1565,7 @@ describe('ChatbotPlayground — compare mode attachments', () => {
           />
         </ChatbotContext.Provider>
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await act(async () => {
@@ -1690,6 +1687,7 @@ describe('ChatbotPlayground — compare mode attachments', () => {
           />
         </ChatbotContext.Provider>
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     const { uploadMediaFile } = require('~/app/services/llamaStackService');
@@ -1757,6 +1755,7 @@ describe('ChatbotPlayground — "Try in playground" from a vector store', () => 
           {...props}
         />
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
   it('reports a model preselected through the route as the starting model', () => {

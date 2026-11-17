@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import { APIState, useAPIState } from 'mod-arch-core';
 import { GenAiAPIs } from '~/app/types';
@@ -48,6 +49,7 @@ const useGenAiAPIState = (
   hostPath: string | null,
   queryParameters?: Record<string, unknown>,
 ): [apiState: GenAiAPIState, refreshAPIState: () => void] => {
+  const trackEvent = useTrackEvent();
   const createAPI = React.useCallback(
     (path: string) => ({
       listVectorStores: listVectorStores(path, queryParameters),
@@ -59,7 +61,7 @@ const useGenAiAPIState = (
       getFileUploadStatus: getFileUploadStatus(path, queryParameters),
       getLSDModels: getLSDModels(path, queryParameters),
       exportCode: exportCode(path, queryParameters),
-      createResponse: createResponse(path, queryParameters),
+      createResponse: createResponse(trackEvent, path, queryParameters),
       getLSDStatus: getLSDStatus(path, queryParameters),
       installLSD: installLSD(path, queryParameters),
       deleteLSD: deleteLSD(path, queryParameters),
@@ -89,7 +91,7 @@ const useGenAiAPIState = (
       deleteAgentDeployment: deleteAgentDeployment(path, queryParameters),
       getAgentDeployment: getAgentDeployment(path, queryParameters),
     }),
-    [queryParameters],
+    [queryParameters, trackEvent],
   );
 
   return useAPIState(hostPath, createAPI);

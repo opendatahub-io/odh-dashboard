@@ -1,5 +1,5 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { FileModel, VectorStoreFile } from '~/app/types';
@@ -42,6 +42,7 @@ const convertVectorStoreFileToFileModel = (vectorStoreFile: VectorStoreFile): Fi
 export const DELETE_EVENT_NAME = 'Playground RAG Delete File';
 
 const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
+  const trackEvent = useTrackEvent();
   const { onShowDeleteSuccessAlert, onShowErrorAlert } = props;
   const { namespace } = React.useContext(GenAiContext);
   const { username } = useUserContext();
@@ -131,7 +132,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         );
         // Remove the deleted file from the local state
         setFiles((prevFiles) => prevFiles.filter((file) => file.id !== fileId));
-        fireFormTrackingEvent(DELETE_EVENT_NAME, {
+        trackEvent(DELETE_EVENT_NAME, {
           outcome: TrackingOutcome.submit,
           success: true,
         });
@@ -139,7 +140,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to delete file';
         setError(errorMessage);
-        fireFormTrackingEvent(DELETE_EVENT_NAME, {
+        trackEvent(DELETE_EVENT_NAME, {
           outcome: TrackingOutcome.submit,
           success: false,
           error: errorCategory(err),
@@ -149,7 +150,14 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         setIsDeleting(false);
       }
     },
-    [currentVectorStoreId, onShowDeleteSuccessAlert, onShowErrorAlert, api, apiAvailable],
+    [
+      apiAvailable,
+      currentVectorStoreId,
+      api,
+      trackEvent,
+      onShowDeleteSuccessAlert,
+      onShowErrorAlert,
+    ],
   );
 
   // Load files on mount and when namespace changes

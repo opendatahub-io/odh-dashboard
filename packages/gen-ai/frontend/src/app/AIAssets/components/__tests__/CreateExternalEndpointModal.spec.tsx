@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
 import {
   ExternalModelRequest,
@@ -61,7 +62,9 @@ describe('CreateExternalEndpointModal', () => {
 
   describe('Rendering', () => {
     it('should render modal with title and form fields', () => {
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       expect(screen.getByText('Create endpoint')).toBeInTheDocument();
       expect(screen.getByText('Model type')).toBeInTheDocument();
@@ -73,7 +76,9 @@ describe('CreateExternalEndpointModal', () => {
     });
 
     it('should render info alerts', () => {
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       expect(
         screen.getByText('Keys and tokens are visible to users who have access to the project.'),
@@ -84,14 +89,18 @@ describe('CreateExternalEndpointModal', () => {
     });
 
     it('should have default values', () => {
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Model type dropdown should show "Inferencing model" (llm is default)
       expect(screen.getByRole('button', { name: /Inferencing model/i })).toBeInTheDocument();
     });
 
     it('should not render when isOpen is false', () => {
-      render(<CreateExternalEndpointModal {...defaultProps} isOpen={false} />);
+      render(<CreateExternalEndpointModal {...defaultProps} isOpen={false} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       expect(screen.queryByText('Create endpoint')).not.toBeInTheDocument();
     });
@@ -99,14 +108,18 @@ describe('CreateExternalEndpointModal', () => {
 
   describe('Form Validation', () => {
     it('should disable submit button when required fields are empty', () => {
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       const submitButton = screen.getByRole('button', { name: /^Create$/i });
       expect(submitButton).toBeDisabled();
     });
 
     it('should enable submit button when all required fields are filled', () => {
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
       fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
@@ -124,7 +137,9 @@ describe('CreateExternalEndpointModal', () => {
   describe('Form Submission', () => {
     it('should submit with all fields filled', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
       fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My Custom GPT-4o');
@@ -151,7 +166,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should call onSuccess and onClose after successful submission', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
       fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
@@ -175,7 +192,9 @@ describe('CreateExternalEndpointModal', () => {
       const user = userEvent.setup();
       mockOnSubmit.mockRejectedValue(new Error('API Error: Invalid token'));
 
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
       fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
@@ -205,6 +224,7 @@ describe('CreateExternalEndpointModal', () => {
       };
       render(
         <CreateExternalEndpointModal {...defaultProps} existingModels={[existingModel as never]} />,
+        { wrapper: createTrackingWrapper() },
       );
 
       const modelIdInput = screen.getByTestId('create-external-model-id-input');
@@ -226,6 +246,7 @@ describe('CreateExternalEndpointModal', () => {
       };
       render(
         <CreateExternalEndpointModal {...defaultProps} existingModels={[existingModel as never]} />,
+        { wrapper: createTrackingWrapper() },
       );
 
       const displayNameInput = screen.getByTestId('create-external-model-display-name-input');
@@ -242,7 +263,9 @@ describe('CreateExternalEndpointModal', () => {
   describe('Modal Close Behavior', () => {
     it('should call onClose when cancel button is clicked', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       const cancelButton = screen.getByRole('button', { name: /Cancel/i });
       await user.click(cancelButton);
@@ -253,7 +276,9 @@ describe('CreateExternalEndpointModal', () => {
 
   describe('Model Capabilities', () => {
     it('should show capabilities picker when model type is LLM (default)', () => {
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       expect(screen.getByTestId('add-capability-btn')).toBeInTheDocument();
       expect(screen.getByText('Model capabilities')).toBeInTheDocument();
@@ -266,7 +291,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should show capabilities picker for all model types including embedding', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Switch to embedding model type
       await user.click(screen.getByTestId('create-external-model-type-select'));
@@ -278,7 +305,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should show capabilities picker for transcription model type', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       await user.click(screen.getByTestId('create-external-model-type-select'));
       await user.click(screen.getByText('Transcription model'));
@@ -289,7 +318,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should auto-add audio-transcription capability when selecting Transcription model type', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       await user.click(screen.getByTestId('create-external-model-type-select'));
       await user.click(screen.getByText('Transcription model'));
@@ -299,7 +330,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should remove audio-transcription capability when switching from Transcription to LLM', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Select transcription first
       await user.click(screen.getByTestId('create-external-model-type-select'));
@@ -318,7 +351,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should submit with model_type transcription and audio-transcription capability', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Select transcription model type
       await user.click(screen.getByTestId('create-external-model-type-select'));
@@ -346,7 +381,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should submit without capabilities when none are selected', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
       fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
@@ -367,7 +404,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should submit with capabilities when a common capability is selected', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       fillInput(screen.getByTestId('create-external-model-id-input'), 'qwen-vl-7b');
       fillInput(screen.getByTestId('create-external-model-display-name-input'), 'Qwen VL 7B');
@@ -392,7 +431,10 @@ describe('CreateExternalEndpointModal', () => {
     });
 
     it('should reset capabilities when modal is reopened', () => {
-      const { rerender } = render(<CreateExternalEndpointModal {...defaultProps} isOpen={false} />);
+      const { rerender } = render(
+        <CreateExternalEndpointModal {...defaultProps} isOpen={false} />,
+        { wrapper: createTrackingWrapper() },
+      );
 
       rerender(<CreateExternalEndpointModal {...defaultProps} isOpen />);
 
@@ -410,7 +452,9 @@ describe('CreateExternalEndpointModal', () => {
           }),
       );
 
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
       fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
@@ -432,7 +476,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should submit with multiple capabilities when both are selected', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       fillInput(screen.getByTestId('create-external-model-id-input'), 'multi-model');
       fillInput(screen.getByTestId('create-external-model-display-name-input'), 'Multi-Cap Model');
@@ -465,7 +511,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should submit with custom capability added via text input', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       fillInput(screen.getByTestId('create-external-model-id-input'), 'custom-model');
       fillInput(screen.getByTestId('create-external-model-display-name-input'), 'Custom Model');
@@ -492,7 +540,9 @@ describe('CreateExternalEndpointModal', () => {
 
     it('should not include capabilities for embedding model submission', async () => {
       const user = userEvent.setup();
-      render(<CreateExternalEndpointModal {...defaultProps} />);
+      render(<CreateExternalEndpointModal {...defaultProps} />, {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Switch to embedding model type
       await user.click(screen.getByTestId('create-external-model-type-select'));

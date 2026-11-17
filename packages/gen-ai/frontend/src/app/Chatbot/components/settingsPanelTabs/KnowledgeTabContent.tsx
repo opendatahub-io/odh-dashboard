@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Form,
@@ -18,7 +19,6 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
@@ -54,6 +54,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
   fileManagement,
   alerts,
 }) => {
+  const trackEvent = useTrackEvent();
   const { namespace } = React.useContext(GenAiContext);
 
   // Per-pane state from Zustand store
@@ -136,7 +137,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
         isDisabled={false}
         onChange={(_, checked) => {
           updateRagEnabled(configId, checked);
-          fireMiscTrackingEvent('Playground RAG Toggle Selected', {
+          trackEvent('Playground RAG Toggle Selected', {
             isRag: checked,
             knowledgeSource: 'upload',
             compareMode,
@@ -198,7 +199,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
           updateRagEnabled(configId, true);
           setIsSelectOpen(false);
           if (selectedStore) {
-            fireMiscTrackingEvent('Playground Collection Dropdown Selected', {
+            trackEvent('Playground Collection Dropdown Selected', {
               collectionName: selectedStore.name,
               collectionId: selectedVSId,
               compareMode,
@@ -283,7 +284,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
       isDisabled={false}
       onChange={(_, checked) => {
         updateRagEnabled(configId, checked);
-        fireMiscTrackingEvent('Playground RAG Toggle Selected', {
+        trackEvent('Playground RAG Toggle Selected', {
           isRag: checked,
           knowledgeSource: knowledgeMode === 'inline' ? 'upload' : 'vectorstore',
           compareMode,
@@ -310,7 +311,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             isDisabled={false}
             onChange={() => {
               updateKnowledgeMode(configId, 'inline');
-              fireMiscTrackingEvent('Playground Knowledge Source Switched', {
+              trackEvent('Playground Knowledge Source Switched', {
                 selectedSource: 'upload',
                 previousSource: 'vectorstore',
                 compareMode,
@@ -328,7 +329,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             onChange={() => {
               updateSelectedVectorStoreId(configId, null);
               updateKnowledgeMode(configId, 'external');
-              fireMiscTrackingEvent('Playground Knowledge Source Switched', {
+              trackEvent('Playground Knowledge Source Switched', {
                 selectedSource: 'vectorstore',
                 previousSource: 'upload',
                 compareMode,

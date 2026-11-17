@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { renderHook, RenderHookResult } from '@testing-library/react';
 import { DropEvent } from '@patternfly/react-core';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import {
   UseSourceManagementReturn,
   UseSourceManagementProps,
@@ -95,6 +96,7 @@ export const renderHookWithLoadingState = (
         ...additionalProps,
       }),
     {
+      wrapper: createTrackingWrapper(),
       initialProps: {
         uploadedFiles,
         isFilesLoading,

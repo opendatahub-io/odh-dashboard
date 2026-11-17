@@ -1,3 +1,5 @@
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
+import { createStandaloneAnalytics } from '@odh-dashboard/analytics/standalone';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {
@@ -8,10 +10,12 @@ import {
 import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axe from 'react-axe';
-import { API_URL_PREFIX, DEPLOYMENT_MODE } from '~/app/utilities/const';
+import { DEV_MODE, APP_VERSION, API_URL_PREFIX, DEPLOYMENT_MODE } from '~/app/utilities/const';
 import App from '~/app/App';
 import { PluginStoreContextProvider } from '~/odh/PluginStoreContextProvider';
 import ToastNotifications from '~/app/components/ToastNotifications';
+
+const standaloneAnalytics = createStandaloneAnalytics({ devMode: DEV_MODE, version: APP_VERSION });
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,17 +50,19 @@ const root = ReactDOM.createRoot(document.getElementById('root') as Element);
 
 root.render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <PluginStoreContextProvider>
-          <ModularArchContextProvider config={modularArchConfig}>
-            <NotificationContextProvider>
-              <App />
-              <ToastNotifications />
-            </NotificationContextProvider>
-          </ModularArchContextProvider>
-        </PluginStoreContextProvider>
-      </Router>
-    </QueryClientProvider>
+    <AnalyticsTrackingProvider value={standaloneAnalytics}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <PluginStoreContextProvider>
+            <ModularArchContextProvider config={modularArchConfig}>
+              <NotificationContextProvider>
+                <App />
+                <ToastNotifications />
+              </NotificationContextProvider>
+            </ModularArchContextProvider>
+          </PluginStoreContextProvider>
+        </Router>
+      </QueryClientProvider>
+    </AnalyticsTrackingProvider>
   </React.StrictMode>,
 );

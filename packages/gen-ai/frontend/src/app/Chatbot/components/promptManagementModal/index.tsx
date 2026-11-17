@@ -1,5 +1,5 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
@@ -7,6 +7,7 @@ import PromptTable from './promptTable';
 import CreatePrompt from './createPrompt';
 
 export default function PromptManagementModal(): React.ReactNode {
+  const trackEvent = useTrackEvent();
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
@@ -43,14 +44,14 @@ export default function PromptManagementModal(): React.ReactNode {
         : modalMode === 'create'
           ? 'Playground Prompt Saved'
           : 'Playground Prompt Version Saved';
-    fireMiscTrackingEvent(trackingEvent, {
+    trackEvent(trackingEvent, {
       outcome: 'cancel',
     });
     closeModal();
   }
 
   function handleCloseLoad() {
-    fireMiscTrackingEvent('Playground Prompt Loaded', {
+    trackEvent('Playground Prompt Loaded', {
       isSample: false,
       outcome: 'cancel',
     });
@@ -63,7 +64,7 @@ export default function PromptManagementModal(): React.ReactNode {
       prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
     updateSystemInstruction(configId, instruction);
     closeModal();
-    fireMiscTrackingEvent('Playground Prompt Loaded', {
+    trackEvent('Playground Prompt Loaded', {
       isSample: false,
       outcome: 'success',
     });
