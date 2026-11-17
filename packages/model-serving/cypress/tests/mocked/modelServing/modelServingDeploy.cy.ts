@@ -1014,6 +1014,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().should('be.visible').and('be.disabled');
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.visible').and('be.disabled');
     modelServingWizard.findEnvVariablesCheckbox().should('be.enabled').click();
     modelServingWizard.findAddVariableButton().should('be.enabled').click();
