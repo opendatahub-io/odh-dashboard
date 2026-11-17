@@ -96,3 +96,5 @@ export type Deployment<
 If you can accomplish everything you need for a deployment using the generic `K8sResourceCommon` types here, the code can live in `model-serving` (for example reading and setting annotations or other metadata properties).
 
 If you need to read / write from the `model.spec`, this will need to be done using extensions and implemented in the specific model serving platform packages.
+
+<!-- Test comment for OWNERS approval testing -->
