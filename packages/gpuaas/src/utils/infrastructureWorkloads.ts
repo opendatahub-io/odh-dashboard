@@ -98,6 +98,7 @@ const KUEUE_STATUS_OPTIONS: KueueWorkloadStatus[] = [
 ];
 
 const MODEL_DEPLOYMENT_STATUS_LABELS: Record<ModelDeploymentState, string> = {
+  [ModelDeploymentState.DELETING]: 'Deleting',
   [ModelDeploymentState.PENDING]: 'Starting',
   [ModelDeploymentState.STANDBY]: 'Starting',
   [ModelDeploymentState.FAILED_TO_LOAD]: 'Failed',
