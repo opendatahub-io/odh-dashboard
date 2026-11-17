@@ -456,7 +456,7 @@ const selectNewMlflowExperiment = (mlflowExperimentName: string, modalId?: strin
     .type(mlflowExperimentName);
 };
 
-/** Non-Kueue tenants have no selector; Kueue tenants require an explicit profile. */
+/** Non-Kueue tenants have no selector; Kueue tenants have one but never require a profile. */
 const configureEvaluationHardwareProfile = (profileName?: string, modalId?: string): void => {
   if (!profileName) {
     createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.enabled');
@@ -464,7 +464,9 @@ const configureEvaluationHardwareProfile = (profileName?: string, modalId?: stri
     return;
   }
 
-  createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.disabled');
+  // Without a profile the job submits without hardware_config and runs outside Kueue,
+  // so the submit button stays enabled before selection.
+  createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.enabled');
   createEvaluationPage
     .findHardwareProfileToggle(modalId)
     .should('be.visible')

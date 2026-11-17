@@ -1,4 +1,5 @@
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
+import type { HardwareProfileInfo } from '~/app/types';
 import {
   getEvaluationName,
   getBenchmarkName,
@@ -20,6 +21,8 @@ import {
   getEvaluationDisplayState,
   getLatestEvaluationJob,
   getEvaluationQueue,
+  getQueueNameByProfileName,
+  resolveEvaluationJobQueues,
   isBenchmarkFailed,
   isEvaluationJobComparable,
   isTerminalState,
@@ -999,6 +1002,122 @@ describe('getEvaluationQueue', () => {
     expect(getEvaluationQueue(job)).toBeUndefined();
   });
 });
+
+/* eslint-disable camelcase -- API field names. */
+describe('getQueueNameByProfileName', () => {
+  it('should map queue-scheduled profiles to their queue names', () => {
+    const profiles: HardwareProfileInfo[] = [
+      { name: 'gpu-default', scheduling_type: 'queue', queue_name: 'gpu-queue', identifiers: [] },
+      { name: 'cpu-small', scheduling_type: 'queue', queue_name: 'cpu-queue', identifiers: [] },
+    ];
+
+    expect(getQueueNameByProfileName(profiles)).toEqual(
+      new Map([
+        ['gpu-default', 'gpu-queue'],
+        ['cpu-small', 'cpu-queue'],
+      ]),
+    );
+  });
+
+  it('should skip node-scheduled profiles and profiles without a queue name', () => {
+    const profiles: HardwareProfileInfo[] = [
+      {
+        name: 'node-profile',
+        scheduling_type: 'node',
+        queue_name: 'node-queue',
+        identifiers: [],
+      },
+      { name: 'queue-no-name', scheduling_type: 'queue', identifiers: [] },
+      { name: 'gpu-default', scheduling_type: 'queue', queue_name: 'gpu-queue', identifiers: [] },
+    ];
+
+    expect(getQueueNameByProfileName(profiles)).toEqual(new Map([['gpu-default', 'gpu-queue']]));
+  });
+
+  it('should return an empty map for an empty profile list', () => {
+    expect(getQueueNameByProfileName([])).toEqual(new Map());
+  });
+});
+
+describe('resolveEvaluationJobQueues', () => {
+  const queueNameByProfileName = new Map([['gpu-default', 'tenant-gpu-queue']]);
+
+  it('should inject the profile queue name into a pending profile-mode job', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+
+    const [enriched] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(enriched.hardware_config?.queue).toEqual({ name: 'tenant-gpu-queue' });
+  });
+
+  it('should not mutate the input job', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+
+    resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(job.hardware_config?.queue).toBeUndefined();
+  });
+
+  it('should keep an explicitly echoed queue assignment untouched', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'echoed-queue' } },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved).toBe(job);
+    expect(resolved.hardware_config?.queue).toEqual({ name: 'echoed-queue' });
+  });
+
+  it('should leave a pending job unchanged when the profile is not queue-backed', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'node-profile' },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved).toBe(job);
+  });
+
+  it('should leave non-pending jobs unchanged', () => {
+    const job = mockEvaluationJob({
+      state: 'running',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved).toBe(job);
+  });
+
+  it('should leave jobs without hardware config unchanged', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved).toBe(job);
+  });
+
+  it('should pass all jobs through unchanged when no profiles are available', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], new Map());
+
+    expect(resolved).toBe(job);
+  });
+});
+/* eslint-enable camelcase */
 
 describe('getLatestEvaluationJob', () => {
   it('should prefer refreshed job data only when it is newer', () => {

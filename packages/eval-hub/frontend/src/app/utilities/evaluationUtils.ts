@@ -1,4 +1,9 @@
-import { BenchmarkState, EvaluationJob, EvaluationJobState } from '~/app/types';
+import {
+  BenchmarkState,
+  EvaluationJob,
+  EvaluationJobState,
+  HardwareProfileInfo,
+} from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
@@ -6,6 +11,44 @@ export const getEvaluationName = (job: EvaluationJob): string =>
 
 export const getEvaluationQueue = (job: EvaluationJob): string | undefined =>
   job.hardware_config?.queue?.name;
+
+export const getQueueNameByProfileName = (profiles: HardwareProfileInfo[]): Map<string, string> =>
+  new Map(
+    profiles.flatMap((profile): [string, string][] =>
+      profile.scheduling_type === 'queue' && profile.queue_name
+        ? [[profile.name, profile.queue_name]]
+        : [],
+    ),
+  );
+
+/**
+ * Injects the queue-backed profile's queue name into pending jobs submitted in profile mode.
+ *
+ * The job response contract does not guarantee a resolved `hardware_config.queue` when the
+ * submission carried only `hardware_profile_name` — the request config is echoed back. This
+ * derives the queue from the /info hardware profiles list as a display-only stand-in so the
+ * Queued classification works while the contract catches up. An explicitly echoed queue always
+ * wins, and jobs that cannot be resolved pass through unchanged by reference.
+ */
+export const resolveEvaluationJobQueues = (
+  jobs: EvaluationJob[],
+  queueNameByProfileName: Map<string, string>,
+): EvaluationJob[] =>
+  jobs.map((job) => {
+    const profileName = job.hardware_config?.hardware_profile_name;
+    if (job.status.state !== 'pending' || job.hardware_config?.queue || !profileName) {
+      return job;
+    }
+    const queueName = queueNameByProfileName.get(profileName);
+    if (!queueName) {
+      return job;
+    }
+    return {
+      ...job,
+      // eslint-disable-next-line camelcase -- API field name.
+      hardware_config: { ...job.hardware_config, queue: { name: queueName } },
+    };
+  });
 
 export const getLatestEvaluationJob = (
   currentJob: EvaluationJob,

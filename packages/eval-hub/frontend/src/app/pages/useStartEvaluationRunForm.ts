@@ -565,10 +565,12 @@ export function useStartEvaluationRunForm({
   // A stale initial reconfigure value is tolerated (submission falls back to the
   // default scheduling path), but a profile the user explicitly selected that a
   // later /info refresh removed must be reselected or explicitly cleared before
-  // submission — dirtyFields distinguishes the explicit selection from the
-  // initial value, which comes from defaultValues and is never dirty.
+  // submission. dirtyFields cannot distinguish this: it tracks deviation from
+  // defaultValues, so selecting a different profile and returning to the initial
+  // one clears the flag. The manual-selection ref records the interaction itself.
+  const hardwareProfileManuallySelectedRef = React.useRef(false);
   const hardwareProfileSelectionLost =
-    !!hardwareProfile && !!form.formState.dirtyFields.hardwareProfile && !selectedHardwareProfile;
+    !!hardwareProfile && hardwareProfileManuallySelectedRef.current && !selectedHardwareProfile;
 
   const isValid = React.useMemo(() => {
     if (
@@ -684,10 +686,12 @@ export function useStartEvaluationRunForm({
   const setHardwareProfile = React.useCallback(
     (profileName: string | undefined) => {
       const profile = hardwareProfiles.find((candidate) => candidate.name === profileName);
-      // shouldDirty marks the selection as explicit, distinguishing it from the
-      // initial reconfigure value so a later list refresh losing it blocks submission.
-      form.setValue('hardwareProfile', profile?.name, { shouldDirty: true, shouldValidate: true });
-      form.setValue('queue', profile?.queue_name, { shouldDirty: true, shouldValidate: true });
+      // Any explicit selection (including clearing) marks the field as
+      // user-touched so a later list refresh losing the selection blocks
+      // submission; see hardwareProfileManuallySelectedRef above.
+      hardwareProfileManuallySelectedRef.current = true;
+      form.setValue('hardwareProfile', profile?.name, { shouldValidate: true });
+      form.setValue('queue', profile?.queue_name, { shouldValidate: true });
     },
     [form, hardwareProfiles],
   );

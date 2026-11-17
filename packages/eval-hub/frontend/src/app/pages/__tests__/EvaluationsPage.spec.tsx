@@ -4,7 +4,7 @@ import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
-import { EvaluationJobsResult } from '~/app/types';
+import { EvaluationJobsResult, HardwareProfileInfo } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import {
   mockBenchmarkSuiteCollections,
@@ -40,6 +40,20 @@ jest.mock('~/app/hooks/useEvaluationJobs', () => ({
 jest.mock('~/app/hooks/useEvalHubHealth', () => ({
   __esModule: true,
   default: () => mockUseEvalHubHealth(),
+}));
+
+const mockUseHardwareProfiles = jest.fn<
+  {
+    profiles: HardwareProfileInfo[];
+    loaded: boolean;
+    error: Error | undefined;
+    compatibilityError: Error | undefined;
+  },
+  []
+>();
+
+jest.mock('~/app/hooks/useHardwareProfiles', () => ({
+  useHardwareProfiles: () => mockUseHardwareProfiles(),
 }));
 
 const mockUseUser = jest.fn<{ clusterAdmin: boolean }, []>();
@@ -202,6 +216,12 @@ describe('EvaluationsPage', () => {
       mockRefresh,
     ]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: true,
+      error: undefined,
+      compatibilityError: undefined,
+    });
     mockDeleteCollection.mockResolvedValue(undefined);
     mockUseDeleteCollectionMutation.mockReturnValue({
       error: null,
@@ -970,6 +990,84 @@ describe('EvaluationsPage', () => {
     renderPage('test-project', '?tab=runs');
 
     expect(screen.queryByTestId('evaluations-truncated-alert')).not.toBeInTheDocument();
+  });
+
+  describe('hardware profile queue derivation', () => {
+    const profileModeJob = mockEvaluationJob({
+      id: 'job-profile',
+      name: 'Profile Evaluation',
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+    const queueBackedProfiles: HardwareProfileInfo[] = [
+      {
+        name: 'gpu-default',
+        scheduling_type: 'queue',
+        queue_name: 'tenant-gpu-queue',
+        identifiers: [],
+      },
+    ];
+
+    it('should show Queued for a pending profile-mode job when its hardware profile is queue-backed', () => {
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs: [profileModeJob], totalCount: 1, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
+      mockUseHardwareProfiles.mockReturnValue({
+        profiles: queueBackedProfiles,
+        loaded: true,
+        error: undefined,
+        compatibilityError: undefined,
+      });
+      renderPage('test-project', '?tab=runs');
+
+      const row = screen.getByText('Profile Evaluation').closest('tr');
+      expect(row).not.toBeNull();
+      expect(within(row!).getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
+
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Queued' }));
+
+      expect(screen.getByText('Profile Evaluation')).toBeInTheDocument();
+    });
+
+    it('should show Pending for a pending profile-mode job when hardware profiles are unavailable', () => {
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs: [profileModeJob], totalCount: 1, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
+      renderPage('test-project', '?tab=runs');
+
+      const row = screen.getByText('Profile Evaluation').closest('tr');
+      expect(row).not.toBeNull();
+      expect(within(row!).getByTestId('evaluation-status-button')).toHaveTextContent('Pending');
+    });
+
+    it('should show Pending for a pending profile-mode job when the /info request fails', () => {
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs: [profileModeJob], totalCount: 1, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
+      mockUseHardwareProfiles.mockReturnValue({
+        profiles: [],
+        loaded: true,
+        error: new Error('info request failed'),
+        compatibilityError: undefined,
+      });
+      renderPage('test-project', '?tab=runs');
+
+      const row = screen.getByText('Profile Evaluation').closest('tr');
+      expect(row).not.toBeNull();
+      expect(within(row!).getByTestId('evaluation-status-button')).toHaveTextContent('Pending');
+    });
   });
 
   it('should persist tab selection in the URL when switching tabs', () => {

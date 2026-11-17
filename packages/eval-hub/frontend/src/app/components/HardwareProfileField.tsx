@@ -178,6 +178,8 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
   // A failed refetch can leave a retained selection alongside the error (React Query
   // keeps the cached data), so the disabled selector must still offer a way to clear
   // it — otherwise submission repeats the blocking /info revalidation and fails again.
+  // The same applies to a lost selection (refresh removed the profile, a later refetch
+  // failed): submission stays blocked until the stale value is explicitly cleared.
   const fieldState = getHardwareProfileFieldState({ error });
   const profileSelectionDisabled = disabled || fieldState.unavailable;
   if (!loaded) {
@@ -197,7 +199,10 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
     );
   }
 
-  if (!error && !availability?.enabled) {
+  // A successful refresh that drops every queue-backed profile disables availability,
+  // but a retained explicit selection must stay visible and clearable — hiding the
+  // field would block submission with no recovery action.
+  if (!error && !availability?.enabled && !selectionLost) {
     return null;
   }
 
@@ -266,7 +271,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
           ))}
         </SelectList>
       </Select>
-      {fieldState.unavailable && selected ? (
+      {fieldState.unavailable && (selected || selectionLost) ? (
         <Button
           variant="link"
           isInline

@@ -19,6 +19,7 @@ describe('Evaluation failure tracking', () => {
       const options = { path: { apiVersion: CLIENT_API_VERSION } };
       const marker = 'review-secret-resource-95482';
       cy.interceptApi('GET /api/:apiVersion/user', options, mockUserSettings({}));
+      cy.interceptApi('GET /api/:apiVersion/info', options, { hardware_profiles: [] });
       cy.interceptApi('GET /api/:apiVersion/namespaces', options, [
         mockNamespace({ name: namespace }),
       ]);

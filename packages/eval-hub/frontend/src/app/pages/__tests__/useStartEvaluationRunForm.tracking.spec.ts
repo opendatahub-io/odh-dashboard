@@ -880,6 +880,32 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       expect(renderResult.result.current.hardwareProfile).toBeUndefined();
     });
 
+    it('should require reselection when an explicitly reselected initial profile disappears', async () => {
+      mockKueueAvailability = mockKueueEnabled;
+      const otherProfile: HardwareProfileInfo = {
+        ...mockCompatibleHardwareProfile,
+        name: 'gpu-large',
+        display_name: 'GPU large',
+      };
+      mockHardwareProfiles = [mockCompatibleHardwareProfile, otherProfile];
+      const renderResult = renderForm({ initialValues: reconfigureValues });
+
+      // Selecting another profile and returning to the initial value is still an
+      // explicit selection — it must not fall back to the stale-value tolerance.
+      act(() => {
+        renderResult.result.current.setHardwareProfile(otherProfile.name);
+        renderResult.result.current.setHardwareProfile(mockCompatibleHardwareProfile.name);
+      });
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+
+      // A later /info refresh removes the reselected initial profile.
+      mockHardwareProfiles = [otherProfile];
+      renderResult.rerender();
+
+      expect(renderResult.result.current.hardwareProfileSelectionLost).toBe(true);
+      expect(renderResult.result.current.isValid).toBe(false);
+    });
+
     it('should stay valid when a collection reconfigure hydrates a test-data ref that fails single-benchmark validation', async () => {
       const renderResult = renderForm({
         benchmark: undefined,

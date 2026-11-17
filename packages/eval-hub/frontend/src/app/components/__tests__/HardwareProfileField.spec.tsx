@@ -349,6 +349,43 @@ describe('HardwareProfileField', () => {
     expect(screen.queryByTestId('hardware-profile-select')).not.toBeInTheDocument();
   });
 
+  it('stays visible and clearable when the selected profile disappears after a refresh', () => {
+    const onSelect = jest.fn();
+    const { rerender } = render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[profile]}
+        loaded
+        selectedProfile={profile.name}
+        onSelect={onSelect}
+      />,
+    );
+
+    // Successful /info refresh drops the only queue-backed profile: availability
+    // is disabled and the explicit selection is retained but no longer offered.
+    rerender(
+      <HardwareProfileField
+        availability={{
+          ...availability,
+          enabled: false,
+          scheduling_ready: false,
+        }}
+        profiles={[]}
+        loaded
+        selectedProfile={profile.name}
+        selectionLost
+        onSelect={onSelect}
+      />,
+    );
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('hardware-profile-selection-lost')).toBeInTheDocument();
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Default (no hardware profile)'));
+    expect(onSelect).toHaveBeenCalledWith(undefined);
+  });
+
   it('keeps the default option selectable when no profiles are offered', () => {
     const onSelect = jest.fn();
     render(
@@ -404,6 +441,26 @@ describe('HardwareProfileField', () => {
     );
 
     expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('hardware-profile-clear-selection'));
+
+    expect(onSelect).toHaveBeenCalledWith(undefined);
+  });
+
+  it('offers a clear action for a lost selection when a subsequent profile load fails', () => {
+    const onSelect = jest.fn();
+    render(
+      <HardwareProfileField
+        profiles={[]}
+        loaded
+        error={new Error('Unable to load HardwareProfiles')}
+        selectedProfile={profile.name}
+        selectionLost
+        onSelect={onSelect}
+      />,
+    );
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
+    expect(screen.getByTestId('hardware-profile-selection-lost')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('hardware-profile-clear-selection'));
 
     expect(onSelect).toHaveBeenCalledWith(undefined);

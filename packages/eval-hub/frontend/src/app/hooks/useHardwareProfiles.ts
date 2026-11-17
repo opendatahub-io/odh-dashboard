@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getInfo, validateHardwareProfiles } from '~/app/api/k8s';
 import type { HardwareProfileInfo } from '~/app/types';
@@ -34,10 +35,19 @@ export const useHardwareProfiles = (
     },
   });
 
-  const profiles = (infoQuery.data?.hardware_profiles ?? []).filter(
-    (profile) => profile.scheduling_type === 'queue',
+  // Memoized so consumers can depend on the profiles reference staying stable between
+  // renders — rebuilding it per render would invalidate their derived memos.
+  const profiles = React.useMemo(
+    () =>
+      (infoQuery.data?.hardware_profiles ?? []).filter(
+        (profile) => profile.scheduling_type === 'queue',
+      ),
+    [infoQuery.data],
   );
-  const hardwareProfileNames = profiles.map((profile) => profile.name);
+  const hardwareProfileNames = React.useMemo(
+    () => profiles.map((profile) => profile.name),
+    [profiles],
+  );
   const shouldValidateHardwareProfiles =
     Boolean(namespace) &&
     normalizedProviderIds.length > 0 &&
@@ -62,20 +72,33 @@ export const useHardwareProfiles = (
 
   const hardwareProfilesLoaded = infoQuery.isSuccess || infoQuery.isError;
 
-  const compatibilityByProfile = new Map(
-    (hardwareProfileValidationQuery.data?.items ?? []).map((compatibility) => [
-      compatibility.hardware_profile,
-      compatibility,
-    ]),
+  const compatibilityByProfile = React.useMemo(
+    () =>
+      new Map(
+        (hardwareProfileValidationQuery.data?.items ?? []).map((compatibility) => [
+          compatibility.hardware_profile,
+          compatibility,
+        ]),
+      ),
+    [hardwareProfileValidationQuery.data],
   );
 
-  return {
-    profiles: profiles.map((profile) => {
-      const compatibility = compatibilityByProfile.get(profile.name);
-      return compatibility ? { ...profile, compatibility } : profile;
+  return React.useMemo(
+    () => ({
+      profiles: profiles.map((profile) => {
+        const compatibility = compatibilityByProfile.get(profile.name);
+        return compatibility ? { ...profile, compatibility } : profile;
+      }),
+      loaded: hardwareProfilesLoaded,
+      error: infoQuery.error ?? undefined,
+      compatibilityError: hardwareProfileValidationQuery.error ?? undefined,
     }),
-    loaded: hardwareProfilesLoaded,
-    error: infoQuery.error ?? undefined,
-    compatibilityError: hardwareProfileValidationQuery.error ?? undefined,
-  };
+    [
+      profiles,
+      compatibilityByProfile,
+      hardwareProfilesLoaded,
+      infoQuery.error,
+      hardwareProfileValidationQuery.error,
+    ],
+  );
 };

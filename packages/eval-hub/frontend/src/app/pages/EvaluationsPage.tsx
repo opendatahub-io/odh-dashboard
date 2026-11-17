@@ -28,7 +28,11 @@ import { IconSize } from '@odh-dashboard/internal/types';
 import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import SupportIcon from '~/app/icons/SupportIcon';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
-import { getLatestEvaluationJob } from '~/app/utilities/evaluationUtils';
+import {
+  getLatestEvaluationJob,
+  getQueueNameByProfileName,
+  resolveEvaluationJobQueues,
+} from '~/app/utilities/evaluationUtils';
 import {
   evaluationCopySuiteRoute,
   evaluationEditSuiteRoute,
@@ -38,6 +42,7 @@ import {
 } from '~/app/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
+import { useHardwareProfiles } from '~/app/hooks/useHardwareProfiles';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import useUser from '~/app/hooks/useUser';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
@@ -91,6 +96,19 @@ const EvaluationsPage: React.FC = () => {
     isPollingEnabled,
   );
   const evaluations = evaluationsResult.jobs;
+  // Queue-backed scheduling for profile-mode jobs is derived from /info, not guaranteed by
+  // the job response contract. Never gate the runs list on this fetch — an unloaded or
+  // failed /info just leaves profile-mode pending jobs showing as Pending. Shares the
+  // ['evalHubInfo', namespace] query with the run form, so no extra request.
+  const { profiles } = useHardwareProfiles(namespace);
+  const queueNameByProfileName = React.useMemo(
+    () => getQueueNameByProfileName(profiles),
+    [profiles],
+  );
+  const enrichedEvaluations = React.useMemo(
+    () => resolveEvaluationJobQueues(evaluations, queueNameByProfileName),
+    [evaluations, queueNameByProfileName],
+  );
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
   const [selectedJob, setSelectedJob] = React.useState<
     { job: EvaluationJob; namespace: string } | undefined
@@ -225,9 +243,9 @@ const EvaluationsPage: React.FC = () => {
     }
     return getLatestEvaluationJob(
       selectedJob.job,
-      evaluations.find((e) => e.resource.id === selectedJob.job.resource.id),
+      enrichedEvaluations.find((e) => e.resource.id === selectedJob.job.resource.id),
     );
-  }, [evaluations, selectedJob]);
+  }, [enrichedEvaluations, selectedJob]);
 
   const onShowStatus = React.useCallback(
     (job: EvaluationJob) => {
@@ -462,7 +480,7 @@ const EvaluationsPage: React.FC = () => {
                           <EvalHubEmptyState />
                         ) : (
                           <EvaluationsTable
-                            evaluations={evaluations}
+                            evaluations={enrichedEvaluations}
                             loaded={loaded}
                             namespace={namespace}
                             collectionNameMap={collectionNameMap}
