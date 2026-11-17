@@ -1,6 +1,6 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -44,6 +44,7 @@ const useAgentProfileUrlParam = ({
   mcpServersLoaded: boolean;
   mcpServerStatusesResolved: boolean;
 }): UseAgentProfileUrlParamResult => {
+  const trackEvent = useTrackEvent();
   const [searchParams] = useSearchParams();
   const agentProfileId = searchParams.get(AGENT_PROFILE_ID_PARAM);
 
@@ -123,7 +124,7 @@ const useAgentProfileUrlParam = ({
           profile.spec.description,
         );
         setLoadedResourceVersion(profile.metadata.resourceVersion);
-        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.LOADED, { agentID: agentProfileId });
+        trackEvent(PLAYGROUND_AGENT_EVENTS.LOADED, { agentID: agentProfileId });
 
         // Sync warnings are set immediately so the OpenAgentProfileModal can show
         // the alert (and bypass localStorage) as soon as the profile is applied.
@@ -196,7 +197,7 @@ const useAgentProfileUrlParam = ({
           ),
         ];
         if (missingComponents.length > 0) {
-          fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CONFIGURATION_UNAVAILABLE, {
+          trackEvent(PLAYGROUND_AGENT_EVENTS.CONFIGURATION_UNAVAILABLE, {
             agentID: agentProfileId,
             missingComponents: missingComponents.join(','),
           });
@@ -221,7 +222,7 @@ const useAgentProfileUrlParam = ({
                 message.includes('forbidden')
               ? 'auth_error'
               : 'unknown';
-        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.LOAD_INTERRUPTED, {
+        trackEvent(PLAYGROUND_AGENT_EVENTS.LOAD_INTERRUPTED, {
           agentID: agentProfileId,
           failureReason,
         });
@@ -250,6 +251,7 @@ const useAgentProfileUrlParam = ({
     updateActivePrompt,
     updateSystemInstruction,
     saveToolSelections,
+    trackEvent,
   ]);
 
   return { loading, error };

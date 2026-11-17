@@ -2,7 +2,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import useFileManagement, { DELETE_EVENT_NAME } from '~/app/Chatbot/hooks/useFileManagement';
 import {
   deleteVectorStoreFile,
@@ -18,22 +18,30 @@ import {
   TEST_CONSTANTS,
 } from './testUtils';
 
+const trackEvent = jest.fn();
+
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils');
+
 jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('~/app/context/UserContext', () => ({ useUserContext: () => mockUseContext() }));
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
-  useContext: jest.fn(),
+  useContext: (context: React.Context<unknown>) => {
+    const { GenAiContext } = jest.requireActual('~/app/context/GenAiContext');
+    const { ChatbotContext } = jest.requireActual('~/app/context/ChatbotContext');
+    if (context === GenAiContext || context === ChatbotContext) {
+      return mockUseContext(context);
+    }
+    return jest.requireActual<typeof React>('react').useContext(context);
+  },
 }));
 
 const mockGetVectorStores = listVectorStores as jest.Mock;
 const mockListVectorStoreFiles = listVectorStoreFiles as jest.Mock;
 const mockDeleteVectorStoreFile = deleteVectorStoreFile as jest.Mock;
-const mockFireFormTrackingEvent = fireFormTrackingEvent as jest.MockedFunction<
-  typeof fireFormTrackingEvent
->;
-const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+const mockFireFormTrackingEvent = trackEvent as jest.MockedFunction<typeof trackEvent>;
+const mockUseContext = jest.fn();
 
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
@@ -99,7 +107,9 @@ describe('useFileManagement', () => {
 
   describe('Initial state', () => {
     it('should initialize with default values', () => {
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(result.current.files).toEqual([]);
       expect(result.current.isLoading).toBe(true); // Loading starts on mount
@@ -113,7 +123,9 @@ describe('useFileManagement', () => {
     it('should fetch and convert vector store files successfully', async () => {
       setupSuccessfulMocks([mockVectorStoreFile, mockVectorStoreFile2]);
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(mockGetVectorStores).toHaveBeenCalled();
@@ -142,7 +154,9 @@ describe('useFileManagement', () => {
       const fileWithoutName = createMockVectorStoreFile({ filename: undefined });
       setupSuccessfulMocks([fileWithoutName]);
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(result.current.files[0].filename).toBe(`file-${FILE_ID_1}`);
@@ -157,7 +171,9 @@ describe('useFileManagement', () => {
       });
       setupSuccessfulMocks([fileWithError]);
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(result.current.files[0].status_details).toBe('Error processing file');
@@ -170,7 +186,9 @@ describe('useFileManagement', () => {
       });
       setupSuccessfulMocks([fileWithUsageBytes]);
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(result.current.files[0].bytes).toBe(2048);
@@ -201,7 +219,9 @@ describe('useFileManagement', () => {
       mockGetVectorStores.mockResolvedValue([unlabeledStore, otherUserStore, signedInUserStore]);
       mockListVectorStoreFiles.mockResolvedValue([mockVectorStoreFile]);
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(mockListVectorStoreFiles).toHaveBeenCalledWith({
@@ -225,8 +245,9 @@ describe('useFileManagement', () => {
       ]);
       mockListVectorStoreFiles.mockResolvedValue([mockVectorStoreFile]);
 
-      const { result } = renderHook(() =>
-        useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+      const { result } = renderHook(
+        () => useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       await waitForLoadingComplete(result);
 
@@ -248,7 +269,9 @@ describe('useFileManagement', () => {
       });
       mockGetVectorStores.mockResolvedValue([unlabeledStore]);
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(mockListVectorStoreFiles).not.toHaveBeenCalled();
@@ -260,7 +283,9 @@ describe('useFileManagement', () => {
       mockUseContext.mockReturnValue({ namespace: mockNamespace, username: undefined });
       setupSuccessfulMocks();
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(mockListVectorStoreFiles).not.toHaveBeenCalled();
@@ -271,7 +296,9 @@ describe('useFileManagement', () => {
     it('should set empty files when no auto-provisioned vector store is available', async () => {
       mockGetVectorStores.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(mockGetVectorStores).toHaveBeenCalled();
@@ -290,7 +317,9 @@ describe('useFileManagement', () => {
         },
       });
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(mockGetVectorStores).not.toHaveBeenCalled();
@@ -303,8 +332,9 @@ describe('useFileManagement', () => {
       const mockOnShowErrorAlert = jest.fn();
       mockGetVectorStores.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() =>
-        useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+      const { result } = renderHook(
+        () => useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       await waitForLoadingComplete(result);
 
@@ -318,8 +348,9 @@ describe('useFileManagement', () => {
       mockGetVectorStores.mockResolvedValue([mockVectorStore]);
       mockListVectorStoreFiles.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() =>
-        useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+      const { result } = renderHook(
+        () => useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       await waitForLoadingComplete(result);
 
@@ -331,8 +362,9 @@ describe('useFileManagement', () => {
       const mockOnShowErrorAlert = jest.fn();
       mockGetVectorStores.mockRejectedValue('String error');
 
-      const { result } = renderHook(() =>
-        useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+      const { result } = renderHook(
+        () => useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       await waitForLoadingComplete(result);
 
@@ -346,7 +378,9 @@ describe('useFileManagement', () => {
     it('should allow manual refresh', async () => {
       setupSuccessfulMocks();
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(mockGetVectorStores).toHaveBeenCalledTimes(1);
@@ -371,8 +405,9 @@ describe('useFileManagement', () => {
       setupSuccessfulMocks([mockVectorStoreFile, mockVectorStoreFile2]);
       mockDeleteVectorStoreFile.mockResolvedValue(createMockDeleteResponse(FILE_ID_1));
 
-      const { result } = renderHook(() =>
-        useFileManagement({ onShowDeleteSuccessAlert: mockOnShowDeleteSuccessAlert }),
+      const { result } = renderHook(
+        () => useFileManagement({ onShowDeleteSuccessAlert: mockOnShowDeleteSuccessAlert }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       await waitForLoadingComplete(result);
 
@@ -405,7 +440,9 @@ describe('useFileManagement', () => {
     it('should not delete when currentVectorStoreId is not available', async () => {
       mockGetVectorStores.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       await act(async () => {
@@ -421,8 +458,9 @@ describe('useFileManagement', () => {
       setupSuccessfulMocks();
       mockDeleteVectorStoreFile.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() =>
-        useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+      const { result } = renderHook(
+        () => useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       await waitForLoadingComplete(result);
 
@@ -450,8 +488,9 @@ describe('useFileManagement', () => {
       setupSuccessfulMocks();
       mockDeleteVectorStoreFile.mockRejectedValue('String error');
 
-      const { result } = renderHook(() =>
-        useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+      const { result } = renderHook(
+        () => useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       await waitForLoadingComplete(result);
 
@@ -486,7 +525,9 @@ describe('useFileManagement', () => {
           }),
       );
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(result.current.isDeleting).toBe(false);
@@ -508,7 +549,9 @@ describe('useFileManagement', () => {
     it('should refresh files when namespace changes', async () => {
       setupSuccessfulMocks();
 
-      const { rerender } = renderHook(() => useFileManagement());
+      const { rerender } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await waitFor(() => {
         expect(mockGetVectorStores).toHaveBeenCalled();
@@ -531,7 +574,9 @@ describe('useFileManagement', () => {
     it('should return all required properties', async () => {
       setupSuccessfulMocks();
 
-      const { result } = renderHook(() => useFileManagement());
+      const { result } = renderHook(() => useFileManagement(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       await waitForLoadingComplete(result);
 
       expect(result.current).toHaveProperty('files');

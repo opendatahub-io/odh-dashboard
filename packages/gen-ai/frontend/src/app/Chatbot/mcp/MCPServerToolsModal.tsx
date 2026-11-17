@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Modal,
@@ -14,10 +15,6 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { Table, useCheckboxTableBase } from 'mod-arch-shared';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -43,6 +40,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
   server,
   mcpBearerToken,
 }) => {
+  const trackEvent = useTrackEvent();
   const { namespace } = React.useContext(GenAiContext);
 
   // Get tool selections functions from store
@@ -81,13 +79,13 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       setSearchValue(value);
       // Track search usage once per modal open when user starts typing
       if (value && !hasTrackedSearch.current) {
-        fireMiscTrackingEvent('Playground MCP Tools Search', {
+        trackEvent('Playground MCP Tools Search', {
           mcpServerName: server.name,
         });
         hasTrackedSearch.current = true;
       }
     },
-    [server.name],
+    [server.name, trackEvent],
   );
 
   // Reset search tracking when modal closes/opens
@@ -171,7 +169,7 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       isAllToolsSelected ? undefined : selectedToolNames,
     );
 
-    fireFormTrackingEvent(MCP_TOOLS_EVENT_NAME, {
+    trackEvent(MCP_TOOLS_EVENT_NAME, {
       outcome: TrackingOutcome.submit,
       mcpServerName: server.name,
       selectedToolsCount: selectedToolNames.length,
@@ -186,16 +184,17 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
     saveToolSelections,
     server.connectionUrl,
     server.name,
+    trackEvent,
     onClose,
   ]);
 
   const handleCancel = React.useCallback(() => {
-    fireFormTrackingEvent(MCP_TOOLS_EVENT_NAME, {
+    trackEvent(MCP_TOOLS_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,
       mcpServerName: server.name,
     });
     onClose();
-  }, [server.name, onClose]);
+  }, [trackEvent, server.name, onClose]);
 
   return (
     <Modal

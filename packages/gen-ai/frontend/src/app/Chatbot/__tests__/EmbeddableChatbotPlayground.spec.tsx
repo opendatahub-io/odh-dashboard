@@ -1,8 +1,11 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import type { ResponsesTemplate } from '~/types/embeddable-chatbot';
 import EmbeddableChatbotPlayground from '~/app/Chatbot/EmbeddableChatbotPlayground';
+
+const trackEvent = jest.fn();
 
 jest.mock('react-router-dom', () => ({
   useNavigate: () => jest.fn(),
@@ -19,14 +22,23 @@ jest.mock('~/app/context/UserContext', () => ({
   UserContextProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireSimpleTrackingEvent: jest.fn(),
-}));
-
 jest.mock('~/app/Chatbot/ChatbotPlayground', () => ({
   __esModule: true,
-  default: () => <div data-testid="chatbot-playground">Chatbot Playground</div>,
+  default: function TrackedPlayground() {
+    const { useTrackEvent } = jest.requireActual<typeof import('@odh-dashboard/analytics/react')>(
+      '@odh-dashboard/analytics/react',
+    );
+    const track = useTrackEvent();
+    return (
+      <button
+        type="button"
+        data-testid="chatbot-playground"
+        onClick={() => track('Playground Query Submitted', { modelName: 'embedded-model' })}
+      >
+        Chatbot Playground
+      </button>
+    );
+  },
 }));
 
 const mockResponses: ResponsesTemplate = {
@@ -73,9 +85,15 @@ describe('EmbeddableChatbotPlayground', () => {
         responsesTemplate={mockResponses}
         bffBasePath="/gen-ai/api/v1"
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('chatbot-playground')).toBeInTheDocument();
+    expect(trackEvent).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('chatbot-playground'));
+    expect(trackEvent.mock.calls).toEqual([
+      ['Playground Query Submitted', { modelName: 'embedded-model' }],
+    ]);
   });
 
   it('should render with optional patternName prop', () => {
@@ -87,6 +105,7 @@ describe('EmbeddableChatbotPlayground', () => {
         patternName="Pattern1"
         bffBasePath="/gen-ai/api/v1"
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('chatbot-playground')).toBeInTheDocument();
@@ -101,6 +120,7 @@ describe('EmbeddableChatbotPlayground', () => {
         bffBasePath="/gen-ai/api/v1"
         welcomeContent={<div data-testid="custom-welcome">Welcome!</div>}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('chatbot-playground')).toBeInTheDocument();
@@ -119,6 +139,7 @@ describe('EmbeddableChatbotPlayground', () => {
         responsesTemplate={templateWithDifferentModel}
         bffBasePath="/gen-ai/api/v1"
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('chatbot-playground')).toBeInTheDocument();
