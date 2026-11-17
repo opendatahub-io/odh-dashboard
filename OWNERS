@@ -231,8 +231,8 @@ filters:
     labels:
       - 'area/distributions'
 
-  # Data Registry
-  '(packages/data-registry|manifests/modules/data-registry)/.*':
+  # Data Registry module, manifests, and Cypress coverage
+  '((packages/data-registry|manifests/modules/data-registry)/.*|packages/cypress/cypress/tests/e2e/data-registry/.*|packages/cypress/cypress/pages/dataRegistry/.*)':
     approvers:
       - data-registry-approvers
     reviewers:
