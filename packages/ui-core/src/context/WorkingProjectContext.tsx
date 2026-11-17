@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { WorkingProjectIdentity } from '@odh-dashboard/foundation';
+import type { RouteProjectInput, WorkingProjectIdentity } from '@odh-dashboard/foundation';
 
 /** The existing ui-core contract shares the platform-neutral identity with the resolution policy. */
 export type ProjectIdentity = WorkingProjectIdentity;
@@ -16,19 +16,51 @@ export type WorkingProjectNavigation = (
 ) => void;
 
 /** Lifecycle of the host's project source as exposed through the working-project context. */
-export type WorkingProjectStatus =
+export const WorkingProjectStatusValue = {
   /** No working-project provider is mounted above the consumer. */
-  | 'provider-absent'
-  /** The host's project source is loading; previously supplied projects may be stale. */
-  | 'loading'
-  /** Listing succeeded and the supplied list contains at least one project. */
-  | 'listed'
-  /** Listing succeeded with an empty supplied list; this is not an authorization verdict. */
-  | 'empty-list'
-  /** Projects cannot be listed; individually validated projects may still be available. */
-  | 'listing-unavailable'
-  /** The host's project source failed, not the React provider itself. */
-  | 'project-source-error';
+  ProviderAbsent: 'provider-absent',
+  /** The host is still loading the project source. */
+  Loading: 'loading',
+  /** The project source is available and an active project is selected. */
+  Listed: 'listed',
+  /** The project source loaded successfully, but no projects are available. */
+  EmptyList: 'empty-list',
+  /** Projects are available, but no project is currently selected. */
+  NoProjectSelected: 'no-project-selected',
+  /** The host cannot list projects, but may provide individually validated identities. */
+  ListingUnavailable: 'listing-unavailable',
+  /** The host project source failed to load. */
+  ProjectSourceError: 'project-source-error',
+  /** The current route names a project that is not available. */
+  RouteInvalid: 'route-invalid',
+} as const;
+
+export type WorkingProjectStatus =
+  (typeof WorkingProjectStatusValue)[keyof typeof WorkingProjectStatusValue];
+
+export const WorkingProjectStatusLabelValue: Record<WorkingProjectStatus, string> = {
+  /** Displayed when no provider is mounted or the project source is unavailable. */
+  [WorkingProjectStatusValue.ProviderAbsent]: 'Projects unavailable',
+  /** Displayed while the host is loading projects. */
+  [WorkingProjectStatusValue.Loading]: 'Loading projects',
+  /** Active projects use a dynamic `Project: <name>` label instead. */
+  [WorkingProjectStatusValue.Listed]: '',
+  /** Displayed when the project list is empty. */
+  [WorkingProjectStatusValue.EmptyList]: 'No projects',
+  /** Displayed when projects exist but no project is selected. */
+  [WorkingProjectStatusValue.NoProjectSelected]: 'No project selected',
+  /** Displayed when the host cannot list projects but has not reported a source error. */
+  [WorkingProjectStatusValue.ListingUnavailable]: 'Projects unavailable',
+  /** Displayed when the host project source fails. */
+  [WorkingProjectStatusValue.ProjectSourceError]: 'Projects unavailable',
+  /** Invalid routes do not select the unavailable project. */
+  [WorkingProjectStatusValue.RouteInvalid]: 'No project selected',
+};
+
+export const WorkingProjectSelectorLabelValue = {
+  /** Title used by the project-selection modal. */
+  ModalTitle: 'Working project',
+} as const;
 
 export type WorkingProjectContextType = {
   status: WorkingProjectStatus;
@@ -37,7 +69,7 @@ export type WorkingProjectContextType = {
   selectProject: (project: ProjectIdentity) => void;
   registerProjectNavigation?: (navigate: WorkingProjectNavigation) => () => void;
   /** Mark a route that writes its URL project into the preference. */
-  registerProjectRouteSync?: () => () => void;
+  registerProjectRouteSync?: (route?: RouteProjectInput) => () => void;
   cancelProjectNavigation?: () => void;
   /** Register the mounted unsaved-change blocker's reset, without sharing route shapes. */
   registerProjectNavigationBlocker?: (reset: () => void) => () => void;
@@ -49,21 +81,39 @@ export type WorkingProjectProviderProps = {
   activeProject: ProjectIdentity | null;
   onProjectChange: (project: ProjectIdentity) => void;
   registerProjectNavigation?: (navigate: WorkingProjectNavigation) => () => void;
-  registerProjectRouteSync?: () => () => void;
+  registerProjectRouteSync?: (route?: RouteProjectInput) => () => void;
   cancelProjectNavigation?: () => void;
   registerProjectNavigationBlocker?: (reset: () => void) => () => void;
   /** Omit for a successfully listed source; only a host adapter knows its lifecycle. */
-  status?: 'loading' | 'listed' | 'listing-unavailable' | 'project-source-error';
+  status?: Exclude<WorkingProjectStatus, 'provider-absent' | 'empty-list' | 'no-project-selected'>;
 };
 
 export const WorkingProjectContext = React.createContext<WorkingProjectContextType>({
-  status: 'provider-absent',
+  status: WorkingProjectStatusValue.ProviderAbsent,
   projects: [],
   activeProject: null,
   selectProject: () => undefined,
 });
 
 const noProjects: readonly ProjectIdentity[] = [];
+
+const getWorkingProjectStatus = (
+  sourceStatus: NonNullable<WorkingProjectProviderProps['status']>,
+  projects: readonly ProjectIdentity[],
+  activeProject: ProjectIdentity | null,
+): WorkingProjectStatus => {
+  if (sourceStatus !== WorkingProjectStatusValue.Listed) {
+    return sourceStatus;
+  }
+
+  if (projects.length === 0) {
+    return WorkingProjectStatusValue.EmptyList;
+  }
+
+  return activeProject && projects.some(({ name }) => name === activeProject.name)
+    ? WorkingProjectStatusValue.Listed
+    : WorkingProjectStatusValue.NoProjectSelected;
+};
 
 export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   children,
@@ -74,18 +124,17 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   registerProjectRouteSync,
   cancelProjectNavigation,
   registerProjectNavigationBlocker,
-  status: sourceStatus = 'listed',
+  status: sourceStatus = WorkingProjectStatusValue.Listed,
 }) => {
   // A list supplied while loading or after an error may be stale. With listing unavailable,
   // only identities explicitly supplied by the host have been validated.
   const knownProjects =
-    sourceStatus === 'loading' || sourceStatus === 'project-source-error' ? noProjects : projects;
-  const status: WorkingProjectStatus =
-    sourceStatus === 'listed' && knownProjects.length === 0 ? 'empty-list' : sourceStatus;
-  const knownActiveProject =
-    knownProjects.find(({ name }) => name === activeProject?.name) ??
-    (status === 'listed' ? knownProjects[0] : null) ??
-    null;
+    sourceStatus === WorkingProjectStatusValue.Loading ||
+    sourceStatus === WorkingProjectStatusValue.ProjectSourceError
+      ? noProjects
+      : projects;
+  const status = getWorkingProjectStatus(sourceStatus, knownProjects, activeProject);
+  const knownActiveProject = knownProjects.find(({ name }) => name === activeProject?.name) ?? null;
 
   const selectProject = React.useCallback(
     (project: ProjectIdentity): void => {

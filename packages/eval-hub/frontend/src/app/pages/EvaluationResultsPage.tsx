@@ -43,13 +43,15 @@ import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
 import MlflowRunTabs from '~/app/components/MlflowRunTabs';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 
 const EvaluationEventLog = React.lazy(() => import('~/app/components/EvaluationEventLog'));
 
 const DEFAULT_VISIBLE_BENCHMARKS = 4;
 
 const EvaluationResultsPage: React.FC = () => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const { namespace, jobId } = useParams<{ namespace: string; jobId: string }>();
   const projectDisplayName = useProjectDisplayName(namespace);
   const [job, loaded, error] = useEvaluationJob(namespace, jobId);

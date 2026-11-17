@@ -188,6 +188,9 @@ Add the area to `packages/plugin-core/src/areas/types.ts` (under `/* Plugins */`
 - the type in `DashboardCommonConfig` (`packages/k8s-core/src/k8sTypes.ts`)
 - a default in `techPreviewFlags` (or `devTemporaryFeatureFlags` for dev-only switches) in `const.ts`
 - a property in `manifests/base/crd/odhdashboardconfigs.opendatahub.io.crd.yaml`
+- the same default in `backend/src/utils/constants.ts` (`blankDashboardCR`, typed by `backend/src/types.ts`) and `distributions/core-bff/bff/internal/models/dashboard_config.go` (`DashboardFeatureFlags` and `BlankDashboardCR`)
+
+`pnpm run validate:flags` (run in CI) fails when these copies disagree on the flag list or the backend and core BFF defaults differ.
 
 Any package that declares an `app.area` extension for the area, whether a federated remote or a static plugin, must repeat the applicable gates there (`featureFlags`, `requiredComponents`, `reliantAreas`). `AreaContext.tsx` replaces the host's entry with the extension's properties for the same area id instead of merging them, so gates set only in `const.ts` are lost once the extension loads. `packages/autorag/frontend/src/odh/extensions.ts` is the example. Areas with no `app.area` extension only need the host config.
 

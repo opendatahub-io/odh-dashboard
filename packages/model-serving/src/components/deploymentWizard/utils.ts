@@ -19,6 +19,7 @@ import { DeployExtension } from './deploying/useDeployMethod';
 import { ExternalDataMap } from './ExternalDataLoader';
 import { RunPreDeployFns } from './deploying/useWizardFieldPreDeploy';
 import { RunPostDeployFns } from './deploying/useWizardFieldPostDeploy';
+import { WizardFormState } from './useDeploymentWizardReducer';
 import {
   ModelLocationType,
   ModelLocationData,
@@ -49,6 +50,10 @@ export const getDeploymentWizardRoute = (): string => {
   return '/ai-hub/models/deployments/deploy';
 };
 
+export const getConnectionSecret = (wizardFormState: WizardFormState): string | undefined =>
+  wizardFormState.modelLocationData.data?.connection ??
+  wizardFormState.createConnectionData.data.nameDesc?.k8sName.value;
+
 export const isExistingModelLocation = (data?: ModelLocationData): data is ModelLocationData => {
   return data?.type === ModelLocationType.EXISTING;
 };
@@ -64,19 +69,26 @@ export const getTokenAuthenticationFromDeployment = (
   deployment: Deployment,
   deploymentSecrets: SecretKind[],
   platformAuthCheck?: (deployment: Deployment) => boolean,
-): TokenAuthenticationFieldData => {
+): TokenAuthenticationFieldData | undefined => {
   const isTokenAuthEnabled = isDeploymentAuthEnabled(deployment, platformAuthCheck);
 
-  if (isTokenAuthEnabled) {
-    return deploymentSecrets.map((secret) => ({
-      uuid: secret.metadata.uid ?? '',
-      k8sName: getResourceNameFromK8sResource(secret),
-      displayName: getDisplayNameFromK8sResource(secret),
-      error: '',
-    }));
+  // Explicitly disabled (e.g. enable-auth: "false" in the YAML) — keep the form unchecked
+  if (!isTokenAuthEnabled) {
+    return [];
   }
 
-  return [];
+  // Not persisted yet (YAML editor round-trip for a new deployment) — no token state to
+  // restore, so pass undefined and let the field default (auto-check) apply
+  if (!deployment.model.metadata.resourceVersion) {
+    return undefined;
+  }
+
+  return deploymentSecrets.map((secret) => ({
+    uuid: secret.metadata.uid ?? '',
+    k8sName: getResourceNameFromK8sResource(secret),
+    displayName: getDisplayNameFromK8sResource(secret),
+    error: '',
+  }));
 };
 
 // Deploy paths that assemble the model internally (e.g. KServe) don't provide

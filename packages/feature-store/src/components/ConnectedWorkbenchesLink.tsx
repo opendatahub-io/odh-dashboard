@@ -4,7 +4,7 @@ import { WrenchIcon } from '@patternfly/react-icons';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import ConnectedWorkbenchesModal from './ConnectedWorkbenchesModal';
 import { useFeatureStoreProject } from '../FeatureStoreContext';
 import { useFeatureStoreAccessibleProjects } from '../hooks/useFeatureStoreAccessibleProjects';
@@ -20,6 +20,7 @@ const TOOLTIP_ADMIN =
   'To connect a workbench, you need a project that can access this feature store. Update project permissions in OpenShift.';
 
 const ConnectedWorkbenchesLink: React.FC = () => {
+  const trackEvent = useTrackEvent();
   const { accessibleProjects, projectsLoaded, projectsError } = useFeatureStoreAccessibleProjects();
   const [canCreateFeatureStore, canCreateLoaded] = useAccessAllowed(
     verbModelAccess('create', FeatureStoreModel),
@@ -38,7 +39,7 @@ const ConnectedWorkbenchesLink: React.FC = () => {
       isDisabled={!!projectsError}
       isAriaDisabled={hasNoProjects}
       onClick={() => {
-        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.WORKBENCH_CONNECTION_VIEWED, {
+        trackEvent(FEATURE_STORE_EVENTS.WORKBENCH_CONNECTION_VIEWED, {
           featureStoreProject: currentProject || 'unknown',
         } satisfies WorkbenchConnectionViewedProperties);
         setIsModalOpen(true);

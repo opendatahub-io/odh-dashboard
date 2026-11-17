@@ -34,11 +34,13 @@ import {
   projectHomeRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './BenchmarkSuitesPage.scss';
 
 const BenchmarkSuitesPage: React.FC = () => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
@@ -58,7 +60,7 @@ const BenchmarkSuitesPage: React.FC = () => {
     navigate(evaluationCreateSuiteRoute(namespace), {
       state: evaluationBenchmarkSuitesNavigationState,
     });
-  }, [navigate, namespace]);
+  }, [trackEvalHubEvent, navigate, namespace]);
 
   const handleRunCollection = React.useCallback((collection: Collection) => {
     setCollectionToRun(collection);
@@ -81,7 +83,7 @@ const BenchmarkSuitesPage: React.FC = () => {
         state: evaluationBenchmarkSuitesNavigationState,
       });
     },
-    [navigate, namespace],
+    [trackEvalHubEvent, navigate, namespace],
   );
 
   const handleEditCollection = React.useCallback(
@@ -101,7 +103,7 @@ const BenchmarkSuitesPage: React.FC = () => {
         state: evaluationBenchmarkSuitesNavigationState,
       });
     },
-    [navigate, namespace],
+    [trackEvalHubEvent, navigate, namespace],
   );
 
   const handleRunSuccess = React.useCallback(() => {

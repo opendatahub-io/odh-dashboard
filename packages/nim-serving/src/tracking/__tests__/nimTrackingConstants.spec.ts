@@ -1,18 +1,12 @@
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   NimAccountEnabledMode,
-  NimAccountTrackingEvent,
   NimFailureCategory,
   fireNimAccountEnabled,
   fireNimAccountRemoved,
 } from '../nimTrackingConstants';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const trackEvent = jest.fn();
 
 describe('nimTrackingConstants', () => {
   beforeEach(() => {
@@ -20,13 +14,14 @@ describe('nimTrackingConstants', () => {
   });
 
   it('should fire the NIM Account Enabled event', () => {
-    fireNimAccountEnabled({
+    fireNimAccountEnabled(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: NimAccountEnabledMode.ENABLE,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(NimAccountTrackingEvent.ENABLED, {
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving NIM Account Enabled', {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: NimAccountEnabledMode.ENABLE,
@@ -34,14 +29,15 @@ describe('nimTrackingConstants', () => {
   });
 
   it('should fire the NIM Account Enabled event for replace failures', () => {
-    fireNimAccountEnabled({
+    fireNimAccountEnabled(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: false,
       error: NimFailureCategory.VALIDATION_FAILED,
       mode: NimAccountEnabledMode.REPLACE,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(NimAccountTrackingEvent.ENABLED, {
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving NIM Account Enabled', {
       outcome: TrackingOutcome.submit,
       success: false,
       error: NimFailureCategory.VALIDATION_FAILED,
@@ -50,12 +46,13 @@ describe('nimTrackingConstants', () => {
   });
 
   it('should fire the NIM Account Removed event', () => {
-    fireNimAccountRemoved({
+    fireNimAccountRemoved(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(NimAccountTrackingEvent.REMOVED, {
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving NIM Account Removed', {
       outcome: TrackingOutcome.submit,
       success: true,
     });

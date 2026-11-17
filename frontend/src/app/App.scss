@@ -4,6 +4,34 @@ body,
   height: 100%;
 }
 
+// Glass mode accessibility: respect the OS-level "Reduce Transparency"
+// preference (macOS: System Preferences > Accessibility > Display). Replaces
+// glass transparency and blur with solid, high-opacity equivalents so users
+// who need solid backgrounds get them without an in-product toggle.
+// See the PatternFly Glass Mode Handbook technical constraints.
+@media (prefers-reduced-transparency: reduce) {
+  :root:where(.pf-v6-theme-glass) {
+    --pf-t--global--background--color--glass--primary--default: var(--pf-t--color--white);
+    --pf-t--global--background--color--primary--default: var(--pf-t--color--white);
+    --pf-t--global--background--color--primary--hover: var(--pf-t--global--background--color--100);
+    --pf-t--global--background--color--primary--clicked: var(--pf-t--global--background--color--100);
+    --pf-t--global--background--color--secondary--default: var(--pf-t--global--background--color--100);
+    --pf-t--global--background--color--secondary--hover: var(--pf-t--global--background--color--200);
+    --pf-t--global--background--color--secondary--clicked: var(--pf-t--global--background--color--200);
+    --pf-t--global--background--filter--glass--blur--primary: none;
+  }
+  :root:where(.pf-v6-theme-dark.pf-v6-theme-glass) {
+    --pf-t--global--background--color--glass--primary--default: var(--pf-t--color--black);
+    --pf-t--global--background--color--primary--default: var(--pf-t--color--black);
+    --pf-t--global--background--color--primary--hover: var(--pf-t--global--dark--background--color--100);
+    --pf-t--global--background--color--primary--clicked: var(--pf-t--global--dark--background--color--100);
+    --pf-t--global--background--color--secondary--default: var(--pf-t--global--dark--background--color--100);
+    --pf-t--global--background--color--secondary--hover: var(--pf-t--global--dark--background--color--200);
+    --pf-t--global--background--color--secondary--clicked: var(--pf-t--global--dark--background--color--200);
+    --pf-t--global--background--filter--glass--blur--primary: none;
+  }
+}
+
 #dashboard-page-main {
   // Establish positioning relative to the top left of the main container.
   position: relative;

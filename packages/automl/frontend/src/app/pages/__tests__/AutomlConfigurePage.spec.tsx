@@ -5,15 +5,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 import AutomlConfigurePage from '~/app/pages/AutomlConfigurePage';
-import { AUTOML_EVENTS, AUTOML_FAILURE_CATEGORY } from '~/app/utilities/tracking';
+import { AUTOML_FAILURE_CATEGORY } from '~/app/utilities/tracking';
 
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const trackEvent = jest.fn();
 
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
@@ -105,11 +101,6 @@ jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(() => ({
     error: mockNotificationError,
   })),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('mod-arch-shared', () => ({
@@ -249,7 +240,9 @@ const renderWithProviders = (component: React.ReactElement) => {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{component}</BrowserRouter>
+      <TrackingProvider trackEvent={trackEvent}>
+        <BrowserRouter>{component}</BrowserRouter>
+      </TrackingProvider>
     </QueryClientProvider>,
   );
 };
@@ -356,7 +349,8 @@ describe('AutomlConfigurePage', () => {
       await waitFor(() => expect(nextButton).toBeEnabled());
       await user.click(nextButton);
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Run Details Defined', {
         outcome: 'submit',
         hasDescription: false,
       });
@@ -375,7 +369,8 @@ describe('AutomlConfigurePage', () => {
       await waitFor(() => expect(nextButton).toBeEnabled());
       await user.click(nextButton);
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Run Details Defined', {
         outcome: 'submit',
         hasDescription: true,
       });
@@ -397,7 +392,8 @@ describe('AutomlConfigurePage', () => {
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+      expect(trackEvent).toHaveBeenCalledTimes(2);
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Run Details Defined', {
         outcome: 'cancel',
         hasDescription: false,
       });
@@ -408,7 +404,7 @@ describe('AutomlConfigurePage', () => {
       renderWithProviders(<AutomlConfigurePage />);
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
         exitType: 'navigate',
         lastFunnelStep: 'defineDetails',
         exitDestination: 'experimentsList',
@@ -468,7 +464,7 @@ describe('AutomlConfigurePage', () => {
       const user = userEvent.setup();
       const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
       await user.click(homeLink!);
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
         exitType: 'navigate',
         lastFunnelStep: 'trainingData',
         exitDestination: 'experimentsList',
@@ -495,7 +491,7 @@ describe('AutomlConfigurePage', () => {
       const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
       await user.click(homeLink!);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
         exitType: 'navigate',
         lastFunnelStep: 'predictionType',
         exitDestination: 'experimentsList',
@@ -791,11 +787,11 @@ describe('AutomlConfigurePage', () => {
       // The in-product notification may keep the detailed message, but analytics must only
       // ever see the fixed, allowlisted failure category — never the raw Error.message, which
       // may originate from the backend/proxy and embed sensitive details.
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTOML_EVENTS.RUN_CREATED,
+      expect(trackEvent).toHaveBeenCalledWith(
+        'AutoML Run Created',
         expect.objectContaining({ success: false, error: AUTOML_FAILURE_CATEGORY }),
       );
-      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      const allTrackingCalls = JSON.stringify(trackEvent.mock.calls);
       expect(allTrackingCalls).not.toContain('Pipeline creation failed');
     });
 
@@ -962,7 +958,7 @@ describe('AutomlConfigurePage', () => {
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
         exitType: 'navigate',
         lastFunnelStep: 'defineDetails',
         exitDestination: 'otherAutoml',
@@ -986,7 +982,7 @@ describe('AutomlConfigurePage', () => {
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
         exitType: 'navigate',
         lastFunnelStep: 'defineDetails',
         exitDestination: 'experimentsList',
@@ -1332,8 +1328,8 @@ describe('AutomlConfigurePage', () => {
         await user.click(submitButton);
 
         await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTOML_EVENTS.RUN_RECONFIGURED,
+        expect(trackEvent).toHaveBeenCalledWith(
+          'AutoML Run Reconfigured',
           expect.objectContaining({ changedFields: '' }),
         );
       });
@@ -1371,8 +1367,8 @@ describe('AutomlConfigurePage', () => {
         await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
         // Switching prediction type also recomputes the default optimization metric for the
         // new task type, so that legitimately shows up as changed too.
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTOML_EVENTS.RUN_RECONFIGURED,
+        expect(trackEvent).toHaveBeenCalledWith(
+          'AutoML Run Reconfigured',
           expect.objectContaining({
             changedFields: 'predictionType,optimizationMetric,targetColumn',
           }),
@@ -1414,8 +1410,8 @@ describe('AutomlConfigurePage', () => {
         // The diff must be computed regardless of mutation outcome — a failed reconfiguration
         // still changed these fields, and reporting an empty diff would make failure analysis
         // on this event unusable.
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTOML_EVENTS.RUN_RECONFIGURED,
+        expect(trackEvent).toHaveBeenCalledWith(
+          'AutoML Run Reconfigured',
           expect.objectContaining({
             changedFields: 'predictionType,optimizationMetric,targetColumn',
             outcome: 'submit',
@@ -1425,7 +1421,7 @@ describe('AutomlConfigurePage', () => {
             error: AUTOML_FAILURE_CATEGORY,
           }),
         );
-        const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+        const allTrackingCalls = JSON.stringify(trackEvent.mock.calls);
         expect(allTrackingCalls).not.toContain('Pipeline creation failed');
       });
     });
@@ -1474,7 +1470,7 @@ describe('AutomlConfigurePage', () => {
         );
         await user.click(homeLink!);
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
           exitType: 'navigate',
           lastFunnelStep: 'configure',
           exitDestination: 'experimentsList',
@@ -1509,7 +1505,7 @@ describe('AutomlConfigurePage', () => {
         );
         await user.click(homeLink!);
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
           exitType: 'navigate',
           lastFunnelStep: 'configure',
           exitDestination: 'experimentsList',

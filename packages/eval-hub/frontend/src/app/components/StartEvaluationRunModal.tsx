@@ -41,7 +41,7 @@ import {
   useStartEvaluationRunForm,
 } from '~/app/pages/useStartEvaluationRunForm';
 import type { Collection, CollectionResolution, FlatBenchmark, SourceMode } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import './StartEvaluationRunModal.scss';
@@ -88,6 +88,8 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   prerequisite,
   onRunFailure,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
   const [isCloning, setIsCloning] = React.useState(false);
   const [isModelOpen, setIsModelOpen] = React.useState(false);
@@ -113,7 +115,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
       );
     }
     wasOpenRef.current = isOpen;
-  }, [benchmark, collection, isOpen, trackingSource]);
+  }, [trackEvalHubEvent, benchmark, collection, isOpen, trackingSource]);
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',

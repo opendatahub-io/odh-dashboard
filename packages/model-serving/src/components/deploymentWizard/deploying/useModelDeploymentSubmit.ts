@@ -6,7 +6,7 @@ import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
-import { deployModel } from '../utils';
+import { deployModel, getConnectionSecret } from '../utils';
 import { Deployment } from '../../../../extension-points';
 import {
   DeploymentAssemblyResources,
@@ -33,8 +33,7 @@ export const useModelDeploymentSubmit = (
   viewMode: ModelDeploymentWizardViewMode = 'form',
   initialWizardData?: InitialWizardFormData,
   existingDeployment?: Deployment,
-  connectionSecretName?: string, // We really need to remove this, kept for backwards compatibility
-  yamlError?: Error,
+  yamlErrors?: Error[],
 ): {
   onSave: (overwrite?: boolean) => Promise<void>;
   onOverwrite?: () => Promise<void>;
@@ -87,8 +86,8 @@ export const useModelDeploymentSubmit = (
         if (!isExternalDataReady(externalData)) {
           throw new Error('Required data is still loading');
         }
-        if (viewMode === 'yaml-edit' && yamlError) {
-          throw yamlError;
+        if (viewMode === 'yaml-edit' && yamlErrors && yamlErrors.length > 0) {
+          throw yamlErrors[0];
         }
         if (
           viewMode === 'yaml-edit' &&
@@ -124,7 +123,7 @@ export const useModelDeploymentSubmit = (
           formState,
           externalData,
           secretOps,
-          connectionSecretName,
+          getConnectionSecret(formState),
           deployMethod.properties,
           existingDeployment,
           resources.model,
@@ -160,19 +159,19 @@ export const useModelDeploymentSubmit = (
       viewMode,
       externalData,
       validation.isAllValid,
+      yamlErrors,
+      resources.model,
+      resources.server,
       isReady,
       deployMethod,
       formState,
       secretOps,
-      resources,
-      connectionSecretName,
       existingDeployment,
       initialWizardData,
       applyAllFieldDataFn,
       runPreDeploy,
       runPostDeploy,
       exitWizardOnSubmit,
-      yamlError,
       fireModelDeployedTracking,
     ],
   );

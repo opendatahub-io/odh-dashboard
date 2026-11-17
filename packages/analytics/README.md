@@ -35,10 +35,11 @@ Page and identity operations belong to the host lifecycle. Keep them separate fr
 ### Import Boundaries
 
 - `@odh-dashboard/analytics`: implementation functions for host integration.
+- `@odh-dashboard/analytics/standalone`: the compatibility factory for standalone bootstrap wiring, without SDK initialization.
 - `@odh-dashboard/analytics/types`: SDK-free shared contracts, including `TrackEvent`, `TrackPageEvent`, `TrackingOutcome`, and property types. This entry point imports neither React nor Segment.
 - `@odh-dashboard/analytics/react`: the SDK-free provider and tracking hooks. This entry point imports neither the implementation nor Segment. Its context is shared as a singleton across hosts and federated remotes.
 
-Feature code imports only the contracts and React entry points from this package. It does not import the implementation, import the Segment SDK, or access analytics globals. The `@odh-dashboard/no-direct-analytics` lint rule enforces this boundary in guarded feature files.
+Use the contracts and React entry points in feature code, and reserve the standalone entry point for standalone bootstrap wiring. The `@odh-dashboard/no-direct-analytics` lint rule allows only the contracts and React entry points in guarded files; standalone bootstrap files use a file-specific override.
 
 ## Usage
 
@@ -75,7 +76,17 @@ const tracking = createSegmentTracking(() => ({
 </AnalyticsTrackingProvider>;
 ```
 
-RHOAI uses the shared Segment adapter with its existing runtime metadata and SDK enablement behavior. Its legacy custom/page helpers reuse the same adapter. RHAII, MaaS Portal, and standalone feature roots that use tracking hooks explicitly mount `NoopAnalyticsTrackingProvider` from `@odh-dashboard/analytics/react`. It supplies stable no-ops for both operations; tests needing spies use `AnalyticsTrackingProvider`. Federated feature roots inherit the host provider. Keep SDK initialization, consent, router effects, and identity in the host lifecycle.
+RHOAI uses the shared Segment adapter with its existing runtime metadata and SDK enablement behavior. Its legacy custom/page helpers reuse the same adapter. RHAII, MaaS Portal, and intentionally disabled standalone roots mount `NoopAnalyticsTrackingProvider` from `@odh-dashboard/analytics/react`. It supplies stable no-ops for both operations; tests needing spies use `AnalyticsTrackingProvider`. Federated feature roots inherit the host provider. Keep SDK initialization, consent, router effects, and identity in the host lifecycle.
+
+Standalone roots call `createStandaloneAnalytics({ devMode, version })` from `@odh-dashboard/analytics/standalone` once outside React rendering and pass the result to `AnalyticsTrackingProvider`. The application supplies its build-time values. The factory logs events in development mode; otherwise, it forwards through an existing `window.analytics` and remains silent when none exists. It reads the current `window.clusterID` per operation, defaulting to `''`. It neither initializes the SDK nor changes consent or identity ownership. Hosts with different metadata or delivery policies use `createSegmentTracking(getOptions)` explicitly.
+
+### Per-event page-context policy
+
+`TrackEvent` accepts optional delivery options as its third argument. A feature can supply a `pageContextPolicy` callback, typed entirely from `@odh-dashboard/analytics/types`, to sanitize the page context captured for that event. Existing two-argument calls retain their behavior.
+
+The concrete adapter uses the SDK's page-context utility, including canonical URL handling, then applies the policy before forwarding a native `context.page` override. The policy must return all five page fields (`path`, `url`, `referrer`, `search`, and `title`) as strings. Incomplete results cause a synchronous error, and exceptions thrown by the policy propagate to the caller. Both prevent SDK delivery. Policies are per-event, are never serialized, and need no registration or shared registry.
+
+Disabled delivery, development logging, and absent SDKs do not evaluate policies. Page and identity operations are unchanged. Hosts forwarding custom events must pass all `TrackEvent` arguments to their concrete adapter; explicit no-op hosts continue discarding events. Deploy updated concrete adapters before consumers start supplying policy options; older adapters do not apply this capability.
 
 ### SDK Initialization
 

@@ -5,6 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#ffffff" />
     <title><%= htmlRspackPlugin.options.title %></title>
+    <script>
+      // PatternFly theme classes are applied before the app boots so tokens
+      // are correct on first paint. Felt is always on; light/dark composes
+      // via .pf-v6-theme-dark (resolution mirrors the base shell
+      // ThemeContext). Glass stays off until the base shell has an
+      // appearance switcher - tracked under RHAI-19116.
+      (function () {
+        var root = document.documentElement;
+        root.classList.add('pf-v6-theme-felt');
+        try {
+          var theme = localStorage.getItem('app-shell.theme');
+          root.classList.toggle('pf-v6-theme-dark', theme === 'dark');
+          var contrast = localStorage.getItem('app-shell.contrastMode');
+          var glass = contrast === 'glass';
+          var highContrast = contrast === 'high-contrast';
+          if (contrast === 'system') {
+            highContrast = window.matchMedia('(prefers-contrast: more)').matches;
+            glass =
+              !highContrast && !window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
+          }
+          root.classList.toggle('pf-v6-theme-glass', glass);
+          root.classList.toggle('pf-v6-theme-high-contrast', highContrast);
+        } catch (e) {
+          // Restricted contexts: the base shell ThemeContext re-applies
+          // after mount.
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

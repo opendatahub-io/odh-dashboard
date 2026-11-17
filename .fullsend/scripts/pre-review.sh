@@ -486,7 +486,7 @@ run_self_test() {
   fi
   if ! (
     unset GITHUB_PR_URL PR_URL PR_NUMBER
-    FULLSEND_WORK_ITEM_URL='https://github.com/Gkrumbach07/odh-dashboard/pull/61'
+    FULLSEND_WORK_ITEM_URL='https://github.com/example-owner/example-repo/pull/61'
     ISSUE_NUMBER=61
     normalize_dispatch_context
     [[ "${GITHUB_PR_URL}" == "${FULLSEND_WORK_ITEM_URL}" && "${PR_URL}" == "${FULLSEND_WORK_ITEM_URL}" && "${PR_NUMBER}" == "61" ]]

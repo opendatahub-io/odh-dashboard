@@ -8,7 +8,7 @@ import {
   ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import QuotaUsageTreeView from './QuotaUsageTreeView';
 import './QuotaUsageNavPanel.scss';
 import { QUOTA_USAGE_SEARCH_TELEMETRY_DEBOUNCE } from '../../const';
@@ -55,6 +55,7 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
   onSelectionChange,
   tabLoadedAt,
 }) => {
+  const trackEvent = useTrackEvent();
   const [searchValue, setSearchValue] = React.useState('');
   const [allExpanded, setAllExpanded] = React.useState<boolean | undefined>(true);
   const [expandedNodeIds, setExpandedNodeIds] = React.useState<Set<string>>(() => new Set());
@@ -73,11 +74,11 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
     clearTimeout(searchTelemetryTimeoutRef.current);
     searchTelemetryTimeoutRef.current = setTimeout(() => {
       const matchCount = filterQuotaTreeByName(tree, value).length;
-      fireMiscTrackingEvent(GPUAAS_EVENTS.COHORT_TREE_SEARCH_APPLIED, {
+      trackEvent(GPUAAS_EVENTS.COHORT_TREE_SEARCH_APPLIED, {
         matchCount,
         isEmptyResult: matchCount === 0,
       });
-      fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+      trackEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
         interactionType: QUOTA_USAGE_INTERACTION_TYPES.treeSearch,
         secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
       });
@@ -127,8 +128,8 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
 
   const handleToggleExpandAll = React.useCallback(() => {
     const isExpanded = allExpanded === false;
-    fireMiscTrackingEvent(GPUAAS_EVENTS.COHORT_TREE_EXPAND_COLLAPSE_ALL_SELECTED, { isExpanded });
-    fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+    trackEvent(GPUAAS_EVENTS.COHORT_TREE_EXPAND_COLLAPSE_ALL_SELECTED, { isExpanded });
+    trackEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
       interactionType: QUOTA_USAGE_INTERACTION_TYPES.expandCollapseAll,
       secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
     });
@@ -139,7 +140,7 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
     }
     setAllExpanded(false);
     setExpandedNodeIds(new Set());
-  }, [allExpanded, filteredTree, tabLoadedAt]);
+  }, [allExpanded, filteredTree, tabLoadedAt, trackEvent]);
 
   const selectedNodeId = selection ? nodeIdFromSelection(selection) : undefined;
 
@@ -156,13 +157,13 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
           setExpandedNodeIds((prev) => new Set([...prev, ...ancestors]));
         }
         onSelectionChange(nextSelection);
-        fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+        trackEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
           interactionType: QUOTA_USAGE_INTERACTION_TYPES.treeSelect,
           secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
         });
       }
     },
-    [onSelectionChange, tabLoadedAt, tree],
+    [onSelectionChange, tabLoadedAt, tree, trackEvent],
   );
 
   const handleExpand = React.useCallback((nodeId: string) => {
@@ -208,11 +209,11 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
             onClear={() => {
               clearTimeout(searchTelemetryTimeoutRef.current);
               setSearchValue('');
-              fireMiscTrackingEvent(GPUAAS_EVENTS.COHORT_TREE_SEARCH_APPLIED, {
+              trackEvent(GPUAAS_EVENTS.COHORT_TREE_SEARCH_APPLIED, {
                 matchCount: tree.length,
                 isEmptyResult: tree.length === 0,
               });
-              fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+              trackEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
                 interactionType: QUOTA_USAGE_INTERACTION_TYPES.treeSearch,
                 secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
               });

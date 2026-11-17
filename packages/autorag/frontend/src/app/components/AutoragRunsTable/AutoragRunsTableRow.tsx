@@ -1,9 +1,9 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { Label, type LabelProps } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { DeleteRunModal, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
@@ -55,6 +55,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   namespace,
   onActionComplete,
 }) => {
+  const trackEvent = useTrackEvent();
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [stopInitiated, setStopInitiated] = React.useState(false);
@@ -179,7 +180,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
         isTerminating={isTerminating}
         runName={run.display_name}
         onCancel={() =>
-          fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, {
+          trackEvent(AUTORAG_EVENTS.RUN_STOPPED, {
             outcome: TrackingOutcome.cancel,
             source: 'runsList',
           })
@@ -193,7 +194,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
         runName={run.display_name}
         productName="AutoRAG"
         onCancel={() =>
-          fireFormTrackingEvent(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
+          trackEvent(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
             outcome: TrackingOutcome.cancel,
             source: 'runsList',
           })

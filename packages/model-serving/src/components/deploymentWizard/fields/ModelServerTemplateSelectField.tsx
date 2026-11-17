@@ -283,8 +283,9 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             name="horizontal-inline-radio"
             label={
               <>
-                <span className="pf-v6-c-form__label-text">Manual selection:</span> Manually select
-                a {label.toLocaleLowerCase()} from a list of preconfigured and custom options.
+                <span className="pf-v6-c-form__label-text">Manual selection:</span> Manually select{' '}
+                {/^[aeiou]/i.test(label) ? 'an' : 'a'} {label.toLocaleLowerCase()} from a list of
+                preconfigured and custom options.
               </>
             }
             id="horizontal-inline-radio-02"

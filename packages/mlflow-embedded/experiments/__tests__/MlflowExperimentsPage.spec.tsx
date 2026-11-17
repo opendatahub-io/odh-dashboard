@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
+import { renderWithTracking as render } from '../../shared/__tests__/TrackingProvider';
 import MlflowExperimentsPage, {
   MlflowExperimentWrapperProps,
   UnsupportedTabInfo,
@@ -49,11 +50,11 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 
 jest.mock('@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector', () => ({
   __esModule: true,
-  default: () => null,
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireLinkTrackingEvent: jest.fn(),
+  default: ({ onProjectChange }: { onProjectChange: (projectName: string) => void }) => (
+    <button data-testid="project-selector" onClick={() => onProjectChange('other-project')}>
+      Switch project
+    </button>
+  ),
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
@@ -119,6 +120,24 @@ describe('MlflowExperimentsPage', () => {
       'agent observability',
     );
     expect(screen.queryByTestId('mlflow-embedded-jump-link')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['experiments', MlflowExperimentsPage],
+    ['agent traces', MlflowAgentObservabilityPage],
+  ])('should report one project selection event from %s', (_page, Page) => {
+    const tracking = { trackEvent: jest.fn(), trackPageEvent: jest.fn() };
+    const { rerender } = render(<Page />, tracking);
+    rerender(<Page />);
+    expect(tracking.trackEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('project-selector'));
+
+    expect(tracking.trackEvent.mock.calls).toStrictEqual([
+      ['MLflow Project Switched', { projectName: 'other-project' }],
+    ]);
+    expect(tracking.trackPageEvent).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   describe('onUnsupportedTab', () => {

@@ -2,11 +2,9 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { TOPOLOGY_CONFIG_DEFAULT } from '../../const';
 import { TopologyType, type LLMInferenceServiceConfigKind } from '../../types';
-import {
-  CustomTopologyConfigFieldWizardField,
-  TOPOLOGY_CONFIG_DEFAULT,
-} from '../CustomTopologyConfigField';
+import { CustomTopologyConfigFieldWizardField } from '../CustomTopologyConfigField';
 import type { CustomTopologyConfigFieldData } from '../CustomTopologyConfigField';
 import type { TopologyTypeExternalData } from '../TopologyTypeField';
 

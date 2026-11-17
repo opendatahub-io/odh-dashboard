@@ -6,7 +6,7 @@ import { subscriptionsPage } from '@odh-dashboard/cypress/cypress/pages/modelsAs
 import { portal } from '../../pages/portal';
 import { maasApi, portalPath, setupPortalMocks } from '../../support/portal';
 
-describe('Grid Model Access', () => {
+describe('Grid Model access', () => {
   it('shows the read-only subscription table and deep links for a MaaS admin', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     cy.intercept('GET', maasApi('/subscriptions/premium-team-sub'), {
@@ -14,9 +14,9 @@ describe('Grid Model Access', () => {
     }).as('subscriptionDetails');
     portal.visit('/maas/models');
     cy.wait('@whoami');
-    portal.findNavLink('Model Access').click();
+    portal.findNavLink('Model access').click();
     cy.location('pathname').should('eq', portalPath('/maas/model-access'));
-    cy.findByTestId('app-page-title').should('have.text', 'Model Access');
+    cy.findByTestId('app-page-title').should('have.text', 'Model access');
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team');
     cy.findByRole('columnheader', { name: 'Status' }).should('not.exist');
     cy.findByRole('button', { name: /create subscription/i }).should('not.exist');
@@ -35,11 +35,11 @@ describe('Grid Model Access', () => {
     cy.findByTestId('subscriptions-table').should('be.visible');
   });
 
-  it('does not expose Model Access to non-admin users', () => {
+  it('does not expose Model access to non-admin users', () => {
     setupPortalMocks();
     portal.visit('/maas/models');
     cy.wait('@whoami');
-    portal.findNavLink('Model Access').should('not.exist');
+    portal.findNavLink('Model access').should('not.exist');
   });
 
   it('expands the group and model counts to show their rows', () => {
@@ -80,15 +80,33 @@ describe('Grid Model Access', () => {
     });
   });
 
-  it('filters admin subscriptions by subscription name', () => {
+  it('filters admin subscriptions by free-text search across subscription details', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     portal.visit('/maas/model-access');
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team Subscription');
-    cy.findByTestId('model-access-table-toolbar').findByRole('combobox').click();
-    cy.findByRole('option', { name: 'Basic Team Subscription' }).click();
-    cy.findByTestId('subscription-row').should('have.length', 1);
+
+    // Matches the subscription display name
+    cy.findByTestId('model-access-subscription-filter-input').type('Basic Team');
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
     cy.findByRole('link', { name: 'Basic Team Subscription' }).should('be.visible');
     cy.findByRole('link', { name: 'Premium Team Subscription' }).should('not.exist');
+
+    // Matches the group name
+    cy.findByTestId('model-access-subscription-filter-input').clear().type('beta-testers');
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
+
+    // Matches the model display name across multiple subscriptions
+    cy.findByTestId('model-access-subscription-filter-input').clear().type('Flan T5');
+    cy.findAllByTestId('subscription-row').should('have.length', 3);
+    cy.findByRole('link', { name: 'Basic Team Subscription' }).should('be.visible');
+    cy.findByRole('link', { name: 'Premium Team Subscription' }).should('be.visible');
+    cy.findByRole('link', { name: 'Enterprise Multi-Group Llama Access' }).should('not.exist');
+
+    // A search with no matches empties the table until cleared
+    cy.findByTestId('model-access-subscription-filter-input').clear().type('missing-subscription');
+    cy.findAllByTestId('subscription-row').should('not.exist');
+    cy.findAllByRole('button', { name: 'Clear all filters' }).first().click();
+    cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team Subscription');
   });
 
   it('filters admin subscriptions by group', () => {
@@ -104,17 +122,29 @@ describe('Grid Model Access', () => {
     cy.findByRole('link', { name: 'Premium Team Subscription' }).should('not.exist');
   });
 
-  it('filters admin subscriptions by model', () => {
+  it('filters admin subscriptions by model selection and by model text', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     portal.visit('/maas/model-access');
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team Subscription');
     cy.findByTestId('model-access-table-toolbar-dropdown').click();
     cy.findByTestId('model-access-table-toolbar-option-model').findByRole('menuitem').click();
+
+    // Selecting a model option filters to its subscriptions
     cy.findByTestId('model-access-table-toolbar').findByRole('combobox').type('llama');
     cy.findByRole('option', { name: 'llama-3-70b-instruct' }).click();
-    cy.findByTestId('subscription-row').should('have.length', 1);
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
     cy.findByRole('link', { name: 'Enterprise Multi-Group Llama Access' }).should('be.visible');
     cy.findByRole('link', { name: 'Premium Team Subscription' }).should('not.exist');
+
+    // A typed model text search matches the model display name
+    cy.findByTestId('model-access-model-filter-toggle')
+      .findByRole('button', { name: 'Clear input value' })
+      .click();
+    cy.findByTestId('model-access-model-filter-toggle').findByRole('combobox').type('Granite 3 8B');
+    cy.findByRole('option', { name: 'Filter by "Granite 3 8B"' }).click();
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
+    cy.findByRole('link', { name: 'Premium Team Subscription' }).should('be.visible');
+    cy.findByRole('link', { name: 'Enterprise Multi-Group Llama Access' }).should('not.exist');
   });
 
   it('shows the empty and error states from admin-subscriptions', () => {
