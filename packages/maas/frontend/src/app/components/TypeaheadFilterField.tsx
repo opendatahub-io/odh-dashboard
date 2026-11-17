@@ -84,15 +84,17 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
       selected={value}
       onSelect={(_event, selection) => {
         const selected = String(selection);
-        if (selected.startsWith(FRAGMENT_VALUE_PREFIX)) {
+        // Resolve against the original options first: a resource value that
+        // happens to begin with the fragment prefix must stay an exact
+        // selection with its own label, not be truncated into a fragment.
+        const option = options.find((o) => String(o.value) === selected);
+        if (option) {
+          onChange(selected, String(option.content));
+        } else if (selected.startsWith(FRAGMENT_VALUE_PREFIX)) {
           // A fragment option selection commits the typed text as a fragment.
           onChange(selected.slice(FRAGMENT_VALUE_PREFIX.length));
         } else {
-          // Resolve against the original options only: a synthetic fragment
-          // option must keep fragment semantics (no label) when reselected,
-          // instead of turning into an exact resource selection.
-          const option = options.find((o) => String(o.value) === selected);
-          onChange(selected, option ? String(option.content) : undefined);
+          onChange(selected);
         }
         onFilterApplied?.();
       }}

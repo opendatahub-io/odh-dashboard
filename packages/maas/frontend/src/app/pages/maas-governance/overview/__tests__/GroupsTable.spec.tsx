@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { GroupOverviewItem } from '~/app/types/subscriptions';
 import GroupsTable from '~/app/pages/maas-governance/overview/GroupsTable';
@@ -63,6 +63,26 @@ describe('GroupsTable', () => {
     fireEvent.click(expandButton);
     expect(expandButton).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('alpha-users-sub')).toBeInTheDocument();
+  });
+
+  it('should align header columns with the rendered row cells', () => {
+    render(<GroupsTable data={[mockGroup('alpha-users')]} onClearFilters={onClearFilters} />);
+
+    const table = screen.getByTestId('groups-table');
+    // The header row leads with a cell for the expansion column (empty labels
+    // render as td for a11y), then one columnheader per labeled column
+    const headerCells = within(within(table).getAllByRole('row')[0]).getAllByRole('columnheader');
+    expect(headerCells.map((h) => h.textContent)).toEqual([
+      'Group name',
+      'Subscriptions',
+      'Authorization policies',
+    ]);
+
+    // The main row has one cell per header, starting with the expansion toggle
+    const rows = within(screen.getByTestId('overview-group-row-alpha-users')).getAllByRole('row');
+    const cells = within(rows[0]).getAllByRole('cell');
+    expect(cells).toHaveLength(4);
+    expect(cells[1]).toHaveTextContent('alpha-users');
   });
 
   it('should render the empty filter state when data is empty', () => {

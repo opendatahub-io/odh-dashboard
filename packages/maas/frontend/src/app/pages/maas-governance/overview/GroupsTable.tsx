@@ -34,7 +34,8 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ data, toolbarContent, onClear
       data-testid="groups-table"
       aria-label="Groups"
       data={data}
-      columns={groupColumns.slice(1)}
+      columns={groupColumns}
+      defaultSortColumn={1}
       enablePagination
       disableRowRenderSupport
       rowRenderer={(row, rowIndex) => {

@@ -288,11 +288,7 @@ describe('MaaS Governance Page / Overview Tab', () => {
     overviewTabPage.clearAllFilters();
 
     // Resource name — same ID can exist in multiple namespaces
-    overviewTabPage.filterByTypeahead(
-      'model',
-      'granite-3-8b-instruct',
-      'Granite 3 8B Instruct (sandbox)',
-    );
+    overviewTabPage.filterByTypeahead('model', 'granite-3-8b-instruct', 'Granite 3 8B Instruct');
     overviewTabPage.findModelRows().should('have.length', 2);
     overviewTabPage.clearAllFilters();
 
