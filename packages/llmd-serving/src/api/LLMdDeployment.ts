@@ -8,21 +8,27 @@ import {
   type LLMdDeployment,
 } from '../types';
 
+const ignoreNotFound = (error: unknown): void => {
+  if (getGenericErrorCode(error) !== 404) {
+    throw error;
+  }
+};
+
 export const deleteDeployment = async (deployment: LLMdDeployment): Promise<void> => {
   const { name, namespace } = deployment.model.metadata;
 
-  // Do not remove supporting configuration when deleting the model is forbidden
-  // or fails. Kubernetes and the serving controllers own workload garbage collection.
+  // An absent model permits retrying configuration cleanup. Other primary errors stop cleanup.
+  // Kubernetes and the serving controllers own workload garbage collection.
   await k8sDeleteResource<typeof LLMInferenceServiceModel, K8sStatus>({
     model: LLMInferenceServiceModel,
     queryOptions: { name, ns: namespace },
-  });
+  }).catch(ignoreNotFound);
   const deletions: Promise<unknown>[] = [];
 
   // The simple-vLLM config copy shares the deployment's name
   const hasMatchingConfig = deployment.model.spec.baseRefs?.some((ref) => ref.name === name);
   if (hasMatchingConfig) {
-    deletions.push(deleteLLMInferenceServiceConfig(name, namespace));
+    deletions.push(deleteLLMInferenceServiceConfig(name, namespace).catch(ignoreNotFound));
   }
 
   // Local copies of admin configs are recorded on the deployment by annotation. Each is created
@@ -35,14 +41,7 @@ export const deleteDeployment = async (deployment: LLMdDeployment): Promise<void
   for (const annotationKey of CONFIG_COPY_ANNOTATIONS) {
     const configName = deployment.model.metadata.annotations?.[annotationKey];
     if (configName && configName !== name) {
-      deletions.push(
-        deleteLLMInferenceServiceConfig(configName, namespace).catch((e: unknown) => {
-          // Don't block the deletion if not found. It could be in the global namespace by accident
-          if (getGenericErrorCode(e) !== 404) {
-            throw e;
-          }
-        }),
-      );
+      deletions.push(deleteLLMInferenceServiceConfig(configName, namespace).catch(ignoreNotFound));
     }
   }
 

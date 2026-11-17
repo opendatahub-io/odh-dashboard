@@ -134,6 +134,9 @@ export const deployModel = async (
 
   // ----- Dry Runs -----
 
+  // Preserve resolver context separately while the annotation is omitted for webhook validation.
+  const submittedConnectionName =
+    modelResourceWithNamespace?.metadata.annotations?.[MetadataAnnotation.ConnectionName];
   // If connection name doesn't exist yet, it will fail the dry run
   const dryRunModelResource = structuredClone(modelResourceWithNamespace);
   delete dryRunModelResource?.metadata.annotations?.[MetadataAnnotation.ConnectionName];
@@ -172,7 +175,7 @@ export const deployModel = async (
         serverResource,
         serverResourceTemplateName,
         true,
-        undefined,
+        submittedConnectionName,
         undefined,
         initialWizardData,
         applyAllFieldDataFn,
