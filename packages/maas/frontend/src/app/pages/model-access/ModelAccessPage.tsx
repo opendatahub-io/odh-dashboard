@@ -12,8 +12,8 @@ import { getModelAccessSubscriptionViewUrl } from './utils';
  * Status column, the row kebab, the create button, and the delete modal. Its data
  * comes from the dedicated `admin-subscriptions` endpoint.
  *
- * `attributeFilters` swaps the keyword search for Subscription / Group / Model
- * typeahead filters whose options derive from the loaded subscriptions.
+ * Uses the shared subscription search and group/model typeaheads whose options
+ * derive from the loaded subscriptions.
  *
  * `subscriptionsOnly` keeps the page off Kubernetes: the provider does not fetch
  * auth policies, model refs, or groups, none of which this page renders.
@@ -23,16 +23,12 @@ import { getModelAccessSubscriptionViewUrl } from './utils';
  */
 const ModelAccessPageContent: React.FC = () => (
   <ApplicationsPage
-    title="Model Access"
-    description="View subscriptions that control access to models through the Models-as-a-Server (MaaS) gateway."
+    title="Model access"
+    description="View subscriptions for users in your organization. Subscriptions control which models served via the Model-as-a-Service (MaaS) gateway its members can access, and enforce token limits for each one."
     loaded
     empty={false}
   >
-    <SubscriptionsTab
-      readOnly
-      attributeFilters
-      getSubscriptionDetailUrl={getModelAccessSubscriptionViewUrl}
-    />
+    <SubscriptionsTab readOnly getSubscriptionDetailUrl={getModelAccessSubscriptionViewUrl} />
   </ApplicationsPage>
 );
 

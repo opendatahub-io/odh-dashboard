@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { Page } from '@patternfly/react-core';
 import { resolveWorkingProject } from '@odh-dashboard/foundation';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
@@ -26,23 +27,25 @@ const ThrowingContent: React.FC<{ error: Error }> = ({ error }) => {
 };
 
 const Application: React.FC<{ error?: Error }> = ({ error }) => (
-  <GlobalErrorBoundary>
-    <ProjectsContextProvider>
-      <Page
-        data-testid="normal-page"
-        masthead={<header data-testid="normal-masthead">Masthead</header>}
-        sidebar={<nav data-testid="normal-sidebar">Navigation</nav>}
-      >
-        <ErrorBoundary>
-          {error ? (
-            <ThrowingContent error={error} />
-          ) : (
-            <div data-testid="healthy-content">Content</div>
-          )}
-        </ErrorBoundary>
-      </Page>
-    </ProjectsContextProvider>
-  </GlobalErrorBoundary>
+  <MemoryRouter>
+    <GlobalErrorBoundary>
+      <ProjectsContextProvider>
+        <Page
+          data-testid="normal-page"
+          masthead={<header data-testid="normal-masthead">Masthead</header>}
+          sidebar={<nav data-testid="normal-sidebar">Navigation</nav>}
+        >
+          <ErrorBoundary>
+            {error ? (
+              <ThrowingContent error={error} />
+            ) : (
+              <div data-testid="healthy-content">Content</div>
+            )}
+          </ErrorBoundary>
+        </Page>
+      </ProjectsContextProvider>
+    </GlobalErrorBoundary>
+  </MemoryRouter>
 );
 
 describe('GlobalErrorBoundary', () => {

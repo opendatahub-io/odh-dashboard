@@ -48,6 +48,9 @@ spec:
                     disableISVBadges:
                       type: boolean
                       description: 'When true, hides ISV partner badges on application cards.'
+                    disableAppLauncher:
+                      type: boolean
+                      description: 'When true, hides the application launcher in the dashboard masthead.'
                     disableUserManagement:
                       type: boolean
                       description: 'When true, hides the User Management administration page.'
@@ -159,6 +162,9 @@ spec:
                     modelAsService:
                       type: boolean
                       description: 'When true, enables Model-as-a-Service (MaaS) features for managed model deployments.'
+                    mySubscriptions:
+                      type: boolean
+                      description: 'When true, shows the My Subscriptions view in place of the Model-as-a-Service landing page.'
                     inferencePriorityField:
                       type: boolean
                       description: 'When true, enables inference priority field in the MaaS subscription creation form.'
@@ -204,6 +210,9 @@ spec:
                     agentOps:
                       type: boolean
                       description: 'When true, enables the Agent Ops features in the Gen AI Studio.'
+                    agentOpsDeploy:
+                      type: boolean
+                      description: 'When true, enables deploying agents from the Agent Ops features in the Gen AI Studio.'
                     agentsCatalog:
                       type: boolean
                       description: 'When true, enables the Agents Catalog page.'
@@ -258,6 +267,9 @@ spec:
                     nimWizard:
                       type: boolean
                       description: 'When true, replaces global NIM accounts with project NIM accounts and replaces the NIM deployment modal with the model deployment wizard.'
+                    nimServiceOperator:
+                      type: boolean
+                      description: 'When true, enables NIM deployments through the NIM service operator.'
                     dataConnectHub:
                       type: boolean
                       description: 'When true, enables the Data Connect Hub features.'

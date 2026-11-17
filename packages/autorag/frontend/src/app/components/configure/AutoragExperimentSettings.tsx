@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Button,
   Modal,
@@ -48,6 +49,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
   modelsLoaded,
   modelsLoading,
 }) => {
+  const trackEvent = useTrackEvent();
   const {
     getValues,
     setValue,
@@ -80,7 +82,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
 
   const fireModelsSelected = (outcome: TrackingOutcome) => {
     const { generation_models: foundationModels, embedding_models: embeddingModels } = getValues();
-    fireAutoragModelsSelected({
+    fireAutoragModelsSelected(trackEvent, {
       countOfFoundationModels: foundationModels.length,
       countOfEmbeddingModels: embeddingModels.length,
       outcome,

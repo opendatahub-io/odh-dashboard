@@ -1,17 +1,14 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { mockCollection } from '~/__mocks__/mockCollection';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
-}));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
+const { mockTrackEvent, render } = setupTrackingTest();
 
 describe('BenchmarkSuiteCard', () => {
   beforeEach(() => {
@@ -507,18 +504,18 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-model-suite'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
       {
+        event_source: 'evalhub_ui',
+        collection_type: 'custom',
+        provider_type: 'safety_eval_suite',
         runType: 'collection',
-        collectionName: 'Safety Suite',
+
         benchmarkTypes: JSON.stringify(['harmful_request_refusal', 'toxigen']),
         countOfBenchmarks: 2,
       },
-      {
-        collectionType: 'custom',
-        providerType: 'safety_eval_suite',
-      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -540,10 +537,10 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-prerequisite-suite'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+    expect(mockTrackEvent).not.toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
       expect.anything(),
-      expect.anything(),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -571,14 +568,14 @@ describe('BenchmarkSuiteCard', () => {
     ).not.toBeInTheDocument();
 
     fireEvent.click(runButton);
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
       expect.objectContaining({
         runType: 'collection',
-        collectionName: 'Safety Suite',
+
         countOfBenchmarks: 2,
       }),
-      expect.objectContaining({ collectionType: 'custom' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
     fireEvent.click(dropdownToggle);
     const customizeAction = screen.getByTestId(
@@ -713,14 +710,13 @@ describe('BenchmarkSuiteCard', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suite-card-body-region-body-tracked-suite'));
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
       expect.objectContaining({
-        collectionName: collection.name,
         surface: 'my_benchmark_suites',
       }),
-      expect.objectContaining({ collectionType: 'custom' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -782,14 +778,13 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(nameButton);
     fireEvent.click(nameButton);
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
       expect.objectContaining({
-        collectionName: collection.name,
         surface: 'my_benchmark_suites',
       }),
-      expect.objectContaining({ collectionType: 'custom' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 

@@ -27,7 +27,6 @@ export type MockDashboardConfigType = {
   disableModelRegistry?: boolean;
   disableModelRegistrySecureDB?: boolean;
   disableServingRuntimeParams?: boolean;
-  disableConnectionTypes?: boolean;
   disableAdminConnectionTypes?: boolean;
   disableStorageClasses?: boolean;
   disableNotebookController?: boolean;

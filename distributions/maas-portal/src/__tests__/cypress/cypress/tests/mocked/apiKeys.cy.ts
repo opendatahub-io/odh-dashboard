@@ -48,6 +48,29 @@ describe('MaaS portal composition', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     cy.location('pathname').should('eq', portalPath('/maas/keys-and-subs'));
   });
+
+  it('goes back to the previous page, not the root, after the root redirect', () => {
+    setupPortalMocks();
+    portal.visit('/maas/keys-and-subs');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
+    portal.visit();
+    cy.location('pathname').should('eq', portalPath('/maas/models'));
+    cy.go('back');
+    cy.location('pathname').should('eq', portalPath('/maas/keys-and-subs'));
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
+  });
+
+  it('goes back to the page the masthead logo was clicked from, after the root redirect', () => {
+    setupPortalMocks();
+    portal.visit('/maas/keys-and-subs');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
+    portal.findMastheadLogo().click();
+    cy.location('pathname').should('eq', portalPath('/maas/models'));
+    cy.findByTestId('app-page-title').should('have.text', 'Model endpoints');
+    cy.go('back');
+    cy.location('pathname').should('eq', portalPath('/maas/keys-and-subs'));
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
+  });
 });
 
 describe('Portal API keys', () => {

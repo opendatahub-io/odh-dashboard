@@ -1,7 +1,12 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
 import { createPvc } from '@odh-dashboard/internal/api';
-import { NIMPVCStorageMode, type NIMPVCFieldValue } from './NIMPVCField';
+import {
+  getNIMPVCDisplayName,
+  getNIMPVCK8sName,
+  NIMPVCStorageMode,
+  type NIMPVCFieldValue,
+} from './NIMPVCField';
 import type { NIMDeployment } from '../../../api/nimservices/types';
 import {
   NIM_PVC_ANNOTATION,
@@ -24,7 +29,8 @@ export const nimPVCPreDeploy = async (
 
   const pvc = await createPvc(
     {
-      name: fieldData.pvcName,
+      name: getNIMPVCDisplayName(fieldData),
+      k8sName: getNIMPVCK8sName(fieldData),
       description: '',
       size: `${fieldData.storageSizeGi}Gi`,
       storageClassName: fieldData.storageClassName,

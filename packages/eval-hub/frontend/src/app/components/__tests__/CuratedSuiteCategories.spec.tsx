@@ -1,15 +1,13 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import CuratedSuiteCategories from '~/app/components/CuratedSuiteCategories';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
-}));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
+const { mockTrackEvent, render } = setupTrackingTest();
 
 const renderSection = () =>
   render(
@@ -78,13 +76,17 @@ describe('CuratedSuiteCategories', () => {
 
     screen.getByTestId('curated-suite-category-card-models').click();
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_CATEGORY_SELECTED,
       {
+        event_source: 'evalhub_ui',
+        collection_type: 'unknown',
+        provider_type: 'unknown',
         categoryId: 'models',
         evaluationTarget: 'model',
         surface: 'my_benchmark_suites',
       },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 });

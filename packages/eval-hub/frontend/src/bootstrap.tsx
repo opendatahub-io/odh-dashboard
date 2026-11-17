@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck - Overlay file copied into the starter repo where path aliases are configured.
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
+import { createStandaloneAnalytics } from '@odh-dashboard/analytics/standalone';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
@@ -11,12 +13,15 @@ import {
 } from 'mod-arch-core';
 import {
   BFF_API_VERSION,
+  APP_VERSION,
+  DEV_MODE,
   DEPLOYMENT_MODE,
   MANDATORY_NAMESPACE,
   URL_PREFIX,
 } from '~/app/utilities/const';
 import App from '~/app/App';
 
+const standaloneAnalytics = createStandaloneAnalytics({ devMode: DEV_MODE, version: APP_VERSION });
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
 const modularArchConfig: ModularArchConfig = {
@@ -28,14 +33,16 @@ const modularArchConfig: ModularArchConfig = {
 
 root.render(
   <React.StrictMode>
-    <Router>
-      <ModularArchContextProvider config={modularArchConfig}>
-        <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            <App />
-          </NotificationContextProvider>
-        </BrowserStorageContextProvider>
-      </ModularArchContextProvider>
-    </Router>
+    <AnalyticsTrackingProvider value={standaloneAnalytics}>
+      <Router>
+        <ModularArchContextProvider config={modularArchConfig}>
+          <BrowserStorageContextProvider>
+            <NotificationContextProvider>
+              <App />
+            </NotificationContextProvider>
+          </BrowserStorageContextProvider>
+        </ModularArchContextProvider>
+      </Router>
+    </AnalyticsTrackingProvider>
   </React.StrictMode>,
 );

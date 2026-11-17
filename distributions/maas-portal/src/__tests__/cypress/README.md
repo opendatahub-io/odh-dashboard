@@ -1,6 +1,6 @@
 # MaaS Portal Cypress Tests
 
-These mocked browser tests exercise the assembled Grid portal: Model endpoints, Model Access, navigation, API keys, consumer subscriptions, and observability. Cypress intercepts supply service responses; unmatched fetch/XHR requests fail the test.
+These mocked browser tests exercise the assembled Grid portal: Model endpoints, Model access, navigation, API keys, consumer subscriptions, and observability. Cypress intercepts supply service responses; unmatched fetch/XHR requests fail the test.
 
 BFF behavior is covered by the MaaS and GenAI modules' own tests. The portal suite does not start BFFs or verify deployed authentication, persistent API-key writes, real inference, or live metrics.
 
@@ -39,7 +39,7 @@ pnpm run cypress:run:mock --spec src/__tests__/cypress/cypress/tests/mocked/mode
 2. Reuse module-owned page objects: `@odh-dashboard/gen-ai/testing/pages`, `@odh-dashboard/observability/testing/pages`, and `@odh-dashboard/cypress/cypress/pages/modelsAsAService`. Add missing feature selectors to their owning objects. Keep only portal navigation and portal-specific states in the [local page objects](cypress/pages/); use `portal.visit()` for the distribution prefix. Perform actions in the test. Prefer existing test IDs or accessible roles; avoid DOM structure selectors.
 3. Add API intercepts to the appropriate [support helper](cypress/support/) before visiting the page. Keep the unmatched-request guard enabled.
 4. Reuse package-owned mock factories. Shared data comes from [MaaS fixtures](../../../../../packages/cypress/cypress/__mocks__/maasFixtures.ts), [GenAI fixtures](../../../../../packages/gen-ai/frontend/src/__mocks__/genAiFixtures.ts), and [observability fixtures](../../../../../packages/observability/src/__mocks__/observabilityFixtures.ts).
-5. The portal distribution registers the current Model endpoints and Model Access pages; `setupPortalMocks()` supplies their API responses. See [modelEndpoints.cy.ts](cypress/tests/mocked/modelEndpoints.cy.ts) for navigation and reload checks. Wait for requests or observable UI state instead of fixed delays.
+5. The portal distribution registers the current Model endpoints and Model access pages; `setupPortalMocks()` supplies their API responses. See [modelEndpoints.cy.ts](cypress/tests/mocked/modelEndpoints.cy.ts) for navigation and reload checks. Wait for requests or observable UI state instead of fixed delays.
 
 ## CI, Verification, And Diagnostics
 

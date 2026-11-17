@@ -237,6 +237,16 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['src/**/*.ts', 'src/**/*.tsx'],
+      excludedFiles: ['src/__tests__/cypress/**'],
+      extends: ['@odh-dashboard/eslint-config/feature-analytics'],
+    },
+    {
+      // The standalone composition root supplies adapters, matching other feature workspaces.
+      files: ['src/bootstrap.tsx'],
+      rules: { '@odh-dashboard/no-direct-analytics': 'off' },
+    },
+    {
       files: ['./src/api/**'],
       rules: {
         'no-restricted-imports': [

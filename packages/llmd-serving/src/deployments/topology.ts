@@ -1,18 +1,16 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
 import { applyConfigRef, createLocalConfigName, preDeployConfigCopy } from './configs';
+import { TOPOLOGY_CONFIG_DEFAULT } from '../const';
 import {
   TOPOLOGY_TYPE_ANNOTATION,
   TOPOLOGY_CONFIG_REF_ANNOTATION,
   ROUTING_CONFIG_REF_ANNOTATION,
   TopologyType,
   type LLMdDeployment,
+  type TopologyTypeFieldData,
 } from '../types';
-import type { TopologyTypeFieldData } from '../wizardFields/TopologyTypeField';
-import {
-  TOPOLOGY_CONFIG_DEFAULT,
-  type CustomTopologyConfigFieldData,
-} from '../wizardFields/CustomTopologyConfigField';
+import type { CustomTopologyConfigFieldData } from '../wizardFields/CustomTopologyConfigField';
 import type { AdvancedRoutingFieldData } from '../wizardFields/AdvancedRoutingField';
 
 const topologyTypeValues: string[] = Object.values(TopologyType);
