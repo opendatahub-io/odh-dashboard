@@ -222,6 +222,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   isExternalRouteVisible={isExternalRouteVisible}
                   externalRouteData={externalRouteData}
                   disabledHelperText={wizardState.state.tokenAuthentication.disabledHelperText}
+                  hideNoAuthWarning={wizardState.state.tokenAuthentication.isDisabled}
                 />
               </FormGroup>
             </StackItem>

@@ -40,16 +40,22 @@ export enum KServeDeploymentMode {
   Standard = 'Standard',
 }
 
+/**
+ * @param tokenAuth whether token authentication is enabled; `undefined` leaves the existing
+ * authentication annotation unchanged.
+ */
 export const applyAuth = (
   inferenceService: InferenceServiceKind,
-  tokenAuth: boolean,
+  tokenAuth: boolean | undefined,
   externalRoute: boolean,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
-  result.metadata.annotations = {
-    ...result.metadata.annotations,
-    [KSERVE_AUTH_ANNOTATION]: tokenAuth ? 'true' : 'false',
-  };
+  if (tokenAuth !== undefined) {
+    result.metadata.annotations = {
+      ...result.metadata.annotations,
+      [KSERVE_AUTH_ANNOTATION]: tokenAuth ? 'true' : 'false',
+    };
+  }
 
   result.metadata.labels = {
     ...result.metadata.labels,

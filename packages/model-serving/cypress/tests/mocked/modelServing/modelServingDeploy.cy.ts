@@ -1512,8 +1512,15 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
   });
 
-  [false, true].forEach((hasExternalRoute) => {
-    it(`should ${hasExternalRoute ? 'disable' : 'enable'} external access as a contributor`, () => {
+  [
+    { hasExternalRoute: false, enableAuth: 'false' },
+    { hasExternalRoute: true, enableAuth: 'false' },
+    // Authentication enabled without matching dashboard-managed token Secrets
+    { hasExternalRoute: false, enableAuth: 'true' },
+  ].forEach(({ hasExternalRoute, enableAuth }) => {
+    it(`should ${
+      hasExternalRoute ? 'disable' : 'enable'
+    } external access as a contributor (enable-auth: ${enableAuth})`, () => {
       asProjectEditUser({ projects: ['test-project'] });
       initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
       const inferenceService = mockInferenceServiceK8sResource({
@@ -1522,7 +1529,7 @@ describe('Model Serving Deploy Wizard', () => {
         secretName: 'test-uri-secret',
         hardwareProfileName: 'large-profile',
         hardwareProfileNamespace: 'opendatahub',
-        additionalAnnotations: { 'security.opendatahub.io/enable-auth': 'false' },
+        additionalAnnotations: { 'security.opendatahub.io/enable-auth': enableAuth },
       });
       cy.interceptK8sList(
         { model: InferenceServiceModel, ns: 'test-project' },
@@ -1568,7 +1575,7 @@ describe('Model Serving Deploy Wizard', () => {
           } else {
             expect(labels).to.have.property('networking.kserve.io/visibility', 'exposed');
           }
-          expect(annotations).to.have.property('security.opendatahub.io/enable-auth', 'false');
+          expect(annotations).to.have.property('security.opendatahub.io/enable-auth', enableAuth);
         });
       });
       cy.get('@createRoleBinding.all').should('have.length', 0);

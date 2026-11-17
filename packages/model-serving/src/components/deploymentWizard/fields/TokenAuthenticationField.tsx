@@ -200,6 +200,8 @@ type TokenAuthenticationFieldProps = {
   isExternalRouteVisible: boolean;
   externalRouteData?: boolean;
   disabledHelperText?: string;
+  /** Hide the unauthenticated external-route warning, e.g. when authentication is managed elsewhere. */
+  hideNoAuthWarning?: boolean;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
@@ -210,6 +212,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   isExternalRouteVisible,
   externalRouteData,
   disabledHelperText,
+  hideNoAuthWarning = false,
 }) => {
   const isDisabled = !allowCreate;
   const createNewToken = React.useCallback(() => {
@@ -311,7 +314,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
         externalRouteData,
         tokenAuthData: tokens,
       }) &&
-        !isDisabled && (
+        !hideNoAuthWarning && (
           <StackItem>
             <Alert
               id="no-auth-alert"

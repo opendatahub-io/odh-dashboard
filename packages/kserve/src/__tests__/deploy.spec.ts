@@ -199,6 +199,50 @@ describe('deployKServeDeployment', () => {
     });
   });
 
+  it.each([true, false])(
+    'should preserve the existing authentication setting when the user cannot configure token authentication (dryRun: %s)',
+    async (dryRun) => {
+      const existingDeployment: KServeDeployment = {
+        modelServingPlatformId: 'kserve',
+        model: mockInferenceServiceK8sResource({
+          additionalAnnotations: { 'security.opendatahub.io/enable-auth': 'true' },
+        }),
+        server: mockServingRuntimeK8sResource({}),
+      };
+      const wizardData = {
+        ...WIZARD_DATA,
+        externalRoute: { data: true },
+        tokenAuthentication: { data: [] },
+        canCreateRoleBindings: false,
+      } as unknown as WizardFormData['state'];
+
+      await deployKServeDeployment(
+        wizardData,
+        {},
+        'test-project',
+        existingDeployment,
+        undefined,
+        undefined,
+        undefined,
+        dryRun,
+      );
+
+      const { metadata } = mockDeployInferenceService.mock.calls[0][0];
+      expect(metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
+      expect(metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
+    },
+  );
+
+  it('should derive the authentication setting from tokens when creating a deployment without role-binding permission', async () => {
+    await deployKServeDeployment(WIZARD_DATA, {}, 'test-project');
+
+    expect(
+      mockDeployInferenceService.mock.calls[0][0].metadata.annotations?.[
+        'security.opendatahub.io/enable-auth'
+      ],
+    ).toBe('false');
+  });
+
   it('should not apply a hidden deployment strategy to the inference service', async () => {
     const wizardData = {
       ...WIZARD_DATA,

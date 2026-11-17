@@ -58,6 +58,8 @@ export type CreatingInferenceServiceObject = {
   modelFormat?: SupportedModelFormats;
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
+  /** Keep an existing inference service's authentication setting instead of deriving it from tokenAuth. */
+  preserveExistingAuth?: boolean;
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
@@ -89,6 +91,7 @@ export const assembleInferenceService = (
     modelAvailability,
     externalRoute,
     tokenAuth,
+    preserveExistingAuth,
     runtimeArgs,
     environmentVariables,
     deploymentStrategy,
@@ -141,7 +144,9 @@ export const assembleInferenceService = (
 
   inferenceService = applyAuth(
     inferenceService,
-    (tokenAuth && tokenAuth.length > 0) ?? false,
+    preserveExistingAuth && existingInferenceService
+      ? undefined
+      : (tokenAuth && tokenAuth.length > 0) ?? false,
     externalRoute ?? false,
   );
 

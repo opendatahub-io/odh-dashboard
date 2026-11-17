@@ -66,6 +66,37 @@ describe('AdvancedSettingsStepContent', () => {
       },
     );
 
+    it.each([
+      { isDisabled: false, showWarning: true },
+      { isDisabled: true, showWarning: false },
+    ])(
+      'should show the unauthenticated external route warning to contributors unless token authentication is overridden (overridden: $isDisabled)',
+      ({ isDisabled, showWarning }) => {
+        const wizardState = mockDeploymentWizardState({
+          state: {
+            canCreateRoleBindings: false,
+            externalRoute: { data: true },
+            tokenAuthentication: { data: [], isDisabled },
+          },
+          advancedOptions: { isExternalRouteVisible: true },
+        });
+        render(
+          <AdvancedSettingsStepContent
+            wizardState={wizardState}
+            externalData={externalData}
+            allowCreate={false}
+          />,
+        );
+
+        expect(screen.getByTestId('token-authentication-checkbox')).toBeDisabled();
+        if (showWarning) {
+          expect(screen.getByTestId('no-auth-alert')).toBeInTheDocument();
+        } else {
+          expect(screen.queryByTestId('no-auth-alert')).not.toBeInTheDocument();
+        }
+      },
+    );
+
     it('should still auto-enable token authentication for project admins enabling external access', () => {
       const wizardState = mockDeploymentWizardState({
         state: { externalRoute: { data: false }, tokenAuthentication: { data: [] } },

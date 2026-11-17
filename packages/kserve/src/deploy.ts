@@ -56,6 +56,8 @@ export const deployKServeDeployment = async (
     modelFormat: wizardData.modelFormatState.modelFormat,
     externalRoute: wizardData.externalRoute.data,
     tokenAuth: wizardData.tokenAuthentication.data,
+    // Users who cannot configure token authentication must not change an existing setting.
+    preserveExistingAuth: !wizardData.canCreateRoleBindings,
     numReplicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,
