@@ -223,6 +223,34 @@ describe('getArtifactResource', () => {
     );
     expect(proxyGETMock).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['empty', ''],
+    ['dot', '.'],
+    ['dotdot', '..'],
+    ['slash', 'a/b'],
+    ['query', 'a?b'],
+    ['fragment', 'a#b'],
+    ['backslash', 'a\\b'],
+  ])('should reject a %s artifact id', (_label, artifactId) => {
+    proxyGETMock.mockClear();
+    expect(() => getArtifactResource('hostPath')({}, artifactId)).toThrow(
+      'Invalid pipeline resource id',
+    );
+    expect(proxyGETMock).not.toHaveBeenCalled();
+  });
+
+  it('should percent-encode an accepted artifact id', () => {
+    proxyGETMock.mockClear();
+    expect(getArtifactResource('hostPath')({}, 'task id')).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/artifacts/task%20id',
+      {},
+      {},
+    );
+  });
 });
 
 describe('getPipeline', () => {
