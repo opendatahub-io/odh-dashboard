@@ -37,6 +37,7 @@ type StorageTableRowProps = {
   showConnectedResources: boolean;
   additionalResourcesLoaded: boolean;
   getConnectedResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
+  getConnectedModelResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
   onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
   onEditPVC: (pvc: PersistentVolumeClaimKind) => void;
   onAddPVC: () => void;
@@ -51,6 +52,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   showConnectedResources,
   additionalResourcesLoaded,
   getConnectedResourceLabels,
+  getConnectedModelResourceLabels,
   onDeletePVC,
   onEditPVC,
   onAddPVC,
@@ -76,6 +78,11 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
       },
     });
   }
+
+  const connectedResources = [
+    ...getConnectedModelResourceLabels(obj.pvc),
+    ...getConnectedResourceLabels(obj.pvc),
+  ];
 
   return (
     <Tr {...(rowIndex % 2 === 0 && { isStriped: true })}>
@@ -180,7 +187,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
         <Td dataLabel="Connected resources">
           <ConnectedResources
             pvc={obj.pvc}
-            additionalResources={getConnectedResourceLabels(obj.pvc)}
+            additionalResources={connectedResources}
             additionalResourcesLoaded={additionalResourcesLoaded}
           />
         </Td>
