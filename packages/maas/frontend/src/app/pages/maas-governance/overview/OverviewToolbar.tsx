@@ -39,6 +39,13 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
       // Keyed by `${name}/${namespace}`: the same model name can be registered in
       // multiple projects, and each project's option keeps its own display label
       const modelLabels = new Map<string, string>();
+      // A reference without a display name never overwrites a label already known
+      // for that model (e.g. a registered model's friendly label)
+      const setModelLabel = (key: string, name: string, displayName?: string) => {
+        if (displayName || !modelLabels.has(key)) {
+          modelLabels.set(key, displayName ?? modelLabels.get(key) ?? name);
+        }
+      };
       const projectLabels = new Map<string, string>();
       const groupLabels = new Map<string, string>();
       const subscriptionLabels = new Map<string, string>();
@@ -62,7 +69,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           sub.groups?.forEach((group) => groupLabels.set(group, group));
           // Groups can reference models that have no registered overview row
           sub.modelRefs.forEach((ref) => {
-            modelLabels.set(`${ref.name}/${ref.namespace}`, ref.displayName ?? ref.name);
+            setModelLabel(`${ref.name}/${ref.namespace}`, ref.name, ref.displayName);
             projectLabels.set(ref.namespace, ref.namespace);
           });
         });
@@ -70,17 +77,26 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           authPolicyLabels.set(policy.name, policy.displayName ?? policy.name);
           policy.groups?.forEach((group) => groupLabels.set(group, group));
           policy.modelRefs.forEach((ref) => {
-            modelLabels.set(`${ref.name}/${ref.namespace}`, ref.displayName ?? ref.name);
+            setModelLabel(`${ref.name}/${ref.namespace}`, ref.name, ref.displayName);
             projectLabels.set(ref.namespace, ref.namespace);
           });
         });
       });
-      // The option value is the resource name (without the project suffix) so an
-      // exact selection matches every project that registered the model
-      const toModelOptions = (): TypeaheadSelectOption[] =>
-        Array.from(modelLabels.entries())
+      // The option value is the model name so an exact selection matches every
+      // project that registered it; same-name registrations collapse into one
+      // combined option (the first label seen wins) to keep option values unique
+      const toModelOptions = (): TypeaheadSelectOption[] => {
+        const labelsByName = new Map<string, string>();
+        modelLabels.forEach((label, key) => {
+          const name = key.slice(0, key.lastIndexOf('/'));
+          if (!labelsByName.has(name)) {
+            labelsByName.set(name, label);
+          }
+        });
+        return Array.from(labelsByName.entries())
           .toSorted(([, a], [, b]) => a.localeCompare(b))
-          .map(([key, content]) => ({ value: key.slice(0, key.lastIndexOf('/')), content }));
+          .map(([value, content]) => ({ value, content }));
+      };
       return {
         modelOptions: toModelOptions(),
         projectOptions: toSelectOptions(projectLabels),

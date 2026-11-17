@@ -37,18 +37,21 @@ const buildLinkState = (returnTo: string) => ({
   breadcrumbLabel: 'MaaS governance',
 });
 
-/** Counts rendered model-ref labels so colliding labels can be disambiguated with their namespace. */
+/** Counts rendered model-ref labels so colliding labels can be disambiguated with their namespace and name. */
 const countModelRefLabels = (
   subscriptions: Array<{ modelRefs?: ModelSubscriptionRef[] }>,
-): Map<string, number> => {
-  const counts = new Map<string, number>();
+): { byLabel: Map<string, number>; byLabelAndNamespace: Map<string, number> } => {
+  const byLabel = new Map<string, number>();
+  const byLabelAndNamespace = new Map<string, number>();
   subscriptions.forEach((sub) =>
     sub.modelRefs?.forEach((ref) => {
       const label = ref.displayName ?? ref.name;
-      counts.set(label, (counts.get(label) ?? 0) + 1);
+      byLabel.set(label, (byLabel.get(label) ?? 0) + 1);
+      const pairKey = `${label}/${ref.namespace}`;
+      byLabelAndNamespace.set(pairKey, (byLabelAndNamespace.get(pairKey) ?? 0) + 1);
     }),
   );
-  return counts;
+  return { byLabel, byLabelAndNamespace };
 };
 
 const toggleExpandedItem = (prev: Set<string>, name: string): Set<string> => {
@@ -319,11 +322,15 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                   ? // Group rows carry per-model limits on their model refs
                     sub.modelRefs.map((ref) => {
                       const label = ref.displayName ?? ref.name;
-                      // Include the namespace when another ref renders the same label
+                      // Disambiguate colliding labels: same label and namespace
+                      // also appends the resource name, otherwise just the namespace
                       const text =
-                        (modelRefLabelCounts.get(label) ?? 0) > 1
-                          ? `${label} (${ref.namespace})`
-                          : label;
+                        (modelRefLabelCounts.byLabelAndNamespace.get(`${label}/${ref.namespace}`) ??
+                          0) > 1
+                          ? `${label} (${ref.namespace}/${ref.name})`
+                          : (modelRefLabelCounts.byLabel.get(label) ?? 0) > 1
+                            ? `${label} (${ref.namespace})`
+                            : label;
                       return (
                         <span key={`${ref.namespace}/${ref.name}`} className="pf-v6-u-mr-md">
                           {text}: {formatTokenLimits(ref.tokenRateLimits)}

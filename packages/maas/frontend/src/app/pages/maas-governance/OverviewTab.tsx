@@ -17,6 +17,7 @@ import { filterOverviewGroups, filterOverviewModels } from './overview/utils';
 import EmptyStatePage from './EmptyStatePage';
 
 const OVERVIEW_RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
+const GROUPS_RETURN_TO = `${OVERVIEW_RETURN_TO}?view=groups`;
 
 const OverviewTab: React.FC = () => {
   const location = useLocation();
@@ -142,7 +143,8 @@ const OverviewTab: React.FC = () => {
         onFilterUpdate={onFilterUpdate}
         rows={rows}
         groupRows={groupRows}
-        returnTo={OVERVIEW_RETURN_TO}
+        // Keep the originating view in the return target so create flows return to it
+        returnTo={view === 'groups' ? GROUPS_RETURN_TO : OVERVIEW_RETURN_TO}
       />
     </>
   );

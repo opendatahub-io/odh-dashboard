@@ -1989,7 +1989,9 @@ class OverviewTabPage {
     return cy.findByRole('menuitem', { name });
   }
 
-  findFilterToggle(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+  findFilterToggle(
+    name: 'model' | 'project' | 'group' | 'subscription' | 'policy',
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`overview-${name}-name-filter-toggle`);
   }
 

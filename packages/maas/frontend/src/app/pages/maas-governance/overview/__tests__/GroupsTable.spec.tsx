@@ -40,7 +40,6 @@ describe('GroupsTable', () => {
     render(
       <GroupsTable
         data={[mockGroup('alpha-users'), mockGroup('beta-users')]}
-        toolbarContent={null}
         onClearFilters={onClearFilters}
       />,
     );
@@ -51,25 +50,13 @@ describe('GroupsTable', () => {
   });
 
   it('should show the subscription count per group', () => {
-    render(
-      <GroupsTable
-        data={[mockGroup('alpha-users')]}
-        toolbarContent={null}
-        onClearFilters={onClearFilters}
-      />,
-    );
+    render(<GroupsTable data={[mockGroup('alpha-users')]} onClearFilters={onClearFilters} />);
 
     expect(screen.getByTestId('overview-group-row-alpha-users')).toHaveTextContent('1');
   });
 
   it('should expand a group row on toggle', () => {
-    render(
-      <GroupsTable
-        data={[mockGroup('alpha-users')]}
-        toolbarContent={null}
-        onClearFilters={onClearFilters}
-      />,
-    );
+    render(<GroupsTable data={[mockGroup('alpha-users')]} onClearFilters={onClearFilters} />);
 
     const expandButton = screen.getByTestId('expand-group').querySelector('button') as HTMLElement;
     expect(expandButton).toHaveAttribute('aria-expanded', 'false');
@@ -79,9 +66,9 @@ describe('GroupsTable', () => {
   });
 
   it('should render the empty filter state when data is empty', () => {
-    render(<GroupsTable data={[]} toolbarContent={null} onClearFilters={onClearFilters} />);
+    render(<GroupsTable data={[]} onClearFilters={onClearFilters} />);
 
     expect(screen.getByTestId('groups-table')).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: /pagination/i })).not.toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-empty-table-state')).toBeInTheDocument();
   });
 });

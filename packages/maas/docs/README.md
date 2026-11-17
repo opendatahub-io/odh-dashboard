@@ -8,8 +8,10 @@ This directory contains documentation for the MaaS UI package.
 - [Getting Started][Install]
 - [Local Development Guide (Federated)][Local deployment]
 - [Local UI Development Guide][Local deployment UI]
+- [Governance Filtering & Groups View][Governance filters]
 
 [Overview]: ./overview.md
 [Install]: ./install.md
 [Local deployment]: ./local-deployment-guide.md
 [Local deployment UI]: ./local-deployment-guide-ui.md
+[Governance filters]: ./governance-filters.md
