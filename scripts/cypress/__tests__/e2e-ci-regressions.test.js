@@ -324,6 +324,53 @@ it('limits tag jobs to specs that contain the selected tag', () => {
   assert.deepEqual(job.specs, [spec]);
 });
 
+it('scopes grouped tag jobs to the union of executable matching specs', () => {
+  const otherSpec = `${cypress}/tests/e2e/other.cy.ts`;
+  const sharedSpec = `${cypress}/tests/e2e/shared.cy.ts`;
+  const plan = planFor({
+    selectedTags: ['@A', '@B'],
+    autoTags: ['@A', '@B'],
+    inventory: inventoryFor({
+      [spec]: "const tags = ['@A']; describe('suite', {tags}, () => it('one', () => {}));",
+      [otherSpec]: sourceFor('@B'),
+      [sharedSpec]: "it('both', {tags: ['@A', '@B']}, () => {});",
+      [`${cypress}/tests/e2e/unrelated.cy.ts`]: sourceFor(DEFAULT_TAG),
+      [`${cypress}/tests/e2e/quarantined.cy.ts`]:
+        "it('excluded', {tags: ['@A', '@Bug']}, () => {});",
+    }),
+  });
+  assert.equal(plan.valid, true, plan.errors.join('\n'));
+  assert.equal(plan.matrix.length, 1);
+  assert.equal(plan.matrix[0].tag, '@A @B');
+  assert.deepEqual(plan.matrix[0].specs, [spec, otherSpec, sharedSpec].toSorted());
+  assert.equal(plan.matrix[0].planned_test_count, 3);
+});
+
+it('scopes impacted-tag jobs to their package CI specs', () => {
+  const support = `${cypress}/utils/package-helper.ts`;
+  const impacted = Array.from(
+    { length: 6 },
+    (_, index) => `${cypress}/tests/e2e/pkg-${index}.cy.ts`,
+  );
+  const plan = planFor({
+    ciTags: [DEFAULT_TAG, '@PackageCI', '@B'],
+    inventory: inventoryFor({
+      [spec]: sourceFor(DEFAULT_TAG),
+      ...Object.fromEntries(impacted.map((file) => [file, sourceFor('@PackageCI')])),
+      [`${cypress}/tests/e2e/unrelated.cy.ts`]: sourceFor('@B'),
+    }),
+    dependencyIndex: { consumers: { [support]: impacted } },
+    changes: [{ status: 'M', path: support }],
+  });
+  assert.equal(plan.valid, true, plan.errors.join('\n'));
+  assert.equal(plan.summary.impactMode, 'ci-tags');
+  const job = plan.matrix.find((entry) => entry.tag_dir.startsWith('impacted-tag-'));
+  assert.ok(job);
+  assert.equal(job.tag, '@PackageCI');
+  assert.deepEqual(job.specs, impacted);
+  assert.equal(job.planned_test_count, 6);
+});
+
 it('preserves residual impacted specs and gives broad tag jobs the full execution budget', () => {
   const sources = { [spec]: sourceFor(DEFAULT_TAG) };
   for (let index = 0; index < 7; index += 1) {
@@ -341,12 +388,117 @@ it('preserves residual impacted specs and gives broad tag jobs the full executio
     });
     assert.equal(plan.valid, true, plan.errors.join('\n'));
     assert.equal(plan.summary.impactMode, 'full-coverage-tags');
-    assert.equal(
-      plan.matrix.find((job) => job.tag_dir.startsWith('full-coverage-')).planned_test_count,
-      6,
+    const fullCoverageJob = plan.matrix.find((job) => job.tag_dir.startsWith('full-coverage-'));
+    assert.ok(fullCoverageJob);
+    assert.equal(fullCoverageJob.planned_test_count, 6);
+    assert.deepEqual(
+      fullCoverageJob.specs,
+      Array.from({ length: 6 }, (_, index) => `${cypress}/tests/e2e/broad-${index}.cy.ts`),
     );
     assert.ok(plan.matrix.some((job) => job.specs.includes(`${cypress}/tests/e2e/broad-6.cy.ts`)));
     assert.ok(plan.matrix.every((job) => job.timeout === 360));
+  }
+});
+
+it('passes scoped specs and runtime filters through the workflow command', () => {
+  const workflow = YAML.parse(
+    fs.readFileSync(path.join(repo, '.github/workflows/cypress-e2e-test.yml'), 'utf8'),
+  );
+  const runBrowser = workflow.jobs['e2e-tests'].steps.find((step) => step.name === 'Run E2E Tests');
+  const start = runBrowser.run.indexOf('SKIP_TAGS_GREP=');
+  const end = runBrowser.run.indexOf('export CYPRESS_video=true');
+  assert.ok(start >= 0 && end > start, 'Workflow must retain its command-construction block');
+  const command = runBrowser.run.slice(start, end);
+  // Supply Bash 4's mapfile when running these Linux workflow checks on macOS Bash 3.
+  const mapfileAdapter = `
+    if ! type mapfile >/dev/null 2>&1; then
+      mapfile() {
+        local line
+        [[ "$1" == "-t" && "$2" == "SPEC_PATHS" ]] || return 2
+        SPEC_PATHS=()
+        while IFS= read -r line; do SPEC_PATHS+=("$line"); done
+      }
+    fi
+  `;
+  const capture = `
+    pnpm() {
+      "$TEST_NODE_EXECUTABLE" -e 'console.log(JSON.stringify({
+        args: process.argv.slice(1),
+        grepTags: process.env.CYPRESS_grepTags,
+        grepFilterSpecs: process.env.CYPRESS_grepFilterSpecs
+      }))' -- "$@"
+    }
+    eval "$CYPRESS_COMMAND"
+  `;
+  const otherSpec = `${cypress}/tests/e2e/other.cy.ts`;
+  const skipTags = '--@Bug --@Maintain --@NonConcurrent';
+  const cases = [
+    { name: 'tag job', mode: 'tag', tag: '@A', specs: [spec], grepTags: `@A ${skipTags}` },
+    {
+      name: 'grouped tag job',
+      mode: 'tag',
+      tag: '@A @B',
+      specs: [spec, otherSpec],
+      grepTags: `@A @B ${skipTags}`,
+    },
+    {
+      name: 'explicit spec job',
+      mode: 'spec',
+      tag: '@ChangedSpec-01',
+      specs: [spec, otherSpec],
+      grepTags: skipTags,
+    },
+    { name: 'empty explicit selection', mode: 'spec', specs: [], error: /has no specs/ },
+    { name: 'null explicit selection', mode: 'spec', specs: null, error: /has no specs/ },
+    {
+      name: 'unsafe tag-job path',
+      mode: 'tag',
+      tag: '@A',
+      specs: ['unsafe;path.cy.ts'],
+      error: /Invalid spec path/,
+    },
+    {
+      name: 'unsafe explicit-spec path',
+      mode: 'spec',
+      specs: ['unsafe;path.cy.ts'],
+      error: /Invalid spec path/,
+    },
+  ];
+  for (const scenario of cases) {
+    const result = spawnSync(
+      'bash',
+      ['-e', '-o', 'pipefail', '-c', mapfileAdapter + command + capture],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          TEST_NODE_EXECUTABLE: process.execPath,
+          GITHUB_WORKSPACE: '/workspace/dashboard with spaces',
+          MATRIX_RUN_MODE: scenario.mode,
+          MATRIX_TAG: scenario.tag ?? '',
+          MATRIX_SPECS: JSON.stringify(scenario.specs),
+        },
+      },
+    );
+    assert.equal(result.status, scenario.error ? 1 : 0, `${scenario.name}: ${result.stderr}`);
+    if (scenario.error) {
+      assert.match(result.stdout, scenario.error, scenario.name);
+      continue;
+    }
+    const actual = JSON.parse(result.stdout.trim().split('\n').at(-1));
+    assert.deepEqual(
+      actual.args,
+      [
+        '--filter',
+        'odh-dashboard-frontend',
+        'cypress:run:chrome',
+        '--spec',
+        scenario.specs.map((file) => `/workspace/dashboard with spaces/${file}`).join(','),
+      ],
+      scenario.name,
+    );
+    assert.equal(actual.grepTags, scenario.grepTags, scenario.name);
+    assert.equal(actual.grepFilterSpecs, 'false', scenario.name);
   }
 });
 
