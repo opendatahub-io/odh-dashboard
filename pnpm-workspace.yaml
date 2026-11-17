@@ -115,10 +115,12 @@ overrides:
   'brace-expansion@^2': '2.1.4'
   'brace-expansion@^5': '5.0.9'
 
-# monaco-editor 0.56's exports map breaks the deep imports that
-# monaco-types and monaco-worker-manager (via monaco-yaml) rely on.
-# The patches rewrite those imports to exports-compatible paths.
-# Drop both once upstream supports monaco-editor 0.56.
+  # monaco-editor 0.56's exports map breaks the deep imports that
+  # monaco-types and monaco-worker-manager (via monaco-yaml) rely on.
+  # The patches rewrite those imports to exports-compatible paths.
+  # Drop both once upstream supports monaco-editor 0.56.
+  monaco-types: 0.1.2
+  monaco-worker-manager: 2.0.1
 patchedDependencies:
   '@monaco-editor/loader@1.7.0': patches/@monaco-editor__loader@1.7.0.patch
   monaco-types@0.1.2: patches/monaco-types@0.1.2.patch
