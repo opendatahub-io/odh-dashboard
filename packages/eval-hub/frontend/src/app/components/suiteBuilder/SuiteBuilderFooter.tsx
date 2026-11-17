@@ -8,22 +8,28 @@ import {
   useWizardContext,
 } from '@patternfly/react-core';
 import { MagicIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
 
 type SuiteBuilderFooterProps = {
-  cancelRoute: string;
   canContinueSettings: boolean;
   canRecommend: boolean;
+  canContinueOverview: boolean;
+  isStarting: boolean;
+  isBusy: boolean;
+  onCancel: () => void;
 };
 
 const SuiteBuilderFooter: React.FC<SuiteBuilderFooterProps> = ({
-  cancelRoute,
   canContinueSettings,
   canRecommend,
+  canContinueOverview,
+  isStarting,
+  isBusy,
+  onCancel,
 }) => {
-  const { activeStep, goToPrevStep } = useWizardContext();
+  const { activeStep, goToPrevStep, goToNextStep } = useWizardContext();
   const isSettingsStep = activeStep.id === 'suite-settings';
   const isDefineGoalStep = activeStep.id === 'define-goal';
+  const isOverviewStep = activeStep.id === 'benchmark-overview';
 
   return (
     <WizardFooterWrapper>
@@ -49,15 +55,43 @@ const SuiteBuilderFooter: React.FC<SuiteBuilderFooterProps> = ({
                   form="define-goal-form"
                   type="submit"
                   icon={<MagicIcon aria-hidden />}
-                  isDisabled={!canRecommend}
+                  isDisabled={!canRecommend || isStarting}
                   data-testid="recommend-benchmarks-with-ai"
                 >
-                  Recommend benchmarks with AI
+                  {isStarting ? 'Starting recommendations…' : 'Recommend benchmarks with AI'}
                 </Button>
               </ActionListItem>
               <ActionListItem>
-                <Button variant="secondary" onClick={goToPrevStep} data-testid="suite-builder-back">
+                <Button
+                  variant="secondary"
+                  onClick={goToPrevStep}
+                  isDisabled={isBusy}
+                  data-testid="suite-builder-back"
+                >
                   Back
+                </Button>
+              </ActionListItem>
+            </>
+          ) : isOverviewStep ? (
+            <>
+              <ActionListItem>
+                <Button
+                  variant="secondary"
+                  onClick={goToPrevStep}
+                  isDisabled={isBusy}
+                  data-testid="suite-builder-back"
+                >
+                  Back
+                </Button>
+              </ActionListItem>
+              <ActionListItem>
+                <Button
+                  variant="primary"
+                  isDisabled={!canContinueOverview}
+                  onClick={goToNextStep}
+                  data-testid="next-benchmark-overview"
+                >
+                  Next
                 </Button>
               </ActionListItem>
             </>
@@ -76,7 +110,12 @@ const SuiteBuilderFooter: React.FC<SuiteBuilderFooterProps> = ({
             </>
           )}
           <ActionListItem>
-            <Button variant="link" component={(props) => <Link {...props} to={cancelRoute} />}>
+            <Button
+              variant="link"
+              onClick={onCancel}
+              isDisabled={isBusy}
+              data-testid="suite-builder-cancel"
+            >
               Cancel
             </Button>
           </ActionListItem>

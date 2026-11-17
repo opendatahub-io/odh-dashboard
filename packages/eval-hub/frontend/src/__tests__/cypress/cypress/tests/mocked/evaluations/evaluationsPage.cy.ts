@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import type { Namespace } from 'mod-arch-core';
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockProvider } from '~/__mocks__/mockProvider';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
@@ -13,7 +14,13 @@ import {
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
 import { suiteBuilderPage } from '~/__tests__/cypress/cypress/pages/suiteBuilderPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import type { Collection, EvalHubHealthResponse, EvaluationJob, Provider } from '~/app/types';
+import type {
+  Collection,
+  CollectionGenerationResource,
+  EvalHubHealthResponse,
+  EvaluationJob,
+  Provider,
+} from '~/app/types';
 
 const NAMESPACE = 'test-namespace';
 const API_VERSION = { apiVersion: CLIENT_API_VERSION };
@@ -181,6 +188,155 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage.findCurrentStep('define-goal').should('have.attr', 'aria-current', 'step');
     suiteBuilderPage.findEvaluationGoalInput().should('have.value', 'A custom evaluation goal.');
     cy.get('@suiteBuilderGenerationApi.all').should('have.length', 0);
+  });
+
+  it('should generate recommendations and let the user refine the benchmark selection', () => {
+    const pendingGeneration: CollectionGenerationResource = {
+      resource: {
+        id: 'generation-flow',
+        tenant: NAMESPACE,
+        owner: 'test-user',
+        created_at: '2026-11-17T12:00:00Z',
+        updated_at: '2026-11-17T12:00:00Z',
+      },
+      request: {
+        evaluation_goal: 'Assess a model’s accuracy and truthfulness across common questions.',
+        model: { name: 'granite-3b', url: 'https://granite.example.com/v1' },
+        max_benchmarks: 12,
+        strictness: 'moderate',
+        generation_effort: 'standard',
+      },
+      status: { state: 'pending' },
+    };
+    const runningGeneration: CollectionGenerationResource = {
+      ...pendingGeneration,
+      status: {
+        state: 'running',
+        progress: {
+          phase: 'model_generation',
+          updated_at: '2026-11-17T12:00:10Z',
+          last_completed_action: {
+            name: 'search_benchmarks',
+            completed_at: '2026-11-17T12:00:09Z',
+          },
+        },
+      },
+    };
+    const completedGeneration: CollectionGenerationResource = {
+      ...pendingGeneration,
+      status: { state: 'completed' },
+      result: {
+        collection: {
+          name: 'AI recommendations',
+          benchmarks: [
+            {
+              id: 'truthfulqa_mc1',
+              provider_id: 'lm_evaluation_harness',
+              primary_score: { metric: 'accuracy', lower_is_better: false },
+              pass_criteria: { threshold: 0.8 },
+            },
+          ],
+        },
+        yaml: 'name: AI recommendations',
+        rationale: 'TruthfulQA measures whether answers are accurate and truthful.',
+        explanation: {
+          selected_benchmarks: [
+            {
+              id: 'truthfulqa_mc1',
+              provider_id: 'lm_evaluation_harness',
+              reason: 'It directly measures factual accuracy.',
+            },
+          ],
+          rejected_benchmarks: [
+            {
+              id: 'hellaswag',
+              provider_id: 'lm_evaluation_harness',
+              reason: 'It measures commonsense reasoning rather than factual accuracy.',
+            },
+          ],
+        },
+        actions: [],
+      },
+    };
+    let generationReadCount = 0;
+
+    initIntercepts({ providers: [mockProvider()] });
+    cy.interceptApi(
+      'GET /api/:apiVersion/inferenceservices',
+      { path: API_VERSION },
+      { items: [{ name: 'granite-3b', url: 'https://granite.example.com/v1', ready: true }] },
+    );
+    cy.intercept('POST', '**/evaluations/collections/generation*', (request) => {
+      expect(request.query.namespace).to.equal(NAMESPACE);
+      request.reply({ statusCode: 202, body: mockModArchResponse(pendingGeneration) });
+    }).as('createCollectionGeneration');
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/eval-hub/api/${CLIENT_API_VERSION}/evaluations/collections/generation/generation-flow`,
+      },
+      (request) => {
+        generationReadCount += 1;
+        request.reply({
+          body: mockModArchResponse(
+            generationReadCount === 1 ? runningGeneration : completedGeneration,
+          ),
+        });
+      },
+    ).as('getCollectionGeneration');
+
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findCreateSuiteHeaderButton().click();
+    evaluationsPage.findBuildSuiteFromGoalTile().click();
+    suiteBuilderPage.findNameInput().type('Truthfulness suite');
+    suiteBuilderPage.findNextButton().click();
+    suiteBuilderPage.findGoalExample('answer-quality').click();
+    suiteBuilderPage.findEditRecommendationModelButton().click();
+    suiteBuilderPage.findRecommendationModelToggle().click();
+    suiteBuilderPage.findRecommendationModelOption('granite-3b').click();
+    suiteBuilderPage.findSaveRecommendationModelButton().click();
+    suiteBuilderPage.findRecommendButton().click();
+
+    cy.wait('@createCollectionGeneration').then(({ request }) => {
+      expect(request.body).to.deep.equal({
+        evaluation_goal: 'Assess a model’s accuracy and truthfulness across common questions.',
+        model: { name: 'granite-3b', url: 'https://granite.example.com/v1' },
+        max_benchmarks: 12,
+        strictness: 'moderate',
+        generation_effort: 'standard',
+      });
+      expect(request.body).not.to.have.property('name');
+      expect(request.body).not.to.have.property('description');
+      expect(request.body.model).not.to.have.property('source');
+    });
+    suiteBuilderPage
+      .findCurrentStep('benchmark-overview')
+      .should('have.attr', 'aria-current', 'step');
+    suiteBuilderPage.findOverviewNextButton().should('be.disabled');
+    cy.wait('@getCollectionGeneration');
+    suiteBuilderPage
+      .findGenerationStatusHeading()
+      .should('contain.text', 'AI is comparing benchmarks with your goal');
+    suiteBuilderPage
+      .findGenerationProgress()
+      .should('contain.text', 'Searching the benchmark catalog · Building a recommendation');
+    suiteBuilderPage.findOverviewNextButton().should('be.disabled');
+    cy.wait('@getCollectionGeneration');
+    suiteBuilderPage
+      .findSelectedBenchmarkName('truthfulqa_mc1')
+      .should('contain.text', 'TruthfulQA MC1');
+    suiteBuilderPage.findSelectedBenchmark('truthfulqa_mc1').should('contain.text', 'accuracy');
+    suiteBuilderPage.findSelectionCount().should('contain.text', 'Selected benchmarks · 1 of 20');
+    suiteBuilderPage.findReviewAlternativesButton().click();
+    suiteBuilderPage.findAlternative('hellaswag').should('contain.text', 'commonsense reasoning');
+    suiteBuilderPage.findAddAlternativeButton('hellaswag').click();
+    suiteBuilderPage.findSelectionCount().should('contain.text', 'Selected benchmarks · 2 of 20');
+    suiteBuilderPage.findCloseAlternativesButton().click();
+    suiteBuilderPage.findRemoveSelectedBenchmarkButton('truthfulqa_mc1').click();
+    suiteBuilderPage.findSelectionCount().should('contain.text', 'Selected benchmarks · 1 of 20');
+    suiteBuilderPage.findOverviewNextButton().should('be.enabled');
+    suiteBuilderPage.findOverviewNextButton().click();
+    suiteBuilderPage.findCurrentStep('review').should('have.attr', 'aria-current', 'step');
   });
 
   it('should navigate from a Gallery Customize action to the suite editor', () => {

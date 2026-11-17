@@ -15,6 +15,8 @@ import {
   CollectionPatchOperation,
   CloneCollectionRequest,
   CollectionsListResponse,
+  CollectionGenerationRequest,
+  CollectionGenerationResource,
   EvalHubCRStatus,
   EvalHubHealthResponse,
   CreateEvaluationJobRequest,
@@ -577,6 +579,71 @@ export const createCollection =
       }
       throw new Error('Invalid response format');
     });
+
+export const createCollectionGeneration =
+  (hostPath: string, namespace: string, request: CollectionGenerationRequest) =>
+  (opts: APIOptions): Promise<CollectionGenerationResource> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/generation`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<CollectionGenerationResource>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid collection generation response format');
+    });
+
+export const getCollectionGeneration =
+  (hostPath: string, namespace: string, generationId: string) =>
+  (opts: APIOptions): Promise<CollectionGenerationResource> => {
+    if (!generationId) {
+      return Promise.reject(new Error('Collection generation ID must not be empty'));
+    }
+    return handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/generation/${encodeURIComponent(
+          generationId,
+        )}`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<CollectionGenerationResource>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid collection generation response format');
+    });
+  };
+
+export const deleteCollectionGeneration =
+  (hostPath: string, namespace: string, generationId: string) =>
+  (opts: APIOptions): Promise<void> => {
+    if (!generationId) {
+      return Promise.reject(new Error('Collection generation ID must not be empty'));
+    }
+    return handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/generation/${encodeURIComponent(
+          generationId,
+        )}`,
+        {},
+        { namespace },
+        { ...opts, parseJSON: false },
+      ),
+    ).then((response) => {
+      if (typeof response === 'string' && response.trim() !== '') {
+        throw new Error(response);
+      }
+      return undefined;
+    });
+  };
 
 export const getProviders =
   (hostPath: string, namespace: string) =>

@@ -10,6 +10,57 @@ export const suiteSettingsSchema = z.object({
   generationEffort: z.enum(['low', 'standard', 'high']),
 });
 
+export const benchmarkOverviewSchema = z.object({
+  selectedBenchmarks: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        provider_id: z.string().optional(),
+        url: z.string().optional(),
+        weight: z.number().optional(),
+        primary_score: z.object({ metric: z.string(), lower_is_better: z.boolean() }).optional(),
+        pass_criteria: z.object({ threshold: z.number() }).optional(),
+        parameters: z.record(z.string(), z.unknown()).optional(),
+        test_data_ref: z
+          .object({
+            type: z.enum(['data_set', 'pre_recorded_data']).optional(),
+            s3: z
+              .object({
+                bucket: z.string().optional(),
+                key: z.string().optional(),
+                secret_ref: z.string().optional(),
+              })
+              .optional(),
+            pvc: z
+              .object({
+                claim_name: z.string().optional(),
+                sub_path: z.string().optional(),
+              })
+              .optional(),
+            git: z
+              .object({
+                url: z.string().optional(),
+                ref: z.string().optional(),
+                sub_path: z.string().optional(),
+                secret_ref: z.string().optional(),
+              })
+              .optional(),
+            hf: z
+              .object({
+                repo_id: z.string().optional(),
+                revision: z.string().optional(),
+                sub_path: z.string().optional(),
+                secret_ref: z.string().optional(),
+              })
+              .optional(),
+          })
+          .optional(),
+      }),
+    )
+    .min(1, 'Select at least one benchmark.')
+    .max(20, 'Select no more than 20 benchmarks.'),
+});
+
 export const suiteSettingsFieldNames = [
   'suiteName',
   'suiteDescription',
@@ -56,7 +107,9 @@ const defineGoalShape = {
 
 export const defineGoalSchema = z.object(defineGoalShape);
 
-export const suiteBuilderSchema = suiteSettingsSchema.extend(defineGoalShape);
+export const suiteBuilderSchema = suiteSettingsSchema
+  .extend(defineGoalShape)
+  .extend(benchmarkOverviewSchema.shape);
 
 export type SuiteBuilderFormValues = z.infer<typeof suiteBuilderSchema>;
 
@@ -66,6 +119,7 @@ export const suiteBuilderDefaultValues: SuiteBuilderFormValues = {
   maxBenchmarks: 12,
   strictness: 'moderate',
   generationEffort: 'standard',
+  selectedBenchmarks: [],
   evaluationGoal: '',
   generatorModel: null,
 };

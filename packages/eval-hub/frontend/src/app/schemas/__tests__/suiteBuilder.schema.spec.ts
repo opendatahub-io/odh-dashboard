@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import {
+  benchmarkOverviewSchema,
   defineGoalFieldNames,
   defineGoalSchema,
   MAX_EVALUATION_GOAL_LENGTH,
@@ -199,6 +200,7 @@ describe('suite builder schemas', () => {
         strictness: 'strict',
         evaluationGoal: 'Evaluate factual accuracy.',
         generatorModel: RECOMMENDATION_MODEL,
+        selectedBenchmarks: [{ id: 'truthfulqa_mc1', provider_id: 'provider-a' }],
       }),
     ).toEqual({
       ...suiteBuilderDefaultValues,
@@ -207,7 +209,33 @@ describe('suite builder schemas', () => {
       strictness: 'strict',
       evaluationGoal: 'Evaluate factual accuracy.',
       generatorModel: RECOMMENDATION_MODEL,
+      selectedBenchmarks: [{ id: 'truthfulqa_mc1', provider_id: 'provider-a' }],
     });
+  });
+
+  it('should require 1 to 20 selected benchmarks for the overview step', () => {
+    expect(benchmarkOverviewSchema.safeParse({ selectedBenchmarks: [] }).success).toBe(false);
+    expect(
+      benchmarkOverviewSchema.safeParse({
+        selectedBenchmarks: [{ id: 'benchmark-1', provider_id: 'provider-a' }],
+      }).success,
+    ).toBe(true);
+    expect(
+      benchmarkOverviewSchema.safeParse({
+        selectedBenchmarks: Array.from({ length: 20 }, (_, index) => ({
+          id: `benchmark-${index}`,
+          provider_id: 'provider-a',
+        })),
+      }).success,
+    ).toBe(true);
+    expect(
+      benchmarkOverviewSchema.safeParse({
+        selectedBenchmarks: Array.from({ length: 21 }, (_, index) => ({
+          id: `benchmark-${index}`,
+          provider_id: 'provider-a',
+        })),
+      }).success,
+    ).toBe(false);
   });
 });
 /* eslint-enable camelcase */

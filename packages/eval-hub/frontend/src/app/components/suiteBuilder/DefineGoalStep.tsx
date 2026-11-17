@@ -17,6 +17,7 @@ import {
   TextArea,
   Title,
   useWizardContext,
+  Alert,
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleUpIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
@@ -39,6 +40,8 @@ type DefineGoalStepProps = {
   inferenceServicesError: Error | undefined;
   selectedModelIsAvailable: boolean;
   canRecommend: boolean;
+  generationError?: Error;
+  onRecommend: () => Promise<boolean>;
 };
 
 const VISIBLE_EXAMPLE_COUNT = 3;
@@ -49,6 +52,8 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
   inferenceServicesError,
   selectedModelIsAvailable,
   canRecommend,
+  generationError,
+  onRecommend,
 }) => {
   const { control, setValue, trigger } = useFormContext<SuiteBuilderFormValues>();
   const { goToNextStep } = useWizardContext();
@@ -60,10 +65,12 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
     : defineGoalExamples.slice(0, VISIBLE_EXAMPLE_COUNT);
   const evaluationGoal = useWatch({ control, name: 'evaluationGoal' });
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (canRecommend) {
-      goToNextStep();
+      if (await onRecommend()) {
+        goToNextStep();
+      }
       return;
     }
     void trigger([...defineGoalFieldNames]);
@@ -98,6 +105,17 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
       <Content component="p" className="pf-v6-u-mb-lg">
         Describe what you want to test. AI will suggest benchmarks from the available catalog.
       </Content>
+      {generationError ? (
+        <Alert
+          variant="danger"
+          title="Could not generate recommendations"
+          isInline
+          className="pf-v6-u-mb-md"
+          data-testid="collection-generation-submit-error"
+        >
+          {generationError.message}
+        </Alert>
+      ) : null}
       <Form id="define-goal-form" data-testid="define-goal-form" noValidate onSubmit={handleSubmit}>
         <FormGroup
           label="What would you like to evaluate?"

@@ -2,11 +2,18 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
+import { useProviders } from '~/app/hooks/useProviders';
 import CreateSuiteFromGoalPage from '~/app/pages/CreateSuiteFromGoalPage';
-import { verifyConnection } from '~/app/api/k8s';
-import type { InferenceServiceItem } from '~/app/types';
+import {
+  createCollectionGeneration,
+  deleteCollectionGeneration,
+  getCollectionGeneration,
+  verifyConnection,
+} from '~/app/api/k8s';
+import type { CollectionGenerationResource, InferenceServiceItem, Provider } from '~/app/types';
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
@@ -19,8 +26,15 @@ jest.mock('~/app/hooks/useInferenceServices', () => ({
   useInferenceServices: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useProviders', () => ({
+  useProviders: jest.fn(),
+}));
+
 jest.mock('~/app/api/k8s', () => ({
   ...jest.requireActual('~/app/api/k8s'),
+  createCollectionGeneration: jest.fn(),
+  deleteCollectionGeneration: jest.fn(),
+  getCollectionGeneration: jest.fn(),
   verifyConnection: jest.fn(),
 }));
 
@@ -31,6 +45,10 @@ jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
 }));
 
 const mockUseInferenceServices = jest.mocked(useInferenceServices);
+const mockUseProviders = jest.mocked(useProviders);
+const mockCreateCollectionGeneration = jest.mocked(createCollectionGeneration);
+const mockDeleteCollectionGeneration = jest.mocked(deleteCollectionGeneration);
+const mockGetCollectionGeneration = jest.mocked(getCollectionGeneration);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const tracking = { trackEvent: jest.fn(), trackPageEvent: jest.fn() };
 const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
@@ -59,6 +77,91 @@ const inferenceServiceFixtures: InferenceServiceItem[] = [
   { name: 'missing-url', ready: true, model_format_name: 'vLLM' },
 ];
 
+const providerFixtures: Provider[] = [
+  {
+    resource: { id: 'provider-a' },
+    name: 'provider-a',
+    title: 'Provider A',
+    benchmarks: [
+      {
+        id: 'truthfulqa_mc1',
+        name: 'TruthfulQA',
+        category: 'trustworthiness',
+        description: 'Measures factual accuracy.',
+        metrics: ['accuracy'],
+        primary_score: { metric: 'accuracy', lower_is_better: false },
+        pass_criteria: { threshold: 0.8 },
+      },
+      {
+        id: 'hellaswag',
+        name: 'HellaSwag',
+        category: 'knowledge_and_reasoning',
+        description: 'Measures commonsense reasoning.',
+        metrics: ['accuracy'],
+        primary_score: { metric: 'accuracy', lower_is_better: false },
+        pass_criteria: { threshold: 0.7 },
+      },
+    ],
+  },
+];
+
+const completedGeneration: CollectionGenerationResource = {
+  resource: {
+    id: 'generation-1',
+    tenant: 'test-project',
+    owner: 'test-user',
+    created_at: '2026-11-17T12:00:00Z',
+    updated_at: '2026-11-17T12:00:00Z',
+  },
+  request: {
+    evaluation_goal: 'Assess answer quality.',
+    model: { name: 'granite-3b', url: 'https://granite.example.com' },
+    max_benchmarks: 12,
+    strictness: 'moderate',
+    generation_effort: 'standard',
+  },
+  status: { state: 'completed' },
+  result: {
+    collection: {
+      name: 'Answer quality recommendations',
+      domains: ['trustworthiness'],
+      benchmarks: [
+        {
+          id: 'truthfulqa_mc1',
+          provider_id: 'provider-a',
+          primary_score: { metric: 'accuracy', lower_is_better: false },
+          pass_criteria: { threshold: 0.8 },
+        },
+      ],
+    },
+    yaml: 'name: Answer quality recommendations',
+    rationale: 'This benchmark directly evaluates factual accuracy.',
+    explanation: {
+      selected_benchmarks: [
+        {
+          provider_id: 'provider-a',
+          id: 'truthfulqa_mc1',
+          reason: 'It checks whether generated answers remain truthful.',
+        },
+      ],
+      rejected_benchmarks: [
+        {
+          provider_id: 'provider-a',
+          id: 'hellaswag',
+          reason: 'It focuses on commonsense completion rather than answer factuality.',
+        },
+      ],
+    },
+    actions: [],
+  },
+};
+
+const pendingGeneration: CollectionGenerationResource = {
+  ...completedGeneration,
+  status: { state: 'pending' },
+  result: undefined,
+};
+
 const LocationDisplay: React.FC = () => {
   const { pathname } = useLocation();
   return <div data-testid="location-pathname">{pathname}</div>;
@@ -81,13 +184,42 @@ const createPageElement = () => (
 );
 
 const renderPage = async () => {
-  const rendered = render(createPageElement(), { wrapper: TrackingWrapper });
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const Wrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+    <QueryClientProvider client={queryClient}>
+      <TrackingWrapper>{children}</TrackingWrapper>
+    </QueryClientProvider>
+  );
+  const rendered = render(createPageElement(), { wrapper: Wrapper });
   await act(async () => {
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 0);
     });
   });
   return rendered;
+};
+
+const startPendingGeneration = async (): Promise<void> => {
+  await renderPage();
+  fireEvent.change(screen.getByTestId('goal-suite-name'), {
+    target: { value: 'Answer quality suite' },
+  });
+  fireEvent.click(screen.getByTestId('next-suite-settings'));
+  fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+    target: { value: 'Assess answer quality.' },
+  });
+  fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+  fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+  fireEvent.click(
+    within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
+      'option',
+      { hidden: true },
+    ),
+  );
+  fireEvent.click(screen.getByTestId('save-recommendation-model'));
+  await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+  fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+  expect(await screen.findByText('Initializing recommendations')).toBeInTheDocument();
 };
 
 describe('CreateSuiteFromGoalPage', () => {
@@ -99,6 +231,14 @@ describe('CreateSuiteFromGoalPage', () => {
       loadError: undefined,
       warning: undefined,
     });
+    mockUseProviders.mockReturnValue({
+      providers: providerFixtures,
+      loaded: true,
+      loadError: undefined,
+    });
+    mockCreateCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(completedGeneration));
+    mockDeleteCollectionGeneration.mockReturnValue(() => Promise.resolve());
   });
 
   it('should require only a collection name before allowing the next step', async () => {
@@ -464,6 +604,260 @@ describe('CreateSuiteFromGoalPage', () => {
     fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
     expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
       'external-chat-model',
+    );
+  });
+
+  it('should generate, poll, edit, and preserve the benchmark recommendation before Review', async () => {
+    await renderPage();
+
+    fireEvent.change(screen.getByTestId('goal-suite-name'), {
+      target: { value: 'Answer quality suite' },
+    });
+    fireEvent.change(screen.getByTestId('goal-suite-description'), {
+      target: { value: 'Collection description is not part of the generation request.' },
+    });
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+      target: { value: 'Assess answer quality.' },
+    });
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    fireEvent.click(
+      within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
+        'option',
+        { hidden: true },
+      ),
+    );
+    fireEvent.click(screen.getByTestId('save-recommendation-model'));
+
+    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+    await waitFor(() => expect(mockCreateCollectionGeneration).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockGetCollectionGeneration).toHaveBeenCalledTimes(1));
+    expect(await screen.findByTestId('benchmark-overview-step')).toBeInTheDocument();
+    expect(await screen.findByTestId('collection-generation-selected-list')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('benchmark-overview-step')).getByRole('heading', {
+        name: 'Benchmark overview',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('AI recommendation review complete')).toBeInTheDocument();
+    expect(
+      screen.getByText('This benchmark directly evaluates factual accuracy.'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('collection-generation-selection-count')).toHaveTextContent(
+      'Selected benchmarks · 1 of 20',
+    );
+    expect(mockCreateCollectionGeneration).toHaveBeenCalledWith('', 'test-project', {
+      evaluation_goal: 'Assess answer quality.',
+      model: { name: 'granite-3b', url: 'https://granite.example.com' },
+      max_benchmarks: 12,
+      strictness: 'moderate',
+      generation_effort: 'standard',
+    });
+    expect(mockGetCollectionGeneration).toHaveBeenCalledWith('', 'test-project', 'generation-1');
+    expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Review' })).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('collection-generation-why-truthfulqa_mc1'));
+    expect(
+      await screen.findByText('It checks whether generated answers remain truthful.'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('collection-generation-review-alternatives'));
+    expect(screen.getByText('Other benchmarks to review')).toBeInTheDocument();
+    expect(screen.getByText('Why it’s an alternative')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('collection-generation-add-hellaswag'));
+    expect(screen.getByTestId('collection-generation-selection-count')).toHaveTextContent(
+      'Selected benchmarks · 2 of 20',
+    );
+    expect(screen.getByTestId('collection-generation-recommended-count')).toHaveTextContent(
+      '1 recommended',
+    );
+    fireEvent.click(screen.getByTestId('collection-generation-close-alternatives'));
+    fireEvent.click(screen.getByTestId('collection-generation-remove-truthfulqa_mc1'));
+    expect(screen.getByTestId('collection-generation-selection-count')).toHaveTextContent(
+      'Selected benchmarks · 1 of 20',
+    );
+    fireEvent.click(screen.getByTestId('collection-generation-review-alternatives'));
+    expect(screen.getByText('Why this benchmark was recommended')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('suite-builder-back'));
+    expect(screen.getByTestId('define-goal-step')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Benchmark overview/ }));
+    expect(screen.getByTestId('collection-generation-selected-list')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-generation-selection-count')).toHaveTextContent(
+      'Selected benchmarks · 1 of 20',
+    );
+    expect(screen.getByTestId('next-benchmark-overview')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('next-benchmark-overview'));
+    expect(screen.getByTestId('review-step-placeholder')).toBeInTheDocument();
+    expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+  });
+
+  it('should delete an active generation before cancelling to the suite chooser', async () => {
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
+    await renderPage();
+
+    fireEvent.change(screen.getByTestId('goal-suite-name'), {
+      target: { value: 'Answer quality suite' },
+    });
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+      target: { value: 'Assess answer quality.' },
+    });
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    fireEvent.click(
+      within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
+        'option',
+        { hidden: true },
+      ),
+    );
+    fireEvent.click(screen.getByTestId('save-recommendation-model'));
+    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+
+    expect(await screen.findByTestId('benchmark-overview-step')).toBeInTheDocument();
+    expect(screen.getByText('Initializing recommendations')).toBeInTheDocument();
+    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
+    await waitFor(() => expect(screen.getByTestId('suite-builder-cancel')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('suite-builder-cancel'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+        /^\/evaluation\/test-project\/create-suite$/,
+      ),
+    );
+    expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith('', 'test-project', 'generation-1');
+    expect(await screen.findByTestId('suite-chooser-route')).toBeInTheDocument();
+  });
+
+  it('should stop an active generation, pause polling, and show the retry state', async () => {
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
+    let resolveDelete: (() => void) | undefined;
+    mockDeleteCollectionGeneration.mockReturnValue(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDelete = resolve;
+        }),
+    );
+
+    await startPendingGeneration();
+    const stopButton = screen.getByTestId('collection-generation-stop');
+    expect(stopButton).toBeEnabled();
+    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
+    fireEvent.click(stopButton);
+
+    await waitFor(() => expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(1));
+    expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith('', 'test-project', 'generation-1');
+    expect(screen.getByTestId('collection-generation-stop')).toBeDisabled();
+    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
+    await act(async () => {
+      resolveDelete?.();
+    });
+
+    expect(await screen.findByTestId('collection-generation-cancelled')).toHaveTextContent(
+      'Generation stopped.',
+    );
+    expect(screen.getByTestId('collection-generation-retry')).toBeEnabled();
+    expect(screen.queryByTestId('collection-generation-stop')).not.toBeInTheDocument();
+    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create-suite/from-goal',
+    );
+
+    const generationReadCount = mockGetCollectionGeneration.mock.calls.length;
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 8500);
+      });
+    });
+    expect(mockGetCollectionGeneration).toHaveBeenCalledTimes(generationReadCount);
+  }, 15_000);
+
+  it('should allow stopping an active generation when status polling fails', async () => {
+    mockGetCollectionGeneration.mockReturnValue(() =>
+      Promise.reject(new Error('The status request failed.')),
+    );
+
+    await startPendingGeneration();
+    await waitFor(() =>
+      expect(screen.getByTestId('collection-generation-poll-error')).toBeInTheDocument(),
+    );
+
+    expect(screen.getByTestId('collection-generation-stop')).toBeEnabled();
+    expect(screen.getByTestId('collection-generation-retry-poll')).toBeEnabled();
+    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('collection-generation-stop'));
+
+    expect(await screen.findByTestId('collection-generation-cancelled')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-generation-retry')).toBeEnabled();
+    expect(screen.queryByTestId('collection-generation-retry-poll')).not.toBeInTheDocument();
+  });
+
+  it('should keep an active generation and allow Stop to retry when DELETE fails', async () => {
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
+    mockDeleteCollectionGeneration
+      .mockReturnValueOnce(() =>
+        Promise.reject(new Error('The generation could not be cancelled.')),
+      )
+      .mockReturnValueOnce(() => Promise.resolve());
+
+    await startPendingGeneration();
+    fireEvent.click(screen.getByTestId('collection-generation-stop'));
+
+    expect(await screen.findByTestId('collection-generation-cancel-error')).toHaveTextContent(
+      'The generation could not be cancelled.',
+    );
+    expect(screen.getByText('Initializing recommendations')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-generation-stop')).toBeEnabled();
+    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
+    expect(screen.getByTestId('suite-builder-cancel')).toBeEnabled();
+
+    fireEvent.click(screen.getByTestId('collection-generation-stop'));
+    expect(await screen.findByTestId('collection-generation-cancelled')).toBeInTheDocument();
+    expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('collection-generation-retry')).toBeEnabled();
+    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
+  });
+
+  it('should surface a cancellation error while keeping Cancel available to retry', async () => {
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
+    mockDeleteCollectionGeneration.mockReturnValue(() =>
+      Promise.reject(new Error('The generation could not be cancelled.')),
+    );
+    await renderPage();
+
+    fireEvent.change(screen.getByTestId('goal-suite-name'), {
+      target: { value: 'Answer quality suite' },
+    });
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+      target: { value: 'Assess answer quality.' },
+    });
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    fireEvent.click(
+      within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
+        'option',
+        { hidden: true },
+      ),
+    );
+    fireEvent.click(screen.getByTestId('save-recommendation-model'));
+    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+
+    expect(await screen.findByText('Initializing recommendations')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('suite-builder-cancel')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('suite-builder-cancel'));
+
+    expect(await screen.findByTestId('collection-generation-cancel-error')).toHaveTextContent(
+      'The generation could not be cancelled.',
+    );
+    expect(screen.getByTestId('suite-builder-cancel')).toBeEnabled();
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create-suite/from-goal',
     );
   });
 });

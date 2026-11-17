@@ -43,6 +43,22 @@ class SuiteBuilderPage {
     return cy.findByTestId('selected-recommendation-model');
   }
 
+  findEditRecommendationModelButton() {
+    return cy.findByTestId('edit-recommendation-model');
+  }
+
+  findRecommendationModelToggle() {
+    return cy.findByTestId('recommendation-model-toggle');
+  }
+
+  findRecommendationModelOption(name: string) {
+    return cy.findByTestId(`recommendation-model-option-${name}`);
+  }
+
+  findSaveRecommendationModelButton() {
+    return cy.findByTestId('save-recommendation-model');
+  }
+
   findRecommendButton() {
     return cy.findByTestId('recommend-benchmarks-with-ai');
   }
@@ -71,6 +87,54 @@ class SuiteBuilderPage {
 
   findDefineGoalStep() {
     return cy.findByTestId('define-goal-step');
+  }
+
+  findBenchmarkOverviewStep() {
+    return cy.findByTestId('benchmark-overview-step');
+  }
+
+  findGenerationProgress() {
+    return cy.findByTestId('collection-generation-progress');
+  }
+
+  findGenerationStatusHeading() {
+    return cy.findByRole('heading', { name: 'AI is comparing benchmarks with your goal' });
+  }
+
+  findSelectedBenchmark(id: string) {
+    return cy.findByTestId(`collection-generation-selected-${id}`);
+  }
+
+  findSelectedBenchmarkName(id: string) {
+    return cy.findByTestId(`collection-generation-benchmark-name-${id}`);
+  }
+
+  findSelectionCount() {
+    return cy.findByTestId('collection-generation-selection-count');
+  }
+
+  findReviewAlternativesButton() {
+    return cy.findByTestId('collection-generation-review-alternatives');
+  }
+
+  findAlternative(id: string) {
+    return cy.findByTestId(`collection-generation-alternative-${id}`);
+  }
+
+  findAddAlternativeButton(id: string) {
+    return cy.findByTestId(`collection-generation-add-${id}`);
+  }
+
+  findCloseAlternativesButton() {
+    return cy.findByTestId('collection-generation-close-alternatives');
+  }
+
+  findRemoveSelectedBenchmarkButton(id: string) {
+    return cy.findByTestId(`collection-generation-remove-${id}`);
+  }
+
+  findOverviewNextButton() {
+    return cy.findByTestId('next-benchmark-overview');
   }
 }
 
