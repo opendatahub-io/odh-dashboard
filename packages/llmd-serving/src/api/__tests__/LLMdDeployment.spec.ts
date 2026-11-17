@@ -57,6 +57,19 @@ describe('deleteDeployment', () => {
     mockK8sDeleteResource.mockResolvedValue({ kind: 'Status', status: 'Success' });
   });
 
+  it('should not delete configuration copies if the primary resource deletion is denied', async () => {
+    const denied = k8sStatusError(403);
+    mockK8sDeleteResource.mockImplementation((options) =>
+      options.model === LLMInferenceServiceModel
+        ? Promise.reject(denied)
+        : Promise.resolve({ kind: 'Status', status: 'Success' }),
+    );
+    await expect(
+      deleteDeployment(makeDeployment({ baseRefs: [{ name: DEPLOYMENT_NAME }] })),
+    ).rejects.toBe(denied);
+    expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([]);
+  });
+
   it('should delete only the deployment when it references no configs', async () => {
     await deleteDeployment(makeDeployment());
 

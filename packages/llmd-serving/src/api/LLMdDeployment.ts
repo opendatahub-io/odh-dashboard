@@ -11,12 +11,13 @@ import {
 export const deleteDeployment = async (deployment: LLMdDeployment): Promise<void> => {
   const { name, namespace } = deployment.model.metadata;
 
-  const deletions: Promise<unknown>[] = [
-    k8sDeleteResource<typeof LLMInferenceServiceModel, K8sStatus>({
-      model: LLMInferenceServiceModel,
-      queryOptions: { name, ns: namespace },
-    }),
-  ];
+  // Do not remove supporting configuration when deleting the model is forbidden
+  // or fails. Kubernetes and the serving controllers own workload garbage collection.
+  await k8sDeleteResource<typeof LLMInferenceServiceModel, K8sStatus>({
+    model: LLMInferenceServiceModel,
+    queryOptions: { name, ns: namespace },
+  });
+  const deletions: Promise<unknown>[] = [];
 
   // The simple-vLLM config copy shares the deployment's name
   const hasMatchingConfig = deployment.model.spec.baseRefs?.some((ref) => ref.name === name);

@@ -238,25 +238,58 @@ export const patchDeploymentStoppedStatus = (
     ],
   });
 
+// Controllers also report ordinary workload and gateway readiness waits as False/Error.
+const PENDING_CONDITION_REASONS = new Set<string>([
+  LLMInferenceServiceReadyConditionReason.PROGRESSING,
+  LLMInferenceServiceReadyConditionReason.MINIMUM_REPLICAS_UNAVAILABLE,
+  LLMInferenceServiceReadyConditionReason.STOPPED,
+  'GatewaysNotReady',
+  'HTTPRouteNotObserved',
+  'HTTPRoutesNotReady',
+  'WaitingForGateway',
+  'InferencePoolNotReady',
+]);
+
+const getFailedCondition = (service: LLMInferenceServiceKind) => {
+  const conditions = service.status?.conditions ?? [];
+  const ready = conditions.find((condition) => condition.type === 'Ready');
+  // Ready is authoritative over stale child errors; a stopped workload is not a failure.
+  if (
+    ready?.status === 'True' ||
+    ready?.reason === LLMInferenceServiceReadyConditionReason.STOPPED
+  ) {
+    return undefined;
+  }
+  return conditions.find(
+    (condition) =>
+      (condition.type === 'Ready' ||
+        LLMD_CONDITION_SPECS.some(
+          (spec) =>
+            spec.type === condition.type ||
+            spec.children?.some((child) => child.type === condition.type),
+        )) &&
+      condition.status === 'False' &&
+      (condition.reason === LLMInferenceServiceReadyConditionReason.PROGRESS_DEADLINE_EXCEEDED ||
+        (condition.severity === 'Error' && !PENDING_CONDITION_REASONS.has(condition.reason ?? ''))),
+  );
+};
+
 export const getLLMInferenceServiceModelState = (
   is: LLMInferenceServiceKind,
   modelPodStatus?: ModelStatus | null,
 ): ModelDeploymentState => {
+  if (is.metadata.deletionTimestamp) {
+    return ModelDeploymentState.DELETING;
+  }
   const readyCondition = is.status?.conditions?.find((condition) => condition.type === 'Ready');
   if (modelPodStatus?.failedToSchedule) {
     return ModelDeploymentState.FAILED_TO_LOAD;
   }
+  if (getFailedCondition(is)) {
+    return ModelDeploymentState.FAILED_TO_LOAD;
+  }
   switch (readyCondition?.status) {
     case 'False':
-      if (
-        readyCondition.reason === LLMInferenceServiceReadyConditionReason.PROGRESS_DEADLINE_EXCEEDED
-      ) {
-        return ModelDeploymentState.FAILED_TO_LOAD;
-      }
-      if (readyCondition.reason === LLMInferenceServiceReadyConditionReason.STOPPED) {
-        // if the service is actually stopped it overrides this, checking for stopped here prevents a false failure while the status is updating after hitting start
-        return ModelDeploymentState.PENDING;
-      }
       return ModelDeploymentState.PENDING;
     case 'True':
       return ModelDeploymentState.LOADED;
@@ -269,8 +302,15 @@ export const getLLMInferenceServiceStatusMessage = (
   is: LLMInferenceServiceKind,
   modelPodStatus?: ModelStatus | null,
 ): string => {
+  if (is.metadata.deletionTimestamp) {
+    return 'Waiting for Kubernetes and serving controllers to finish deleting this deployment.';
+  }
   if (modelPodStatus?.failedToSchedule) {
     return modelPodStatus.failureMessage || 'Insufficient resources';
+  }
+  const failure = getFailedCondition(is);
+  if (failure) {
+    return failure.message || failure.reason || 'Deployment failed';
   }
   const stateMessage =
     is.status?.conditions?.find((condition) => condition.type === 'Ready')?.message ?? 'Unknown';

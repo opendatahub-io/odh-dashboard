@@ -163,6 +163,59 @@ const initIntercepts = ({
 
 describe('Model Serving LLMD', () => {
   describe('showing existing LLMD deployments', () => {
+    it('should distinguish startup, controller failure, and deletion progress', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'starting-model',
+            displayName: 'Starting model',
+            conditions: [
+              { type: 'Ready', status: 'False', severity: 'Error', reason: 'Progressing' },
+            ],
+          }),
+          mockLLMInferenceServiceK8sResource({
+            name: 'invalid-config-model',
+            displayName: 'Invalid configuration',
+            conditions: [
+              {
+                type: 'Ready',
+                status: 'False',
+                severity: 'Error',
+                reason: 'ConfigNotFound',
+                message: 'The referenced model configuration does not exist.',
+              },
+            ],
+          }),
+          mockLLMInferenceServiceK8sResource({
+            name: 'deleting-model',
+            displayName: 'Deleting model',
+            deleted: true,
+            isReady: true,
+          }),
+        ],
+      });
+      modelServingSection.visit('test-project');
+
+      modelServingSection.getKServeRow('Starting model').findStatusLabel('Starting');
+      const failedRow = modelServingSection.getKServeRow('Invalid configuration');
+      failedRow.findStatusLabel('Failed');
+      failedRow.findStatusSubtitle().should('contain.text', 'configuration does not exist');
+
+      const deletingRow = modelServingSection.getKServeRow('Deleting model');
+      deletingRow.findStatusLabel('Deleting');
+      deletingRow.findStateActionToggle().should('be.disabled');
+      deletingRow.find().findByRole('button', { name: 'Kebab toggle' }).should('not.exist');
+      deletingRow.find().findByText('Not available').should('be.visible');
+      cy.screenshot('llmd-lifecycle-states', { scale: true });
+
+      deletingRow.findStatusLabel('Deleting').click();
+      cy.findByTestId('deployment-status-modal').should('be.visible');
+      cy.findByTestId('deployment-deletion-progress').should('contain.text', 'finish deleting');
+      cy.findByTestId('deployment-status-edit-button').should('not.exist');
+      cy.findByTestId('deployment-status-stop-button').should('not.exist');
+      cy.screenshot('llmd-deletion-progress', { scale: true });
+    });
+
     it('should display LLMD deployment in deployments table (projects)', () => {
       initIntercepts({
         llmInferenceServices: [

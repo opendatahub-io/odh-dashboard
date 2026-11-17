@@ -2,6 +2,7 @@ import { testHook } from '@odh-dashboard/jest-config/hooks';
 import type { ProjectKind, PodKind } from '@odh-dashboard/k8s-core';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { mockLLMInferenceServiceK8sResource } from '../../__mocks__/mockLLMInferenceServiceK8sResource';
 import { mockLLMInferenceServiceConfigK8sResource } from '../../__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import type {
@@ -118,6 +119,17 @@ describe('useWatchDeployments', () => {
       expect(renderResult).hookToHaveUpdateCount(1);
     },
   );
+
+  it('should retain a finalizing deployment until the watch confirms it is gone', () => {
+    mockLLMInferenceServices[0].metadata.deletionTimestamp = '2026-11-16T12:00:00Z';
+    mockLLMInferenceServices[0].metadata.finalizers = ['serving.kserve.io/finalizer'];
+    const hook = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+    expect(hook.result.current[0]).toHaveLength(1);
+    expect(hook.result.current[0]?.[0].status?.state).toBe(ModelDeploymentState.DELETING);
+    mockUseWatchLLMInferenceService.mockReturnValue([[], true, undefined]);
+    hook.rerender(mockProject, undefined, undefined);
+    expect(hook.result.current[0]).toEqual([]);
+  });
 
   it('should skip secondary resource watches when no LLM inference services are returned', () => {
     mockUseWatchLLMInferenceService.mockReturnValue([[], true, undefined]);
