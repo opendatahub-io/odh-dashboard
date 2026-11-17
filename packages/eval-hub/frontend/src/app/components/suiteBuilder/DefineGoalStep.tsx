@@ -148,7 +148,16 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
           data-testid="recommendation-model-summary"
         >
           <FlexItem>
-            <strong>Recommendation model</strong>
+            <strong>
+              Recommendation model
+              <span
+                className="pf-v6-c-form__label-required"
+                aria-hidden="true"
+                data-testid="recommendation-model-required"
+              >
+                *
+              </span>
+            </strong>
           </FlexItem>
           <FlexItem>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>

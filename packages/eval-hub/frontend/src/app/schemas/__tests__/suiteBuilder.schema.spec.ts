@@ -143,6 +143,14 @@ describe('suite builder schemas', () => {
       defineGoalSchema.safeParse({ evaluationGoal: 'Valid goal', generatorModel: null }).success,
     ).toBe(false);
     expect(
+      suiteBuilderSchema.safeParse({
+        ...suiteBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
+        evaluationGoal: 'Valid goal',
+        generatorModel: null,
+      }).success,
+    ).toBe(false);
+    expect(
       defineGoalSchema.safeParse({
         evaluationGoal: 'Valid goal',
         generatorModel: { ...RECOMMENDATION_MODEL, url: 'not-a-url' },

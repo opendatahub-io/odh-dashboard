@@ -213,6 +213,13 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
       'No model selected',
     );
+    const recommendationModelSummary = screen.getByTestId('recommendation-model-summary');
+    const recommendationModelRequired = within(recommendationModelSummary).getByTestId(
+      'recommendation-model-required',
+    );
+    expect(recommendationModelRequired).toHaveClass('pf-v6-c-form__label-required');
+    expect(recommendationModelRequired).toHaveAttribute('aria-hidden', 'true');
+    expect(recommendationModelRequired).toHaveTextContent('*');
 
     fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
       target: { value: '   ' },

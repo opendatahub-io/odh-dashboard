@@ -47,27 +47,16 @@ const defineGoalShape = {
       MAX_EVALUATION_GOAL_LENGTH,
       `Evaluation goal must be ${MAX_EVALUATION_GOAL_LENGTH.toLocaleString()} characters or fewer.`,
     ),
-  generatorModel: generatorModelSelectionSchema.nullable(),
-};
-
-const requireGeneratorModel = (
-  values: { generatorModel: GeneratorModelSelection | null },
-  context: z.RefinementCtx,
-) => {
-  if (values.generatorModel === null) {
-    context.addIssue({
-      code: 'custom',
-      path: ['generatorModel'],
+  generatorModel: generatorModelSelectionSchema
+    .nullable()
+    .refine((value): boolean => value !== null, {
       message: 'Select a recommendation model.',
-    });
-  }
+    }),
 };
 
-export const defineGoalSchema = z.object(defineGoalShape).superRefine(requireGeneratorModel);
+export const defineGoalSchema = z.object(defineGoalShape);
 
-export const suiteBuilderSchema = suiteSettingsSchema
-  .extend(defineGoalShape)
-  .superRefine(requireGeneratorModel);
+export const suiteBuilderSchema = suiteSettingsSchema.extend(defineGoalShape);
 
 export type SuiteBuilderFormValues = z.infer<typeof suiteBuilderSchema>;
 
