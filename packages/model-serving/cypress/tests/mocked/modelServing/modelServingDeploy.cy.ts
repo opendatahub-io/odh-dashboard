@@ -1563,6 +1563,10 @@ describe('Model Serving Deploy Wizard', () => {
         .findTokenAuthenticationCheckbox()
         .should('be.disabled')
         .and('not.be.checked');
+      // Existing authentication is preserved, so only an unauthenticated external route warns.
+      cy.findByTestId('no-auth-alert').should(
+        !hasExternalRoute && enableAuth === 'false' ? 'exist' : 'not.exist',
+      );
       modelServingWizardEdit.findNextButton().should('be.enabled').click();
       modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
 

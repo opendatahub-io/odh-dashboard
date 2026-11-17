@@ -127,6 +127,15 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     return <Spinner data-testid="spinner" />;
   }
 
+  // Deployments with an external route (KServe, NIM) keep an existing service's authentication
+  // setting when the user cannot configure token authentication, so do not warn that it is
+  // unauthenticated. The auto-checked token warning (e.g. llm-d) does not preserve authentication.
+  const hasPreservedAuth =
+    !allowCreate &&
+    !shouldAutoCheckTokens &&
+    !!wizardState.initialData?.isEditing &&
+    wizardState.initialData.isAuthEnabled === true;
+
   const handleExternalRouteChange = (checked: boolean) => {
     wizardState.state.externalRoute.setData(checked);
 
@@ -222,7 +231,9 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   isExternalRouteVisible={isExternalRouteVisible}
                   externalRouteData={externalRouteData}
                   disabledHelperText={wizardState.state.tokenAuthentication.disabledHelperText}
-                  hideNoAuthWarning={wizardState.state.tokenAuthentication.isDisabled}
+                  hideNoAuthWarning={
+                    wizardState.state.tokenAuthentication.isDisabled || hasPreservedAuth
+                  }
                 />
               </FormGroup>
             </StackItem>

@@ -97,6 +97,59 @@ describe('AdvancedSettingsStepContent', () => {
       },
     );
 
+    it.each([
+      {
+        scenario: 'an existing authenticated service',
+        initialData: { isEditing: true, isAuthEnabled: true },
+        shouldAutoCheckTokens: false,
+        showWarning: false,
+      },
+      {
+        scenario: 'an existing unauthenticated service',
+        initialData: { isEditing: true, isAuthEnabled: false },
+        shouldAutoCheckTokens: false,
+        showWarning: true,
+      },
+      {
+        scenario: 'a new deployment',
+        initialData: { isEditing: false, isAuthEnabled: true },
+        shouldAutoCheckTokens: false,
+        showWarning: true,
+      },
+      {
+        scenario: 'an existing authenticated service with auto-checked tokens',
+        initialData: { isEditing: true, isAuthEnabled: true },
+        shouldAutoCheckTokens: true,
+        showWarning: true,
+      },
+    ])(
+      'should account for preserved authentication when warning contributors about $scenario',
+      ({ initialData, shouldAutoCheckTokens, showWarning }) => {
+        const wizardState = mockDeploymentWizardState({
+          initialData,
+          state: {
+            canCreateRoleBindings: false,
+            externalRoute: { data: true },
+            tokenAuthentication: { data: [] },
+          },
+          advancedOptions: { isExternalRouteVisible: true, shouldAutoCheckTokens },
+        });
+        render(
+          <AdvancedSettingsStepContent
+            wizardState={wizardState}
+            externalData={externalData}
+            allowCreate={false}
+          />,
+        );
+
+        if (showWarning) {
+          expect(screen.getByTestId('no-auth-alert')).toBeInTheDocument();
+        } else {
+          expect(screen.queryByTestId('no-auth-alert')).not.toBeInTheDocument();
+        }
+      },
+    );
+
     it('should still auto-enable token authentication for project admins enabling external access', () => {
       const wizardState = mockDeploymentWizardState({
         state: { externalRoute: { data: false }, tokenAuthentication: { data: [] } },

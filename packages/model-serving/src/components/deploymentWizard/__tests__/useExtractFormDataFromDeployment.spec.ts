@@ -2,7 +2,7 @@ import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
 import useFetch from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { Deployment } from '../../../../extension-points';
-import { useDeploymentAuthTokens } from '../../../concepts/auth';
+import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   useExtractFormDataFromDeployment,
@@ -26,6 +26,7 @@ const mockUseDashboardNamespace = jest.mocked(useDashboardNamespace);
 const mockUseFetch = jest.mocked(useFetch);
 const mockUseResolvedDeploymentExtension = jest.mocked(useResolvedDeploymentExtension);
 const mockUseDeploymentAuthTokens = jest.mocked(useDeploymentAuthTokens);
+const mockIsDeploymentAuthEnabled = jest.mocked(isDeploymentAuthEnabled);
 const mockUseWizardFieldExtractors = jest.mocked(useWizardFieldExtractors);
 
 const mockDeployment: Deployment = {
@@ -118,4 +119,15 @@ describe('useExtractFormDataFromDeployment', () => {
     expect(renderResult.result.current.errors).toStrictEqual([]);
     expect(renderResult.result.current.formData).toBeDefined();
   });
+
+  it.each([true, false])(
+    'should include the effective authentication state in the form data (enabled: %s)',
+    (isAuthEnabled) => {
+      mockIsDeploymentAuthEnabled.mockReturnValue(isAuthEnabled);
+
+      const renderResult = testHook(useExtractFormDataFromDeployment)(mockDeployment);
+      expect(mockIsDeploymentAuthEnabled).toHaveBeenCalledWith(mockDeployment, undefined);
+      expect(renderResult.result.current.formData?.isAuthEnabled).toBe(isAuthEnabled);
+    },
+  );
 });

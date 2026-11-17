@@ -9,7 +9,7 @@ import { type Deployment, type ExtractionResult } from '../../../extension-point
 import { isModelServingDeploymentFormDataExtension } from '../../../extension-points/deployment-wizard';
 import { isModelServingAuthExtension } from '../../../extension-points';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
-import { useDeploymentAuthTokens } from '../../concepts/auth';
+import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../concepts/auth';
 import type { HuggingFaceApiKeyFieldData } from '../../shared/wizard-fields';
 
 const collectExtractionErrors = (
@@ -198,6 +198,9 @@ export const useExtractFormDataFromDeployment = (
 
         // Include existing authentication tokens
         existingAuthTokens: deploymentSecrets,
+
+        // Effective authentication state, which may be enabled without dashboard-managed tokens
+        isAuthEnabled: isDeploymentAuthEnabled(deployment, platformAuthCheck),
 
         // Extract deployment strategy configuration
         deploymentStrategy:

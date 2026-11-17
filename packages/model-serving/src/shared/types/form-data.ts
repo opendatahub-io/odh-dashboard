@@ -146,6 +146,8 @@ export type InitialWizardFormData = {
   externalRoute?: ExternalRouteFieldData;
   tokenAuthentication?: TokenAuthenticationFieldData;
   existingAuthTokens?: SecretKind[];
+  /** Whether the existing deployment has authentication enabled, even without dashboard-managed tokens. */
+  isAuthEnabled?: boolean;
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
