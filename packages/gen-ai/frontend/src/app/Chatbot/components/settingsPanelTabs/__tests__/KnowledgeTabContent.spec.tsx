@@ -171,6 +171,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
@@ -179,7 +180,9 @@ describe('KnowledgeTabContent', () => {
     it('does not show the link when RAG is enabled without uploaded files', () => {
       useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
 
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
     });
@@ -194,6 +197,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('rag-troubleshooting-button')).toHaveTextContent('Troubleshooting');
@@ -226,6 +230,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('rag-troubleshooting-button')).toBeInTheDocument();
@@ -251,7 +256,9 @@ describe('KnowledgeTabContent', () => {
       mockUseFetchVectorStores.mockReturnValue([[store], true, undefined, jest.fn()]);
       useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
 
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('external-vector-store-toggle'));
       await user.click(
@@ -274,6 +281,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await user.click(screen.getByTestId('rag-troubleshooting-button'));
@@ -298,6 +306,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const trigger = screen.getByTestId('rag-troubleshooting-button');

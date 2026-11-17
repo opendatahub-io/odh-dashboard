@@ -73,7 +73,7 @@ const useAgentProfileUrlParam = ({
   // Skip re-fetching when handleProfileSaved already applied this profile (e.g. after Save/Save As)
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
 
-  const [loading, setLoading] = React.useState(false);
+  const [loadingRequest, setLoadingRequest] = React.useState<symbol | null>(null);
   const [error, setError] = React.useState<Error | undefined>();
 
   // Track the last profile ID we applied to prevent double-application in StrictMode
@@ -84,6 +84,7 @@ const useAgentProfileUrlParam = ({
       // URL param cleared (e.g. "New agent configuration") — reset so the same
       // profile can be re-loaded in a future navigation without being blocked.
       appliedProfileId.current = null;
+      setLoadingRequest(null);
       return;
     }
     if (
@@ -99,16 +100,21 @@ const useAgentProfileUrlParam = ({
     }
 
     appliedProfileId.current = agentProfileId;
-    setLoading(true);
+    const request = Symbol(agentProfileId);
+    setLoadingRequest(request);
     setError(undefined);
 
     let cancelled = false;
+    let profileApplied = false;
+    // Validation can outlive effect cleanup. Only its request may finish its loading state.
+    const finishLoading = () => {
+      setLoadingRequest((current) => (current === request ? null : current));
+    };
 
     api
       .getAgentProfile({ id: agentProfileId, namespace: namespace.name })
       .then(async (profile) => {
         if (cancelled) {
-          setLoading(false);
           return;
         }
 
@@ -117,6 +123,7 @@ const useAgentProfileUrlParam = ({
           mcpServers: mcpServersRef.current,
         });
 
+        profileApplied = true;
         applyAgentProfile(
           config,
           agentProfileId,
@@ -202,8 +209,6 @@ const useAgentProfileUrlParam = ({
             missingComponents: missingComponents.join(','),
           });
         }
-
-        setLoading(false);
       })
       .catch((err: unknown) => {
         if (cancelled) {
@@ -211,7 +216,6 @@ const useAgentProfileUrlParam = ({
         }
         appliedProfileId.current = null; // allow retry if caller re-mounts
         setError(err instanceof Error ? err : new Error(String(err)));
-        setLoading(false);
         const message = (err instanceof Error ? err.message : String(err)).toLowerCase();
         const failureReason = message.includes('timeout')
           ? 'timeout'
@@ -226,10 +230,15 @@ const useAgentProfileUrlParam = ({
           agentID: agentProfileId,
           failureReason,
         });
-      });
+      })
+      .finally(finishLoading);
 
     return () => {
       cancelled = true;
+      // Applying the profile also triggers cleanup; its async validation still owns loading.
+      if (!profileApplied) {
+        finishLoading();
+      }
       // Reset so a re-mount (e.g. React StrictMode double-invoke) can retry the fetch.
       // Once the profile lands, loadedProfileId === agentProfileId prevents re-fetching.
       appliedProfileId.current = null;
@@ -254,7 +263,7 @@ const useAgentProfileUrlParam = ({
     trackEvent,
   ]);
 
-  return { loading, error };
+  return { loading: loadingRequest !== null, error };
 };
 
 export default useAgentProfileUrlParam;
