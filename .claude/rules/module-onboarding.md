@@ -269,7 +269,7 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - [ ] `cypress:mock:*` scripts and `pnpm run validate:cypress-mock` passes (if federated and participating in dashboard Cypress mock tests — the installer scaffolds them opted in)
 - [ ] `extensions.ts` with area, nav, and route extensions
 - [ ] `SupportedArea` enum entry + area config + flag type/default/CRD property
-- [ ] `OWNERS` / `OWNERS_ALIASES` entries and dependabot `gomod` directory (if BFF)
+- [ ] `OWNERS_ALIASES` alias entries; `packages/<name>/OWNERS` with `area/<name>`, `area/components`, and `options.no_parent_owners: true`; `manifests/modules/<name>/OWNERS` with `area/<name>`, `area/manifests`, and `options.no_parent_owners: true` (if manifests added); dependabot `gomod` directory (if BFF)
 - [ ] Rspack config with `OdhFederationPlugin` from `@odh-dashboard/app-config/rspack` (if federated)
 - [ ] BFF with `/healthcheck` and OpenAPI spec (if applicable)
 - [ ] Unit tests in `__tests__/`
