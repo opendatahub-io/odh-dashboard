@@ -65,27 +65,29 @@ describe('useHardwareProfiles', () => {
       wrapper: createWrapper(makeQueryClient()),
     });
 
-    await waitFor(() => expect(result.result.current.loaded).toBe(true));
-
-    expect(result.result.current.profiles).toEqual([
-      profile('gpu-default'),
-      {
-        ...profile('cpu-small'),
-        compatibility: {
-          compatible: false,
-          hardware_profile: 'cpu-small',
-          mismatches: [
-            {
-              provider_id: 'provider-a',
-              resource: 'cpu',
-              required: '4',
-              available: '2',
-              message: 'below the provider minimum',
-            },
-          ],
+    // Compatibility is merged from a separate validation query, so wait for the
+    // merged profiles rather than `loaded`, which only tracks the info query.
+    await waitFor(() =>
+      expect(result.result.current.profiles).toEqual([
+        profile('gpu-default'),
+        {
+          ...profile('cpu-small'),
+          compatibility: {
+            compatible: false,
+            hardware_profile: 'cpu-small',
+            mismatches: [
+              {
+                provider_id: 'provider-a',
+                resource: 'cpu',
+                required: '4',
+                available: '2',
+                message: 'below the provider minimum',
+              },
+            ],
+          },
         },
-      },
-    ]);
+      ]),
+    );
     expect(result.result.current.error).toBeUndefined();
     expect(result.result.current.compatibilityError).toBeUndefined();
     expect(mockGetInfo).toHaveBeenCalledWith('', 'test-ns');

@@ -452,6 +452,44 @@ describe('StartEvaluationRunModal', () => {
     expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
   });
 
+  it('should submit without hardware_config after clearing a selection retained by a failed info refetch', async () => {
+    let infoFailed = false;
+    mockUseKueueAvailability.mockReturnValue({
+      availability: kueueAvailability,
+      loaded: true,
+      error: undefined,
+    });
+    mockUseHardwareProfiles.mockImplementation(() => ({
+      profiles: [hardwareProfile],
+      loaded: true,
+      error: infoFailed ? new Error('info request failed') : undefined,
+    }));
+
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Default profile'));
+
+    infoFailed = true;
+    // Any form-value change re-renders the form so the failed refetch state propagates.
+    fireEvent.change(screen.getByTestId('evaluation-name-input'), {
+      target: { value: 'Retained selection run' },
+    });
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('hardware-profile-clear-selection'));
+
+    await selectClusterModel();
+    fireEvent.click(screen.getByTestId('start-evaluation-submit'));
+
+    await waitFor(() => expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1));
+    expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      expect.not.objectContaining({ hardware_config: expect.anything() }),
+    );
+  });
+
   it('should submit the evaluation using the cloned collection', async () => {
     const resolveCollection = jest.fn(() => Promise.resolve(clonedCollectionResolution));
     renderModal(resolveCollection);

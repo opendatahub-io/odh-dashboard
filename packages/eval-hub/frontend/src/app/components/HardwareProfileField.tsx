@@ -39,6 +39,7 @@ type HardwareProfileFieldProps = {
   error?: Error;
   compatibilityError?: Error;
   selectedProfile?: string;
+  selectionLost?: boolean;
   onSelect: (profile: HardwareProfileInfo | undefined) => void;
   disabled?: boolean;
   className?: string;
@@ -161,6 +162,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
   error,
   compatibilityError,
   selectedProfile,
+  selectionLost,
   onSelect,
   disabled,
   className,
@@ -173,6 +175,9 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
   // The field is optional: an empty list or a failed load never blocks submission —
   // the unselected state is the "Default (no hardware profile)" option, which submits
   // without hardware_config and runs on the regular K8s path.
+  // A failed refetch can leave a retained selection alongside the error (React Query
+  // keeps the cached data), so the disabled selector must still offer a way to clear
+  // it — otherwise submission repeats the blocking /info revalidation and fails again.
   const fieldState = getHardwareProfileFieldState({ error });
   const profileSelectionDisabled = disabled || fieldState.unavailable;
   if (!loaded) {
@@ -261,6 +266,17 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
           ))}
         </SelectList>
       </Select>
+      {fieldState.unavailable && selected ? (
+        <Button
+          variant="link"
+          isInline
+          isDisabled={disabled}
+          onClick={() => onSelect(undefined)}
+          data-testid="hardware-profile-clear-selection"
+        >
+          Use default (no hardware profile)
+        </Button>
+      ) : null}
       <FormHelperText>
         <HelperText
           className="evalhub-hardware-profile-helper"
@@ -271,7 +287,13 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
               {formatHardwareProfileDetails(selected)}
             </HelperTextItem>
           ) : null}
-          {(!selected || fieldState.helperVariant) && fieldState.helperText ? (
+          {selectionLost ? (
+            <HelperTextItem variant="error" data-testid="hardware-profile-selection-lost">
+              The selected hardware profile is no longer available. Select another profile or the
+              default option to start the evaluation.
+            </HelperTextItem>
+          ) : null}
+          {!selectionLost && (!selected || fieldState.helperVariant) && fieldState.helperText ? (
             <HelperTextItem variant={fieldState.helperVariant}>
               {fieldState.helperText}
             </HelperTextItem>

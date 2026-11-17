@@ -391,6 +391,24 @@ describe('HardwareProfileField', () => {
     ).toBeInTheDocument();
   });
 
+  it('offers a clear action for a selection retained after a failed profile load', () => {
+    const onSelect = jest.fn();
+    render(
+      <HardwareProfileField
+        profiles={[profile]}
+        loaded
+        error={new Error('Unable to load HardwareProfiles')}
+        selectedProfile={profile.name}
+        onSelect={onSelect}
+      />,
+    );
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('hardware-profile-clear-selection'));
+
+    expect(onSelect).toHaveBeenCalledWith(undefined);
+  });
+
   it('unwraps the embedded service message when the error body is JSON', () => {
     render(
       <HardwareProfileField
