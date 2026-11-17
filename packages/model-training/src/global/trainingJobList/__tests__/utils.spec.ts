@@ -1277,6 +1277,29 @@ describe('getTrainingJobStatusWithWorkload', () => {
     );
   });
 
+  it('should return PAUSED (not Inadmissible) when workload is deactivated and has extended Inadmissible condition', () => {
+    const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
+    const workload = createMockWorkload(
+      [
+        {
+          type: WorkloadConditionType.QuotaReserved,
+          status: ConditionStatus.False,
+          reason: 'Pending',
+          message:
+            "couldn't assign flavors to pod set trainer: insufficient unused quota for " +
+            'nvidia.com/gpu in flavor default-flavor, 2 > maximum capacity 0',
+          lastTransitionTime: TEST_TIMESTAMP,
+        },
+      ],
+      false, // active = false → user deactivated the workload
+    );
+
+    // Paused must take priority over extended Inadmissible when user explicitly deactivated
+    expect(getTrainingJobStatusWithWorkload(job, workload, TrainingJobState.CREATED)).toEqual(
+      expect.objectContaining({ status: TrainingJobState.PAUSED }),
+    );
+  });
+
   it('should prioritize running jobs over a pending QuotaReserved condition', () => {
     const job = mockTrainJobK8sResource({
       name: TEST_JOB_NAME,
