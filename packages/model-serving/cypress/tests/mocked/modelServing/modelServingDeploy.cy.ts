@@ -968,7 +968,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it('keeps environment variables editable when rolebinding creation is not allowed', () => {
+  it('disables token authentication and external route while keeping environment variables editable when rolebinding creation is not allowed', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
       const { resourceAttributes } = req.body.spec;
