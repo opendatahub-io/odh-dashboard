@@ -23,8 +23,6 @@ import {
   GridItem,
   Label,
   Popover,
-  Stack,
-  StackItem,
   Title,
   useWizardContext,
 } from '@patternfly/react-core';
@@ -174,17 +172,7 @@ const OtherBenchmarksDrawer: React.FC<OtherBenchmarksDrawerProps> = ({
       data-testid="collection-generation-alternatives-panel"
     >
       <DrawerHead>
-        <Stack hasGutter>
-          <StackItem>
-            <Title headingLevel="h2">Other benchmarks to review</Title>
-          </StackItem>
-          <StackItem>
-            <Content component="p" className="pf-v6-u-mb-0">
-              Compare these alternatives with your evaluation goal. Add any that provide useful
-              coverage.
-            </Content>
-          </StackItem>
-        </Stack>
+        <Title headingLevel="h2">Other benchmarks to review</Title>
         <DrawerActions>
           <DrawerCloseButton
             onClick={onClose}
@@ -192,7 +180,11 @@ const OtherBenchmarksDrawer: React.FC<OtherBenchmarksDrawerProps> = ({
           />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody className="pf-v6-u-pb-lg">
+      <DrawerPanelBody className="evalhub-collection-generation-drawer__body pf-v6-u-pb-xl">
+        <Content component="p" className="pf-v6-u-mb-lg">
+          Compare these alternatives with your evaluation goal. Add any that provide useful
+          coverage.
+        </Content>
         {alternatives.length === 0 ? (
           <Content component="p">There are no other benchmarks to review.</Content>
         ) : (

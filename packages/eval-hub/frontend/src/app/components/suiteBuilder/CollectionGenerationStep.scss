@@ -61,4 +61,20 @@
 .evalhub-collection-generation-drawer__host .pf-v6-c-drawer__panel-main {
   height: 100%;
   max-height: 100%;
+  overflow: hidden;
+}
+
+.evalhub-collection-generation-drawer__host .pf-v6-c-drawer__panel-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.evalhub-collection-generation-drawer__host .pf-v6-c-drawer__head {
+  flex: 0 0 auto;
+}
+
+.evalhub-collection-generation-drawer__body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
 }
