@@ -15,12 +15,9 @@ import (
 
 // TestModelsPersesDashboardsScopedPins guards Models CR product pins:
 // admin + non-admin must route vLLM through the DS namespace proxy,
-// OCP GPU/CPU through OCP tenancy, never unscoped cluster :9091, use a TextVariable
+// GPU/CPU usage and CPU quota through DS,
+// never unscoped cluster :9091, use a TextVariable
 // namespace stub, and keep PromQL queryparam-first (no namespace=~"$namespace" dual tenancy).
-//
-// Out of scope here: tenancy GPU/CPU PromQL that still joins vllm:* (cross-stack).
-// That is a separate metric-ownership change — do not encode absence of vLLM in tenancy
-// panels as a scoping pin.
 func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 	t.Parallel()
 
@@ -45,8 +42,8 @@ func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 				"Models must pin DS namespace proxy for vLLM series")
 			assert.Contains(t, raw, "vllm:num_requests_running",
 				"Models must use the live Data Science vLLM metric family")
-			assert.Contains(t, raw, "name: cluster-prometheus-tenancy-datasource",
-				"Models must pin OCP tenancy for GPU/CPU series")
+			assert.NotContains(t, raw, "name: cluster-prometheus-tenancy-datasource",
+				"Models resource metrics must use the Data Science datasource")
 			assert.NotRegexp(t, regexp.MustCompile(`namespace\s*=~?\s*"\$(\{namespace\}|namespace)"`), raw,
 				"scoped DS/tenancy already inject namespace=; PromQL must not dual-filter namespace")
 
@@ -132,6 +129,23 @@ func assertPrometheusQueryShape(t *testing.T, value any) int {
 					assert.NotRegexp(t, regexp.MustCompile(`(^|[^[:alnum:]_])vllm:`), query,
 						"tenancy joins must not query the Data Science-only vllm metric family")
 				}
+				if strings.Contains(query, "accelerator_gpu_utilization") {
+					assert.Equal(t, "data-science-prometheus-datasource", datasourceName)
+					assert.Contains(t, query, `odh_dcgm_source="verified"`)
+					assert.Contains(t, query, "vllm:num_requests_running")
+					assert.NotContains(t, query, "exported_namespace")
+				}
+				if strings.Contains(query, "node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate") {
+					assert.Equal(t, "data-science-prometheus-datasource", datasourceName)
+					assert.Contains(t, query, `odh_federation_source="model-resources"`)
+					assert.Contains(t, query, "vllm:num_requests_running")
+				}
+				if strings.Contains(query, "kube_resourcequota") {
+					assert.Equal(t, "data-science-prometheus-datasource", datasourceName)
+					assert.Contains(t, query, `resource="cpu"`)
+					assert.Contains(t, query, `type="hard"`)
+					assert.Contains(t, query, `odh_federation_source="model-resources"`)
+				}
 				queryCount++
 			}
 		}
@@ -167,6 +181,28 @@ func TestModelsAdminIsTwinOfNonAdmin(t *testing.T) {
 				normalizeModelsTwin(string(admin)),
 				"dashboard-1-model-admin must stay a queryparam/pin twin of dashboard-1-model (only name/comments may differ)",
 			)
+		})
+	}
+}
+
+// Keep the model table, including its resource queries, in sync across products.
+func TestModelsTableMatchesAcrossDistributions(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"perses-dashboard-model.yaml", "perses-dashboard-model-admin.yaml"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			var tables []map[string]any
+			for _, dist := range []string{"odh", "rhoai"} {
+				data, err := os.ReadFile(filepath.Join("..", "..", "..", "manifests", "observability", dist, name))
+				require.NoError(t, err)
+				resource := unstructured.Unstructured{}
+				require.NoError(t, yaml.Unmarshal(data, &resource.Object))
+				table, found, err := unstructured.NestedMap(resource.Object, "spec", "config", "panels", "modelDeploymentsTable")
+				require.NoError(t, err)
+				require.True(t, found)
+				tables = append(tables, table)
+			}
+			assert.Equal(t, tables[0], tables[1], "ODH and RHOAI model tables must match")
 		})
 	}
 }

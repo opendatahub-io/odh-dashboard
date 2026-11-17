@@ -146,8 +146,21 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: avg_over_time((sum by (model_name, namespace) (label_replace(label_replace(accelerator_gpu_utilization, "namespace", "$1", "exported_namespace", "(.*)"), "pod", "$1", "exported_pod", "(.*)") * on(namespace, pod) group_left(model_name)(0 * max by (namespace, pod, model_name)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1)) / scalar(count(accelerator_gpu_utilization)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                      name: data-science-prometheus-datasource
+                    # Exclude every model with an ambiguous pod mapping, even if
+                    # only one of the pod's models is selected in the UI.
+                    query: >-
+                      avg_over_time((
+                        avg by (model_name, namespace) (
+                          max by (namespace, pod, UUID, gpu, GPU_I_ID, GPU_I_PROFILE) (accelerator_gpu_utilization{odh_dcgm_source="verified",pod!=""})
+                          * on(namespace, pod) group_left(model_name)
+                          (group by (namespace, pod, model_name) (vllm:num_requests_running{model_name=~"$model_name"})
+                            unless on(namespace, model_name) group by (namespace, model_name) (
+                              group by (namespace, pod, model_name) (vllm:num_requests_running)
+                              and on(namespace, pod) (count by (namespace, pod) (group by (namespace, pod, model_name) (vllm:num_requests_running)) > 1)
+                            ))
+                        )
+                      )[$__range:])
             # Query 6: CPU usage (cores) - absolute CPU consumed by model pods
             - kind: TimeSeriesQuery
               spec:
@@ -156,9 +169,21 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: avg_over_time((sum by (model_name, namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
-            # Query 7: CPU quota utilization % - CPU as fraction of namespace ResourceQuota (empty when no quota configured)
+                      name: data-science-prometheus-datasource
+                    query: >-
+                      avg_over_time((
+                        sum by (model_name, namespace) (
+                          max by (namespace, pod, container) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{odh_federation_source="model-resources",container!=""})
+                          * on(namespace, pod) group_left(model_name)
+                          (group by (namespace, pod, model_name) (vllm:num_requests_running{model_name=~"$model_name"})
+                            unless on(namespace, model_name) group by (namespace, model_name) (
+                              group by (namespace, pod, model_name) (vllm:num_requests_running)
+                              and on(namespace, pod) (count by (namespace, pod) (group by (namespace, pod, model_name) (vllm:num_requests_running)) > 1)
+                            ))
+                        )
+                      )[$__range:])
+            # Query 7: Original model CPU / sum of project hard CPU request quotas.
+            # This is not Kubernetes quota consumption; see observability docs.
             - kind: TimeSeriesQuery
               spec:
                 plugin:
@@ -166,8 +191,21 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: avg_over_time((sum by (model_name, namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1)) / on(namespace) group_left() sum by (namespace) (kube_resourcequota{resource="cpu", type="hard"}))[$__range:])
+                      name: data-science-prometheus-datasource
+                    query: >-
+                      avg_over_time((
+                        sum by (model_name, namespace) (
+                          max by (namespace, pod, container) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{odh_federation_source="model-resources",container!=""})
+                          * on(namespace, pod) group_left(model_name)
+                          (group by (namespace, pod, model_name) (vllm:num_requests_running{model_name=~"$model_name"})
+                            unless on(namespace, model_name) group by (namespace, model_name) (
+                              group by (namespace, pod, model_name) (vllm:num_requests_running)
+                              and on(namespace, pod) (count by (namespace, pod) (group by (namespace, pod, model_name) (vllm:num_requests_running)) > 1)
+                            ))
+                        )
+                        / on(namespace) group_left()
+                        (sum by (namespace) (max by (namespace, resourcequota) (kube_resourcequota{odh_federation_source="model-resources",resource="cpu",type="hard"})) > 0)
+                      )[$__range:])
       # Performance Metrics - Line Charts
       requestQueueLength:
         kind: Panel
