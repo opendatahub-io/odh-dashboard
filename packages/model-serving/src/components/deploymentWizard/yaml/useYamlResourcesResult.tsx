@@ -14,6 +14,8 @@ import { DeploymentAssemblyResources } from '../../../../extension-points/deploy
 
 type UseFormYamlResourcesResult = {
   yaml?: YamlParseResult;
+  /** The YAML generated from the form when entering YAML mode; compare with `isYamlDirty`. */
+  yamlAtEntry?: string;
   setYaml: (yaml: YamlParseResult) => void;
   reinitYamlFromResources: (newResourcesFromForm: DeploymentAssemblyResources) => void;
   resources: ResourcesParseResult;
@@ -35,11 +37,15 @@ export const useFormYamlResources = (
   const [editorYaml, setEditorYaml] = React.useState<YamlParseResult>(() =>
     convertResourcesToYaml(resourcesAtTimeOfYamlParsing.current),
   );
+  // Only set from the form, so YAML seeded from an existing deployment has no snapshot (dirty)
+  const [yamlAtEntry, setYamlAtEntry] = React.useState<string>();
 
   const reinitYamlFromResources = React.useCallback(
     (newResourcesFromForm: DeploymentAssemblyResources) => {
       resourcesAtTimeOfYamlParsing.current = newResourcesFromForm;
-      setEditorYaml(convertResourcesToYaml(newResourcesFromForm));
+      const generated = convertResourcesToYaml(newResourcesFromForm);
+      setYamlAtEntry(generated.yaml);
+      setEditorYaml(generated);
     },
     [setEditorYaml],
   );
@@ -74,6 +80,7 @@ export const useFormYamlResources = (
   return React.useMemo(() => {
     return {
       yaml: editorYaml,
+      yamlAtEntry,
       setYaml: setEditorYaml,
       reinitYamlFromResources,
       resources: yamlResourcesResult,
@@ -90,6 +97,7 @@ export const useFormYamlResources = (
     } satisfies UseFormYamlResourcesResult;
   }, [
     editorYaml,
+    yamlAtEntry,
     setEditorYaml,
     reinitYamlFromResources,
     yamlResourcesResult,

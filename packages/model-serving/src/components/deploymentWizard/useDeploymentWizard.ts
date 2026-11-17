@@ -59,16 +59,16 @@ export type UseModelDeploymentWizardState = WizardFormData & {
   fields: WizardField<unknown>[];
 };
 
+/**
+ * Field hooks seed from `initialFormData` once, on mount. To re-initialize the form from new
+ * data (e.g. YAML edits), remount the component that calls this hook.
+ */
 export const useModelDeploymentWizard = (
-  initialFormDataFromNav?: InitialWizardFormData,
+  initialFormData?: InitialWizardFormData,
   initialProjectName?: string | undefined,
   externalDataMap: ExternalDataMap = {},
 ): UseModelDeploymentWizardState => {
   const vLLMDeploymentOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
-
-  const [initialFormData, setInitialFormData] = React.useState<InitialWizardFormData | undefined>(
-    initialFormDataFromNav,
-  );
 
   // Declare reducer state first so field hooks can access it
   // `fieldValues` are user-provided, `initialValues` are calculated by the reducer
@@ -275,7 +275,6 @@ export const useModelDeploymentWizard = (
     useDeploymentWizardReducer(
       mergedFormState,
       formReducerDispatch,
-      setInitialFormData,
       externalDataMap,
       initialFormData,
     );

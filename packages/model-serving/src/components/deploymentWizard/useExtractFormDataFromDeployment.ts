@@ -213,7 +213,9 @@ export const useExtractFormDataFromDeployment = (
           formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
 
         huggingFaceApiKey: huggingFaceApiKey ?? undefined,
-        requiresHuggingFaceApiKey: Boolean(huggingFaceApiKey),
+        // Only assert what the deployment shows: no key doesn't mean the model isn't gated, so
+        // leave the flag unset and keep what the caller knows (e.g. a catalog prefill)
+        ...(huggingFaceApiKey ? { requiresHuggingFaceApiKey: true } : {}),
 
         // Extract model availability data
         modelAvailability:

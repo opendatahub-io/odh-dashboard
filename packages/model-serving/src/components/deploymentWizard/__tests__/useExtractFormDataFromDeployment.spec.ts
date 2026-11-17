@@ -118,4 +118,28 @@ describe('useExtractFormDataFromDeployment', () => {
     expect(renderResult.result.current.errors).toStrictEqual([]);
     expect(renderResult.result.current.formData).toBeDefined();
   });
+
+  it('should leave the Hugging Face key requirement unset when the deployment has no key', () => {
+    // No key on the deployment does not mean the model is not gated, so callers keep their value
+    const renderResult = testHook(useExtractFormDataFromDeployment)(mockDeployment);
+    expect(renderResult.result.current.formData).not.toHaveProperty('requiresHuggingFaceApiKey');
+  });
+
+  it.each([
+    { token: '', configuredSecretName: 'test-model-hf-secret' },
+    // The deployment's Hugging Face service account exists but its secret is missing
+    { token: '' },
+  ])('should require a Hugging Face key when the deployment has one: %j', (huggingFaceApiKey) => {
+    mockUseFetch.mockReturnValue({
+      data: huggingFaceApiKey,
+      loaded: true,
+      error: undefined,
+    } as unknown as ReturnType<typeof useFetch<never>>);
+
+    const renderResult = testHook(useExtractFormDataFromDeployment)(mockDeployment);
+    expect(renderResult.result.current.formData).toMatchObject({
+      huggingFaceApiKey,
+      requiresHuggingFaceApiKey: true,
+    });
+  });
 });

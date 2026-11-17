@@ -145,8 +145,8 @@ describe('Deployment wizard YAML view', () => {
     );
 
   /**
-   * The gateway field is an extension-backed (reducer) field, so it is what `reInitForm`
-   * repopulates when the form is re-initialized from YAML.
+   * The gateway field is an extension-backed (reducer) field, while replicas and the display name
+   * are core field hooks. Re-initializing the form from YAML must repopulate both kinds.
    */
   const setGatewayRefOnYaml = (yaml: string, name: string, namespace: string) =>
     yaml.replace(
@@ -156,6 +156,9 @@ describe('Deployment wizard YAML view', () => {
 
   const setGatewayRef = (name: string, namespace: string) =>
     editYaml((yaml) => setGatewayRefOnYaml(yaml, name, namespace), name);
+
+  const setReplicasOnYaml = (yaml: string, replicas: string) =>
+    yaml.replace(/^(\s*)replicas: .*$/m, `$1replicas: ${replicas}`);
 
   /** Removing the connections annotation makes form extraction fail while the rest stays readable. */
   const removeConnectionAnnotation = (yaml: string) =>
@@ -193,6 +196,41 @@ describe('Deployment wizard YAML view', () => {
     modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findGatewaySelect().should('contain.text', 'other-gateway | other-ns');
+  });
+
+  it('applies YAML edits to core form fields and keeps them on the next YAML generation', () => {
+    setupWizardWithFormData();
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+
+    editYaml(
+      (yaml) =>
+        setReplicasOnYaml(yaml, '2').replace(
+          /^(\s*).*openshift\.io\/display-name.*$/m,
+          '$1openshift.io/display-name: renamed-in-yaml',
+        ),
+      'renamed-in-yaml',
+    );
+
+    modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
+    modelServingWizard.findModelDeploymentNameInput().should('have.value', 'renamed-in-yaml');
+    modelServingWizard.findNumReplicasInputField().should('have.value', '2');
+
+    // The form must not write its old values back into the YAML
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+    const editor = modelServingWizard.yaml.findYAMLCodeEditor();
+    editor.shouldContainTextInModel('replicas: 2');
+    editor.shouldContainTextInModel('openshift.io/display-name: renamed-in-yaml');
+  });
+
+  it('keeps Next disabled when a YAML edit gives a form field the wrong type', () => {
+    setupWizardWithFormData();
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+
+    editYaml((yaml) => setReplicasOnYaml(yaml, '"abc"'), 'replicas: "abc"');
+
+    modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
+    modelServingWizard.findNumReplicasInput().should('exist');
+    modelServingWizard.findNextButton().should('be.disabled');
   });
 
   it('preserves annotations added in YAML through form edits and submit', () => {
@@ -387,17 +425,15 @@ describe('Deployment wizard YAML view', () => {
 
     // Valid YAML and K8s resource, but the form cannot resolve the model location:
     // dropping the connections annotation fails extraction while the rest stays readable
-    editYaml(
-      (yaml) => setGatewayRefOnYaml(removeConnectionAnnotation(yaml), 'other-gateway', 'other-ns'),
-      'other-gateway',
-    );
+    editYaml((yaml) => setReplicasOnYaml(removeConnectionAnnotation(yaml), '2'), 'replicas: 2');
 
     modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
     modelServingWizard.yaml.findYamlErrorsModal().should('exist');
     modelServingWizard.yaml.findForceContinueToFormButton().click();
     // The readable values from YAML were applied to the form
-    modelServingWizard.findNextButton().click();
-    modelServingWizard.findGatewaySelect().should('contain.text', 'other-gateway | other-ns');
+    modelServingWizard.findNumReplicasInputField().should('have.value', '2');
+    // The unreadable model location is not silently kept from before the YAML edit
+    modelServingWizard.findNextButton().should('be.disabled');
   });
 
   it('use saved form inputs keeps the form values from before the YAML edits', () => {
