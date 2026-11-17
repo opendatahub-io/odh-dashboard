@@ -441,12 +441,15 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findTokenWarningAlert().should('exist');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
     modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
-    modelServingWizard.findAddServiceAccountButton().click();
+    modelServingWizard.findAddServiceAccountButton().should('have.text', 'Add a secret').click();
     modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
     modelServingWizard.findServiceNameAlert().should('exist');
     modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
     modelServingWizard.findServiceNameAlert().should('not.exist');
-    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
+    modelServingWizard
+      .findRemoveServiceAccountByIndex(1)
+      .should('have.attr', 'aria-label', 'Remove secret')
+      .click();
     modelServingWizard.findServiceAccountByIndex(0).clear();
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findServiceAccountByIndex(0).clear().type('new name');
