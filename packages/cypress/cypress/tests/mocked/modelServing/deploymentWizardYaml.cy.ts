@@ -1,4 +1,5 @@
 import type { Interception } from 'cypress/types/net-stubbing';
+import YAML from 'js-yaml';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
@@ -14,6 +15,7 @@ import { ConfigType, TopologyType } from '@odh-dashboard/llmd-serving/types';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import {
@@ -21,6 +23,7 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
+import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import { initMockGatewayIntercepts } from '../../../utils/modelServingUtils';
 import {
   HardwareProfileModel,
@@ -28,11 +31,67 @@ import {
   LLMInferenceServiceConfigModel,
   LLMInferenceServiceModel,
   ProjectModel,
+  SelfSubjectAccessReviewModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '../../../utils/models';
 
 const MODEL_NAME = 'test-yaml-model';
+
+/** The parts of the LLMInferenceService YAML that wizard fields read and write */
+type WizardYamlResource = {
+  metadata: { annotations?: Record<string, string>; labels?: Record<string, string> };
+  spec: {
+    replicas?: unknown;
+    router?: { gateway?: { refs?: { name: string; namespace: string }[] } };
+    template?: { containers?: { name: string; env?: { name: string; value?: string }[] }[] };
+  };
+};
+
+type EnvVar = { name: string; value?: string };
+
+const withAnnotations = (
+  resource: WizardYamlResource,
+  annotations: Record<string, string>,
+): WizardYamlResource => ({
+  ...resource,
+  metadata: {
+    ...resource.metadata,
+    annotations: { ...resource.metadata.annotations, ...annotations },
+  },
+});
+
+const withLabels = (
+  resource: WizardYamlResource,
+  labels: Record<string, string>,
+): WizardYamlResource => ({
+  ...resource,
+  metadata: { ...resource.metadata, labels: { ...resource.metadata.labels, ...labels } },
+});
+
+const withSpec = (
+  resource: WizardYamlResource,
+  spec: Partial<WizardYamlResource['spec']>,
+): WizardYamlResource => ({ ...resource, spec: { ...resource.spec, ...spec } });
+
+/** The form reads environment variables and runtime arguments from the `main` container */
+const getMainContainerEnv = (resource: WizardYamlResource): EnvVar[] =>
+  resource.spec.template?.containers?.find((container) => container.name === 'main')?.env ?? [];
+
+const withMainContainerEnv = (resource: WizardYamlResource, env: EnvVar[]): WizardYamlResource => {
+  const containers = resource.spec.template?.containers ?? [];
+  const hasMain = containers.some((container) => container.name === 'main');
+  return withSpec(resource, {
+    template: {
+      ...resource.spec.template,
+      containers: hasMain
+        ? containers.map((container) =>
+            container.name === 'main' ? { ...container, env } : container,
+          )
+        : [...containers, { name: 'main', env }],
+    },
+  });
+};
 
 describe('Deployment wizard YAML view', () => {
   const initIntercepts = () => {
@@ -134,6 +193,51 @@ describe('Deployment wizard YAML view', () => {
     });
   };
 
+  const interceptConfigWithoutMaaS = () =>
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableKServe: false,
+        disableLLMd: false,
+        deploymentWizardYAMLViewer: true,
+        bidirectionalYamlWizardGa: true,
+        modelAsService: false,
+      }),
+    );
+
+  /**
+   * Token authentication is editable when MaaS is off (MaaS manages authentication) and the user
+   * can create role bindings; it then starts checked for llm-d.
+   */
+  const enableTokenAuthenticationField = () => {
+    interceptConfigWithoutMaaS();
+    // Product admins can't create role bindings in projects; allow only that review here and let
+    // every other review fall through to the product admin mock
+    cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+      const { resourceAttributes } = req.body.spec;
+      if (resourceAttributes.resource === 'rolebindings') {
+        req.reply(mockSelfSubjectAccessReview({ ...resourceAttributes, allowed: true }));
+      }
+    });
+  };
+
+  /** Edits the editor YAML as a parsed resource, so the editor's formatting does not matter. */
+  const editYamlResource = (
+    update: (resource: WizardYamlResource) => WizardYamlResource,
+    expectedText: string,
+  ) =>
+    editYaml(
+      (current) => YAML.dump(update(YAML.load(current) as WizardYamlResource), { lineWidth: -1 }),
+      expectedText,
+    );
+
+  /** Asserts on the editor YAML as a parsed resource. */
+  const expectYamlResource = (assert: (resource: WizardYamlResource) => void) =>
+    modelServingWizard.yaml
+      .findYAMLCodeEditor()
+      .getValue()
+      .then((current) => assert(YAML.load(current) as WizardYamlResource));
+
   const setDisplayName = (name: string) =>
     editYaml(
       (yaml) =>
@@ -198,28 +302,211 @@ describe('Deployment wizard YAML view', () => {
     modelServingWizard.findGatewaySelect().should('contain.text', 'other-gateway | other-ns');
   });
 
-  it('applies YAML edits to core form fields and keeps them on the next YAML generation', () => {
+  it('applies YAML edits to each model details and deployment field and keeps them', () => {
     setupWizardWithFormData();
     modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
 
-    editYaml(
-      (yaml) =>
-        setReplicasOnYaml(yaml, '2').replace(
-          /^(\s*).*openshift\.io\/display-name.*$/m,
-          '$1openshift.io/display-name: renamed-in-yaml',
+    editYamlResource(
+      (resource) =>
+        withSpec(
+          withAnnotations(resource, {
+            'openshift.io/display-name': 'renamed-in-yaml',
+            'openshift.io/description': 'described in yaml',
+            'opendatahub.io/connections': 'other-s3-secret',
+            'opendatahub.io/hardware-profile-name': 'large-profile',
+          }),
+          { replicas: 3 },
         ),
       'renamed-in-yaml',
     );
+    // A second connection for the YAML to point at; the re-initialized form fetches it
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockSecretK8sResource({ name: 'test-s3-secret', displayName: 'test-s3-secret' }),
+        mockSecretK8sResource({ name: 'other-s3-secret', displayName: 'other-s3-secret' }),
+      ]),
+    );
 
     modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
+
+    // Model deployment step (the current step)
     modelServingWizard.findModelDeploymentNameInput().should('have.value', 'renamed-in-yaml');
-    modelServingWizard.findNumReplicasInputField().should('have.value', '2');
+    modelServingWizard
+      .findModelDeploymentDescriptionInput()
+      .should('have.value', 'described in yaml');
+    modelServingWizard.findNumReplicasInputField().should('have.value', '3');
+    hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
+
+    // Model details step
+    modelServingWizard.findBackButton().click();
+    modelServingWizard.findExistingConnectionValue().should('have.value', 'other-s3-secret');
 
     // The form must not write its old values back into the YAML
     modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
-    const editor = modelServingWizard.yaml.findYAMLCodeEditor();
-    editor.shouldContainTextInModel('replicas: 2');
-    editor.shouldContainTextInModel('openshift.io/display-name: renamed-in-yaml');
+    expectYamlResource((resource) => {
+      expect(resource.spec.replicas).to.equal(3);
+      expect(resource.metadata.annotations).to.containSubset({
+        'openshift.io/display-name': 'renamed-in-yaml',
+        'openshift.io/description': 'described in yaml',
+        'opendatahub.io/connections': 'other-s3-secret',
+        'opendatahub.io/hardware-profile-name': 'large-profile',
+      });
+    });
+  });
+
+  it('applies a YAML edit to the topology type and keeps it', () => {
+    // The topology type field needs llm-d templates
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableKServe: false,
+        disableLLMd: false,
+        deploymentWizardYAMLViewer: true,
+        bidirectionalYamlWizardGa: true,
+        llmdTemplates: true,
+      }),
+    );
+    cy.interceptK8sList(
+      { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+      mockK8sResourceList([]),
+    );
+    setupWizardWithFormData();
+    modelServingWizard.findTopologyTypeSelect().should('contain.text', 'Single node');
+
+    // The form writes its topology type into the YAML
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+    modelServingWizard.yaml
+      .findYAMLCodeEditor()
+      .shouldContainTextInModel(`opendatahub.io/topology-type: ${TopologyType.SINGLE_NODE}`);
+
+    editYamlResource(
+      (resource) =>
+        withAnnotations(resource, { 'opendatahub.io/topology-type': TopologyType.MULTI_NODE }),
+      TopologyType.MULTI_NODE,
+    );
+
+    modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
+    modelServingWizard.findTopologyTypeSelect().should('contain.text', 'Multi-node');
+
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+    expectYamlResource((resource) => {
+      expect(resource.metadata.annotations).to.containSubset({
+        'opendatahub.io/topology-type': TopologyType.MULTI_NODE,
+      });
+    });
+  });
+
+  it('applies YAML edits to each advanced settings field and keeps them', () => {
+    enableTokenAuthenticationField();
+    setupWizardWithFormData();
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+
+    editYamlResource(
+      (resource) =>
+        withMainContainerEnv(
+          withSpec(
+            withLabels(
+              withAnnotations(resource, {
+                'security.opendatahub.io/enable-auth': 'false',
+                'opendatahub.io/genai-use-case': 'chat-from-yaml',
+              }),
+              { 'opendatahub.io/genai-asset': 'true' },
+            ),
+            {
+              router: {
+                ...resource.spec.router,
+                gateway: { refs: [{ name: 'other-gateway', namespace: 'other-ns' }] },
+              },
+            },
+          ),
+          [
+            { name: 'FROM_YAML', value: 'yaml-value' },
+            { name: 'VLLM_ADDITIONAL_ARGS', value: '--max-model-len=4096' },
+          ],
+        ),
+      'chat-from-yaml',
+    );
+
+    modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findTokenAuthenticationCheckbox().should('not.be.checked');
+    // The text area keeps a trailing newline for the next argument
+    modelServingWizard
+      .findRuntimeArgsTextBox()
+      .invoke('val')
+      .should((value) => expect(String(value).trim()).to.equal('--max-model-len=4096'));
+    modelServingWizard.findEnvVariablesCheckbox().should('be.checked');
+    modelServingWizard.findEnvVariableName('0').should('have.value', 'FROM_YAML');
+    modelServingWizard.findEnvVariableValue('0').should('have.value', 'yaml-value');
+    modelServingWizard.findSaveAiAssetCheckbox().should('be.checked');
+    modelServingWizard.findUseCaseInput().should('have.value', 'chat-from-yaml');
+    modelServingWizard.findGatewaySelect().should('contain.text', 'other-gateway | other-ns');
+
+    // The form must not write its old values back into the YAML
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+    expectYamlResource((resource) => {
+      expect(resource.metadata.annotations).to.containSubset({
+        'security.opendatahub.io/enable-auth': 'false',
+        'opendatahub.io/genai-use-case': 'chat-from-yaml',
+      });
+      expect(resource.metadata.labels).to.containSubset({ 'opendatahub.io/genai-asset': 'true' });
+      expect(resource.spec.router?.gateway?.refs).to.deep.equal([
+        { name: 'other-gateway', namespace: 'other-ns' },
+      ]);
+      expect(getMainContainerEnv(resource)).to.deep.equal([
+        { name: 'FROM_YAML', value: 'yaml-value' },
+        { name: 'VLLM_ADDITIONAL_ARGS', value: '--max-model-len=4096' },
+      ]);
+    });
+  });
+
+  it('writes each form field into the YAML', () => {
+    enableTokenAuthenticationField();
+    setupWizardWithFormData();
+
+    // Model deployment step
+    modelServingWizard.findModelDeploymentDescriptionInput().type('described in form');
+    modelServingWizard.findNumReplicasPlusButton().click();
+    modelServingWizard.findNumReplicasInputField().should('have.value', '2');
+    modelServingWizard.selectProfileContaining('Large Profile');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Advanced settings step
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked').click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('not.be.checked');
+    modelServingWizard.findRuntimeArgsTextBox().type('--max-model-len=2048');
+    modelServingWizard.findEnvVariablesCheckbox().click();
+    modelServingWizard.findAddVariableButton().click();
+    modelServingWizard.findEnvVariableName('0').clear().type('FROM_FORM');
+    modelServingWizard.findEnvVariableValue('0').type('form-value');
+    modelServingWizard.findSaveAiAssetCheckbox().should('be.checked');
+    modelServingWizard.findUseCaseInput().type('chat-from-form');
+    modelServingWizard.findGatewaySelectOption('other-gateway | other-ns').click();
+    modelServingWizard.findGatewaySelect().closeSelectMenu();
+
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+    modelServingWizard.yaml.findYAMLCodeEditor().shouldContainTextInModel('chat-from-form');
+    expectYamlResource((resource) => {
+      expect(resource.spec.replicas).to.equal(2);
+      expect(resource.metadata.annotations).to.containSubset({
+        'openshift.io/display-name': MODEL_NAME,
+        'openshift.io/description': 'described in form',
+        'opendatahub.io/hardware-profile-name': 'large-profile',
+        'security.opendatahub.io/enable-auth': 'false',
+        'opendatahub.io/genai-use-case': 'chat-from-form',
+      });
+      expect(resource.metadata.labels).to.containSubset({ 'opendatahub.io/genai-asset': 'true' });
+      expect(resource.spec.router?.gateway?.refs).to.deep.include({
+        name: 'other-gateway',
+        namespace: 'other-ns',
+      });
+      expect(getMainContainerEnv(resource)).to.deep.equal([
+        { name: 'FROM_FORM', value: 'form-value' },
+        { name: 'VLLM_ADDITIONAL_ARGS', value: '--max-model-len=2048' },
+      ]);
+    });
   });
 
   it('keeps Next disabled when a YAML edit gives a form field the wrong type', () => {
@@ -530,5 +817,66 @@ spec: {}
     editor.containsText('kind: LLMInferenceService');
     // Auto-fallback lands directly in editable YAML (upload is only enabled in yaml-edit mode)
     editor.upload().should('exist');
+  });
+
+  it('turns opted-out settings back on from a YAML edit', () => {
+    enableTokenAuthenticationField();
+    setupWizardWithFormData();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Both start on; opt out in the form
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked').click();
+    modelServingWizard.findSaveAiAssetCheckbox().should('be.checked').click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('not.be.checked');
+    modelServingWizard.findSaveAiAssetCheckbox().should('not.be.checked');
+
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+    expectYamlResource((resource) => {
+      expect(resource.metadata.annotations).to.containSubset({
+        'security.opendatahub.io/enable-auth': 'false',
+      });
+      expect(resource.metadata.labels).not.to.have.property('opendatahub.io/genai-asset');
+    });
+    editYamlResource((resource) => {
+      const annotations: Record<string, string> = { ...resource.metadata.annotations };
+      delete annotations['security.opendatahub.io/enable-auth'];
+      return withLabels(
+        { ...resource, metadata: { ...resource.metadata, annotations } },
+        { 'opendatahub.io/genai-asset': 'true' },
+      );
+    }, 'opendatahub.io/genai-asset');
+
+    modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizard.findSaveAiAssetCheckbox().should('be.checked');
+  });
+
+  it('keeps the selected deployment method through a YAML edit', () => {
+    // The simple vLLM method is offered with vLLM-on-MaaS
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableKServe: false,
+        disableLLMd: false,
+        deploymentWizardYAMLViewer: true,
+        bidirectionalYamlWizardGa: true,
+        modelAsService: false,
+        vLLMDeploymentOnMaaS: true,
+      }),
+    );
+    setupWizardWithFormData();
+    modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
+    modelServingWizard
+      .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
+      .should('be.checked');
+
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+    editYamlResource((resource) => withSpec(resource, { replicas: 2 }), 'replicas: 2');
+    modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
+
+    modelServingWizard.findNumReplicasInputField().should('have.value', '2');
+    modelServingWizard
+      .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
+      .should('be.checked');
   });
 });
