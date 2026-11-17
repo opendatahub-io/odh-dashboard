@@ -29,7 +29,7 @@
 
 | Term                       | Definition                                                                                  |
 | -------------------------- | ------------------------------------------------------------------------------------------- |
-| **LLMInferenceService**    | CR `serving.kserve.io/v1alpha2` / `llminferenceservices`; deployed LLM-d model.             |
+| **LLMInferenceService**    | CR `serving.kserve.io/v1alpha2` / `llminferenceservices`; llm-d or custom service.          |
 | **LLMdDeployment**         | `Deployment<LLMInferenceServiceKind>` with `modelServingPlatformId = 'llmd-serving'`.       |
 | **LLMdContainer**          | Container in `spec.template.containers`; vLLM args via `VLLM_ADDITIONAL_ARGS`.              |
 | **Router**                 | `spec.router` with `gateway`, `route`, `scheduler`; LLM-d routing layer.                    |
@@ -53,6 +53,7 @@
 
 - **CRD required**: If `LLMInferenceService` is missing but the area is enabled, `useWatchDeployments` can hit 404.
 - **Token auth RBAC**: `setUpTokenAuth` creates Secrets after the CR may exist; missing `create secrets` leaves a partial deployment.
+- **Unresolved-config classification**: When no `LLMInferenceServiceConfig` resolves (no `baseRefs`, non-matching `baseRefs`, or missing configs), `isLLMd` checks for `spec.router.scheduler` (including `scheduler: {}`). Scheduler-backed services show "Distributed inference with llm-d"; all others show "Custom LLMInferenceService" and get a template-less edit-form selection (`CUSTOM_LLM_INFERENCE_SERVICE_OPTION`).
 - **`spec.router`**: Base shape initializes empty `scheduler`, `route`, `gateway`; omitting them can cause operator rejection.
 - **`VLLM_ADDITIONAL_ARGS`**: Injected on container named `main`; operator renames break arg injection silently.
 - **Patch vs merge**: `patchLLMInferenceService` uses JSON Patch; `updateLLMInferenceService` uses merge patch—use wizard `overwrite: true` on redeploy to avoid stale fields.
