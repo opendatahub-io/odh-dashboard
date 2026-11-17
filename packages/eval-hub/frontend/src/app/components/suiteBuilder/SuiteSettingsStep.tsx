@@ -161,6 +161,41 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({ canContinueSettin
             )}
           />
         </FormGroup>
+        <FormGroup label="Generation effort" fieldId="goal-suite-generation-effort">
+          <Controller
+            name="generationEffort"
+            control={control}
+            render={({ field, fieldState }) => (
+              <>
+                <FormSelect
+                  id="goal-suite-generation-effort"
+                  value={field.value}
+                  onChange={(_event, value) => field.onChange(value)}
+                  onBlur={field.onBlur}
+                  validated={fieldState.error ? 'error' : 'default'}
+                  aria-invalid={fieldState.error ? true : undefined}
+                  data-testid="goal-suite-generation-effort"
+                >
+                  <FormSelectOption value="low" label="Low" />
+                  <FormSelectOption value="standard" label="Standard" />
+                  <FormSelectOption value="high" label="High" />
+                </FormSelect>
+                {fieldState.error?.message ? (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem
+                        variant="error"
+                        data-testid="suite-builder-generation-effort-error"
+                      >
+                        {fieldState.error.message}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                ) : null}
+              </>
+            )}
+          />
+        </FormGroup>
         <FormGroup label="Evaluates" fieldId="goal-suite-evaluates" isRequired>
           <Content component="p" className="pf-v6-u-mb-0" data-testid="goal-suite-evaluates">
             Model

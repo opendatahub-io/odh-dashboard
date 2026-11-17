@@ -44,12 +44,14 @@ describe('suite builder schemas', () => {
       'suiteDescription',
       'maxBenchmarks',
       'strictness',
+      'generationEffort',
     ]);
   });
 
   it('should default optional generation settings and validate supplied values', () => {
     expect(suiteBuilderDefaultValues.maxBenchmarks).toBe('12');
     expect(suiteBuilderDefaultValues.strictness).toBe('moderate');
+    expect(suiteBuilderDefaultValues.generationEffort).toBe('standard');
     expect(
       suiteSettingsSchema.safeParse({
         ...suiteBuilderDefaultValues,
@@ -99,6 +101,23 @@ describe('suite builder schemas', () => {
         ...suiteBuilderDefaultValues,
         suiteName: 'Reasoning suite',
         strictness: 'unknown',
+      }).success,
+    ).toBe(false);
+
+    for (const generationEffort of ['low', 'standard', 'high'] as const) {
+      expect(
+        suiteSettingsSchema.safeParse({
+          ...suiteBuilderDefaultValues,
+          suiteName: 'Reasoning suite',
+          generationEffort,
+        }).success,
+      ).toBe(true);
+    }
+    expect(
+      suiteSettingsSchema.safeParse({
+        ...suiteBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
+        generationEffort: 'invalid',
       }).success,
     ).toBe(false);
   });

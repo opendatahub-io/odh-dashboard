@@ -43,7 +43,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     reValidateMode: 'onChange',
     shouldUnregister: false,
   });
-  const [suiteName, suiteDescription, maxBenchmarks, strictness] = useWatch({
+  const [suiteName, suiteDescription, maxBenchmarks, strictness, generationEffort] = useWatch({
     control: methods.control,
     name: [...suiteSettingsFieldNames],
   });
@@ -64,6 +64,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     suiteDescription,
     maxBenchmarks,
     strictness,
+    generationEffort,
   }).success;
   const hasSuiteSettingsErrors = suiteSettingsFieldNames.some((fieldName) => errors[fieldName]);
   const canContinueSettings = isSuiteSettingsValid && !hasSuiteSettingsErrors;

@@ -15,6 +15,10 @@ class SuiteBuilderPage {
     return cy.findByTestId('goal-suite-strictness');
   }
 
+  findGenerationEffortSelect() {
+    return cy.findByTestId('goal-suite-generation-effort');
+  }
+
   findEvaluationGoalInput() {
     return cy.findByTestId('goal-suite-evaluation-goal');
   }

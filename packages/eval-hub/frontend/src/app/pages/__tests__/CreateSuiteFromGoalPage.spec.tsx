@@ -117,6 +117,7 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveAttribute('max', '20');
     expect(screen.getByTestId('goal-suite-max-benchmarks')).not.toHaveAttribute('placeholder');
     expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('moderate');
+    expect(screen.getByTestId('goal-suite-generation-effort')).toHaveValue('standard');
     expect(screen.queryByRole('option', { name: /default/i })).not.toBeInTheDocument();
     expect(
       screen.queryByText('Leave blank to use the default of 12 (1–20).'),
@@ -162,6 +163,9 @@ describe('CreateSuiteFromGoalPage', () => {
     fireEvent.change(screen.getByTestId('goal-suite-strictness'), {
       target: { value: 'strict' },
     });
+    fireEvent.change(screen.getByTestId('goal-suite-generation-effort'), {
+      target: { value: 'high' },
+    });
     await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
     fireEvent.click(screen.getByTestId('next-suite-settings'));
     expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
@@ -169,6 +173,7 @@ describe('CreateSuiteFromGoalPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
     expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveValue(20);
     expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('strict');
+    expect(screen.getByTestId('goal-suite-generation-effort')).toHaveValue('high');
   });
 
   it('should advance after valid settings and preserve values when returning', async () => {

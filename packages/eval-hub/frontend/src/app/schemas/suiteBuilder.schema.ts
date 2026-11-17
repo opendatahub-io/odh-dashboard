@@ -12,6 +12,7 @@ export const suiteSettingsSchema = z.object({
       'Enter a whole number between 1 and 20.',
     ),
   strictness: z.enum(['', 'lenient', 'moderate', 'strict']),
+  generationEffort: z.enum(['low', 'standard', 'high']),
 });
 
 export const suiteSettingsFieldNames = [
@@ -19,6 +20,7 @@ export const suiteSettingsFieldNames = [
   'suiteDescription',
   'maxBenchmarks',
   'strictness',
+  'generationEffort',
 ] as const;
 
 export const MAX_EVALUATION_GOAL_LENGTH = 10000;
@@ -79,6 +81,7 @@ export const suiteBuilderDefaultValues: SuiteBuilderFormValues = {
   suiteDescription: '',
   maxBenchmarks: '12',
   strictness: 'moderate',
+  generationEffort: 'standard',
   evaluationGoal: '',
   generatorModel: null,
 };

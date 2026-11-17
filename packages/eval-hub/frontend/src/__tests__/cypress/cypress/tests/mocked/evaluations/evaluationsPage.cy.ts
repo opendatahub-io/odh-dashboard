@@ -130,6 +130,7 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
     suiteBuilderPage.findMaxBenchmarksInput().should('have.attr', 'max', '20');
     suiteBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
+    suiteBuilderPage.findGenerationEffortSelect().should('have.value', 'standard');
     suiteBuilderPage.findNameInput().type('   ');
     suiteBuilderPage.findNameError().should('be.visible');
     suiteBuilderPage.findNextButton().should('be.disabled');
@@ -138,6 +139,7 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage.findDescriptionInput().should('have.value', '');
     suiteBuilderPage.findNextButton().should('be.enabled');
     suiteBuilderPage.findDescriptionInput().type('Check general reasoning performance.');
+    suiteBuilderPage.findGenerationEffortSelect().select('high');
     suiteBuilderPage.findNextButton().should('be.enabled');
     suiteBuilderPage.findNextButton().click();
 
@@ -170,6 +172,7 @@ describe('Evaluations Page - Tabs', () => {
       .should('have.value', 'Check general reasoning performance.');
     suiteBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
     suiteBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
+    suiteBuilderPage.findGenerationEffortSelect().should('have.value', 'high');
     suiteBuilderPage.findCurrentStep('define-goal').click();
     suiteBuilderPage.findCurrentStep('define-goal').should('have.attr', 'aria-current', 'step');
     suiteBuilderPage.findEvaluationGoalInput().should('have.value', 'A custom evaluation goal.');
