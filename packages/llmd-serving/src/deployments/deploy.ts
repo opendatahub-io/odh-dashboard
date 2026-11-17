@@ -18,6 +18,7 @@ import type {
 } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import {
   applyModelEnvVarsAndArgs,
@@ -325,6 +326,25 @@ export const deployLLMdDeployment = async (
 ): Promise<LLMdDeployment> => {
   if (!modelResource || !isLLMInferenceService(modelResource)) {
     throw new Error('LLMInferenceService is required');
+  }
+
+  // YAML input has only generic Kubernetes validation at this point.
+  const location: { spec?: { model?: { uri?: unknown } } } = modelResource;
+  const uri = location.spec?.model?.uri;
+  // Legacy connection-backed deployments may be resolved by the existing
+  // connection webhook. Dry runs omit its annotation until the Secret exists.
+  const connectionName =
+    modelResource.metadata.annotations?.[MetadataAnnotation.ConnectionName] ||
+    connectionSecretName ||
+    (dryRun
+      ? wizardData.modelLocationData.data?.connection ||
+        wizardData.createConnectionData.data.nameDesc?.k8sName.value
+      : undefined);
+  if (
+    !(typeof uri === 'string' && uri.trim()) &&
+    !(typeof connectionName === 'string' && connectionName.trim())
+  ) {
+    throw new Error('A model URI or a connection that resolves the model location is required.');
   }
 
   const deploymentK8sName =

@@ -175,6 +175,37 @@ describe('DeploymentsTableRow', () => {
     expect(screen.getByText('Ready')).toBeInTheDocument();
   });
 
+  it('should disable lifecycle actions and hide stale endpoints while deleting', () => {
+    mockUseDeploymentExtension.mockReturnValue({ properties: { platform: 'test-platform' } });
+    const deployment: Deployment = mockDeployment({
+      status: {
+        state: ModelDeploymentState.DELETING,
+        stoppedStates: { isRunning: true, isStopped: false },
+      },
+      endpoints: [{ type: 'external', name: 'endpoint', url: 'https://old-endpoint.example.com' }],
+    });
+    deployment.model.metadata.deletionTimestamp = '2026-11-16T12:00:00Z';
+    renderWithRouter(
+      <table>
+        <tbody>
+          <DeploymentRow
+            deployment={deployment}
+            platformColumns={[]}
+            onDelete={onDelete}
+            rowIndex={0}
+          />
+        </tbody>
+      </table>,
+    );
+    expect(screen.getByText('Deleting')).toBeVisible();
+    expect(screen.getByTestId('state-action-toggle')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Kebab toggle' })).toBeNull();
+    expect(screen.getByText('Not available')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Internal and external endpoint' })).toBeNull();
+    expect(screen.queryByTestId('metrics-link-test-deployment')).toBeNull();
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
   describe('Metrics link', () => {
     it('should not render metrics link when deployment state is FAILED_TO_LOAD', () => {
       mockUseDeploymentExtension.mockReturnValue({ properties: { platform: 'test-platform' } });
