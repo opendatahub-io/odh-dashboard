@@ -175,6 +175,11 @@ describe('Model Serving LLMD', () => {
             isReady: true,
             replicas: 2,
           }),
+          mockLLMInferenceServiceK8sResource({
+            name: 'custom-vllm',
+            displayName: 'Custom vLLM',
+            isLLMd: false,
+          }),
         ],
       });
       cy.interceptK8s(
@@ -188,6 +193,9 @@ describe('Model Serving LLMD', () => {
       // Verify deployment details
       const row = modelServingSection.getKServeRow('Facebook OPT 125M');
       row.shouldHaveServingRuntime('Distributed inference with llm-d');
+      modelServingSection
+        .getKServeRow('Custom vLLM')
+        .shouldHaveServingRuntime('Custom LLMInferenceService');
       row.findExternalServiceButton().click();
       row.findExternalServicePopover().findByText('External').should('exist');
       row
@@ -420,6 +428,11 @@ describe('Model Serving LLMD', () => {
             modelUri: 'hf://facebook/opt-125m',
             isReady: true,
           }),
+          mockLLMInferenceServiceK8sResource({
+            name: 'custom-vllm',
+            displayName: 'Custom vLLM',
+            isLLMd: false,
+          }),
         ],
       });
 
@@ -431,6 +444,10 @@ describe('Model Serving LLMD', () => {
       projectDetailsOverviewTab
         .findCardServingRuntime('facebook-opt-125m-single')
         .should('contain.text', 'Distributed inference with llm-d');
+      projectDetailsOverviewTab.findDeployedModelCard('custom-vllm').should('be.visible');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('custom-vllm')
+        .should('have.text', 'Custom LLMInferenceService');
     });
   });
 
@@ -1097,6 +1114,31 @@ describe('Model Serving LLMD', () => {
         .findServingRuntimeTemplateSearchSelector()
         .should('be.disabled')
         .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
+    });
+
+    it('should pre-select a custom default when editing vLLM without a resolved config', () => {
+      initVLLMOnMaaSIntercepts();
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+        mockK8sResourceList([]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      const row = modelServingGlobal.getDeploymentRow('GPU vLLM Deployment');
+      row.findServingRuntime().should('have.text', 'Custom LLMInferenceService');
+      row.findServingRuntimeVersionLabel().should('not.exist');
+      modelServingGlobal.getModelRow('GPU vLLM Deployment').findKebabAction('Edit').click();
+
+      modelServingWizardEdit.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizardEdit.findUrilocationInput().type('hf://facebook/opt-125m');
+      modelServingWizardEdit.findSaveConnectionCheckbox().click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      modelServingWizardEdit
+        .findServingRuntimeTemplateSearchSelector()
+        .should('be.disabled')
+        .should('contain.text', 'Custom LLMInferenceService');
+      modelServingWizardEdit.findServingRuntimeVersionLabel().should('not.exist');
     });
 
     it('Deploy vLLM using LLMInferenceServiceConfig', () => {

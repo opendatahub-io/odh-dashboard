@@ -2,6 +2,7 @@ import { testHook } from '@odh-dashboard/jest-config/hooks';
 import type { ProjectKind, PodKind } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLLMInferenceServiceK8sResource } from '../../__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockLLMInferenceServiceConfigK8sResource } from '../../__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import type {
   LLMdDeployment,
   LLMInferenceServiceConfigKind,
@@ -59,6 +60,49 @@ describe('useWatchDeployments', () => {
       Error | undefined,
     ]);
   });
+
+  it.each([
+    { scenario: 'no baseRefs', baseRefs: undefined, configExists: true, resolves: false },
+    {
+      scenario: 'non-matching baseRefs',
+      baseRefs: [{ name: 'other-config' }],
+      configExists: true,
+      resolves: false,
+    },
+    {
+      scenario: 'a missing config',
+      baseRefs: [{ name: 'model-1' }],
+      configExists: false,
+      resolves: false,
+    },
+    {
+      scenario: 'a matching baseRef and config',
+      baseRefs: [{ name: 'model-1' }],
+      configExists: true,
+      resolves: true,
+    },
+  ])(
+    'should resolve the deployment config with $scenario',
+    ({ baseRefs, configExists, resolves }) => {
+      const model = mockLLMInferenceServiceK8sResource({ name: 'model-1', baseRefs });
+      const config = mockLLMInferenceServiceConfigK8sResource({
+        name: 'model-1',
+        namespace: 'test-project',
+      });
+      mockUseWatchLLMInferenceService.mockReturnValue([[model], true, undefined]);
+      mockUseWatchLLMInferenceServiceConfigs.mockReturnValue([
+        configExists ? [config] : [],
+        true,
+        undefined,
+      ]);
+
+      const renderResult = testHook(useWatchDeployments)(mockProject);
+      const [deployments] = renderResult.result.current;
+
+      expect(deployments?.[0].server).toEqual(resolves ? config : undefined);
+      expect(renderResult).hookToHaveUpdateCount(1);
+    },
+  );
 
   it('should skip secondary resource watches when no LLM inference services are returned', () => {
     mockUseWatchLLMInferenceService.mockReturnValue([[], true, undefined]);
