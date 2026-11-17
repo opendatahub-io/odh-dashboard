@@ -292,8 +292,10 @@ aliases:
     - andyatmiami
     - caponetto
     - paulovmr
+    - manaswinidas
   distributions-reviewers:
     - jenny-s51
+    - manaswinidas
 
   # Data Registry
   data-registry-approvers:
