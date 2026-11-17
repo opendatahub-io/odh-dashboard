@@ -10,7 +10,7 @@ describe('Grid portal observability', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     setupObservabilityMocks({ isMaaSAdmin: true });
     portal.visit();
-    portal.findNavLink('Observability dashboard').click();
+    portal.findNavLink('Observability').click();
     cy.wait('@whoami');
     cy.wait('@dashboards');
     observability.findTabs().should('have.length', 2);

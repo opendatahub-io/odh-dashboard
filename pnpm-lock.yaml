@@ -2090,6 +2090,9 @@ importers:
       '@segment/analytics-next':
         specifier: ^1.84.0
         version: 1.84.1
+      '@segment/analytics-page-tools':
+        specifier: 1.0.0
+        version: 1.0.0
       react:
         specifier: ^18
         version: 18.3.1
@@ -4259,6 +4262,9 @@ importers:
 
   packages/feature-store:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src

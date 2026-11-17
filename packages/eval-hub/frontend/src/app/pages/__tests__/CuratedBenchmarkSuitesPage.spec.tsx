@@ -1,20 +1,16 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import CuratedBenchmarkSuitesPage from '~/app/pages/CuratedBenchmarkSuitesPage';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
+const { mockTrackEvent, render } = setupTrackingTest();
+
 const mockUseCollectionsQuery = jest.fn();
-
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  createEvalHubTrackingScope: () => ({ trackEventOnce: jest.fn(), clear: jest.fn() }),
-  trackEvalHubEvent: jest.fn(),
-}));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const clickFilterOption = (testId: string) => {
   fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
@@ -237,15 +233,18 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     fireEvent.click(within(customizeAction).getByRole('menuitem'));
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
       expect.objectContaining({
-        collectionName: 'Safety and fairness',
         surface: 'curated_gallery',
       }),
-      expect.objectContaining({ collectionType: 'custom' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+    expect(
+      mockTrackEvent.mock.calls.filter(
+        ([name]) => name === EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+      ),
+    ).toHaveLength(1);
   });
 
   it('should open the run modal from a curated suite card', () => {
