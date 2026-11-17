@@ -1,0 +1,13 @@
+# OWNERS
+
+approvers:
+  - platform-approvers
+
+reviewers:
+  - platform-reviewers
+
+labels:
+  - area/manifests
+
+options:
+  no_parent_owners: true

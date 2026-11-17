@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - eval-hub-approvers
+
+reviewers:
+  - eval-hub-reviewers
+
+labels:
+  - area/eval-hub
+  - area/manifests
+
+options:
+  no_parent_owners: true
