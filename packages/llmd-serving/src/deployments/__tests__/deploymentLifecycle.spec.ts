@@ -140,4 +140,37 @@ describe('LLM inference service preview and submission', () => {
       deployLLMdDeployment(wizard.state, {}, 'test-project', undefined, resource),
     ).resolves.toBeDefined();
   });
+
+  it('should validate a separately preserved YAML connection without adding its annotation to the dry run', async () => {
+    const wizard = form('');
+    const resource = mockLLMInferenceServiceK8sResource({ modelUri: '' });
+    delete resource.metadata.annotations?.[MetadataAnnotation.ConnectionName];
+
+    await expect(
+      deployLLMdDeployment(
+        wizard.state,
+        {},
+        'test-project',
+        undefined,
+        resource,
+        undefined,
+        undefined,
+        true,
+        'yaml-connection',
+      ),
+    ).resolves.toBeDefined();
+
+    expect(createResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryOptions: { queryParams: { dryRun: 'All' } },
+        resource: expect.objectContaining({
+          metadata: expect.objectContaining({
+            annotations: expect.not.objectContaining({
+              [MetadataAnnotation.ConnectionName]: expect.anything(),
+            }),
+          }),
+        }),
+      }),
+    );
+  });
 });
