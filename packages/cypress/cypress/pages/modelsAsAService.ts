@@ -1829,6 +1829,18 @@ class OverviewTabPage {
     return cy.findByTestId('overview-view-toggle');
   }
 
+  findGroupsViewButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('overview-groups-view');
+  }
+
+  findGroupsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('groups-table');
+  }
+
+  findGroupRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findGroupsTable().find('[data-testid^="overview-group-row-"]');
+  }
+
   expandModelRow(modelId: string, namespace: string): void {
     this.findModelRowRoot(modelId, namespace).findByTestId('expand-model').find('button').click();
   }
@@ -1982,7 +1994,11 @@ class OverviewTabPage {
   }
 
   /** Commits a partial text fragment (or a specific option) in a typeahead filter. */
-  filterByTypeahead(name: string, text: string, optionName?: string): void {
+  filterByTypeahead(
+    name: 'model' | 'project' | 'group' | 'subscription' | 'policy',
+    text: string,
+    optionName?: string,
+  ): void {
     const filterKeys: Record<string, string> = {
       model: 'modelName',
       project: 'project',

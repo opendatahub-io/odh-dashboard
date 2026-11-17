@@ -168,6 +168,15 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.findRows().should('have.length', 8);
   });
 
+  it('should filter policies by description fragments', () => {
+    authPoliciesPage.filterByTypeahead('policy', 'research and analytics');
+    authPoliciesPage.findRows().should('have.length', 1);
+    authPoliciesPage.getRow('Gemma Research Policy').findName().should('exist');
+
+    authPoliciesPage.clearAllFilters();
+    authPoliciesPage.findRows().should('have.length', 8);
+  });
+
   it('should disable the action buttons for a deleting policy in the table and view page', () => {
     cy.interceptOdh('GET /maas/api/v1/all-policies', {
       data: mockAuthPolicies(),

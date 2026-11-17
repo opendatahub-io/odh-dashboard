@@ -912,6 +912,7 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   {
     name: 'gemma-research-policy',
     displayName: 'Gemma Research Policy',
+    description: 'Grants access to research and analytics teams',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',

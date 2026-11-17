@@ -3,6 +3,7 @@ import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import type { TypeaheadSelectOption } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { GroupOverviewItem, ModelOverviewItem } from '~/app/types/subscriptions';
 import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
@@ -35,13 +36,15 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
 }) => {
   const { modelOptions, projectOptions, groupOptions, subscriptionOptions, authPolicyOptions } =
     React.useMemo(() => {
+      // Keyed by `${name}/${namespace}`: the same model name can be registered in
+      // multiple projects, and each project's option keeps its own display label
       const modelLabels = new Map<string, string>();
       const projectLabels = new Map<string, string>();
       const groupLabels = new Map<string, string>();
       const subscriptionLabels = new Map<string, string>();
       const authPolicyLabels = new Map<string, string>();
       rows.forEach((row) => {
-        modelLabels.set(row.id, row.modelDetails.displayName ?? row.id);
+        modelLabels.set(`${row.id}/${row.namespace}`, row.modelDetails.displayName ?? row.id);
         projectLabels.set(row.namespace, row.namespace);
         row.subscriptions.forEach((sub) => {
           subscriptionLabels.set(sub.name, sub.displayName ?? sub.name);
@@ -57,14 +60,29 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         row.subscriptions.forEach((sub) => {
           subscriptionLabels.set(sub.name, sub.displayName ?? sub.name);
           sub.groups?.forEach((group) => groupLabels.set(group, group));
+          // Groups can reference models that have no registered overview row
+          sub.modelRefs.forEach((ref) => {
+            modelLabels.set(`${ref.name}/${ref.namespace}`, ref.displayName ?? ref.name);
+            projectLabels.set(ref.namespace, ref.namespace);
+          });
         });
         row.authPolicies.forEach((policy) => {
           authPolicyLabels.set(policy.name, policy.displayName ?? policy.name);
           policy.groups?.forEach((group) => groupLabels.set(group, group));
+          policy.modelRefs.forEach((ref) => {
+            modelLabels.set(`${ref.name}/${ref.namespace}`, ref.displayName ?? ref.name);
+            projectLabels.set(ref.namespace, ref.namespace);
+          });
         });
       });
+      // The option value is the resource name (without the project suffix) so an
+      // exact selection matches every project that registered the model
+      const toModelOptions = (): TypeaheadSelectOption[] =>
+        Array.from(modelLabels.entries())
+          .toSorted(([, a], [, b]) => a.localeCompare(b))
+          .map(([key, content]) => ({ value: key.slice(0, key.lastIndexOf('/')), content }));
       return {
-        modelOptions: toSelectOptions(modelLabels),
+        modelOptions: toModelOptions(),
         projectOptions: toSelectOptions(projectLabels),
         groupOptions: toSelectOptions(groupLabels),
         subscriptionOptions: toSelectOptions(subscriptionLabels),

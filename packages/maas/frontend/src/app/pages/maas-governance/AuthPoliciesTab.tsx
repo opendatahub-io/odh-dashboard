@@ -109,7 +109,8 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
         (policySelection && policy.name !== policySelection.value) ||
         (policyFragment &&
           !includes(policy.name, policyFragment) &&
-          !includes(policy.displayName, policyFragment))
+          !includes(policy.displayName, policyFragment) &&
+          !includes(policy.description, policyFragment))
       ) {
         return false;
       }

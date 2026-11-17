@@ -7,7 +7,8 @@ import { URL_PREFIX } from '~/app/utilities/const';
 import { groupColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
-const RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
+// Keep the groups view in the return target so resource links come back to this view
+const RETURN_TO = `${URL_PREFIX}/maas-governance/overview?view=groups`;
 
 type GroupsTableProps = {
   data: GroupOverviewItem[];

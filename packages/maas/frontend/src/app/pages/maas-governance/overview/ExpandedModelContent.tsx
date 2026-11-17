@@ -31,9 +31,24 @@ import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
 import styles from './ExpandedModelContent.module.scss';
 
-const OVERVIEW_LINK_STATE = {
-  returnTo: `${URL_PREFIX}/maas-governance/overview`,
+/** Link state built from the section's return target so resource links return to the originating view. */
+const buildLinkState = (returnTo: string) => ({
+  returnTo,
   breadcrumbLabel: 'MaaS governance',
+});
+
+/** Counts rendered model-ref labels so colliding labels can be disambiguated with their namespace. */
+const countModelRefLabels = (
+  subscriptions: Array<{ modelRefs?: ModelSubscriptionRef[] }>,
+): Map<string, number> => {
+  const counts = new Map<string, number>();
+  subscriptions.forEach((sub) =>
+    sub.modelRefs?.forEach((ref) => {
+      const label = ref.displayName ?? ref.name;
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }),
+  );
+  return counts;
 };
 
 const toggleExpandedItem = (prev: Set<string>, name: string): Set<string> => {
@@ -245,6 +260,8 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
       isEffectivelyExpanded(sub.name, sub.groups, expandedSubs, highlightedGroup),
     );
 
+  const modelRefLabelCounts = countModelRefLabels(subscriptions);
+
   return (
     <>
       <SectionHeader
@@ -276,7 +293,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                   resourceStatus: sub.phase ?? '',
                 } satisfies MaaSSettingsDetailsViewedProperties)
               }
-              linkState={OVERVIEW_LINK_STATE}
+              linkState={buildLinkState(returnTo)}
               returnTo={returnTo}
               phase={sub.phase}
               resourceType={PhaseResourceType.SUBSCRIPTION}
@@ -300,11 +317,19 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                 <strong className="pf-v6-u-mr-md">Token limits</strong>
                 {sub.modelRefs
                   ? // Group rows carry per-model limits on their model refs
-                    sub.modelRefs.map((ref) => (
-                      <span key={ref.name} className="pf-v6-u-mr-md">
-                        {ref.displayName ?? ref.name}: {formatTokenLimits(ref.tokenRateLimits)}
-                      </span>
-                    ))
+                    sub.modelRefs.map((ref) => {
+                      const label = ref.displayName ?? ref.name;
+                      // Include the namespace when another ref renders the same label
+                      const text =
+                        (modelRefLabelCounts.get(label) ?? 0) > 1
+                          ? `${label} (${ref.namespace})`
+                          : label;
+                      return (
+                        <span key={`${ref.namespace}/${ref.name}`} className="pf-v6-u-mr-md">
+                          {text}: {formatTokenLimits(ref.tokenRateLimits)}
+                        </span>
+                      );
+                    })
                   : formatTokenLimits(sub.tokenRateLimits ?? [])}
               </Content>
               <GroupChips
@@ -379,7 +404,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
                   resourceStatus: policy.phase ?? '',
                 } satisfies MaaSSettingsDetailsViewedProperties)
               }
-              linkState={OVERVIEW_LINK_STATE}
+              linkState={buildLinkState(returnTo)}
               phase={policy.phase}
               resourceType={PhaseResourceType.AUTHPOLICY}
               rowIndex={index}
