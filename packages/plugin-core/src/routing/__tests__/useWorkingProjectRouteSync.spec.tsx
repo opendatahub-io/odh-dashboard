@@ -2,7 +2,6 @@ import { renderHook } from '@testing-library/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getProjectRouteWithSuffix,
-  type ProjectRouteLocation,
   updateProjectQueryParam,
   useWorkingProjectRouteSync,
 } from '../useWorkingProjectRouteSync';
@@ -109,7 +108,7 @@ describe('useWorkingProjectRouteSync', () => {
     activeProjectName: string;
     routeProjectName: string;
     enabled: boolean;
-    getProjectLocation: (projectName: string) => ProjectRouteLocation | null;
+    getProjectPath: ((projectName: string) => string) | null;
   };
 
   beforeEach(() => {
@@ -132,11 +131,7 @@ describe('useWorkingProjectRouteSync', () => {
           projects,
           selectProject,
           enabled: true,
-          getProjectLocation: (name) => ({
-            pathname: `/assets/${name}/models`,
-            search: '?tab=models',
-            hash: '#details',
-          }),
+          getProjectPath: (name) => `/assets/${name}`,
         }),
       { initialProps: { activeProjectName: 'project-a' } },
     );
@@ -146,11 +141,27 @@ describe('useWorkingProjectRouteSync', () => {
     expect(navigate).toHaveBeenCalledWith(
       {
         pathname: '/assets/project-b/models',
-        search: '?tab=models',
-        hash: '#details',
+        search: '',
+        hash: '',
       },
       { replace: true },
     );
+  });
+
+  it('should not select or navigate for an invalid route project', () => {
+    renderHook(() =>
+      useWorkingProjectRouteSync({
+        activeProjectName: 'project-a',
+        routeProjectName: 'missing-project',
+        projects,
+        selectProject,
+        enabled: true,
+        getProjectPath: (name) => `/assets/${name}`,
+      }),
+    );
+
+    expect(selectProject).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('should navigate when the active project changes', () => {
@@ -162,9 +173,7 @@ describe('useWorkingProjectRouteSync', () => {
           projects,
           selectProject,
           enabled: true,
-          getProjectLocation: (projectName) => ({
-            pathname: `/assets/${projectName}/models`,
-          }),
+          getProjectPath: (projectName) => `/assets/${projectName}`,
         }),
       { initialProps: { activeProjectName: 'project-a' } },
     );
@@ -174,7 +183,7 @@ describe('useWorkingProjectRouteSync', () => {
     rerender({ activeProjectName: 'project-b' });
 
     expect(navigate).toHaveBeenCalledWith(
-      { pathname: '/assets/project-b/models' },
+      { pathname: '/assets/project-b/models', search: '', hash: '' },
       { replace: true },
     );
   });
@@ -187,7 +196,7 @@ describe('useWorkingProjectRouteSync', () => {
         projects,
         selectProject,
         enabled: true,
-        getProjectLocation: (projectName) => ({ pathname: `/assets/${projectName}` }),
+        getProjectPath: (projectName) => `/assets/${projectName}`,
       }),
     );
 
@@ -214,7 +223,7 @@ describe('useWorkingProjectRouteSync', () => {
             projects,
             selectProject,
             enabled: true,
-            getProjectLocation: (projectName) => ({ pathname: `/assets/${projectName}` }),
+            getProjectPath: (projectName) => `/assets/${projectName}`,
           }),
         { initialProps: { activeProjectName: 'project-a' } },
       );
@@ -242,7 +251,7 @@ describe('useWorkingProjectRouteSync', () => {
             projects,
             selectProject,
             enabled: true,
-            getProjectLocation: (projectName) => ({ pathname: `/assets/${projectName}` }),
+            getProjectPath: (projectName) => `/assets/${projectName}`,
           }),
         {
           initialProps: {
@@ -290,7 +299,7 @@ describe('useWorkingProjectRouteSync', () => {
             projects,
             selectProject,
             enabled: true,
-            getProjectLocation: (projectName) => ({ pathname: `/assets/${projectName}` }),
+            getProjectPath: (projectName) => `/assets/${projectName}`,
           }),
         {
           initialProps: {
@@ -309,54 +318,82 @@ describe('useWorkingProjectRouteSync', () => {
     });
   });
 
+  it('should navigate to a newer user selection when the route selection does not commit', () => {
+    const extendedProjects = [...projects, { name: 'project-c' }];
+    let activeProjectName = 'project-a';
+    const { rerender } = renderHook(
+      ({ routeProjectName }: { routeProjectName: string }) =>
+        useWorkingProjectRouteSync({
+          activeProjectName,
+          routeProjectName,
+          projects: extendedProjects,
+          selectProject,
+          enabled: true,
+          getProjectPath: (projectName) => `/assets/${projectName}`,
+        }),
+      { initialProps: { routeProjectName: 'project-b' } },
+    );
+
+    expect(selectProject).toHaveBeenCalledWith(extendedProjects[1]);
+    expect(navigate).not.toHaveBeenCalled();
+
+    activeProjectName = 'project-c';
+    rerender({ routeProjectName: 'project-b' });
+
+    expect(navigate).toHaveBeenCalledWith(
+      { pathname: '/assets/project-c', search: '', hash: '' },
+      { replace: true },
+    );
+  });
+
   const noNavigationCases: NoNavigationCase[] = [
     {
       name: 'UPS is disabled',
       activeProjectName: 'project-b',
       routeProjectName: 'project-a',
       enabled: false,
-      getProjectLocation: (name: string) => ({ pathname: `/assets/${name}` }),
+      getProjectPath: (name: string) => `/assets/${name}`,
     },
     {
       name: 'the consumer opts out for a global route',
       activeProjectName: 'project-b',
       routeProjectName: 'project-a',
       enabled: true,
-      getProjectLocation: () => null,
+      getProjectPath: null,
     },
     {
       name: 'the active project is unavailable',
       activeProjectName: '',
       routeProjectName: 'project-a',
       enabled: true,
-      getProjectLocation: (name: string) => ({ pathname: `/assets/${name}` }),
+      getProjectPath: (name: string) => `/assets/${name}`,
     },
     {
       name: 'the current project is unavailable',
       activeProjectName: 'project-b',
       routeProjectName: '',
       enabled: true,
-      getProjectLocation: (name: string) => ({ pathname: `/assets/${name}` }),
+      getProjectPath: (name: string) => `/assets/${name}`,
     },
     {
       name: 'the route already matches the active project',
       activeProjectName: 'project-a',
       routeProjectName: 'project-a',
       enabled: true,
-      getProjectLocation: (name: string) => ({ pathname: `/assets/${name}` }),
+      getProjectPath: (name: string) => `/assets/${name}`,
     },
     {
       name: 'the target location already matches the current location',
       activeProjectName: 'project-b',
       routeProjectName: 'project-a',
       enabled: true,
-      getProjectLocation: () => ({ pathname: '/assets/project-a/models', search: '', hash: '' }),
+      getProjectPath: (name: string) => `/assets/${name}`,
     },
   ];
 
   it.each(noNavigationCases)(
     'should not navigate when $name',
-    ({ activeProjectName, routeProjectName, enabled, getProjectLocation }) => {
+    ({ activeProjectName, routeProjectName, enabled, getProjectPath }) => {
       renderHook(() =>
         useWorkingProjectRouteSync({
           activeProjectName,
@@ -364,11 +401,14 @@ describe('useWorkingProjectRouteSync', () => {
           projects,
           selectProject,
           enabled,
-          getProjectLocation,
+          getProjectPath,
         }),
       );
 
       expect(navigate).not.toHaveBeenCalled();
+      if (getProjectPath === null) {
+        expect(selectProject).not.toHaveBeenCalled();
+      }
     },
   );
 });

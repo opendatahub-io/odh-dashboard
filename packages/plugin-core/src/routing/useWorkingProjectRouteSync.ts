@@ -1,14 +1,19 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import type { ProjectIdentity } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
+import { RouteProjectKindValue, type RouteProjectInput } from '@odh-dashboard/foundation';
+
+type RouteProjectIdentity = {
+  name: string;
+};
 
 export type WorkingProjectRouteSyncOptions = {
   activeProjectName?: string;
   routeProjectName?: string;
-  projects: readonly ProjectIdentity[];
-  selectProject: (project: ProjectIdentity) => void;
+  projects: readonly RouteProjectIdentity[];
+  selectProject: (project: RouteProjectIdentity) => void;
   enabled: boolean;
-  getProjectLocation: (projectName: string) => ProjectRouteLocation | null;
+  getProjectPath: ((projectName: string) => string) | null;
+  registerProjectRouteSync?: (route?: RouteProjectInput) => () => void;
 };
 
 export type ProjectRouteLocation = {
@@ -64,42 +69,118 @@ export const useWorkingProjectRouteSync = ({
   projects,
   selectProject,
   enabled,
-  getProjectLocation,
+  getProjectPath,
+  registerProjectRouteSync,
 }: WorkingProjectRouteSyncOptions): void => {
   const navigate = useNavigate();
   const location = useLocation();
+  const recoverInvalidRoute = React.useCallback(
+    (projectName: string) => {
+      if (getProjectPath) {
+        navigate(getProjectPath(projectName), { replace: true });
+      }
+    },
+    [getProjectPath, navigate],
+  );
+  const getProjectLocation = React.useCallback(
+    (projectName: string): ProjectRouteLocation | null => {
+      if (!getProjectPath) {
+        return null;
+      }
+
+      return {
+        pathname: getProjectRouteWithSuffix(
+          location.pathname,
+          routeProjectName ?? '',
+          projectName,
+          getProjectPath,
+        ),
+        search: location.search,
+        hash: location.hash,
+      };
+    },
+    [getProjectPath, location.hash, location.pathname, location.search, routeProjectName],
+  );
   const handledRouteProject = React.useRef<string | undefined>();
-  const pendingRouteProject = React.useRef<string | undefined>();
+  const pendingRouteSelection = React.useRef<
+    | {
+        routeProjectName: string;
+        activeProjectNameAtSelection?: string;
+      }
+    | undefined
+  >();
+  const projectNames = projects.map(({ name }) => name).join('\u0000');
+
+  const registeredRoute = React.useMemo<RouteProjectInput | undefined>(() => {
+    if (!routeProjectName || !registerProjectRouteSync) {
+      return undefined;
+    }
+
+    if (projectNames.split('\u0000').includes(routeProjectName)) {
+      return { kind: RouteProjectKindValue.Project, name: routeProjectName };
+    }
+
+    return {
+      kind: RouteProjectKindValue.Invalid,
+      recover: getProjectPath ? recoverInvalidRoute : undefined,
+    };
+  }, [
+    getProjectPath,
+    projectNames,
+    recoverInvalidRoute,
+    registerProjectRouteSync,
+    routeProjectName,
+  ]);
+
+  React.useLayoutEffect(
+    () => registerProjectRouteSync?.(registeredRoute),
+    [registerProjectRouteSync, registeredRoute],
+  );
 
   React.useLayoutEffect(() => {
     if (!enabled || !routeProjectName) {
       handledRouteProject.current = undefined;
-      pendingRouteProject.current = undefined;
+      pendingRouteSelection.current = undefined;
       return;
     }
 
     const routeProject = projects.find(({ name }) => name === routeProjectName);
     if (!routeProject) {
       handledRouteProject.current = undefined;
-      pendingRouteProject.current = undefined;
+      pendingRouteSelection.current = undefined;
+      return;
+    }
+
+    // A null location opts this consumer out of both route-driven selection and navigation.
+    if (!getProjectLocation(routeProjectName)) {
+      handledRouteProject.current = undefined;
+      pendingRouteSelection.current = undefined;
       return;
     }
 
     if (handledRouteProject.current !== routeProjectName) {
       handledRouteProject.current = routeProjectName;
       if (routeProjectName !== activeProjectName) {
-        pendingRouteProject.current = routeProjectName;
+        pendingRouteSelection.current = {
+          routeProjectName,
+          activeProjectNameAtSelection: activeProjectName,
+        };
         selectProject(routeProject);
         return;
       }
     }
 
-    if (pendingRouteProject.current) {
-      if (pendingRouteProject.current !== activeProjectName) {
+    if (pendingRouteSelection.current) {
+      if (pendingRouteSelection.current.routeProjectName === activeProjectName) {
+        pendingRouteSelection.current = undefined;
         return;
       }
-      pendingRouteProject.current = undefined;
-      return;
+
+      if (pendingRouteSelection.current.activeProjectNameAtSelection === activeProjectName) {
+        return;
+      }
+
+      pendingRouteSelection.current = undefined;
     }
 
     if (!activeProjectName || routeProjectName === activeProjectName) {
@@ -126,6 +207,7 @@ export const useWorkingProjectRouteSync = ({
     location,
     navigate,
     projects,
+    registerProjectRouteSync,
     routeProjectName,
     selectProject,
   ]);

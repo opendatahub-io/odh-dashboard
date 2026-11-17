@@ -113,7 +113,14 @@ const renderProjectRedirectLoader = () =>
 
 const LocationCapture: React.FC = () => {
   const location = useLocation();
-  return <div data-testid="location" data-pathname={location.pathname} />;
+  return (
+    <div
+      data-testid="location"
+      data-pathname={location.pathname}
+      data-search={location.search}
+      data-hash={location.hash}
+    />
+  );
 };
 
 describe('GenAiCoreLoader', () => {
@@ -171,57 +178,101 @@ describe('GenAiCoreLoader', () => {
     );
   });
 
-  it('should update the route when the active UPS project changes', async () => {
+  it('should not redirect to the persisted project when UPS has no active project', () => {
     mockUseNamespaceSelectorWithPersistence.mockReturnValue({
       ...mockNamespaceSelectorReturn(true),
       namespaces: [{ name: 'project-a' }, { name: 'project-b' }],
       preferredNamespace: { name: 'project-a' },
     } as ReturnType<typeof useNamespaceSelectorWithPersistence>);
-    let activeProject = { name: 'project-a' };
-    mockUseWorkingProject.mockImplementation(() => ({
+    mockUseWorkingProject.mockReturnValue({
       status: 'listed',
       projects: [{ name: 'project-a' }, { name: 'project-b' }],
-      activeProject,
+      activeProject: null,
       selectProject: jest.fn(),
-    }));
+    });
     mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
       typeof useIsAreaAvailable
     >);
 
-    const tree = () => (
-      <MemoryRouter initialEntries={['/playground/project-a']}>
-        <Routes>
-          <Route
-            path="/playground/:namespace"
-            element={
-              <GenAiCoreLoader
-                title="Playground"
-                getInvalidRedirectPath={(namespace) => `/playground/${namespace}`}
-              />
-            }
-          >
-            <Route index element={<LocationCapture />} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    );
-    const view = render(tree());
+    renderProjectRedirectLoader();
 
-    expect(screen.getByTestId('location')).toHaveAttribute(
-      'data-pathname',
-      '/playground/project-a',
-    );
+    expect(screen.queryByTestId('location')).not.toBeInTheDocument();
+  });
 
-    activeProject = { name: 'project-b' };
-    view.rerender(tree());
+  it.each([
+    {
+      name: 'the project root route',
+      initialEntry: '/playground/project-a',
+      routePath: '/playground/:namespace',
+      expectedPath: '/playground/project-b',
+      getProjectPath: (projectName: string) => `/playground/${projectName}`,
+    },
+    {
+      name: 'a nested asset route with query and hash',
+      initialEntry: '/assets/project-a/agent-endpoints?filter=active#details',
+      routePath: '/assets/:namespace/:tab',
+      expectedPath: '/assets/project-b/agent-endpoints',
+      expectedSearch: '?filter=active',
+      expectedHash: '#details',
+      getProjectPath: (projectName: string) => `/assets/${projectName}`,
+    },
+  ])(
+    'should preserve the route when the active UPS project changes from $name',
+    async ({
+      initialEntry,
+      routePath,
+      expectedPath,
+      expectedSearch = '',
+      expectedHash = '',
+      getProjectPath,
+    }) => {
+      mockUseNamespaceSelectorWithPersistence.mockReturnValue({
+        ...mockNamespaceSelectorReturn(true),
+        namespaces: [{ name: 'project-a' }, { name: 'project-b' }],
+        preferredNamespace: { name: 'project-a' },
+      } as ReturnType<typeof useNamespaceSelectorWithPersistence>);
+      let activeProject = { name: 'project-a' };
+      mockUseWorkingProject.mockImplementation(() => ({
+        status: 'listed',
+        projects: [{ name: 'project-a' }, { name: 'project-b' }],
+        activeProject,
+        selectProject: jest.fn(),
+      }));
+      mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
+        typeof useIsAreaAvailable
+      >);
 
-    await waitFor(() => {
+      const tree = () => (
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <Routes>
+            <Route
+              path={routePath}
+              element={
+                <GenAiCoreLoader title="Playground" getInvalidRedirectPath={getProjectPath} />
+              }
+            >
+              <Route index element={<LocationCapture />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      );
+      const view = render(tree());
+
       expect(screen.getByTestId('location')).toHaveAttribute(
         'data-pathname',
-        '/playground/project-b',
+        initialEntry.split('?')[0].split('#')[0],
       );
-    });
-  });
+
+      activeProject = { name: 'project-b' };
+      view.rerender(tree());
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location')).toHaveAttribute('data-pathname', expectedPath);
+      });
+      expect(screen.getByTestId('location')).toHaveAttribute('data-search', expectedSearch);
+      expect(screen.getByTestId('location')).toHaveAttribute('data-hash', expectedHash);
+    },
+  );
 
   describe('when the unified project selector is enabled', () => {
     const projectNamespaces = [{ name: 'project-a' }, { name: 'project-b' }];

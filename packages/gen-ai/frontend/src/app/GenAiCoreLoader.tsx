@@ -35,22 +35,25 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
   ...applicationPageProps
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { namespaces, namespacesLoaded, preferredNamespace } =
-    useNamespaceSelectorWithPersistence();
-  const { activeProject, projects: workingProjects, selectProject } = useWorkingProject();
   const isUnifiedProjectSelectorEnabled = useIsAreaAvailable(
     SupportedArea.UNIFIED_PROJECT_SELECTOR,
   ).status;
-
+  const { namespaces, namespacesLoaded, preferredNamespace } =
+    useNamespaceSelectorWithPersistence();
+  const {
+    activeProject,
+    projects: workingProjects,
+    selectProject,
+    registerProjectRouteSync,
+  } = useWorkingProject();
   useWorkingProjectRouteSync({
     activeProjectName: activeProject?.name,
     routeProjectName: namespace,
     projects: workingProjects,
     selectProject,
     enabled: isUnifiedProjectSelectorEnabled,
-    getProjectLocation: (projectName) => ({
-      pathname: getInvalidRedirectPath(projectName),
-    }),
+    getProjectPath: getInvalidRedirectPath,
+    registerProjectRouteSync,
   });
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
@@ -84,14 +87,13 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
       ),
     };
   } else {
-    const activeNamespace = isUnifiedProjectSelectorEnabled
-      ? namespaces.find((candidate) => candidate.name === activeProject?.name)
-      : undefined;
-    const redirectNamespace = resolveWorkingProject({
-      list: { status: 'listed', projects: namespaces },
-      route: null,
-      storedName: activeNamespace?.name ?? preferredNamespace?.name,
-    }).activeProject;
+    const redirectNamespace = isUnifiedProjectSelectorEnabled
+      ? activeProject
+      : resolveWorkingProject({
+          list: { status: 'listed', projects: namespaces },
+          route: null,
+          storedName: preferredNamespace?.name,
+        }).activeProject;
 
     if (redirectNamespace) {
       return <Navigate to={getInvalidRedirectPath(redirectNamespace.name)} replace />;
