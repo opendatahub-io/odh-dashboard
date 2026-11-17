@@ -61,13 +61,11 @@ export const useExternalRouteField = (
 type ExternalRouteFieldProps = {
   isChecked?: ExternalRouteFieldData;
   onChange?: (checked: boolean) => void;
-  allowCreate?: boolean;
 };
 
 export const ExternalRouteField: React.FC<ExternalRouteFieldProps> = ({
   isChecked = false,
   onChange,
-  allowCreate = false,
 }) => {
   return (
     <Stack hasGutter>
@@ -77,7 +75,6 @@ export const ExternalRouteField: React.FC<ExternalRouteFieldProps> = ({
           data-testid="model-access-checkbox"
           label="Make model deployment available through an external route"
           isChecked={isChecked}
-          isDisabled={!allowCreate}
           onChange={(e, check) => onChange?.(check)}
         />
       </StackItem>

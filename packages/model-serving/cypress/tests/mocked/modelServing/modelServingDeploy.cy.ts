@@ -60,6 +60,7 @@ import {
   modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import { hardwareProfileSection } from '@odh-dashboard/cypress/cypress/pages/components/HardwareProfileSection';
+import { asProjectEditUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
@@ -1509,6 +1510,71 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
+  });
+
+  [false, true].forEach((hasExternalRoute) => {
+    it(`should ${hasExternalRoute ? 'disable' : 'enable'} external access as a contributor`, () => {
+      asProjectEditUser({ projects: ['test-project'] });
+      initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+      const inferenceService = mockInferenceServiceK8sResource({
+        modelType: ServingRuntimeModelType.PREDICTIVE,
+        hasExternalRoute,
+        secretName: 'test-uri-secret',
+        hardwareProfileName: 'large-profile',
+        hardwareProfileNamespace: 'opendatahub',
+        additionalAnnotations: { 'security.opendatahub.io/enable-auth': 'false' },
+      });
+      cy.interceptK8sList(
+        { model: InferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([inferenceService]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([mockServingRuntimeK8sResource({ scope: 'global' })]),
+      );
+      cy.interceptK8s(
+        'PUT',
+        { model: InferenceServiceModel, ns: 'test-project', name: 'test-inference-service' },
+        inferenceService,
+      ).as('updateInferenceService');
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      modelServingWizardEdit
+        .findTokenAuthenticationCheckbox()
+        .should('be.disabled')
+        .and('not.be.checked');
+      modelServingWizardEdit
+        .findExternalRouteCheckbox()
+        .should('be.enabled')
+        .and(hasExternalRoute ? 'be.checked' : 'not.be.checked')
+        .click();
+      modelServingWizardEdit
+        .findTokenAuthenticationCheckbox()
+        .should('be.disabled')
+        .and('not.be.checked');
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+      modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
+
+      [true, false].forEach((dryRun) => {
+        cy.wait('@updateInferenceService').then(({ request }) => {
+          expect(request.url.includes('dryRun=All')).to.equal(dryRun);
+          const { labels, annotations } = request.body.metadata;
+          if (hasExternalRoute) {
+            expect(labels).not.to.have.property('networking.kserve.io/visibility');
+          } else {
+            expect(labels).to.have.property('networking.kserve.io/visibility', 'exposed');
+          }
+          expect(annotations).to.have.property('security.opendatahub.io/enable-auth', 'false');
+        });
+      });
+      cy.get('@createRoleBinding.all').should('have.length', 0);
+      cy.get('@createRole.all').should('have.length', 0);
+      cy.get('@createServiceAccount.all').should('have.length', 0);
+    });
   });
 
   it('Edit an existing legacy generative deployment', () => {

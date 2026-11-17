@@ -130,8 +130,8 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   const handleExternalRouteChange = (checked: boolean) => {
     wizardState.state.externalRoute.setData(checked);
 
-    // When external route is enabled, automatically enable token authentication for security
-    if (checked && (!tokenAuthData || tokenAuthData.length === 0)) {
+    // Only auto-enable token authentication when the user can configure it.
+    if (allowCreate && checked && (!tokenAuthData || tokenAuthData.length === 0)) {
       const defaultToken = {
         uuid: `ml-${Date.now()}`,
         displayName: 'default-token',
@@ -203,7 +203,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 >
                   <ExternalRouteField
                     isChecked={externalRouteData}
-                    allowCreate={allowCreate}
                     onChange={handleExternalRouteChange}
                   />
                 </FormGroup>
