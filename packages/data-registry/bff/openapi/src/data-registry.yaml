@@ -47,6 +47,8 @@ tags:
     description: Volume (unstructured storage) registration and management (proxied)
   - name: generic-tables
     description: Multi-format table registration, RHOAI extension (proxied)
+  - name: connections
+    description: Asset lookup by connection reference, RHOAI extension (proxied)
   - name: search
     description: Full-text search with relevance scoring, RHOAI extension (proxied)
   - name: labels
@@ -195,9 +197,9 @@ paths:
                   - "GET /v1/{prefix}/namespaces"
                   - "GET /v1/{prefix}/namespaces/{namespace}"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
   /api/v1/{project}/config:
@@ -217,9 +219,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/DataRegistryConfig"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "503":
@@ -247,9 +249,9 @@ paths:
               example:
                 namespaces: [[sales], [marketing]]
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "503":
@@ -276,9 +278,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/NamespaceResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
@@ -304,9 +306,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/NamespaceResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -327,9 +329,9 @@ paths:
         "204":
           description: Collection exists
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -350,9 +352,9 @@ paths:
         "204":
           description: Collection deleted
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -390,9 +392,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/UpdateNamespacePropertiesResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -427,9 +429,9 @@ paths:
                   - namespace: [sales]
                     name: sales_2024
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "503":
@@ -458,9 +460,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/LoadTableResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
@@ -488,9 +490,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/LoadTableResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -512,9 +514,9 @@ paths:
         "204":
           description: Table exists
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -547,9 +549,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/LoadTableResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -577,9 +579,9 @@ paths:
         "204":
           description: Table deleted
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -606,9 +608,9 @@ paths:
         "204":
           description: Table renamed
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -640,9 +642,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/ListVolumesResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "503":
@@ -671,9 +673,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/UnstructuredAssetResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
@@ -700,9 +702,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/UnstructuredAssetResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -724,9 +726,9 @@ paths:
         "204":
           description: Volume exists
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -759,9 +761,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/UnstructuredAssetResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -783,9 +785,9 @@ paths:
         "204":
           description: Volume deleted
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -832,9 +834,9 @@ paths:
                     created_at: "2026-07-15T10:30:00Z"
                     updated_at: "2026-07-15T10:30:00Z"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "503":
@@ -864,9 +866,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/StructuredAssetResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
@@ -894,9 +896,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/StructuredAssetResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -919,9 +921,9 @@ paths:
         "204":
           description: Asset deleted
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -955,13 +957,82 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/StructuredAssetResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  # ===========================================================================
+  # Data Registry proxy routes — assets by connection (RHOAI extension)
+  # ===========================================================================
+  /api/v1/{project}/connections/{source}/{connection_id}/assets:
+    get:
+      tags: [connections]
+      operationId: proxyListConnectionAssets
+      summary: List assets associated with a connection (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/connections/{source}/{connection_id}/assets`
+        on the upstream Data Registry API. Returns matching table and volume assets across
+        collections in the project. The BFF forwards the authenticated request; authorization
+        is enforced upstream against `{project}`.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - name: source
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [dch]
+          description: Stored connection reference source/type.
+        - name: connection_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID of the DCH DataConnection.
+      responses:
+        "200":
+          description: Matching registered assets; an empty list means no assets match.
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/ListConnectionAssetsResponse"
+              example:
+                assets:
+                  - name: source-documents
+                    asset_type: volume
+                    uuid: "3fa85f64-5717-4562-b3fc-2c963f66afa7"
+                    format: documents
+                    collection: archive
+                    owner: data-team
+                    created_at: "2026-11-16T10:35:00Z"
+                    updated_at: "2026-11-16T10:35:00Z"
+                    connection_ref:
+                      type: dch
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                  - name: claims
+                    asset_type: table
+                    uuid: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    format: parquet
+                    collection: underwriting
+                    owner: data-team
+                    created_at: "2026-11-16T10:30:00Z"
+                    updated_at: "2026-11-16T10:30:00Z"
+                    connection_ref:
+                      type: dch
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+        "400":
+          $ref: "#/components/responses/ProxyBadRequest"
+        "401":
+          $ref: "#/components/responses/ProxyUnauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
 
@@ -1075,9 +1146,9 @@ paths:
                   page: 1
                   limit: 50
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "503":
@@ -1107,9 +1178,9 @@ paths:
               example:
                 labels: [pii, quarterly, verified]
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "503":
@@ -1138,9 +1209,9 @@ paths:
               schema:
                 $ref: "data-registry-api.yaml#/components/schemas/LabelResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":
@@ -1168,9 +1239,9 @@ paths:
         "204":
           description: Label deleted
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProxyBadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          $ref: "#/components/responses/ProxyUnauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -1399,6 +1470,54 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/BffErrorEnvelope"
+    ProxyBadRequest:
+      description: >-
+        Invalid request. The BFF may generate a BFF error envelope; upstream validation errors
+        use the Iceberg REST ErrorResponse and are relayed unchanged.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "data-registry-api.yaml#/components/schemas/ErrorResponse"
+              - $ref: "#/components/schemas/BffErrorEnvelope"
+          examples:
+            upstreamValidationError:
+              summary: Upstream Data Registry validation error
+              value:
+                error:
+                  message: Invalid connection ID
+                  type: BadRequestException
+                  code: 400
+            bffValidationError:
+              summary: BFF request validation error
+              value:
+                error:
+                  code: "400"
+                  message: Invalid request
+    ProxyUnauthorized:
+      description: >-
+        Authentication failed. The BFF may generate a BFF error envelope; upstream
+        authentication errors use the Iceberg REST ErrorResponse and are relayed unchanged.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "data-registry-api.yaml#/components/schemas/ErrorResponse"
+              - $ref: "#/components/schemas/BffErrorEnvelope"
+          examples:
+            upstreamAuthenticationError:
+              summary: Upstream Data Registry authentication error
+              value:
+                error:
+                  message: Invalid authentication token
+                  type: UnauthorizedException
+                  code: 401
+            bffAuthenticationError:
+              summary: BFF authentication error
+              value:
+                error:
+                  code: "401"
+                  message: authentication required
     Forbidden:
       description: >-
         The upstream Data Registry server's kube-rbac-proxy sidecar denied the request

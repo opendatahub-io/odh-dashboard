@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: RHOAI Data Registry API
-  version: 0.9.0
+  version: 0.10.0
   description: |
     The RHOAI Data Registry exposes an **Iceberg REST-compatible API** for
     registering, discovering, and managing data assets across OpenShift AI projects.
@@ -28,7 +28,7 @@ info:
     1. **Iceberg REST** — Standard Iceberg REST Catalog endpoints. Any compliant client
        (PyIceberg, Spark, Trino, DuckDB) can connect without modification.
     2. **RHOAI Extensions** — Additive endpoints for volume management, multi-format asset
-       registration, and search. These do not break spec clients.
+       registration, connection-based asset lookup, and search. These do not break spec clients.
 
     ## Authentication
 
@@ -72,6 +72,9 @@ tags:
       Multi-format table registration (RHOAI extension). Lists and manages tables
       in any format (iceberg, parquet, csv, postgresql, etc.) — unlike the Iceberg
       tables endpoint which only returns iceberg-format tables.
+    x-rhoai-extension: true
+  - name: connections
+    description: Asset lookup by stored connection reference (RHOAI extension)
     x-rhoai-extension: true
   - name: search
     description: Full-text search with relevance scoring (RHOAI extension)
@@ -842,6 +845,76 @@ paths:
           description: Label deleted
         '404':
           $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # Connection asset lookup (RHOAI Extension)
+  # ===========================================================================
+
+  /v1/{project}/connections/{source}/{connection_id}/assets:
+    get:
+      operationId: listConnectionAssets
+      summary: List assets associated with a connection
+      description: |
+        Returns registered table and volume assets whose stored connection reference matches
+        the source and identifier in the path. The lookup spans all collections and formats
+        within the project namespace. For `source: dch`, `connection_id` is the UUID of the
+        DCH DataConnection. The connector provider label (`connectionType`) is not used for
+        matching and is not persisted with the asset.
+      tags: [connections]
+      x-rhoai-extension: true
+      parameters:
+        - $ref: '#/components/parameters/project'
+        - name: source
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [dch]
+          description: Stored connection reference source/type.
+        - name: connection_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID of the DCH DataConnection.
+      responses:
+        '200':
+          description: Matching registered assets; an empty list means no assets match.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListConnectionAssetsResponse'
+              example:
+                assets:
+                  - name: source-documents
+                    asset_type: volume
+                    uuid: "3fa85f64-5717-4562-b3fc-2c963f66afa7"
+                    format: documents
+                    collection: archive
+                    owner: data-team
+                    created_at: "2026-11-16T10:35:00Z"
+                    updated_at: "2026-11-16T10:35:00Z"
+                    connection_ref:
+                      type: dch
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                  - name: claims
+                    asset_type: table
+                    uuid: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    format: parquet
+                    collection: underwriting
+                    owner: data-team
+                    created_at: "2026-11-16T10:30:00Z"
+                    updated_at: "2026-11-16T10:30:00Z"
+                    connection_ref:
+                      type: dch
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   # ===========================================================================
   # Search (RHOAI Extension)
@@ -1826,6 +1899,42 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StructuredAssetResponse'
+
+    ListConnectionAssetsResponse:
+      description: Table and volume assets associated with a connection.
+      type: object
+      required: [assets]
+      properties:
+        assets:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/StructuredAssetResponse'
+              - $ref: '#/components/schemas/UnstructuredAssetResponse'
+      example:
+        assets:
+          - name: source-documents
+            asset_type: volume
+            uuid: "3fa85f64-5717-4562-b3fc-2c963f66afa7"
+            format: documents
+            collection: archive
+            owner: data-team
+            created_at: "2026-11-16T10:35:00Z"
+            updated_at: "2026-11-16T10:35:00Z"
+            connection_ref:
+              type: dch
+              id: "550e8400-e29b-41d4-a716-446655440000"
+          - name: claims
+            asset_type: table
+            uuid: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+            format: parquet
+            collection: underwriting
+            owner: data-team
+            created_at: "2026-11-16T10:30:00Z"
+            updated_at: "2026-11-16T10:30:00Z"
+            connection_ref:
+              type: dch
+              id: "550e8400-e29b-41d4-a716-446655440000"
 
     # ----- Labels -----
 
