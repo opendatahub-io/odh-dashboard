@@ -113,9 +113,20 @@ describe('CreateSuiteFromGoalPage', () => {
       screen.getByText('Set the suite name, description, and optional recommendation settings.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('goal-suite-evaluates')).toHaveTextContent('Model');
-    expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveValue(12);
-    expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveAttribute('max', '20');
-    expect(screen.getByTestId('goal-suite-max-benchmarks')).not.toHaveAttribute('placeholder');
+    const maxBenchmarksSlider = screen.getByRole('slider', { name: 'Number of benchmarks' });
+    expect(maxBenchmarksSlider).toHaveAttribute('aria-valuemin', '1');
+    expect(maxBenchmarksSlider).toHaveAttribute('aria-valuemax', '20');
+    expect(maxBenchmarksSlider).toHaveAttribute('aria-valuenow', '12');
+    expect(screen.getByTestId('goal-suite-max-benchmarks-summary')).toHaveTextContent(
+      '12 of 20 benchmarks',
+    );
+    expect(
+      screen.getByText('Choose the maximum number of benchmarks AI should recommend'),
+    ).toBeInTheDocument();
+    expect(maxBenchmarksSlider).toHaveAttribute(
+      'aria-describedby',
+      'suite-builder-max-benchmarks-helper',
+    );
     expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('moderate');
     expect(screen.getByTestId('goal-suite-generation-effort')).toHaveValue('standard');
     expect(screen.queryByRole('option', { name: /default/i })).not.toBeInTheDocument();
@@ -143,23 +154,18 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
   });
 
-  it('should block invalid benchmark limits and preserve optional settings when navigating', async () => {
+  it('should update the maximum benchmarks slider with the keyboard and preserve settings', async () => {
     await renderPage();
 
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
       target: { value: 'Reasoning suite' },
     });
-    fireEvent.change(screen.getByTestId('goal-suite-max-benchmarks'), {
-      target: { value: '21' },
-    });
-    expect(await screen.findByTestId('suite-builder-max-benchmarks-error')).toHaveTextContent(
-      'Enter a whole number between 1 and 20.',
+    const maxBenchmarksSlider = screen.getByRole('slider', { name: 'Number of benchmarks' });
+    fireEvent.keyDown(maxBenchmarksSlider, { key: 'ArrowRight' });
+    expect(maxBenchmarksSlider).toHaveAttribute('aria-valuenow', '13');
+    expect(screen.getByTestId('goal-suite-max-benchmarks-summary')).toHaveTextContent(
+      '13 of 20 benchmarks',
     );
-    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
-
-    fireEvent.change(screen.getByTestId('goal-suite-max-benchmarks'), {
-      target: { value: '20' },
-    });
     fireEvent.change(screen.getByTestId('goal-suite-strictness'), {
       target: { value: 'strict' },
     });
@@ -171,7 +177,10 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
-    expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveValue(20);
+    expect(screen.getByRole('slider', { name: 'Number of benchmarks' })).toHaveAttribute(
+      'aria-valuenow',
+      '13',
+    );
     expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('strict');
     expect(screen.getByTestId('goal-suite-generation-effort')).toHaveValue('high');
   });

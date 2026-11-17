@@ -127,8 +127,11 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage.findCurrentStep('suite-settings').should('have.attr', 'aria-current', 'step');
     suiteBuilderPage.findCurrentStep('define-goal').should('be.disabled');
     suiteBuilderPage.findNextButton().should('be.disabled');
-    suiteBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
-    suiteBuilderPage.findMaxBenchmarksInput().should('have.attr', 'max', '20');
+    suiteBuilderPage.findMaxBenchmarksHelper().should('be.visible');
+    suiteBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuenow', '12');
+    suiteBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemin', '1');
+    suiteBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemax', '20');
+    suiteBuilderPage.findMaxBenchmarksSummary().should('have.text', '12 of 20 benchmarks');
     suiteBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
     suiteBuilderPage.findGenerationEffortSelect().should('have.value', 'standard');
     suiteBuilderPage.findNameInput().type('   ');
@@ -170,7 +173,8 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage
       .findDescriptionInput()
       .should('have.value', 'Check general reasoning performance.');
-    suiteBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    suiteBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuenow', '12');
+    suiteBuilderPage.findMaxBenchmarksSummary().should('have.text', '12 of 20 benchmarks');
     suiteBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
     suiteBuilderPage.findGenerationEffortSelect().should('have.value', 'high');
     suiteBuilderPage.findCurrentStep('define-goal').click();

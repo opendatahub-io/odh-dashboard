@@ -7,8 +7,16 @@ class SuiteBuilderPage {
     return cy.findByTestId('goal-suite-description');
   }
 
-  findMaxBenchmarksInput() {
-    return cy.findByTestId('goal-suite-max-benchmarks');
+  findMaxBenchmarksSlider() {
+    return cy.findByRole('slider', { name: 'Number of benchmarks' });
+  }
+
+  findMaxBenchmarksSummary() {
+    return cy.findByTestId('goal-suite-max-benchmarks-summary');
+  }
+
+  findMaxBenchmarksHelper() {
+    return cy.findByText('Choose the maximum number of benchmarks AI should recommend');
   }
 
   findStrictnessSelect() {

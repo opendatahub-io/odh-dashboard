@@ -1,6 +1,8 @@
 import * as React from 'react';
 import {
   Content,
+  Flex,
+  FlexItem,
   Form,
   FormHelperText,
   FormGroup,
@@ -8,6 +10,7 @@ import {
   FormSelectOption,
   HelperText,
   HelperTextItem,
+  Slider,
   TextArea,
   TextInput,
   Title,
@@ -94,41 +97,65 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({ canContinueSettin
             )}
           />
         </FormGroup>
-        <FormGroup label="Maximum benchmarks" fieldId="goal-suite-max-benchmarks">
-          <Controller
-            name="maxBenchmarks"
-            control={control}
-            render={({ field, fieldState }) => (
-              <>
-                <TextInput
-                  id="goal-suite-max-benchmarks"
-                  type="number"
-                  min={1}
-                  max={20}
-                  step={1}
-                  value={field.value}
-                  onChange={(_event, value) => field.onChange(value)}
-                  onBlur={field.onBlur}
-                  validated={fieldState.error ? 'error' : 'default'}
-                  aria-invalid={fieldState.error ? true : undefined}
-                  data-testid="goal-suite-max-benchmarks"
-                />
-                {fieldState.error?.message ? (
-                  <FormHelperText>
+        <Controller
+          name="maxBenchmarks"
+          control={control}
+          render={({ field, fieldState }) => (
+            <FormGroup label="Number of benchmarks" fieldId="goal-suite-max-benchmarks">
+              <Slider
+                id="goal-suite-max-benchmarks"
+                min={1}
+                max={20}
+                step={1}
+                value={field.value}
+                onChange={(_event, value) => field.onChange(value)}
+                onBlur={field.onBlur}
+                showBoundaries={false}
+                thumbAriaLabel="Number of benchmarks"
+                aria-describedby={
+                  fieldState.error
+                    ? 'suite-builder-max-benchmarks-helper suite-builder-max-benchmarks-error'
+                    : 'suite-builder-max-benchmarks-helper'
+                }
+                aria-invalid={fieldState.error ? true : undefined}
+                data-testid="goal-suite-max-benchmarks"
+              />
+              <FormHelperText>
+                <Flex
+                  direction={{ default: 'column', md: 'row' }}
+                  justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                  flexWrap={{ default: 'wrap' }}
+                >
+                  <FlexItem>
                     <HelperText>
-                      <HelperTextItem
-                        variant="error"
-                        data-testid="suite-builder-max-benchmarks-error"
-                      >
-                        {fieldState.error.message}
+                      <HelperTextItem id="suite-builder-max-benchmarks-helper">
+                        Choose the maximum number of benchmarks AI should recommend
                       </HelperTextItem>
                     </HelperText>
-                  </FormHelperText>
-                ) : null}
-              </>
-            )}
-          />
-        </FormGroup>
+                  </FlexItem>
+                  <FlexItem className="pf-v6-u-font-size-sm pf-v6-u-text-align-end">
+                    <div data-testid="goal-suite-max-benchmarks-summary">
+                      {field.value} of 20 benchmarks
+                    </div>
+                  </FlexItem>
+                </Flex>
+              </FormHelperText>
+              {fieldState.error?.message ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem
+                      id="suite-builder-max-benchmarks-error"
+                      variant="error"
+                      data-testid="suite-builder-max-benchmarks-error"
+                    >
+                      {fieldState.error.message}
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+            </FormGroup>
+          )}
+        />
         <FormGroup label="Strictness" fieldId="goal-suite-strictness">
           <Controller
             name="strictness"

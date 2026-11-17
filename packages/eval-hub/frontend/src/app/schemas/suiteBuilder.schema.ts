@@ -5,12 +5,7 @@ import { getUrlValidationError } from '~/app/utils/validationUtils';
 export const suiteSettingsSchema = z.object({
   suiteName: z.string().trim().min(1, 'Enter a suite name.'),
   suiteDescription: z.string(),
-  maxBenchmarks: z
-    .string()
-    .refine(
-      (value) => value === '' || (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 20),
-      'Enter a whole number between 1 and 20.',
-    ),
+  maxBenchmarks: z.number().int().min(1).max(20),
   strictness: z.enum(['', 'lenient', 'moderate', 'strict']),
   generationEffort: z.enum(['low', 'standard', 'high']),
 });
@@ -79,7 +74,7 @@ export type SuiteBuilderFormValues = z.infer<typeof suiteBuilderSchema>;
 export const suiteBuilderDefaultValues: SuiteBuilderFormValues = {
   suiteName: '',
   suiteDescription: '',
-  maxBenchmarks: '12',
+  maxBenchmarks: 12,
   strictness: 'moderate',
   generationEffort: 'standard',
   evaluationGoal: '',

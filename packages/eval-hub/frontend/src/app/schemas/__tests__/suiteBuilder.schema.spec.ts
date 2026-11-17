@@ -49,7 +49,7 @@ describe('suite builder schemas', () => {
   });
 
   it('should default optional generation settings and validate supplied values', () => {
-    expect(suiteBuilderDefaultValues.maxBenchmarks).toBe('12');
+    expect(suiteBuilderDefaultValues.maxBenchmarks).toBe(12);
     expect(suiteBuilderDefaultValues.strictness).toBe('moderate');
     expect(suiteBuilderDefaultValues.generationEffort).toBe('standard');
     expect(
@@ -59,15 +59,7 @@ describe('suite builder schemas', () => {
       }).success,
     ).toBe(true);
 
-    expect(
-      suiteSettingsSchema.safeParse({
-        ...suiteBuilderDefaultValues,
-        suiteName: 'Reasoning suite',
-        maxBenchmarks: '',
-      }).success,
-    ).toBe(true);
-
-    for (const maxBenchmarks of ['1', '12', '20']) {
+    for (const maxBenchmarks of [1, 12, 20]) {
       expect(
         suiteSettingsSchema.safeParse({
           ...suiteBuilderDefaultValues,
@@ -77,7 +69,7 @@ describe('suite builder schemas', () => {
       ).toBe(true);
     }
 
-    for (const maxBenchmarks of ['0', '21', '1.5', 'not a number']) {
+    for (const maxBenchmarks of [0, 21, 1.5, Number.NaN]) {
       expect(
         suiteSettingsSchema.safeParse({
           ...suiteBuilderDefaultValues,
@@ -195,7 +187,7 @@ describe('suite builder schemas', () => {
       suiteBuilderSchema.parse({
         ...suiteBuilderDefaultValues,
         suiteName: 'Reasoning suite',
-        maxBenchmarks: '20',
+        maxBenchmarks: 20,
         strictness: 'strict',
         evaluationGoal: 'Evaluate factual accuracy.',
         generatorModel: RECOMMENDATION_MODEL,
@@ -203,7 +195,7 @@ describe('suite builder schemas', () => {
     ).toEqual({
       ...suiteBuilderDefaultValues,
       suiteName: 'Reasoning suite',
-      maxBenchmarks: '20',
+      maxBenchmarks: 20,
       strictness: 'strict',
       evaluationGoal: 'Evaluate factual accuracy.',
       generatorModel: RECOMMENDATION_MODEL,
