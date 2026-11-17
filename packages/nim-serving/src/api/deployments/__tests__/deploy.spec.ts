@@ -1,6 +1,6 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
-import { isNIMDeployActive, deployNIMDeployment } from '../deploy';
+import { isNIMDeployActive, assembleNIMDeployment, deployNIMDeployment } from '../deploy';
 import { createNIMService, updateNIMService, patchNIMService } from '../../nimservices/k8s';
 import { getNIMAccount } from '../../accounts/k8s';
 import type { NIMServiceKind } from '../../nimservices/types';
@@ -56,6 +56,53 @@ describe('isNIMDeployActive', () => {
     } as unknown as WizardFormData['state'];
 
     expect(isNIMDeployActive(wizardData)).toBe(false);
+  });
+});
+
+describe('assembleNIMDeployment', () => {
+  const authenticatedNIMService: NIMServiceKind = {
+    ...mockNIMServiceResource,
+    spec: {
+      ...mockNIMServiceResource.spec,
+      annotations: { 'security.opendatahub.io/enable-auth': 'true' },
+    },
+  };
+
+  const buildWizardData = (canCreateRoleBindings: boolean): WizardFormData =>
+    ({
+      state: {
+        project: { projectName: 'test-ns' },
+        k8sNameDesc: {
+          data: { name: 'Test NIM', description: '', k8sName: { value: 'test-nim' } },
+        },
+        numReplicas: { data: 1 },
+        // Enable external access with no dashboard-managed token Secrets.
+        externalRoute: { data: true },
+        tokenAuthentication: { data: [] },
+        runtimeArgs: { data: undefined },
+        environmentVariables: { data: undefined },
+        hardwareProfileConfig: {
+          formData: { selectedProfile: undefined, useExistingSettings: true, resources: undefined },
+        },
+        canCreateRoleBindings,
+      },
+    } as unknown as WizardFormData);
+
+  it('should preserve existing authentication when a contributor enables external access', () => {
+    const result = assembleNIMDeployment(buildWizardData(false), {
+      model: authenticatedNIMService,
+    });
+
+    expect(result.model.spec.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
+    expect(result.model.spec.labels?.['networking.kserve.io/visibility']).toBe('exposed');
+  });
+
+  it('should derive authentication from tokens for users who can configure it', () => {
+    const result = assembleNIMDeployment(buildWizardData(true), {
+      model: authenticatedNIMService,
+    });
+
+    expect(result.model.spec.annotations?.['security.opendatahub.io/enable-auth']).toBe('false');
   });
 });
 

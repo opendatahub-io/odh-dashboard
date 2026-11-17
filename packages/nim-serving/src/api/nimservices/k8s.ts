@@ -113,6 +113,8 @@ type AssembleNIMServiceParams = {
   replicas?: number;
   externalRoute?: boolean;
   tokenAuth?: boolean;
+  /** Keep an existing NIMService's authentication setting instead of deriving it from tokenAuth. */
+  preserveExistingAuth?: boolean;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
   hardwareProfile: HardwareProfileConfig;
@@ -132,6 +134,7 @@ export const assembleNIMService = (
     replicas = 1,
     externalRoute,
     tokenAuth,
+    preserveExistingAuth,
     runtimeArgs,
     environmentVariables,
     hardwareProfile,
@@ -178,7 +181,9 @@ export const assembleNIMService = (
   if (!nimService.spec.annotations) {
     nimService.spec.annotations = {};
   }
-  nimService.spec.annotations[KSERVE_AUTH_ANNOTATION] = tokenAuth ? 'true' : 'false';
+  if (!(preserveExistingAuth && existingNimService)) {
+    nimService.spec.annotations[KSERVE_AUTH_ANNOTATION] = tokenAuth ? 'true' : 'false';
+  }
 
   if (environmentVariables?.enabled) {
     nimService.spec.env = mapEnvironmentVariablesToK8sEnv(environmentVariables.variables);

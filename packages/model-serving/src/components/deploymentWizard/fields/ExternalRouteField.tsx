@@ -61,6 +61,12 @@ export const useExternalRouteField = (
 type ExternalRouteFieldProps = {
   isChecked?: ExternalRouteFieldData;
   onChange?: (checked: boolean) => void;
+  /**
+   * @deprecated No longer has any effect; the external route checkbox is always enabled.
+   * Retained for compatibility with existing consumers.
+   */
+  // eslint-disable-next-line react/no-unused-prop-types
+  allowCreate?: boolean;
 };
 
 export const ExternalRouteField: React.FC<ExternalRouteFieldProps> = ({

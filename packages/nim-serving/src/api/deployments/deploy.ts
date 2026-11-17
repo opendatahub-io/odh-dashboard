@@ -36,6 +36,8 @@ export const assembleNIMDeployment = (
       replicas: wizardData.state.numReplicas.data,
       externalRoute: wizardData.state.externalRoute.data,
       tokenAuth,
+      // Users who cannot configure token authentication must not change an existing setting.
+      preserveExistingAuth: !wizardData.state.canCreateRoleBindings,
       runtimeArgs: wizardData.state.runtimeArgs.data,
       environmentVariables: wizardData.state.environmentVariables.data,
       hardwareProfile: wizardData.state.hardwareProfileConfig.formData,

@@ -158,6 +158,43 @@ describe('assembleNIMService', () => {
     expect(result.spec.annotations?.['security.opendatahub.io/enable-auth']).toBe('false');
   });
 
+  it('should keep the existing auth annotation when preserveExistingAuth is set', () => {
+    const existing: NIMServiceKind = {
+      ...mockNIMService,
+      spec: {
+        ...mockNIMService.spec,
+        annotations: { 'security.opendatahub.io/enable-auth': 'true' },
+      },
+    };
+
+    const result = assembleNIMService(
+      {
+        projectName: 'ns',
+        k8sName: 'test',
+        externalRoute: true,
+        tokenAuth: false,
+        preserveExistingAuth: true,
+        hardwareProfile: emptyHardwareProfile,
+      },
+      existing,
+    );
+
+    expect(result.spec.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
+    expect(result.spec.labels?.['networking.kserve.io/visibility']).toBe('exposed');
+  });
+
+  it('should derive the auth annotation from tokenAuth for a new NIMService even when preserveExistingAuth is set', () => {
+    const result = assembleNIMService({
+      projectName: 'ns',
+      k8sName: 'test',
+      tokenAuth: false,
+      preserveExistingAuth: true,
+      hardwareProfile: emptyHardwareProfile,
+    });
+
+    expect(result.spec.annotations?.['security.opendatahub.io/enable-auth']).toBe('false');
+  });
+
   it('should set display name and description in annotations', () => {
     const result = assembleNIMService({
       projectName: 'ns',
