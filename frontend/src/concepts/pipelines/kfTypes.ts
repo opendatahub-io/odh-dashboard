@@ -569,10 +569,13 @@ export enum IOTypeKF {
   TASK_FINAL_STATUS_OUTPUT = 'TASK_FINAL_STATUS_OUTPUT',
 }
 
-/** Producer of an IO parameter/artifact (upstream task + optional loop iteration). */
+/**
+ * Producer of an IO parameter/artifact (upstream task + optional loop iteration).
+ * `iteration` is a protojson int64: a decimal string, not a JSON number.
+ */
 export type IOProducerKF = {
   task_name: string;
-  iteration?: number;
+  iteration?: string;
 };
 
 /** Driver/executor pod info for a PipelineTask. */
@@ -582,10 +585,13 @@ export type TaskPodKF = {
   type: TaskPodTypeKF;
 };
 
-/** Type-specific attributes (loop iteration, importer options). */
+/**
+ * Type-specific attributes (loop iteration, importer options).
+ * Iteration counts are protojson int64 decimal strings.
+ */
 export type TaskTypeAttributesKF = {
-  iteration_index?: number;
-  iteration_count?: number;
+  iteration_index?: string;
+  iteration_count?: string;
   download_to_workspace?: boolean;
 };
 
