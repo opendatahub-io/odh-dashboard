@@ -44,6 +44,7 @@ func NewDashboardHandler(
 	namespacedRBACWriters []string,
 	enforceNamespacedRBACConsent bool,
 	controllerWriter string,
+	operatorNamespace string,
 ) *admission.Webhook {
 	allowedWriters := make(map[string]struct{}, len(namespacedRBACWriters))
 	for _, writer := range namespacedRBACWriters {
@@ -54,7 +55,7 @@ func NewDashboardHandler(
 
 	return &admission.Webhook{
 		Handler: admission.HandlerFunc(func(ctx context.Context, req admission.Request) admission.Response {
-			enforceConsent, err := namespacedRBACConsentEnforced(ctx, reader, enforceNamespacedRBACConsent)
+			enforceConsent, err := namespacedRBACConsentEnforced(ctx, reader, enforceNamespacedRBACConsent, operatorNamespace)
 			if err != nil {
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
@@ -80,10 +81,30 @@ func NewDashboardHandler(
 	}
 }
 
-func namespacedRBACConsentEnforced(ctx context.Context, reader client.Reader, configured bool) (bool, error) {
+func namespacedRBACConsentEnforced(
+	ctx context.Context,
+	reader client.Reader,
+	configured bool,
+	operatorNamespace string,
+) (bool, error) {
 	if configured {
 		return true, nil
 	}
+
+	state := &corev1.ConfigMap{}
+	if err := reader.Get(ctx, client.ObjectKey{
+		Namespace: operatorNamespace,
+		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+	}, state); err == nil {
+		if state.Data[v1alpha1.NamespacedRBACConsentEnforcedKey] == "true" {
+			return true, nil
+		}
+	} else if !k8serrors.IsNotFound(err) {
+		return false, fmt.Errorf("reading namespaced RBAC controller state: %w", err)
+	}
+
+	// Backward-compatible migration path for clusters that persisted the latch
+	// on the Dashboard before controller-protected state was introduced.
 	dashboard := &v1alpha1.Dashboard{}
 	if err := reader.Get(ctx, client.ObjectKey{Name: v1alpha1.DashboardInstanceName}, dashboard); err != nil {
 		if k8serrors.IsNotFound(err) {

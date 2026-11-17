@@ -120,6 +120,7 @@ func TestDashboardHandler_ProtectsNamespacedRBACTargetFields(t *testing.T) {
 		[]string{orchestrator},
 		true,
 		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
 	)
 
 	tests := []struct {
@@ -229,6 +230,7 @@ func TestDashboardHandler_EmptyWriterListFailsClosed(t *testing.T) {
 		nil,
 		true,
 		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
 	)
 
 	resp := handler.Handle(context.Background(), admission.Request{
@@ -252,6 +254,7 @@ func TestDashboardHandler_LegacyModePreservesExistingAdmissionContract(t *testin
 		nil,
 		false,
 		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
 	)
 
 	targetUpdate := handler.Handle(context.Background(), admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
@@ -282,6 +285,7 @@ func TestDashboardHandler_ProtectsControllerOwnedAnnotations(t *testing.T) {
 		nil,
 		false,
 		controllerWriter,
+		"opendatahub",
 	)
 
 	for _, key := range []string{
@@ -323,6 +327,7 @@ func TestDashboardHandler_DurableEnforcementSurvivesMissingFlag(t *testing.T) {
 		[]string{orchestrator},
 		false,
 		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
 	)
 
 	request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
@@ -331,6 +336,33 @@ func TestDashboardHandler_DurableEnforcementSurvivesMissingFlag(t *testing.T) {
 		UserInfo:  authenticationv1.UserInfo{Username: "alice"},
 		Object:    runtime.RawExtension{Raw: dashboardRaw(t, "arbitrary", "")},
 		OldObject: runtime.RawExtension{Raw: dashboardRaw(t, "", "")},
+	}}
+	assert.False(t, handler.Handle(context.Background(), request).Allowed)
+	request.UserInfo.Username = orchestrator
+	assert.True(t, handler.Handle(context.Background(), request).Allowed)
+}
+
+func TestDashboardHandler_DurableEnforcementSurvivesDashboardReplacement(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	state := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Namespace: "opendatahub",
+		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+	}, Data: map[string]string{
+		v1alpha1.NamespacedRBACConsentEnforcedKey: "true",
+	}}
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(state).Build(),
+		[]string{orchestrator},
+		false,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
+	)
+
+	request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Create,
+		Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+		UserInfo:  authenticationv1.UserInfo{Username: "alice"},
+		Object:    runtime.RawExtension{Raw: dashboardRaw(t, "arbitrary", "")},
 	}}
 	assert.False(t, handler.Handle(context.Background(), request).Allowed)
 	request.UserInfo.Username = orchestrator
@@ -353,6 +385,7 @@ func TestDashboardHandler_ProtectsNamespaceOptInLabel(t *testing.T) {
 		[]string{orchestrator},
 		true,
 		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
 	)
 
 	for _, tt := range []struct {

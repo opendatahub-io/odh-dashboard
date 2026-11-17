@@ -32,6 +32,8 @@ webhooks:
           - UPDATE
         resources:
           - namespaces
+          - namespaces/status
+          - namespaces/finalize
     matchConditions:
       - name: namespaced-rbac-target-fields-changed
         expression: >-
@@ -46,9 +48,10 @@ webhooks:
       - name: namespaced-rbac-consent-label-changed
         expression: >-
           request.resource.resource != 'namespaces' ||
-          oldObject == null ||
-          object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('') !=
-          oldObject.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('')
+          (request.operation == 'CREATE'
+            ? object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('') == 'true'
+            : object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('') !=
+              oldObject.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue(''))
     sideEffects: None
     failurePolicy: Fail
     timeoutSeconds: 5

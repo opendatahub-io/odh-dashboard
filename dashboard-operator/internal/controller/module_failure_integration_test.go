@@ -122,6 +122,13 @@ func TestIntegration_ModuleDeploymentFailureStopsRemovedTeardown(t *testing.T) {
 	r := newManifestReconciler(manifests)
 	r.Platform = cluster.SelfManagedRhoai
 	r.NamespacedRBACAdmissionEnabled = true
+	r.NamespacedRBACWebhookEnabled = true
+	t.Cleanup(func() {
+		deleteIgnoreNotFound(t, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+			Namespace: integrationNamespace,
+			Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+		}})
+	})
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
 		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 		Modules:            disableAllModulesExcept("maas", "genAi"),

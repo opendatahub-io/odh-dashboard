@@ -16,6 +16,15 @@ const (
 	// NamespacedRBACConsentEnforcedAnnotation makes enforcement monotonic after
 	// the platform completes its transition from legacy grants.
 	NamespacedRBACConsentEnforcedAnnotation = "dashboard.opendatahub.io/namespaced-rbac-consent-enforced"
+	// NamespacedRBACStateConfigMapName identifies controller-protected state that
+	// survives replacement of the cluster-scoped Dashboard object.
+	NamespacedRBACStateConfigMapName = "dashboard-namespaced-rbac-state"
+	// NamespacedRBACConsentEnforcedKey records the monotonic enforcement latch in
+	// NamespacedRBACStateConfigMapName.
+	NamespacedRBACConsentEnforcedKey = "consent-enforced"
+	// NamespacedRBACGrantInventoryKey records authoritative grant history in
+	// NamespacedRBACStateConfigMapName.
+	NamespacedRBACGrantInventoryKey = "grants"
 )
 
 // ModuleOverrideState is a tri-state enum for module enablement overrides.

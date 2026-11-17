@@ -82,11 +82,9 @@ spec:
             {{- if .Values.webhook.enabled }}
             - --enable-webhook
             - --webhook-port={{ .Values.webhook.port }}
-            {{- if .Values.webhook.namespacedRBACWriters }}
-            - {{ printf "--namespaced-rbac-writers=%s" (join "," .Values.webhook.namespacedRBACWriters) | quote }}
-            {{- end }}
             {{- if .Values.webhook.enforceNamespacedRBACConsent }}
             - --enforce-namespaced-rbac-consent
+            - {{ printf "--namespaced-rbac-writers=%s" (join "," .Values.webhook.namespacedRBACWriters) | quote }}
             {{- end }}
             {{- end }}
           env:

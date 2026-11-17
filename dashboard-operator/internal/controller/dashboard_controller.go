@@ -147,6 +147,7 @@ type Options struct {
 	Namespace                      string
 	ApplicationsNamespace          string
 	NamespacedRBACAdmissionEnabled bool
+	NamespacedRBACWebhookEnabled   bool
 }
 
 // DashboardReconciler reconciles a Dashboard object.
@@ -159,6 +160,7 @@ type DashboardReconciler struct {
 	Namespace                      string
 	ApplicationsNamespace          string
 	NamespacedRBACAdmissionEnabled bool
+	NamespacedRBACWebhookEnabled   bool
 	RouteAPIAvailable              bool
 }
 

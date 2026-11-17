@@ -434,18 +434,24 @@ service account may change those annotations. Only the exact
 usernames in `webhook.namespacedRBACWriters` may set the namespace label to
 `true`; anyone already authorized by Kubernetes to update the namespace may
 remove it and revoke consent. API-server match conditions skip the webhook for
-unrelated Dashboard and namespace updates. This prevents the Dashboard service
-account, even though it can patch other namespace metadata, from granting
-itself access without making normal updates depend on webhook availability.
+unrelated Dashboard and namespace updates and for namespace creation without
+consent. Consent changes through the namespace main resource, `status`, or
+`finalize` subresource all use the same policy. This prevents the Dashboard
+service account, even though it can patch other namespace metadata, from
+granting itself access without making normal namespace creation depend on
+webhook availability.
 
 Removing the consent label causes the controller to revoke the managed Role and
 RoleBinding before other deployment, removal, or finalizer work runs. Revocation
-uses an operator-owned inventory annotation on the singleton Dashboard, so
-changing subjects, stripping mutable labels, replacing the reserved
-RoleBinding, or changing its name cannot hide an active grant from cleanup. A
+uses controller-protected inventory in the operator-namespace state ConfigMap
+and mirrors it on the singleton Dashboard, so changing subjects, stripping
+mutable labels, replacing the reserved RoleBinding, changing its name, or
+replacing the Dashboard cannot hide an active grant from cleanup. A
 one-time label-selected migration records grants made by older versions; normal
 reconciliation then uses direct Role reads and namespace-scoped RoleBinding
-lists. The controller first empties the Role rules, then removes every
+lists. A configured target is not treated as proof that reserved-name RBAC is
+operator-owned: migration and repair require the durable inventory or the
+operator ownership labels. The controller first empties the Role rules, then removes every
 RoleBinding that references the reserved Role and deletes the Role. It retains
 the inventory entry until deletion is confirmed, including when a finalizer
 delays deletion. Normal and Removed-state reconciliation reports this as
@@ -457,9 +463,13 @@ mode the controller preserves the legacy grants without requiring a consent
 label and reports a separate informational `NamespacedRBACConsentEnforced=False`
 condition with reason `NamespacedRBACConsentNotEnforced` when a target is
 configured. This condition does not replace workload degradation or readiness
-status. Enabling enforcement writes durable controller-owned state, so a later
-deployment that accidentally omits the flag remains fail-closed. Enabling
-enforcement without the
+status. Enabling enforcement writes a monotonic latch to the operator-namespace
+`dashboard-namespaced-rbac-state` ConfigMap and mirrors it on the Dashboard for
+observability. The controller-protected ConfigMap survives Dashboard deletion
+and recreation, so a later deployment that accidentally omits the flag remains
+fail-closed. If that deployment also disables the validating webhook, the
+controller revokes existing namespaced grants and refuses to create new ones
+until admission protection is restored. Enabling enforcement without the
 webhook and at least one trusted writer is rejected at chart rendering and
 manager startup. Operator-managed RHOAI and ODH installations normally
 configure the applicable platform operator service account username:

@@ -1321,6 +1321,7 @@ func TestReconcile_RevokesNamespacedRBACBeforeDeploymentFailure(t *testing.T) {
 		Namespace:                      testNamespace,
 		ApplicationsNamespace:          testNamespace,
 		NamespacedRBACAdmissionEnabled: true,
+		NamespacedRBACWebhookEnabled:   true,
 	}
 
 	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})

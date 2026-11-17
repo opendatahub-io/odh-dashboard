@@ -35,6 +35,7 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Namespace:                      opts.Namespace,
 		ApplicationsNamespace:          opts.ApplicationsNamespace,
 		NamespacedRBACAdmissionEnabled: opts.NamespacedRBACAdmissionEnabled,
+		NamespacedRBACWebhookEnabled:   opts.NamespacedRBACWebhookEnabled,
 	}
 
 	// The Dashboard controller does not currently need to watch Secrets:

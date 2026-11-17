@@ -143,6 +143,20 @@ func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
 			t.Fatal("expected cert-manager resources to be omitted when webhook.certManager.enabled=false")
 		}
 	})
+
+	t.Run("legacy webhook mode omits writer-only image arguments", func(t *testing.T) {
+		output, err := renderChartTemplate(
+			chartDir,
+			"--set", "webhook.enabled=true",
+			"--set", "webhook.namespacedRBACWriters[0]=system:serviceaccount:opendatahub:operator",
+		)
+		if err != nil {
+			t.Fatalf("render chart: %v", err)
+		}
+		if strings.Contains(output, "--namespaced-rbac-writers") {
+			t.Fatal("legacy mode must not pass an argument unknown to an older manager image")
+		}
+	})
 }
 
 type webhookCertificate struct {

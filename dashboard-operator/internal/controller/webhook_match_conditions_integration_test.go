@@ -7,12 +7,14 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -21,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -75,26 +78,60 @@ func TestIntegration_WebhookMatchConditionsUseRealAPIServer(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, cli.Create(context.Background(), &configuration))
 
+	// Webhook registration propagates asynchronously inside the API server.
+	// Prove activation with a matching request, then reset counters before the
+	// exact-count assertions below.
+	activationAttempt := 0
+	require.Eventually(t, func() bool {
+		activationAttempt++
+		probe := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("webhook-activation-%d", activationAttempt),
+			Labels: map[string]string{
+				v1alpha1.NamespacedRBACOptInLabel: "true",
+			},
+		}}
+		return cli.Create(context.Background(), probe) == nil && webhookCalls(t, &mu, calls, "namespaces") > 0
+	}, 10*time.Second, 100*time.Millisecond, "webhook configuration did not become active")
+	resetWebhookCalls(&mu, calls)
+
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "webhook-cel-test"}}
-	require.NoError(t, cli.Create(context.Background(), namespace), "Namespace CREATE must evaluate oldObject == null without a CEL error")
+	require.NoError(t, cli.Create(context.Background(), namespace), "unrelated Namespace CREATE must not depend on the webhook")
 	dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName}}
 	require.NoError(t, cli.Create(context.Background(), dashboard), "Dashboard CREATE must evaluate oldObject == null without a CEL error")
-	require.Equal(t, 1, webhookCalls(t, &mu, calls, "namespaces"))
+	require.Zero(t, webhookCalls(t, &mu, calls, "namespaces"))
 	require.Equal(t, 1, webhookCalls(t, &mu, calls, "dashboards"))
 
 	namespace.Labels = map[string]string{"unrelated": "changed"}
 	require.NoError(t, cli.Update(context.Background(), namespace))
 	dashboard.Annotations = map[string]string{"unrelated": "changed"}
 	require.NoError(t, cli.Update(context.Background(), dashboard))
-	require.Equal(t, 1, webhookCalls(t, &mu, calls, "namespaces"), "unrelated Namespace updates must skip the webhook")
+	require.Zero(t, webhookCalls(t, &mu, calls, "namespaces"), "unrelated Namespace updates must skip the webhook")
 	require.Equal(t, 1, webhookCalls(t, &mu, calls, "dashboards"), "unrelated Dashboard updates must skip the webhook")
 
 	namespace.Labels[v1alpha1.NamespacedRBACOptInLabel] = "true"
 	require.NoError(t, cli.Update(context.Background(), namespace))
 	dashboard.Spec.NotebooksNamespace = namespace.Name
 	require.NoError(t, cli.Update(context.Background(), dashboard))
-	require.Equal(t, 2, webhookCalls(t, &mu, calls, "namespaces"))
+	require.Equal(t, 1, webhookCalls(t, &mu, calls, "namespaces"))
 	require.Equal(t, 2, webhookCalls(t, &mu, calls, "dashboards"))
+
+	// Namespace metadata mutations through status and finalize must traverse the
+	// same consent-label admission policy as updates to the main resource.
+	namespace.Labels[v1alpha1.NamespacedRBACOptInLabel] = "false"
+	require.NoError(t, cli.Status().Update(context.Background(), namespace))
+	require.Equal(t, 2, webhookCalls(t, &mu, calls, "namespaces"))
+
+	typedClient, err := kubernetes.NewForConfig(cfg)
+	require.NoError(t, err)
+	current, err := typedClient.CoreV1().Namespaces().Get(context.Background(), namespace.Name, metav1.GetOptions{})
+	require.NoError(t, err)
+	if current.Labels == nil {
+		current.Labels = map[string]string{}
+	}
+	current.Labels[v1alpha1.NamespacedRBACOptInLabel] = "true"
+	_, err = typedClient.CoreV1().Namespaces().Finalize(context.Background(), current, metav1.UpdateOptions{})
+	require.NoError(t, err)
+	require.Equal(t, 3, webhookCalls(t, &mu, calls, "namespaces"))
 
 	dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation] = "[]"
 	require.NoError(t, cli.Update(context.Background(), dashboard))
@@ -106,4 +143,10 @@ func webhookCalls(t *testing.T, mu *sync.Mutex, calls map[string]int, resource s
 	mu.Lock()
 	defer mu.Unlock()
 	return calls[resource]
+}
+
+func resetWebhookCalls(mu *sync.Mutex, calls map[string]int) {
+	mu.Lock()
+	defer mu.Unlock()
+	clear(calls)
 }

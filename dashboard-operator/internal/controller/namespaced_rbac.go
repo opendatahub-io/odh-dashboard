@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -30,6 +31,8 @@ const (
 	namespacedRBACManagedLabel = "dashboard.opendatahub.io/namespaced-rbac"
 )
 
+var errNamespacedRBACConsentMissing = errors.New("namespaced RBAC consent is missing")
+
 // dashboardSAName returns the dashboard ServiceAccount name for the given platform.
 func dashboardSAName(platform cluster.Platform) string {
 	switch platform {
@@ -44,11 +47,19 @@ func dashboardSAName(platform cluster.Platform) string {
 // for the dashboard SA in the notebooks and model-registry namespaces, then GCs
 // any resources left over in namespaces that are no longer in the desired set.
 func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
-	if err := r.ensureNamespacedRBACConsentEnforced(ctx, dashboard); err != nil {
+	enforceConsent, err := r.ensureNamespacedRBACConsentEnforced(ctx, dashboard)
+	if err != nil {
 		return err
 	}
 	if err := r.ensureNamespacedRBACGrantInventory(ctx, dashboard); err != nil {
 		return err
+	}
+	if enforceConsent && !r.NamespacedRBACWebhookEnabled {
+		cleanupErr := r.gcStaleNamespacedRBAC(ctx, dashboard, map[string]bool{})
+		return errors.Join(
+			fmt.Errorf("namespaced RBAC consent was enforced previously, but the validating webhook is disabled"),
+			cleanupErr,
+		)
 	}
 
 	saName := dashboardSAName(r.Platform)
@@ -58,13 +69,13 @@ func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashb
 	var errs []error
 
 	if ns := dashboard.Spec.NotebooksNamespace; ns != "" {
-		if err := r.reconcileNamespacedRBACGrant(ctx, dashboard, desired, saName, saNamespace, ns, "notebooks", notebooksRBACRules()); err != nil {
+		if err := r.reconcileNamespacedRBACGrant(ctx, dashboard, desired, enforceConsent, saName, saNamespace, ns, "notebooks", notebooksRBACRules()); err != nil {
 			errs = append(errs, fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err))
 		}
 	}
 
 	if ns := dashboard.Spec.ModelRegistryNamespace; ns != "" {
-		if err := r.reconcileNamespacedRBACGrant(ctx, dashboard, desired, saName, saNamespace, ns, "model-registry", modelRegistryRBACRules()); err != nil {
+		if err := r.reconcileNamespacedRBACGrant(ctx, dashboard, desired, enforceConsent, saName, saNamespace, ns, "model-registry", modelRegistryRBACRules()); err != nil {
 			errs = append(errs, fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err))
 		}
 	}
@@ -82,16 +93,24 @@ func (r *DashboardReconciler) reconcileNamespacedRBACGrant(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	desired map[string]bool,
+	enforceConsent bool,
 	saName, saNamespace, namespace, suffix string,
 	rules []rbacv1.PolicyRule,
 ) error {
-	if r.namespacedRBACConsentEnforced(dashboard) {
+	key := namespacedRBACKey(namespace, suffix)
+	if enforceConsent {
 		if err := r.validateNamespacedRBACTarget(ctx, namespace); err != nil {
+			// Only an authoritative revocation signal (the Namespace is gone or
+			// consent is absent) may remove an existing grant. Preserve it across
+			// transient API failures so a timeout or throttling response cannot
+			// revoke otherwise valid access.
+			if !k8serrors.IsNotFound(err) && !errors.Is(err, errNamespacedRBACConsentMissing) {
+				desired[key] = true
+			}
 			return err
 		}
 	}
 
-	key := namespacedRBACKey(namespace, suffix)
 	desired[key] = true
 	if err := r.recordNamespacedRBACGrant(ctx, dashboard, key); err != nil {
 		return fmt.Errorf("recording grant: %w", err)
@@ -107,7 +126,7 @@ func (r *DashboardReconciler) validateNamespacedRBACTarget(ctx context.Context, 
 		return fmt.Errorf("getting target namespace: %w", err)
 	}
 	if target.Labels[v1alpha1.NamespacedRBACOptInLabel] != "true" {
-		return fmt.Errorf("target namespace must have label %s=true", v1alpha1.NamespacedRBACOptInLabel)
+		return fmt.Errorf("%w: target namespace must have label %s=true", errNamespacedRBACConsentMissing, v1alpha1.NamespacedRBACOptInLabel)
 	}
 	return nil
 }
@@ -136,8 +155,11 @@ func splitNamespacedRBACKey(key string) (string, string, bool) {
 }
 
 func namespacedRBACGrantInventory(dashboard *v1alpha1.Dashboard) (map[string]bool, error) {
+	return decodeNamespacedRBACGrantInventory(dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation])
+}
+
+func decodeNamespacedRBACGrantInventory(raw string) (map[string]bool, error) {
 	inventory := map[string]bool{}
-	raw := dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation]
 	if raw == "" {
 		return inventory, nil
 	}
@@ -153,6 +175,29 @@ func namespacedRBACGrantInventory(dashboard *v1alpha1.Dashboard) (map[string]boo
 		inventory[key] = true
 	}
 	return inventory, nil
+}
+
+func (r *DashboardReconciler) loadNamespacedRBACGrantInventory(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+) (map[string]bool, bool, error) {
+	state := &corev1.ConfigMap{}
+	err := r.apiReader().Get(ctx, client.ObjectKey{
+		Namespace: r.namespacedRBACStateNamespace(),
+		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+	}, state)
+	if err == nil {
+		if raw, recorded := state.Data[v1alpha1.NamespacedRBACGrantInventoryKey]; recorded {
+			inventory, parseErr := decodeNamespacedRBACGrantInventory(raw)
+			return inventory, true, parseErr
+		}
+	} else if !k8serrors.IsNotFound(err) {
+		return nil, false, fmt.Errorf("reading controller-protected namespaced RBAC grant inventory: %w", err)
+	}
+
+	inventory, parseErr := namespacedRBACGrantInventory(dashboard)
+	_, recorded := dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation]
+	return inventory, recorded, parseErr
 }
 
 func (r *DashboardReconciler) setNamespacedRBACGrantInventory(
@@ -171,6 +216,9 @@ func (r *DashboardReconciler) setNamespacedRBACGrantInventory(
 		return fmt.Errorf("encoding namespaced RBAC grant inventory: %w", err)
 	}
 	raw := string(encoded)
+	if err := r.setNamespacedRBACStateValue(ctx, v1alpha1.NamespacedRBACGrantInventoryKey, raw); err != nil {
+		return fmt.Errorf("persisting controller-protected namespaced RBAC grant inventory: %w", err)
+	}
 	current, recorded := dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation]
 	if recorded && current == raw {
 		return nil
@@ -214,15 +262,68 @@ func (r *DashboardReconciler) patchDashboardAnnotation(
 	return nil
 }
 
-func (r *DashboardReconciler) ensureNamespacedRBACConsentEnforced(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
-	if !r.NamespacedRBACAdmissionEnabled ||
-		dashboard.Annotations[v1alpha1.NamespacedRBACConsentEnforcedAnnotation] == "true" {
+func (r *DashboardReconciler) ensureNamespacedRBACConsentEnforced(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+) (bool, error) {
+	persisted, err := r.persistedNamespacedRBACConsentEnforced(ctx)
+	if err != nil {
+		return false, err
+	}
+	enforced := r.NamespacedRBACAdmissionEnabled || persisted ||
+		dashboard.Annotations[v1alpha1.NamespacedRBACConsentEnforcedAnnotation] == "true"
+	if !enforced {
+		return false, nil
+	}
+
+	if !persisted {
+		if err := r.setNamespacedRBACStateValue(ctx, v1alpha1.NamespacedRBACConsentEnforcedKey, "true"); err != nil {
+			return false, fmt.Errorf("persisting controller-protected namespaced RBAC consent state: %w", err)
+		}
+	}
+	if dashboard.Annotations[v1alpha1.NamespacedRBACConsentEnforcedAnnotation] != "true" {
+		if err := r.patchDashboardAnnotation(ctx, dashboard, v1alpha1.NamespacedRBACConsentEnforcedAnnotation, "true"); err != nil {
+			return false, fmt.Errorf("mirroring namespaced RBAC consent enforcement state: %w", err)
+		}
+	}
+	return true, nil
+}
+
+func (r *DashboardReconciler) persistedNamespacedRBACConsentEnforced(ctx context.Context) (bool, error) {
+	state := &corev1.ConfigMap{}
+	err := r.apiReader().Get(ctx, client.ObjectKey{
+		Namespace: r.namespacedRBACStateNamespace(),
+		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+	}, state)
+	if k8serrors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("reading controller-protected namespaced RBAC consent state: %w", err)
+	}
+	return state.Data[v1alpha1.NamespacedRBACConsentEnforcedKey] == "true", nil
+}
+
+func (r *DashboardReconciler) namespacedRBACStateNamespace() string {
+	if r.Namespace != "" {
+		return r.Namespace
+	}
+	return r.ApplicationsNamespace
+}
+
+func (r *DashboardReconciler) setNamespacedRBACStateValue(ctx context.Context, key, value string) error {
+	state := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Namespace: r.namespacedRBACStateNamespace(),
+		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+	}}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, state, func() error {
+		if state.Data == nil {
+			state.Data = map[string]string{}
+		}
+		state.Data[key] = value
 		return nil
-	}
-	if err := r.patchDashboardAnnotation(ctx, dashboard, v1alpha1.NamespacedRBACConsentEnforcedAnnotation, "true"); err != nil {
-		return fmt.Errorf("persisting namespaced RBAC consent enforcement state: %w", err)
-	}
-	return nil
+	})
+	return err
 }
 
 func (r *DashboardReconciler) namespacedRBACConsentEnforced(dashboard *v1alpha1.Dashboard) bool {
@@ -235,16 +336,27 @@ func (r *DashboardReconciler) namespacedRBACConsentEnforced(dashboard *v1alpha1.
 // JSON array is the migration marker, so steady-state reconciles never sweep
 // Roles or RoleBindings cluster-wide.
 func (r *DashboardReconciler) ensureNamespacedRBACGrantInventory(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
-	inventory, parseErr := namespacedRBACGrantInventory(dashboard)
-	_, recorded := dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation]
+	inventory, recorded, parseErr := r.loadNamespacedRBACGrantInventory(ctx, dashboard)
 	if recorded && parseErr == nil {
-		// Current targets are authoritative controller-owned identities. Repair a
-		// valid-but-truncated inventory before validation so consent revocation
-		// cannot be bypassed by hiding the target's grant.
-		originalSize := len(inventory)
-		addCurrentNamespacedRBACTargets(dashboard, inventory)
-		if len(inventory) == originalSize {
-			return nil
+		// A direct lookup of current targets repairs valid-but-truncated state only
+		// when the resources still carry independent operator ownership evidence.
+		changed, err := r.addOwnedCurrentNamespacedRBACTargets(ctx, dashboard, inventory)
+		if err != nil {
+			return err
+		}
+		if !changed {
+			keys := make([]string, 0, len(inventory))
+			for key := range inventory {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
+			encoded, err := json.Marshal(keys)
+			if err != nil {
+				return fmt.Errorf("encoding namespaced RBAC grant inventory: %w", err)
+			}
+			if dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation] == string(encoded) {
+				return nil
+			}
 		}
 		return r.setNamespacedRBACGrantInventory(ctx, dashboard, inventory)
 	}
@@ -252,9 +364,6 @@ func (r *DashboardReconciler) ensureNamespacedRBACGrantInventory(ctx context.Con
 	// Missing or malformed state is repaired from independently observable
 	// ownership evidence before any grant cleanup runs.
 	inventory = map[string]bool{}
-	// Current spec targets are already controller-owned identities, even if a
-	// recipient stripped the labels from resources created by an older version.
-	addCurrentNamespacedRBACTargets(dashboard, inventory)
 	matchLabels := client.MatchingLabels{
 		namespacedRBACManagedLabel: "true",
 		labels.PlatformPartOf:      strings.ToLower(v1alpha1.DashboardKind),
@@ -284,17 +393,64 @@ func (r *DashboardReconciler) ensureNamespacedRBACGrantInventory(ctx context.Con
 	return r.setNamespacedRBACGrantInventory(ctx, dashboard, inventory)
 }
 
-func addCurrentNamespacedRBACTargets(dashboard *v1alpha1.Dashboard, inventory map[string]bool) {
-	if dashboard.Spec.NotebooksNamespace != "" {
-		inventory[namespacedRBACKey(dashboard.Spec.NotebooksNamespace, "notebooks")] = true
+func (r *DashboardReconciler) addOwnedCurrentNamespacedRBACTargets(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	inventory map[string]bool,
+) (bool, error) {
+	changed := false
+	for _, target := range []struct {
+		namespace string
+		suffix    string
+	}{
+		{dashboard.Spec.NotebooksNamespace, "notebooks"},
+		{dashboard.Spec.ModelRegistryNamespace, "model-registry"},
+	} {
+		if target.namespace == "" {
+			continue
+		}
+		key := namespacedRBACKey(target.namespace, target.suffix)
+		if inventory[key] {
+			continue
+		}
+		owned, err := r.currentNamespacedRBACTargetIsOwned(ctx, target.namespace, target.suffix)
+		if err != nil {
+			return false, err
+		}
+		if owned {
+			inventory[key] = true
+			changed = true
+		}
 	}
-	if dashboard.Spec.ModelRegistryNamespace != "" {
-		inventory[namespacedRBACKey(dashboard.Spec.ModelRegistryNamespace, "model-registry")] = true
+	return changed, nil
+}
+
+func (r *DashboardReconciler) currentNamespacedRBACTargetIsOwned(
+	ctx context.Context,
+	namespace, suffix string,
+) (bool, error) {
+	objects := []client.Object{
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: fmt.Sprintf("dashboard-%s-role", suffix)}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: fmt.Sprintf("dashboard-%s-rolebinding", suffix)}},
 	}
+	for _, object := range objects {
+		if err := r.apiReader().Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
+			if k8serrors.IsNotFound(err) {
+				continue
+			}
+			return false, fmt.Errorf("checking namespaced RBAC ownership for %s/%s: %w", namespace, object.GetName(), err)
+		}
+		objectLabels := object.GetLabels()
+		if objectLabels[namespacedRBACManagedLabel] == "true" &&
+			objectLabels[labels.PlatformPartOf] == strings.ToLower(v1alpha1.DashboardKind) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (r *DashboardReconciler) recordNamespacedRBACGrant(ctx context.Context, dashboard *v1alpha1.Dashboard, key string) error {
-	inventory, err := namespacedRBACGrantInventory(dashboard)
+	inventory, _, err := r.loadNamespacedRBACGrantInventory(ctx, dashboard)
 	if err != nil {
 		return err
 	}
@@ -315,7 +471,7 @@ func (r *DashboardReconciler) gcStaleNamespacedRBAC(
 ) error {
 	logger := log.FromContext(ctx)
 	var errs []error
-	known, err := namespacedRBACGrantInventory(dashboard)
+	known, _, err := r.loadNamespacedRBACGrantInventory(ctx, dashboard)
 	if err != nil {
 		return err
 	}

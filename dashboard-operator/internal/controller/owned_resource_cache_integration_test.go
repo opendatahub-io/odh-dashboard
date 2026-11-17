@@ -127,6 +127,10 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: s, NewCache: ctrlpkg.NewManagerCache(applicationsNamespace),
 		Metrics: metricsserver.Options{BindAddress: "0"}, HealthProbeBindAddress: "0",
+		Client: client.Options{Cache: &client.CacheOptions{DisableFor: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+		}}},
 	})
 	require.NoError(t, err)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -170,8 +174,10 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 		APIReader:                      mgr.GetAPIReader(),
 		Scheme:                         s,
 		Platform:                       cluster.OpenDataHub,
+		Namespace:                      applicationsNamespace,
 		ApplicationsNamespace:          applicationsNamespace,
 		NamespacedRBACAdmissionEnabled: true,
+		NamespacedRBACWebhookEnabled:   true,
 	}
 	require.NoError(t, reconciler.ReconcileNamespacedRBAC(ctx, dashboard))
 	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(dashboard), dashboard))

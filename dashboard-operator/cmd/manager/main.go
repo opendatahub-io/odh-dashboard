@@ -147,6 +147,7 @@ func main() {
 		Namespace:                      operatorNamespace,
 		ApplicationsNamespace:          applicationsNamespace,
 		NamespacedRBACAdmissionEnabled: enforceRBACConsent,
+		NamespacedRBACWebhookEnabled:   enableWebhook,
 	}); err != nil {
 		setupLog.Error(err, "unable to create Dashboard controller")
 		os.Exit(1)
@@ -163,6 +164,7 @@ func main() {
 			writers,
 			enforceRBACConsent,
 			controllerWriter,
+			operatorNamespace,
 		))
 		setupLog.Info("Registered Dashboard validation webhook", "path", "/validate-dashboard")
 	}

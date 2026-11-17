@@ -245,15 +245,29 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 		admissionregistrationv1.Update,
 	}, namespaceRule.Operations)
 	assert.Equal(t, []string{""}, namespaceRule.APIGroups)
-	assert.Equal(t, []string{"namespaces"}, namespaceRule.Resources)
+	assert.ElementsMatch(t, []string{"namespaces", "namespaces/status", "namespaces/finalize"}, namespaceRule.Resources)
 	require.Len(t, vwc.Webhooks[0].MatchConditions, 2)
 	assert.Equal(t, "namespaced-rbac-target-fields-changed", vwc.Webhooks[0].MatchConditions[0].Name)
 	assert.Contains(t, vwc.Webhooks[0].MatchConditions[0].Expression, "oldObject == null")
 	assert.Contains(t, vwc.Webhooks[0].MatchConditions[0].Expression, "object.?spec.notebooksNamespace.orValue('')")
 	assert.Equal(t, "namespaced-rbac-consent-label-changed", vwc.Webhooks[0].MatchConditions[1].Name)
-	assert.Contains(t, vwc.Webhooks[0].MatchConditions[1].Expression, "oldObject == null")
+	assert.Contains(t, vwc.Webhooks[0].MatchConditions[1].Expression, "request.operation == 'CREATE'")
+	assert.Contains(t, vwc.Webhooks[0].MatchConditions[1].Expression, "== 'true'")
 	assert.Contains(t, vwc.Webhooks[0].MatchConditions[1].Expression,
 		"object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('')")
+
+	var serviceAccountEnv *corev1.EnvVar
+	for i := range mgr.Env {
+		if mgr.Env[i].Name == "OPERATOR_SERVICE_ACCOUNT_NAME" {
+			serviceAccountEnv = &mgr.Env[i]
+			break
+		}
+	}
+	require.NotNil(t, serviceAccountEnv, "manager must receive its rendered ServiceAccount identity")
+	require.NotNil(t, serviceAccountEnv.ValueFrom)
+	require.NotNil(t, serviceAccountEnv.ValueFrom.FieldRef)
+	assert.Equal(t, "spec.serviceAccountName", serviceAccountEnv.ValueFrom.FieldRef.FieldPath)
+	require.NotEmpty(t, cfg.deployment.Spec.Template.Spec.ServiceAccountName)
 	ref := vwc.Webhooks[0].ClientConfig.Service
 	require.NotNil(t, ref, "webhook must call an in-cluster Service")
 	assert.Equal(t, ns, ref.Namespace, "webhook Service namespace")
