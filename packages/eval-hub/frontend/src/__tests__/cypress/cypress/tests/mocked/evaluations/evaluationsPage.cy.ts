@@ -649,6 +649,32 @@ describe('Evaluations Page - Status modal', () => {
     evaluationsPage.clickStatusBadge(1);
     evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Failed');
   });
+
+  it('should show the queued presentation in the modal for a queue-assigned pending evaluation', () => {
+    const queuedJob = mockEvaluationJob({
+      id: 'eval-queued-modal',
+      name: 'Queued_Modal_Eval',
+      state: 'pending',
+      modelName: 'llama-3',
+      createdAt: '2026-03-17T08:00:00Z',
+      benchmarkIds: ['hellaswag'],
+      providerId: 'lm_evaluation_harness',
+    });
+    queuedJob.hardware_config = { queue: { name: 'gpu-default' } };
+    initIntercepts({ jobs: [queuedJob] });
+
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.clickStatusBadge(0);
+    evaluationsPage.findStatusModal().should('exist');
+    // The label testid carries the raw state ('pending'); the derived display state is Queued.
+    evaluationsPage.findStatusModalBadge('pending').should('have.text', 'Queued');
+    evaluationsPage
+      .findStatusModalBenchmarkNameHeader()
+      .should('contain.text', 'Waiting for quota in gpu-default');
+    evaluationsPage
+      .findStatusModalDescription()
+      .should('contain.text', 'Waiting for resources to become available');
+  });
 });
 
 describe('Evaluations Page - Failure summary scroll', () => {
