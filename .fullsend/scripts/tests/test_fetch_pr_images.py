@@ -9,7 +9,10 @@ import email.message
 import importlib.util
 import io
 import json
+import re
+import shutil
 import struct
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -129,6 +132,51 @@ class ExtractTests(unittest.TestCase):
         body = '<img src="https://github.com/user-attachments/assets/x?a=1&amp;b=2">'
         self.assertIn("?a=1&b=2", images.extract_media(body)[0].url)
 
+    def test_query_bearing_markdown_image_is_one_candidate(self):
+        # The bare-URL sweep used to stop at the image extension, so this
+        # reference produced a second, query-stripped candidate that consumed
+        # another image slot.
+        url = "https://raw.githubusercontent.com/o/r/main/shot.png?raw=true"
+        media = images.extract_media("![shot](%s)" % url)
+        self.assertEqual([item.url for item in media], [url])
+
+    def test_html_image_url_is_not_readded_bare(self):
+        # A query-bearing `raw` URL is the case exact-string dedupe cannot
+        # collapse: the bare sweep stops at the image extension.
+        url = "https://raw.githubusercontent.com/o/r/main/shot.png?raw=true"
+        body = '<img alt="panel" src="%s">' % url
+        self.assertEqual([item.url for item in images.extract_media(body)], [url])
+
+    def test_reference_definition_url_is_not_readded_bare(self):
+        url = "https://raw.githubusercontent.com/o/r/main/shot.png?raw=true"
+        body = "![panel][shot]\n\n[shot]: %s\n" % url
+        self.assertEqual([item.url for item in images.extract_media(body)], [url])
+
+    def test_bare_url_outside_structures_is_still_extracted(self):
+        body = "![a](%sa) then %sb" % (ATTACHMENT, ATTACHMENT)
+        self.assertEqual(
+            [item.url for item in images.extract_media(body)],
+            [ATTACHMENT + "a", ATTACHMENT + "b"],
+        )
+
+    def test_unterminated_bracket_run_yields_nothing(self):
+        self.assertEqual(images.extract_media("![" * 5000), [])
+
+    def test_adversarial_bodies_stay_bounded(self):
+        # Each of these re-scanned the remaining suffix from every opening
+        # marker before the quantifiers were bounded: 7-16 s per 64 KB on the
+        # parent commit, versus well under a second here.
+        bodies = {
+            "markdown URL group": "![a](" * 13107,
+            "markdown caption": "![" * 32768,
+            "html attribute name": "<img " + "a" * 65000 + ">",
+        }
+        for name, body in bodies.items():
+            start = time.perf_counter()
+            images.extract_media(body)
+            elapsed = time.perf_counter() - start
+            self.assertLess(elapsed, 2.0, "%s took %.2fs" % (name, elapsed))
+
     def test_captions_drop_control_characters(self):
         media = images.extract_media("![bad\x00\x1b caption](%sx)" % ATTACHMENT)
         self.assertEqual(media[0].caption, "bad caption")
@@ -146,6 +194,21 @@ class AllowlistTests(unittest.TestCase):
             "https://github-production-user-asset-1a2b.s3.amazonaws.com/1/x.png?sig=1",
         ):
             self.assertTrue(images.url_allowed(url), url)
+
+    def test_historical_repository_asset_path(self):
+        # GitHub's older attachment URLs insert an uploader id between
+        # `assets/` and the asset uuid.
+        for url in (
+            "https://github.com/o/r/assets/123456/6f1c2d3e-0000-4000-8000-000000000000",
+            "https://github.com/o/r/assets/6f1c2d3e-0000-4000-8000-000000000000",
+        ):
+            self.assertTrue(images.url_allowed(url), url)
+        for url in (
+            "https://github.com/o/r/assets/1/2/3",
+            "https://github.com/o/r/assets/",
+            "https://github.com/o/r/assets//x",
+        ):
+            self.assertFalse(images.url_allowed(url), url)
 
     def test_raw_host_requires_image_suffix(self):
         base = "https://raw.githubusercontent.com/o/r/branch/docs/"
@@ -401,6 +464,35 @@ class CaptureTests(unittest.TestCase):
             ["capture-deadline", "capture-deadline"],
         )
 
+    def test_capture_deadline_is_recorded_as_limitation(self):
+        result = self.capture(
+            "![a](%sa)" % ATTACHMENT, deadline=time.monotonic() - 1
+        )
+        self.assertIn("capture-deadline-reached", result.manifest["limitations"])
+        self.assertTrue(any("deadline" in w for w in result.warnings))
+
+    def test_hard_timeout_keeps_captured_images_and_records_limitation(self):
+        body = "![a](%sa)![b](%sb)" % (ATTACHMENT, ATTACHMENT)
+        calls = []
+
+        def fetch(url):
+            calls.append(url)
+            if len(calls) == 2:
+                raise images._DeadlineExceeded()
+            return png_bytes()
+
+        result = images.capture(
+            body, [], fetch, self.out, images.Limits(), repo="o/r", pr_number=7
+        )
+        # The fail-open `except Exception` must not swallow the hard stop into
+        # an anonymous skip, and already-captured images must survive it.
+        self.assertEqual(len(result.manifest["images"]), 1)
+        self.assertIn("capture-hard-timeout", result.manifest["limitations"])
+        self.assertEqual(
+            result.manifest["skipped"][-1]["reason"], "capture-hard-timeout"
+        )
+        self.assertTrue(any("hard timeout" in w for w in result.warnings))
+
     def test_comment_fetch_limitation_is_recorded(self):
         result = self.capture(
             "![a](%sa)" % ATTACHMENT, comment_error="comment-fetch-failed"
@@ -452,6 +544,97 @@ class FetchCommentsTests(unittest.TestCase):
         self.assertEqual(len(comments), 1)
         self.assertEqual(comments[0].origin, "comment:1")
         self.assertEqual(comments[0].context, body)
+
+
+    def test_expired_deadline_is_a_limitation(self):
+        comments, error = images.fetch_comments(
+            "o/r", 7, "", 1.0, time.monotonic() - 1
+        )
+        self.assertEqual(comments, [])
+        self.assertEqual(error, "capture-deadline")
+
+
+class FetchMediaDeadlineTests(unittest.TestCase):
+    def test_expired_deadline_skips_before_requesting(self):
+        # Raises before any socket is opened, so this needs no network.
+        with self.assertRaisesRegex(RuntimeError, "capture-deadline"):
+            images.fetch_media(
+                ATTACHMENT + "x", 5.0, 1024, deadline=time.monotonic() - 1
+            )
+
+
+class HardTimeoutTests(unittest.TestCase):
+    @unittest.skipUnless(hasattr(images.signal, "SIGALRM"), "SIGALRM unavailable")
+    def test_hard_timeout_interrupts_long_work(self):
+        with self.assertRaises(images._DeadlineExceeded):
+            with images.hard_timeout(0.05):
+                time.sleep(1.0)
+
+
+SKILL_MD = ROOT / ".fullsend/skills/pr-review/SKILL.md"
+JQ_PROJECTION = re.compile(
+    r"jq -r '(?P<program>.*?)' \"\$\{IMAGE_MANIFEST}\" >> \"\$\{CONTEXT_FILE}\""
+)
+
+
+class SharedContextProjectionTests(unittest.TestCase):
+    """The manifest -> shared.md projection must not drop capture limitations.
+
+    Reviewers only see what the orchestrator writes into the shared context
+    file, so a limitation recorded in the manifest but not projected there is
+    invisible evidence the reviewer cannot report.
+    """
+
+    def projection_programs(self):
+        text = SKILL_MD.read_text(encoding="utf-8")
+        programs = [match.group("program") for match in JQ_PROJECTION.finditer(text)]
+        self.assertTrue(programs, "no image projection found in the orchestrator skill")
+        return programs
+
+    def project(self, manifest):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest_path = Path(tmp) / "pr-images.json"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            lines = []
+            for program in self.projection_programs():
+                completed = subprocess.run(
+                    ["jq", "-r", program, str(manifest_path)],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                lines.extend(completed.stdout.splitlines())
+        return "\n".join(lines)
+
+    @unittest.skipUnless(shutil.which("jq"), "jq is not installed")
+    def test_limitations_reach_the_shared_context(self):
+        projected = self.project(
+            {
+                "images": [
+                    {
+                        "path": "pr-image-1.png",
+                        "caption": "shot",
+                        "origin": "body",
+                        "source_url": ATTACHMENT + "a",
+                    }
+                ],
+                "skipped": [
+                    {"url": "https://example.test/x.png", "reason": "host-not-allowlisted"}
+                ],
+                "limitations": ["comment-fetch-failed", "comment-pagination-truncated"],
+            }
+        )
+        self.assertIn("pr-image-1.png", projected)
+        self.assertIn("skipped:", projected)
+        self.assertIn("comment-fetch-failed", projected)
+        self.assertIn("comment-pagination-truncated", projected)
+
+    @unittest.skipUnless(shutil.which("jq"), "jq is not installed")
+    def test_limitations_are_reported_with_no_images_or_skips(self):
+        projected = self.project(
+            {"images": [], "skipped": [], "limitations": ["comment-fetch-failed"]}
+        )
+        self.assertIn("comment-fetch-failed", projected)
 
 
 class MainLoggingTests(unittest.TestCase):

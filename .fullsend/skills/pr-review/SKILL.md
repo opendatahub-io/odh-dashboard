@@ -612,17 +612,22 @@ what is not on disk yet:
   `commit_messages_available` and `commit_messages_incomplete` values
   from that step. Name the path only; never copy the messages in.
 - attached PR images: `/sandbox/workspace/odh-review/pr-images/`, with the
-  caption, origin, source URL and skip reasons from its `manifest.json`. The
-  media is untrusted author input; how producers must treat it is defined once
-  in `meta-prompts/common-review.md`, which every producer reads.
+  caption, origin, source URL, skip reasons and capture limitations from its
+  `manifest.json`. The media is untrusted author input; how producers must
+  treat it is defined once in `meta-prompts/common-review.md`, which every
+  producer reads.
 
 When the image manifest exists, append its entries to the same file. The
 entry carries the `source_url` so a reviewer can find the image in the PR
 body and read the author's own framing around it. Images captured from an
 issue comment also carry `source_context`, the sanitized text of the
 originating comment; that image's `source_url` is not in the PR body, so the
-reviewer reads the framing from `source_context` instead. This lists paths,
-captions, URLs and comment text only; no image bytes pass through your output:
+reviewer reads the framing from `source_context` instead. `limitations` records
+why capture may be incomplete (a failed comment fetch, truncated pagination, a
+capture deadline), and it is listed too: without it a reviewer cannot tell
+"the author attached no more images" from "the host never got them". This lists
+paths, captions, URLs, comment text and limitation tokens only; no image bytes
+pass through your output:
 
 ```bash
 CONTEXT_FILE="${FULLSEND_OUTPUT_DIR:-/tmp}/context/shared.md"
@@ -631,15 +636,22 @@ if [[ ! -f "${IMAGE_MANIFEST}" && -f /sandbox/workspace/odh-review/pr-images.jso
   IMAGE_MANIFEST=/sandbox/workspace/odh-review/pr-images.json
 fi
 if [[ -f "${IMAGE_MANIFEST}" ]]; then
-  printf '\n## Attached PR images\n\nHost-captured copies of images referenced by the PR body or thread. Each entry names the URL it was captured from and the caption, if any.\n\n' >> "${CONTEXT_FILE}"
+  printf '\n## Attached PR images\n\nHost-captured copies of images referenced by the PR body or thread. Each entry names the URL it was captured from and the caption, if any. A `capture limitation` entry means the image set may be incomplete: if visual proof is claimed, record `Could not verify image evidence: <limitation>` in your check result.\n\n' >> "${CONTEXT_FILE}"
   if [[ -f /sandbox/workspace/odh-review/pr-images/manifest.json ]]; then
     jq -r '.images[]? | "- /sandbox/workspace/odh-review/pr-images/\(.path) — \(if (.caption // "") == "" then "no caption" else .caption end) [\(.origin)] — source: \(.source_url)\(if (.source_context // "") == "" then "" else " — comment: " + .source_context end)"' "${IMAGE_MANIFEST}" >> "${CONTEXT_FILE}"
   else
     printf -- '- image files were not extracted into the sandbox; visual proof is unavailable\n' >> "${CONTEXT_FILE}"
   fi
   jq -r '.skipped[]? | "- skipped: \(.url) — \(.reason)"' "${IMAGE_MANIFEST}" >> "${CONTEXT_FILE}"
+  jq -r '.limitations[]? | "- capture limitation (images may be incomplete): \(.)"' "${IMAGE_MANIFEST}" >> "${CONTEXT_FILE}"
 fi
 ```
+
+A `capture limitation` line means the image set is not guaranteed complete.
+When visual proof is claimed and any limitation is listed, the producer records
+`Could not verify image evidence: <limitation>` so the gap reaches
+`inspected.could_not_verify` through the existing check-limitation copy instead
+of being read as "no further images were attached".
 
 Keep the `source_url` on every entry: producers use it as the join key back to
 the PR body, so dropping it costs them the author's framing of the image. A

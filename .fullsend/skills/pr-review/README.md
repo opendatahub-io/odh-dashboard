@@ -358,6 +358,29 @@ skip-author checks:
   `failure_severity: info`.
 - **Cancellation.** The adapters share the review job's
   `cancel-in-progress` group, so a newer push cancels them with the review.
+- **PR image capture.** In the same pre-script, and concurrently with the
+  adapters, [`fetch-pr-images.sh`](../../scripts/fetch-pr-images.sh) captures
+  the GitHub-hosted images referenced by the PR body and by non-bot issue
+  comments, and stages `pr-images.json` plus `pr-images.tar.gz` for the
+  sandbox (see [`SKILL.md`](SKILL.md) step 3d). Only GitHub media hosts are
+  fetched, media requests carry no credentials, and every failure is a skip
+  reason or a `::warning::` rather than a failed review. Each bound is an
+  environment override read by
+  [`fetch_pr_images.py`](../../scripts/fetch_pr_images.py):
+
+  | Variable | Default | Effect |
+  | --- | --- | --- |
+  | `REVIEW_PR_IMAGES_MAX` | `12` | Accepted images per capture. Additional candidates are skipped as `image-limit`. |
+  | `REVIEW_PR_IMAGE_MAX_BYTES` | `8388608` (8 MiB) | Per-image byte ceiling; larger bodies are skipped as `image-too-large`. |
+  | `REVIEW_PR_IMAGES_MAX_BYTES` | `25165824` (24 MiB) | Total accepted bytes. Once filled, remaining candidates are skipped as `total-bytes-limit` without a request. |
+  | `REVIEW_PR_IMAGE_MAX_DIMENSION` | `8192` | Per-side pixel ceiling; larger images are skipped as `dimension-limit`. |
+  | `REVIEW_PR_IMAGE_MAX_PIXELS` | `40000000` | Width×height ceiling; larger images are skipped as `pixel-limit`. |
+  | `REVIEW_PR_IMAGE_TIMEOUT` | `20` | Per-request socket timeout in seconds, further shortened by the capture deadline's remaining budget. |
+  | `REVIEW_PR_IMAGES_MAX_ATTEMPTS` | `24` | Request budget covering failed, rejected, and unsupported candidates; further candidates are skipped as `attempt-limit`. |
+  | `REVIEW_PR_IMAGES_MAX_SECONDS` | `120` | Capture deadline in seconds for the whole step (comment listing, parsing, downloads). Remaining candidates are skipped as `capture-deadline` and the manifest records a `capture-deadline-reached` limitation. A hard stop 15 seconds later, for work cooperative checks cannot interrupt, records `capture-hard-timeout` and keeps whatever was already captured. |
+
+  Empty or non-numeric values fall back to the default, so a malformed
+  override cannot disable the limits.
 - **Stale context.** Head-dependent context is read from the forge when the
   pre-script runs, not from the event: `pre-review.sh` reads the head SHA,
   base, title and body with `gh pr view`, and CodeRabbit reviews that head SHA

@@ -24,12 +24,15 @@ Usage (normally through fetch-pr-images.sh):
 from __future__ import annotations
 
 import argparse
+import bisect
+import contextlib
 import hashlib
 import html
 import json
 import os
 import re
 import shutil
+import signal
 import struct
 import sys
 import tarfile
@@ -66,27 +69,43 @@ _EXACT_HOSTS = {
 _S3_ASSET_HOST = re.compile(r"^github-production-user-asset-[0-9a-f]+\.s3\.amazonaws\.com$")
 _IMAGE_SUFFIX = re.compile(r"\.(?:png|jpe?g|gif|webp)$", re.IGNORECASE)
 _GITHUB_ASSET_PATH = re.compile(r"^/user-attachments/assets/[^/]+$")
-_GITHUB_REPO_ASSET_PATH = re.compile(r"^/[^/]+/[^/]+/assets/[^/]+$")
+# Repository asset URLs: modern paste form `/<owner>/<repo>/assets/<uuid>`
+# and the historical attachment form that adds an uploader id between
+# `assets/` and the asset uuid.
+_GITHUB_REPO_ASSET_PATH = re.compile(r"^/[^/]+/[^/]+/assets/[^/]+(?:/[^/]+)?$")
 
+# Every quantifier that can start at many offsets in an untrusted body is
+# bounded, so extraction stays linear in the body length. `![` repeated with no
+# closing bracket used to re-scan the whole suffix from each opening marker,
+# which let a PR body or comment burn host CPU before any capture budget
+# applied. 512 characters is far past the 200-character caption truncation, so
+# the bound costs no realistic caption; 4096 covers signed `private-user-images`
+# URLs without truncating a token into a bogus candidate. 8192 bounds an HTML
+# tag, and 64 an attribute name.
 _MD_IMAGE = re.compile(
-    r"!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:\"([^\"]*)\"|'([^']*)'))?\s*\)"
+    r"!\[([^\]]{0,512})\]\(\s*<?([^)\s>]{1,4096})(?![^)\s>])>?"
+    r"(?:\s+(?:\"([^\"]{0,512})\"|'([^']{0,512})'))?\s*\)"
 )
-_HTML_IMG = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+_HTML_IMG = re.compile(r"<img\b[^>]{0,8192}>", re.IGNORECASE)
 _HTML_ATTR = re.compile(
-    r"([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s>]+))"
+    r"([A-Za-z_:][-A-Za-z0-9_:.]{0,64})\s*=\s*"
+    r"(?:\"([^\"]{0,8192})\"|'([^']{0,8192})'|([^\s>]{1,4096}))"
 )
 _REF_DEFINITION = re.compile(
-    r"^\[([^\]]+)\]:\s*<?(https://[^\s>]+?)>?(?:\s+(?:\"[^\"]*\"|'[^']*'))?\s*$",
+    r"^\[([^\]]{1,512})\]:\s*<?(https://[^\s>]+?)>?(?:\s+(?:\"[^\"]*\"|'[^']*'))?\s*$",
     re.MULTILINE,
 )
-_REF_IMAGE = re.compile(r"!\[([^\]]*)\]\[([^\]]*)\]")
+_REF_IMAGE = re.compile(r"!\[([^\]]{0,512})\]\[([^\]]{0,512})\]")
+# Path portions are capped (4096 characters, 1024 for `raw`): generous for
+# signed `private-user-images` URLs, and enough to keep the greedy scan, which
+# backtracks looking for an image suffix, bounded per match.
 _BARE_URL = re.compile(
     r"https://(?:"
-    r"github\.com/(?:user-attachments/assets/|[^/\s]+/[^/\s]+/assets/)[^\s<>\"')\]]+"
-    r"|(?:private-)?user-images\.githubusercontent\.com/[^\s<>\"')\]]+"
-    r"|objects\.githubusercontent\.com/[^\s<>\"')\]]+"
-    r"|media\.githubusercontent\.com/[^\s<>\"')\]]+"
-    r"|raw\.githubusercontent\.com/[^\s<>\"')\]]+\.(?:png|jpe?g|gif|webp)"
+    r"github\.com/(?:user-attachments/assets/|[^/\s]+/[^/\s]+/assets/)[^\s<>\"')\]]{1,4096}"
+    r"|(?:private-)?user-images\.githubusercontent\.com/[^\s<>\"')\]]{1,4096}"
+    r"|objects\.githubusercontent\.com/[^\s<>\"')\]]{1,4096}"
+    r"|media\.githubusercontent\.com/[^\s<>\"')\]]{1,4096}"
+    r"|raw\.githubusercontent\.com/[^\s<>\"')\]]{1,1024}\.(?:png|jpe?g|gif|webp)"
     r")"
 )
 _TRAILING_PUNCTUATION = ".,;:!?"
@@ -179,13 +198,22 @@ def extract_media(text: str, origin: str = "body") -> list:
         return []
 
     found = []
-    references = {
-        name.strip().lower(): _clean_url(url)
-        for name, url in _REF_DEFINITION.findall(text)
-    }
+    # Spans that already own their URL. The bare-URL sweep must not re-add a
+    # URL from inside them: its ``raw.githubusercontent.com`` branch stops at
+    # the image extension, so ``...shot.png?raw=true`` would come back as a
+    # second, query-stripped candidate that exact-string dedupe cannot collapse
+    # and that burns a second image slot.
+    spans = []
+
+    references = {}
+    for match in _REF_DEFINITION.finditer(text):
+        references[match.group(1).strip().lower()] = _clean_url(match.group(2))
+        spans.append((match.start(), match.end()))
+
     for match in _MD_IMAGE.finditer(text):
         caption = match.group(1) or match.group(3) or match.group(4) or ""
         found.append((match.start(), _clean_url(match.group(2)), _caption(caption)))
+        spans.append((match.start(), match.end()))
 
     for match in _HTML_IMG.finditer(text):
         attrs = {}
@@ -196,14 +224,33 @@ def extract_media(text: str, origin: str = "body") -> list:
         src = attrs.get("src")
         if src:
             found.append((match.start(), _clean_url(src), _caption(attrs.get("alt", ""))))
+            spans.append((match.start(), match.end()))
 
     for match in _REF_IMAGE.finditer(text):
         label = (match.group(2) or match.group(1)).strip().lower()
         url = references.get(label)
         if url:
             found.append((match.start(), url, _caption(match.group(1))))
+            spans.append((match.start(), match.end()))
+
+    spans.sort()
+    span_starts = [start for start, _ in spans]
+    # Spans may overlap (a structured image can sit inside another match), so
+    # track the furthest end reached so far rather than each span's own end.
+    span_reach = []
+    reach = 0
+    for _, end in spans:
+        reach = max(reach, end)
+        span_reach.append(reach)
+
+    def covered(position: int) -> bool:
+        """True when ``position`` sits inside a structured image span."""
+        index = bisect.bisect_right(span_starts, position) - 1
+        return index >= 0 and position < span_reach[index]
 
     for match in _BARE_URL.finditer(text):
+        if covered(match.start()):
+            continue
         found.append((match.start(), _clean_url(match.group(0)), ""))
 
     found.sort(key=lambda item: item[0])
@@ -391,21 +438,49 @@ def _request_for(url: str) -> urllib.request.Request:
     return urllib.request.Request(url, headers=headers)
 
 
-def fetch_media(url: str, timeout: float, max_bytes: int):
+# Body reads are chunked so the capture deadline can interrupt a transfer
+# that is still making progress. The socket timeout alone only bounds how long
+# a single read may block, not how long a slow server may keep trickling.
+_READ_CHUNK = 64 * 1024
+
+
+def fetch_media(url: str, timeout: float, max_bytes: int, deadline: Optional[float] = None):
     """Return image bytes, or raise RuntimeError with a skip reason.
 
     Never receives a token, so private media that needs auth is skipped
     rather than fetched with credentials.
+
+    ``deadline`` is a ``time.monotonic()`` value bounding this request: it
+    shortens the socket timeout to the remaining budget and is re-checked
+    between body chunks, so an in-flight download cannot outlive the capture
+    window.
     """
     if not url_allowed(url):
         raise RuntimeError("host-not-allowlisted")
+    if deadline is not None:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError("capture-deadline")
+        timeout = min(timeout, remaining)
     opener = urllib.request.build_opener(_ValidatingRedirect())
     try:
         with opener.open(_request_for(url), timeout=timeout) as response:
             final_url = response.geturl()
             if not url_allowed(final_url):
                 raise RuntimeError("redirect-host-not-allowlisted")
-            data = response.read(max_bytes + 1)
+            chunks = []
+            size = 0
+            while True:
+                if deadline is not None and time.monotonic() >= deadline:
+                    raise RuntimeError("capture-deadline")
+                chunk = response.read(_READ_CHUNK)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > max_bytes:
+                    raise RuntimeError("image-too-large")
+                chunks.append(chunk)
+            data = b"".join(chunks)
     except urllib.error.HTTPError as error:
         raise RuntimeError("http-{}".format(error.code)) from error
     except urllib.error.URLError as error:
@@ -413,14 +488,24 @@ def fetch_media(url: str, timeout: float, max_bytes: int):
         raise RuntimeError("fetch-failed: {}".format(reason)) from error
     except TimeoutError as error:
         raise RuntimeError("timeout") from error
-    if len(data) > max_bytes:
-        raise RuntimeError("image-too-large")
     return data
 
 
 # ---------------------------------------------------------------------------
 # Sandbox ingress: manifest + tarball
 # ---------------------------------------------------------------------------
+def new_manifest(repo: str, pr_number: Optional[int], head_sha: str) -> dict:
+    return {
+        "schema": 1,
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "pr": {"repo": repo, "number": pr_number, "head_sha": head_sha},
+        "status": "empty",
+        "images": [],
+        "skipped": [],
+        "limitations": [],
+    }
+
+
 def write_ingress(out_dir: Path, manifest: dict, files: list) -> None:
     image_dir = out_dir / IMAGE_DIR_NAME
     image_dir.mkdir(parents=True, exist_ok=True)
@@ -458,15 +543,7 @@ def capture(
         ordered.append(item)
 
     warning_lines = []
-    manifest = {
-        "schema": 1,
-        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "pr": {"repo": repo, "number": pr_number, "head_sha": head_sha},
-        "status": "empty",
-        "images": [],
-        "skipped": [],
-        "limitations": [],
-    }
+    manifest = new_manifest(repo, pr_number, head_sha)
 
     image_dir = out_dir / IMAGE_DIR_NAME
     image_dir.mkdir(parents=True, exist_ok=True)
@@ -480,76 +557,98 @@ def capture(
     def skip(item: Media, reason: str) -> None:
         manifest["skipped"].append({"url": item.url, "reason": reason})
 
-    for item in ordered:
-        if index >= limits.max_images:
-            skip(item, "image-limit")
-            continue
-        if time.monotonic() >= deadline:
-            # Global capture deadline: stop starting fetches so a slow or
-            # hostile PR cannot hold pre-review.sh open past its budget.
-            skip(item, "capture-deadline")
-            continue
-        if attempts >= limits.max_attempts:
-            # Attempt budget counts every request, including ones that fail or
-            # are rejected after download, so a PR full of dead links cannot
-            # trigger unbounded sequential fetches.
-            skip(item, "attempt-limit")
-            continue
-        if total_bytes >= limits.max_total_bytes:
-            # Accepted bytes already fill the budget; do not download more.
-            skip(item, "total-bytes-limit")
-            continue
-        if not url_allowed(item.url):
-            skip(item, "host-not-allowlisted")
-            continue
-        attempts += 1
-        try:
-            data = fetch(item.url)
-        except Exception as error:  # noqa: BLE001 - fail open on any fetch problem
-            skip(item, str(error))
-            continue
+    current = None
+    try:
+        for item in ordered:
+            current = item
+            if index >= limits.max_images:
+                skip(item, "image-limit")
+                continue
+            if time.monotonic() >= deadline:
+                # Global capture deadline: stop starting fetches so a slow or
+                # hostile PR cannot hold pre-review.sh open past its budget.
+                skip(item, "capture-deadline")
+                continue
+            if attempts >= limits.max_attempts:
+                # Attempt budget counts every request, including ones that fail or
+                # are rejected after download, so a PR full of dead links cannot
+                # trigger unbounded sequential fetches.
+                skip(item, "attempt-limit")
+                continue
+            if total_bytes >= limits.max_total_bytes:
+                # Accepted bytes already fill the budget; do not download more.
+                skip(item, "total-bytes-limit")
+                continue
+            if not url_allowed(item.url):
+                skip(item, "host-not-allowlisted")
+                continue
+            attempts += 1
+            try:
+                data = fetch(item.url)
+            except Exception as error:  # noqa: BLE001 - fail open on any fetch problem
+                skip(item, str(error))
+                continue
 
-        if len(data) > limits.max_image_bytes:
-            skip(item, "image-too-large")
-            continue
-        if total_bytes + len(data) > limits.max_total_bytes:
-            skip(item, "total-bytes-limit")
-            continue
-        sniffed = sniff_image(data)
-        if not sniffed:
-            skip(item, "not-a-supported-image")
-            continue
-        extension, width, height, animated = sniffed
-        if animated:
-            skip(item, "animated-gif-unsupported")
-            continue
-        if width > limits.max_dimension or height > limits.max_dimension:
-            skip(item, "dimension-limit")
-            continue
-        if width * height > limits.max_pixels:
-            skip(item, "pixel-limit")
-            continue
+            if len(data) > limits.max_image_bytes:
+                skip(item, "image-too-large")
+                continue
+            if total_bytes + len(data) > limits.max_total_bytes:
+                skip(item, "total-bytes-limit")
+                continue
+            sniffed = sniff_image(data)
+            if not sniffed:
+                skip(item, "not-a-supported-image")
+                continue
+            extension, width, height, animated = sniffed
+            if animated:
+                skip(item, "animated-gif-unsupported")
+                continue
+            if width > limits.max_dimension or height > limits.max_dimension:
+                skip(item, "dimension-limit")
+                continue
+            if width * height > limits.max_pixels:
+                skip(item, "pixel-limit")
+                continue
 
-        index += 1
-        name = "{}{}.{}".format(IMAGE_PREFIX, index, extension)
-        path = image_dir / name
-        path.write_bytes(data)
-        files.append(path)
-        total_bytes += len(data)
-        entry = {
-            "index": index,
-            "path": name,
-            "source_url": item.url,
-            "caption": item.caption,
-            "origin": item.origin,
-            "bytes": len(data),
-            "width": width,
-            "height": height,
-            "sha256": hashlib.sha256(data).hexdigest(),
-        }
-        if item.context:
-            entry["source_context"] = item.context
-        manifest["images"].append(entry)
+            index += 1
+            name = "{}{}.{}".format(IMAGE_PREFIX, index, extension)
+            path = image_dir / name
+            path.write_bytes(data)
+            files.append(path)
+            total_bytes += len(data)
+            entry = {
+                "index": index,
+                "path": name,
+                "source_url": item.url,
+                "caption": item.caption,
+                "origin": item.origin,
+                "bytes": len(data),
+                "width": width,
+                "height": height,
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+            if item.context:
+                entry["source_context"] = item.context
+            manifest["images"].append(entry)
+            current = None
+    except _DeadlineExceeded:
+        # The hard stop fires mid-download. Keep everything captured so far and
+        # record why the set is incomplete instead of discarding the capture.
+        if current is not None:
+            skip(current, "capture-hard-timeout")
+        manifest["limitations"].append("capture-hard-timeout")
+        warning_lines.append(
+            "PR image capture hit its hard timeout; images may be missing"
+        )
+
+    if any(entry["reason"] == "capture-deadline" for entry in manifest["skipped"]):
+        # A deadline stop means the manifest is not a complete picture of the
+        # PR's images. Record it so the shared context and the evidence record
+        # can say so instead of implying the author supplied nothing more.
+        manifest["limitations"].append("capture-deadline-reached")
+        warning_lines.append(
+            "PR image capture stopped at the capture deadline; images may be missing"
+        )
 
     if comment_error:
         manifest["limitations"].append(comment_error)
@@ -571,14 +670,22 @@ def capture(
 # GitHub comments
 # ---------------------------------------------------------------------------
 def fetch_comments(
-    repo: str, pr_number: Optional[int], token: str, timeout: float
+    repo: str,
+    pr_number: Optional[int],
+    token: str,
+    timeout: float,
+    deadline: Optional[float] = None,
 ) -> "tuple[list, Optional[str]]":
     """Return ``(comments, error)``.
 
     ``comments`` are the successfully collected comment images. ``error`` is a
     short limitation token when pagination stopped early (HTTP error, timeout,
-    decode failure, or the page cap), so the caller can record that thread
-    images may be missing instead of reporting an unqualified success.
+    decode failure, the capture deadline, or the page cap), so the caller can
+    record that thread images may be missing instead of reporting an
+    unqualified success.
+
+    ``deadline`` is the same ``time.monotonic()`` budget the media fetches use,
+    so comment listing cannot consume the window the downloads need.
     """
     if not repo or not pr_number:
         return [], None
@@ -589,6 +696,13 @@ def fetch_comments(
     pages = 0
     while url and pages < 5:
         pages += 1
+        page_timeout = timeout
+        if deadline is not None:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                error = "capture-deadline"
+                break
+            page_timeout = min(timeout, remaining)
         request = urllib.request.Request(
             url,
             headers={
@@ -598,7 +712,7 @@ def fetch_comments(
             },
         )
         try:
-            with opener.open(request, timeout=timeout) as response:
+            with opener.open(request, timeout=page_timeout) as response:
                 payload = json.loads(response.read().decode("utf-8") or "[]")
                 link = response.headers.get("Link", "")
         except (urllib.error.URLError, TimeoutError, ValueError):
@@ -607,12 +721,20 @@ def fetch_comments(
         if not isinstance(payload, list):
             error = "comment-payload-invalid"
             break
+        deadline_hit = False
         for comment in payload:
             if not isinstance(comment, dict):
                 continue
             user = comment.get("user") or {}
             if user.get("type") == "Bot":
                 continue
+            if deadline is not None and time.monotonic() >= deadline:
+                # Extraction is linear per body, but a thread can still carry
+                # hundreds of bodies; stop parsing rather than spend the whole
+                # budget here and record that thread images may be missing.
+                error = "capture-deadline"
+                deadline_hit = True
+                break
             body = comment.get("body") or ""
             identifier = comment.get("id", "unknown")
             found = extract_media(body, "comment:{}".format(identifier))
@@ -621,6 +743,8 @@ def fetch_comments(
                 for media in found:
                     media.context = context
             comments.extend(found)
+        if deadline_hit:
+            break
         next_url = ""
         for part in link.split(","):
             if 'rel="next"' in part:
@@ -640,6 +764,47 @@ def _read_body(args) -> str:
     if args.body is not None:
         return args.body
     return os.environ.get("REVIEW_PR_BODY", "")
+
+
+# Extra wall-clock room granted past the cooperative deadline before the
+# SIGALRM backstop fires. The cooperative checks cannot interrupt regex work
+# that has already started or a single blocking syscall, so this is the last
+# resort that keeps pre-review.sh from waiting on capture indefinitely.
+HARD_TIMEOUT_GRACE = 15.0
+
+
+class _DeadlineExceeded(BaseException):
+    """Raised by the SIGALRM backstop when capture outlives its hard timeout.
+
+    Subclasses ``BaseException`` so the per-item ``except Exception`` fail-open
+    handlers cannot convert the hard stop into an ordinary skip; that would
+    hide the timeout from the manifest. It is caught explicitly in
+    ``capture`` and ``main``, which record the incompleteness and carry on.
+    """
+
+
+def _raise_deadline_exceeded(signum, frame):
+    raise _DeadlineExceeded()
+
+
+@contextlib.contextmanager
+def hard_timeout(seconds: float):
+    """Hard backstop for work the cooperative deadline cannot interrupt.
+
+    No-op where ``SIGALRM`` is unavailable; the cooperative deadline still
+    applies. On expiry the caller records capture incompleteness and fails
+    open, because the review must proceed without images.
+    """
+    if seconds <= 0 or not hasattr(signal, "SIGALRM"):
+        yield
+        return
+    previous = signal.signal(signal.SIGALRM, _raise_deadline_exceeded)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 def _self_test() -> int:
@@ -663,6 +828,12 @@ def _self_test() -> int:
     check("extract: html caption", media[1].caption == "panel")
     check("allowlist: user attachment", url_allowed("https://github.com/user-attachments/assets/x"))
     check("allowlist: repo asset", url_allowed("https://github.com/o/r/assets/x"))
+    check("allowlist: historical repo asset path", url_allowed(
+        "https://github.com/o/r/assets/123456/6f1c2d3e-0000-4000-8000-000000000000"
+    ))
+    check("allowlist: repo asset rejects extra segments", not url_allowed(
+        "https://github.com/o/r/assets/1/2/3"
+    ))
     check("allowlist: s3 redirect", url_allowed(
         "https://github-production-user-asset-1a2b.s3.amazonaws.com/1/x.png?sig=1"
     ))
@@ -672,6 +843,14 @@ def _self_test() -> int:
     check("allowlist: raw non-image rejected", not url_allowed(
         "https://raw.githubusercontent.com/o/r/branch/docs/index.html"
     ))
+    query_image = extract_media(
+        "![shot](https://raw.githubusercontent.com/o/r/main/shot.png?raw=true)"
+    )
+    check("extract: query-bearing image yields one candidate",
+          [item.url for item in query_image]
+          == ["https://raw.githubusercontent.com/o/r/main/shot.png?raw=true"])
+    check("extract: unterminated bracket run stays bounded",
+          extract_media("![" * 5000) == [])
     check("log line drops signed query", "jwt=" not in _loggable(
         "https://private-user-images.githubusercontent.com/1/x.png?jwt=abc"
     ))
@@ -716,6 +895,11 @@ def main(argv=None) -> int:
         return _self_test()
 
     out_dir = Path(args.out_dir)
+    limits = Limits.from_env()
+    # One deadline for the whole capture: comment listing, body parsing, and
+    # every media download draw from the same window, so the step cannot
+    # outlive the budget pre-review.sh is waiting on.
+    deadline = time.monotonic() + limits.capture_timeout
     try:
         out_dir.mkdir(parents=True, exist_ok=True)
         image_dir = out_dir / IMAGE_DIR_NAME
@@ -728,24 +912,44 @@ def main(argv=None) -> int:
         # The token is used only to list issue comments on the GitHub API.
         # Media is fetched without credentials (see fetch_media).
         comments_token = os.environ.get("REVIEW_TOKEN") or os.environ.get("GH_TOKEN") or ""
-        limits = Limits.from_env()
-        comments = []
-        comment_error = None
-        if not args.no_comments:
-            comments, comment_error = fetch_comments(
-                args.repo, args.pr_number, comments_token, limits.timeout
+        with hard_timeout(limits.capture_timeout + HARD_TIMEOUT_GRACE):
+            comments = []
+            comment_error = None
+            if not args.no_comments:
+                comments, comment_error = fetch_comments(
+                    args.repo, args.pr_number, comments_token, limits.timeout, deadline
+                )
+            result = capture(
+                _read_body(args),
+                comments,
+                lambda url: fetch_media(
+                    url, limits.timeout, limits.max_image_bytes, deadline
+                ),
+                out_dir,
+                limits,
+                repo=args.repo,
+                pr_number=args.pr_number,
+                head_sha=args.head_sha,
+                comment_error=comment_error,
+                deadline=deadline,
             )
-        result = capture(
-            _read_body(args),
-            comments,
-            lambda url: fetch_media(url, limits.timeout, limits.max_image_bytes),
-            out_dir,
-            limits,
-            repo=args.repo,
-            pr_number=args.pr_number,
-            head_sha=args.head_sha,
-            comment_error=comment_error,
+    except _DeadlineExceeded:
+        # Reached when the stop lands outside the capture loop (comment
+        # listing, body parsing). The loop keeps its own partial result.
+        manifest = new_manifest(args.repo, args.pr_number, args.head_sha)
+        manifest["status"] = "error"
+        manifest["limitations"].append("capture-hard-timeout")
+        try:
+            write_ingress(out_dir, manifest, [])
+        except Exception:  # noqa: BLE001 - fail open, the warning stands alone
+            pass
+        print(
+            "::warning::PR image capture exceeded its hard timeout; "
+            "continuing without images"
         )
+        if args.strict:
+            return 1
+        return 0
     except Exception as error:  # noqa: BLE001 - the review must not fail here
         print("::warning::PR image capture failed: {}".format(_workflow_safe(error)))
         if args.strict:
