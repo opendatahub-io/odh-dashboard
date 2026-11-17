@@ -28,7 +28,9 @@ import {
   UpdateExperimentAPI,
   DeleteExperimentAPI,
   GetArtifactAPI,
+  GetArtifactResourceAPI,
   ListArtifactsAPI,
+  ListArtifactResourcesAPI,
   ListTasksAPI,
   ListArtifactTasksAPI,
   GetTaskAPI,
@@ -80,6 +82,10 @@ export const getArtifact: GetArtifactAPI = (hostPath) => (opts, artifactId, view
   handlePipelineFailures(
     proxyGET(hostPath, `/apis/v2beta1/artifacts/${artifactId}`, { view }, opts),
   );
+
+/** ArtifactService.GetArtifact. Storage download/render stays on {@link getArtifact}. */
+export const getArtifactResource: GetArtifactResourceAPI = (hostPath) => (opts, artifactId) =>
+  handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/artifacts/${artifactId}`, {}, opts));
 
 export const getPipeline: GetPipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/pipelines/${pipelineId}`, {}, opts));
@@ -150,14 +156,35 @@ export const deleteExperiment: DeleteExperimentAPI = (hostPath) => (opts, experi
 export const listArtifacts: ListArtifactsAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(proxyGET(hostPath, '/apis/v2beta1/artifacts', params, opts));
 
+/** ArtifactService.ListArtifacts. Storage listing stays on {@link listArtifacts}. */
+export const listArtifactResources: ListArtifactResourcesAPI = (hostPath) => (opts, params) =>
+  handlePipelineFailures(
+    proxyGET(
+      hostPath,
+      '/apis/v2beta1/artifacts',
+      {
+        namespace: params?.namespace,
+        // eslint-disable-next-line camelcase
+        page_size: params?.pageSize,
+        // eslint-disable-next-line camelcase
+        page_token: params?.pageToken,
+        // eslint-disable-next-line camelcase
+        sort_by: params?.sortBy,
+        filter: params?.filter,
+      },
+      opts,
+    ),
+  );
+
 export const listTasks: ListTasksAPI = (hostPath) => (opts, runId, params) =>
   handlePipelineFailures(
     proxyGET(
       hostPath,
       `/apis/v2beta1/runs/${runId}/tasks`,
       {
+        // ListTasksRequest.parent_id — not PipelineTask.parent_task_id.
         // eslint-disable-next-line camelcase
-        parent_id: params?.parentId,
+        parent_id: params?.parentTaskId,
         // eslint-disable-next-line camelcase
         page_size: params?.pageSize,
         // eslint-disable-next-line camelcase

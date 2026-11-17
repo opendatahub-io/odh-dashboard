@@ -14,7 +14,9 @@ import {
   getPipelineRecurringRun,
   getPipelineRun,
   getPipelineVersion,
+  getArtifactResource,
   getTask,
+  listArtifactResources,
   listArtifactTasks,
   listArtifacts,
   listExperiments,
@@ -200,6 +202,21 @@ describe('getArtifact', () => {
   });
 });
 
+describe('getArtifactResource', () => {
+  it('should call proxyGET and handlePipelineFailures to fetch an artifact resource', () => {
+    expect(getArtifactResource('hostPath')({}, 'artifact-1')).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/artifacts/artifact-1',
+      {},
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
 describe('getPipeline', () => {
   it('should call proxyGET and handlePipelineFailures to fetch pipeline', () => {
     expect(getPipeline('hostPath')({}, 'pipelineId')).toBe(mockResultPromise);
@@ -372,6 +389,38 @@ describe('listExperiments', () => {
   });
 });
 
+describe('listArtifactResources', () => {
+  it('should call proxyGET and handlePipelineFailures to list artifact resources', () => {
+    expect(
+      listArtifactResources('hostPath')(
+        {},
+        {
+          namespace: 'test',
+          pageSize: 10,
+          pageToken: 'token',
+          sortBy: 'created_at desc',
+          filter: 'filter',
+        },
+      ),
+    ).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/artifacts',
+      {
+        namespace: 'test',
+        page_size: 10,
+        page_token: 'token',
+        sort_by: 'created_at desc',
+        filter: 'filter',
+      },
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
 describe('listArtifacts', () => {
   it('should call proxyGET and handlePipelineFailures to list artifacts', () => {
     expect(listArtifacts('hostPath')({}, { namespace: 'test' })).toBe(mockResultPromise);
@@ -393,7 +442,7 @@ describe('listTasks', () => {
   it('should call proxyGET and handlePipelineFailures to list tasks for a run', () => {
     expect(
       listTasks('hostPath')({}, 'runId', {
-        parentId: 'parentTask',
+        parentTaskId: 'parentTask',
         pageSize: 10,
         pageToken: 'token',
         orderBy: 'create_time asc',

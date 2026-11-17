@@ -20,7 +20,9 @@ import {
   GoogleRpcStatusKF,
   PipelineTaskKF,
   ListTasksResponseKF,
+  ListArtifactsResponseKF,
   ListArtifactTasksResponseKF,
+  ArtifactKF,
   IOTypeKF,
   RunViewModeKF,
 } from './kfTypes';
@@ -55,15 +57,26 @@ export type ListArtifactParams = {
   order_by?: 'asc' | 'desc';
   next_page_token?: string;
   namespace: string;
-  /** Prefer page_size/page_token/sort_by/filter for v2beta1 ArtifactService. */
-  page_size?: number;
-  page_token?: string;
-  sort_by?: string;
+};
+
+/**
+ * Query for ArtifactService.ListArtifacts.
+ * Distinct from {@link ListArtifactParams}, which drives the storage download/render helpers.
+ */
+export type ListArtifactResourceParams = {
+  namespace?: string;
+  pageSize?: number;
+  pageToken?: string;
+  sortBy?: string;
   filter?: string;
 };
 
 export type ListTasksParams = {
-  parentId?: string;
+  /**
+   * Parent task to list children of.
+   * Sent as query `parent_id` — ListTasksRequest's filter field, not PipelineTask.parent_task_id.
+   */
+  parentTaskId?: string;
   pageSize?: number;
   pageToken?: string;
   filter?: string;
@@ -131,6 +144,8 @@ export type GetArtifact = (
   artifactId: number,
   view?: string,
 ) => Promise<ArtifactStorage>;
+/** ArtifactService.GetArtifact — metadata resource, not the storage download/render payload. */
+export type GetArtifactResource = (opts: K8sAPIOptions, artifactId: string) => Promise<ArtifactKF>;
 export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKF>;
 export type GetPipelineByName = (opts: K8sAPIOptions, pipelineName: string) => Promise<PipelineKF>;
 export type GetPipelineRun = (
@@ -172,6 +187,11 @@ export type ListArtifacts = (
   opts: K8sAPIOptions,
   params?: ListArtifactParams,
 ) => Promise<ListArtifactResponse>;
+/** ArtifactService.ListArtifacts — returns {@link ArtifactKF}, not storage objects. */
+export type ListArtifactResources = (
+  opts: K8sAPIOptions,
+  params?: ListArtifactResourceParams,
+) => Promise<ListArtifactsResponseKF>;
 export type ListTasks = (
   opts: K8sAPIOptions,
   runId: string,
@@ -230,6 +250,7 @@ export type PipelineAPIs = {
   getExperiment: GetExperiment;
   getPipeline: GetPipeline;
   getArtifact: GetArtifact;
+  getArtifactResource: GetArtifactResource;
   getPipelineRun: GetPipelineRun;
   getPipelineRecurringRun: GetPipelineRecurringRun;
   getPipelineVersion: GetPipelineVersion;
@@ -244,6 +265,7 @@ export type PipelineAPIs = {
   listPipelines: ListPipelines;
   getPipelineByName: GetPipelineByName;
   listArtifacts: ListArtifacts;
+  listArtifactResources: ListArtifactResources;
   listTasks: ListTasks;
   listArtifactTasks: ListArtifactTasks;
   listPipelineRuns: ListPipelineRuns;

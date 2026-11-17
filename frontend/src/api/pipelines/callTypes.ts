@@ -28,6 +28,8 @@ import {
   UpdateExperiment,
   DeleteExperiment,
   GetArtifact,
+  GetArtifactResource,
+  ListArtifactResources,
   GetPipelineByName,
   GetTask,
 } from '#~/concepts/pipelines/types';
@@ -47,6 +49,7 @@ export type GetExperimentAPI = KubeflowAPICall<GetExperiment>;
 export type GetPipelineAPI = KubeflowAPICall<GetPipeline>;
 export type GetPipelineByNameAPI = KubeflowAPICall<GetPipelineByName>;
 export type GetArtifactAPI = KubeflowAPICall<GetArtifact>;
+export type GetArtifactResourceAPI = KubeflowAPICall<GetArtifactResource>;
 export type GetPipelineRunAPI = KubeflowAPICall<GetPipelineRun>;
 export type GetPipelineRecurringRunAPI = KubeflowAPICall<GetPipelineRecurringRun>;
 export type GetPipelineVersionAPI = KubeflowAPICall<GetPipelineVersion>;
@@ -58,6 +61,7 @@ export type DeletePipelineVersionAPI = KubeflowAPICall<DeletePipelineVersion>;
 export type DeleteExperimentAPI = KubeflowAPICall<DeleteExperiment>;
 export type ListExperimentsAPI = KubeflowAPICall<ListExperiments>;
 export type ListArtifactsAPI = KubeflowAPICall<ListArtifacts>;
+export type ListArtifactResourcesAPI = KubeflowAPICall<ListArtifactResources>;
 export type ListTasksAPI = KubeflowAPICall<ListTasks>;
 export type ListArtifactTasksAPI = KubeflowAPICall<ListArtifactTasks>;
 export type ListPipelinesAPI = KubeflowAPICall<ListPipelines>;

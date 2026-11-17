@@ -174,6 +174,8 @@ export const parseRuntimeInfoFromRunDetails = (
     return undefined;
   }
   const { task_details: taskDetails } = runDetails;
+  // Optional while task_details is deprecated. Absent details yield no runtime info;
+  // callers migrate to PipelineRunKF.tasks in a later ticket.
   if (!taskDetails) {
     return undefined;
   }
