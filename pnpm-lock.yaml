@@ -68,6 +68,7 @@ overrides:
 packageExtensionsChecksum: sha256-hLvuOjZrnN6DVom7ZZs0ECq6ilYxfqqOF8Okd4MaJNk=
 
 patchedDependencies:
+  '@monaco-editor/loader@1.7.0': ba29b1dd2786e05b46b8ef7c0ac01e1335e405ebe532c7c385f9e762fe0d0da3
   monaco-types@0.1.2: 8feac7becacf5b8d8a21df72f035e5d4a27f1285e958604b4cc237872a5a1f24
   monaco-worker-manager@2.0.1: fa60cee0b0b484962a003e86ff17a892b35b884eda620bf36e14466e9efcd1d8
 
@@ -20793,13 +20794,13 @@ snapshots:
       '@module-federation/runtime': 2.8.2
       '@module-federation/sdk': 2.8.2
 
-  '@monaco-editor/loader@1.7.0':
+  '@monaco-editor/loader@1.7.0(patch_hash=ba29b1dd2786e05b46b8ef7c0ac01e1335e405ebe532c7c385f9e762fe0d0da3)':
     dependencies:
       state-local: 1.0.7
 
   '@monaco-editor/react@4.7.0(monaco-editor@0.56.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@monaco-editor/loader': 1.7.0
+      '@monaco-editor/loader': 1.7.0(patch_hash=ba29b1dd2786e05b46b8ef7c0ac01e1335e405ebe532c7c385f9e762fe0d0da3)
       monaco-editor: 0.56.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)

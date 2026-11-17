@@ -1,0 +1,25 @@
+diff --git a/lib/cjs/config/index.js b/lib/cjs/config/index.js
+index e9c2dfcdb792956dbd40619d8f94de6401c2dd69..41431d047203e541634bb08f7ee67798a9da5a89 100644
+--- a/lib/cjs/config/index.js
++++ b/lib/cjs/config/index.js
+@@ -4,7 +4,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
+ 
+ var config = {
+   paths: {
+-    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs'
++    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.56.0/min/vs'
+   }
+ };
+ 
+diff --git a/lib/es/config/index.js b/lib/es/config/index.js
+index 64f30c741a09b993f02088a1ff51b4f26aa9e231..40794feda83cc851a3b2c8dafc10ebabbb31b8fe 100644
+--- a/lib/es/config/index.js
++++ b/lib/es/config/index.js
+@@ -1,6 +1,6 @@
+ var config = {
+   paths: {
+-    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs'
++    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.56.0/min/vs'
+   }
+ };
+ 
