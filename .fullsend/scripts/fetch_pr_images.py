@@ -96,6 +96,11 @@ _REF_DEFINITION = re.compile(
     re.MULTILINE,
 )
 _REF_IMAGE = re.compile(r"!\[([^\]]{0,512})\]\[([^\]]{0,512})\]")
+# Shortcut reference (`![shot]`), which CommonMark resolves against a link
+# definition. The lookahead keeps inline images (`![a](url)`) and full /
+# collapsed references (`![a][ref]`, `![a][]`) out, so each form is matched by
+# exactly one pattern.
+_REF_SHORTCUT = re.compile(r"!\[([^\]]{0,512})\](?!\(|\[)")
 # Path portions are capped (4096 characters, 1024 for `raw`): generous for
 # signed `private-user-images` URLs, and enough to keep the greedy scan, which
 # backtracks looking for an image suffix, bounded per match.
@@ -228,9 +233,11 @@ def extract_media(text: str, origin: str = "body") -> list:
     # and that burns a second image slot.
     spans = []
 
+    # CommonMark resolves a duplicate label to its first definition, so keep
+    # the first URL for a label instead of letting a later definition win.
     references = {}
     for match in _REF_DEFINITION.finditer(text):
-        references[match.group(1).strip().lower()] = _clean_url(match.group(2))
+        references.setdefault(match.group(1).strip().lower(), _clean_url(match.group(2)))
         spans.append((match.start(), match.end()))
 
     for match in _MD_IMAGE.finditer(text):
@@ -249,12 +256,15 @@ def extract_media(text: str, origin: str = "body") -> list:
             found.append((match.start(), _clean_url(src), _caption(attrs.get("alt", ""))))
             spans.append((match.start(), match.end()))
 
-    for match in _REF_IMAGE.finditer(text):
-        label = (match.group(2) or match.group(1)).strip().lower()
-        url = references.get(label)
-        if url:
-            found.append((match.start(), url, _caption(match.group(1))))
-            spans.append((match.start(), match.end()))
+    # Full and collapsed references name their label in group 2; a shortcut
+    # reference uses group 1, which is also the collapsed fallback.
+    for pattern, label_group in ((_REF_IMAGE, 2), (_REF_SHORTCUT, 1)):
+        for match in pattern.finditer(text):
+            label = (match.group(label_group) or match.group(1)).strip().lower()
+            url = references.get(label)
+            if url:
+                found.append((match.start(), url, _caption(match.group(1))))
+                spans.append((match.start(), match.end()))
 
     spans.sort()
     span_starts = [start for start, _ in spans]
