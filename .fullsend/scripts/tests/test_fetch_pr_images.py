@@ -75,6 +75,7 @@ def jpeg_bytes(width=10, height=20):
 
 
 def webp_bytes(width=10, height=20):
+    """Structurally valid WebP. Not a supported capture format on purpose."""
     payload = b"VP8X" + struct.pack("<I", 10) + b"\x00\x00\x00\x00"
     payload += (width - 1).to_bytes(3, "little") + (height - 1).to_bytes(3, "little")
     return b"RIFF" + struct.pack("<I", 4 + len(payload)) + b"WEBP" + payload
@@ -212,10 +213,10 @@ class AllowlistTests(unittest.TestCase):
 
     def test_raw_host_requires_image_suffix(self):
         base = "https://raw.githubusercontent.com/o/r/branch/docs/"
-        for name in ("shot.png", "shot.PNG", "shot.jpg", "shot.jpeg", "shot.gif", "shot.webp"):
+        for name in ("shot.png", "shot.PNG", "shot.jpg", "shot.jpeg", "shot.gif"):
             self.assertTrue(images.url_allowed(base + name), name)
         self.assertTrue(images.url_allowed(base + "shot.png?raw=true"), "query tolerated")
-        for name in ("index.html", "app.ts", "archive.tar.gz", "no-suffix"):
+        for name in ("index.html", "app.ts", "archive.tar.gz", "no-suffix", "shot.webp"):
             self.assertFalse(images.url_allowed(base + name), name)
 
     def test_loggable_url_drops_signed_query(self):
@@ -293,8 +294,27 @@ class SniffTests(unittest.TestCase):
         self.assertEqual(images._gif_frame_count(data), 2)
         self.assertTrue(images.sniff_image(data)[3])
 
-    def test_webp(self):
-        self.assertEqual(images.sniff_image(webp_bytes()), ("webp", 10, 20, False))
+    def test_webp_is_not_supported(self):
+        # Capture targets the formats PR evidence actually uses: pasted
+        # screenshots (PNG), exported captures (JPEG), recordings (GIF).
+        # WebP stays unsupported rather than partially supported.
+        self.assertIsNone(images.sniff_image(webp_bytes()))
+
+    def test_webp_payload_is_skipped_as_unsupported(self):
+        with tempfile.TemporaryDirectory() as out:
+            result = images.capture(
+                "![shot](%swebp)" % ATTACHMENT,
+                [],
+                lambda url: webp_bytes(),
+                Path(out),
+                images.Limits(),
+                repo="o/r",
+                pr_number=7,
+            )
+        self.assertEqual(result.manifest["images"], [])
+        self.assertEqual(
+            result.manifest["skipped"][0]["reason"], "not-a-supported-image"
+        )
 
     def test_rejects_non_image(self):
         self.assertIsNone(images.sniff_image(b"<html>not an image</html>"))

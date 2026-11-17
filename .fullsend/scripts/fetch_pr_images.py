@@ -67,7 +67,7 @@ _EXACT_HOSTS = {
     "raw.githubusercontent.com",
 }
 _S3_ASSET_HOST = re.compile(r"^github-production-user-asset-[0-9a-f]+\.s3\.amazonaws\.com$")
-_IMAGE_SUFFIX = re.compile(r"\.(?:png|jpe?g|gif|webp)$", re.IGNORECASE)
+_IMAGE_SUFFIX = re.compile(r"\.(?:png|jpe?g|gif)$", re.IGNORECASE)
 _GITHUB_ASSET_PATH = re.compile(r"^/user-attachments/assets/[^/]+$")
 # Repository asset URLs: modern paste form `/<owner>/<repo>/assets/<uuid>`
 # and the historical attachment form that adds an uploader id between
@@ -105,7 +105,7 @@ _BARE_URL = re.compile(
     r"|(?:private-)?user-images\.githubusercontent\.com/[^\s<>\"')\]]{1,4096}"
     r"|objects\.githubusercontent\.com/[^\s<>\"')\]]{1,4096}"
     r"|media\.githubusercontent\.com/[^\s<>\"')\]]{1,4096}"
-    r"|raw\.githubusercontent\.com/[^\s<>\"')\]]{1,1024}\.(?:png|jpe?g|gif|webp)"
+    r"|raw\.githubusercontent\.com/[^\s<>\"')\]]{1,1024}\.(?:png|jpe?g|gif)"
     r")"
 )
 _TRAILING_PUNCTUATION = ".,;:!?"
@@ -370,29 +370,13 @@ def _jpeg(data: bytes):
     return None
 
 
-def _webp(data: bytes):
-    if len(data) < 30 or data[:4] != b"RIFF" or data[8:12] != b"WEBP":
-        return None
-    chunk = data[12:16]
-    if chunk == b"VP8X":
-        width = 1 + int.from_bytes(data[24:27], "little")
-        height = 1 + int.from_bytes(data[27:30], "little")
-        return width, height, False
-    if chunk == b"VP8L" and len(data) >= 25 and data[20] == 0x2F:
-        bits = int.from_bytes(data[21:25], "little")
-        width = (bits & 0x3FFF) + 1
-        height = ((bits >> 14) & 0x3FFF) + 1
-        return width, height, False
-    if chunk == b"VP8 " and len(data) >= 30:
-        width = struct.unpack("<H", data[26:28])[0] & 0x3FFF
-        height = struct.unpack("<H", data[28:30])[0] & 0x3FFF
-        return width, height, False
-    return None
-
-
+# Supported formats are deliberately limited to what PR evidence actually
+# uses: GitHub turns a pasted screenshot into PNG, and exported before/after
+# captures are PNG, JPEG, or GIF. Anything else (WebP, AVIF, BMP, SVG) is
+# skipped as unsupported rather than half-supported.
 def sniff_image(data: bytes):
     """Return (extension, width, height, animated) or None when not an image."""
-    for extension, parser in (("png", _png), ("gif", _gif), ("jpg", _jpeg), ("webp", _webp)):
+    for extension, parser in (("png", _png), ("gif", _gif), ("jpg", _jpeg)):
         parsed = parser(data)
         if parsed:
             width, height, animated = parsed
