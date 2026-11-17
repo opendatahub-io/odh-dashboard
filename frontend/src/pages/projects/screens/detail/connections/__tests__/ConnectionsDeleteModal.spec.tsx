@@ -1,13 +1,11 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { ConnectionsDeleteModal } from '#~/pages/projects/screens/detail/connections/ConnectionsDeleteModal';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import { useRelatedNotebooks } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import { mockNotebookK8sResource, mockNotebookState } from '#~/__mocks__';
 import { useNotebooksStates } from '#~/pages/projects/notebook/useNotebooksStates';
-import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 
 jest.mock('#~/pages/projects/notebook/useRelatedNotebooks', () => ({
   ...jest.requireActual('#~/pages/projects/notebook/useRelatedNotebooks'),
@@ -18,18 +16,17 @@ jest.mock('#~/pages/projects/notebook/useNotebooksStates', () => ({
   useNotebooksStates: jest.fn(),
 }));
 
-jest.mock('#~/pages/projects/useInferenceServicesForConnection', () => ({
-  useInferenceServicesForConnection: jest.fn(),
-}));
-
 const useRelatedNotebooksMock = useRelatedNotebooks as jest.Mock;
 const useNotebooksStatesMock = useNotebooksStates as jest.Mock;
-const useInferenceServicesForConnectionMock = useInferenceServicesForConnection as jest.Mock;
-
 const mockNotebooks = [
   mockNotebookK8sResource({ name: 'connected-notebook', displayName: 'Connected notebook' }),
   mockNotebookK8sResource({ name: 'another-notebook', displayName: 'Another notebook' }),
 ];
+
+const connectedResourceLabels = [
+  { key: 'kserve:inference-service', title: 'KServe model', kind: 'connected-models' },
+  { key: 'llmd:llm-inference-service', title: 'LLM-D model', kind: 'connected-models' },
+] as const;
 describe('Delete connection modal', () => {
   const onClose = jest.fn();
 
@@ -44,16 +41,6 @@ describe('Delete connection modal', () => {
         mockNotebookState(mockNotebooks[1], { isStopped: true }),
       ],
     ]);
-    useInferenceServicesForConnectionMock.mockReturnValue([
-      mockInferenceServiceK8sResource({
-        name: 'deployed-model-1',
-        displayName: 'Deployed model 1',
-      }),
-      mockInferenceServiceK8sResource({
-        name: 'deployed-model-2',
-        displayName: 'Deployed model 2',
-      }),
-    ]);
   });
 
   it('should show related resources', async () => {
@@ -63,6 +50,7 @@ describe('Delete connection modal', () => {
       <ConnectionsDeleteModal
         namespace={deleteConnection.metadata.namespace}
         deleteConnection={deleteConnection}
+        connectedResources={[...connectedResourceLabels]}
         onClose={onClose}
       />,
     );
@@ -82,8 +70,8 @@ describe('Delete connection modal', () => {
 
     const modelsItems = screen.getAllByTestId('connections-delete-models-item');
     expect(modelsItems).toHaveLength(2);
-    expect(modelsItems[0]).toHaveTextContent('Deployed model 1');
-    expect(modelsItems[1]).toHaveTextContent('Deployed model 2');
+    expect(modelsItems[0]).toHaveTextContent('KServe model');
+    expect(modelsItems[1]).toHaveTextContent('LLM-D model');
   });
 
   it('should not show empty related resources', async () => {
@@ -93,11 +81,11 @@ describe('Delete connection modal', () => {
       notebooks: [],
       loaded: true,
     });
-    useInferenceServicesForConnectionMock.mockReturnValue([]);
     render(
       <ConnectionsDeleteModal
         namespace={deleteConnection.metadata.namespace}
         deleteConnection={deleteConnection}
+        connectedResources={[]}
         onClose={onClose}
       />,
     );

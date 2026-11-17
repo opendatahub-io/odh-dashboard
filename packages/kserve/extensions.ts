@@ -27,6 +27,7 @@ import type { RuntimeImageInstallTargetExtension } from '@odh-dashboard/model-se
 import type {
   AreaExtension,
   ClusterStorageConnectedResourcesExtension,
+  ConnectionsConnectedResourcesExtension,
   RouteExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
@@ -37,6 +38,7 @@ import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField'
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/types';
 import type { KServeConnectedResourcesData } from './src/clusterStorage/connectedResources';
+import type { KServeConnectionsResourcesData } from './src/connections/connectedResources';
 
 export const KSERVE_ID = 'kserve';
 const ADMIN_USER = 'ADMIN_USER';
@@ -183,6 +185,7 @@ const extensions: (
   | TabRouteTabExtension
   | RouteExtension
   | ClusterStorageConnectedResourcesExtension<KServeConnectedResourcesData>
+  | ConnectionsConnectedResourcesExtension<KServeConnectionsResourcesData>
   | RuntimeImageInstallTargetExtension
 )[] = [
   {
@@ -203,6 +206,20 @@ const extensions: (
         ),
       getConnectedResources: () =>
         import('./src/clusterStorage/connectedResources').then(
+          (m) => m.getConnectedKServeResourceLabels,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
+  },
+  {
+    type: 'app.connections/connected-resources',
+    properties: {
+      useConnectedResources: () =>
+        import('./src/connections/connectedResources').then((m) => m.useConnectedKServeResources),
+      getConnectedResources: () =>
+        import('./src/connections/connectedResources').then(
           (m) => m.getConnectedKServeResourceLabels,
         ),
     },

@@ -7,6 +7,7 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import DeletePVCModal from '#~/pages/projects/pvc/DeletePVCModal';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
+import { useGetConnectedResources } from '#~/pages/projects/screens/detail/connections/useGetConnectedResources';
 import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
 import { StorageTableData } from './types';
@@ -59,7 +60,16 @@ const StorageTable: React.FC<StorageTableProps> = ({
     getConnectedResourceLabels,
     hookNotifications,
   } = useClusterStorageConnectedResources(currentProject);
-  const showConnectedResources = workbenchEnabled || hasConnectedResourceExtensions;
+  const {
+    hasExtensions: hasConnectedModelResourceExtensions,
+    loaded: connectedModelResourcesLoaded,
+    getConnectedResourceLabels: getConnectedModelResourceLabels,
+    hookNotifications: connectedModelHookNotifications,
+  } = useGetConnectedResources(currentProject);
+
+  const allConnectedResourcesLoaded = connectedResourcesLoaded && connectedModelResourcesLoaded;
+  const showConnectedResources =
+    workbenchEnabled || hasConnectedResourceExtensions || hasConnectedModelResourceExtensions;
 
   const getStorageColumns = () => {
     let storageColumns = columns({ storageContextTypes });
@@ -78,6 +88,7 @@ const StorageTable: React.FC<StorageTableProps> = ({
   return (
     <>
       {hookNotifications}
+      {connectedModelHookNotifications}
       {shouldShowAlert && (
         <Alert
           data-testid="storage-class-deprecated-alert"
@@ -110,8 +121,9 @@ const StorageTable: React.FC<StorageTableProps> = ({
             storageContextTypesLoaded={storageContextTypesLoaded}
             storageClassesLoaded={storageClassesLoaded}
             showConnectedResources={showConnectedResources}
-            additionalResourcesLoaded={connectedResourcesLoaded}
+            additionalResourcesLoaded={allConnectedResourcesLoaded}
             getConnectedResourceLabels={getConnectedResourceLabels}
+            getConnectedModelResourceLabels={getConnectedModelResourceLabels}
             onEditPVC={setEditPVC}
             onDeletePVC={setDeleteStorage}
             onAddPVC={onAddPVC}
@@ -134,6 +146,9 @@ const StorageTable: React.FC<StorageTableProps> = ({
       {deleteStorage ? (
         <DeletePVCModal
           pvcToDelete={deleteStorage}
+          getConnectedResourceLabels={getConnectedResourceLabels}
+          getConnectedModelResourceLabels={getConnectedModelResourceLabels}
+          connectedResourcesLoaded={allConnectedResourcesLoaded}
           onClose={(deleted) => {
             if (deleted) {
               refresh();

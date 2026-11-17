@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
 import { deletePvc, removeNotebookPVC } from '#~/api';
 import {
   useRelatedNotebooks,
@@ -8,22 +9,32 @@ import {
 } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import ConnectedResourcesDeleteModal from '#~/pages/projects/components/ConnectedResourcesDeleteModal';
-import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 
 type DeletePVCModalProps = {
   pvcToDelete: PersistentVolumeClaimKind;
   onClose: (deleted: boolean) => void;
+  getConnectedResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
+  getConnectedModelResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
+  connectedResourcesLoaded: boolean;
 };
 
-const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose }) => {
+const DeletePVCModal: React.FC<DeletePVCModalProps> = ({
+  pvcToDelete,
+  onClose,
+  getConnectedResourceLabels,
+  getConnectedModelResourceLabels,
+  connectedResourcesLoaded,
+}) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const { notebooks: connectedNotebooks, loaded: notebookLoaded } = useRelatedNotebooks(
     ConnectedNotebookContext.EXISTING_PVC,
     pvcToDelete.metadata.name,
   );
-  const connectedModels = useInferenceServicesForConnection(pvcToDelete);
-
+  const connectedResources = [
+    ...getConnectedModelResourceLabels(pvcToDelete),
+    ...getConnectedResourceLabels(pvcToDelete),
+  ];
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
     setIsDeleting(false);
@@ -63,8 +74,8 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
       dependent resources will stop working.
       <ConnectedResourcesDeleteModal
         connectedNotebooks={connectedNotebooks}
-        connectedModels={connectedModels}
-        loaded={notebookLoaded}
+        connectedResources={connectedResources}
+        loaded={notebookLoaded && connectedResourcesLoaded}
         namespace={pvcToDelete.metadata.namespace}
       />
     </DeleteModal>

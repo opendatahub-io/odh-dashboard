@@ -2,6 +2,8 @@ import * as React from 'react';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { Table } from '@odh-dashboard/ui-core';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -28,6 +30,10 @@ type ConnectionsTableProps = {
   connectionTypes?: ConnectionTypeConfigMapObj[];
   refreshConnections: () => void;
   setManageConnectionModal: (connection: Connection) => void;
+  getConnectedResourceLabels: (
+    resource: Connection | PersistentVolumeClaimKind,
+  ) => ConnectedResourceLabel[];
+  connectedResourcesLoaded: boolean;
 };
 
 const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
@@ -36,6 +42,8 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
   connectionTypes,
   refreshConnections,
   setManageConnectionModal,
+  getConnectedResourceLabels,
+  connectedResourcesLoaded,
 }) => {
   const [deleteConnection, setDeleteConnection] = React.useState<Connection>();
   const [testingConnections, setTestingConnections] = React.useState<Map<string, AbortController>>(
@@ -198,6 +206,8 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
               connectionTypes={connectionTypes}
               isTesting={testingConnections.has(connection.metadata.name)}
               onEditConnection={handleEditConnection}
+              getConnectedResourceLabels={getConnectedResourceLabels}
+              connectedResourcesLoaded={connectedResourcesLoaded}
               kebabActions={[
                 {
                   title: <span data-testid="edit-connection-action">Edit</span>,
@@ -234,6 +244,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
         <ConnectionsDeleteModal
           namespace={namespace}
           deleteConnection={deleteConnection}
+          connectedResources={getConnectedResourceLabels(deleteConnection)}
           onClose={(deleted) => {
             setDeleteConnection(undefined);
             if (deleted) {
