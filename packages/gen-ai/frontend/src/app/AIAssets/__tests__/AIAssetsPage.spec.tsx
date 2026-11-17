@@ -42,7 +42,7 @@ jest.mock('mod-arch-shared', () => ({
 }));
 
 const mockUseExtensions = jest.mocked(PluginCore.useExtensions);
-const mockFireMiscTrackingEvent = jest.mocked(trackEvent);
+const mockTrackEvent = jest.mocked(trackEvent);
 
 describe('AIAssetsPage', () => {
   beforeEach(() => {
@@ -389,7 +389,7 @@ describe('AIAssetsPage', () => {
 
       fireEvent.click(screen.getByTestId('ai-assets-tab-vectorstores'));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
+      expect(mockTrackEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
         source: 'vectorstores',
       });
     });
@@ -433,7 +433,7 @@ describe('AIAssetsPage', () => {
 
       fireEvent.click(screen.getByTestId('ai-assets-tab-models'));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
+      expect(mockTrackEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
         source: 'models',
       });
     });
