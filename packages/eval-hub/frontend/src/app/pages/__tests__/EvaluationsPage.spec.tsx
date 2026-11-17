@@ -90,8 +90,22 @@ jest.mock('mod-arch-core', () => ({
 
 jest.mock('~/app/components/EvaluationStatusModal', () => ({
   __esModule: true,
-  default: ({ job, namespace }: { job: unknown; namespace: string }) =>
-    job ? <div data-testid="evaluation-status-modal" data-namespace={namespace} /> : null,
+  default: ({
+    job,
+    namespace,
+    polledJobData,
+  }: {
+    job?: unknown;
+    namespace: string;
+    polledJobData?: { hardware_config?: { queue?: { name?: string } } };
+  }) =>
+    job ? (
+      <div
+        data-testid="evaluation-status-modal"
+        data-namespace={namespace}
+        data-queue={polledJobData?.hardware_config?.queue?.name ?? 'none'}
+      />
+    ) : null,
 }));
 
 jest.mock('~/app/components/StartEvaluationRunModal', () => ({
@@ -1067,6 +1081,46 @@ describe('EvaluationsPage', () => {
       const row = screen.getByText('Profile Evaluation').closest('tr');
       expect(row).not.toBeNull();
       expect(within(row!).getByTestId('evaluation-status-button')).toHaveTextContent('Pending');
+    });
+
+    it('should queue-enrich an already-open status modal when profile info arrives after opening', async () => {
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs: [profileModeJob], totalCount: 1, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
+      // /info has not resolved yet — no queue-backed profiles available when the modal opens.
+      renderPage('test-project', '?tab=runs');
+
+      const row = screen.getByText('Profile Evaluation').closest('tr');
+      expect(row).not.toBeNull();
+      expect(within(row!).getByTestId('evaluation-status-button')).toHaveTextContent('Pending');
+
+      const statusLabel = within(row!).getByTestId('evaluation-status-button');
+      fireEvent.click(within(statusLabel).getByRole('button'));
+      await waitFor(() =>
+        expect(screen.getByTestId('evaluation-status-modal')).toBeInTheDocument(),
+      );
+      expect(screen.getByTestId('evaluation-status-modal')).toHaveAttribute('data-queue', 'none');
+
+      // /info resolves with queue-backed profiles after the modal is already open.
+      mockUseHardwareProfiles.mockReturnValue({
+        profiles: queueBackedProfiles,
+        loaded: true,
+        error: undefined,
+        compatibilityError: undefined,
+      });
+      // Re-render the page; switching tabs preserves the open modal.
+      fireEvent.click(screen.getByTestId('gallery-tab'));
+      fireEvent.click(screen.getByTestId('runs-tab'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('evaluation-status-modal')).toHaveAttribute(
+          'data-queue',
+          'tenant-gpu-queue',
+        ),
+      );
     });
   });
 

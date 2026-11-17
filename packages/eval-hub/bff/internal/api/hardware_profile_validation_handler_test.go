@@ -368,3 +368,52 @@ func TestFindProfileResourceRejectsSoleUnrelatedExtendedResource(t *testing.T) {
 		t.Fatalf("generic GPU unexpectedly matched %+v", profileResource)
 	}
 }
+
+// TestFindProfileResourceRejectsGPUMemoryResources verifies that a generic GPU requirement
+// is not satisfied by GPU-memory resources such as nvidia.com/gpu.memory, whose quantities
+// are memory sizes rather than device counts.
+func TestFindProfileResourceRejectsGPUMemoryResources(t *testing.T) {
+	resources := map[string]evalhub.HardwareProfileIdentifier{
+		"nvidia.com/gpu.memory": {Identifier: "nvidia.com/gpu.memory", ResourceType: "memory", DefaultCount: "16Gi"},
+	}
+
+	if profileResource, found := findProfileResource(resources, "gpu"); found {
+		t.Fatalf("generic GPU unexpectedly matched GPU-memory resource %+v", profileResource)
+	}
+}
+
+// TestFindProfileResourceRejectsNonAcceleratorResourceTypes verifies that identifiers
+// explicitly typed as a non-accelerator resource never satisfy a generic GPU requirement.
+func TestFindProfileResourceRejectsNonAcceleratorResourceTypes(t *testing.T) {
+	resources := map[string]evalhub.HardwareProfileIdentifier{
+		"example.com/gpu": {Identifier: "example.com/gpu", ResourceType: "memory", DefaultCount: "1"},
+	}
+
+	if profileResource, found := findProfileResource(resources, "gpu"); found {
+		t.Fatalf("generic GPU unexpectedly matched non-accelerator resource %+v", profileResource)
+	}
+}
+
+// TestFindProfileResourceMatchesAcceleratorTypedGPU verifies that accelerator-typed and
+// untyped GPU-device identifiers still satisfy the generic GPU requirement.
+func TestFindProfileResourceMatchesAcceleratorTypedGPU(t *testing.T) {
+	tests := []struct {
+		name         string
+		resourceType string
+	}{
+		{"accelerator typed", "accelerator"},
+		{"resource type omitted", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resources := map[string]evalhub.HardwareProfileIdentifier{
+				"nvidia.com/gpu": {Identifier: "nvidia.com/gpu", ResourceType: tt.resourceType, DefaultCount: "1"},
+			}
+
+			profileResource, found := findProfileResource(resources, "gpu")
+			if !found || profileResource.Identifier != "nvidia.com/gpu" {
+				t.Fatalf("generic GPU matched %+v, want nvidia.com/gpu", profileResource)
+			}
+		})
+	}
+}

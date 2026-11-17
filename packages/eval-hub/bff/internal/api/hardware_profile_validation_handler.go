@@ -288,8 +288,8 @@ func findProfileResource(resources map[string]evalhub.HardwareProfileIdentifier,
 	}
 
 	gpuIdentifiers := make([]string, 0)
-	for identifier := range resources {
-		if strings.Contains(identifier, "gpu") {
+	for identifier, profileResource := range resources {
+		if isGPUDeviceIdentifier(identifier, profileResource.ResourceType) {
 			gpuIdentifiers = append(gpuIdentifiers, identifier)
 		}
 	}
@@ -298,6 +298,24 @@ func findProfileResource(resources map[string]evalhub.HardwareProfileIdentifier,
 		return resources[gpuIdentifiers[0]], true
 	}
 	return evalhub.HardwareProfileIdentifier{}, false
+}
+
+// isGPUDeviceIdentifier reports whether a profile identifier is a GPU-device
+// resource eligible for the generic "gpu" fallback. GPU-adjacent resources
+// (e.g. nvidia.com/gpu.memory) hold memory quantities rather than device
+// counts, and identifiers explicitly typed as a non-accelerator resource are
+// never GPU devices.
+func isGPUDeviceIdentifier(identifier, resourceType string) bool {
+	normalized := normalizeResourceName(identifier)
+	if normalized != "gpu" && !strings.HasSuffix(normalized, "/gpu") {
+		return false
+	}
+	switch normalizeResourceName(resourceType) {
+	case "", "accelerator":
+		return true
+	default:
+		return false
+	}
 }
 
 func hasResource(resources map[string]evalhub.HardwareProfileIdentifier, name string) bool {

@@ -241,11 +241,15 @@ const EvaluationsPage: React.FC = () => {
     if (!selectedJob) {
       return undefined;
     }
-    return getLatestEvaluationJob(
+    // Pick the latest lifecycle snapshot from the raw list — queue enrichment is metadata-only
+    // and does not advance updated_at, so comparing against enriched jobs would discard the
+    // queue an already-open modal should pick up when /info resolves.
+    const latestJob = getLatestEvaluationJob(
       selectedJob.job,
-      enrichedEvaluations.find((e) => e.resource.id === selectedJob.job.resource.id),
+      evaluations.find((e) => e.resource.id === selectedJob.job.resource.id),
     );
-  }, [enrichedEvaluations, selectedJob]);
+    return resolveEvaluationJobQueues([latestJob], queueNameByProfileName)[0];
+  }, [evaluations, queueNameByProfileName, selectedJob]);
 
   const onShowStatus = React.useCallback(
     (job: EvaluationJob) => {
