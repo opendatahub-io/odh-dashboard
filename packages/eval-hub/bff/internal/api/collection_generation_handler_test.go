@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
@@ -67,12 +68,17 @@ func TestCreateCollectionGenerationHandler(t *testing.T) {
 }
 
 func TestCreateCollectionGenerationHandlerRejectsInvalidRequest(t *testing.T) {
-	maxBenchmarks := 51
+	maxBenchmarks := 101
 	invalidRequests := []struct {
 		name string
 		body evalhub.CreateCollectionGenerationRequest
 	}{
 		{name: "blank goal", body: evalhub.CreateCollectionGenerationRequest{Model: evalhub.JobModel{Name: "generator", URL: "https://models.example.com/v1"}}},
+		{name: "goal exceeds durable limit", body: func() evalhub.CreateCollectionGenerationRequest {
+			req := validCollectionGenerationRequest()
+			req.EvaluationGoal = strings.Repeat("a", 10001)
+			return req
+		}()},
 		{name: "missing model name", body: evalhub.CreateCollectionGenerationRequest{EvaluationGoal: "goal", Model: evalhub.JobModel{URL: "https://models.example.com/v1"}}},
 		{name: "missing model URL", body: evalhub.CreateCollectionGenerationRequest{EvaluationGoal: "goal", Model: evalhub.JobModel{Name: "generator"}}},
 		{name: "maximum benchmark count", body: func() evalhub.CreateCollectionGenerationRequest {
@@ -107,6 +113,25 @@ func TestCreateCollectionGenerationHandlerRejectsInvalidRequest(t *testing.T) {
 			assert.Nil(t, mockClient.LastCollectionGenerationRequest)
 		})
 	}
+}
+
+func TestCreateCollectionGenerationHandlerAcceptsDurableLimits(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	request := validCollectionGenerationRequest()
+	request.EvaluationGoal = strings.Repeat("a", 10000)
+	maxBenchmarks := 100
+	request.MaxBenchmarks = &maxBenchmarks
+
+	result, response, err := setupApiTestWithEvalHub[CollectionGenerationEnvelope](
+		http.MethodPost,
+		ApiPathPrefix+collectionGenerationPath+"?namespace=test-ns",
+		request, nil, identity, ehmocks.NewMockEvalHubClient(),
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusAccepted, response.StatusCode)
+	assert.Len(t, result.Data.Request.EvaluationGoal, 10000)
+	assert.Equal(t, 100, result.Data.Request.MaxBenchmarks)
 }
 
 func TestCreateCollectionGenerationHandlerPreservesUnavailableStatus(t *testing.T) {
@@ -185,7 +210,7 @@ func TestGetCollectionGenerationHandlerCompletedResult(t *testing.T) {
 			CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:01:00Z",
 		},
 		Request: evalhub.CollectionGenerationRequestSummary{
-			EvaluationGoal: request.EvaluationGoal, Model: request.Model, MaxBenchmarks: 1,
+			EvaluationGoal: request.EvaluationGoal, Model: request.Model, MaxBenchmarks: 100,
 			Strictness: "moderate", GenerationEffort: "standard",
 		},
 		Status: evalhub.CollectionGenerationStatus{State: "completed"},
@@ -202,6 +227,97 @@ func TestGetCollectionGenerationHandlerCompletedResult(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Equal(t, "completed", result.Data.Status.State)
 	assert.Contains(t, string(result.Data.Result), "arc_challenge")
+}
+
+func TestGetCollectionGenerationRejectsBenchmarkLimitAboveDurableMaximum(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	request := validCollectionGenerationRequest()
+	client := generationResponseOverrideClient{generation: &evalhub.CollectionGenerationResource{
+		Resource: evalhub.CollectionGenerationResourceMetadata{ID: "generation-001", Tenant: "test-ns", Owner: "user@example.com", CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:00:00Z"},
+		Request:  evalhub.CollectionGenerationRequestSummary{EvaluationGoal: request.EvaluationGoal, Model: request.Model, MaxBenchmarks: 101, Strictness: "moderate", GenerationEffort: "standard"},
+		Status:   evalhub.CollectionGenerationStatus{State: "pending"},
+	}}
+	_, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodGet,
+		ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
+		nil, nil, identity, client,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
+}
+
+func TestDeleteCollectionGenerationHandlerIsTenantScopedAndNoOpInMock(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+	mockClient.SetCollectionGeneration("generation-001", &evalhub.CollectionGenerationResource{
+		Resource: evalhub.CollectionGenerationResourceMetadata{
+			ID: "generation-001", Tenant: "test-ns", Owner: "user@example.com",
+			CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:00:00Z",
+		},
+		Request: evalhub.CollectionGenerationRequestSummary{
+			EvaluationGoal: "Assess reasoning", Model: evalhub.JobModel{Name: "generator", URL: "https://models.example.com/v1"},
+			MaxBenchmarks: 100, Strictness: "moderate", GenerationEffort: "standard",
+		},
+		Status: evalhub.CollectionGenerationStatus{State: "pending"},
+	})
+
+	_, response, err := setupApiTestWithEvalHub[struct{}](
+		http.MethodDelete,
+		ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
+		nil, nil, identity, mockClient,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNoContent, response.StatusCode)
+	assert.Equal(t, "generation-001", mockClient.LastDeletedCollectionGenerationID)
+	assert.Equal(t, "test-ns", mockClient.LastDeletedCollectionGenerationTenant)
+
+	_, pollResponse, err := setupApiTestWithEvalHub[CollectionGenerationEnvelope](
+		http.MethodGet,
+		ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
+		nil, nil, identity, mockClient,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, pollResponse.StatusCode, "the local mock DELETE remains a no-op")
+}
+
+type generationDeleteErrorClient struct {
+	evalhub.EvalHubClientInterface
+	err error
+}
+
+func (c generationDeleteErrorClient) DeleteCollectionGeneration(_ context.Context, _ string, _ string) error {
+	return c.err
+}
+
+func TestDeleteCollectionGenerationPreservesUpstreamNotFound(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	client := generationDeleteErrorClient{
+		EvalHubClientInterface: ehmocks.NewMockEvalHubClient(),
+		err:                    evalhub.NewNotFoundError("generation expired"),
+	}
+	result, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodDelete,
+		ApiPathPrefix+collectionGenerationPath+"/generation-expired?namespace=test-ns",
+		nil, nil, identity, client,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, response.StatusCode)
+	assert.Equal(t, evalhub.ErrCodeNotFound, result.Error.Code)
+}
+
+func TestDeleteCollectionGenerationRejectsUnknownMockResource(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	result, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodDelete,
+		ApiPathPrefix+collectionGenerationPath+"/generation-unknown?namespace=test-ns",
+		nil, nil, identity, ehmocks.NewMockEvalHubClient(),
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, response.StatusCode)
+	assert.Equal(t, evalhub.ErrCodeNotFound, result.Error.Code)
 }
 
 func TestCollectionGenerationRejectsCrossTenantAndSlashIDs(t *testing.T) {
@@ -243,7 +359,8 @@ func TestCollectionGenerationReservedRoutesDoNotFallThrough(t *testing.T) {
 	}{
 		{method: http.MethodGet, path: ApiPathPrefix + collectionGenerationPath + "?namespace=test-ns", status: http.StatusMethodNotAllowed},
 		{method: http.MethodPatch, path: ApiPathPrefix + collectionGenerationPath + "/generation-001?namespace=test-ns", status: http.StatusMethodNotAllowed},
-		{method: http.MethodDelete, path: ApiPathPrefix + collectionGenerationPath + "/generation-001?namespace=test-ns", status: http.StatusMethodNotAllowed},
+		{method: http.MethodDelete, path: ApiPathPrefix + collectionGenerationPath + "?namespace=test-ns", status: http.StatusMethodNotAllowed},
+		{method: http.MethodDelete, path: ApiPathPrefix + collectionGenerationPath + "/generation-001/child?namespace=test-ns", status: http.StatusNotFound},
 		{method: http.MethodPost, path: ApiPathPrefix + collectionGenerationPath + "/generation-001?namespace=test-ns", status: http.StatusNotFound},
 		{method: http.MethodPost, path: ApiPathPrefix + collectionGenerationPath + "/generation-001/clones?namespace=test-ns", status: http.StatusNotFound},
 	}

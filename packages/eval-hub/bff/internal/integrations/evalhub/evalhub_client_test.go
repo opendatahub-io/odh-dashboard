@@ -553,7 +553,7 @@ func TestEvalHubClient_CreateCollectionGeneration(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	maxBenchmarks := 5
+	maxBenchmarks := 100
 	result, err := client.CreateCollectionGeneration(context.Background(), "test-namespace", CreateCollectionGenerationRequest{
 		EvaluationGoal: "Build a reasoning collection",
 		Model:          JobModel{Name: "generator", URL: "https://models.example.com/v1", Auth: &ModelAuth{SecretRef: "model-secret"}},
@@ -588,6 +588,35 @@ func TestEvalHubClient_GetCollectionGeneration(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, "completed", result.Status.State)
 	assert.JSONEq(t, `{"collection":{"name":"Reasoning","benchmarks":[{"id":"arc_challenge","provider_id":"lm_evaluation_harness"}]},"yaml":"name: Reasoning","rationale":"A rationale","explanation":{"selected_benchmarks":[{"provider_id":"lm_evaluation_harness","id":"arc_challenge","reason":"Tests reasoning"}],"rejected_benchmarks":[]},"actions":[]}`, string(result.Result))
+}
+
+func TestEvalHubClient_DeleteCollectionGeneration(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/evaluations/collections/generation/generation-001", r.URL.Path)
+		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	require.NoError(t, client.DeleteCollectionGeneration(context.Background(), "generation-001", "test-namespace"))
+}
+
+func TestEvalHubClient_DeleteCollectionGenerationPreservesNotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"generation expired"}`, http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	err := client.DeleteCollectionGeneration(context.Background(), "generation-expired", "test-namespace")
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeNotFound, ehErr.Code)
+	assert.Equal(t, http.StatusNotFound, ehErr.StatusCode)
 }
 
 func TestEvalHubClient_DeleteCollection(t *testing.T) {

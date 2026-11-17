@@ -82,9 +82,25 @@ func (app *App) CollectionPatchByIDHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *App) CollectionDeleteByIDHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	if tail, ok := collectionRouteTail(r); ok && isCollectionGenerationPath(tail) {
-		app.methodNotAllowedResponse(w, r)
-		return
+	if tail, ok := collectionRouteTail(r); ok {
+		if tail == "generation" {
+			app.methodNotAllowedResponse(w, r)
+			return
+		}
+		if strings.HasPrefix(tail, "generation/") {
+			encodedID := strings.TrimPrefix(tail, "generation/")
+			if encodedID == "" || strings.Contains(encodedID, "/") {
+				app.notFoundResponse(w, r)
+				return
+			}
+			id, err := url.PathUnescape(encodedID)
+			if err != nil || strings.TrimSpace(id) == "" || strings.Contains(id, "/") {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid collection generation id"))
+				return
+			}
+			app.DeleteCollectionGenerationHandler(w, r, id)
+			return
+		}
 	}
 	app.DeleteCollectionHandler(w, r, ps)
 }
@@ -94,8 +110,8 @@ func validateCollectionGenerationRequest(input evalhub.CreateCollectionGeneratio
 	if strings.TrimSpace(input.EvaluationGoal) == "" {
 		return fmt.Errorf("evaluation_goal is required")
 	}
-	if goalLength > 2000 {
-		return fmt.Errorf("evaluation_goal must be at most 2000 characters")
+	if goalLength > 10000 {
+		return fmt.Errorf("evaluation_goal must be at most 10000 characters")
 	}
 	if strings.TrimSpace(input.Model.Name) == "" {
 		return fmt.Errorf("model name is required")
@@ -106,8 +122,8 @@ func validateCollectionGenerationRequest(input evalhub.CreateCollectionGeneratio
 	if input.ProviderFilter != "" && strings.TrimSpace(input.ProviderFilter) == "" {
 		return fmt.Errorf("provider_filter must not be blank")
 	}
-	if input.MaxBenchmarks != nil && (*input.MaxBenchmarks < 1 || *input.MaxBenchmarks > 50) {
-		return fmt.Errorf("max_benchmarks must be between 1 and 50")
+	if input.MaxBenchmarks != nil && (*input.MaxBenchmarks < 1 || *input.MaxBenchmarks > 100) {
+		return fmt.Errorf("max_benchmarks must be between 1 and 100")
 	}
 	if input.Strictness != "" && input.Strictness != "lenient" && input.Strictness != "moderate" && input.Strictness != "strict" {
 		return fmt.Errorf("strictness must be lenient, moderate, or strict")
@@ -141,7 +157,7 @@ func validateCollectionGenerationResource(generation *evalhub.CollectionGenerati
 		return err
 	}
 	if strings.TrimSpace(generation.Request.EvaluationGoal) == "" || strings.TrimSpace(generation.Request.Model.Name) == "" ||
-		strings.TrimSpace(generation.Request.Model.URL) == "" || generation.Request.MaxBenchmarks < 1 || generation.Request.MaxBenchmarks > 50 {
+		strings.TrimSpace(generation.Request.Model.URL) == "" || generation.Request.MaxBenchmarks < 1 || generation.Request.MaxBenchmarks > 100 {
 		return fmt.Errorf("upstream returned collection generation with incomplete request summary")
 	}
 	if generation.Request.Strictness != "lenient" && generation.Request.Strictness != "moderate" && generation.Request.Strictness != "strict" {
@@ -250,4 +266,25 @@ func (app *App) GetCollectionGenerationHandler(w http.ResponseWriter, r *http.Re
 	if err := app.WriteJSON(w, http.StatusOK, CollectionGenerationEnvelope{Data: *generation}, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *App) DeleteCollectionGenerationHandler(w http.ResponseWriter, r *http.Request, id string) {
+	ctx := r.Context()
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+	if err := validateCollectionGenerationID(id); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if err := client.DeleteCollectionGeneration(ctx, id, namespace); err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to delete collection generation")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

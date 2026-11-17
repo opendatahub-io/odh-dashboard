@@ -13,14 +13,16 @@ import (
 
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
-	mu                                sync.RWMutex
-	collectionOverrides               map[string]*evalhub.Collection
-	collectionGenerations             map[string]*evalhub.CollectionGenerationResource
-	deletedCollections                map[string]bool
-	LastListCollectionsParams         *evalhub.ListCollectionsParams
-	LastCollectionGenerationRequest   *evalhub.CreateCollectionGenerationRequest
-	LastCollectionGenerationNamespace string
-	logsTruncated                     bool
+	mu                                    sync.RWMutex
+	collectionOverrides                   map[string]*evalhub.Collection
+	collectionGenerations                 map[string]*evalhub.CollectionGenerationResource
+	deletedCollections                    map[string]bool
+	LastDeletedCollectionGenerationID     string
+	LastDeletedCollectionGenerationTenant string
+	LastListCollectionsParams             *evalhub.ListCollectionsParams
+	LastCollectionGenerationRequest       *evalhub.CreateCollectionGenerationRequest
+	LastCollectionGenerationNamespace     string
+	logsTruncated                         bool
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
@@ -211,6 +213,22 @@ func (m *MockEvalHubClient) GetCollectionGeneration(
 		return generation, nil
 	}
 	return nil, nil
+}
+
+// DeleteCollectionGeneration is a stateless no-op in the local BFF mock.
+func (m *MockEvalHubClient) DeleteCollectionGeneration(_ context.Context, id string, namespace string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	generation := m.collectionGenerations[id]
+	if generation == nil && id != "generation-001" {
+		return evalhub.NewNotFoundError("collection generation not found")
+	}
+	if generation != nil && (generation.Resource.ID != id || generation.Resource.Tenant != namespace) {
+		return evalhub.NewNotFoundError("collection generation not found")
+	}
+	m.LastDeletedCollectionGenerationID = id
+	m.LastDeletedCollectionGenerationTenant = namespace
+	return nil
 }
 
 func containsCI(s, substr string) bool {

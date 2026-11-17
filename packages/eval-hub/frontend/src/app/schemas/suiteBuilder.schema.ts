@@ -8,8 +8,8 @@ export const suiteSettingsSchema = z.object({
   maxBenchmarks: z
     .string()
     .refine(
-      (value) => value === '' || (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 50),
-      'Enter a whole number between 1 and 50.',
+      (value) => value === '' || (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 20),
+      'Enter a whole number between 1 and 20.',
     ),
   strictness: z.enum(['', 'lenient', 'moderate', 'strict']),
 });
@@ -21,7 +21,7 @@ export const suiteSettingsFieldNames = [
   'strictness',
 ] as const;
 
-export const MAX_EVALUATION_GOAL_LENGTH = 2000;
+export const MAX_EVALUATION_GOAL_LENGTH = 10000;
 export const defineGoalFieldNames = ['evaluationGoal', 'generatorModel'] as const;
 
 export const generatorModelSelectionSchema = z.object({

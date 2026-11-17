@@ -84,6 +84,7 @@ type EvalHubClientInterface interface {
 	CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error)
 	CreateCollectionGeneration(ctx context.Context, namespace string, req CreateCollectionGenerationRequest) (*CollectionGenerationResource, error)
 	GetCollectionGeneration(ctx context.Context, id string, namespace string) (*CollectionGenerationResource, error)
+	DeleteCollectionGeneration(ctx context.Context, id string, namespace string) error
 	GetCollection(ctx context.Context, id string, namespace string) (*Collection, json.RawMessage, error)
 	PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error)
 	DeleteCollection(ctx context.Context, id string, namespace string) error
@@ -969,6 +970,21 @@ func (c *EvalHubClient) GetCollectionGeneration(ctx context.Context, id string, 
 		return nil, wrapClientError(err, "GetCollectionGeneration")
 	}
 	return resp, nil
+}
+
+// DeleteCollectionGeneration cancels an active tenant-scoped generation and removes its retained resource.
+func (c *EvalHubClient) DeleteCollectionGeneration(ctx context.Context, id string, namespace string) error {
+	path := fmt.Sprintf("/evaluations/collections/generation/%s", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return err
+	}
+
+	if err := doRequest(c, ctx, http.MethodDelete, path, headers); err != nil {
+		return wrapClientError(err, "DeleteCollectionGeneration")
+	}
+	return nil
 }
 
 // GetCollection retrieves a single benchmark collection by ID, returning both

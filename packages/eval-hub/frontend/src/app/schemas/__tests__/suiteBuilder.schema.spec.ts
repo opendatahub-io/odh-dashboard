@@ -65,7 +65,7 @@ describe('suite builder schemas', () => {
       }).success,
     ).toBe(true);
 
-    for (const maxBenchmarks of ['1', '12', '50']) {
+    for (const maxBenchmarks of ['1', '12', '20']) {
       expect(
         suiteSettingsSchema.safeParse({
           ...suiteBuilderDefaultValues,
@@ -75,7 +75,7 @@ describe('suite builder schemas', () => {
       ).toBe(true);
     }
 
-    for (const maxBenchmarks of ['0', '51', '1.5', 'not a number']) {
+    for (const maxBenchmarks of ['0', '21', '1.5', 'not a number']) {
       expect(
         suiteSettingsSchema.safeParse({
           ...suiteBuilderDefaultValues,
@@ -176,7 +176,7 @@ describe('suite builder schemas', () => {
       suiteBuilderSchema.parse({
         ...suiteBuilderDefaultValues,
         suiteName: 'Reasoning suite',
-        maxBenchmarks: '24',
+        maxBenchmarks: '20',
         strictness: 'strict',
         evaluationGoal: 'Evaluate factual accuracy.',
         generatorModel: RECOMMENDATION_MODEL,
@@ -184,7 +184,7 @@ describe('suite builder schemas', () => {
     ).toEqual({
       ...suiteBuilderDefaultValues,
       suiteName: 'Reasoning suite',
-      maxBenchmarks: '24',
+      maxBenchmarks: '20',
       strictness: 'strict',
       evaluationGoal: 'Evaluate factual accuracy.',
       generatorModel: RECOMMENDATION_MODEL,

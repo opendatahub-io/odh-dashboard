@@ -128,6 +128,7 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage.findCurrentStep('define-goal').should('be.disabled');
     suiteBuilderPage.findNextButton().should('be.disabled');
     suiteBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    suiteBuilderPage.findMaxBenchmarksInput().should('have.attr', 'max', '20');
     suiteBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
     suiteBuilderPage.findNameInput().type('   ');
     suiteBuilderPage.findNameError().should('be.visible');
@@ -145,7 +146,7 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage
       .findEvaluationGoalInput()
       .should('be.visible')
-      .and('have.attr', 'maxlength', '2000');
+      .and('have.attr', 'maxlength', '10000');
     suiteBuilderPage.findSelectedRecommendationModel().should('have.text', 'No model selected');
     suiteBuilderPage.findRecommendButton().should('be.disabled');
     suiteBuilderPage.findGoalExample('answer-quality').should('be.visible').click();

@@ -305,6 +305,43 @@ paths:
       description: >-
         Returns pending, running, completed, failed, or cancelled generation
         state. A completed resource includes its proposal result.
+    delete:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Collection generation resource ID
+          schema:
+            type: string
+            minLength: 1
+        - $ref: '#/components/parameters/namespaceRequired'
+      responses:
+        '204':
+          description: Generation cancelled and retained resource deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteCollectionGeneration
+      summary: Delete Collection Generation
+      description: >-
+        Cancels an active generation and removes its retained resource. A
+        delayed callback cannot recreate a deleted or cancelled result. A
+        second DELETE or an unknown, wrong-type, expired, or cross-tenant ID
+        returns 404. Any authorized user in the same tenant may delete the
+        resource. Kubernetes Job TTL and API-result retention are separate.
 
   /eval-hub/api/v1/evaluations/collections/{id}:
     summary: Get, patch, or delete a single benchmark collection
@@ -1182,7 +1219,7 @@ components:
         evaluation_goal:
           type: string
           minLength: 1
-          maxLength: 2000
+          maxLength: 10000
           pattern: '\S'
           description: Non-blank natural-language goal; the service trims surrounding whitespace.
         model:
@@ -1194,7 +1231,7 @@ components:
         max_benchmarks:
           type: integer
           minimum: 1
-          maximum: 50
+          maximum: 100
           default: 12
         strictness:
           type: string

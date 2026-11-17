@@ -114,11 +114,12 @@ describe('CreateSuiteFromGoalPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('goal-suite-evaluates')).toHaveTextContent('Model');
     expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveValue(12);
+    expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveAttribute('max', '20');
     expect(screen.getByTestId('goal-suite-max-benchmarks')).not.toHaveAttribute('placeholder');
     expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('moderate');
     expect(screen.queryByRole('option', { name: /default/i })).not.toBeInTheDocument();
     expect(
-      screen.queryByText('Leave blank to use the default of 12 (1–50).'),
+      screen.queryByText('Leave blank to use the default of 12 (1–20).'),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText('Leave blank to use the default of Moderate.'),
@@ -148,15 +149,15 @@ describe('CreateSuiteFromGoalPage', () => {
       target: { value: 'Reasoning suite' },
     });
     fireEvent.change(screen.getByTestId('goal-suite-max-benchmarks'), {
-      target: { value: '51' },
+      target: { value: '21' },
     });
     expect(await screen.findByTestId('suite-builder-max-benchmarks-error')).toHaveTextContent(
-      'Enter a whole number between 1 and 50.',
+      'Enter a whole number between 1 and 20.',
     );
     expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
 
     fireEvent.change(screen.getByTestId('goal-suite-max-benchmarks'), {
-      target: { value: '24' },
+      target: { value: '20' },
     });
     fireEvent.change(screen.getByTestId('goal-suite-strictness'), {
       target: { value: 'strict' },
@@ -166,7 +167,7 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
-    expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveValue(24);
+    expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveValue(20);
     expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('strict');
   });
 
@@ -193,7 +194,7 @@ describe('CreateSuiteFromGoalPage', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveValue('');
-    expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveAttribute('maxlength', '2000');
+    expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveAttribute('maxlength', '10000');
     expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
     expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
       'No model selected',

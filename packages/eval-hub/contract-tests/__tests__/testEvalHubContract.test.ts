@@ -191,7 +191,7 @@ describe('EvalHub API Contract Tests', () => {
           },
         },
         // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
-        max_benchmarks: 4,
+        max_benchmarks: 100,
         strictness: 'strict',
         // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
         generation_effort: 'high',
@@ -218,6 +218,28 @@ describe('EvalHub API Contract Tests', () => {
         ref: '#/components/responses/CollectionGenerationResponse/content/application~1json/schema',
         status: 200,
       });
+
+      const deleted = await apiClient.delete(
+        '/eval-hub/api/v1/evaluations/collections/generation/generation-001?namespace=default',
+      );
+      expect(deleted.success).toBe(true);
+      if (deleted.success) {
+        expect(deleted.response.status).toBe(204);
+      }
+
+      const deletedUnknown = await apiClient.delete(
+        '/eval-hub/api/v1/evaluations/collections/generation/generation-unknown?namespace=default',
+      );
+      expect(deletedUnknown.success).toBe(false);
+      if (!deletedUnknown.success) {
+        expect({
+          status: deletedUnknown.error.status,
+          data: deletedUnknown.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/NotFound/content/application~1json/schema',
+          status: 404,
+        });
+      }
     });
   });
 

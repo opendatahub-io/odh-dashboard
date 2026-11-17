@@ -104,7 +104,7 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({ canContinueSettin
                   id="goal-suite-max-benchmarks"
                   type="number"
                   min={1}
-                  max={50}
+                  max={20}
                   step={1}
                   value={field.value}
                   onChange={(_event, value) => field.onChange(value)}
