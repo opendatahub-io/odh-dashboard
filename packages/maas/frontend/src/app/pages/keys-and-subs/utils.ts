@@ -336,7 +336,7 @@ export const buildApiKeyUsageExample = (
       return [
         `export API_KEY="${shellSafeKey}"`,
         '',
-        `curl -X POST ${shellSafeURL} \\`,
+        `curl -X POST --globoff ${shellSafeURL} \\`,
         authHeader,
         '  -F "file=@<path-to-audio-file>" \\',
         `  -F "model=${shellSafeModelId}"`,
@@ -351,7 +351,7 @@ export const buildApiKeyUsageExample = (
 
     return [
       `export API_KEY="${shellSafeKey}"`,
-      `curl -X POST ${shellSafeURL} \\`,
+      `curl -X POST --globoff ${shellSafeURL} \\`,
       '  -H "Content-Type: application/json" \\',
       authHeader,
       `  -d '${shellSafeBody}'`,
