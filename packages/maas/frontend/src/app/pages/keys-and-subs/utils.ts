@@ -247,6 +247,12 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
     }
   }
 
+  // Last-segment fallback cannot verify the namespace. When a refNamespace was supplied,
+  // leave the reference unresolved rather than risk returning another namespace's model
+  // (team-a/qwen vs team-b/qwen).
+  if (refNamespace) {
+    return undefined;
+  }
   return models.find(
     (model) => model.id.endsWith(`/models/${refName}`) || model.id.split('/').pop() === refName,
   );

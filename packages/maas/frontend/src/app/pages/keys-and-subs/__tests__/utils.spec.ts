@@ -332,6 +332,33 @@ describe('findMaaSModelBySubscriptionRef', () => {
     );
   });
 
+  it('should not cross namespaces in the last-segment fallback when a namespace was supplied', () => {
+    const colliding = [
+      {
+        id: 'publishers/team-a/models/qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-a/qwen',
+      },
+    ];
+    // The team-b model is absent from the catalog; the team-a short-name hit must not
+    // be substituted for the team-b reference.
+    expect(
+      findMaaSModelBySubscriptionRef(colliding, {
+        refName: 'qwen',
+        refNamespace: 'team-b',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined for a missing namespace-qualified model even without collisions', () => {
+    expect(
+      findMaaSModelBySubscriptionRef(models, {
+        refName: 'other-model',
+        refNamespace: 'some-other-namespace',
+      }),
+    ).toBeUndefined();
+  });
+
   it('should return undefined when no model matches', () => {
     expect(findMaaSModelBySubscriptionRef(models, { refName: 'missing-model' })).toBeUndefined();
   });
