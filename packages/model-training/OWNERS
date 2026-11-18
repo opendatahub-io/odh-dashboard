@@ -8,6 +8,9 @@ reviewers:
   - claudialphonse78
   - manaswinidas
 
-
 labels:
   - area/model-training
+  - area/components
+
+options:
+  no_parent_owners: true

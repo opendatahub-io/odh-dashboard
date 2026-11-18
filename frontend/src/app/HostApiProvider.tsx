@@ -1,3 +1,4 @@
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { ModelServingDataContext } from '@odh-dashboard/model-serving/shared/contexts/ModelServingDataContext';
 import { getGatewayOptions } from '@odh-dashboard/model-serving/shared/api/gatewayDiscovery';
@@ -35,7 +36,7 @@ import {
   getDashboardConfigTemplateDisablement,
 } from '#~/api/k8s/dashboardConfig';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { segmentTracking } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ModelServingContextProvider, {
   ModelServingContext,
@@ -56,7 +57,6 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
     () => ({
       dashboardNamespace,
       checkAccess,
-      trackEvent: fireMiscTrackingEvent,
       fetchDashboardConfig,
       fetchClusterSettings,
       updateClusterSettings,
@@ -100,15 +100,17 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
   );
 
   return (
-    <HostApiCoreContext.Provider value={core}>
-      <HostApiInfraContext.Provider value={infra}>
-        <HostApiContext.Provider value={domain}>
-          <ModelServingDataContext.Provider value={servingDataServices}>
-            {children}
-          </ModelServingDataContext.Provider>
-        </HostApiContext.Provider>
-      </HostApiInfraContext.Provider>
-    </HostApiCoreContext.Provider>
+    <AnalyticsTrackingProvider value={segmentTracking}>
+      <HostApiCoreContext.Provider value={core}>
+        <HostApiInfraContext.Provider value={infra}>
+          <HostApiContext.Provider value={domain}>
+            <ModelServingDataContext.Provider value={servingDataServices}>
+              {children}
+            </ModelServingDataContext.Provider>
+          </HostApiContext.Provider>
+        </HostApiInfraContext.Provider>
+      </HostApiCoreContext.Provider>
+    </AnalyticsTrackingProvider>
   );
 };
 

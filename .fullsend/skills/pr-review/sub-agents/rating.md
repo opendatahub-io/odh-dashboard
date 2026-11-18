@@ -136,6 +136,30 @@ proof can still support `medium`/`high` when proportionate and correlated —
 “no new test file” is not automatic `low` if other proof fully covers the
 claim.
 
+**Committed automation is runtime evidence.** A unit, component, or
+Cypress test in the diff that drives the changed flow and asserts the
+outcome is inspectable proof: read its steps and judge whether it would
+fail without the fix and pass with it. When it covers the scenario, treat
+it as adequate evidence that the behavior works. This is stronger than an
+author's prose claim — the test code is available to evaluate, where a
+manual description is only a report. Do not label such coverage “not
+independently verified”; correlating the test to the claim is the
+verification this review performs.
+
+**Execution status is not an evidence gap.** Do not lower verified
+evidence because a test has not run locally, “still requires CI
+execution”, or CI has not reported yet. Required PR status checks own
+execution and the merge gate owns the result; this review does not inspect
+CI state. The absence of an author-reported local run is not missing proof
+when committed automation covers the scenario.
+
+**Manual verification is optional when automation covers the flow.** When
+the diff adds an automated test that performs the manual steps, score
+evidence from that test. An author statement that they also clicked
+through it is welcome but neither required nor stronger, and
+“author-reported” is not a downgrade when the same scenario is automated
+in the diff.
+
 ### Completeness (ceiling)
 
 | Level | Criteria |
@@ -195,6 +219,7 @@ intent/evidence.
 | Tiny backend const + screenshots | `low` | `high` | audience internal |
 | Single-package icon polish + screenshot | `low` | `high` | feature-local UI |
 | One-package minify-only crash fix + unit tests | `medium` | `high` | verification difficulty, still isolated |
+| UI behavior fix + focused Cypress regression | `low` | `high` | inspectable test drives the flow; execution owned by CI |
 | Operator gateway routing e2e tests only | `medium` | `high` | platform-adjacent tests |
 | Two remotes, one shared build knob | `medium` | `medium` | package span, same concern |
 | Multi-package Cypress mocks only | `medium` | `high` | test-only; runtime contracts unchanged |
@@ -211,3 +236,4 @@ intent/evidence.
 3. Protected ≠ automatic `critical` risk (usually `high` risk + host needs_human).
 4. Thin description → confidence, not risk.
 5. Test-only multi-package can stay `medium` risk when runtime contracts are unchanged.
+6. A committed test that reproduces the scenario is runtime proof, not an author claim; unrun or not-yet-green is CI's concern, not confidence's.

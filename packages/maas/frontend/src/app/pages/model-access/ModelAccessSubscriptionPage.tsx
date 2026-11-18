@@ -13,6 +13,8 @@ import SubscriptionDetailsSection from '~/app/pages/subscriptions/viewSubscripti
 import SubscriptionGroupsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionGroupsSection';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+import { CallerOrganizationContext } from '~/app/shared/GroupName';
+import { useCallerOrganization } from '~/app/hooks/useCallerOrganization';
 import { MODEL_ACCESS_PATH } from './utils';
 
 const toMaaSSubscription = (sub: UserSubscription): MaaSSubscription => ({
@@ -32,7 +34,7 @@ const toMaaSSubscription = (sub: UserSubscription): MaaSSubscription => ({
 });
 
 /**
- * Read-only subscription overview for the Model Access page.
+ * Read-only subscription overview for the Model access page.
  *
  * Reuses the MaaS governance subscription detail sections (details, groups,
  * models) fed by the maas-api passthrough (`GET /subscriptions/{id}`), so it
@@ -43,6 +45,7 @@ const toMaaSSubscription = (sub: UserSubscription): MaaSSubscription => ({
 const ModelAccessSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const [subscription, loaded, loadError] = useGetUserSubscription(subscriptionName);
+  const [organization] = useCallerOrganization();
 
   const maasSubscription = subscription ? toMaaSSubscription(subscription) : undefined;
 
@@ -61,7 +64,7 @@ const ModelAccessSubscriptionPage: React.FC = () => {
     <Breadcrumb>
       <BreadcrumbItem>
         <Link to={MODEL_ACCESS_PATH} data-testid="breadcrumb-model-access-link">
-          Model Access
+          Model access
         </Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>{displaySubscriptionName}</BreadcrumbItem>
@@ -88,7 +91,9 @@ const ModelAccessSubscriptionPage: React.FC = () => {
             />
           </PageSection>
           <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
-            <SubscriptionGroupsSection groups={maasSubscription.owner.groups} />
+            <CallerOrganizationContext.Provider value={organization}>
+              <SubscriptionGroupsSection groups={maasSubscription.owner.groups} />
+            </CallerOrganizationContext.Provider>
           </PageSection>
           <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
             <MaasModelsSection

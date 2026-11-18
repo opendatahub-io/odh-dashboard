@@ -5,8 +5,8 @@ import {
 import type {
   FormTrackingEventProperties,
   MiscTrackingEventProperties,
-} from '@odh-dashboard/ui-core/types/analytics';
-import type { TrackingOutcome } from '@odh-dashboard/ui-core';
+  TrackingOutcome,
+} from '@odh-dashboard/analytics/types';
 import { PLAYGROUND_DOCUMENT_EVENTS } from './playgroundDocumentTrackingConstants';
 
 type DocumentAttachedEventProperties = {

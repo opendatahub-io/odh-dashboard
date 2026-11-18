@@ -10,6 +10,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 )
 
 // ErrExternalModelNotFound is returned when an external model is not found in the ConfigMap
@@ -38,12 +39,29 @@ type KubernetesClientInterface interface {
 	GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error)
 
 	// NemoGuardrails operations
-	CreateNemoGuardrailsResources(ctx context.Context, namespace string) (string, error)
+	CreateNemoGuardrailsResources(ctx context.Context, namespace, bffNamespace string) (string, error)
 	GetNemoGuardrailsStatus(ctx context.Context, namespace string) (*models.NemoGuardrailsStatus, error)
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
 	GetDashboardConfigMap(ctx context.Context, namespace string, name string) (*corev1.ConfigMap, error)
+
+	// GetService fetches a core Service by namespace and name, so callers can
+	// verify what a service DNS name actually backs (e.g. reject ExternalName
+	// aliases pointing outside the caller's namespace).
+	GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error)
+
+	// ListPods lists the core Pods in a namespace matching a label selector, so
+	// callers can verify that EndpointSlice endpoints' Pod targetRefs are real
+	// selector-backed Pods and that the endpoint addresses belong to those Pods,
+	// with a single lookup instead of one get per referenced Pod.
+	ListPods(ctx context.Context, identity *integrations.RequestIdentity, namespace string, selector map[string]string) ([]corev1.Pod, error)
+
+	// GetServiceEndpointSlices lists the EndpointSlices backing a Service, so callers
+	// can verify the effective endpoint addresses actually belong to Pods in the
+	// Service's namespace (e.g. reject manually managed slices pointing at another
+	// namespace's Pod IPs).
+	GetServiceEndpointSlices(ctx context.Context, identity *integrations.RequestIdentity, namespace string, serviceName string) ([]discoveryv1.EndpointSlice, error)
 
 	// External Models operations
 	GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
@@ -60,8 +78,8 @@ type KubernetesClientInterface interface {
 	GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error)
 
 	// NemoGuardrails operations
-	// GetNemoGuardrailsServiceURL returns the in-cluster service URL for the NemoGuardrails CR
-	// in the given namespace. Returns ("", nil) if no NemoGuardrails CR exists.
+	// GetNemoGuardrailsServiceURL returns the ready endpoint published by the NemoGuardrails CR
+	// in the given namespace. Returns ("", nil) if no ready endpoint exists.
 	GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
 
 	// GetInferenceServiceURL returns the internal endpoint URL for an InferenceService or

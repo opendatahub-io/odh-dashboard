@@ -85,6 +85,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@monaco-editor/react": "^4.7.0",
+    "@odh-dashboard/analytics": "workspace:*",
     "@odh-dashboard/plugin-core": "workspace:*",
     "@patternfly/patternfly": "~6.6.1",
     "@patternfly/react-code-editor": "~6.6.1",

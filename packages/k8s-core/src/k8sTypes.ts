@@ -155,6 +155,11 @@ export type SupportedModelFormats = {
   priority?: number;
 };
 
+export const NamespacePhase = {
+  Active: 'Active',
+  Terminating: 'Terminating',
+} as const;
+
 export type ProjectKind = K8sResourceCommon & {
   metadata: {
     annotations?: DisplayNameAnnotations &
@@ -165,7 +170,7 @@ export type ProjectKind = K8sResourceCommon & {
     name: string;
   };
   status?: {
-    phase: 'Active' | 'Terminating';
+    phase: (typeof NamespacePhase)[keyof typeof NamespacePhase];
   };
 };
 
@@ -347,6 +352,7 @@ export type DashboardCommonConfig = {
   disableLLMd?: boolean;
   llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  bidirectionalYamlWizardGa?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   genAiAgentDeployment?: boolean;
@@ -367,6 +373,7 @@ export type DashboardCommonConfig = {
   workspaces?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;
+  aiSafety?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

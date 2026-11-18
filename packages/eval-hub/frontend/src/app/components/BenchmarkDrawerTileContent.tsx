@@ -21,7 +21,7 @@ import {
   TestDataRef,
 } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
 import { benchmarkRequiresTestData } from '~/app/utilities/testDataRefRequirements';
 import InlineTooltip from '~/app/components/InlineTooltip';
@@ -170,6 +170,8 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
   isCollapsible = false,
   isCompact = false,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const [isExpanded, setIsExpanded] = React.useState(false);
   const resolvedUrl = toSafeExternalUrl(url) ?? getBenchmarkDatasetUrl(id);
   const testDataRefSummary = getTestDataRefSummary(

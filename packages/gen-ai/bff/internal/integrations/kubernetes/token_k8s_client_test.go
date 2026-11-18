@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -124,6 +125,93 @@ func TestGetNamespacesUsesProjectsWithoutNamespaceGets(t *testing.T) {
 	assert.Equal(t, 1, namespaceListRequests)
 	assert.Equal(t, 1, projectListRequests)
 	assert.Zero(t, namespaceGetRequests)
+}
+
+// TestCallerScopedReadersUseCallerTokenNamespaceAndSelectors verifies the production
+// reader boundary resolveTrustedHost depends on: GetService, GetServiceEndpointSlices,
+// and ListPods must issue their Kubernetes requests with the caller's bearer token,
+// scoped to the requested namespace, and carrying the expected label selectors.
+func TestCallerScopedReadersUseCallerTokenNamespaceAndSelectors(t *testing.T) {
+	const namespace = "my-ns"
+	var authorizations []string
+	var serviceRequests, sliceRequests, podRequests int
+	var sliceSelector, podSelector string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		authorizations = append(authorizations, r.Header.Get("Authorization"))
+		switch r.URL.Path {
+		case "/api":
+			_ = json.NewEncoder(w).Encode(metav1.APIVersions{Versions: []string{"v1"}})
+		case "/api/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{GroupVersion: "v1", APIResources: []metav1.APIResource{
+				{Name: "services", Kind: "Service", Namespaced: true},
+				{Name: "pods", Kind: "Pod", Namespaced: true},
+			}})
+		case "/apis":
+			gv := metav1.GroupVersionForDiscovery{GroupVersion: "discovery.k8s.io/v1", Version: "v1"}
+			_ = json.NewEncoder(w).Encode(metav1.APIGroupList{Groups: []metav1.APIGroup{{
+				Name:             "discovery.k8s.io",
+				Versions:         []metav1.GroupVersionForDiscovery{gv},
+				PreferredVersion: gv,
+			}}})
+		case "/apis/discovery.k8s.io/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{GroupVersion: "discovery.k8s.io/v1", APIResources: []metav1.APIResource{
+				{Name: "endpointslices", Kind: "EndpointSlice", Namespaced: true},
+			}})
+		case "/api/v1/namespaces/" + namespace + "/services/my-model":
+			serviceRequests++
+			_ = json.NewEncoder(w).Encode(corev1.Service{
+				TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Service"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: "my-model"},
+			})
+		case "/apis/discovery.k8s.io/v1/namespaces/" + namespace + "/endpointslices":
+			sliceRequests++
+			sliceSelector = r.URL.Query().Get("labelSelector")
+			_ = json.NewEncoder(w).Encode(discoveryv1.EndpointSliceList{
+				TypeMeta: metav1.TypeMeta{APIVersion: "discovery.k8s.io/v1", Kind: "EndpointSliceList"},
+				Items:    []discoveryv1.EndpointSlice{{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: "my-model-x1"}}},
+			})
+		case "/api/v1/namespaces/" + namespace + "/pods":
+			podRequests++
+			podSelector = r.URL.Query().Get("labelSelector")
+			_ = json.NewEncoder(w).Encode(corev1.PodList{
+				TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "PodList"},
+				Items:    []corev1.Pod{{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: "my-model-pod"}}},
+			})
+		default:
+			http.Error(w, "unexpected request: "+r.Method+" "+r.URL.Path, http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().Build(),
+		Config: &rest.Config{Host: server.URL},
+		Logger: slog.Default(),
+	}
+	identity := &integrations.RequestIdentity{Token: "user-token"}
+	ctx := context.Background()
+
+	svc, err := kc.GetService(ctx, identity, namespace, "my-model")
+	require.NoError(t, err)
+	assert.Equal(t, "my-model", svc.Name)
+
+	slices, err := kc.GetServiceEndpointSlices(ctx, identity, namespace, "my-model")
+	require.NoError(t, err)
+	require.Len(t, slices, 1)
+
+	pods, err := kc.ListPods(ctx, identity, namespace, map[string]string{"app": "my-model"})
+	require.NoError(t, err)
+	require.Len(t, pods, 1)
+
+	assert.Equal(t, 1, serviceRequests)
+	assert.Equal(t, 1, sliceRequests)
+	assert.Equal(t, 1, podRequests)
+	assert.Equal(t, "kubernetes.io/service-name=my-model", sliceSelector)
+	assert.Equal(t, "app=my-model", podSelector)
+	for _, auth := range authorizations {
+		assert.Equal(t, "Bearer user-token", auth)
+	}
 }
 
 func TestGetExternalModelsConfigUsesRequestClient(t *testing.T) {
@@ -267,13 +355,18 @@ func (c errorListClient) List(context.Context, client.ObjectList, ...client.List
 }
 
 func TestGetNemoGuardrailsServiceURL(t *testing.T) {
-	t.Run("returns service URL for a NemoGuardrails CR", func(t *testing.T) {
+	t.Run("returns the ready endpoint in the shared workload namespace", func(t *testing.T) {
+		const endpoint = "https://test-namespace-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local"
 		guardrails := &unstructured.Unstructured{Object: map[string]interface{}{
 			"apiVersion": "trustyai.opendatahub.io/v1alpha1",
 			"kind":       "NemoGuardrails",
 			"metadata": map[string]interface{}{
-				"name":      "guardrails",
+				"name":      "nemoguardrails",
 				"namespace": testutil.TestNamespace,
+			},
+			"status": map[string]interface{}{
+				"phase":    constants.GuardrailsPhaseReady,
+				"endpoint": endpoint,
 			},
 		}}
 		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().WithObjects(guardrails).Build(), Logger: slog.Default()}
@@ -281,8 +374,94 @@ func TestGetNemoGuardrailsServiceURL(t *testing.T) {
 		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
 
 		require.NoError(t, err)
-		assert.Equal(t, "https://guardrails."+testutil.TestNamespace+".svc.cluster.local:443", url)
+		assert.Equal(t, endpoint, url)
 	})
+
+	t.Run("uses each project's own endpoint", func(t *testing.T) {
+		newCR := func(namespace, endpoint string) *unstructured.Unstructured {
+			return &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": "trustyai.opendatahub.io/v1alpha1",
+				"kind":       "NemoGuardrails",
+				"metadata": map[string]interface{}{
+					"name":      "nemoguardrails",
+					"namespace": namespace,
+				},
+				"status": map[string]interface{}{
+					"phase":    constants.GuardrailsPhaseReady,
+					"endpoint": endpoint,
+				},
+			}}
+		}
+		const firstEndpoint = "https://project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local"
+		const secondEndpoint = "https://project-two-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local"
+		kc := &TokenKubernetesClient{
+			Client: fake.NewClientBuilder().WithObjects(
+				newCR("project-one", firstEndpoint),
+				newCR("project-two", secondEndpoint),
+			).Build(),
+			Logger: slog.Default(),
+		}
+
+		firstURL, firstErr := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, "project-one")
+		secondURL, secondErr := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, "project-two")
+
+		require.NoError(t, firstErr)
+		require.NoError(t, secondErr)
+		assert.Equal(t, firstEndpoint, firstURL)
+		assert.Equal(t, secondEndpoint, secondURL)
+	})
+
+	for _, tc := range []struct {
+		name    string
+		status  map[string]interface{}
+		wantErr bool
+	}{
+		{
+			name:   "returns no URL when the endpoint is missing",
+			status: map[string]interface{}{"phase": constants.GuardrailsPhaseReady},
+		},
+		{
+			name:   "returns no URL while the CR is progressing",
+			status: map[string]interface{}{"phase": "Progressing", "endpoint": "https://guardrails.example.com"},
+		},
+		{
+			name:    "rejects an invalid endpoint",
+			status:  map[string]interface{}{"phase": constants.GuardrailsPhaseReady, "endpoint": "ftp://guardrails.example.com"},
+			wantErr: true,
+		},
+		{
+			name:    "rejects an external ready endpoint",
+			status:  map[string]interface{}{"phase": constants.GuardrailsPhaseReady, "endpoint": "https://attacker.example"},
+			wantErr: true,
+		},
+		{
+			name:    "rejects a loopback ready endpoint",
+			status:  map[string]interface{}{"phase": constants.GuardrailsPhaseReady, "endpoint": "http://127.0.0.1:8080"},
+			wantErr: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			guardrails := &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": "trustyai.opendatahub.io/v1alpha1",
+				"kind":       "NemoGuardrails",
+				"metadata": map[string]interface{}{
+					"name":      "nemoguardrails",
+					"namespace": testutil.TestNamespace,
+				},
+				"status": tc.status,
+			}}
+			kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().WithObjects(guardrails).Build(), Logger: slog.Default()}
+
+			url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+			assert.Empty(t, url)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 
 	t.Run("returns no URL when no NemoGuardrails CR exists", func(t *testing.T) {
 		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().Build(), Logger: slog.Default()}
@@ -325,6 +504,41 @@ func TestGetNemoGuardrailsServiceURL(t *testing.T) {
 		assert.Empty(t, url)
 		require.ErrorIs(t, err, assert.AnError)
 	})
+}
+
+func TestIsOperatorManagedNemoEndpoint(t *testing.T) {
+	const namespace = "project-one"
+	const crName = "nemoguardrails"
+	const sharedEndpoint = "https://project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local"
+
+	for _, tc := range []struct {
+		name      string
+		endpoint  string
+		namespace string
+		want      bool
+	}{
+		{name: "RHOAI shared Service", endpoint: sharedEndpoint, namespace: namespace, want: true},
+		{name: "ODH shared Service", endpoint: "https://project-one-nemoguardrails.odh-ai-gateway-infra.svc.cluster.local", namespace: namespace, want: true},
+		{name: "project local Service", endpoint: "https://nemoguardrails.project-one.svc.cluster.local", namespace: namespace, want: true},
+		{name: "truncated shared Service name", endpoint: "https://a-very-long-project-namespace-for-truncation-testing-1-149c729e.redhat-ai-gateway-infra.svc.cluster.local", namespace: "a-very-long-project-namespace-for-truncation-testing-123456", want: true},
+		{name: "external host", endpoint: "https://attacker.example", namespace: namespace},
+		{name: "loopback address", endpoint: "http://127.0.0.1:8080", namespace: namespace},
+		{name: "link local address", endpoint: "http://169.254.169.254", namespace: namespace},
+		{name: "wrong project", endpoint: "https://project-two-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local", namespace: namespace},
+		{name: "unrelated infrastructure Service", endpoint: "https://other.redhat-ai-gateway-infra.svc.cluster.local", namespace: namespace},
+		{name: "unrelated namespace", endpoint: "https://nemoguardrails.other-project.svc.cluster.local", namespace: namespace},
+		{name: "insecure scheme", endpoint: "http://project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local", namespace: namespace},
+		{name: "userinfo", endpoint: "https://user@project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local", namespace: namespace},
+		{name: "missing host", endpoint: "https:///v1/guardrail/checks", namespace: namespace},
+		{name: "explicit port", endpoint: sharedEndpoint + ":443", namespace: namespace},
+		{name: "path", endpoint: sharedEndpoint + "/other", namespace: namespace},
+		{name: "query", endpoint: sharedEndpoint + "?target=other", namespace: namespace},
+		{name: "fragment", endpoint: sharedEndpoint + "#other", namespace: namespace},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, isOperatorManagedNemoEndpoint(tc.endpoint, tc.namespace, crName))
+		})
+	}
 }
 
 func TestCanListOGXServers(t *testing.T) {
@@ -3305,4 +3519,56 @@ func TestIsTrustedOfficeMIMETypesConfigMap(t *testing.T) {
 	binaryData := trusted.DeepCopy()
 	binaryData.BinaryData = map[string][]byte{"unexpected.py": []byte("import malicious_code")}
 	assert.False(t, isTrustedOfficeMIMETypesConfigMap(binaryData))
+}
+
+// TestCallerScopedClientCredentialSelection covers the credential-selection
+// branches of callerScopedClient: the fallback to the client's own credentials
+// when no identity token is available (local development), the reuse of the
+// existing client when the identity token is the token the client was already
+// constructed with, the construction of a distinct user-scoped client for a
+// different caller token, and the failure mode for an unusable cluster config.
+func TestCallerScopedClientCredentialSelection(t *testing.T) {
+	newKc := func(token string, host string) *TokenKubernetesClient {
+		return &TokenKubernetesClient{
+			Client: fake.NewClientBuilder().Build(),
+			Config: &rest.Config{Host: host},
+			Logger: slog.Default(),
+			Token:  integrations.NewBearerToken(token),
+		}
+	}
+
+	t.Run("nil identity falls back to the client's own credentials", func(t *testing.T) {
+		kc := newKc("sa-token", "https://test-cluster.example.com")
+		reader, err := kc.callerScopedClient(nil)
+		require.NoError(t, err)
+		assert.Same(t, kc.Client, reader)
+	})
+
+	t.Run("empty identity token falls back to the client's own credentials", func(t *testing.T) {
+		kc := newKc("sa-token", "https://test-cluster.example.com")
+		reader, err := kc.callerScopedClient(&integrations.RequestIdentity{})
+		require.NoError(t, err)
+		assert.Same(t, kc.Client, reader)
+	})
+
+	t.Run("identity token matching the client token reuses the existing client", func(t *testing.T) {
+		kc := newKc("sa-token", "https://test-cluster.example.com")
+		reader, err := kc.callerScopedClient(&integrations.RequestIdentity{Token: "sa-token"})
+		require.NoError(t, err)
+		assert.Same(t, kc.Client, reader)
+	})
+
+	t.Run("different caller token yields a distinct user-scoped client", func(t *testing.T) {
+		kc := newKc("sa-token", "https://test-cluster.example.com")
+		reader, err := kc.callerScopedClient(&integrations.RequestIdentity{Token: "user-token"})
+		require.NoError(t, err)
+		assert.NotSame(t, kc.Client, reader)
+	})
+
+	t.Run("unusable cluster config returns an error instead of a client", func(t *testing.T) {
+		kc := newKc("sa-token", "://invalid-host")
+		reader, err := kc.callerScopedClient(&integrations.RequestIdentity{Token: "user-token"})
+		require.Error(t, err)
+		assert.Nil(t, reader)
+	})
 }

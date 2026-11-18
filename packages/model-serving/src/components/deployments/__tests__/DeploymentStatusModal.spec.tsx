@@ -1,18 +1,13 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { screen, fireEvent } from '@testing-library/react';
 import type { Deployment, DeploymentCondition } from '../../../../extension-points';
 import { ModelDeploymentState } from '../../../shared/types';
 import DeploymentStatusModal from '../DeploymentStatusModal';
+import { createTrackingRender } from '../../../__tests__/TrackingProvider';
 
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
-  useTrackEvent: jest.fn(),
-}));
-
-const mockUseTrackEvent = jest.mocked(useTrackEvent);
 const mockTrackEvent = jest.fn();
+const render = createTrackingRender(mockTrackEvent);
 
 const createMockDeployment = (
   conditions: DeploymentCondition[],
@@ -40,7 +35,6 @@ const createMockDeployment = (
 describe('DeploymentStatusModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseTrackEvent.mockReturnValue(mockTrackEvent);
   });
 
   it('should render the modal with deployment name and status', () => {

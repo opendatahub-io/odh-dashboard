@@ -26,6 +26,7 @@
     "test:cypress-ci": "pnpm run cypress:server:build && concurrently -P -k -s first \"pnpm run cypress:server\" \"wait-on http-get://127.0.0.1:4021/maas-portal/ && pnpm run cypress:run:mock {@}\" --"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "workspace:*",
     "@odh-dashboard/base-distribution": "workspace:*",
     "@odh-dashboard/gen-ai": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",

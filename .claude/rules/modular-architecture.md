@@ -101,7 +101,7 @@ packages/<name>/
 | Host MF config | `frontend/config/moduleFederation.js` |
 | Plugin discovery | `frontend/config/discoverPluginPackages.js` |
 | Extensions codegen | `frontend/config/generateExtensionsPlugin.js` |
-| Extensions loader | `frontend/src/plugins/useAppExtensions.ts` |
+| Extensions loader | `packages/plugin-core/src/extensibility/useAppExtensions.ts` |
 | Plugin store | `packages/plugin-core/src/core/plugin-store.ts` |
 | Extension points | `packages/plugin-core/src/extension-points/` |
 | Area flags | `packages/plugin-core/src/areas/types.ts`, `frontend/src/concepts/areas/const.ts` |

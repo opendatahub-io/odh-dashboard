@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Dropdown,
   DropdownItem,
@@ -43,6 +44,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
   selectedSecret: controlledSelectedSecret,
   onSelectedSecretChange,
 }) => {
+  const trackEvent = useTrackEvent();
   const { namespace = '' } = useParams();
   const [selectedSecret, setSelectedSecret] = React.useState<SecretSelection | undefined>(
     initialSecret,
@@ -94,7 +96,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                       secret.databaseProviders,
                     );
                     if (providerType) {
-                      fireAutoragVectorStoreConfigured({
+                      fireAutoragVectorStoreConfigured(trackEvent, {
                         providerType,
                         outcome: TrackingOutcome.submit,
                         success: true,
@@ -218,7 +220,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                 const selectedSecretFromList = { ...secret, invalid: false };
                 setSelected(selectedSecretFromList);
                 field.onChange(secret.name);
-                fireAutoragVectorStoreConfigured({
+                fireAutoragVectorStoreConfigured(trackEvent, {
                   providerType,
                   outcome: TrackingOutcome.submit,
                   success: true,

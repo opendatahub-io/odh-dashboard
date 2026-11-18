@@ -42,6 +42,12 @@ export type WizardFormAction<Field extends WizardField<unknown> = WizardField<un
         externalData?: ReturnType<NonNullable<Field['externalDataHook']>>;
         dependencies?: Record<string, unknown>;
       };
+    }
+  | {
+      type: 'reInitForm';
+      payload: {
+        initialData: InitialWizardFormData;
+      };
     };
 
 /**
@@ -51,12 +57,15 @@ export type WizardFormAction<Field extends WizardField<unknown> = WizardField<un
  * - `setFieldData` — sets a field's UI state (marks it dirty vs its initial value)
  * - `clearFieldData` — removes a single field's state
  * - `initFieldData` — initializes a field's state (separately from `setFieldData` to avoid dirty detection)
+ * - `reInitForm` — clears field state before initializing active fields from new form data
  */
 export const wizardFormReducer = (
   state: WizardFieldReducerState,
   action: WizardFormAction,
 ): WizardFieldReducerState => {
   switch (action.type) {
+    case 'reInitForm':
+      return { fieldValues: {}, initialValues: {} };
     case 'setFieldData':
       return {
         ...state,
@@ -67,6 +76,7 @@ export const wizardFormReducer = (
       const newInitialValues = { ...state.initialValues };
       delete newFieldValues[action.payload.id];
       delete newInitialValues[action.payload.id];
+
       return { fieldValues: newFieldValues, initialValues: newInitialValues };
     }
     case 'initFieldData': {
@@ -77,6 +87,7 @@ export const wizardFormReducer = (
         externalData?.data,
         dependencies ?? {},
       );
+
       return {
         ...state,
         initialValues: {
@@ -120,15 +131,20 @@ export type UseDeploymentWizardReducerResult = {
 export const useDeploymentWizardReducer = (
   formState: WizardFormState,
   dispatch: React.Dispatch<WizardFormAction>,
-  initialData?: InitialWizardFormData,
+  setInitialFormData: React.Dispatch<React.SetStateAction<InitialWizardFormData | undefined>>,
   externalDataMap: ExternalDataMap = {},
+  initialData?: InitialWizardFormData,
 ): UseDeploymentWizardReducerResult => {
   const mergedStateRef = React.useRef(formState);
   mergedStateRef.current = formState;
 
   const activeFields = useActiveFields(formState);
+  const activeFieldsRef = React.useRef(activeFields);
+  activeFieldsRef.current = activeFields;
+  const externalDataMapRef = React.useRef(externalDataMap);
+  externalDataMapRef.current = externalDataMap;
 
-  // Makes it easier for callers to use init dispatch without needing entire merged state
+  // Fill in current field context for init and re-initialization actions.
   const enhancedDispatch: React.Dispatch<WizardFormAction> = React.useCallback(
     (action) => {
       if (action.type === 'initFieldData') {
@@ -144,11 +160,29 @@ export const useDeploymentWizardReducer = (
               getFieldDependencies(field, mergedStateRef.current, initialData),
           },
         });
+      } else if (action.type === 'reInitForm') {
+        setInitialFormData({ ...action.payload.initialData });
+        dispatch(action);
+        for (const field of activeFieldsRef.current) {
+          dispatch({
+            type: 'initFieldData',
+            payload: {
+              field,
+              existingFieldData: action.payload.initialData[getStateKey(field)],
+              externalData: externalDataMapRef.current[field.id],
+              dependencies: getFieldDependencies(
+                field,
+                mergedStateRef.current,
+                action.payload.initialData,
+              ),
+            },
+          });
+        }
       } else {
         dispatch(action);
       }
     },
-    [dispatch, initialData],
+    [dispatch, initialData, setInitialFormData],
   );
 
   const prevActiveFields = React.useRef<WizardField<unknown>[]>([]);

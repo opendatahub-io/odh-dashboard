@@ -10,10 +10,8 @@ aliases:
     - DaoDaoNoCode
     - antowaddle
     - FedeAlonso
-    - Griffin-Sullivan
     - YuliaKrimerman
     - manaswinidas
-    - ederign
     - dpanshug
     - claudialphonse78
     - andyatmiami
@@ -32,6 +30,17 @@ aliases:
     - jessiehuff
     - tamdavid-git
 
+  # AI Grid (temp groups -- maybe)
+  ai-grid-approvers:
+    - andrewballantyne
+    - manaswinidas
+    - DaoDaoNoCode
+  ai-grid-reviewers:
+    - manaswinidas
+    - DaoDaoNoCode
+    - ppadti
+    - jesuino
+
   # AI Trusty
   ai-trusty-approvers:
     - andrewballantyne
@@ -41,12 +50,10 @@ aliases:
   # Connections & Connection Types
   connections-approvers:
     - emilys314
-    - Griffin-Sullivan
     - andrewballantyne
   connections-reviewers:
     - ashley-o0o
     - emilys314
-    - Griffin-Sullivan
     - katieperry4
 
   # Hardware Profiles
@@ -55,6 +62,7 @@ aliases:
     - DaoDaoNoCode
     - srtanish1992
     - nananosirova
+    - danreed-rh
   hardware-profiles-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -67,6 +75,7 @@ aliases:
     - mturley
     - YuliaKrimerman
     - ppadti
+    - danreed-rh
   model-registry-catalog-reviewers:
     - manaswinidas
     - mturley
@@ -109,6 +118,7 @@ aliases:
     - Gkrumbach07
     - DaoDaoNoCode
     - srtanish1992
+    - danreed-rh
   pipelines-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -171,7 +181,6 @@ aliases:
     - jharan1
     - NickGagan
     - mfleader
-    - ederign
     - rhdedgar
     - gmenher
     - chrjones-rh
@@ -186,7 +195,6 @@ aliases:
     - jharan1
     - NickGagan
     - mfleader
-    - ederign
     - rhdedgar
     - iamemilio
     - s-akhtar-baig
@@ -196,15 +204,13 @@ aliases:
   # Notebooks
   notebooks-approvers:
     - andyatmiami
-    - ederign
     - harshad16
     - paulovmr
     - thaorell
     - jesuino
-    - bobbravo2 
+    - bobbravo2
   notebooks-reviewers:
     - andyatmiami
-    - ederign
     - harshad16
     - paulovmr
     - caponetto
@@ -315,12 +321,31 @@ aliases:
     - GAUNSD
     - MatthewAThompson
 
+  # AI Safety
+  ai-safety-approvers:
+    - chrjones-rh
+    - GAUNSD
+    - NickGagan
+    - nickmazzi
+    - tamdavid-git
+  ai-safety-reviewers:
+    - chrjones-rh
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - jkyaw
+    - MatthewAThompson
+    - NickGagan
+    - nickmazzi
+    - tamdavid-git
+
   # MLflow
   mlflow-approvers:
     - caponetto
     - DaoDaoNoCode
     - Gkrumbach07
     - nananosirova
+    - danreed-rh
   mlflow-reviewers:
     - caponetto
     - DaoDaoNoCode

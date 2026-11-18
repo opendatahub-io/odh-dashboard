@@ -97,6 +97,7 @@
     "@emotion/styled": "^11.14.0",
     "@hookform/resolvers": "^5.9.1",
     "@module-federation/runtime": "^0.21.4",
+    "@odh-dashboard/analytics": "workspace:*",
     "@patternfly/patternfly": "~6.6.1",
     "@patternfly/react-core": "~6.6.1",
     "@patternfly/react-icons": "~6.6.1",

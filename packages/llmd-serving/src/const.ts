@@ -15,9 +15,13 @@ export const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';
 
 // --- Wizard field ids (declared here so fields can reference each other without import cycles) ---
 
+export const LLMD_GATEWAY_FIELD_ID = 'llmd-serving/gateway';
+export const LLMD_ROUTING_FIELD_ID = 'llmd-serving/advanced-routing';
 export const TOPOLOGY_TYPE_FIELD_ID = 'llmd-serving/topology-type';
 export const CUSTOM_TOPOLOGY_CONFIG_FIELD_ID = 'llmd-serving/custom-topology-config';
 export const ACCELERATOR_CONFIG_FIELD_ID = 'llmd-serving/accelerator-config';
+export const DEFAULT_ROUTING_KEY = '__default-optimized-routing__';
+export const TOPOLOGY_CONFIG_DEFAULT = 'default' as const;
 
 // Placeholder value persisted when the user keeps the built-in image instead of an accelerator config.
 // Uses characters that are invalid in a Kubernetes object name, so it can never collide with a

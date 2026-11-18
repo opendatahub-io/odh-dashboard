@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
+
 import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
@@ -20,6 +20,8 @@ import {
   EXTERNAL_ENDPOINT_VALUE,
 } from '~/app/pages/useStartEvaluationRunForm';
 
+const { mockTrackEvent, renderHook } = setupTrackingTest();
+
 const mockNavigate = jest.fn();
 let mockHardwareProfilesLoaded = true;
 let mockKueueAvailabilityLoaded = true;
@@ -29,10 +31,6 @@ let mockHardwareProfilesError: Error | undefined;
 let mockHardwareProfileCompatibilityError: Error | undefined;
 let mockKueueAvailabilityError: Error | undefined;
 const mockNotificationError = jest.fn();
-
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
-}));
 
 jest.mock('react-router-dom', () => ({
   useNavigate: jest.fn(() => mockNavigate),
@@ -75,10 +73,12 @@ jest.mock('~/app/hooks/useKueueAvailability', () => ({
   }),
 }));
 
-const mockTrack = jest.mocked(trackEvalHubEvent);
-
 const expectTracked = (eventName: string, properties: unknown): void => {
-  expect(mockTrack).toHaveBeenCalledWith(eventName, properties, expect.any(Object));
+  expect(mockTrackEvent).toHaveBeenCalledWith(
+    eventName,
+    expect.objectContaining(properties),
+    expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+  );
 };
 const mockCreateEvaluationJob = jest.mocked(createEvaluationJob);
 const mockGetHardwareProfiles = jest.mocked(getHardwareProfiles);
@@ -170,7 +170,7 @@ const defaultFormParams = {
 };
 
 const renderForm = (overrides = {}) =>
-  testHook(useStartEvaluationRunForm)({ ...defaultFormParams, ...overrides });
+  renderHook(() => useStartEvaluationRunForm({ ...defaultFormParams, ...overrides }));
 
 describe('useStartEvaluationRunForm - Tracking Events', () => {
   beforeEach(() => {
@@ -286,7 +286,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleSourceModeChange('agent');
       });
 
-      const sourceSelectedCalls = mockTrack.mock.calls.filter(
+      const sourceSelectedCalls = mockTrackEvent.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED,
       );
       expect(sourceSelectedCalls).toHaveLength(1);
@@ -330,7 +330,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleModelDropdownSelect(undefined, mockInferenceServices);
       });
 
-      const modelSelectedCalls = mockTrack.mock.calls.filter(
+      const modelSelectedCalls = mockTrackEvent.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_MODEL_SELECTED,
       );
       expect(modelSelectedCalls).toHaveLength(0);
@@ -377,7 +377,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleThresholdChange(75);
       });
 
-      const thresholdCalls = mockTrack.mock.calls.filter(
+      const thresholdCalls = mockTrackEvent.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED,
       );
       expect(thresholdCalls).toHaveLength(2);
@@ -487,12 +487,15 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         await renderResult.result.current.handleSubmit();
       });
 
-      const paramCalls = mockTrack.mock.calls.filter(
+      const paramCalls = mockTrackEvent.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED,
       );
       expect(paramCalls).toHaveLength(2);
 
       expect(paramCalls[0][1]).toEqual({
+        event_source: 'evalhub_ui',
+        collection_type: 'unknown',
+        provider_type: 'prov-1',
         parameterName: 'num_examples',
         parameterValueShape: 'number',
         benchmarkName: 'ARC Easy',
@@ -500,6 +503,9 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       });
 
       expect(paramCalls[1][1]).toEqual({
+        event_source: 'evalhub_ui',
+        collection_type: 'unknown',
+        provider_type: 'prov-1',
         parameterName: 'temperature',
         parameterValueShape: 'number',
         benchmarkName: 'ARC Easy',
@@ -518,7 +524,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         await renderResult.result.current.handleSubmit();
       });
 
-      const paramCalls = mockTrack.mock.calls.filter(
+      const paramCalls = mockTrackEvent.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED,
       );
       expect(paramCalls).toHaveLength(0);
@@ -728,14 +734,11 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       });
 
       expect(onSuccess).toHaveBeenCalledTimes(1);
-      expectTracked(
-        EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
-        expect.objectContaining({
-          source: 'copy_suite',
-          outcome: TrackingOutcome.submit,
-          success: true,
-        }),
-      );
+      expectTracked(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
+        source: 'copy_suite',
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
@@ -765,13 +768,13 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         });
       });
 
-      const runStartedCalls = mockTrack.mock.calls.filter(
+      const runStartedCalls = mockTrackEvent.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
       );
       expect(runStartedCalls).toHaveLength(1);
-      expect(runStartedCalls[0][2]).toEqual({
-        collectionType: 'custom',
-        providerType: 'lm_harness',
+      expect(runStartedCalls[0][1]).toMatchObject({
+        collection_type: 'custom',
+        provider_type: 'lm_harness',
       });
     });
 
@@ -912,7 +915,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
     it('should not fire any tracking events on initial render', () => {
       renderForm();
 
-      expect(mockTrack).not.toHaveBeenCalled();
+      expect(mockTrackEvent).not.toHaveBeenCalled();
     });
   });
 });

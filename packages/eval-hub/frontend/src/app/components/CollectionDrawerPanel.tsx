@@ -29,7 +29,7 @@ import {
 } from '@patternfly/react-core';
 import { ChartLineIcon, SearchIcon } from '@patternfly/react-icons';
 import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
@@ -260,6 +260,8 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   isSystemCollection = false,
   primaryActionLabel = 'Select collection',
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const availableMetrics = React.useMemo(() => {
     const metricSet = new Set<string>();
     (collection?.benchmarks ?? []).forEach((b) => {
@@ -293,7 +295,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
       },
     );
     onRunCollection(collection, isSystemCollection);
-  }, [collection, isSystemCollection, onRunCollection]);
+  }, [trackEvalHubEvent, collection, isSystemCollection, onRunCollection]);
 
   const metadataSections = [
     {

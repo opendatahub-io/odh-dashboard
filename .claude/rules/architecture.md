@@ -58,7 +58,7 @@ These packages export extensions but have **no** `module-federation` config. The
 
 ### Infrastructure Packages
 
-- `analytics` — Shared Segment analytics implementation
+- `analytics` — SDK-free analytics contracts/React providers and shared Segment implementation
 - `eslint-config` — Centralized ESLint configuration (base, typescript, react, node, markdown, yaml, prettier)
 - `eslint-plugin` — Custom ESLint rules for the project
 - `jest-config` — Shared Jest test configuration and custom matchers
@@ -73,7 +73,7 @@ These packages export extensions but have **no** `module-federation` config. The
 ## Package Boundaries (Critical)
 
 - Feature packages MUST NOT import directly from other feature packages' internal modules.
-- Feature packages MUST use exported APIs from `plugin-core` or `app-config` for shared functionality.
+- Feature packages MUST use the owning infrastructure package's public APIs for shared functionality: `plugin-core` for plugins, `app-config` for configuration, and `analytics/react` / `analytics/types` for tracking.
 - Changes to infrastructure packages (`eslint-config`, `jest-config`, `tsconfig`) affect ALL packages — review with extra care.
 
 ## Dashboard Module Controller (`dashboard-operator/`)

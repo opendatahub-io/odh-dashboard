@@ -1,4 +1,4 @@
-import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
 import type { TrackEventFn } from './modelServingTrackingConstants';
 import type { DeploymentStrategy } from '../../components/settings/DeploymentStrategySettings';
 
