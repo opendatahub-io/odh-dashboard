@@ -535,6 +535,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         >
           <KnowledgeTabContent
             configId={configId}
+            onNavigateToPrompt={() => handleTabSelect(1)}
             sourceManagement={sourceManagement}
             fileManagement={fileManagement}
             alerts={alerts}

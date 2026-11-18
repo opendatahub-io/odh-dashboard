@@ -153,6 +153,68 @@ describe('KnowledgeTabContent', () => {
     expect(ragSwitch).toBeChecked();
   });
 
+  describe('Troubleshooting', () => {
+    it('does not show the link when RAG is disabled even if files are uploaded', () => {
+      render(
+        <KnowledgeTabContent
+          {...defaultProps}
+          fileManagement={createMockFileManagement({
+            files: [{ id: '1' }] as UseFileManagementReturn['files'],
+          })}
+        />,
+      );
+
+      expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
+    });
+
+    it('does not show the link when RAG is enabled without uploaded files', () => {
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
+    });
+
+    it('shows the link when RAG is enabled and at least one file is uploaded', () => {
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+      render(
+        <KnowledgeTabContent
+          {...defaultProps}
+          fileManagement={createMockFileManagement({
+            files: [{ id: '1' }] as UseFileManagementReturn['files'],
+          })}
+        />,
+      );
+
+      expect(screen.getByTestId('rag-troubleshooting-button')).toHaveTextContent('Troubleshooting');
+    });
+
+    it('navigates to the Prompt tab from the popover', async () => {
+      const user = userEvent.setup();
+      const onNavigateToPrompt = jest.fn();
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+      render(
+        <KnowledgeTabContent
+          {...defaultProps}
+          onNavigateToPrompt={onNavigateToPrompt}
+          fileManagement={createMockFileManagement({
+            files: [{ id: '1' }] as UseFileManagementReturn['files'],
+          })}
+        />,
+      );
+
+      await user.click(screen.getByTestId('rag-troubleshooting-button'));
+      expect(
+        await screen.findByText(/If RAG is enabled but the model is not using retrieved knowledge/),
+      ).toBeInTheDocument();
+      await user.click(await screen.findByTestId('go-to-prompt-tab'));
+
+      expect(onNavigateToPrompt).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('calls updateRagEnabled and fires tracking event when RAG toggle is changed', async () => {
     const user = userEvent.setup();
     render(<KnowledgeTabContent {...defaultProps} />);
