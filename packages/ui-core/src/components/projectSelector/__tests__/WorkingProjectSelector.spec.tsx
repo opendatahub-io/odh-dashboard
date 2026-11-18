@@ -10,6 +10,173 @@ import WorkingProjectSelector from '../WorkingProjectSelector';
 
 describe('WorkingProjectSelector', () => {
   const project: ProjectIdentity = { name: 'project-x', displayName: 'Project X' };
+  const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'scrollIntoView',
+  );
+
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: jest.fn(),
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    if (scrollIntoViewDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', scrollIntoViewDescriptor);
+    } else {
+      delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
+  it('should keep Select disabled until a project is selected during a normal open', () => {
+    render(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector emptyListContent={<div>No projects</div>} />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
+
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+  });
+
+  it('should enable Select for a project being reviewed after creation', () => {
+    render(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={project.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+  });
+
+  it('should show the Create project action in the selector footer', () => {
+    const onCreateProject = jest.fn();
+
+    render(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          onCreateProject={onCreateProject}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    const createProjectButton = screen.getByRole('button', { name: 'Create project' });
+    expect(createProjectButton).toBeInTheDocument();
+    expect(screen.queryByText('onCreateProject();')).not.toBeInTheDocument();
+
+    fireEvent.click(createProjectButton);
+
+    expect(onCreateProject).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('should not reset a user selection when the project list refreshes', async () => {
+    const reviewedProject = { name: 'reviewed-project' };
+    const selectedProject = { name: 'selected-project' };
+    const refreshedProject = { name: 'refreshed-project' };
+    const { rerender } = render(
+      <WorkingProjectProvider
+        projects={[reviewedProject, selectedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    fireEvent.click(screen.getByTestId(`working-project-option-${selectedProject.name}`));
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[reviewedProject, selectedProject, refreshedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    expect(
+      within(screen.getByTestId(`working-project-option-${selectedProject.name}`)).getByLabelText(
+        'Selected project',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId(`working-project-option-${reviewedProject.name}`)).queryByLabelText(
+        'Selected project',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should return to the disabled initial state after closing a creation review', () => {
+    const { rerender } = render(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={project.name}
+          onProjectReviewClosed={jest.fn()}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('modal-cancel-button'));
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector emptyListContent={<div>No projects</div>} />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+  });
 
   it('should report a confirmed selection even when the selected project is already active', async () => {
     const onProjectChange = jest.fn();
@@ -29,6 +196,7 @@ describe('WorkingProjectSelector', () => {
     );
 
     fireEvent.click(screen.getByTestId('working-project-selector'));
+    fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
     fireEvent.click(screen.getByTestId('modal-submit-button'));
 
     expect(onProjectChange).toHaveBeenCalledWith(project);
@@ -59,32 +227,15 @@ describe('WorkingProjectSelector', () => {
     expect(screen.queryByTestId(`working-project-option-${project.name}`)).not.toBeInTheDocument();
   });
 
-  it('should allow selecting a project when the current route is invalid', () => {
+  it.each([
+    ['a route-invalid state', WorkingProjectStatusValue.RouteInvalid],
+    ['no selected project', undefined],
+  ])('should allow selecting a project in %s', (_description, status) => {
     const onProjectChange = jest.fn();
 
     render(
       <WorkingProjectProvider
-        status={WorkingProjectStatusValue.RouteInvalid}
-        projects={[project]}
-        activeProject={null}
-        onProjectChange={onProjectChange}
-      >
-        <WorkingProjectSelector emptyListContent={<div>No projects</div>} />
-      </WorkingProjectProvider>,
-    );
-
-    fireEvent.click(screen.getByTestId('working-project-selector'));
-    fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
-    fireEvent.click(screen.getByTestId('modal-submit-button'));
-
-    expect(onProjectChange).toHaveBeenCalledWith(project);
-  });
-
-  it('should allow selecting a project when no project is selected', () => {
-    const onProjectChange = jest.fn();
-
-    render(
-      <WorkingProjectProvider
+        {...(status ? { status } : {})}
         projects={[project]}
         activeProject={null}
         onProjectChange={onProjectChange}
@@ -151,8 +302,8 @@ describe('WorkingProjectSelector', () => {
     expect(trigger).toHaveTextContent('No project selected');
     fireEvent.click(trigger);
     expect(screen.queryByTestId('working-project-empty-image')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Select' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add project' }));
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
     expect(screen.queryByTestId('manual-project-name-help')).not.toBeInTheDocument();
     expect(screen.getByText(/Find an existing project by its resource name/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -171,9 +322,10 @@ describe('WorkingProjectSelector', () => {
       </WorkingProjectProvider>,
     );
     fireEvent.click(screen.getByTestId('working-project-selector'));
-    expect(screen.getByRole('dialog', { name: 'Working project' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Project selector' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add project' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('working-project-empty-image')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
     fireEvent.click(screen.getByRole('button', { name: 'Select' }));
     expect(onProjectChange).toHaveBeenCalledWith(project);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
