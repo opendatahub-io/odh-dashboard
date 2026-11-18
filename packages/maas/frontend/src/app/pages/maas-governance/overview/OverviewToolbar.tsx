@@ -3,10 +3,10 @@ import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import type { TypeaheadSelectOption } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { GroupOverviewItem, ModelOverviewItem } from '~/app/types/subscriptions';
 import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
+import type { TypeaheadFilterOption } from '~/app/components/TypeaheadFilterField';
 import {
   EventTrackingFilterAttribute,
   MaaSEvents,
@@ -84,18 +84,22 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
       });
       // The option value is the model name so an exact selection matches every
       // project that registered it; same-name registrations collapse into one
-      // combined option (the first label seen wins) to keep option values unique
-      const toModelOptions = (): TypeaheadSelectOption[] => {
-        const labelsByName = new Map<string, string>();
+      // option whose label is the first label seen, with every other
+      // registration label kept as a search alias so each stays discoverable
+      const toModelOptions = (): TypeaheadFilterOption[] => {
+        const optionsByName = new Map<string, TypeaheadFilterOption>();
         modelLabels.forEach((label, key) => {
           const name = key.slice(0, key.lastIndexOf('/'));
-          if (!labelsByName.has(name)) {
-            labelsByName.set(name, label);
+          const existing = optionsByName.get(name);
+          if (!existing) {
+            optionsByName.set(name, { value: name, content: label });
+          } else if (label !== existing.content) {
+            existing.searchAliases = [...(existing.searchAliases ?? []), label];
           }
         });
-        return Array.from(labelsByName.entries())
-          .toSorted(([, a], [, b]) => a.localeCompare(b))
-          .map(([value, content]) => ({ value, content }));
+        return Array.from(optionsByName.values())
+          .toSorted((a, b) => String(a.content).localeCompare(String(b.content)))
+          .map(({ value, content, searchAliases }) => ({ value, content, searchAliases }));
       };
       return {
         modelOptions: toModelOptions(),

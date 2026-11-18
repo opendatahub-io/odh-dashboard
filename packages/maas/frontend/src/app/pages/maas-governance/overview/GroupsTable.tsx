@@ -11,11 +11,10 @@ const RETURN_TO = `${URL_PREFIX}/maas-governance/overview?view=groups`;
 
 type GroupsTableProps = {
   data: GroupOverviewItem[];
-  toolbarContent?: React.ReactElement;
   onClearFilters: () => void;
 };
 
-const GroupsTable: React.FC<GroupsTableProps> = ({ data, toolbarContent, onClearFilters }) => {
+const GroupsTable: React.FC<GroupsTableProps> = ({ data, onClearFilters }) => {
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
 
   const toggleGroup = (name: string) =>
@@ -53,6 +52,9 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ data, toolbarContent, onClear
                   rowIndex,
                   isExpanded,
                   onToggle: () => toggleGroup(row.name),
+                  // Nested resource rows also expand with zero-based indices; the
+                  // group name keeps this toggle's identity distinct from theirs
+                  expandId: `group-row-toggle-${row.name}`,
                 }}
               />
               <Td dataLabel={groupColumns[1].label}>
@@ -76,7 +78,6 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ data, toolbarContent, onClear
         );
       }}
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
-      toolbarContent={toolbarContent}
       onClearFilters={onClearFilters}
     />
   );

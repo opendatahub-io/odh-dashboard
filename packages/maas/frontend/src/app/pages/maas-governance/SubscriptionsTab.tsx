@@ -129,8 +129,12 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
         (groupFilter &&
           !subscription.owner.groups.some((group) => group.name === groupFilter.value)) ||
         (groupFragment &&
-          !subscription.owner.groups.some((group) =>
-            group.name.toLowerCase().includes(groupFragment),
+          !subscription.owner.groups.some(
+            (group) =>
+              // The toolbar offers groups by their organization-qualified label, so a
+              // committed fragment must match that label as well as the raw name
+              group.name.toLowerCase().includes(groupFragment) ||
+              groupLabel(group.name, organization).toLowerCase().includes(groupFragment),
           ))
       ) {
         return false;

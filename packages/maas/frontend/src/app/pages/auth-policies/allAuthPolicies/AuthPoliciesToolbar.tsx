@@ -50,7 +50,12 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
       policyLabels.set(policy.name, policy.displayName ?? policy.name);
       policy.subjects.groups?.forEach((group) => groupLabels.set(group.name, group.name));
       policy.modelRefs.forEach((modelRef) =>
-        modelLabels.set(modelRef.name, modelRef.displayName ?? modelRef.name),
+        // A reference without a display name must not replace a label already
+        // known for that model from another namespace's reference
+        modelLabels.set(
+          modelRef.name,
+          modelRef.displayName ?? modelLabels.get(modelRef.name) ?? modelRef.name,
+        ),
       );
     });
     return {

@@ -4,10 +4,17 @@ import '@testing-library/jest-dom';
 import TypeaheadFilterField from '~/app/components/TypeaheadFilterField';
 
 type TypeaheadSelectProps = {
-  selectOptions: { value: string; content: string; isCreateOption?: boolean }[];
+  selectOptions: {
+    value: string;
+    content: string;
+    isCreateOption?: boolean;
+    isAriaDisabled?: boolean;
+    searchAliases?: string[];
+  }[];
   selected?: string;
   onSelect?: (event: unknown, selection: string | number) => void;
   onInputChange?: (newValue: string) => void;
+  filterFunction?: (filterValue: string, options: unknown[]) => unknown[];
 };
 
 let typeaheadProps: TypeaheadSelectProps;
@@ -75,5 +82,66 @@ describe('TypeaheadFilterField', () => {
     typeaheadProps.onSelect!(null, 'granite-8b');
 
     expect(onChange).toHaveBeenCalledWith('granite-8b', 'Granite 8B');
+  });
+
+  it('should show a committed fragment as a non-selectable display option', () => {
+    render(
+      <TypeaheadFilterField
+        options={[{ value: 'granite-8b', content: 'Granite 8B' }]}
+        placeholder="Filter"
+        testId="filter-field"
+        onChange={onChange}
+        value="7B"
+      />,
+    );
+
+    const displayOption = typeaheadProps.selectOptions.find((o) => o.value === '7B');
+    expect(displayOption).toBeDefined();
+    expect(displayOption!.isAriaDisabled).toBe(true);
+  });
+
+  it('should not fire onFilterApplied when the current selection is replayed', () => {
+    const onFilterApplied = jest.fn();
+    render(
+      <TypeaheadFilterField
+        options={[{ value: 'granite-8b', content: 'Granite 8B' }]}
+        placeholder="Filter"
+        testId="filter-field"
+        onChange={onChange}
+        value="granite-8b"
+        onFilterApplied={onFilterApplied}
+      />,
+    );
+
+    // TypeaheadSelect replays the current selection when clearing edited input
+    typeaheadProps.onSelect!(null, 'granite-8b');
+
+    expect(onFilterApplied).not.toHaveBeenCalled();
+
+    typeaheadProps.onSelect!(null, 'granite-8b');
+    act(() => {
+      typeaheadProps.onInputChange!('7');
+    });
+    const fragmentOption = typeaheadProps.selectOptions.find((o) => o.isCreateOption);
+    typeaheadProps.onSelect!(null, String(fragmentOption!.value));
+
+    expect(onFilterApplied).toHaveBeenCalledTimes(1);
+  });
+
+  it('should match typed text against search aliases', () => {
+    render(
+      <TypeaheadFilterField
+        options={[{ value: 'granite-8b', content: 'Granite A', searchAliases: ['Granite B'] }]}
+        placeholder="Filter"
+        testId="filter-field"
+        onChange={onChange}
+      />,
+    );
+
+    const filtered = typeaheadProps.filterFunction!('granite b', typeaheadProps.selectOptions) as {
+      value: string;
+    }[];
+
+    expect(filtered.map((o) => o.value)).toEqual(['granite-8b']);
   });
 });

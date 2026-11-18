@@ -193,14 +193,20 @@ describe('ModelAccessPage', () => {
     expect(screen.queryByText(/42c3e46f-2477-44d7-a85b-d3b43f6b31fa/)).not.toBeInTheDocument();
 
     // The search finds a group as it is shown.
-    await user.type(
-      screen.getByTestId('model-access-subscription-filter-input'),
-      'Grid Tenant 1/ai-grid',
-    );
+    await filterBySubscriptionText(user, 'Grid Tenant 1/ai-grid');
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+
+    // A group fragment matches the group as it is shown, with the organization name.
+    await selectFilterType(user, 'model-access-table-toolbar-option-group');
+    const groupInput = await openTypeahead(user);
+    await user.type(groupInput, 'Grid Tenant 1/ai-grid');
+    await user.click(screen.getByRole('option', { name: 'Filter by "Grid Tenant 1/ai-grid"' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
 
     await selectFilterType(user, 'model-access-table-toolbar-option-group');
     await openTypeahead(user);

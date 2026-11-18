@@ -131,7 +131,16 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
       <Table aria-label={ariaLabel} borders={false} variant="compact">
         <Tbody isExpanded={isExpanded}>
           <Tr>
-            <Td expand={{ rowIndex, isExpanded, onToggle }} />
+            <Td
+              expand={{
+                rowIndex,
+                isExpanded,
+                onToggle,
+                // Every nested table restarts rowIndex at zero; the resource type
+                // and name keep each toggle's identity distinct from its siblings
+                expandId: `expandable-item-toggle-${resourceType}-${name}`,
+              }}
+            />
             <Td>
               <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
                 <FlexItem>
@@ -318,7 +327,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
             >
               <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
                 <strong className="pf-v6-u-mr-md">Token limits</strong>
-                {sub.modelRefs
+                {sub.modelRefs?.length
                   ? // Group rows carry per-model limits on their model refs
                     sub.modelRefs.map((ref) => {
                       const label = ref.displayName ?? ref.name;

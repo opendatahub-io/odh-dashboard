@@ -164,7 +164,12 @@ describe('Grid Model access', () => {
     portal.visit('/maas/model-access');
     cy.wait(['@whoami', '@adminSubscriptions']);
 
-    cy.findByTestId('model-access-subscription-filter-input').type('Grid Tenant 2/ai-grid-bob');
+    subscriptionsPage.filterByTypeahead(
+      'subscription',
+      'Grid Tenant 2/ai-grid-bob',
+      undefined,
+      'model-access',
+    );
     cy.findAllByTestId('subscription-row').should('have.length', 1);
     cy.findByRole('link', { name: 'Premium Team Subscription' }).should('be.visible');
   });

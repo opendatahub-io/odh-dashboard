@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Alert, Bullseye, PageSection, Spinner, ToolbarItem } from '@patternfly/react-core';
+import {
+  Alert,
+  Bullseye,
+  PageSection,
+  Spinner,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
+} from '@patternfly/react-core';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { URL_PREFIX } from '~/app/utilities/const';
@@ -133,36 +141,38 @@ const OverviewTab: React.FC = () => {
     );
   }
 
-  const toolbarContent = (
-    <>
-      <ToolbarItem>
-        <OverviewViewToggle view={view} onChange={onSelectView} />
-      </ToolbarItem>
-      <OverviewToolbar
-        filterData={filterData}
-        onFilterUpdate={onFilterUpdate}
-        rows={rows}
-        groupRows={groupRows}
-        // Keep the originating view in the return target so create flows return to it
-        returnTo={view === 'groups' ? GROUPS_RETURN_TO : OVERVIEW_RETURN_TO}
-      />
-    </>
+  // The toolbar (including the view toggle) stays mounted outside the
+  // conditionally rendered tables so switching views does not unmount the
+  // control the user just activated
+  const toolbar = (
+    <Toolbar
+      inset={{ default: 'insetNone' }}
+      className="pf-v6-u-w-100"
+      clearAllFilters={onClearFilters}
+    >
+      <ToolbarContent>
+        <ToolbarItem>
+          <OverviewViewToggle view={view} onChange={onSelectView} />
+        </ToolbarItem>
+        <OverviewToolbar
+          filterData={filterData}
+          onFilterUpdate={onFilterUpdate}
+          rows={rows}
+          groupRows={groupRows}
+          // Keep the originating view in the return target so create flows return to it
+          returnTo={view === 'groups' ? GROUPS_RETURN_TO : OVERVIEW_RETURN_TO}
+        />
+      </ToolbarContent>
+    </Toolbar>
   );
 
   return (
     <PageSection isFilled>
+      {toolbar}
       {view === 'groups' ? (
-        <GroupsTable
-          data={filteredGroupRows}
-          onClearFilters={onClearFilters}
-          toolbarContent={toolbarContent}
-        />
+        <GroupsTable data={filteredGroupRows} onClearFilters={onClearFilters} />
       ) : (
-        <OverviewTable
-          data={filteredRows}
-          onClearFilters={onClearFilters}
-          toolbarContent={toolbarContent}
-        />
+        <OverviewTable data={filteredRows} onClearFilters={onClearFilters} />
       )}
     </PageSection>
   );

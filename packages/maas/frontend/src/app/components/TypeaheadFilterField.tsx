@@ -3,8 +3,13 @@ import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 
+export type TypeaheadFilterOption = TypeaheadSelectOption & {
+  /** Additional strings the typeahead search matches besides the option label and value. */
+  searchAliases?: string[];
+};
+
 export type TypeaheadFilterFieldProps = {
-  options: TypeaheadSelectOption[];
+  options: TypeaheadFilterOption[];
   placeholder: string;
   testId: string;
   onChange: (value?: string, label?: string) => void;
@@ -14,17 +19,18 @@ export type TypeaheadFilterFieldProps = {
   onFilterApplied?: () => void;
 };
 
-/** Matches the typed filter text against the option label or its resource name. */
+/** Matches the typed filter text against the option label, its resource name, or its search aliases. */
 export const filterByLabelOrValue = (
   filterValue: string,
-  options: TypeaheadSelectOption[],
-): TypeaheadSelectOption[] => {
+  options: TypeaheadFilterOption[],
+): TypeaheadFilterOption[] => {
   const search = filterValue.trim().toLowerCase();
   return search
     ? options.filter(
         (option) =>
           String(option.content).toLowerCase().includes(search) ||
-          String(option.value).toLowerCase().includes(search),
+          String(option.value).toLowerCase().includes(search) ||
+          option.searchAliases?.some((alias) => alias.toLowerCase().includes(search)),
       )
     : options;
 };
@@ -73,11 +79,12 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
 
   // A committed fragment (or a navigation-initialized display name) has no
   // option with a matching resource value; synthesize one so it stays visible
-  // in the toggle and can be cleared like a regular selection.
+  // in the toggle and can be cleared like a regular selection. It is aria
+  // disabled so the menu never presents it as a selectable resource.
   const selectOptions = React.useMemo(() => {
     const base =
       value && !options.some((o) => String(o.value) === value)
-        ? [...options, { value, content: value }]
+        ? [...options, { value, content: value, isAriaDisabled: true }]
         : options;
     // Whitespace-only input must not offer a fragment: the overview filtering
     // logic treats an all-whitespace fragment as no filter at all.
@@ -95,15 +102,24 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
         // happens to begin with the fragment prefix must stay an exact
         // selection with its own label, not be truncated into a fragment.
         const option = options.find((o) => String(o.value) === selected);
+        let next: string;
         if (option) {
+          next = selected;
           onChange(selected, String(option.content));
         } else if (selected.startsWith(FRAGMENT_VALUE_PREFIX)) {
           // A fragment option selection commits the typed text as a fragment.
-          onChange(selected.slice(FRAGMENT_VALUE_PREFIX.length));
+          next = selected.slice(FRAGMENT_VALUE_PREFIX.length);
+          onChange(next);
         } else {
+          next = selected;
           onChange(selected);
         }
-        onFilterApplied?.();
+        // TypeaheadSelect replays the current selection when clearing edited
+        // input; only a selection that changes the applied filter counts as a
+        // filter application.
+        if (next !== value) {
+          onFilterApplied?.();
+        }
       }}
       onClearSelection={() => onChange('')}
       onInputChange={setFilterValue}
