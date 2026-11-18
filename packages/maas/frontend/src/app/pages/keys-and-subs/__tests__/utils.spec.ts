@@ -429,8 +429,23 @@ describe('buildApiKeyUsageExample', () => {
       'chat-model',
       'sk-test-key',
     );
-    expect(example).toContain("curl -X POST 'https://maas.apps.example.com/v1/chat/completions'");
+    expect(example).toContain(
+      "curl -X POST --globoff 'https://maas.apps.example.com/v1/chat/completions'",
+    );
     expect(example).not.toContain('/v1/v1/');
+  });
+
+  it('should disable curl URL globbing so bracket ranges are requested literally', () => {
+    // Braces are percent-encoded by URL serialization, but brackets survive it —
+    // without --globoff, curl would expand [a-b] into multiple requests.
+    const example = buildApiKeyUsageExample(
+      'https://gateway.example.com/models/[a-b]',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(example).toContain(
+      "curl -X POST --globoff 'https://gateway.example.com/models/[a-b]/v1/chat/completions'",
+    );
   });
 
   it('should shell-quote URLs containing shell metacharacters', () => {
@@ -440,10 +455,10 @@ describe('buildApiKeyUsageExample', () => {
       'sk-test-key',
     );
     expect(example).toContain(
-      `curl -X POST 'https://gateway.example.com/$(id)/v1/chat/completions'`,
+      `curl -X POST --globoff 'https://gateway.example.com/$(id)/v1/chat/completions'`,
     );
     // The metacharacters must be inside single quotes, not executed on copy-paste.
-    expect(example).not.toMatch(/curl -X POST [^']/);
+    expect(example).not.toMatch(/curl -X POST --globoff [^']/);
 
     const semicolonExample = buildApiKeyUsageExample(
       'https://gateway.example.com/a;b',
@@ -451,7 +466,7 @@ describe('buildApiKeyUsageExample', () => {
       'sk-test-key',
     );
     expect(semicolonExample).toContain(
-      `curl -X POST 'https://gateway.example.com/a;b/v1/chat/completions'`,
+      `curl -X POST --globoff 'https://gateway.example.com/a;b/v1/chat/completions'`,
     );
 
     const quoteExample = buildApiKeyUsageExample(
@@ -461,7 +476,7 @@ describe('buildApiKeyUsageExample', () => {
     );
     // Embedded single quotes are escaped by ending/restarting the shell quote.
     expect(quoteExample).toContain(
-      "curl -X POST 'https://gateway.example.com/it'\\''s/v1/chat/completions'",
+      "curl -X POST --globoff 'https://gateway.example.com/it'\\''s/v1/chat/completions'",
     );
   });
 
