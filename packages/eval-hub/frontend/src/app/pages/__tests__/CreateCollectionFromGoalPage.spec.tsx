@@ -8,7 +8,7 @@ import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useProviders } from '~/app/hooks/useProviders';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
-import CreateSuiteFromGoalPage from '~/app/pages/CreateSuiteFromGoalPage';
+import CreateCollectionFromGoalPage from '~/app/pages/CreateCollectionFromGoalPage';
 import {
   createCollection,
   createCollectionGeneration,
@@ -202,7 +202,7 @@ const createPageElement = () => (
     <Routes>
       <Route
         path="/evaluation/:namespace/create-suite/from-goal"
-        element={<CreateSuiteFromGoalPage />}
+        element={<CreateCollectionFromGoalPage />}
       />
       <Route
         path="/evaluation/:namespace/create-suite"
@@ -281,7 +281,7 @@ const startPendingGeneration = async (): Promise<void> => {
   expect(await screen.findByText('Initializing recommendations')).toBeInTheDocument();
 };
 
-describe('CreateSuiteFromGoalPage', () => {
+describe('CreateCollectionFromGoalPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseInferenceServices.mockReturnValue({
@@ -328,11 +328,9 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuemin', '1');
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuemax', '20');
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuenow', '12');
-    expect(screen.getByTestId('goal-suite-max-benchmarks-summary')).toHaveTextContent(
-      '12 of 20 benchmarks',
-    );
+    expect(screen.getByRole('spinbutton', { name: 'Number of benchmarks' })).toHaveValue(12);
     expect(
-      screen.getByText('Set the maximum number of benchmarks AI can recommend, up to 20.'),
+      screen.getByText('Set the maximum number of benchmarks AI should recommend, from 1 to 20.'),
     ).toBeInTheDocument();
     expect(maxBenchmarksSlider).toHaveAttribute(
       'aria-describedby',
@@ -374,9 +372,7 @@ describe('CreateSuiteFromGoalPage', () => {
     const maxBenchmarksSlider = screen.getByRole('slider', { name: 'Number of benchmarks' });
     fireEvent.keyDown(maxBenchmarksSlider, { key: 'ArrowRight' });
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuenow', '13');
-    expect(screen.getByTestId('goal-suite-max-benchmarks-summary')).toHaveTextContent(
-      '13 of 20 benchmarks',
-    );
+    expect(screen.getByRole('spinbutton', { name: 'Number of benchmarks' })).toHaveValue(13);
     fireEvent.change(screen.getByTestId('goal-suite-strictness'), {
       target: { value: 'strict' },
     });

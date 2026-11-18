@@ -23,7 +23,7 @@ type CollectionGenerationController = {
   deleteError?: Error;
   pollError?: Error;
   startGeneration: (request: CollectionGenerationRequest) => Promise<CollectionGenerationResource>;
-  deleteActiveGeneration: () => Promise<void>;
+  deleteGeneration: () => Promise<void>;
   stopGeneration: () => Promise<void>;
   clearGeneration: () => Promise<void>;
   resetMutations: () => void;
@@ -34,6 +34,8 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
   const queryClient = useQueryClient();
   const [generationId, setGenerationId] = React.useState<string>();
   const [stoppedGenerationId, setStoppedGenerationId] = React.useState<string>();
+  const deletedGenerationIds = React.useRef(new Set<string>());
+  const pendingDeletions = React.useRef(new Map<string, Promise<void>>());
   const queryKey = React.useMemo(
     () => ['evalhub', 'collectionGeneration', namespace, generationId] as const,
     [namespace, generationId],
@@ -47,10 +49,15 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
       return createCollectionGeneration('', namespace, request)({});
     },
   });
-  const deleteMutation = useMutation({
+  const {
+    mutateAsync: deleteGenerationRequest,
+    reset: resetDeleteMutation,
+    isPending: isDeletingGeneration,
+    error: deleteError,
+  } = useMutation({
     mutationFn: (id: string) => {
       if (!namespace) {
-        return Promise.reject(new Error('Namespace is required to cancel collection generation'));
+        return Promise.reject(new Error('Namespace is required to delete collection generation'));
       }
       return deleteCollectionGeneration('', namespace, id)({});
     },
@@ -60,7 +67,7 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
     enabled:
       Boolean(namespace && generationId) &&
       generationId !== stoppedGenerationId &&
-      !deleteMutation.isPending,
+      !isDeletingGeneration,
     queryFn: ({ signal }) => {
       if (!namespace || !generationId) {
         return Promise.reject(new Error('Collection generation is not ready to load'));
@@ -80,6 +87,7 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
   const startGeneration = React.useCallback(
     async (request: CollectionGenerationRequest): Promise<CollectionGenerationResource> => {
       const resource = await createMutation.mutateAsync(request);
+      deletedGenerationIds.current.delete(resource.resource.id);
       setStoppedGenerationId(undefined);
       queryClient.setQueryData(
         ['evalhub', 'collectionGeneration', namespace, resource.resource.id],
@@ -91,25 +99,39 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
     [createMutation, namespace, queryClient],
   );
 
-  const deleteActiveGeneration = React.useCallback(async (): Promise<void> => {
-    const resource = generationQuery.data;
-    if (
-      !generationId ||
-      !resource ||
-      (resource.status.state !== 'pending' && resource.status.state !== 'running')
-    ) {
+  const deleteGeneration = React.useCallback(async (): Promise<void> => {
+    if (!generationId || deletedGenerationIds.current.has(generationId)) {
       return;
     }
-    await queryClient.cancelQueries({ queryKey, exact: true });
-    setStoppedGenerationId(generationId);
-    deleteMutation.reset();
-    try {
-      await deleteMutation.mutateAsync(generationId);
-    } catch (deleteError) {
-      setStoppedGenerationId(undefined);
-      throw deleteError;
+
+    const existingDeletion = pendingDeletions.current.get(generationId);
+    if (existingDeletion) {
+      return existingDeletion;
     }
-  }, [deleteMutation, generationId, generationQuery.data, queryClient, queryKey]);
+
+    const id = generationId;
+    const deletion = (async (): Promise<void> => {
+      await queryClient.cancelQueries({ queryKey, exact: true });
+      setStoppedGenerationId(id);
+      resetDeleteMutation();
+      try {
+        await deleteGenerationRequest(id);
+        deletedGenerationIds.current.add(id);
+      } catch (deleteRequestError) {
+        setStoppedGenerationId(undefined);
+        throw deleteRequestError;
+      }
+    })();
+    pendingDeletions.current.set(id, deletion);
+
+    try {
+      await deletion;
+    } finally {
+      if (pendingDeletions.current.get(id) === deletion) {
+        pendingDeletions.current.delete(id);
+      }
+    }
+  }, [deleteGenerationRequest, generationId, queryClient, queryKey, resetDeleteMutation]);
 
   const stopGeneration = React.useCallback(async (): Promise<void> => {
     const resource = generationQuery.data;
@@ -121,7 +143,7 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
       return;
     }
 
-    await deleteActiveGeneration();
+    await deleteGeneration();
 
     const cancelledResource: CollectionGenerationResource = {
       resource: resource.resource,
@@ -129,7 +151,7 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
       status: { state: 'cancelled' },
     };
     queryClient.setQueryData(queryKey, cancelledResource);
-  }, [deleteActiveGeneration, generationId, generationQuery.data, queryClient, queryKey]);
+  }, [deleteGeneration, generationId, generationQuery.data, queryClient, queryKey]);
 
   const clearGeneration = React.useCallback(async (): Promise<void> => {
     await queryClient.cancelQueries({ queryKey, exact: true });
@@ -140,20 +162,20 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
 
   const resetMutations = React.useCallback((): void => {
     createMutation.reset();
-    deleteMutation.reset();
-  }, [createMutation, deleteMutation]);
+    resetDeleteMutation();
+  }, [createMutation, resetDeleteMutation]);
 
   return {
     generationId,
     generation: generationQuery.data,
     isLoading: Boolean(generationId) && generationQuery.isPending,
-    isStarting: createMutation.isPending || deleteMutation.isPending,
-    isStopping: deleteMutation.isPending,
+    isStarting: createMutation.isPending || isDeletingGeneration,
+    isStopping: isDeletingGeneration,
     createError: createMutation.error ?? undefined,
-    deleteError: deleteMutation.error ?? undefined,
+    deleteError: deleteError ?? undefined,
     pollError: generationQuery.error ?? undefined,
     startGeneration,
-    deleteActiveGeneration,
+    deleteGeneration,
     stopGeneration,
     clearGeneration,
     resetMutations,

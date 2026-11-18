@@ -1,29 +1,29 @@
 import * as React from 'react';
 import { Card, CardBody, Content, Flex, FlexItem, Label, Title } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import './CreateSuiteOptionCard.scss';
+import './CreateCollectionOptionCard.scss';
 
-type CreateSuiteOptionCardBaseProps = {
+type CreateCollectionOptionCardBaseProps = {
   title: string;
   description: string;
   icon: React.ReactNode;
   testId: string;
 };
 
-type CreateSuiteOptionCardProps = CreateSuiteOptionCardBaseProps &
+type CreateCollectionOptionCardProps = CreateCollectionOptionCardBaseProps &
   (
     | { destination: string; unavailable?: false }
     | { unavailable: true; badgeText: string; ariaLabel: string }
   );
 
-const CreateSuiteOptionCard: React.FC<CreateSuiteOptionCardProps> = (props) => {
+const CreateCollectionOptionCard: React.FC<CreateCollectionOptionCardProps> = (props) => {
   const { title, description, icon, testId } = props;
   const isUnavailable = props.unavailable === true;
 
   const card = (
     <Card
       isFullHeight
-      className="evalhub-create-suite-option-card"
+      className="evalhub-create-collection-option-card"
       role={isUnavailable ? 'group' : undefined}
       aria-label={isUnavailable && 'ariaLabel' in props ? props.ariaLabel : undefined}
       aria-disabled={isUnavailable ? 'true' : undefined}
@@ -35,7 +35,7 @@ const CreateSuiteOptionCard: React.FC<CreateSuiteOptionCardProps> = (props) => {
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
         >
           <FlexItem>
-            <span className="evalhub-create-suite-option-card__icon" aria-hidden="true">
+            <span className="evalhub-create-collection-option-card__icon" aria-hidden="true">
               {icon}
             </span>
           </FlexItem>
@@ -45,10 +45,10 @@ const CreateSuiteOptionCard: React.FC<CreateSuiteOptionCardProps> = (props) => {
             </FlexItem>
           )}
         </Flex>
-        <Title headingLevel="h2" size="lg" className="evalhub-create-suite-option-card__title">
+        <Title headingLevel="h2" size="lg" className="evalhub-create-collection-option-card__title">
           {title}
         </Title>
-        <Content component="p" className="evalhub-create-suite-option-card__description">
+        <Content component="p" className="evalhub-create-collection-option-card__description">
           {description}
         </Content>
       </CardBody>
@@ -62,7 +62,7 @@ const CreateSuiteOptionCard: React.FC<CreateSuiteOptionCardProps> = (props) => {
   return (
     <Link
       to={props.destination}
-      className="evalhub-create-suite-option-card__link"
+      className="evalhub-create-collection-option-card__link"
       data-testid={testId}
     >
       {card}
@@ -70,4 +70,4 @@ const CreateSuiteOptionCard: React.FC<CreateSuiteOptionCardProps> = (props) => {
   );
 };
 
-export default CreateSuiteOptionCard;
+export default CreateCollectionOptionCard;

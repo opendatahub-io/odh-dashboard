@@ -501,7 +501,7 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
         : undefined;
 
     return (
-      <div className="evalhub-goal-suite-page__step" data-testid="benchmark-overview-step">
+      <div className="evalhub-goal-collection-page__step" data-testid="benchmark-overview-step">
         <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-md">
           Benchmark overview
         </Title>
@@ -578,7 +578,7 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
     const isCancelled = resource?.status.state === 'cancelled';
 
     return (
-      <div className="evalhub-goal-suite-page__step" data-testid="benchmark-overview-step">
+      <div className="evalhub-goal-collection-page__step" data-testid="benchmark-overview-step">
         <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-md">
           Benchmark overview
         </Title>
@@ -625,7 +625,7 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
   }
 
   return (
-    <div className="evalhub-goal-suite-page__step" data-testid="benchmark-overview-step">
+    <div className="evalhub-goal-collection-page__step" data-testid="benchmark-overview-step">
       <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-md">
         Benchmark overview
       </Title>
@@ -670,8 +670,8 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
           <Content component="p">{error.message}</Content>
         </Alert>
       ) : null}
-      <Content component="p" className="pf-v6-u-mb-md">
-        <strong>AI reasoning:</strong> {result.rationale}
+      <Content component="p" className="pf-v6-u-mb-sm">
+        <strong>Why these benchmarks:</strong> {result.rationale}
       </Content>
       {alternatives.length > 0 ? (
         <Button
@@ -697,7 +697,9 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
         </FlexItem>
         <FlexItem>
           <Content component="p" data-testid="collection-generation-selection-count">
-            Selected benchmarks · {selectedBenchmarks.length} of {MAX_RECOMMENDED_BENCHMARKS}
+            <strong>
+              Selected benchmarks · {selectedBenchmarks.length} of {MAX_RECOMMENDED_BENCHMARKS}
+            </strong>
           </Content>
         </FlexItem>
       </Flex>

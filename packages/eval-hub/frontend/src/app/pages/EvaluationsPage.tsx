@@ -300,7 +300,7 @@ const EvaluationsPage: React.FC = () => {
                     )}
                     data-testid="create-suite-header-button"
                   >
-                    Create suite
+                    Create collection
                   </Button>
                 }
                 loaded={healthLoaded && (!isHealthy || !isRunsTab || loaded)}

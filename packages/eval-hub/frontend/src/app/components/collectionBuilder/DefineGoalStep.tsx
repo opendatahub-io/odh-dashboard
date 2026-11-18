@@ -21,15 +21,15 @@ import {
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleUpIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
-import { defineGoalExamples } from '~/app/components/suiteBuilder/data/defineGoalExamples';
-import RecommendationModelModal from '~/app/components/suiteBuilder/RecommendationModelModal';
+import { defineGoalExamples } from '~/app/components/collectionBuilder/data/defineGoalExamples';
+import RecommendationModelModal from '~/app/components/collectionBuilder/RecommendationModelModal';
 import {
   defineGoalFieldNames,
   generatorModelSelectionSchema,
   MAX_EVALUATION_GOAL_LENGTH,
-  type SuiteBuilderFormValues,
+  type CollectionBuilderFormValues,
   type GeneratorModelSelection,
-} from '~/app/schemas/suiteBuilder.schema';
+} from '~/app/schemas/collectionBuilder.schema';
 import type { InferenceServiceItem } from '~/app/types';
 
 import './DefineGoalStep.scss';
@@ -55,7 +55,7 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
   generationError,
   onRecommend,
 }) => {
-  const { control, setValue, trigger } = useFormContext<SuiteBuilderFormValues>();
+  const { control, setValue, trigger } = useFormContext<CollectionBuilderFormValues>();
   const { goToNextStep } = useWizardContext();
   const selectedModel = useWatch({ control, name: 'generatorModel' });
   const [isModelModalOpen, setIsModelModalOpen] = React.useState(false);
@@ -98,7 +98,7 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
   };
 
   return (
-    <div className="evalhub-goal-suite-page__step" data-testid="define-goal-step">
+    <div className="evalhub-goal-collection-page__step" data-testid="define-goal-step">
       <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-sm">
         Define goal
       </Title>
@@ -159,10 +159,69 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
           />
         </FormGroup>
 
+        <section
+          className="evalhub-goal-collection__examples"
+          aria-labelledby="define-goal-examples-title"
+        >
+          <Title
+            headingLevel="h3"
+            size="lg"
+            id="define-goal-examples-title"
+            className="pf-v6-u-mb-sm"
+          >
+            Start with an example
+          </Title>
+          <Content component="p" className="pf-v6-u-mb-md">
+            Select an example, then edit it to suit your use case.
+          </Content>
+          <Gallery
+            hasGutter
+            aria-label="Goal examples"
+            minWidths={{ default: '100%', md: '250px' }}
+          >
+            {visibleExamples.map((example) => {
+              const isSelected = evaluationGoal === example.description;
+              return (
+                <GalleryItem key={example.id}>
+                  <Card
+                    component="button"
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      setValue('evaluationGoal', example.description, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }}
+                    className="evalhub-goal-collection__example-card"
+                    data-testid={`define-goal-example-${example.id}`}
+                  >
+                    <CardTitle component="span">{example.title}</CardTitle>
+                    <CardBody component="span">{example.description}</CardBody>
+                  </Card>
+                </GalleryItem>
+              );
+            })}
+          </Gallery>
+          <Button
+            type="button"
+            variant="link"
+            isInline
+            className="pf-v6-u-mt-md"
+            icon={
+              areAllExamplesVisible ? <AngleUpIcon aria-hidden /> : <AngleDownIcon aria-hidden />
+            }
+            aria-expanded={areAllExamplesVisible}
+            onClick={() => setAreAllExamplesVisible((visible) => !visible)}
+            data-testid="define-goal-view-examples"
+          >
+            {areAllExamplesVisible ? 'View fewer examples' : 'View more examples'}
+          </Button>
+        </section>
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
           gap={{ default: 'gapMd' }}
-          className="evalhub-goal-suite__recommendation-model"
+          className="evalhub-goal-collection__recommendation-model pf-v6-u-mt-md"
           data-testid="recommendation-model-summary"
         >
           <FlexItem>
@@ -209,65 +268,6 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
             </HelperText>
           </FormHelperText>
         ) : null}
-        <section
-          className="evalhub-goal-suite__examples"
-          aria-labelledby="define-goal-examples-title"
-        >
-          <Title
-            headingLevel="h3"
-            size="lg"
-            id="define-goal-examples-title"
-            className="pf-v6-u-mb-sm"
-          >
-            Start with an example
-          </Title>
-          <Content component="p" className="pf-v6-u-mb-md">
-            Select an example, then edit it to suit your use case.
-          </Content>
-          <Gallery
-            hasGutter
-            aria-label="Goal examples"
-            minWidths={{ default: '100%', md: '250px' }}
-          >
-            {visibleExamples.map((example) => {
-              const isSelected = evaluationGoal === example.description;
-              return (
-                <GalleryItem key={example.id}>
-                  <Card
-                    component="button"
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => {
-                      setValue('evaluationGoal', example.description, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      });
-                    }}
-                    className="evalhub-goal-suite__example-card"
-                    data-testid={`define-goal-example-${example.id}`}
-                  >
-                    <CardTitle component="span">{example.title}</CardTitle>
-                    <CardBody component="span">{example.description}</CardBody>
-                  </Card>
-                </GalleryItem>
-              );
-            })}
-          </Gallery>
-          <Button
-            type="button"
-            variant="link"
-            isInline
-            className="pf-v6-u-mt-md"
-            icon={
-              areAllExamplesVisible ? <AngleUpIcon aria-hidden /> : <AngleDownIcon aria-hidden />
-            }
-            aria-expanded={areAllExamplesVisible}
-            onClick={() => setAreAllExamplesVisible((visible) => !visible)}
-            data-testid="define-goal-view-examples"
-          >
-            {areAllExamplesVisible ? 'View fewer examples' : 'View more examples'}
-          </Button>
-        </section>
       </Form>
 
       <RecommendationModelModal

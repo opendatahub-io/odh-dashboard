@@ -1,26 +1,26 @@
-.evalhub-create-suite-option-card__link {
+.evalhub-create-collection-option-card__link {
   display: block;
   height: 100%;
   color: inherit;
   text-decoration: none;
 }
 
-.evalhub-create-suite-option-card__link:focus-visible {
+.evalhub-create-collection-option-card__link:focus-visible {
   border-radius: var(--pf-t--global--border--radius--medium);
   outline: var(--pf-t--global--border--width--strong) solid
     var(--pf-t--global--color--brand--default);
   outline-offset: var(--pf-t--global--spacer--xs);
 }
 
-.evalhub-create-suite-option-card__link:hover .evalhub-create-suite-option-card,
-.evalhub-create-suite-option-card__link:focus-visible .evalhub-create-suite-option-card {
+.evalhub-create-collection-option-card__link:hover .evalhub-create-collection-option-card,
+.evalhub-create-collection-option-card__link:focus-visible .evalhub-create-collection-option-card {
   --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--hover);
   --pf-v6-c-card--BorderWidth: var(--pf-t--global--border--width--box--hover);
 
   box-shadow: var(--pf-t--global--box-shadow--md);
 }
 
-.evalhub-create-suite-option-card {
+.evalhub-create-collection-option-card {
   --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--control--default);
   --pf-v6-c-card--BorderWidth: var(--pf-t--global--border--width--box--default);
   --pf-v6-c-card--BorderRadius: var(--pf-t--global--border--radius--medium);
@@ -30,7 +30,7 @@
   transition: box-shadow 150ms ease-in-out;
 }
 
-.evalhub-create-suite-option-card__icon {
+.evalhub-create-collection-option-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -42,16 +42,16 @@
   color: var(--pf-t--global--text--color--regular);
 }
 
-.evalhub-create-suite-option-card__icon > svg {
+.evalhub-create-collection-option-card__icon > svg {
   width: var(--pf-t--global--icon--size--xl);
   height: var(--pf-t--global--icon--size--xl);
 }
 
-.evalhub-create-suite-option-card__title {
+.evalhub-create-collection-option-card__title {
   margin-block-end: var(--pf-t--global--spacer--sm);
   color: var(--pf-t--global--text--color--regular);
 }
 
-.evalhub-create-suite-option-card__description {
+.evalhub-create-collection-option-card__description {
   margin: 0;
 }

@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
-import { buildGoalSuiteCreateRequest } from '~/app/utilities/goalSuiteUtils';
+import { buildGoalCollectionCreateRequest } from '~/app/utilities/goalCollectionUtils';
 import type { CollectionBenchmark, CollectionGenerationResult } from '~/app/types';
 
-describe('buildGoalSuiteCreateRequest', () => {
+describe('buildGoalCollectionCreateRequest', () => {
   it('should preserve generated metadata while replacing editable values and selections', () => {
     const generatedCollection: CollectionGenerationResult['collection'] = {
       name: 'Generated name',
@@ -31,7 +31,7 @@ describe('buildGoalSuiteCreateRequest', () => {
       },
     ];
 
-    const result = buildGoalSuiteCreateRequest(
+    const result = buildGoalCollectionCreateRequest(
       generatedCollection,
       '  Review name  ',
       '  Review description  ',
@@ -51,7 +51,7 @@ describe('buildGoalSuiteCreateRequest', () => {
   });
 
   it('should omit a blank description instead of keeping the generated description', () => {
-    const result = buildGoalSuiteCreateRequest(
+    const result = buildGoalCollectionCreateRequest(
       {
         name: 'Generated name',
         description: 'Generated description',

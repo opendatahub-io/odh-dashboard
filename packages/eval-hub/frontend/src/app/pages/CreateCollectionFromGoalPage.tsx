@@ -7,11 +7,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { createCollection } from '~/app/api/k8s';
 import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
-import CollectionGenerationStep from '~/app/components/suiteBuilder/CollectionGenerationStep';
-import DefineGoalStep from '~/app/components/suiteBuilder/DefineGoalStep';
-import GoalSuiteReviewStep from '~/app/components/suiteBuilder/GoalSuiteReviewStep';
-import SuiteBuilderFooter from '~/app/components/suiteBuilder/SuiteBuilderFooter';
-import SuiteSettingsStep from '~/app/components/suiteBuilder/SuiteSettingsStep';
+import CollectionGenerationStep from '~/app/components/collectionBuilder/CollectionGenerationStep';
+import DefineGoalStep from '~/app/components/collectionBuilder/DefineGoalStep';
+import GoalCollectionReviewStep from '~/app/components/collectionBuilder/GoalCollectionReviewStep';
+import CollectionBuilderFooter from '~/app/components/collectionBuilder/CollectionBuilderFooter';
+import CollectionSettingsStep from '~/app/components/collectionBuilder/CollectionSettingsStep';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import useCollectionGeneration from '~/app/hooks/useCollectionGeneration';
@@ -27,21 +27,21 @@ import {
   projectHomeRoute,
 } from '~/app/routes';
 import {
-  suiteBuilderDefaultValues,
-  suiteBuilderSchema,
+  collectionBuilderDefaultValues,
+  collectionBuilderSchema,
   defineGoalFieldNames,
   defineGoalSchema,
-  suiteSettingsFieldNames,
+  collectionSettingsFieldNames,
   suiteSettingsSchema,
   benchmarkOverviewSchema,
-  type SuiteBuilderFormValues,
-} from '~/app/schemas/suiteBuilder.schema';
+  type CollectionBuilderFormValues,
+} from '~/app/schemas/collectionBuilder.schema';
 import type { CollectionBenchmark, CollectionGenerationRequest } from '~/app/types';
-import { buildGoalSuiteCreateRequest } from '~/app/utilities/goalSuiteUtils';
+import { buildGoalCollectionCreateRequest } from '~/app/utilities/goalCollectionUtils';
 
-import './CreateSuiteFromGoalPage.scss';
+import './CreateCollectionFromGoalPage.scss';
 
-const CreateSuiteFromGoalPage: React.FC = () => {
+const CreateCollectionFromGoalPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
@@ -57,7 +57,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     deleteError,
     pollError,
     startGeneration,
-    deleteActiveGeneration,
+    deleteGeneration,
     stopGeneration,
     clearGeneration,
     resetMutations,
@@ -75,16 +75,16 @@ const CreateSuiteFromGoalPage: React.FC = () => {
   const [isRunPending, setIsRunPending] = React.useState(false);
   const saveInFlightRef = React.useRef(false);
   const initializedGenerationId = React.useRef<string>();
-  const methods = useForm<SuiteBuilderFormValues>({
-    defaultValues: suiteBuilderDefaultValues,
-    resolver: zodResolver(suiteBuilderSchema),
+  const methods = useForm<CollectionBuilderFormValues>({
+    defaultValues: collectionBuilderDefaultValues,
+    resolver: zodResolver(collectionBuilderSchema),
     mode: 'onChange',
     reValidateMode: 'onChange',
     shouldUnregister: false,
   });
   const [suiteName, suiteDescription, maxBenchmarks, strictness, generationEffort] = useWatch({
     control: methods.control,
-    name: [...suiteSettingsFieldNames],
+    name: [...collectionSettingsFieldNames],
   });
   const [evaluationGoal, generatorModel] = useWatch({
     control: methods.control,
@@ -93,7 +93,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
   const selectedBenchmarks = useWatch({ control: methods.control, name: 'selectedBenchmarks' });
   const { errors } = useFormState({
     control: methods.control,
-    name: [...suiteSettingsFieldNames],
+    name: [...collectionSettingsFieldNames],
   });
   const { errors: defineGoalErrors } = useFormState({
     control: methods.control,
@@ -106,7 +106,9 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     strictness,
     generationEffort,
   }).success;
-  const hasSuiteSettingsErrors = suiteSettingsFieldNames.some((fieldName) => errors[fieldName]);
+  const hasSuiteSettingsErrors = collectionSettingsFieldNames.some(
+    (fieldName) => errors[fieldName],
+  );
   const canContinueSettings = isSuiteSettingsValid && !hasSuiteSettingsErrors;
   const isDefineGoalValid = defineGoalSchema.safeParse({
     evaluationGoal,
@@ -176,20 +178,27 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     initializedGenerationId.current = generationId;
   }, [generationId, generation, methods]);
 
+  React.useEffect(() => {
+    if (generation?.status.state === 'failed') {
+      void deleteGeneration().catch(() => {
+        // Keep the failed resource visible so the user can retry cleanup or generation.
+      });
+    }
+  }, [deleteGeneration, generation?.status.state, generationId]);
+
   const handleRecommend = async (): Promise<boolean> => {
     if (!generatorModel) {
       return false;
     }
 
-    resetMutations();
-
     try {
-      await deleteActiveGeneration();
+      await deleteGeneration();
     } catch {
       return false;
     }
 
     await clearGeneration();
+    resetMutations();
     setSubmittedRequestFingerprint(undefined);
     initializedGenerationId.current = undefined;
     methods.setValue('selectedBenchmarks', [], { shouldDirty: true, shouldValidate: true });
@@ -220,8 +229,10 @@ const CreateSuiteFromGoalPage: React.FC = () => {
 
   const handleCancel = async (): Promise<void> => {
     try {
-      await deleteActiveGeneration();
-    } catch {
+      await deleteGeneration();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+      notification.error('Could not delete recommendation job', message);
       return;
     }
     navigate(cancelRoute);
@@ -242,7 +253,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     canContinueSettings &&
     canRecommend &&
     canContinueOverview;
-  const buildRequest = (): ReturnType<typeof buildGoalSuiteCreateRequest> | undefined => {
+  const buildRequest = (): ReturnType<typeof buildGoalCollectionCreateRequest> | undefined => {
     const collection =
       generation?.status.state === 'completed' && generation.result
         ? generation.result.collection
@@ -250,7 +261,12 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     if (!collection) {
       return undefined;
     }
-    return buildGoalSuiteCreateRequest(collection, suiteName, suiteDescription, selectedBenchmarks);
+    return buildGoalCollectionCreateRequest(
+      collection,
+      suiteName,
+      suiteDescription,
+      selectedBenchmarks,
+    );
   };
 
   const handleSave = async (): Promise<void> => {
@@ -272,6 +288,13 @@ const CreateSuiteFromGoalPage: React.FC = () => {
         'Collection created',
         `"${collection.name}" has been added to your collections.`,
       );
+      try {
+        await deleteGeneration();
+      } catch (cleanupError) {
+        const message =
+          cleanupError instanceof Error ? cleanupError.message : 'An unknown error occurred.';
+        notification.error('Collection created, but recommendation cleanup failed', message);
+      }
       refreshCollections();
       navigate(evaluationBenchmarkSuitesRoute(namespace));
     } catch (error) {
@@ -304,6 +327,13 @@ const CreateSuiteFromGoalPage: React.FC = () => {
         return undefined;
       }
       const collection = await createCollection('', namespace, request)({ signal });
+      try {
+        await deleteGeneration();
+      } catch (cleanupError) {
+        const message =
+          cleanupError instanceof Error ? cleanupError.message : 'An unknown error occurred.';
+        notification.error('Collection created, but recommendation cleanup failed', message);
+      }
       if (signal?.aborted) {
         return undefined;
       }
@@ -328,7 +358,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
   };
 
   return (
-    <div className="evalhub-goal-suite-page">
+    <div className="evalhub-goal-collection-page">
       <ApplicationsPage
         title="Create collection"
         description="Configure your collection, describe your goal, and choose benchmarks."
@@ -347,15 +377,19 @@ const CreateSuiteFromGoalPage: React.FC = () => {
         loaded
         empty={false}
       >
-        <PageSection className="evalhub-goal-suite-page__section" hasBodyWrapper={false} isFilled>
+        <PageSection
+          className="evalhub-goal-collection-page__section"
+          hasBodyWrapper={false}
+          isFilled
+        >
           <FormProvider {...methods}>
             <Wizard
-              className="evalhub-goal-suite-wizard"
+              className="evalhub-goal-collection-wizard"
               height="100%"
               isVisitRequired
               navAriaLabel="Collection creation steps"
               footer={
-                <SuiteBuilderFooter
+                <CollectionBuilderFooter
                   canContinueSettings={canContinueSettings}
                   canRecommend={canRecommend}
                   canContinueOverview={canContinueOverview}
@@ -366,11 +400,12 @@ const CreateSuiteFromGoalPage: React.FC = () => {
                   onCancel={() => void handleCancel()}
                   onSave={() => void handleSave()}
                   onSaveAndRun={handleSaveAndRun}
+                  onLeaveGenerationStep={deleteGeneration}
                 />
               }
             >
               <WizardStep name="Collection settings" id="suite-settings" isDisabled={isStarting}>
-                <SuiteSettingsStep canContinueSettings={canContinueSettings} />
+                <CollectionSettingsStep canContinueSettings={canContinueSettings} />
               </WizardStep>
               <WizardStep
                 name="Define goal"
@@ -415,7 +450,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
               </WizardStep>
               <WizardStep name="Review" id="review" isDisabled={!canSave}>
                 {generatedCollection ? (
-                  <GoalSuiteReviewStep
+                  <GoalCollectionReviewStep
                     generatedCollection={generatedCollection}
                     suiteName={suiteName}
                     suiteDescription={suiteDescription}
@@ -449,5 +484,5 @@ const CreateSuiteFromGoalPage: React.FC = () => {
   );
 };
 
-export default CreateSuiteFromGoalPage;
+export default CreateCollectionFromGoalPage;
 /* eslint-enable camelcase */

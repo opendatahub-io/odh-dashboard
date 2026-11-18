@@ -19,11 +19,11 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import GeneratorModelFields from '~/app/components/suiteBuilder/GeneratorModelFields';
+import GeneratorModelFields from '~/app/components/collectionBuilder/GeneratorModelFields';
 import {
   generatorModelSelectionSchema,
   type GeneratorModelSelection,
-} from '~/app/schemas/suiteBuilder.schema';
+} from '~/app/schemas/collectionBuilder.schema';
 import type { InferenceServiceItem } from '~/app/types';
 import { getGeneratorModelEndpoint } from '~/app/utils/generatorModelUtils';
 

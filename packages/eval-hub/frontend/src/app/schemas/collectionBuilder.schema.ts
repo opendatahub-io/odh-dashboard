@@ -61,7 +61,7 @@ export const benchmarkOverviewSchema = z.object({
     .max(20, 'Select no more than 20 benchmarks.'),
 });
 
-export const suiteSettingsFieldNames = [
+export const collectionSettingsFieldNames = [
   'suiteName',
   'suiteDescription',
   'maxBenchmarks',
@@ -107,13 +107,13 @@ const defineGoalShape = {
 
 export const defineGoalSchema = z.object(defineGoalShape);
 
-export const suiteBuilderSchema = suiteSettingsSchema
+export const collectionBuilderSchema = suiteSettingsSchema
   .extend(defineGoalShape)
   .extend(benchmarkOverviewSchema.shape);
 
-export type SuiteBuilderFormValues = z.infer<typeof suiteBuilderSchema>;
+export type CollectionBuilderFormValues = z.infer<typeof collectionBuilderSchema>;
 
-export const suiteBuilderDefaultValues: SuiteBuilderFormValues = {
+export const collectionBuilderDefaultValues: CollectionBuilderFormValues = {
   suiteName: '',
   suiteDescription: '',
   maxBenchmarks: 12,

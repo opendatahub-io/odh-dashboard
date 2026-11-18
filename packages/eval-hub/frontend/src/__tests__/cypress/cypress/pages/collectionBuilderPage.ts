@@ -1,4 +1,4 @@
-class SuiteBuilderPage {
+class CollectionBuilderPage {
   findNameInput() {
     return cy.findByTestId('goal-suite-name');
   }
@@ -11,12 +11,12 @@ class SuiteBuilderPage {
     return cy.findByRole('slider', { name: 'Number of benchmarks' });
   }
 
-  findMaxBenchmarksSummary() {
-    return cy.findByTestId('goal-suite-max-benchmarks-summary');
+  findMaxBenchmarksInput() {
+    return cy.findByRole('spinbutton', { name: 'Number of benchmarks' });
   }
 
   findMaxBenchmarksHelper() {
-    return cy.findByText('Set the maximum number of benchmarks AI can recommend, up to 20.');
+    return cy.findByText('Set the maximum number of benchmarks AI should recommend, from 1 to 20.');
   }
 
   findStrictnessSelect() {
@@ -138,4 +138,4 @@ class SuiteBuilderPage {
   }
 }
 
-export const suiteBuilderPage = new SuiteBuilderPage();
+export const collectionBuilderPage = new CollectionBuilderPage();

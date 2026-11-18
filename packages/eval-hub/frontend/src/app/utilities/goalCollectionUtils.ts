@@ -7,7 +7,7 @@ import type {
 } from '~/app/types';
 
 /** Build the collection payload from the generated metadata and the current review selections. */
-export const buildGoalSuiteCreateRequest = (
+export const buildGoalCollectionCreateRequest = (
   generatedCollection: CollectionGenerationResult['collection'],
   suiteName: string,
   suiteDescription: string,

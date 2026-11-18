@@ -4,7 +4,7 @@ import { OutlinedListAltIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
-import CreateSuiteOptionCard from '~/app/components/CreateSuiteOptionCard';
+import CreateCollectionOptionCard from '~/app/components/CreateCollectionOptionCard';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import {
   evaluationBuildSuiteFromGoalRoute,
@@ -30,14 +30,14 @@ const BUILD_FROM_GOAL_ICON = (
   </svg>
 );
 
-const CreateSuiteChooserPage: React.FC = () => {
+const CreateCollectionChooserPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const projectDisplayName = useProjectDisplayName(namespace);
 
   return (
     <ApplicationsPage
-      title="Create suite"
-      description="Choose how you want to add benchmarks to your suite."
+      title="Create collection"
+      description="Choose how you want to add benchmarks to your collection."
       breadcrumb={
         <div className="pf-v6-u-pb-md">
           <ContextBreadcrumb
@@ -46,7 +46,7 @@ const CreateSuiteChooserPage: React.FC = () => {
             homePath={evaluationsBaseRoute(namespace)}
             projectHomePath={projectHomeRoute(namespace)}
           >
-            <BreadcrumbItem isActive>Create suite</BreadcrumbItem>
+            <BreadcrumbItem isActive>Create collection</BreadcrumbItem>
           </ContextBreadcrumb>
         </div>
       }
@@ -56,21 +56,21 @@ const CreateSuiteChooserPage: React.FC = () => {
       <PageSection hasBodyWrapper={false} isFilled className="pf-v6-u-pt-0">
         <Gallery
           hasGutter
-          aria-label="Choose how to build a suite"
+          aria-label="Choose how to build a collection"
           minWidths={{ default: '100%', lg: 'calc(50% - 1rem / 2)' }}
           maxWidths={{ default: '100%', lg: 'calc(50% - 1rem / 2)' }}
         >
-          <CreateSuiteOptionCard
+          <CreateCollectionOptionCard
             destination={evaluationBuildSuiteFromGoalRoute(namespace)}
             title="Build from a goal"
             description="Describe what you want to evaluate. AI suggests benchmarks from the catalog for you to review and adjust."
             icon={BUILD_FROM_GOAL_ICON}
-            testId="build-suite-from-goal-tile"
+            testId="build-collection-from-goal-tile"
           />
-          <CreateSuiteOptionCard
+          <CreateCollectionOptionCard
             destination={evaluationCreateSuiteRoute(namespace)}
             title="Choose your own benchmarks"
-            description="Browse the catalog, select benchmarks for your suite, and configure their settings."
+            description="Browse the catalog, select benchmarks for your collection, and configure their settings."
             icon={<OutlinedListAltIcon />}
             testId="choose-own-benchmarks-tile"
           />
@@ -80,4 +80,4 @@ const CreateSuiteChooserPage: React.FC = () => {
   );
 };
 
-export default CreateSuiteChooserPage;
+export default CreateCollectionChooserPage;

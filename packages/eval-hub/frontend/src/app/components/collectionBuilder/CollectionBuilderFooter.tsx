@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { MagicIcon } from '@patternfly/react-icons';
 
-type SuiteBuilderFooterProps = {
+type CollectionBuilderFooterProps = {
   canContinueSettings: boolean;
   canRecommend: boolean;
   canContinueOverview: boolean;
@@ -20,9 +20,10 @@ type SuiteBuilderFooterProps = {
   onCancel: () => void;
   onSave: () => void;
   onSaveAndRun: () => void;
+  onLeaveGenerationStep: () => Promise<void>;
 };
 
-const SuiteBuilderFooter: React.FC<SuiteBuilderFooterProps> = ({
+const CollectionBuilderFooter: React.FC<CollectionBuilderFooterProps> = ({
   canContinueSettings,
   canRecommend,
   canContinueOverview,
@@ -33,8 +34,35 @@ const SuiteBuilderFooter: React.FC<SuiteBuilderFooterProps> = ({
   onCancel,
   onSave,
   onSaveAndRun,
+  onLeaveGenerationStep,
 }) => {
   const { activeStep, goToPrevStep, goToNextStep } = useWizardContext();
+  const previousStepId = React.useRef(activeStep.id);
+  const activeStepId = React.useRef(activeStep.id);
+  const onLeaveGenerationStepRef = React.useRef(onLeaveGenerationStep);
+  activeStepId.current = activeStep.id;
+  onLeaveGenerationStepRef.current = onLeaveGenerationStep;
+
+  React.useEffect(() => {
+    if (previousStepId.current === 'benchmark-overview' && activeStep.id === 'define-goal') {
+      void onLeaveGenerationStepRef.current().catch(() => {
+        // The generation hook retains the cleanup error for the next step to display.
+      });
+    }
+    previousStepId.current = activeStep.id;
+  }, [activeStep.id]);
+
+  React.useEffect(
+    () => () => {
+      if (activeStepId.current === 'benchmark-overview') {
+        void onLeaveGenerationStepRef.current().catch(() => {
+          // The page is leaving, so there is no wizard surface to show a cleanup error on.
+        });
+      }
+    },
+    [],
+  );
+
   const isSettingsStep = activeStep.id === 'suite-settings';
   const isDefineGoalStep = activeStep.id === 'define-goal';
   const isOverviewStep = activeStep.id === 'benchmark-overview';
@@ -167,4 +195,4 @@ const SuiteBuilderFooter: React.FC<SuiteBuilderFooterProps> = ({
   );
 };
 
-export default SuiteBuilderFooter;
+export default CollectionBuilderFooter;

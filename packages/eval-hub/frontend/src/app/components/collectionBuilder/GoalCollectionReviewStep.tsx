@@ -21,7 +21,7 @@ import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
 import { formatThresholdValue } from '~/app/utilities/evaluationUtils';
 import type { CollectionBenchmark, CollectionGenerationResult } from '~/app/types';
 
-type GoalSuiteReviewStepProps = {
+type GoalCollectionReviewStepProps = {
   generatedCollection: CollectionGenerationResult['collection'];
   suiteName: string;
   suiteDescription: string;
@@ -58,7 +58,7 @@ const formatParameterLabel = (key: string): string => {
     : key || 'Parameter';
 };
 
-const GoalSuiteReviewStep: React.FC<GoalSuiteReviewStepProps> = ({
+const GoalCollectionReviewStep: React.FC<GoalCollectionReviewStepProps> = ({
   generatedCollection,
   suiteName,
   suiteDescription,
@@ -192,5 +192,5 @@ const GoalSuiteReviewStep: React.FC<GoalSuiteReviewStepProps> = ({
   );
 };
 
-export default GoalSuiteReviewStep;
+export default GoalCollectionReviewStep;
 /* eslint-enable camelcase */

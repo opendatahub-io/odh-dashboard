@@ -4,11 +4,11 @@ import {
   defineGoalFieldNames,
   defineGoalSchema,
   MAX_EVALUATION_GOAL_LENGTH,
-  suiteBuilderDefaultValues,
-  suiteBuilderSchema,
-  suiteSettingsFieldNames,
+  collectionBuilderDefaultValues,
+  collectionBuilderSchema,
+  collectionSettingsFieldNames,
   suiteSettingsSchema,
-} from '~/app/schemas/suiteBuilder.schema';
+} from '~/app/schemas/collectionBuilder.schema';
 
 const RECOMMENDATION_MODEL = {
   source: 'cluster' as const,
@@ -20,14 +20,14 @@ describe('suite builder schemas', () => {
   it('should trim and require the collection name', () => {
     expect(
       suiteSettingsSchema.parse({
-        ...suiteBuilderDefaultValues,
+        ...collectionBuilderDefaultValues,
         suiteName: '  Reasoning suite  ',
       }).suiteName,
     ).toBe('Reasoning suite');
 
     expect(
       suiteSettingsSchema.safeParse({
-        ...suiteBuilderDefaultValues,
+        ...collectionBuilderDefaultValues,
         suiteName: '   ',
       }).success,
     ).toBe(false);
@@ -36,11 +36,11 @@ describe('suite builder schemas', () => {
   it('should expose a settings-only schema and field list', () => {
     expect(
       suiteSettingsSchema.safeParse({
-        ...suiteBuilderDefaultValues,
+        ...collectionBuilderDefaultValues,
         suiteName: 'Reasoning suite',
       }).success,
     ).toBe(true);
-    expect(suiteSettingsFieldNames).toEqual([
+    expect(collectionSettingsFieldNames).toEqual([
       'suiteName',
       'suiteDescription',
       'maxBenchmarks',
@@ -50,12 +50,12 @@ describe('suite builder schemas', () => {
   });
 
   it('should default optional generation settings and validate supplied values', () => {
-    expect(suiteBuilderDefaultValues.maxBenchmarks).toBe(12);
-    expect(suiteBuilderDefaultValues.strictness).toBe('moderate');
-    expect(suiteBuilderDefaultValues.generationEffort).toBe('standard');
+    expect(collectionBuilderDefaultValues.maxBenchmarks).toBe(12);
+    expect(collectionBuilderDefaultValues.strictness).toBe('moderate');
+    expect(collectionBuilderDefaultValues.generationEffort).toBe('standard');
     expect(
       suiteSettingsSchema.safeParse({
-        ...suiteBuilderDefaultValues,
+        ...collectionBuilderDefaultValues,
         suiteName: 'Reasoning suite',
       }).success,
     ).toBe(true);
@@ -63,7 +63,7 @@ describe('suite builder schemas', () => {
     for (const maxBenchmarks of [1, 12, 20]) {
       expect(
         suiteSettingsSchema.safeParse({
-          ...suiteBuilderDefaultValues,
+          ...collectionBuilderDefaultValues,
           suiteName: 'Reasoning suite',
           maxBenchmarks,
         }).success,
@@ -73,7 +73,7 @@ describe('suite builder schemas', () => {
     for (const maxBenchmarks of [0, 21, 1.5, Number.NaN]) {
       expect(
         suiteSettingsSchema.safeParse({
-          ...suiteBuilderDefaultValues,
+          ...collectionBuilderDefaultValues,
           suiteName: 'Reasoning suite',
           maxBenchmarks,
         }).success,
@@ -83,7 +83,7 @@ describe('suite builder schemas', () => {
     for (const strictness of ['', 'lenient', 'moderate', 'strict'] as const) {
       expect(
         suiteSettingsSchema.safeParse({
-          ...suiteBuilderDefaultValues,
+          ...collectionBuilderDefaultValues,
           suiteName: 'Reasoning suite',
           strictness,
         }).success,
@@ -91,7 +91,7 @@ describe('suite builder schemas', () => {
     }
     expect(
       suiteSettingsSchema.safeParse({
-        ...suiteBuilderDefaultValues,
+        ...collectionBuilderDefaultValues,
         suiteName: 'Reasoning suite',
         strictness: 'unknown',
       }).success,
@@ -100,7 +100,7 @@ describe('suite builder schemas', () => {
     for (const generationEffort of ['low', 'standard', 'high'] as const) {
       expect(
         suiteSettingsSchema.safeParse({
-          ...suiteBuilderDefaultValues,
+          ...collectionBuilderDefaultValues,
           suiteName: 'Reasoning suite',
           generationEffort,
         }).success,
@@ -108,7 +108,7 @@ describe('suite builder schemas', () => {
     }
     expect(
       suiteSettingsSchema.safeParse({
-        ...suiteBuilderDefaultValues,
+        ...collectionBuilderDefaultValues,
         suiteName: 'Reasoning suite',
         generationEffort: 'invalid',
       }).success,
@@ -144,8 +144,8 @@ describe('suite builder schemas', () => {
       defineGoalSchema.safeParse({ evaluationGoal: 'Valid goal', generatorModel: null }).success,
     ).toBe(false);
     expect(
-      suiteBuilderSchema.safeParse({
-        ...suiteBuilderDefaultValues,
+      collectionBuilderSchema.safeParse({
+        ...collectionBuilderDefaultValues,
         suiteName: 'Reasoning suite',
         evaluationGoal: 'Valid goal',
         generatorModel: null,
@@ -191,10 +191,10 @@ describe('suite builder schemas', () => {
   });
 
   it('should compose the settings and evaluation goal schemas', () => {
-    expect(suiteBuilderDefaultValues.generatorModel).toBeNull();
+    expect(collectionBuilderDefaultValues.generatorModel).toBeNull();
     expect(
-      suiteBuilderSchema.parse({
-        ...suiteBuilderDefaultValues,
+      collectionBuilderSchema.parse({
+        ...collectionBuilderDefaultValues,
         suiteName: 'Reasoning suite',
         maxBenchmarks: 20,
         strictness: 'strict',
@@ -203,7 +203,7 @@ describe('suite builder schemas', () => {
         selectedBenchmarks: [{ id: 'truthfulqa_mc1', provider_id: 'provider-a' }],
       }),
     ).toEqual({
-      ...suiteBuilderDefaultValues,
+      ...collectionBuilderDefaultValues,
       suiteName: 'Reasoning suite',
       maxBenchmarks: 20,
       strictness: 'strict',

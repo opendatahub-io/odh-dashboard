@@ -12,7 +12,7 @@ import {
   mockCuratedBenchmarkSuiteCollections,
 } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
-import { suiteBuilderPage } from '~/__tests__/cypress/cypress/pages/suiteBuilderPage';
+import { collectionBuilderPage } from '~/__tests__/cypress/cypress/pages/collectionBuilderPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import type {
   Collection,
@@ -103,15 +103,15 @@ describe('Evaluations Page - Tabs', () => {
       );
   });
 
-  it('should navigate from the Create suite header action to the manual suite form', () => {
+  it('should navigate from the Create collection header action to the manual suite form', () => {
     evaluationsPage.visit(NAMESPACE);
 
     evaluationsPage.findCreateSuiteHeaderButton().click();
     cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite`);
-    evaluationsPage.findTitle().should('contain.text', 'Create suite');
+    evaluationsPage.findTitle().should('contain.text', 'Create collection');
     evaluationsPage
       .findPageDescription()
-      .should('contain.text', 'Choose how you want to add benchmarks to your suite.');
+      .should('contain.text', 'Choose how you want to add benchmarks to your collection.');
     evaluationsPage
       .findBuildSuiteFromGoalTile()
       .should('be.visible')
@@ -123,7 +123,7 @@ describe('Evaluations Page - Tabs', () => {
   });
 
   it('should validate the collection name and preserve settings when returning from the next step', () => {
-    cy.intercept('**/generation/**').as('suiteBuilderGenerationApi');
+    cy.intercept('**/generation/**').as('collectionBuilderGenerationApi');
     initIntercepts({ providers: [mockProvider()] });
     evaluationsPage.visit(NAMESPACE);
 
@@ -131,63 +131,82 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBuildSuiteFromGoalTile().click();
     cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite/from-goal`);
 
-    suiteBuilderPage.findCurrentStep('suite-settings').should('have.attr', 'aria-current', 'step');
-    suiteBuilderPage.findCurrentStep('define-goal').should('be.disabled');
-    suiteBuilderPage.findNextButton().should('be.disabled');
-    suiteBuilderPage.findMaxBenchmarksHelper().should('be.visible');
-    suiteBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuenow', '12');
-    suiteBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemin', '1');
-    suiteBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemax', '20');
-    suiteBuilderPage.findMaxBenchmarksSummary().should('have.text', '12 of 20 benchmarks');
-    suiteBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
-    suiteBuilderPage.findGenerationEffortSelect().should('have.value', 'standard');
-    suiteBuilderPage.findNameInput().type('   ');
-    suiteBuilderPage.findNameError().should('be.visible');
-    suiteBuilderPage.findNextButton().should('be.disabled');
+    collectionBuilderPage
+      .findCurrentStep('suite-settings')
+      .should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage.findCurrentStep('define-goal').should('be.disabled');
+    collectionBuilderPage.findNextButton().should('be.disabled');
+    collectionBuilderPage.findMaxBenchmarksHelper().should('be.visible');
+    collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuenow', '12');
+    collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemin', '1');
+    collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemax', '20');
+    collectionBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    collectionBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
+    collectionBuilderPage.findGenerationEffortSelect().should('have.value', 'standard');
+    collectionBuilderPage.findNameInput().type('   ');
+    collectionBuilderPage.findNameError().should('be.visible');
+    collectionBuilderPage.findNextButton().should('be.disabled');
 
-    suiteBuilderPage.findNameInput().clear().type('Reasoning suite');
-    suiteBuilderPage.findDescriptionInput().should('have.value', '');
-    suiteBuilderPage.findNextButton().should('be.enabled');
-    suiteBuilderPage.findDescriptionInput().type('Check general reasoning performance.');
-    suiteBuilderPage.findGenerationEffortSelect().select('high');
-    suiteBuilderPage.findNextButton().should('be.enabled');
-    suiteBuilderPage.findNextButton().click();
+    collectionBuilderPage.findNameInput().clear().type('Reasoning suite');
+    collectionBuilderPage.findDescriptionInput().should('have.value', '');
+    collectionBuilderPage.findNextButton().should('be.enabled');
+    collectionBuilderPage.findDescriptionInput().type('Check general reasoning performance.');
+    collectionBuilderPage.findGenerationEffortSelect().select('high');
+    collectionBuilderPage.findNextButton().should('be.enabled');
+    collectionBuilderPage.findNextButton().click();
 
-    suiteBuilderPage.findCurrentStep('define-goal').should('have.attr', 'aria-current', 'step');
-    suiteBuilderPage.findDefineGoalStep().should('be.visible');
-    suiteBuilderPage
+    collectionBuilderPage
+      .findCurrentStep('define-goal')
+      .should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage.findDefineGoalStep().should('be.visible');
+    collectionBuilderPage
       .findEvaluationGoalInput()
       .should('be.visible')
       .and('have.attr', 'maxlength', '10000');
-    suiteBuilderPage.findSelectedRecommendationModel().should('have.text', 'No model selected');
-    suiteBuilderPage.findRecommendButton().should('be.disabled');
-    suiteBuilderPage.findGoalExample('answer-quality').should('be.visible').click();
-    suiteBuilderPage
+    collectionBuilderPage
+      .findSelectedRecommendationModel()
+      .should('have.text', 'No model selected');
+    collectionBuilderPage.findRecommendButton().should('be.disabled');
+    collectionBuilderPage.findGoalExample('answer-quality').should('be.visible').click();
+    collectionBuilderPage
       .findEvaluationGoalInput()
       .should('have.value', 'Assess a model’s accuracy and truthfulness across common questions.');
-    suiteBuilderPage.findGoalExample('answer-quality').should('have.attr', 'aria-pressed', 'true');
-    suiteBuilderPage.findGoalExample('code-generation').should('not.exist');
-    suiteBuilderPage.findViewExamplesButton().click();
-    suiteBuilderPage.findGoalExample('adversarial-content').should('be.visible');
-    suiteBuilderPage.findViewExamplesButton().should('contain.text', 'View fewer examples').click();
-    suiteBuilderPage.findGoalExample('code-generation').should('not.exist');
-    suiteBuilderPage.findEvaluationGoalInput().clear().type('A custom evaluation goal.');
-    suiteBuilderPage.findGoalExample('answer-quality').should('have.attr', 'aria-pressed', 'false');
-    suiteBuilderPage.findCurrentStep('suite-settings').click();
+    collectionBuilderPage
+      .findGoalExample('answer-quality')
+      .should('have.attr', 'aria-pressed', 'true');
+    collectionBuilderPage.findGoalExample('code-generation').should('not.exist');
+    collectionBuilderPage.findViewExamplesButton().click();
+    collectionBuilderPage.findGoalExample('adversarial-content').should('be.visible');
+    collectionBuilderPage
+      .findViewExamplesButton()
+      .should('contain.text', 'View fewer examples')
+      .click();
+    collectionBuilderPage.findGoalExample('code-generation').should('not.exist');
+    collectionBuilderPage.findEvaluationGoalInput().clear().type('A custom evaluation goal.');
+    collectionBuilderPage
+      .findGoalExample('answer-quality')
+      .should('have.attr', 'aria-pressed', 'false');
+    collectionBuilderPage.findCurrentStep('suite-settings').click();
 
-    suiteBuilderPage.findCurrentStep('suite-settings').should('have.attr', 'aria-current', 'step');
-    suiteBuilderPage.findNameInput().should('have.value', 'Reasoning suite');
-    suiteBuilderPage
+    collectionBuilderPage
+      .findCurrentStep('suite-settings')
+      .should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage.findNameInput().should('have.value', 'Reasoning suite');
+    collectionBuilderPage
       .findDescriptionInput()
       .should('have.value', 'Check general reasoning performance.');
-    suiteBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuenow', '12');
-    suiteBuilderPage.findMaxBenchmarksSummary().should('have.text', '12 of 20 benchmarks');
-    suiteBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
-    suiteBuilderPage.findGenerationEffortSelect().should('have.value', 'high');
-    suiteBuilderPage.findCurrentStep('define-goal').click();
-    suiteBuilderPage.findCurrentStep('define-goal').should('have.attr', 'aria-current', 'step');
-    suiteBuilderPage.findEvaluationGoalInput().should('have.value', 'A custom evaluation goal.');
-    cy.get('@suiteBuilderGenerationApi.all').should('have.length', 0);
+    collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuenow', '12');
+    collectionBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    collectionBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
+    collectionBuilderPage.findGenerationEffortSelect().should('have.value', 'high');
+    collectionBuilderPage.findCurrentStep('define-goal').click();
+    collectionBuilderPage
+      .findCurrentStep('define-goal')
+      .should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage
+      .findEvaluationGoalInput()
+      .should('have.value', 'A custom evaluation goal.');
+    cy.get('@collectionBuilderGenerationApi.all').should('have.length', 0);
   });
 
   it('should generate recommendations and let the user refine the benchmark selection', () => {
@@ -288,14 +307,14 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.visit(NAMESPACE);
     evaluationsPage.findCreateSuiteHeaderButton().click();
     evaluationsPage.findBuildSuiteFromGoalTile().click();
-    suiteBuilderPage.findNameInput().type('Truthfulness suite');
-    suiteBuilderPage.findNextButton().click();
-    suiteBuilderPage.findGoalExample('answer-quality').click();
-    suiteBuilderPage.findEditRecommendationModelButton().click();
-    suiteBuilderPage.findRecommendationModelToggle().click();
-    suiteBuilderPage.findRecommendationModelOption('granite-3b').click();
-    suiteBuilderPage.findSaveRecommendationModelButton().click();
-    suiteBuilderPage.findRecommendButton().click();
+    collectionBuilderPage.findNameInput().type('Truthfulness suite');
+    collectionBuilderPage.findNextButton().click();
+    collectionBuilderPage.findGoalExample('answer-quality').click();
+    collectionBuilderPage.findEditRecommendationModelButton().click();
+    collectionBuilderPage.findRecommendationModelToggle().click();
+    collectionBuilderPage.findRecommendationModelOption('granite-3b').click();
+    collectionBuilderPage.findSaveRecommendationModelButton().click();
+    collectionBuilderPage.findRecommendButton().click();
 
     cy.wait('@createCollectionGeneration').then(({ request }) => {
       expect(request.body).to.deep.equal({
@@ -309,34 +328,44 @@ describe('Evaluations Page - Tabs', () => {
       expect(request.body).not.to.have.property('description');
       expect(request.body.model).not.to.have.property('source');
     });
-    suiteBuilderPage
+    collectionBuilderPage
       .findCurrentStep('benchmark-overview')
       .should('have.attr', 'aria-current', 'step');
-    suiteBuilderPage.findOverviewNextButton().should('be.disabled');
+    collectionBuilderPage.findOverviewNextButton().should('be.disabled');
     cy.wait('@getCollectionGeneration');
-    suiteBuilderPage
+    collectionBuilderPage
       .findGenerationStatusHeading()
       .should('contain.text', 'AI is comparing benchmarks with your goal');
-    suiteBuilderPage
+    collectionBuilderPage
       .findGenerationProgress()
       .should('contain.text', 'Searching the benchmark catalog · Building a recommendation');
-    suiteBuilderPage.findOverviewNextButton().should('be.disabled');
+    collectionBuilderPage.findOverviewNextButton().should('be.disabled');
     cy.wait('@getCollectionGeneration');
-    suiteBuilderPage
+    collectionBuilderPage
       .findSelectedBenchmarkName('truthfulqa_mc1')
       .should('contain.text', 'TruthfulQA MC1');
-    suiteBuilderPage.findSelectedBenchmark('truthfulqa_mc1').should('contain.text', 'accuracy');
-    suiteBuilderPage.findSelectionCount().should('contain.text', 'Selected benchmarks · 1 of 20');
-    suiteBuilderPage.findReviewAlternativesButton().click();
-    suiteBuilderPage.findAlternative('hellaswag').should('contain.text', 'commonsense reasoning');
-    suiteBuilderPage.findAddAlternativeButton('hellaswag').click();
-    suiteBuilderPage.findSelectionCount().should('contain.text', 'Selected benchmarks · 2 of 20');
-    suiteBuilderPage.findCloseAlternativesButton().click();
-    suiteBuilderPage.findRemoveSelectedBenchmarkButton('truthfulqa_mc1').click();
-    suiteBuilderPage.findSelectionCount().should('contain.text', 'Selected benchmarks · 1 of 20');
-    suiteBuilderPage.findOverviewNextButton().should('be.enabled');
-    suiteBuilderPage.findOverviewNextButton().click();
-    suiteBuilderPage.findCurrentStep('review').should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage
+      .findSelectedBenchmark('truthfulqa_mc1')
+      .should('contain.text', 'accuracy');
+    collectionBuilderPage
+      .findSelectionCount()
+      .should('contain.text', 'Selected benchmarks · 1 of 20');
+    collectionBuilderPage.findReviewAlternativesButton().click();
+    collectionBuilderPage
+      .findAlternative('hellaswag')
+      .should('contain.text', 'commonsense reasoning');
+    collectionBuilderPage.findAddAlternativeButton('hellaswag').click();
+    collectionBuilderPage
+      .findSelectionCount()
+      .should('contain.text', 'Selected benchmarks · 2 of 20');
+    collectionBuilderPage.findCloseAlternativesButton().click();
+    collectionBuilderPage.findRemoveSelectedBenchmarkButton('truthfulqa_mc1').click();
+    collectionBuilderPage
+      .findSelectionCount()
+      .should('contain.text', 'Selected benchmarks · 1 of 20');
+    collectionBuilderPage.findOverviewNextButton().should('be.enabled');
+    collectionBuilderPage.findOverviewNextButton().click();
+    collectionBuilderPage.findCurrentStep('review').should('have.attr', 'aria-current', 'step');
   });
 
   it('should navigate from a Gallery Customize action to the suite editor', () => {
