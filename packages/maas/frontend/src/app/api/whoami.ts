@@ -12,7 +12,9 @@ const isMaaSWhoAmI = (v: unknown): v is MaaSWhoAmI =>
   typeof v.sub === 'string' &&
   (v.email === undefined || typeof v.email === 'string') &&
   (v.name === undefined || typeof v.name === 'string') &&
-  typeof v.isAdmin === 'boolean';
+  typeof v.isAdmin === 'boolean' &&
+  (v.orgId === undefined || typeof v.orgId === 'string') &&
+  (v.orgName === undefined || typeof v.orgName === 'string');
 
 export const getMaaSWhoAmI =
   (hostPath = '') =>

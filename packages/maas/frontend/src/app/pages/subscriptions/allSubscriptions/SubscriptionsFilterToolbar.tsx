@@ -3,6 +3,7 @@ import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
+import { CallerOrganizationContext, groupLabel } from '~/app/shared/GroupName';
 import {
   EventTrackingFilterAttribute,
   EventTrackingResourceType,
@@ -37,13 +38,18 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
   testIdPrefix = 'subscriptions',
   children,
 }) => {
+  // On Model access, the caller's organization's groups are listed by its name; the value stays
+  // the group's full name, so the filter matches as before.
+  const organization = React.useContext(CallerOrganizationContext);
   const { subscriptionOptions, groupOptions, modelOptions } = React.useMemo(() => {
     const subscriptionLabels = new Map<string, string>();
     const groupLabels = new Map<string, string>();
     const modelLabels = new Map<string, string>();
     subscriptions.forEach((subscription) => {
       subscriptionLabels.set(subscription.name, subscription.displayName ?? subscription.name);
-      subscription.owner.groups.forEach((group) => groupLabels.set(group.name, group.name));
+      subscription.owner.groups.forEach((group) =>
+        groupLabels.set(group.name, groupLabel(group.name, organization)),
+      );
       subscription.modelRefs.forEach((modelRef) =>
         modelLabels.set(modelRef.name, modelRef.displayName ?? modelRef.name),
       );
@@ -53,7 +59,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
       groupOptions: toSelectOptions(groupLabels),
       modelOptions: toSelectOptions(modelLabels),
     };
-  }, [subscriptions]);
+  }, [subscriptions, organization]);
 
   const fireFiltered = (filterAttribute: EventTrackingFilterAttribute) =>
     fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
