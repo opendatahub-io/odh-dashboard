@@ -275,7 +275,9 @@ func normalizeResourceName(value string) string {
 func findProfileResource(resources map[string]evalhub.HardwareProfileIdentifier, name string) (evalhub.HardwareProfileIdentifier, bool) {
 	normalized := normalizeResourceName(name)
 	if profileResource, ok := resources[normalized]; ok {
-		return profileResource, true
+		if normalized != "gpu" || isGPUDeviceIdentifier(normalized, profileResource.ResourceType) {
+			return profileResource, true
+		}
 	}
 	if normalized == "cpu_limit" {
 		return resources["cpu"], hasResource(resources, "cpu")

@@ -244,11 +244,26 @@ const EvaluationsPage: React.FC = () => {
     // Pick the latest lifecycle snapshot from the raw list — queue enrichment is metadata-only
     // and does not advance updated_at, so comparing against enriched jobs would discard the
     // queue an already-open modal should pick up when /info resolves.
-    const latestJob = getLatestEvaluationJob(
-      selectedJob.job,
-      evaluations.find((e) => e.resource.id === selectedJob.job.resource.id),
-    );
-    return resolveEvaluationJobQueues([latestJob], queueNameByProfileName)[0];
+    const listJob = evaluations.find((e) => e.resource.id === selectedJob.job.resource.id);
+    const latestJob = getLatestEvaluationJob(selectedJob.job, listJob);
+    // The selected snapshot may come from detail polling, which can omit hardware_config
+    // metadata the list response carries. Recover the profile name from the raw list job so
+    // queue enrichment still resolves once /info arrives; the selected snapshot's lifecycle
+    // fields and any explicit queue are preserved.
+    const jobForResolution =
+      !latestJob.hardware_config?.hardware_profile_name &&
+      listJob?.hardware_config?.hardware_profile_name
+        ? {
+            ...latestJob,
+            /* eslint-disable camelcase -- API field names. */
+            hardware_config: {
+              ...latestJob.hardware_config,
+              hardware_profile_name: listJob.hardware_config.hardware_profile_name,
+            },
+            /* eslint-enable camelcase */
+          }
+        : latestJob;
+    return resolveEvaluationJobQueues([jobForResolution], queueNameByProfileName)[0];
   }, [evaluations, queueNameByProfileName, selectedJob]);
 
   const onShowStatus = React.useCallback(

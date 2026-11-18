@@ -394,6 +394,34 @@ func TestFindProfileResourceRejectsNonAcceleratorResourceTypes(t *testing.T) {
 	}
 }
 
+// TestFindProfileResourceRejectsExactNameNonAcceleratorGPU verifies that an identifier
+// named exactly "gpu" but explicitly typed as a non-accelerator resource does not
+// satisfy a generic GPU requirement via the exact-match branch.
+func TestFindProfileResourceRejectsExactNameNonAcceleratorGPU(t *testing.T) {
+	resources := map[string]evalhub.HardwareProfileIdentifier{
+		"gpu": {Identifier: "gpu", ResourceType: "memory", DefaultCount: "1"},
+	}
+
+	if profileResource, found := findProfileResource(resources, "gpu"); found {
+		t.Fatalf("generic GPU unexpectedly matched non-accelerator exact-name resource %+v", profileResource)
+	}
+}
+
+// TestFindProfileResourceExactNameGPUFallsBackToAccelerator verifies that when an
+// exact-name "gpu" identifier is typed as a non-accelerator, the generic GPU
+// requirement still falls back to an accelerator-typed GPU identifier.
+func TestFindProfileResourceExactNameGPUFallsBackToAccelerator(t *testing.T) {
+	resources := map[string]evalhub.HardwareProfileIdentifier{
+		"gpu":            {Identifier: "gpu", ResourceType: "memory", DefaultCount: "1"},
+		"nvidia.com/gpu": {Identifier: "nvidia.com/gpu", ResourceType: "accelerator", DefaultCount: "2"},
+	}
+
+	profileResource, found := findProfileResource(resources, "gpu")
+	if !found || profileResource.Identifier != "nvidia.com/gpu" {
+		t.Fatalf("generic GPU matched %+v, want nvidia.com/gpu", profileResource)
+	}
+}
+
 // TestFindProfileResourceMatchesAcceleratorTypedGPU verifies that accelerator-typed and
 // untyped GPU-device identifiers still satisfy the generic GPU requirement.
 func TestFindProfileResourceMatchesAcceleratorTypedGPU(t *testing.T) {
