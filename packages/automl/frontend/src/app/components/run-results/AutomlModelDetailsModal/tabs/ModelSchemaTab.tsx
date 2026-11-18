@@ -11,8 +11,8 @@ import {
   Label,
   SearchInput,
   Skeleton,
-  Tab,
-  Tabs,
+  ToggleGroup,
+  ToggleGroupItem,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -61,8 +61,8 @@ const ModelSchemaTab: React.FC<TabContentProps> = ({
   // sorting by name/type restores the original order.
   const [sortColumn, setSortColumn] = React.useState<SortColumn>('position');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
-  // Table and scoring-request template are shown in side-by-side horizontal tabs;
-  // the table is the default active tab.
+  // Table and scoring-request template are switched with a toggle group;
+  // the table is the default view.
   const [activeTab, setActiveTab] = React.useState<'table' | 'json'>('table');
 
   // model.json's inference.input_data_schema is the authoritative source for column names,
@@ -194,22 +194,6 @@ const ModelSchemaTab: React.FC<TabContentProps> = ({
   // The table renders even without schema data so the no-data empty state stays reachable.
   const tableContent = (
     <>
-      {!print && (
-        <Toolbar className="automl-model-schema-toolbar">
-          <ToolbarContent>
-            <ToolbarItem>
-              <SearchInput
-                placeholder="Search by column name"
-                value={searchValue}
-                onChange={(_e, value) => setSearchValue(value)}
-                onClear={() => setSearchValue('')}
-                data-testid="model-schema-search"
-                inputProps={{ 'data-testid': 'model-schema-search-input' }}
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-      )}
       {/* Native table layout: PF's default gridBreakPoint="gridMd" uses display:grid
         below the md container width, which Firefox cannot print. Feature summary
         opts out the same way. */}
@@ -321,29 +305,54 @@ const ModelSchemaTab: React.FC<TabContentProps> = ({
             : 'Shows input columns and data types required by this model.'}
         </p>
       )}
-      {/* The table is the default active tab; print (PDF) output shows both contents
-          stacked without the tab chrome so neither is hidden behind a tab. */}
+      {/* The table is the default view; print (PDF) output shows both contents
+          stacked without the toggle-group chrome so neither is hidden behind a view. */}
       {print ? (
         <>
           {tableContent}
           {hasSchemaData && jsonContent}
         </>
       ) : (
-        <Tabs
-          activeKey={activeTab}
-          onSelect={(_e, key) => setActiveTab(key === 'json' ? 'json' : 'table')}
-          data-testid="model-schema-tabs"
-          className="automl-model-schema-tabs"
-        >
-          <Tab eventKey="table" title="Model schema table" data-testid="model-schema-table-tab">
-            {tableContent}
-          </Tab>
-          {hasSchemaData && (
-            <Tab eventKey="json" title="Model schema JSON" data-testid="model-schema-json-tab">
-              {jsonContent}
-            </Tab>
-          )}
-        </Tabs>
+        <>
+          {/* Toggle group switches between the table and JSON views; the column
+              search sits in the same row beside the JSON toggle and only applies
+              to the table view. */}
+          <Toolbar className="automl-model-schema-toolbar" data-testid="model-schema-view-toolbar">
+            <ToolbarContent>
+              <ToolbarItem>
+                <ToggleGroup aria-label="Model schema view" data-testid="model-schema-view-toggle">
+                  <ToggleGroupItem
+                    text="Table"
+                    buttonId="model-schema-view-table"
+                    isSelected={activeTab === 'table'}
+                    onChange={() => setActiveTab('table')}
+                  />
+                  {hasSchemaData && (
+                    <ToggleGroupItem
+                      text="JSON"
+                      buttonId="model-schema-view-json"
+                      isSelected={activeTab === 'json'}
+                      onChange={() => setActiveTab('json')}
+                    />
+                  )}
+                </ToggleGroup>
+              </ToolbarItem>
+              {activeTab === 'table' && (
+                <ToolbarItem>
+                  <SearchInput
+                    placeholder="Search by column name"
+                    value={searchValue}
+                    onChange={(_e, value) => setSearchValue(value)}
+                    onClear={() => setSearchValue('')}
+                    data-testid="model-schema-search"
+                    inputProps={{ 'data-testid': 'model-schema-search-input' }}
+                  />
+                </ToolbarItem>
+              )}
+            </ToolbarContent>
+          </Toolbar>
+          {activeTab === 'table' ? tableContent : jsonContent}
+        </>
       )}
     </>
   );

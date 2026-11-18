@@ -505,14 +505,18 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
-/* Model schema tabs (table and JSON template) */
-.automl-model-schema-tabs {
-  margin-block-start: var(--pf-t--global--spacer--md);
-}
-
-/* Whitespace between the tab chrome and the search toolbar in the table view */
+/* Model schema view toolbar — toggle group (table/JSON views) with the column
+   search beside it in the same row. Bottom spacing separates the row from the
+   table or JSON code block below it. */
 .automl-model-schema-toolbar {
   margin-block-start: var(--pf-t--global--spacer--md);
+  margin-block-end: var(--pf-t--global--spacer--sm);
+
+  /* Widen the search so the full "Search by column name" placeholder plus a
+     couple of characters stays visible instead of truncating. */
+  .pf-v6-c-text-input-group__text-input {
+    min-width: 22ch;
+  }
 }
 
 /* Model schema JSON code block — no height cap: the full template stays visible

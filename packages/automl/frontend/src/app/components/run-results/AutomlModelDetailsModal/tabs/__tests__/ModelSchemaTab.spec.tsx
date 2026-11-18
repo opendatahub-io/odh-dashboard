@@ -81,15 +81,15 @@ describe('ModelSchemaTab', () => {
     expect(screen.getByText('Unable to load model schema')).toBeInTheDocument();
   });
 
-  it('should show the table tab active by default with the JSON tab inactive', () => {
+  it('should show the table view active by default with the JSON view inactive', () => {
     useS3GetFileSchemaQueryMock.mockReturnValue(queryResult(tabularColumns) as never);
     render(<ModelSchemaTab {...tabularProps} />);
 
-    const tabs = screen.getByTestId('model-schema-tabs');
-    expect(tabs).toBeInTheDocument();
+    const toggleGroup = screen.getByTestId('model-schema-view-toggle');
+    expect(toggleGroup).toBeInTheDocument();
     expect(screen.getByTestId('model-schema-row-col1')).toBeVisible();
-    // Inactive tab content is unmounted until the tab is selected.
-    expect(screen.queryByTestId('model-schema-json-code')).not.toBeVisible();
+    // Inactive view content is unmounted until the toggle is selected.
+    expect(screen.queryByTestId('model-schema-json-code')).not.toBeInTheDocument();
   });
 
   it('should show no-data empty state when no schema is available', () => {
@@ -242,27 +242,21 @@ describe('ModelSchemaTab', () => {
   });
 
   describe('model schema JSON section', () => {
-    it('should be inactive until the JSON tab is selected', () => {
+    it('should be inactive until the JSON view toggle is selected', () => {
       useS3GetFileSchemaQueryMock.mockReturnValue(queryResult(tabularColumns) as never);
       render(<ModelSchemaTab {...tabularProps} />);
 
-      expect(screen.getByRole('tab', { name: 'Model schema table' })).toHaveAttribute(
-        'aria-selected',
-        'true',
-      );
-      expect(screen.getByRole('tab', { name: 'Model schema JSON' })).toHaveAttribute(
-        'aria-selected',
-        'false',
-      );
-      expect(screen.queryByTestId('model-schema-json-code')).not.toBeVisible();
+      expect(screen.getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'JSON' })).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.queryByTestId('model-schema-json-code')).not.toBeInTheDocument();
     });
 
-    it('should show the scoring payload template when the JSON tab is selected', async () => {
+    it('should show the scoring payload template when the JSON view toggle is selected', async () => {
       useS3GetFileSchemaQueryMock.mockReturnValue(queryResult(tabularColumns) as never);
       const user = userEvent.setup();
       render(<ModelSchemaTab {...tabularProps} />);
 
-      await user.click(screen.getByRole('tab', { name: 'Model schema JSON' }));
+      await user.click(screen.getByRole('button', { name: 'JSON' }));
 
       const code = screen.getByTestId('model-schema-json-code');
       expect(code).toBeVisible();
@@ -290,7 +284,7 @@ describe('ModelSchemaTab', () => {
         configurable: true,
       });
 
-      await user.click(screen.getByRole('tab', { name: 'Model schema JSON' }));
+      await user.click(screen.getByRole('button', { name: 'JSON' }));
       fireEvent.click(screen.getByRole('button', { name: /copy/i }));
 
       expect(writeText).toHaveBeenCalledTimes(1);
@@ -333,7 +327,7 @@ describe('ModelSchemaTab', () => {
         undefined,
       );
 
-      fireEvent.click(screen.getByRole('tab', { name: 'Model schema JSON' }));
+      fireEvent.click(screen.getByRole('button', { name: 'JSON' }));
       const code = screen.getByTestId('model-schema-json-code');
       // col2 is the target — excluded; 'number' is normalized to 'double'.
       expect(code).toHaveTextContent('<integer>');
