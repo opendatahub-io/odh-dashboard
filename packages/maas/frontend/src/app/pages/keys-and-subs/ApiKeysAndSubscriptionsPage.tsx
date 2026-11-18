@@ -48,8 +48,6 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
           onSelect={onSelectTab}
           aria-label="API keys and subscriptions tabs"
           inset={{ default: 'insetNone' }}
-          mountOnEnter
-          unmountOnExit
         >
           <Tab
             eventKey={API_KEYS_TAB}
@@ -74,6 +72,7 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
         hidden={activeTab !== API_KEYS_TAB}
         aria-label="API keys"
       >
+        {/* Conditionally render to preserve unmount-on-exit: `hidden` alone would keep the tab mounted. */}
         <TabContentBody>{activeTab === API_KEYS_TAB && <ApiKeysTab />}</TabContentBody>
       </TabContent>
       <TabContent
