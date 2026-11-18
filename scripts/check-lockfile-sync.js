@@ -49,14 +49,14 @@ function parseLockfileImporters(lockfilePath) {
       continue;
     }
 
-    // Dependencies section within an importer
-    if (currentImporter && line.match(/^    dependencies:$/)) {
-      inDependencies = true;
-      lastPackageName = null;
-      continue;
-    }
-    if (currentImporter && line.match(/^    devDependencies:$/)) {
-      inDependencies = false;
+    // Section boundary within an importer (dependencies, devDependencies,
+    // optionalDependencies). Runtime sections count regardless of the order
+    // sections appear in; anything else (e.g. devDependencies) resets the
+    // state so it never leaks across sections.
+    const sectionMatch = line.match(/^    (\S+):$/);
+    if (currentImporter && sectionMatch) {
+      const section = sectionMatch[1];
+      inDependencies = section === 'dependencies' || section === 'optionalDependencies';
       lastPackageName = null;
       continue;
     }

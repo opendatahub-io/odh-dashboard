@@ -130,6 +130,64 @@ importers:
         version: 18.3.1
 `;
 
+const OPTIONAL_DEPS_BOUNDARY_LOCKFILE = `lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+    devDependencies:
+      typescript:
+        specifier: ^5
+        version: 5.6.3
+    optionalDependencies:
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1
+
+  frontend:
+    dependencies:
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+    devDependencies:
+      typescript:
+        specifier: ^5
+        version: 5.6.3
+    optionalDependencies:
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.7
+`;
+
+const OPTIONAL_DEPS_DIRECT_LOCKFILE = `lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+    optionalDependencies:
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1
+
+  frontend:
+    dependencies:
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+    optionalDependencies:
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1
+`;
+
 test('parseLockfileImporters reads version entries from the importers section', () => {
   const filePath = writeTempLockfile(VALID_LOCKFILE);
   const importers = parseLockfileImporters(filePath);
@@ -186,8 +244,38 @@ test('findMismatches ignores devDependencies when checking sync', () => {
   assert.equal(reactFailures.length, 0);
 
   // react-dom is only in devDependencies — the parser should NOT pick it up
-  // (it only tracks the dependencies section, not devDependencies)
+  // (it only tracks runtime sections: dependencies and optionalDependencies)
   assert.ok(!importers['.']['react-dom'] || importers['.']['react-dom'] === undefined);
+});
+
+test('parseLockfileImporters reads optionalDependencies after devDependencies', () => {
+  const filePath = writeTempLockfile(OPTIONAL_DEPS_BOUNDARY_LOCKFILE);
+  const importers = parseLockfileImporters(filePath);
+
+  // devDependencies between the runtime sections must not reset the state
+  // for the optionalDependencies that follow it
+  assert.equal(importers['.']['react-dom'], '18.3.1');
+  assert.equal(importers.frontend['react-dom'], '18.3.7');
+  assert.equal(importers['.'].typescript, undefined);
+});
+
+test('findMismatches detects mismatched optional runtime dependencies', () => {
+  const filePath = writeTempLockfile(OPTIONAL_DEPS_BOUNDARY_LOCKFILE);
+  const importers = parseLockfileImporters(filePath);
+  const failures = findMismatches(importers, ['react', 'react-dom']);
+
+  assert.equal(failures.length, 1);
+  assert.equal(failures[0].pkg, 'react-dom');
+  assert.ok(failures[0].versions['18.3.1'].includes('.'));
+  assert.ok(failures[0].versions['18.3.7'].includes('frontend'));
+});
+
+test('findMismatches passes for synced optionalDependencies', () => {
+  const filePath = writeTempLockfile(OPTIONAL_DEPS_DIRECT_LOCKFILE);
+  const importers = parseLockfileImporters(filePath);
+  const failures = findMismatches(importers, ['react', 'react-dom']);
+
+  assert.equal(failures.length, 0);
 });
 
 test('findMismatches returns empty for packages not in the lockfile', () => {
