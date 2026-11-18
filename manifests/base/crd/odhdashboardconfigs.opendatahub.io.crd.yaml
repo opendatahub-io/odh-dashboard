@@ -227,7 +227,7 @@ spec:
                       description: 'When true, enables Workspaces (Notebooks v2) features. Replaces the deprecated workbenchesV2 flag.'
                     workbenchesV2:
                       type: boolean
-                      description: 'Deprecated. Renamed to workspaces. Still accepted so existing OdhDashboardConfig values migrate; prefer workspaces.'
+                      description: 'DEPRECATED: Renamed to workspaces. Still accepted so existing OdhDashboardConfig values migrate; prefer workspaces.'
                     projectRBAC:
                       type: boolean
                       description: 'When true, enables project-level RBAC (Role-Based Access Control) settings.'
