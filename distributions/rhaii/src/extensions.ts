@@ -35,6 +35,15 @@ const extensions: Extension[] = [
   } satisfies RouteExtension,
   {
     type: 'app.masthead/toolbar-item',
+    flags: { required: ['unified-project-selector'] },
+    properties: {
+      id: 'working-project-selector',
+      component: () => import('./components/RhaiiProjectSelector'),
+      position: 'leading',
+    },
+  } satisfies MastheadToolbarItemExtension,
+  {
+    type: 'app.masthead/toolbar-item',
     properties: {
       id: 'auth-placeholder',
       component: () => import('./components/AuthPlaceholder'),

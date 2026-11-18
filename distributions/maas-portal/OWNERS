@@ -1,0 +1,18 @@
+# OWNERS
+
+approvers:
+  - distributions-approvers
+  - maas-approvers
+  - ai-grid-approvers
+
+reviewers:
+  - distributions-reviewers
+  - maas-reviewers
+  - ai-grid-reviewers
+
+labels:
+  - area/distributions
+  - area/maas
+
+options:
+  no_parent_owners: true
