@@ -2,14 +2,15 @@ base: https://raw.githubusercontent.com/fullsend-ai/agents/2da538b8b62ad6d7b91c4
 
 agent: agents/review.md
 
-# Not inherited: `base:` composition does not merge readonly_repo, so the
-# base's `true` is lost unless it is repeated here. The runbook loads
+# Repeated on purpose: before Fullsend v0.56.0 `base:` composition did not
+# merge readonly_repo (fullsend#7360), so keep it explicit. The runbook loads
 # sub-agent definitions and meta-prompts from this checkout by path; nothing
 # in the review writes inside it.
 readonly_repo: true
 
 # Pin the multi-architecture Fullsend sandbox image (v0.48.1, Pi 1.3.0). It
-# moves with the reusable workflow pin in .github/workflows/fullsend.yaml.
+# moves with the harness base above; the reusable workflow pin in
+# .github/workflows/fullsend.yaml (v0.56.1) still runs this base and image.
 image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:7304e1f635eeebf1a3ebf60bfc9ac20a8db6f01b646d0ebb0ad4d53c2d7c30aa
 
 # The `openai` provider comes from the base, which now declares it.
