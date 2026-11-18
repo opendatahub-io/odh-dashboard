@@ -60,10 +60,14 @@
 
   &__filter-toggle.pf-v6-c-menu-toggle {
     --pf-v6-c-menu-toggle--BorderRadius: var(--pf-t--global--border--radius--small);
-    min-width: 10.5rem;
+    min-width: 17rem;
 
     .pf-v6-c-menu-toggle__text {
       font-size: var(--pf-t--global--font--size--body--md);
     }
+  }
+
+  &__filter-option {
+    white-space: nowrap;
   }
 }
