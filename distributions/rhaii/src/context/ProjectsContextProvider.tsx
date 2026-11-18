@@ -325,24 +325,14 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [projects, loaded, loadError, updatePreferredProject],
   );
 
+  const validatedProjects = React.useRef(new WeakMap<object, ProjectKind>());
   const onProjectValidated = React.useCallback(
     (identity: { name: string; displayName?: string }) => {
-      // The synchronization hook publishes a provider-validated identity before activation.
-      // Preserve its display name, but do not infer access from persisted browser data.
-      addProject(
-        {
-          apiVersion: 'v1',
-          kind: 'Namespace',
-          metadata: {
-            name: identity.name,
-            ...(identity.displayName && {
-              annotations: { 'openshift.io/display-name': identity.displayName },
-            }),
-          },
-          status: { phase: NamespacePhase.Active },
-        },
-        false,
-      );
+      const project = validatedProjects.current.get(identity);
+      if (project) {
+        addProject(project, false);
+        validatedProjects.current.delete(identity);
+      }
     },
     [addProject],
   );
@@ -353,7 +343,10 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     onProjectChange: selectProject,
     validateCandidate: async (name, signal) => {
       try {
-        return await discoverProject(name, signal);
+        const project = await validateProject(name, signal);
+        const identity = { name, displayName: getDisplayNameFromK8sResource(project) };
+        validatedProjects.current.set(identity, project);
+        return identity;
       } catch {
         return null;
       }
