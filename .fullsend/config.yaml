@@ -41,7 +41,7 @@ agents:
       runtime: pi
       model: openai/gpt-6.1-sol
       subagents:
-          challenger: openai/gpt-6.1-sol
+          challenger: opus
           correctness: openai/gpt-6.1-sol
           cross-repo-contracts: openai/gpt-6.1-sol
           docs-currency: openai/gpt-6-luna
