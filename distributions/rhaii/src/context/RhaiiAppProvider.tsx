@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import {
   IntegrationsContext,
   type IntegrationsStatusContextType,
@@ -35,15 +36,26 @@ const availableAreaStatus: IsAreaAvailableStatus = {
   customCondition: () => true,
 };
 
-const areasStatus = {
+const getAreasStatus = (unifiedProjectSelectorEnabled: boolean) => ({
   [SupportedArea.MODEL_SERVING]: availableAreaStatus,
   [SupportedArea.K_SERVE]: availableAreaStatus,
   [SupportedArea.LLMD_SERVING]: availableAreaStatus,
-};
-
-const areaContextValue = { dscStatus: null, dsciStatus: null, areasStatus };
+  [SupportedArea.UNIFIED_PROJECT_SELECTOR]: {
+    ...availableAreaStatus,
+    status: unifiedProjectSelectorEnabled,
+  },
+});
 
 const RhaiiAppProvider: React.FC<RhaiiAppProviderProps> = ({ children }) => {
+  const [unifiedProjectSelectorEnabled] = useFeatureFlag('unified-project-selector');
+  const areaContextValue = React.useMemo(
+    () => ({
+      dscStatus: null,
+      dsciStatus: null,
+      areasStatus: getAreasStatus(unifiedProjectSelectorEnabled === true),
+    }),
+    [unifiedProjectSelectorEnabled],
+  );
   const appContent =
     process.env.RHAII_TILT_FIXTURES === 'true' ? (
       <TiltFixturesProvider>{children}</TiltFixturesProvider>
