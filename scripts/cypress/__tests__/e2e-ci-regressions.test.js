@@ -310,6 +310,108 @@ it('runs added, modified, and renamed specs explicitly, and rejects deleting sol
   assert.match(deleted.errors.join('\n'), /only coverage for @A/);
 });
 
+it('runs executable changed specs without a CI tag or non-CI registration', () => {
+  const defaultSpec = `${cypress}/tests/e2e/default.cy.ts`;
+  const oldSpec = `${cypress}/tests/e2e/old.cy.ts`;
+  const sources = [
+    "it('untagged', () => {});",
+    "it('feature flagged', {tags: ['@EvalHub', '@Featureflagged']}, () => {});",
+    sourceFor('@Smoke'),
+  ];
+  for (const source of sources) {
+    for (const status of ['A', 'M', 'R']) {
+      const plan = planFor({
+        inventory: inventoryFor({ [spec]: source, [defaultSpec]: sourceFor(DEFAULT_TAG) }),
+        baseInventory: inventoryFor({ [oldSpec]: source }),
+        changes: [{ status, path: spec, ...(status === 'R' ? { previousPath: oldSpec } : {}) }],
+      });
+      assert.equal(plan.valid, true, `${status}: ${plan.errors.join('\n')}`);
+      const job = plan.matrix.find((entry) => entry.tag_dir.startsWith('changedspec-'));
+      assert.ok(job);
+      assert.deepEqual(job.specs, [spec]);
+      assert.equal(job.planned_test_count, 1);
+      assert.deepEqual(plan.matrix.find((entry) => entry.run_mode === 'tag').specs, [defaultSpec]);
+    }
+  }
+
+  const explicitOnly = planFor({
+    selectedTags: [],
+    inventory: inventoryFor({ [spec]: sources[0] }),
+    changes: [{ status: 'A', path: spec }],
+  });
+  assert.equal(explicitOnly.valid, true, explicitOnly.errors.join('\n'));
+  assert.equal(explicitOnly.matrix.length, 1);
+  assert.equal(explicitOnly.matrix[0].run_mode, 'spec');
+  assert.deepEqual(explicitOnly.matrix[0].specs, [spec]);
+});
+
+it('schedules the four feature-flagged Eval Hub specs from PR #10596 explicitly', () => {
+  const added = [
+    'testEvalHubBenchmarkSuiteDuplicate',
+    'testEvalHubBenchmarkSuiteEdit',
+    'testEvalHubCuratedCollectionCustomize',
+    'testEvalHubCuratedCollectionRun',
+  ].map((name) => `${cypress}/tests/e2e/eval-hub/${name}.cy.ts`);
+  const plan = planFor({
+    selectedTags: [DEFAULT_TAG, '@EvalHubCI'],
+    ciTags: [DEFAULT_TAG, '@EvalHubCI'],
+    inventory: inventoryFor({
+      [spec]: sourceFor(DEFAULT_TAG),
+      [`${cypress}/tests/e2e/eval-hub/existing.cy.ts`]: sourceFor('@EvalHubCI'),
+      ...Object.fromEntries(
+        added.map((file) => [
+          file,
+          "it('runs', {tags: ['@EvalHub', '@Featureflagged']}, () => {});",
+        ]),
+      ),
+    }),
+    changes: added.map((file) => ({ status: 'A', path: file })),
+  });
+  assert.equal(plan.valid, true, plan.errors.join('\n'));
+  const job = plan.matrix.find((entry) => entry.tag_dir.startsWith('changedspec-'));
+  assert.ok(job);
+  assert.deepEqual(job.specs, added.toSorted());
+  assert.equal(job.planned_test_count, 4);
+  assert.equal(plan.summary.plannedTestCount, 6);
+});
+
+it('keeps changed-spec quarantine exclusions and invalid-inventory checks without requiring CI tags', () => {
+  const excluded = ['@Bug', '@Maintain', '@NonConcurrent'].map((tag) => sourceFor(tag)).join('\n');
+  const cases = [
+    { source: `${sourceFor('@Featureflagged')}\n${excluded}`, valid: true, count: 1 },
+    { source: excluded, valid: false, error: /has no executable tests/ },
+    {
+      source: excluded,
+      nonCiSpecs: { [spec]: { owner: 'Eval Hub', reason: 'Quarantined tests' } },
+      valid: true,
+      count: 0,
+    },
+    { source: '', valid: false, error: /has no executable tests/ },
+    { source: "it('unknown', {tags: getTags()}, () => {});", valid: false, error: /unresolved/ },
+  ];
+  for (const scenario of cases) {
+    const plan = planFor({
+      inventory: inventoryFor({
+        [spec]: scenario.source,
+        [`${cypress}/tests/e2e/default.cy.ts`]: sourceFor(DEFAULT_TAG),
+      }),
+      nonCiSpecs: scenario.nonCiSpecs,
+      changes: [{ status: 'A', path: spec }],
+    });
+    assert.equal(plan.valid, scenario.valid, plan.errors.join('\n'));
+    if (scenario.error) {
+      assert.match(plan.errors.join('\n'), scenario.error);
+    } else {
+      assert.equal(
+        plan.matrix
+          .filter((entry) => entry.run_mode === 'spec')
+          .reduce((count, entry) => count + entry.planned_test_count, 0),
+        scenario.count,
+      );
+    }
+  }
+});
+
 it('limits tag jobs to specs that contain the selected tag', () => {
   const otherSpec = `${cypress}/tests/e2e/other.cy.ts`;
   const plan = planFor({

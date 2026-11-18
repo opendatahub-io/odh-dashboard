@@ -1130,10 +1130,6 @@ const buildSelectionPlan = ({
     if (entry.executableTestCount === 0 && !(intentionallyExcluded && nonCiSpecs[spec])) {
       errors.push(`Changed Cypress spec has no executable tests: ${spec}`);
     }
-    const hasCiTag = entry.executableTags.some((tag) => ciTags.includes(tag));
-    if (!hasCiTag && !nonCiSpecs[spec]) {
-      errors.push(`New or modified Cypress spec has no CI-selectable tag or non-CI owner: ${spec}`);
-    }
   }
 
   for (const spec of deletedSpecs) {
@@ -1146,13 +1142,6 @@ const buildSelectionPlan = ({
     }
 
     const oldCiTags = oldEntry.executableTags.filter((tag) => ciTags.includes(tag));
-    if (oldCiTags.length === 0) {
-      if (!nonCiSpecs[spec]) {
-        errors.push(`Deleted non-CI Cypress spec has no recorded owner: ${spec}`);
-      }
-      continue;
-    }
-
     for (const tag of oldCiTags) {
       const survivingSpecs = Object.values(inventory).filter(
         (entry) => entry.path !== spec && entry.executableTags.includes(tag),
@@ -1167,9 +1156,7 @@ const buildSelectionPlan = ({
   errors.push(...tagResolution.errors);
 
   const changedSpecList = [...changedSpecs].toSorted();
-  const explicitChangedSpecs = changedSpecList.filter((spec) =>
-    isCiRunnableSpec(spec, inventory, ciTags),
-  );
+  const explicitChangedSpecs = changedSpecList.filter((spec) => isExecutableSpec(spec, inventory));
   const explicitImpactedSpecs = [...impactedSpecs]
     .filter((spec) => !changedSpecs.has(spec))
     .toSorted();
