@@ -5,9 +5,12 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
+import { useNotification } from '~/app/hooks/useNotification';
 import { useProviders } from '~/app/hooks/useProviders';
+import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import CreateSuiteFromGoalPage from '~/app/pages/CreateSuiteFromGoalPage';
 import {
+  createCollection,
   createCollectionGeneration,
   deleteCollectionGeneration,
   getCollectionGeneration,
@@ -30,8 +33,17 @@ jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: jest.fn(),
+}));
+
+jest.mock('~/app/context/CollectionsContext', () => ({
+  useCollectionsContext: jest.fn(),
+}));
+
 jest.mock('~/app/api/k8s', () => ({
   ...jest.requireActual('~/app/api/k8s'),
+  createCollection: jest.fn(),
   createCollectionGeneration: jest.fn(),
   deleteCollectionGeneration: jest.fn(),
   getCollectionGeneration: jest.fn(),
@@ -46,11 +58,22 @@ jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
 
 const mockUseInferenceServices = jest.mocked(useInferenceServices);
 const mockUseProviders = jest.mocked(useProviders);
+const mockUseNotification = jest.mocked(useNotification);
+const mockUseCollectionsContext = jest.mocked(useCollectionsContext);
+const mockCreateCollection = jest.mocked(createCollection);
 const mockCreateCollectionGeneration = jest.mocked(createCollectionGeneration);
 const mockDeleteCollectionGeneration = jest.mocked(deleteCollectionGeneration);
 const mockGetCollectionGeneration = jest.mocked(getCollectionGeneration);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const tracking = { trackEvent: jest.fn(), trackPageEvent: jest.fn() };
+const notification = {
+  success: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+  warning: jest.fn(),
+  remove: jest.fn(),
+};
+const refreshCollections = jest.fn();
 const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
   <AnalyticsTrackingProvider value={tracking}>{children}</AnalyticsTrackingProvider>
 );
@@ -131,6 +154,12 @@ const completedGeneration: CollectionGenerationResource = {
           provider_id: 'provider-a',
           primary_score: { metric: 'accuracy', lower_is_better: false },
           pass_criteria: { threshold: 0.8 },
+          parameters: {
+            sample_count: 12,
+            random_seed: 21,
+            batch_size: 4,
+            options: { modes: ['strict'] },
+          },
         },
       ],
     },
@@ -199,6 +228,36 @@ const renderPage = async () => {
   return rendered;
 };
 
+const completeGenerationToReview = async (): Promise<void> => {
+  await renderPage();
+  fireEvent.change(screen.getByTestId('goal-suite-name'), {
+    target: { value: '  Answer quality suite  ' },
+  });
+  fireEvent.change(screen.getByTestId('goal-suite-description'), {
+    target: { value: '  Collection description  ' },
+  });
+  fireEvent.click(screen.getByTestId('next-suite-settings'));
+  fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+    target: { value: 'Assess answer quality.' },
+  });
+  fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+  fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+  fireEvent.click(
+    within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
+      'option',
+      { hidden: true },
+    ),
+  );
+  fireEvent.click(screen.getByTestId('save-recommendation-model'));
+  await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+  fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+  await waitFor(() => expect(mockGetCollectionGeneration).toHaveBeenCalledTimes(1));
+  expect(await screen.findByTestId('benchmark-overview-step')).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByTestId('next-benchmark-overview')).toBeEnabled());
+  fireEvent.click(screen.getByTestId('next-benchmark-overview'));
+  expect(await screen.findByTestId('goal-suite-review-step')).toBeInTheDocument();
+};
+
 const startPendingGeneration = async (): Promise<void> => {
   await renderPage();
   fireEvent.change(screen.getByTestId('goal-suite-name'), {
@@ -235,6 +294,13 @@ describe('CreateSuiteFromGoalPage', () => {
       providers: providerFixtures,
       loaded: true,
       loadError: undefined,
+    });
+    mockUseNotification.mockReturnValue(notification as ReturnType<typeof useNotification>);
+    mockUseCollectionsContext.mockReturnValue({
+      response: { items: [] },
+      loaded: true,
+      loadError: undefined,
+      refresh: refreshCollections,
     });
     mockCreateCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
     mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(completedGeneration));
@@ -691,8 +757,136 @@ describe('CreateSuiteFromGoalPage', () => {
     );
     expect(screen.getByTestId('next-benchmark-overview')).toBeEnabled();
     fireEvent.click(screen.getByTestId('next-benchmark-overview'));
-    expect(screen.getByTestId('review-step-placeholder')).toBeInTheDocument();
+    expect(screen.getByTestId('goal-suite-review-step')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Review' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Check the collection details and benchmark settings before saving or running the collection.',
+        { exact: true },
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Collection details' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Review collection' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('goal-suite-review-name')).toHaveTextContent('Answer quality suite');
+    expect(screen.getByTestId('goal-suite-review-evaluates')).toHaveTextContent('Model');
+    expect(screen.getByTestId('goal-suite-review-categories')).toHaveTextContent('Trustworthiness');
+    expect(screen.getByTestId('goal-suite-review-benchmarks')).toHaveTextContent('HellaSwag');
+    expect(screen.getByTestId('goal-suite-save')).toBeEnabled();
     expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+  });
+
+  it('should save the reviewed collection and navigate to collections', async () => {
+    mockCreateCollection.mockReturnValue(() =>
+      Promise.resolve({
+        resource: { id: 'created-collection' },
+        name: 'Answer quality suite',
+        benchmarks: [],
+      }),
+    );
+    await completeGenerationToReview();
+    expect(screen.getByTestId('goal-suite-review-name')).toHaveTextContent('Answer quality suite');
+    expect(screen.getByTestId('goal-suite-review-description')).toHaveTextContent(
+      'Collection description',
+    );
+    const benchmarkReview = screen.getByTestId('goal-suite-review-benchmarks');
+    expect(benchmarkReview).toHaveTextContent('truthfulqa_mc1 · Provider A');
+    expect(benchmarkReview).toHaveTextContent('Accuracy');
+    expect(benchmarkReview).toHaveTextContent('80%');
+    expect(benchmarkReview).toHaveTextContent(/Samples\s*12/);
+    expect(benchmarkReview).toHaveTextContent(/Random seed\s*21/);
+    expect(benchmarkReview).toHaveTextContent(/Batch size\s*4/);
+    expect(benchmarkReview).toHaveTextContent('Options');
+    expect(benchmarkReview).not.toHaveTextContent('Parameters');
+    expect(benchmarkReview).toHaveTextContent('"modes"');
+
+    fireEvent.click(screen.getByTestId('goal-suite-save'));
+
+    await waitFor(() => expect(mockCreateCollection).toHaveBeenCalledTimes(1));
+    expect(mockCreateCollection).toHaveBeenCalledWith(
+      '',
+      'test-project',
+      expect.objectContaining({
+        name: 'Answer quality suite',
+        description: 'Collection description',
+        domains: ['trustworthiness'],
+        evaluation_targets: ['model'],
+        benchmarks: [
+          expect.objectContaining({
+            id: 'truthfulqa_mc1',
+            provider_id: 'provider-a',
+            parameters: {
+              sample_count: 12,
+              random_seed: 21,
+              batch_size: 4,
+              options: { modes: ['strict'] },
+            },
+          }),
+        ],
+      }),
+    );
+    expect(notification.success).toHaveBeenCalledWith(
+      'Collection created',
+      '"Answer quality suite" has been added to your collections.',
+    );
+    expect(refreshCollections).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/collections',
+    );
+  });
+
+  it('should omit benchmark details when the collection only includes ID and provider', async () => {
+    const { result } = completedGeneration;
+    const idProviderOnlyGeneration: CollectionGenerationResource = {
+      ...completedGeneration,
+      result: {
+        ...result,
+        collection: {
+          ...result.collection,
+          benchmarks: [{ id: 'truthfulqa_mc1', provider_id: 'provider-a' }],
+        },
+      },
+    };
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(idProviderOnlyGeneration));
+
+    await completeGenerationToReview();
+
+    const benchmarkReview = screen.getByTestId('goal-suite-review-benchmarks');
+    expect(benchmarkReview).toHaveTextContent('TruthfulQA');
+    expect(benchmarkReview).toHaveTextContent('truthfulqa_mc1 · Provider A');
+    expect(screen.queryByTestId('goal-suite-review-benchmark-details')).not.toBeInTheDocument();
+  });
+
+  it('should show an error when saving the reviewed collection fails', async () => {
+    mockCreateCollection.mockReturnValue(() => Promise.reject(new Error('Save failed')));
+    await completeGenerationToReview();
+
+    fireEvent.click(screen.getByTestId('goal-suite-save'));
+
+    await waitFor(() =>
+      expect(notification.error).toHaveBeenCalledWith('Failed to create collection', 'Save failed'),
+    );
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create-suite/from-goal',
+    );
+  });
+
+  it('should open the collection run modal from Review', async () => {
+    await completeGenerationToReview();
+
+    fireEvent.click(screen.getByTestId('goal-suite-save-and-run'));
+
+    expect(await screen.findByTestId('goal-suite-run-evaluation-modal')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Start evaluation run' })).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-name-input')).toHaveValue('Answer quality suite');
+    fireEvent.click(screen.getByTestId('start-evaluation-cancel'));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('goal-suite-run-evaluation-modal')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('goal-suite-review-step')).toBeInTheDocument();
+    expect(mockCreateCollection).not.toHaveBeenCalled();
   });
 
   it('should delete an active generation before cancelling to the suite chooser', async () => {

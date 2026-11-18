@@ -15,7 +15,11 @@ type SuiteBuilderFooterProps = {
   canContinueOverview: boolean;
   isStarting: boolean;
   isBusy: boolean;
+  canSave: boolean;
+  isSaving: boolean;
   onCancel: () => void;
+  onSave: () => void;
+  onSaveAndRun: () => void;
 };
 
 const SuiteBuilderFooter: React.FC<SuiteBuilderFooterProps> = ({
@@ -24,12 +28,17 @@ const SuiteBuilderFooter: React.FC<SuiteBuilderFooterProps> = ({
   canContinueOverview,
   isStarting,
   isBusy,
+  canSave,
+  isSaving,
   onCancel,
+  onSave,
+  onSaveAndRun,
 }) => {
   const { activeStep, goToPrevStep, goToNextStep } = useWizardContext();
   const isSettingsStep = activeStep.id === 'suite-settings';
   const isDefineGoalStep = activeStep.id === 'define-goal';
   const isOverviewStep = activeStep.id === 'benchmark-overview';
+  const isReviewStep = activeStep.id === 'review';
 
   return (
     <WizardFooterWrapper>
@@ -92,6 +101,39 @@ const SuiteBuilderFooter: React.FC<SuiteBuilderFooterProps> = ({
                   data-testid="next-benchmark-overview"
                 >
                   Next
+                </Button>
+              </ActionListItem>
+            </>
+          ) : isReviewStep ? (
+            <>
+              <ActionListItem>
+                <Button
+                  variant="secondary"
+                  onClick={goToPrevStep}
+                  isDisabled={isBusy}
+                  data-testid="suite-builder-back"
+                >
+                  Back
+                </Button>
+              </ActionListItem>
+              <ActionListItem>
+                <Button
+                  variant="primary"
+                  onClick={onSaveAndRun}
+                  isDisabled={!canSave || isBusy}
+                  data-testid="goal-suite-save-and-run"
+                >
+                  Save and run
+                </Button>
+              </ActionListItem>
+              <ActionListItem>
+                <Button
+                  variant="secondary"
+                  onClick={onSave}
+                  isDisabled={!canSave || isBusy}
+                  data-testid="goal-suite-save"
+                >
+                  {isSaving ? 'Saving…' : 'Save'}
                 </Button>
               </ActionListItem>
             </>
