@@ -785,6 +785,51 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       });
     });
 
+    it('should clean up a newly created collection copy when the submission is cancelled', async () => {
+      const onRunFailure = jest.fn();
+      const copiedCollection: Collection = {
+        ...mockCollection,
+        resource: { id: 'col-2', read_only: false },
+      };
+      const renderResult = renderForm({
+        collection: mockCollection,
+        isCollectionFlow: true,
+        onRunFailure,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      let rejectJob: (reason?: unknown) => void = () => undefined;
+      mockCreateEvaluationJob.mockImplementation(
+        () => () =>
+          new Promise((_resolve, reject) => {
+            rejectJob = reject;
+          }),
+      );
+
+      let submitted: Promise<void> = Promise.resolve();
+      await act(async () => {
+        submitted = renderResult.result.current.handleSubmit({
+          collection: copiedCollection,
+          collectionWasCreated: true,
+        });
+        await waitFor(() => expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1));
+      });
+
+      act(() => {
+        renderResult.result.current.handleCancel();
+      });
+      rejectJob(Object.assign(new Error('The user aborted a request.'), { name: 'AbortError' }));
+      await act(async () => {
+        await submitted;
+      });
+
+      expect(onRunFailure).toHaveBeenCalledWith(expect.anything(), copiedCollection, true);
+      expect(renderResult.result.current.isSubmitting).toBe(false);
+    });
+
     it('should submit when advisory compatibility fails and a collection omits provider IDs', async () => {
       mockHardwareProfiles = [mockCompatibleHardwareProfile];
       mockKueueAvailability = mockKueueEnabled;

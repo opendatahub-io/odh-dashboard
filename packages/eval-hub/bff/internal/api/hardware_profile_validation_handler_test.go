@@ -286,6 +286,41 @@ func TestListSelectedProvidersResolvesIDsBeforeNames(t *testing.T) {
 	}
 }
 
+// TestListSelectedProvidersNameOnlyProviderDoesNotShadowIDMatch verifies that a provider
+// without a resource ID never consumes a requested key through the name fallback in
+// providerID — it stays a provisional name match so a later provider whose actual
+// resource ID matches the key is selected instead.
+func TestListSelectedProvidersNameOnlyProviderDoesNotShadowIDMatch(t *testing.T) {
+	firstPage := make([]evalhub.Provider, maxProvidersLimit)
+	for i := range firstPage {
+		firstPage[i] = evalhub.Provider{Resource: evalhub.ProviderResource{ID: fmt.Sprintf("provider-%d", i)}}
+	}
+	// No resource ID — its name collides with another provider's resource ID.
+	firstPage[0] = evalhub.Provider{Name: "requested-key"}
+	client := &paginatedProvidersClient{pages: map[int]evalhub.ProvidersResponse{
+		0: {Items: firstPage, TotalCount: maxProvidersLimit + 1},
+		maxProvidersLimit: {Items: []evalhub.Provider{{
+			Resource: evalhub.ProviderResource{ID: "requested-key"},
+		}}, TotalCount: maxProvidersLimit + 1},
+	}}
+
+	providers, missing, err := listSelectedProviders(
+		context.Background(),
+		client,
+		"test-namespace",
+		map[string]struct{}{"requested-key": {}},
+	)
+	if err != nil {
+		t.Fatalf("listSelectedProviders failed: %v", err)
+	}
+	if len(missing) != 0 {
+		t.Fatalf("missing providers = %v, want none", missing)
+	}
+	if len(providers) != 1 || providers[0].Resource.ID != "requested-key" {
+		t.Fatalf("providers = %+v, want the provider with the matching resource ID", providers)
+	}
+}
+
 // TestListSelectedProvidersFallsBackToNames verifies that a key matching no provider's
 // resource ID still selects the provider carrying that name, and that one provider can
 // satisfy both its ID key and its name key without a duplicate comparison pass.

@@ -176,11 +176,16 @@ func listSelectedProviders(
 			return nil, nil, err
 		}
 		for _, provider := range response.Items {
-			id := providerID(provider)
-			if _, ok := remaining[id]; ok {
-				providers = append(providers, provider)
-				selectedIDs[id] = struct{}{}
-				delete(remaining, id)
+			// Only a real resource ID consumes a key immediately: providerID()'s
+			// Name fallback would let a provider without a resource ID shadow a
+			// later provider whose actual ID matches the key. Name-only providers
+			// stay provisional name matches.
+			if id := provider.Resource.ID; id != "" {
+				if _, ok := remaining[id]; ok {
+					providers = append(providers, provider)
+					selectedIDs[id] = struct{}{}
+					delete(remaining, id)
+				}
 			}
 			if _, ok := remaining[provider.Name]; ok {
 				if _, exists := nameMatches[provider.Name]; !exists {

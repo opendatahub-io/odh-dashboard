@@ -1067,6 +1067,17 @@ export function useStartEvaluationRunForm({
       }
     } catch (e) {
       if (controller.signal.aborted) {
+        // Cancellation must not strand a curated-suite copy created for this
+        // submission — clean it up exactly like a failed run. Reused collections
+        // and copies belonging to an already-created job are never deleted: the
+        // success path returns above once the job exists.
+        if (activeCollectionWasCreated) {
+          try {
+            await onRunFailure?.(e, activeCollection, activeCollectionWasCreated);
+          } catch {
+            // Best-effort cleanup on cancel.
+          }
+        }
         return;
       }
       const message = e instanceof Error ? e.message : 'An unknown error occurred.';
