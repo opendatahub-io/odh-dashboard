@@ -1,4 +1,6 @@
 /* eslint-disable camelcase */
+import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
+import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts, projectName } from './modelTrainingRayJobsTestUtils';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
 import {
@@ -183,6 +185,36 @@ describe('RayJob Resources Tab', () => {
     rayJobResourcesTab.findQuotasSection().should('exist');
     rayJobResourcesTab.findConsumedQuotaValue().should('contain', 'CPU');
     rayJobResourcesTab.findConsumedQuotaValue().should('contain', 'Memory');
+  });
+
+  it('should hide quota source when the ClusterQueue has no cohort', () => {
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-multi-group-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Resources');
+
+    rayJobResourcesTab.findQuotaSourceValue().should('not.exist');
+  });
+
+  it('should display quota source when the ClusterQueue has a cohort', () => {
+    const clusterQueue = mockClusterQueueK8sResource({ name: 'test-cluster-queue' });
+    cy.interceptK8s(
+      { model: ClusterQueueModel, name: 'test-cluster-queue' },
+      { ...clusterQueue, spec: { ...clusterQueue.spec, cohortName: 'ray-cohort' } },
+    );
+
+    modelTrainingGlobal.visit(projectName);
+
+    const row = trainingJobTable.getTableRow('ray-multi-group-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.selectTab('Resources');
+
+    rayJobResourcesTab.findQuotaSourceValue().should('contain', 'ray-cohort');
   });
 });
 

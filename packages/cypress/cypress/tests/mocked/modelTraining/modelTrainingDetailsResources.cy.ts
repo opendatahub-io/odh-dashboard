@@ -224,7 +224,7 @@ describe('Model Training', () => {
       trainingJobResourcesTab.findQueueValue().should('contain', 'test-cluster-queue');
     });
 
-    it('should display quota source', () => {
+    it('should hide quota source when the ClusterQueue has no cohort', () => {
       initIntercepts();
       modelTrainingGlobal.visit(projectName);
 
@@ -234,7 +234,7 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.shouldBeOpen();
       trainingJobDetailsDrawer.selectTab('Resources');
 
-      trainingJobResourcesTab.findQuotaSourceValue().should('have.text', '-');
+      trainingJobResourcesTab.findQuotaSourceValue().should('not.exist');
     });
 
     it('should display CPU and Memory consumption', () => {

@@ -80,7 +80,7 @@ const mockNotebookEvents = [
   },
 ];
 
-const initKueueEnabledForStatusModal = () => {
+const initKueueEnabledForStatusModal = (opts?: { cohortName?: string }) => {
   initIntercepts({ notebooks: [notebookWithKueueQueue] });
   mockCanViewClusterQueue();
   cy.interceptOdh(
@@ -107,9 +107,12 @@ const initKueueEnabledForStatusModal = () => {
       mockLocalQueueK8sResource({ name: 'test-queue', namespace: 'test-project' }),
     ]),
   );
+  const clusterQueue = mockClusterQueueK8sResource({ name: 'test-cluster-queue' });
   cy.interceptK8s(
     { model: ClusterQueueModel, name: 'test-cluster-queue' },
-    mockClusterQueueK8sResource({ name: 'test-cluster-queue' }),
+    opts?.cohortName
+      ? { ...clusterQueue, spec: { ...clusterQueue.spec, cohortName: opts.cohortName } }
+      : clusterQueue,
   );
 };
 
@@ -216,7 +219,34 @@ describe('Workbench page — Kueue & Status', () => {
     workbenchStatusModal.findClusterQueueSection().should('be.visible');
     workbenchStatusModal.findQueueValue().should('contain.text', 'test-cluster-queue');
     workbenchStatusModal.findQuotasSection().should('be.visible');
-    workbenchStatusModal.findQuotaSourceValue().should('be.visible');
+  });
+
+  it('Workbench status modal Resources tab hides Quota source when the ClusterQueue has no cohort', () => {
+    initKueueEnabledForStatusModal();
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
+    notebookRow.findHaveNotebookStatusText().click();
+
+    workbenchStatusModal.find().should('be.visible');
+    workbenchStatusModal.findResourcesTab().should('be.visible').click();
+
+    workbenchStatusModal.findQuotasSection().should('be.visible');
+    workbenchStatusModal.findQuotaSourceValue().should('not.exist');
+  });
+
+  it('Workbench status modal Resources tab shows Quota source when the ClusterQueue has a cohort', () => {
+    initKueueEnabledForStatusModal({ cohortName: 'test-cohort' });
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
+    notebookRow.findHaveNotebookStatusText().click();
+
+    workbenchStatusModal.find().should('be.visible');
+    workbenchStatusModal.findResourcesTab().should('be.visible').click();
+
+    workbenchStatusModal.findQuotasSection().should('be.visible');
+    workbenchStatusModal.findQuotaSourceValue().should('contain.text', 'test-cohort');
   });
 
   describe('Kueue workbench status', () => {
