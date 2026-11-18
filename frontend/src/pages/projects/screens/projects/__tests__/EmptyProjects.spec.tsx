@@ -49,7 +49,7 @@ describe('EmptyProjects', () => {
     fireEvent.click(screen.getByTestId('create-project'));
 
     expect(onCreateProject).toHaveBeenCalledTimes(1);
-    expect(onCreateProject).toHaveBeenCalledWith();
+    expect(onCreateProject).toHaveBeenCalledWith(expect.any(Object));
   });
 
   it('should call onCancel when the selector cancel action is clicked', () => {
