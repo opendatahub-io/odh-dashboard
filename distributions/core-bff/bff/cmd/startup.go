@@ -37,6 +37,10 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 
 	fs := flag.NewFlagSet("core-bff", flag.ContinueOnError)
 	fs.SetOutput(errOut)
+	// Defaults are resolved from the environment, so the stock usage text would
+	// print values such as PROMETHEUS_HOST (which may carry credentials) on an
+	// unknown flag or -h. List flag names and descriptions only.
+	fs.Usage = func() { printUsageWithoutDefaults(fs, errOut) }
 
 	fs.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4000), "API server port")
 	fs.StringVar(&sc.TLS.CertFile, "cert-file", getEnvAsString("CERT_FILE", ""), "Path to TLS certificate file")
@@ -200,4 +204,14 @@ func newListParser(target *[]string) func(string) error {
 		*target = splitList(s)
 		return nil
 	}
+}
+
+// printUsageWithoutDefaults writes each flag's name and description, never its
+// default. The defaults here are environment-derived configuration values, and
+// startup logging is the only place they are shown, redacted.
+func printUsageWithoutDefaults(fs *flag.FlagSet, out io.Writer) {
+	_, _ = fmt.Fprintf(out, "Usage of %s:\n", fs.Name())
+	fs.VisitAll(func(f *flag.Flag) {
+		_, _ = fmt.Fprintf(out, "  -%s\n    \t%s\n", f.Name, f.Usage)
+	})
 }

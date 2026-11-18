@@ -67,13 +67,13 @@ that the header name is configuration, not a constant.
 
 ### Transport and trust
 
-| Flag                     | Environment            | Default                | Notes                                                             |
-| ------------------------ | ---------------------- | ---------------------- | ----------------------------------------------------------------- |
-| `--cert-file`            | `CERT_FILE`            | _(empty)_              | Serving certificate. Both halves or neither.                      |
-| `--key-file`             | `KEY_FILE`             | _(empty)_              | Serving key.                                                      |
-| `--bundle-paths`         | `BUNDLE_PATHS`         | _(5 well-known paths)_ | Comma-separated PEM CA bundles for every outbound TLS connection. |
-| `--insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | `false`                | Rejected in a production profile.                                 |
-| `--allowed-origins`      | `ALLOWED_ORIGINS`      | _(none)_               | CORS origins. `*` is rejected in a production profile.            |
+| Flag                     | Environment            | Default                | Notes                                                               |
+| ------------------------ | ---------------------- | ---------------------- | ------------------------------------------------------------------- |
+| `--cert-file`            | `CERT_FILE`            | _(empty)_              | Serving certificate. Both halves or neither.                        |
+| `--key-file`             | `KEY_FILE`             | _(empty)_              | Serving key.                                                        |
+| `--bundle-paths`         | `BUNDLE_PATHS`         | _(5 well-known paths)_ | Comma-separated PEM CA bundles for every outbound TLS connection.   |
+| `--insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | `false`                | Rejected in a production profile.                                   |
+| `--allowed-origins`      | `ALLOWED_ORIGINS`      | _(none)_               | CORS origins. Production accepts exact `scheme://host[:port]` only. |
 
 ### Development and mocks
 
@@ -91,11 +91,11 @@ A deployment is in a **production profile** unless at least one of `DEV_MODE`,
 `MOCK_K8S_CLIENT`, `MOCK_HTTP_CLIENT` or `MOCK_BFF_CLIENTS` is on. Opting into a development
 profile is explicit, which is what makes these rejections safe:
 
-| Rejected in a production profile | Why                                                                              | Way out                                               |
-| -------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `AUTH_METHOD=disabled`           | No caller identity is extracted at all.                                          | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally. |
-| `INSECURE_SKIP_VERIFY=true`      | Disables upstream certificate verification on every outbound call.               | Supply the upstream CA through `BUNDLE_PATHS`.        |
-| `ALLOWED_ORIGINS=*`              | CORS replies allow credentials, so a wildcard origin is echoed back to any site. | List the exact dashboard origins.                     |
+| Rejected in a production profile                                                                                             | Why                                                                                                                 | Way out                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `AUTH_METHOD=disabled`                                                                                                       | No caller identity is extracted at all.                                                                             | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.       |
+| `INSECURE_SKIP_VERIFY=true`                                                                                                  | Disables upstream certificate verification on every outbound call.                                                  | Supply the upstream CA through `BUNDLE_PATHS`.              |
+| `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), or an entry with a path, query or user info | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. | List each exact dashboard origin as `scheme://host[:port]`. |
 
 ## TLS inputs
 
@@ -112,11 +112,11 @@ topology, where a Gateway or Ingress terminates TLS at the edge.
 Getting this wrong is an easy way to pass startup validation and still fail every request, so the
 split is explicit:
 
-| Transport                                                                                                              | Trust source                                                     | Does `BUNDLE_PATHS` apply? |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------- |
-| Kubernetes API **clients** (client-go: the service-account clients and the caller-token clients)                       | The kubeconfig or in-cluster service-account CA, from `rest.Config` | **No**                     |
-| Kubernetes HTTP and WebSocket **proxies** (`/api/k8s/*`, `/wss/k8s/*`)                                                  | System pool + `BUNDLE_PATHS` + the kubeconfig CA merged in        | Yes                        |
-| Model-serving proxy, module proxies, inter-BFF clients, Prometheus client, connection-test probes                      | System pool + `BUNDLE_PATHS`                                      | Yes                        |
+| Transport                                                                                         | Trust source                                                        | Does `BUNDLE_PATHS` apply? |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------- |
+| Kubernetes API **clients** (client-go: the service-account clients and the caller-token clients)  | The kubeconfig or in-cluster service-account CA, from `rest.Config` | **No**                     |
+| Kubernetes HTTP and WebSocket **proxies** (`/api/k8s/*`, `/wss/k8s/*`)                            | System pool + `BUNDLE_PATHS` + the kubeconfig CA merged in          | Yes                        |
+| Model-serving proxy, module proxies, inter-BFF clients, Prometheus client, connection-test probes | System pool + `BUNDLE_PATHS`                                        | Yes                        |
 
 The practical consequence: **supplying the Kubernetes API CA only through `BUNDLE_PATHS` does not
 configure the client-go clients.** Identity resolution and every service-account read would still
@@ -131,9 +131,9 @@ is global and rejected in a production profile.
 
 `BUNDLE_PATHS` has two modes, because the two cases have different failure semantics:
 
-| Case                                       | Behaviour                                                                                                                                                       |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Default set (the five well-known paths)    | Unreadable entries are skipped. Most do not exist on most clusters; the set is a convenience.                                                                   |
+| Case                                       | Behaviour                                                                                                                                                                         |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Default set (the five well-known paths)    | Unreadable entries are skipped. Most do not exist on most clusters; the set is a convenience.                                                                                     |
 | Supplied explicitly by environment or flag | If **no** path yields a certificate, startup fails. That includes an explicitly empty or separator-only value. Falling back to the system pool would be a silent trust downgrade. |
 
 **Client credentials.** Outbound client certificates come from the Kubernetes rest config
@@ -192,7 +192,9 @@ on the real log output.
 
 ## xKS startup and minimal permissions
 
-An xKS startup issues **no OpenShift configuration API request at all**, with or without TLS. The
+An xKS startup with the platform set explicitly (`ODH_PLATFORM_TYPE=XKS` or `--platform-type=XKS`)
+issues **no OpenShift configuration API request at all**, with or without TLS. Auto-detection still
+probes `ClusterVersion` once to resolve the platform. The
 dashboard service account is not expected to hold permissions on `config.openshift.io`, and
 issuing a request that can only fail or fall back would put that dependency in the startup path of
 a cluster that does not have the API.
@@ -208,8 +210,12 @@ The `config.openshift.io` rule in `manifests/base/cluster-role.yaml` is therefor
 can be dropped from an xKS-only overlay.
 
 When the platform is left to auto-detect and the probe returns an ambiguous error, the resolved
-platform is **XKS** — the least-privilege answer. An explicit `ODH_PLATFORM_TYPE` always wins, and
-a disagreement with the probe is logged.
+platform is **XKS**, the least-privilege answer, but it is marked **unconfirmed**. An unconfirmed
+platform keeps the conservative admission mode and keeps the profile-aware TLS listener
+(`ListenAndServeTLSWithReload`), because the cluster may still be OpenShift with a Modern or Custom
+profile. Only a configured or positively detected xKS platform uses
+`ListenAndServeTLSWithoutClusterProfile`. An explicit `ODH_PLATFORM_TYPE` always wins, and a
+disagreement with the probe is logged.
 
 ## Retained supporting services
 

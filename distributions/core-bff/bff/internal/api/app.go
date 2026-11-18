@@ -45,6 +45,9 @@ type App struct {
 	openAPI *OpenAPIHandler
 	// clusterInfo holds startup-time cluster metadata (best-effort, defaults on vanilla K8s)
 	clusterInfo clusterInfo
+	// platformConfirmed is false when the platform was guessed after an
+	// inconclusive ClusterVersion probe rather than configured or detected.
+	platformConfirmed bool
 	// k8sProxy handles /api/k8s/* HTTP passthrough to the K8s API server
 	k8sProxy http.Handler
 	// wsTracker manages active WebSocket connections and stale cleanup
@@ -76,6 +79,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
 
 	rootCAs := initRootCAs(cfg.BundlePaths, logger)
+	// config.Validate already checked the explicit bundles, but this is a second
+	// read. If they vanished in between, falling back to the system pool would
+	// silently drop the operator's trust anchors.
+	if cfg.BundlePathsRequired && rootCAs == nil {
+		return nil, fmt.Errorf("BUNDLE_PATHS was set explicitly but no CA certificate could be loaded from it; refusing to fall back to the system trust store")
+	}
 
 	k8sResult, err := initKubernetesClients(cfg, logger)
 	if err != nil {
@@ -116,12 +125,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 				InsecureSkipVerify: cfg.InsecureSkipVerify && (cfg.DevMode || cfg.MockK8Client),
 			},
 		}),
-		testEnv:          k8sResult.testEnv,
-		rootCAs:          rootCAs,
-		bffClientFactory: bffFactory,
-		openAPI:          openAPIHandler,
-		clusterInfo:      ci,
-		probeSemaphore:   NewProbeSemaphore(),
+		testEnv:           k8sResult.testEnv,
+		rootCAs:           rootCAs,
+		bffClientFactory:  bffFactory,
+		openAPI:           openAPIHandler,
+		clusterInfo:       ci,
+		platformConfirmed: platformConfirmed,
+		probeSemaphore:    NewProbeSemaphore(),
 	}
 
 	if err := app.initK8sProxy(cfg, k8sResult); err != nil {
@@ -199,6 +209,17 @@ func initBFFClientFactory(cfg config.EnvConfig, rootCAs *x509.CertPool, logger *
 // may read the OpenShift cluster TLS profile.
 func (app *App) PlatformType() config.PlatformType {
 	return app.config.PlatformType
+}
+
+// ServeTLSWithoutClusterProfile reports whether HTTPS may be served with the
+// static Intermediate defaults instead of tracking the OpenShift cluster TLS
+// profile. That is only safe on a confirmed xKS platform (configured, or
+// positively detected). When the platform was guessed after an inconclusive
+// probe the cluster may still be OpenShift, so the profile-aware listener is
+// kept: on OpenShift it enforces the administrator's Modern or Custom policy,
+// and where the profile API is absent it falls back to the same defaults.
+func (app *App) ServeTLSWithoutClusterProfile() bool {
+	return app.config.PlatformType.IsXKS() && app.platformConfirmed
 }
 
 func (app *App) Shutdown() error {

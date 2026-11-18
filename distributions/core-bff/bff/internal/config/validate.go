@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -134,11 +135,40 @@ func (c EnvConfig) validateProductionProfile(add func(string, ...any)) {
 	}
 
 	for _, origin := range c.AllowedOrigins {
-		if strings.TrimSpace(origin) == "*" {
-			add("ALLOWED_ORIGINS contains \"*\" while CORS responses allow credentials; list the exact dashboard origins instead")
-			break
+		origin = strings.TrimSpace(origin)
+		if origin == "" {
+			continue
+		}
+		if reason := exactOriginProblem(origin); reason != "" {
+			add("ALLOWED_ORIGINS entry %q is not an exact origin (%s) while CORS responses allow credentials; list each dashboard origin as scheme://host[:port]",
+				origin, reason)
 		}
 	}
+}
+
+// exactOriginProblem reports why origin is not a single exact HTTP(S) origin,
+// or "" when it is. The CORS middleware allows credentials and matches "*"
+// anywhere in an entry as a wildcard, so a pattern such as "https://*" would
+// admit every HTTPS site. Production entries must therefore name one origin.
+func exactOriginProblem(origin string) string {
+	if strings.Contains(origin, "*") {
+		return "wildcards are not allowed"
+	}
+	u, err := url.Parse(origin)
+	if err != nil {
+		return "it does not parse as a URL"
+	}
+	switch {
+	case u.Scheme != "http" && u.Scheme != "https":
+		return "the scheme must be http or https"
+	case u.Host == "" || u.Hostname() == "":
+		return "the host is missing"
+	case u.User != nil:
+		return "user info is not allowed"
+	case (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery:
+		return "path, query and fragment are not allowed"
+	}
+	return ""
 }
 
 // validateServingTLS fails startup on any half-configured or unusable serving

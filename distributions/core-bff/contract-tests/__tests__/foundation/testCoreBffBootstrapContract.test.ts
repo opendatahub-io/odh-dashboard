@@ -4,7 +4,7 @@
  * Bootstrap contract guarantees that hold on every platform.
  * See distributions/core-bff/docs/bootstrap-contract.md.
  */
-import { apiClient, restrictedClient, expectSuccess } from '../helpers';
+import { apiClient, restrictedClient, expectSuccess, expectError } from '../helpers';
 
 const BOOTSTRAP_PATHS = ['/api/status', '/api/config', '/api/components'];
 
@@ -69,7 +69,7 @@ describe('Core BFF bootstrap contract', () => {
 
       // Admitted or not, the guarded route runs its own review and refuses.
       const guarded = await restrictedClient.get('/api/cluster-settings');
-      expect(guarded.success).toBe(false);
+      expectError(guarded, 403);
     });
   });
 });

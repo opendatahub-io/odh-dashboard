@@ -75,7 +75,7 @@ func countNonEmpty(values []string) int {
 
 func hasWildcardOrigin(origins []string) bool {
 	for _, o := range origins {
-		if strings.TrimSpace(o) == "*" {
+		if strings.Contains(o, "*") {
 			return true
 		}
 	}

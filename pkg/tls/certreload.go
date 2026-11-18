@@ -41,12 +41,18 @@ type CertReloader struct {
 func NewCertReloader(certFile, keyFile string, logger *slog.Logger) (*CertReloader, error) {
 	r := &CertReloader{certFile: certFile, keyFile: keyFile, logger: logger}
 
+	// Record modification times before reading the pair, as GetCertificate
+	// does. If a rotation lands between the stat and the load, the recorded
+	// times are older than the loaded files and the next handshake reloads
+	// harmlessly. The reverse order could pair the old certificate with the new
+	// times and keep serving it until the following rotation.
+	certMod, keyMod := modTime(certFile), modTime(keyFile)
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load serving certificate (cert=%s key=%s): %w", certFile, keyFile, err)
 	}
 	r.current = &cert
-	r.certModTime, r.keyModTime = modTime(certFile), modTime(keyFile)
+	r.certModTime, r.keyModTime = certMod, keyMod
 	return r, nil
 }
 

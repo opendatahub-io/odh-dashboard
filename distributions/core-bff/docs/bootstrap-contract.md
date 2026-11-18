@@ -17,7 +17,7 @@ configuration inputs are in [runtime-contract.md](./runtime-contract.md).
 Identity is the only hard requirement. If the API server cannot resolve the caller there is no
 session to describe, so the request fails rather than returning a degraded answer.
 
-> **Admission and UI capability are not authorization.** > `isAllowed` and `isAdmin` describe what the shell should render. They are not permission to call
+> **Admission and UI capability are not authorization.** `isAllowed` and `isAdmin` describe what the shell should render. They are not permission to call
 > anything. Every API operation runs its own resource authorization against the caller's
 > credentials regardless of what this endpoint returned, and a client must never treat these
 > fields as a substitute. A caller who is admitted and sees admin surfaces still gets 403 from any

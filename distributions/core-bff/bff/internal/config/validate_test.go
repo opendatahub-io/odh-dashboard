@@ -97,3 +97,55 @@ func TestValidate_DisabledAuthIsProfileDependent(t *testing.T) {
 	cfg.MockK8Client = true
 	require.NoError(t, cfg.Validate(TLSFiles{}))
 }
+
+func TestValidate_ProductionRejectsWildcardAndInexactOrigins(t *testing.T) {
+	for _, origin := range []string{
+		"*",
+		"https://*",
+		"http://*",
+		"https://*.example.com",
+		"*.example.com",
+		"example.com",
+		"ftp://dashboard.example.com",
+		"https://user@dashboard.example.com",
+		"https://dashboard.example.com/app",
+		"https://dashboard.example.com?x=1",
+		"https://",
+	} {
+		t.Run(origin, func(t *testing.T) {
+			cfg := productionConfig()
+			cfg.AllowedOrigins = []string{"https://dashboard.example.com", origin}
+
+			err := cfg.Validate(TLSFiles{})
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "ALLOWED_ORIGINS entry")
+		})
+	}
+}
+
+func TestValidate_ProductionAcceptsExactOrigins(t *testing.T) {
+	cfg := productionConfig()
+	cfg.AllowedOrigins = []string{
+		"https://dashboard.example.com",
+		" http://localhost:9000 ",
+		"https://dashboard.example.com/",
+		"",
+	}
+
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+}
+
+func TestValidate_DevelopmentProfileKeepsWildcardOrigins(t *testing.T) {
+	cfg := productionConfig()
+	cfg.DevMode = true
+	cfg.AllowedOrigins = []string{"*"}
+
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+}
+
+func TestHasWildcardOrigin_FlagsEmbeddedWildcards(t *testing.T) {
+	assert.True(t, hasWildcardOrigin([]string{"https://*.example.com"}))
+	assert.True(t, hasWildcardOrigin([]string{" * "}))
+	assert.False(t, hasWildcardOrigin([]string{"https://dashboard.example.com"}))
+}

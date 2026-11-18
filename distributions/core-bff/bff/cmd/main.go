@@ -89,19 +89,21 @@ func runServer(app *api.App, cfg config.EnvConfig, tlsFiles config.TLSFiles, log
 	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer stop()
 
-	// On xKS the cluster TLS profile lives in an OpenShift configuration API
-	// that does not exist, so reading it could only fall back to Intermediate
-	// defaults anyway — but issuing the request would put a config.openshift.io
-	// dependency in the xKS startup path. Serve the same defaults directly.
-	isXKS := app.PlatformType().IsXKS()
+	// On a confirmed xKS platform the cluster TLS profile lives in an OpenShift
+	// configuration API that does not exist, so reading it could only fall back
+	// to Intermediate defaults anyway, but issuing the request would put a
+	// config.openshift.io dependency in the xKS startup path. Serve the same
+	// defaults directly. A platform guessed after an inconclusive probe keeps the
+	// profile-aware listener so a real OpenShift policy is never bypassed.
+	withoutClusterProfile := app.ServeTLSWithoutClusterProfile()
 
 	var serveErr error
 	serverClosed := make(chan struct{})
 	go func() {
 		defer close(serverClosed)
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled, "platform", app.PlatformType().String())
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled, "platform", app.PlatformType().String(), "clusterTLSProfile", tlsEnabled && !withoutClusterProfile)
 		switch {
-		case tlsEnabled && isXKS:
+		case tlsEnabled && withoutClusterProfile:
 			serveErr = tlsprofile.ListenAndServeTLSWithoutClusterProfile(signalCtx, logger, srv, tlsFiles.CertFile, tlsFiles.KeyFile)
 		case tlsEnabled:
 			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, tlsFiles.CertFile, tlsFiles.KeyFile)
