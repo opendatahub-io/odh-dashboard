@@ -473,7 +473,27 @@ const WorkingProjectModal: React.FC<
           {projectCount}
         </Badge>
       </FlexItem>
-      {aiLabel && <FlexItem>{aiLabel}</FlexItem>}
+      {filter === 'ai' && aiLabel && <FlexItem>{aiLabel}</FlexItem>}
+    </Flex>
+  );
+  const filterOptionLabel = (label: string, count: number, showAiLabel = false) => (
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      flexWrap={{ default: 'nowrap' }}
+      spaceItems={{ default: 'spaceItemsSm' }}
+      className="odh-working-project-selector__filter-option"
+    >
+      <FlexItem>{label}</FlexItem>
+      <FlexItem>
+        <Badge
+          isRead
+          className="odh-working-project-selector__count"
+          screenReaderText={`${label}: ${count} projects`}
+        >
+          {count}
+        </Badge>
+      </FlexItem>
+      {showAiLabel && aiLabel && <FlexItem>{aiLabel}</FlexItem>}
     </Flex>
   );
   const selectedProject = projects.find(({ name }) => name === selectedName);
@@ -639,8 +659,24 @@ const WorkingProjectModal: React.FC<
                             }}
                             onChange={setFilter}
                             options={[
-                              ...(isAiProject ? [{ key: 'ai', label: 'AI projects only' }] : []),
-                              { key: 'all', label: 'All projects' },
+                              {
+                                key: 'all',
+                                label: 'All projects',
+                                dropdownLabel: filterOptionLabel('All projects', projects.length),
+                              },
+                              ...(isAiProject
+                                ? [
+                                    {
+                                      key: 'ai',
+                                      label: 'AI projects only',
+                                      dropdownLabel: filterOptionLabel(
+                                        'AI projects only',
+                                        aiProjectCount,
+                                        true,
+                                      ),
+                                    },
+                                  ]
+                                : []),
                             ]}
                           />
                         </FlexItem>

@@ -776,6 +776,37 @@ describe('WorkingProjectSelector', () => {
     await waitFor(() => expect(onProjectChange).toHaveBeenCalledWith({ name: 'another' }));
   });
 
+  it('should show project counts and the AI label in the project filter options', () => {
+    render(
+      <WorkingProjectProvider
+        projects={[project, { name: 'ai-project-1' }, { name: 'ai-project-2' }]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent="No projects"
+          isAiProject={(name) => name.startsWith('ai-project')}
+          aiLabel={<span>AI</span>}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    const filter = screen.getByRole('button', { name: 'Project type' });
+
+    expect(filter).toHaveTextContent('AI projects only');
+    expect(filter).toHaveTextContent('2');
+    expect(filter).toHaveTextContent('AI');
+
+    fireEvent.click(filter);
+
+    const allProjectsOption = screen.getByRole('option', { name: /All projects/ });
+    const aiProjectsOption = screen.getByRole('option', { name: /AI projects only/ });
+    expect(allProjectsOption).toHaveTextContent('3');
+    expect(aiProjectsOption).toHaveTextContent('2');
+    expect(aiProjectsOption).toHaveTextContent('AI');
+  });
+
   it('should show both identity names only in the xKS fallback and avoid duplicate names', () => {
     render(
       <WorkingProjectProvider
