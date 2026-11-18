@@ -1,37 +1,50 @@
 import {
-  checkLLMInferenceServiceState,
-  cleanupLLMInferenceService,
-} from '../../../utils/oc_commands/modelServing';
-import {
   checkMaaSAuthPolicyState,
+  checkExternalModelExists,
+  checkExternalProviderExists,
+  checkMaaSModelRefExists,
   checkMaaSSubscriptionState,
   cleanupApiKeys,
   cleanupAuthPolicy,
+  cleanupExternalModelResources,
+  cleanupExternalProvider,
+  cleanupExternalProviderSecret,
   cleanupSubscription,
-  createLLMInferenceServiceWithMaaSEnabled,
+  createExternalProviderSecret,
   createMaaSAuthPolicy,
-  createMaaSModelRef,
   createMaaSSubscription,
-  cleanupMaaSModelRef,
+  checkSecretExists,
   modelsAsAServiceNamespace,
   waitForMaaSModelReady,
 } from '../../../utils/oc_commands/maas';
-import { deleteOpenShiftProjectBestEffort } from '../../../utils/oc_commands/project';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
-import { createAndVerifyProject } from '../../../utils/projectChecker';
+import {
+  addUserToProject,
+  deleteOpenShiftProjectBestEffort,
+} from '../../../utils/oc_commands/project';
+import { createCleanProject } from '../../../utils/projectChecker';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import {
+  addProviderReferenceWizard,
   apiKeysPage,
   copyApiKeyModal,
   createApiKeyModal,
+  createExternalModelPage,
+  createExternalProviderModal,
+  externalModelsPage,
+  externalProvidersPage,
   revokeAPIKeyModal,
   subscriptionsTab,
 } from '../../../pages/modelsAsAService';
 import { maasPortalPage } from '../../../pages/maasPortal';
 import { MAAS_PORTAL_ADMIN_USER, MAAS_PORTAL_USER } from '../../../utils/e2eUsers';
 import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
-import { verifyMaaSApiKeyRevoked } from '../../../utils/maasApiKeyRevocation';
-import type { UserAuthConfig } from '../../../types';
+import {
+  requestMaaSCompletion,
+  verifyMaaSApiKeyRevoked,
+} from '../../../utils/maasApiKeyRevocation';
+import { loadExternalModelFixture } from '../../../utils/dataLoader';
+import type { ExternalModelTestData, UserAuthConfig } from '../../../types';
 
 const testSuffix = `${generateTestUUID()}-${Date.now().toString(36).slice(-5)}`;
 const projectName = `portal-e2e-project-${testSuffix}`;
@@ -39,11 +52,51 @@ const modelName = `portal-e2e-model-${testSuffix}`;
 const subscriptionName = `portal-e2e-sub-${testSuffix}`;
 const policyName = `portal-e2e-policy-${testSuffix}`;
 const apiKeyName = `portal-e2e-key-${testSuffix}`;
-const modelFixture = 'resources/maas/llmInferenceServiceSimulatorPremium.yaml';
 const subscriptionFixture = 'resources/maas/MaaSSubscriptionPortal.yaml';
 const authPolicyFixture = 'resources/maas/MaaSAuthPolicyPortal.yaml';
 const enableFlag = Cypress.env('ENABLE_MAAS_PORTAL_E2E');
 const runMaaSPortalE2E = enableFlag === true || enableFlag === 'true';
+
+const createExternalModelStack = (adminUser: UserAuthConfig) =>
+  loadExternalModelFixture('e2e/maas/testExternalModels.yaml').then(
+    (fixtureData: ExternalModelTestData) => {
+      ensureAdminOcSession();
+      createCleanProject(projectName);
+      addUserToProject(projectName, adminUser.USERNAME, 'edit');
+      createExternalProviderSecret(projectName, modelName);
+      checkSecretExists(projectName, modelName);
+
+      externalModelsPage.visitAsUser(adminUser, { projectName });
+      externalModelsPage.findExternalProvidersButton().click();
+      externalProvidersPage.findCreateExternalProviderButton().click();
+      createExternalProviderModal.findDisplayNameInput().type(modelName);
+      createExternalProviderModal.selectProviderType(fixtureData.providerType);
+      createExternalProviderModal.findEndpointInput().type(fixtureData.providerEndpoint);
+      createExternalProviderModal.selectExistingSecret(modelName);
+      createExternalProviderModal.selectAuthentication(fixtureData.providerAuthType);
+      createExternalProviderModal.findSubmitButton().click();
+      checkExternalProviderExists(projectName, modelName);
+
+      externalProvidersPage.findBreadcrumbExternalModelsLink().click();
+      externalModelsPage.findAddExternalModelButton().click();
+      createExternalModelPage.findDisplayNameInput().clear().type(modelName);
+      createExternalModelPage.findAddProviderReferenceButton().click();
+      addProviderReferenceWizard.selectProvider(modelName);
+      addProviderReferenceWizard.findNextButton().should('be.enabled').click();
+      addProviderReferenceWizard.selectOpenAIFormat();
+      addProviderReferenceWizard.findTargetModelInput().clear().type(fixtureData.targetModel);
+      addProviderReferenceWizard.findAddButton().should('be.enabled').click();
+      createExternalModelPage.findCreateButton().click();
+
+      checkMaaSModelRefExists(projectName, modelName, {
+        modelRef: { kind: fixtureData.kind, name: modelName },
+      });
+      checkExternalModelExists(projectName, modelName, {
+        modelName,
+        externalProviderRefs: [modelName],
+      });
+    },
+  );
 
 const getRequiredPortalConfig = (): {
   portalUrl: string;
@@ -106,12 +159,8 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       PORTAL_ADMIN_USERNAME: adminUser.USERNAME,
     };
 
-    cy.step('Create isolated MaaS resources for the portal test');
-    ensureAdminOcSession();
-    createAndVerifyProject(projectName);
-    createLLMInferenceServiceWithMaaSEnabled(projectName, modelName, modelFixture);
-    checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
-    createMaaSModelRef(projectName, modelName);
+    cy.step('Create an isolated ExternalModel stack for the portal test');
+    createExternalModelStack(adminUser);
     createMaaSSubscription(
       subscriptionName,
       'Cypress MaaS Portal test subscription',
@@ -138,8 +187,9 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
     ensureAdminOcSession();
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
     cleanupAuthPolicy(policyName, modelsAsAServiceNamespace);
-    cleanupMaaSModelRef(modelName, projectName);
-    cleanupLLMInferenceService(modelName, projectName);
+    cleanupExternalModelResources(modelName, projectName);
+    cleanupExternalProvider(modelName, projectName);
+    cleanupExternalProviderSecret(modelName, projectName);
     deleteOpenShiftProjectBestEffort(projectName);
     cleanupApiKeys(apiKeyName);
   });
@@ -158,7 +208,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
         .findNavLink(/model access/i)
         .should('be.visible')
         .click();
-      maasPortalPage.findPageTitle().should('match', /model access/i);
+      maasPortalPage.shouldShowPageTitle('Model access');
       subscriptionsTab.findSubscriptionsTable().should('be.visible');
       subscriptionsTab.findSubscriptionRows().should('have.length.greaterThan', 0);
 
@@ -217,19 +267,9 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
                 cy.wrap(modelId).as('createdModelId');
                 const gatewayBaseUrl = String(baseUrl ?? '').replace(/\/$/, '');
 
-                cy.request({
-                  method: 'POST',
-                  url: `${gatewayBaseUrl}/v1/chat/completions`,
-                  headers: {
-                    Authorization: `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: {
-                    model: modelId,
-                    messages: [{ role: 'user', content: 'Hello' }],
-                  },
-                  failOnStatusCode: false,
-                  log: false,
+                requestMaaSCompletion(`${gatewayBaseUrl}/v1/chat/completions`, apiKey, {
+                  model: modelId,
+                  messages: [{ role: 'user', content: 'Hello' }],
                 }).then((response) => {
                   expect(response.status).to.equal(200);
                 });

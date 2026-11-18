@@ -1632,15 +1632,6 @@ class SubscriptionsTab {
     return cy.findByTestId('subscriptions-toolbar');
   }
 
-  findModelAccessSubscriptionFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('model-access-subscription-filter-toggle');
-  }
-
-  selectModelAccessSubscription(name: string): void {
-    this.findModelAccessSubscriptionFilter().click();
-    cy.findByRole('option', { name: new RegExp(`^${name}$`) }).click();
-  }
-
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('subscriptions-search-input');
   }
