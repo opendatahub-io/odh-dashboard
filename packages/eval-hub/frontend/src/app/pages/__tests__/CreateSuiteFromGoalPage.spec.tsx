@@ -266,7 +266,7 @@ describe('CreateSuiteFromGoalPage', () => {
       '12 of 20 benchmarks',
     );
     expect(
-      screen.getByText('Choose the maximum number of benchmarks AI should recommend'),
+      screen.getByText('Set the maximum number of benchmarks AI can recommend, up to 20.'),
     ).toBeInTheDocument();
     expect(maxBenchmarksSlider).toHaveAttribute(
       'aria-describedby',

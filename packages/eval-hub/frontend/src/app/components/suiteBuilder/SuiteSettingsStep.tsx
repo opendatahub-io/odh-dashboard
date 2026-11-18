@@ -129,7 +129,7 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({ canContinueSettin
                   <FlexItem>
                     <HelperText>
                       <HelperTextItem id="suite-builder-max-benchmarks-helper">
-                        Choose the maximum number of benchmarks AI should recommend
+                        Set the maximum number of benchmarks AI can recommend, up to 20.
                       </HelperTextItem>
                     </HelperText>
                   </FlexItem>

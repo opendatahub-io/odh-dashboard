@@ -16,7 +16,7 @@ class SuiteBuilderPage {
   }
 
   findMaxBenchmarksHelper() {
-    return cy.findByText('Choose the maximum number of benchmarks AI should recommend');
+    return cy.findByText('Set the maximum number of benchmarks AI can recommend, up to 20.');
   }
 
   findStrictnessSelect() {
