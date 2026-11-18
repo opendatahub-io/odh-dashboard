@@ -85,11 +85,7 @@ const MastheadProjectSelector: React.FC = () => {
             </>,
           );
         }}
-        onCreateProject={
-          permissionsLoaded && allowCreate
-            ? (isEmpty) => setCreation(isEmpty ? 'empty' : 'create')
-            : undefined
-        }
+        onCreateProject={permissionsLoaded && allowCreate ? () => setCreation('create') : undefined}
       />
       {creation && (
         <ManageProjectModal
