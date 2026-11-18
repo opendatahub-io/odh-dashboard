@@ -132,7 +132,10 @@ const AccessDetailsModal: React.FC<AccessDetailsModalProps> = ({
     (opts: APIOptions) => getMaaSModelsList()(opts),
     [],
   );
-  const [maasModels, , maasModelsError, refreshMaasModels] = useFetchState(modelsCallback, []);
+  const [maasModels, maasModelsLoaded, maasModelsError, refreshMaasModels] = useFetchState(
+    modelsCallback,
+    [],
+  );
 
   const selectedModelRef = subscription?.model_refs.find(
     (ref) => modelRefKey(ref) === effectiveSelectedModel,
@@ -320,6 +323,21 @@ const AccessDetailsModal: React.FC<AccessDetailsModalProps> = ({
                   value={modelId}
                 />
               )}
+              {subscription &&
+                !maasModelsError &&
+                maasModelsLoaded &&
+                selectedModelRef &&
+                !selectedMaaSModel && (
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title="Model details unavailable"
+                    data-testid="access-details-model-unresolved"
+                  >
+                    The selected model could not be found in the model catalog, so its base URL,
+                    model ID, and usage example cannot be shown.
+                  </Alert>
+                )}
               {usageExample && (
                 <FormGroup label="Usage example" fieldId="access-details-usage-example">
                   <CodeBlock

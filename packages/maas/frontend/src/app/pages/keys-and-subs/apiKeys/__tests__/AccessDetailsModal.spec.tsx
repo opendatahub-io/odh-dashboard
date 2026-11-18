@@ -271,6 +271,19 @@ describe('AccessDetailsModal', () => {
     );
   });
 
+  it('shows a warning when the catalog loads but the selected model cannot be resolved', async () => {
+    // Catalog loads successfully but contains no match for the subscription's model ref.
+    mockGetMaaSModelsList = () => Promise.resolve([]);
+    renderModal();
+    expect(await screen.findByTestId('access-details-model-unresolved')).toBeVisible();
+    expect(screen.getByTestId('access-details-model-unresolved')).toHaveTextContent(
+      'could not be found in the model catalog',
+    );
+    // Connection details are hidden, but with an explanation rather than silently.
+    expect(screen.queryByText('Base URL')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('access-details-usage-example')).not.toBeInTheDocument();
+  });
+
   it('invokes onClose when the Close button is clicked', async () => {
     const user = userEvent.setup();
     const onClose = renderModal();
