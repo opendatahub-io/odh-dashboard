@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { TrackingProvider } from '../../../__tests__/unit/testUtils/TrackingProvider';
@@ -114,13 +115,21 @@ describe('RecentlyVisitedResources', () => {
     expect(screen.getByRole('cell', { name: 'Feature views' })).toBeInTheDocument();
   });
 
-  it('paginates the visits using the table page size', () => {
+  it('paginates the visits using the table page size', async () => {
+    const user = userEvent.setup();
     setupHook();
 
     renderRecentlyVisited();
 
     // The fixture holds 16 visits and the dashboard table page size is 10.
     expect(screen.getAllByRole('link', { name: /in rbac project$/ })).toHaveLength(10);
+
+    // The table renders one pagination in the top toolbar and one below the table.
+    const [nextButton] = screen.getAllByRole('button', { name: /next/i });
+    expect(nextButton).toBeEnabled();
+    await user.click(nextButton);
+
+    expect(screen.getAllByRole('link', { name: /in rbac project$/ })).toHaveLength(6);
   });
 
   it('requests the given project and limit from the API hook', () => {

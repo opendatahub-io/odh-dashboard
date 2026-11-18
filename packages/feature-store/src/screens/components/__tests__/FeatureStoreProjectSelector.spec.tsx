@@ -58,17 +58,18 @@ describe('FeatureStoreProjectSelector', () => {
     renderSelector();
 
     expect(screen.getByText('Feature store')).toBeInTheDocument();
-    expect(screen.getByTestId('feature-store-project-selector-toggle')).toHaveTextContent(
-      'All feature stores',
-    );
+
+    const toggle = screen.getByRole('button', { name: /All feature stores/ });
+    expect(toggle).toHaveTextContent('All feature stores');
+    expect(toggle).toHaveAccessibleName('Feature store All feature stores');
   });
 
   it('shows the selected project name in the toggle', () => {
     renderSelector({ featureStoreProject: 'driver_ranking' });
 
-    expect(screen.getByTestId('feature-store-project-selector-toggle')).toHaveTextContent(
-      'driver_ranking',
-    );
+    const toggle = screen.getByRole('button', { name: /driver_ranking/ });
+    expect(toggle).toHaveTextContent('driver_ranking');
+    expect(toggle).toHaveAccessibleName('Feature store driver_ranking');
   });
 
   it('lists every available project in the menu', async () => {

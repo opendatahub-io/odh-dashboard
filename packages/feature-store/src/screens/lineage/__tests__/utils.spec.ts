@@ -1,5 +1,5 @@
 import { findConnectedElements } from '@odh-dashboard/internal/components/lineage/graphUtils';
-import { LineageData } from '@odh-dashboard/internal/components/lineage/types';
+import { LineageData, TopologyEdgeModel } from '@odh-dashboard/internal/components/lineage/types';
 import { mockFeatureStoreLineage } from '../../../__mocks__/mockLineage';
 import { mockEntity } from '../../../__mocks__/mockEntities';
 import { FeatureViewLineage } from '../../../types/lineage';
@@ -232,6 +232,12 @@ describe('filterNodesBySearch', () => {
       'featureview-driver_stats',
     ]);
     expect(filtered.edges.map((edge) => edge.id)).toEqual(['fv-edge-0']);
+
+    const edgesPassedToTraversal: TopologyEdgeModel[] = mockFindConnectedElements.mock.calls[0][1];
+    // 'positioning-edge-2-3' is the only positioning edge in the fixture, so it must never be
+    // handed to the traversal: layout-only edges must not make nodes look connected.
+    expect(edgesPassedToTraversal.every((edge) => !edge.data?.isPositioningEdge)).toBe(true);
+    expect(edgesPassedToTraversal.map((edge) => edge.id)).not.toContain('positioning-edge-2-3');
   });
 
   it('returns an empty result when no node matches the filters', () => {

@@ -89,12 +89,15 @@ describe('MetricCards', () => {
   it('renders loading placeholders instead of counts while not loaded', () => {
     renderMetricCards(mockResourceCounts(), false);
 
-    expect(screen.getByTestId('feature-store-metrics-card-entities')).toBeInTheDocument();
+    const entitiesCard = screen.getByTestId('feature-store-metrics-card-entities');
+    expect(entitiesCard).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
     expect(screen.queryByText('No available datasets')).not.toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('feature-store-metrics-card-entities')).queryByText('2'),
-    ).not.toBeInTheDocument();
+    expect(within(entitiesCard).queryByText('2')).not.toBeInTheDocument();
+    // PF Skeleton renders a bare div with the pf-v6-c-skeleton class and no role, so a class
+    // query is the only way to assert the placeholder is actually there. The card renders one
+    // skeleton for the count (body) and one for the link (footer).
+    expect(entitiesCard.querySelectorAll('.pf-v6-c-skeleton')).toHaveLength(2);
   });
 
   it('renders no cards when there is no metrics data', () => {
