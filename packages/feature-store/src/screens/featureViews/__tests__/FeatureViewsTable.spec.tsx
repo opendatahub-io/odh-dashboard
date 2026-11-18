@@ -20,11 +20,13 @@ const renderTable = ({
   ],
   isFromDetailsPage = false,
   fsObject,
+  fsProject = 'credit_scoring_local',
   onClearFilters = jest.fn(),
 }: {
   featureViews?: FeatureView[];
   isFromDetailsPage?: boolean;
   fsObject?: { entity?: string; feature?: string; featureService?: string };
+  fsProject?: string;
   onClearFilters?: jest.Mock;
 } = {}) => {
   mockUseFeatureStoreProject.mockReturnValue({
@@ -40,6 +42,7 @@ const renderTable = ({
         featureViews={featureViews}
         relationships={{}}
         onClearFilters={onClearFilters}
+        fsProject={fsProject}
         onTagClick={jest.fn()}
         isFromDetailsPage={isFromDetailsPage}
         fsObject={fsObject}
@@ -62,14 +65,23 @@ describe('FeatureViewsTable', () => {
   it('renders one row per feature view', () => {
     renderTable({ featureViews: [featureView('zipcode_features'), featureView('driver_stats')] });
 
-    expect(screen.getByRole('link', { name: 'zipcode_features' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'driver_stats' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'zipcode_features' })).toHaveAttribute(
+      'href',
+      '/develop-train/feature-store/feature-views/credit_scoring_local/zipcode_features',
+    );
+    expect(screen.getByRole('link', { name: 'driver_stats' })).toHaveAttribute(
+      'href',
+      '/develop-train/feature-store/feature-views/credit_scoring_local/driver_stats',
+    );
   });
 
   it('hides the feature services column in the browse table', () => {
     renderTable();
 
     expect(screen.getByRole('columnheader', { name: 'Features' })).toBeInTheDocument();
+    // Positive control for the details-page assertion below: the column exists, since
+    // the details mode only renders a whitelist of columns that excludes it.
+    expect(screen.getByRole('columnheader', { name: 'Feature store' })).toBeInTheDocument();
     expect(
       screen.queryByRole('columnheader', { name: 'Feature services' }),
     ).not.toBeInTheDocument();
@@ -90,6 +102,7 @@ describe('FeatureViewsTable', () => {
       screen.queryByRole('columnheader', { name: 'Feature services' }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Features' })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Feature store' })).not.toBeInTheDocument();
   });
 
   it('renders the empty state and clears filters when there are no feature views', async () => {

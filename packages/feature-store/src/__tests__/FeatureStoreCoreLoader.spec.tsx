@@ -305,6 +305,21 @@ describe('FeatureStoreCoreLoader', () => {
     expect(screen.getByTestId('support-icon')).toBeInTheDocument();
   });
 
+  it('shows the access request empty state to a non-admin even when the admin area is available', () => {
+    setupAccess(false, true);
+    setupFeatureStoreCR({ present: false });
+
+    renderLoader();
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'Request access to a feature store',
+    );
+    expect(screen.getByTestId('whos-my-administrator')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /manage/i })).not.toBeInTheDocument();
+    // The admin "Go to Feature stores" action must stay hidden: showAdminUI needs isAdmin too.
+    expect(screen.queryByTestId('go-to-feature-stores-btn')).not.toBeInTheDocument();
+  });
+
   it('renders the invalid project page when the route project is unknown', () => {
     mockUseParams.mockReturnValue({ fsProjectName: 'missing-project' });
     setupProjects(['known-project']);

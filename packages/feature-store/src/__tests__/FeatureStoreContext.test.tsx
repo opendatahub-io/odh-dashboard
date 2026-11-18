@@ -239,6 +239,25 @@ describe('FeatureStoreContext — API state', () => {
     expect(result.current.loaded).toBe(true);
   });
 
+  it('stays unloaded while only the projects have loaded', () => {
+    bootstrapContext({ registryLoaded: false, projectsLoaded: true });
+    const { result } = renderHook(useContextHook, { wrapper });
+
+    expect(result.current.loaded).toBe(false);
+  });
+
+  it('reflects the API becoming available after a rerender', () => {
+    bootstrapContext({ apiAvailable: false });
+    const { result, rerender } = renderHook(useContextHook, { wrapper });
+
+    expect(result.current.apiState.apiAvailable).toBe(false);
+
+    bootstrapContext({ apiAvailable: true });
+    rerender();
+
+    expect(result.current.apiState.apiAvailable).toBe(true);
+  });
+
   it('surfaces the registry error as loadError', () => {
     const registryError = new Error('registry unavailable');
     bootstrapContext({ registryError });

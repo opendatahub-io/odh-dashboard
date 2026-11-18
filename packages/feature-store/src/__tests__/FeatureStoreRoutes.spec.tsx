@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import FeatureStoreRoutes from '../FeatureStoreRoutes';
 
 jest.mock('@odh-dashboard/ui-core/components/conditionalArea', () => ({
@@ -37,10 +37,22 @@ jest.mock('../screens/entities/FeatureStoreEntities', () => ({
   default: () => <div data-testid="entities-screen" />,
 }));
 
-jest.mock('../screens/entities/EntitiesDetails/EntitiesDetailsPage', () => ({
-  __esModule: true,
-  default: () => <div data-testid="entity-details-screen" />,
-}));
+jest.mock('../screens/entities/EntitiesDetails/EntitiesDetailsPage', () => {
+  const { useParams } = jest.requireActual<typeof import('react-router-dom')>('react-router-dom');
+  const EntitiesDetailsPageMock = () => {
+    const params = useParams<{ fsProjectName: string; entityName: string }>();
+    return (
+      <div data-testid="entity-details-screen">
+        <span data-testid="entity-details-project">{params.fsProjectName}</span>
+        <span data-testid="entity-details-entity">{params.entityName}</span>
+      </div>
+    );
+  };
+  return {
+    __esModule: true,
+    default: EntitiesDetailsPageMock,
+  };
+});
 
 jest.mock('../screens/featureViews/FeatureViews', () => ({
   __esModule: true,
@@ -102,10 +114,16 @@ jest.mock('../screens/create/DeploymentProgressPage', () => ({
   default: () => <div data-testid="deployment-progress-screen" />,
 }));
 
+const LocationDisplay: React.FC = () => {
+  const location = useLocation();
+  return <div data-testid="location-display">{location.pathname}</div>;
+};
+
 const renderAt = (path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <FeatureStoreRoutes />
+      <LocationDisplay />
     </MemoryRouter>,
   );
 
@@ -114,6 +132,7 @@ describe('FeatureStoreRoutes', () => {
     renderAt('/');
 
     expect(screen.getByTestId('overview-screen')).toBeInTheDocument();
+    expect(screen.getByTestId('location-display')).toHaveTextContent('/overview');
   });
 
   it('renders the overview screen for the overview route of a project', () => {
@@ -146,6 +165,13 @@ describe('FeatureStoreRoutes', () => {
     renderAt(path);
 
     expect(screen.getByTestId(testId)).toBeInTheDocument();
+  });
+
+  it('passes the project and entity route params to the entity details page', () => {
+    renderAt('/entities/credit_scoring_local/user_id');
+
+    expect(screen.getByTestId('entity-details-project')).toHaveTextContent('credit_scoring_local');
+    expect(screen.getByTestId('entity-details-entity')).toHaveTextContent('user_id');
   });
 
   it('renders the create project screen for the create route', () => {
