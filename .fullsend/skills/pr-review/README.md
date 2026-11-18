@@ -431,10 +431,11 @@ Stock files track [fullsend-ai/agents](https://github.com/fullsend-ai/agents)
 at `2da538b` (v0.48.1, 2026-10-17). The harness base in
 [`harness/review.yaml`](../../harness/review.yaml) and the sandbox image are on
 v0.48.1. The reusable workflow in
-[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) is pinned to
-fullsend `main` at `af8cd47`, just past v0.48.1, for the review-findings marker
-fix (fullsend#8544); move it to v0.48.2 or later once that is released. The
-three move together. v0.48 is the first release line that passes declared
+[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) is on fullsend
+v0.56.1 (`27c1d6c`), which still runs this base (its `forge:` block is
+deprecated but read) and carries the review-findings marker fix
+(fullsend#8544). The fix agent pin in [`config.yaml`](../../config.yaml) moves
+with the reusable workflow. v0.48 is the first release line that passes declared
 secrets to host-side scripts (ADR 0136), keys skills on their declared
 `SKILL.md` name, and refuses `host_files` under `/sandbox/workspace/.fullsend`,
 so the registry and the adapter output reach the sandbox under
