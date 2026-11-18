@@ -248,6 +248,72 @@ func TestListSelectedProvidersFollowsPagination(t *testing.T) {
 	}
 }
 
+// TestListSelectedProvidersResolvesIDsBeforeNames verifies that a requested key that is
+// another provider's resource ID selects that provider, even when an earlier page holds a
+// provider whose name equals the key. The name match must not consume the key and terminate
+// pagination before the ID match is found.
+func TestListSelectedProvidersResolvesIDsBeforeNames(t *testing.T) {
+	firstPage := make([]evalhub.Provider, maxProvidersLimit)
+	for i := range firstPage {
+		firstPage[i] = evalhub.Provider{Resource: evalhub.ProviderResource{ID: fmt.Sprintf("provider-%d", i)}}
+	}
+	// This provider's name equals another provider's resource ID; it must not win the key.
+	firstPage[0].Name = "requested-key"
+	client := &paginatedProvidersClient{pages: map[int]evalhub.ProvidersResponse{
+		0: {Items: firstPage, TotalCount: maxProvidersLimit + 1},
+		maxProvidersLimit: {Items: []evalhub.Provider{{
+			Resource: evalhub.ProviderResource{ID: "requested-key"},
+		}}, TotalCount: maxProvidersLimit + 1},
+	}}
+
+	providers, missing, err := listSelectedProviders(
+		context.Background(),
+		client,
+		"test-namespace",
+		map[string]struct{}{"requested-key": {}},
+	)
+	if err != nil {
+		t.Fatalf("listSelectedProviders failed: %v", err)
+	}
+	if len(missing) != 0 {
+		t.Fatalf("missing providers = %v, want none", missing)
+	}
+	if len(providers) != 1 || providers[0].Resource.ID != "requested-key" {
+		t.Fatalf("providers = %+v, want the provider whose resource ID is requested-key", providers)
+	}
+	if len(client.calls) != 2 || client.calls[1] != maxProvidersLimit {
+		t.Fatalf("provider page offsets = %v, want pagination to continue to the second page", client.calls)
+	}
+}
+
+// TestListSelectedProvidersFallsBackToNames verifies that a key matching no provider's
+// resource ID still selects the provider carrying that name, and that one provider can
+// satisfy both its ID key and its name key without a duplicate comparison pass.
+func TestListSelectedProvidersFallsBackToNames(t *testing.T) {
+	client := &paginatedProvidersClient{pages: map[int]evalhub.ProvidersResponse{
+		0: {Items: []evalhub.Provider{
+			{Name: "shared-name", Resource: evalhub.ProviderResource{ID: "id-a"}},
+			{Name: "unrelated", Resource: evalhub.ProviderResource{ID: "id-b"}},
+		}, TotalCount: 2},
+	}}
+
+	providers, missing, err := listSelectedProviders(
+		context.Background(),
+		client,
+		"test-namespace",
+		map[string]struct{}{"id-a": {}, "shared-name": {}},
+	)
+	if err != nil {
+		t.Fatalf("listSelectedProviders failed: %v", err)
+	}
+	if len(missing) != 0 {
+		t.Fatalf("missing providers = %v, want none", missing)
+	}
+	if len(providers) != 1 || providers[0].Resource.ID != "id-a" {
+		t.Fatalf("providers = %+v, want id-a selected once for both keys", providers)
+	}
+}
+
 // TestValidateProfileAgainstProvider verifies that a hardware profile meeting every provider
 // CPU, memory, and GPU requirement produces no validation mismatches.
 func TestValidateProfileAgainstProvider(t *testing.T) {

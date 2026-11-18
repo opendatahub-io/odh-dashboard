@@ -36,7 +36,7 @@ export const resolveEvaluationJobQueues = (
 ): EvaluationJob[] =>
   jobs.map((job) => {
     const profileName = job.hardware_config?.hardware_profile_name;
-    if (job.status.state !== 'pending' || job.hardware_config?.queue || !profileName) {
+    if (job.status.state !== 'pending' || job.hardware_config?.queue?.name || !profileName) {
       return job;
     }
     const queueName = queueNameByProfileName.get(profileName);
@@ -49,6 +49,38 @@ export const resolveEvaluationJobQueues = (
       hardware_config: { ...job.hardware_config, queue: { name: queueName } },
     };
   });
+
+/**
+ * Merges list-response hardware_config metadata into a detail-poll snapshot.
+ *
+ * Detail polling can omit hardware_config fields the list response carries. The profile
+ * name is recovered so /info queue inference still resolves, and an explicit list queue
+ * assignment is carried over regardless of updated_at so a server-assigned queue is never
+ * discarded in favor of an inferred one. Lifecycle fields always come from the snapshot.
+ * Jobs are returned unchanged by reference when there is nothing to merge.
+ */
+export const mergeListEvaluationJobMetadata = (
+  job: EvaluationJob,
+  listJob: EvaluationJob | undefined,
+): EvaluationJob => {
+  const listConfig = listJob?.hardware_config;
+  if (!listConfig) {
+    return job;
+  }
+  /* eslint-disable camelcase -- API field names. */
+  let merged = false;
+  const hardwareConfig = { ...job.hardware_config };
+  if (!hardwareConfig.hardware_profile_name && listConfig.hardware_profile_name) {
+    hardwareConfig.hardware_profile_name = listConfig.hardware_profile_name;
+    merged = true;
+  }
+  if (!hardwareConfig.queue?.name && listConfig.queue) {
+    hardwareConfig.queue = listConfig.queue;
+    merged = true;
+  }
+  return merged ? { ...job, hardware_config: hardwareConfig } : job;
+  /* eslint-enable camelcase */
+};
 
 export const getLatestEvaluationJob = (
   currentJob: EvaluationJob,

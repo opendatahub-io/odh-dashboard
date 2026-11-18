@@ -21,7 +21,7 @@
 | **EvaluationRun** | One evaluation pipeline execution against a model version, with inputs, outputs, and scores. |
 | **EvaluationMetric** | Named, configurable measure (e.g. accuracy, F1) applied during a run. |
 | **ModelBenchmark** | Aggregated comparison of runs across versions or endpoints. |
-| **Hardware profile** | Queue-scheduled resource profile from the info API (`HardwareProfileInfo`): `identifiers` with min/default/max counts, `queue_name`, and `queue_availability`. |
+| **Hardware profile** | Resource profile from the info API (`HardwareProfileInfo`): `identifiers` with min/default/max counts, plus optional queue-backed metadata (`queue_name`, `queue_availability`) for queue-scheduled profiles. |
 | **eval-hub service** | External orchestration service the BFF proxies for run CRUD and results. |
 
 ## Interactions
@@ -41,5 +41,5 @@
 - Default `STYLE_THEME` is `mui-theme` in standalone/kubeflow; federated Makefile flow sets PatternFly.
 - Port 4002 is shared conventionally with other packages — avoid two BFFs on the same port.
 - Contract tests expect `GET /healthcheck` on the BFF.
-- The Queued job status is derived (`status.state = pending` plus a set `hardware_config.queue`) — it is not polled from Kueue. Live workload statuses and queue position are not available.
+- The Queued job status is derived (`status.state = pending` plus a set `hardware_config.queue`) — it is not polled from Kueue. When the job response echoes no queue name, the UI infers the tenant queue from `hardware_config.hardware_profile_name` via the /info hardware profiles. Live workload statuses and queue position are not available.
 - Reconfiguring a run supports S3 prerecorded references only: stored PVC, Git, and Hugging Face references marked `pre_recorded_data` are dropped when a run is reconfigured through the UI (the collection's test-data fields are hidden, so the user cannot see or restore them). Runs created through the API with non-S3 prerecorded references lose those references on reconfigure.

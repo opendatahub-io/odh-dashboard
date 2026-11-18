@@ -31,6 +31,7 @@ import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
 import {
   getLatestEvaluationJob,
   getQueueNameByProfileName,
+  mergeListEvaluationJobMetadata,
   resolveEvaluationJobQueues,
 } from '~/app/utilities/evaluationUtils';
 import {
@@ -247,30 +248,32 @@ const EvaluationsPage: React.FC = () => {
     const listJob = evaluations.find((e) => e.resource.id === selectedJob.job.resource.id);
     const latestJob = getLatestEvaluationJob(selectedJob.job, listJob);
     // The selected snapshot may come from detail polling, which can omit hardware_config
-    // metadata the list response carries. Recover the profile name from the raw list job so
-    // queue enrichment still resolves once /info arrives; the selected snapshot's lifecycle
-    // fields and any explicit queue are preserved.
-    const jobForResolution =
-      !latestJob.hardware_config?.hardware_profile_name &&
-      listJob?.hardware_config?.hardware_profile_name
-        ? {
-            ...latestJob,
-            /* eslint-disable camelcase -- API field names. */
-            hardware_config: {
-              ...latestJob.hardware_config,
-              hardware_profile_name: listJob.hardware_config.hardware_profile_name,
-            },
-            /* eslint-enable camelcase */
-          }
-        : latestJob;
+    // metadata the list response carries. Recover the profile name and any explicit queue
+    // from the raw list job regardless of updated_at — an explicit server queue assignment
+    // must survive, and a queue is only inferred from /info after both snapshots are checked.
+    const jobForResolution = mergeListEvaluationJobMetadata(latestJob, listJob);
     return resolveEvaluationJobQueues([jobForResolution], queueNameByProfileName)[0];
   }, [evaluations, queueNameByProfileName, selectedJob]);
 
   const onShowStatus = React.useCallback(
     (job: EvaluationJob) => {
-      setSelectedJob(namespace ? { job, namespace } : undefined);
+      // Table rows bake the enriched list queue into the job they pass here, and that queue
+      // may be display-only metadata derived from /info. The modal must only retain
+      // explicitly server-assigned queues: when the raw list job has none, drop the baked
+      // queue — polledJobData re-derives it from /info on every refresh so it tracks tenant
+      // profile mapping changes instead of being frozen into the selected snapshot.
+      const listJob = evaluations.find((e) => e.resource.id === job.resource.id);
+      const modalJob =
+        listJob && !listJob.hardware_config?.queue?.name && job.hardware_config?.queue
+          ? {
+              ...job,
+              // eslint-disable-next-line camelcase -- API field name.
+              hardware_config: { ...job.hardware_config, queue: undefined },
+            }
+          : job;
+      setSelectedJob(namespace ? { job: modalJob, namespace } : undefined);
     },
-    [namespace],
+    [evaluations, namespace],
   );
 
   const onSelectTab = React.useCallback(

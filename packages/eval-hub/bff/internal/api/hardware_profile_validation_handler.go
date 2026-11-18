@@ -152,7 +152,10 @@ func buildHardwareProfileValidation(profile evalhub.HardwareProfileInfo, provide
 
 // listSelectedProviders retrieves only the requested providers while following
 // the EvalHub provider endpoint's pagination. A provider can be selected by
-// resource ID or name, preserving the identifiers accepted by the UI.
+// resource ID or name, preserving the identifiers accepted by the UI. Resource
+// IDs take priority: a name match stays provisional until pagination ends, so an
+// earlier provider whose name equals another provider's resource ID cannot
+// consume the requested key and shadow the intended provider.
 func listSelectedProviders(
 	ctx context.Context,
 	client evalhub.EvalHubClientInterface,
@@ -165,21 +168,25 @@ func listSelectedProviders(
 	}
 
 	providers := make([]evalhub.Provider, 0, len(requested))
+	selectedIDs := make(map[string]struct{}, len(requested))
+	nameMatches := make(map[string]evalhub.Provider, len(requested))
 	for offset, page := 0, 0; len(remaining) > 0 && page < maxProviderPages; page, offset = page+1, offset+maxProvidersLimit {
 		response, err := client.ListProviders(ctx, namespace, maxProvidersLimit, offset)
 		if err != nil {
 			return nil, nil, err
 		}
 		for _, provider := range response.Items {
-			providerID := providerID(provider)
-			_, selectedByID := remaining[providerID]
-			_, selectedByName := remaining[provider.Name]
-			if !selectedByID && !selectedByName {
-				continue
+			id := providerID(provider)
+			if _, ok := remaining[id]; ok {
+				providers = append(providers, provider)
+				selectedIDs[id] = struct{}{}
+				delete(remaining, id)
 			}
-			providers = append(providers, provider)
-			delete(remaining, providerID)
-			delete(remaining, provider.Name)
+			if _, ok := remaining[provider.Name]; ok {
+				if _, exists := nameMatches[provider.Name]; !exists {
+					nameMatches[provider.Name] = provider
+				}
+			}
 		}
 
 		if len(remaining) == 0 || len(response.Items) < maxProvidersLimit {
@@ -188,6 +195,25 @@ func listSelectedProviders(
 		if response.TotalCount > 0 && offset+len(response.Items) >= response.TotalCount {
 			break
 		}
+	}
+
+	// Fall back to names for keys no provider's resource ID matched. A key whose
+	// ID-matched provider also carries that name is satisfied without a duplicate
+	// comparison pass.
+	nameMatchKeys := make([]string, 0, len(nameMatches))
+	for key := range nameMatches {
+		if _, ok := remaining[key]; ok {
+			nameMatchKeys = append(nameMatchKeys, key)
+		}
+	}
+	sort.Strings(nameMatchKeys)
+	for _, key := range nameMatchKeys {
+		provider := nameMatches[key]
+		if _, ok := selectedIDs[providerID(provider)]; !ok {
+			providers = append(providers, provider)
+			selectedIDs[providerID(provider)] = struct{}{}
+		}
+		delete(remaining, key)
 	}
 
 	missing := make([]string, 0, len(remaining))

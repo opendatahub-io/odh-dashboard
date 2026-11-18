@@ -22,6 +22,7 @@ import {
   getLatestEvaluationJob,
   getEvaluationQueue,
   getQueueNameByProfileName,
+  mergeListEvaluationJobMetadata,
   resolveEvaluationJobQueues,
   isBenchmarkFailed,
   isEvaluationJobComparable,
@@ -1115,6 +1116,79 @@ describe('resolveEvaluationJobQueues', () => {
     const [resolved] = resolveEvaluationJobQueues([job], new Map());
 
     expect(resolved).toBe(job);
+  });
+
+  it('should enrich a pending job whose echoed queue object has an empty name', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: '' } },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved.hardware_config?.queue).toEqual({ name: 'tenant-gpu-queue' });
+  });
+});
+
+/* eslint-disable camelcase -- API field names. */
+describe('mergeListEvaluationJobMetadata', () => {
+  it('should recover the profile name and explicit queue from the list job', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    const listJob = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'server-queue' } },
+    });
+
+    const merged = mergeListEvaluationJobMetadata(job, listJob);
+
+    expect(merged.hardware_config?.hardware_profile_name).toBe('gpu-default');
+    expect(merged.hardware_config?.queue).toEqual({ name: 'server-queue' });
+  });
+
+  it('should carry an explicit list queue into a newer snapshot that omits it', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+    job.resource.updated_at = '2026-02-20T10:02:00Z';
+    const listJob = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'server-queue' } },
+    });
+    listJob.resource.updated_at = '2026-02-20T10:01:00Z';
+
+    const merged = mergeListEvaluationJobMetadata(job, listJob);
+
+    expect(merged.hardware_config?.queue).toEqual({ name: 'server-queue' });
+  });
+
+  it('should keep the snapshot queue when both snapshots carry one', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'snapshot-queue' } },
+    });
+    const listJob = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'server-queue' } },
+    });
+
+    const merged = mergeListEvaluationJobMetadata(job, listJob);
+
+    expect(merged.hardware_config?.queue).toEqual({ name: 'snapshot-queue' });
+  });
+
+  it('should return the job unchanged by reference when there is nothing to merge', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'snapshot-queue' } },
+    });
+    const listJob = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'server-queue' } },
+    });
+
+    expect(mergeListEvaluationJobMetadata(job, listJob)).toBe(job);
+    expect(mergeListEvaluationJobMetadata(job, undefined)).toBe(job);
   });
 });
 /* eslint-enable camelcase */

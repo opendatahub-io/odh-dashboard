@@ -256,6 +256,7 @@ export function useStartEvaluationRunForm({
     showAdditionalArgs,
     additionalArgs,
     hardwareProfile,
+    queue,
   ] = useWatch({
     control: form.control,
     name: [
@@ -279,6 +280,7 @@ export function useStartEvaluationRunForm({
       'showAdditionalArgs',
       'additionalArgs',
       'hardwareProfile',
+      'queue',
     ],
   });
 
@@ -559,9 +561,6 @@ export function useStartEvaluationRunForm({
   // the tenant namespace, so membership in the list is the availability check. Queue
   // activity is advisory: an inactive or unknown LocalQueue still accepts the submission,
   // which then waits for admission.
-  const selectedHardwareProfile = hardwareProfiles.find(
-    (profile) => profile.name === hardwareProfile,
-  );
   // A stale initial reconfigure value is tolerated (submission falls back to the
   // default scheduling path), but a profile the user explicitly selected that a
   // later /info refresh removed must be reselected or explicitly cleared before
@@ -569,6 +568,16 @@ export function useStartEvaluationRunForm({
   // defaultValues, so selecting a different profile and returning to the initial
   // one clears the flag. The manual-selection ref records the interaction itself.
   const hardwareProfileManuallySelectedRef = React.useRef(false);
+  // An explicit selection is also bound to the queue it was made with: a background
+  // /info refresh that remaps the profile to a different queue must force reselection
+  // or clearing rather than silently redirecting the submission. Stale initial
+  // (reconfigure) values keep the tolerant name-only match so they still fall back to
+  // the default scheduling path.
+  const selectedHardwareProfile = hardwareProfiles.find(
+    (profile) =>
+      profile.name === hardwareProfile &&
+      (!hardwareProfileManuallySelectedRef.current || profile.queue_name === queue),
+  );
   const hardwareProfileSelectionLost =
     !!hardwareProfile && hardwareProfileManuallySelectedRef.current && !selectedHardwareProfile;
 

@@ -182,6 +182,13 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
   // failed): submission stays blocked until the stale value is explicitly cleared.
   const fieldState = getHardwareProfileFieldState({ error });
   const profileSelectionDisabled = disabled || fieldState.unavailable;
+  // A lost selection must not display as Default: submission stays blocked until the
+  // user reselects or explicitly clears, so the toggle shows why instead of the
+  // no-profile label.
+  const togglePlaceholder =
+    selectionLost && !fieldState.unavailable
+      ? 'Hardware profile no longer available'
+      : fieldState.placeholder;
   if (!loaded) {
     return (
       <FormGroup
@@ -232,7 +239,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
             onClick={() => setIsOpen((open) => !open)}
             data-testid="hardware-profile-toggle"
           >
-            {selected ? (selected.display_name ?? selected.name) : fieldState.placeholder}
+            {selected ? (selected.display_name ?? selected.name) : togglePlaceholder}
           </MenuToggle>
         )}
       >
@@ -240,7 +247,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
           <SelectOption
             value={NO_HARDWARE_PROFILE_VALUE}
             description="Starts the evaluation without a hardware profile, scheduled by Kubernetes outside the Kueue queue."
-            isSelected={!selected}
+            isSelected={!selected && !selectionLost}
             data-testid="hardware-profile-option-default"
           >
             {NO_HARDWARE_PROFILE_LABEL}

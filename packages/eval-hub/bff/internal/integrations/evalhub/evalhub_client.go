@@ -699,9 +699,15 @@ func (c *EvalHubClient) GetInfo(ctx context.Context, namespace string) (*InfoRes
 		return nil, err
 	}
 
-	resp, err := get[InfoResponse](c, ctx, "/info", headers)
+	resp, raw, err := getWithRaw[InfoResponse](c, ctx, "/info", headers)
 	if err != nil {
 		return nil, wrapClientError(err, "GetInfo")
+	}
+	// A top-level JSON null decodes into a zero-value struct, which would silently
+	// masquerade as a successful empty-profile response. Objects that omit
+	// hardware_profiles remain valid.
+	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+		return nil, wrapClientError(errors.New("info response body is null"), "GetInfo")
 	}
 	if resp.HardwareProfiles == nil {
 		resp.HardwareProfiles = []HardwareProfileInfo{}
