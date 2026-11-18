@@ -38,6 +38,11 @@
   }
 }
 
+.evalhub-collection-generation-drawer__reason-heading {
+  --pf-v6-c-content--h4--FontSize: var(--pf-t--global--font--size--body--default);
+  --pf-v6-c-content--h4--FontWeight: var(--pf-t--global--font--weight--body--bold);
+}
+
 .evalhub-collection-generation-drawer__backdrop {
   opacity: 0;
   pointer-events: none;

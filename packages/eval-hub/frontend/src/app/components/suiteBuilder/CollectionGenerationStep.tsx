@@ -224,8 +224,11 @@ const OtherBenchmarksDrawer: React.FC<OtherBenchmarksDrawerProps> = ({
                     ) : null}
                   </FlexItem>
                   <FlexItem>
-                    <Content component="h4">
-                      <strong>{reasonHeading}</strong>
+                    <Content
+                      component="h4"
+                      className="evalhub-collection-generation-drawer__reason-heading"
+                    >
+                      {reasonHeading}
                     </Content>
                     <Content component="p">{reason}</Content>
                   </FlexItem>
@@ -451,7 +454,12 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
           <CardBody>
             {description ? <Content component="p">{description}</Content> : null}
             {primaryScore ? (
-              <Content component="p" className="evalhub-collection-generation-card__setting">
+              <Content
+                component="p"
+                className={`evalhub-collection-generation-card__setting${
+                  passCriteria ? ' pf-v6-u-mb-xs' : ''
+                }`}
+              >
                 <strong>Primary metric:</strong> {getMetricDisplayName(primaryScore.metric)}
               </Content>
             ) : null}
