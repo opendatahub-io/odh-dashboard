@@ -1,13 +1,8 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
-
-jest.mock('@openshift/dynamic-plugin-sdk', () => ({
-  useFeatureFlag: jest.fn(),
-}));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   SupportedArea: { UNIFIED_PROJECT_SELECTOR: 'unified-project-selector' },
@@ -28,7 +23,6 @@ jest.mock('~/app/HeaderIcon', () => ({
   default: () => <span data-testid="header-icon" />,
 }));
 
-const mockUseFeatureFlag = jest.mocked(useFeatureFlag);
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 
 const renderHeader = () =>
@@ -50,14 +44,11 @@ describe('GenAiCoreHeader', () => {
   });
 
   it.each([
-    { gridEnabled: false, unifiedProjectSelectorEnabled: false, selectorVisible: true },
-    { gridEnabled: true, unifiedProjectSelectorEnabled: false, selectorVisible: false },
-    { gridEnabled: false, unifiedProjectSelectorEnabled: true, selectorVisible: false },
-    { gridEnabled: true, unifiedProjectSelectorEnabled: true, selectorVisible: false },
+    { unifiedProjectSelectorEnabled: false, selectorVisible: true },
+    { unifiedProjectSelectorEnabled: true, selectorVisible: false },
   ])(
-    'should handle project selector visibility when Grid=$gridEnabled and UPS=$unifiedProjectSelectorEnabled',
-    ({ gridEnabled, unifiedProjectSelectorEnabled, selectorVisible }) => {
-      mockUseFeatureFlag.mockReturnValue([gridEnabled, jest.fn()]);
+    'should handle project selector visibility when UPS=$unifiedProjectSelectorEnabled',
+    ({ unifiedProjectSelectorEnabled, selectorVisible }) => {
       mockUseIsAreaAvailable.mockReturnValue({
         status: unifiedProjectSelectorEnabled,
       } as ReturnType<typeof useIsAreaAvailable>);
