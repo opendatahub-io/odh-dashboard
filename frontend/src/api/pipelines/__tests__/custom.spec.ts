@@ -14,12 +14,17 @@ import {
   getPipelineRecurringRun,
   getPipelineRun,
   getPipelineVersion,
+  getArtifactResource,
+  getTask,
+  listArtifactResources,
+  listArtifactTasks,
   listArtifacts,
   listExperiments,
   listPipelineRecurringRuns,
   listPipelineRuns,
   listPipelineVersions,
   listPipelines,
+  listTasks,
   stopPipelineRun,
   updatePipelineRecurringRun,
   uploadPipeline,
@@ -31,7 +36,9 @@ import {
   CreateExperimentKFData,
   CreatePipelineRecurringRunKFData,
   CreatePipelineRunKFData,
+  IOTypeKF,
   RecurringRunMode,
+  RunViewModeKF,
 } from '#~/concepts/pipelines/kfTypes';
 import { PipelineParams } from '#~/concepts/pipelines/types';
 
@@ -195,6 +202,57 @@ describe('getArtifact', () => {
   });
 });
 
+describe('getArtifactResource', () => {
+  it('should call proxyGET and handlePipelineFailures to fetch an artifact resource', () => {
+    expect(getArtifactResource('hostPath')({}, 'artifact-1')).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/artifacts/artifact-1',
+      {},
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+
+  it('should reject an artifact id with a query delimiter', () => {
+    proxyGETMock.mockClear();
+    expect(() => getArtifactResource('hostPath')({}, 'artifact-1?view=DOWNLOAD')).toThrow(
+      'Invalid pipeline resource id',
+    );
+    expect(proxyGETMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['empty', ''],
+    ['dot', '.'],
+    ['dotdot', '..'],
+    ['slash', 'a/b'],
+    ['query', 'a?b'],
+    ['fragment', 'a#b'],
+    ['backslash', 'a\\b'],
+  ])('should reject a %s artifact id', (_label, artifactId) => {
+    proxyGETMock.mockClear();
+    expect(() => getArtifactResource('hostPath')({}, artifactId)).toThrow(
+      'Invalid pipeline resource id',
+    );
+    expect(proxyGETMock).not.toHaveBeenCalled();
+  });
+
+  it('should percent-encode an accepted artifact id', () => {
+    proxyGETMock.mockClear();
+    expect(getArtifactResource('hostPath')({}, 'task id')).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/artifacts/task%20id',
+      {},
+      {},
+    );
+  });
+});
+
 describe('getPipeline', () => {
   it('should call proxyGET and handlePipelineFailures to fetch pipeline', () => {
     expect(getPipeline('hostPath')({}, 'pipelineId')).toBe(mockResultPromise);
@@ -222,6 +280,44 @@ describe('getPipelineRun', () => {
     );
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+
+  it('should pass view=FULL query param when requested', () => {
+    expect(getPipelineRun('hostPath')({}, 'pipelineRunId', RunViewModeKF.FULL)).toBe(
+      mockResultPromise,
+    );
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/runs/pipelineRunId',
+      { view: RunViewModeKF.FULL },
+      {},
+    );
+  });
+});
+
+describe('getTask', () => {
+  it('should call proxyGET and handlePipelineFailures to fetch a task', () => {
+    expect(getTask('hostPath')({}, 'runId', 'taskId')).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/runs/runId/tasks/taskId',
+      {},
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+
+  it('should reject a task id that changes the request path', () => {
+    proxyGETMock.mockClear();
+    expect(() => getTask('hostPath')({}, 'runId', '../other-task')).toThrow(
+      'Invalid pipeline resource id',
+    );
+    expect(() => getTask('hostPath')({}, 'run/other', 'taskId')).toThrow(
+      'Invalid pipeline resource id',
+    );
+    expect(proxyGETMock).not.toHaveBeenCalled();
   });
 });
 
@@ -340,6 +436,38 @@ describe('listExperiments', () => {
   });
 });
 
+describe('listArtifactResources', () => {
+  it('should call proxyGET and handlePipelineFailures to list artifact resources', () => {
+    expect(
+      listArtifactResources('hostPath')(
+        {},
+        {
+          namespace: 'test',
+          pageSize: 10,
+          pageToken: 'token',
+          sortBy: 'created_at desc',
+          filter: 'filter',
+        },
+      ),
+    ).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/artifacts',
+      {
+        namespace: 'test',
+        page_size: 10,
+        page_token: 'token',
+        sort_by: 'created_at desc',
+        filter: 'filter',
+      },
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
 describe('listArtifacts', () => {
   it('should call proxyGET and handlePipelineFailures to list artifacts', () => {
     expect(listArtifacts('hostPath')({}, { namespace: 'test' })).toBe(mockResultPromise);
@@ -349,6 +477,94 @@ describe('listArtifacts', () => {
       '/apis/v2beta1/artifacts',
       {
         namespace: 'test',
+      },
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
+describe('listTasks', () => {
+  it('should call proxyGET and handlePipelineFailures to list tasks for a run', () => {
+    expect(
+      listTasks('hostPath')({}, 'runId', {
+        parentTaskId: 'parentTask',
+        pageSize: 10,
+        pageToken: 'token',
+        orderBy: 'create_time asc',
+      }),
+    ).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/runs/runId/tasks',
+      {
+        parent_id: 'parentTask',
+        page_size: 10,
+        page_token: 'token',
+        filter: undefined,
+        order_by: 'create_time asc',
+      },
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+
+  it('should omit optional list params when they are not provided', () => {
+    expect(listTasks('hostPath')({}, 'runId')).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/runs/runId/tasks',
+      {
+        parent_id: undefined,
+        page_size: undefined,
+        page_token: undefined,
+        filter: undefined,
+        order_by: undefined,
+      },
+      {},
+    );
+  });
+
+  it('should reject a run id that changes the request path', () => {
+    proxyGETMock.mockClear();
+    expect(() => listTasks('hostPath')({}, 'run/other')).toThrow('Invalid pipeline resource id');
+    expect(proxyGETMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('listArtifactTasks', () => {
+  it('should call proxyGET and handlePipelineFailures to list artifact tasks', () => {
+    expect(
+      listArtifactTasks('hostPath')(
+        {},
+        {
+          runIds: ['run-1', 'run-2'],
+          taskIds: ['task-1', 'task-2'],
+          artifactIds: ['artifact-1'],
+          type: IOTypeKF.OUTPUT,
+          pageSize: 5,
+          pageToken: 'token',
+          sortBy: 'created_at desc',
+          filter: 'filter',
+        },
+      ),
+    ).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/artifact_tasks',
+      {
+        run_ids: ['run-1', 'run-2'],
+        task_ids: ['task-1', 'task-2'],
+        artifact_ids: ['artifact-1'],
+        type: IOTypeKF.OUTPUT,
+        page_size: 5,
+        page_token: 'token',
+        sort_by: 'created_at desc',
+        filter: 'filter',
       },
       {},
     );

@@ -18,6 +18,13 @@ import {
   CreatePipelineVersionKFData,
   CreateExperimentKFData,
   GoogleRpcStatusKF,
+  PipelineTaskKF,
+  ListTasksResponseKF,
+  ListArtifactsResponseKF,
+  ListArtifactTasksResponseKF,
+  ArtifactKF,
+  IOTypeKF,
+  RunViewModeKF,
 } from './kfTypes';
 
 export type PipelinesFilter = {
@@ -50,6 +57,41 @@ export type ListArtifactParams = {
   order_by?: 'asc' | 'desc';
   next_page_token?: string;
   namespace: string;
+};
+
+/**
+ * Query for ArtifactService.ListArtifacts.
+ * Distinct from {@link ListArtifactParams}, which drives the storage download/render helpers.
+ */
+export type ListArtifactResourceParams = {
+  namespace?: string;
+  pageSize?: number;
+  pageToken?: string;
+  sortBy?: string;
+  filter?: string;
+};
+
+export type ListTasksParams = {
+  /**
+   * Parent task to list children of.
+   * Sent as query `parent_id` — ListTasksRequest's filter field, not PipelineTask.parent_task_id.
+   */
+  parentTaskId?: string;
+  pageSize?: number;
+  pageToken?: string;
+  filter?: string;
+  orderBy?: string;
+};
+
+export type ListArtifactTasksParams = {
+  taskIds?: string[];
+  runIds?: string[];
+  artifactIds?: string[];
+  type?: IOTypeKF;
+  pageSize?: number;
+  pageToken?: string;
+  sortBy?: string;
+  filter?: string;
 };
 
 export type PipelineParams = {
@@ -102,9 +144,15 @@ export type GetArtifact = (
   artifactId: number,
   view?: string,
 ) => Promise<ArtifactStorage>;
+/** ArtifactService.GetArtifact — metadata resource, not the storage download/render payload. */
+export type GetArtifactResource = (opts: K8sAPIOptions, artifactId: string) => Promise<ArtifactKF>;
 export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKF>;
 export type GetPipelineByName = (opts: K8sAPIOptions, pipelineName: string) => Promise<PipelineKF>;
-export type GetPipelineRun = (opts: K8sAPIOptions, pipelineRunId: string) => Promise<PipelineRunKF>;
+export type GetPipelineRun = (
+  opts: K8sAPIOptions,
+  pipelineRunId: string,
+  view?: RunViewModeKF,
+) => Promise<PipelineRunKF>;
 export type GetPipelineRecurringRun = (
   opts: K8sAPIOptions,
   pipelineRecurringRunId: string,
@@ -114,6 +162,11 @@ export type GetPipelineVersion = (
   pipelineId: string,
   pipelineVersionId: string,
 ) => Promise<PipelineVersionKF>;
+export type GetTask = (
+  opts: K8sAPIOptions,
+  runId: string,
+  taskId: string,
+) => Promise<PipelineTaskKF>;
 export type DeletePipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<void>;
 export type DeletePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
 export type DeletePipelineRecurringRun = (
@@ -134,6 +187,20 @@ export type ListArtifacts = (
   opts: K8sAPIOptions,
   params?: ListArtifactParams,
 ) => Promise<ListArtifactResponse>;
+/** ArtifactService.ListArtifacts — returns {@link ArtifactKF}, not storage objects. */
+export type ListArtifactResources = (
+  opts: K8sAPIOptions,
+  params?: ListArtifactResourceParams,
+) => Promise<ListArtifactsResponseKF>;
+export type ListTasks = (
+  opts: K8sAPIOptions,
+  runId: string,
+  params?: ListTasksParams,
+) => Promise<ListTasksResponseKF>;
+export type ListArtifactTasks = (
+  opts: K8sAPIOptions,
+  params?: ListArtifactTasksParams,
+) => Promise<ListArtifactTasksResponseKF>;
 export type ListPipelines = (
   opts: K8sAPIOptions,
   params?: PipelineParams,
@@ -183,9 +250,11 @@ export type PipelineAPIs = {
   getExperiment: GetExperiment;
   getPipeline: GetPipeline;
   getArtifact: GetArtifact;
+  getArtifactResource: GetArtifactResource;
   getPipelineRun: GetPipelineRun;
   getPipelineRecurringRun: GetPipelineRecurringRun;
   getPipelineVersion: GetPipelineVersion;
+  getTask: GetTask;
   deletePipeline: DeletePipeline;
   deletePipelineRun: DeletePipelineRun;
   deletePipelineRecurringRun: DeletePipelineRecurringRun;
@@ -196,6 +265,9 @@ export type PipelineAPIs = {
   listPipelines: ListPipelines;
   getPipelineByName: GetPipelineByName;
   listArtifacts: ListArtifacts;
+  listArtifactResources: ListArtifactResources;
+  listTasks: ListTasks;
+  listArtifactTasks: ListArtifactTasks;
   listPipelineRuns: ListPipelineRuns;
   listPipelineActiveRuns: ListPipelineRuns;
   listPipelineArchivedRuns: ListPipelineRuns;

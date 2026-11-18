@@ -28,10 +28,23 @@ import {
   UpdateExperimentAPI,
   DeleteExperimentAPI,
   GetArtifactAPI,
+  GetArtifactResourceAPI,
   ListArtifactsAPI,
+  ListArtifactResourcesAPI,
+  ListTasksAPI,
+  ListArtifactTasksAPI,
+  GetTaskAPI,
   GetPipelineByNameAPI,
 } from './callTypes';
 import { handlePipelineFailures } from './errorUtils';
+
+/** Reject path and query injection in one KFP resource id, then encode the segment. */
+const pipelineResourceSegment = (id: string): string => {
+  if (!id || id === '.' || id === '..' || /[/?#\\]/.test(id)) {
+    throw new Error('Invalid pipeline resource id');
+  }
+  return encodeURIComponent(id);
+};
 
 const commonPipelineQueryParams = (params?: PipelineParams) => ({
   // eslint-disable-next-line camelcase
@@ -78,6 +91,12 @@ export const getArtifact: GetArtifactAPI = (hostPath) => (opts, artifactId, view
     proxyGET(hostPath, `/apis/v2beta1/artifacts/${artifactId}`, { view }, opts),
   );
 
+/** ArtifactService.GetArtifact. Storage download/render stays on {@link getArtifact}. */
+export const getArtifactResource: GetArtifactResourceAPI = (hostPath) => (opts, artifactId) =>
+  handlePipelineFailures(
+    proxyGET(hostPath, `/apis/v2beta1/artifacts/${pipelineResourceSegment(artifactId)}`, {}, opts),
+  );
+
 export const getPipeline: GetPipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/pipelines/${pipelineId}`, {}, opts));
 
@@ -86,8 +105,10 @@ export const getPipelineByName: GetPipelineByNameAPI = (hostPath) => (opts, pipe
     proxyGET(hostPath, `/apis/v2beta1/pipelines/names/${pipelineName}`, {}, opts),
   );
 
-export const getPipelineRun: GetPipelineRunAPI = (hostPath) => (opts, pipelineRunId) =>
-  handlePipelineFailures(proxyGET(hostPath, `/apis/v2beta1/runs/${pipelineRunId}`, {}, opts));
+export const getPipelineRun: GetPipelineRunAPI = (hostPath) => (opts, pipelineRunId, view) =>
+  handlePipelineFailures(
+    proxyGET(hostPath, `/apis/v2beta1/runs/${pipelineRunId}`, view ? { view } : {}, opts),
+  );
 
 export const getPipelineRecurringRun: GetPipelineRecurringRunAPI =
   (hostPath) => (opts, pipelineRecurringRunId) =>
@@ -105,6 +126,18 @@ export const getPipelineVersion: GetPipelineVersionAPI =
         opts,
       ),
     );
+
+export const getTask: GetTaskAPI = (hostPath) => (opts, runId, taskId) =>
+  handlePipelineFailures(
+    proxyGET(
+      hostPath,
+      `/apis/v2beta1/runs/${pipelineResourceSegment(runId)}/tasks/${pipelineResourceSegment(
+        taskId,
+      )}`,
+      {},
+      opts,
+    ),
+  );
 
 export const deletePipeline: DeletePipelineAPI = (hostPath) => (opts, pipelineId) =>
   handlePipelineFailures(
@@ -139,6 +172,72 @@ export const deleteExperiment: DeleteExperimentAPI = (hostPath) => (opts, experi
 
 export const listArtifacts: ListArtifactsAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(proxyGET(hostPath, '/apis/v2beta1/artifacts', params, opts));
+
+/** ArtifactService.ListArtifacts. Storage listing stays on {@link listArtifacts}. */
+export const listArtifactResources: ListArtifactResourcesAPI = (hostPath) => (opts, params) =>
+  handlePipelineFailures(
+    proxyGET(
+      hostPath,
+      '/apis/v2beta1/artifacts',
+      {
+        namespace: params?.namespace,
+        // eslint-disable-next-line camelcase
+        page_size: params?.pageSize,
+        // eslint-disable-next-line camelcase
+        page_token: params?.pageToken,
+        // eslint-disable-next-line camelcase
+        sort_by: params?.sortBy,
+        filter: params?.filter,
+      },
+      opts,
+    ),
+  );
+
+export const listTasks: ListTasksAPI = (hostPath) => (opts, runId, params) =>
+  handlePipelineFailures(
+    proxyGET(
+      hostPath,
+      `/apis/v2beta1/runs/${pipelineResourceSegment(runId)}/tasks`,
+      {
+        // ListTasksRequest.parent_id — not PipelineTask.parent_task_id.
+        // eslint-disable-next-line camelcase
+        parent_id: params?.parentTaskId,
+        // eslint-disable-next-line camelcase
+        page_size: params?.pageSize,
+        // eslint-disable-next-line camelcase
+        page_token: params?.pageToken,
+        filter: params?.filter,
+        // eslint-disable-next-line camelcase
+        order_by: params?.orderBy,
+      },
+      opts,
+    ),
+  );
+
+export const listArtifactTasks: ListArtifactTasksAPI = (hostPath) => (opts, params) =>
+  handlePipelineFailures(
+    proxyGET(
+      hostPath,
+      '/apis/v2beta1/artifact_tasks',
+      {
+        // eslint-disable-next-line camelcase
+        task_ids: params?.taskIds,
+        // eslint-disable-next-line camelcase
+        run_ids: params?.runIds,
+        // eslint-disable-next-line camelcase
+        artifact_ids: params?.artifactIds,
+        type: params?.type,
+        // eslint-disable-next-line camelcase
+        page_size: params?.pageSize,
+        // eslint-disable-next-line camelcase
+        page_token: params?.pageToken,
+        // eslint-disable-next-line camelcase
+        sort_by: params?.sortBy,
+        filter: params?.filter,
+      },
+      opts,
+    ),
+  );
 
 export const listExperiments: ListExperimentsAPI = (hostPath) => (opts, params) =>
   handlePipelineFailures(
