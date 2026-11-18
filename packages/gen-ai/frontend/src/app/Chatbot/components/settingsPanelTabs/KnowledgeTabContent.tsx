@@ -102,8 +102,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
       position="bottom-start"
       aria-label="RAG troubleshooting"
       closeBtnAriaLabel="Close troubleshooting"
-      minWidth="min(28rem, calc(100vw - 1rem))"
-      maxWidth="min(28rem, calc(100vw - 1rem))"
+      maxWidth="28rem"
       bodyContent={(hide) => (
         <div>
           <p style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}>
