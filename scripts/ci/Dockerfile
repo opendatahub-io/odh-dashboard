@@ -11,7 +11,8 @@ ARG OCP_CLI=https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/ope
 ARG NVM_INSTALLER=https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh
 ARG NODE_VERSION=v22.18.0
 ARG OCM_CLI=https://github.com/openshift-online/ocm-cli/releases/download/v1.0.7/ocm-linux-amd64
-ARG CYPRESS_VERSION=^13.14.2
+# Cypress 15.21.2 includes the Chrome 158 spec-switching and navigation fixes.
+ARG CYPRESS_VERSION=15.21.2
 ARG JUNIT_REPORT_MERGER_VERSION=6.0.0
 
 USER root

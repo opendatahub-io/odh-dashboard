@@ -88,7 +88,7 @@
     "@cypress/code-coverage": "^3.14.7",
     "@cypress/webpack-preprocessor": "^6.0.4",
     "@testing-library/cypress": "^10.0.3",
-    "cypress": "^15.16.0",
+    "cypress": "^15.21.2",
     "cypress-axe": "^1.5.0",
     "cypress-high-resolution": "^1.0.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
