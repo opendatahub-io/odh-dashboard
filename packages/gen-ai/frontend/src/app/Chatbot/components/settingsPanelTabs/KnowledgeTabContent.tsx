@@ -112,10 +112,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
           <div className="pf-v6-u-mt-sm">
             <Button
               variant="link"
-              style={{
-                marginInlineStart:
-                  'calc(-1 * var(--pf-t--global--spacer--action--horizontal--plain--default))',
-              }}
+              className="pf-v6-u-pl-xs"
               onClick={() => {
                 hide();
                 onNavigateToPrompt?.();
