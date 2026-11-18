@@ -49,14 +49,6 @@ interface KnowledgeTabContentProps {
   };
 }
 
-const TROUBLESHOOTING_BODY_STYLE: React.CSSProperties = {
-  fontFamily: 'var(--pf-t--global--font--family--body)',
-  fontWeight: 'var(--pf-t--global--font--weight--body--default)',
-  fontSize: 'var(--pf-t--global--font--size--body--default)',
-  lineHeight: 'var(--pf-t--global--font--line-height--body)',
-  letterSpacing: '0%',
-};
-
 const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = ({
   configId = DEFAULT_CONFIG_ID,
   onNavigateToPrompt,
@@ -114,7 +106,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
       maxWidth="min(28rem, calc(100vw - 1rem))"
       bodyContent={(hide) => (
         <div>
-          <p style={TROUBLESHOOTING_BODY_STYLE}>
+          <p style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}>
             If RAG is enabled but the model is not using retrieved knowledge, add a clear rule in
             your system prompt. For example, “Always use RAG”
           </p>
