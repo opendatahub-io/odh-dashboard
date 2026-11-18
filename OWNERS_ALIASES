@@ -10,10 +10,8 @@ aliases:
     - DaoDaoNoCode
     - antowaddle
     - FedeAlonso
-    - Griffin-Sullivan
     - YuliaKrimerman
     - manaswinidas
-    - ederign
     - dpanshug
     - claudialphonse78
     - andyatmiami
@@ -32,6 +30,17 @@ aliases:
     - jessiehuff
     - tamdavid-git
 
+  # AI Grid (temp groups -- maybe)
+  ai-grid-approvers:
+    - andrewballantyne
+    - manaswinidas
+    - DaoDaoNoCode
+  ai-grid-reviewers:
+    - manaswinidas
+    - DaoDaoNoCode
+    - ppadti
+    - jesuino
+
   # AI Trusty
   ai-trusty-approvers:
     - andrewballantyne
@@ -41,12 +50,10 @@ aliases:
   # Connections & Connection Types
   connections-approvers:
     - emilys314
-    - Griffin-Sullivan
     - andrewballantyne
   connections-reviewers:
     - ashley-o0o
     - emilys314
-    - Griffin-Sullivan
     - katieperry4
 
   # Hardware Profiles
@@ -174,7 +181,6 @@ aliases:
     - jharan1
     - NickGagan
     - mfleader
-    - ederign
     - rhdedgar
     - gmenher
     - chrjones-rh
@@ -189,7 +195,6 @@ aliases:
     - jharan1
     - NickGagan
     - mfleader
-    - ederign
     - rhdedgar
     - iamemilio
     - s-akhtar-baig
@@ -199,7 +204,6 @@ aliases:
   # Notebooks
   notebooks-approvers:
     - andyatmiami
-    - ederign
     - harshad16
     - paulovmr
     - thaorell
@@ -207,7 +211,6 @@ aliases:
     - bobbravo2
   notebooks-reviewers:
     - andyatmiami
-    - ederign
     - harshad16
     - paulovmr
     - caponetto
