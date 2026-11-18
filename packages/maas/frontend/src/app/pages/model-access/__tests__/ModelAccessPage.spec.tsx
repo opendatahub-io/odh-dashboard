@@ -8,6 +8,7 @@ import ModelAccessPage from '~/app/pages/model-access/ModelAccessPage';
 import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
 import { MaaSGovernanceProvider } from '~/app/context/MaaSGovernanceContext';
 import type { MaaSSubscription } from '~/app/types/subscriptions';
+import type { MaaSWhoAmI } from '~/app/types/whoami';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
@@ -45,6 +46,21 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 }));
 
 const mockRestGET = jest.mocked(restGET);
+
+// whoami for a caller without an organization: groups show as they are. The organization's
+// tests pass organizationWhoAmI instead.
+const whoAmI: MaaSWhoAmI = { sub: 'carol', isAdmin: true };
+const organizationWhoAmI: MaaSWhoAmI = {
+  ...whoAmI,
+  orgId: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa',
+  orgName: 'Grid Tenant 1',
+};
+
+/** Answers whoami with the caller and every other request with the subscription data. */
+const mockAPI = (data: MaaSSubscription[], caller: MaaSWhoAmI = whoAmI) =>
+  mockRestGET.mockImplementation((_host: string, path: string) =>
+    Promise.resolve({ data: path.endsWith('/whoami') ? caller : data }),
+  );
 
 // Mirrors the admin-subscriptions response produced from the mock maas-api fixture.
 const subscription = (): MaaSSubscription => ({
@@ -93,7 +109,7 @@ const renderPage = () =>
   );
 
 const renderTwoSubscriptions = () => {
-  mockRestGET.mockResolvedValue({ data: [subscription(), basicSubscription()] });
+  mockAPI([subscription(), basicSubscription()]);
   return renderPage();
 };
 
@@ -112,7 +128,7 @@ const openTypeahead = async (user: ReturnType<typeof userEvent.setup>) => {
 describe('ModelAccessPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRestGET.mockResolvedValue({ data: [subscription()] });
+    mockAPI([subscription()]);
   });
 
   it('should render admin-subscriptions data in the real read-only table', async () => {
@@ -128,8 +144,10 @@ describe('ModelAccessPage', () => {
     expect(screen.queryByTestId('subscription-actions')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /create subscription/i })).not.toBeInTheDocument();
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
-    expect(mockRestGET).toHaveBeenCalledTimes(1);
-    expect(mockRestGET.mock.calls[0][1]).toBe('/maas/api/v1/admin-subscriptions');
+    // The page also reads whoami for the caller's organization (GroupName).
+    expect(mockRestGET.mock.calls.map((call) => call[1]).toSorted()).toEqual(
+      ['/maas/api/v1/whoami', '/maas/api/v1/admin-subscriptions'].toSorted(),
+    );
   });
 
   it('should expand the groups and models supplied by admin-subscriptions', async () => {
@@ -146,10 +164,34 @@ describe('ModelAccessPage', () => {
     expect(screen.getByText('Flan T5 Small')).toBeVisible();
   });
 
+  it("should show the caller's organization groups by the organization's name", async () => {
+    const user = userEvent.setup();
+    mockAPI([subscription(), basicSubscription()], organizationWhoAmI);
+    renderPage();
+    await screen.findByRole('link', { name: 'Premium Team' });
+    // Both rows' groups: ai-grid-users and data-science, and data-science.
+    expect(await screen.findAllByTestId('group-name')).toHaveLength(3);
+    expect(screen.queryByText(/42c3e46f-2477-44d7-a85b-d3b43f6b31fa/)).not.toBeInTheDocument();
+
+    // The search finds a group as it is shown.
+    await user.type(
+      screen.getByTestId('model-access-subscription-filter-input'),
+      'Grid Tenant 1/ai-grid',
+    );
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+
+    await selectFilterType(user, 'model-access-table-toolbar-option-group');
+    await openTypeahead(user);
+    await user.click(screen.getByRole('option', { name: 'Grid Tenant 1/ai-grid-users' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+  });
+
   it('should reflect zero groups and models without hiding the subscription', async () => {
-    mockRestGET.mockResolvedValue({
-      data: [{ ...subscription(), owner: { groups: [] }, modelRefs: [] }],
-    });
+    mockAPI([{ ...subscription(), owner: { groups: [] }, modelRefs: [] }]);
     renderPage();
     expect(await screen.findByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
     expect(screen.getByTestId('subscription-groups-expand-btn')).toHaveTextContent('0');
@@ -157,7 +199,7 @@ describe('ModelAccessPage', () => {
   });
 
   it('should show the empty state when no admin subscriptions are returned', async () => {
-    mockRestGET.mockResolvedValue({ data: [] });
+    mockAPI([]);
     renderPage();
     expect(await screen.findByText('No subscriptions')).toBeInTheDocument();
     expect(screen.queryByTestId('subscription-row')).not.toBeInTheDocument();
@@ -193,7 +235,7 @@ describe('ModelAccessPage', () => {
 
   it('should use the same three filters by default on the management subscriptions table', async () => {
     const user = userEvent.setup();
-    mockRestGET.mockResolvedValue({ data: [subscription(), basicSubscription()] });
+    mockAPI([subscription(), basicSubscription()]);
     render(
       <MemoryRouter>
         <MaaSGovernanceProvider subscriptionsOnly>
@@ -299,12 +341,10 @@ describe('ModelAccessPage', () => {
     'should search subscription details by partial text: %s',
     async (text) => {
       const user = userEvent.setup();
-      mockRestGET.mockResolvedValue({
-        data: [
-          { ...subscription(), description: 'An exclusive description for this subscription' },
-          basicSubscription(),
-        ],
-      });
+      mockAPI([
+        { ...subscription(), description: 'An exclusive description for this subscription' },
+        basicSubscription(),
+      ]);
       renderPage();
       await screen.findByRole('link', { name: 'Premium Team' });
 
@@ -318,14 +358,14 @@ describe('ModelAccessPage', () => {
 
   it('should match substrings in the model dropdown and restore rows when selection is cleared', async () => {
     const user = userEvent.setup();
-    mockRestGET.mockResolvedValue({
-      data: ['xabx', 'yaby', 'abc', 'other'].map((name) => ({
+    mockAPI(
+      ['xabx', 'yaby', 'abc', 'other'].map((name) => ({
         ...subscription(),
         name,
         displayName: name,
-        modelRefs: [{ name, namespace: 'maas-models' }],
+        modelRefs: [{ name, namespace: 'maas-models', tokenRateLimits: [] }],
       })),
-    });
+    );
     renderPage();
     await screen.findByRole('link', { name: 'xabx' });
     await selectFilterType(user, 'model-access-table-toolbar-option-model');
