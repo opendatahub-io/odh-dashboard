@@ -9,8 +9,10 @@ import type { UserSubscription } from '~/app/types/subscriptions';
 import AccessDetailsModal from '~/app/pages/keys-and-subs/apiKeys/AccessDetailsModal';
 
 jest.mock('~/app/api/maas-models', () => ({
-  getMaaSModelsList: () => () => Promise.resolve(mockMaaSModels),
+  getMaaSModelsList: () => mockGetMaaSModelsList,
 }));
+
+let mockGetMaaSModelsList: () => Promise<MaaSModel[]>;
 
 jest.mock('~/app/context/KeysAndSubsContext', () => ({
   useKeysAndSubsContext: () => ({
@@ -137,6 +139,10 @@ const renderModal = (
   return onClose;
 };
 
+beforeEach(() => {
+  mockGetMaaSModelsList = () => Promise.resolve(mockMaaSModels);
+});
+
 describe('AccessDetailsModal', () => {
   it('renders the API key details and subscription', async () => {
     renderModal();
@@ -235,6 +241,34 @@ describe('AccessDetailsModal', () => {
     // The model selector must not render a misleading "No models available" state
     // when the subscription itself failed to load.
     expect(screen.queryByTestId('access-details-available-models-toggle')).not.toBeInTheDocument();
+  });
+
+  it('shows an error and hides connection details when the model catalog fetch fails', async () => {
+    mockGetMaaSModelsList = () => Promise.reject(new Error('Catalog unavailable'));
+    renderModal();
+    expect(await screen.findByTestId('access-details-model-catalog-error')).toBeVisible();
+    expect(screen.getByTestId('access-details-model-catalog-error')).toHaveTextContent(
+      'Catalog unavailable',
+    );
+    // Connection details must not silently disappear without the error explanation.
+    expect(screen.queryByText('Base URL')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('access-details-usage-example')).not.toBeInTheDocument();
+  });
+
+  it('recovers connection details after retrying a failed catalog fetch', async () => {
+    const user = userEvent.setup();
+    let failOnce = true;
+    mockGetMaaSModelsList = () =>
+      failOnce ? Promise.reject(new Error('Catalog unavailable')) : Promise.resolve(mockMaaSModels);
+    renderModal();
+    expect(await screen.findByTestId('access-details-model-catalog-error')).toBeVisible();
+    failOnce = false;
+    await user.click(screen.getByTestId('access-details-model-catalog-retry'));
+    expect(await screen.findByText('Base URL')).toBeVisible();
+    expect(screen.queryByTestId('access-details-model-catalog-error')).not.toBeInTheDocument();
+    expect(screen.getByTestId('access-details-usage-example')).toHaveTextContent(
+      'publishers/test/models/model-a',
+    );
   });
 
   it('invokes onClose when the Close button is clicked', async () => {

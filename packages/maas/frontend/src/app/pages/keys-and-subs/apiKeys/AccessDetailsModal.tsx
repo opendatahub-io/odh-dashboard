@@ -132,7 +132,7 @@ const AccessDetailsModal: React.FC<AccessDetailsModalProps> = ({
     (opts: APIOptions) => getMaaSModelsList()(opts),
     [],
   );
-  const [maasModels] = useFetchState(modelsCallback, []);
+  const [maasModels, , maasModelsError, refreshMaasModels] = useFetchState(modelsCallback, []);
 
   const selectedModelRef = subscription?.model_refs.find(
     (ref) => modelRefKey(ref) === effectiveSelectedModel,
@@ -219,6 +219,28 @@ const AccessDetailsModal: React.FC<AccessDetailsModalProps> = ({
                 data-testid="access-details-subscription-error"
               >
                 {fetchedSubscriptionError.message}
+              </Alert>
+            )}
+            {maasModelsError && (
+              <Alert
+                variant="danger"
+                isInline
+                title="Failed to load the model catalog"
+                className="pf-v6-u-mb-lg"
+                data-testid="access-details-model-catalog-error"
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => refreshMaasModels()}
+                    data-testid="access-details-model-catalog-retry"
+                  >
+                    Retry
+                  </Button>
+                }
+              >
+                Connection details cannot be shown until the model catalog loads.{' '}
+                {maasModelsError.message}
               </Alert>
             )}
             <Form>
