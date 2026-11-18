@@ -9,7 +9,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   convertStringToExternalModelProviderType,
   ExternalModelWizardInheritedConfigShowMoreClickedProperties,
@@ -27,6 +27,7 @@ const InheritedProviderConfig: React.FC<InheritedProviderConfigProps> = ({
   previewCount,
   providerType,
 }) => {
+  const trackEvent = useTrackEvent();
   const entries = Object.entries(config);
   const [showAll, setShowAll] = React.useState(false);
   const hasPreviewLimit = previewCount !== undefined && entries.length > previewCount;
@@ -84,14 +85,11 @@ const InheritedProviderConfig: React.FC<InheritedProviderConfigProps> = ({
             variant="link"
             onClick={() => {
               setShowAll((prev) => !prev);
-              fireMiscTrackingEvent(
-                MaaSEvents.EXTERNAL_MODEL_WIZARD_INHERITED_CONFIG_SHOW_MORE_CLICKED,
-                {
-                  inheritedCount: entries.length,
-                  isExpanded: !showAll,
-                  providerType: convertStringToExternalModelProviderType(providerType),
-                } satisfies ExternalModelWizardInheritedConfigShowMoreClickedProperties,
-              );
+              trackEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_INHERITED_CONFIG_SHOW_MORE_CLICKED, {
+                inheritedCount: entries.length,
+                isExpanded: !showAll,
+                providerType: convertStringToExternalModelProviderType(providerType),
+              } satisfies ExternalModelWizardInheritedConfigShowMoreClickedProperties);
             }}
             data-testid="inherited-provider-config-show-more"
           >

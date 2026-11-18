@@ -1,7 +1,9 @@
+import * as React from 'react';
 import { act } from '@testing-library/react';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { reindexAfterRemove, useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
 import { MaaSModelRefSummary, SubscriptionModelEntry } from '~/app/types/subscriptions';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
 const makeModelRef = (name: string, namespace = 'maas-models'): MaaSModelRefSummary => ({
   name,
@@ -34,8 +36,17 @@ describe('reindexAfterRemove', () => {
 });
 
 describe('useSubscriptionModels', () => {
+  const renderState = (initial?: SubscriptionModelEntry[], trackEvent = jest.fn()) => ({
+    trackEvent,
+    renderResult: renderHook(() => useSubscriptionModels(initial), {
+      wrapper: ({ children }) => (
+        <TrackingProvider trackEvent={trackEvent}>{children}</TrackingProvider>
+      ),
+    }),
+  });
+
   it('should initialize with empty models by default', () => {
-    const renderResult = testHook(useSubscriptionModels)();
+    const { renderResult } = renderState();
     const { models, allModelsHaveRateLimits } = renderResult.result.current;
 
     expect(models).toHaveLength(0);
@@ -44,7 +55,7 @@ describe('useSubscriptionModels', () => {
 
   it('should initialize with provided models', () => {
     const initial = [makeEntry('model-a'), makeEntry('model-b')];
-    const renderResult = testHook(useSubscriptionModels)(initial);
+    const { renderResult } = renderState(initial);
 
     expect(renderResult.result.current.models).toHaveLength(2);
     expect(renderResult.result.current.models[0].modelRefSummary.name).toBe('model-a');
@@ -52,7 +63,7 @@ describe('useSubscriptionModels', () => {
   });
 
   it('should add models via handleAddModels', () => {
-    const renderResult = testHook(useSubscriptionModels)();
+    const { renderResult } = renderState();
 
     act(() => {
       renderResult.result.current.handleAddModels([makeModelRef('model-a')]);
@@ -65,7 +76,7 @@ describe('useSubscriptionModels', () => {
 
   it('should not add duplicate models', () => {
     const initial = [makeEntry('model-a')];
-    const renderResult = testHook(useSubscriptionModels)(initial);
+    const { renderResult } = renderState(initial);
 
     act(() => {
       renderResult.result.current.handleAddModels([
@@ -80,7 +91,7 @@ describe('useSubscriptionModels', () => {
 
   it('should remove a model by index', () => {
     const initial = [makeEntry('model-a'), makeEntry('model-b'), makeEntry('model-c')];
-    const renderResult = testHook(useSubscriptionModels)(initial);
+    const { renderResult } = renderState(initial);
 
     act(() => {
       renderResult.result.current.handleRemoveModel(1);
@@ -93,7 +104,7 @@ describe('useSubscriptionModels', () => {
 
   it('should reindex editLimitsTarget when a row above the target is removed', () => {
     const initial = [makeEntry('model-a'), makeEntry('model-b'), makeEntry('model-c')];
-    const renderResult = testHook(useSubscriptionModels)(initial);
+    const { renderResult } = renderState(initial);
 
     act(() => {
       renderResult.result.current.setEditLimitsTarget(2);
@@ -108,7 +119,7 @@ describe('useSubscriptionModels', () => {
 
   it('should clear editLimitsTarget when the edited row is removed', () => {
     const initial = [makeEntry('model-a'), makeEntry('model-b')];
-    const renderResult = testHook(useSubscriptionModels)(initial);
+    const { renderResult } = renderState(initial);
 
     act(() => {
       renderResult.result.current.setEditLimitsTarget(1);
@@ -123,7 +134,7 @@ describe('useSubscriptionModels', () => {
 
   it('should adjust editLimitsTarget when removing multiple models by ref', () => {
     const initial = [makeEntry('model-a'), makeEntry('model-b'), makeEntry('model-c')];
-    const renderResult = testHook(useSubscriptionModels)(initial);
+    const { renderResult } = renderState(initial);
 
     act(() => {
       renderResult.result.current.setEditLimitsTarget(2);
@@ -142,7 +153,7 @@ describe('useSubscriptionModels', () => {
 
   it('should remove models by ref', () => {
     const initial = [makeEntry('model-a'), makeEntry('model-b'), makeEntry('model-c')];
-    const renderResult = testHook(useSubscriptionModels)(initial);
+    const { renderResult } = renderState(initial);
 
     act(() => {
       renderResult.result.current.handleRemoveModelsByRef([
@@ -157,7 +168,7 @@ describe('useSubscriptionModels', () => {
 
   it('should save rate limits for the target model', () => {
     const initial = [makeEntry('model-a', 'ns', []), makeEntry('model-b', 'ns', [])];
-    const renderResult = testHook(useSubscriptionModels)(initial);
+    const { renderResult } = renderState(initial);
 
     act(() => {
       renderResult.result.current.setEditLimitsTarget(0);
@@ -174,7 +185,7 @@ describe('useSubscriptionModels', () => {
   });
 
   it('should report allModelsHaveRateLimits correctly', () => {
-    const renderResult = testHook(useSubscriptionModels)([
+    const { renderResult } = renderState([
       makeEntry('model-a', 'ns', [{ limit: 1000, window: '1h' }]),
     ]);
 
@@ -189,13 +200,13 @@ describe('useSubscriptionModels', () => {
     expect(renderResult.result.current.models).toHaveLength(2);
 
     // also false when initialized with a model that already has no limits
-    const renderResult2 = testHook(useSubscriptionModels)([makeEntry('model-a', 'ns', [])]);
+    const renderResult2 = renderState([makeEntry('model-a', 'ns', [])]).renderResult;
     expect(renderResult2.result.current.allModelsHaveRateLimits).toBe(false);
   });
 
   it('should return the editingModel when editLimitsTarget is set', () => {
     const initial = [makeEntry('model-a'), makeEntry('model-b')];
-    const renderResult = testHook(useSubscriptionModels)(initial);
+    const { renderResult } = renderState(initial);
 
     expect(renderResult.result.current.editingModel).toBeNull();
 
@@ -204,5 +215,36 @@ describe('useSubscriptionModels', () => {
     });
 
     expect(renderResult.result.current.editingModel?.modelRefSummary.name).toBe('model-b');
+  });
+
+  it('should track token-limit save and cancel through the injected callback', () => {
+    const initial = [makeEntry('model-a', 'ns', [])];
+    const { renderResult, trackEvent } = renderState(initial);
+
+    act(() => {
+      renderResult.result.current.setEditLimitsTarget(0);
+    });
+    act(() => {
+      renderResult.result.current.handleSaveRateLimits([
+        { limit: 50000, window: '1h' },
+        { limit: 1000, window: '24h' },
+      ]);
+    });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Subscription Token Limits Configured', {
+      outcome: 'submit',
+      limitCount: 2,
+    });
+
+    act(() => {
+      renderResult.result.current.setEditLimitsTarget(0);
+    });
+    act(() => {
+      renderResult.result.current.handleCloseRateLimitsModal();
+    });
+    expect(trackEvent).toHaveBeenCalledTimes(2);
+    expect(trackEvent).toHaveBeenLastCalledWith('Subscription Token Limits Configured', {
+      outcome: 'cancel',
+    });
   });
 });

@@ -3,6 +3,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
+import { NoopAnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 import PhaseModal from '~/app/shared/Phase/PhaseModal';
 import { PhaseResourceType, PhaseStatus } from '~/app/utilities/phaseLabelUtils';
 
@@ -19,9 +21,11 @@ const renderPhaseModal = (
   props: Partial<React.ComponentProps<typeof PhaseModal>> & { phase: string },
 ): ReturnType<typeof render> =>
   render(
-    <MemoryRouter>
-      <PhaseModal {...defaultProps} {...props} />
-    </MemoryRouter>,
+    <NoopAnalyticsTrackingProvider>
+      <MemoryRouter>
+        <PhaseModal {...defaultProps} {...props} />
+      </MemoryRouter>
+    </NoopAnalyticsTrackingProvider>,
   );
 
 describe('PhaseModal', () => {
@@ -254,6 +258,34 @@ describe('PhaseModal', () => {
       });
 
       expect(screen.queryByTestId('phase-modal-view-details-link')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('tracking', () => {
+    it('should forward the view-details phase link to the host-supplied callback', async () => {
+      const trackEvent = jest.fn();
+      const user = userEvent.setup();
+      render(
+        <TrackingProvider trackEvent={trackEvent}>
+          <MemoryRouter>
+            <PhaseModal
+              {...defaultProps}
+              phase={PhaseStatus.FAILED}
+              resourceUrl="/maas/maas-governance/subscriptions/view/test"
+              returnTo="/maas/maas-governance/overview"
+            />
+          </MemoryRouter>
+        </TrackingProvider>,
+      );
+
+      expect(trackEvent).not.toHaveBeenCalled();
+      await user.click(screen.getByTestId('phase-modal-view-details-link'));
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+      expect(trackEvent).toHaveBeenCalledWith('MaaS Settings Details Viewed', {
+        resourceType: 'subscription',
+        source: 'tab-link',
+        resourceStatus: 'Failed',
+      });
     });
   });
 });

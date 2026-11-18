@@ -3,7 +3,7 @@ import { ResourceTr } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, Tbody, Td } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { PhaseResourceType, convertStringToPhaseStatus } from '~/app/utilities/phaseLabelUtils';
 import { ExternalProvider } from '~/app/types/external-models';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
@@ -32,6 +32,7 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
   setDeleteExternalProvider,
 }) => {
   const [endpointURLModalRef, setEndpointURLModalRef] = React.useState<string | null>(null);
+  const trackEvent = useTrackEvent();
 
   const nameCell = (
     <Td dataLabel={externalProvidersColumns[0].label}>
@@ -120,7 +121,7 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
             title: 'Edit',
             onClick: () => {
               setEditExternalProvider(externalProvider);
-              fireMiscTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_EDIT_CLICKED, {
+              trackEvent(MaaSEvents.EXTERNAL_PROVIDER_EDIT_CLICKED, {
                 providerType: convertStringToExternalModelProviderType(externalProvider.provider),
                 authMechanism: convertStringToAuthMechanism(externalProvider.authMechanism),
                 providerStatus: convertStringToPhaseStatus(externalProvider.phase),

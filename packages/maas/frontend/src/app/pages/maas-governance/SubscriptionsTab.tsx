@@ -8,7 +8,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { CallerOrganizationContext, groupLabel } from '~/app/shared/GroupName';
@@ -53,6 +53,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   readOnly = false,
   getSubscriptionDetailUrl,
 }) => {
+  const trackEvent = useTrackEvent();
   const {
     subscriptions,
     subscriptionsLoaded: loaded,
@@ -197,7 +198,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
           onClose={(deleted?: boolean) => {
             setDeleteSubscription(undefined);
             if (deleted) {
-              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+              trackEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
                 source: EventTrackingSource.LIST_KEBAB,
                 resourceStatus: deleteSubscription.phase ?? '',
@@ -205,7 +206,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
               } satisfies MaaSResourceDeletedProperties);
               refresh();
             } else {
-              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+              trackEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
                 source: EventTrackingSource.LIST_KEBAB,
                 resourceStatus: deleteSubscription.phase ?? '',
