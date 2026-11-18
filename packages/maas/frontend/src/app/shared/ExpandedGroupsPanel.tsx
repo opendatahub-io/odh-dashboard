@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { GroupReference } from '~/app/types/subscriptions';
+import { GroupName } from '~/app/shared/GroupName';
 
 type ExpandedGroupsPanelProps = {
   groups: GroupReference[];
@@ -22,7 +23,7 @@ const ExpandedGroupsPanel: React.FC<ExpandedGroupsPanelProps> = ({ groups }) => 
         groups.map((group) => (
           <Tr key={group.name} data-testid="expanded-group-item">
             <Td dataLabel="Group name" data-testid="expanded-group-name">
-              {group.name}
+              <GroupName name={group.name} />
             </Td>
           </Tr>
         ))
