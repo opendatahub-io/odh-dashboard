@@ -18,12 +18,16 @@ export type TypeaheadFilterFieldProps = {
 export const filterByLabelOrValue = (
   filterValue: string,
   options: TypeaheadSelectOption[],
-): TypeaheadSelectOption[] =>
-  options.filter(
-    (option) =>
-      String(option.content).toLowerCase().includes(filterValue.toLowerCase()) ||
-      String(option.value).toLowerCase().includes(filterValue.toLowerCase()),
-  );
+): TypeaheadSelectOption[] => {
+  const search = filterValue.trim().toLowerCase();
+  return search
+    ? options.filter(
+        (option) =>
+          String(option.content).toLowerCase().includes(search) ||
+          String(option.value).toLowerCase().includes(search),
+      )
+    : options;
+};
 
 /**
  * Marks a synthesized fragment option. The prefix keeps its value distinct from
@@ -75,7 +79,10 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
       value && !options.some((o) => String(o.value) === value)
         ? [...options, { value, content: value }]
         : options;
-    return filterValue ? [...base, toFragmentOption(filterValue)] : base;
+    // Whitespace-only input must not offer a fragment: the overview filtering
+    // logic treats an all-whitespace fragment as no filter at all.
+    const trimmed = filterValue.trim();
+    return trimmed ? [...base, toFragmentOption(trimmed)] : base;
   }, [options, value, filterValue]);
 
   return (

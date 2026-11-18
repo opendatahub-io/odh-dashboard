@@ -58,10 +58,25 @@ const subscription = {
   modelRefs: [{ name: 'granite-8b', displayName: 'Granite 8B' }],
 } as unknown as MaaSSubscription;
 
+// Includes a repeated model and one supplied out of label order so the
+// derived options exercise deduplication and sorting
+const subscriptions = [
+  subscription,
+  {
+    name: 'zeta-sub',
+    namespace: 'maas',
+    owner: { groups: [{ name: 'team-b' }] },
+    modelRefs: [
+      { name: 'granite-8b', displayName: 'Granite 8B' },
+      { name: 'granite-3b', displayName: 'Granite 3B' },
+    ],
+  } as unknown as MaaSSubscription,
+];
+
 const renderToolbar = (filterData: SubscriptionsFilterDataType) =>
   render(
     <SubscriptionsFilterToolbar
-      subscriptions={[subscription]}
+      subscriptions={subscriptions}
       filterData={filterData}
       onFilterUpdate={jest.fn()}
     />,
@@ -92,7 +107,10 @@ describe('SubscriptionsFilterToolbar', () => {
     });
 
     // The model field renders last; its options derive from modelRefs
-    expect(typeaheadProps.selectOptions).toEqual([{ value: 'granite-8b', content: 'Granite 8B' }]);
+    expect(typeaheadProps.selectOptions).toEqual([
+      { value: 'granite-3b', content: 'Granite 3B' },
+      { value: 'granite-8b', content: 'Granite 8B' },
+    ]);
   });
 
   it('should support committing typed text as a fragment filter', () => {

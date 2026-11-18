@@ -128,7 +128,7 @@ const groupMatchesAuthPolicyName = (row: GroupOverviewItem, filter: FilterSelect
 /** Model refs referenced by a group through both subscriptions and authorization policies. */
 const groupModelRefs = (
   row: GroupOverviewItem,
-): Array<{ name: string; namespace: string; displayName?: string }> => [
+): Array<{ name: string; namespace: string; displayName?: string; description?: string }> => [
   ...row.subscriptions.flatMap((sub) => sub.modelRefs),
   ...row.authPolicies.flatMap((policy) => policy.modelRefs),
 ];
@@ -137,7 +137,9 @@ const groupMatchesModelName = (row: GroupOverviewItem, filter: FilterSelection):
   groupModelRefs(row).some((ref) =>
     filter.exact
       ? textEquals(ref.name, filter.exact)
-      : textIncludes(ref.name, filter.fragment) || textIncludes(ref.displayName, filter.fragment),
+      : textIncludes(ref.name, filter.fragment) ||
+        textIncludes(ref.displayName, filter.fragment) ||
+        textIncludes(ref.description, filter.fragment),
   );
 
 const groupMatchesProject = (row: GroupOverviewItem, filter: FilterSelection): boolean =>

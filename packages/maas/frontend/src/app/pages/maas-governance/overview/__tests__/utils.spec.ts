@@ -131,6 +131,42 @@ describe('filterOverviewGroups', () => {
     expect(byProject.map((g) => g.name)).toEqual(['policy-only-users']);
   });
 
+  it('should match a model fragment against the model description', () => {
+    const describedGroups: GroupOverviewItem[] = [
+      {
+        name: 'desc-users',
+        subscriptions: [
+          {
+            name: 'desc-sub',
+            groups: ['desc-users'],
+            modelRefs: [
+              {
+                name: 'granite-3-8b-instruct',
+                namespace: 'maas-models',
+                displayName: 'Granite 3 8B',
+                description: 'A compact instruct model',
+                tokenRateLimits: [],
+              },
+            ],
+          },
+        ],
+        authPolicies: [],
+      },
+    ];
+
+    const byDescription = filterOverviewGroups(describedGroups, {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.modelName]: 'compact instruct',
+    });
+    expect(byDescription.map((g) => g.name)).toEqual(['desc-users']);
+
+    const none = filterOverviewGroups(describedGroups, {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.modelName]: 'nonexistent description',
+    });
+    expect(none).toHaveLength(0);
+  });
+
   it('should return an empty array for empty input', () => {
     expect(filterOverviewGroups([], filters({}))).toEqual([]);
   });
@@ -165,6 +201,27 @@ describe('filterOverviewModels', () => {
     const filtered = filterOverviewModels(modelRows, {
       ...initialOverviewFilterData,
       [OverviewFilterOptions.modelName]: 'granite 3',
+    });
+    expect(filtered.map((r) => r.id)).toEqual(['granite-3-8b-instruct']);
+  });
+
+  it('should match a model name fragment against the description', () => {
+    const rows: ModelOverviewItem[] = [
+      {
+        id: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        modelDetails: {
+          displayName: 'Granite 3 8B',
+          description: 'A compact instruct model',
+        } as ModelOverviewItem['modelDetails'],
+        subscriptions: [],
+        authPolicies: [],
+      },
+    ];
+
+    const filtered = filterOverviewModels(rows, {
+      ...initialOverviewFilterData,
+      [OverviewFilterOptions.modelName]: 'compact instruct',
     });
     expect(filtered.map((r) => r.id)).toEqual(['granite-3-8b-instruct']);
   });
