@@ -30,6 +30,17 @@ aliases:
     - jessiehuff
     - tamdavid-git
 
+  # AI Grid (temp groups -- maybe)
+  ai-grid-approvers:
+    - andrewballantyne
+    - manaswinidas
+    - DaoDaoNoCode
+  ai-grid-reviewers:
+    - manaswinidas
+    - DaoDaoNoCode
+    - ppadti
+    - jesuino
+
   # AI Trusty
   ai-trusty-approvers:
     - andrewballantyne
