@@ -9,12 +9,19 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   })),
 }));
 
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useAccessReview: jest.fn(() => [true, true]),
+}));
+
 jest.mock('@patternfly/react-core', () => ({
   ...jest.requireActual('@patternfly/react-core'),
 }));
 
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import NewProjectButton from '../NewProjectButton';
 import { createTrackingRender } from '../../../__tests__/TrackingProvider';
+
+const mockUseAccessReview = jest.mocked(useAccessReview);
 
 const mockTrackEvent = jest.fn();
 const render = createTrackingRender(mockTrackEvent);
@@ -25,6 +32,7 @@ describe('NewProjectButton', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseAccessReview.mockReturnValue([true, true]);
     mockCreateProject.mockImplementation(
       () =>
         new Promise<string>((resolve, reject) => {
@@ -37,6 +45,19 @@ describe('NewProjectButton', () => {
   it('should render the Create project button', () => {
     render(<NewProjectButton />);
     expect(screen.getByTestId('create-project')).toBeInTheDocument();
+  });
+
+  it('should show administrator help when the user cannot create projects', () => {
+    mockUseAccessReview.mockReturnValue([false, true]);
+    render(<NewProjectButton />);
+    expect(screen.queryByTestId('create-project')).not.toBeInTheDocument();
+    expect(screen.getByTestId('create-project-admin-help')).toBeInTheDocument();
+  });
+
+  it('should render nothing while RBAC is loading', () => {
+    mockUseAccessReview.mockReturnValue([false, false]);
+    const { container } = render(<NewProjectButton />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('should open the modal when clicking Create project', () => {
