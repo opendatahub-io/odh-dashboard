@@ -116,9 +116,9 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
             <Button
               variant="tertiary"
               size="sm"
-              id={`api-key-access-details-${apiKey.name}`}
+              id={`api-key-access-details-${apiKey.id}`}
               onClick={() => onViewAccessDetails(apiKey)}
-              data-testid={`api-key-access-details-${apiKey.name}`}
+              data-testid={`api-key-access-details-${apiKey.id}`}
             >
               Access details
             </Button>
