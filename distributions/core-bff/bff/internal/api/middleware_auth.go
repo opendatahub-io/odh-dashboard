@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -29,7 +30,11 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 
 		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
 		if err != nil {
-			if app.config.DevMode {
+			// DEV_MODE substitutes the kubeconfig identity only when no credential
+			// was sent. A credential that was sent but is malformed or conflicting
+			// is rejected in every profile, so local runs surface the same
+			// failures production does.
+			if app.config.DevMode && errors.Is(err, httpcontract.ErrCredentialsMissing) {
 				// DevUser/DevGroups are used for audit log fallback labeling (see auditUser).
 				// The resolved identity for k8s operations comes from the kubeconfig's native auth,
 				// not from these values - GetUser() does a SelfSubjectReview against the kubeconfig client.

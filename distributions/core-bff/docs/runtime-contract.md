@@ -46,20 +46,20 @@ core-bff refusing to start: invalid configuration (2 problems):
 
 ### Core
 
-| Flag                      | Environment                    | Default                | Notes                                                              |
-| ------------------------- | ------------------------------ | ---------------------- | ------------------------------------------------------------------ |
+| Flag                      | Environment                    | Default                | Notes                                                               |
+| ------------------------- | ------------------------------ | ---------------------- | ------------------------------------------------------------------- |
 | `--port`                  | `PORT`                         | `4000`                 | Must be an integer 1–65535. A malformed explicit `PORT` is refused. |
-| `--deployment-mode`       | `DEPLOYMENT_MODE`              | `standalone`           | `standalone` or `federated`.                                       |
-| `--platform-type`         | `ODH_PLATFORM_TYPE`            | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection. |
-| `--admission-mode`        | `ADMISSION_MODE`               | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.    |
-| `--namespace`             | `NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required.                                     |
-| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`          | _(= namespace)_        | Namespace allowlist entry.                                         |
-| `--operator-namespace`    | `OPERATOR_NAMESPACE`           | _(empty)_              | Preferred subscription namespace (OpenShift).                      |
-| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`        | `odh-dashboard-config` | OdhDashboardConfig CR name.                                        |
-| `--enabled-apps-cm`       | `ENABLED_APPS_CM`              | _(empty)_              | ConfigMap tracking enabled applications.                           |
-| `--static-assets-dir`     | `STATIC_ASSETS_DIR`            | `./static`             | SPA asset root. Required.                                          |
-| `--log-level`             | `LOG_LEVEL`                    | `INFO`                 | `error`, `warn`, `info`, `debug`.                                  |
-| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`            | _(empty)_              | Module federation remotes file.                                    |
+| `--deployment-mode`       | `DEPLOYMENT_MODE`              | `standalone`           | `standalone` or `federated`.                                        |
+| `--platform-type`         | `ODH_PLATFORM_TYPE`            | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection.  |
+| `--admission-mode`        | `ADMISSION_MODE`               | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.     |
+| `--namespace`             | `NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required.                                      |
+| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`          | _(= namespace)_        | Namespace allowlist entry.                                          |
+| `--operator-namespace`    | `OPERATOR_NAMESPACE`           | _(empty)_              | Preferred subscription namespace (OpenShift).                       |
+| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`        | `odh-dashboard-config` | OdhDashboardConfig CR name.                                         |
+| `--enabled-apps-cm`       | `ENABLED_APPS_CM`              | _(empty)_              | ConfigMap tracking enabled applications.                            |
+| `--static-assets-dir`     | `STATIC_ASSETS_DIR`            | `./static`             | SPA asset root. Required.                                           |
+| `--log-level`             | `LOG_LEVEL`                    | `INFO`                 | `error`, `warn`, `info`, `debug`.                                   |
+| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`            | _(empty)_              | Module federation remotes file.                                     |
 
 ### Authentication
 
@@ -100,7 +100,7 @@ Headers are consulted in the configured order.
 
 1. **Absent or empty** headers are skipped.
 2. **`Authorization` must use the Bearer scheme** (`Bearer <token>`, scheme case-insensitive). Any
-   other header carries the bare token. A token with embedded whitespace is malformed.
+   other header carries the bare token. A token with embedded whitespace or a comma is malformed.
 3. **A header that is present must be well formed.** A malformed header fails the request; it does
    **not** fall through to the next header, because the edge may have authenticated exactly that
    header.
@@ -137,8 +137,10 @@ Outside `DEV_MODE` nothing can replace a missing or rejected caller credential:
 - A client certificate in the kubeconfig is **not** presented by the Kubernetes proxies. The API
   server authenticates a certificate before a bearer token, so presenting it would act as the
   certificate subject. The typed clients drop it too (`rest.AnonymousClientConfig`).
-- `DEV_MODE` keeps its kubeconfig fallback identity for local development. It is a development
-  profile and cannot be enabled in production without the profile changing.
+- `DEV_MODE` keeps its kubeconfig fallback identity for local development, but only when **no**
+  credential was sent. A credential that was sent and is malformed or conflicting is rejected with
+  401, as in production. `DEV_MODE` is a development profile and cannot be enabled in production
+  without the profile changing.
 
 ### Where the configured headers are applied
 
@@ -158,6 +160,8 @@ Covered by `bff/internal/callerauth/credentials_test.go` (precedence and rejecti
 `bff/internal/api/caller_auth_transport_test.go` (every transport through the real handler tree),
 `bff/internal/proxy/caller_auth_test.go` (proxy stripping and fail-closed forwarding) and the
 `xks/testCoreBffCallerAuth` and `openshift/testCoreBffCallerAuth` contract suites.
+`scripts/validate-caller-auth.sh` runs the same checks against a live cluster with a throwaway
+ServiceAccount (`PLATFORM=XKS` or `PLATFORM=OpenShift`); it never prints a token.
 
 ### Transport and trust
 
@@ -185,10 +189,10 @@ A deployment is in a **production profile** unless at least one of `DEV_MODE`,
 `MOCK_K8S_CLIENT`, `MOCK_HTTP_CLIENT` or `MOCK_BFF_CLIENTS` is on. Opting into a development
 profile is explicit, which is what makes these rejections safe:
 
-| Rejected in a production profile                                                                                             | Why                                                                                                                 | Way out                                                     |
-| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `AUTH_METHOD=disabled`                                                                                                       | No caller identity is extracted at all.                                                                             | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.       |
-| `INSECURE_SKIP_VERIFY=true`                                                                                                  | Disables upstream certificate verification on every outbound call.                                                  | Supply the upstream CA through `BUNDLE_PATHS`.              |
+| Rejected in a production profile                                                                                                                        | Why                                                                                                                                                                                                                                                                   | Way out                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `AUTH_METHOD=disabled`                                                                                                                                  | No caller identity is extracted at all.                                                                                                                                                                                                                               | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.       |
+| `INSECURE_SKIP_VERIFY=true`                                                                                                                             | Disables upstream certificate verification on every outbound call.                                                                                                                                                                                                    | Supply the upstream CA through `BUNDLE_PATHS`.              |
 | `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), or an entry with a path (including a trailing `/`), query or user info | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. Browsers send `Origin` without a trailing slash, so `https://host/` could never match. Rejected entries are reported by position, never by value. | List each exact dashboard origin as `scheme://host[:port]`. |
 
 ## TLS inputs

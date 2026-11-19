@@ -72,6 +72,9 @@ func (r *ComponentsRepository) RemoveComponent(ctx context.Context, namespace, a
 
 	cm, err := cs.CoreV1().ConfigMaps(namespace).Get(ctx, enabledAppsCM, metav1.GetOptions{})
 	if err != nil {
+		if r.clients.surfacesAuthFailure(err) {
+			return nil, err
+		}
 		return &models.MutationResponse{Success: false, Error: fmt.Sprintf("failed to read enabled apps ConfigMap: %v", err)}, nil
 	}
 
@@ -83,6 +86,9 @@ func (r *ComponentsRepository) RemoveComponent(ctx context.Context, namespace, a
 
 	_, err = cs.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
+		if r.clients.surfacesAuthFailure(err) {
+			return nil, err
+		}
 		return &models.MutationResponse{Success: false, Error: fmt.Sprintf("failed to update enabled apps ConfigMap: %v", err)}, nil
 	}
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -85,6 +86,16 @@ func (s clientSource) callerClients(ctx context.Context) (kubernetes.Interface, 
 		return nil, nil, fmt.Errorf("%w: %w", ErrCallerClientsUnavailable, err)
 	}
 	return typed, dyn, nil
+}
+
+// surfacesAuthFailure reports whether err must reach the client as the API
+// server's 401/403 instead of being folded into a 200 MutationResponse with
+// success=false. Under the caller policy an RBAC denial is the expected answer
+// for a caller who lacks the permission, and the client must be able to tell it
+// apart from any other failure. The service-account policy keeps its existing
+// response shape.
+func (s clientSource) surfacesAuthFailure(err error) bool {
+	return s.policy == CredentialPolicyCaller && (k8serrors.IsForbidden(err) || k8serrors.IsUnauthorized(err))
 }
 
 // typed returns the typed clientset for a user-initiated operation.

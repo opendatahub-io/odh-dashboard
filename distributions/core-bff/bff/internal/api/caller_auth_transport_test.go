@@ -15,6 +15,7 @@ import (
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/stretchr/testify/assert"
@@ -90,6 +91,7 @@ type transportApp struct {
 	k8s     *transportRecorder
 	ws      *transportRecorder
 	module  *transportRecorder
+	serving *transportRecorder
 }
 
 func newTransportApp(t *testing.T, mutate func(*config.EnvConfig)) transportApp {
@@ -102,10 +104,11 @@ func newTransportApp(t *testing.T, mutate func(*config.EnvConfig)) transportApp 
 		mutate(&cfg)
 	}
 	ta := transportApp{
-		rest:   &recordingFactory{real: k8s.NewTokenClientFactory(testLogger(), cfg)},
-		k8s:    &transportRecorder{},
-		ws:     &transportRecorder{},
-		module: &transportRecorder{},
+		rest:    &recordingFactory{real: k8s.NewTokenClientFactory(testLogger(), cfg)},
+		k8s:     &transportRecorder{},
+		ws:      &transportRecorder{},
+		module:  &transportRecorder{},
+		serving: &transportRecorder{},
 	}
 	app := newTestApp(func(a *App) {
 		a.config.AuthMethod = cfg.AuthMethod
@@ -116,6 +119,7 @@ func newTransportApp(t *testing.T, mutate func(*config.EnvConfig)) transportApp 
 		a.k8sProxy = ta.k8s
 		a.wsProxy = ta.ws
 		a.moduleProxies = []moduleProxyHandler{{path: "/gen-ai", handler: ta.module}}
+		a.modelServingProxy = ta.serving
 	})
 	ta.handler = app.Routes()
 	return ta
@@ -136,6 +140,7 @@ var transports = []transportCase{
 	{"Kubernetes WebSocket proxy", "/wss/k8s/api/v1/namespaces/demo/pods", func(a transportApp) []string { return a.ws.seen }},
 	{"Kubernetes WebSocket proxy (prefixed)", PathPrefix + "/wss/k8s/api/v1/namespaces/demo/pods", func(a transportApp) []string { return a.ws.seen }},
 	{"module proxy", "/gen-ai/api/v1/models", func(a transportApp) []string { return a.module.seen }},
+	{"model-serving proxy", ModelServingProxyPrefix + "api/v1/deployments", func(a transportApp) []string { return a.serving.seen }},
 }
 
 var xksHeaders = func(c *config.EnvConfig) {
@@ -321,6 +326,7 @@ func TestCallerClientsFrom(t *testing.T) {
 
 	_, _, err = callerClientsFrom(testK8sFactory)(context.Background())
 	require.Error(t, err, "no identity in context must fail")
+	assert.ErrorIs(t, err, httpcontract.ErrIdentityUnresolved, "a missing identity is a 401, not an internal error")
 
 	factory := &recordingFactory{real: k8s.NewTokenClientFactory(testLogger(), config.EnvConfig{AuthTokenHeader: config.DefaultAuthTokenHeader})}
 	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: k8s.NewBearerToken(callerToken)})
@@ -334,4 +340,36 @@ func TestCallerClientsFrom(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, typed)
 	assert.NotNil(t, dyn)
+}
+
+// DEV_MODE substitutes the kubeconfig identity only when no credential was
+// sent; a malformed or conflicting credential is rejected as in production.
+func TestCallerAuth_DevModeRejectsInvalidCredentials(t *testing.T) {
+	rejected := []http.Header{
+		hdr("Authorization", "Basic dXNlcjpwYXNz"),
+		hdr("Authorization", "Bearer "+callerToken, "X-Forwarded-Access-Token", otherToken),
+		hdr("X-Forwarded-Access-Token", "   "),
+	}
+	for _, in := range rejected {
+		app := newTestApp(func(a *App) {
+			a.config.AuthMethod = config.AuthMethodUser
+			a.config.DevMode = true
+			a.config.AuthTokenHeaders = []string{"Authorization", "x-forwarded-access-token"}
+			a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), a.config)
+		})
+		inner, called := trackingHTTPHandler()
+		rr := serve(app.InjectRequestIdentity(inner), UserPath, in)
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		assert.False(t, *called)
+	}
+
+	app := newTestApp(func(a *App) {
+		a.config.AuthMethod = config.AuthMethodUser
+		a.config.DevMode = true
+		a.config.AuthTokenHeaders = []string{"Authorization", "x-forwarded-access-token"}
+		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), a.config)
+	})
+	inner, called := trackingHTTPHandler()
+	serve(app.InjectRequestIdentity(inner), UserPath, nil)
+	assert.True(t, *called, "no credential at all still takes the DEV_MODE fallback")
 }

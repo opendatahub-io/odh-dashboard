@@ -39,7 +39,7 @@ deployment with no Auth, no OdhDashboardConfig and no OdhApplication resources a
 
 An explicit value always wins over the platform default, in both directions.
 
-### The platform default requires a *confirmed* platform
+### The platform default requires a _confirmed_ platform
 
 Startup falls back to `XKS` when the OpenShift `ClusterVersion` probe fails, because XKS is the
 least-privilege answer for deciding which API calls to make. That fallback is a **guess**, and a
@@ -154,10 +154,10 @@ Tracked by [RHOAIENG-101218](https://redhat.atlassian.net/browse/RHOAIENG-101218
 credentials perform a user-initiated read or mutation depends on the platform
 (`repositories.CredentialPolicyFor`):
 
-| Platform  | Policy            | Behaviour                                                                                                                                     |
-| --------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Platform  | Policy            | Behaviour                                                                                                                                   |
+| --------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | OpenShift | `service-account` | Unchanged RHOAI privileged-watcher model: the handler authorizes the caller (admin review or resource SSAR), then the service account acts. |
-| xKS       | `caller`          | The caller's own credentials perform the operation, so the API server authorizes the exact resource and verb.                                |
+| xKS       | `caller`          | The caller's own credentials perform the operation, so the API server authorizes the exact resource and verb.                               |
 
 Under `caller` a missing or failing caller credential is an error. There is no path to the service
 account: `repositories.clientSource` returns `ErrCallerClientsUnavailable` and the operation is not
@@ -166,14 +166,14 @@ misdetection denies rather than elevates.
 
 Operations that follow the policy (all of them user-initiated):
 
-| Endpoint                                   | Operation                                                   |
-| ------------------------------------------ | ----------------------------------------------------------- |
-| `GET /api/namespaces/:name/:context`       | Namespace label/annotation patch, including `dryRun=All`    |
-| `POST /api/servingRuntimes`                | ServingRuntime create, including `dryRun=All`               |
-| `POST/PUT/PATCH/DELETE /api/connection-types[/:name]` | Connection-type ConfigMap mutations and their existence check |
-| `GET /api/components/remove`               | Enabled-apps ConfigMap update                               |
-| `GET/PUT /api/cluster-settings`            | Culler and segment ConfigMaps, notebook-controller rollout  |
-| `PATCH /api/config`, `GET/PATCH /api/dashboardConfig/:ns/:name` | OdhDashboardConfig admin read and patch      |
+| Endpoint                                                        | Operation                                                     |
+| --------------------------------------------------------------- | ------------------------------------------------------------- |
+| `GET /api/namespaces/:name/:context`                            | Namespace label/annotation patch, including `dryRun=All`      |
+| `POST /api/servingRuntimes`                                     | ServingRuntime create, including `dryRun=All`                 |
+| `POST/PUT/PATCH/DELETE /api/connection-types[/:name]`           | Connection-type ConfigMap mutations and their existence check |
+| `GET /api/components/remove`                                    | Enabled-apps ConfigMap update                                 |
+| `GET/PUT /api/cluster-settings`                                 | Culler and segment ConfigMaps, notebook-controller rollout    |
+| `PATCH /api/config`, `GET/PATCH /api/dashboardConfig/:ns/:name` | OdhDashboardConfig admin read and patch                       |
 
 The Kubernetes HTTP and WebSocket proxies always use the caller's token, on every platform.
 
@@ -182,19 +182,28 @@ ServingRuntimes in a project gets the label applied by the service account. On x
 needs `patch` on the Namespace itself; without it the response is `{"applied": false}` and nothing
 is written. The deploy flow already tolerates `applied: false`.
 
+Under `caller` an RBAC denial from the API server reaches the client as its `403` (or `401`). The
+connection-type and component-removal endpoints, which otherwise report failures as
+`200 {"success": false}`, do not fold a denial into that shape, so a client can tell "you may not"
+from "it failed".
+
 ## Service-account permissions
 
-These are the only service-account operations left on xKS. Each is a read, and none is reached by a
-mutation. For the xKS profile the dashboard **service account** needs:
+These are the only service-account operations left on xKS, and each is a read. The
+OdhDashboardConfig read also runs inside `PATCH /api/config` and `PUT /api/cluster-settings` to
+compute the patch, but the patch itself is performed with the caller's credentials. For the xKS
+profile the dashboard **service account** needs:
 
-| Resource                                       | Verbs  | Needed for                                                                                               |
-| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
-| `odhdashboardconfigs` (`opendatahub.io`)       | `get`  | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                      |
-| `odhapplications` (`dashboard.opendatahub.io`) | `list` | `/api/components`. **Required when the OdhApplication API is installed**: a forbidden list is an error. Only an absent API or no instances degrades to an empty list. |
-| `configmaps` (core), dashboard namespace | `get`, `list` | Connection-type templates (`GET /api/connection-types[/:name]`), filtered to the connection-type labels. Every authenticated user needs them to create a connection and is not granted ConfigMap access in the dashboard namespace. |
+| Resource                                       | Verbs         | Needed for                                                                                                                                                                                                                          |
+| ---------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `odhdashboardconfigs` (`opendatahub.io`)       | `get`         | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                                                                                                                                                 |
+| `odhapplications` (`dashboard.opendatahub.io`) | `list`        | `/api/components`. **Required when the OdhApplication API is installed**: a forbidden list is an error. Only an absent API or no instances degrades to an empty list.                                                               |
+| `configmaps` (core), dashboard namespace       | `get`, `list` | Connection-type templates (`GET /api/connection-types[/:name]`), filtered to the connection-type labels. Every authenticated user needs them to create a connection and is not granted ConfigMap access in the dashboard namespace. |
 
-On xKS the service account needs **no** write verb on any resource, and no permission on
-`namespaces`, `servingruntimes`, `deployments` or `auths`. The current
+On a confirmed xKS platform the service account needs **no** write verb on any resource, and no
+permission on `namespaces`, `servingruntimes`, `deployments` or `auths`. An _unconfirmed_ xKS guess
+keeps the `auth-resource` admission mode (see above), which reads `auths/auth` with the service
+account; set `ODH_PLATFORM_TYPE=XKS` so that read never happens. The current
 `manifests/base/cluster-role.yaml` grants more than this; the reduction is for
 [RHOAIENG-96147](https://redhat.atlassian.net/browse/RHOAIENG-96147) to apply in an xKS overlay.
 
@@ -207,9 +216,9 @@ admission dependency or a hidden fallback.
 Identity and review calls are made with the **caller's** token, not the service account's, so
 granting them to the dashboard service account does nothing. Each authenticated caller needs:
 
-| Resource                                            | Verbs    | Needed for                                                                                         |
-| --------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| `selfsubjectreviews` (`authentication.k8s.io`)      | `create` | Identity. **Required**: without it bootstrap cannot resolve who is calling and fails the request. |
+| Resource                                            | Verbs    | Needed for                                                                                                                                           |
+| --------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `selfsubjectreviews` (`authentication.k8s.io`)      | `create` | Identity. **Required**: without it bootstrap cannot resolve who is calling and fails the request.                                                    |
 | `selfsubjectaccessreviews` (`authorization.k8s.io`) | `create` | Capability and admission reviews. A failed review degrades `isAdmin` to false, and in `auth-resource` mode a failed admission review does not admit. |
 
 Kubernetes grants both to every authenticated user through the default `system:basic-user`
