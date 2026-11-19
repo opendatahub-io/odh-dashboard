@@ -15,12 +15,14 @@ type Props = {
   namespace: string;
   deleteConnection: Connection;
   connectedResources: ConnectedResourceLabel[];
+  connectedResourcesLoaded: boolean;
   onClose: (deleted?: boolean) => void;
 };
 
 export const ConnectionsDeleteModal: React.FC<Props> = ({
   deleteConnection,
   connectedResources,
+  connectedResourcesLoaded,
   onClose,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -67,7 +69,7 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({
       <ConnectedResourcesDeleteModal
         connectedNotebooks={connectedNotebooks}
         connectedResources={connectedResources}
-        loaded={loaded}
+        loaded={loaded && connectedResourcesLoaded}
         namespace={deleteConnection.metadata.namespace}
       />
     </DeleteModal>

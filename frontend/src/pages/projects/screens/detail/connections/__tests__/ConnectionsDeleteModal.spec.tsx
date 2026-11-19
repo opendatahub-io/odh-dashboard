@@ -51,6 +51,7 @@ describe('Delete connection modal', () => {
         namespace={deleteConnection.metadata.namespace}
         deleteConnection={deleteConnection}
         connectedResources={[...connectedResourceLabels]}
+        connectedResourcesLoaded
         onClose={onClose}
       />,
     );
@@ -86,6 +87,7 @@ describe('Delete connection modal', () => {
         namespace={deleteConnection.metadata.namespace}
         deleteConnection={deleteConnection}
         connectedResources={[]}
+        connectedResourcesLoaded
         onClose={onClose}
       />,
     );
