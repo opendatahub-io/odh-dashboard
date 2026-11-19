@@ -17,7 +17,9 @@ describe('Data Connect Hub Pages Load E2E', () => {
   );
 
   after(() => {
-    cleanupTestProject(projectName);
+    if (dataConnectHubAvailable) {
+      cleanupTestProject(projectName);
+    }
   });
 
   it(
@@ -50,7 +52,10 @@ describe('Data Connect Hub Pages Load E2E', () => {
     },
     function verifyDataConnectHubContent() {
       if (!dataConnectHubAvailable) {
-        cy.log('Skipping page content assertions: Data Connect Hub backend or UI is unavailable');
+        Cypress.log({
+          name: 'skip',
+          message: 'Data Connect Hub backend or UI is unavailable',
+        });
         this.skip();
       }
 
