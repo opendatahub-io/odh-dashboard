@@ -9,6 +9,22 @@ import {
 } from '../status';
 
 describe('LLM inference service lifecycle state', () => {
+  it('should expose a missing configuration reported without severity by the controller', () => {
+    const service = mockLLMInferenceServiceK8sResource({
+      conditions: [
+        {
+          type: 'Ready',
+          status: 'False',
+          reason: 'ConfigNotFound',
+          message:
+            'LLMInferenceServiceConfig "missing-config" not found in namespaces [test-project]',
+        },
+      ],
+    });
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.FAILED_TO_LOAD);
+    expect(getLLMInferenceServiceStatusMessage(service)).toContain('missing-config');
+  });
+
   it('should keep a resource in deleting state until Kubernetes removes it', () => {
     const service = mockLLMInferenceServiceK8sResource({ deleted: true, isReady: true });
     service.metadata.finalizers = ['serving.kserve.io/finalizer'];
