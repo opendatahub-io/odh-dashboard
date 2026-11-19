@@ -100,6 +100,22 @@ describe('MetricCards', () => {
     expect(entitiesCard.querySelectorAll('.pf-v6-c-skeleton')).toHaveLength(2);
   });
 
+  it('renders loading placeholders for the initial empty hook response', () => {
+    renderMetricCards(
+      mockResourceCounts({
+        project: undefined,
+        counts: undefined,
+        total: undefined,
+      }),
+      false,
+    );
+
+    const entitiesCard = screen.getByTestId('feature-store-metrics-card-entities');
+    expect(entitiesCard).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(entitiesCard.querySelectorAll('.pf-v6-c-skeleton')).toHaveLength(2);
+  });
+
   it('renders no cards when there is no metrics data', () => {
     renderMetricCards(undefined);
 

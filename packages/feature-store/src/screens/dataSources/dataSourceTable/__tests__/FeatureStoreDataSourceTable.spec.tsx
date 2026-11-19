@@ -55,6 +55,9 @@ describe('FeatureStoreDataSourceTable', () => {
 
     expect(screen.getByRole('link', { name: 'loan_data' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'user_data' })).toBeInTheDocument();
+
+    const dataRows = screen.getAllByRole('row').filter((row) => row.querySelector('td') !== null);
+    expect(dataRows).toHaveLength(2);
   });
 
   it('renders the data source columns', () => {
@@ -83,8 +86,9 @@ describe('FeatureStoreDataSourceTable', () => {
     renderTable({ dataSources: [], onClearFilters });
 
     expect(screen.getByTestId('dashboard-empty-table-state')).toHaveTextContent('No results found');
+    expect(onClearFilters).toHaveBeenCalledTimes(0);
 
     await user.click(screen.getByTestId('clear-filters-button'));
-    expect(onClearFilters).toHaveBeenCalled();
+    expect(onClearFilters).toHaveBeenCalledTimes(1);
   });
 });

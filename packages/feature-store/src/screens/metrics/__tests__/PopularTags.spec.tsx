@@ -67,7 +67,11 @@ describe('PopularTags', () => {
   });
 
   it('renders the access denied state when the request fails', () => {
-    setupHook({ error: new Error('forbidden') });
+    setupHook({
+      error: new Error('forbidden'),
+      loaded: false,
+      data: mockPopularTags({ popular_tags: [] }),
+    });
 
     renderPopularTags();
 

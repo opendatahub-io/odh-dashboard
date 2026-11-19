@@ -21,64 +21,38 @@ export const findConnectedElements = (nodeId: string, edges: TopologyEdgeModel[]
     upstreamMap.get(edge.target)?.push(edge);
   });
 
-  const connectedIds: string[] = [];
-  const visitedNodes = new Set<string>();
-  const visitedEdges = new Set<string>();
+  const result = new Set<string>();
 
-  const traverseDownstream = (currentNodeId: string) => {
-    if (visitedNodes.has(currentNodeId)) return;
-
-    visitedNodes.add(currentNodeId);
-    connectedIds.push(currentNodeId);
+  const traverseDownstream = (currentNodeId: string, visited: Set<string>) => {
+    if (visited.has(currentNodeId)) return;
+    visited.add(currentNodeId);
+    result.add(currentNodeId);
 
     const outgoingEdges = downstreamMap.get(currentNodeId) || [];
     outgoingEdges.forEach((edge) => {
-      if (!visitedEdges.has(edge.id)) {
-        visitedEdges.add(edge.id);
-        connectedIds.push(edge.id);
-        traverseDownstream(edge.target);
-      }
+      result.add(edge.id);
+      traverseDownstream(edge.target, visited);
     });
   };
 
-  const traverseUpstream = (currentNodeId: string) => {
-    if (visitedNodes.has(currentNodeId)) return;
-
-    visitedNodes.add(currentNodeId);
-    connectedIds.push(currentNodeId);
+  const traverseUpstream = (currentNodeId: string, visited: Set<string>) => {
+    if (visited.has(currentNodeId)) return;
+    visited.add(currentNodeId);
+    result.add(currentNodeId);
 
     const incomingEdges = upstreamMap.get(currentNodeId) || [];
     incomingEdges.forEach((edge) => {
-      if (!visitedEdges.has(edge.id)) {
-        visitedEdges.add(edge.id);
-        connectedIds.push(edge.id);
-        traverseUpstream(edge.source);
-      }
+      result.add(edge.id);
+      traverseUpstream(edge.source, visited);
     });
   };
 
   // Start with the selected node
-  visitedNodes.add(nodeId);
-  connectedIds.push(nodeId);
+  result.add(nodeId);
 
-  // Traverse upstream and downstream
-  const upstreamEdges = upstreamMap.get(nodeId) || [];
-  upstreamEdges.forEach((edge) => {
-    if (!visitedEdges.has(edge.id)) {
-      visitedEdges.add(edge.id);
-      connectedIds.push(edge.id);
-      traverseUpstream(edge.source);
-    }
-  });
+  // Traverse upstream and downstream with direction-specific visited sets
+  traverseUpstream(nodeId, new Set<string>());
+  traverseDownstream(nodeId, new Set<string>());
 
-  const downstreamEdges = downstreamMap.get(nodeId) || [];
-  downstreamEdges.forEach((edge) => {
-    if (!visitedEdges.has(edge.id)) {
-      visitedEdges.add(edge.id);
-      connectedIds.push(edge.id);
-      traverseDownstream(edge.target);
-    }
-  });
-
-  return connectedIds;
+  return [...result];
 };

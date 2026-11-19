@@ -52,11 +52,16 @@ describe('RecentlyVisitedResources', () => {
   });
 
   it('renders the error state when the request fails', () => {
-    setupHook({ error: new Error('forbidden'), data: mockRecentlyVisited({ visits: [] }) });
+    setupHook({
+      error: new Error('forbidden'),
+      loaded: false,
+      data: mockRecentlyVisited({ visits: [] }),
+    });
 
     renderRecentlyVisited();
 
     expect(screen.getByTestId('recently-visited-resources-error-state')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Loading recently viewed resources')).not.toBeInTheDocument();
   });
 
   it('renders the empty state when there are no visits', () => {
@@ -121,15 +126,32 @@ describe('RecentlyVisitedResources', () => {
 
     renderRecentlyVisited();
 
+    const pageLinkNames = () =>
+      screen.getAllByRole('link', { name: /in rbac project$/ }).map((link) => link.textContent);
+
     // The fixture holds 16 visits and the dashboard table page size is 10.
-    expect(screen.getAllByRole('link', { name: /in rbac project$/ })).toHaveLength(10);
+    const page1Names = pageLinkNames();
+    expect(page1Names).toHaveLength(10);
+
+    // Verify page 1 contains the first visit from the fixture.
+    expect(page1Names[0]).toBe('__dummy');
+    // driver_hourly_stats is viewed more recently than driver and transformed_conv_rate.
+    expect(page1Names).toContain('driver_hourly_stats');
+    expect(page1Names).not.toContain('driver');
+    expect(page1Names).not.toContain('transformed_conv_rate');
 
     // The table renders one pagination in the top toolbar and one below the table.
     const [nextButton] = screen.getAllByRole('button', { name: /next/i });
     expect(nextButton).toBeEnabled();
     await user.click(nextButton);
 
-    expect(screen.getAllByRole('link', { name: /in rbac project$/ })).toHaveLength(6);
+    const page2Names = pageLinkNames();
+    expect(page2Names).toHaveLength(6);
+
+    // The window moved: visits only reachable on page 2 are now rendered.
+    expect(page2Names).toContain('driver');
+    expect(page2Names).toContain('transformed_conv_rate');
+    expect(page2Names).not.toContain('driver_hourly_stats');
   });
 
   it('requests the given project and limit from the API hook', () => {

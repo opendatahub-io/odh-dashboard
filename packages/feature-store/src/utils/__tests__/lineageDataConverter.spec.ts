@@ -306,6 +306,27 @@ describe('convertFeatureStoreLineageToVisualizationData', () => {
     expect(nodeByName(nodes, 'credit_scoring_service')?.layer).toBe(3);
   });
 
+  it('synthesizes a missing data-source node when featureViews and services are populated', () => {
+    const baseLineage = mockFeatureStoreLineage();
+    const { nodes, edges } = convertFeatureStoreLineageToVisualizationData(
+      mockFeatureStoreLineage({
+        objects: {
+          ...baseLineage.objects,
+          dataSources: [],
+        },
+      }),
+    );
+
+    const loanDataNode = nodeByName(nodes, 'loan_data');
+    expect(loanDataNode).toBeDefined();
+    expect(loanDataNode?.layer).toBe(1);
+
+    const relationshipEdges = edges.filter((edge) => !edge.isPositioningEdge);
+    const loanEdge = relationshipEdges.find((edge) => edge.source === 'datasource-loan_data');
+    expect(loanEdge).toBeDefined();
+    expect(loanEdge?.target).toBe('featureview-zipcode_features');
+  });
+
   it('does not duplicate a node referenced by several relationships', () => {
     const { nodes } = convertFeatureStoreLineageToVisualizationData(
       mockFeatureStoreLineage({
@@ -342,8 +363,9 @@ describe('convertFeatureStoreLineageToVisualizationData', () => {
       }),
     );
 
-    expect(nodes).toHaveLength(1);
-    expect(nodes[0].id).toBe('featureview-zipcode_features');
+    expect(
+      nodes.filter((node) => node.id.startsWith('featureview-')).map((node) => node.id),
+    ).toEqual(['featureview-zipcode_features']);
   });
 
   it('drops relationships whose object type is unknown', () => {

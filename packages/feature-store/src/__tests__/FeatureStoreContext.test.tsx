@@ -376,10 +376,28 @@ describe('FeatureStoreContext — refresh', () => {
   });
 
   it('re-fetches the projects once the API is available for the active store', () => {
+    // Note: this test counts the provider-level refresh callback, not raw API
+    // requests. The underlying useFetch hook may also initiate a request on
+    // mount. A full integration test through useFeatureStoreProjectsAPI with
+    // listFeatureStoreProject mocked at the API boundary would cover both
+    // request paths. See finding M4 for future improvement.
     const refreshProjects = jest.fn().mockResolvedValue(undefined);
     bootstrapContext({ apiAvailable: true, refreshProjects });
 
     renderHook(useContextHook, { wrapper });
+
+    expect(refreshProjects).toHaveBeenCalledTimes(1);
+  });
+
+  it('transitions from zero refreshes to exactly one when API becomes available', () => {
+    const refreshProjects = jest.fn().mockResolvedValue(undefined);
+    bootstrapContext({ apiAvailable: false, refreshProjects });
+
+    const { rerender } = renderHook(useContextHook, { wrapper });
+    expect(refreshProjects).toHaveBeenCalledTimes(0);
+
+    bootstrapContext({ apiAvailable: true, refreshProjects });
+    rerender();
 
     expect(refreshProjects).toHaveBeenCalledTimes(1);
   });

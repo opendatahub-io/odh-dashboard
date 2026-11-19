@@ -132,7 +132,7 @@ describe('FeatureStoreRoutes', () => {
     renderAt('/');
 
     expect(screen.getByTestId('overview-screen')).toBeInTheDocument();
-    expect(screen.getByTestId('location-display')).toHaveTextContent('/overview');
+    expect(screen.getByTestId('location-display').textContent).toBe('/overview');
   });
 
   it('renders the overview screen for the overview route of a project', () => {
