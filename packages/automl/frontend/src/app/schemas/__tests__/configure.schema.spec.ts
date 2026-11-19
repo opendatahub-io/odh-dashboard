@@ -71,6 +71,25 @@ describe('createConfigureSchema', () => {
       expect(result.success).toBe(true);
     });
 
+    it('should require a test file when separate datasets are selected', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'train.csv',
+        dataset_split_mode: 'separate',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'target',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([expect.objectContaining({ path: ['test_data_file_key'] })]),
+        );
+      }
+    });
+
     it('should submit a single-item time series without an ID column', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,
@@ -750,6 +769,46 @@ describe('createConfigureSchema', () => {
   });
 
   describe('transformers', () => {
+    it('should include the test dataset pair for separate datasets using the training bucket', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'training-bucket',
+        train_data_file_key: 'train.csv',
+        dataset_split_mode: 'separate',
+        test_data_file_key: 'test.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'target',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.test_data_bucket_name).toBe('training-bucket');
+        expect(result.data.test_data_file_key).toBe('test.csv');
+        expect(result.data).not.toHaveProperty('dataset_split_mode');
+      }
+    });
+
+    it('should omit the test dataset pair for auto-split runs', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'train.csv',
+        test_data_bucket_name: 'stale-bucket',
+        test_data_file_key: 'stale-test.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'target',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).not.toHaveProperty('test_data_bucket_name');
+        expect(result.data).not.toHaveProperty('test_data_file_key');
+        expect(result.data).not.toHaveProperty('dataset_split_mode');
+      }
+    });
+
     it('should map target_column to label_column for tabular task types', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,

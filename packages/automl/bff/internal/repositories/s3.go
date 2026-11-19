@@ -272,6 +272,23 @@ func (r *S3Repository) ObjectExists(ctx context.Context, req S3RequestContext, k
 // this ceiling prevents runaway transfers for extremely wide rows.
 const csvSchemaRange = "bytes=0-1048575" // 1 MB
 
+// GetCSVRowCount counts the entire CSV independently of the bounded schema sample.
+func (r *S3Repository) GetCSVRowCount(ctx context.Context, req S3RequestContext, key string) (int64, error) {
+	if !strings.HasSuffix(strings.ToLower(key), ".csv") {
+		return 0, fmt.Errorf("%w: only CSV files are supported (must have .csv extension)", ErrCSVUploadValidation)
+	}
+	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
+	if err != nil {
+		return 0, err
+	}
+	body, _, err := r.s3Service.GetObject(ctx, opts, s3.GetObjectInput{Bucket: bucket, Key: key})
+	if err != nil {
+		return 0, fmt.Errorf("error retrieving CSV file from S3: %w", err)
+	}
+	defer body.Close()
+	return s3.CountCSVRows(ctx, body)
+}
+
 // GetCSVSchema resolves credentials from req, fetches the CSV at key from S3, and
 // infers its column schema. Only CSV files (key ending in .csv) are supported.
 // Returns an error if the file has fewer than 100 data rows.

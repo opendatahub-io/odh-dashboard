@@ -142,6 +142,11 @@ func (m *mockS3Repo) GetCSVSchema(ctx context.Context, req repositories.S3Reques
 	return args.Get(0).(helper.CSVSchemaResult), args.Error(1)
 }
 
+func (m *mockS3Repo) GetCSVRowCount(ctx context.Context, req repositories.S3RequestContext, key string) (int64, error) {
+	args := m.Called(ctx, req, key)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 func (m *mockS3Repo) UploadCSVFile(ctx context.Context, req repositories.S3RequestContext, key string, body io.Reader, rawContentType, filename string, maxAttempts int) (string, error) {
 	args := m.Called(ctx, req, key, body, rawContentType, filename, maxAttempts)
 	return args.String(0), args.Error(1)

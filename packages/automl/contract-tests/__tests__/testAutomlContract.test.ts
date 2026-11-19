@@ -414,6 +414,18 @@ describe('AutoML API Contract Tests', () => {
   });
 
   describe('S3 File Schema Endpoint', () => {
+    it('should retrieve the total CSV row count separately from the schema sample', async () => {
+      const result = await apiClient.get(
+        `/api/v1/s3/files/${encodeURIComponent(
+          TABULAR_CSV_FILE,
+        )}?view=row-count&namespace=${NS}&secretName=${SECRET}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/schemas/S3FileRowCountResponse',
+        status: 200,
+      });
+    });
+
     it('should retrieve CSV column schema', async () => {
       const result = await apiClient.get(
         `/api/v1/s3/files/${encodeURIComponent(
@@ -578,18 +590,66 @@ describe('AutoML API Contract Tests', () => {
 
     describe('Create Pipeline Run', () => {
       it('should create a tabular binary pipeline run', async () => {
-        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+        const request = {
           display_name: 'contract-test-tabular',
           train_data_secret_name: SECRET,
           train_data_bucket_name: BUCKET,
           train_data_file_key: TABULAR_CSV_FILE,
           label_column: 'target',
           task_type: 'binary',
+        };
+        expect(request).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/CreateAutoMLRunRequest',
         });
+        expect(request).not.toHaveProperty('test_data_bucket_name');
+        expect(request).not.toHaveProperty('test_data_file_key');
+
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, request);
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
           status: 200,
         });
+      });
+
+      it('should create a tabular run with an optional separate test dataset', async () => {
+        const request = {
+          display_name: 'contract-test-tabular-with-test-data',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TABULAR_CSV_FILE,
+          test_data_bucket_name: BUCKET,
+          test_data_file_key: 'automl input data/TitanicFullMF-test.csv',
+          label_column: 'target',
+          task_type: 'binary',
+        };
+        expect(request).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/CreateAutoMLRunRequest',
+        });
+
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, request);
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+      });
+
+      it.each([
+        ['bucket without file key', { test_data_bucket_name: BUCKET }],
+        ['file key without bucket', { test_data_file_key: 'automl input data/test.csv' }],
+      ])('should reject a partial test dataset pair: %s', async (_case, testDataFields) => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-partial-test-data',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TABULAR_CSV_FILE,
+          label_column: 'target',
+          task_type: 'binary',
+          ...testDataFields,
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
       });
 
       it('should create a tabular pipeline run with all optional fields', async () => {

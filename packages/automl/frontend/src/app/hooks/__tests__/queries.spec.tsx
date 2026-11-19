@@ -5,6 +5,7 @@ import React from 'react';
 import { AutoXApiProvider } from '@odh-dashboard/autox-core/ui/context';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
+import { useS3GetFileRowCountQuery } from '~/app/hooks/useS3GetFileRowCountQuery';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/useModelEvaluationArtifactsQuery';
 
 const getS3JsonQueryKey = (
@@ -57,6 +58,95 @@ afterEach(async () => {
   queryClients.forEach((queryClient) => queryClient.clear());
   queryClients.clear();
   (global.fetch as jest.Mock).mockReset();
+});
+
+describe('useS3GetFileRowCountQuery', () => {
+  it('should load the total row count independently of the schema sample', async () => {
+    jest.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify({ data: { row_count: 144 } })]),
+    } as unknown as Response);
+    let renders = 0;
+    const { result, rerender } = renderHook(
+      () => {
+        renders++;
+        return useS3GetFileRowCountQuery(
+          'test-namespace',
+          'test-secret',
+          'test-bucket',
+          'data.csv',
+        );
+      },
+      { wrapper: createWrapper().Wrapper },
+    );
+
+    expect(result.current.data).toBeUndefined();
+    await waitFor(() => expect(result.current.data).toBe(144));
+    expect(renders).toBe(2);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('view=row-count'),
+      expect.anything(),
+    );
+    rerender();
+    expect(renders).toBe(3);
+  });
+
+  it.each([undefined, -1, 1.5, '144'])(
+    'should reject an invalid row count (%s)',
+    async (rowCount) => {
+      jest.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { row_count: rowCount } })]),
+      } as unknown as Response);
+      const { result } = renderHook(
+        () => useS3GetFileRowCountQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+        { wrapper: createWrapper().Wrapper },
+      );
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.data).toBeUndefined();
+    },
+  );
+
+  it('should clear the previous count while loading a replacement file', async () => {
+    jest
+      .mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { row_count: 144 } })]),
+      } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { row_count: 250 } })]),
+      } as unknown as Response);
+    const { result, rerender } = renderHook(
+      ({ file }) => useS3GetFileRowCountQuery('test-namespace', 'test-secret', 'test-bucket', file),
+      { initialProps: { file: 'first.csv' }, wrapper: createWrapper().Wrapper },
+    );
+    await waitFor(() => expect(result.current.data).toBe(144));
+    rerender({ file: 'second.csv' });
+    expect(result.current.data).toBeUndefined();
+    await waitFor(() => expect(result.current.data).toBe(250));
+  });
+
+  it('should remain disabled for separate datasets', () => {
+    const { result } = renderHook(
+      () =>
+        useS3GetFileRowCountQuery(
+          'test-namespace',
+          'test-secret',
+          'test-bucket',
+          'data.csv',
+          false,
+        ),
+      { wrapper: createWrapper().Wrapper },
+    );
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
 });
 
 describe('useS3GetFileSchemaQuery', () => {

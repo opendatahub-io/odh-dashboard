@@ -466,6 +466,22 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 	}
 }
 
+func TestCreatePipelineRunHandler_SeparateTestDataset(t *testing.T) {
+	h, repo := newTestPipelinesHandler()
+	repo.On("CreateRun", mock.Anything, "test-ns", mock.MatchedBy(func(req models.CreateAutoMLRunRequest) bool {
+		return req.TestDataBucketName != nil && *req.TestDataBucketName == "bucket" &&
+			req.TestDataFileKey != nil && *req.TestDataFileKey == "test.csv"
+	})).Return(&models.PipelineRun{RunID: "new-run-id"}, nil).Once()
+
+	body := `{"display_name":"new-run","train_data_secret_name":"secret","train_data_bucket_name":"bucket","train_data_file_key":"train.csv","test_data_bucket_name":"bucket","test_data_file_key":"test.csv"}`
+	rr := httptest.NewRecorder()
+	req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", "test-ns", body)
+	h.CreatePipelineRunHandler(rr, req, httprouter.Params{})
+
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	repo.AssertExpectations(t)
+}
+
 // ---------- TerminatePipelineRunHandler ----------
 
 func TestTerminatePipelineRunHandler(t *testing.T) {

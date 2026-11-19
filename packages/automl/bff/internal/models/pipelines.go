@@ -68,6 +68,8 @@ type CreateAutoMLRunRequest struct {
 	TrainDataSecretName string  `json:"train_data_secret_name"`
 	TrainDataBucketName string  `json:"train_data_bucket_name"`
 	TrainDataFileKey    string  `json:"train_data_file_key"`
+	TestDataBucketName  *string `json:"test_data_bucket_name,omitempty"`
+	TestDataFileKey     *string `json:"test_data_file_key,omitempty"`
 	Preset              *string `json:"preset,omitempty"`
 	EvalMetric          *string `json:"eval_metric,omitempty"`
 	TopN                *int    `json:"top_n,omitempty"`

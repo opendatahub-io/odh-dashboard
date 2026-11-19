@@ -187,6 +187,8 @@ paths:
       GET returns an arbitrary file with transfer-encoding: chunked for efficient streaming.
       When the query parameter view=schema is specified, GET instead returns the CSV column
       schema with inferred data types (see S3FileSchemaResponse for type inference details).
+      With view=row-count, GET streams the entire CSV and returns its data row count
+      (see S3FileRowCountResponse), independently of the bounded schema sample.
       POST uploads a CSV file using multipart/form-data (part name `file`) and credentials
       from a required Kubernetes secret; the stored object key may differ from the requested
       `key` when a name collision is resolved (numeric suffix).
@@ -233,11 +235,14 @@ paths:
             Selects an alternate representation of the file resource.
             When set to "schema", returns the CSV column schema with inferred types
             instead of streaming the file contents. Requires the file to be a CSV
-            with at least 100 data rows.
+            with at least 100 data rows. When set to 'row-count', returns the total
+            number of CSV data records by streaming the entire file. The header and
+            blank lines are excluded; quoted multiline fields count as one record.
           schema:
             type: string
             enum:
               - schema
+              - row-count
         - name: key
           in: path
           required: true
@@ -251,6 +256,7 @@ paths:
           description: >-
             File retrieved successfully. When view=schema is specified for a CSV file,
             returns the column schema as JSON instead of the binary file content.
+            With view=row-count, returns the total CSV data row count as JSON.
           content:
             "*/*":
               schema:
@@ -1156,11 +1162,15 @@ components:
         - **view=schema (CSV files only):** Returns a JSON object containing
           the CSV column schema with inferred data types
           (see S3FileSchemaResponse).
+
+        - **view=row-count (CSV files only):** Returns the total number of CSV
+          data records, excluding the header and blank lines (see S3FileRowCountResponse).
       oneOf:
         - type: string
           format: binary
           description: Raw file bytes (default). Includes JSON files served as-is.
         - $ref: "#/components/schemas/S3FileSchemaResponse"
+        - $ref: "#/components/schemas/S3FileRowCountResponse"
 
     S3FileSchemaResponse:
       description: >-
@@ -1275,6 +1285,23 @@ components:
               description: Number of rows that failed CSV parsing and were skipped during schema inference
               example: 0
 
+    S3FileRowCountResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - row_count
+          properties:
+            row_count:
+              type: integer
+              format: int64
+              minimum: 0
+              description: Total CSV data records, excluding the header and blank lines
+              example: 144
+
     S3ListObjectsResult:
       type: object
       description: A listing of S3 objects and virtual folders within a bucket prefix.
@@ -1358,6 +1385,20 @@ components:
           minLength: 1
           description: S3 object key for the training data file
           example: "data/train.csv"
+        test_data_bucket_name:
+          type: string
+          minLength: 1
+          description: >-
+            S3 bucket containing the optional test data file. Must match the training data bucket
+            and be supplied together with test_data_file_key. The training data secret is reused.
+          example: "automl-bucket"
+        test_data_file_key:
+          type: string
+          minLength: 1
+          description: >-
+            Optional S3 object key for a separate test data file. Must be supplied together with
+            test_data_bucket_name.
+          example: "data/test.csv"
         eval_metric:
           type: string
           enum:
