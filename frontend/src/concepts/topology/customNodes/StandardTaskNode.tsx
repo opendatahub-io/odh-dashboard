@@ -85,7 +85,6 @@ const StandardTaskNodeInner: React.FunctionComponent<StandardTaskNodeInnerProps>
           scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
           status={status}
           customStatusIcon={customStatusIcon}
-          hideDetailsAtMedium
           hiddenDetailsShownStatuses={[
             RunStatus.Succeeded,
             RunStatus.Cancelled,

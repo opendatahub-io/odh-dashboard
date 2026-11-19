@@ -703,6 +703,38 @@ describe('Pipeline topology', () => {
       pipelineDetails.findGroupActionIcon(longGroupName).should('be.visible');
     });
 
+    it('keeps collapsed group headings visible when zoomed out', () => {
+      initIntercepts(mockLongNamedGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockLongNamedGroupedVersion.pipeline_version_id,
+      );
+
+      for (let i = 0; i < 5; i++) {
+        pipelineDetails.findZoomOutButton().click();
+      }
+      pipelineDetails.findCollapsedGroupLabelText(longGroupName).should('be.visible');
+    });
+
+    it('keeps task and expanded group headings visible when zoomed out', () => {
+      initIntercepts(mockLongNamedGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockLongNamedGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle(longGroupName).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findTaskButton('create-features').should('exist');
+      for (let i = 0; i < 5; i++) {
+        pipelineDetails.findZoomOutButton().click();
+      }
+      pipelineDetails.findTaskLabelText('create-features').should('be.visible');
+      pipelineDetails.findGroupLabelText(longGroupName).should('be.visible');
+    });
+
     it('keeps the expanded group label out of keyboard navigation', () => {
       initIntercepts(mockGroupedVersion);
       pipelineDetails.visit(

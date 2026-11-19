@@ -63,6 +63,10 @@ class PipelinesTopology {
     return cy.get(`[data-id="${name}"][data-kind="node"][data-type="DEFAULT_TASK_NODE"]`);
   }
 
+  findTaskLabelText(name: string) {
+    return this.findTaskNode(name).find('.pf-topology-pipelines__pill-text');
+  }
+
   findTaskButton(name: string) {
     return cy.findByTestId(`pipeline-node-button-${name}`);
   }
@@ -77,6 +81,10 @@ class PipelinesTopology {
 
   findGroupHoverSurface(name: string) {
     return cy.findByTestId(`pipeline-group-hover-surface-${name}`);
+  }
+
+  findCollapsedGroupLabelText(name: string) {
+    return this.findGroupNode(name).find('.pf-topology-pipelines__pill-text');
   }
 
   findExpandedGroupHoverSurface() {
