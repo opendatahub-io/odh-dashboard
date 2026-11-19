@@ -245,6 +245,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
           namespace={namespace}
           deleteConnection={deleteConnection}
           connectedResources={getConnectedResourceLabels(deleteConnection)}
+          connectedResourcesLoaded={connectedResourcesLoaded}
           onClose={(deleted) => {
             setDeleteConnection(undefined);
             if (deleted) {

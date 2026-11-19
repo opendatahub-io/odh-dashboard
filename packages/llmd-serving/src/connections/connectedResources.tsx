@@ -32,10 +32,15 @@ export const useConnectedResources = (
 const llmInferenceServiceUsesResource = (
   llmInferenceService: LLMInferenceServiceKind,
   resourceName: string,
+  resourceKind: 'connection' | 'pvc',
 ): boolean =>
-  llmInferenceService.metadata.annotations?.[MetadataAnnotation.ConnectionName] === resourceName ||
-  llmInferenceService.spec.template?.imagePullSecrets?.[0]?.name === resourceName ||
-  getPVCNameFromURI(llmInferenceService.spec.model.uri) === resourceName;
+  resourceKind === 'connection'
+    ? llmInferenceService.metadata.annotations?.[MetadataAnnotation.ConnectionName] ===
+        resourceName ||
+      !!llmInferenceService.spec.template?.imagePullSecrets?.some(
+        (secret) => secret.name === resourceName,
+      )
+    : getPVCNameFromURI(llmInferenceService.spec.model.uri) === resourceName;
 /**
  * Returns a label for each LLMd LLMInferenceService that references the given connection or PVC.
  */
@@ -47,10 +52,11 @@ export const getConnectedResourceLabels = (
   if (!resourceName) {
     return [];
   }
+  const resourceKind = resource.spec?.accessModes ? 'pvc' : 'connection';
 
   return llmInferenceServices
     .filter((llmInferenceService) =>
-      llmInferenceServiceUsesResource(llmInferenceService, resourceName),
+      llmInferenceServiceUsesResource(llmInferenceService, resourceName, resourceKind),
     )
     .map((llmInferenceService) => ({
       key: `llmd:${llmInferenceService.metadata.name}`,

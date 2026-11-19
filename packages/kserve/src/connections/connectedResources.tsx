@@ -32,11 +32,15 @@ export const useConnectedKServeResources = (
 const inferenceServiceUsesResource = (
   inferenceService: InferenceServiceKind,
   resourceName: string,
+  resourceKind: 'connection' | 'pvc',
 ): boolean =>
-  inferenceService.metadata.annotations?.[MetadataAnnotation.ConnectionName] === resourceName ||
-  inferenceService.spec.predictor.model?.storage?.key === resourceName ||
-  inferenceService.spec.predictor.imagePullSecrets?.[0]?.name === resourceName ||
-  getPVCNameFromURI(inferenceService.spec.predictor.model?.storageUri ?? '') === resourceName;
+  resourceKind === 'connection'
+    ? inferenceService.metadata.annotations?.[MetadataAnnotation.ConnectionName] === resourceName ||
+      inferenceService.spec.predictor.model?.storage?.key === resourceName ||
+      !!inferenceService.spec.predictor.imagePullSecrets?.some(
+        (secret) => secret.name === resourceName,
+      )
+    : getPVCNameFromURI(inferenceService.spec.predictor.model?.storageUri ?? '') === resourceName;
 
 /**
  * Returns a label for each KServe InferenceService that references the given connection or PVC.
@@ -50,8 +54,12 @@ export const getConnectedKServeResourceLabels = (
     return [];
   }
 
+  const resourceKind = resource.spec?.accessModes ? 'pvc' : 'connection';
+
   return inferenceServices
-    .filter((inferenceService) => inferenceServiceUsesResource(inferenceService, resourceName))
+    .filter((inferenceService) =>
+      inferenceServiceUsesResource(inferenceService, resourceName, resourceKind),
+    )
     .map((inferenceService) => ({
       key: `kserve:${inferenceService.metadata.name}`,
       title: getDisplayNameFromK8sResource(inferenceService),
