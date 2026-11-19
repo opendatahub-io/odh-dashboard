@@ -74,6 +74,8 @@ core-bff refusing to start: invalid configuration (2 problems):
 | `--static-assets-dir`     | `STATIC_ASSETS_DIR`                                  | `./static`             | SPA asset root. Required.                                                            |
 | `--log-level`             | `LOG_LEVEL`                                          | `INFO`                 | `error`, `warn`, `info`, `debug`.                                                    |
 | `--mf-remotes-config`     | `MF_REMOTES_CONFIG`                                  | _(empty)_              | Module federation remotes file. Errors name the setting, never the path or contents. |
+| `--namespace-candidates`  | `NAMESPACE_CANDIDATES`         | _(empty)_              | xKS discovery candidates, comma-separated. Grants nothing. See the namespace discovery contract. |
+| `--namespace-discovery-label-selector` | `NAMESPACE_DISCOVERY_LABEL_SELECTOR` | _(empty: off)_ | Opt-in service-account enumeration of extra xKS candidates. Needs SA `list namespaces`. |
 
 ### Authentication
 
@@ -467,5 +469,6 @@ real clients next to them keep every production check.
 
 - [bootstrap-contract.md](./bootstrap-contract.md) — `/api/status`, admission and UI capability
 - [error-contract.md](./error-contract.md) — error envelope and request correlation
+- [namespace-discovery-contract.md](./namespace-discovery-contract.md) — xKS authorized namespaces and RHAII permissions
 - `bff/internal/config/validate.go` — the enforced rules
 - `bff/cmd/startup_test.go` — the tests that drive the real parser

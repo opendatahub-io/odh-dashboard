@@ -13,6 +13,7 @@ type Repositories struct {
 	HealthCheck                *HealthCheckRepository
 	User                       *UserRepository
 	Namespace                  *NamespaceRepository
+	NamespaceAccess            *NamespaceAccessRepository
 	DashboardConfig            *DashboardConfigRepository
 	Status                     *StatusRepository
 	Auth                       *AuthRepository
@@ -52,6 +53,10 @@ type RepositoriesConfig struct {
 	Namespace         string
 	OperatorNamespace string
 	Prometheus        PrometheusConfig
+	// NamespaceCandidates and NamespaceDiscoveryLabelSelector feed the xKS
+	// namespace discovery. See NamespaceAccessRepository.
+	NamespaceCandidates             []string
+	NamespaceDiscoveryLabelSelector string
 }
 
 // NewRepositories creates a new Repositories instance with all repositories initialized.
@@ -80,6 +85,7 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 		HealthCheck:                NewHealthCheckRepository(),
 		User:                       NewUserRepository(),
 		Namespace:                  NewNamespaceRepository(),
+		NamespaceAccess:            NewNamespaceAccessRepository(cfg.NamespaceCandidates, cfg.NamespaceDiscoveryLabelSelector, cfg.SAClientset, cfg.Namespace),
 		DashboardConfig:            dashboardConfig,
 		Status:                     NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth, config.ResolveAdmissionMode(cfg.AdmissionMode, cfg.Platform, cfg.PlatformConfirmed)),
 		Auth:                       auth,

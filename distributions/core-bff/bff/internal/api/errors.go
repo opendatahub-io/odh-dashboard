@@ -62,3 +62,10 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 func (app *App) k8sErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.serverErrorResponse(w, r, err)
 }
+
+// serviceUnavailableResponse reports a dependency the BFF could not evaluate,
+// such as failed access reviews, with the safe catalog message.
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.logRejection(r, err, http.StatusServiceUnavailable)
+	httpcontract.WriteLocal(w, r, http.StatusServiceUnavailable)
+}

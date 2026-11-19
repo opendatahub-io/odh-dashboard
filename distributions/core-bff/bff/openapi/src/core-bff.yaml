@@ -158,6 +158,92 @@ paths:
       operationId: getNamespaces
       summary: List accessible namespaces
 
+  /api/v1/namespace-access:
+    get:
+      tags:
+        - Namespaces
+      operationId: getNamespaceAccess
+      summary: Discover the namespaces the caller can use for RHAII (xKS only)
+      description: >-
+        Authorized namespace discovery for callers who may not list namespaces
+        cluster-wide. Candidates come from the caller's own cluster list when
+        permitted (source cluster-list); otherwise from the configured
+        NAMESPACE_CANDIDATES, the optional service-account label discovery and the
+        namespace query parameters (source candidates). Each candidate is returned
+        only when the caller's SelfSubjectAccessReviews allow at least one RHAII
+        action in it. Failed reviews never grant an action. An empty result is
+        data.namespaces: []. Discovery that found nothing because every source or
+        review failed is 503. Absent (404) on OpenShift. See
+        docs/namespace-discovery-contract.md.
+      parameters:
+        - name: namespace
+          in: query
+          required: false
+          description: >-
+            Namespaces the client already knows (manual entry, remembered
+            selections). Repeatable, at most 50. Evaluated first, so truncation never drops them.
+          style: form
+          explode: true
+          schema:
+            type: array
+            maxItems: 50
+            items:
+              type: string
+              minLength: 1
+              maxLength: 63
+              pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespaceAccessListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/BFFServiceUnavailable'
+
+  /api/v1/namespace-access/{name}:
+    get:
+      tags:
+        - Namespaces
+      operationId: getNamespaceAccessByName
+      summary: Evaluate one namespace for manual entry (xKS only)
+      description: >-
+        Runs the same permission matrix for one namespace. 403 when the caller has
+        no RHAII action there, whether or not it exists; 404 only when the caller
+        may read the namespace and it does not exist; 503 when the reviews could
+        not be evaluated. Absent (404) on OpenShift.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespaceAccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/BFFServiceUnavailable'
+
   /api/v1/namespaces/{name}:
     get:
       tags:
@@ -166,8 +252,10 @@ paths:
       summary: Look up one namespace by its exact Kubernetes name
       description: >-
         Read-only lookup using the authenticated caller's Kubernetes credentials.
-        A cluster-scoped SelfSubjectAccessReview for get on namespaces/<name> is
-        performed before reading the Namespace. Does not require list permission.
+        A SelfSubjectAccessReview for get on namespaces/<name> (with the namespace
+        attribute set to <name>, as the API server resolves the request) is
+        performed before reading the Namespace, so a RoleBinding inside the
+        namespace is honoured. Does not require list permission.
       parameters:
         - name: name
           in: path
@@ -1965,6 +2053,125 @@ components:
           items:
             $ref: '#/components/schemas/Namespace'
 
+    AccessDecision:
+      type: string
+      enum: [allowed, denied, error]
+      description: >-
+        SelfSubjectAccessReview outcome. error means the review could not be
+        evaluated; it never enables an action.
+
+    ResourcePermissions:
+      type: object
+      description: Verb to decision for one resource.
+      additionalProperties:
+        $ref: '#/components/schemas/AccessDecision'
+
+    PermissionMatrix:
+      type: object
+      description: >-
+        Keyed by <group>/<resource>, with core for the empty group, e.g.
+        serving.kserve.io/llminferenceservices or core/secrets.
+      additionalProperties:
+        $ref: '#/components/schemas/ResourcePermissions'
+
+    NamespaceActions:
+      type: object
+      required: [view, deploy, edit, delete, manageTokenAuth]
+      properties:
+        view:
+          type: boolean
+          description: list and get on llminferenceservices
+        deploy:
+          type: boolean
+          description: create on llminferenceservices
+        edit:
+          type: boolean
+          description: patch on llminferenceservices
+        delete:
+          type: boolean
+          description: delete on llminferenceservices
+        manageTokenAuth:
+          type: boolean
+          description: create, get, patch and delete on secrets
+
+    NamespaceAccess:
+      type: object
+      required: [name, actions, permissions]
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+          description: Present only when the namespace object could be read
+        phase:
+          type: string
+          description: Namespace status.phase, present only when the namespace object could be read
+        actions:
+          $ref: '#/components/schemas/NamespaceActions'
+        permissions:
+          $ref: '#/components/schemas/PermissionMatrix'
+
+    NamespaceDiscoveryIssue:
+      type: object
+      required: [code, count]
+      properties:
+        code:
+          type: string
+          enum:
+            - CLUSTER_LIST_REVIEW_FAILED
+            - CLUSTER_LIST_FAILED
+            - LABEL_DISCOVERY_FAILED
+            - ACCESS_REVIEW_FAILED
+            - CANDIDATES_TRUNCATED
+            - SHARED_ACCESS_REVIEW_FAILED
+            - DISCOVERY_DEADLINE_EXCEEDED
+        count:
+          type: integer
+          minimum: 1
+
+    NamespaceAccessList:
+      type: object
+      required: [source, complete, issues, namespaces, shared]
+      properties:
+        source:
+          type: string
+          enum: [cluster-list, candidates]
+          description: candidates means the caller cannot list namespaces; keep offering manual entry
+        complete:
+          type: boolean
+          description: False when any source or review failed, so namespaces may be missing
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/NamespaceDiscoveryIssue'
+        namespaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/NamespaceAccess'
+        shared:
+          type: object
+          required: [namespace, permissions]
+          description: Caller reads of retained resources in the dashboard namespace
+          properties:
+            namespace:
+              type: string
+            permissions:
+              $ref: '#/components/schemas/PermissionMatrix'
+
+    NamespaceAccessListEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/NamespaceAccessList'
+
+    NamespaceAccessEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/NamespaceAccess'
+
     Error:
       type: object
       description: Inner error object used inside ErrorResponse envelope.
@@ -2456,6 +2663,43 @@ components:
               userId: 'user@example.com'
               clusterAdmin: false
 
+    NamespaceAccessListResponse:
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      description: Authorized namespaces with their RHAII permission matrix
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceAccessListEnvelope'
+          example:
+            data:
+              source: candidates
+              complete: true
+              issues: []
+              namespaces:
+                - name: team-a
+                  displayName: Team A
+                  phase: Active
+                  actions: { view: true, deploy: true, edit: true, delete: true, manageTokenAuth: true }
+                  permissions:
+                    serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
+                    core/secrets: { create: allowed, get: allowed, patch: allowed, delete: allowed }
+              shared:
+                namespace: opendatahub
+                permissions:
+                  infrastructure.opendatahub.io/hardwareprofiles: { get: allowed, list: allowed }
+
+    NamespaceAccessResponse:
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      description: One namespace with its RHAII permission matrix
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceAccessEnvelope'
+
     NamespacesResponse:
       headers:
         X-Request-ID:
@@ -2788,6 +3032,23 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/FailureResponse'
+
+    BFFServiceUnavailable:
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      description: >-
+        A dependency the BFF needed could not be evaluated, such as access reviews
+        or namespace discovery. Distinct from 403: nothing was denied.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FailureResponse'
+          example:
+            error:
+              code: 'SERVICE_UNAVAILABLE'
+              message: 'the upstream service is temporarily unavailable'
+              requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
 
     BFFForbidden:
       headers:

@@ -184,6 +184,18 @@ func setupMock(ctx context.Context, mockK8sClient k8sclient.Interface, dynClient
 		}
 	}
 
+	// RHAII model lifecycle: user A deploys in test-ns-a, user B is read-only in test-ns-b.
+	if len(users) > 1 {
+		if err := createLLMInferenceServiceRBAC(ctx, mockK8sClient, users[1].UserName, "test-ns-a", false); err != nil {
+			return err
+		}
+	}
+	if len(users) > 2 {
+		if err := createLLMInferenceServiceRBAC(ctx, mockK8sClient, users[2].UserName, "test-ns-b", true); err != nil {
+			return err
+		}
+	}
+
 	if len(users) > 1 && len(users[1].Groups) > 1 {
 		err = createGroupAccessRBAC(ctx, mockK8sClient, users[1].Groups[1], "test-ns-a", "dashboard-ns-a")
 		if err != nil {

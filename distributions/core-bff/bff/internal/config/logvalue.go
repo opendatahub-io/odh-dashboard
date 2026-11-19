@@ -26,6 +26,8 @@ func (c EnvConfig) LogValue() slog.Value {
 		slog.String("operatorNamespace", c.OperatorNamespace),
 		slog.String("workbenchNamespace", c.WorkbenchNamespace),
 		slog.String("dashboardConfigName", c.DashboardConfigName),
+		slog.Int("namespaceCandidates", len(c.NamespaceCandidates)),
+		slog.Bool("namespaceLabelDiscovery", c.NamespaceDiscoveryLabelSelector != ""),
 		slog.String("enabledAppsCM", c.EnabledAppsCM),
 		slog.Bool("staticAssetsDirSet", c.StaticAssetsDir != ""),
 		slog.String("logLevel", c.LogLevel.String()),
