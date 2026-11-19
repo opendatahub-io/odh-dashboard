@@ -83,6 +83,9 @@ func (r *ConnectionTypeRepository) Create(ctx context.Context, namespace string,
 	}
 	_, err = cs.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
 	if err != nil {
+		if r.clients.surfacesAuthFailure(err) {
+			return nil, err
+		}
 		return &models.MutationResponse{Success: false, Error: err.Error()}, nil
 	}
 	return &models.MutationResponse{Success: true, Error: ""}, nil
@@ -97,12 +100,15 @@ func (r *ConnectionTypeRepository) Update(ctx context.Context, namespace, name s
 	if err != nil {
 		return nil, err
 	}
-	if _, resp := getValidatedConnectionType(ctx, cs, namespace, name); resp != nil {
-		return resp, nil
+	if _, resp, err := r.getValidatedConnectionType(ctx, cs, namespace, name); err != nil || resp != nil {
+		return resp, err
 	}
 
 	_, updateErr := cs.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if updateErr != nil {
+		if r.clients.surfacesAuthFailure(updateErr) {
+			return nil, updateErr
+		}
 		return &models.MutationResponse{Success: false, Error: updateErr.Error()}, nil
 	}
 	return &models.MutationResponse{Success: true, Error: ""}, nil
@@ -114,33 +120,39 @@ func (r *ConnectionTypeRepository) Patch(ctx context.Context, namespace, name st
 	if err != nil {
 		return nil, err
 	}
-	if _, resp := getValidatedConnectionType(ctx, cs, namespace, name); resp != nil {
-		return resp, nil
+	if _, resp, err := r.getValidatedConnectionType(ctx, cs, namespace, name); err != nil || resp != nil {
+		return resp, err
 	}
 
 	_, err = cs.CoreV1().ConfigMaps(namespace).Patch(ctx, name, types.JSONPatchType, patchData, metav1.PatchOptions{})
 	if err != nil {
+		if r.clients.surfacesAuthFailure(err) {
+			return nil, err
+		}
 		return &models.MutationResponse{Success: false, Error: err.Error()}, nil
 	}
 
 	return &models.MutationResponse{Success: true, Error: ""}, nil
 }
 
-func getValidatedConnectionType(ctx context.Context, cs kubernetes.Interface, namespace, name string) (*corev1.ConfigMap, *models.MutationResponse) {
+func (r *ConnectionTypeRepository) getValidatedConnectionType(ctx context.Context, cs kubernetes.Interface, namespace, name string) (*corev1.ConfigMap, *models.MutationResponse, error) {
 	existing, err := cs.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		if r.clients.surfacesAuthFailure(err) {
+			return nil, nil, err
+		}
 		return nil, &models.MutationResponse{
 			Success: false,
 			Error:   fmt.Sprintf("unable to find connection type %q: %v", name, err),
-		}
+		}, nil
 	}
 	if !isConnectionTypeConfigMap(existing) {
 		return nil, &models.MutationResponse{
 			Success: false,
 			Error:   fmt.Sprintf("object %q is not a connection type", name),
-		}
+		}, nil
 	}
-	return existing, nil
+	return existing, nil, nil
 }
 
 func (r *ConnectionTypeRepository) Delete(ctx context.Context, namespace, name string) (*models.MutationResponse, error) {
@@ -148,11 +160,14 @@ func (r *ConnectionTypeRepository) Delete(ctx context.Context, namespace, name s
 	if err != nil {
 		return nil, err
 	}
-	if _, resp := getValidatedConnectionType(ctx, cs, namespace, name); resp != nil {
-		return resp, nil
+	if _, resp, err := r.getValidatedConnectionType(ctx, cs, namespace, name); err != nil || resp != nil {
+		return resp, err
 	}
 
 	if err := cs.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		if r.clients.surfacesAuthFailure(err) {
+			return nil, err
+		}
 		return &models.MutationResponse{Success: false, Error: err.Error()}, nil
 	}
 	return &models.MutationResponse{Success: true, Error: ""}, nil

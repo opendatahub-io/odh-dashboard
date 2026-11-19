@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/bffclient/bffmocks"
@@ -179,6 +180,11 @@ func callerClientsFrom(factory k8s.KubernetesClientFactory) repositories.CallerC
 	return func(ctx context.Context) (kubernetes.Interface, dynamic.Interface, error) {
 		if factory == nil {
 			return nil, nil, fmt.Errorf("no Kubernetes client factory")
+		}
+		// A request without a caller identity is an authentication failure
+		// (401 under the error contract), not an internal error.
+		if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); !ok || identity == nil {
+			return nil, nil, fmt.Errorf("no caller identity on the request: %w", httpcontract.ErrIdentityUnresolved)
 		}
 		client, err := factory.GetClient(ctx)
 		if err != nil {

@@ -224,7 +224,9 @@ func TestCallerPolicy_DeniedCallerStaysDeniedWhenServiceAccountIsPrivileged(t *t
 
 			err := op.run(context.Background(), repos)
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "forbidden")
+			// The denial must surface as the API server's Forbidden, not be
+			// folded into a 200 {success:false}, so the handler answers 403.
+			assert.True(t, k8serrors.IsForbidden(err), "want a Forbidden status error, got %v", err)
 			assert.Zero(t, sa.actions())
 		})
 	}

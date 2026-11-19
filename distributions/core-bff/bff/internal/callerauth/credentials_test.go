@@ -85,6 +85,8 @@ func TestOrdered_Rejections(t *testing.T) {
 		{"bearer without token", headers("Authorization", "Bearer "), httpcontract.ErrCredentialsInvalid},
 		{"bare token in authorization", headers("Authorization", tokenA), httpcontract.ErrCredentialsInvalid},
 		{"two tokens in authorization", headers("Authorization", "Bearer "+tokenA+" "+tokenB), httpcontract.ErrCredentialsInvalid},
+		{"comma-joined tokens in forwarded header", headers("X-Forwarded-Access-Token", tokenA+","+tokenB), httpcontract.ErrCredentialsInvalid},
+		{"comma-joined bearer tokens", headers("Authorization", "Bearer "+tokenA+","+tokenB), httpcontract.ErrCredentialsInvalid},
 		{"scheme in forwarded header", headers("X-Forwarded-Access-Token", "Bearer "+tokenA), httpcontract.ErrCredentialsInvalid},
 		{"repeated authorization", headers("Authorization", "Bearer "+tokenA, "Authorization", "Bearer "+tokenA), httpcontract.ErrCredentialsInvalid},
 		{"repeated forwarded", headers("X-Forwarded-Access-Token", tokenA, "X-Forwarded-Access-Token", tokenB), httpcontract.ErrCredentialsInvalid},

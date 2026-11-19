@@ -177,10 +177,10 @@ Tracked by [RHOAIENG-101218](https://redhat.atlassian.net/browse/RHOAIENG-101218
 credentials perform a user-initiated read or mutation depends on the platform
 (`repositories.CredentialPolicyFor`):
 
-| Platform  | Policy            | Behaviour                                                                                                                                     |
-| --------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Platform  | Policy            | Behaviour                                                                                                                                   |
+| --------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | OpenShift | `service-account` | Unchanged RHOAI privileged-watcher model: the handler authorizes the caller (admin review or resource SSAR), then the service account acts. |
-| xKS       | `caller`          | The caller's own credentials perform the operation, so the API server authorizes the exact resource and verb.                                |
+| xKS       | `caller`          | The caller's own credentials perform the operation, so the API server authorizes the exact resource and verb.                               |
 
 Under `caller` a missing or failing caller credential is an error. There is no path to the service
 account: `repositories.clientSource` returns `ErrCallerClientsUnavailable` and the operation is not
@@ -189,40 +189,119 @@ misdetection denies rather than elevates.
 
 Operations that follow the policy (all of them user-initiated):
 
-| Endpoint                                   | Operation                                                   |
-| ------------------------------------------ | ----------------------------------------------------------- |
-| `GET /api/namespaces/:name/:context`       | Namespace label/annotation patch, including `dryRun=All`    |
-| `POST /api/servingRuntimes`                | ServingRuntime create, including `dryRun=All`               |
-| `POST/PUT/PATCH/DELETE /api/connection-types[/:name]` | Connection-type ConfigMap mutations and their existence check |
-| `GET /api/components/remove`               | Enabled-apps ConfigMap update                               |
-| `GET/PUT /api/cluster-settings`            | Culler and segment ConfigMaps, notebook-controller rollout  |
-| `PATCH /api/config`, `GET/PATCH /api/dashboardConfig/:ns/:name` | OdhDashboardConfig admin read and patch      |
+| Endpoint                                                        | Operation                                                     |
+| --------------------------------------------------------------- | ------------------------------------------------------------- |
+| `GET /api/namespaces/:name/:context`                            | Namespace label/annotation patch, including `dryRun=All`      |
+| `POST /api/servingRuntimes`                                     | ServingRuntime create, including `dryRun=All`                 |
+| `POST/PUT/PATCH/DELETE /api/connection-types[/:name]`           | Connection-type ConfigMap mutations and their existence check |
+| `GET /api/components/remove`                                    | Enabled-apps ConfigMap update                                 |
+| `GET/PUT /api/cluster-settings`                                 | Culler and segment ConfigMaps, notebook-controller rollout    |
+| `PATCH /api/config`, `GET/PATCH /api/dashboardConfig/:ns/:name` | OdhDashboardConfig admin read and patch                       |
 
 The Kubernetes HTTP and WebSocket proxies always use the caller's token, on every platform.
 
 The namespace mutation is the visible difference. On OpenShift a caller who may create
 ServingRuntimes in a project gets the label applied by the service account. On xKS the same caller
 needs `patch` on the Namespace itself; without it the response is `{"applied": false}` and nothing
-is written. The deploy flow already tolerates `applied: false`.
+is written. The deploy flow already tolerates `applied: false`. Caller credentials that cannot be
+used at all (no usable token) are a `401`, not `applied: false`.
+
+The connection-type update, patch and delete are bound the same way to the connection type they
+validated (its `resourceVersion`): a change in between, or a `PUT` body with a different
+`metadata.resourceVersion`, is `200 {"success": false}` and nothing is written.
+
+Under `caller` an RBAC denial from the API server reaches the client as its `403` (or `401`). The
+connection-type, component-removal and cluster-settings endpoints, which otherwise report failures
+as `200 {"success": false}`, do not fold a denial into that shape, so a client can tell "you may
+not" from "it failed".
+
+`GET /api/cluster-settings` and `PUT /api/cluster-settings` read the OdhDashboardConfig the same
+way. Under `caller` that is the caller's own read, with no fallback on a denial: a caller who cannot read it
+gets the API server's `403`, never the defaults the service-account bootstrap read falls back to, so
+saving the form cannot write those defaults back. When no instance exists at all, `GET` shows the
+defaults, built directly with no second read by the service account, and `PUT` fails, because it
+does not write against a configuration it could not read.
+
+`PUT /api/cluster-settings` makes several separate writes: the OdhDashboardConfig patch, the culler
+and segment-key ConfigMaps, and a notebook-controller rollout when needed. There is no transaction.
+The writes are planned once, from one read of the cluster, and only the planned writes run:
+
+- The stored values are read the same way for `GET` and for planning: culling is off unless the
+  culler ConfigMap has `ENABLE_CULLING: "true"` (in any case), and tracking is off unless the segment-key
+  ConfigMap has `segmentKeyEnabled: "true"`. When the OdhDashboardConfig sets `disableTracking`,
+  `GET` does not read or show tracking and `PUT` neither reads nor writes the segment-key ConfigMap,
+  so neither needs access to it. Tracking can be enabled only when the segment-key ConfigMap is
+  provisioned; otherwise the save fails (`200 {"success": false}`) before anything is written. Under
+  `caller`, a failed read of either ConfigMap fails `GET` as it fails `PUT`. Under the
+  service-account policy `GET` shows an unreadable segment-key ConfigMap as tracking off, as before,
+  and a save that keeps tracking off leaves it alone; enabling tracking then fails.
+- A ConfigMap write is planned only when it would change the stored value. A ConfigMap whose stored
+  value already matches the request (absent or disabled culling for culling off, an absent key for
+  tracking off) gets no write and no review. A culler ConfigMap that turns culling on without a readable
+  idle time is shown as off but still culls, so saving culling off deletes it, so saving the values `GET` returned while changing
+  another setting needs no ConfigMap write access.
+- The OdhDashboardConfig patch carries the `resourceVersion` of the configuration it was computed
+  from, so a save planned from an older read is rejected as a conflict
+  (`200 {"success": false}`) instead of undoing another admin's change. Defaults that were never
+  stored carry no version.
+- Every ConfigMap operation is bound to the version the plan read. If the cluster changes after the
+  plan, the planned write fails instead of switching to another one or overwriting a newer value: a
+  planned create fails if the ConfigMap now exists, and a planned update or delete is a conflict if
+  the ConfigMap changed. A ConfigMap the plan left alone but which was created, changed or deleted
+  since is reported as a conflict (`200 {"success": false}`), not success. The rollout decision comes
+  from the same read, so it always matches what was stored.
+- Before the OdhDashboardConfig patch, the plan is re-checked: a ConfigMap another save changed
+  since the read is reported as a conflict before anything is written. Only a change in the short
+  window between that check and the ConfigMap writes can still leave the configuration patched with
+  a conflict reported.
+- The segment-key ConfigMap, which needs no rollout, is handled before the culler ConfigMap, so a
+  conflict on it stops the update before the culler is written and a retry still restarts the
+  controller. When the PVC size changed, the OdhDashboardConfig patch has already stored it, so the
+  planned rollout still runs after a later conflict, which is still reported. When both fail, both
+  causes are returned and an authorization failure takes precedence for the status (`403` under
+  `caller`).
+- A failed read that the plan depends on is an error, never a detected change, so it cannot trigger
+  a notebook-controller rollout.
+
+Under `caller` the request first reads the current OdhDashboardConfig with the caller's credentials
+(a failed read aborts the request), then runs a `SelfSubjectAccessReview` for every planned write,
+and returns `403` before the first write if any is denied. This preflight is best-effort, not
+transactional: it stops the common case of a caller with partial permissions, but RBAC can change
+between the review and the write, and a write can still fail for other reasons (a conflict, an
+admission webhook). A later write that fails after earlier ones succeeded still leaves a partial
+change, reported as a `403` for a denial or `200 {"success": false}` otherwise.
+
+On xKS the caller therefore needs, on `odhdashboardconfigs` (`opendatahub.io`) in the dashboard
+namespace:
+
+- `GET /api/cluster-settings`: `get`, plus `get` on the culler and segment-key ConfigMaps.
+- `PUT /api/cluster-settings`: `get` and `patch`, plus the ConfigMap and Deployment verbs its
+  planned writes need.
+- `PATCH /api/config`: `get` and `patch`. The patch itself needs only `patch` (its response is built
+  from the patched object), but the settings pages read the configuration before they save it.
 
 ## Service-account permissions
 
-These are the only service-account operations left on xKS. Each is a read, and none is reached by a
-mutation. For the xKS profile the dashboard **service account** needs:
+These are the only service-account operations left on xKS, and each is a read. On xKS the
+OdhDashboardConfig reads and patches inside `PATCH /api/config` and `PUT /api/cluster-settings` use
+the caller's credentials, not these. For the xKS
+profile the dashboard **service account** needs:
 
-| Resource                                       | Verbs  | Needed for                                                                                                                                                                                                                                                                                                                 |
-| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `odhdashboardconfigs` (`opendatahub.io`)       | `get`  | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                                                                                                                                                                                                                                        |
-| `odhapplications` (`dashboard.opendatahub.io`) | `list` | `/api/components`. **Always required**, also when the OdhApplication API is not installed: the API server authorizes a request before it resolves the resource, so without this rule an absent API is a 403. A forbidden list is an error. With the rule granted, an absent API or no instances degrades to an empty list. |
-| `configmaps` (core), dashboard namespace | `get`, `list` | Connection-type templates (`GET /api/connection-types[/:name]`), filtered to the connection-type labels. Every authenticated user needs them to create a connection and is not granted ConfigMap access in the dashboard namespace. |
+| Resource                                       | Verbs         | Needed for                                                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `odhdashboardconfigs` (`opendatahub.io`)       | `get`         | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                                                                                                                                                                                                                                        |
+| `odhapplications` (`dashboard.opendatahub.io`) | `list`        | `/api/components`. **Always required**, also when the OdhApplication API is not installed: the API server authorizes a request before it resolves the resource, so without this rule an absent API is a 403. A forbidden list is an error. With the rule granted, an absent API or no instances degrades to an empty list. |
+| `configmaps` (core), dashboard namespace       | `get`, `list` | Connection-type templates (`GET /api/connection-types[/:name]`), filtered to the connection-type labels. Every authenticated user needs them to create a connection and is not granted ConfigMap access in the dashboard namespace.                                                                                        |
 
 All three rules are namespaced and the BFF reads in its dashboard namespace (`NAMESPACE`), so the
 Deployment sets `NAMESPACE` to the pod's own namespace, where the Role is bound. The shipped Roles
 are exercised against an API server without the OdhApplication API in
 `bff/internal/api/components_sa_rbac_test.go`.
 
-On xKS the service account needs **no** write verb on any resource, and no permission on
-`namespaces`, `servingruntimes`, `deployments` or `auths`. The current
+On a confirmed xKS platform the service account needs **no** write verb on any resource, and no
+permission on `namespaces`, `servingruntimes`, `deployments` or `auths`. An _unconfirmed_ xKS guess
+keeps the `auth-resource` admission mode (see above), which reads `auths/auth` with the service
+account; set `ODH_PLATFORM_TYPE=XKS` so that read never happens. The current
 `manifests/base/cluster-role.yaml` grants more than this; the reduction is for
 [RHOAIENG-96147](https://redhat.atlassian.net/browse/RHOAIENG-96147) to apply in an xKS overlay.
 

@@ -179,9 +179,10 @@ func parseValue(header, value string) (string, error) {
 		}
 	}
 
-	// A bearer token is a single token68 value. Embedded whitespace means the
-	// header carries something else (a second scheme, a list, a typo).
-	if strings.ContainsAny(value, " \t\r\n") {
+	// A bearer token is a single token68 value. Embedded whitespace or a comma
+	// means the header carries something else (a second scheme, a list joined
+	// by a proxy, a typo).
+	if strings.ContainsAny(value, " \t\r\n,") {
 		return "", fmt.Errorf("credential header %s is malformed: %w", header, httpcontract.ErrCredentialsInvalid)
 	}
 	return value, nil
