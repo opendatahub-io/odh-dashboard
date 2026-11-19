@@ -122,10 +122,11 @@ paths:
         Calls the DCH BFF connections and connection-types endpoints using the current
         user's token. Resolves connector type IDs to provider labels. Returns DCH connections
         only on success, including an empty list. Falls back to RHOAI Secrets when DCH is
-        unconfigured, unreachable, times out, returns an upstream 5xx, or returns 404 from either
-        collection endpoint (treated as an unavailable DCH backend). Authorization errors, other
-        4xx responses (excluding these collection-endpoint 404s), and invalid response contracts
-        do not trigger fallback. Unresolved type IDs omit the affected connections and produce an
+        unconfigured, unreachable, times out, returns an upstream 5xx, returns 403, or returns 404
+        from either collection endpoint. A DCH 403 can also indicate that the DCH API and its RBAC
+        resources are not installed; the fallback Secret lookup performs its own authorization
+        using the current user's token. Other 4xx responses and invalid response contracts do not
+        trigger fallback. Unresolved type IDs omit the affected connections and produce an
         UNRESOLVED_CONNECTION_TYPE warning. When a configured DCH lookup
         fails and the RHOAI fallback succeeds, metadata.warnings includes DCH_FALLBACK.
         When DCH lookup succeeds, metadata.rhaiConnections includes current RHOAI
@@ -152,7 +153,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The user cannot access connections or connection types in this project.
+          description: The user cannot access the fallback RHOAI Secrets in this project.
           content:
             application/json:
               schema:

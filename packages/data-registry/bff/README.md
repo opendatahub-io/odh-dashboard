@@ -370,12 +370,12 @@ with `DEV_MODE=true`; startup rejects this setting outside development mode when
 Production must keep TLS enabled and certificate verification on.
 
 `BFF_DCH_TIMEOUT_SECONDS` bounds both requests together (default 5 seconds). Network errors,
-timeouts, upstream 5xx, and 404 responses from either DCH collection endpoint trigger Secret
-fallback using the original request context. Treating collection-endpoint 404s as unavailable
-supports clusters where the DCH BFF is present before its backend API is installed. 401/403,
-other 4xx (excluding these collection-endpoint 404s), and invalid contracts do not trigger
-fallback. DCH authentication failures return 401, access denials return 403, and other
-non-fallback errors return 502.
+timeouts, upstream 5xx, 403 responses, and 404 responses from either DCH collection endpoint
+trigger Secret fallback using the original request context. Treating collection-endpoint 403s
+and 404s as unavailable supports clusters where the DCH BFF is present before its backend API
+and RBAC resources are installed. The fallback uses the current user's token and independently
+enforces project Secret access. A 401, other 4xx responses, and invalid contracts do not trigger
+fallback. DCH authentication failures return 401, and other non-fallback errors return 502.
 A missing connector type omits that connection and returns a warning. The service does not
 probe DCH during startup, cache user connection lists, or convert saved references.
 
