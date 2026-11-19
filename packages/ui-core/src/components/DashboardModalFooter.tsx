@@ -15,6 +15,7 @@ type DashboardModalFooterProps = {
   submitButtonVariant?: ButtonProps['variant'];
   onSubmit: () => void;
   onCancel: () => void;
+  secondaryActions?: React.ReactNode;
   isSubmitDisabled?: boolean;
   isSubmitLoading?: boolean;
   isCancelDisabled?: boolean;
@@ -30,6 +31,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
   submitButtonVariant = 'primary',
   onSubmit,
   onCancel,
+  secondaryActions,
   isSubmitDisabled,
   isSubmitLoading,
   isCancelDisabled,
@@ -69,6 +71,7 @@ const DashboardModalFooter: React.FC<DashboardModalFooterProps> = ({
               {submitLabel}
             </Button>
           </ActionListItem>
+          {secondaryActions && <ActionListItem>{secondaryActions}</ActionListItem>}
           <ActionListItem>
             <Button
               key="cancel"

@@ -26,6 +26,7 @@ filters:
       - data-registry-approvers
       - mlflow-approvers
       - distributions-approvers
+      - ai-grid-approvers
 
   # Catchall for shared/root files and any path without a more specific owner.
   '.*':
