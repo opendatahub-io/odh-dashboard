@@ -123,9 +123,9 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
   return (
     <DrawerPanelContent
       isResizable
-      defaultSize="40%"
+      defaultSize="max(40%, 24rem)"
       minSize="25%"
-      maxSize="calc(100% - 30rem)"
+      maxSize="calc(100% - 22rem)"
       data-testid="training-job-details-drawer"
     >
       <DrawerHead>
