@@ -482,6 +482,7 @@ describe('Model Training', () => {
       trainingJobTable.getTableRow(jobName).findStatus().click();
       trainingJobStatusModal.shouldBeOpen();
       cy.wait('@workerPods');
+      trainingJobStatusModal.findDescription().should('be.visible').and('have.text', 'Job status');
       trainingJobStatusModal
         .findPodSummary()
         .should('be.visible')
@@ -1057,6 +1058,10 @@ describe('Model Training', () => {
           .findStatusSummary()
           .should('be.visible')
           .and('contain.text', 'Waiting for resources in queued-queue');
+        trainingJobStatusModal
+          .findDescription()
+          .should('be.visible')
+          .and('have.text', 'Job status');
         // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
         // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
         // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');

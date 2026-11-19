@@ -346,13 +346,15 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
       <ModalHeader
         data-testid="training-job-status-modal-header"
         description={
-          <Content
-            component="p"
-            data-testid="training-job-status-modal-description"
-            style={{ color: Gray60.value }}
-          >
-            Job status
-          </Content>
+          queueDetails || podBlockers.length > 0 ? (
+            <Content
+              component="p"
+              data-testid="training-job-status-modal-description"
+              style={{ color: Gray60.value }}
+            >
+              Job status
+            </Content>
+          ) : undefined
         }
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
