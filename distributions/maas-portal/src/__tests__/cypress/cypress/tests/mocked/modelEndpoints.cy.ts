@@ -31,9 +31,19 @@ describe('Grid Model endpoints', () => {
     maasModelsPage.findModelIds().should('have.length', 2);
     maasModelsPage.findPlaygroundActions().should('not.exist');
     maasModelsPage.findTabs().should('not.exist');
+    maasModelsPage.findModelStatusHelp().should('not.exist');
     portal.findNavLink('AI asset endpoints').should('not.exist');
     cy.reload();
     cy.wait('@models');
+    maasModelsPage.findTable().should('contain.text', 'Llama 3');
+  });
+
+  it('keeps the page available when configuration cannot be loaded', () => {
+    cy.intercept('GET', portalPath('/api/config'), { statusCode: 503, body: {} });
+    cy.intercept('GET', modelsPath, { data: [model()] }).as('models');
+    portal.visit('/maas/models');
+    cy.wait('@models');
+    maasModelsPage.findTitle().should('have.text', 'Model endpoints');
     maasModelsPage.findTable().should('contain.text', 'Llama 3');
   });
 
