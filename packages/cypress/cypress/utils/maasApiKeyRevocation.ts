@@ -23,32 +23,126 @@ export const requestMaaSCompletion = (
     log: false,
   });
 
-/** Executes the Portal-provided curl command while accepting the cluster ingress certificate. */
+type ParsedMaaSUsageExample = {
+  endpoint: string;
+  apiKey: string;
+  requestBody: MaaSCompletionRequestBody;
+};
+
+const decodeDoubleQuotedShellValue = (value: string): string => {
+  let decoded = '';
+  for (let index = 0; index < value.length; index++) {
+    const character = value[index];
+    if (character !== '\\') {
+      decoded += character;
+      continue;
+    }
+
+    const escapedCharacter = value[index + 1];
+    if (!escapedCharacter || !['\\', '"', '$', '`'].includes(escapedCharacter)) {
+      throw new Error('The copied MaaS usage example contains an invalid API key escape');
+    }
+    decoded += escapedCharacter;
+    index++;
+  }
+  return decoded;
+};
+
+/** Strictly parses the Portal-generated curl example without evaluating shell content. */
+export const parseMaaSUsageExample = (usageExample: string): ParsedMaaSUsageExample => {
+  const lines = usageExample
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length !== 5) {
+    throw new Error('The copied MaaS usage example has an unexpected command structure');
+  }
+
+  const [exportLine, curlLine, contentTypeLine, authorizationLine, dataLine] = lines;
+  const apiKeyMatch = /^export API_KEY="((?:\\.|[^"\\])*)"$/.exec(exportLine);
+  const endpointMatch = /^curl -X POST (\S+) \\$/.exec(curlLine);
+
+  if (!apiKeyMatch || !endpointMatch) {
+    throw new Error('Could not parse the API key or endpoint from the MaaS usage example');
+  }
+  if (contentTypeLine !== '-H "Content-Type: application/json" \\') {
+    throw new Error('The copied MaaS usage example has an unexpected content type header');
+  }
+  if (authorizationLine !== '-H "Authorization: Bearer $API_KEY" \\') {
+    throw new Error('The copied MaaS usage example has an unexpected authorization header');
+  }
+
+  const requestBodyMatch = /^-d '(.*)'$/.exec(dataLine);
+  if (!requestBodyMatch) {
+    throw new Error('Could not parse the request body from the MaaS usage example');
+  }
+
+  let endpoint: URL;
+  try {
+    endpoint = new URL(endpointMatch[1]);
+  } catch {
+    throw new Error('The copied MaaS usage example contains an invalid endpoint URL');
+  }
+  if (!['http:', 'https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password) {
+    throw new Error('The copied MaaS usage example contains an unsupported endpoint URL');
+  }
+
+  let requestBody: MaaSCompletionRequestBody;
+  try {
+    const shellDecodedBody = requestBodyMatch[1].replaceAll(`'"'"'`, `'`);
+    requestBody = JSON.parse(shellDecodedBody) as MaaSCompletionRequestBody;
+  } catch {
+    throw new Error('The copied MaaS usage example contains an invalid JSON request body');
+  }
+  if (
+    typeof requestBody.model !== 'string' ||
+    !requestBody.model ||
+    !Array.isArray(requestBody.messages) ||
+    !requestBody.messages.length ||
+    requestBody.messages.some(
+      (message) => typeof message.role !== 'string' || typeof message.content !== 'string',
+    )
+  ) {
+    throw new Error('The copied MaaS usage example contains an unsupported request body');
+  }
+
+  return {
+    endpoint: endpoint.toString(),
+    apiKey: decodeDoubleQuotedShellValue(apiKeyMatch[1]),
+    requestBody,
+  };
+};
+
+/** Sends the Portal-provided usage example without executing its shell command. */
 export const executeMaaSUsageExample = (
   usageExample: string,
 ): Cypress.Chainable<{ status: number; body: string }> => {
-  if (!/\bcurl\b/.test(usageExample)) {
-    throw new Error('The copied MaaS usage example does not contain a curl command');
-  }
+  const { endpoint, apiKey, requestBody } = parseMaaSUsageExample(usageExample);
+  const requestOptions: Partial<Cypress.RequestOptions> & { strictSSL: boolean } = {
+    method: 'POST',
+    url: endpoint,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: requestBody,
+    failOnStatusCode: false,
+    retryOnNetworkFailure: false,
+    strictSSL: false,
+    timeout: 120000,
+    log: false,
+  };
 
-  const command = usageExample.replace(
-    /\bcurl\b/,
-    "curl -k --silent --show-error --write-out '\\n%{http_code}'",
+  return cy.request(requestOptions).then((response) =>
+    cy.wrap(
+      {
+        status: response.status,
+        body: typeof response.body === 'string' ? response.body : JSON.stringify(response.body),
+      },
+      { log: false },
+    ),
   );
-
-  return cy
-    .exec(command, { failOnNonZeroExit: false, log: false, timeout: 120000 })
-    .then(({ exitCode, stdout, stderr }) => {
-      expect(exitCode, `copied MaaS curl command failed: ${stderr}`).to.equal(0);
-      const statusMatch = stdout.match(/\n(\d{3})\s*$/);
-      if (!statusMatch) {
-        throw new Error('Could not read the HTTP status from the copied MaaS usage example');
-      }
-
-      const status = Number(statusMatch[1]);
-      const body = stdout.slice(0, statusMatch.index).trim();
-      return cy.wrap({ status, body }, { log: false });
-    });
 };
 
 /** Waits beyond Authorino's default 60-second metadata cache TTL for key revocation. */
