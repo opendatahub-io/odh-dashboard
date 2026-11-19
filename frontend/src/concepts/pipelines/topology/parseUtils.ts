@@ -203,9 +203,13 @@ export const parseRuntimeInfoFromExecutions = (
     return undefined;
   }
 
-  const execution = executions.find(
-    (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
-  );
+  const execution =
+    executions.find(
+      (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === taskName,
+    ) ??
+    executions.find(
+      (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === taskId,
+    );
 
   if (!execution) {
     return undefined;
