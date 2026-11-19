@@ -42,6 +42,8 @@ Each configuration runs in its own process and workspace directory so dotenv loa
 
 The RHAII manifest also selects the LLMD deployment entry point. These build-time choices exclude optional extension contributions before chunk generation. They do not remove remaining dependencies reached by the selected deployment code; those remain subject to the same boundary check.
 
+Set the Model Serving profile in `extensionProfiles.modelServing` in [distribution.yaml](../distribution.yaml). Docker, Tilt, and the production audit read this selection through the same [build helper](../scripts/model-serving-profile.js), so changing the distribution's profile does not require editing three build paths. Missing selections fail the build; unsupported values are rejected by the remote configuration. Other dashboard builds retain the remote's default full profile. The LLMD deployment profile retains start/stop alongside deployment creation, watching, and deletion.
+
 The same-origin remote is treated as inspected only after its local production build succeeds, emits `remoteEntry.js`, and is audited with the same parser. This verifies the contents available at the image's remote URL; it does not exempt forbidden code inside that remote. The report maps `main.0` chunk/module identifiers to the host and `main.1` identifiers to Model Serving. Module instances shared by source path across the two compilations remain separate.
 
 ## What the Check Measures
@@ -66,4 +68,4 @@ Before declaring runtime independence complete:
 2. Inspect production browser requests across supported flows and lazy routes, including the audited Model Serving remote's loading and any additional dynamically fetched code outside these two builds.
 3. Validate authentication, namespace discovery, permissions, gateway access, and deployment lifecycle against the production image on AKS, without OpenShift-only APIs.
 
-The audit depends on Rspack statistics and the host and remote production configurations. Tests cover lazy chunks, concatenated modules, federation container entries, nested package ownership, external references, failure propagation from the remote, and rejection of missing or incomplete evidence. A cross-file test checks that the audit profile matches the Dockerfile's remote entry, deployment mode, public path, extension profile, and workspace directories.
+The audit depends on Rspack statistics and the host and remote production configurations. Tests cover lazy chunks, concatenated modules, federation container entries, nested package ownership, external references, failure propagation from the remote, and rejection of missing or incomplete evidence. Cross-file tests check that Docker and Tilt use the shared profile helper and that the audit matches the image's remote entry, deployment mode, public path, profile selection, and workspace directories.

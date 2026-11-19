@@ -274,6 +274,15 @@ export const gatewayExtensions: LLMDServingExtension[] = [
   gatewaySelectExtractorExtension,
 ];
 
+export const startStopAction: LLMDServingExtension = {
+  type: 'model-serving.deployments-table/start-stop-action',
+  properties: {
+    platform: SupportedArea.LLMD_SERVING,
+    patchDeploymentStoppedStatus: () =>
+      import('../src/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
+  },
+};
+
 const extensions: LLMDServingExtension[] = [
   ...lifecycleExtensions,
   modelServerFieldOverride,
@@ -282,6 +291,7 @@ const extensions: LLMDServingExtension[] = [
   ...gatewayExtensions,
   llmdTrackingPropertiesExtension,
   deploymentMethodExtractorExtensionLllmdOnly,
+  startStopAction,
 ];
 
 export default extensions;

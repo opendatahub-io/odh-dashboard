@@ -6,6 +6,7 @@ import {
   gatewayExtensions,
   llmdTrackingPropertiesExtension,
   deploymentMethodExtractorExtensionLllmdOnly,
+  startStopAction,
 } from './deployments';
 import {
   modelAvailabilityFieldOverride,
@@ -13,10 +14,16 @@ import {
   llmConfigOptionsFieldExtension,
   topologyConfigsExtensions,
   deploymentMethodExtractorExtensionvLLMOnMaaS,
-  startStopAction,
 } from './advanced';
 import settingsExtensions from './settings';
 import type { LLMDServingExtension } from './types';
+
+export const LLMD_SERVING_ID = 'llmd-serving';
+// Preserve named exports from the existing full public entry point.
+// eslint-disable-next-line no-barrel-files/no-barrel-files
+export { topologyConfigsExtensions };
+// eslint-disable-next-line no-barrel-files/no-barrel-files
+export type { TopologyConfigsExtensionsType } from './types';
 
 const extensions: LLMDServingExtension[] = [
   ...lifecycleExtensions,

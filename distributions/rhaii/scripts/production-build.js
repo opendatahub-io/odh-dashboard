@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { STATS_OPTIONS, MODEL_SERVING_REMOTE_ENTRY } = require('./runtime-audit');
+const { getModelServingProfileEnvironment } = require('./model-serving-profile');
 
 const repoRoot = path.resolve(__dirname, '../../..');
 const outputDir = path.resolve(__dirname, '../dist/runtime-audit');
@@ -16,7 +17,7 @@ const productionTargets = {
     environment: {
       DEPLOYMENT_MODE: 'federated',
       PUBLIC_PATH: '/_mf/modelServing/',
-      MODEL_SERVING_EXTENSION_PROFILE: 'deployments',
+      ...getModelServingProfileEnvironment(),
       COVERAGE: 'false',
     },
   },
