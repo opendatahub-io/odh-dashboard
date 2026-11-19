@@ -472,6 +472,40 @@ describe('createConfigureSchema', () => {
     });
   });
 
+  describe('prediction_length validation', () => {
+    it.each([
+      { predictionLength: 0, valid: false },
+      { predictionLength: 1, valid: true },
+      { predictionLength: 100, valid: true },
+      { predictionLength: 101, valid: false },
+    ])(
+      'should validate forecast length $predictionLength as $valid',
+      ({ predictionLength, valid }) => {
+        const result = schema.full.safeParse({
+          ...schema.defaults,
+          display_name: 'forecast',
+          train_data_secret_name: 'secret',
+          train_data_bucket_name: 'bucket',
+          train_data_file_key: 'file.csv',
+          task_type: TASK_TYPE_TIMESERIES,
+          target_column: 'value',
+          timestamp_column: 'timestamp',
+          training_data_column_count: 2,
+          prediction_length: predictionLength,
+        });
+
+        expect(result.success).toBe(valid);
+        if (!result.success) {
+          expect(result.error.issues.map((issue) => issue.path.join('.'))).toEqual([
+            'prediction_length',
+          ]);
+        } else {
+          expect(result.data.prediction_length).toBe(predictionLength);
+        }
+      },
+    );
+  });
+
   describe('top_n validation', () => {
     it('should accept top_n at maximum for tabular task types', () => {
       const baseData = {

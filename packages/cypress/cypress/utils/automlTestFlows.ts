@@ -300,8 +300,6 @@ export const verifyAutomlResultsInteraction = (
   cy.step('Verify leaderboard has at least one model row');
   automlResultsPage.findLeaderboardRow(1).should('exist');
 
-  verifyAutomlLeaderboardColumns();
-
   cy.step('Open and close run details drawer');
   automlResultsPage.findRunDetailsButton().click();
   automlResultsPage.findRunDetailsDrawerPanel().should('be.visible');

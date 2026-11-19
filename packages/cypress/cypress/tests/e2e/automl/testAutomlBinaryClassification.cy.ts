@@ -11,6 +11,7 @@ import {
   configureAutomlRun,
   submitAutomlRun,
   waitForAutomlRunCompletion,
+  verifyAutomlLeaderboardColumns,
   verifyAutomlResultsInteraction,
   verifyAutomlReconfiguration,
   verifyAndChangeOptimizationMetric,
@@ -83,6 +84,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
     'Can interact with results page (leaderboard, model details, download)',
     { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
+      verifyAutomlLeaderboardColumns();
       verifyAutomlResultsInteraction('binary');
     },
   );
