@@ -32,6 +32,7 @@ import {
 } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
+import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import {
   initMockConnectionSecretIntercepts,
@@ -50,6 +51,7 @@ import {
   LLMInferenceServiceModel,
   ProjectModel,
   PVCModel,
+  SelfSubjectAccessReviewModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
@@ -964,6 +966,64 @@ describe('Model Serving Deploy Wizard', () => {
     cy.get('@createInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(1); // 1 dry-run request only
     });
+  });
+
+  it('disables token authentication and external route while keeping environment variables editable when rolebinding creation is not allowed', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+      const { resourceAttributes } = req.body.spec;
+      const allowed = !(
+        resourceAttributes.group === 'rbac.authorization.k8s.io' &&
+        resourceAttributes.resource === 'rolebindings' &&
+        resourceAttributes.verb === 'create'
+      );
+
+      req.reply(mockSelfSubjectAccessReview({ ...resourceAttributes, allowed }));
+    }).as('createSelfSubjectAccessReview');
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist')
+      .click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    hardwareProfileSection.findSelect().click();
+    hardwareProfileSection.selectProfileContaining('Large Profile');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().should('be.visible').and('be.disabled');
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.visible').and('be.disabled');
+    modelServingWizard.findEnvVariablesCheckbox().should('be.enabled').click();
+    modelServingWizard.findAddVariableButton().should('be.enabled').click();
+    modelServingWizard.findEnvVariableName('0').clear().type('CUSTOM_ENV');
+    modelServingWizard.findEnvVariableValue('0').type('test-value');
+
+    modelServingWizard.findEnvVariablesCheckbox().should('be.checked');
+    modelServingWizard.findEnvVariableName('0').should('have.value', 'CUSTOM_ENV');
+    modelServingWizard.findEnvVariableValue('0').should('have.value', 'test-value');
   });
 
   it('Check Kserve Auth Section', () => {
