@@ -272,6 +272,32 @@ describe('useWorkingProjectRouteSync', () => {
       expect(selectProject).toHaveBeenNthCalledWith(2, projects[1]);
       expect(navigate).not.toHaveBeenCalled();
     });
+
+    it('should ignore a late selection after navigating back to the previous route', () => {
+      let activeProjectName = 'project-a';
+      const { rerender } = renderHook(
+        ({ routeProjectName }: { routeProjectName: string }) =>
+          useWorkingProjectRouteSync({
+            activeProjectName,
+            routeProjectName,
+            projects,
+            selectProject,
+            enabled: true,
+            getProjectPath: (projectName) => `/assets/${projectName}`,
+          }),
+        { initialProps: { routeProjectName: 'project-b' } },
+      );
+
+      rerender({ routeProjectName: 'project-a' });
+      activeProjectName = 'project-b';
+      rerender({ routeProjectName: 'project-a' });
+
+      expect(selectProject).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith(
+        { pathname: '/assets/project-b/models', search: '', hash: '' },
+        { replace: true },
+      );
+    });
   });
 
   describe('route re-entry', () => {
@@ -435,5 +461,35 @@ describe('useWorkingProjectRouteSync', () => {
     );
 
     expect(registerProjectRouteSync).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should preserve route registration for an equivalent project array and update it when names change', () => {
+    const registerProjectRouteSync = jest.fn(() => jest.fn());
+    const getProjectPath = (projectName: string) => `/assets/${projectName}`;
+    const { rerender } = renderHook(
+      ({ currentProjects }: { currentProjects: readonly { name: string }[] }) =>
+        useWorkingProjectRouteSync({
+          activeProjectName: 'project-a',
+          routeProjectName: 'project-a',
+          projects: currentProjects,
+          selectProject,
+          enabled: true,
+          getProjectPath,
+          registerProjectRouteSync,
+        }),
+      { initialProps: { currentProjects: projects } },
+    );
+
+    const initialRegistrationCount = registerProjectRouteSync.mock.calls.length;
+
+    rerender({ currentProjects: [{ name: 'project-a' }, { name: 'project-b' }] });
+    expect(registerProjectRouteSync).toHaveBeenCalledTimes(initialRegistrationCount);
+
+    rerender({ currentProjects: [{ name: 'project-a' }, { name: 'project-c' }] });
+    expect(registerProjectRouteSync).toHaveBeenCalledTimes(initialRegistrationCount + 1);
+    expect(registerProjectRouteSync).toHaveBeenLastCalledWith({
+      kind: 'project',
+      name: 'project-a',
+    });
   });
 });

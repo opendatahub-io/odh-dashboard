@@ -109,14 +109,36 @@ export const useWorkingProjectRouteSync = ({
       }
     | undefined
   >();
-  const projectNames = projects.map(({ name }) => name).join('\u0000');
+  const stableProjectNameSetRef = React.useRef<{
+    names: string[];
+    nameSet: ReadonlySet<string>;
+  }>();
+  const projectNameSet = React.useMemo(() => {
+    const previousProjectNames = stableProjectNameSetRef.current;
+    const currentProjectNames = projects.map(({ name }) => name);
+
+    if (
+      previousProjectNames &&
+      previousProjectNames.names.length === currentProjectNames.length &&
+      previousProjectNames.names.every((name, index) => name === currentProjectNames[index])
+    ) {
+      return previousProjectNames.nameSet;
+    }
+
+    const nextProjectNames = {
+      names: currentProjectNames,
+      nameSet: new Set(currentProjectNames),
+    };
+    stableProjectNameSetRef.current = nextProjectNames;
+    return nextProjectNames.nameSet;
+  }, [projects]);
 
   const registeredRoute = React.useMemo<RouteProjectInput | undefined>(() => {
     if (!enabled || !routeProjectName || !getProjectPath || !registerProjectRouteSync) {
       return undefined;
     }
 
-    if (projectNames.split('\u0000').includes(routeProjectName)) {
+    if (projectNameSet.has(routeProjectName)) {
       return { kind: RouteProjectKindValue.Project, name: routeProjectName };
     }
 
@@ -127,7 +149,7 @@ export const useWorkingProjectRouteSync = ({
   }, [
     enabled,
     getProjectPath,
-    projectNames,
+    projectNameSet,
     recoverInvalidRoute,
     registerProjectRouteSync,
     routeProjectName,
@@ -161,6 +183,7 @@ export const useWorkingProjectRouteSync = ({
 
     if (handledRouteProject.current !== routeProjectName) {
       handledRouteProject.current = routeProjectName;
+      pendingRouteSelection.current = undefined;
       if (routeProjectName !== activeProjectName) {
         pendingRouteSelection.current = {
           routeProjectName,
