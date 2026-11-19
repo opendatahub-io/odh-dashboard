@@ -2,9 +2,20 @@ package proxy
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
@@ -138,4 +149,102 @@ func TestSensitiveIngressHeaders_IncludesEveryConfiguredHeader(t *testing.T) {
 	assert.Contains(t, got, "x-forwarded-access-token")
 	assert.Contains(t, got, "Authorization")
 	assert.NotContains(t, got, "")
+}
+
+// testClientCert returns a throwaway self-signed client certificate.
+func testClientCert(t *testing.T) tls.Certificate {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "kubeconfig-admin"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	require.NoError(t, err)
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
+}
+
+// certRecordingServer is a TLS upstream that records whether each request
+// presented a client certificate, and upgrades WebSocket requests.
+func certRecordingServer(t *testing.T) (*httptest.Server, chan bool) {
+	t.Helper()
+	presented := make(chan bool, 4)
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		presented <- len(r.TLS.PeerCertificates) > 0
+		if websocket.IsWebSocketUpgrade(r) {
+			conn, err := (&websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}).Upgrade(w, r, nil)
+			if err == nil {
+				_ = conn.Close()
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	srv.TLS = &tls.Config{ClientAuth: tls.RequestClientCert, MinVersion: tls.VersionTLS12}
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return srv, presented
+}
+
+// The kubeconfig client certificate authenticates before a bearer token, so it
+// must reach the API server only for the DEV_MODE fallback identity, never with
+// a caller credential (review: DEV_MODE proxies acted as the kubeconfig user).
+func TestK8sProxy_DevFallbackCertOnlyForDevFallbackIdentity(t *testing.T) {
+	srv, presented := certRecordingServer(t)
+	cfg := testK8sProxyConfig(srv.URL)
+	cfg.DevFallbackClientCerts = []tls.Certificate{testClientCert(t)}
+	handler, err := NewK8sProxyHandler(cfg)
+	require.NoError(t, err)
+
+	for _, tc := range []struct {
+		name     string
+		ctx      context.Context
+		wantCert bool
+	}{
+		{"caller token", newIdentityContext("caller-token"), false},
+		{"dev fallback", newDevFallbackIdentityContext(""), true},
+		{"caller token after dev fallback", newIdentityContext("caller-token"), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods", nil).WithContext(tc.ctx))
+			require.Equal(t, http.StatusOK, rec.Code)
+			assert.Equal(t, tc.wantCert, <-presented)
+		})
+	}
+}
+
+func TestWsProxy_DevFallbackCertOnlyForDevFallbackIdentity(t *testing.T) {
+	srv, presented := certRecordingServer(t)
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+	cfg := testWsConfig(srv.URL, tracker)
+	cfg.InsecureSkipVerify = true
+	cfg.DevFallbackClientCerts = []tls.Certificate{testClientCert(t)}
+	handler, err := NewWsProxyHandler(cfg)
+	require.NoError(t, err)
+
+	for _, tc := range []struct {
+		name     string
+		ctx      context.Context
+		wantCert bool
+	}{
+		{"caller token", newIdentityContext("caller-token"), false},
+		{"dev fallback", newDevFallbackIdentityContext("dev-token"), true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			front := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler.ServeHTTP(w, r.WithContext(tc.ctx))
+			}))
+			defer front.Close()
+			conn, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(front.URL, "http")+"/wss/k8s/api/v1/pods?watch=true", nil)
+			require.NoError(t, err)
+			_ = conn.Close()
+			assert.Equal(t, tc.wantCert, <-presented)
+		})
+	}
 }

@@ -183,9 +183,15 @@ needs `patch` on the Namespace itself; without it the response is `{"applied": f
 is written. The deploy flow already tolerates `applied: false`.
 
 Under `caller` an RBAC denial from the API server reaches the client as its `403` (or `401`). The
-connection-type and component-removal endpoints, which otherwise report failures as
-`200 {"success": false}`, do not fold a denial into that shape, so a client can tell "you may not"
-from "it failed".
+connection-type, component-removal and cluster-settings endpoints, which otherwise report failures
+as `200 {"success": false}`, do not fold a denial into that shape, so a client can tell "you may
+not" from "it failed".
+
+`PUT /api/cluster-settings` makes several separate writes: the OdhDashboardConfig patch, the culler
+and segment-key ConfigMaps, and a notebook-controller rollout when needed. There is no transaction,
+so under `caller` it first runs a `SelfSubjectAccessReview` with the caller's credentials for every
+write the request will make, and returns `403` before the first write if any is denied. A caller
+with partial permissions cannot leave a partial change behind.
 
 ## Service-account permissions
 

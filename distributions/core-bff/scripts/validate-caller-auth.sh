@@ -31,6 +31,7 @@ PORT=${PORT:-4321}
 here=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)
 bff_pid=""
+ns_created=false
 fails=0
 
 for tool in kubectl curl; do
@@ -39,7 +40,9 @@ done
 
 cleanup() {
   [[ -n "$bff_pid" ]] && kill "$bff_pid" 2>/dev/null || true
-  if [[ "${KEEP_NAMESPACE:-false}" != "true" ]]; then
+  # Only delete a namespace this run created: a name that already existed (for
+  # example a TEST_NAMESPACE collision) is never touched.
+  if [[ "$ns_created" == "true" && "${KEEP_NAMESPACE:-false}" != "true" ]]; then
     kubectl delete namespace "$NS" --wait=false >/dev/null 2>&1 || true
   fi
   rm -rf "$work"
@@ -47,7 +50,11 @@ cleanup() {
 trap cleanup EXIT
 
 echo "Cluster: $(kubectl config current-context)  namespace: $NS  platform: $PLATFORM"
-kubectl create namespace "$NS" >/dev/null
+if ! kubectl create namespace "$NS" >/dev/null; then
+  echo >&2 "could not create namespace $NS (it may already exist); not touching it"
+  exit 1
+fi
+ns_created=true
 kubectl label namespace "$NS" purpose=core-bff-caller-auth-validation >/dev/null
 kubectl -n "$NS" create serviceaccount caller-test >/dev/null
 kubectl apply -f - >/dev/null <<EOF

@@ -12,6 +12,7 @@
 package callerauth
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"net/http"
 	"strings"
@@ -151,7 +152,9 @@ func (e Extractor) extractOrdered(h http.Header) (Credential, error) {
 			found = Credential{Token: token, Header: header}
 			continue
 		}
-		if token != found.Token {
+		// Constant-time, so the comparison does not reveal how much of one
+		// token matches the other.
+		if subtle.ConstantTimeCompare([]byte(token), []byte(found.Token)) != 1 {
 			return Credential{}, fmt.Errorf("credential headers %s and %s carry different tokens: %w", found.Header, header, httpcontract.ErrCredentialsInvalid)
 		}
 	}

@@ -309,13 +309,13 @@ func TestCredentialHeaders_IncludesModuleOutboundHeader(t *testing.T) {
 // RHOAIENG-96081: a mounted kubeconfig client certificate must not be presented
 // by the Kubernetes proxies outside DEV_MODE, because the API server would
 // authenticate the certificate subject instead of the caller.
-func TestProxyClientCerts_OnlyInDevMode(t *testing.T) {
+func TestDevFallbackClientCerts_OnlyInDevMode(t *testing.T) {
 	certs := []tls.Certificate{{Certificate: [][]byte{{0x01}}}}
 
-	assert.Nil(t, proxyClientCerts(config.EnvConfig{}, certs, testLogger()), "production profile drops the certificate")
-	assert.Nil(t, proxyClientCerts(config.EnvConfig{MockHTTPClient: true}, certs, testLogger()), "only DEV_MODE keeps it")
-	assert.Equal(t, certs, proxyClientCerts(config.EnvConfig{DevMode: true}, certs, testLogger()))
-	assert.Empty(t, proxyClientCerts(config.EnvConfig{}, nil, testLogger()))
+	assert.Nil(t, devFallbackClientCerts(config.EnvConfig{}, certs, testLogger()), "production profile drops the certificate")
+	assert.Nil(t, devFallbackClientCerts(config.EnvConfig{MockHTTPClient: true}, certs, testLogger()), "only DEV_MODE keeps it")
+	assert.Equal(t, certs, devFallbackClientCerts(config.EnvConfig{DevMode: true}, certs, testLogger()))
+	assert.Empty(t, devFallbackClientCerts(config.EnvConfig{}, nil, testLogger()))
 }
 
 // RHOAIENG-101218: the caller resolver goes through the request identity and

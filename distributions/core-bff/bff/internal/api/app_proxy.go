@@ -24,19 +24,24 @@ func impersonateFromIdentity(in *http.Request, out http.Header) {
 	}
 }
 
-// proxyClientCerts decides whether the kubeconfig client certificate may be
-// presented by the Kubernetes HTTP and WebSocket proxies.
+// devFallbackClientCerts decides whether the kubeconfig client certificate may
+// be presented by the Kubernetes HTTP and WebSocket proxies, and returns it only
+// for the DEV_MODE kubeconfig-identity fallback.
 //
 // The API server authenticates a client certificate before it looks at a bearer
 // token, so attaching the mounted kubeconfig certificate to a proxied request
-// would authenticate it as the certificate's subject, not the caller. Outside
-// DEV_MODE the certificate is therefore never attached: the caller's bearer
-// token is the only credential the proxies send. DEV_MODE keeps it because its
-// kubeconfig-identity fallback (DevFallback) authenticates that way on purpose.
-// The typed client-go clients are already safe: rest.AnonymousClientConfig drops
-// the certificate before the caller token is installed.
-func proxyClientCerts(cfg config.EnvConfig, certs []tls.Certificate, logger *slog.Logger) []tls.Certificate {
-	if cfg.DevMode || len(certs) == 0 {
+// would authenticate it as the certificate's subject, not the caller. It is
+// never attached to a request that carries a caller credential, in any mode:
+// the proxies present it only for a DevFallback identity (DEV_MODE, no caller
+// credential), which authenticates with the kubeconfig on purpose. Outside
+// DEV_MODE it is not presented at all. The typed client-go clients are already
+// safe: rest.AnonymousClientConfig drops the certificate before the caller
+// token is installed.
+func devFallbackClientCerts(cfg config.EnvConfig, certs []tls.Certificate, logger *slog.Logger) []tls.Certificate {
+	if len(certs) == 0 {
+		return nil
+	}
+	if cfg.DevMode {
 		return certs
 	}
 	logger.Warn("kubeconfig carries a client certificate; not presenting it on the Kubernetes proxies so it cannot replace the caller credential")
@@ -60,18 +65,20 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		return err
 	}
 
-	var clientCerts []tls.Certificate
+	// clientCerts go on every proxied request (envtest mock mode, identity via
+	// impersonation); devCerts only on DevFallback requests.
+	var clientCerts, devCerts []tls.Certificate
 	if cfg.MockK8Client && k8sResult.testEnv != nil {
 		clientCerts, err = app.loadEnvtestTLS(k8sResult.testEnv)
 		if err != nil {
 			return err
 		}
 	} else {
-		clientCerts, err = app.loadKubeconfigTLS()
-		if err != nil {
-			return err
+		kubeconfigCerts, loadErr := app.loadKubeconfigTLS()
+		if loadErr != nil {
+			return loadErr
 		}
-		clientCerts = proxyClientCerts(cfg, clientCerts, app.logger)
+		devCerts = devFallbackClientCerts(cfg, kubeconfigCerts, app.logger)
 	}
 
 	allowHTTP := cfg.DevMode || cfg.MockK8Client
@@ -97,17 +104,18 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 	app.devFallbackToken = devFallbackToken
 
 	k8sProxyHandler, err := proxy.NewK8sProxyHandler(proxy.K8sProxyConfig{
-		K8sHost:              k8sHost,
-		RootCAs:              app.rootCAs,
-		ClientCerts:          clientCerts,
-		InsecureSkipVerify:   insecureSkipVerify,
-		AllowHTTP:            allowHTTP,
-		AuthTokenHeader:      cfg.AuthTokenHeader,
-		AuthTokenHeaders:     app.credentialHeaders(),
-		SetOutboundHeadersFn: outboundHeadersFn,
-		SSRFValidateTarget:   true,
-		DevFallbackToken:     devFallbackToken,
-		Logger:               app.logger,
+		K8sHost:                k8sHost,
+		RootCAs:                app.rootCAs,
+		ClientCerts:            clientCerts,
+		DevFallbackClientCerts: devCerts,
+		InsecureSkipVerify:     insecureSkipVerify,
+		AllowHTTP:              allowHTTP,
+		AuthTokenHeader:        cfg.AuthTokenHeader,
+		AuthTokenHeaders:       app.credentialHeaders(),
+		SetOutboundHeadersFn:   outboundHeadersFn,
+		SSRFValidateTarget:     true,
+		DevFallbackToken:       devFallbackToken,
+		Logger:                 app.logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create K8s proxy: %w", err)
@@ -117,16 +125,17 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 	app.wsTracker = proxy.NewConnectionTracker(app.logger)
 
 	wsHandler, err := proxy.NewWsProxyHandler(proxy.WsProxyConfig{
-		K8sHost:            k8sHost,
-		RootCAs:            app.rootCAs,
-		ClientCerts:        clientCerts,
-		InsecureSkipVerify: insecureSkipVerify,
-		AllowHTTP:          allowHTTP,
-		AllowedOrigins:     cfg.AllowedOrigins,
-		SSRFValidateTarget: true,
-		DevFallbackToken:   devFallbackToken,
-		Tracker:            app.wsTracker,
-		Logger:             app.logger,
+		K8sHost:                k8sHost,
+		RootCAs:                app.rootCAs,
+		ClientCerts:            clientCerts,
+		DevFallbackClientCerts: devCerts,
+		InsecureSkipVerify:     insecureSkipVerify,
+		AllowHTTP:              allowHTTP,
+		AllowedOrigins:         cfg.AllowedOrigins,
+		SSRFValidateTarget:     true,
+		DevFallbackToken:       devFallbackToken,
+		Tracker:                app.wsTracker,
+		Logger:                 app.logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create WebSocket proxy: %w", err)

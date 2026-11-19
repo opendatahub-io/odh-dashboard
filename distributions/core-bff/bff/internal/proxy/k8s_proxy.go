@@ -53,8 +53,14 @@ type K8sProxyConfig struct {
 	K8sHost string
 	// RootCAs is the certificate pool for verifying the K8s API server's certificate.
 	RootCAs *x509.CertPool
-	// ClientCerts are client certificates for mTLS authentication.
+	// ClientCerts are client certificates presented on every proxied request
+	// (envtest mock mode, where impersonation headers carry the identity).
 	ClientCerts []tls.Certificate
+	// DevFallbackClientCerts are presented only for a DevFallback identity
+	// (DEV_MODE with no caller credential). The API server authenticates a
+	// client certificate before a bearer token, so presenting it alongside a
+	// caller token would make the request run as the certificate subject.
+	DevFallbackClientCerts []tls.Certificate
 	// InsecureSkipVerify disables TLS certificate verification.
 	InsecureSkipVerify bool
 	// AllowHTTP permits insecure HTTP connections to the K8s API server.
@@ -90,7 +96,7 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 		return nil, fmt.Errorf("K8sHost must be an absolute http/https URL, got %q", cfg.K8sHost)
 	}
 
-	proxy, err := NewReverseProxy(ProxyConfig{
+	proxyCfg := ProxyConfig{
 		TargetURL:          targetURL,
 		RootCAs:            cfg.RootCAs,
 		ClientCerts:        cfg.ClientCerts,
@@ -139,12 +145,23 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			}
 			return httpcontract.KubernetesResponse(resp)
 		},
-	})
+	}
+	proxy, err := NewReverseProxy(proxyCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create K8s reverse proxy: %w", err)
 	}
+	handler := &k8sProxyHandler{ReverseProxy: proxy, devFallbackToken: cfg.DevFallbackToken}
 
-	return &k8sProxyHandler{ReverseProxy: proxy, devFallbackToken: cfg.DevFallbackToken}, nil
+	// A separate transport keeps the certificate off every connection a caller
+	// credential uses; pooled connections are never shared between the two.
+	if len(cfg.DevFallbackClientCerts) > 0 {
+		proxyCfg.ClientCerts = append(append([]tls.Certificate{}, cfg.ClientCerts...), cfg.DevFallbackClientCerts...)
+		handler.devFallback, err = NewReverseProxy(proxyCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create K8s dev-fallback reverse proxy: %w", err)
+		}
+	}
+	return handler, nil
 }
 
 // k8sProxyHandler refuses to forward a request that carries no caller
@@ -153,9 +170,12 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 // certificate, as the certificate subject). The route is mounted behind
 // InjectRequestIdentity, so this is defence in depth: it keeps the proxy fail
 // closed even if it is ever mounted elsewhere. A DevFallback identity is
-// allowed through because DEV_MODE authenticates with the kubeconfig on purpose.
+// allowed through because DEV_MODE authenticates with the kubeconfig on purpose;
+// only that identity is sent through devFallback, the transport that presents the
+// kubeconfig client certificate.
 type k8sProxyHandler struct {
 	*httputil.ReverseProxy
+	devFallback      *httputil.ReverseProxy
 	devFallbackToken string
 }
 
@@ -164,6 +184,10 @@ func (h *k8sProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !ok || identity == nil || (!identity.DevFallback && identity.ResolveToken(h.devFallbackToken) == "") {
 		httpcontract.EnsureID(w, r)
 		httpcontract.WriteLocal(w, r, http.StatusUnauthorized)
+		return
+	}
+	if identity.DevFallback && h.devFallback != nil {
+		h.devFallback.ServeHTTP(w, r)
 		return
 	}
 	h.ReverseProxy.ServeHTTP(w, r)

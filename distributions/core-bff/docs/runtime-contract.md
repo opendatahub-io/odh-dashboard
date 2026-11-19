@@ -134,9 +134,11 @@ Outside `DEV_MODE` nothing can replace a missing or rejected caller credential:
 - The kubeconfig/service-account identity is used only by the documented service-account reads
   (see the [bootstrap contract](./bootstrap-contract.md#service-account-permissions)), never as a
   substitute for the caller.
-- A client certificate in the kubeconfig is **not** presented by the Kubernetes proxies. The API
+- A client certificate in the kubeconfig is **not** presented with a caller credential. The API
   server authenticates a certificate before a bearer token, so presenting it would act as the
-  certificate subject. The typed clients drop it too (`rest.AnonymousClientConfig`).
+  certificate subject. The Kubernetes proxies present it only for the `DEV_MODE` fallback identity
+  (no caller credential sent), on a separate connection pool; outside `DEV_MODE` it is never
+  presented. The typed clients drop it too (`rest.AnonymousClientConfig`).
 - `DEV_MODE` keeps its kubeconfig fallback identity for local development, but only when **no**
   credential was sent. A credential that was sent and is malformed or conflicting is rejected with
   401, as in production. `DEV_MODE` is a development profile and cannot be enabled in production
