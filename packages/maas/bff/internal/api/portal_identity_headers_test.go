@@ -122,9 +122,10 @@ func TestPortalIdentityHeadersAreNotForwardedToMaaSAPI(t *testing.T) {
 			// Keep this header set aligned with the consumer-portal AuthPolicy:
 			// https://github.com/opendatahub-io/ai-gateway-controller/blob/main/config/manifests/consumer-portal/base/authpolicies.yaml
 			for name, value := range map[string]string{
+				"Authorization":            "Bearer " + portalAccessToken,
 				"x-forwarded-access-token": portalAccessToken,
 				"x-forwarded-id-token":     "portal-id-token",
-				"x-maas-identity":          `{"username":"user@example.com","groups":["system:authenticated"]}`,
+				"x-maas-identity":          `{"source":"oidc","claims":{"sub":"user","email":"user@example.com"}}`,
 				"x-auth-request-user":      "user@example.com",
 				"x-auth-request-email":     "user@example.com",
 				"Cookie":                   "session=portal-session",
