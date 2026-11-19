@@ -37,6 +37,7 @@ import {
 import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { useNotification } from '~/app/hooks/useNotification';
+import { buildModelCatalogDetailsNavigationState } from '~/app/pages/modelCatalog/tracking';
 
 type ModelCatalogCardBodyProps = {
   model: CatalogModel;
@@ -50,10 +51,24 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
   source,
 }) => {
   const [currentPerformanceIndex, setCurrentPerformanceIndex] = useState(0);
-  const { filters, filterOptions, performanceViewEnabled, sortBy } =
-    React.useContext(ModelCatalogContext);
+  const {
+    filters,
+    filterOptions,
+    performanceViewEnabled,
+    sortBy,
+    getPerformanceFilterDefaultValue,
+  } = React.useContext(ModelCatalogContext);
   const notification = useNotification();
   const errorNotificationShown = React.useRef(false);
+
+  const benchmarksDetailsNavigationState = React.useMemo(
+    () =>
+      buildModelCatalogDetailsNavigationState('benchmarksLink', filters, {
+        performanceViewEnabled,
+        getPerformanceFilterDefaultValue,
+      }),
+    [filters, performanceViewEnabled, getPerformanceFilterDefaultValue],
+  );
 
   const handlePreviousBenchmark = () => {
     setCurrentPerformanceIndex((prev) => (prev > 0 ? prev - 1 : performanceMetrics.length - 1));
@@ -164,6 +179,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
                 model.name,
                 source?.id,
               )}
+              state={benchmarksDetailsNavigationState}
             >
               <Button
                 variant="link"
@@ -298,6 +314,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
                   model.name,
                   source?.id,
                 )}
+                state={benchmarksDetailsNavigationState}
               >
                 <Button
                   variant="link"

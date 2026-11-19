@@ -17,7 +17,8 @@ import SliderWithInput from './SliderWithInput';
 const filterKey = ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME;
 
 const ColdStartLatencyFilter: React.FC = () => {
-  const { filterOptions } = React.useContext(ModelCatalogContext);
+  const { filterOptions, setPendingPerformanceFilterAppliedTracking } =
+    React.useContext(ModelCatalogContext);
   const { value: filterValue, setValue: setFilterValue } = useCatalogNumberFilterState(filterKey);
   const [isOpen, setIsOpen] = React.useState(false);
   const contentRef = useDropdownAutoFocus(isOpen);
@@ -68,10 +69,23 @@ const ColdStartLatencyFilter: React.FC = () => {
   const handleApplyFilter = () => {
     setFilterValue(localValue);
     setIsOpen(false);
+    setPendingPerformanceFilterAppliedTracking({
+      filterType: 'coldStart',
+      action: 'applied',
+    });
   };
 
   const handleReset = () => {
-    setLocalValue(filterValue ?? maxValue);
+    if (hasActiveFilter) {
+      setFilterValue(undefined);
+      setIsOpen(false);
+      setPendingPerformanceFilterAppliedTracking({
+        filterType: 'coldStart',
+        action: 'reset',
+      });
+      return;
+    }
+    setLocalValue(maxValue);
   };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (

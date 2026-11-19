@@ -11,11 +11,13 @@ import { ModelCatalogNumberFilterKey } from '~/concepts/modelCatalog/const';
 import { useCatalogNumberFilterState } from '~/app/pages/modelCatalog/hooks/useCatalogFilterState';
 import { MAX_RPS_RANGE } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import useDropdownAutoFocus from '~/app/pages/modelCatalog/hooks/useDropdownAutoFocus';
+import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import SliderWithInput from './SliderWithInput';
 
 const filterKey = ModelCatalogNumberFilterKey.MAX_RPS;
 
 const MaxRpsFilter: React.FC = () => {
+  const { setPendingPerformanceFilterAppliedTracking } = React.useContext(ModelCatalogContext);
   const { value: rpsFilterValue, setValue: setRpsFilterValue } =
     useCatalogNumberFilterState(filterKey);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -52,10 +54,23 @@ const MaxRpsFilter: React.FC = () => {
   const handleApplyFilter = () => {
     setRpsFilterValue(localValue);
     setIsOpen(false);
+    setPendingPerformanceFilterAppliedTracking({
+      filterType: 'rps',
+      action: 'applied',
+    });
   };
 
   const handleReset = () => {
-    setLocalValue(rpsFilterValue ?? maxValue);
+    if (hasActiveFilter) {
+      setRpsFilterValue(undefined);
+      setIsOpen(false);
+      setPendingPerformanceFilterAppliedTracking({
+        filterType: 'rps',
+        action: 'reset',
+      });
+      return;
+    }
+    setLocalValue(maxValue);
   };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (

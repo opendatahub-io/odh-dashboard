@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ActionList,
   Breadcrumb,
@@ -47,7 +47,14 @@ import {
 } from '~/concepts/modelCatalog/const';
 import { MODEL_CATALOG_TITLE } from '~/app/pages/modelCatalog/const';
 import { useUserInteraction } from '~/concepts/userInteraction';
-import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
+import {
+  MODEL_CATALOG_EVENTS,
+  ModelCatalogDetailsViewedProperties,
+  ModelCatalogDeployClickedProperties,
+  ModelCatalogRegisterModelClickedProperties,
+  claimDetailsViewedTracking,
+  isModelCatalogDetailsNavigationState,
+} from '~/app/pages/modelCatalog/tracking';
 import ModelCatalogAccessLabel from '~/app/pages/modelCatalog/components/ModelCatalogAccessLabel';
 import ModelDetailsTabs from './ModelDetailsTabs';
 
@@ -62,6 +69,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
+  const location = useLocation();
   const { trackSimpleEvent } = useUserInteraction();
   const state = useCatalogModel(
     decodedParams.sourceId || '',
@@ -98,6 +106,29 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
 
   const accessLabelVariant = model ? getHfAccessLabelVariant(model) : null;
   const gatedAccessDenied = accessLabelVariant === 'gated-denied';
+
+  React.useEffect(() => {
+    if (!model || !modelLoaded) {
+      return;
+    }
+
+    const trackKey = `${decodedParams.sourceId ?? ''}::${model.name}`;
+    if (!claimDetailsViewedTracking(trackKey)) {
+      return;
+    }
+
+    const navState = isModelCatalogDetailsNavigationState(location.state)
+      ? location.state
+      : undefined;
+    const entrySource = navState?.entrySource ?? 'directUrl';
+    const properties: ModelCatalogDetailsViewedProperties = {
+      modelName: model.name,
+      entrySource,
+      hasActiveFilters: entrySource === 'directUrl' ? false : Boolean(navState?.hasActiveFilters),
+      isPerformanceView: entrySource === 'directUrl' ? false : Boolean(navState?.isPerformanceView),
+    };
+    trackSimpleEvent(MODEL_CATALOG_EVENTS.DETAILS_VIEWED, properties);
+  }, [model, modelLoaded, decodedParams.sourceId, location.state, trackSimpleEvent]);
 
   const handleValidatedLabelClicked = React.useCallback(() => {
     if (!model) {
@@ -173,6 +204,12 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
         data-testid="register-model-button"
         variant={variant}
         onClick={() => {
+          if (model) {
+            const properties: ModelCatalogRegisterModelClickedProperties = {
+              modelName: model.name,
+            };
+            trackSimpleEvent(MODEL_CATALOG_EVENTS.REGISTER_MODEL_CLICKED, properties);
+          }
           navigate(getRegisterCatalogModelRoute(decodedParams.sourceId, decodedParams.modelName));
         }}
       >
@@ -270,6 +307,12 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                   group={MODEL_CATALOG_DEPLOY_GROUP}
                   componentProps={{
                     ...catalogDeployProps,
+                    onDeployClick: () => {
+                      const properties: ModelCatalogDeployClickedProperties = {
+                        modelName: model.name,
+                      };
+                      trackSimpleEvent(MODEL_CATALOG_EVENTS.DEPLOY_CLICKED, properties);
+                    },
                     ...(gatedAccessDenied && {
                       disabledTooltip: MODEL_CATALOG_GATED_ACCESS_REQUIRED.REGISTER_BUTTON_TOOLTIP,
                     }),

@@ -23,7 +23,8 @@ type HardwareConfigurationOption = {
 
 const HardwareConfigurationFilter: React.FC = () => {
   const { appliedValues, setAppliedValues } = useHardwareConfigurationFilterState();
-  const { filterOptions } = React.useContext(ModelCatalogContext);
+  const { filterOptions, setPendingPerformanceFilterAppliedTracking } =
+    React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
   const contentRef = useDropdownAutoFocus(isOpen);
   const [searchValue, setSearchValue] = React.useState('');
@@ -60,9 +61,19 @@ const HardwareConfigurationFilter: React.FC = () => {
   const toggleHardwareSelection = (value: string, selected: boolean) => {
     if (selected) {
       setAppliedValues([...appliedValues, value]);
-    } else {
-      setAppliedValues(appliedValues.filter((item) => item !== value));
+      setPendingPerformanceFilterAppliedTracking({
+        filterType: 'hardware',
+        action: 'applied',
+      });
+      return;
     }
+
+    const nextValues = appliedValues.filter((item) => item !== value);
+    setAppliedValues(nextValues);
+    setPendingPerformanceFilterAppliedTracking({
+      filterType: 'hardware',
+      action: nextValues.length === 0 ? 'reset' : 'applied',
+    });
   };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (

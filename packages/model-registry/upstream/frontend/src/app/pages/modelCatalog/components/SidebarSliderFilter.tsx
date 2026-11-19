@@ -11,6 +11,7 @@ import { ModelCatalogNumberFilterKey } from '~/concepts/modelCatalog/const';
 import { useCatalogNumberFilterState } from '~/app/pages/modelCatalog/hooks/useCatalogFilterState';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import useDropdownAutoFocus from '~/app/pages/modelCatalog/hooks/useDropdownAutoFocus';
+import { toFilterAppliedType } from '~/app/pages/modelCatalog/tracking';
 import SliderWithInput from './globalFilters/SliderWithInput';
 
 type SidebarSliderFilterProps = {
@@ -28,7 +29,12 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
   fallbackMin,
   fallbackMax,
 }) => {
-  const { filterOptions, filterOptionsLoaded } = React.useContext(ModelCatalogContext);
+  const {
+    filterOptions,
+    filterOptionsLoaded,
+    setPendingFilterAppliedTracking,
+    setPendingVramFilterAppliedTracking,
+  } = React.useContext(ModelCatalogContext);
   const { value: filterValue, setValue: setFilterValue } = useCatalogNumberFilterState(filterKey);
   const [isOpen, setIsOpen] = React.useState(false);
   const contentRef = useDropdownAutoFocus(isOpen);
@@ -71,16 +77,49 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
     return label;
   };
 
+  const clampedValue = Math.min(Math.max(localValue, range.min), range.max);
+
   const handleApply = () => {
-    setFilterValue(localValue);
+    setFilterValue(clampedValue);
     setIsOpen(false);
+    if (filterKey === ModelCatalogNumberFilterKey.MIN_VRAM) {
+      setPendingVramFilterAppliedTracking({ action: 'applied' });
+      return;
+    }
+    const filterType = toFilterAppliedType(filterKey);
+    if (filterType) {
+      setPendingFilterAppliedTracking({
+        filterType,
+        filterValue: clampedValue,
+        isSelected: true,
+      });
+    }
   };
 
   const handleReset = () => {
+    if (filterKey === ModelCatalogNumberFilterKey.MIN_VRAM) {
+      if (hasActiveFilter) {
+        setFilterValue(undefined);
+        setIsOpen(false);
+        setPendingVramFilterAppliedTracking({ action: 'reset' });
+      } else {
+        setLocalValue(range.max);
+      }
+      return;
+    }
+    const filterType = toFilterAppliedType(filterKey);
+    if (filterType && hasActiveFilter) {
+      setPendingFilterAppliedTracking({
+        filterType,
+        filterValue,
+        isSelected: false,
+      });
+      setFilterValue(undefined);
+      setIsOpen(false);
+      return;
+    }
     setLocalValue(filterValue ?? range.max);
   };
-
-  const clampedValue = Math.min(Math.max(localValue, range.min), range.max);
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
