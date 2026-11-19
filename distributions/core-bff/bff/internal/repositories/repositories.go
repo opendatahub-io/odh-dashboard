@@ -52,7 +52,7 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 		HealthCheck:                NewHealthCheckRepository(),
 		User:                       NewUserRepository(),
 		Namespace:                  NewNamespaceRepository(),
-		DashboardConfig:            NewDashboardConfigRepository(cfg.Platform, cfg.SADynClient),
+		DashboardConfig:            newDashboardConfigRepository(cfg.Platform, cfg.PlatformConfirmed, cfg.SADynClient),
 		Status:                     NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth, config.ResolveAdmissionMode(cfg.AdmissionMode, cfg.Platform, cfg.PlatformConfirmed)),
 		Auth:                       auth,
 		Components:                 NewComponentsRepository(cfg.SADynClient, cfg.SAClientset),

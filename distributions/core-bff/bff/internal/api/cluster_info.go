@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"gopkg.in/yaml.v3"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -30,6 +32,10 @@ type clusterInfo struct {
 	clusterBranding string
 	serverURL       string
 	currentContext  string
+	// openShiftConfirmed is true when the ClusterVersion singleton was read
+	// successfully. That alone establishes OpenShift: the cluster ID is
+	// metadata and may be absent or malformed without changing the platform.
+	openShiftConfirmed bool
 }
 
 func (ci clusterInfo) GetClusterID() string       { return ci.clusterID }
@@ -39,38 +45,72 @@ func (ci clusterInfo) GetCurrentContext() string  { return ci.currentContext }
 
 func queryClusterInfo(client kubernetes.Interface, dynClient dynamic.Interface, logger *slog.Logger) (clusterInfo, error) {
 	info := clusterInfo{clusterBranding: defaultClusterBranding}
-	var err error
-	info.clusterID, err = queryClusterID(dynClient, logger)
+	probe, err := queryClusterVersion(dynClient, logger)
 	if err != nil {
 		return info, err
 	}
+	info.clusterID = probe.clusterID
+	info.openShiftConfirmed = probe.outcome == clusterVersionFound
 	info.clusterBranding = queryClusterBranding(client, logger)
 	return info, nil
 }
 
-func queryClusterID(dynClient dynamic.Interface, logger *slog.Logger) (string, error) {
+// clusterVersionOutcome is what the ClusterVersion probe established. Only the
+// two conclusive outcomes are values: everything else (instance missing,
+// forbidden, timeout, no client) is returned as an error, because none of it
+// shows that the OpenShift configuration API is absent.
+type clusterVersionOutcome int
+
+const (
+	// clusterVersionAPIAbsent: discovery reports the ClusterVersion API is not
+	// served. This is the positive evidence for a non-OpenShift cluster.
+	clusterVersionAPIAbsent clusterVersionOutcome = iota + 1
+	// clusterVersionFound: the singleton was read, so this is OpenShift.
+	clusterVersionFound
+)
+
+type clusterVersionProbe struct {
+	outcome   clusterVersionOutcome
+	clusterID string
+}
+
+// errClusterVersionInstanceMissing marks the inconclusive case where the
+// ClusterVersion API is served but the "version" singleton is not there.
+var errClusterVersionInstanceMissing = errors.New("ClusterVersion API is served but the cluster version singleton is missing")
+
+func queryClusterVersion(dynClient dynamic.Interface, logger *slog.Logger) (clusterVersionProbe, error) {
 	if dynClient == nil {
-		return "", nil
+		return clusterVersionProbe{}, errors.New("ClusterVersion probe failed: no client available")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), clusterInfoQueryTimeout)
 	defer cancel()
 
 	obj, err := dynClient.Resource(models.ClusterVersionGVR).Get(ctx, clusterVersionName, metav1.GetOptions{})
-	if err != nil {
-		if k8sutil.IsResourceUnavailable(err) {
-			logger.Debug("ClusterVersion CRD not available (non-OpenShift cluster)", slog.Any("error", err))
-			return "", nil
-		}
-		return "", fmt.Errorf("ClusterVersion probe failed: %w", err)
+	switch {
+	case err == nil:
+	case k8sutil.IsDiscoveryError(err):
+		// Checked before IsNotFound: a discovery 404 carries no resource name,
+		// an instance 404 does.
+		logger.Debug("ClusterVersion API not available (non-OpenShift cluster)", slog.Any("error", err))
+		return clusterVersionProbe{outcome: clusterVersionAPIAbsent}, nil
+	case k8serrors.IsNotFound(err):
+		return clusterVersionProbe{}, fmt.Errorf("ClusterVersion probe inconclusive: %w", errClusterVersionInstanceMissing)
+	default:
+		return clusterVersionProbe{}, fmt.Errorf("ClusterVersion probe failed: %w", err)
 	}
 
+	probe := clusterVersionProbe{outcome: clusterVersionFound}
 	spec, ok := obj.Object["spec"].(map[string]any)
 	if !ok {
-		logger.Warn("ClusterVersion spec field missing or unexpected type")
-		return "", nil
+		logger.Warn("ClusterVersion spec field missing or unexpected type; platform is still OpenShift")
+		return probe, nil
 	}
-	clusterID, _ := spec["clusterID"].(string)
-	return clusterID, nil
+	clusterID, ok := spec["clusterID"].(string)
+	if !ok {
+		logger.Warn("ClusterVersion spec.clusterID missing or unexpected type; platform is still OpenShift")
+	}
+	probe.clusterID = clusterID
+	return probe, nil
 }
 
 // consoleConfig is the minimal structure needed to extract branding from the console-config ConfigMap.
@@ -150,8 +190,12 @@ func resolveStartupPlatform(
 	return configured, true
 }
 
+// inferPlatform maps a successful probe to a platform. A probe that read the
+// ClusterVersion object is OpenShift even without a cluster ID; only a probe
+// that found the API absent yields XKS. Inconclusive probes never get here:
+// resolveStartupPlatform handles them as unconfirmed.
 func inferPlatform(ci clusterInfo) config.PlatformType {
-	if ci.clusterID != "" {
+	if ci.openShiftConfirmed || ci.clusterID != "" {
 		return config.PlatformOpenShift
 	}
 	return config.PlatformXKS

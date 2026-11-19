@@ -72,6 +72,12 @@ func (r *AuthRepository) Lookup(ctx context.Context) AuthLookup {
 	result, err := r.saDynClient.Resource(models.AuthGVR).Get(ctx, models.AuthInstanceName, metav1.GetOptions{})
 	if err != nil {
 		switch {
+		case k8serrors.IsMethodNotSupported(err):
+			// Checked before IsDiscoveryError, which counts 405 as absence. A
+			// 405 on a GET does not establish that the Auth API is missing, and
+			// CRD absence admits without the fallback review, so an ambiguous
+			// answer must take the unavailable path instead.
+			return AuthLookup{Availability: AuthUnavailable, Err: fmt.Errorf("auth read returned method not supported: %w", err)}
 		case k8sutil.IsDiscoveryError(err):
 			return AuthLookup{Availability: AuthCRDAbsent}
 		case k8serrors.IsNotFound(err):

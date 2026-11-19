@@ -111,6 +111,8 @@ func TestValidate_ProductionRejectsWildcardAndInexactOrigins(t *testing.T) {
 		"https://dashboard.example.com/app",
 		"https://dashboard.example.com?x=1",
 		"https://",
+		// Browsers send Origin without a trailing slash, so this could never match.
+		"https://dashboard.example.com/",
 	} {
 		t.Run(origin, func(t *testing.T) {
 			cfg := productionConfig()
@@ -119,7 +121,10 @@ func TestValidate_ProductionRejectsWildcardAndInexactOrigins(t *testing.T) {
 			err := cfg.Validate(TLSFiles{})
 
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "ALLOWED_ORIGINS entry")
+			assert.Contains(t, err.Error(), "ALLOWED_ORIGINS entry 2 (1-based, value omitted)")
+			if len(origin) > len("https://") {
+				assert.NotContains(t, err.Error(), origin, "rejected origins are reported by index, not value")
+			}
 		})
 	}
 }
@@ -129,7 +134,6 @@ func TestValidate_ProductionAcceptsExactOrigins(t *testing.T) {
 	cfg.AllowedOrigins = []string{
 		"https://dashboard.example.com",
 		" http://localhost:9000 ",
-		"https://dashboard.example.com/",
 		"",
 	}
 

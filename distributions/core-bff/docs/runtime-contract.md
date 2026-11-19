@@ -16,11 +16,16 @@ For every setting: **CLI flag > environment variable > built-in default.**
 A list setting (`ALLOWED_ORIGINS`, `BUNDLE_PATHS`) supplied on the command line **replaces** the
 environment value rather than appending to it.
 
-Only the winning value is validated. An invalid `ADMISSION_MODE`, `DEPLOYMENT_MODE` or
+Only the winning value is validated. An invalid `PORT`, `ADMISSION_MODE`, `DEPLOYMENT_MODE` or
 `ODH_PLATFORM_TYPE` in the environment does **not** fail startup when the matching CLI flag
 overrides it, because the environment value is never applied. The same invalid value with no CLI
 override does fail, since it is then the value in effect. This matters for deployments that
 inherit environment configuration they cannot edit and correct it with container arguments.
+
+The command line accepts only `-flag=value` settings. A positional argument is refused, because
+flag parsing stops at the first one and any flag after it (for example `-cert-file`) would be
+silently ignored. Parse errors name at most the flag, never the argument text, and `-h` prints
+flag names and descriptions without their environment-derived defaults and exits 0.
 
 ## Startup is a gate
 
@@ -40,7 +45,7 @@ core-bff refusing to start: invalid configuration (2 problems):
 
 | Flag                      | Environment                    | Default                | Notes                                                              |
 | ------------------------- | ------------------------------ | ---------------------- | ------------------------------------------------------------------ |
-| `--port`                  | `PORT`                         | `4000`                 | Must be 1–65535.                                                   |
+| `--port`                  | `PORT`                         | `4000`                 | Must be an integer 1–65535. A malformed explicit `PORT` is refused. |
 | `--deployment-mode`       | `DEPLOYMENT_MODE`              | `standalone`           | `standalone` or `federated`.                                       |
 | `--platform-type`         | `ODH_PLATFORM_TYPE`            | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection. |
 | `--admission-mode`        | `ADMISSION_MODE`               | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.    |
@@ -95,7 +100,7 @@ profile is explicit, which is what makes these rejections safe:
 | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | `AUTH_METHOD=disabled`                                                                                                       | No caller identity is extracted at all.                                                                             | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.       |
 | `INSECURE_SKIP_VERIFY=true`                                                                                                  | Disables upstream certificate verification on every outbound call.                                                  | Supply the upstream CA through `BUNDLE_PATHS`.              |
-| `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), or an entry with a path, query or user info | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. | List each exact dashboard origin as `scheme://host[:port]`. |
+| `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), or an entry with a path (including a trailing `/`), query or user info | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. Browsers send `Origin` without a trailing slash, so `https://host/` could never match. Rejected entries are reported by position, never by value. | List each exact dashboard origin as `scheme://host[:port]`. |
 
 ## TLS inputs
 
@@ -161,7 +166,7 @@ different:
 - **Startup is fail-closed.** A pair that is half-configured or does not load stops the process
   (`config.Validate`, then `NewCertReloader`). It never falls back to plaintext HTTP.
 - **Rotation is fail-safe.** A rotated pair that does not load — truncated file, partial write,
-  mismatched key, file removed — is logged and the **last-known-good certificate keeps being
+  mismatched key, file removed — or whose leaf is expired or not yet valid is logged and the **last-known-good certificate keeps being
   served**. The listener is not torn down, the transport is not weakened, and the next readable
   rotation is picked up automatically. The same policy applies to a failed cluster-TLS-profile
   re-read: the running policy is retained rather than downgraded to Intermediate.
@@ -206,10 +211,13 @@ There are two such reads, and both are skipped:
 | `ClusterVersion` + `console-config` ConfigMap | Cluster ID and branding for `/api/status` | Skipped. `initStartupClusterInfoWith` takes the probe as a parameter, so the test asserts it is never reached rather than asserting on a log line.                                     |
 | `apiservers.config.openshift.io/cluster`      | Cluster-wide TLS security profile         | Skipped. `ListenAndServeTLSWithoutClusterProfile` serves Mozilla Intermediate defaults directly — the same policy the fallback would have produced — and keeps certificate hot-reload. |
 
-The `config.openshift.io` rule in `manifests/base/cluster-role.yaml` is therefore inert on xKS and
-can be dropped from an xKS-only overlay.
+The `config.openshift.io` rule in `manifests/base/cluster-role.yaml` is therefore inert on a
+**confirmed** xKS platform. Set `ODH_PLATFORM_TYPE=XKS` before dropping it from an xKS-only overlay:
+an auto-detected platform whose probe was inconclusive still reads the profile (below).
 
-When the platform is left to auto-detect and the probe returns an ambiguous error, the resolved
+Auto-detection confirms xKS only when discovery reports the `ClusterVersion` API absent. A
+successful read is OpenShift, with or without a usable cluster ID. When the probe is inconclusive
+(the `version` singleton is missing, or the read is forbidden or times out), the resolved
 platform is **XKS**, the least-privilege answer, but it is marked **unconfirmed**. An unconfirmed
 platform keeps the conservative admission mode and keeps the profile-aware TLS listener
 (`ListenAndServeTLSWithReload`), because the cluster may still be OpenShift with a Modern or Custom

@@ -50,12 +50,18 @@ and admits callers the cluster denies. So the platform default only selects `aut
 the platform is **confirmed** — explicitly configured, or detected by a probe that succeeded. An
 unconfirmed platform keeps `auth-resource`, the restrictive contract.
 
-| Platform resolution                           | Confirmed | Default mode    |
-| --------------------------------------------- | --------- | --------------- |
-| `ODH_PLATFORM_TYPE` set explicitly            | yes       | from the value  |
-| Probe succeeded, cluster ID present           | yes       | `auth-resource` |
-| Probe succeeded, no cluster ID                | yes       | `authenticated` |
-| Probe failed, fell back to XKS                | **no**    | `auth-resource` |
+| Platform resolution                                               | Platform  | Confirmed | Default mode    |
+| ----------------------------------------------------------------- | --------- | --------- | --------------- |
+| `ODH_PLATFORM_TYPE` set explicitly                                | the value | yes       | from the value  |
+| `ClusterVersion` read, with or without a usable cluster ID        | OpenShift | yes       | `auth-resource` |
+| `ClusterVersion` API not served (discovery reports it absent)     | XKS       | yes       | `authenticated` |
+| `ClusterVersion` API served but the `version` singleton missing   | XKS       | **no**    | `auth-resource` |
+| Probe failed (forbidden, timeout, no client), fell back to XKS    | XKS       | **no**    | `auth-resource` |
+
+Only positive evidence that the OpenShift configuration API is absent confirms XKS. A missing
+singleton or a malformed object is not that evidence, and a successful read is OpenShift even when
+the cluster ID cannot be parsed. The same confirmation also decides whether the HTTPS listener may
+skip the cluster TLS profile (see [runtime-contract.md](./runtime-contract.md)).
 
 An operator who wants `authenticated` on a cluster where detection is unreliable sets
 `ODH_PLATFORM_TYPE=XKS` or `ADMISSION_MODE=authenticated` and gets it. The startup log reports
@@ -114,6 +120,12 @@ by the installation owner or supplied through the agreed xKS configuration sourc
 | `OdhDashboardConfig` instance not provisioned | Defaults, **no create** (`CONFIG_INSTANCE_MISSING`) | Auto-created (RHOAI behaviour, unchanged) |
 | `OdhDashboardConfig` read forbidden           | Defaults (`CONFIG_FORBIDDEN`)                       | Error — the misconfiguration is visible   |
 | `OdhApplication` CRD or instances absent      | Empty list                                          | Empty list                                |
+| `OdhApplication` list forbidden               | Error                                               | Error                                     |
+
+On an **unconfirmed** platform (the last two rows of the platform table) neither column is known to
+apply, so bootstrap never writes: a missing `OdhDashboardConfig` instance serves defaults with a
+`CONFIG_PLATFORM_UNCONFIRMED` warning naming `ODH_PLATFORM_TYPE` as the fix, and a forbidden read
+surfaces as an error.
 
 `dashboard_config_bootstrap_test.go` asserts that an xKS bootstrap issues no `create`, `update`,
 `patch` or `delete` against the API server.
@@ -128,8 +140,9 @@ Cache-Control: no-cache, no-store, private, max-age=0, must-revalidate
 Vary: Authorization, X-Forwarded-Access-Token, Cookie
 ```
 
-`no-store` forbids storage; `Vary` additionally stops an intermediary that keys only on the URL
-from serving one caller's bootstrap to another. Both token headers are listed because either may
+`no-store` is what forbids a compliant cache from storing these responses. `Vary` is a second
+signal for caches that honour it, so one that does store a response keys it on the caller's
+identity headers; it does not protect against an intermediary that ignores `Vary`. Both token headers are listed because either may
 carry the identity depending on the edge.
 
 The response body carries only what the frontend needs: identity, namespace, cluster metadata, and
@@ -137,18 +150,29 @@ the two capability flags. There is no token, no group list and no raw Auth or co
 
 ## Service-account permissions
 
-For the xKS profile the dashboard service account needs:
+For the xKS profile the dashboard **service account** needs:
 
-| Resource                                            | Verbs    | Needed for                                                                          |
-| --------------------------------------------------- | -------- | ----------------------------------------------------------------------------------- |
-| `odhdashboardconfigs` (`opendatahub.io`)            | `get`    | `/api/config`. Optional: absent or forbidden degrades to defaults.                  |
-| `odhapplications` (`dashboard.opendatahub.io`)      | `list`   | `/api/components`. Optional: absent degrades to an empty list.                      |
-| `selfsubjectreviews` (`authentication.k8s.io`)      | `create` | Identity. **Required.**                                                             |
-| `selfsubjectaccessreviews` (`authorization.k8s.io`) | `create` | Capability and admission reviews. Performed as the caller, not the service account. |
+| Resource                                       | Verbs  | Needed for                                                                                               |
+| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| `odhdashboardconfigs` (`opendatahub.io`)       | `get`  | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                      |
+| `odhapplications` (`dashboard.opendatahub.io`) | `list` | `/api/components`. **Required when the OdhApplication API is installed**: a forbidden list is an error. Only an absent API or no instances degrades to an empty list. |
 
 `auths` is **not** in this list. In `authenticated` mode it is never read, which is the point: the
-service-account RBAC can be reduced to the two optional reads above without introducing an
-undocumented admission dependency or a hidden fallback.
+service-account RBAC can be reduced to the reads above without introducing an undocumented
+admission dependency or a hidden fallback.
+
+### Caller permissions
+
+Identity and review calls are made with the **caller's** token, not the service account's, so
+granting them to the dashboard service account does nothing. Each authenticated caller needs:
+
+| Resource                                            | Verbs    | Needed for                                                                                         |
+| --------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| `selfsubjectreviews` (`authentication.k8s.io`)      | `create` | Identity. **Required**: without it bootstrap cannot resolve who is calling and fails the request. |
+| `selfsubjectaccessreviews` (`authorization.k8s.io`) | `create` | Capability and admission reviews. A failed review degrades `isAdmin` to false, and in `auth-resource` mode a failed admission review does not admit. |
+
+Kubernetes grants both to every authenticated user through the default `system:basic-user`
+ClusterRole; a cluster that removes that binding must grant them back.
 
 ## Consumers
 

@@ -123,6 +123,15 @@ func TestResolveAdmission_AuthFailureModesDeferToTheReview(t *testing.T) {
 			},
 			wantCode: CodeAdmissionAuthUnavailable,
 		},
+		{
+			// 405 does not establish CRD absence, so it must not take the
+			// admit-without-review path that CRD absence takes.
+			name: "method not supported",
+			authRepo: func() *AuthRepository {
+				return NewAuthRepository(newFakeDynClientFailingWith(k8serrors.NewMethodNotSupported(authGR, "get")))
+			},
+			wantCode: CodeAdmissionAuthUnavailable,
+		},
 	}
 
 	for _, tc := range cases {

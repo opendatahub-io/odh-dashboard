@@ -277,10 +277,10 @@ func TestParseStartupConfig_RejectsInsecureProductionCombinations(t *testing.T) 
 	}{
 		{"disabled auth", map[string]string{"AUTH_METHOD": "disabled"}, "AUTH_METHOD=disabled is not supported in a production profile"},
 		{"insecure skip verify", map[string]string{"INSECURE_SKIP_VERIFY": "true"}, "INSECURE_SKIP_VERIFY=true is not supported in a production profile"},
-		{"wildcard CORS", map[string]string{"ALLOWED_ORIGINS": "*"}, "ALLOWED_ORIGINS entry \"*\" is not an exact origin"},
-		{"embedded https wildcard", map[string]string{"ALLOWED_ORIGINS": "https://*"}, "ALLOWED_ORIGINS entry \"https://*\" is not an exact origin"},
-		{"embedded http wildcard", map[string]string{"ALLOWED_ORIGINS": "http://*"}, "ALLOWED_ORIGINS entry \"http://*\" is not an exact origin"},
-		{"wildcard subdomain", map[string]string{"ALLOWED_ORIGINS": "https://dashboard.example.com,https://*.example.com"}, "ALLOWED_ORIGINS entry \"https://*.example.com\" is not an exact origin"},
+		{"wildcard CORS", map[string]string{"ALLOWED_ORIGINS": "*"}, "ALLOWED_ORIGINS entry 1 (1-based, value omitted) is not an exact origin"},
+		{"embedded https wildcard", map[string]string{"ALLOWED_ORIGINS": "https://*"}, "ALLOWED_ORIGINS entry 1 (1-based, value omitted) is not an exact origin"},
+		{"embedded http wildcard", map[string]string{"ALLOWED_ORIGINS": "http://*"}, "ALLOWED_ORIGINS entry 1 (1-based, value omitted) is not an exact origin"},
+		{"wildcard subdomain", map[string]string{"ALLOWED_ORIGINS": "https://dashboard.example.com,https://*.example.com"}, "ALLOWED_ORIGINS entry 2 (1-based, value omitted) is not an exact origin"},
 	}
 
 	for _, tc := range cases {

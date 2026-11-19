@@ -7,10 +7,17 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
 // These tests must not depend on a kubeconfig being present: CI has none, a
@@ -108,7 +115,12 @@ func TestResolveStartupPlatform(t *testing.T) {
 			want: config.PlatformOpenShift, wantConfirmed: true,
 		},
 		{
-			name: "auto-detect finds XKS when no cluster ID is present",
+			name: "auto-detect finds OpenShift when ClusterVersion was read without a cluster ID",
+			ci:   clusterInfo{openShiftConfirmed: true}, explicit: false, configured: "",
+			want: config.PlatformOpenShift, wantConfirmed: true,
+		},
+		{
+			name: "auto-detect finds XKS when the ClusterVersion API is absent",
 			ci:   clusterInfo{}, explicit: false, configured: "",
 			want: config.PlatformXKS, wantConfirmed: true,
 		},
@@ -148,4 +160,83 @@ func TestAmbiguousPlatformProbeDoesNotRelaxAdmission(t *testing.T) {
 	assert.Equal(t, config.AdmissionModeAuthResource,
 		config.ResolveAdmissionMode("", platform, confirmed),
 		"a guessed platform must keep the Auth-resource admission gate")
+}
+
+// Each ClusterVersion probe outcome, driven through the real probe and the
+// platform resolver, to the two security decisions that depend on it: the
+// admission contract and whether the cluster TLS profile is bypassed. Only
+// confirmed API absence may relax either one.
+func TestClusterVersionProbeOutcomesDriveAdmissionAndTLS(t *testing.T) {
+	notServed := func(c *dynamicfake.FakeDynamicClient) {
+		c.PrependReactor("get", "clusterversions", func(k8stesting.Action) (bool, runtime.Object, error) {
+			return true, nil, &k8serrors.StatusError{ErrStatus: metav1.Status{
+				Status: metav1.StatusFailure, Code: 404, Reason: metav1.StatusReasonNotFound,
+			}}
+		})
+	}
+	forbidden := func(c *dynamicfake.FakeDynamicClient) {
+		c.PrependReactor("get", "clusterversions", func(k8stesting.Action) (bool, runtime.Object, error) {
+			return true, nil, k8serrors.NewForbidden(models.ClusterVersionGVR.GroupResource(), clusterVersionName, nil)
+		})
+	}
+
+	for _, tc := range []struct {
+		name          string
+		objs          []runtime.Object
+		react         func(*dynamicfake.FakeDynamicClient)
+		wantPlatform  config.PlatformType
+		wantConfirmed bool
+		wantAdmission config.AdmissionMode
+		wantNoProfile bool
+	}{
+		{
+			name:  "API absent: confirmed xKS",
+			react: notServed, wantPlatform: config.PlatformXKS, wantConfirmed: true,
+			wantAdmission: config.AdmissionModeAuthenticated, wantNoProfile: true,
+		},
+		{
+			name:         "instance absent: inconclusive",
+			wantPlatform: config.PlatformXKS, wantConfirmed: false,
+			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
+		},
+		{
+			name:  "probe failure: inconclusive",
+			react: forbidden, wantPlatform: config.PlatformXKS, wantConfirmed: false,
+			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
+		},
+		{
+			name:         "OpenShift with a cluster ID",
+			objs:         []runtime.Object{clusterVersionObject(map[string]any{"clusterID": "abc"})},
+			wantPlatform: config.PlatformOpenShift, wantConfirmed: true,
+			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
+		},
+		{
+			name:         "OpenShift with no cluster ID",
+			objs:         []runtime.Object{clusterVersionObject(map[string]any{})},
+			wantPlatform: config.PlatformOpenShift, wantConfirmed: true,
+			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
+		},
+		{
+			name:         "OpenShift with a malformed spec",
+			objs:         []runtime.Object{clusterVersionObject(map[string]any{"clusterID": []any{"not", "a", "string"}})},
+			wantPlatform: config.PlatformOpenShift, wantConfirmed: true,
+			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dynClient := clusterVersionClient(tc.objs...)
+			if tc.react != nil {
+				tc.react(dynClient)
+			}
+
+			ci, probeErr := queryClusterInfo(k8sfake.NewSimpleClientset(), dynClient, discardLogger())
+			platform, confirmed := resolveStartupPlatform(ci, probeErr, false, "", discardLogger())
+
+			assert.Equal(t, tc.wantPlatform, platform)
+			assert.Equal(t, tc.wantConfirmed, confirmed)
+			assert.Equal(t, tc.wantAdmission, config.ResolveAdmissionMode("", platform, confirmed))
+			app := &App{config: config.EnvConfig{PlatformType: platform}, platformConfirmed: confirmed}
+			assert.Equal(t, tc.wantNoProfile, app.ServeTLSWithoutClusterProfile())
+		})
+	}
 }

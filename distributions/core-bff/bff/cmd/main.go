@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"flag"
 	"fmt"
 	"net/http/httptest"
 	"os/signal"
@@ -20,6 +22,10 @@ import (
 
 func main() {
 	startup, err := parseStartupConfig(os.Args[1:], os.Stderr)
+	if errors.Is(err, flag.ErrHelp) {
+		// -h / -help printed the usage; that is a successful run, not a refusal.
+		os.Exit(0)
+	}
 	if err != nil {
 		// The logger is not built yet: the log level itself comes from the
 		// configuration being rejected. Diagnostics name the setting and the

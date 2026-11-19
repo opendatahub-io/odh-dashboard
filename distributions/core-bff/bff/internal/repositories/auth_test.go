@@ -102,6 +102,12 @@ func TestAuthLookup_ClassifiesEachFailureMode(t *testing.T) {
 			wantMessage:  "forbidden reading auth config",
 		},
 		{
+			name:         "method not supported is ambiguous, not CRD absence",
+			err:          k8serrors.NewMethodNotSupported(authGR, "get"),
+			availability: AuthUnavailable,
+			wantMessage:  "auth read returned method not supported",
+		},
+		{
 			name:         "upstream failure",
 			err:          k8serrors.NewInternalError(assert.AnError),
 			availability: AuthUnavailable,

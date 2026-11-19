@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
@@ -36,13 +38,21 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	cfg := &sc.Env
 
 	fs := flag.NewFlagSet("core-bff", flag.ContinueOnError)
-	fs.SetOutput(errOut)
+	// The FlagSet's own parse diagnostic quotes the rejected argument (for
+	// example `invalid value "<value>" for flag -prometheus-host`), and an
+	// argument can carry a credential or a sensitive URL. Discard it and return
+	// a sanitized error instead; the safe usage text still goes to errOut.
+	fs.SetOutput(io.Discard)
 	// Defaults are resolved from the environment, so the stock usage text would
 	// print values such as PROMETHEUS_HOST (which may carry credentials) on an
 	// unknown flag or -h. List flag names and descriptions only.
 	fs.Usage = func() { printUsageWithoutDefaults(fs, errOut) }
 
-	fs.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4000), "API server port")
+	// PORT is parsed by hand so a malformed explicit value is rejected rather
+	// than silently replaced by the default. The check runs after parsing, so a
+	// valid -port still overrides an invalid PORT.
+	envPort, envPortErr := lookupEnvPort()
+	fs.IntVar(&cfg.Port, "port", envPort, "API server port")
 	fs.StringVar(&sc.TLS.CertFile, "cert-file", getEnvAsString("CERT_FILE", ""), "Path to TLS certificate file")
 	fs.StringVar(&sc.TLS.KeyFile, "key-file", getEnvAsString("KEY_FILE", ""), "Path to TLS key file")
 	fs.BoolVar(&cfg.MockK8Client, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
@@ -145,12 +155,27 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 		"Prometheus/Thanos RBAC port")
 
 	if err := fs.Parse(args); err != nil {
-		return sc, err
+		if errors.Is(err, flag.ErrHelp) {
+			return sc, flag.ErrHelp
+		}
+		return sc, sanitizeParseError(fs, err)
+	}
+
+	// Flag parsing stops at the first non-flag argument, so in
+	// `core-bff stray -cert-file=... -key-file=...` the TLS flags would be left
+	// unparsed and the server would start in plaintext. Refuse any leftover
+	// argument. The values are not echoed: they may be credentials.
+	if n := fs.NArg(); n != 0 {
+		return sc, fmt.Errorf("%d unexpected positional argument(s); core-bff accepts only -flag=value settings, and flags after a positional argument would be ignored", n)
 	}
 
 	// Apply environment values for the enum settings the CLI did not set.
 	setOnCLI := map[string]bool{}
 	fs.Visit(func(f *flag.Flag) { setOnCLI[f.Name] = true })
+
+	if envPortErr != nil && !setOnCLI["port"] {
+		return sc, envPortErr
+	}
 
 	for _, e := range []struct {
 		flagName, envName, value string
@@ -177,6 +202,48 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 
 func lookupEnv(name string) (string, bool) {
 	return os.LookupEnv(name)
+}
+
+const defaultPort = 4000
+
+// lookupEnvPort returns the PORT environment value, the default when PORT is
+// absent, and an error when PORT is present but not an integer. The error does
+// not echo the value.
+func lookupEnvPort() (int, error) {
+	value, ok := lookupEnv("PORT")
+	if !ok {
+		return defaultPort, nil
+	}
+	port, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil {
+		return defaultPort, errors.New("invalid PORT: it must be an integer between 1 and 65535")
+	}
+	return port, nil
+}
+
+// sanitizeParseError rewrites a FlagSet parse error so it names at most a
+// defined flag, never the argument text. The standard messages quote the
+// rejected value ("invalid value %q for flag -%s") or the undefined flag as
+// typed, either of which can carry a credential.
+func sanitizeParseError(fs *flag.FlagSet, err error) error {
+	msg := err.Error()
+	if strings.HasPrefix(msg, "invalid ") {
+		// "invalid value %q for flag -%s: ..." and "invalid boolean value %q for -%s: ...".
+		for _, sep := range []string{" for flag -", " for -"} {
+			i := strings.LastIndex(msg, sep)
+			if i < 0 {
+				continue
+			}
+			name, _, _ := strings.Cut(msg[i+len(sep):], ":")
+			if fs.Lookup(name) != nil {
+				return fmt.Errorf("invalid value for flag -%s (value omitted); run with -h for the list of flags", name)
+			}
+		}
+	}
+	if name, ok := strings.CutPrefix(msg, "flag needs an argument: -"); ok && fs.Lookup(name) != nil {
+		return fmt.Errorf("flag -%s needs a value; run with -h for the list of flags", name)
+	}
+	return errors.New("invalid command-line arguments (an undefined or malformed flag; argument text omitted); run with -h for the list of flags")
 }
 
 // splitList parses a comma-separated setting into a trimmed, non-empty slice.

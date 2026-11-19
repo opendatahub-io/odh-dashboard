@@ -3,9 +3,11 @@ kind: ClusterRole
 metadata:
   name: rhaii-dashboard
 rules:
-  # OpenShift only: the cluster-wide TLS security profile. On xKS the BFF serves
-  # Mozilla Intermediate defaults directly and never issues this read, so this
-  # rule is inert there and may be dropped from an xKS-only overlay.
+  # OpenShift only: the cluster-wide TLS security profile. On a *confirmed* xKS
+  # platform the BFF serves Mozilla Intermediate defaults directly and never
+  # issues this read. An auto-detected platform whose probe was inconclusive
+  # keeps the profile-aware listener and still reads it, so set
+  # ODH_PLATFORM_TYPE=XKS before dropping this rule from an xKS-only overlay.
   # See distributions/core-bff/docs/runtime-contract.md.
   - apiGroups:
       - config.openshift.io

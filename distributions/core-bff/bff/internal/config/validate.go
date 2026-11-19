@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 // ValidationError collects every configuration problem found at startup so one
@@ -134,14 +135,16 @@ func (c EnvConfig) validateProductionProfile(add func(string, ...any)) {
 		add("INSECURE_SKIP_VERIFY=true is not supported in a production profile; supply the upstream CA through BUNDLE_PATHS instead")
 	}
 
-	for _, origin := range c.AllowedOrigins {
+	for i, origin := range c.AllowedOrigins {
 		origin = strings.TrimSpace(origin)
 		if origin == "" {
 			continue
 		}
+		// Entries are reported by position, never by value: a rejected entry
+		// can carry user info or a query string that must not reach the logs.
 		if reason := exactOriginProblem(origin); reason != "" {
-			add("ALLOWED_ORIGINS entry %q is not an exact origin (%s) while CORS responses allow credentials; list each dashboard origin as scheme://host[:port]",
-				origin, reason)
+			add("ALLOWED_ORIGINS entry %d (1-based, value omitted) is not an exact origin (%s) while CORS responses allow credentials; list each dashboard origin as scheme://host[:port]",
+				i+1, reason)
 		}
 	}
 }
@@ -165,8 +168,11 @@ func exactOriginProblem(origin string) string {
 		return "the host is missing"
 	case u.User != nil:
 		return "user info is not allowed"
-	case (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery:
-		return "path, query and fragment are not allowed"
+	case u.Path != "" || u.RawPath != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery:
+		// A root "/" is rejected too: browsers send Origin without it, and the
+		// CORS allowlist compares the configured string as written, so
+		// "https://dashboard.example/" would never match.
+		return "path (including a trailing slash), query and fragment are not allowed"
 	}
 	return ""
 }
@@ -189,10 +195,35 @@ func validateServingTLS(tlsFiles TLSFiles, add func(string, ...any)) {
 		return
 	}
 
-	if _, err := tls.LoadX509KeyPair(tlsFiles.CertFile, tlsFiles.KeyFile); err != nil {
+	pair, err := tls.LoadX509KeyPair(tlsFiles.CertFile, tlsFiles.KeyFile)
+	if err != nil {
 		add("the serving certificate and key could not be loaded (cert=%s key=%s): %s",
 			tlsFiles.CertFile, tlsFiles.KeyFile, sanitizeTLSError(err))
+		return
 	}
+
+	// A pair that parses and matches can still be unusable: verifying clients
+	// reject a leaf outside its validity window. Only the window is checked
+	// here, not trust: a private or service CA is legitimate.
+	leaf, err := x509.ParseCertificate(pair.Certificate[0])
+	if err != nil {
+		add("the serving certificate (cert=%s) could not be parsed: %s", tlsFiles.CertFile, sanitizeTLSError(err))
+		return
+	}
+	if problem := validityProblem(leaf, time.Now()); problem != "" {
+		add("the serving certificate (cert=%s) %s; rotate it before starting", tlsFiles.CertFile, problem)
+	}
+}
+
+// validityProblem reports why leaf is not usable at now, or "" when it is.
+func validityProblem(leaf *x509.Certificate, now time.Time) string {
+	switch {
+	case now.Before(leaf.NotBefore):
+		return "is not valid yet (NotBefore " + leaf.NotBefore.UTC().Format(time.RFC3339) + ")"
+	case now.After(leaf.NotAfter):
+		return "has expired (NotAfter " + leaf.NotAfter.UTC().Format(time.RFC3339) + ")"
+	}
+	return ""
 }
 
 // validateTrustBundles fails startup when the operator explicitly supplied CA

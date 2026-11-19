@@ -96,3 +96,53 @@ func TestGetDashboardConfig_ForbiddenReadBehaviourPerPlatform(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to get dashboard config")
 	})
 }
+
+// A platform guessed after an inconclusive startup probe authorizes neither
+// contract: it must not auto-create (that needs confirmed OpenShift) and must
+// not silently treat reduced RBAC as the xKS steady state.
+func TestGetDashboardConfig_UnconfirmedPlatformNeverWrites(t *testing.T) {
+	t.Run("missing instance serves defaults without a write", func(t *testing.T) {
+		fakeDyn := newDashboardConfigClientWithoutInstance()
+		repo := newDashboardConfigRepository(config.PlatformXKS, false, fakeDyn)
+
+		cfg, err := repo.GetDashboardConfig(context.Background(), "ns", "odh-dashboard-config", nil)
+		require.NoError(t, err)
+		require.NotNil(t, cfg)
+
+		for _, action := range fakeDyn.Actions() {
+			assert.NotContains(t, []string{"create", "update", "patch", "delete"}, action.GetVerb(),
+				"an unconfirmed platform performed a write: %s", action.GetVerb())
+		}
+	})
+
+	t.Run("forbidden read surfaces the error", func(t *testing.T) {
+		c := newDashboardConfigClientWithoutInstance()
+		c.PrependReactor("get", "odhdashboardconfigs", func(k8stesting.Action) (bool, runtime.Object, error) {
+			return true, nil, k8serrors.NewForbidden(models.DashboardConfigGVR.GroupResource(), "odh-dashboard-config", assert.AnError)
+		})
+		repo := newDashboardConfigRepository(config.PlatformXKS, false, c)
+
+		_, err := repo.GetDashboardConfig(context.Background(), "ns", "odh-dashboard-config", nil)
+		require.Error(t, err)
+	})
+}
+
+// A discovery-style 404 (no resource name) also satisfies IsNotFound. It must be
+// classified as CRD absence, not as a missing instance that OpenShift would
+// then try to create.
+func TestGetDashboardConfig_DiscoveryNotFoundIsCRDAbsence(t *testing.T) {
+	c := newDashboardConfigClientWithoutInstance()
+	c.PrependReactor("get", "odhdashboardconfigs", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, &k8serrors.StatusError{ErrStatus: metav1.Status{
+			Status: metav1.StatusFailure, Code: 404, Reason: metav1.StatusReasonNotFound,
+		}}
+	})
+	repo := NewDashboardConfigRepository(config.PlatformOpenShift, c)
+
+	cfg, err := repo.GetDashboardConfig(context.Background(), "ns", "odh-dashboard-config", nil)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	for _, action := range c.Actions() {
+		assert.NotEqual(t, "create", action.GetVerb(), "CRD absence must not trigger auto-create")
+	}
+}

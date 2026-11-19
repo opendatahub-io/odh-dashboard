@@ -22,15 +22,27 @@ import (
 // Uses a service-account-scoped dynamic client for reads, matching the privileged watcher model
 // privileged watcher model where config is read with SA credentials.
 type DashboardConfigRepository struct {
-	platform    config.PlatformType
-	saDynClient dynamic.Interface
+	platform config.PlatformType
+	// platformConfirmed is false when platform was guessed after an
+	// inconclusive startup probe. See newDashboardConfigRepository.
+	platformConfirmed bool
+	saDynClient       dynamic.Interface
 }
 
-// NewDashboardConfigRepository creates a new repository. On XKS platforms,
-// OpenShift-dependent features are disabled in the default config.
-// saDynClient is used for privileged reads so non-admin users still see the real config.
+// NewDashboardConfigRepository creates a repository for a confirmed platform.
+// On XKS platforms, OpenShift-dependent features are disabled in the default
+// config. saDynClient is used for privileged reads so non-admin users still see
+// the real config.
 func NewDashboardConfigRepository(platform config.PlatformType, saDynClient dynamic.Interface) *DashboardConfigRepository {
-	return &DashboardConfigRepository{platform: platform, saDynClient: saDynClient}
+	return newDashboardConfigRepository(platform, true, saDynClient)
+}
+
+// newDashboardConfigRepository also records whether the platform is confirmed.
+// Provisioning depends on it: only a confirmed OpenShift platform may create a
+// missing configuration instance, and only a confirmed xKS platform treats a
+// missing or unreadable instance as the expected read-only steady state.
+func newDashboardConfigRepository(platform config.PlatformType, platformConfirmed bool, saDynClient dynamic.Interface) *DashboardConfigRepository {
+	return &DashboardConfigRepository{platform: platform, platformConfirmed: platformConfirmed, saDynClient: saDynClient}
 }
 
 func (r *DashboardConfigRepository) GetDashboardConfig(
@@ -108,7 +120,15 @@ func (r *DashboardConfigRepository) PatchRawDashboardConfig(
 // agreed xKS configuration source. The dashboard reads and falls back to
 // defaults, never creates. OpenShift keeps the RHOAI auto-create behaviour.
 func (r *DashboardConfigRepository) readOnlyBootstrap() bool {
-	return r.platform.IsXKS()
+	return r.platform.IsXKS() && r.platformConfirmed
+}
+
+// mayProvision reports whether a missing instance may be auto-created. It is
+// false on xKS and on an unconfirmed platform: writing on a guess could create
+// an OpenShift-shaped resource where the installation owner manages
+// configuration, so the guess never authorizes a write.
+func (r *DashboardConfigRepository) mayProvision() bool {
+	return r.platformConfirmed && !r.platform.IsXKS()
 }
 
 func (r *DashboardConfigRepository) fetchOrCreateDashboardCR(
@@ -124,7 +144,9 @@ func (r *DashboardConfigRepository) fetchOrCreateDashboardCR(
 		return result.Object, nil
 	}
 
-	if !k8serrors.IsNotFound(err) {
+	// Discovery absence is checked first: a discovery-style 404 also
+	// satisfies IsNotFound, and it means the CRD is absent, not the instance.
+	if !k8serrors.IsNotFound(err) || k8sutil.IsDiscoveryError(err) {
 		return r.handleFetchError(err, namespace, name)
 	}
 
@@ -132,6 +154,16 @@ func (r *DashboardConfigRepository) fetchOrCreateDashboardCR(
 		slog.Debug("OdhDashboardConfig instance not provisioned; bootstrap is read-only, using defaults",
 			slog.String("namespace", namespace), slog.String("name", name),
 			slog.String("code", "CONFIG_INSTANCE_MISSING"))
+		return blankDefaults()
+	}
+
+	if !r.mayProvision() {
+		// The startup probe could not establish the platform, so neither the
+		// OpenShift auto-create nor the xKS read-only contract is known to
+		// apply. Do not write; serve defaults and say how to resolve it.
+		slog.Warn("OdhDashboardConfig instance not provisioned and the platform is unconfirmed; not auto-creating it. Set ODH_PLATFORM_TYPE to OpenShift to restore provisioning, or to XKS for read-only bootstrap",
+			slog.String("namespace", namespace), slog.String("name", name),
+			slog.String("code", "CONFIG_PLATFORM_UNCONFIRMED"))
 		return blankDefaults()
 	}
 

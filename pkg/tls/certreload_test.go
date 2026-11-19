@@ -22,6 +22,13 @@ import (
 // using serial as the identifying marker a test can assert on after a rotation.
 func writeCertPairWithSerial(t *testing.T, dir string, serial int64) (certFile, keyFile string) {
 	t.Helper()
+	return writeCertPairWithValidity(t, dir, serial, time.Now().Add(-time.Hour), time.Now().Add(time.Hour))
+}
+
+// writeCertPairWithValidity is writeCertPairWithSerial with an explicit
+// validity window, for the expired and not-yet-valid rotation cases.
+func writeCertPairWithValidity(t *testing.T, dir string, serial int64, notBefore, notAfter time.Time) (certFile, keyFile string) {
+	t.Helper()
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)
@@ -29,8 +36,8 @@ func writeCertPairWithSerial(t *testing.T, dir string, serial int64) (certFile, 
 	tmpl := x509.Certificate{
 		SerialNumber: big.NewInt(serial),
 		Subject:      pkix.Name{CommonName: "localhost"},
-		NotBefore:    time.Now().Add(-time.Hour),
-		NotAfter:     time.Now().Add(time.Hour),
+		NotBefore:    notBefore,
+		NotAfter:     notAfter,
 		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		IPAddresses:  []net.IP{net.ParseIP("127.0.0.1")},
@@ -153,6 +160,35 @@ func TestCertReloaderInvalidRotationKeepsLastKnownGood(t *testing.T) {
 	}
 }
 
+// A parseable, matching pair outside its validity window is not a usable
+// replacement: the previous certificate keeps being served.
+func TestCertReloaderRejectsRotationOutsideValidityWindow(t *testing.T) {
+	now := time.Now()
+	for name, window := range map[string][2]time.Time{
+		"expired":       {now.Add(-2 * time.Hour), now.Add(-time.Hour)},
+		"not yet valid": {now.Add(time.Hour), now.Add(2 * time.Hour)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			certFile, keyFile := writeCertPairWithSerial(t, dir, 1)
+			r, err := NewCertReloader(certFile, keyFile, testLogger())
+			if err != nil {
+				t.Fatalf("NewCertReloader: %v", err)
+			}
+
+			writeCertPairWithValidity(t, dir, 2, window[0], window[1])
+			if got := servedSerial(t, r); got != 1 {
+				t.Fatalf("serial after a %s rotation = %d, want the previous 1", name, got)
+			}
+
+			writeCertPairWithSerial(t, dir, 3)
+			if got := servedSerial(t, r); got != 3 {
+				t.Fatalf("serial after a valid rotation = %d, want 3", got)
+			}
+		})
+	}
+}
+
 // A later good rotation is still picked up after a bad one.
 func TestCertReloaderRecoversAfterAnInvalidRotation(t *testing.T) {
 	dir := t.TempDir()
@@ -245,9 +281,12 @@ func dialServedSerial(t *testing.T, addr string) int64 {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for {
-		conn, err := tls.Dial("tcp", addr, &tls.Config{InsecureSkipVerify: true, ServerName: "localhost"}) //nolint:gosec // G402: self-signed fixture; the assertion is on which cert is served
+		// The dialer deadline bounds both the TCP connect and the handshake, so
+		// a listener that accepts but stalls cannot hang the test.
+		dialer := &net.Dialer{Deadline: deadline}
+		conn, err := tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{InsecureSkipVerify: true, ServerName: "localhost"}) //nolint:gosec // G402: self-signed fixture; the assertion is on which cert is served
 		if err == nil {
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 			return conn.ConnectionState().PeerCertificates[0].SerialNumber.Int64()
 		}
 		if !isConnRefused(err) || time.Now().After(deadline) {
