@@ -8,7 +8,11 @@ const { productionTargets, MODEL_SERVING_REMOTE_ENTRY } = require('../production
 jest.mock('fs', () => ({
   mkdirSync: jest.fn(),
   rmSync: jest.fn(),
-  readFileSync: jest.fn(),
+  readFileSync: jest.fn((filename, ...args) =>
+    filename.endsWith('/distribution.yaml')
+      ? jest.requireActual('fs').readFileSync(filename, ...args)
+      : undefined,
+  ),
   writeFileSync: jest.fn(),
   existsSync: jest.fn(),
 }));
@@ -135,8 +139,20 @@ describe('production audit command', () => {
     expect(dockerfile).toContain(
       `ENV PUBLIC_PATH=${productionTargets['model-serving'].environment.PUBLIC_PATH}`,
     );
-    expect(dockerfile).toContain(
-      `ENV MODEL_SERVING_EXTENSION_PROFILE=${productionTargets['model-serving'].environment.MODEL_SERVING_EXTENSION_PROFILE}`,
+    expect(dockerfile).toContain('scripts/model-serving-profile.js build:prod');
+    const tiltfile = jest
+      .requireActual('fs')
+      .readFileSync(path.join(repoRoot, 'distributions/rhaii/developing/Tiltfile'), 'utf8');
+    expect(tiltfile).toContain('distributions/rhaii/scripts/model-serving-profile.js');
+    expect(tiltfile).toContain(' start:dev');
+    expect(dockerfile).not.toContain('MODEL_SERVING_EXTENSION_PROFILE=');
+    expect(tiltfile).not.toContain('MODEL_SERVING_EXTENSION_PROFILE');
+    expect(productionTargets['model-serving'].environment.MODEL_SERVING_EXTENSION_PROFILE).toBe(
+      require('yaml').parse(
+        jest
+          .requireActual('fs')
+          .readFileSync(path.join(repoRoot, 'distributions/rhaii/distribution.yaml'), 'utf8'),
+      ).extensionProfiles.modelServing,
     );
     for (const target of Object.values(productionTargets)) {
       expect(dockerfile).toContain(`WORKDIR /usr/src/workspace/${target.workspace}`);

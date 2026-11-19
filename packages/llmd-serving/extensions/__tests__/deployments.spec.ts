@@ -1,4 +1,8 @@
-import fullExtensions from '../index';
+import fullExtensions, {
+  LLMD_SERVING_ID,
+  topologyConfigsExtensions,
+  type TopologyConfigsExtensionsType,
+} from '../index';
 import deployments from '../deployments';
 
 describe('LLM-d deployment extension entry point', () => {
@@ -13,6 +17,7 @@ describe('LLM-d deployment extension entry point', () => {
         'model-serving.deployment/deploy',
         'model-serving.deployment/assemble-model-resource',
         'model-serving.deployment/tracking-properties',
+        'model-serving.deployments-table/start-stop-action',
       ]),
     );
     const gateway = deployments.filter(
@@ -39,9 +44,7 @@ describe('LLM-d deployment extension entry point', () => {
     ).toBe(true);
     expect(
       deployments.some(
-        (extension) =>
-          extension.type === 'model-serving.runtime-image/install-target' ||
-          extension.type === 'model-serving.deployments-table/start-stop-action',
+        (extension) => extension.type === 'model-serving.runtime-image/install-target',
       ),
     ).toBe(false);
     const fields = deployments.flatMap((extension) =>
@@ -55,6 +58,22 @@ describe('LLM-d deployment extension entry point', () => {
           extension.flags?.required?.includes('ADMIN_USER'),
       ),
     ).toBe(false);
+  });
+
+  it('should keep start/stop available without advanced feature flags', () => {
+    const action = deployments.find(
+      (extension) => extension.type === 'model-serving.deployments-table/start-stop-action',
+    );
+    expect(action?.properties).toMatchObject({ platform: 'llmd-serving' });
+    expect(action?.flags).toBeUndefined();
+  });
+
+  it('should preserve the named exports of the full public entry point', () => {
+    const id: typeof LLMD_SERVING_ID = 'llmd-serving';
+    const topology: TopologyConfigsExtensionsType[] = topologyConfigsExtensions;
+    expect(LLMD_SERVING_ID).toBe(id);
+    expect(topology.length).toBeGreaterThan(0);
+    expect(topology.every((extension) => fullExtensions.includes(extension))).toBe(true);
   });
 
   it('should reuse the full dashboard declarations without changing ordering or gates', () => {

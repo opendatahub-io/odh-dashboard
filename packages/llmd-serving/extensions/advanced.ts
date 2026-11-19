@@ -247,12 +247,3 @@ export const vllmDeploymentMethodFieldOverride: LLMDServingExtension = {
     required: [SupportedArea.LLMD_SERVING, SupportedArea.VLLM_ON_MAAS],
   },
 };
-
-export const startStopAction: LLMDServingExtension = {
-  type: 'model-serving.deployments-table/start-stop-action',
-  properties: {
-    platform: SupportedArea.LLMD_SERVING,
-    patchDeploymentStoppedStatus: () =>
-      import('../src/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
-  },
-};
