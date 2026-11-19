@@ -4,7 +4,7 @@ import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { GroupOverviewItem, ModelOverviewItem } from '~/app/types/subscriptions';
+import { ModelOverviewItem } from '~/app/types/subscriptions';
 import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
 import type { TypeaheadFilterOption } from '~/app/components/TypeaheadFilterField';
 import {
@@ -22,8 +22,6 @@ type OverviewToolbarProps = {
   ) => void;
   /** Source of the typeahead filter options; values match on resource names. */
   rows: ModelOverviewItem[];
-  /** Groups view resources; merged into the filter options so they stay selectable even when no models are registered. */
-  groupRows: GroupOverviewItem[];
   returnTo?: string;
 };
 
@@ -31,7 +29,6 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
   filterData,
   onFilterUpdate,
   rows,
-  groupRows,
   returnTo,
 }) => {
   const { modelOptions, projectOptions, groupOptions, subscriptionOptions, authPolicyOptions } =
@@ -39,13 +36,6 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
       // Keyed by `${name}/${namespace}`: the same model name can be registered in
       // multiple projects, and each project's option keeps its own display label
       const modelLabels = new Map<string, string>();
-      // A reference without a display name never overwrites a label already known
-      // for that model (e.g. a registered model's friendly label)
-      const setModelLabel = (key: string, name: string, displayName?: string) => {
-        if (displayName || !modelLabels.has(key)) {
-          modelLabels.set(key, displayName ?? modelLabels.get(key) ?? name);
-        }
-      };
       const projectLabels = new Map<string, string>();
       const groupLabels = new Map<string, string>();
       const subscriptionLabels = new Map<string, string>();
@@ -60,26 +50,6 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         row.authPolicies.forEach((policy) => {
           authPolicyLabels.set(policy.name, policy.displayName ?? policy.name);
           policy.groups?.forEach((group) => groupLabels.set(group, group));
-        });
-      });
-      groupRows.forEach((row) => {
-        groupLabels.set(row.name, row.name);
-        row.subscriptions.forEach((sub) => {
-          subscriptionLabels.set(sub.name, sub.displayName ?? sub.name);
-          sub.groups?.forEach((group) => groupLabels.set(group, group));
-          // Groups can reference models that have no registered overview row
-          sub.modelRefs.forEach((ref) => {
-            setModelLabel(`${ref.name}/${ref.namespace}`, ref.name, ref.displayName);
-            projectLabels.set(ref.namespace, ref.namespace);
-          });
-        });
-        row.authPolicies.forEach((policy) => {
-          authPolicyLabels.set(policy.name, policy.displayName ?? policy.name);
-          policy.groups?.forEach((group) => groupLabels.set(group, group));
-          policy.modelRefs.forEach((ref) => {
-            setModelLabel(`${ref.name}/${ref.namespace}`, ref.name, ref.displayName);
-            projectLabels.set(ref.namespace, ref.namespace);
-          });
         });
       });
       // The option value is the model name so an exact selection matches every
@@ -108,7 +78,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         subscriptionOptions: toSelectOptions(subscriptionLabels),
         authPolicyOptions: toSelectOptions(authPolicyLabels),
       };
-    }, [rows, groupRows]);
+    }, [rows]);
 
   const fireFiltered = (filterAttribute: EventTrackingFilterAttribute) =>
     fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {

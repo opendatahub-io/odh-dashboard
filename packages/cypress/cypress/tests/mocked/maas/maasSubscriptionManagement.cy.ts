@@ -72,29 +72,17 @@ describe('MaaS Governance Page / Overview Tab', () => {
     maasGovernancePage.findCreateAuthPolicyButton().should('exist');
   });
 
-  it('should show group data in the groups view when there are no models', () => {
+  it('should show the overview empty state in the overview tab when there are no models', () => {
     interceptMaasGovernanceData(
       mockSubscriptionFormData({
         modelRefs: [],
       }),
     );
     maasGovernancePage.visit('overview');
-    // Subscriptions and policies still exist, so the groups view has data and no empty state shows
-    maasGovernancePage.findOverviewEmptyState().should('not.exist');
+    maasGovernancePage.findOverviewEmptyState().should('exist');
     maasGovernancePage.findSubscriptionsTab().should('be.visible');
     maasGovernancePage.findAuthPoliciesTab().should('be.visible');
-    overviewTabPage.findTable().should('exist');
-
-    overviewTabPage.findGroupsViewButton().click();
-    cy.url().should('include', 'view=groups');
-    overviewTabPage.findGroupsTable().should('exist');
-    overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
-
-    // Model filter options come from subscription model refs when no models are registered
-    overviewTabPage.filterByTypeahead('model', 'granite-3-8b-instruct', 'Granite 3 8B Instruct');
-    overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
-    overviewTabPage.clearAllFilters();
-    overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
+    overviewTabPage.findTable().should('not.exist');
   });
 
   it('should show the filter empty state when overview filters match no models', () => {

@@ -3,11 +3,7 @@ import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/rea
 import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import {
-  ModelOverviewSubscription,
-  ModelOverviewPolicy,
-  ModelSubscriptionRef,
-} from '~/app/types/subscriptions';
+import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { useGovernanceResourceAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
@@ -31,27 +27,9 @@ import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
 import styles from './ExpandedModelContent.module.scss';
 
-/** Link state built from the section's return target so resource links return to the originating view. */
-const buildLinkState = (returnTo: string) => ({
-  returnTo,
+const OVERVIEW_LINK_STATE = {
+  returnTo: `${URL_PREFIX}/maas-governance/overview`,
   breadcrumbLabel: 'MaaS governance',
-});
-
-/** Counts rendered model-ref labels so colliding labels can be disambiguated with their namespace and name. */
-const countModelRefLabels = (
-  subscriptions: Array<{ modelRefs?: ModelSubscriptionRef[] }>,
-): { byLabel: Map<string, number>; byLabelAndNamespace: Map<string, number> } => {
-  const byLabel = new Map<string, number>();
-  const byLabelAndNamespace = new Map<string, number>();
-  subscriptions.forEach((sub) =>
-    sub.modelRefs?.forEach((ref) => {
-      const label = ref.displayName ?? ref.name;
-      byLabel.set(label, (byLabel.get(label) ?? 0) + 1);
-      const pairKey = `${label}/${ref.namespace}`;
-      byLabelAndNamespace.set(pairKey, (byLabelAndNamespace.get(pairKey) ?? 0) + 1);
-    }),
-  );
-  return { byLabel, byLabelAndNamespace };
 };
 
 const toggleExpandedItem = (prev: Set<string>, name: string): Set<string> => {
@@ -131,16 +109,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
       <Table aria-label={ariaLabel} borders={false} variant="compact">
         <Tbody isExpanded={isExpanded}>
           <Tr>
-            <Td
-              expand={{
-                rowIndex,
-                isExpanded,
-                onToggle,
-                // Every nested table restarts rowIndex at zero; the resource type
-                // and name keep each toggle's identity distinct from its siblings
-                expandId: `expandable-item-toggle-${resourceType}-${name}`,
-              }}
-            />
+            <Td expand={{ rowIndex, isExpanded, onToggle }} />
             <Td>
               <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
                 <FlexItem>
@@ -246,7 +215,7 @@ const SectionEmptyState: React.FC<EmptyStateProps> = ({ title, subtitle }) => (
 );
 
 type SubscriptionsSectionProps = {
-  subscriptions: Array<ModelOverviewSubscription & { modelRefs?: ModelSubscriptionRef[] }>;
+  subscriptions: ModelOverviewSubscription[];
   expandedSubs: Set<string>;
   onToggleSub: (name: string) => void;
   onToggleAll: () => void;
@@ -271,8 +240,6 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
     subscriptions.every((sub) =>
       isEffectivelyExpanded(sub.name, sub.groups, expandedSubs, highlightedGroup),
     );
-
-  const modelRefLabelCounts = countModelRefLabels(subscriptions);
 
   return (
     <>
@@ -305,7 +272,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                   resourceStatus: sub.phase ?? '',
                 } satisfies MaaSSettingsDetailsViewedProperties)
               }
-              linkState={buildLinkState(returnTo)}
+              linkState={OVERVIEW_LINK_STATE}
               returnTo={returnTo}
               phase={sub.phase}
               resourceType={PhaseResourceType.SUBSCRIPTION}
@@ -327,26 +294,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
             >
               <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
                 <strong className="pf-v6-u-mr-md">Token limits</strong>
-                {sub.modelRefs?.length
-                  ? // Group rows carry per-model limits on their model refs
-                    sub.modelRefs.map((ref) => {
-                      const label = ref.displayName ?? ref.name;
-                      // Disambiguate colliding labels: same label and namespace
-                      // also appends the resource name, otherwise just the namespace
-                      const text =
-                        (modelRefLabelCounts.byLabelAndNamespace.get(`${label}/${ref.namespace}`) ??
-                          0) > 1
-                          ? `${label} (${ref.namespace}/${ref.name})`
-                          : (modelRefLabelCounts.byLabel.get(label) ?? 0) > 1
-                            ? `${label} (${ref.namespace})`
-                            : label;
-                      return (
-                        <span key={`${ref.namespace}/${ref.name}`} className="pf-v6-u-mr-md">
-                          {text}: {formatTokenLimits(ref.tokenRateLimits)}
-                        </span>
-                      );
-                    })
-                  : formatTokenLimits(sub.tokenRateLimits ?? [])}
+                {formatTokenLimits(sub.tokenRateLimits ?? [])}
               </Content>
               <GroupChips
                 groups={sub.groups ?? []}
@@ -420,7 +368,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
                   resourceStatus: policy.phase ?? '',
                 } satisfies MaaSSettingsDetailsViewedProperties)
               }
-              linkState={buildLinkState(returnTo)}
+              linkState={OVERVIEW_LINK_STATE}
               phase={policy.phase}
               resourceType={PhaseResourceType.AUTHPOLICY}
               rowIndex={index}
@@ -455,7 +403,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
 };
 
 type ExpandedModelContentProps = {
-  subscriptions: Array<ModelOverviewSubscription & { modelRefs?: ModelSubscriptionRef[] }>;
+  subscriptions: ModelOverviewSubscription[];
   policies: ModelOverviewPolicy[];
   returnTo: string;
 };

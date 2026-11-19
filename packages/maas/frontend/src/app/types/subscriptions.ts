@@ -234,19 +234,3 @@ export type ModelOverviewItem = {
 };
 
 export const SYSTEM_AUTHENTICATED_GROUP = 'system:authenticated';
-
-/** Subscription as shown in a group row; carries model refs for model/project filtering. */
-export type GroupOverviewSubscription = ModelOverviewSubscription & {
-  modelRefs: ModelSubscriptionRef[];
-};
-
-/** Authorization policy as shown in a group row; carries model refs for model/project filtering. */
-export type GroupOverviewPolicy = ModelOverviewPolicy & {
-  modelRefs: ModelRef[];
-};
-
-export type GroupOverviewItem = {
-  name: string;
-  subscriptions: GroupOverviewSubscription[];
-  authPolicies: GroupOverviewPolicy[];
-};

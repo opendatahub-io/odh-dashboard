@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import OverviewToolbar from '~/app/pages/maas-governance/overview/OverviewToolbar';
-import { GroupOverviewItem, ModelOverviewItem } from '~/app/types/subscriptions';
+import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { initialOverviewFilterData } from '~/app/pages/maas-governance/overview/const';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -19,32 +19,13 @@ const modelRow = (namespace: string, displayName: string): ModelOverviewItem => 
   authPolicies: [],
 });
 
-const groupRow = (modelDisplayName?: string): GroupOverviewItem => ({
-  name: 'data-science',
-  subscriptions: [
-    {
-      name: 'team-sub',
-      modelRefs: [
-        {
-          name: 'granite-3-8b-instruct',
-          namespace: 'maas-models',
-          displayName: modelDisplayName,
-          tokenRateLimits: [],
-        },
-      ],
-    },
-  ],
-  authPolicies: [],
-});
-
-const renderToolbar = (rows: ModelOverviewItem[], groupRows: GroupOverviewItem[]) =>
+const renderToolbar = (rows: ModelOverviewItem[]) =>
   render(
     <MemoryRouter>
       <OverviewToolbar
         filterData={initialOverviewFilterData}
         onFilterUpdate={jest.fn()}
         rows={rows}
-        groupRows={groupRows}
       />
     </MemoryRouter>,
   );
@@ -67,7 +48,7 @@ describe('OverviewToolbar', () => {
   });
 
   it('should collapse same-name models registered in multiple projects into one option', async () => {
-    renderToolbar([modelRow('project-a', 'Granite A'), modelRow('project-b', 'Granite B')], []);
+    renderToolbar([modelRow('project-a', 'Granite A'), modelRow('project-b', 'Granite B')]);
 
     await selectModelFilter(user);
 
@@ -86,7 +67,6 @@ describe('OverviewToolbar', () => {
           filterData={initialOverviewFilterData}
           onFilterUpdate={onFilterUpdate}
           rows={[modelRow('project-a', 'Granite A'), modelRow('project-b', 'Granite B')]}
-          groupRows={[]}
         />
       </MemoryRouter>,
     );
@@ -98,14 +78,5 @@ describe('OverviewToolbar', () => {
       value: 'granite-3-8b-instruct',
       label: 'Granite A',
     });
-  });
-
-  it('should not overwrite a registered model label with a group reference lacking a display name', async () => {
-    renderToolbar([modelRow('maas-models', 'Granite A')], [groupRow(undefined)]);
-
-    await selectModelFilter(user);
-
-    const option = await screen.findByRole('option', { name: /granite a/i });
-    expect(option).toHaveTextContent('Granite A');
   });
 });
