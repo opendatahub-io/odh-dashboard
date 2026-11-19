@@ -23,6 +23,7 @@ import { TableRowTitleDescription } from '#~/components/table';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
 import ConnectedResources from '#~/pages/projects/screens/detail/connections/ConnectedResources';
+import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
@@ -37,7 +38,6 @@ type StorageTableRowProps = {
   showConnectedResources: boolean;
   additionalResourcesLoaded: boolean;
   getConnectedResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
-  getConnectedModelResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
   onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
   onEditPVC: (pvc: PersistentVolumeClaimKind) => void;
   onAddPVC: () => void;
@@ -52,7 +52,6 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   showConnectedResources,
   additionalResourcesLoaded,
   getConnectedResourceLabels,
-  getConnectedModelResourceLabels,
   onDeletePVC,
   onEditPVC,
   onAddPVC,
@@ -79,9 +78,23 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
     });
   }
 
+  // Temporary workaround until we implement using the connected resources extension point for PVCs
+  const legacyConnectedModels = useInferenceServicesForConnection(obj.pvc);
+
+  const extensionResources = getConnectedResourceLabels(obj.pvc);
+
+  // Prevent duplicates by combining the extension resources and the legacy connected models
   const connectedResources = [
-    ...getConnectedModelResourceLabels(obj.pvc),
-    ...getConnectedResourceLabels(obj.pvc),
+    ...extensionResources,
+    ...legacyConnectedModels
+      .filter(
+        (model) => !extensionResources.some((resource) => resource.key === model.metadata.name),
+      )
+      .map((model) => ({
+        key: model.metadata.name,
+        title: getDisplayNameFromK8sResource(model),
+        kind: 'connected-models' as const,
+      })),
   ];
 
   return (

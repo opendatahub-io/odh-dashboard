@@ -9,32 +9,27 @@ import {
 } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import ConnectedResourcesDeleteModal from '#~/pages/projects/components/ConnectedResourcesDeleteModal';
+import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 
 type DeletePVCModalProps = {
   pvcToDelete: PersistentVolumeClaimKind;
   onClose: (deleted: boolean) => void;
-  getConnectedResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
-  getConnectedModelResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
-  connectedResourcesLoaded: boolean;
 };
 
-const DeletePVCModal: React.FC<DeletePVCModalProps> = ({
-  pvcToDelete,
-  onClose,
-  getConnectedResourceLabels,
-  getConnectedModelResourceLabels,
-  connectedResourcesLoaded,
-}) => {
+const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const { notebooks: connectedNotebooks, loaded: notebookLoaded } = useRelatedNotebooks(
     ConnectedNotebookContext.EXISTING_PVC,
     pvcToDelete.metadata.name,
   );
-  const connectedResources = [
-    ...getConnectedModelResourceLabels(pvcToDelete),
-    ...getConnectedResourceLabels(pvcToDelete),
-  ];
+  const connectedModels = useInferenceServicesForConnection(pvcToDelete);
+  const connectedResources: ConnectedResourceLabel[] = connectedModels.map((model) => ({
+    key: model.metadata.name,
+    title: getDisplayNameFromK8sResource(model),
+    kind: 'connected-models',
+  }));
+
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
     setIsDeleting(false);
@@ -75,7 +70,7 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({
       <ConnectedResourcesDeleteModal
         connectedNotebooks={connectedNotebooks}
         connectedResources={connectedResources}
-        loaded={notebookLoaded && connectedResourcesLoaded}
+        loaded={notebookLoaded}
         namespace={pvcToDelete.metadata.namespace}
       />
     </DeleteModal>
