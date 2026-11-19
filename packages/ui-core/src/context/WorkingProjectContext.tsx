@@ -38,6 +38,15 @@ export const WorkingProjectStatusValue = {
 export type WorkingProjectStatus =
   (typeof WorkingProjectStatusValue)[keyof typeof WorkingProjectStatusValue];
 
+const PROJECT_SELECTION_STATUSES = new Set<WorkingProjectStatus>([
+  WorkingProjectStatusValue.Loading,
+  WorkingProjectStatusValue.ProjectSourceError,
+  WorkingProjectStatusValue.NoProjectSelected,
+]);
+
+export const requiresWorkingProjectSelection = (status: WorkingProjectStatus): boolean =>
+  PROJECT_SELECTION_STATUSES.has(status);
+
 export const WorkingProjectStatusLabelValue: Record<WorkingProjectStatus, string> = {
   /** Displayed when no provider is mounted or the project source is unavailable. */
   [WorkingProjectStatusValue.ProviderAbsent]: 'Projects unavailable',

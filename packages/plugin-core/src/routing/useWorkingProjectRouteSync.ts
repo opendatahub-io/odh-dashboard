@@ -112,7 +112,7 @@ export const useWorkingProjectRouteSync = ({
   const projectNames = projects.map(({ name }) => name).join('\u0000');
 
   const registeredRoute = React.useMemo<RouteProjectInput | undefined>(() => {
-    if (!routeProjectName || !registerProjectRouteSync) {
+    if (!enabled || !routeProjectName || !getProjectPath || !registerProjectRouteSync) {
       return undefined;
     }
 
@@ -122,9 +122,10 @@ export const useWorkingProjectRouteSync = ({
 
     return {
       kind: RouteProjectKindValue.Invalid,
-      recover: getProjectPath ? recoverInvalidRoute : undefined,
+      recover: recoverInvalidRoute,
     };
   }, [
+    enabled,
     getProjectPath,
     projectNames,
     recoverInvalidRoute,
@@ -207,7 +208,6 @@ export const useWorkingProjectRouteSync = ({
     location,
     navigate,
     projects,
-    registerProjectRouteSync,
     routeProjectName,
     selectProject,
   ]);

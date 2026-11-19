@@ -238,4 +238,13 @@ describe('RHOAI working project adapter', () => {
       expect(screen.getByTestId('masthead-status')).toHaveTextContent(expectedStatus);
     },
   );
+
+  it('should not classify a project route as invalid while projects are loading', () => {
+    render(<Harness source={[]} loaded={false} initialEntry="/projects/project-b/models" />);
+
+    expect(screen.getByTestId('masthead-status')).toHaveTextContent(
+      WorkingProjectStatusValue.Loading,
+    );
+    expect(screen.getByTestId('route')).toHaveTextContent('none');
+  });
 });

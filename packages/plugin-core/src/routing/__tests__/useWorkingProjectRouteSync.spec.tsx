@@ -411,4 +411,29 @@ describe('useWorkingProjectRouteSync', () => {
       }
     },
   );
+
+  it.each([
+    {
+      name: 'UPS disabled',
+      enabled: false,
+      getProjectPath: (projectName: string) => `/assets/${projectName}`,
+    },
+    { name: 'route path opt-out', enabled: true, getProjectPath: null },
+  ])('should not register a route when $name', ({ enabled, getProjectPath }) => {
+    const registerProjectRouteSync = jest.fn(() => jest.fn());
+
+    renderHook(() =>
+      useWorkingProjectRouteSync({
+        activeProjectName: 'project-a',
+        routeProjectName: 'project-b',
+        projects,
+        selectProject,
+        enabled,
+        getProjectPath,
+        registerProjectRouteSync,
+      }),
+    );
+
+    expect(registerProjectRouteSync).toHaveBeenCalledWith(undefined);
+  });
 });

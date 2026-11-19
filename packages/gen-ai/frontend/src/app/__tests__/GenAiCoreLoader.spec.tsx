@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
@@ -12,6 +12,13 @@ jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
 
 jest.mock('@odh-dashboard/ui-core/context/WorkingProjectContext', () => ({
   useWorkingProject: jest.fn(),
+  WorkingProjectStatusValue: {
+    Loading: 'loading',
+    ProjectSourceError: 'project-source-error',
+    NoProjectSelected: 'no-project-selected',
+  },
+  requiresWorkingProjectSelection: (status: string) =>
+    ['loading', 'project-source-error', 'no-project-selected'].includes(status),
 }));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -35,13 +42,21 @@ jest.mock('mod-arch-shared', () => ({
   },
 }));
 
+let mockProviderMountId = 0;
+
 jest.mock('~/app/context/GenAiContext', () => ({
   GenAiContextProvider: function GenAiContextProviderMock({
     children,
   }: {
     children: React.ReactNode;
   }) {
-    return <>{children}</>;
+    const { useState } = jest.requireActual<typeof React>('react');
+    const [mountId] = useState(() => ++mockProviderMountId);
+    return (
+      <div data-testid="gen-ai-provider" data-mount-id={String(mountId)}>
+        {children}
+      </div>
+    );
   },
 }));
 
@@ -61,17 +76,24 @@ jest.mock('../GenAiCoreNoProjects', () => ({
 const mockUseNamespaceSelectorWithPersistence = jest.mocked(useNamespaceSelectorWithPersistence);
 const mockUseWorkingProject = jest.mocked(useWorkingProject);
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
+type NamespaceSelectorReturn = ReturnType<typeof useNamespaceSelectorWithPersistence>;
 
-const mockNamespaceSelectorReturn = (namespacesLoaded: boolean) =>
-  ({
-    namespaces: [],
-    namespacesLoaded,
-    preferredNamespace: undefined,
-    updatePreferredNamespace: jest.fn(),
-    clearStoredNamespace: jest.fn(),
-    namespacesLoadError: undefined,
-    initializationError: undefined,
-  }) as ReturnType<typeof useNamespaceSelectorWithPersistence>;
+const mockNamespaceSelectorReturn = (namespacesLoaded: boolean): NamespaceSelectorReturn => ({
+  namespaces: [],
+  namespacesLoaded,
+  preferredNamespace: undefined,
+  updatePreferredNamespace: jest.fn(),
+  clearStoredNamespace: jest.fn(),
+  namespacesLoadError: undefined,
+  initializationError: undefined,
+});
+
+const namespaceSelectorReturn = (
+  overrides: Partial<NamespaceSelectorReturn> = {},
+): NamespaceSelectorReturn => ({
+  ...mockNamespaceSelectorReturn(true),
+  ...overrides,
+});
 
 const renderLoader = () =>
   render(
@@ -155,11 +177,11 @@ describe('GenAiCoreLoader', () => {
   });
 
   it('should prefer the active UPS project for a bare project route', () => {
-    mockUseNamespaceSelectorWithPersistence.mockReturnValue({
-      ...mockNamespaceSelectorReturn(true),
-      namespaces: [{ name: 'project-a' }, { name: 'project-b' }],
-      preferredNamespace: { name: 'project-a' },
-    } as ReturnType<typeof useNamespaceSelectorWithPersistence>);
+    mockUseNamespaceSelectorWithPersistence.mockReturnValue(
+      namespaceSelectorReturn({
+        namespaces: [{ name: 'project-a' }, { name: 'project-b' }],
+      }),
+    );
     mockUseWorkingProject.mockReturnValue({
       status: 'listed',
       projects: [{ name: 'project-b' }],
@@ -178,12 +200,39 @@ describe('GenAiCoreLoader', () => {
     );
   });
 
+  it('should preserve the legacy first-namespace fallback when UPS is disabled', () => {
+    mockUseNamespaceSelectorWithPersistence.mockReturnValue(
+      namespaceSelectorReturn({
+        namespaces: [
+          { name: 'project-z', displayName: 'Alpha' },
+          { name: 'project-a', displayName: 'Zulu' },
+        ],
+      }),
+    );
+    mockUseIsAreaAvailable.mockReturnValue({ status: false } as ReturnType<
+      typeof useIsAreaAvailable
+    >);
+    mockUseWorkingProject.mockReturnValue({
+      status: 'provider-absent',
+      projects: [],
+      activeProject: null,
+      selectProject: jest.fn(),
+    });
+
+    renderProjectRedirectLoader();
+
+    expect(screen.getByTestId('location')).toHaveAttribute(
+      'data-pathname',
+      '/playground/project-z',
+    );
+  });
+
   it('should not redirect to the persisted project when UPS has no active project', () => {
     mockUseNamespaceSelectorWithPersistence.mockReturnValue({
       ...mockNamespaceSelectorReturn(true),
       namespaces: [{ name: 'project-a' }, { name: 'project-b' }],
       preferredNamespace: { name: 'project-a' },
-    } as ReturnType<typeof useNamespaceSelectorWithPersistence>);
+    });
     mockUseWorkingProject.mockReturnValue({
       status: 'listed',
       projects: [{ name: 'project-a' }, { name: 'project-b' }],
@@ -226,11 +275,12 @@ describe('GenAiCoreLoader', () => {
       expectedHash = '',
       getProjectPath,
     }) => {
-      mockUseNamespaceSelectorWithPersistence.mockReturnValue({
-        ...mockNamespaceSelectorReturn(true),
-        namespaces: [{ name: 'project-a' }, { name: 'project-b' }],
-        preferredNamespace: { name: 'project-a' },
-      } as ReturnType<typeof useNamespaceSelectorWithPersistence>);
+      mockUseNamespaceSelectorWithPersistence.mockReturnValue(
+        namespaceSelectorReturn({
+          namespaces: [{ name: 'project-a' }, { name: 'project-b' }],
+          preferredNamespace: { name: 'project-a' },
+        }),
+      );
       let activeProject = { name: 'project-a' };
       mockUseWorkingProject.mockImplementation(() => ({
         status: 'listed',
@@ -294,10 +344,9 @@ describe('GenAiCoreLoader', () => {
     );
 
     beforeEach(() => {
-      mockUseNamespaceSelectorWithPersistence.mockReturnValue({
-        ...mockNamespaceSelectorReturn(true),
-        namespaces: projectNamespaces,
-      } as ReturnType<typeof useNamespaceSelectorWithPersistence>);
+      mockUseNamespaceSelectorWithPersistence.mockReturnValue(
+        namespaceSelectorReturn({ namespaces: projectNamespaces }),
+      );
       mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
         typeof useIsAreaAvailable
       >);
@@ -372,6 +421,78 @@ describe('GenAiCoreLoader', () => {
       );
 
       expect(selectProject).not.toHaveBeenCalled();
+    });
+
+    it('should validate the route against UPS projects when UPS is enabled', () => {
+      const selectProject = jest.fn();
+      mockUseNamespaceSelectorWithPersistence.mockReturnValue(
+        namespaceSelectorReturn({
+          namespaces: [{ name: 'project-a' }, { name: 'project-b' }],
+        }),
+      );
+      mockUseWorkingProject.mockReturnValue({
+        status: 'listed',
+        projects: [{ name: 'project-a' }],
+        activeProject: { name: 'project-a' },
+        selectProject,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/playground/project-b']}>{projectRoute}</MemoryRouter>,
+      );
+
+      expect(screen.queryByText('Playground content')).not.toBeInTheDocument();
+      expect(selectProject).not.toHaveBeenCalled();
+    });
+  });
+
+  it('should remount the GenAI provider when the namespace changes with UPS disabled', () => {
+    const namespaces = [{ name: 'project-a' }, { name: 'project-b' }];
+    let navigate: ReturnType<typeof useNavigate>;
+    const NavigationCapture = () => {
+      navigate = useNavigate();
+      return null;
+    };
+    mockUseNamespaceSelectorWithPersistence.mockReturnValue(
+      namespaceSelectorReturn({ namespaces }),
+    );
+    mockUseIsAreaAvailable.mockReturnValue({ status: false } as ReturnType<
+      typeof useIsAreaAvailable
+    >);
+    mockUseWorkingProject.mockReturnValue({
+      status: 'provider-absent',
+      projects: [],
+      activeProject: null,
+      selectProject: jest.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/playground/project-a']}>
+        <NavigationCapture />
+        <Routes>
+          <Route
+            path="/playground/:namespace"
+            element={
+              <GenAiCoreLoader
+                title="Playground"
+                getInvalidRedirectPath={(projectName) => `/playground/${projectName}`}
+              />
+            }
+          >
+            <Route index element={<div>Playground content</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const firstMountId = screen.getByTestId('gen-ai-provider').getAttribute('data-mount-id');
+    act(() => navigate('/playground/project-b'));
+
+    return waitFor(() => {
+      expect(screen.getByTestId('gen-ai-provider')).not.toHaveAttribute(
+        'data-mount-id',
+        firstMountId,
+      );
     });
   });
 });
