@@ -230,6 +230,10 @@ granting them to the dashboard service account does nothing. Each authenticated 
 Kubernetes grants both to every authenticated user through the default `system:basic-user`
 ClusterRole; a cluster that removes that binding must grant them back.
 
+`namespaces` is not in this list either. Namespace discovery runs as the caller; the only
+service-account read it can add is the opt-in label enumeration described in
+[namespace-discovery-contract.md](./namespace-discovery-contract.md).
+
 ## Consumers
 
 [RHOAIENG-96067](https://redhat.atlassian.net/browse/RHOAIENG-96067) (RHAII composition) consumes

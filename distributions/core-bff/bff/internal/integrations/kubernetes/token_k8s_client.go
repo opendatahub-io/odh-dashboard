@@ -84,6 +84,12 @@ func NewKubeconfigKubernetesClient(ctx context.Context, logger *slog.Logger) (Ku
 	}, nil
 }
 
+// TokenClientQPS and TokenClientBurst bound one caller's per-request client.
+const (
+	TokenClientQPS   = 50
+	TokenClientBurst = 100
+)
+
 // NewTokenKubernetesClient creates a Kubernetes client using a user bearer token.
 func NewTokenKubernetesClient(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
 	baseConfig, err := helpers.GetKubeconfig()
@@ -102,6 +108,16 @@ func NewTokenKubernetesClient(ctx context.Context, token string, logger *slog.Lo
 	cfg.Password = ""
 	cfg.ExecProvider = nil
 	cfg.AuthProvider = nil
+
+	// client-go defaults to 5 QPS / burst 10 when unset. A per-request client
+	// that fans out access reviews (namespace discovery) would be throttled to
+	// seconds per namespace, so give it a realistic budget unless one is set.
+	if cfg.QPS == 0 {
+		cfg.QPS = TokenClientQPS
+	}
+	if cfg.Burst == 0 {
+		cfg.Burst = TokenClientBurst
+	}
 
 	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
@@ -203,7 +219,13 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	return nsList.Items, nil
 }
 
-// CanGetNamespace asks the API server about the caller's cluster-scoped, named get permission.
+// CanGetNamespace asks the API server whether the caller may get the named namespace.
+//
+// The review carries the namespace attribute as well as the name, mirroring what the
+// API server's request resolver produces for GET /api/v1/namespaces/<name>. Without
+// it RBAC only consults ClusterRoleBindings, so a user whose access comes from a
+// RoleBinding inside the namespace (admin, edit or view) would be denied a lookup the
+// API server itself allows.
 func (kc *TokenKubernetesClient) CanGetNamespace(ctx context.Context, _ *RequestIdentity, name string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -211,9 +233,10 @@ func (kc *TokenKubernetesClient) CanGetNamespace(ctx context.Context, _ *Request
 	ssar := &authv1.SelfSubjectAccessReview{
 		Spec: authv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:     "get",
-				Resource: "namespaces",
-				Name:     name,
+				Verb:      "get",
+				Resource:  "namespaces",
+				Name:      name,
+				Namespace: name,
 			},
 		},
 	}

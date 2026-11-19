@@ -49,17 +49,19 @@ core-bff refusing to start: invalid configuration (2 problems):
 | Flag                      | Environment                    | Default                | Notes                                                               |
 | ------------------------- | ------------------------------ | ---------------------- | ------------------------------------------------------------------- |
 | `--port`                  | `PORT`                         | `4000`                 | Must be an integer 1–65535. A malformed explicit `PORT` is refused. |
-| `--deployment-mode`       | `DEPLOYMENT_MODE`              | `standalone`           | `standalone` or `federated`.                                        |
-| `--platform-type`         | `ODH_PLATFORM_TYPE`            | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection.  |
-| `--admission-mode`        | `ADMISSION_MODE`               | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.     |
-| `--namespace`             | `NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required.                                      |
-| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`          | _(= namespace)_        | Namespace allowlist entry.                                          |
-| `--operator-namespace`    | `OPERATOR_NAMESPACE`           | _(empty)_              | Preferred subscription namespace (OpenShift).                       |
-| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`        | `odh-dashboard-config` | OdhDashboardConfig CR name.                                         |
-| `--enabled-apps-cm`       | `ENABLED_APPS_CM`              | _(empty)_              | ConfigMap tracking enabled applications.                            |
-| `--static-assets-dir`     | `STATIC_ASSETS_DIR`            | `./static`             | SPA asset root. Required.                                           |
-| `--log-level`             | `LOG_LEVEL`                    | `INFO`                 | `error`, `warn`, `info`, `debug`.                                   |
-| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`            | _(empty)_              | Module federation remotes file.                                     |
+| `--deployment-mode`       | `DEPLOYMENT_MODE`              | `standalone`           | `standalone` or `federated`.                                       |
+| `--platform-type`         | `ODH_PLATFORM_TYPE`            | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection. |
+| `--admission-mode`        | `ADMISSION_MODE`               | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.    |
+| `--namespace`             | `NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required.                                     |
+| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`          | _(= namespace)_        | Namespace allowlist entry.                                         |
+| `--operator-namespace`    | `OPERATOR_NAMESPACE`           | _(empty)_              | Preferred subscription namespace (OpenShift).                      |
+| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`        | `odh-dashboard-config` | OdhDashboardConfig CR name.                                        |
+| `--enabled-apps-cm`       | `ENABLED_APPS_CM`              | _(empty)_              | ConfigMap tracking enabled applications.                           |
+| `--static-assets-dir`     | `STATIC_ASSETS_DIR`            | `./static`             | SPA asset root. Required.                                          |
+| `--log-level`             | `LOG_LEVEL`                    | `INFO`                 | `error`, `warn`, `info`, `debug`.                                  |
+| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`            | _(empty)_              | Module federation remotes file.                                    |
+| `--namespace-candidates`  | `NAMESPACE_CANDIDATES`         | _(empty)_              | xKS discovery candidates, comma-separated. Grants nothing. See the namespace discovery contract. |
+| `--namespace-discovery-label-selector` | `NAMESPACE_DISCOVERY_LABEL_SELECTOR` | _(empty: off)_ | Opt-in service-account enumeration of extra xKS candidates. Needs SA `list namespaces`. |
 
 ### Authentication
 
@@ -342,5 +344,6 @@ a configuration that relies on them cannot be mistaken for a production one.
 
 - [bootstrap-contract.md](./bootstrap-contract.md) — `/api/status`, admission and UI capability
 - [error-contract.md](./error-contract.md) — error envelope and request correlation
+- [namespace-discovery-contract.md](./namespace-discovery-contract.md) — xKS authorized namespaces and RHAII permissions
 - `bff/internal/config/validate.go` — the enforced rules
 - `bff/cmd/startup_test.go` — the tests that drive the real parser
