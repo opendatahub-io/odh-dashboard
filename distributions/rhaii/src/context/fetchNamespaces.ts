@@ -23,6 +23,7 @@ type NamespaceAccessItem = {
 
 type NamespaceAccessList = {
   source?: unknown;
+  complete?: unknown;
   namespaces: NamespaceAccessItem[];
 };
 
@@ -59,6 +60,7 @@ const parseNamespaceAccessList = (value: unknown): NamespaceAccessList => {
   }
   return {
     source: data.source,
+    complete: data.complete,
     namespaces: data.namespaces.filter((item): item is NamespaceAccessItem => isRecord(item)),
   };
 };
@@ -200,6 +202,11 @@ const fetchNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject[]> =>
   if (resp.status === 404) {
     return fetchLegacyNamespaces(signal);
   }
+  if (resp.status === 503) {
+    // Discovery found nothing because its sources or reviews failed. Looking a
+    // namespace up by name can still work, so keep manual entry available.
+    throw new NamespaceListUnavailableError('Namespace discovery is unavailable', []);
+  }
   if (!resp.ok) {
     throw new Error(`Failed to list namespaces (HTTP ${resp.status})`);
   }
@@ -207,9 +214,10 @@ const fetchNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject[]> =>
   const projects = list.namespaces
     .map(accessToProject)
     .filter((project): project is RhaiiProject => project !== null);
-  if (list.source !== 'cluster-list') {
-    // Discovery from candidates is not exhaustive: show what was authorized
-    // and keep manual entry available.
+  if (list.source !== 'cluster-list' || list.complete !== true) {
+    // Discovery from candidates, or one that hit failures or the candidate
+    // cap, is not exhaustive: show what was authorized and keep manual entry
+    // available for the rest.
     throw new NamespaceListUnavailableError('Namespace listing is partial', projects);
   }
   return projects;

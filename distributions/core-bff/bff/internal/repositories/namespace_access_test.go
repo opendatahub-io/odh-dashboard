@@ -23,28 +23,32 @@ import (
 
 var errReview = errors.New("review failed")
 
-// rbacClient answers access reviews from a rule table, the way RBAC would.
-// Rules are "<namespace>|<group>/<resource>|<verb>"; "*" as namespace matches
-// every namespace (a cluster-wide grant).
+// rbacClient answers access reviews from a rule table, the way an authorizer
+// would. Rules are "<namespace>|<group>/<resource>|<verb>"; "*" as namespace
+// matches every namespace (a cluster-wide grant), and "" matches only a review
+// made without a namespace.
 type rbacClient struct {
 	k8s.KubernetesClientInterface
-	mu         sync.Mutex
-	allow      map[string]bool
-	fail       map[string]bool // same key format: the review errors
-	canList    bool
-	listErr    error
-	reviewErr  error // every review errors
-	namespaces map[string]*corev1.Namespace
-	reviews    atomic.Int32
-	inFlight   atomic.Int32
-	maxFlight  atomic.Int32
+	mu            sync.Mutex
+	allow         map[string]bool
+	fail          map[string]bool // same key format: the review request errors
+	indeterminate map[string]bool // same key format: completes with no decision
+	canList       bool
+	listErr       error
+	reviewErr     error // every review errors
+	namespaces    map[string]*corev1.Namespace
+	reviews       atomic.Int32
+	reviewed      []k8s.AccessReviewAttributes
+	inFlight      atomic.Int32
+	maxFlight     atomic.Int32
 }
 
 func key(ns, group, resource, verb string) string {
 	return ns + "|" + PermissionKey(group, resource) + "|" + verb
 }
 
-func (c *rbacClient) CheckAccess(_ context.Context, _ *k8s.RequestIdentity, verb, group, resource, namespace string) (bool, error) {
+func (c *rbacClient) ReviewAccess(_ context.Context, _ *k8s.RequestIdentity, a k8s.AccessReviewAttributes) (k8s.AccessReviewResult, error) {
+	verb, group, resource, namespace := a.Verb, a.Group, a.Resource, a.Namespace
 	n := c.inFlight.Add(1)
 	defer c.inFlight.Add(-1)
 	for {
@@ -54,22 +58,29 @@ func (c *rbacClient) CheckAccess(_ context.Context, _ *k8s.RequestIdentity, verb
 		}
 	}
 	c.reviews.Add(1)
-	if c.reviewErr != nil {
-		return false, c.reviewErr
-	}
-	if namespace == "" && resource == "namespaces" && verb == "list" {
-		return c.canList, nil
-	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.fail[key(namespace, group, resource, verb)] {
-		return false, errReview
+	c.reviewed = append(c.reviewed, a)
+	if c.reviewErr != nil {
+		return k8s.AccessReviewDenied, c.reviewErr
 	}
-	return c.allow[key(namespace, group, resource, verb)] || c.allow[key("*", group, resource, verb)], nil
+	k := key(namespace, group, resource, verb)
+	switch {
+	case c.fail[k]:
+		return k8s.AccessReviewDenied, errReview
+	case c.indeterminate[k]:
+		return k8s.AccessReviewIndeterminate, nil
+	case namespace == "" && resource == "namespaces" && verb == "list":
+		return boolResult(c.canList), nil
+	}
+	return boolResult(c.allow[k] || c.allow[key("*", group, resource, verb)]), nil
 }
 
-func (c *rbacClient) CanGetNamespace(ctx context.Context, id *k8s.RequestIdentity, name string) (bool, error) {
-	return c.CheckAccess(ctx, id, "get", "", "namespaces", name)
+func boolResult(allowed bool) k8s.AccessReviewResult {
+	if allowed {
+		return k8s.AccessReviewAllowed
+	}
+	return k8s.AccessReviewDenied
 }
 
 func (c *rbacClient) GetNamespace(_ context.Context, _ *k8s.RequestIdentity, name string) (*corev1.Namespace, error) {
@@ -281,6 +292,55 @@ func TestDiscover_PartialReviewFailureKeepsNamespaceButFailsActionClosed(t *test
 	ns := list.Namespaces[0]
 	assert.Equal(t, models.NamespaceActions{View: true, Delete: true}, ns.Actions)
 	assert.Equal(t, models.AccessError, ns.Permissions[PermissionKey(groupServing, "llminferenceservices")]["create"])
+	// The namespace is returned, but its failed review is still reported.
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+}
+
+func TestDiscover_IndeterminateReviewsAreErrorsNotDenials(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	indeterminate := map[string]bool{key("team-a", groupServing, "llminferenceservices", "create"): true}
+	for _, c := range NamespacePermissionMatrix {
+		for _, v := range c.Verbs {
+			indeterminate[key("webhook-down", c.Group, c.Resource, v)] = true
+		}
+	}
+	client := &rbacClient{allow: allow, indeterminate: indeterminate, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
+	repo := NewNamespaceAccessRepository([]string{"team-a", "webhook-down"}, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"team-a"}, names(list))
+	assert.Equal(t, models.AccessError, list.Namespaces[0].Permissions[PermissionKey(groupServing, "llminferenceservices")]["create"])
+	assert.False(t, list.Namespaces[0].Actions.Deploy)
+	assert.False(t, list.Complete, "an authorizer failure is not a clean result")
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 2}}, list.Issues)
+
+	// Indeterminate everywhere is unavailable, never an empty success.
+	only := NewNamespaceAccessRepository([]string{"webhook-down"}, "", nil, "opendatahub")
+	_, err = only.Discover(context.Background(), client, identity(), nil)
+	assert.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable)
+	_, err = only.Get(context.Background(), client, identity(), "webhook-down")
+	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
+}
+
+func TestDiscover_IndeterminateClusterListReviewFallsBackToCandidates(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	client := &rbacClient{
+		allow:         allow,
+		canList:       true,
+		indeterminate: map[string]bool{key("", "", "namespaces", "list"): true},
+		namespaces:    map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")},
+	}
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, models.NamespaceSourceCandidates, list.Source)
+	assert.Equal(t, []string{"team-a"}, names(list))
+	assert.Contains(t, list.Issues, models.NamespaceDiscoveryIssue{Code: models.IssueClusterListReviewFailed, Count: 1})
 }
 
 func TestDiscover_EveryReviewFailingIsUnavailable(t *testing.T) {
@@ -467,32 +527,79 @@ func TestDiscover_LabelledMetadataShownWhenCallerCanRead(t *testing.T) {
 	assert.Equal(t, "Labelled", list.Namespaces[0].DisplayName)
 }
 
-func TestDiscover_ClusterWideGrantsSkipPerNamespaceReviews(t *testing.T) {
+// An authorizer can allow a review made without a namespace yet deny the same
+// verb in a given namespace (webhooks may decide per namespace). Discovery
+// must therefore never reuse a namespace-less answer for a named namespace.
+func TestDiscover_EveryActionIsReviewedInTheTargetNamespace(t *testing.T) {
 	allow := map[string]bool{}
-	deployer(allow, "*")
-	existing := map[string]*corev1.Namespace{}
-	for i := 0; i < 50; i++ {
-		existing["ns-"+itoa(i)] = activeNS("ns-"+itoa(i), "")
-	}
-	client := &rbacClient{canList: true, allow: allow, namespaces: existing}
-	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+	deployer(allow, "") // allowed only for reviews without a namespace
+	viewer(allow, "team-a")
+	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{
+		"team-a": activeNS("team-a", ""), "team-b": activeNS("team-b", ""),
+	}}
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "", nil, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
-	require.Len(t, list.Namespaces, 50)
-	assert.True(t, list.Namespaces[0].Actions.Deploy)
-	// One cluster-wide pass and the denied leftovers per namespace, rather than
-	// the full matrix per namespace (50 x 16).
-	perNamespace := 0
-	for _, c := range NamespacePermissionMatrix {
-		for _, v := range c.Verbs {
-			if !allow[key("*", c.Group, c.Resource, v)] {
-				perNamespace++
-			}
+	assert.Equal(t, []string{"team-a"}, names(list))
+	assert.Equal(t, models.NamespaceActions{View: true}, list.Namespaces[0].Actions)
+	for _, a := range client.reviewed {
+		if a.Namespace == "" {
+			assert.Equal(t, k8s.AccessReviewAttributes{Verb: "list", Resource: "namespaces"}, a,
+				"only the cluster-list review is made without a namespace")
 		}
 	}
-	assert.LessOrEqual(t, int(client.reviews.Load()), 1+17+50*perNamespace+4)
-	assert.Less(t, int(client.reviews.Load()), 50*16)
+}
+
+func TestDiscover_ServiceAccountMetadataNeedsTheCallersNamedGet(t *testing.T) {
+	allow := map[string]bool{}
+	deployer(allow, "labelled")
+	delete(allow, key("labelled", "", "namespaces", "get"))
+	grant(allow, "", "", "namespaces", "get") // a namespace-less get proves nothing here
+	sa := fake.NewSimpleClientset(&corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: "labelled", Labels: map[string]string{"opendatahub.io/dashboard": "true"}, Annotations: map[string]string{"openshift.io/display-name": "Secret name"}},
+		Status:     corev1.NamespaceStatus{Phase: corev1.NamespaceActive},
+	})
+	repo := NewNamespaceAccessRepository(nil, "opendatahub.io/dashboard=true", sa, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), &rbacClient{allow: allow}, identity(), nil)
+	require.NoError(t, err)
+	require.Len(t, list.Namespaces, 1)
+	assert.Empty(t, list.Namespaces[0].DisplayName)
+	assert.Equal(t, models.NamespacePhaseUnknown, list.Namespaces[0].Phase)
+	assert.Equal(t, models.AccessDenied, list.Namespaces[0].Permissions[PermissionKey("", "namespaces")]["get"])
+}
+
+func TestDiscover_HiddenNamespacesCostOnlyTheActionReviews(t *testing.T) {
+	client := &rbacClient{allow: map[string]bool{}}
+	repo := NewNamespaceAccessRepository([]string{"not-mine"}, "", nil, "opendatahub")
+
+	_, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	actionReviews := 0
+	for _, c := range actionPermissionMatrix {
+		actionReviews += len(c.Verbs)
+	}
+	perNamespace := 0
+	for _, a := range client.reviewed {
+		if a.Namespace == "not-mine" {
+			perNamespace++
+		}
+	}
+	assert.Equal(t, actionReviews, perNamespace)
+}
+
+func TestNamespacePermissionMatrix_CoversEveryActionReview(t *testing.T) {
+	verbs := map[string]int{}
+	for _, c := range NamespacePermissionMatrix {
+		for _, v := range c.Verbs {
+			verbs[PermissionKey(c.Group, c.Resource)+"|"+v]++
+		}
+	}
+	assert.Len(t, verbs, 15)
+	for k, n := range verbs {
+		assert.Equal(t, 1, n, k)
+	}
 }
 
 func TestDiscover_RequestedNamesSurviveTruncation(t *testing.T) {
@@ -514,9 +621,9 @@ func TestDiscover_RequestedNamesSurviveTruncation(t *testing.T) {
 // blockingClient never answers until the request context ends.
 type blockingClient struct{ rbacClient }
 
-func (c *blockingClient) CheckAccess(ctx context.Context, _ *k8s.RequestIdentity, _, _, _, _ string) (bool, error) {
+func (c *blockingClient) ReviewAccess(ctx context.Context, _ *k8s.RequestIdentity, _ k8s.AccessReviewAttributes) (k8s.AccessReviewResult, error) {
 	<-ctx.Done()
-	return false, ctx.Err()
+	return k8s.AccessReviewDenied, ctx.Err()
 }
 
 func TestDiscover_DeadlineFailsClosedAndIsReported(t *testing.T) {

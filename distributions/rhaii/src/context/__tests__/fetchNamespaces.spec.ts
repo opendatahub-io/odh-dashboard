@@ -47,8 +47,8 @@ const accessEntry = (
   permissions: {},
 });
 
-const accessList = (source: string, namespaces: unknown[]) => ({
-  data: { source, complete: true, issues: [], namespaces },
+const accessList = (source: string, namespaces: unknown[], complete = true) => ({
+  data: { source, complete, issues: [], namespaces },
 });
 
 describe('fetchNamespaces', () => {
@@ -142,10 +142,32 @@ describe('fetchNamespaces', () => {
       await expect(fetchNamespaces()).rejects.toThrow('Invalid namespace list response');
     });
 
-    it('should surface discovery failures instead of an empty list', async () => {
+    it('should report an incomplete cluster list as partial so manual entry stays', async () => {
+      mockRoutes({
+        access: ok(accessList('cluster-list', [accessEntry('team-a')], false)),
+      });
+
+      const error = await fetchNamespaces().catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NamespaceListUnavailableError);
+      expect(
+        (error as NamespaceListUnavailableError).projects?.map((p) => p.metadata.name),
+      ).toEqual(['team-a']);
+    });
+
+    it('should keep manual entry available when discovery is unavailable', async () => {
       const fetchMock = mockRoutes({ access: { ok: false, status: 503 } as Response });
-      await expect(fetchNamespaces()).rejects.toThrow('Failed to list namespaces (HTTP 503)');
+
+      const error = await fetchNamespaces().catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NamespaceListUnavailableError);
+      expect((error as NamespaceListUnavailableError).projects).toEqual([]);
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should surface other discovery failures instead of an empty list', async () => {
+      mockRoutes({ access: { ok: false, status: 500 } as Response });
+      await expect(fetchNamespaces()).rejects.toThrow('Failed to list namespaces (HTTP 500)');
     });
   });
 

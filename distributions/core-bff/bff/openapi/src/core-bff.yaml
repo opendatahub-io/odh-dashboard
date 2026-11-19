@@ -170,8 +170,10 @@ paths:
         permitted (source cluster-list); otherwise from the configured
         NAMESPACE_CANDIDATES, the optional service-account label discovery and the
         namespace query parameters (source candidates). Each candidate is returned
-        only when the caller's SelfSubjectAccessReviews allow at least one RHAII
-        action in it. Failed reviews never grant an action. An empty result is
+        only when the caller's SelfSubjectAccessReviews, each made in that
+        namespace, allow at least one RHAII action in it. Failed and indeterminate
+        reviews (an authorizer error with no decision) are reported as error, never
+        grant an action, and are counted in issues. An empty result is
         data.namespaces: []. Discovery that found nothing because every source or
         review failed is 503. Absent (404) on OpenShift. See
         docs/namespace-discovery-contract.md.
