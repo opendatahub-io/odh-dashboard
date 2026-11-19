@@ -170,6 +170,7 @@ export type StackCapability = string;
  * When matching a DSC condition `type`, use the **v2** name. The dashboard requests the v2
  * DataScienceCluster, and the operator's conversion webhook renames condition types on the way
  * out (for example v3 `DataReady` is surfaced as `FeastOperatorReady`).
+ * @see https://github.com/opendatahub-io/opendatahub-operator/blob/b68a6fb48734ef7d2de91a1383c34bf68c47499a/api/datasciencecluster/v2/datasciencecluster_conversion.go#L422-L426
  *
  * @param state.dashboardConfigSpec The dashboard config spec
  * @param state.dscStatus The data science cluster status
