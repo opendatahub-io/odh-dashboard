@@ -775,8 +775,7 @@ export const verifyEvaluationCompletedAndViewResults = (
   evaluationRunName: string,
   expectedBenchmarkIds: string[] = [],
 ): void => {
-  cy.step('Re-open status modal after completion — View Results shown, Stop absent');
-  cy.reload();
+  cy.step('Wait for completion and re-open status modal — View Results shown, Stop absent');
   const statusTimeout = { timeout: 120000 };
   evaluationsPage.findPageTitle({ timeout: 30000 }).should('be.visible');
   evaluationsPage.findRunsTabContent(statusTimeout).should('be.visible');
