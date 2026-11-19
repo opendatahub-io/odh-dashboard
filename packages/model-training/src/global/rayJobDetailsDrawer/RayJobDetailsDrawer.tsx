@@ -95,9 +95,9 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
     <>
       <DrawerPanelContent
         isResizable
-        defaultSize="40%"
+        defaultSize="max(40%, 24rem)"
         minSize="25%"
-        maxSize="calc(100% - 30rem)"
+        maxSize="calc(100% - 22rem)"
         data-testid="ray-job-details-drawer"
       >
         <DrawerHead>
