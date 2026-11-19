@@ -103,6 +103,10 @@ spec:
             # distributions/core-bff/docs/runtime-contract.md, "Caller credentials".
             - --auth-token-headers=Authorization,x-forwarded-access-token
             - --platform-type=XKS
+            # Namespace discovery proposes namespaces carrying this label to
+            # callers who cannot list namespaces. A label never grants access:
+            # each candidate is authorized with the caller's own access reviews.
+            - --namespace-discovery-label-selector=opendatahub.io/dashboard=true
             - --static-assets-dir=/static
           env:
             # The BFF uses this namespace for its own namespaced Kubernetes

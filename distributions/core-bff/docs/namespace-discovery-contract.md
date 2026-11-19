@@ -53,9 +53,11 @@ available.
 
 ### The service-account exception
 
-The label enumeration is the only place discovery uses the dashboard service account, and it is
-**off by default**. Enabling it requires a cluster-scoped `list` on `namespaces` for the service
-account, which `manifests/base` does not grant. It is narrow by construction:
+The label enumeration is the only place discovery uses the dashboard service account. The BFF
+leaves it off unless `NAMESPACE_DISCOVERY_LABEL_SELECTOR` is set, and it requires a cluster-scoped
+`list` on `namespaces` for the service account. The RHAII bundle
+(`manifests/distributions/rhaii`) turns it on with `opendatahub.io/dashboard=true` and grants
+that `list`; `manifests/base` grants neither. It is narrow by construction:
 
 - It lists only namespaces matching the configured selector.
 - It contributes names. Its copy of a namespace's metadata (display name, phase) is used only
@@ -63,7 +65,9 @@ account, which `manifests/base` does not grant. It is narrow by construction:
 - A name it contributes reaches the caller only after the caller's reviews authorize it, so a
   label (for example `opendatahub.io/dashboard=true`) never establishes access.
 
-Prefer `NAMESPACE_CANDIDATES` where the set of RHAII namespaces is known at install time.
+`NAMESPACE_CANDIDATES` remains available where the set of RHAII namespaces is known at install
+time. A richer source (for example one the operator manages, or a UX for registering namespaces)
+is a possible future improvement, to be agreed with PM and UX.
 
 ## Permission matrix
 
@@ -132,7 +136,7 @@ user gets `view` only and is offered no mutation.
 | Authorized namespaces found                                | 200, `namespaces: [...]`                                | 200             |
 | No candidates, or every candidate denied                   | 200, `namespaces: []`, `complete: true`                 | 403             |
 | Namespace does not exist, caller cannot read namespaces    | not listed                                              | 403 (same as denied) |
-| Namespace does not exist, caller holds cluster-wide grants on matrix resources but no `get namespaces` | listed without `phase` | 200 without `phase` |
+| Namespace does not exist, caller holds cluster-wide grants on matrix resources but no `get namespaces` | listed with `phase: Unknown` | 200 with `phase: Unknown` |
 | Namespace does not exist, caller may read it               | not listed                                              | 404             |
 | Some reviews or a source failed                            | 200, `complete: false`, `issues` lists codes and counts | 503 if no action could be decided |
 | Every source or review failed and nothing was found        | 503 `SERVICE_UNAVAILABLE`                               | 503             |
@@ -148,6 +152,25 @@ reads; never causes a 503 on its own), `DISCOVERY_DEADLINE_EXCEEDED`.
 
 If the cluster-list review or the list itself fails, discovery falls back to the configured
 candidates. That fallback is safe because candidates grant nothing.
+
+## Phase
+
+`phase` is always present. It is the namespace's `status.phase` (`Active` or `Terminating`)
+when the namespace object could be read, and `Unknown` when the caller is authorized in the
+namespace but may not `get` the Namespace object. An `Unknown` namespace is usable: the UI offers
+it and labels it by its name, since `displayName` is then absent.
+
+## UI consumption (RHAII)
+
+`distributions/rhaii/src/context/fetchNamespaces.ts` calls `GET /api/v1/namespace-access` and
+`GET /api/v1/namespace-access/{name}`. A 404 means the endpoints are absent (not xKS), and the UI
+falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery:
+
+- `source: candidates` is shown as a partial listing: the authorized namespaces appear and manual
+  entry stays available. `source: cluster-list` is a complete listing.
+- `Active` and `Unknown` namespaces are selectable; `Terminating` ones are not.
+- Only namespaces with `actions.deploy` are offered as deployment targets
+  (`modelServingProjects`); the others are still listed for viewing.
 
 ## Cost
 

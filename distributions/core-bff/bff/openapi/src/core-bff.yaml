@@ -2047,7 +2047,7 @@ components:
 
     NamespaceAccess:
       type: object
-      required: [name, actions, permissions]
+      required: [name, phase, actions, permissions]
       properties:
         name:
           type: string
@@ -2056,7 +2056,11 @@ components:
           description: Present only when the namespace object could be read
         phase:
           type: string
-          description: Namespace status.phase, present only when the namespace object could be read
+          enum: [Active, Terminating, Unknown]
+          description: >-
+            Namespace status.phase when the namespace object could be read. Unknown when the caller
+            is authorized in the namespace but cannot read the Namespace object; such a namespace
+            is usable and the UI labels it by name.
         actions:
           $ref: '#/components/schemas/NamespaceActions'
         permissions:

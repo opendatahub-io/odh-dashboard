@@ -18,7 +18,11 @@ const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 
 const mockFetchNamespaces = jest.fn<Promise<ProjectKind[]>, [AbortSignal?]>();
 const mockFetchNamespaceByName = jest.fn<Promise<ProjectKind>, [string, AbortSignal?]>();
-class MockNamespaceListUnavailableError extends Error {}
+class MockNamespaceListUnavailableError extends Error {
+  constructor(readonly projects?: ProjectKind[]) {
+    super('Namespace listing is partial');
+  }
+}
 jest.mock('../fetchNamespaces', () => ({
   __esModule: true,
   default: (...args: [AbortSignal?]) => mockFetchNamespaces(...args),
@@ -59,13 +63,16 @@ const project = (name: string): ProjectKind => ({
 });
 
 const Consumer: React.FC = () => {
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const { projects, modelServingProjects, preferredProject } = React.useContext(ProjectsContext);
   const working = useWorkingProject();
   return (
     <>
       <div data-testid="source-status">{working.status}</div>
       <div data-testid="known-projects">
         {projects.map(({ metadata }) => metadata.name).join(',')}
+      </div>
+      <div data-testid="deploy-targets">
+        {modelServingProjects.map(({ metadata }) => metadata.name).join(',')}
       </div>
       <div data-testid="working-project">{working.activeProject?.name ?? 'none'}</div>
       <div data-testid="route-project">{preferredProject?.metadata.name ?? 'none'}</div>
@@ -93,7 +100,10 @@ describe('RHAII working project provider integration', () => {
         <Consumer />
       </ProjectsContextProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId('source-status')).toHaveTextContent('listed'));
+    // Listing succeeded; nothing is selected until the user chooses.
+    await waitFor(() =>
+      expect(screen.getByTestId('source-status')).toHaveTextContent('no-project-selected'),
+    );
     fireEvent.click(screen.getByText('Select allowed'));
     expect(screen.getByTestId('working-project')).toHaveTextContent('allowed');
     expect(screen.getByTestId('route-project')).toHaveTextContent('allowed');
@@ -107,7 +117,10 @@ describe('RHAII working project provider integration', () => {
         <Consumer />
       </ProjectsContextProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId('source-status')).toHaveTextContent('listed'));
+    // Listing succeeded; nothing is selected until the user chooses.
+    await waitFor(() =>
+      expect(screen.getByTestId('source-status')).toHaveTextContent('no-project-selected'),
+    );
     fireEvent.click(screen.getByTestId('working-project-selector'));
     expect(screen.getByRole('dialog', { name: 'Working project' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add project' })).not.toBeInTheDocument();
@@ -358,6 +371,43 @@ describe('RHAII working project provider integration', () => {
     expect(screen.getByTestId('known-projects')).toHaveTextContent('');
   });
 
+  it('should show discovered projects from a partial listing and keep manual entry', async () => {
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([project('allowed'), project('another')]),
+    );
+    // Selecting in a partial listing re-validates the project, as manual entry does.
+    mockFetchNamespaceByName.mockResolvedValue(project('allowed'));
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed,another'),
+    );
+    expect(screen.getByTestId('source-status')).toHaveTextContent('listing-unavailable');
+    fireEvent.click(screen.getByText('Select allowed'));
+    await waitFor(() => expect(screen.getByTestId('working-project')).toHaveTextContent('allowed'));
+    expect(mockFetchNamespaceByName).toHaveBeenCalledWith('allowed', undefined);
+  });
+
+  it('should offer only projects with deploy access as deployment targets', async () => {
+    mockFetchNamespaces.mockResolvedValue([
+      { ...project('allowed'), canDeploy: true },
+      { ...project('another'), canDeploy: false },
+      project('legacy'),
+    ] as ProjectKind[]);
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed,another,legacy'),
+    );
+    expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed,legacy');
+  });
+
   it('should preserve the legacy project context when UPS is disabled', async () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
@@ -417,5 +467,27 @@ describe('ProjectsContextProvider — waitForProject settlement', () => {
     });
 
     await expect(second).resolves.toBeUndefined();
+  });
+
+  it('resolves when the project appears in a partial listing', async () => {
+    let waitForProject: (name: string) => Promise<void> = () => Promise.resolve();
+    const WaitConsumer: React.FC = () => {
+      waitForProject = React.useContext(ProjectsContext).waitForProject;
+      return null;
+    };
+    await act(async () => {
+      render(
+        <ProjectsContextProvider>
+          <WaitConsumer />
+        </ProjectsContextProvider>,
+      );
+    });
+
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([project('project-c')]),
+    );
+    await act(async () => {
+      await expect(waitForProject('project-c')).resolves.toBeUndefined();
+    });
   });
 });

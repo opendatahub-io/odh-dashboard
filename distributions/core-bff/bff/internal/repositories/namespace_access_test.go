@@ -341,7 +341,7 @@ func TestDiscover_LabelledNamespacesAreOnlyCandidates(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"labelled-mine"}, names(list), "a label never grants access, and unlabelled namespaces are not discovered")
 	assert.Empty(t, list.Namespaces[0].DisplayName)
-	assert.Empty(t, list.Namespaces[0].Phase)
+	assert.Equal(t, models.NamespacePhaseUnknown, list.Namespaces[0].Phase)
 	assert.Equal(t, models.AccessDenied, list.Namespaces[0].Permissions[PermissionKey("", "namespaces")]["get"])
 }
 
@@ -438,7 +438,7 @@ func TestGet_Outcomes(t *testing.T) {
 	got, err = repo.Get(ctx, client, identity(), "no-meta")
 	require.NoError(t, err)
 	assert.True(t, got.Actions.Deploy)
-	assert.Empty(t, got.Phase, "metadata is omitted when the caller cannot read the namespace")
+	assert.Equal(t, models.NamespacePhaseUnknown, got.Phase, "the phase is explicit when the caller cannot read the namespace")
 
 	_, err = repo.Get(ctx, client, identity(), "gone")
 	assert.ErrorIs(t, err, ErrNamespaceNotFound)

@@ -61,7 +61,7 @@ core-bff refusing to start: invalid configuration (2 problems):
 | `--log-level`             | `LOG_LEVEL`                    | `INFO`                 | `error`, `warn`, `info`, `debug`.                                  |
 | `--mf-remotes-config`     | `MF_REMOTES_CONFIG`            | _(empty)_              | Module federation remotes file.                                    |
 | `--namespace-candidates`  | `NAMESPACE_CANDIDATES`         | _(empty)_              | xKS discovery candidates, comma-separated. Grants nothing. See the namespace discovery contract. |
-| `--namespace-discovery-label-selector` | `NAMESPACE_DISCOVERY_LABEL_SELECTOR` | _(empty: off)_ | Opt-in service-account enumeration of extra xKS candidates. Needs SA `list namespaces`. |
+| `--namespace-discovery-label-selector` | `NAMESPACE_DISCOVERY_LABEL_SELECTOR` | _(empty: off)_ | Service-account enumeration of extra xKS candidates. Needs SA `list namespaces`. The RHAII bundle sets `opendatahub.io/dashboard=true`. |
 
 ### Authentication
 

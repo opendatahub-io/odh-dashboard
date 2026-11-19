@@ -65,15 +65,22 @@ func (a NamespaceActions) Any() bool {
 	return a.View || a.Deploy || a.Edit || a.Delete || a.ManageTokenAuth
 }
 
+// NamespacePhaseUnknown is reported when the caller is authorized in a
+// namespace but its Namespace object (and so its status.phase) could not be
+// read. Such a namespace is usable: the UI offers it, labelled by its name.
+const NamespacePhaseUnknown = "Unknown"
+
 // NamespaceAccess is one namespace the caller is authorized to use, with the
 // permission matrix that authorized it.
 type NamespaceAccess struct {
 	Name string `json:"name"`
-	// DisplayName and Phase are present only when the namespace object could be
-	// read (by the caller, or by the opt-in label discovery).
-	DisplayName string           `json:"displayName,omitempty"`
-	Phase       string           `json:"phase,omitempty"`
-	Actions     NamespaceActions `json:"actions"`
+	// DisplayName is present only when the namespace object could be read (by
+	// the caller, or by the opt-in label discovery).
+	DisplayName string `json:"displayName,omitempty"`
+	// Phase is always set: the namespace's status.phase when it could be read,
+	// otherwise NamespacePhaseUnknown.
+	Phase   string           `json:"phase"`
+	Actions NamespaceActions `json:"actions"`
 	// Permissions is keyed by "<group>/<resource>" ("core" for the empty group).
 	Permissions map[string]ResourcePermissions `json:"permissions"`
 }
