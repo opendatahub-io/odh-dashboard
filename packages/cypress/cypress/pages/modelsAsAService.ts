@@ -556,6 +556,10 @@ class CopyApiKeyModal extends Modal {
     return this.find().findByTestId('api-key-usage-example');
   }
 
+  findUsageExampleCopyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-usage-example-copy-button');
+  }
+
   findEndpointCompatibilityAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-endpoint-compatibility-alert');
   }

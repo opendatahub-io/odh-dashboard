@@ -23,6 +23,34 @@ export const requestMaaSCompletion = (
     log: false,
   });
 
+/** Executes the Portal-provided curl command while accepting the cluster ingress certificate. */
+export const executeMaaSUsageExample = (
+  usageExample: string,
+): Cypress.Chainable<{ status: number; body: string }> => {
+  if (!/\bcurl\b/.test(usageExample)) {
+    throw new Error('The copied MaaS usage example does not contain a curl command');
+  }
+
+  const command = usageExample.replace(
+    /\bcurl\b/,
+    "curl -k --silent --show-error --write-out '\\n%{http_code}'",
+  );
+
+  return cy
+    .exec(command, { failOnNonZeroExit: false, log: false, timeout: 120000 })
+    .then(({ exitCode, stdout, stderr }) => {
+      expect(exitCode, `copied MaaS curl command failed: ${stderr}`).to.equal(0);
+      const statusMatch = stdout.match(/\n(\d{3})\s*$/);
+      if (!statusMatch) {
+        throw new Error('Could not read the HTTP status from the copied MaaS usage example');
+      }
+
+      const status = Number(statusMatch[1]);
+      const body = stdout.slice(0, statusMatch.index).trim();
+      return cy.wrap({ status, body }, { log: false });
+    });
+};
+
 /** Waits beyond Authorino's default 60-second metadata cache TTL for key revocation. */
 export const verifyMaaSApiKeyRevoked = (
   endpoint: string,

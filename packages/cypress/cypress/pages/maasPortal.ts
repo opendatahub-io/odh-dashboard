@@ -2,7 +2,10 @@ import type { UserAuthConfig } from '../types';
 
 class MaaSPortalPage {
   visitWithLogin(url: string, credentials: UserAuthConfig): void {
-    cy.visitWithLogin(url, credentials);
+    cy.visitWithLogin(url, {
+      ...credentials,
+      USERNAME: credentials.EMAIL?.trim() || credentials.USERNAME,
+    });
   }
 
   loginWithCachedSession(url: string, credentials: UserAuthConfig): void {

@@ -1,38 +1,23 @@
 import {
   checkMaaSAuthPolicyState,
   checkExternalModelExists,
-  checkExternalProviderExists,
   checkMaaSModelRefExists,
   checkMaaSSubscriptionState,
   cleanupApiKeys,
   cleanupAuthPolicy,
-  cleanupExternalModelResources,
-  cleanupExternalProvider,
-  cleanupExternalProviderSecret,
   cleanupSubscription,
-  createExternalProviderSecret,
   createMaaSAuthPolicy,
   createMaaSSubscription,
-  checkSecretExists,
+  getFirstReadyExternalModelName,
   modelsAsAServiceNamespace,
   waitForMaaSModelReady,
 } from '../../../utils/oc_commands/maas';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
-import {
-  addUserToProject,
-  deleteOpenShiftProjectBestEffort,
-} from '../../../utils/oc_commands/project';
-import { createCleanProject } from '../../../utils/projectChecker';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import {
-  addProviderReferenceWizard,
   apiKeysPage,
   copyApiKeyModal,
   createApiKeyModal,
-  createExternalModelPage,
-  createExternalProviderModal,
-  externalModelsPage,
-  externalProvidersPage,
   revokeAPIKeyModal,
   subscriptionsTab,
 } from '../../../pages/modelsAsAService';
@@ -40,15 +25,14 @@ import { maasPortalPage } from '../../../pages/maasPortal';
 import { MAAS_PORTAL_ADMIN_USER, MAAS_PORTAL_USER } from '../../../utils/e2eUsers';
 import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
 import {
-  requestMaaSCompletion,
+  executeMaaSUsageExample,
   verifyMaaSApiKeyRevoked,
 } from '../../../utils/maasApiKeyRevocation';
-import { loadExternalModelFixture } from '../../../utils/dataLoader';
-import type { ExternalModelTestData, UserAuthConfig } from '../../../types';
+import type { UserAuthConfig } from '../../../types';
 
 const testSuffix = `${generateTestUUID()}-${Date.now().toString(36).slice(-5)}`;
-const projectName = `portal-e2e-project-${testSuffix}`;
-const modelName = `portal-e2e-model-${testSuffix}`;
+let modelName: string;
+const modelNamespace = modelsAsAServiceNamespace;
 const subscriptionName = `portal-e2e-sub-${testSuffix}`;
 const policyName = `portal-e2e-policy-${testSuffix}`;
 const apiKeyName = `portal-e2e-key-${testSuffix}`;
@@ -57,46 +41,12 @@ const authPolicyFixture = 'resources/maas/MaaSAuthPolicyPortal.yaml';
 const enableFlag = Cypress.env('ENABLE_MAAS_PORTAL_E2E');
 const runMaaSPortalE2E = enableFlag === true || enableFlag === 'true';
 
-const createExternalModelStack = (adminUser: UserAuthConfig) =>
-  loadExternalModelFixture('e2e/maas/testExternalModels.yaml').then(
-    (fixtureData: ExternalModelTestData) => {
-      ensureAdminOcSession();
-      createCleanProject(projectName);
-      addUserToProject(projectName, adminUser.USERNAME, 'edit');
-      createExternalProviderSecret(projectName, modelName);
-      checkSecretExists(projectName, modelName);
-
-      externalModelsPage.visitAsUser(adminUser, { projectName });
-      externalModelsPage.findExternalProvidersButton().click();
-      externalProvidersPage.findCreateExternalProviderButton().click();
-      createExternalProviderModal.findDisplayNameInput().type(modelName);
-      createExternalProviderModal.selectProviderType(fixtureData.providerType);
-      createExternalProviderModal.findEndpointInput().type(fixtureData.providerEndpoint);
-      createExternalProviderModal.selectExistingSecret(modelName);
-      createExternalProviderModal.selectAuthentication(fixtureData.providerAuthType);
-      createExternalProviderModal.findSubmitButton().click();
-      checkExternalProviderExists(projectName, modelName);
-
-      externalProvidersPage.findBreadcrumbExternalModelsLink().click();
-      externalModelsPage.findAddExternalModelButton().click();
-      createExternalModelPage.findDisplayNameInput().clear().type(modelName);
-      createExternalModelPage.findAddProviderReferenceButton().click();
-      addProviderReferenceWizard.selectProvider(modelName);
-      addProviderReferenceWizard.findNextButton().should('be.enabled').click();
-      addProviderReferenceWizard.selectOpenAIFormat();
-      addProviderReferenceWizard.findTargetModelInput().clear().type(fixtureData.targetModel);
-      addProviderReferenceWizard.findAddButton().should('be.enabled').click();
-      createExternalModelPage.findCreateButton().click();
-
-      checkMaaSModelRefExists(projectName, modelName, {
-        modelRef: { kind: fixtureData.kind, name: modelName },
-      });
-      checkExternalModelExists(projectName, modelName, {
-        modelName,
-        externalProviderRefs: [modelName],
-      });
-    },
-  );
+const verifyExternalModelStack = (selectedModelName: string): void => {
+  checkExternalModelExists(modelNamespace, selectedModelName);
+  checkMaaSModelRefExists(modelNamespace, selectedModelName, {
+    modelRef: { kind: 'ExternalModel', name: selectedModelName },
+  });
+};
 
 const getRequiredPortalConfig = (): {
   portalUrl: string;
@@ -159,23 +109,33 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       PORTAL_ADMIN_USERNAME: adminUser.USERNAME,
     };
 
-    cy.step('Create an isolated ExternalModel stack for the portal test');
-    createExternalModelStack(adminUser);
-    createMaaSSubscription(
-      subscriptionName,
-      'Cypress MaaS Portal test subscription',
-      projectName,
-      modelName,
-      subscriptionFixture,
-      accessReplacements,
-    );
-    createMaaSAuthPolicy(policyName, projectName, modelName, authPolicyFixture, accessReplacements);
-    checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {
-      phase: 'Active',
-      models: [modelName],
+    cy.step('Select the first ready pre-provisioned ExternalModel for the portal test');
+    ensureAdminOcSession();
+    getFirstReadyExternalModelName(modelNamespace).then((selectedModelName) => {
+      modelName = selectedModelName;
+      verifyExternalModelStack(modelName);
+      createMaaSSubscription(
+        subscriptionName,
+        'Cypress MaaS Portal test subscription',
+        modelNamespace,
+        modelName,
+        subscriptionFixture,
+        accessReplacements,
+      );
+      createMaaSAuthPolicy(
+        policyName,
+        modelNamespace,
+        modelName,
+        authPolicyFixture,
+        accessReplacements,
+      );
+      checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {
+        phase: 'Active',
+        models: [modelName],
+      });
+      checkMaaSAuthPolicyState(policyName, modelsAsAServiceNamespace, { phase: 'Active' });
+      waitForMaaSModelReady(modelNamespace, modelName);
     });
-    checkMaaSAuthPolicyState(policyName, modelsAsAServiceNamespace, { phase: 'Active' });
-    waitForMaaSModelReady(projectName, modelName);
   });
 
   after(() => {
@@ -185,13 +145,9 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
 
     cy.step('Clean up isolated MaaS resources created by the portal test');
     ensureAdminOcSession();
+    cleanupApiKeys(apiKeyName);
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
     cleanupAuthPolicy(policyName, modelsAsAServiceNamespace);
-    cleanupExternalModelResources(modelName, projectName);
-    cleanupExternalProvider(modelName, projectName);
-    cleanupExternalProviderSecret(modelName, projectName);
-    deleteOpenShiftProjectBestEffort(projectName);
-    cleanupApiKeys(apiKeyName);
   });
 
   it(
@@ -247,35 +203,30 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
         .and('contain.text', 'Endpoint compatibility');
 
       cy.step('Run the copied usage example with the newly created API key');
-      stubClipboard('copiedApiKey', { log: false });
+      stubClipboard('copiedPortalValues', { log: false });
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
-      getClipboardContent('copiedApiKey', { log: false }).then((apiKeys) => {
-        const apiKey = apiKeys[0];
+      getClipboardContent('copiedPortalValues', { log: false }).then((copiedValues) => {
+        const apiKey = copiedValues[0];
         expect(typeof apiKey, 'created API key type').to.equal('string');
         expect(apiKey.length, 'created API key length').to.be.greaterThan(0);
         cy.wrap(apiKey, { log: false }).as('storedApiKey');
-        copyApiKeyModal
-          .findBaseURL()
-          .invoke('val')
-          .then((baseUrl) => {
-            copyApiKeyModal
-              .findModelID()
-              .invoke('val')
-              .then((model) => {
-                const modelId = String(model ?? '');
-                expect(modelId.length, 'created model ID length').to.be.greaterThan(0);
-                cy.wrap(modelId).as('createdModelId');
-                const gatewayBaseUrl = String(baseUrl ?? '').replace(/\/$/, '');
-
-                requestMaaSCompletion(`${gatewayBaseUrl}/v1/chat/completions`, apiKey, {
-                  model: modelId,
-                  messages: [{ role: 'user', content: 'Hello' }],
-                }).then((response) => {
-                  expect(response.status).to.equal(200);
-                });
-              });
-          });
       });
+      copyApiKeyModal
+        .findModelID()
+        .invoke('val')
+        .then((model) => {
+          const modelId = String(model ?? '');
+          expect(modelId.length, 'created model ID length').to.be.greaterThan(0);
+          cy.wrap(modelId).as('createdModelId');
+        });
+      copyApiKeyModal.findUsageExampleCopyButton().click();
+      getClipboardContent('copiedPortalValues', { log: false })
+        .should('have.length.at.least', 2)
+        .then((copiedValues) => {
+          executeMaaSUsageExample(copiedValues[1]).then(({ status }) => {
+            expect(status, 'MaaS inference response').to.equal(200);
+          });
+        });
 
       cy.step('Acknowledge the API key was copied and close the modal');
       copyApiKeyModal.acknowledgeKeyCopiedCheckbox();

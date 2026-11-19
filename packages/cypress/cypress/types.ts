@@ -22,6 +22,7 @@ export type InterceptSnapshot = {
 export type UserAuthConfig = {
   AUTH_TYPE: string;
   USERNAME: string;
+  EMAIL?: string;
   PASSWORD: string;
 };
 
