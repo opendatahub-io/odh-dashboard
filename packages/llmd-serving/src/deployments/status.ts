@@ -270,6 +270,7 @@ const getFailedCondition = (service: LLMInferenceServiceKind) => {
         )) &&
       condition.status === 'False' &&
       (condition.reason === LLMInferenceServiceReadyConditionReason.PROGRESS_DEADLINE_EXCEEDED ||
+        condition.reason === 'ConfigNotFound' ||
         (condition.severity === 'Error' && !PENDING_CONDITION_REASONS.has(condition.reason ?? ''))),
   );
 };
