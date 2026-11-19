@@ -237,6 +237,7 @@ export const verifyAutomlReconfiguration = (testData: AutomlTestData, uuid: stri
         cy.step('Edit the draft preset, model count, and metric');
         automlConfigurePage.findPresetRadio(configuration.reconfigure.preset).click();
         automlConfigurePage.findPresetRadio(configuration.reconfigure.preset).should('be.checked');
+        // Clearing is ignored by these controlled numeric inputs; replace the selected value instead.
         automlConfigurePage
           .findTopNInputField()
           .type(`{selectall}${configuration.reconfigure.topN}`);

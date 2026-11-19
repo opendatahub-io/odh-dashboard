@@ -1246,6 +1246,7 @@ export type AutomlConfigurationTestData = Pick<
   'projectNamePrefix' | 'dspaSecretName' | 'awsBucket'
 > & {
   defaultPreset: string;
+  recommendedBadgeLabel: string;
   tabularPresets: string[];
   timeseriesPresets: string[];
   unsupportedTimeseriesPreset: string;

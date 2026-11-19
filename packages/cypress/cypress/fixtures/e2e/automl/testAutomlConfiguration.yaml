@@ -2,6 +2,7 @@ projectNamePrefix: cy-e2e-automl-config
 dspaSecretName: dashboard-dspa-secret
 awsBucket: BUCKET_2
 defaultPreset: speed
+recommendedBadgeLabel: Recommended
 tabularPresets:
   - speed
   - balanced

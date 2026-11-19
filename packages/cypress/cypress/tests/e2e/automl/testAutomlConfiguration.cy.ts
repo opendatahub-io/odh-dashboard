@@ -75,6 +75,7 @@ describe('AutoML prediction type configuration E2E', () => {
       automlConfigurePage.findOptimizationMetricCancelButton().click();
 
       cy.step('Change each supported run preset and verify other settings are preserved');
+      // These controlled numeric inputs ignore empty values; replace the selection in one edit.
       automlConfigurePage.findTopNInputField().type(`{selectall}${configuration.topModels.min}`);
       presets.forEach((preset) => {
         automlConfigurePage.findPresetRadio(preset).should('be.visible').click();
@@ -100,6 +101,7 @@ describe('AutoML prediction type configuration E2E', () => {
       cy.step('Reject top-model counts outside the limits for this prediction type');
       [configuration.topModels.min - 1, maxTopN + 1].forEach((value) => {
         automlConfigurePage.findTopNInputField().type(`{selectall}${value}`).blur();
+        automlConfigurePage.findTopNInputField().should('have.value', value);
         automlConfigurePage.findTopNInputField().should('have.attr', 'aria-invalid', 'true');
         automlConfigurePage.findCreateRunButton().should('be.disabled');
       });
@@ -238,6 +240,9 @@ describe('AutoML prediction type configuration E2E', () => {
           automlConfigurePage
             .findTopNInputField()
             .type(`{selectall}${configuration.topModels.tabularMax}`);
+          automlConfigurePage
+            .findTopNInputField()
+            .should('have.value', configuration.topModels.tabularMax);
           verifyAndChangeOptimizationMetric(
             regressionData.defaultMetricLabel as string,
             regressionData.changedMetricKey as string,
@@ -271,6 +276,9 @@ describe('AutoML prediction type configuration E2E', () => {
           automlConfigurePage
             .findTopNInputField()
             .type(`{selectall}${configuration.topModels.timeseriesMax}`);
+          automlConfigurePage
+            .findTopNInputField()
+            .should('have.value', configuration.topModels.timeseriesMax);
           automlConfigurePage.findTimestampColumnSelect().click();
           automlConfigurePage.findSelectOption(timeseriesData.timestampColumn as string).click();
           automlConfigurePage.findCreateRunButton().should('be.enabled');
@@ -337,6 +345,7 @@ describe('AutoML prediction type configuration E2E', () => {
         [configuration.predictionLength.min - 1, configuration.predictionLength.max + 1].forEach(
           (value) => {
             automlConfigurePage.findPredictionLengthInputField().type(`{selectall}${value}`).blur();
+            automlConfigurePage.findPredictionLengthInputField().should('have.value', value);
             automlConfigurePage
               .findPredictionLengthInputField()
               .should('have.attr', 'aria-invalid', 'true');
@@ -348,6 +357,7 @@ describe('AutoML prediction type configuration E2E', () => {
         [configuration.predictionLength.min, configuration.predictionLength.max].forEach(
           (value) => {
             automlConfigurePage.findPredictionLengthInputField().type(`{selectall}${value}`).blur();
+            automlConfigurePage.findPredictionLengthInputField().should('have.value', value);
             automlConfigurePage.findCreateRunButton().should('be.enabled');
           },
         );
@@ -387,7 +397,10 @@ describe('AutoML prediction type configuration E2E', () => {
             .click();
           automlConfigurePage.findPredictionTypeHelperWithoutTarget().should('not.exist');
           automlConfigurePage.findTaskTypeRadio(testData.taskType).should('be.checked');
-          automlConfigurePage.findRecommendedTaskTypeBadge(testData.taskType).should('be.visible');
+          automlConfigurePage
+            .findRecommendedTaskTypeBadge(testData.taskType)
+            .should('be.visible')
+            .and('have.text', configuration.recommendedBadgeLabel);
           automlConfigurePage.findPresetRadio(configuration.defaultPreset).should('be.checked');
           automlConfigurePage
             .findOptimizationMetricValue()
