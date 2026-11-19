@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ImportCollectionModal from '~/app/components/ImportCollectionModal';
@@ -8,8 +8,16 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { IMPORT_COLLECTION_TEMPLATE } from '~/app/utils/collectionImport';
 
 const mockMutate = jest.fn();
+const mockNavigate = jest.fn();
+const mockOnClose = jest.fn();
+let mockImportPending = false;
 
 const mockTrackEvalHubEvent = jest.fn();
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
 
 jest.mock('~/app/tracking/useEvalHubTracking', () => ({
   useEvalHubTracking: () => ({
@@ -31,6 +39,23 @@ jest.mock('@monaco-editor/react', () => ({ loader: { config: jest.fn() } }));
 jest.mock('@patternfly/react-code-editor', () => ({
   ...jest.requireActual('@patternfly/react-code-editor'),
   CodeEditor: () => null,
+  // The real control reads the editor context for the code argument; the
+  // stubbed editor does not provide it.
+  CodeEditorControl: ({
+    icon,
+    'aria-label': ariaLabel,
+    isDisabled,
+    onClick,
+  }: {
+    icon: React.ReactNode;
+    'aria-label': string;
+    isDisabled?: boolean;
+    onClick: () => void;
+  }) => (
+    <button type="button" aria-label={ariaLabel} disabled={isDisabled} onClick={() => onClick()}>
+      {icon}
+    </button>
+  ),
 }));
 jest.mock('~/app/components/EvalHubCodeEditor', () => ({
   __esModule: true,
@@ -38,17 +63,29 @@ jest.mock('~/app/components/EvalHubCodeEditor', () => ({
     code,
     onChange,
     diagnostics,
+    customControls,
+    language,
+    isReadOnly,
   }: {
     code: string;
     onChange: (value: string) => void;
     diagnostics?: { message: string; severity: string; line: number }[];
+    customControls?: React.ReactNode;
+    language?: string;
+    isReadOnly?: boolean;
   }) => (
-    <textarea
-      data-testid="import-collection-editor-textarea"
-      data-diagnostics={JSON.stringify(diagnostics ?? [])}
-      value={code}
-      onChange={(event) => onChange(event.target.value)}
-    />
+    <div>
+      {customControls}
+      <textarea
+        data-testid="import-collection-editor-textarea"
+        data-diagnostics={JSON.stringify(diagnostics ?? [])}
+        data-language={language}
+        data-readonly={isReadOnly ? 'true' : 'false'}
+        readOnly={isReadOnly}
+        value={code}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </div>
   ),
 }));
 
@@ -57,29 +94,33 @@ jest.mock('~/app/hooks/collections', () => ({
     data: { items: [mockCollection({ name: 'Existing Collection' })] },
   }),
   useImportCollectionMutation: () => ({
-    isPending: false,
+    isPending: mockImportPending,
     reset: jest.fn(),
     mutate: (...args: unknown[]) => mockMutate(...args),
   }),
 }));
 
-const renderModal = (isOpen = true) =>
-  render(
-    <MemoryRouter>
-      <ImportCollectionModal
-        isOpen={isOpen}
-        onClose={jest.fn()}
-        namespace="test-ns"
-        surface="collection_gallery"
-      />
-    </MemoryRouter>,
-  );
+const modalTree = (isOpen = true) => (
+  <MemoryRouter>
+    <ImportCollectionModal
+      isOpen={isOpen}
+      onClose={mockOnClose}
+      namespace="test-ns"
+      surface="collection_gallery"
+    />
+  </MemoryRouter>
+);
+
+const renderModal = (isOpen = true) => render(modalTree(isOpen));
 
 const validContent =
   'name: importable\ncategory: safety\nbenchmarks:\n  - id: a\n    provider_id: b\n';
 
 const findEditor = (): HTMLTextAreaElement =>
   screen.getByTestId('import-collection-editor-textarea') as HTMLTextAreaElement;
+
+const findNameInput = (): HTMLInputElement =>
+  screen.getByTestId('import-collection-name') as HTMLInputElement;
 
 const getDiagnostics = (): { message: string; severity: string; line: number }[] =>
   JSON.parse(findEditor().dataset.diagnostics ?? '[]');
@@ -91,14 +132,62 @@ const typeContent = async (content: string) => {
   await userEvent.type(editor, content);
 };
 
+const renameViaField = async (name: string) => {
+  const input = findNameInput();
+  await userEvent.clear(input);
+  await userEvent.type(input, `${name}{Enter}`);
+};
+
 describe('ImportCollectionModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockImportPending = false;
   });
 
-  it('should prepopulate the editor with the default template', () => {
+  it('should render the design copy and required field labels', () => {
+    renderModal();
+    expect(screen.getByText('Import collection from file')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Upload a YAML or JSON file, or edit the sample template. Nothing is created until you select Import.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /Collection definition/ })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Collection name/ })).toBeInTheDocument();
+    expect(
+      screen.getByText('Replace the example values below, or upload your own YAML or JSON file.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'One .yaml, .yml, or .json file, up to 1 MiB. Files are read locally as UTF-8.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Syntax and advisory checks appear here. The service validates references when you import.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('The collection name stays in sync with the definition above.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Reset to sample template')).toBeInTheDocument();
+  });
+
+  it('should prepopulate the editor with the default template and mirror its name', () => {
     renderModal();
     expect(findEditor().value).toBe(IMPORT_COLLECTION_TEMPLATE);
+    expect(findEditor().dataset.language).toBe('yaml');
+    expect(findNameInput().value).toBe('my-collection');
+  });
+
+  it('should label the editor language from the content', async () => {
+    renderModal();
+    fireEvent.change(findEditor(), {
+      target: { value: '{"name": "json-collection", "description": "json doc"}' },
+    });
+    expect(findEditor().dataset.language).toBe('json');
+    await typeContent(validContent);
+    expect(findEditor().dataset.language).toBe('yaml');
   });
 
   it('should track the opened event when opened', () => {
@@ -108,7 +197,7 @@ describe('ImportCollectionModal', () => {
     });
   });
 
-  it('should mark the invalid YAML line as an error diagnostic and disable submit', async () => {
+  it('should mark the invalid YAML line as an error diagnostic and disable submit and the name field', async () => {
     renderModal();
     await typeContent('name: broken\n  bad_indent: true\n');
     expect(getDiagnostics()).toContainEqual({
@@ -117,6 +206,7 @@ describe('ImportCollectionModal', () => {
       line: 2,
     });
     expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+    expect(findNameInput()).toBeDisabled();
   });
 
   it('should mark missing description and unrecognized fields as warning diagnostics', async () => {
@@ -147,7 +237,81 @@ describe('ImportCollectionModal', () => {
     );
   });
 
-  it('should detect a name collision and apply the suggested name', async () => {
+  it('should update the name field when the editor content changes', async () => {
+    renderModal();
+    await typeContent(validContent);
+    expect(findNameInput().value).toBe('importable');
+  });
+
+  it('should mirror the name into the editor after the debounce', async () => {
+    renderModal();
+    await typeContent(validContent);
+    const input = findNameInput();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'live-name');
+    await waitFor(() => expect(findEditor().value).toContain('name: live-name'));
+    expect(findNameInput().value).toBe('live-name');
+  });
+
+  it('should flush a pending name change on blur without waiting for the debounce', async () => {
+    renderModal();
+    await typeContent(validContent);
+    const input = findNameInput();
+    fireEvent.change(input, { target: { value: 'flushed-on-blur' } });
+    fireEvent.blur(input);
+    expect(findEditor().value).toContain('name: flushed-on-blur');
+  });
+
+  it('should rewrite only the top-level name when the name field is committed', async () => {
+    renderModal();
+    await typeContent(validContent);
+    await renameViaField('renamed');
+    expect(findEditor().value).toContain('name: renamed');
+    expect(findEditor().value).not.toContain('name: importable');
+    expect(findNameInput().value).toBe('renamed');
+  });
+
+  it('should rewrite the YAML when the name field loses focus', async () => {
+    renderModal();
+    await typeContent(validContent);
+    const input = findNameInput();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'renamed-on-blur');
+    fireEvent.blur(input);
+    expect(findEditor().value).toContain('name: renamed-on-blur');
+    expect(findNameInput().value).toBe('renamed-on-blur');
+  });
+
+  it('should insert a top-level name after leading comments when the definition has none', async () => {
+    renderModal();
+    await typeContent('# Example collection format\n\ndescription: no name yet\n');
+    expect(findNameInput().value).toBe('');
+    await renameViaField('inserted');
+    const lines = findEditor().value.split('\n');
+    expect(lines[0]).toBe('# Example collection format');
+    expect(lines.slice(0, 4)).toEqual([
+      '# Example collection format',
+      '',
+      'name: inserted',
+      'description: no name yet',
+    ]);
+    expect(findNameInput().value).toBe('inserted');
+  });
+
+  it('should show a required error and disable submit when the name is emptied', async () => {
+    renderModal();
+    await typeContent(validContent);
+    const input = findNameInput();
+    await userEvent.clear(input);
+    fireEvent.blur(input);
+    expect(screen.getByText('Collection name is required.')).toBeInTheDocument();
+    expect(
+      screen.queryByText('The collection name stays in sync with the definition above.'),
+    ).toBeNull();
+    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+  });
+
+  it('should detect a name collision and apply the suggested name to the editor and field', async () => {
     renderModal();
     await typeContent(
       'name: Existing Collection\ncategory: safety\nbenchmarks:\n  - id: a\n    provider_id: b\n',
@@ -160,37 +324,91 @@ describe('ImportCollectionModal', () => {
     expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: /Use suggested name/ }));
     expect(findEditor().value).toContain(`name: Existing Collection-${today}`);
+    expect(findNameInput().value).toBe(`Existing Collection-${today}`);
     expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
   });
 
-  it('should disable the submit button while the definition matches the sample template', async () => {
+  it('should disable the submit button while the definition matches the sample template without an alert', async () => {
     renderModal();
-    expect(screen.getByTestId('import-collection-template').textContent).toContain(
-      'unchanged sample template',
-    );
+    expect(screen.queryByTestId('import-collection-template')).not.toBeInTheDocument();
     expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
     await typeContent(validContent);
-    expect(screen.queryByTestId('import-collection-template')).not.toBeInTheDocument();
     expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
   });
 
-  it('should submit the editor content and show the success result with warnings', async () => {
-    const createdCollection = mockCollection({ name: 'imported' });
-    mockMutate.mockImplementation(
-      (_content: string, options: { onSuccess: (r: unknown) => void }) =>
-        options.onSuccess({ collection: createdCollection, warnings: ['ignored "id"'] }),
+  it('should treat a name-only change as an edit of the sample template', async () => {
+    renderModal();
+    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+    await renameViaField('renamed-template');
+    expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
+  });
+
+  it('should restore the sample template from the reset link', async () => {
+    renderModal();
+    await typeContent(validContent);
+    fireEvent.click(screen.getByTestId('import-collection-reset'));
+    expect(findEditor().value).toBe(IMPORT_COLLECTION_TEMPLATE);
+    expect(findNameInput().value).toBe('my-collection');
+    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+  });
+
+  it('should empty the editor from the clear control', async () => {
+    renderModal();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear the collection definition' }));
+    expect(findEditor().value).toBe('');
+    expect(findNameInput()).toBeDisabled();
+  });
+
+  it('should submit a pending name draft when Import is clicked before blur', async () => {
+    renderModal();
+    await typeContent(validContent);
+    const input = findNameInput();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'renamed');
+    fireEvent.click(screen.getByTestId('import-collection-submit'));
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.stringContaining('name: renamed'),
+      expect.anything(),
+    );
+    expect(findEditor().value).toContain('name: renamed');
+  });
+
+  it('should close, track, and navigate to the collections page on success', async () => {
+    mockMutate.mockImplementation((_content: string, options: { onSuccess: () => void }) =>
+      options.onSuccess(),
     );
     renderModal();
     await typeContent(validContent);
     fireEvent.click(screen.getByTestId('import-collection-submit'));
-    const success = await screen.findByTestId('import-collection-success');
-    expect(success.textContent).toContain('imported');
-    expect(success.textContent).toContain('ignored "id"');
     expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_IMPORT_SUCCEEDED,
       { surface: 'collection_gallery' },
     );
+    expect(mockOnClose).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-ns/collections');
+    expect(screen.queryByTestId('import-collection-success')).not.toBeInTheDocument();
     expect(mockMutate).toHaveBeenCalledWith(validContent, expect.anything());
+  });
+
+  it('should lock the definition, actions, and close controls while the import is pending', async () => {
+    const view = renderModal();
+    await typeContent(validContent);
+
+    mockImportPending = true;
+    view.rerender(modalTree());
+
+    expect(findNameInput()).toBeDisabled();
+    expect(findEditor()).toHaveAttribute('readonly');
+    expect(screen.getByTestId('import-collection-reset')).toBeDisabled();
+    expect(screen.getByTestId('import-collection-cancel')).toBeDisabled();
+    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Upload a collection definition file' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Clear the collection definition' })).toBeDisabled();
+
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+    expect(mockOnClose).not.toHaveBeenCalled();
   });
 
   it('should keep the dialog open with the error when submission fails', async () => {
@@ -207,6 +425,8 @@ describe('ImportCollectionModal', () => {
     expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.COLLECTION_IMPORT_FAILED, {
       surface: 'collection_gallery',
     });
+    expect(mockOnClose).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
     // The editor stays available for corrections.
     expect(screen.getByTestId('import-collection-editor')).toBeInTheDocument();
   });

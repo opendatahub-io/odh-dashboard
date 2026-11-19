@@ -8,6 +8,7 @@ import {
   IMPORT_COLLECTION_TEMPLATE,
   isNameConflictError,
   isUnmodifiedTemplate,
+  detectImportLanguage,
   parseImportContent,
   proposeUniqueName,
 } from '~/app/utils/collectionImport';
@@ -21,6 +22,19 @@ benchmarks:
   - id: arc_easy
     provider_id: lm_evaluation_harness
 `;
+
+describe('detectImportLanguage', () => {
+  it('should detect JSON objects and arrays', () => {
+    expect(detectImportLanguage('{"name": "x"}')).toBe('json');
+    expect(detectImportLanguage('  [1, 2]')).toBe('json');
+  });
+
+  it('should default to YAML when the content is not recognizable JSON', () => {
+    expect(detectImportLanguage('name: x')).toBe('yaml');
+    expect(detectImportLanguage('')).toBe('yaml');
+    expect(detectImportLanguage('   ')).toBe('yaml');
+  });
+});
 
 describe('parseImportContent', () => {
   it('should parse a valid YAML document', () => {
@@ -250,6 +264,39 @@ describe('applyImportName', () => {
     const result = applyImportName('{"name": "old", "domains": ["x"]}', 'renamed');
     expect(JSON.parse(result)).toEqual({ name: 'renamed', domains: ['x'] });
   });
+
+  it('should add a name property to JSON content that has none', () => {
+    const result = applyImportName('{"domains": ["x"]}', 'renamed');
+    expect(JSON.parse(result)).toEqual({ domains: ['x'], name: 'renamed' });
+  });
+
+  it('should preserve leading comments when replacing the name', () => {
+    const text = '# Example collection format\n\nname: old\ndescription: kept\n';
+    expect(applyImportName(text, 'new')).toBe(
+      '# Example collection format\n\nname: new\ndescription: kept\n',
+    );
+  });
+
+  it('should insert a name after the leading comment block when one is missing', () => {
+    const text = '# Example collection format\n\ndescription: kept\n';
+    expect(applyImportName(text, 'inserted')).toBe(
+      '# Example collection format\n\nname: inserted\ndescription: kept\n',
+    );
+  });
+
+  it('should insert a name into empty content', () => {
+    expect(applyImportName('', 'inserted')).toBe('name: inserted\n');
+  });
+
+  it('should not insert an empty name when the definition has none', () => {
+    const text = 'description: kept\n';
+    expect(applyImportName(text, '   ')).toBe(text);
+  });
+
+  it('should quote names that would otherwise break the YAML', () => {
+    const result = applyImportName('name: old\ndescription: kept\n', 'a: b # c');
+    expect(parseImportContent(result).doc?.name).toBe('a: b # c');
+  });
 });
 
 describe('isNameConflictError', () => {
@@ -270,6 +317,12 @@ describe('IMPORT_COLLECTION_TEMPLATE', () => {
     expect(result.error).toBeUndefined();
     expect(result.doc?.name).toBe('my-collection');
     expect(getImportWarnings(result.doc ?? {})).toEqual([]);
+  });
+
+  it('should start with the example comment line', () => {
+    expect(IMPORT_COLLECTION_TEMPLATE.startsWith('# Example collection format\n\nname: ')).toBe(
+      true,
+    );
   });
 });
 

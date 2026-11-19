@@ -50,7 +50,9 @@ const KNOWN_BENCHMARK_FIELDS = new Set([
 // Benchmark fields the server derives from the provider definition.
 const SERVER_MANAGED_BENCHMARK_FIELDS = new Set(['url']);
 
-export const IMPORT_COLLECTION_TEMPLATE = `name: my-collection
+export const IMPORT_COLLECTION_TEMPLATE = `# Example collection format
+
+name: my-collection
 description: >
   A short description of what this collection evaluates.
 domains:
@@ -71,6 +73,18 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const toErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
+
+export type ImportLanguage = 'json' | 'yaml';
+
+/**
+ * JSON is recognized by a leading object/array brace; everything else is
+ * treated as YAML. Kept in sync with the parser's own branch so the editor
+ * label matches how the content is interpreted.
+ */
+export const detectImportLanguage = (text: string): ImportLanguage => {
+  const trimmed = text.trimStart();
+  return trimmed.startsWith('{') || trimmed.startsWith('[') ? 'json' : 'yaml';
+};
 
 export type ParsedImportContent = {
   doc: Record<string, unknown> | null;
@@ -130,7 +144,7 @@ export const parseImportContent = (text: string): ParsedImportContent => {
   }
 
   let documents: unknown[];
-  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+  if (detectImportLanguage(text) === 'json') {
     try {
       documents = [JSON.parse(trimmed)];
     } catch (e) {
@@ -323,10 +337,15 @@ export const proposeUniqueName = (name: string, collections: Collection[]): stri
   return `${dated}-${counter}`;
 };
 
+/** Serializes a value as a single YAML scalar, quoting it when needed. */
+const serializeYamlScalar = (value: string): string =>
+  yaml.dump(value, { lineWidth: -1 }).trimEnd();
+
 /**
  * Replaces the top-level name in the raw content so the editor text stays
  * the single source of truth. JSON content is re-serialized; YAML replaces
- * the unindented `name:` line.
+ * the unindented `name:` line, or inserts one after any leading comment or
+ * blank block when the definition has no name yet.
  */
 export const applyImportName = (text: string, newName: string): string => {
   const trimmed = text.trimStart();
@@ -341,10 +360,28 @@ export const applyImportName = (text: string, newName: string): string => {
       // Fall through to the line replacement below.
     }
   }
+  const serialized = serializeYamlScalar(newName);
   if (/^name:[ \t]*.*$/m.test(text)) {
-    return text.replace(/^name:[ \t]*.*$/m, `name: ${newName}`);
+    return text.replace(/^name:[ \t]*.*$/m, `name: ${serialized}`);
   }
-  return text;
+  if (newName.trim() === '') {
+    return text;
+  }
+  if (text.trim() === '') {
+    return `name: ${serialized}\n`;
+  }
+  const lines = text.split('\n');
+  let insertIndex = 0;
+  while (insertIndex < lines.length) {
+    const line = lines[insertIndex];
+    if (/^\s*$/.test(line) || /^#/.test(line)) {
+      insertIndex += 1;
+      continue;
+    }
+    break;
+  }
+  lines.splice(insertIndex, 0, `name: ${serialized}`);
+  return lines.join('\n');
 };
 
 /**

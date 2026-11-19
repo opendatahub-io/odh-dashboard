@@ -78,13 +78,16 @@ describe('Import collection', () => {
     evaluationsPage.findImportCollectionButton().should('be.enabled').click();
 
     importCollectionModal.shouldBeOpen();
-    importCollectionModal.getValue().should('match', /name: my-collection/);
-    // The unchanged sample template is not importable as-is.
-    importCollectionModal.findTemplateAlert().should('contain.text', 'sample template');
+    importCollectionModal
+      .getValue()
+      .should('match', /# Example collection format\n\nname: my-collection/);
+    importCollectionModal.findNameInput().should('have.value', 'my-collection');
+    // The unchanged sample template is not importable as-is, without an alert.
+    cy.findByTestId('import-collection-template').should('not.exist');
     importCollectionModal.findSubmitButton().should('be.disabled');
 
     importCollectionModal.setValue(validContent);
-    importCollectionModal.findTemplateAlert().should('not.exist');
+    importCollectionModal.findNameInput().should('have.value', 'imported-suite');
     importCollectionModal.findSubmitButton().should('be.enabled');
   });
 
@@ -104,6 +107,7 @@ describe('Import collection', () => {
     // The offending line carries an error marker (squiggle + margin icon).
     importCollectionModal.findErrorSquiggle().should('exist');
     importCollectionModal.findSubmitButton().should('be.disabled');
+    importCollectionModal.findNameInput().should('be.disabled');
 
     importCollectionModal.setValue(validContent);
     importCollectionModal.findErrorSquiggle().should('not.exist');
@@ -132,11 +136,60 @@ describe('Import collection', () => {
     // Submission is blocked until the collision is resolved.
     importCollectionModal.findSubmitButton().should('be.disabled');
     importCollectionModal.findUseSuggestedNameButton().click();
-    importCollectionModal.getValue().should('match', /name: existing suite-\d{4}-\d{2}-\d{2}/);
+    importCollectionModal.getValue().should('match', /name: '?existing suite-\d{4}-\d{2}-\d{2}'?/);
+    importCollectionModal
+      .findNameInput()
+      .invoke('val')
+      .should('match', /^existing suite-\d{4}-\d{2}-\d{2}$/);
     importCollectionModal.findSubmitButton().should('be.enabled');
   });
 
-  it('should submit the content, report success, and show the imported collection', () => {
+  it('should label the definition language from its content', () => {
+    evaluationsPage.visitBenchmarkSuites(NAMESPACE);
+    evaluationsPage.findImportCollectionButton().click();
+
+    importCollectionModal.findLanguageLabel().should('have.text', 'YAML');
+
+    importCollectionModal.setValue(
+      '{"name": "json-collection", "description": "Imported as JSON."}',
+    );
+    importCollectionModal.findLanguageLabel().should('have.text', 'JSON');
+
+    importCollectionModal.setValue(validContent);
+    importCollectionModal.findLanguageLabel().should('have.text', 'YAML');
+  });
+
+  it('should keep the name field and the definition in sync', () => {
+    evaluationsPage.visitBenchmarkSuites(NAMESPACE);
+    evaluationsPage.findImportCollectionButton().click();
+
+    importCollectionModal.setValue(validContent);
+    importCollectionModal.findNameInput().should('have.value', 'imported-suite');
+
+    importCollectionModal.findNameInput().clear().type('renamed-suite');
+    // The editor mirrors the name while the field still has focus, after the
+    // debounced write.
+    importCollectionModal.shouldContainValue(/name: renamed-suite\n/);
+    importCollectionModal.findNameInput().should('have.value', 'renamed-suite');
+
+    importCollectionModal.findNameInput().type('{enter}');
+    importCollectionModal.getValue().should('match', /name: renamed-suite\n/);
+    importCollectionModal.findSubmitButton().should('be.enabled');
+  });
+
+  it('should restore the sample template from the reset link', () => {
+    evaluationsPage.visitBenchmarkSuites(NAMESPACE);
+    evaluationsPage.findImportCollectionButton().click();
+
+    importCollectionModal.setValue(validContent);
+    importCollectionModal.findResetButton().click();
+
+    importCollectionModal.getValue().should('match', /name: my-collection/);
+    importCollectionModal.findNameInput().should('have.value', 'my-collection');
+    importCollectionModal.findSubmitButton().should('be.disabled');
+  });
+
+  it('should submit the content from the collections page and stay on the collections page', () => {
     cy.intercept(
       {
         method: 'POST',
@@ -160,8 +213,74 @@ describe('Import collection', () => {
     cy.wait('@importCollection').then((interception) => {
       expect(interception.request.body).to.deep.equal({ content: validContent });
     });
-    importCollectionModal.findSuccessAlert().should('contain.text', 'Imported suite');
-    importCollectionModal.findSuccessAlert().should('contain.text', 'managed by the server');
+    importCollectionModal.shouldBeOpen(false);
+    cy.findByTestId('import-collection-success').should('not.exist');
+    cy.location('pathname').should('eq', `/evaluation/${NAMESPACE}/collections`);
+  });
+
+  it('should navigate to the collections page from the evaluate tab on success', () => {
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: '/eval-hub/api/v1/evaluations/collection-imports',
+      },
+      {
+        statusCode: 201,
+        body: mockModArchResponse({
+          collection: importedCollection,
+          warnings: ['Field "id" is managed by the server and will be ignored.'],
+        }),
+      },
+    ).as('importCollection');
+
+    evaluationsPage.visitEvaluate(NAMESPACE);
+    evaluationsPage.findImportCollectionButton().click();
+
+    importCollectionModal.setValue(validContent);
+    importCollectionModal.findSubmitButton().click();
+
+    cy.wait('@importCollection');
+    importCollectionModal.shouldBeOpen(false);
+    cy.location('pathname').should('eq', `/evaluation/${NAMESPACE}/collections`);
+  });
+
+  it('should lock the form while the import request is in flight', () => {
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: '/eval-hub/api/v1/evaluations/collection-imports',
+      },
+      (req) => {
+        req.reply({
+          delay: 3000,
+          statusCode: 201,
+          body: mockModArchResponse({ collection: importedCollection, warnings: [] }),
+        });
+      },
+    ).as('importCollection');
+
+    evaluationsPage.visitBenchmarkSuites(NAMESPACE);
+    evaluationsPage.findImportCollectionButton().click();
+
+    importCollectionModal.setValue(validContent);
+    importCollectionModal.findSubmitButton().click();
+
+    importCollectionModal.findSubmitButton().should('be.disabled');
+    importCollectionModal.findCancelButton().should('be.disabled');
+    importCollectionModal.findNameInput().should('be.disabled');
+    importCollectionModal.findResetButton().should('be.disabled');
+    importCollectionModal.shouldBeReadOnly();
+    importCollectionModal
+      .find()
+      .findByRole('button', { name: 'Upload a collection definition file' })
+      .should('be.disabled');
+    importCollectionModal
+      .find()
+      .findByRole('button', { name: 'Clear the collection definition' })
+      .should('be.disabled');
+
+    cy.wait('@importCollection');
+    importCollectionModal.shouldBeOpen(false);
   });
 
   it('should keep the dialog open with the server error when submission fails', () => {

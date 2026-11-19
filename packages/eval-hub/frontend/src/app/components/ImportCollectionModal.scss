@@ -18,18 +18,28 @@
   }
 }
 
-// The editor's stack item carries the flex sizing that hands Monaco the space
-// left over from the dialog height set above.
-.evalhub-import-collection-modal__editor-item {
+// The form stack item carries the flex sizing that hands Monaco the space
+// left over from the dialog height set above. Every ancestor between the
+// stack item and the editor must pass that height through.
+.evalhub-import-collection-modal__form-item,
+.evalhub-import-collection-modal__form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.evalhub-import-collection-modal__definition-group {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
 
-  // `display: flex` above would otherwise win over the UA rule for [hidden],
-  // keeping the editor visible after a successful import.
-  &[hidden] {
-    display: none;
+  > .pf-v6-c-form__group-control {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 }
 
@@ -52,8 +62,12 @@
 }
 
 .evalhub-import-collection-modal__filename {
+  // PF aligns the toolbar controls to flex-start; center the label against
+  // the taller icon buttons.
+  align-self: center;
+  display: flex;
+  align-items: center;
   font-family: var(--pf-t--global--font--family--mono);
   font-size: var(--pf-t--global--font--size--xs);
   color: var(--pf-t--global--text--color--subtle);
 }
-

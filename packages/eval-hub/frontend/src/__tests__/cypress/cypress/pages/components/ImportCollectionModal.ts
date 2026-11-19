@@ -15,7 +15,7 @@ type MonacoGlobal = {
 
 export class ImportCollectionModal extends Modal {
   constructor() {
-    super('Import collection');
+    super('Import collection from file');
   }
 
   // The modal's accessible name incorporates the editor content, so the
@@ -43,8 +43,14 @@ export class ImportCollectionModal extends Modal {
   waitForEditorReady(): Cypress.Chainable<JQuery<HTMLElement>> {
     // Not .view-lines: Monaco positions it fixed, which Cypress's
     // visibility algorithm cannot validate; the widget root is the
-    // reliable readiness signal.
-    return this.findEditor().find('.monaco-editor').should('be.visible');
+    // reliable readiness signal. The height assertion guards the modal's
+    // flex chain, which collapses the editor when a wrapper refuses to grow.
+    return this.findEditor()
+      .find('.monaco-editor')
+      .should('be.visible')
+      .and(($editor) => {
+        expect($editor.outerHeight() ?? 0, 'Monaco editor height').to.be.greaterThan(200);
+      });
   }
 
   findFileInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
@@ -88,6 +94,33 @@ export class ImportCollectionModal extends Modal {
   }
 
   /**
+   * Asserts the current model content. The editor value can lag a keystroke
+   * because the name field debounces its write, so this retries instead of
+   * asserting on a single read.
+   */
+  shouldContainValue(pattern: RegExp): void {
+    this.waitForEditorReady();
+    this.findEditor().should(($container) => {
+      const win = $container[0].ownerDocument.defaultView as unknown as {
+        monaco?: MonacoGlobal;
+      };
+      if (!win.monaco) {
+        throw new Error('Monaco editor was not found on window');
+      }
+      const editors = win.monaco.editor.getEditors().filter((editor) => {
+        const node = editor.getDomNode();
+        return node !== null && $container[0].contains(node);
+      });
+      expect(editors, 'Monaco editor inside the import dialog').to.have.length(1);
+      const model = editors[0].getModel();
+      if (!model) {
+        throw new Error('The import editor has no Monaco model');
+      }
+      expect(model.getValue()).to.match(pattern);
+    });
+  }
+
+  /**
    * Replaces the editor content by selecting it through the dialog's hidden
    * file input, which exercises the same validated read path as a real
    * upload.
@@ -101,6 +134,22 @@ export class ImportCollectionModal extends Modal {
       },
       { force: true },
     );
+  }
+
+  shouldBeReadOnly(): void {
+    this.find().find('.pf-v6-c-code-editor').should('have.class', 'pf-m-read-only');
+  }
+
+  findLanguageLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('.pf-v6-c-code-editor__tab-text');
+  }
+
+  findNameInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.find().findByTestId('import-collection-name');
+  }
+
+  findResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('import-collection-reset');
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -121,14 +170,6 @@ export class ImportCollectionModal extends Modal {
 
   findMultiDocAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('import-collection-multi-doc');
-  }
-
-  findTemplateAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('import-collection-template');
-  }
-
-  findSuccessAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('import-collection-success');
   }
 
   findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
