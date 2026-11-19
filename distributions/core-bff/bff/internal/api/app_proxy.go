@@ -24,6 +24,25 @@ func impersonateFromIdentity(in *http.Request, out http.Header) {
 	}
 }
 
+// proxyClientCerts decides whether the kubeconfig client certificate may be
+// presented by the Kubernetes HTTP and WebSocket proxies.
+//
+// The API server authenticates a client certificate before it looks at a bearer
+// token, so attaching the mounted kubeconfig certificate to a proxied request
+// would authenticate it as the certificate's subject, not the caller. Outside
+// DEV_MODE the certificate is therefore never attached: the caller's bearer
+// token is the only credential the proxies send. DEV_MODE keeps it because its
+// kubeconfig-identity fallback (DevFallback) authenticates that way on purpose.
+// The typed client-go clients are already safe: rest.AnonymousClientConfig drops
+// the certificate before the caller token is installed.
+func proxyClientCerts(cfg config.EnvConfig, certs []tls.Certificate, logger *slog.Logger) []tls.Certificate {
+	if cfg.DevMode || len(certs) == 0 {
+		return certs
+	}
+	logger.Warn("kubeconfig carries a client certificate; not presenting it on the Kubernetes proxies so it cannot replace the caller credential")
+	return nil
+}
+
 func resolveK8sHost(cfg config.EnvConfig, k8sResult k8sSetupResult) (string, error) {
 	if cfg.MockK8Client && k8sResult.testEnv != nil {
 		return k8sResult.testEnv.Config.Host, nil
@@ -52,6 +71,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		if err != nil {
 			return err
 		}
+		clientCerts = proxyClientCerts(cfg, clientCerts, app.logger)
 	}
 
 	allowHTTP := cfg.DevMode || cfg.MockK8Client
@@ -83,6 +103,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		InsecureSkipVerify:   insecureSkipVerify,
 		AllowHTTP:            allowHTTP,
 		AuthTokenHeader:      cfg.AuthTokenHeader,
+		AuthTokenHeaders:     app.credentialHeaders(),
 		SetOutboundHeadersFn: outboundHeadersFn,
 		SSRFValidateTarget:   true,
 		DevFallbackToken:     devFallbackToken,

@@ -63,15 +63,101 @@ core-bff refusing to start: invalid configuration (2 problems):
 
 ### Authentication
 
-| Flag                  | Environment         | Default                    | Notes                                                                       |
-| --------------------- | ------------------- | -------------------------- | --------------------------------------------------------------------------- |
-| `--auth-method`       | `AUTH_METHOD`       | `user_token`               | `user_token` or `disabled`. `disabled` is rejected in a production profile. |
-| `--auth-token-header` | `AUTH_TOKEN_HEADER` | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token`.                                     |
-| `--auth-token-prefix` | `AUTH_TOKEN_PREFIX` | _(empty)_                  | Set to `Bearer ` when the header is `Authorization`.                        |
+| Flag                   | Environment          | Default                    | Notes                                                                                                                         |
+| ---------------------- | -------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `--auth-method`        | `AUTH_METHOD`        | `user_token`               | `user_token` or `disabled`. `disabled` is rejected in a production profile.                                                   |
+| `--auth-token-header`  | `AUTH_TOKEN_HEADER`  | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token`.                                                                                       |
+| `--auth-token-prefix`  | `AUTH_TOKEN_PREFIX`  | _(empty)_                  | Set to `Bearer ` when the header is `Authorization`.                                                                          |
+| `--auth-token-headers` | `AUTH_TOKEN_HEADERS` | _(empty)_                  | Ordered list of credential headers. When set, replaces the two settings above. See [Caller credentials](#caller-credentials). |
 
-The header the gateway populates on xKS is settled by
-[RHOAIENG-96081](https://redhat.atlassian.net/browse/RHOAIENG-96081); this contract only states
-that the header name is configuration, not a constant.
+## Caller credentials
+
+Tracked by [RHOAIENG-96081](https://redhat.atlassian.net/browse/RHOAIENG-96081). One caller
+identity is resolved once per request, by `InjectRequestIdentity`, and every transport uses it:
+REST handlers, the Kubernetes HTTP proxy (`/api/k8s/*`), the Kubernetes WebSocket proxy
+(`/wss/k8s/*`), the model-serving proxy and the module proxies. The extractor lives in
+`bff/internal/callerauth` and knows nothing about Kubernetes.
+
+The identity carries only the token. Who the caller is comes from `SelfSubjectReview` against the
+API server, never from a header. `X-Forwarded-User`, `X-Forwarded-Groups`, `Impersonate-*` and
+`X-Remote-*` are never read as identity, are removed before any request is proxied, and cannot be
+configured as credential headers.
+
+### Two modes, one setting
+
+| `AUTH_TOKEN_HEADERS` | Mode          | Used by                                                  | Behaviour                                                                                         |
+| -------------------- | ------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| unset _(default)_    | single header | OpenShift (unchanged)                                    | Reads `AUTH_TOKEN_HEADER`; strips `AUTH_TOKEN_PREFIX` when set (the prefix must then be present). |
+| ordered list         | precedence    | xKS (proposed: `Authorization,x-forwarded-access-token`) | Rules below. `AUTH_TOKEN_PREFIX` must be empty; the combination fails startup as ambiguous.       |
+
+The xKS gateway sends the Entra access token in both `Authorization: Bearer` and
+`x-forwarded-access-token`. Which one is the contract is not decided yet, so the xKS value accepts
+both, `Authorization` first. Switching to one header is a configuration change, not a code change.
+
+### Precedence rules (ordered list)
+
+Headers are consulted in the configured order.
+
+1. **Absent or empty** headers are skipped.
+2. **`Authorization` must use the Bearer scheme** (`Bearer <token>`, scheme case-insensitive). Any
+   other header carries the bare token. A token with embedded whitespace is malformed.
+3. **A header that is present must be well formed.** A malformed header fails the request; it does
+   **not** fall through to the next header, because the edge may have authenticated exactly that
+   header.
+4. **A header repeated with several values** is rejected.
+5. **Every credential presented must be the same token.** The first in order is reported as the
+   source. Two different tokens fail closed: the BFF cannot tell which one the edge authenticated.
+6. **None present** is a missing credential.
+
+| Request                                                     | Result                              |
+| ----------------------------------------------------------- | ----------------------------------- |
+| `Authorization: Bearer T`                                   | Caller `T`                          |
+| `x-forwarded-access-token: T`                               | Caller `T`                          |
+| both, same `T`                                              | Caller `T` (source `Authorization`) |
+| both, different tokens                                      | 401                                 |
+| `Authorization: Basic …` (with or without a valid fallback) | 401                                 |
+| whitespace-only value, empty bearer, repeated header        | 401                                 |
+| no credential header                                        | 401                                 |
+
+### Failing closed
+
+Every route except the public ones (`/healthcheck`, the OpenAPI document, the static SPA shell and
+the OpenShift-only NIM status routes) requires a credential. A protected route without one returns
+`401` under the [error contract](./error-contract.md), which keeps it distinct from upstream
+transport and availability failures (`502`/`503`/`504`); the request log records
+`CREDENTIALS_MISSING` or `CREDENTIALS_INVALID`, never the value. The
+Kubernetes HTTP and WebSocket proxies also refuse, on their own, any request without a caller
+token, so an uncredentialed request can never reach the API server anonymously.
+
+Outside `DEV_MODE` nothing can replace a missing or rejected caller credential:
+
+- The kubeconfig/service-account identity is used only by the documented service-account reads
+  (see the [bootstrap contract](./bootstrap-contract.md#service-account-permissions)), never as a
+  substitute for the caller.
+- A client certificate in the kubeconfig is **not** presented by the Kubernetes proxies. The API
+  server authenticates a certificate before a bearer token, so presenting it would act as the
+  certificate subject. The typed clients drop it too (`rest.AnonymousClientConfig`).
+- `DEV_MODE` keeps its kubeconfig fallback identity for local development. It is a development
+  profile and cannot be enabled in production without the profile changing.
+
+### Where the configured headers are applied
+
+Every configured header (plus `AUTH_TOKEN_HEADER`, which module proxies use as their outbound
+header) is:
+
+- removed from inbound requests before any proxy forwards them; the proxies install the resolved
+  caller token themselves (`Authorization: Bearer` for the Kubernetes API);
+- redacted in request debug logs and never written in error text;
+- allowed as a CORS request header and listed in `Vary` on `/api` responses;
+- rejected as a static header in module-proxy configuration when `authorize` is on.
+
+WebSocket upgrades are authenticated the same way as any other request, before the upgrade. The
+browser cannot set `Authorization` on a WebSocket, so on xKS the gateway supplies the header.
+
+Covered by `bff/internal/callerauth/credentials_test.go` (precedence and rejections),
+`bff/internal/api/caller_auth_transport_test.go` (every transport through the real handler tree),
+`bff/internal/proxy/caller_auth_test.go` (proxy stripping and fail-closed forwarding) and the
+`xks/testCoreBffCallerAuth` and `openshift/testCoreBffCallerAuth` contract suites.
 
 ### Transport and trust
 
@@ -231,12 +317,12 @@ disagreement with the probe is logged.
 
 ## Retained supporting services
 
-| Service             | Endpoint                                                                                 | Namespace              | TLS                                      | Credentials                                                                              | Response contract                                                  |
-| ------------------- | ---------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Kubernetes API      | rest config (in-cluster or kubeconfig)                                                   | n/a                    | Root pool + bundles                      | Caller bearer token; SA client for the privileged reads listed in the bootstrap contract | Kubernetes `v1.Status` on failure, sanitized by the error contract |
-| Model serving       | `MODEL_SERVING_HOST`, else `https://model-serving-api.<namespace>.svc.cluster.local:443` | dashboard namespace    | Root pool + bundles, SSRF-guarded dialer | Caller bearer token forwarded                                                            | Passthrough; local failures use the proxy error contract           |
-| Module BFFs         | federation config / per-module service                                                   | per module             | Root pool + bundles                      | Caller bearer token forwarded                                                            | Passthrough, `Cache-Control: no-store` forced on replies           |
-| Prometheus / Thanos | `PROMETHEUS_HOST`, else built from namespace/instance/port                               | `PROMETHEUS_NAMESPACE` | Root pool + bundles                      | Caller bearer token                                                                      | OpenShift only; 404 on xKS via `requirePlatform`                   |
+| Service             | Endpoint                                                                                 | Namespace              | TLS                                      | Credentials                                                                                                                   | Response contract                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Kubernetes API      | rest config (in-cluster or kubeconfig)                                                   | n/a                    | Root pool + bundles                      | Caller bearer token; SA client only for the reads listed in the bootstrap contract (and, on OpenShift, admin-gated mutations) | Kubernetes `v1.Status` on failure, sanitized by the error contract |
+| Model serving       | `MODEL_SERVING_HOST`, else `https://model-serving-api.<namespace>.svc.cluster.local:443` | dashboard namespace    | Root pool + bundles, SSRF-guarded dialer | Caller bearer token forwarded                                                                                                 | Passthrough; local failures use the proxy error contract           |
+| Module BFFs         | federation config / per-module service                                                   | per module             | Root pool + bundles                      | Caller bearer token forwarded                                                                                                 | Passthrough, `Cache-Control: no-store` forced on replies           |
+| Prometheus / Thanos | `PROMETHEUS_HOST`, else built from namespace/instance/port                               | `PROMETHEUS_NAMESPACE` | Root pool + bundles                      | Caller bearer token                                                                                                           | OpenShift only; 404 on xKS via `requirePlatform`                   |
 
 A mock response is never evidence that one of these is available. `MOCK_HTTP_CLIENT`,
 `MOCK_BFF_CLIENTS` and `MOCK_K8S_CLIENT` all move the deployment out of the production profile, so

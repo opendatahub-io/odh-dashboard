@@ -95,6 +95,9 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	fs.StringVar(&cfg.AuthMethod, "auth-method", getEnvAsString("AUTH_METHOD", config.AuthMethodUser), "Authentication method (disabled or user_token)")
 	fs.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (default: x-forwarded-access-token)")
 	fs.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix to strip from the token header value (default: none)")
+	cfg.AuthTokenHeaders = splitList(getEnvAsString("AUTH_TOKEN_HEADERS", ""))
+	fs.Func("auth-token-headers", "Ordered, comma-separated headers that may carry the caller token, e.g. Authorization,x-forwarded-access-token (replaces --auth-token-header/--auth-token-prefix when set)",
+		newListParser(&cfg.AuthTokenHeaders))
 
 	// TLS configuration flags
 	fs.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (development profiles only, default: false)")

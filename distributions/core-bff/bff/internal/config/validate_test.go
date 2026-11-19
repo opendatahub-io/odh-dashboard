@@ -177,3 +177,58 @@ func TestValidate_EnumErrorsDoNotEchoValues(t *testing.T) {
 		})
 	}
 }
+
+func TestValidate_AuthTokenHeaders(t *testing.T) {
+	ok := []struct {
+		name    string
+		headers []string
+	}{
+		{"xks dual header", []string{"Authorization", "x-forwarded-access-token"}},
+		{"single entry", []string{"x-forwarded-access-token"}},
+		{"custom header", []string{"X-Entra-Access-Token"}},
+	}
+	for _, tc := range ok {
+		t.Run("accepts "+tc.name, func(t *testing.T) {
+			cfg := productionConfig()
+			cfg.AuthTokenHeaders = tc.headers
+			require.NoError(t, cfg.Validate(TLSFiles{}))
+		})
+	}
+
+	t.Run("list replaces the single header requirement", func(t *testing.T) {
+		cfg := productionConfig()
+		cfg.AuthTokenHeader = ""
+		cfg.AuthTokenHeaders = []string{"Authorization"}
+		require.NoError(t, cfg.Validate(TLSFiles{}))
+	})
+
+	bad := []struct {
+		name    string
+		mutate  func(*EnvConfig)
+		message string
+	}{
+		{"prefix with list", func(c *EnvConfig) {
+			c.AuthTokenHeaders = []string{"Authorization"}
+			c.AuthTokenPrefix = "Bearer "
+		}, "AUTH_TOKEN_PREFIX"},
+		{"invalid name", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Bad Header"} }, "not a valid HTTP header name"},
+		{"blank entry", func(c *EnvConfig) { c.AuthTokenHeaders = []string{" "} }, "not a valid HTTP header name"},
+		{"duplicate ignoring case", func(c *EnvConfig) {
+			c.AuthTokenHeaders = []string{"Authorization", "authorization"}
+		}, "more than once"},
+		{"cookie", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Cookie"} }, "identity or session header"},
+		{"impersonation", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Impersonate-User"} }, "identity or session header"},
+		{"impersonation extra", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Impersonate-Extra-Scopes"} }, "identity or session header"},
+		{"front-proxy user", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"X-Remote-User"} }, "identity or session header"},
+		{"forwarded user", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"X-Forwarded-User"} }, "identity or session header"},
+	}
+	for _, tc := range bad {
+		t.Run("rejects "+tc.name, func(t *testing.T) {
+			cfg := productionConfig()
+			tc.mutate(&cfg)
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.message)
+		})
+	}
+}

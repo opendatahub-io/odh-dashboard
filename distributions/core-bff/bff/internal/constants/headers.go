@@ -28,6 +28,9 @@ const (
 	HeaderSecWebSocketVersion         = "Sec-WebSocket-Version"
 	HeaderImpersonateUser             = "Impersonate-User"
 	HeaderImpersonateGroup            = "Impersonate-Group"
+	HeaderImpersonateUID              = "Impersonate-Uid"
+	HeaderXRemoteUser                 = "X-Remote-User"
+	HeaderXRemoteGroup                = "X-Remote-Group"
 	HeaderForwardedToken              = "X-Forwarded-Access-Token" //nolint:gosec // G101: header name, not a credential
 	HeaderForwarded                   = "Forwarded"
 	HeaderXForwardedFor               = "X-Forwarded-For"

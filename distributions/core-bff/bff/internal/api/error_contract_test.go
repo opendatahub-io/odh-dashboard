@@ -247,7 +247,13 @@ func TestProxyStreamFailureThroughRecovery(t *testing.T) {
 	app := newTestApp()
 	handler, err := proxy.NewK8sProxyHandler(proxy.K8sProxyConfig{K8sHost: upstream.URL, AllowHTTP: true, Logger: app.logger})
 	require.NoError(t, err)
-	server := httptest.NewServer(httpcontract.Middleware(app.RecoverPanic(handler)))
+	// The proxy refuses requests without a caller credential; production mounts
+	// it behind InjectRequestIdentity, so supply the identity it would set.
+	withIdentity := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{Token: k8s.NewBearerToken("stream-token")})
+		handler.ServeHTTP(w, r.WithContext(ctx))
+	})
+	server := httptest.NewServer(httpcontract.Middleware(app.RecoverPanic(withIdentity)))
 	defer server.Close()
 	resp, err := server.Client().Get(server.URL + "/api/k8s/api/v1/pods?watch=true")
 	require.NoError(t, err)

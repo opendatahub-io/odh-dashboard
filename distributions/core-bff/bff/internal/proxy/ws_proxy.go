@@ -61,7 +61,7 @@ type wsProxy struct {
 func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	httpcontract.EnsureID(w, r)
 	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-	if !ok || identity == nil {
+	if !ok || identity == nil || (!identity.DevFallback && identity.ResolveToken(p.devFallbackToken) == "") {
 		httpcontract.WriteLocal(w, r, http.StatusUnauthorized)
 		return
 	}

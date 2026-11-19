@@ -87,11 +87,21 @@ func rewriteAuthHeader(pr *httputil.ProxyRequest, authHeaderFn func(*http.Reques
 	}
 }
 
+// stripImpersonationHeaders removes every header a caller could use to assert
+// an identity other than the one its credential proves: Kubernetes
+// impersonation (user, group, uid, extra) and the front-proxy request-header
+// identity (X-Remote-User, X-Remote-Group, X-Remote-Extra-*). The API server
+// only honours the X-Remote-* family from an authenticated front proxy, but
+// they are removed regardless so no upstream ever sees a caller-supplied value.
 func stripImpersonationHeaders(h http.Header) {
 	h.Del(constants.HeaderImpersonateUser)
 	h.Del(constants.HeaderImpersonateGroup)
+	h.Del(constants.HeaderImpersonateUID)
+	h.Del(constants.HeaderXRemoteUser)
+	h.Del(constants.HeaderXRemoteGroup)
 	for key := range h {
-		if strings.HasPrefix(strings.ToLower(key), "impersonate-extra-") {
+		lower := strings.ToLower(key)
+		if strings.HasPrefix(lower, "impersonate-extra-") || strings.HasPrefix(lower, "x-remote-extra-") {
 			h.Del(key)
 		}
 	}
