@@ -36,7 +36,17 @@ import type {
   NIMProjectScopedTestData,
   RuntimeLibraryTemplateTestData,
   RuntimeLibraryAcceleratorTestData,
+  AutomlTestData,
+  AutomlConfigurationTestData,
 } from '../types';
+
+export const loadAutomlFixture = (fixturePath: string): Cypress.Chainable<AutomlTestData> =>
+  loadYamlFixture(fixturePath).then((content) => yaml.load(content) as AutomlTestData);
+
+export const loadAutomlConfigurationFixture = (
+  fixturePath: string,
+): Cypress.Chainable<AutomlConfigurationTestData> =>
+  loadYamlFixture(fixturePath).then((content) => yaml.load(content) as AutomlConfigurationTestData);
 
 export const loadRuntimeLibraryTemplateFixture = (
   fixturePath: string,

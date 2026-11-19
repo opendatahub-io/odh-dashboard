@@ -1,11 +1,27 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForAutoXDspaReady } from './oc_commands/autoX';
 import { waitForManagedPipelines } from './autoXPipelines';
+import { loadAutomlConfigurationFixture } from './dataLoader';
 import { automlExperimentsPage } from '../pages/automl/experimentsPage';
 import { automlConfigurePage } from '../pages/automl/configurePage';
 import { automlResultsPage } from '../pages/automl/resultsPage';
 import { AUTOML_RUN_TIMEOUT } from '../support/timeouts';
 import type { AutomlTestData } from '../types';
+
+/** Upload or replace a CSV while the Upload file tab is selected. */
+export const uploadAutomlTrainingDataFile = (trainingDataFile: string, uuid: string): void => {
+  const uploadFileName = `${trainingDataFile.replace('.csv', '')}-${uuid}.csv`;
+  automlConfigurePage
+    .findUploadFileInput()
+    .selectFile(
+      { contents: `resources/automl/${trainingDataFile}`, fileName: uploadFileName },
+      { force: true },
+    );
+  automlConfigurePage
+    .findUploadedFileCell(60000)
+    .should('be.visible')
+    .and('contain.text', uploadFileName);
+};
 
 /**
  * Configure an AutoML run up to (but not including) task-specific options.
@@ -13,6 +29,7 @@ import type { AutomlTestData } from '../types';
  * Handles: login, wait for DSPA + managed pipelines, navigate to experiments
  * page, click create run, fill name/description, select S3 connection, upload
  * CSV file, and verify/select the file via the file explorer.
+ * Set selectFromBucket to false to keep the uploaded file selected for replacement tests.
  *
  * After this, configure task-specific options (task type, columns, preset, etc.)
  * then call `submitAutomlRun()`.
@@ -21,6 +38,7 @@ export const configureAutomlRun = (
   testData: AutomlTestData,
   projectName: string,
   uuid: string,
+  options: { selectFromBucket?: boolean } = {},
 ): void => {
   cy.step('Login and wait for pipeline server');
   cy.visitWithLogin(automlExperimentsPage.pathWithDefaults(), HTPASSWD_CLUSTER_ADMIN_USER);
@@ -49,15 +67,11 @@ export const configureAutomlRun = (
   cy.step('Upload CSV file');
   const uploadFileName = `${testData.trainingDataFile.replace('.csv', '')}-${uuid}.csv`;
   automlConfigurePage.findUploadFileToggle().click();
-  automlConfigurePage
-    .findUploadFileInput()
-    .selectFile(
-      { contents: `resources/automl/${testData.trainingDataFile}`, fileName: uploadFileName },
-      { force: true },
-    );
+  uploadAutomlTrainingDataFile(testData.trainingDataFile, uuid);
 
-  cy.step('Wait for upload to complete');
-  automlConfigurePage.findUploadedFileCell(60000).should('be.visible');
+  if (options.selectFromBucket === false) {
+    return;
+  }
 
   cy.step('Verify uploaded file is browsable in file explorer and select it');
   automlConfigurePage.findSelectFileToggle().find('button').click();
@@ -67,6 +81,32 @@ export const configureAutomlRun = (
   automlConfigurePage.findFileExplorerTable().contains('td', uploadFileName).should('be.visible');
   automlConfigurePage.findFileExplorerTable().contains('td', uploadFileName).click();
   automlConfigurePage.findFileExplorerSelectBtn().click();
+};
+
+/** Select a prediction type and its dataset columns after uploading training data. */
+export const configureAutomlPredictionType = (testData: AutomlTestData): void => {
+  const targetColumn = testData.labelColumn ?? testData.targetColumn;
+  if (!targetColumn) {
+    throw new Error('AutoML test data must specify a target column.');
+  }
+
+  cy.step('Select the target column and prediction type');
+  automlConfigurePage.findTargetColumnSelect().should('be.enabled').click();
+  automlConfigurePage.findSelectOption(targetColumn).click();
+  automlConfigurePage.findTaskTypeCard(testData.taskType).click();
+  automlConfigurePage.findTaskTypeRadio(testData.taskType).should('be.checked');
+
+  if (testData.taskType === 'timeseries') {
+    if (!testData.timestampColumn) {
+      throw new Error('Time series test data must specify a timestamp column.');
+    }
+    automlConfigurePage.findTimestampColumnSelect().should('be.enabled').click();
+    automlConfigurePage.findSelectOption(testData.timestampColumn).click();
+    if (testData.idColumn) {
+      automlConfigurePage.findIdColumnSelect().should('be.enabled').click();
+      automlConfigurePage.findSelectOption(testData.idColumn).click();
+    }
+  }
 };
 
 /**
@@ -111,6 +151,130 @@ export const waitForAutomlRunCompletion = (timeoutMs?: number): void => {
   automlResultsPage.findTopRankLabel().should('exist');
 };
 
+/** Verify Save applies column visibility and Cancel discards a pending change. */
+export const verifyAutomlLeaderboardColumns = (): void => {
+  cy.step('Save hiding a leaderboard column and verify its header and data disappear');
+  automlResultsPage.findRankHeader().scrollIntoView().should('be.visible');
+  automlResultsPage.findRankCell(1).scrollIntoView().should('be.visible');
+  automlResultsPage.findManageColumnsButton().click();
+  automlResultsPage.findRankColumnCheck().should('be.checked').uncheck();
+  automlResultsPage.findManageColumnsSaveButton().should('be.enabled').click();
+  automlResultsPage.findManageColumnsModal().should('not.exist');
+  automlResultsPage.findRankHeader().should('not.exist');
+  automlResultsPage.findRankCell(1).should('not.exist');
+
+  cy.step('Cancel showing the column and keep the saved table unchanged');
+  automlResultsPage.findManageColumnsButton().click();
+  automlResultsPage.findRankColumnCheck().should('not.be.checked').check();
+  automlResultsPage.findManageColumnsCancelButton().click();
+  automlResultsPage.findManageColumnsModal().should('not.exist');
+  automlResultsPage.findRankHeader().should('not.exist');
+  automlResultsPage.findRankCell(1).should('not.exist');
+
+  cy.step('Reopen the modal and save showing the column again');
+  automlResultsPage.findManageColumnsButton().click();
+  automlResultsPage.findRankColumnCheck().should('not.be.checked').check();
+  automlResultsPage.findManageColumnsSaveButton().click();
+  automlResultsPage.findManageColumnsModal().should('not.exist');
+  automlResultsPage.findRankHeader().scrollIntoView().should('be.visible');
+  automlResultsPage.findRankCell(1).scrollIntoView().should('be.visible');
+
+  cy.step('Keep the saved checkbox state when reopening the modal');
+  automlResultsPage.findManageColumnsButton().click();
+  automlResultsPage.findRankColumnCheck().should('be.checked');
+  automlResultsPage.findManageColumnsCancelButton().click();
+  automlResultsPage.findManageColumnsModal().should('not.exist');
+};
+
+/** Reuse a completed run to check restored settings and discard draft edits without training. */
+export const verifyAutomlReconfiguration = (testData: AutomlTestData, uuid: string): void => {
+  loadAutomlConfigurationFixture('e2e/automl/testAutomlConfiguration.yaml').then(
+    (configuration) => {
+      const sourcePreset = testData.preset ?? configuration.defaultPreset;
+      const sourceTopN = testData.topN ?? configuration.topModels.min;
+      const targetColumn = testData.labelColumn ?? testData.targetColumn;
+      const trainingDataFile = `${testData.trainingDataFile.replace('.csv', '')}-${uuid}.csv`;
+
+      const verifyRestoredSettings = (): void => {
+        automlConfigurePage
+          .findNameInput(30000)
+          .should('have.value', `${testData.runName}${configuration.reconfigure.runNameSuffix}`);
+        automlConfigurePage.findNextButton().should('be.enabled').click();
+        automlConfigurePage.findSelectedSecretInput().should('have.value', testData.secretName);
+        automlConfigurePage.findSelectedTrainingDataFile().should('contain.text', trainingDataFile);
+        automlConfigurePage
+          .findTargetColumnSelect()
+          .should('be.enabled')
+          .and('contain.text', targetColumn);
+        automlConfigurePage.findTaskTypeRadio(testData.taskType).should('be.checked');
+        automlConfigurePage.findPresetRadio(sourcePreset).should('be.checked');
+        automlConfigurePage.findTopNInputField().should('have.value', sourceTopN);
+        automlConfigurePage
+          .findOptimizationMetricValue()
+          .should('contain.text', testData.changedMetricLabel);
+        automlConfigurePage.findOptimizationMetricEditButton().click();
+        automlConfigurePage
+          .findEvalMetricRadio(testData.changedMetricKey as string)
+          .should('be.checked');
+        automlConfigurePage.findOptimizationMetricCancelButton().click();
+        if (testData.taskType === 'timeseries') {
+          automlConfigurePage
+            .findTimestampColumnSelect()
+            .should('contain.text', testData.timestampColumn);
+          automlConfigurePage.findIdColumnSelect().should('contain.text', testData.idColumn);
+          automlConfigurePage
+            .findPredictionLengthInputField()
+            .should('have.value', configuration.predictionLength.default);
+        }
+        automlConfigurePage.findCreateRunButton().should('be.enabled');
+      };
+
+      cy.location('pathname').then((sourcePath) => {
+        cy.step('Open Reconfigure and verify settings saved with the original run');
+        automlResultsPage.findReconfigureButton().click();
+        verifyRestoredSettings();
+
+        cy.step('Edit the draft preset, model count, and metric');
+        automlConfigurePage.findPresetRadio(configuration.reconfigure.preset).click();
+        automlConfigurePage.findPresetRadio(configuration.reconfigure.preset).should('be.checked');
+        automlConfigurePage
+          .findTopNInputField()
+          .type(`{selectall}${configuration.reconfigure.topN}`);
+        automlConfigurePage
+          .findTopNInputField()
+          .should('have.value', configuration.reconfigure.topN);
+        verifyAndChangeOptimizationMetric(
+          testData.changedMetricLabel as string,
+          configuration.defaultMetricKeys[testData.taskType],
+          testData.defaultMetricLabel as string,
+        );
+        if (testData.taskType === 'timeseries') {
+          automlConfigurePage
+            .findPredictionLengthInputField()
+            .type(`{selectall}${configuration.predictionLength.changed}`);
+          automlConfigurePage
+            .findPredictionLengthInputField()
+            .should('have.value', configuration.predictionLength.changed);
+        }
+        automlConfigurePage.findCreateRunButton().should('be.enabled');
+
+        cy.step('Leave the draft through the source run link and reload the original results');
+        automlConfigurePage.findSourceRunLink().click();
+        cy.location('pathname').should('eq', sourcePath);
+        automlResultsPage.reload();
+        automlResultsPage.findLeaderboardTable().should('be.visible');
+
+        cy.step('Reopen Reconfigure and verify the original run kept its saved settings');
+        automlResultsPage.findReconfigureButton().click();
+        verifyRestoredSettings();
+        automlConfigurePage.findSourceRunLink().click();
+        cy.location('pathname').should('eq', sourcePath);
+        automlResultsPage.findLeaderboardTable().should('be.visible');
+      });
+    },
+  );
+};
+
 /**
  * Verify post-run results interaction: leaderboard, drawer, manage columns,
  * model details modal with task-type-specific tabs, and notebook download.
@@ -135,17 +299,13 @@ export const verifyAutomlResultsInteraction = (
   cy.step('Verify leaderboard has at least one model row');
   automlResultsPage.findLeaderboardRow(1).should('exist');
 
+  verifyAutomlLeaderboardColumns();
+
   cy.step('Open and close run details drawer');
   automlResultsPage.findRunDetailsButton().click();
   automlResultsPage.findRunDetailsDrawerPanel().should('be.visible');
   automlResultsPage.findRunDetailsDrawerClose().click();
   automlResultsPage.findRunDetailsDrawerPanel().should('not.be.visible');
-
-  cy.step('Open manage columns modal and close it');
-  automlResultsPage.findManageColumnsButton().click();
-  automlResultsPage.findManageColumnsModal().should('be.visible');
-  automlResultsPage.findManageColumnsCancelButton().click();
-  automlResultsPage.findManageColumnsModal().should('not.exist');
 
   cy.step('Open model details modal');
   automlResultsPage.findModelLink(1).click();

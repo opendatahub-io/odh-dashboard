@@ -12,6 +12,7 @@ import {
   submitAutomlRun,
   waitForAutomlRunCompletion,
   verifyAutomlResultsInteraction,
+  verifyAutomlReconfiguration,
   verifyAndChangeOptimizationMetric,
 } from '../../../utils/automlTestFlows';
 
@@ -120,6 +121,13 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Cancel register model modal');
       automlResultsPage.findRegisterModelCancelButton().click();
       automlResultsPage.findRegisterModelModal().should('not.exist');
+    },
+  );
+  it(
+    'Can restore saved run settings and discard reconfiguration changes',
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
+    () => {
+      verifyAutomlReconfiguration(testData, uuid);
     },
   );
 });

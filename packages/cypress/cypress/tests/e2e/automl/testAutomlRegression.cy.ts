@@ -11,6 +11,7 @@ import {
   submitAutomlRun,
   waitForAutomlRunCompletion,
   verifyAutomlResultsInteraction,
+  verifyAutomlReconfiguration,
   verifyAndChangeOptimizationMetric,
 } from '../../../utils/automlTestFlows';
 
@@ -76,6 +77,13 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
     { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       verifyAutomlResultsInteraction('regression');
+    },
+  );
+  it(
+    'Can restore saved run settings and discard reconfiguration changes',
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
+    () => {
+      verifyAutomlReconfiguration(testData, uuid);
     },
   );
 });
