@@ -339,9 +339,13 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 	default:
 		perms[nsKey] = models.ResourcePermissions{"get": models.AccessDenied}
 	}
+	access.Phase = models.NamespacePhaseUnknown
 	if ns != nil {
 		m := models.NewNamespaceModelFromNamespace(*ns)
-		access.DisplayName, access.Phase = m.DisplayName, m.Phase
+		access.DisplayName = m.DisplayName
+		if m.Phase != "" {
+			access.Phase = m.Phase
+		}
 	}
 	return evaluated{outcome: outcomeAuthorized, access: access}
 }

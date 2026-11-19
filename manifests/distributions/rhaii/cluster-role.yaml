@@ -11,3 +11,13 @@ rules:
       - namespaces
     verbs:
       - patch
+  # Namespace discovery lists namespaces matching its label selector so it can
+  # propose them to callers who cannot list namespaces themselves. Names only
+  # reach a caller after that caller's own access reviews authorize them, and
+  # namespace metadata is shown only when the caller may get the namespace.
+  - apiGroups:
+      - ''
+    resources:
+      - namespaces
+    verbs:
+      - list
