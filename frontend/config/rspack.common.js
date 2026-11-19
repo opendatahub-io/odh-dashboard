@@ -236,7 +236,10 @@ module.exports = (env) => ({
       ],
     }),
     new MonacoWebpackPlugin({
-      languages: ['yaml'],
+      // Keep in sync with packages/eval-hub/frontend/config/rspack.common.js —
+      // the collection-import editor switches its model to JSON, and a missing
+      // `json` worker mapping makes monaco throw the worker error event.
+      languages: ['yaml', 'json'],
       // Replace the built-in YAML worker with monaco-yaml so syntax validation runs off-thread.
       customLanguages: [
         {

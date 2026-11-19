@@ -139,13 +139,14 @@ module.exports = (env) => ({
     uniqueName: name,
   },
   plugins: [
-    // Bundle only the YAML language so Monaco stays as small as possible.
+    // Bundle only the YAML and JSON languages so Monaco stays as small as
+    // possible (the collection-import editor accepts JSON definitions).
     // The plugin emits a page-wide `self.MonacoEnvironment` assignment, so it
     // must keep mapping the `yaml` label to the monaco-yaml worker the same
     // way the host does — otherwise loading this remote would silently swap
     // the host's YAML worker for the built-in one and drop schema validation.
     new MonacoWebpackPlugin({
-      languages: ['yaml'],
+      languages: ['yaml', 'json'],
       customLanguages: [
         {
           label: 'yaml',
