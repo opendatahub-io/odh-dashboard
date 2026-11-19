@@ -67,8 +67,9 @@ func (app *App) generatePythonCode(config models.CodeExportRequest, namespace st
 		return "", fmt.Errorf("failed to initialize Python template: %w", err)
 	}
 
-	// View Code talks to the model API directly. Drop a vLLM provider prefix
-	// (vllm-inference-1/model -> model). Keep genai-bff-proxy/... for OGX routing.
+	// View Code calls OGX directly, so use the same qualified id the Playground
+	// sends (genai-bff-proxy/...). A namespace vLLM prefix is removed first.
+	// A MaaS id keeps the maas- discriminator the proxy uses to pick MaaS.
 	config.Model = modelNameForCodeExport(config.Model)
 
 	// Execute the template with config data, injecting server-side fields
@@ -85,26 +86,38 @@ func (app *App) generatePythonCode(config models.CodeExportRequest, namespace st
 	return result, nil
 }
 
-
-// modelNameForCodeExport returns the model id the exported script must send.
-// "vllm-inference-1/deepseek-r1" -> "deepseek-r1"
-// "vllm-inference-1/facebook/opt-125m" -> "facebook/opt-125m"
+// modelNameForCodeExport returns the model id the exported script must send to OGX.
+// This matches qualifyPassthroughModelID, which the Playground uses before calling OGX.
+// "vllm-inference-1/deepseek-r1" -> "genai-bff-proxy/deepseek-r1"
+// "vllm-inference-1/facebook/opt-125m" -> "genai-bff-proxy/facebook/opt-125m"
+// "maas-vllm-inference-2/llama-2-7b-chat" -> "genai-bff-proxy/maas-llama-2-7b-chat"
 // "genai-bff-proxy/llama-32-1b-instruct" is left unchanged.
 func modelNameForCodeExport(model string) string {
 	if strings.HasPrefix(model, constants.PassthroughProviderID+"/") {
 		return model
 	}
-	for _, prefix := range []string{"maas-vllm-inference-", "vllm-inference-"} {
-		if !strings.HasPrefix(model, prefix) {
-			continue
-		}
-		rest := model[len(prefix):]
-		slash := strings.Index(rest, "/")
-		if slash > 0 && isAllDigits(rest[:slash]) {
-			return rest[slash+1:]
-		}
+
+	// maas-vllm-inference-N/<model> -> maas-<model>. The proxy selects MaaS
+	// when the id still starts with maas-, then looks up the catalog id.
+	if rest, ok := modelAfterNumberedProvider(model, "maas-vllm-inference-"); ok {
+		model = constants.MaaSProviderPrefix + rest
+	} else if rest, ok := modelAfterNumberedProvider(model, "vllm-inference-"); ok {
+		model = rest
 	}
-	return model
+
+	return qualifyPassthroughModelID(model)
+}
+
+func modelAfterNumberedProvider(model, prefix string) (string, bool) {
+	if !strings.HasPrefix(model, prefix) {
+		return "", false
+	}
+	rest := model[len(prefix):]
+	slash := strings.Index(rest, "/")
+	if slash > 0 && isAllDigits(rest[:slash]) {
+		return rest[slash+1:], true
+	}
+	return "", false
 }
 
 func isAllDigits(s string) bool {
