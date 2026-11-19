@@ -113,9 +113,9 @@ describe('A model can be deployed with token auth', () => {
       cy.step('Enable Model access through an external route');
       modelServingWizard.findExternalRouteCheckbox().click();
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findServiceAccountByIndex(0).clear().type(testData.serviceAccountName1);
-      modelServingWizard.findAddServiceAccountButton().click();
-      modelServingWizard.findServiceAccountByIndex(1).clear().type(testData.serviceAccountName2);
+      modelServingWizard.findSecretNameByIndex(0).clear().type(testData.serviceAccountName1);
+      modelServingWizard.findAddSecretButton().click();
+      modelServingWizard.findSecretNameByIndex(1).clear().type(testData.serviceAccountName2);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 4: Review');
@@ -178,10 +178,10 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizardEdit.findNextButton().click();
       //Step 3: Advanced Options
       modelServingWizardEdit
-        .findServiceAccountByIndex(0)
+        .findSecretNameByIndex(0)
         .should('have.value', testData.serviceAccountName1);
       modelServingWizardEdit
-        .findServiceAccountByIndex(1)
+        .findSecretNameByIndex(1)
         .should('have.value', testData.serviceAccountName2);
       modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
       modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');

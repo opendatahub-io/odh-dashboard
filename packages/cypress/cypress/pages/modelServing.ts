@@ -1450,32 +1450,32 @@ class ModelServingWizard extends Wizard {
     );
   }
 
-  findServiceAccountNameInput() {
+  findSecretNameInput() {
     return cy.findByTestId('service-account-form-name');
   }
 
-  findAddServiceAccountButton() {
+  findAddSecretButton() {
     return cy.findByTestId('add-service-account-button');
   }
 
-  findAllServiceAccountInputs() {
+  findAllSecretNameInputs() {
     return cy.findAllByTestId('service-account-form-name');
   }
 
-  findServiceAccountByIndex(index: number) {
-    return this.findAllServiceAccountInputs().eq(index);
+  findSecretNameByIndex(index: number) {
+    return this.findAllSecretNameInputs().eq(index);
   }
 
-  findServiceNameAlert() {
+  findSecretNameAlert() {
     return cy.findByText('Duplicates are invalid');
   }
 
-  findAllRemoveServiceAccountButtons() {
+  findAllRemoveSecretButtons() {
     return cy.findAllByTestId('remove-service-account-button');
   }
 
-  findRemoveServiceAccountByIndex(index: number) {
-    return this.findAllRemoveServiceAccountButtons().eq(index);
+  findRemoveSecretByIndex(index: number) {
+    return this.findAllRemoveSecretButtons().eq(index);
   }
 
   findNumReplicasInput() {
