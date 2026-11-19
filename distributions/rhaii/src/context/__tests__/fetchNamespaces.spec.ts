@@ -1,9 +1,12 @@
-import fetchNamespaces from '../fetchNamespaces';
+import fetchNamespaces, {
+  NamespaceListUnavailableError,
+  fetchNamespaceByName,
+} from '../fetchNamespaces';
 
 const mockNamespaceList = (names: string[], phases?: Record<string, string>) => ({
-  items: names.map((name) => ({
-    metadata: { name },
-    status: { phase: phases?.[name] ?? 'Active' },
+  data: names.map((name) => ({
+    name,
+    phase: phases?.[name] ?? 'Active',
   })),
 });
 
@@ -47,12 +50,17 @@ describe('fetchNamespaces', () => {
     expect(result.find((p) => p.metadata.name === 'dying')?.status?.phase).toBe('Terminating');
   });
 
+  it('should not treat an unreported namespace phase as Active', async () => {
+    mockFetch({ ok: true, json: async () => ({ data: [{ name: 'unknown' }] }) });
+    expect((await fetchNamespaces())[0].status?.phase).toBe('Terminating');
+  });
+
   it('skips items without metadata.name', async () => {
     mockFetch({
       ok: true,
       json: () =>
         Promise.resolve({
-          items: [{ metadata: {} }, { metadata: { name: 'valid' } }, { status: {} }],
+          data: [{}, { name: 'valid' }, { phase: 'Active' }],
         }),
     } as Response);
 
@@ -67,7 +75,7 @@ describe('fetchNamespaces', () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          items: [{ metadata: { name: 42 } }, { metadata: { name: 'valid' } }],
+          data: [{ name: 42 }, { name: 'valid' }],
         }),
     } as Response);
 
@@ -77,26 +85,22 @@ describe('fetchNamespaces', () => {
     expect(result[0].metadata.name).toBe('valid');
   });
 
-  it('returns empty array for malformed response', async () => {
+  it('should reject a malformed response instead of reporting an empty list', async () => {
     mockFetch({
       ok: true,
       json: () => Promise.resolve('not-an-object'),
     } as Response);
 
-    const result = await fetchNamespaces();
-
-    expect(result).toEqual([]);
+    await expect(fetchNamespaces()).rejects.toThrow('Invalid namespace list response');
   });
 
-  it('returns empty array when items is not an array', async () => {
+  it('should reject a non-array data value', async () => {
     mockFetch({
       ok: true,
-      json: () => Promise.resolve({ items: 'not-an-array' }),
+      json: () => Promise.resolve({ data: 'not-an-array' }),
     } as Response);
 
-    const result = await fetchNamespaces();
-
-    expect(result).toEqual([]);
+    await expect(fetchNamespaces()).rejects.toThrow('Invalid namespace list response');
   });
 
   it('throws on non-ok response', async () => {
@@ -105,7 +109,7 @@ describe('fetchNamespaces', () => {
       status: 403,
     } as Response);
 
-    await expect(fetchNamespaces()).rejects.toThrow('Failed to list namespaces (HTTP 403)');
+    await expect(fetchNamespaces()).rejects.toBeInstanceOf(NamespaceListUnavailableError);
   });
 
   it('passes abort signal to fetch', async () => {
@@ -117,11 +121,44 @@ describe('fetchNamespaces', () => {
     const controller = new AbortController();
     await fetchNamespaces(controller.signal);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/k8s/api/v1/namespaces?labelSelector=opendatahub.io%2Fdashboard%3Dtrue',
-      {
-        signal: controller.signal,
-      },
-    );
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/namespaces', {
+      signal: controller.signal,
+    });
+  });
+});
+
+describe('fetchNamespaceByName', () => {
+  it('should return the exact authorized identity with its display name', async () => {
+    mockFetch({
+      ok: true,
+      json: async () => ({
+        data: { name: 'my-project', displayName: 'My project', phase: 'Active' },
+      }),
+    });
+    await expect(fetchNamespaceByName('my-project')).resolves.toMatchObject({
+      metadata: { name: 'my-project', annotations: { 'openshift.io/display-name': 'My project' } },
+    });
+    expect(global.fetch).toHaveBeenCalledWith('/api/v1/namespaces/my-project', {
+      signal: undefined,
+    });
+  });
+
+  it.each([403, 404])('should reject unauthorized or missing projects (%s)', async (status) => {
+    mockFetch({ ok: false, status });
+    await expect(fetchNamespaceByName('missing')).rejects.toThrow('No access to that project');
+  });
+
+  it('should reject invalid names without a request and mismatched responses', async () => {
+    const fetchMock = mockFetch({ ok: true, json: async () => ({ data: { name: 'other' } }) });
+    await expect(fetchNamespaceByName('Not a name')).rejects.toThrow('valid resource name');
+    expect(fetchMock).not.toHaveBeenCalled();
+    await expect(fetchNamespaceByName('expected')).rejects.toThrow('No access to that project');
+  });
+
+  it('should reject non-Active and unauthenticated lookup results', async () => {
+    mockFetch({ ok: true, json: async () => ({ data: { name: 'waiting', phase: '' } }) });
+    await expect(fetchNamespaceByName('waiting')).rejects.toThrow('No access to that project');
+    mockFetch({ ok: false, status: 401 });
+    await expect(fetchNamespaceByName('waiting')).rejects.toThrow('Sign in again');
   });
 });
