@@ -50,15 +50,25 @@ type accessCheck struct {
 	Verbs    []string
 }
 
-// NamespacePermissionMatrix is the exact set of reviews evaluated in every
-// candidate namespace, as the caller. It is documented in
-// docs/namespace-discovery-contract.md; keep the two in step.
-var NamespacePermissionMatrix = []accessCheck{
-	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"get", "list", "watch", "create", "update", "patch", "delete"}},
-	{Group: groupServing, Resource: "llminferenceserviceconfigs", Verbs: []string{"get", "list"}},
-	{Group: "", Resource: "pods", Verbs: []string{"get", "list"}},
+// actionPermissionMatrix holds the reviews the actions are derived from (see
+// DeriveNamespaceActions). They run first: a namespace where none of them
+// enables an action is not returned, so its remaining reviews are skipped.
+var actionPermissionMatrix = []accessCheck{
+	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"get", "list", "create", "patch", "delete"}},
 	{Group: "", Resource: "secrets", Verbs: []string{"create", "get", "patch", "delete"}},
 }
+
+// detailPermissionMatrix completes the matrix for namespaces that are returned.
+var detailPermissionMatrix = []accessCheck{
+	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"watch", "update"}},
+	{Group: groupServing, Resource: "llminferenceserviceconfigs", Verbs: []string{"get", "list"}},
+	{Group: "", Resource: "pods", Verbs: []string{"get", "list"}},
+}
+
+// NamespacePermissionMatrix is the exact set of reviews reported for every
+// returned namespace, evaluated as the caller in that namespace. It is
+// documented in docs/namespace-discovery-contract.md; keep the two in step.
+var NamespacePermissionMatrix = append(append([]accessCheck{}, actionPermissionMatrix...), detailPermissionMatrix...)
 
 // SharedNamespacePermissionMatrix is evaluated once, in the dashboard namespace,
 // for the shared resources the RHAII wizard reads from there.
@@ -148,11 +158,11 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 
 	// A caller who may list namespaces cluster-wide gets the list they can see.
 	// The cluster-scoped review has no namespace, so only cluster-wide grants allow it.
-	canList, err := client.CheckAccess(ctx, identity, "list", "", "namespaces", "")
-	switch {
-	case err != nil:
+	listReview, err := client.ReviewAccess(ctx, identity, k8s.AccessReviewAttributes{Verb: "list", Resource: "namespaces"})
+	switch decision := reviewDecision(listReview, err); decision {
+	case models.AccessError:
 		issues.add(models.IssueClusterListReviewFailed, 1)
-	case canList:
+	case models.AccessAllowed:
 		listed, listErr := client.GetNamespaces(ctx, identity)
 		if listErr != nil {
 			issues.add(models.IssueClusterListFailed, 1)
@@ -192,18 +202,19 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 	}
 
 	lim := r.newLimiter()
-	clusterWide := r.clusterWideGrants(ctx, lim, client, identity)
 	results := make([]evaluated, len(names))
 	forEach(len(names), func(i int) {
-		results[i] = r.evaluate(ctx, lim, client, identity, names[i], known, clusterWide)
+		results[i] = r.evaluate(ctx, lim, client, identity, names[i], known)
 	})
 
 	namespaces := make([]models.NamespaceAccess, 0, len(results))
 	for _, res := range results {
-		switch res.outcome {
-		case outcomeAuthorized:
+		if res.outcome == outcomeAuthorized {
 			namespaces = append(namespaces, res.access)
-		case outcomeReviewFailed:
+		}
+		// A returned namespace can still have failed reviews (its affected
+		// actions are off), so failures are counted whatever the outcome.
+		if res.failed > 0 {
 			issues.add(models.IssueAccessReviewFailed, 1)
 		}
 	}
@@ -213,7 +224,7 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 	// a discovery source, so their failure alone never turns a result into 503.
 	unavailable := len(namespaces) == 0 && len(issues) > 0 && !onlyTruncated(issues)
 
-	sharedPerms, sharedFailed := r.runMatrix(ctx, lim, client, identity, r.sharedNamespace, SharedNamespacePermissionMatrix, clusterWide)
+	sharedPerms, sharedFailed := r.runMatrix(ctx, lim, client, identity, r.sharedNamespace, SharedNamespacePermissionMatrix)
 	issues.add(models.IssueSharedAccessReviewFailed, sharedFailed)
 	if ctx.Err() != nil {
 		issues.add(models.IssueDiscoveryDeadlineExceeded, 1)
@@ -243,7 +254,7 @@ func (r *NamespaceAccessRepository) Get(ctx context.Context, client k8s.Kubernet
 	ctx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
 	lim := r.newLimiter()
-	res := r.evaluate(ctx, lim, client, identity, name, knownNamespaces{}, r.clusterWideGrants(ctx, lim, client, identity))
+	res := r.evaluate(ctx, lim, client, identity, name, knownNamespaces{})
 	switch res.outcome {
 	case outcomeAuthorized:
 		return res.access, nil
@@ -268,6 +279,8 @@ const (
 type evaluated struct {
 	outcome outcome
 	access  models.NamespaceAccess
+	// failed counts the reviews that could not be decided.
+	failed int
 }
 
 // knownNamespaces holds Namespace objects discovery already read. byCaller came
@@ -278,48 +291,46 @@ type knownNamespaces struct {
 	bySA     map[string]*corev1.Namespace
 }
 
-// clusterWideGrants reviews every matrix entry once with no namespace. In RBAC
-// a namespaced resource reviewed without a namespace is allowed only by a
-// cluster-wide grant, which then holds in every namespace, so those verbs need
-// no per-namespace review. A failed or denied cluster-wide review proves
-// nothing and falls through to the per-namespace review.
-func (r *NamespaceAccessRepository) clusterWideGrants(ctx context.Context, lim limiter, client k8s.KubernetesClientInterface, identity *k8s.RequestIdentity) map[string]bool {
-	matrix := append([]accessCheck{{Group: "", Resource: "namespaces", Verbs: []string{"get"}}}, NamespacePermissionMatrix...)
-	perms, _ := r.runMatrix(ctx, lim, client, identity, "", matrix, nil)
-	grants := map[string]bool{}
-	for key, verbs := range perms {
-		for verb, d := range verbs {
-			if d == models.AccessAllowed {
-				grants[key+"|"+verb] = true
-			}
-		}
-	}
-	return grants
-}
-
-func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, client k8s.KubernetesClientInterface, identity *k8s.RequestIdentity, name string, known knownNamespaces, clusterWide map[string]bool) evaluated {
-	perms, failed := r.runMatrix(ctx, lim, client, identity, name, NamespacePermissionMatrix, clusterWide)
+// evaluate reviews one namespace as the caller. Every review names the
+// namespace: authorizers such as webhooks may decide per namespace, so a
+// cluster-wide answer is never reused for it.
+func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, client k8s.KubernetesClientInterface, identity *k8s.RequestIdentity, name string, known knownNamespaces) evaluated {
+	perms, failed := r.runMatrix(ctx, lim, client, identity, name, actionPermissionMatrix)
 	actions := DeriveNamespaceActions(perms)
 	if !actions.Any() {
 		if failed > 0 {
-			return evaluated{outcome: outcomeReviewFailed}
+			return evaluated{outcome: outcomeReviewFailed, failed: failed}
 		}
 		return evaluated{outcome: outcomeDenied}
+	}
+	detail, detailFailed := r.runMatrix(ctx, lim, client, identity, name, detailPermissionMatrix)
+	failed += detailFailed
+	for key, verbs := range detail {
+		if perms[key] == nil {
+			perms[key] = models.ResourcePermissions{}
+		}
+		for verb, d := range verbs {
+			perms[key][verb] = d
+		}
 	}
 
 	access := models.NamespaceAccess{Name: name, Actions: actions, Permissions: perms}
 
 	ns := known.byCaller[name]
 	nsKey := PermissionKey("", "namespaces")
-	canGet := clusterWide[nsKey+"|get"]
+	// The caller's own named get, with the namespace attribute the API server
+	// sets for GET /api/v1/namespaces/<name>. Service-account metadata is used
+	// only when this review allows it.
+	var getReview k8s.AccessReviewResult
 	var err error
-	if !canGet {
-		lim.do(func() { canGet, err = client.CanGetNamespace(ctx, identity, name) })
-	}
-	switch {
-	case err != nil:
+	lim.do(func() {
+		getReview, err = client.ReviewAccess(ctx, identity, k8s.AccessReviewAttributes{Verb: "get", Resource: "namespaces", Namespace: name, Name: name})
+	})
+	switch reviewDecision(getReview, err) {
+	case models.AccessError:
 		perms[nsKey] = models.ResourcePermissions{"get": models.AccessError}
-	case canGet:
+		failed++
+	case models.AccessAllowed:
 		perms[nsKey] = models.ResourcePermissions{"get": models.AccessAllowed}
 		if ns == nil {
 			ns = known.bySA[name]
@@ -347,7 +358,7 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 			access.Phase = m.Phase
 		}
 	}
-	return evaluated{outcome: outcomeAuthorized, access: access}
+	return evaluated{outcome: outcomeAuthorized, access: access, failed: failed}
 }
 
 // DeriveNamespaceActions maps the permission matrix to UI actions. An action is
@@ -371,9 +382,22 @@ func DeriveNamespaceActions(perms map[string]models.ResourcePermissions) models.
 	}
 }
 
-// runMatrix reviews matrix in namespace. Entries in clusterWide are allowed
-// everywhere and are not reviewed again.
-func (r *NamespaceAccessRepository) runMatrix(ctx context.Context, lim limiter, client k8s.KubernetesClientInterface, identity *k8s.RequestIdentity, namespace string, matrix []accessCheck, clusterWide map[string]bool) (map[string]models.ResourcePermissions, int) {
+// reviewDecision maps a review to the wire decision. A failed request and an
+// indeterminate review (an authorizer error with no decision) are both errors,
+// never denials and never grants.
+func reviewDecision(res k8s.AccessReviewResult, err error) models.AccessDecision {
+	switch {
+	case err != nil, res == k8s.AccessReviewIndeterminate:
+		return models.AccessError
+	case res == k8s.AccessReviewAllowed:
+		return models.AccessAllowed
+	default:
+		return models.AccessDenied
+	}
+}
+
+// runMatrix reviews matrix in namespace, as the caller.
+func (r *NamespaceAccessRepository) runMatrix(ctx context.Context, lim limiter, client k8s.KubernetesClientInterface, identity *k8s.RequestIdentity, namespace string, matrix []accessCheck) (map[string]models.ResourcePermissions, int) {
 	type job struct{ group, resource, verb string }
 	var jobs []job
 	for _, c := range matrix {
@@ -384,21 +408,12 @@ func (r *NamespaceAccessRepository) runMatrix(ctx context.Context, lim limiter, 
 	decisions := make([]models.AccessDecision, len(jobs))
 	forEach(len(jobs), func(i int) {
 		j := jobs[i]
-		if clusterWide[PermissionKey(j.group, j.resource)+"|"+j.verb] {
-			decisions[i] = models.AccessAllowed
-			return
-		}
-		var ok bool
+		var res k8s.AccessReviewResult
 		var err error
-		lim.do(func() { ok, err = client.CheckAccess(ctx, identity, j.verb, j.group, j.resource, namespace) })
-		switch {
-		case err != nil:
-			decisions[i] = models.AccessError
-		case ok:
-			decisions[i] = models.AccessAllowed
-		default:
-			decisions[i] = models.AccessDenied
-		}
+		lim.do(func() {
+			res, err = client.ReviewAccess(ctx, identity, k8s.AccessReviewAttributes{Verb: j.verb, Group: j.group, Resource: j.resource, Namespace: namespace})
+		})
+		decisions[i] = reviewDecision(res, err)
 	})
 
 	perms := map[string]models.ResourcePermissions{}

@@ -92,8 +92,8 @@ func newKubeconfigKubernetesClientFromBase(ctx context.Context, base *rest.Confi
 
 // TokenClientQPS and TokenClientBurst bound one caller's per-request client.
 const (
-	TokenClientQPS   = 50
-	TokenClientBurst = 100
+	TokenClientQPS   = 400
+	TokenClientBurst = 800
 )
 
 // NewTokenKubernetesClient creates a Kubernetes client using a user bearer token.
@@ -121,9 +121,11 @@ func newTokenKubernetesClientFromBase(ctx context.Context, baseConfig *rest.Conf
 	cfg.ExecProvider = nil
 	cfg.AuthProvider = nil
 
-	// client-go defaults to 5 QPS / burst 10 when unset. A per-request client
-	// that fans out access reviews (namespace discovery) would be throttled to
-	// seconds per namespace, so give it a realistic budget unless one is set.
+	// client-go defaults to 5 QPS / burst 10 when unset. Namespace discovery
+	// reviews every candidate in its own namespace (up to 16 reviews each), so
+	// that default would turn one page load into minutes. Load on the API
+	// server is bounded by discovery's in-flight limit; this rate only keeps a
+	// runaway client in check.
 	if cfg.QPS == 0 {
 		cfg.QPS = TokenClientQPS
 	}
@@ -377,6 +379,36 @@ func (kc *TokenKubernetesClient) CheckAccess(ctx context.Context, _ *RequestIden
 		httpcontract.LogContext(kc.Logger, ctx).Info("SSAR denied", "verb", verb, "group", group, "resource", resource, "namespace", namespace)
 	}
 	return resp.Status.Allowed, nil
+}
+
+// ReviewAccess runs a SelfSubjectAccessReview as the caller. Unlike
+// CheckAccess, a review that completes without a decision because an
+// authorizer failed is reported as AccessReviewIndeterminate, not as a denial.
+func (kc *TokenKubernetesClient) ReviewAccess(ctx context.Context, _ *RequestIdentity, attrs AccessReviewAttributes) (AccessReviewResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      attrs.Verb,
+				Group:     attrs.Group,
+				Resource:  attrs.Resource,
+				Namespace: attrs.Namespace,
+				Name:      attrs.Name,
+			},
+		},
+	}
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		httpcontract.LogContext(kc.Logger, ctx).Error("SSAR review failed", "verb", attrs.Verb, "group", attrs.Group, "resource", attrs.Resource, "code", httpcontract.SafeErrorCode(err))
+		return AccessReviewDenied, fmt.Errorf("failed to review access (verb=%s, resource=%s/%s): %w", attrs.Verb, attrs.Group, attrs.Resource, err)
+	}
+	result := ClassifyAccessReview(resp.Status.Allowed, resp.Status.Denied, resp.Status.EvaluationError)
+	if result == AccessReviewIndeterminate {
+		httpcontract.LogContext(kc.Logger, ctx).Warn("access review indeterminate", "verb", attrs.Verb, "group", attrs.Group, "resource", attrs.Resource)
+	}
+	return result, nil
 }
 
 func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, namespace, name string) (*corev1.ConfigMap, error) {

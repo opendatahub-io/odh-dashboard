@@ -75,12 +75,13 @@ Evaluated in every candidate namespace with a `SelfSubjectAccessReview` as the c
 `SelfSubjectRulesReview` is not used: it is documented as incomplete under webhook authorizers,
 which AKS with Entra ID authorization uses.
 
-Before the per-namespace reviews, every entry (plus `get namespaces`) is reviewed once with no
-namespace. RBAC allows a namespaced resource reviewed without a namespace only through a
-cluster-wide grant, which then holds in every namespace, so those verbs are reported `allowed`
-without a per-namespace review. A cluster admin's discovery therefore costs about 17 reviews in
-total instead of 16 per namespace. A denied or failed cluster-wide review proves nothing and falls
-through to the per-namespace review.
+Every review names the target namespace. A review made without a namespace is never reused for
+a named one: authorizers such as webhooks may decide per namespace, so a cluster-wide answer does
+not prove access in any particular namespace. The only namespace-less review is the cluster-scoped
+`list namespaces` that picks the candidate source.
+
+The reviews the actions depend on run first. A namespace where none of them enables an action is
+not returned, and its remaining reviews are skipped.
 
 | Key (`<group>/<resource>`)                         | Verbs                                                    | Why                                                                             |
 | -------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -105,12 +106,20 @@ Evaluated once, in the dashboard namespace (`shared`):
 Bootstrap and the wizard need **no shared Secret access**; Secrets are only reviewed in the
 target namespace.
 
-Each review reports `allowed`, `denied` or `error`. `error` means the review request failed
-(API server unreachable, timeout, request deadline) and is never treated as allowed. A review
-that completes with `allowed: false` and a `status.evaluationError` is reported as `denied`, per the
-[error contract](./error-contract.md) rule that completed reviews use `status.allowed`. On a webhook
-authorizer that reports its own failures this way, such a namespace is hidden rather than reported
-as a failure.
+Each review reports `allowed`, `denied` or `error`:
+
+- `allowed` when an authorizer allowed it, and `denied` when one denied it or none allowed it and
+  none reported an error. A definitive decision wins over any `status.evaluationError`.
+- `error` when the review request failed (API server unreachable, timeout, request deadline) or the
+  review was indeterminate: it completed with neither `allowed` nor `denied` and with a
+  `status.evaluationError`, as when an authorization webhook fails. The request might have been
+  allowed, so it is neither a grant nor a denial. `error` is never treated as allowed and is
+  reported in `issues`.
+
+This is specific to discovery, where an authorizer failure must not look like an empty result. The
+[error contract](./error-contract.md) rule that other access checks use `status.allowed` is
+unchanged. RBAC also reports an `evaluationError` when one of the caller's own bindings references a
+missing role; if nothing else decides, that review is reported as `error` as well.
 
 ### Actions
 
@@ -138,7 +147,7 @@ user gets `view` only and is offered no mutation.
 | Namespace does not exist, caller cannot read namespaces    | not listed                                              | 403 (same as denied) |
 | Namespace does not exist, caller holds cluster-wide grants on matrix resources but no `get namespaces` | listed with `phase: Unknown` | 200 with `phase: Unknown` |
 | Namespace does not exist, caller may read it               | not listed                                              | 404             |
-| Some reviews or a source failed                            | 200, `complete: false`, `issues` lists codes and counts | 503 if no action could be decided |
+| Some reviews or a source failed                            | 200, `complete: false`, `issues` lists codes and counts, including failures in namespaces that are still returned | 503 if no action could be decided |
 | Every source or review failed and nothing was found        | 503 `SERVICE_UNAVAILABLE`                               | 503             |
 | More than 200 candidates                                   | 200, requested names first then the rest by name, `CANDIDATES_TRUNCATED` | n/a |
 | Request deadline (25 s) expired                            | pending reviews count as failed, `DISCOVERY_DEADLINE_EXCEEDED` | 503      |
@@ -166,18 +175,21 @@ it and labels it by its name, since `displayName` is then absent.
 `GET /api/v1/namespace-access/{name}`. A 404 means the endpoints are absent (not xKS), and the UI
 falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery:
 
-- `source: candidates` is shown as a partial listing: the authorized namespaces appear and manual
-  entry stays available. `source: cluster-list` is a complete listing.
+- Only `source: cluster-list` with `complete: true` is a complete listing. Anything else
+  (`source: candidates`, failed reviews, the candidate cap) is shown as a partial listing: the
+  authorized namespaces appear and manual entry stays available.
+- A `503` keeps manual entry available too, since looking a namespace up by name can still work.
 - `Active` and `Unknown` namespaces are selectable; `Terminating` ones are not.
 - Only namespaces with `actions.deploy` are offered as deployment targets
   (`modelServingProjects`); the others are still listed for viewing.
 
 ## Cost
 
-One cluster-wide pass of 17 reviews, then for each candidate one review per matrix verb not
-already granted cluster-wide (at most 16), plus one namespace read when permitted. Reviews run
-concurrently with at most 16 in flight per request. The caller's per-request client allows 50
-requests per second (burst 100) instead of client-go's 5/10 default. A request evaluates at most
+For each candidate, the 9 action reviews; for a namespace that is returned, 6 more matrix reviews
+plus the named `get` (16 in all), and one namespace read when permitted. Reviews run concurrently
+with at most 16 in flight per request, which is what bounds the load on the API server. The
+caller's per-request client allows 400 requests per second (burst 800) instead of client-go's 5/10
+default, which would otherwise throttle discovery to minutes. A request evaluates at most
 200 candidates and stops after 25 seconds, below the server's 60-second write timeout. Results are
 not cached server-side; the response carries the per-identity no-store headers from the bootstrap
 contract.
