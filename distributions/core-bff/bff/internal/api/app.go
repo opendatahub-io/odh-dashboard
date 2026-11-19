@@ -2,6 +2,7 @@
 package api
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
@@ -129,6 +130,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			AdmissionMode:     cfg.AdmissionMode,
 			SADynClient:       k8sResult.saDynClient,
 			SAClientset:       k8sResult.saClientset,
+			CredentialPolicy:  repositories.CredentialPolicyFor(resolvedPlatform),
+			CallerClients:     callerClientsFrom(k8sResult.factory),
 			Namespace:         cfg.Namespace,
 			OperatorNamespace: cfg.OperatorNamespace,
 			Prometheus: repositories.PrometheusConfig{
@@ -165,6 +168,32 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	return app, nil
+}
+
+// callerClientsFrom builds the caller-scoped client resolver repositories use
+// under the caller credential policy. It goes through the same factory as every
+// handler, so the clients carry exactly the credential InjectRequestIdentity
+// resolved for the request. A request without an identity is an error; there is
+// no service-account fallback.
+func callerClientsFrom(factory k8s.KubernetesClientFactory) repositories.CallerClientsFunc {
+	return func(ctx context.Context) (kubernetes.Interface, dynamic.Interface, error) {
+		if factory == nil {
+			return nil, nil, fmt.Errorf("no Kubernetes client factory")
+		}
+		client, err := factory.GetClient(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		typed, err := client.GetClientset()
+		if err != nil {
+			return nil, nil, err
+		}
+		dyn, err := client.GetDynamicClient()
+		if err != nil {
+			return nil, nil, err
+		}
+		return typed, dyn, nil
+	}
 }
 
 func initKubernetesClients(cfg config.EnvConfig, logger *slog.Logger) (k8sSetupResult, error) {

@@ -19,14 +19,19 @@ import (
 )
 
 // DashboardConfigRepository handles OdhDashboardConfig CRD operations.
-// Uses a service-account-scoped dynamic client for reads, matching the privileged watcher model
-// privileged watcher model where config is read with SA credentials.
+//
+// GetDashboardConfig is the bootstrap read: it uses the service account on
+// every platform so a non-admin sees the real configuration (documented in
+// docs/bootstrap-contract.md). GetRawDashboardConfig and
+// PatchRawDashboardConfig serve admin endpoints and follow the credential
+// policy: the service account on OpenShift, the caller on xKS.
 type DashboardConfigRepository struct {
 	platform config.PlatformType
 	// platformConfirmed is false when platform was guessed after an
 	// inconclusive startup probe. See newDashboardConfigRepository.
 	platformConfirmed bool
 	saDynClient       dynamic.Interface
+	clients           clientSource
 }
 
 // NewDashboardConfigRepository creates a repository for a confirmed platform.
@@ -42,7 +47,7 @@ func NewDashboardConfigRepository(platform config.PlatformType, saDynClient dyna
 // missing configuration instance, and only a confirmed xKS platform treats a
 // missing or unreadable instance as the expected read-only steady state.
 func newDashboardConfigRepository(platform config.PlatformType, platformConfirmed bool, saDynClient dynamic.Interface) *DashboardConfigRepository {
-	return &DashboardConfigRepository{platform: platform, platformConfirmed: platformConfirmed, saDynClient: saDynClient}
+	return &DashboardConfigRepository{platform: platform, platformConfirmed: platformConfirmed, saDynClient: saDynClient, clients: saSource(nil, saDynClient)}
 }
 
 func (r *DashboardConfigRepository) GetDashboardConfig(
@@ -84,11 +89,12 @@ func (r *DashboardConfigRepository) GetRawDashboardConfig(
 	ctx context.Context,
 	namespace, name string,
 ) (map[string]any, error) {
-	if r.saDynClient == nil {
-		return nil, fmt.Errorf("service account dynamic client not available")
+	dyn, err := r.clients.dynamic(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	result, err := r.saDynClient.Resource(models.DashboardConfigGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	result, err := dyn.Resource(models.DashboardConfigGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get dashboard config %s/%s: %w", namespace, name, err)
 	}
@@ -100,11 +106,12 @@ func (r *DashboardConfigRepository) PatchRawDashboardConfig(
 	ctx context.Context,
 	namespace, name string, patchData []byte, patchType types.PatchType,
 ) (map[string]any, error) {
-	if r.saDynClient == nil {
-		return nil, fmt.Errorf("service account dynamic client not available")
+	dyn, err := r.clients.dynamic(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	result, err := r.saDynClient.Resource(models.DashboardConfigGVR).Namespace(namespace).Patch(
+	result, err := dyn.Resource(models.DashboardConfigGVR).Namespace(namespace).Patch(
 		ctx, name, patchType, patchData, metav1.PatchOptions{},
 	)
 	if err != nil {

@@ -171,19 +171,60 @@ different header, so `Vary` always names the header that carries the caller's id
 The response body carries only what the frontend needs: identity, namespace, cluster metadata, and
 the two capability flags. There is no token, no group list and no raw Auth or configuration object.
 
+## Credential policy
+
+Tracked by [RHOAIENG-101218](https://redhat.atlassian.net/browse/RHOAIENG-101218). Whose
+credentials perform a user-initiated read or mutation depends on the platform
+(`repositories.CredentialPolicyFor`):
+
+| Platform  | Policy            | Behaviour                                                                                                                                     |
+| --------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenShift | `service-account` | Unchanged RHOAI privileged-watcher model: the handler authorizes the caller (admin review or resource SSAR), then the service account acts. |
+| xKS       | `caller`          | The caller's own credentials perform the operation, so the API server authorizes the exact resource and verb.                                |
+
+Under `caller` a missing or failing caller credential is an error. There is no path to the service
+account: `repositories.clientSource` returns `ErrCallerClientsUnavailable` and the operation is not
+attempted. An unconfirmed xKS guess also selects `caller`, the least-privilege direction, so a
+misdetection denies rather than elevates.
+
+Operations that follow the policy (all of them user-initiated):
+
+| Endpoint                                   | Operation                                                   |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| `GET /api/namespaces/:name/:context`       | Namespace label/annotation patch, including `dryRun=All`    |
+| `POST /api/servingRuntimes`                | ServingRuntime create, including `dryRun=All`               |
+| `POST/PUT/PATCH/DELETE /api/connection-types[/:name]` | Connection-type ConfigMap mutations and their existence check |
+| `GET /api/components/remove`               | Enabled-apps ConfigMap update                               |
+| `GET/PUT /api/cluster-settings`            | Culler and segment ConfigMaps, notebook-controller rollout  |
+| `PATCH /api/config`, `GET/PATCH /api/dashboardConfig/:ns/:name` | OdhDashboardConfig admin read and patch      |
+
+The Kubernetes HTTP and WebSocket proxies always use the caller's token, on every platform.
+
+The namespace mutation is the visible difference. On OpenShift a caller who may create
+ServingRuntimes in a project gets the label applied by the service account. On xKS the same caller
+needs `patch` on the Namespace itself; without it the response is `{"applied": false}` and nothing
+is written. The deploy flow already tolerates `applied: false`.
+
 ## Service-account permissions
 
-For the xKS profile the dashboard **service account** needs:
+These are the only service-account operations left on xKS. Each is a read, and none is reached by a
+mutation. For the xKS profile the dashboard **service account** needs:
 
 | Resource                                       | Verbs  | Needed for                                                                                                                                                                                                                                                                                                                 |
 | ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `odhdashboardconfigs` (`opendatahub.io`)       | `get`  | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                                                                                                                                                                                                                                        |
 | `odhapplications` (`dashboard.opendatahub.io`) | `list` | `/api/components`. **Always required**, also when the OdhApplication API is not installed: the API server authorizes a request before it resolves the resource, so without this rule an absent API is a 403. A forbidden list is an error. With the rule granted, an absent API or no instances degrades to an empty list. |
+| `configmaps` (core), dashboard namespace | `get`, `list` | Connection-type templates (`GET /api/connection-types[/:name]`), filtered to the connection-type labels. Every authenticated user needs them to create a connection and is not granted ConfigMap access in the dashboard namespace. |
 
-Both rules are namespaced and the BFF reads in its dashboard namespace (`NAMESPACE`), so the
+All three rules are namespaced and the BFF reads in its dashboard namespace (`NAMESPACE`), so the
 Deployment sets `NAMESPACE` to the pod's own namespace, where the Role is bound. The shipped Roles
 are exercised against an API server without the OdhApplication API in
 `bff/internal/api/components_sa_rbac_test.go`.
+
+On xKS the service account needs **no** write verb on any resource, and no permission on
+`namespaces`, `servingruntimes`, `deployments` or `auths`. The current
+`manifests/base/cluster-role.yaml` grants more than this; the reduction is for
+[RHOAIENG-96147](https://redhat.atlassian.net/browse/RHOAIENG-96147) to apply in an xKS overlay.
 
 `auths` is **not** in this list. In `authenticated` mode it is never read, which is the point: the
 service-account RBAC can be reduced to the reads above without introducing an undocumented

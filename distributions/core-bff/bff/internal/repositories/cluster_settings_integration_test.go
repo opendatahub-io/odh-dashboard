@@ -93,7 +93,7 @@ func TestUpdateCullerConfig_EnablesCulling(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.updateCullerConfig(ctx, testNS, 1800) // 30 minutes
+	err := repo.updateCullerConfig(ctx, cs, testNS, 1800) // 30 minutes
 	require.NoError(t, err)
 
 	cm, err := cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})
@@ -108,7 +108,7 @@ func TestUpdateCullerConfig_DisablesCulling(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.updateCullerConfig(ctx, testNS, defaultCullerTimeout)
+	err := repo.updateCullerConfig(ctx, cs, testNS, defaultCullerTimeout)
 	require.NoError(t, err)
 
 	_, err = cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})
@@ -120,7 +120,7 @@ func TestUpdateCullerConfig_UpdatesExisting(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.updateCullerConfig(ctx, testNS, 3600) // 60 minutes
+	err := repo.updateCullerConfig(ctx, cs, testNS, 3600) // 60 minutes
 	require.NoError(t, err)
 
 	cm, err := cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})
@@ -134,7 +134,7 @@ func TestUpdateSegmentKeyConfig(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.updateSegmentKeyConfig(ctx, testNS, true)
+	err := repo.updateSegmentKeyConfig(ctx, cs, testNS, true)
 	require.NoError(t, err)
 
 	cm, err := cs.CoreV1().ConfigMaps(testNS).Get(ctx, segmentKeyConfigName, metav1.GetOptions{})
@@ -154,7 +154,7 @@ func TestDetectChanges_PVCChanged(t *testing.T) {
 	}
 	settings := &models.ClusterSettings{PVCSize: 50}
 
-	assert.True(t, repo.detectChanges(context.Background(), testNS, settings, config))
+	assert.True(t, repo.detectChanges(context.Background(), cs, testNS, settings, config))
 }
 
 func TestDetectChanges_CullerChanged(t *testing.T) {
@@ -163,7 +163,7 @@ func TestDetectChanges_CullerChanged(t *testing.T) {
 
 	settings := &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: 7200}
 
-	assert.True(t, repo.detectChanges(context.Background(), testNS, settings, defaultDashConfig()))
+	assert.True(t, repo.detectChanges(context.Background(), cs, testNS, settings, defaultDashConfig()))
 }
 
 func TestDetectChanges_NoChanges(t *testing.T) {
@@ -172,7 +172,7 @@ func TestDetectChanges_NoChanges(t *testing.T) {
 
 	settings := &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout}
 
-	assert.False(t, repo.detectChanges(context.Background(), testNS, settings, defaultDashConfig()))
+	assert.False(t, repo.detectChanges(context.Background(), cs, testNS, settings, defaultDashConfig()))
 }
 
 func TestApplyDashboardConfigToSettings(t *testing.T) {

@@ -171,7 +171,7 @@ func (c EnvConfig) validateAuth(add func(string, ...any)) {
 			AuthMethodDisabled, AuthMethodUser)
 	}
 
-	if c.AuthMethod == AuthMethodUser {
+	if c.AuthMethod == AuthMethodUser && len(c.AuthTokenHeaders) == 0 {
 		switch header := strings.TrimSpace(c.AuthTokenHeader); {
 		case header == "":
 			add("AUTH_TOKEN_HEADER/--auth-token-header is empty while AUTH_METHOD=%s; a token header is required",
@@ -186,6 +186,69 @@ func (c EnvConfig) validateAuth(add func(string, ...any)) {
 			add("AUTH_TOKEN_HEADER=Authorization needs AUTH_TOKEN_PREFIX/--auth-token-prefix (for example \"Bearer \"); without it the scheme becomes part of the token")
 		}
 	}
+
+	c.validateAuthTokenHeaders(add)
+}
+
+// credentialHeaderForbidden lists headers that must never be read as the caller
+// credential: they carry other identity or session material that the edge, not
+// the caller, is supposed to control. Prefix entries end in "-".
+var credentialHeaderForbidden = []string{
+	"cookie", "set-cookie", "proxy-authorization", "host",
+	"impersonate-user", "impersonate-group", "impersonate-uid", "impersonate-extra-",
+	"x-remote-user", "x-remote-group", "x-remote-extra-",
+	"x-forwarded-user", "x-forwarded-groups", "x-forwarded-email", "x-forwarded-preferred-username",
+}
+
+// validateAuthTokenHeaders checks AUTH_TOKEN_HEADERS. The list replaces the
+// single-header pair, so a prefix set alongside it is ambiguous (it would apply
+// to one header and not the other) and is rejected rather than guessed at.
+func (c EnvConfig) validateAuthTokenHeaders(add func(string, ...any)) {
+	if len(c.AuthTokenHeaders) == 0 {
+		return
+	}
+	if c.AuthTokenPrefix != "" {
+		add("AUTH_TOKEN_PREFIX/--auth-token-prefix is set together with AUTH_TOKEN_HEADERS/--auth-token-headers; the list defines its own parsing (Authorization uses the Bearer scheme, other headers carry the bare token), so unset the prefix")
+	}
+
+	seen := map[string]bool{}
+	for _, raw := range c.AuthTokenHeaders {
+		name := strings.TrimSpace(raw)
+		lower := strings.ToLower(name)
+		switch {
+		case name == "" || !isHTTPToken(name):
+			add("AUTH_TOKEN_HEADERS/--auth-token-headers entry %q is not a valid HTTP header name", raw)
+			continue
+		case seen[lower]:
+			add("AUTH_TOKEN_HEADERS/--auth-token-headers lists %q more than once", name)
+			continue
+		case isForbiddenCredentialHeader(lower):
+			add("AUTH_TOKEN_HEADERS/--auth-token-headers entry %q is an identity or session header and cannot carry the caller token", name)
+		}
+		seen[lower] = true
+	}
+}
+
+func isForbiddenCredentialHeader(lower string) bool {
+	for _, f := range credentialHeaderForbidden {
+		if lower == f || (strings.HasSuffix(f, "-") && strings.HasPrefix(lower, f)) {
+			return true
+		}
+	}
+	return false
+}
+
+// isHTTPToken reports whether s is an RFC 9110 token, the grammar of a header name.
+func isHTTPToken(s string) bool {
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
+		case strings.ContainsRune("!#$%&'*+-.^_`|~", r):
+		default:
+			return false
+		}
+	}
+	return s != ""
 }
 
 // isHTTPFieldName reports whether name is an RFC 9110 field name: one or more

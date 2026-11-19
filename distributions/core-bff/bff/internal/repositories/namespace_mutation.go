@@ -12,14 +12,17 @@ import (
 )
 
 // NamespaceMutationRepository handles namespace label/annotation mutations
-// for model serving platform changes. Uses the SA clientset for privileged
-// namespace patches (privileged watcher model).
+// for model serving platform changes. The patch follows the credential policy:
+// on OpenShift the service account patches after the handler's SSAR (privileged
+// watcher model); on xKS the caller patches, so the API server authorizes
+// "patch namespaces" for the caller rather than inferring it from a
+// servingruntimes review.
 type NamespaceMutationRepository struct {
-	saClientset kubernetes.Interface
+	clients clientSource
 }
 
 func NewNamespaceMutationRepository(saClientset kubernetes.Interface) *NamespaceMutationRepository {
-	return &NamespaceMutationRepository{saClientset: saClientset}
+	return &NamespaceMutationRepository{clients: saSource(saClientset, nil)}
 }
 
 // ApplyMutation patches a namespace with the appropriate labels/annotations
@@ -41,7 +44,11 @@ func (r *NamespaceMutationRepository) ApplyMutation(ctx context.Context, namespa
 		opts.DryRun = []string{metav1.DryRunAll}
 	}
 
-	_, err = r.saClientset.CoreV1().Namespaces().Patch(ctx, namespace, types.MergePatchType, patchBytes, opts)
+	cs, err := r.clients.typed(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = cs.CoreV1().Namespaces().Patch(ctx, namespace, types.MergePatchType, patchBytes, opts)
 	if err != nil {
 		return fmt.Errorf("failed to patch namespace %q: %w", namespace, err)
 	}

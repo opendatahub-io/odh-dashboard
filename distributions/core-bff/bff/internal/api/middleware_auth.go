@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/callerauth"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
@@ -19,8 +21,19 @@ import (
 func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if app.config.AuthMethod == config.AuthMethodDisabled {
+			// With auth disabled there is never a caller credential. In DEV_MODE
+			// the request runs as the kubeconfig identity, exactly like the
+			// no-credential fallback below, so the REST clients and the
+			// Kubernetes proxies (which present the kubeconfig certificate only
+			// for DevFallback) keep working against a real cluster. Without
+			// DEV_MODE, disabled auth is for mock clients only.
 			identity := &k8s.RequestIdentity{
-				Token: k8s.NewBearerToken(config.DefaultDisabledAuthToken),
+				Token:       k8s.NewBearerToken(config.DefaultDisabledAuthToken),
+				DevFallback: app.config.DevMode,
+			}
+			if app.config.DevMode {
+				identity.UserID = app.config.DevUser
+				identity.Groups = parseDevGroups(app.config.DevGroups)
 			}
 			ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -29,14 +42,17 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 
 		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
 		if err != nil && app.config.DevMode && errors.Is(err, httpcontract.ErrCredentialsMissing) {
-			// The configured header is absent. A caller token in the other
-			// identity header (the host dashboard's module proxy sends
-			// Authorization) is still the caller's credential: use it, never
-			// the developer's identity. Only a request with no credential at
-			// all falls back.
-			if alt, ok := alternateCredential(r, app.config.AuthTokenHeader, app.config.AuthTokenPrefix); ok {
+			// None of the configured headers is present. A caller token in the
+			// other identity header (the host dashboard's module proxy sends
+			// Authorization) or in a WebSocket bearer subprotocol is still the
+			// caller's credential: use it, never the developer's identity. Any
+			// other credential header that was sent, even blank (net/http
+			// delivers a blank header as an empty value, so presence is checked
+			// by key), is rejected. Only a request with no credential at all
+			// falls back.
+			if alt, ok := app.alternateCredential(r); ok {
 				identity, err = app.kubernetesClientFactory.ExtractRequestIdentity(alt)
-			} else {
+			} else if !app.credentialHeaderSent(r.Header) {
 				// DevUser/DevGroups are used for audit log fallback labeling (see auditUser).
 				// The resolved identity for k8s operations comes from the kubeconfig's native auth,
 				// not from these values - GetUser() does a SelfSubjectReview against the kubeconfig client.
@@ -61,24 +77,53 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	})
 }
 
-// alternateCredential looks for a caller credential in the identity header
-// that is not the configured one (Authorization or X-Forwarded-Access-Token)
-// and re-expresses it in the configured header, so the factory parses it with
-// the configured prefix exactly like a normal request. Authorization must use
-// the Bearer scheme; anything else in it, or an empty value, is passed on as
-// an empty credential, which the factory rejects as invalid.
-func alternateCredential(r *http.Request, tokenHeader, tokenPrefix string) (http.Header, bool) {
-	h := r.Header
-	// A WebSocket client (a browser) can only send its token as a bearer
-	// subprotocol; that is a credential too.
+// credentialHeaders returns every header that may carry the caller credential:
+// the configured ordered list (or the single AUTH_TOKEN_HEADER) plus
+// AUTH_TOKEN_HEADER itself, which module proxies use as their outbound header.
+// Every inbound copy is stripped before proxying, redacted in logs, allowed by
+// CORS and listed in Vary.
+func (app *App) credentialHeaders() []string {
+	headers := callerauth.New(app.config).Headers()
+	if h := http.CanonicalHeaderKey(strings.TrimSpace(app.config.AuthTokenHeader)); h != "" && !slices.Contains(headers, h) {
+		headers = append(headers, h)
+	}
+	return slices.DeleteFunc(headers, func(h string) bool { return h == "" })
+}
+
+// credentialHeaderSent reports whether the request carries any credential
+// header the BFF treats as one (credentialHeaders, which includes the legacy
+// AUTH_TOKEN_HEADER in list mode), even with an empty value. A token sent in
+// any of them is never swapped for the DEV_MODE kubeconfig identity.
+func (app *App) credentialHeaderSent(h http.Header) bool {
+	for _, name := range app.credentialHeaders() {
+		if _, ok := h[name]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// alternateCredential looks, under DEV_MODE, for a caller credential the
+// configured headers did not carry: a WebSocket bearer subprotocol (a browser
+// can only send its token that way) or the other standard identity header
+// (Authorization or X-Forwarded-Access-Token) when it is not one of the
+// configured ones. It re-expresses the token in the first configured header,
+// in that header's format, so the factory parses it exactly like a normal
+// request. A malformed or empty one is passed on as an empty credential, which
+// the factory rejects as invalid.
+func (app *App) alternateCredential(r *http.Request) (http.Header, bool) {
+	configured := callerauth.New(app.config).Headers()
+	if len(configured) == 0 || configured[0] == "" {
+		return nil, false
+	}
 	if token, ok := proxy.BearerSubprotocolToken(r); ok {
-		return credentialIn(tokenHeader, tokenPrefix, token), true
+		return app.credentialIn(configured[0], token), true
 	}
 	for _, name := range []string{constants.HeaderAuthorization, constants.HeaderForwardedToken} {
-		if strings.EqualFold(name, tokenHeader) {
+		if slices.ContainsFunc(configured, func(c string) bool { return strings.EqualFold(c, name) }) {
 			continue
 		}
-		values, present := h[http.CanonicalHeaderKey(name)]
+		values, present := r.Header[http.CanonicalHeaderKey(name)]
 		if !present {
 			continue
 		}
@@ -94,21 +139,30 @@ func alternateCredential(r *http.Request, tokenHeader, tokenPrefix string) (http
 				token = ""
 			}
 		}
-		return credentialIn(tokenHeader, tokenPrefix, token), true
+		return app.credentialIn(configured[0], token), true
 	}
 	return nil, false
 }
 
-// credentialIn expresses token in the configured header, or an empty
-// credential (which the factory rejects as invalid) when token is "".
-func credentialIn(tokenHeader, tokenPrefix, token string) http.Header {
-	alt := http.Header{}
+// credentialIn expresses token in header, in the format the extractor expects
+// there: "Bearer <token>" for Authorization in list mode, the configured
+// prefix in single-header mode, the bare token otherwise. An empty token is an
+// empty value, which the factory rejects as invalid.
+func (app *App) credentialIn(header, token string) http.Header {
+	out := http.Header{}
 	if token == "" {
-		alt[http.CanonicalHeaderKey(tokenHeader)] = []string{""}
-	} else {
-		alt.Set(tokenHeader, tokenPrefix+token)
+		out[http.CanonicalHeaderKey(header)] = []string{""}
+		return out
 	}
-	return alt
+	switch {
+	case len(app.config.AuthTokenHeaders) == 0:
+		out.Set(header, app.config.AuthTokenPrefix+token)
+	case strings.EqualFold(header, constants.HeaderAuthorization):
+		out.Set(header, "Bearer "+token)
+	default:
+		out.Set(header, token)
+	}
+	return out
 }
 
 // auditUser returns the best available user identifier for audit logging.

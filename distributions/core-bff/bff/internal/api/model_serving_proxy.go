@@ -60,7 +60,7 @@ func (app *App) initModelServingProxy() error {
 			}
 			return k8s.BearerHeader(identity.ResolveToken(app.devFallbackToken))
 		},
-		StripHeaders:       proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
+		StripHeaders:       proxy.SensitiveIngressHeaders(app.credentialHeaders()...),
 		ModifyResponse:     ssrf.NewRedirectValidator(app.logger),
 		SSRFValidateTarget: true,
 		SSRFAllowedHosts:   []string{targetURL.Hostname()},
