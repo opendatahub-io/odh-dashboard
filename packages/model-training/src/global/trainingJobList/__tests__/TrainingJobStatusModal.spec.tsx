@@ -112,6 +112,9 @@ describe('TrainingJobStatusModal', () => {
     const { rerender } = render(
       <TrainingJobStatusModal job={job} jobStatus={TrainingJobState.RUNNING} />,
     );
+    expect(screen.getByTestId('training-job-status-modal-description')).toHaveTextContent(
+      /^Job status$/,
+    );
     expect(screen.getByTestId('training-job-pod-summary')).toHaveTextContent(
       'Unable to pull the container image.',
     );
@@ -119,6 +122,7 @@ describe('TrainingJobStatusModal', () => {
     rerender(<TrainingJobStatusModal job={job} jobStatus={TrainingJobState.PAUSED} />);
     expect(screen.getByTestId('training-job-status')).toHaveTextContent('Paused');
     expect(screen.queryByTestId('training-job-pod-summary')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('training-job-status-modal-description')).not.toBeInTheDocument();
 
     rerender(<TrainingJobStatusModal job={job} jobStatus={TrainingJobState.RUNNING} />);
     expect(screen.getByTestId('training-job-status')).toHaveTextContent('Running');
@@ -235,12 +239,10 @@ describe('TrainingJobStatusModal', () => {
   });
 
   it.each(['Train an image classification model.', '   ', undefined])(
-    'should always display Job status in the header (annotation: %s)',
+    'should omit Job status without a live summary (annotation: %s)',
     (description) => {
       renderModal(description);
-      expect(screen.getByTestId('training-job-status-modal-description')).toHaveTextContent(
-        /^Job status$/,
-      );
+      expect(screen.queryByTestId('training-job-status-modal-description')).not.toBeInTheDocument();
     },
   );
 
@@ -279,6 +281,9 @@ describe('TrainingJobStatusModal', () => {
     expect(screen.getByTestId('training-job-status-summary')).toHaveTextContent(
       'Waiting for quota in user-queue',
     );
+    expect(screen.getByTestId('training-job-status-modal-description')).toHaveTextContent(
+      /^Job status$/,
+    );
 
     const inadmissible = mockWorkloadK8sResource({ mockStatus: WorkloadStatusType.Inadmissible });
     jest.mocked(useWorkloadForTrainJob).mockReturnValue([[inadmissible], true, undefined]);
@@ -295,6 +300,7 @@ describe('TrainingJobStatusModal', () => {
       ]);
     rerender(<TrainingJobStatusModal job={job} jobStatus={TrainingJobState.QUEUED} />);
     expect(screen.queryByTestId('training-job-status-summary')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('training-job-status-modal-description')).not.toBeInTheDocument();
     jest
       .mocked(useWorkloadForTrainJob)
       .mockReturnValue([
