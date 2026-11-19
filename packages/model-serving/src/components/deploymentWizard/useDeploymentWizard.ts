@@ -305,10 +305,16 @@ export const useModelDeploymentWizard = (
         isDisabled: tokenAuthDisabled,
         ...(tokenAuthDisabled ? { data: [] } : {}),
       },
-      'llmd-serving/gateway': {
-        ...(state['llmd-serving/gateway'] ?? {}),
-        ...computedOverrides['llmd-serving/gateway'],
-      },
+      // Only once the field has initialized: an empty `{}` reads as initialized data without
+      // `selections` (e.g. the review step rendering first after a remount from YAML)
+      ...(state['llmd-serving/gateway']
+        ? {
+            'llmd-serving/gateway': {
+              ...state['llmd-serving/gateway'],
+              ...computedOverrides['llmd-serving/gateway'],
+            },
+          }
+        : {}),
     }),
     [state, tokenAuthDisabled, tokenAuthOverrides, modelAvailabilityOverrides, computedOverrides],
   );

@@ -302,6 +302,21 @@ describe('Deployment wizard YAML view', () => {
     modelServingWizard.findGatewaySelect().should('contain.text', 'other-gateway | other-ns');
   });
 
+  it('applies a YAML edit made from the review step and stays on the review step', () => {
+    setupWizardWithFormData();
+    modelServingWizard.findNextButton().click();
+    modelServingWizard.findNextButton().click();
+    modelServingWizard.findReviewStepModelDeploymentSection().should('contain.text', MODEL_NAME);
+
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+    setDisplayName('edited-on-review');
+    modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
+
+    modelServingWizard
+      .findReviewStepModelDeploymentSection()
+      .should('contain.text', 'edited-on-review');
+  });
+
   it('applies YAML edits to each model details and deployment field and keeps them', () => {
     setupWizardWithFormData();
     modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
