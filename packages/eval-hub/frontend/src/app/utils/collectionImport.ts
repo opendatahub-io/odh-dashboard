@@ -22,7 +22,6 @@ const KNOWN_COLLECTION_FIELDS = new Set([
   'modalities',
   'industries',
   'evaluation_targets',
-  'agent',
 ]);
 
 // Collection fields the server sets itself; they are ignored on import.
@@ -138,6 +137,9 @@ export const readFileAsUTF8Text = (file: File): Promise<string> =>
  * imported; the document count lets the caller inform the user.
  */
 export const parseImportContent = (text: string): ParsedImportContent => {
+  if (text.length > IMPORT_FILE_SIZE_LIMIT) {
+    return { doc: null, documentCount: 0, error: 'Content exceeds the 1 MiB size limit' };
+  }
   const trimmed = text.trim();
   if (!trimmed) {
     return { doc: null, documentCount: 0, error: 'No collection definition found in file' };
@@ -156,9 +158,10 @@ export const parseImportContent = (text: string): ParsedImportContent => {
     } catch (e) {
       if (e instanceof yaml.YAMLException) {
         // js-yaml reports positions relative to the trimmed input; rebase
-        // onto the editor's absolute line numbers.
+        // onto the editor's absolute line numbers using the leading blank
+        // block only (trailing blanks do not shift content lines).
         const leadingBlankLines =
-          text.slice(0, text.length - trimmed.length).split('\n').length - 1;
+          text.slice(0, text.length - text.trimStart().length).split('\n').length - 1;
         const errorLine = e.mark.line + 1 + leadingBlankLines;
         return {
           doc: null,
@@ -171,19 +174,24 @@ export const parseImportContent = (text: string): ParsedImportContent => {
     }
   }
 
-  const nonNull = documents.filter((document) => document != null);
-  if (nonNull.length === 0) {
-    return { doc: null, documentCount: 0, error: 'No collection definition found in file' };
+  // The BFF imports the literal first document, so the preview must validate
+  // documents[0] (not the first non-null document) and count the raw stream.
+  if (documents.length === 0 || documents[0] == null) {
+    return {
+      doc: null,
+      documentCount: documents.length,
+      error: 'No collection definition found in file',
+    };
   }
-  const first = nonNull[0];
+  const first = documents[0];
   if (!isRecord(first)) {
     return {
       doc: null,
-      documentCount: nonNull.length,
+      documentCount: documents.length,
       error: 'Collection definition must be an object',
     };
   }
-  return { doc: first, documentCount: nonNull.length };
+  return { doc: first, documentCount: documents.length };
 };
 
 const DEFAULT_TEMPLATE_DOC: Record<string, unknown> | null = parseImportContent(

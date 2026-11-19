@@ -114,6 +114,7 @@
     "js-yaml": "^4.1.1",
     "lodash-es": "^4.17.15",
     "monaco-editor": "^0.54.0",
+    "monaco-yaml": "^5.5.1",
     "mod-arch-core": "^1.2.2",
     "react": "^18",
     "react-dom": "^18",

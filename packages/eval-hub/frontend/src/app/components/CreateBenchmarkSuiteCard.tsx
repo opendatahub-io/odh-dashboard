@@ -81,8 +81,10 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
                 content="You do not have permission to create collections in this project"
                 position="top"
               >
-                {/* Span wrapper: hover events do not fire on a disabled button. */}
-                <span>
+                {/* Span wrapper: hover events do not fire on a disabled button;
+                    tabIndex keeps the tooltip reachable by keyboard. */}
+                {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focus proxy for the disabled button so keyboard users can reach the tooltip */}
+                <span tabIndex={0}>
                   <Button
                     className="evalhub-create-suite-card__button"
                     variant="tertiary"

@@ -29,8 +29,15 @@ export class ImportCollectionModal extends Modal {
     if (open) {
       // Monaco's syntax token colors come from PatternFly's editor theme and
       // trip the color-contrast rule; the editor widget is excluded from the
-      // scan while the surrounding dialog remains checked.
-      this.find().testA11y({ exclude: ['.monaco-editor'] });
+      // scan while the surrounding dialog remains checked. An explicit
+      // include keeps the scan scoped to the dialog — a bare exclude would
+      // scan the whole page outside Monaco.
+      this.find().testA11y({
+        context: {
+          include: ['[data-testid="import-collection-modal"]'],
+          exclude: ['.monaco-editor'],
+        },
+      });
     } else {
       this.find().should('not.exist');
     }

@@ -140,7 +140,23 @@ module.exports = (env) => ({
   },
   plugins: [
     // Bundle only the YAML language so Monaco stays as small as possible.
-    new MonacoWebpackPlugin({ languages: ['yaml'] }),
+    // The plugin emits a page-wide `self.MonacoEnvironment` assignment, so it
+    // must keep mapping the `yaml` label to the monaco-yaml worker the same
+    // way the host does — otherwise loading this remote would silently swap
+    // the host's YAML worker for the built-in one and drop schema validation.
+    new MonacoWebpackPlugin({
+      languages: ['yaml'],
+      customLanguages: [
+        {
+          label: 'yaml',
+          entry: 'monaco-yaml',
+          worker: {
+            id: 'monaco-yaml/yamlWorker',
+            entry: 'monaco-yaml/yaml.worker',
+          },
+        },
+      ],
+    }),
     ...moduleFederationPlugins,
     ...setupWebpackDotenvFilesForEnv({
       directory: RELATIVE_DIRNAME,

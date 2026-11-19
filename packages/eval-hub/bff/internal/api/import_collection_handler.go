@@ -44,7 +44,7 @@ func (app *App) ImportCollectionHandler(w http.ResponseWriter, r *http.Request, 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
 	var input importCollectionRequest
-	if err := app.ReadJSON(w, r, &input); err != nil {
+	if err := app.readJSONWithLimit(w, r, &input, maxImportBodySize); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}

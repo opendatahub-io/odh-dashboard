@@ -4017,6 +4017,9 @@ importers:
       monaco-editor:
         specifier: ^0.54.0
         version: 0.54.0
+      monaco-yaml:
+        specifier: ^5.5.1
+        version: 5.5.1(monaco-editor@0.54.0)
       react:
         specifier: ^18
         version: 18.3.1

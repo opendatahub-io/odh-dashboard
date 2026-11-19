@@ -70,12 +70,18 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
   // the editor on every keystroke.
   const [nameDraft, setNameDraft] = React.useState<string | null>(null);
   const [nameTouched, setNameTouched] = React.useState(false);
+  // A file read is in flight; Import stays disabled and only the read that
+  // still owns the token may apply its result.
+  const [isReadingFile, setIsReadingFile] = React.useState(false);
 
   const { trackEvalHubEvent } = useEvalHubTracking();
   const navigate = useNavigate();
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const nameSyncTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Monotonic token identifying the current file read; bumped whenever the
+  // read's result should no longer land (newer selection, clear, reset, close).
+  const fileReadToken = React.useRef(0);
   const importMutation = useImportCollectionMutation(namespace);
   const collectionsQuery = useCollectionsQuery(namespace);
   const isDarkTheme = useDarkMode();
@@ -94,6 +100,8 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
   React.useEffect(() => {
     if (isOpen) {
       cancelPendingNameSync();
+      fileReadToken.current++;
+      setIsReadingFile(false);
       setText(IMPORT_COLLECTION_TEMPLATE);
       setFilename('');
       setFileError(null);
@@ -155,6 +163,7 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
     // A name collision must be resolved (suggested name accepted or edited)
     // before the import can be submitted.
     collision === undefined &&
+    !isReadingFile &&
     !importMutation.isPending;
 
   const resetNameField = React.useCallback(() => {
@@ -198,14 +207,24 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
         setFileError(validationError);
         return;
       }
+      const token = ++fileReadToken.current;
       setFilename(file.name);
+      setIsReadingFile(true);
       readFileAsUTF8Text(file)
         .then((content) => {
+          if (token !== fileReadToken.current) {
+            return;
+          }
           cancelPendingNameSync();
+          setIsReadingFile(false);
           setText(content);
           resetNameField();
         })
         .catch((e) => {
+          if (token !== fileReadToken.current) {
+            return;
+          }
+          setIsReadingFile(false);
           setFilename('');
           setFileError(e instanceof Error ? e.message : String(e));
         });
@@ -218,6 +237,8 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
       return;
     }
     cancelPendingNameSync();
+    fileReadToken.current++;
+    setIsReadingFile(false);
     setText(IMPORT_COLLECTION_TEMPLATE);
     setFilename('');
     setFileError(null);
@@ -231,6 +252,8 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
       return;
     }
     cancelPendingNameSync();
+    fileReadToken.current++;
+    setIsReadingFile(false);
     setText('');
     setFilename('');
     setFileError(null);

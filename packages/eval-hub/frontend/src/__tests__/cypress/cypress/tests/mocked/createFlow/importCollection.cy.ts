@@ -203,6 +203,13 @@ describe('Import collection', () => {
         }),
       },
     ).as('importCollection');
+    // After the POST succeeds, the invalidated collections query refetches
+    // and the gallery must show the imported collection without a reload.
+    cy.interceptApi(
+      'GET /api/:apiVersion/evaluations/collections',
+      { path: API_VERSION },
+      mockCollectionsListResponse([existingCollection, importedCollection]),
+    );
 
     evaluationsPage.visitBenchmarkSuites(NAMESPACE);
     evaluationsPage.findImportCollectionButton().click();
@@ -211,10 +218,12 @@ describe('Import collection', () => {
     importCollectionModal.findSubmitButton().click();
 
     cy.wait('@importCollection').then((interception) => {
+      expect(interception.request.query.namespace).to.equal(NAMESPACE);
       expect(interception.request.body).to.deep.equal({ content: validContent });
     });
     importCollectionModal.shouldBeOpen(false);
     cy.findByTestId('import-collection-success').should('not.exist');
+    evaluationsPage.findBenchmarkSuiteCard('imported-suite').should('exist');
     cy.location('pathname').should('eq', `/evaluation/${NAMESPACE}/collections`);
   });
 

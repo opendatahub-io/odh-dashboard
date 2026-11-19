@@ -22,7 +22,6 @@ import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
-import ImportCollectionModal from '~/app/components/ImportCollectionModal';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import { useCanImportCollections } from '~/app/hooks/collections';
@@ -40,6 +39,9 @@ import type { Collection } from '~/app/types';
 import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './BenchmarkSuitesPage.scss';
+
+// The import modal pulls in Monaco; load it only when the user opens Import.
+const ImportCollectionModal = React.lazy(() => import('~/app/components/ImportCollectionModal'));
 
 const BenchmarkSuitesPage: React.FC = () => {
   const { trackEvalHubEvent } = useEvalHubTracking();
@@ -239,12 +241,14 @@ const BenchmarkSuitesPage: React.FC = () => {
         />
       ) : null}
       {isImportOpen ? (
-        <ImportCollectionModal
-          isOpen
-          onClose={() => setIsImportOpen(false)}
-          namespace={namespace ?? ''}
-          surface="my_benchmark_suites"
-        />
+        <React.Suspense fallback={null}>
+          <ImportCollectionModal
+            isOpen
+            onClose={() => setIsImportOpen(false)}
+            namespace={namespace ?? ''}
+            surface="my_benchmark_suites"
+          />
+        </React.Suspense>
       ) : null}
     </>
   );

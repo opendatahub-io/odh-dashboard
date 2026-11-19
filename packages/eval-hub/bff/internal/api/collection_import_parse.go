@@ -12,19 +12,25 @@ import (
 
 // Import limits — the 1 MiB cap is the platform ceiling for ConfigMaps and
 // Secrets, which is where the EvalHub server materializes collections. The
-// YAML bounds (nesting depth, alias count) protect the parser from
-// pathological constructs; the browser enforces the same limits client-side.
+// YAML bounds (nesting depth, alias count, mapping width) protect the parser
+// from pathological constructs; the browser enforces the same limits
+// client-side.
 const (
-	maxImportContentSize = 1 << 20 // 1 MiB
-	maxYAMLDepth         = 50
-	maxYAMLAliases       = 100
+	maxImportContentSize    = 1 << 20 // 1 MiB
+	maxYAMLDepth            = 50
+	maxYAMLAliases          = 100
+	maxImportMappingEntries = 1000
+	// The request envelope carries the definition as a JSON string, so JSON
+	// escaping and the {"content": ...} wrapper add overhead on top of the
+	// decoded content's own 1 MiB cap.
+	maxImportBodySize = 4 << 20 // 4 MiB
 )
 
 // Writable collection fields per the server's CollectionConfig schema.
 var knownCollectionImportFields = map[string]struct{}{
 	"name": {}, "category": {}, "description": {}, "tags": {}, "custom": {},
 	"pass_criteria": {}, "benchmarks": {}, "domains": {}, "tasks": {},
-	"modalities": {}, "industries": {}, "evaluation_targets": {}, "agent": {},
+	"modalities": {}, "industries": {}, "evaluation_targets": {},
 }
 
 // Collection fields the server sets itself (or rejects writes for); they are
@@ -52,7 +58,7 @@ var serverManagedBenchmarkFields = map[string]struct{}{
 // document of a multi-document YAML file is imported, with a warning.
 func parseImportContent(content string) (doc map[string]any, warnings []string, err error) {
 	if len(content) > maxImportContentSize {
-		return nil, nil, errors.New("File exceeds the 1 MiB size limit")
+		return nil, nil, errors.New("file exceeds the 1 MiB size limit")
 	}
 	if strings.TrimSpace(content) == "" {
 		return nil, nil, errors.New("no collection definition found in file")
@@ -69,9 +75,17 @@ func parseImportContent(content string) (doc map[string]any, warnings []string, 
 }
 
 func parseImportJSON(content string) (map[string]any, error) {
+	decoder := json.NewDecoder(strings.NewReader(content))
+	// UseNumber keeps large integers exact through the later
+	// marshal/unmarshal round-trip into CreateCollectionRequest.
+	decoder.UseNumber()
 	var value any
-	if err := json.Unmarshal([]byte(content), &value); err != nil {
+	if err := decoder.Decode(&value); err != nil {
 		return nil, fmt.Errorf("invalid JSON: %w", err)
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		return nil, errors.New("invalid JSON: unexpected content after the document")
 	}
 	if jsonValueDepth(value, 0) > maxYAMLDepth {
 		return nil, fmt.Errorf("JSON nesting exceeds %d levels", maxYAMLDepth)
@@ -138,16 +152,27 @@ func asImportObject(value any) (map[string]any, error) {
 	}
 }
 
+// yaml.v3 built-in tags in the YAML namespace; anything else — including
+// unrecognized "!!" tags — is treated as a custom tag and rejected.
+var allowedYAMLTags = map[string]struct{}{
+	"!!map": {}, "!!seq": {}, "!!str": {}, "!!int": {}, "!!float": {},
+	"!!bool": {}, "!!null": {}, "!!timestamp": {}, "!!binary": {}, "!!merge": {},
+}
+
 // validateImportYAMLNode walks the node tree before decoding, rejecting
 // custom tags (safe-load semantics), nesting deeper than maxYAMLDepth levels,
-// and more than maxYAMLAliases alias expansions. Walking the node tree rather
-// than the decoded value catches these before alias expansion can allocate.
+// more than maxYAMLAliases alias expansions, and mappings wider than
+// maxImportMappingEntries entries. Walking the node tree rather than the
+// decoded value catches these before alias expansion can allocate or before
+// yaml.v3's duplicate-key comparison (quadratic in mapping width) can run.
 func validateImportYAMLNode(node *yaml.Node, depth int, aliasCount *int) error {
 	if node == nil {
 		return nil
 	}
-	if node.Tag != "" && !strings.HasPrefix(node.Tag, "!!") {
-		return fmt.Errorf("YAML custom tags are not allowed (found %q at line %d)", node.Tag, node.Line)
+	if node.Tag != "" {
+		if _, allowed := allowedYAMLTags[node.Tag]; !allowed {
+			return fmt.Errorf("YAML custom tags are not allowed (found %q at line %d)", node.Tag, node.Line)
+		}
 	}
 	if node.Kind == yaml.AliasNode {
 		*aliasCount++
@@ -158,6 +183,9 @@ func validateImportYAMLNode(node *yaml.Node, depth int, aliasCount *int) error {
 	}
 	if depth > maxYAMLDepth {
 		return fmt.Errorf("YAML nesting exceeds %d levels", maxYAMLDepth)
+	}
+	if node.Kind == yaml.MappingNode && len(node.Content)/2 > maxImportMappingEntries {
+		return fmt.Errorf("YAML mapping at line %d exceeds the %d-entry limit", node.Line, maxImportMappingEntries)
 	}
 	for _, child := range node.Content {
 		if err := validateImportYAMLNode(child, depth+1, aliasCount); err != nil {

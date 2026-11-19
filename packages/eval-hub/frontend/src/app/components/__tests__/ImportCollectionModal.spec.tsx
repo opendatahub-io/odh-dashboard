@@ -5,7 +5,14 @@ import { MemoryRouter } from 'react-router-dom';
 import ImportCollectionModal from '~/app/components/ImportCollectionModal';
 import { mockCollection } from '~/__mocks__/mockCollection';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { IMPORT_COLLECTION_TEMPLATE } from '~/app/utils/collectionImport';
+import { IMPORT_COLLECTION_TEMPLATE, readFileAsUTF8Text } from '~/app/utils/collectionImport';
+
+const mockReadFile = jest.mocked(readFileAsUTF8Text);
+
+jest.mock('~/app/utils/collectionImport', () => ({
+  ...jest.requireActual('~/app/utils/collectionImport'),
+  readFileAsUTF8Text: jest.fn(),
+}));
 
 const mockMutate = jest.fn();
 const mockNavigate = jest.fn();
@@ -311,21 +318,89 @@ describe('ImportCollectionModal', () => {
     expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
   });
 
-  it('should detect a name collision and apply the suggested name to the editor and field', async () => {
+  it('should detect a name collision and apply the suggested name to the editor and field', () => {
+    // Freeze the clock so the expected date suffix cannot drift across UTC
+    // midnight while the alert is on screen.
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+    try {
+      renderModal();
+      fireEvent.change(findEditor(), {
+        target: {
+          value:
+            'name: Existing Collection\ncategory: safety\nbenchmarks:\n  - id: a\n    provider_id: b\n',
+        },
+      });
+      const collisionAlert = screen.getByTestId('import-collection-collision');
+      expect(collisionAlert.textContent).toContain('Existing Collection');
+      expect(collisionAlert.textContent).toContain('Existing Collection-2026-01-15');
+      // Submission is blocked until the collision is resolved.
+      expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: /Use suggested name/ }));
+      expect(findEditor().value).toContain('name: Existing Collection-2026-01-15');
+      expect(findNameInput().value).toBe('Existing Collection-2026-01-15');
+      expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should keep Import disabled while a replacement file is read and ignore a stale read that resolves late', async () => {
+    mockReadFile.mockReset();
     renderModal();
-    await typeContent(
-      'name: Existing Collection\ncategory: safety\nbenchmarks:\n  - id: a\n    provider_id: b\n',
-    );
-    const collisionAlert = screen.getByTestId('import-collection-collision');
-    expect(collisionAlert.textContent).toContain('Existing Collection');
-    const today = new Date().toISOString().slice(0, 10);
-    expect(collisionAlert.textContent).toContain(`Existing Collection-${today}`);
-    // Submission is blocked until the collision is resolved.
-    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /Use suggested name/ }));
-    expect(findEditor().value).toContain(`name: Existing Collection-${today}`);
-    expect(findNameInput().value).toBe(`Existing Collection-${today}`);
+    await typeContent(validContent);
     expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
+
+    const contentA = 'name: file-a\ncategory: safety\nbenchmarks:\n  - id: a\n    provider_id: b\n';
+    const contentB = 'name: file-b\ncategory: safety\nbenchmarks:\n  - id: a\n    provider_id: b\n';
+    let resolveFirst!: (content: string) => void;
+    let resolveSecond!: (content: string) => void;
+    mockReadFile
+      .mockImplementationOnce(
+        () =>
+          new Promise<string>((resolve) => {
+            resolveFirst = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<string>((resolve) => {
+            resolveSecond = resolve;
+          }),
+      );
+
+    const setInputFiles = (file: File) => {
+      const input = screen.getByTestId('import-collection-file-input') as HTMLInputElement;
+      Object.defineProperty(input, 'files', {
+        value: { 0: file, length: 1, item: () => file },
+        configurable: true,
+      });
+      fireEvent.change(input);
+    };
+    const fileA = new File([contentA], 'a.yaml', { type: 'text/yaml' });
+    const fileB = new File([contentB], 'b.yaml', { type: 'text/yaml' });
+
+    setInputFiles(fileA);
+    expect(screen.getByTestId('import-collection-filename').textContent).toContain('a.yaml');
+    // The previous definition cannot be submitted under the new filename
+    // while the read is pending.
+    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+
+    setInputFiles(fileB);
+    expect(screen.getByTestId('import-collection-filename').textContent).toContain('b.yaml');
+    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+
+    // The newer read lands...
+    resolveSecond(contentB);
+    await waitFor(() => expect(findEditor().value).toContain('name: file-b'));
+    await waitFor(() => expect(screen.getByTestId('import-collection-submit')).toBeEnabled());
+
+    // ...and the older read resolving late must not overwrite it.
+    resolveFirst(contentA);
+    await waitFor(() => expect(mockReadFile).toHaveBeenCalledTimes(2));
+    expect(findEditor().value).toContain('name: file-b');
+    expect(findEditor().value).not.toContain('name: file-a');
+    expect(screen.getByTestId('import-collection-filename').textContent).toContain('b.yaml');
   });
 
   it('should disable the submit button while the definition matches the sample template without an alert', async () => {

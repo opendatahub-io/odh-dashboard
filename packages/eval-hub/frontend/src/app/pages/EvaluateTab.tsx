@@ -12,7 +12,6 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
-import ImportCollectionModal from '~/app/components/ImportCollectionModal';
 import {
   evaluationBenchmarksRoute,
   evaluationBenchmarkSuitesRoute,
@@ -24,6 +23,9 @@ import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+// The import modal pulls in Monaco; load it only when the user opens Import.
+const ImportCollectionModal = React.lazy(() => import('~/app/components/ImportCollectionModal'));
 
 const MAX_VISIBLE_BENCHMARK_SUITES = 5;
 
@@ -148,12 +150,14 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
         {/* Red Hat validated collections are temporarily hidden until more evaluation targets are available. */}
       </Stack>
       {isImportOpen ? (
-        <ImportCollectionModal
-          isOpen
-          onClose={() => setIsImportOpen(false)}
-          namespace={namespace}
-          surface="my_benchmark_suites"
-        />
+        <React.Suspense fallback={null}>
+          <ImportCollectionModal
+            isOpen
+            onClose={() => setIsImportOpen(false)}
+            namespace={namespace}
+            surface="my_benchmark_suites"
+          />
+        </React.Suspense>
       ) : null}
     </>
   );

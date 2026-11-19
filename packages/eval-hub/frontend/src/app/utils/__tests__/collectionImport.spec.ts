@@ -6,6 +6,7 @@ import {
   findNameCollision,
   getImportWarnings,
   IMPORT_COLLECTION_TEMPLATE,
+  IMPORT_FILE_SIZE_LIMIT,
   isNameConflictError,
   isUnmodifiedTemplate,
   detectImportLanguage,
@@ -81,6 +82,17 @@ describe('parseImportContent', () => {
     expect(result.errorLine).toBe(4);
   });
 
+  it('should not shift the error line when content has trailing blank lines', () => {
+    const result = parseImportContent('name: broken\n  bad_indent: true\n\n\n\n\n');
+    expect(result.errorLine).toBe(2);
+  });
+
+  it('should reject content over the size limit', () => {
+    const result = parseImportContent(`name: ${'a'.repeat(IMPORT_FILE_SIZE_LIMIT)}`);
+    expect(result.error).toBe('Content exceeds the 1 MiB size limit');
+    expect(result.doc).toBeNull();
+  });
+
   it('should report invalid JSON', () => {
     const result = parseImportContent('{"name": "x",');
     expect(result.error).toContain('Invalid JSON');
@@ -92,10 +104,17 @@ describe('parseImportContent', () => {
   });
 
   it('should count documents in a multi-document file', () => {
-    const result = parseImportContent(`${validYAML}\n---\n${validYAML}\n`);
+    const second = validYAML.replace('release-gate-safety', 'second-collection');
+    const result = parseImportContent(`${validYAML}\n---\n${second}\n`);
     expect(result.error).toBeUndefined();
     expect(result.documentCount).toBe(2);
     expect(result.doc?.name).toBe('release-gate-safety');
+  });
+
+  it('should reject a null first document even when a later document is valid', () => {
+    const result = parseImportContent('---\n---\nname: second\n');
+    expect(result.error).toBe('No collection definition found in file');
+    expect(result.doc).toBeNull();
   });
 });
 
@@ -226,7 +245,19 @@ describe('findNameCollision', () => {
 });
 
 describe('proposeUniqueName', () => {
-  const today = new Date().toISOString().slice(0, 10);
+  // Freeze the clock so the expected suffix cannot drift across UTC midnight
+  // between test registration and execution.
+  const fixedTime = new Date('2026-01-15T12:00:00Z');
+  const today = fixedTime.toISOString().slice(0, 10);
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(fixedTime);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   it('should propose a date-suffixed name when the base is taken', () => {
     const collections = [mockCollection({ name: 'safety-suite' })];

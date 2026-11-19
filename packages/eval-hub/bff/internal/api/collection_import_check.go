@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -80,12 +81,15 @@ func buildImportCreateRequest(doc map[string]any) (evalhub.CreateCollectionReque
 
 	// Convert through JSON so struct field types are enforced with the
 	// decoder's field-level errors; unknown fields are dropped by the struct,
-	// matching the "ignored" warnings above.
+	// matching the "ignored" warnings above. UseNumber keeps large integers
+	// in custom metadata exact instead of degrading to float64.
 	encoded, err := json.Marshal(doc)
 	if err != nil {
 		return request, nil, fmt.Errorf("failed to encode collection definition: %w", err)
 	}
-	if err := json.Unmarshal(encoded, &request); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(encoded))
+	decoder.UseNumber()
+	if err := decoder.Decode(&request); err != nil {
 		var typeError *json.UnmarshalTypeError
 		if errors.As(err, &typeError) && typeError.Field != "" {
 			return request, nil, fmt.Errorf("field %q has an invalid value", typeError.Field)

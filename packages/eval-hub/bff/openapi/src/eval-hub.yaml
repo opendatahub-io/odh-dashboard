@@ -398,17 +398,24 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: importCollection
       summary: Import Collection
       description: >-
         Creates a tenant-scoped benchmark collection from raw YAML or JSON
         content. Content over 1 MiB, YAML with custom tags, nesting deeper
-        than 50 levels, or more than 100 aliases is rejected. Multi-document
-        YAML imports only the first document. Advisory warnings (missing
-        description, unrecognized fields, ignored server-managed fields) are
-        returned alongside the created collection.
+        than 50 levels, more than 100 aliases, or mappings wider than 1000
+        entries is rejected. Multi-document YAML imports only the first
+        document. A referenced provider or benchmark that is not found or
+        not accessible returns 404; an unavailable EvalHub instance returns
+        503. Advisory warnings (missing description, unrecognized fields,
+        ignored server-managed fields) are returned alongside the created
+        collection.
 
   /eval-hub/api/v1/evaluations/collection-imports/access:
     summary: Check whether the current user can import collections
@@ -431,8 +438,12 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CollectionImportAccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: getCollectionImportAccess
@@ -2896,6 +2907,13 @@ components:
 
     NotFound:
       description: Not Found - Requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    ServiceUnavailable:
+      description: Service Unavailable - The EvalHub service cannot be reached
       content:
         application/json:
           schema:

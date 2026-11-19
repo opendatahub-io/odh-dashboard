@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -174,6 +176,11 @@ name: broken
 			wantMessage: "custom tags are not allowed",
 		},
 		{
+			name:        "unknown YAML namespace tag",
+			content:     "name: !!custom x\nbenchmarks: []\n",
+			wantMessage: "custom tags are not allowed",
+		},
+		{
 			name:        "missing name",
 			content:     "domains: [software]\nbenchmarks: [{id: quality, provider_id: garak}]\n",
 			wantMessage: "name is required",
@@ -221,7 +228,43 @@ func TestImportCollectionHandlerOversized(t *testing.T) {
 	content := strings.Repeat("# padding\n", (maxImportContentSize/10)+10)
 	_, _, err := parseImportContent(content)
 	require.Error(t, err)
-	assert.Equal(t, "File exceeds the 1 MiB size limit", err.Error())
+	assert.Equal(t, "file exceeds the 1 MiB size limit", err.Error())
+}
+
+func TestImportCollectionHandlerBodyLimitBoundaries(t *testing.T) {
+	base := "name: padded\ndomains: [d]\nbenchmarks: [{id: quality, provider_id: garak}]\ndescription: "
+	atLimit := base + strings.Repeat("a", maxImportContentSize-len(base))
+	require.Len(t, atLimit, maxImportContentSize)
+	result, response := postImport[ImportCollectionEnvelope](t, atLimit, nil)
+	assert.Equal(t, http.StatusCreated, response.StatusCode)
+	assert.Equal(t, "padded", result.Data.Collection.Name)
+
+	overLimit := base + strings.Repeat("a", maxImportContentSize-len(base)+1)
+	errorResult, errorResponse := postImport[HTTPError](t, overLimit, nil)
+	assert.Equal(t, http.StatusBadRequest, errorResponse.StatusCode)
+	assert.Contains(t, errorResult.Error.Message, "file exceeds the 1 MiB size limit")
+}
+
+func TestImportCollectionHandlerMappingWidthLimit(t *testing.T) {
+	var b strings.Builder
+	b.WriteString("name: wide\nbenchmarks: []\nextra:\n")
+	for i := range maxImportMappingEntries + 1 {
+		fmt.Fprintf(&b, "  key%d: %d\n", i, i)
+	}
+	_, _, err := parseImportContent(b.String())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "entry limit")
+}
+
+func TestImportCollectionHandlerPreservesLargeIntegers(t *testing.T) {
+	content := `{"name": "big-int", "domains": ["d"], "custom": {"dataset_revision": 9007199254740993}, "benchmarks": [{"id": "quality", "provider_id": "garak"}]}`
+	doc, _, err := parseImportContent(content)
+	require.NoError(t, err)
+	request, _, err := buildImportCreateRequest(doc)
+	require.NoError(t, err)
+	revision, ok := request.Custom["dataset_revision"].(json.Number)
+	require.True(t, ok)
+	assert.Equal(t, "9007199254740993", revision.String())
 }
 
 func TestImportCollectionHandlerDepthLimit(t *testing.T) {

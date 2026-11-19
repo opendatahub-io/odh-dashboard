@@ -155,6 +155,11 @@ export const useImportCollectionMutation = (
     },
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: collectionsQueryKeyPrefix(namespace) }),
+    // A failed import (e.g. a server-side name conflict with a collection
+    // created after the list loaded) still needs a fresh list so the
+    // collision check and suggested-name recovery see current names.
+    onError: () =>
+      queryClient.invalidateQueries({ queryKey: collectionsQueryKeyPrefix(namespace) }),
   });
 };
 
