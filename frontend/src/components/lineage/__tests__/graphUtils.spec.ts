@@ -76,4 +76,16 @@ describe('findConnectedElements', () => {
     expect(result.toSorted()).toEqual(['a', 'b', 'c', 'e1', 'e2', 'e3']);
     expect(new Set(result).size).toBe(result.length);
   });
+
+  it('reaches downstream branches through cycle-shared nodes', () => {
+    const result = findConnectedElements('a', [
+      edge('e1', 'a', 'b'),
+      edge('e2', 'b', 'c'),
+      edge('e3', 'c', 'a'),
+      edge('e4', 'b', 'd'),
+    ]);
+
+    expect(result.toSorted()).toEqual(['a', 'b', 'c', 'd', 'e1', 'e2', 'e3', 'e4']);
+    expect(new Set(result).size).toBe(result.length);
+  });
 });

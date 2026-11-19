@@ -114,20 +114,29 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ApplicationsPage: ({
     title,
     children,
+    loaded,
     empty,
     emptyStatePage,
     loadError,
   }: {
     title: React.ReactNode;
     children?: React.ReactNode;
+    loaded: boolean;
     empty: boolean;
     emptyStatePage?: React.ReactNode;
     loadError?: Error;
   }) => (
     <div data-testid="applications-page">
       <div data-testid="page-title">{title}</div>
-      {loadError ? <div data-testid="page-error">{loadError.message}</div> : null}
-      {empty ? emptyStatePage : children}
+      {loadError ? (
+        <div data-testid="page-error">{loadError.message}</div>
+      ) : !loaded ? (
+        <div data-testid="page-loading">Loading</div>
+      ) : empty ? (
+        emptyStatePage
+      ) : (
+        children
+      )}
     </div>
   ),
   WhosMyAdministrator: () => <div data-testid="whos-my-administrator" />,
@@ -256,9 +265,8 @@ describe('FeatureStoreCoreLoader', () => {
 
     renderLoader();
 
-    expect(screen.getByTestId('redirect-error-state')).toHaveTextContent(
-      'Feature Store load error: CRD discovery failed',
-    );
+    expect(screen.getByTestId('page-error')).toHaveTextContent('CRD discovery failed');
+    expect(screen.queryByTestId('redirect-error-state')).not.toBeInTheDocument();
     expect(screen.queryByTestId('feature-store-outlet')).not.toBeInTheDocument();
   });
 

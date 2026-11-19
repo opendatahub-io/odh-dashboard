@@ -79,14 +79,6 @@ const RecentlyVisitedResources: React.FC<RecentlyVisitedResourcesProps> = ({
   );
 
   const renderContent = () => {
-    if (!loaded) {
-      return (
-        <Bullseye aria-live="polite" aria-busy>
-          <Spinner aria-label="Loading recently viewed resources" />
-        </Bullseye>
-      );
-    }
-
     if (error) {
       return (
         <EmptyState
@@ -97,6 +89,14 @@ const RecentlyVisitedResources: React.FC<RecentlyVisitedResourcesProps> = ({
           variant={EmptyStateVariant.lg}
           data-testid="recently-visited-resources-error-state"
         />
+      );
+    }
+
+    if (!loaded) {
+      return (
+        <Bullseye aria-live="polite" aria-busy>
+          <Spinner aria-label="Loading recently viewed resources" />
+        </Bullseye>
       );
     }
 

@@ -52,7 +52,9 @@ describe('FeatureServicesTable', () => {
 
   it('links feature services using the feature store project from the table', () => {
     renderTable({
-      featureServices: [mockFeatureService({ name: 'credit_scoring_service' })],
+      featureServices: [
+        mockFeatureService({ name: 'credit_scoring_service', project: 'service-project' }),
+      ],
       fsProject: 'credit_scoring_local',
     });
 

@@ -103,7 +103,7 @@ describe('FeatureStoreProjectSelector', () => {
     await user.click(screen.getByTestId('feature-store-project-selector-toggle'));
     await user.click(screen.getByRole('menuitem', { name: 'All feature stores' }));
 
-    expect(onSelection).toHaveBeenCalledWith(FeatureStoreObject.ENTITIES);
+    expect(onSelection.mock.calls).toEqual([[FeatureStoreObject.ENTITIES]]);
   });
 
   it('calls onSelection with the chosen project', async () => {
@@ -114,6 +114,6 @@ describe('FeatureStoreProjectSelector', () => {
     await user.click(screen.getByTestId('feature-store-project-selector-toggle'));
     await user.click(screen.getByRole('menuitem', { name: 'driver_ranking' }));
 
-    expect(onSelection).toHaveBeenCalledWith(FeatureStoreObject.ENTITIES, 'driver_ranking');
+    expect(onSelection.mock.calls).toEqual([[FeatureStoreObject.ENTITIES, 'driver_ranking']]);
   });
 });
