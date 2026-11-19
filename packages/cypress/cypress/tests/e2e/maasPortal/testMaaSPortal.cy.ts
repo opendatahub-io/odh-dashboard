@@ -8,7 +8,6 @@ import {
   cleanupSubscription,
   createMaaSAuthPolicy,
   createMaaSSubscription,
-  getFirstReadyExternalModelName,
   modelsAsAServiceNamespace,
   waitForMaaSModelReady,
 } from '../../../utils/oc_commands/maas';
@@ -26,12 +25,12 @@ import { MAAS_PORTAL_ADMIN_USER, MAAS_PORTAL_USER } from '../../../utils/e2eUser
 import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
 import {
   executeMaaSUsageExample,
+  parseMaaSUsageExample,
   verifyMaaSApiKeyRevoked,
 } from '../../../utils/maasApiKeyRevocation';
 import type { UserAuthConfig } from '../../../types';
 
 const testSuffix = `${generateTestUUID()}-${Date.now().toString(36).slice(-5)}`;
-let modelName: string;
 const modelNamespace = modelsAsAServiceNamespace;
 const subscriptionName = `portal-e2e-sub-${testSuffix}`;
 const policyName = `portal-e2e-policy-${testSuffix}`;
@@ -50,17 +49,23 @@ const verifyExternalModelStack = (selectedModelName: string): void => {
 
 const getRequiredPortalConfig = (): {
   portalUrl: string;
+  modelName: string;
   organizationId: string;
   userGroups: string[];
   adminUser: UserAuthConfig;
   portalUser: UserAuthConfig;
 } => {
   const portalUrl = Cypress.env('MAAS_PORTAL_URL') as string | undefined;
+  const modelName = Cypress.env('MAAS_PORTAL_MODEL_NAME') as string | undefined;
   const organizationId = Cypress.env('MAAS_PORTAL_ORGANIZATION_ID') as string | undefined;
   const userGroups = Cypress.env('MAAS_PORTAL_USER_GROUPS') as string[] | undefined;
 
   if (!portalUrl) {
     throw new Error('MAAS_PORTAL_URL is not configured in CY_TEST_CONFIG');
+  }
+
+  if (!modelName?.trim()) {
+    throw new Error('MAAS_PORTAL_MODEL_NAME is not configured in CY_TEST_CONFIG');
   }
 
   if (!organizationId) {
@@ -87,6 +92,7 @@ const getRequiredPortalConfig = (): {
 
   return {
     portalUrl,
+    modelName: modelName.trim(),
     organizationId,
     userGroups,
     adminUser: MAAS_PORTAL_ADMIN_USER,
@@ -100,7 +106,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       this.skip();
     }
 
-    const { organizationId, userGroups, adminUser } = getRequiredPortalConfig();
+    const { modelName, organizationId, userGroups, adminUser } = getRequiredPortalConfig();
 
     const accessReplacements = {
       MAAS_NAMESPACE: modelsAsAServiceNamespace,
@@ -109,33 +115,30 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       PORTAL_ADMIN_USERNAME: adminUser.USERNAME,
     };
 
-    cy.step('Select the first ready pre-provisioned ExternalModel for the portal test');
+    cy.step('Verify the configured pre-provisioned ExternalModel for the portal test');
     ensureAdminOcSession();
-    getFirstReadyExternalModelName(modelNamespace).then((selectedModelName) => {
-      modelName = selectedModelName;
-      verifyExternalModelStack(modelName);
-      createMaaSSubscription(
-        subscriptionName,
-        'Cypress MaaS Portal test subscription',
-        modelNamespace,
-        modelName,
-        subscriptionFixture,
-        accessReplacements,
-      );
-      createMaaSAuthPolicy(
-        policyName,
-        modelNamespace,
-        modelName,
-        authPolicyFixture,
-        accessReplacements,
-      );
-      checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {
-        phase: 'Active',
-        models: [modelName],
-      });
-      checkMaaSAuthPolicyState(policyName, modelsAsAServiceNamespace, { phase: 'Active' });
-      waitForMaaSModelReady(modelNamespace, modelName);
+    verifyExternalModelStack(modelName);
+    createMaaSSubscription(
+      subscriptionName,
+      'Cypress MaaS Portal test subscription',
+      modelNamespace,
+      modelName,
+      subscriptionFixture,
+      accessReplacements,
+    );
+    createMaaSAuthPolicy(
+      policyName,
+      modelNamespace,
+      modelName,
+      authPolicyFixture,
+      accessReplacements,
+    );
+    checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {
+      phase: 'Active',
+      models: [modelName],
     });
+    checkMaaSAuthPolicyState(policyName, modelsAsAServiceNamespace, { phase: 'Active' });
+    waitForMaaSModelReady(modelNamespace, modelName);
   });
 
   after(() => {
@@ -272,19 +275,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
 
       cy.step('Verify the revoked API key is unauthorized for the model endpoint');
       getClipboardContent('revokedUsageExample').then((usageExamples) => {
-        const usageExample = usageExamples[0];
-        const endpointMatch = usageExample.match(/curl\s+-X\s+POST\s+'?([^'\s]+)'?/);
-        const bodyMatch = usageExample.match(/-d\s+'([\s\S]*?)'/);
-
-        if (!endpointMatch || !bodyMatch) {
-          throw new Error('Could not parse the model endpoint usage example');
-        }
-
-        const endpoint = endpointMatch[1];
-        const requestBody = JSON.parse(bodyMatch[1]) as {
-          model: string;
-          messages: Array<{ role: string; content: string }>;
-        };
+        const { endpoint, requestBody } = parseMaaSUsageExample(usageExamples[0]);
 
         maasPortalPage.getStoredApiKey().then((apiKey) => {
           return verifyMaaSApiKeyRevoked(endpoint, apiKey, requestBody);

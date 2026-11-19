@@ -61,9 +61,10 @@ export const parseMaaSUsageExample = (usageExample: string): ParsedMaaSUsageExam
 
   const [exportLine, curlLine, contentTypeLine, authorizationLine, dataLine] = lines;
   const apiKeyMatch = /^export API_KEY="((?:\\.|[^"\\])*)"$/.exec(exportLine);
-  const endpointMatch = /^curl -X POST (\S+) \\$/.exec(curlLine);
+  const quotedEndpointMatch = /^curl -X POST '(.*)' \\$/.exec(curlLine);
+  const unquotedEndpointMatch = /^curl -X POST ([^'\s]+) \\$/.exec(curlLine);
 
-  if (!apiKeyMatch || !endpointMatch) {
+  if (!apiKeyMatch || (!unquotedEndpointMatch && !quotedEndpointMatch)) {
     throw new Error('Could not parse the API key or endpoint from the MaaS usage example');
   }
   if (contentTypeLine !== '-H "Content-Type: application/json" \\') {
@@ -80,7 +81,11 @@ export const parseMaaSUsageExample = (usageExample: string): ParsedMaaSUsageExam
 
   let endpoint: URL;
   try {
-    endpoint = new URL(endpointMatch[1]);
+    const endpointValue = unquotedEndpointMatch?.[1] ?? quotedEndpointMatch?.[1];
+    if (!endpointValue) {
+      throw new Error('Missing endpoint URL');
+    }
+    endpoint = new URL(endpointValue.replaceAll(`'"'"'`, `'`));
   } catch {
     throw new Error('The copied MaaS usage example contains an invalid endpoint URL');
   }
@@ -119,30 +124,28 @@ export const executeMaaSUsageExample = (
   usageExample: string,
 ): Cypress.Chainable<{ status: number; body: string }> => {
   const { endpoint, apiKey, requestBody } = parseMaaSUsageExample(usageExample);
-  const requestOptions: Partial<Cypress.RequestOptions> & { strictSSL: boolean } = {
-    method: 'POST',
-    url: endpoint,
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: requestBody,
-    failOnStatusCode: false,
-    retryOnNetworkFailure: false,
-    strictSSL: false,
-    timeout: 120000,
-    log: false,
-  };
-
-  return cy.request(requestOptions).then((response) =>
-    cy.wrap(
-      {
-        status: response.status,
-        body: typeof response.body === 'string' ? response.body : JSON.stringify(response.body),
+  return cy
+    .request({
+      method: 'POST',
+      url: endpoint,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       },
-      { log: false },
-    ),
-  );
+      body: requestBody,
+      failOnStatusCode: false,
+      retryOnNetworkFailure: false,
+      log: false,
+    })
+    .then((response) =>
+      cy.wrap(
+        {
+          status: response.status,
+          body: typeof response.body === 'string' ? response.body : JSON.stringify(response.body),
+        },
+        { log: false },
+      ),
+    );
 };
 
 /** Waits beyond Authorino's default 60-second metadata cache TTL for key revocation. */

@@ -601,53 +601,6 @@ type ExternalModelDoc = {
   };
 };
 
-type MaaSModelRefList = {
-  items?: Array<{
-    metadata?: { name?: string };
-    spec?: { modelRef?: { kind?: string; name?: string } };
-    status?: {
-      conditions?: Array<{ type?: string; status?: string }>;
-      resolvedModelAlias?: string;
-    };
-  }>;
-};
-
-/** Selects the first ready MaaS model backed by an existing ExternalModel. */
-export const getFirstReadyExternalModelName = (projectName: string): Cypress.Chainable<string> => {
-  const ns = assertValidK8sNamespace(projectName);
-  const ocCommand = `oc get maasmodelrefs -n ${quoteShellArg(ns)} -o json`;
-
-  cy.log(`Finding the first ready ExternalModel-backed MaaSModelRef in namespace ${ns}`);
-  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    let list: MaaSModelRefList;
-    try {
-      list = JSON.parse(result.stdout) as MaaSModelRefList;
-    } catch {
-      throw new Error(`Failed to parse MaaSModelRef list JSON for namespace ${ns}`);
-    }
-
-    const readyExternalModelNames = (list.items ?? [])
-      .filter(
-        (item) =>
-          item.spec?.modelRef?.kind === 'ExternalModel' &&
-          item.status?.conditions?.some(
-            (condition) => condition.type === 'Ready' && condition.status === 'True',
-          ) &&
-          Boolean(item.status.resolvedModelAlias?.trim()),
-      )
-      .map((item) => item.metadata?.name)
-      .filter((name): name is string => Boolean(name))
-      .toSorted();
-
-    const modelName = readyExternalModelNames[0];
-    if (!modelName) {
-      throw new Error(`No ready ExternalModel-backed MaaSModelRef was found in namespace ${ns}`);
-    }
-
-    return cy.wrap(assertValidK8sLabel(modelName, 'ExternalModel-backed MaaSModelRef name'));
-  });
-};
-
 const parseExternalModelDoc = (resourceName: string, stdout: string): ExternalModelDoc => {
   try {
     return JSON.parse(stdout) as ExternalModelDoc;
@@ -902,7 +855,7 @@ export const cleanupExternalModel = (
   const ns = assertValidK8sNamespace(projectName);
   const ocCommand = `oc delete externalmodels.inference.opendatahub.io ${quoteShellArg(
     name,
-  )} -n ${quoteShellArg(ns)} --ignore-not-found --wait=false`;
+  )} -n ${quoteShellArg(ns)} --ignore-not-found`;
   cy.log(`Executing delete ExternalModel command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
@@ -929,7 +882,7 @@ export const cleanupExternalProvider = (
   const ns = assertValidK8sNamespace(projectName);
   const ocCommand = `oc delete externalproviders.inference.opendatahub.io ${quoteShellArg(
     name,
-  )} -n ${quoteShellArg(ns)} --ignore-not-found --wait=false`;
+  )} -n ${quoteShellArg(ns)} --ignore-not-found`;
   cy.log(`Executing delete ExternalProvider command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };

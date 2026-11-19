@@ -21,6 +21,20 @@ describe('parseMaaSUsageExample', () => {
     });
   });
 
+  it('parses the quoted endpoint and API-key placeholder from a model endpoint example', () => {
+    const modelEndpointExample = validUsageExample
+      .replace('secret-key', '<your-api-key>')
+      .replace(
+        'https://maas.example.com/model/v1/chat/completions',
+        "'https://maas.example.com/model/v1/chat/completions'",
+      );
+
+    assert(parseMaaSUsageExample(modelEndpointExample)).toMatchObject({
+      endpoint: 'https://maas.example.com/model/v1/chat/completions',
+      apiKey: '<your-api-key>',
+    });
+  });
+
   it('rejects additional shell commands', () => {
     assert(() => parseMaaSUsageExample(`${validUsageExample}\nrm -rf /tmp/example`)).toThrow(
       'unexpected command structure',
