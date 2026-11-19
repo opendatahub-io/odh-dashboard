@@ -88,6 +88,11 @@ func queryClusterVersion(dynClient dynamic.Interface, logger *slog.Logger) (clus
 	obj, err := dynClient.Resource(models.ClusterVersionGVR).Get(ctx, clusterVersionName, metav1.GetOptions{})
 	switch {
 	case err == nil:
+	case k8serrors.IsMethodNotSupported(err):
+		// Checked before IsDiscoveryError, which counts 405 as absence. A
+		// rejected GET does not show the ClusterVersion API is missing, so it
+		// must not confirm xKS (as in AuthRepository.Lookup).
+		return clusterVersionProbe{}, fmt.Errorf("ClusterVersion probe inconclusive: method not supported: %w", err)
 	case k8sutil.IsDiscoveryError(err):
 		// Checked before IsNotFound: a discovery 404 carries no resource name,
 		// an instance 404 does.

@@ -50,18 +50,18 @@ and admits callers the cluster denies. So the platform default only selects `aut
 the platform is **confirmed** — explicitly configured, or detected by a probe that succeeded. An
 unconfirmed platform keeps `auth-resource`, the restrictive contract.
 
-| Platform resolution                                               | Platform  | Confirmed | Default mode    |
-| ----------------------------------------------------------------- | --------- | --------- | --------------- |
-| `ODH_PLATFORM_TYPE` set explicitly                                | the value | yes       | from the value  |
-| `ClusterVersion` read, with or without a usable cluster ID        | OpenShift | yes       | `auth-resource` |
-| `ClusterVersion` API not served (discovery reports it absent)     | XKS       | yes       | `authenticated` |
-| `ClusterVersion` API served but the `version` singleton missing   | XKS       | **no**    | `auth-resource` |
-| Probe failed (forbidden, timeout, no client), fell back to XKS    | XKS       | **no**    | `auth-resource` |
+| Platform resolution                                                 | Platform  | Confirmed | Default mode    |
+| ------------------------------------------------------------------- | --------- | --------- | --------------- |
+| `ODH_PLATFORM_TYPE` set explicitly                                  | the value | yes       | from the value  |
+| `ClusterVersion` read, with or without a usable cluster ID          | OpenShift | yes       | `auth-resource` |
+| `ClusterVersion` API not served (discovery reports it absent)       | XKS       | yes       | `authenticated` |
+| `ClusterVersion` API served but the `version` singleton missing     | XKS       | **no**    | `auth-resource` |
+| Probe failed (forbidden, 405, timeout, no client), fell back to XKS | XKS       | **no**    | `auth-resource` |
 
 Only positive evidence that the OpenShift configuration API is absent confirms XKS. A missing
-singleton or a malformed object is not that evidence, and a successful read is OpenShift even when
-the cluster ID cannot be parsed. The same confirmation also decides whether the HTTPS listener may
-skip the cluster TLS profile (see [runtime-contract.md](./runtime-contract.md)).
+singleton, a malformed object or a 405 on the read is not that evidence, and a successful read is
+OpenShift even when the cluster ID cannot be parsed. The same confirmation also decides whether
+the HTTPS listener may skip the cluster TLS profile (see [runtime-contract.md](./runtime-contract.md)).
 
 An operator who wants `authenticated` on a cluster where detection is unreliable sets
 `ODH_PLATFORM_TYPE=XKS` or `ADMISSION_MODE=authenticated` and gets it. The startup log reports

@@ -180,6 +180,12 @@ func TestClusterVersionProbeOutcomesDriveAdmissionAndTLS(t *testing.T) {
 		})
 	}
 
+	methodNotAllowed := func(c *dynamicfake.FakeDynamicClient) {
+		c.PrependReactor("get", "clusterversions", func(k8stesting.Action) (bool, runtime.Object, error) {
+			return true, nil, k8serrors.NewMethodNotSupported(models.ClusterVersionGVR.GroupResource(), "get")
+		})
+	}
+
 	for _, tc := range []struct {
 		name          string
 		objs          []runtime.Object
@@ -202,6 +208,12 @@ func TestClusterVersionProbeOutcomesDriveAdmissionAndTLS(t *testing.T) {
 		{
 			name:  "probe failure: inconclusive",
 			react: forbidden, wantPlatform: config.PlatformXKS, wantConfirmed: false,
+			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
+		},
+		{
+			// 405 matches IsDiscoveryError, but a rejected GET is not evidence the API is absent.
+			name:  "method not allowed: inconclusive",
+			react: methodNotAllowed, wantPlatform: config.PlatformXKS, wantConfirmed: false,
 			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
 		},
 		{
