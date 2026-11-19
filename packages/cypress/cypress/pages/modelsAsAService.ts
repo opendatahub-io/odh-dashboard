@@ -1829,6 +1829,18 @@ class OverviewTabPage {
     return cy.findByTestId('overview-view-toggle');
   }
 
+  findGroupsViewButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('overview-groups-view');
+  }
+
+  findGroupsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('groups-table');
+  }
+
+  findGroupRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findGroupsTable().find('[data-testid^="overview-group-row-"]');
+  }
+
   expandModelRow(modelId: string, namespace: string): void {
     this.findModelRowRoot(modelId, namespace).findByTestId('expand-model').find('button').click();
   }
