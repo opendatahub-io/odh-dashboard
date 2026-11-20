@@ -6,13 +6,29 @@ export const MAAS_DEFAULT_GATEWAY = {
   namespace: 'openshift-ingress',
 };
 
+const MONITORING_SCRAPE_LABEL = 'monitoring.opendatahub.io/scrape';
+
 const isMaaSGateway = (ref: { name?: string; namespace?: string }): boolean =>
   ref.name === MAAS_DEFAULT_GATEWAY.name && ref.namespace === MAAS_DEFAULT_GATEWAY.namespace;
+
+const withMonitoringScrapeLabel = (
+  labels: Record<string, string> | undefined,
+  enabled: boolean,
+): Record<string, string> | undefined => {
+  const next = { ...labels };
+  if (enabled) {
+    next[MONITORING_SCRAPE_LABEL] = 'true';
+    return next;
+  }
+  delete next[MONITORING_SCRAPE_LABEL];
+  return Object.keys(next).length === 0 ? undefined : next;
+};
 
 /**
  * Applies MaaS endpoint configuration to an LLMInferenceService deployment.
  * When enabled, adds the maas-default-gateway to the router gateway refs.
  * When disabled, removes the maas-default-gateway from the router gateway refs.
+ * Metrics scraping is kept only while the deployment is published as MaaS.
  */
 export const applyMaaSEndpointData = (
   deployment: LLMdDeployment,
@@ -52,6 +68,16 @@ export const applyMaaSEndpointData = (
     delete result.model.spec.router.gateway.refs;
   }
 
+  const scrapeLabels = withMonitoringScrapeLabel(
+    result.model.spec.labels,
+    fieldData.isChecked && fieldData.enableMetricsScraping === true,
+  );
+  if (scrapeLabels === undefined) {
+    delete result.model.spec.labels;
+  } else {
+    result.model.spec.labels = scrapeLabels;
+  }
+
   return result;
 };
 
@@ -67,5 +93,8 @@ export const extractMaaSEndpointData = (deployment: LLMdDeployment): MaaSFieldVa
     return undefined;
   }
 
-  return { isChecked: true };
+  return {
+    isChecked: true,
+    enableMetricsScraping: deployment.model.spec.labels?.[MONITORING_SCRAPE_LABEL] === 'true',
+  };
 };
