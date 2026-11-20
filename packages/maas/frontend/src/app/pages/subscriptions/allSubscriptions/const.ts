@@ -4,15 +4,12 @@ export enum SubscriptionsFilterOptions {
   model = 'model',
 }
 
-/** Shared subscriptions filters: subscription text search, plus group and model selections. */
+/** Shared subscriptions filters: Subscription / Group / Model typeahead selects. */
 export const subscriptionsFilterOptions = {
   [SubscriptionsFilterOptions.subscription]: 'Subscription',
   [SubscriptionsFilterOptions.group]: 'Group',
   [SubscriptionsFilterOptions.model]: 'Model',
 };
-
-/** Distinguishes a model substring query from a selected Kubernetes resource name. */
-export const MODEL_TEXT_FILTER_PREFIX = 'model-text:';
 
 export type SubscriptionsFilterSelection = { label: string; value: string };
 
