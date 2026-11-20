@@ -41,7 +41,7 @@ agents:
       runtime: pi
       model: openai/gpt-6.1-sol
       subagents:
-          challenger: openai/gpt-6.1-sol
+          challenger: opus
           correctness: openai/gpt-6.1-sol
           cross-repo-contracts: openai/gpt-6.1-sol
           docs-currency: openai/gpt-6-luna
@@ -52,16 +52,17 @@ agents:
           security: openai/gpt-6.1-sol
           security-triage: openai/gpt-6-luna
           style-conventions: openai/gpt-6-luna
-    # Pin the built-in fix agent to the agents v0.54.0 release (87a43fcb), the
-    # commit harness/code.yaml already bases on. Without this entry fix tracks
-    # fullsend-ai/agents@main: the reusable-dispatch pin is not a release tag,
-    # so the CLI is built from source and resolves the agents ref to main.
-    # fix.yaml's relative scripts, skills and schema resolve against this URL,
-    # so this pins the whole agent. To move it, edit the URL to the next
-    # release's commit and hash; a bare `fullsend agent update fix` re-resolves
-    # to main.
+    # Pin the built-in fix agent to the agents v0.56.1 release (62f25ace),
+    # matching the reusable-dispatch pin in .github/workflows/fullsend.yaml.
+    # v0.55.0+ lets fix propose a new PR title and body when its changes make
+    # them stale (agents#519), on bot- and /fs-fix-triggered runs alike. This
+    # fix.yaml needs a v0.55+ CLI, so the two pins move together. Without this
+    # entry fix tracks fullsend-ai/agents@main. fix.yaml's relative scripts,
+    # skills and schema resolve against this URL, so this pins the whole
+    # agent. To move it, edit the URL to the next release's commit and hash; a
+    # bare `fullsend agent update fix` re-resolves to main.
     - name: fix
-      source: https://raw.githubusercontent.com/fullsend-ai/agents/87a43fcb849546b267a619434ca19dedde8df476/harness/fix.yaml#sha256=aa53c3e79b349b746014e7cfa213ab582e7464cf4226a1f08df96490d27385dc
+      source: https://raw.githubusercontent.com/fullsend-ai/agents/62f25ace461b9c11a712bf5762f6e881892e4b74/harness/fix.yaml#sha256=a3205629ec5d7b5edd1acbd44918fdf6c7b0524e5b86196feef926632f881a7f
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/
@@ -126,11 +127,9 @@ authorization:
               - "70121:dca0fa75-1ce0-42e6-b2f0-f87a6fba6c66" # Guannan Sun
               - "712020:827a9d62-5a58-4f8d-adc4-571c3fb2ad23" # Bill Murdock
       labels: allowlist
-create_issues:
-    allow_targets:
-        repos:
-            - opendatahub-io/odh-dashboard
-            - fullsend-ai/fullsend
+# Shared Fullsend inference project (same one opendatahub-io/notebooks uses).
+# The workflows read the matching FULLSEND_GCP_PROJECT_ID and
+# FULLSEND_GCP_WIF_PROVIDER secrets; keep them in step with this block.
 inference:
-    project: ambient-code-platform
-    wif_provider: projects/888214980327/locations/global/workloadIdentityPools/fullsend-inference/providers/gh-opendatahub-io-odh-dashboard
+    project: it-gcp-adlc-user-rhai
+    wif_provider: projects/950291184545/locations/global/workloadIdentityPools/fullsend-inference/providers/gh-opendatahub-io-odh-dashboard

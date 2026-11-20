@@ -77,7 +77,8 @@ export const useDeploymentMethodExternalData = (): {
 
     return {
       data: { options, suggestion },
-      loaded: clusterSettingsLoaded,
+      // Settle on error so the field inits; undefined settings → llm-d suggestion.
+      loaded: clusterSettingsLoaded || !!clusterSettingsError,
       loadError: clusterSettingsError,
     };
   }, [overrides, modelServingClusterSettings, clusterSettingsLoaded, clusterSettingsError]);

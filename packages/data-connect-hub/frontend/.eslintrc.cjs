@@ -148,6 +148,16 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['src/**/*.{ts,tsx}'],
+      excludedFiles: ['src/__tests__/cypress/**'],
+      extends: ['@odh-dashboard/eslint-config/feature-analytics'],
+    },
+    {
+      // The standalone composition root supplies the tracking adapter to feature components.
+      files: ['src/bootstrap.tsx'],
+      rules: { '@odh-dashboard/no-direct-analytics': 'off' },
+    },
+    {
       files: ['**/test-utils/**/*.{js,jsx,ts,tsx}', '**/__tests__/**/*.{js,jsx,ts,tsx}'],
       env: {
         jest: true,

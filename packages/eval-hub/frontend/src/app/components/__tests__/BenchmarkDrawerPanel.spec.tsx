@@ -1,14 +1,13 @@
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Drawer, DrawerContent } from '@patternfly/react-core';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { mockFlatBenchmark } from '~/__mocks__/mockBenchmark';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import { FlatBenchmark } from '~/app/types';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { render } = setupTrackingTest();
 
 const mockOnClose = jest.fn();
 const mockOnRunBenchmark = jest.fn();

@@ -1,9 +1,8 @@
-import { translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import {
   convertToUnit,
   MEMORY_UNITS_FOR_PARSING,
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
-import { NIMPVCStorageMode, type NIMPVCFieldValue } from './NIMPVCField';
+import { getNIMPVCK8sName, NIMPVCStorageMode, type NIMPVCFieldValue } from './NIMPVCField';
 import type { NIMDeployment } from '../../../api/nimservices/types';
 
 const normalizeSubPath = (subPath: string): string | undefined => {
@@ -36,7 +35,7 @@ export const applyNIMPVCFieldData = (
       ...deployment.model.spec,
       storage: {
         pvc: {
-          name: translateDisplayNameForK8s(fieldData.pvcName),
+          name: getNIMPVCK8sName(fieldData),
           subPath: normalizeSubPath(fieldData.subPath),
         },
       },
@@ -51,7 +50,8 @@ export const extractNIMPVCFieldData = (deployment: NIMDeployment): NIMPVCFieldVa
   }
   return {
     storageMode: NIMPVCStorageMode.EXISTING,
-    pvcName: pvc.name,
+    existingPvcDisplayName: pvc.name,
+    existingPvcK8sName: pvc.name,
     subPath: pvc.subPath ?? '',
     storageClassName: pvc.storageClassName ?? '',
     storageSizeGi: pvc.size ? parseSizeToGi(pvc.size) : DEFAULT_STORAGE_SIZE_GI,

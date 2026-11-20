@@ -8,10 +8,12 @@ import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import MlflowCompareRuns from '~/app/components/MlflowCompareRuns';
 import { parseMlflowArrayParam } from '~/app/utilities/compareEvaluationsUtils';
-import { createEvalHubTrackingScope } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const CompareEvaluationsPage: React.FC = () => {
+  const { createEvalHubTrackingScope } = useEvalHubTracking();
+
   const { namespace } = useParams<{ namespace: string }>();
   const [searchParams] = useSearchParams();
   const projectDisplayName = useProjectDisplayName(namespace);

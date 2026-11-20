@@ -37,6 +37,16 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4
 
+      - name: Install promtool
+        run: |
+          archive="$RUNNER_TEMP/prometheus-3.0.1.linux-amd64.tar.gz"
+          curl --fail --location --silent --show-error \
+            https://github.com/prometheus/prometheus/releases/download/v3.0.1/prometheus-3.0.1.linux-amd64.tar.gz \
+            --output "$archive"
+          echo "43f6f228ef59e0c2f6994e489c5c76c6671553eaa99ded0aea1cd31366222916  $archive" | sha256sum --check
+          tar -xzf "$archive" -C "$RUNNER_TEMP" prometheus-3.0.1.linux-amd64/promtool
+          echo "$RUNNER_TEMP/prometheus-3.0.1.linux-amd64" >> "$GITHUB_PATH"
+
       - name: Lint
         working-directory: dashboard-operator
         run: make lint
@@ -47,6 +57,8 @@ jobs:
 
       - name: Test
         working-directory: dashboard-operator
+        env:
+          REQUIRE_PROMTOOL: "true"
         run: make test
 
       # Cache the envtest Kubernetes binary assets (kube-apiserver, etcd, kubectl)

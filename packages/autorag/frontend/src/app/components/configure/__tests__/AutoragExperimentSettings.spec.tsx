@@ -4,11 +4,18 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import AutoragExperimentSettings from '~/app/components/configure/AutoragExperimentSettings';
 import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', () => {
   const MockModelSelection = ({
@@ -48,13 +55,6 @@ jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', 
   return { __esModule: true, default: MockModelSelection };
 });
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
-
 const configureSchema = createConfigureSchema();
 let latestForm: UseFormReturn<ConfigureSchema>;
 
@@ -93,7 +93,7 @@ const renderComponent = (
       <AutoragExperimentSettings {...defaultProps} {...props} />
     </FormWrapper>
   );
-  return render(
+  return renderWithTracking(
     options?.onModelsConfigured ? (
       <RunTriggeredTrackingContext.Provider
         value={{
@@ -242,7 +242,7 @@ describe('AutoragExperimentSettings', () => {
 
       await user.click(screen.getByTestId('experiment-settings-save'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.MODELS_SELECTED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.MODELS_SELECTED, {
         countOfFoundationModels: 1,
         countOfEmbeddingModels: 2,
         outcome: TrackingOutcome.submit,
@@ -268,7 +268,7 @@ describe('AutoragExperimentSettings', () => {
       });
       await user.click(screen.getByTestId('experiment-settings-save'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      expect(trackEventMock).toHaveBeenCalledWith(
         AUTORAG_EVENTS.MODELS_SELECTED,
         expect.objectContaining({
           countOfFoundationModels: 1,
@@ -326,7 +326,7 @@ describe('AutoragExperimentSettings', () => {
 
       await userEvent.setup().click(screen.getByTestId('draft-empty-models'));
 
-      expect(fireFormTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.MODELS_SELECTED,
         expect.objectContaining({ outcome: TrackingOutcome.submit }),
       );
@@ -352,7 +352,7 @@ describe('AutoragExperimentSettings', () => {
       await user.click(screen.getByTestId('draft-both-models'));
       await user.click(screen.getByTestId('experiment-settings-cancel'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      expect(trackEventMock).toHaveBeenCalledWith(
         AUTORAG_EVENTS.MODELS_SELECTED,
         expect.objectContaining({ outcome: TrackingOutcome.cancel }),
       );
@@ -376,7 +376,7 @@ describe('AutoragExperimentSettings', () => {
       await user.click(screen.getByTestId('draft-both-models'));
       await user.click(screen.getByLabelText('Close'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      expect(trackEventMock).toHaveBeenCalledWith(
         AUTORAG_EVENTS.MODELS_SELECTED,
         expect.objectContaining({ outcome: TrackingOutcome.cancel }),
       );

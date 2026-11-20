@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { SearchInput } from '@patternfly/react-core';
 import DashboardDatePicker from '@odh-dashboard/internal/components/DashboardDatePicker';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
+import type { TrackEvent } from '@odh-dashboard/analytics/types';
 import FeatureStoreFilterToolbar from './FeatureStoreFilterToolbar';
 import { BaseFilterOptionRenders } from '../types/toolbarTypes';
 import {
@@ -78,6 +79,7 @@ const TrackedSearchInput: React.FC<{
   value?: string;
   placeholder?: string;
 }> = ({ filterKey, filterOptions, trackingResourceType, onChange, value, placeholder }) => {
+  const trackEvent = useTrackEvent();
   const hasFiredRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -92,7 +94,7 @@ const TrackedSearchInput: React.FC<{
       onChange={(_event, v) => {
         onChange(v);
         if (v && !hasFiredRef.current && trackingResourceType) {
-          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
+          trackEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
             filterAttribute: filterKey,
             resourceType: trackingResourceType,
           } satisfies FilterAppliedProperties);
@@ -111,6 +113,7 @@ const TagMultiInput: React.FC<{
   value?: string;
   trackingResourceType?: FeatureStoreResourceType;
 }> = ({ tagFilters = [], onTagFilterAdd, onChange, value, trackingResourceType }) => {
+  const trackEvent = useTrackEvent();
   const [localValue, setLocalValue] = React.useState(value || '');
   React.useEffect(() => {
     if (value === undefined || value === '') {
@@ -125,7 +128,7 @@ const TagMultiInput: React.FC<{
       if (!tagFilters.includes(newTag)) {
         onTagFilterAdd?.(newTag);
         if (trackingResourceType) {
-          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
+          trackEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
             filterAttribute: 'tag',
             resourceType: trackingResourceType,
           } satisfies FilterAppliedProperties);
@@ -152,6 +155,7 @@ const TagMultiInput: React.FC<{
 };
 
 export function createDefaultFilterOptionRenders(
+  trackEvent: TrackEvent,
   filterOptions: Record<string, string>,
   tagFilters?: string[],
   onTagFilterAdd?: (tag: string) => void,
@@ -180,7 +184,7 @@ export function createDefaultFilterOptionRenders(
               onChange(value);
               if (date) {
                 if (trackingResourceType) {
-                  fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
+                  trackEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
                     filterAttribute: key,
                     resourceType: trackingResourceType,
                   } satisfies FilterAppliedProperties);
@@ -218,15 +222,17 @@ export function FeatureStoreToolbar({
   onTagFilterRemove,
   onTagFilterAdd,
 }: FeatureStoreToolbarProps): JSX.Element {
+  const trackEvent = useTrackEvent();
   const filterOptionRenders = React.useMemo(
     () =>
       createDefaultFilterOptionRenders(
+        trackEvent,
         filterOptions,
         tagFilters,
         onTagFilterAdd,
         trackingResourceType,
       ),
-    [filterOptions, tagFilters, onTagFilterAdd, trackingResourceType],
+    [trackEvent, filterOptions, tagFilters, onTagFilterAdd, trackingResourceType],
   );
 
   const multipleLabels = React.useMemo(() => {
