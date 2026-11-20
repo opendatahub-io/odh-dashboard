@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
+import {
+  Button,
+  Content,
+  Divider,
+  Flex,
+  FlexItem,
+  Grid,
+  GridItem,
+  Title,
+} from '@patternfly/react-core';
 import { ActionsColumn, ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -225,7 +234,9 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
     className="pf-v6-u-mb-sm"
   >
     <FlexItem>
-      <Content>{title}</Content>
+      <Title headingLevel="h4" size="md">
+        {title}
+      </Title>
     </FlexItem>
     {showToggle && (
       <FlexItem>
@@ -305,67 +316,69 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
         subscriptions.map((sub, index) => {
           const isHighlighted = hasHighlightedGroup(sub.groups ?? [], highlightedGroup);
           return (
-            <ExpandableItem
-              key={sub.name}
-              ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
-              name={sub.name}
-              displayName={sub.displayName}
-              linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
-              onLinkClick={() =>
-                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
-                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
-                  source: EventTrackingSource.OVERVIEW_MODEL,
-                  resourceStatus: sub.phase ?? '',
-                } satisfies MaaSSettingsDetailsViewedProperties)
-              }
-              linkState={OVERVIEW_LINK_STATE}
-              returnTo={returnTo}
-              phase={sub.phase}
-              resourceType={PhaseResourceType.SUBSCRIPTION}
-              rowIndex={index}
-              isExpanded={isEffectivelyExpanded(
-                sub.name,
-                sub.groups,
-                expandedSubs,
-                highlightedGroup,
-              )}
-              isHighlighted={isHighlighted}
-              onToggle={() => onToggleSub(sub.name)}
-              statusMessage={sub.statusMessage}
-              reason={sub.reason}
-              status={sub.status}
-              conditionType={sub.conditionType}
-              lastTransitionTime={sub.lastTransitionTime}
-              resourceUrl={getSubscriptionViewUrl(sub.name)}
-              actions={
-                <EntryActions
-                  testId={`overview-subscription-actions-${sub.name}`}
-                  onViewDetails={() =>
-                    navigate(getSubscriptionViewUrl(sub.name), { state: OVERVIEW_LINK_STATE })
-                  }
-                  onEdit={() =>
-                    navigate(getSubscriptionEditUrl(sub.name), {
-                      state: {
-                        ...OVERVIEW_LINK_STATE,
-                        editSource: EventTrackingEditSource.LIST_KEBAB,
-                      },
-                    })
-                  }
-                  onDelete={() => setDeleteSubscription(sub)}
+            <React.Fragment key={sub.name}>
+              {index > 0 && <Divider />}
+              <ExpandableItem
+                ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
+                name={sub.name}
+                displayName={sub.displayName}
+                linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
+                onLinkClick={() =>
+                  fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                    resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                    source: EventTrackingSource.OVERVIEW_MODEL,
+                    resourceStatus: sub.phase ?? '',
+                  } satisfies MaaSSettingsDetailsViewedProperties)
+                }
+                linkState={OVERVIEW_LINK_STATE}
+                returnTo={returnTo}
+                phase={sub.phase}
+                resourceType={PhaseResourceType.SUBSCRIPTION}
+                rowIndex={index}
+                isExpanded={isEffectivelyExpanded(
+                  sub.name,
+                  sub.groups,
+                  expandedSubs,
+                  highlightedGroup,
+                )}
+                isHighlighted={isHighlighted}
+                onToggle={() => onToggleSub(sub.name)}
+                statusMessage={sub.statusMessage}
+                reason={sub.reason}
+                status={sub.status}
+                conditionType={sub.conditionType}
+                lastTransitionTime={sub.lastTransitionTime}
+                resourceUrl={getSubscriptionViewUrl(sub.name)}
+                actions={
+                  <EntryActions
+                    testId={`overview-subscription-actions-${sub.name}`}
+                    onViewDetails={() =>
+                      navigate(getSubscriptionViewUrl(sub.name), { state: OVERVIEW_LINK_STATE })
+                    }
+                    onEdit={() =>
+                      navigate(getSubscriptionEditUrl(sub.name), {
+                        state: {
+                          ...OVERVIEW_LINK_STATE,
+                          editSource: EventTrackingEditSource.LIST_KEBAB,
+                        },
+                      })
+                    }
+                    onDelete={() => setDeleteSubscription(sub)}
+                  />
+                }
+              >
+                <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
+                  <strong className="pf-v6-u-mr-md">Token limits</strong>
+                  {formatTokenLimits(sub.tokenRateLimits ?? [])}
+                </Content>
+                <GroupChips
+                  groups={sub.groups ?? []}
+                  highlightedGroup={highlightedGroup}
+                  setHighlightedGroup={setHighlightedGroup}
+                  onGroupSelect={onGroupSelect}
                 />
-              }
-            >
-              <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
-                <strong className="pf-v6-u-mr-md">Token limits</strong>
-                {formatTokenLimits(sub.tokenRateLimits ?? [])}
-              </Content>
-              <GroupChips
-                groups={sub.groups ?? []}
-                highlightedGroup={highlightedGroup}
-                setHighlightedGroup={setHighlightedGroup}
-                onGroupSelect={onGroupSelect}
-              />
-            </ExpandableItem>
+              </ExpandableItem>
+            </React.Fragment>
           );
         })
       )}
@@ -421,63 +434,65 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
         policies.map((policy, index) => {
           const isHighlighted = hasHighlightedGroup(policy.groups ?? [], highlightedGroup);
           return (
-            <ExpandableItem
-              key={policy.name}
-              ariaLabel={`Policy ${policy.displayName ?? policy.name}`}
-              name={policy.name}
-              displayName={policy.displayName}
-              linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
-              onLinkClick={() =>
-                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
-                  resourceType: EventTrackingResourceType.AUTHPOLICY,
-                  source: EventTrackingSource.OVERVIEW_MODEL,
-                  resourceStatus: policy.phase ?? '',
-                } satisfies MaaSSettingsDetailsViewedProperties)
-              }
-              linkState={OVERVIEW_LINK_STATE}
-              phase={policy.phase}
-              resourceType={PhaseResourceType.AUTHPOLICY}
-              rowIndex={index}
-              resourceUrl={getAuthPolicyViewUrl(policy.name)}
-              returnTo={returnTo}
-              isExpanded={isEffectivelyExpanded(
-                policy.name,
-                policy.groups,
-                expandedPolicies,
-                highlightedGroup,
-              )}
-              isHighlighted={isHighlighted}
-              onToggle={() => onTogglePolicy(policy.name)}
-              statusMessage={policy.statusMessage}
-              reason={policy.reason}
-              status={policy.status}
-              conditionType={policy.conditionType}
-              lastTransitionTime={policy.lastTransitionTime}
-              actions={
-                <EntryActions
-                  testId={`overview-policy-actions-${policy.name}`}
-                  onViewDetails={() =>
-                    navigate(getAuthPolicyViewUrl(policy.name), { state: OVERVIEW_LINK_STATE })
-                  }
-                  onEdit={() =>
-                    navigate(getAuthPolicyEditUrl(policy.name), {
-                      state: {
-                        ...OVERVIEW_LINK_STATE,
-                        editSource: EventTrackingEditSource.LIST_KEBAB,
-                      },
-                    })
-                  }
-                  onDelete={() => setDeletePolicy(policy)}
+            <React.Fragment key={policy.name}>
+              {index > 0 && <Divider />}
+              <ExpandableItem
+                ariaLabel={`Policy ${policy.displayName ?? policy.name}`}
+                name={policy.name}
+                displayName={policy.displayName}
+                linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
+                onLinkClick={() =>
+                  fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                    resourceType: EventTrackingResourceType.AUTHPOLICY,
+                    source: EventTrackingSource.OVERVIEW_MODEL,
+                    resourceStatus: policy.phase ?? '',
+                  } satisfies MaaSSettingsDetailsViewedProperties)
+                }
+                linkState={OVERVIEW_LINK_STATE}
+                phase={policy.phase}
+                resourceType={PhaseResourceType.AUTHPOLICY}
+                rowIndex={index}
+                resourceUrl={getAuthPolicyViewUrl(policy.name)}
+                returnTo={returnTo}
+                isExpanded={isEffectivelyExpanded(
+                  policy.name,
+                  policy.groups,
+                  expandedPolicies,
+                  highlightedGroup,
+                )}
+                isHighlighted={isHighlighted}
+                onToggle={() => onTogglePolicy(policy.name)}
+                statusMessage={policy.statusMessage}
+                reason={policy.reason}
+                status={policy.status}
+                conditionType={policy.conditionType}
+                lastTransitionTime={policy.lastTransitionTime}
+                actions={
+                  <EntryActions
+                    testId={`overview-policy-actions-${policy.name}`}
+                    onViewDetails={() =>
+                      navigate(getAuthPolicyViewUrl(policy.name), { state: OVERVIEW_LINK_STATE })
+                    }
+                    onEdit={() =>
+                      navigate(getAuthPolicyEditUrl(policy.name), {
+                        state: {
+                          ...OVERVIEW_LINK_STATE,
+                          editSource: EventTrackingEditSource.LIST_KEBAB,
+                        },
+                      })
+                    }
+                    onDelete={() => setDeletePolicy(policy)}
+                  />
+                }
+              >
+                <GroupChips
+                  groups={policy.groups ?? []}
+                  highlightedGroup={highlightedGroup}
+                  setHighlightedGroup={setHighlightedGroup}
+                  onGroupSelect={onGroupSelect}
                 />
-              }
-            >
-              <GroupChips
-                groups={policy.groups ?? []}
-                highlightedGroup={highlightedGroup}
-                setHighlightedGroup={setHighlightedGroup}
-                onGroupSelect={onGroupSelect}
-              />
-            </ExpandableItem>
+              </ExpandableItem>
+            </React.Fragment>
           );
         })
       )}
@@ -557,74 +572,76 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
   }, [policies, expandedPolicies, highlightedGroup]);
 
   return (
-    <Grid hasGutter>
-      <GridItem
-        span={6}
-        style={{
-          borderRight: '1px solid var(--pf-t--global--border--color--default)',
-          paddingRight: 'var(--pf-t--global--spacer--lg)',
-        }}
-      >
-        <SubscriptionsSection
-          subscriptions={subscriptions}
-          expandedSubs={expandedSubs}
-          onToggleSub={toggleSub}
-          onToggleAll={toggleAllSubs}
-          highlightedGroup={highlightedGroup}
-          setHighlightedGroup={setHighlightedGroup}
-          returnTo={returnTo}
-          onGroupSelect={onGroupSelect}
-          setDeleteSubscription={setDeleteSubscription}
-        />
-      </GridItem>
-      <GridItem span={6}>
-        <PoliciesSection
-          policies={policies}
-          expandedPolicies={expandedPolicies}
-          onTogglePolicy={togglePolicy}
-          onToggleAll={toggleAllPolicies}
-          highlightedGroup={highlightedGroup}
-          setHighlightedGroup={setHighlightedGroup}
-          returnTo={returnTo}
-          onGroupSelect={onGroupSelect}
-          setDeletePolicy={setDeletePolicy}
-        />
-      </GridItem>
-      {deleteSubscription && (
-        <DeleteSubscriptionModal
-          subscription={deleteSubscription}
-          onClose={(deleted) => {
-            setDeleteSubscription(undefined);
-            if (deleted) {
-              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
-                resourceType: EventTrackingResourceType.SUBSCRIPTION,
-                source: EventTrackingSource.LIST_KEBAB,
-                resourceStatus: deleteSubscription.phase ?? '',
-                outcome: TrackingOutcome.submit,
-              } satisfies MaaSResourceDeletedProperties);
-              refresh();
-            }
+    <div className={styles['maas-expanded-content']}>
+      <Grid hasGutter>
+        <GridItem
+          span={6}
+          style={{
+            borderRight: '1px solid var(--pf-t--global--border--color--default)',
+            paddingRight: 'var(--pf-t--global--spacer--lg)',
           }}
-        />
-      )}
-      {deletePolicy && (
-        <DeleteAuthPolicyModal
-          authPolicy={deletePolicy}
-          onClose={(deleted) => {
-            setDeletePolicy(undefined);
-            if (deleted) {
-              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
-                resourceType: EventTrackingResourceType.AUTHPOLICY,
-                source: EventTrackingSource.LIST_KEBAB,
-                resourceStatus: deletePolicy.phase ?? '',
-                outcome: TrackingOutcome.submit,
-              } satisfies MaaSResourceDeletedProperties);
-              refresh();
-            }
-          }}
-        />
-      )}
-    </Grid>
+        >
+          <SubscriptionsSection
+            subscriptions={subscriptions}
+            expandedSubs={expandedSubs}
+            onToggleSub={toggleSub}
+            onToggleAll={toggleAllSubs}
+            highlightedGroup={highlightedGroup}
+            setHighlightedGroup={setHighlightedGroup}
+            returnTo={returnTo}
+            onGroupSelect={onGroupSelect}
+            setDeleteSubscription={setDeleteSubscription}
+          />
+        </GridItem>
+        <GridItem span={6}>
+          <PoliciesSection
+            policies={policies}
+            expandedPolicies={expandedPolicies}
+            onTogglePolicy={togglePolicy}
+            onToggleAll={toggleAllPolicies}
+            highlightedGroup={highlightedGroup}
+            setHighlightedGroup={setHighlightedGroup}
+            returnTo={returnTo}
+            onGroupSelect={onGroupSelect}
+            setDeletePolicy={setDeletePolicy}
+          />
+        </GridItem>
+        {deleteSubscription && (
+          <DeleteSubscriptionModal
+            subscription={deleteSubscription}
+            onClose={(deleted) => {
+              setDeleteSubscription(undefined);
+              if (deleted) {
+                fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                  source: EventTrackingSource.LIST_KEBAB,
+                  resourceStatus: deleteSubscription.phase ?? '',
+                  outcome: TrackingOutcome.submit,
+                } satisfies MaaSResourceDeletedProperties);
+                refresh();
+              }
+            }}
+          />
+        )}
+        {deletePolicy && (
+          <DeleteAuthPolicyModal
+            authPolicy={deletePolicy}
+            onClose={(deleted) => {
+              setDeletePolicy(undefined);
+              if (deleted) {
+                fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                  resourceType: EventTrackingResourceType.AUTHPOLICY,
+                  source: EventTrackingSource.LIST_KEBAB,
+                  resourceStatus: deletePolicy.phase ?? '',
+                  outcome: TrackingOutcome.submit,
+                } satisfies MaaSResourceDeletedProperties);
+                refresh();
+              }
+            }}
+          />
+        )}
+      </Grid>
+    </div>
   );
 };
 
