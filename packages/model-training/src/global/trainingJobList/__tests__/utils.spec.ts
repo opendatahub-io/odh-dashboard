@@ -1277,7 +1277,7 @@ describe('getTrainingJobStatusWithWorkload', () => {
     );
   });
 
-  it('should return PAUSED (not Inadmissible) when workload is deactivated and has extended Inadmissible condition', () => {
+  it('should return INADMISSIBLE even when workload is deactivated (terminal system state takes priority)', () => {
     const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
     const workload = createMockWorkload(
       [
@@ -1294,9 +1294,10 @@ describe('getTrainingJobStatusWithWorkload', () => {
       false, // active = false → user deactivated the workload
     );
 
-    // Paused must take priority over extended Inadmissible when user explicitly deactivated
+    // Inadmissible takes priority over Paused — training team confirmed terminal/system
+    // rejection states must not be masked by user pause action
     expect(getTrainingJobStatusWithWorkload(job, workload, TrainingJobState.CREATED)).toEqual(
-      expect.objectContaining({ status: TrainingJobState.PAUSED }),
+      expect.objectContaining({ status: TrainingJobState.INADMISSIBLE }),
     );
   });
 

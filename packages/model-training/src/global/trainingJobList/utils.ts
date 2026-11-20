@@ -266,12 +266,6 @@ export const getTrainingJobStatusWithWorkload = (
     extendedInadmissible: true,
   });
 
-  // User action: deactivated workload takes priority over all system states
-  // (ensures Resume action remains available even when quota is exceeded)
-  if (workload.spec.active === false || job.spec.suspend === true) {
-    return { status: TrainingJobState.PAUSED, isLoading: false };
-  }
-
   // System rejection (takes priority over failure states)
   if (workloadConditionsMap.Inadmissible) {
     return { status: TrainingJobState.INADMISSIBLE, isLoading: false };
@@ -288,6 +282,11 @@ export const getTrainingJobStatusWithWorkload = (
   }
   if (workloadConditionsMap.Succeeded) {
     return { status: TrainingJobState.SUCCEEDED, isLoading: false };
+  }
+
+  // Paused (user action — checked after terminal states, before PREEMPTED)
+  if (workload.spec.active === false || job.spec.suspend === true) {
+    return { status: TrainingJobState.PAUSED, isLoading: false };
   }
 
   if (workloadConditionsMap.Evicted || workloadConditionsMap.Preempted) {
@@ -322,12 +321,12 @@ export const getTrainingJobStatusWithWorkload = (
  *    - Complete: TrainJob Succeeded condition
  *    - Failed: TrainJob Failed condition
  *
- * 2. User actions (takes priority over system rejection):
- *    - Paused: workload.spec.active=false or spec.suspend=true
- *
- * 3. System states:
+ * 2. System states:
  *    - Inadmissible: Workload QuotaReserved=False with reason=Inadmissible
  *      (or extended Inadmissible detection for TrainJobs)
+ *
+ * 3. User actions (checked after terminal states, before preempted/running):
+ *    - Paused: workload.spec.active=false or spec.suspend=true
  *
  * 4. System states:
  *    - Preempted: Workload Evicted or Preempted condition

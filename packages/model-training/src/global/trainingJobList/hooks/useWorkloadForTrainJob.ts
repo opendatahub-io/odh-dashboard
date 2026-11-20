@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { WorkloadKind } from '@odh-dashboard/k8s-core';
-import { WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import { WorkloadModel, JobSetModel } from '@odh-dashboard/k8s-core/api/models';
 import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
@@ -44,7 +44,7 @@ export const useWorkloadForJob = (
  *
  * Matching rules:
  *  1. kueue.x-k8s.io/job-uid === TrainJob UID  (requires defined UID)
- *  2. ownerReferences contains a JobSet whose name === TrainJob name
+ *  2. ownerReferences contains a JobSet whose name === TrainJob name AND uid === current JobSet UID
  *
  * Results are sorted by creationTimestamp descending so consumers selecting
  * workloads[0] get the most recent (stable) result.
@@ -63,10 +63,27 @@ export const useWorkloadForTrainJob = (
     WorkloadModel,
   );
 
+  // Watch JobSets in the namespace to resolve the current JobSet UID
+  // and prevent matching stale workloads from deleted/recreated jobs
+  const [jobSets, jobSetsLoaded] = useK8sWatchResourceList(
+    job
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(JobSetModel),
+          namespace: job.metadata.namespace,
+        }
+      : null,
+    JobSetModel,
+  );
+
   const matchingWorkloads = React.useMemo((): WorkloadKind[] => {
     if (!job || !loaded) return [];
     const jobUid = job.metadata.uid;
     const jobName = job.metadata.name;
+    // Resolve the current JobSet UID for cross-verification
+    const currentJobSetUid = jobSetsLoaded
+      ? jobSets.find((js) => js.metadata?.name === jobName)?.metadata?.uid
+      : undefined;
     return allWorkloads
       .filter((w): w is WorkloadKind => {
         const labels = w.metadata?.labels ?? {};
@@ -74,14 +91,19 @@ export const useWorkloadForTrainJob = (
         if (jobUid && labels['kueue.x-k8s.io/job-uid'] === jobUid) return true;
         // JobSet owner reference match — the JobSet has the same name as the TrainJob
         const owners = w.metadata?.ownerReferences ?? [];
-        return owners.some((o) => o.kind === 'JobSet' && o.name === jobName);
+        return owners.some(
+          (o) =>
+            o.kind === 'JobSet' &&
+            o.name === jobName &&
+            (!currentJobSetUid || o.uid === currentJobSetUid),
+        );
       })
       .toSorted((a, b) => {
         const tsA = a.metadata?.creationTimestamp ?? '';
         const tsB = b.metadata?.creationTimestamp ?? '';
         return tsB.localeCompare(tsA); // newest first
       });
-  }, [allWorkloads, job, loaded]);
+  }, [allWorkloads, job, loaded, jobSets, jobSetsLoaded]);
 
   return [matchingWorkloads, loaded, error];
 };
