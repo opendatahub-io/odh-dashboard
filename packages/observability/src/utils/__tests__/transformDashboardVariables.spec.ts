@@ -1,6 +1,11 @@
 import type { DashboardResource, ListVariableDefinition } from '@perses-dev/core';
 import { NAMESPACE_URL_PARAM } from '../dashboardUtils';
-import { transformNamespaceVariable } from '../transformDashboardVariables';
+import {
+  isExpandedAllNamespaceSelection,
+  isUsableNamespaceDefault,
+  normalizeNamespaceDefault,
+  transformNamespaceVariable,
+} from '../transformDashboardVariables';
 
 // Helper to create a mock dashboard with namespace variable
 const createMockDashboardWithNamespaceVariable = (
@@ -19,6 +24,7 @@ const createMockDashboardWithNamespaceVariable = (
             defaultValue,
             allowMultiple: true,
             allowAllValue: true,
+            customAllValue: '.*',
             plugin: {
               kind: 'PrometheusLabelValuesVariable',
               spec: {
@@ -168,7 +174,7 @@ describe('transformNamespaceVariable', () => {
       }
     });
 
-    it('should set customAllValue with pipe-separated project names regex', () => {
+    it('should omit customAllValue so All expands to the concrete project list', () => {
       const dashboard = createMockDashboardWithNamespaceVariable();
       const projectNames = ['project-alpha', 'project-beta', 'project-gamma'];
 
@@ -180,8 +186,43 @@ describe('transformNamespaceVariable', () => {
 
       expect(namespaceVar).toBeDefined();
       if (namespaceVar) {
-        expect(namespaceVar.spec.customAllValue).toBe('(project-alpha|project-beta|project-gamma)');
+        expect(namespaceVar.spec.customAllValue).toBeUndefined();
+        expect(namespaceVar.spec.plugin.spec).toEqual({
+          values: [
+            { label: 'project-alpha', value: 'project-alpha' },
+            { label: 'project-beta', value: 'project-beta' },
+            { label: 'project-gamma', value: 'project-gamma' },
+          ],
+        });
       }
+    });
+
+    it('should replace a TextVariable namespace stub with a concrete project list', () => {
+      const dashboard = {
+        kind: 'Dashboard',
+        metadata: { name: 'models', project: 'test-project' },
+        spec: {
+          variables: [{ kind: 'TextVariable', spec: { name: 'namespace', value: '' } }],
+        },
+      } as DashboardResource;
+
+      const result = transformNamespaceVariable(dashboard, ['project-a', 'project-b']);
+      const namespaceVar = result.spec.variables.find(
+        (variable) => variable.kind === 'ListVariable' && variable.spec.name === 'namespace',
+      ) as ListVariableDefinition | undefined;
+
+      expect(namespaceVar?.spec.allowAllValue).toBe(true);
+      expect(namespaceVar?.spec.defaultValue).toBe('$__all');
+      expect(namespaceVar?.spec.customAllValue).toBeUndefined();
+      expect(namespaceVar?.spec.plugin).toEqual({
+        kind: 'StaticListVariable',
+        spec: {
+          values: [
+            { label: 'project-a', value: 'project-a' },
+            { label: 'project-b', value: 'project-b' },
+          ],
+        },
+      });
     });
 
     it('should preserve other variable properties when transforming', () => {
@@ -355,5 +396,27 @@ describe('transformNamespaceVariable', () => {
         ]);
       }
     });
+  });
+});
+
+describe('namespace variable helpers', () => {
+  it('should identify an expanded All selection', () => {
+    expect(isExpandedAllNamespaceSelection(['a', 'b'], ['a', 'b'])).toBe(true);
+    expect(isExpandedAllNamespaceSelection(['a'], ['a', 'b'])).toBe(false);
+    expect(isExpandedAllNamespaceSelection(['a', 'a'], ['a', 'b'])).toBe(false);
+  });
+
+  it('should validate namespace defaults against available projects', () => {
+    const options = new Set(['a', 'b']);
+
+    expect(isUsableNamespaceDefault('$__all', true, options)).toBe(true);
+    expect(isUsableNamespaceDefault('$__all', false, options)).toBe(false);
+    expect(isUsableNamespaceDefault(['a', 'b'], true, options)).toBe(true);
+    expect(isUsableNamespaceDefault('missing', true, options)).toBe(false);
+  });
+
+  it('should normalize null namespace defaults to undefined', () => {
+    expect(normalizeNamespaceDefault(null)).toBeUndefined();
+    expect(normalizeNamespaceDefault('project-a')).toBe('project-a');
   });
 });

@@ -6,6 +6,7 @@ import {
   type WorkingProjectContextType,
   type WorkingProjectProviderProps,
   WorkingProjectProvider,
+  WorkingProjectStatusValue,
   useWorkingProject,
 } from '../WorkingProjectContext';
 
@@ -51,42 +52,48 @@ describe('WorkingProjectProvider', () => {
     expect(renderResult).hookToHaveUpdateCount(1);
   });
 
-  it('should expose the supplied projects and active project', () => {
-    const projects = [firstProject, secondProject];
-    const renderResult = renderHook(() => useWorkingProject(), {
-      wrapper: createWrapper(projects, firstProject, jest.fn()),
-    });
+  it.each([
+    {
+      name: 'a selected project',
+      projects: [firstProject, secondProject],
+      activeProject: firstProject,
+      expectedStatus: WorkingProjectStatusValue.Listed,
+      expectedActiveProject: firstProject,
+    },
+    {
+      name: 'an empty project list',
+      projects: [],
+      activeProject: null,
+      expectedStatus: WorkingProjectStatusValue.EmptyList,
+      expectedActiveProject: null,
+    },
+    {
+      name: 'projects without a selected project',
+      projects: [firstProject, secondProject],
+      activeProject: null,
+      expectedStatus: WorkingProjectStatusValue.NoProjectSelected,
+      expectedActiveProject: null,
+    },
+    {
+      name: 'a project missing from the supplied list',
+      projects: [firstProject, secondProject],
+      activeProject: { name: 'removed-project' },
+      expectedStatus: WorkingProjectStatusValue.NoProjectSelected,
+      expectedActiveProject: null,
+    },
+  ])(
+    'should resolve the correct status and active project for $name',
+    ({ projects, activeProject, expectedStatus, expectedActiveProject }) => {
+      const renderResult = renderHook(() => useWorkingProject(), {
+        wrapper: createWrapper(projects, activeProject, jest.fn()),
+      });
 
-    expect(renderResult.result.current.projects).toBe(projects);
-    expect(renderResult.result.current.status).toBe('listed');
-    expect(renderResult.result.current.activeProject).toBe(firstProject);
-    expect(renderResult).hookToHaveUpdateCount(1);
-  });
-
-  it('should allow an empty list without an active project', () => {
-    const onProjectChange = jest.fn();
-    const renderResult = renderHook(() => useWorkingProject(), {
-      wrapper: createWrapper([], null, onProjectChange),
-    });
-
-    expect(renderResult.result.current.projects).toEqual([]);
-    expect(renderResult.result.current.status).toBe('empty-list');
-    expect(renderResult.result.current.activeProject).toBeNull();
-    act(() => {
-      renderResult.result.current.selectProject(firstProject);
-    });
-    expect(onProjectChange).not.toHaveBeenCalled();
-  });
-
-  it('should resolve a missing active selection to a provider-known project', () => {
-    const projects = [firstProject, secondProject];
-    const renderResult = renderHook(() => useWorkingProject(), {
-      wrapper: createWrapper(projects, null, jest.fn()),
-    });
-
-    expect(renderResult.result.current.projects).toBe(projects);
-    expect(renderResult.result.current.activeProject).toBe(firstProject);
-  });
+      expect(renderResult.result.current.projects).toBe(projects);
+      expect(renderResult.result.current.status).toBe(expectedStatus);
+      expect(renderResult.result.current.activeProject).toBe(expectedActiveProject);
+      expect(renderResult).hookToHaveUpdateCount(1);
+    },
+  );
 
   it('should select a known project using the canonical provider identity', () => {
     const onProjectChange = jest.fn();
@@ -119,16 +126,6 @@ describe('WorkingProjectProvider', () => {
       expect(onProjectChange).not.toHaveBeenCalled();
     },
   );
-
-  it('should not expose an active project that is missing from the supplied list', () => {
-    const projects = [firstProject, secondProject];
-    const renderResult = renderHook(() => useWorkingProject(), {
-      wrapper: createWrapper(projects, { name: 'removed-project' }, jest.fn()),
-    });
-
-    expect(renderResult.result.current.projects).toBe(projects);
-    expect(renderResult.result.current.activeProject).toBe(firstProject);
-  });
 
   it('should use the latest project-change callback after a provider rerender', () => {
     const firstOnProjectChange = jest.fn();

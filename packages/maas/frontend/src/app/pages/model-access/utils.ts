@@ -1,6 +1,6 @@
 import { URL_PREFIX } from '~/app/utilities/const';
 
-/** Browser route for the read-only Model Access page (MaaS Portal). */
+/** Browser route for the read-only Model access page (MaaS Portal). */
 export const MODEL_ACCESS_PATH = `${URL_PREFIX}/model-access`;
 
 export const getModelAccessSubscriptionViewUrl = (name: string): string =>

@@ -4,6 +4,7 @@ const STYLE_THEME = process.env.STYLE_THEME || 'patternfly-theme';
 const DEPLOYMENT_MODE =
   asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Federated;
 const DEV_MODE = process.env.APP_ENV === 'development';
+const APP_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
 const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTERVAL) : 30000;
 const STATUS_REFRESH_INTERVAL = 3000;
 const NO_REFRESH_INTERVAL = 0;
@@ -21,6 +22,7 @@ export {
   STATUS_REFRESH_INTERVAL,
   NO_REFRESH_INTERVAL,
   DEV_MODE,
+  APP_VERSION,
   KUBEFLOW_USERNAME,
   IMAGE_DIR,
   LOGO_LIGHT,

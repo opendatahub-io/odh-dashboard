@@ -3,21 +3,15 @@ import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { HostApiCoreContext } from '../HostApiCoreContext';
 
 /**
- * Used for a non-cached SSAR request.
- *
- * Potentially obsolete -- depending on if we need a non-cached variant.
- *
- * @see useAccessAllowed - Cached variant
- * @see verbModelAccess - Helper util for resourceAttributes
+ * Non-cached access review for the current host and resource attributes.
+ * Returns [allowed, loaded]. Pending and disabled checks deny access; failed
+ * checks settle as denied. Results from superseded requests are discarded.
  */
 export const useAccessReview = (
   resourceAttributes: AccessReviewResourceAttributes,
   shouldRunCheck = true,
 ): [boolean, boolean] => {
   const { checkAccess } = React.useContext(HostApiCoreContext);
-  const [isLoaded, setIsLoaded] = React.useState(false);
-  const [isAllowed, setAllowed] = React.useState(false);
-
   const {
     group = '',
     resource = '',
@@ -27,14 +21,42 @@ export const useAccessReview = (
     namespace = '',
   } = resourceAttributes;
 
-  React.useEffect(() => {
-    if (shouldRunCheck) {
-      checkAccess({ group, resource, subresource, verb, name, namespace }).then((allowed) => {
-        setAllowed(allowed);
-        setIsLoaded(true);
-      });
-    }
-  }, [checkAccess, group, name, namespace, resource, subresource, verb, shouldRunCheck]);
+  const request = React.useMemo(
+    () => ({
+      checkAccess,
+      shouldRunCheck,
+      attributes: { group, resource, subresource, verb, name, namespace },
+    }),
+    [checkAccess, shouldRunCheck, group, resource, subresource, verb, name, namespace],
+  );
+  const [result, setResult] = React.useState<{
+    request: typeof request;
+    allowed: boolean;
+  }>();
 
-  return [isAllowed, isLoaded];
+  React.useEffect(() => {
+    if (!request.shouldRunCheck) {
+      return undefined;
+    }
+    let active = true;
+    const review = async () => {
+      let allowed = false;
+      try {
+        allowed = (await request.checkAccess(request.attributes)) === true;
+      } catch {
+        // Missing host services and failed reviews never grant permission.
+      }
+      if (active) {
+        setResult({ request, allowed });
+      }
+    };
+    void review();
+    return () => {
+      active = false;
+    };
+  }, [request]);
+
+  return request.shouldRunCheck && result?.request === request
+    ? [result.allowed, true]
+    : [false, false];
 };

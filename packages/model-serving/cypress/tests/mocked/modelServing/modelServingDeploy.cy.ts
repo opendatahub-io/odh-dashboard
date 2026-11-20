@@ -15,6 +15,7 @@ import {
   isGeneratedSecretName,
 } from '@odh-dashboard/k8s-core';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared/types';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
@@ -32,6 +33,7 @@ import {
 } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
+import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import {
   initMockConnectionSecretIntercepts,
@@ -50,6 +52,7 @@ import {
   LLMInferenceServiceModel,
   ProjectModel,
   PVCModel,
+  SelfSubjectAccessReviewModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
@@ -964,6 +967,64 @@ describe('Model Serving Deploy Wizard', () => {
     cy.get('@createInferenceService.all').then((interceptions) => {
       expect(interceptions).to.have.length(1); // 1 dry-run request only
     });
+  });
+
+  it('disables token authentication and external route while keeping environment variables editable when rolebinding creation is not allowed', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+      const { resourceAttributes } = req.body.spec;
+      const allowed = !(
+        resourceAttributes.group === 'rbac.authorization.k8s.io' &&
+        resourceAttributes.resource === 'rolebindings' &&
+        resourceAttributes.verb === 'create'
+      );
+
+      req.reply(mockSelfSubjectAccessReview({ ...resourceAttributes, allowed }));
+    }).as('createSelfSubjectAccessReview');
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+
+    modelServingWizard.findModelSourceStep().should('be.enabled');
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist')
+      .click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    hardwareProfileSection.findSelect().click();
+    hardwareProfileSection.selectProfileContaining('Large Profile');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').should('exist').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizard.findExternalRouteCheckbox().should('be.visible').and('be.disabled');
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.visible').and('be.disabled');
+    modelServingWizard.findEnvVariablesCheckbox().should('be.enabled').click();
+    modelServingWizard.findAddVariableButton().should('be.enabled').click();
+    modelServingWizard.findEnvVariableName('0').clear().type('CUSTOM_ENV');
+    modelServingWizard.findEnvVariableValue('0').type('test-value');
+
+    modelServingWizard.findEnvVariablesCheckbox().should('be.checked');
+    modelServingWizard.findEnvVariableName('0').should('have.value', 'CUSTOM_ENV');
+    modelServingWizard.findEnvVariableValue('0').should('have.value', 'test-value');
   });
 
   it('Check Kserve Auth Section', () => {
@@ -2101,6 +2162,42 @@ describe('Model Serving Deploy Wizard', () => {
       });
     });
 
+    it('should show inline monaco-yaml diagnostics for malformed YAML in edit mode', () => {
+      initIntercepts({});
+      initMockConnectionSecretIntercepts({});
+      initMockModelAuthIntercepts({});
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.yaml.findManualEditModeButton().click();
+      modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();
+
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
+      yamlEditor.findStartFromScratchButton().click();
+      yamlEditor.waitForReady();
+
+      // Malformed mapping value — monaco-yaml should report inline error markers while typing
+      yamlEditor.setValue('invalid: yaml:\n  - broken');
+      yamlEditor.expectErrorMarkers();
+
+      // Valid document clears syntax markers
+      yamlEditor.setValue(
+        [
+          'apiVersion: serving.kserve.io/v1alpha2',
+          'kind: LLMInferenceService',
+          'metadata:',
+          '  name: linted-model',
+          '  namespace: test-project',
+          'spec:',
+          '  model:',
+          '    uri: hf://test/model',
+        ].join('\n'),
+      );
+      yamlEditor.expectNoErrorMarkers();
+    });
+
     it('should auto-fallback to YAML edit mode if the form data extraction fails', () => {
       initIntercepts({});
       initMockConnectionSecretIntercepts({});
@@ -2212,6 +2309,35 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     it('autoselect logic with manual override and model type changes', () => {
+      const templates = mockStandardModelServingTemplateK8sResources();
+      const nvidiaTemplate = templates.find((template) => template.metadata.name === 'template-5');
+      if (!nvidiaTemplate) {
+        throw new Error('Expected NVIDIA ServingRuntime template mock');
+      }
+      const alternativeTemplate: TemplateKind = {
+        ...nvidiaTemplate,
+        metadata: { ...nvidiaTemplate.metadata, name: 'template-6' },
+        objects: nvidiaTemplate.objects.map((templateObject) =>
+          templateObject.kind === 'ServingRuntime'
+            ? {
+                ...templateObject,
+                metadata: {
+                  ...templateObject.metadata,
+                  name: 'template-6',
+                  annotations: {
+                    ...templateObject.metadata.annotations,
+                    'openshift.io/display-name': 'vLLM NVIDIA Alternative',
+                  },
+                },
+              }
+            : templateObject,
+        ),
+      };
+      cy.interceptK8sList(
+        TemplateModel,
+        mockK8sResourceList([...templates, alternativeTemplate], { namespace: 'opendatahub' }),
+      );
+
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
@@ -2231,11 +2357,14 @@ describe('Model Serving Deploy Wizard', () => {
       // Step 2: Model deployment
       modelServingWizard.findModelDeploymentNameInput().type('test-model');
 
-      // Select openvino_ir - opset1 format - should autoselect OpenVINO (only 1 match)
+      // Without an accelerator identifier, even a unique model-format match stays Manual.
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').click();
-      // Verify autoselect is checked and OpenVINO is selected
-      modelServingWizard.findModelServerAutoSelectRadio().should('be.checked');
-      cy.findByText('OpenVINO').should('exist');
+      modelServingWizard.findModelServerManualSelectRadio().should('be.checked');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.selectGlobalScopedTemplateOption('OpenVINO');
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'OpenVINO');
 
       // Step 3: Override autoselect - manually select Caikit
       modelServingWizard.findModelServerManualSelectRadio().click();
@@ -2265,12 +2394,21 @@ describe('Model Serving Deploy Wizard', () => {
         .findServingRuntimeTemplateSearchSelector()
         .should('contain.text', 'Select a serving runtime template');
 
-      // Step 7: Select NVIDIA GPU hardware profile - vLLM NVIDIA should be autoselected
+      // Step 7: The first of multiple NVIDIA-compatible runtimes should be suggested.
       hardwareProfileSection.findSelect().click();
       hardwareProfileSection.selectProfileContaining('NVIDIA GPU Profile');
-      // Verify autoselect is checked and vLLM NVIDIA is selected (only nvidia-compatible runtime)
       modelServingWizard.findModelServerAutoSelectRadio().should('be.checked');
-      cy.findByText('vLLM NVIDIA').should('exist');
+      modelServingWizard
+        .findModelServerAutoSelectSuggestion()
+        .should('contain.text', 'vLLM NVIDIA');
+
+      // A later compatible option remains manually selectable.
+      modelServingWizard.findModelServerManualSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA Alternative');
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'vLLM NVIDIA Alternative');
 
       // Step 8: Manual override to vLLM AMD
       modelServingWizard.findModelServerManualSelectRadio().click();

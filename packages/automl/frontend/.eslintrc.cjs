@@ -243,6 +243,11 @@ module.exports = {
       extends: ['@odh-dashboard/eslint-config/feature-analytics'],
     },
     {
+      // The standalone composition root supplies the tracking adapter to feature components.
+      files: ['src/bootstrap.tsx'],
+      rules: { '@odh-dashboard/no-direct-analytics': 'off' },
+    },
+    {
       files: ['src/app/components/**/*.{ts,tsx}', 'src/app/pages/**/*.{ts,tsx}'],
       excludedFiles: ['**/__tests__/**', '**/__mocks__/**'],
       rules: {

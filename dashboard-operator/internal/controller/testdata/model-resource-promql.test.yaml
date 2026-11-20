@@ -1,0 +1,152 @@
+rule_files: []
+evaluation_interval: 30s
+tests:
+  - interval: 30s
+    input_series:
+      - series: 'vllm:num_requests_running{namespace="team-a",pod="model-pod",model_name="model-a"}'
+        values: '0 0 0'
+      - series: 'vllm:num_requests_running{namespace="team-a",pod="other-pod",model_name="model-b"}'
+        values: '0 0 0'
+      - series: 'vllm:num_requests_running{namespace="team-zero",pod="zero-pod",model_name="zero-model"}'
+        values: '0 0 0'
+      - series: 'vllm:num_requests_running{namespace="team-no-quota",pod="no-quota-pod",model_name="no-quota-model"}'
+        values: '0 0 0'
+      - series: 'vllm:num_requests_running{namespace="team-zero-only",pod="zero-only-pod",model_name="zero-only-model"}'
+        values: '0 0 0'
+      - series: 'accelerator_gpu_utilization{namespace="team-a",pod="model-pod",UUID="gpu-a",gpu="0",instance="collector-0",odh_dcgm_source="verified"}'
+        values: '80 80 80'
+      - series: 'accelerator_gpu_utilization{namespace="team-a",pod="model-pod",UUID="gpu-a",gpu="0",instance="collector-1",odh_dcgm_source="verified"}'
+        values: '80 80 80'
+      - series: 'accelerator_gpu_utilization{namespace="team-a",pod="model-pod",UUID="gpu-b",gpu="1",odh_dcgm_source="verified"}'
+        values: '40 40 40'
+      - series: 'accelerator_gpu_utilization{namespace="team-a",pod="model-pod",UUID="fake",gpu="2"}'
+        values: '100 100 100'
+      - series: 'accelerator_gpu_utilization{namespace="other",pod="model-pod",UUID="gpu-c",gpu="0",odh_dcgm_source="verified"}'
+        values: '99 99 99'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-a",pod="model-pod",container="main",instance="source-1",odh_federation_source="model-resources"}'
+        values: '0.25 0.25 0.25'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-a",pod="model-pod",container="main",instance="source-2",odh_federation_source="model-resources"}'
+        values: '0.25 0.25 0.25'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-a",pod="model-pod",container="sidecar",odh_federation_source="model-resources"}'
+        values: '0.75 0.75 0.75'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-a",pod="model-pod",container="fake"}'
+        values: '10 10 10'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-zero",pod="zero-pod",container="main",odh_federation_source="model-resources"}'
+        values: '1 1 1'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-no-quota",pod="no-quota-pod",container="main",odh_federation_source="model-resources"}'
+        values: '1 1 1'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-zero-only",pod="zero-only-pod",container="main",odh_federation_source="model-resources"}'
+        values: '1 1 1'
+      - series: 'kube_resourcequota{namespace="team-a",resourcequota="quota-a",resource="cpu",type="hard",instance="one",odh_federation_source="model-resources"}'
+        values: '4 4 4'
+      - series: 'kube_resourcequota{namespace="team-a",resourcequota="quota-a",resource="cpu",type="hard",instance="two",odh_federation_source="model-resources"}'
+        values: '4 4 4'
+      - series: 'kube_resourcequota{namespace="team-a",resourcequota="quota-b",resource="cpu",type="hard",odh_federation_source="model-resources"}'
+        values: '8 8 8'
+      - series: 'kube_resourcequota{namespace="team-a",resourcequota="fake",resource="cpu",type="hard"}'
+        values: '1 1 1'
+      - series: 'kube_resourcequota{namespace="team-zero",resourcequota="zero",resource="cpu",type="hard",odh_federation_source="model-resources"}'
+        values: '0 0 0'
+      - series: 'kube_resourcequota{namespace="team-zero",resourcequota="other",resource="cpu",type="hard",odh_federation_source="model-resources"}'
+        values: '4 4 4'
+      # A limits quota is not interchangeable with the original request quota.
+      - series: 'kube_resourcequota{namespace="team-no-quota",resourcequota="limits",resource="limits.cpu",type="hard",odh_federation_source="model-resources"}'
+        values: '4 4 4'
+      - series: 'kube_resourcequota{namespace="team-zero-only",resourcequota="zero",resource="cpu",type="hard",odh_federation_source="model-resources"}'
+        values: '0 0 0'
+    promql_expr_test:
+      - expr: '@@GPU_QUERY@@'
+        eval_time: 1m
+        exp_samples:
+          - labels: '{model_name="model-a",namespace="team-a"}'
+            value: 60
+      - expr: '@@CPU_QUERY@@'
+        eval_time: 1m
+        exp_samples:
+          - labels: '{model_name="model-a",namespace="team-a"}'
+            value: 1
+          - labels: '{model_name="zero-model",namespace="team-zero"}'
+            value: 1
+          - labels: '{model_name="no-quota-model",namespace="team-no-quota"}'
+            value: 1
+          - labels: '{model_name="zero-only-model",namespace="team-zero-only"}'
+            value: 1
+      - expr: '@@QUOTA_QUERY@@'
+        eval_time: 1m
+        exp_samples:
+          - labels: '{model_name="model-a",namespace="team-a"}'
+            value: 0.08333333333333333
+          - labels: '{model_name="zero-model",namespace="team-zero"}'
+            value: 0.25
+  # One model spans an ambiguous pod and a clean pod. Both resource cells must
+  # be absent for that entire model, while other models and namespaces work.
+  - interval: 30s
+    input_series:
+      - series: 'vllm:num_requests_running{namespace="team-a",pod="shared",model_name="model-a"}'
+        values: '0 0 0'
+      - series: 'vllm:num_requests_running{namespace="team-a",pod="shared",model_name="other-model"}'
+        values: '0 0 0'
+      - series: 'vllm:num_requests_running{namespace="team-a",pod="dedicated",model_name="model-a"}'
+        values: '0 0 0'
+      - series: 'vllm:num_requests_running{namespace="team-a",pod="healthy",model_name="model-b"}'
+        values: '0 0 0'
+      - series: 'vllm:num_requests_running{namespace="team-b",pod="solo",model_name="model-a"}'
+        values: '0 0 0'
+      - series: 'accelerator_gpu_utilization{namespace="team-a",pod="shared",UUID="gpu-a",gpu="0",odh_dcgm_source="verified"}'
+        values: '80 80 80'
+      - series: 'accelerator_gpu_utilization{namespace="team-a",pod="dedicated",UUID="gpu-b",gpu="0",odh_dcgm_source="verified"}'
+        values: '50 50 50'
+      - series: 'accelerator_gpu_utilization{namespace="team-a",pod="healthy",UUID="gpu-c",gpu="0",odh_dcgm_source="verified"}'
+        values: '70 70 70'
+      - series: 'accelerator_gpu_utilization{namespace="team-b",pod="solo",UUID="gpu-d",gpu="0",odh_dcgm_source="verified"}'
+        values: '40 40 40'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-a",pod="shared",container="main",odh_federation_source="model-resources"}'
+        values: '1 1 1'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-a",pod="dedicated",container="main",odh_federation_source="model-resources"}'
+        values: '1 1 1'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-a",pod="healthy",container="main",odh_federation_source="model-resources"}'
+        values: '1 1 1'
+      - series: 'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace="team-b",pod="solo",container="main",odh_federation_source="model-resources"}'
+        values: '1 1 1'
+      - series: 'kube_resourcequota{namespace="team-a",resourcequota="quota-a",resource="cpu",type="hard",odh_federation_source="model-resources"}'
+        values: '4 4 4'
+      - series: 'kube_resourcequota{namespace="team-b",resourcequota="quota-b",resource="cpu",type="hard",odh_federation_source="model-resources"}'
+        values: '2 2 2'
+    promql_expr_test:
+      - expr: '@@GPU_QUERY@@'
+        eval_time: 1m
+        exp_samples:
+          - labels: '{model_name="model-b",namespace="team-a"}'
+            value: 70
+          - labels: '{model_name="model-a",namespace="team-b"}'
+            value: 40
+      - expr: '@@CPU_QUERY@@'
+        eval_time: 1m
+        exp_samples:
+          - labels: '{model_name="model-b",namespace="team-a"}'
+            value: 1
+          - labels: '{model_name="model-a",namespace="team-b"}'
+            value: 1
+      - expr: '@@QUOTA_QUERY@@'
+        eval_time: 1m
+        exp_samples:
+          - labels: '{model_name="model-b",namespace="team-a"}'
+            value: 0.25
+          - labels: '{model_name="model-a",namespace="team-b"}'
+            value: 0.5
+      # Filtering the model variable must not hide the ambiguity.
+      - expr: '@@GPU_SELECTED_QUERY@@'
+        eval_time: 1m
+        exp_samples:
+          - labels: '{model_name="model-a",namespace="team-b"}'
+            value: 40
+      - expr: '@@CPU_SELECTED_QUERY@@'
+        eval_time: 1m
+        exp_samples:
+          - labels: '{model_name="model-a",namespace="team-b"}'
+            value: 1
+      - expr: '@@QUOTA_SELECTED_QUERY@@'
+        eval_time: 1m
+        exp_samples:
+          - labels: '{model_name="model-a",namespace="team-b"}'
+            value: 0.5

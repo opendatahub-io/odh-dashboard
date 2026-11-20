@@ -1,6 +1,7 @@
 // Modules -------------------------------------------------------------------->
 
 import React from 'react';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -40,6 +41,7 @@ type ConnectionTypeDetailsContentProps = {
 const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> = ({
   namespace,
 }) => {
+  const trackEvent = useTrackEvent();
   const { connectionTypeId = '' } = useParams<'connectionTypeId'>();
   const { search } = useLocation();
   const [connectionType, loaded, loadError] = useConnectionType(namespace, connectionTypeId);
@@ -96,7 +98,7 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
               <CreateConnectionButton
                 namespace={namespace}
                 onCreate={() => {
-                  fireDataConnectHubTrackEvent({
+                  fireDataConnectHubTrackEvent(trackEvent, {
                     eventName: DATA_CONNECT_HUB_EVENT_NAMES.addStarted,
                     properties: { project: namespace, source: 'connection_type_catalog' },
                   });

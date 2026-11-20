@@ -6,7 +6,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
 import HeaderTimeRangeControls from './HeaderTimeRangeControls';
 import NamespaceUrlSync from './NamespaceUrlSync';
-import PersesProvider from '../perses/embeddable/PersesProvider';
+import PersesProvider, { PersesDashboardGate } from '../perses/embeddable/PersesProvider';
 import PersesDashboard from '../perses/embeddable/PersesDashboard';
 import PersesVariables from '../perses/embeddable/PersesVariables';
 import useRelativeLinkHandler from '../hooks/useRelativeLinkHandler';
@@ -141,7 +141,9 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
                 <PageSection hasBodyWrapper={false} isFilled>
                   <div ref={setRelativeLinkHandlerRef}>
                     <PersesVariables />
-                    <PersesDashboard />
+                    <PersesDashboardGate dashboardResource={activeDashboard}>
+                      <PersesDashboard />
+                    </PersesDashboardGate>
                   </div>
                 </PageSection>
               </Tab>

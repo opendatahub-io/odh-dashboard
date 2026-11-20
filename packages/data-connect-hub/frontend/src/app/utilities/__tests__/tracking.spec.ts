@@ -1,22 +1,10 @@
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import {
   DATA_CONNECT_HUB_EVENT_NAMES,
   fireDataConnectHubTrackEvent,
   getCreateConnectionAbandonStep,
   getConnectionCreationErrorCategory,
 } from '~/app/utilities/tracking';
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 describe('getCreateConnectionAbandonStep', () => {
   it('should map wizard steps to the supported abandon steps', () => {
@@ -57,8 +45,9 @@ describe('getConnectionCreationErrorCategory', () => {
 });
 
 describe('fireDataConnectHubTrackEvent', () => {
-  it('should fire creation events as form tracking events', () => {
-    fireDataConnectHubTrackEvent({
+  it('should forward creation events with unchanged outcome and success', () => {
+    const trackEvent = jest.fn();
+    fireDataConnectHubTrackEvent(trackEvent, {
       eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
       properties: {
         outcome: TrackingOutcome.submit,
@@ -69,9 +58,9 @@ describe('fireDataConnectHubTrackEvent', () => {
         project: 'test-project',
       },
     });
-
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Connections Connection Created', {
-      outcome: TrackingOutcome.submit,
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Connections Connection Created', {
+      outcome: 'submit',
       success: true,
       connectionTypeProvider: 'postgresql',
       hasTags: true,
@@ -80,48 +69,160 @@ describe('fireDataConnectHubTrackEvent', () => {
     });
   });
 
-  it('should fire non-creation events as misc tracking events', () => {
-    fireDataConnectHubTrackEvent({
+  it('should forward add-started events', () => {
+    const trackEvent = jest.fn();
+    fireDataConnectHubTrackEvent(trackEvent, {
+      eventName: DATA_CONNECT_HUB_EVENT_NAMES.addStarted,
+      properties: { project: 'test-project', source: 'connections_tab' },
+    });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Connections Add Started', {
+      project: 'test-project',
+      source: 'connections_tab',
+    });
+  });
+
+  it('should forward type-selected events', () => {
+    const trackEvent = jest.fn();
+    fireDataConnectHubTrackEvent(trackEvent, {
+      eventName: DATA_CONNECT_HUB_EVENT_NAMES.typeSelected,
+      properties: {
+        connectionTypeProvider: 'postgresql',
+        isGlobalType: true,
+        project: 'test-project',
+      },
+    });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Connections Type Selected', {
+      connectionTypeProvider: 'postgresql',
+      isGlobalType: true,
+      project: 'test-project',
+    });
+  });
+
+  it('should forward cancellation events without adding success or credentials', () => {
+    const trackEvent = jest.fn();
+    fireDataConnectHubTrackEvent(trackEvent, {
+      eventName: DATA_CONNECT_HUB_EVENT_NAMES.createCanceled,
+      properties: {
+        cancelMethod: 'esc',
+        abandonStep: 'review',
+        project: 'test-project',
+        connectionTypeProvider: undefined,
+      },
+    });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Connections Create Canceled', {
+      cancelMethod: 'esc',
+      abandonStep: 'review',
+      project: 'test-project',
+      connectionTypeProvider: undefined,
+    });
+  });
+
+  it('should forward deletion events', () => {
+    const trackEvent = jest.fn();
+    fireDataConnectHubTrackEvent(trackEvent, {
+      eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
+      properties: { project: 'test-project', connectionTypeProvider: 'postgresql' },
+    });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Connections Connection Delete Initiated', {
+      project: 'test-project',
+      connectionTypeProvider: 'postgresql',
+    });
+  });
+
+  it('should forward filter events', () => {
+    const trackEvent = jest.fn();
+    fireDataConnectHubTrackEvent(trackEvent, {
       eventName: DATA_CONNECT_HUB_EVENT_NAMES.listFilterApplied,
       properties: { filterType: 'type', project: 'test-project' },
     });
-
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Connections List Filter Applied', {
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Connections List Filter Applied', {
       filterType: 'type',
       project: 'test-project',
     });
   });
 
-  it('should not propagate creation analytics failures', () => {
-    mockFireFormTrackingEvent.mockImplementation(() => {
+  it('should leave diagnostics to the host instead of emitting the legacy misc warning', () => {
+    const warning = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const trackEvent = jest.fn();
+    try {
+      fireDataConnectHubTrackEvent(trackEvent, {
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.listFilterApplied,
+        properties: { filterType: 'name', project: 'test-project' },
+      });
+      expect(warning).not.toHaveBeenCalled();
+      expect(trackEvent.mock.calls).toEqual([
+        ['Connections List Filter Applied', { filterType: 'name', project: 'test-project' }],
+      ]);
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
+  it('should preserve cancellation outcomes without adding a success field', () => {
+    const trackEvent = jest.fn();
+    fireDataConnectHubTrackEvent(trackEvent, {
+      eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+      properties: {
+        outcome: TrackingOutcome.cancel,
+        hasTags: false,
+        tagCount: 0,
+        project: 'test-project',
+      },
+    });
+    expect(trackEvent.mock.calls).toEqual([
+      [
+        'Connections Connection Created',
+        {
+          outcome: 'cancel',
+          hasTags: false,
+          tagCount: 0,
+          project: 'test-project',
+        },
+      ],
+    ]);
+  });
+
+  it('should not propagate callback failures for creation or misc events', () => {
+    const trackEvent = jest.fn(() => {
       throw new Error('tracking failed');
     });
-
     expect(() =>
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
         properties: {
           outcome: TrackingOutcome.submit,
-          success: true,
-          connectionTypeProvider: 'postgresql',
+          success: false,
+          error: 'http_409',
           hasTags: false,
           tagCount: 0,
           project: 'test-project',
         },
       }),
     ).not.toThrow();
-  });
-
-  it('should not propagate misc analytics failures', () => {
-    mockFireMiscTrackingEvent.mockImplementation(() => {
-      throw new Error('tracking failed');
-    });
-
     expect(() =>
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.listFilterApplied,
-        properties: { filterType: 'type', project: 'test-project' },
+        properties: { filterType: 'name', project: 'test-project' },
       }),
     ).not.toThrow();
+    expect(trackEvent.mock.calls).toEqual([
+      [
+        'Connections Connection Created',
+        {
+          outcome: 'submit',
+          success: false,
+          error: 'http_409',
+          hasTags: false,
+          tagCount: 0,
+          project: 'test-project',
+        },
+      ],
+      ['Connections List Filter Applied', { filterType: 'name', project: 'test-project' }],
+    ]);
   });
 });

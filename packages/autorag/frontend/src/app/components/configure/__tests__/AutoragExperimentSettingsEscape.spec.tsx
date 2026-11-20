@@ -7,11 +7,13 @@ import React from 'react';
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
 import AutoragExperimentSettings from '~/app/components/configure/AutoragExperimentSettings';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 jest.mock('mod-arch-shared', () => ({
   DashboardPopupIconButton: (props: Record<string, unknown>) => <button {...props} />,
@@ -69,7 +71,7 @@ describe('AutoragExperimentSettings Escape handling', () => {
     const onClose = jest.fn();
     const revertChanges = jest.fn();
 
-    render(<EscapeHarness onClose={onClose} revertChanges={revertChanges} />);
+    renderWithTracking(<EscapeHarness onClose={onClose} revertChanges={revertChanges} />);
 
     await user.click(screen.getByTestId('llm-model-checkbox-model-c'));
     await user.click(screen.getByTestId('embedding-models-tab'));
@@ -107,7 +109,7 @@ describe('AutoragExperimentSettings Escape handling', () => {
     const onClose = jest.fn();
     const revertChanges = jest.fn();
 
-    render(<EscapeHarness onClose={onClose} revertChanges={revertChanges} />);
+    renderWithTracking(<EscapeHarness onClose={onClose} revertChanges={revertChanges} />);
 
     await user.click(screen.getByTestId('embedding-models-tab'));
     await user.click(screen.getByTestId('embedding-model-checkbox-model-c'));
@@ -144,7 +146,7 @@ describe('AutoragExperimentSettings Escape handling', () => {
     const onClose = jest.fn();
     const revertChanges = jest.fn();
 
-    render(<EscapeHarness onClose={onClose} revertChanges={revertChanges} />);
+    renderWithTracking(<EscapeHarness onClose={onClose} revertChanges={revertChanges} />);
 
     await user.click(screen.getByTestId('llm-model-checkbox-model-c'));
     await user.click(screen.getByTestId('embedding-models-tab'));

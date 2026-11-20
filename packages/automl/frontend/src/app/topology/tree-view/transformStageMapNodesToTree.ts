@@ -5,6 +5,7 @@ import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
 import { getModelRowLabel } from '~/app/topology/stageMapLabels';
 import {
   type BranchExpandOptions,
+  isModelTerminusId,
   resolveModelRank,
   resolveVisibleBranchIndices,
   resolveWinnerBranchIndex,
@@ -25,6 +26,8 @@ const STANDARD_NODE_SIZE = 40;
 const BRANCH_STEP_NODE_SIZE = 20;
 /** Row-label box stays tall enough for "Model N" while the dots shrink. */
 const ROW_LABEL_HEIGHT = 32;
+/** Approximate body-sm text width; the lane grows for longer model names. */
+const ROW_LABEL_CHARACTER_WIDTH = 7;
 const X_START = 40;
 const X_GAP = 120;
 const Y_CENTER = 200;
@@ -155,6 +158,24 @@ const calculatePipelineYPositions = (modelCount: number): number[] => {
   return Array.from({ length: modelCount }, (_, i) => startY + i * Y_PIPELINE_GAP);
 };
 
+const getModelBranchLabel = (
+  branchNodes: PipelineNodeModelExpanded[],
+  branchIndex: number,
+): string => {
+  // buildStageMapTopology resolves loaded model records to display names and otherwise preserves
+  // the stage-map identifier as the only explicit leaderboard mapping available to the UI.
+  const modelLabel = branchNodes.find((node) => isModelTerminusId(node.id))?.label;
+  return typeof modelLabel === 'string' && modelLabel.trim().length > 0
+    ? modelLabel
+    : getModelRowLabel(branchIndex);
+};
+
+const getModelRowLabelWidth = (labels: string[]): number =>
+  Math.max(
+    ROW_LABEL_WIDTH,
+    ...labels.map((label) => Math.ceil(label.length * ROW_LABEL_CHARACTER_WIDTH)),
+  );
+
 const nextStepState = (
   topologyNode: PipelineNodeModelExpanded,
   predecessorFailed: boolean,
@@ -234,7 +255,7 @@ const modelTerminusExtras = (
   if (hideLabel) {
     extras.hideLabel = true;
   }
-  if (!options || !topologyNode.id.includes('__model__')) {
+  if (!options || !isModelTerminusId(topologyNode.id)) {
     return extras;
   }
 
@@ -253,12 +274,22 @@ const modelTerminusExtras = (
       collapsedBranchIndex === undefined ? 'Model' : getModelRowLabel(collapsedBranchIndex);
   }
 
-  // Collapsed spine: "Model N" over "winner" — do not use the API display name here.
+  const modelLabel =
+    typeof topologyNode.label === 'string' && topologyNode.label.trim().length > 0
+      ? topologyNode.label
+      : collapsedRowLabel;
+
+  // Collapsed spine: use the resolved winner's name when available, otherwise show the
+  // representative branch name while making the unresolved winner state explicit.
   if (collapsedRowLabel !== undefined) {
     if (options.winnerResolved && isWinner) {
+      const winnerLabel =
+        typeof options.winnerModelLabel === 'string' && options.winnerModelLabel.trim().length > 0
+          ? options.winnerModelLabel
+          : modelLabel;
       return {
         ...extras,
-        label: collapsedRowLabel,
+        label: winnerLabel,
         labelSubtitle: 'winner',
         showWinnerStar: true,
         winnerRank: extras.winnerRank ?? 1,
@@ -267,17 +298,21 @@ const modelTerminusExtras = (
     return {
       ...extras,
       winnerRank: undefined,
-      label: collapsedRowLabel,
-      labelSubtitle: options.winnerResolved ? undefined : 'winner',
+      label: modelLabel,
+      labelSubtitle: options.winnerResolved ? undefined : 'Winner pending',
       showWinnerStar: false,
     };
   }
 
   // Succeeded + matched winner branch (expanded): model name + "winner" subtitle + star.
   if (options.winnerResolved && isWinner) {
+    const winnerLabel =
+      typeof options.winnerModelLabel === 'string' && options.winnerModelLabel.trim().length > 0
+        ? options.winnerModelLabel
+        : topologyNode.label;
     return {
       ...extras,
-      label: options.winnerModelLabel ?? topologyNode.label,
+      label: winnerLabel,
       labelSubtitle: 'winner',
       showWinnerStar: true,
       winnerRank: extras.winnerRank ?? 1,
@@ -359,10 +394,14 @@ export const transformStageMapNodesToTree = (
   const branchTailIds: string[] = [];
   const originOffset = (STANDARD_NODE_SIZE - BRANCH_STEP_NODE_SIZE) / 2;
   const needsFanOutLane = expandOptions.modelsExpanded && branchIndices.length > 1;
+  const expandedRowLabels = visibleBranchIndices.map((branchIndex) =>
+    getModelBranchLabel(branches.get(branchIndex) ?? [], branchIndex),
+  );
+  const rowLabelWidth = getModelRowLabelWidth(expandedRowLabels);
   const pipelineStartX = needsFanOutLane
     ? currentX +
       FAN_OUT_RUN +
-      ROW_LABEL_WIDTH +
+      rowLabelWidth +
       ROW_LABEL_GAP -
       (X_GAP - STANDARD_NODE_SIZE) -
       originOffset
@@ -380,7 +419,7 @@ export const transformStageMapNodesToTree = (
     let stepX = pipelineStartX;
     const branchNodeIds: string[] = [];
     let branchFailed = predecessorFailed;
-    const rowLabel = getModelRowLabel(branchIndex);
+    const rowLabel = getModelBranchLabel(branchNodes, branchIndex);
 
     if (hideExpandedBranchLabels && rowLabel) {
       rowLabels.push({
@@ -398,7 +437,7 @@ export const transformStageMapNodesToTree = (
       } else if (stepState === 'completed' || stepState === 'active') {
         branchFailed = false;
       }
-      const isModelTerminus = topologyNode.id.includes('__model__');
+      const isModelTerminus = isModelTerminusId(topologyNode.id);
       const created = createTreeNode(
         topologyNode,
         stepX,
@@ -450,7 +489,9 @@ export const transformStageMapNodesToTree = (
           `e-pre-to-branch-${branchIndex}`,
           branchSourceId,
           branchNodeIds[0],
-          hideExpandedBranchLabels ? { clearLabelLane: true } : undefined,
+          hideExpandedBranchLabels
+            ? { clearLabelLane: true, clearLabelWidth: rowLabelWidth }
+            : undefined,
         ),
       );
     }
@@ -538,7 +579,7 @@ export const transformStageMapNodesToTree = (
       nodes.push({
         ...createAnnotationNode(
           row.id,
-          firstDotLeft - ROW_LABEL_GAP - ROW_LABEL_WIDTH,
+          firstDotLeft - ROW_LABEL_GAP - rowLabelWidth,
           row.y + rowLabelOffset,
           {
             stepState: 'pending',
@@ -546,7 +587,7 @@ export const transformStageMapNodesToTree = (
             nodeRole: 'row-label',
           },
         ),
-        width: ROW_LABEL_WIDTH,
+        width: rowLabelWidth,
         height: ROW_LABEL_HEIGHT,
       });
     });
