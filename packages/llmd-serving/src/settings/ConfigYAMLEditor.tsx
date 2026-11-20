@@ -5,6 +5,7 @@ type ConfigYAMLEditorProps = {
   code: string;
   onCodeChange: (code: string) => void;
   topologyTypeLabel?: string;
+  emptyStateTitle?: string;
   isUploadEnabled?: boolean;
 };
 
@@ -12,6 +13,7 @@ const ConfigYAMLEditor: React.FC<ConfigYAMLEditorProps> = ({
   code,
   onCodeChange,
   topologyTypeLabel,
+  emptyStateTitle = `Add a ${topologyTypeLabel || 'topology'} configuration`,
   isUploadEnabled = true,
 }) => (
   <div data-testid="config-yaml-editor">
@@ -22,7 +24,7 @@ const ConfigYAMLEditor: React.FC<ConfigYAMLEditorProps> = ({
       isLanguageLabelVisible
       language={Language.yaml}
       height="400px"
-      emptyStateTitle={`Add a ${topologyTypeLabel || 'topology'} configuration`}
+      emptyStateTitle={emptyStateTitle}
       emptyStateBody="Drag a file here, upload files, or start from scratch."
       emptyStateButton="Upload files"
       onCodeChange={onCodeChange}
