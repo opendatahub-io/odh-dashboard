@@ -34,6 +34,18 @@ type ModuleDefinition struct {
 }
 
 var moduleRegistry = map[string]ModuleDefinition{
+	"aiSafety": {
+		Name:          "aiSafety",
+		ContainerName: "ai-safety-ui",
+		Port:          9343,
+		ImageEnvVar:   "RELATED_IMAGE_ODH_MOD_ARCH_AI_SAFETY_IMAGE",
+		ManifestSlug:  "ai-safety",
+		TLS:           true,
+		ProxyPaths: []proxyRoute{
+			{Path: "/ai-safety/api", PathRewrite: "/api"},
+			{Path: "/ai-safety/healthcheck", PathRewrite: "/healthcheck"},
+		},
+	},
 	"modelRegistry": {
 		Name:                  "modelRegistry",
 		ContainerName:         "model-registry-ui",
