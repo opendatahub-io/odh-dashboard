@@ -264,11 +264,15 @@ func TestValidate_LegacyAuthTokenHeader(t *testing.T) {
 		})
 	}
 
-	t.Run("not checked when the list replaces it", func(t *testing.T) {
+	// Module proxies still forward the legacy header, so it is checked even
+	// when the ordered list decides which header carries the caller token.
+	t.Run("still checked when the list is set", func(t *testing.T) {
 		cfg := productionConfig()
 		cfg.AuthTokenHeader = "Cookie"
 		cfg.AuthTokenHeaders = []string{"Authorization"}
-		require.NoError(t, cfg.Validate(TLSFiles{}))
+		err := cfg.Validate(TLSFiles{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "AUTH_TOKEN_HEADER/--auth-token-header is cookie")
 	})
 }
 
@@ -307,4 +311,23 @@ func TestValidate_ForbiddenHeaderPrefixDoesNotEchoSuffix(t *testing.T) {
 			assert.NotContains(t, strings.ToLower(err.Error()), "uid")
 		})
 	}
+}
+
+// The startup log records whether the legacy header is set and how many list
+// entries there are, never the names: a token pasted into either setting by
+// mistake is a valid header name.
+func TestLogValue_TokenHeadersArePresenceAndCount(t *testing.T) {
+	const tokenShaped = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJl" //nolint:gosec // G101: fake token-shaped header name for a redaction test
+	cfg := productionConfig()
+	cfg.AuthTokenHeader = tokenShaped
+	cfg.AuthTokenHeaders = []string{"Authorization", tokenShaped + "x"}
+
+	var sb strings.Builder
+	slog.New(slog.NewTextHandler(&sb, nil)).Info("config", slog.Any("config", cfg))
+	out := sb.String()
+
+	assert.Contains(t, out, "config.auth.tokenHeaderSet=true")
+	assert.Contains(t, out, "config.auth.tokenHeaderCount=2")
+	assert.NotContains(t, out, tokenShaped)
+	assert.NotContains(t, out, "Authorization")
 }

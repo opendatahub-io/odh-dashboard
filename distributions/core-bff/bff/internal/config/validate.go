@@ -141,13 +141,16 @@ var credentialHeaderForbidden = []string{
 //
 // Rejected entries are identified by position, never echoed: a token pasted
 // into the setting by mistake is a valid header token and must not reach the
-// startup log. A forbidden header is reported by the credentialHeaderForbidden
+// startup log, which records only whether the legacy header is set and how
+// many list entries there are. A forbidden header is reported by the credentialHeaderForbidden
 // entry it matches (for a prefix entry, the prefix alone).
 func (c EnvConfig) validateAuthTokenHeaders(add func(string, ...any)) {
+	// The legacy header is checked in both modes: module proxies still forward
+	// it, so it must never name an identity or session header.
+	if strings.TrimSpace(c.AuthTokenHeader) != "" {
+		validateCredentialHeaderName(add, "AUTH_TOKEN_HEADER/--auth-token-header", c.AuthTokenHeader)
+	}
 	if len(c.AuthTokenHeaders) == 0 {
-		if strings.TrimSpace(c.AuthTokenHeader) != "" {
-			validateCredentialHeaderName(add, "AUTH_TOKEN_HEADER/--auth-token-header", c.AuthTokenHeader)
-		}
 		return
 	}
 	if c.AuthTokenPrefix != "" {

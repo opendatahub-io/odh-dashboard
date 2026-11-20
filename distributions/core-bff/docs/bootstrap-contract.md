@@ -188,16 +188,28 @@ as `200 {"success": false}`, do not fold a denial into that shape, so a client c
 not" from "it failed".
 
 `PUT /api/cluster-settings` makes several separate writes: the OdhDashboardConfig patch, the culler
-and segment-key ConfigMaps, and a notebook-controller rollout when needed. There is no transaction,
-so under `caller` it first runs a `SelfSubjectAccessReview` with the caller's credentials for every
-write the request will make, and returns `403` before the first write if any is denied. A caller
-with partial permissions cannot leave a partial change behind.
+and segment-key ConfigMaps, and a notebook-controller rollout when needed. There is no transaction.
+Under `caller` it first reads the current OdhDashboardConfig with the caller's credentials (a failed
+read aborts the request), then runs a `SelfSubjectAccessReview` for every write the request will
+make, and returns `403` before the first write if any is denied. This preflight is best-effort, not
+transactional: it stops the common case of a caller with partial permissions, but RBAC can change
+between the review and the write, and a write can still fail for other reasons (a conflict, an
+admission webhook). A later write that fails after earlier ones succeeded still leaves a partial
+change, reported as a `403` for a denial or `200 {"success": false}` otherwise.
+
+On xKS the caller therefore needs, on `odhdashboardconfigs` (`opendatahub.io`) in the dashboard
+namespace:
+
+- `PUT /api/cluster-settings`: `get` and `patch`, plus the ConfigMap and Deployment verbs its
+  planned writes need.
+- `PATCH /api/config`: `get` and `patch`. The patch itself needs only `patch` (its response is built
+  from the patched object), but the settings pages read the configuration before they save it.
 
 ## Service-account permissions
 
-These are the only service-account operations left on xKS, and each is a read. The
-OdhDashboardConfig read also runs inside `PATCH /api/config` and `PUT /api/cluster-settings` to
-compute the patch, but the patch itself is performed with the caller's credentials. For the xKS
+These are the only service-account operations left on xKS, and each is a read. On xKS the
+OdhDashboardConfig reads and patches inside `PATCH /api/config` and `PUT /api/cluster-settings` use
+the caller's credentials, not these. For the xKS
 profile the dashboard **service account** needs:
 
 | Resource                                       | Verbs         | Needed for                                                                                                                                                                                                                          |

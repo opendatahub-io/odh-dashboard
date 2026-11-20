@@ -22,7 +22,9 @@ overrides it, because the environment value is never applied. The same invalid v
 override does fail, since it is then the value in effect. This matters for deployments that
 inherit environment configuration they cannot edit and correct it with container arguments.
 
-The command line accepts only `-flag=value` settings. A positional argument is refused, because
+The command line accepts `-flag=value` and `-flag value` (and the `--flag` spellings of both); a
+boolean flag takes only `-flag` or `-flag=false`, since `-flag false` makes `false` a positional
+argument. A positional argument is refused, because
 flag parsing stops at the first one and any flag after it (for example `-cert-file`) would be
 silently ignored. Parse errors name at most the flag, never the argument text. Enum settings
 (`DEPLOYMENT_MODE`, `ODH_PLATFORM_TYPE`, `ADMISSION_MODE`, `AUTH_METHOD`) and an unparseable
