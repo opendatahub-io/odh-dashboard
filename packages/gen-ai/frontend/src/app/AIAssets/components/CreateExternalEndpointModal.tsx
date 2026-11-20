@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Modal,
@@ -20,7 +21,6 @@ import {
   SelectOption,
   Button,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import CapabilityPicker from '~/app/AIAssets/components/CapabilityPicker';
 import {
   AIModel,
@@ -77,6 +77,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   onVerify,
   existingModels,
 }) => {
+  const trackEvent = useTrackEvent();
   const genAiConfig = useGenAiDashboardConfig();
   const clusterDomains = React.useMemo(
     () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? [],
@@ -254,7 +255,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
         success: true,
         message: 'Model verified successfully',
       });
-      fireMiscTrackingEvent('Available Endpoints Create Endpoint Verified', {
+      trackEvent('Available Endpoints Create Endpoint Verified', {
         success: true,
         modelType: trackingModelType,
       });
@@ -267,14 +268,14 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
         message: getUserFriendlyMessage(errorData?.code, errorData?.message),
         code: errorData?.code,
       });
-      fireMiscTrackingEvent('Available Endpoints Create Endpoint Verified', {
+      trackEvent('Available Endpoints Create Endpoint Verified', {
         success: false,
         modelType: trackingModelType,
       });
     } finally {
       setIsVerifying(false);
     }
-  }, [modelId, endpointUrl, token, modelType, embeddingDimension, onVerify]);
+  }, [modelId, endpointUrl, token, modelType, embeddingDimension, onVerify, trackEvent]);
 
   const handleSubmit = React.useCallback(async () => {
     if (!isFormValid) {
@@ -312,7 +313,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       };
 
       await onSubmit(request);
-      fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+      trackEvent('Available Endpoints Create Endpoint Submitted', {
         outcome: 'submit',
         success: true,
         modelType: trackingModelType,
@@ -324,7 +325,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to create external endpoint'));
-      fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+      trackEvent('Available Endpoints Create Endpoint Submitted', {
         outcome: 'submit',
         success: false,
         modelType: trackingModelType,
@@ -337,16 +338,17 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     }
   }, [
     isFormValid,
+    modelType,
+    verificationResult,
+    useCases,
+    capabilities,
     modelId,
     displayName,
     endpointUrl,
     token,
-    modelType,
-    useCases,
     embeddingDimension,
-    capabilities,
-    verificationResult,
     onSubmit,
+    trackEvent,
     onSuccess,
     onClose,
   ]);
@@ -360,7 +362,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       variant={ModalVariant.medium}
       isOpen={isOpen}
       onClose={() => {
-        fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+        trackEvent('Available Endpoints Create Endpoint Submitted', {
           outcome: 'cancel',
         });
         onClose();
@@ -426,7 +428,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
                   } else {
                     setCapabilities((prev) => prev.filter((c) => c !== 'audio-transcription'));
                   }
-                  fireMiscTrackingEvent('Available Endpoints Create Endpoint Model Type Changed', {
+                  trackEvent('Available Endpoints Create Endpoint Model Type Changed', {
                     modelType: value,
                   });
                 }
@@ -705,7 +707,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
           key="cancel"
           variant="link"
           onClick={() => {
-            fireMiscTrackingEvent('Available Endpoints Create Endpoint Submitted', {
+            trackEvent('Available Endpoints Create Endpoint Submitted', {
               outcome: 'cancel',
             });
             onClose();

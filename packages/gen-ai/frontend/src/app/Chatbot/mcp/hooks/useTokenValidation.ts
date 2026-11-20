@@ -1,8 +1,5 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { GenAiAPIs, MCPServer, TokenInfo } from '~/app/types';
@@ -59,6 +56,7 @@ const useTokenValidation = ({
   onConfigModalClose,
   onSuccessModalOpen,
 }: UseTokenValidationProps): UseTokenValidationReturn => {
+  const trackEvent = useTrackEvent();
   const [validatingServers, setValidatingServers] = React.useState<Set<string>>(new Set());
   const [validationErrors, setValidationErrors] = React.useState<Map<string, string>>(new Map());
   const [checkingServers, setCheckingServers] = React.useState<Set<string>>(new Set());
@@ -104,7 +102,7 @@ const useTokenValidation = ({
             return updated;
           });
 
-          fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
+          trackEvent(MCP_AUTH_EVENT_NAME, {
             outcome: TrackingOutcome.submit,
             success: true,
           });
@@ -132,7 +130,7 @@ const useTokenValidation = ({
 
         const errorMsg = status.error_details?.raw_error || status.message || 'Connection failed';
         setValidationErrors((prev) => new Map(prev).set(serverUrl, errorMsg));
-        fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
+        trackEvent(MCP_AUTH_EVENT_NAME, {
           outcome: TrackingOutcome.submit,
           success: false,
           error: errorCategory(status),
@@ -141,7 +139,7 @@ const useTokenValidation = ({
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Validation failed';
         setValidationErrors((prev) => new Map(prev).set(serverUrl, errorMsg));
-        fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
+        trackEvent(MCP_AUTH_EVENT_NAME, {
           outcome: TrackingOutcome.submit,
           success: false,
           error: errorCategory(error),
@@ -156,11 +154,12 @@ const useTokenValidation = ({
       }
     },
     [
-      api,
       apiAvailable,
+      api,
       onTokenUpdate,
-      onFetchTools,
+      trackEvent,
       transformedServers,
+      onFetchTools,
       onConfigModalClose,
       onSuccessModalOpen,
     ],
@@ -183,7 +182,7 @@ const useTokenValidation = ({
       }
 
       setCheckingServers((prev) => new Set(prev).add(server.connectionUrl));
-      fireMiscTrackingEvent('Playground MCP Start Auth', {
+      trackEvent('Playground MCP Start Auth', {
         mcpServerName: server.name,
       });
 
@@ -220,11 +219,12 @@ const useTokenValidation = ({
       }
     },
     [
+      getToken,
+      trackEvent,
+      onSuccessModalOpen,
       checkServerStatus,
       onTokenUpdate,
       onFetchTools,
-      getToken,
-      onSuccessModalOpen,
       onConfigModalOpen,
     ],
   );

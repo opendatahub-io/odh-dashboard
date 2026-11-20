@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
+import type { TrackEvent } from '@odh-dashboard/analytics/types';
 import { K8sResourceCommon } from 'mod-arch-shared';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AAModelResponse,
   AIModel,
@@ -336,18 +336,20 @@ export type ClipboardCopyTrackingProperties = {
 /**
  * Copies text to clipboard and fires a tracking event
  *
+ * @param trackEvent - Host-supplied callback for the tracking event
  * @param text - The text to copy to the clipboard
  * @param eventName - Name of the tracking event
  * @param properties - Properties of the tracking event
  */
 export const copyToClipboardWithTracking = async (
+  trackEvent: TrackEvent,
   text: string,
   eventName: string,
   properties: ClipboardCopyTrackingProperties,
 ): Promise<void> => {
   try {
     await navigator.clipboard.writeText(text);
-    fireMiscTrackingEvent(eventName, properties);
+    trackEvent(eventName, properties);
   } catch {
     // Do nothing
   }

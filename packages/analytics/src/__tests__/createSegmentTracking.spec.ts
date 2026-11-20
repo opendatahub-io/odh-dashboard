@@ -66,6 +66,19 @@ describe('createSegmentTracking', () => {
     ]);
   });
 
+  it('should preserve null, undefined, and readonly arrays through the shared contract', () => {
+    const documentFileTypes: readonly string[] = Object.freeze(['text/plain']);
+    const properties = { error: null, documentFileTypes, omitted: undefined };
+    const tracking = createSegmentTracking(() => options);
+    tracking.trackEvent('Playground Document Attached', properties);
+    expect(track).toHaveBeenCalledWith(
+      'Playground Document Attached',
+      { ...properties, clusterID: 'cluster-1' },
+      { app: { version: '1.0.0' } },
+    );
+    expect(track.mock.calls[0][1].documentFileTypes).toBe(documentFileTypes);
+  });
+
   it('should safely ignore both operations when the SDK is absent', () => {
     Reflect.deleteProperty(window, 'analytics');
     const tracking = createSegmentTracking(() => options);

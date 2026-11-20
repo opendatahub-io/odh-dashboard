@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
 import AgentProfileTableRow from '~/app/AIAssets/components/agentprofiles/AgentProfileTableRow';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 jest.mock('../DeleteAgentProfileModal', () => ({
   __esModule: true,
@@ -55,6 +54,7 @@ describe('AgentProfileTableRow', () => {
           />
         </Routes>
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('agent-profile-link-profile-id')).toHaveAttribute(

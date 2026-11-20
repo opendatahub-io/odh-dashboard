@@ -1,6 +1,6 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -44,6 +44,7 @@ const useAgentProfileUrlParam = ({
   mcpServersLoaded: boolean;
   mcpServerStatusesResolved: boolean;
 }): UseAgentProfileUrlParamResult => {
+  const trackEvent = useTrackEvent();
   const [searchParams] = useSearchParams();
   const agentProfileId = searchParams.get(AGENT_PROFILE_ID_PARAM);
 
@@ -72,7 +73,7 @@ const useAgentProfileUrlParam = ({
   // Skip re-fetching when handleProfileSaved already applied this profile (e.g. after Save/Save As)
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
 
-  const [loading, setLoading] = React.useState(false);
+  const [loadingRequest, setLoadingRequest] = React.useState<symbol | null>(null);
   const [error, setError] = React.useState<Error | undefined>();
 
   // Track the last profile ID we applied to prevent double-application in StrictMode
@@ -83,6 +84,7 @@ const useAgentProfileUrlParam = ({
       // URL param cleared (e.g. "New agent configuration") — reset so the same
       // profile can be re-loaded in a future navigation without being blocked.
       appliedProfileId.current = null;
+      setLoadingRequest(null);
       return;
     }
     if (
@@ -98,16 +100,21 @@ const useAgentProfileUrlParam = ({
     }
 
     appliedProfileId.current = agentProfileId;
-    setLoading(true);
+    const request = Symbol(agentProfileId);
+    setLoadingRequest(request);
     setError(undefined);
 
     let cancelled = false;
+    let profileApplied = false;
+    // Validation can outlive effect cleanup. Only its request may finish its loading state.
+    const finishLoading = () => {
+      setLoadingRequest((current) => (current === request ? null : current));
+    };
 
     api
       .getAgentProfile({ id: agentProfileId, namespace: namespace.name })
       .then(async (profile) => {
         if (cancelled) {
-          setLoading(false);
           return;
         }
 
@@ -116,6 +123,7 @@ const useAgentProfileUrlParam = ({
           mcpServers: mcpServersRef.current,
         });
 
+        profileApplied = true;
         applyAgentProfile(
           config,
           agentProfileId,
@@ -123,7 +131,7 @@ const useAgentProfileUrlParam = ({
           profile.spec.description,
         );
         setLoadedResourceVersion(profile.metadata.resourceVersion);
-        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.LOADED, { agentID: agentProfileId });
+        trackEvent(PLAYGROUND_AGENT_EVENTS.LOADED, { agentID: agentProfileId });
 
         // Sync warnings are set immediately so the OpenAgentProfileModal can show
         // the alert (and bypass localStorage) as soon as the profile is applied.
@@ -196,13 +204,11 @@ const useAgentProfileUrlParam = ({
           ),
         ];
         if (missingComponents.length > 0) {
-          fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CONFIGURATION_UNAVAILABLE, {
+          trackEvent(PLAYGROUND_AGENT_EVENTS.CONFIGURATION_UNAVAILABLE, {
             agentID: agentProfileId,
             missingComponents: missingComponents.join(','),
           });
         }
-
-        setLoading(false);
       })
       .catch((err: unknown) => {
         if (cancelled) {
@@ -210,7 +216,6 @@ const useAgentProfileUrlParam = ({
         }
         appliedProfileId.current = null; // allow retry if caller re-mounts
         setError(err instanceof Error ? err : new Error(String(err)));
-        setLoading(false);
         const message = (err instanceof Error ? err.message : String(err)).toLowerCase();
         const failureReason = message.includes('timeout')
           ? 'timeout'
@@ -221,14 +226,19 @@ const useAgentProfileUrlParam = ({
                 message.includes('forbidden')
               ? 'auth_error'
               : 'unknown';
-        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.LOAD_INTERRUPTED, {
+        trackEvent(PLAYGROUND_AGENT_EVENTS.LOAD_INTERRUPTED, {
           agentID: agentProfileId,
           failureReason,
         });
-      });
+      })
+      .finally(finishLoading);
 
     return () => {
       cancelled = true;
+      // Applying the profile also triggers cleanup; its async validation still owns loading.
+      if (!profileApplied) {
+        finishLoading();
+      }
       // Reset so a re-mount (e.g. React StrictMode double-invoke) can retry the fetch.
       // Once the profile lands, loadedProfileId === agentProfileId prevents re-fetching.
       appliedProfileId.current = null;
@@ -250,9 +260,10 @@ const useAgentProfileUrlParam = ({
     updateActivePrompt,
     updateSystemInstruction,
     saveToolSelections,
+    trackEvent,
   ]);
 
-  return { loading, error };
+  return { loading: loadingRequest !== null, error };
 };
 
 export default useAgentProfileUrlParam;

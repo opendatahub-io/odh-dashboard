@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   ClipboardCopy,
@@ -89,6 +90,7 @@ export const getBaseURLEndpointType = (
 ): 'external' | 'internal' => (baseURL === internalEndpoint ? 'internal' : 'external');
 
 const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClose }) => {
+  const trackEvent = useTrackEvent();
   const hasExternal = !!model.externalEndpoint;
   const hasInternal = !!model.internalEndpoint;
   const isMaaS = model.model_source_type === 'maas';
@@ -114,7 +116,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
     : '';
 
   const handleEndpointCopy = (endpoint: string, endpointType: 'external' | 'internal') =>
-    copyToClipboardWithTracking(endpoint, 'Available Endpoints Endpoint Copied', {
+    copyToClipboardWithTracking(trackEvent, endpoint, 'Available Endpoints Endpoint Copied', {
       assetType: isMaaS ? 'maas_model' : 'model',
       endpointType,
       copyTarget: 'endpoint',

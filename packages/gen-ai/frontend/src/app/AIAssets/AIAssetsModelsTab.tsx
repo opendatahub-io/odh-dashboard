@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Bullseye,
@@ -9,7 +10,6 @@ import {
   FlexItem,
   Spinner,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
@@ -26,6 +26,7 @@ import useAiAssetCustomEndpointsEnabled from '~/app/hooks/useAiAssetCustomEndpoi
 import GenAiCoreNoProjects from '~/app/GenAiCoreNoProjects';
 
 const AIAssetsModelsTab: React.FC = () => {
+  const trackEvent = useTrackEvent();
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels, refresh: refreshPlaygroundModels } = useFetchLlamaModels(
     !namespace,
@@ -141,7 +142,7 @@ const AIAssetsModelsTab: React.FC = () => {
       actionButtonHref={`/ai-hub/deployments/${namespace.name}`}
       secondaryActionButtonText="Create endpoint"
       handleSecondaryActionButtonClick={() => {
-        fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
+        trackEvent('Available Endpoints Create Endpoint Clicked', {
           source: 'empty_state',
         });
         setIsCreateEndpointModalOpen(true);
@@ -196,7 +197,7 @@ const AIAssetsModelsTab: React.FC = () => {
                       variant="primary"
                       data-testid="create-playground-button"
                       onClick={() => {
-                        fireMiscTrackingEvent('Playground Setup Initiated', {
+                        trackEvent('Playground Setup Initiated', {
                           source: 'Available Endpoints',
                         });
                         setIsCreatePlaygroundModalOpen(true);
@@ -211,7 +212,7 @@ const AIAssetsModelsTab: React.FC = () => {
                     <Button
                       variant={isPlaygroundCreated ? ButtonVariant.primary : ButtonVariant.tertiary}
                       onClick={() => {
-                        fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
+                        trackEvent('Available Endpoints Create Endpoint Clicked', {
                           source: 'toolbar',
                         });
                         setIsCreateEndpointModalOpen(true);

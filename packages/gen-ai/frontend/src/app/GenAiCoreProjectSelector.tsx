@@ -1,6 +1,6 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useNavigate } from 'react-router-dom';
 import { useNamespaceSelectorWithPersistence } from './hooks/useNamespaceSelectorWithPersistence';
 
@@ -14,6 +14,7 @@ const GenAiCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = ({
   namespace,
   ...projectSelectorProps
 }) => {
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
   const { namespaces, updatePreferredNamespace, namespacesLoaded } =
     useNamespaceSelectorWithPersistence();
@@ -25,7 +26,7 @@ const GenAiCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = ({
         const match = projectName
           ? (namespaces.find((n) => n.name === projectName) ?? undefined)
           : undefined;
-        fireMiscTrackingEvent('GenAI Project Dropdown Option Selected', {
+        trackEvent('GenAI Project Dropdown Option Selected', {
           selectedProject: projectName,
         });
         updatePreferredNamespace(match);

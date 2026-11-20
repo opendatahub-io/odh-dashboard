@@ -1,15 +1,13 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { ExternalVectorStoreSummary } from '~/app/types';
 import VectorStoreTableRowInfo from '~/app/AIAssets/components/vectorstores/VectorStoreTableRowInfo';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(trackEvent);
 
 const createStore = (
   overrides?: Partial<ExternalVectorStoreSummary>,
@@ -29,7 +27,9 @@ describe('VectorStoreTableRowInfo', () => {
   });
 
   it('adds stable test IDs to the info trigger and details content', () => {
-    render(<VectorStoreTableRowInfo store={createStore()} />);
+    render(<VectorStoreTableRowInfo store={createStore()} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     fireEvent.click(screen.getByTestId('vector-store-info-vs-test-1'));
 
@@ -47,7 +47,9 @@ describe('VectorStoreTableRowInfo', () => {
 
   describe('Available Endpoints Vector Store Info Viewed tracking', () => {
     it('fires tracking event when info button is clicked to open', () => {
-      render(<VectorStoreTableRowInfo store={createStore()} />);
+      render(<VectorStoreTableRowInfo store={createStore()} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       fireEvent.click(screen.getByRole('button', { name: /more info/i }));
 
@@ -61,7 +63,9 @@ describe('VectorStoreTableRowInfo', () => {
     });
 
     it('does not fire tracking event when info button is clicked to close', () => {
-      render(<VectorStoreTableRowInfo store={createStore()} />);
+      render(<VectorStoreTableRowInfo store={createStore()} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const button = screen.getByRole('button', { name: /more info/i });
       fireEvent.click(button); // open
@@ -79,6 +83,7 @@ describe('VectorStoreTableRowInfo', () => {
             provider_type: 'remote::pgvector',
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       fireEvent.click(screen.getByRole('button', { name: /more info/i }));
@@ -96,7 +101,9 @@ describe('VectorStoreTableRowInfo', () => {
   describe('Available Endpoints Vector Store Info Copied tracking', () => {
     beforeEach(() => {
       // Open the popover so clipboard copy buttons are rendered
-      render(<VectorStoreTableRowInfo store={createStore()} />);
+      render(<VectorStoreTableRowInfo store={createStore()} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       fireEvent.click(screen.getByRole('button', { name: /more info/i }));
       mockFireMiscTrackingEvent.mockClear();
     });
