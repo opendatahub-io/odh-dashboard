@@ -128,12 +128,15 @@ it('replays #9783 and runs the changed AutoRAG metric-variation spec without a C
   );
 });
 
-it('replays #9776 with explicit regression fallback when no DataConnectHub E2E suite exists', () => {
+it('replays #9776 with regression and DataConnectHub coverage', () => {
   const result = replay(9776);
   assert.equal(result.valid, true, result.errors.join('\n'));
-  assert.deepEqual(result.summary.selectedTags, [DEFAULT_TAG]);
+  assert.deepEqual(
+    result.summary.selectedTags.toSorted(),
+    [DEFAULT_TAG, '@DataConnectHubCI'].toSorted(),
+  );
   assert.equal(result.matrix.length, 1);
-  // Selection fallback does not establish operator/RBAC deployment coverage.
+  assert.ok(selected(result, `${e2e}dataConnectHub/testDataConnectHubPagesLoad.cy.ts`));
 });
 
 it('selects executable storage-helper consumers with frontend and Smoke tags', () => {
