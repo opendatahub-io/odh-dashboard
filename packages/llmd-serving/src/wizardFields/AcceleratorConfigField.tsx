@@ -14,7 +14,11 @@ import {
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { RUNTIME_VERSION_ANNOTATION } from '@odh-dashboard/model-serving/concepts/versions';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
-import { getDisplayNameFromK8sResource, isCompatibleWithIdentifier } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  isCompatibleWithIdentifier,
+  IdentifierResourceType,
+} from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
@@ -157,8 +161,15 @@ const suggestConfig = (
   configs: LLMInferenceServiceConfigKind[],
   hardwareProfile?: HardwareProfileKind,
 ): LLMInferenceServiceConfigKind | undefined => {
-  const compatible = configs.filter((c) => isConfigCompatible(c, hardwareProfile));
-  return compatible.length === 1 ? compatible[0] : undefined;
+  // Suggestions require an explicitly typed accelerator, unlike the broader compatibility labels.
+  // Consider every accelerator in the profile, but choose by config-list order, not accelerator order.
+  const accelerators =
+    hardwareProfile?.spec.identifiers?.filter(
+      (identifier) => identifier.resourceType === IdentifierResourceType.ACCELERATOR,
+    ) ?? [];
+  return configs.find((config) =>
+    accelerators.some((identifier) => isCompatibleWithIdentifier(identifier.identifier, config)),
+  );
 };
 
 // Map an accelerator config to a ModelServerOption (mirrors LlmConfigOptionsField so the shared
@@ -349,9 +360,15 @@ export const AcceleratorConfigFieldWizardField: AcceleratorConfigFieldType = {
       if (existingFieldData) {
         return existingFieldData;
       }
-      const suggestion = suggestConfig(externalData?.configs ?? [], dependencies?.hardwareProfile);
-      // A suggestion means the hardware profile uniquely matches a config → start on Automatic
-      // (mirrors LlmConfigOptionsField). No suggestion → Manual with the built-in image default.
+      // Filter candidates with the same configSupportsTopology logic the dropdown uses, so the
+      // initial automatic choice can never select a config the dropdown hides.
+      const topologyType = dependencies?.topologyFieldData?.topologyType;
+      const visibleConfigs = (externalData?.configs ?? []).filter((config) =>
+        configSupportsTopology(config, topologyType),
+      );
+      const suggestion = suggestConfig(visibleConfigs, dependencies?.hardwareProfile);
+      // A compatible config suggestion starts the field on Automatic. No suggestion → Manual with
+      // the built-in image default.
       return suggestion
         ? { selectedConfig: suggestion, autoSelect: true }
         : { selectedConfig: ACCELERATOR_CONFIG_DEFAULT, autoSelect: false };
