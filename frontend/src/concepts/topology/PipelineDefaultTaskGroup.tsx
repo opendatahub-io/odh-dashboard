@@ -118,6 +118,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
     const [toggleFocused, setToggleFocused] = React.useState(false);
     const [expandedControlBounds, setExpandedControlBounds] =
       React.useState<ExpandedControlBounds | null>(null);
+    const hoverPopoverRef = React.useRef<SVGGElement>(null);
     const popoverRef = React.useRef<HTMLButtonElement>(null);
     const toggleRef = React.useRef<HTMLButtonElement>(null);
     const expandedActionRef = React.useRef<((event: React.MouseEvent) => void) | undefined>();
@@ -290,6 +291,38 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       </Stack>
     );
 
+    const getPopoverTasksPreview = (items: Node<NodeModel>[]) => (
+      <Stack hasGutter>
+        {items.slice(0, MAX_TIP_ITEMS).map((item: Node) => {
+          const childState = item.getData()?.pipelineTask.status?.state;
+          const childRunStatus = item.getData()?.runStatus;
+          const childStatus = getPipelineTaskStatusLabel(childState, childRunStatus);
+          const childLabel = item.getLabel();
+          return (
+            <StackItem
+              key={item.getId()}
+              data-testid={`pipeline-group-preview-task-${item.getId()}`}
+            >
+              <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem className="odh-pipeline-group-task-status" aria-hidden="true">
+                  {childStatus ? (
+                    <NodeStatusIcon runStatus={childRunStatus} executionState={childState} />
+                  ) : null}
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  {childLabel}
+                  {childStatus ? ` (${childStatus})` : ''}
+                </FlexItem>
+              </Flex>
+            </StackItem>
+          );
+        })}
+        {items.length > MAX_TIP_ITEMS ? (
+          <StackItem>{`... ${items.length - MAX_TIP_ITEMS} others`}</StackItem>
+        ) : null}
+      </Stack>
+    );
+
     let status = runStatus;
     if (state === ExecutionStateKF.CACHED) {
       status = RunStatus.Succeeded;
@@ -370,9 +403,26 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       </TaskGroupLabelContext.Provider>
     );
 
+    const groupWithHoverPreview =
+      isCollapsed && !isHidden ? (
+        <Popover
+          triggerAction="hover"
+          triggerRef={hoverPopoverRef}
+          aria-label={groupAriaLabel}
+          headerContent={groupLabel}
+          bodyContent={getPopoverTasksPreview(element.getAllNodeChildren())}
+        >
+          <g ref={hoverPopoverRef} data-testid={`pipeline-group-hover-surface-${groupLabel}`}>
+            {groupNode}
+          </g>
+        </Popover>
+      ) : (
+        groupNode
+      );
+
     return (
       <g ref={combinedRef}>
-        {groupNode}
+        {groupWithHoverPreview}
         {isCollapsed && !isHidden ? (
           <foreignObject
             x={0}
@@ -395,7 +445,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
               <button
                 ref={popoverRef}
                 type="button"
-                className="odh-pipeline-node-button m-group pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
+                className="odh-pipeline-node-button pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
                 aria-label={`Show tasks in ${groupAriaLabel}`}
                 aria-expanded={popoverOpen}
                 onFocus={(event) => panFocusedControlIntoView(element, event.currentTarget)}
@@ -440,7 +490,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
             <button
               ref={toggleRef}
               type="button"
-              className="odh-pipeline-node-button m-group m-group-toggle pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
+              className="odh-pipeline-node-button m-group-toggle pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
               aria-label={`${groupLabel} task group`}
               aria-expanded={!isCollapsed}
               onFocus={() => {

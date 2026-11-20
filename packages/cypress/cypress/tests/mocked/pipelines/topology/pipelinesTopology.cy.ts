@@ -566,7 +566,8 @@ describe('Pipeline topology', () => {
       pipelineDetails.findGroupToggle('for-loop-2').focus();
       cy.press(Cypress.Keyboard.Keys.ENTER);
       pipelineDetails.findGroupButton('for-loop-2').should('have.attr', 'aria-expanded', 'false');
-      pipelineDetails.findGroupButton('for-loop-2').click();
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
       pipelineDetails.findGroupButton('for-loop-2').should('have.attr', 'aria-expanded', 'true');
       pipelineDetails.findGroupDetails('for-loop-2').focus();
       cy.press(Cypress.Keyboard.Keys.ENTER);
@@ -716,6 +717,32 @@ describe('Pipeline topology', () => {
         .findGroupLabelText('for-loop-2')
         .should('have.attr', 'tabindex', '-1')
         .and('have.attr', 'aria-hidden', 'true');
+    });
+  });
+
+  describe('Pipeline group pointer interaction', () => {
+    it('shows the child-task preview when hovering over a collapsed group', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupHoverSurface('for-loop-2').trigger('mouseenter');
+      pipelineDetails.findGroupPreviewTask('simple-task').should('be.visible');
+    });
+
+    it('opens collapsed group details when the group is clicked', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupNode('for-loop-2').click('center');
+      pipelineDetails.findDrawerTaskTitle().should('exist');
     });
   });
 

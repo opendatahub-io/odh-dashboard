@@ -75,6 +75,10 @@ class PipelinesTopology {
     return cy.get(`[data-id="${name}"][data-kind="node"]`).first();
   }
 
+  findGroupHoverSurface(name: string) {
+    return cy.findByTestId(`pipeline-group-hover-surface-${name}`);
+  }
+
   findExpandedGroupHoverSurface() {
     // PatternFly renders expanded group bodies in a portal without a test ID.
     return cy
@@ -94,6 +98,10 @@ class PipelinesTopology {
 
   findGroupTask(name: string) {
     return cy.findByTestId(`pipeline-group-task-${name}`);
+  }
+
+  findGroupPreviewTask(name: string) {
+    return cy.findByTestId(`pipeline-group-preview-task-${name}`);
   }
 
   findGroupDetails(name: string) {

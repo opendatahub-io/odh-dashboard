@@ -8,7 +8,7 @@
 }
 
 // Transparent HTML buttons provide keyboard and screen reader controls for graph nodes.
-// Only the collapsed group popover trigger handles pointer events; collapse clicks reach PatternFly.
+// Pointer events stay on SVG nodes so mouse selection and collapsed-group hover previews work.
 .odh-pipeline-node-overlay {
   pointer-events: none;
 }
@@ -26,10 +26,6 @@
     outline-offset: var(--pf-t--global--border--width--strong);
     border-radius: var(--pf-t--global--border--radius--tiny);
   }
-}
-
-.odh-pipeline-node-button.m-group {
-  pointer-events: auto;
 }
 
 .odh-pipeline-node-button.m-group-toggle {
