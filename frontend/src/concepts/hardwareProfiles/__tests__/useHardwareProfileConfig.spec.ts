@@ -53,7 +53,6 @@ describe('useHardwareProfileConfig', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
   });
 
@@ -331,7 +330,6 @@ describe('useHardwareProfileConfig', () => {
         reliantAreas: {},
         requiredComponents: {},
         requiredCapabilities: {},
-        customCondition: () => false,
       }));
 
     const renderAssignedDRAWorkload = (options?: { allowDRAProfiles?: boolean }) =>
@@ -1278,7 +1276,6 @@ describe('useHardwareProfileConfig', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
 
     const renderResult = testHook(useHardwareProfileConfig)();
@@ -1875,7 +1872,6 @@ describe('useHardwareProfileConfig — Kueue auto-selection guard', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
   });
 
