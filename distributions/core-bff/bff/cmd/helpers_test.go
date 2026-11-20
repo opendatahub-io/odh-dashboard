@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestNewOriginParser(t *testing.T) {
+func TestNewListParser(t *testing.T) {
 	cases := []struct {
 		name     string
 		input    string
@@ -15,18 +15,19 @@ func TestNewOriginParser(t *testing.T) {
 		{"two items", "https://test.com,https://test2.com", []string{"https://test.com", "https://test2.com"}},
 		{"two items spaced", "https://test.com,    https://test2.com", []string{"https://test.com", "https://test2.com"}},
 		{"empty", "", []string{}},
+		{"only separators", ",, ,", []string{}},
 		{"wildcard", "*", []string{"*"}},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var allowList []string
-			parser := newOriginParser(&allowList, "")
+			allowList := []string{"stale-seeded-default"}
+			parser := newListParser(&allowList)
 			if err := parser(tc.input); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if len(allowList) != len(tc.expected) {
-				t.Fatalf("expected len=%d got=%d", len(tc.expected), len(allowList))
+				t.Fatalf("expected len=%d got=%d (%v)", len(tc.expected), len(allowList), allowList)
 			}
 			for i := range allowList {
 				if allowList[i] != tc.expected[i] {

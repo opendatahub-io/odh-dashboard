@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -34,7 +35,8 @@ func (app *App) initModelServingProxy() error {
 
 	targetURL, err := url.Parse(host)
 	if err != nil {
-		return fmt.Errorf("failed to parse model-serving host URL: %w", err)
+		// Not wrapped: a url.Error quotes the raw URL, which may carry userinfo.
+		return errors.New("MODEL_SERVING_HOST/--model-serving-host is not a valid URL (value omitted)")
 	}
 
 	allowHTTP := app.config.DevMode || app.config.MockK8Client

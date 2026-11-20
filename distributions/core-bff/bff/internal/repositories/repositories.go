@@ -30,7 +30,14 @@ type Repositories struct {
 // saDynClient and saClientset are service-account-scoped clients for privileged operations,
 // matching the privileged watcher model where the dashboard SA performs reads and admin-gated mutations.
 type RepositoriesConfig struct {
-	Platform          config.PlatformType
+	Platform config.PlatformType
+	// PlatformConfirmed is false when Platform was guessed after a failed
+	// probe rather than detected or configured. It keeps a guess from relaxing
+	// the admission contract; see config.ResolveAdmissionMode.
+	PlatformConfirmed bool
+	// AdmissionMode is the configured bootstrap admission contract, or empty to
+	// resolve from the platform. See config.ResolveAdmissionMode.
+	AdmissionMode     config.AdmissionMode
 	SADynClient       dynamic.Interface
 	SAClientset       kubernetes.Interface
 	Namespace         string
@@ -45,8 +52,8 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 		HealthCheck:                NewHealthCheckRepository(),
 		User:                       NewUserRepository(),
 		Namespace:                  NewNamespaceRepository(),
-		DashboardConfig:            NewDashboardConfigRepository(cfg.Platform, cfg.SADynClient),
-		Status:                     NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth),
+		DashboardConfig:            newDashboardConfigRepository(cfg.Platform, cfg.PlatformConfirmed, cfg.SADynClient),
+		Status:                     NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth, config.ResolveAdmissionMode(cfg.AdmissionMode, cfg.Platform, cfg.PlatformConfirmed)),
 		Auth:                       auth,
 		Components:                 NewComponentsRepository(cfg.SADynClient, cfg.SAClientset),
 		ClusterSettings:            NewClusterSettingsRepository(cfg.SAClientset),
