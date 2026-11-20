@@ -173,7 +173,6 @@ const areaStatus = (status: boolean): IsAreaAvailableStatus => ({
   reliantAreas: null,
   requiredCapabilities: null,
   requiredComponents: null,
-  customCondition: () => false,
 });
 
 const registryFeatureStore: RegistryFeatureStore = {
