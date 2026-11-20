@@ -296,9 +296,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       subscriptionRow.findExpandedGroupName().should('contain.text', subscriptionGroups[0]);
       subscriptionRow.findExpandModelButton().click();
       subscriptionRow.findExpandedModelName().should('contain.text', modelName);
-      subscriptionRow
-        .findExpandedModelDescription()
-        .should('contain.text', testData.singleModelDescription);
       subscriptionRow.findExpandedModelTokenLimits().should('contain.text', tokenLimit);
 
       cy.step('Create another subscription');

@@ -809,10 +809,6 @@ class SubscriptionTableRow extends TableRow {
     return this.scope().findAllByTestId('subscription-expanded-model-display-name');
   }
 
-  findExpandedModelDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.scope().findAllByTestId('subscription-expanded-model-description');
-  }
-
   findExpandedModelResourceName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.scope().findAllByTestId('subscription-expanded-model-resource-name');
   }
@@ -1530,10 +1526,6 @@ class AuthPolicyTableRow extends TableRow {
 
   findExpandedModelName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.scope().findAllByTestId('auth-policy-expanded-model-display-name');
-  }
-
-  findExpandedModelDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.scope().findAllByTestId('auth-policy-expanded-model-description');
   }
 
   findExpandedModelResourceName(): Cypress.Chainable<JQuery<HTMLElement>> {
