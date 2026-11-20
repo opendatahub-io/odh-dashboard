@@ -61,6 +61,11 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 
 	if dashConfig != nil && !dashConfig.Spec.DashboardConfig.DisableTracking {
 		tracking, err := readUserTrackingEnabled(ctx, cs, namespace)
+		if err != nil && r.clients.surfacesAuthFailure(err) {
+			// A caller who may not read the segment-key ConfigMap gets the
+			// API server's answer, as for every other read here.
+			return nil, err
+		}
 		if err != nil {
 			slog.Warn("failed to read segment key config, defaulting to tracking disabled", slog.Any("error", err))
 		} else {
