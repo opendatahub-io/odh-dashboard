@@ -4,11 +4,11 @@ export enum SubscriptionsFilterOptions {
   model = 'model',
 }
 
-/** Shared subscriptions filters: Subscription / Group / Model typeahead selects. */
+/** Shared subscriptions filters: Model / Group / Subscription typeahead selects. */
 export const subscriptionsFilterOptions = {
-  [SubscriptionsFilterOptions.subscription]: 'Subscription',
-  [SubscriptionsFilterOptions.group]: 'Group',
   [SubscriptionsFilterOptions.model]: 'Model',
+  [SubscriptionsFilterOptions.group]: 'Group',
+  [SubscriptionsFilterOptions.subscription]: 'Subscription',
 };
 
 export type SubscriptionsFilterSelection = { label: string; value: string };
