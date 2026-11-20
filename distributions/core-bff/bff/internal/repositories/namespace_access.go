@@ -208,9 +208,16 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 	})
 
 	namespaces := make([]models.NamespaceAccess, 0, len(results))
+	// decided counts candidates with a reliable answer, denials included: one
+	// reliable denial makes an empty result partial, not unavailable.
+	decided := 0
 	for _, res := range results {
-		if res.outcome == outcomeAuthorized {
+		switch res.outcome {
+		case outcomeAuthorized:
 			namespaces = append(namespaces, res.access)
+			decided++
+		case outcomeDenied, outcomeNotFound:
+			decided++
 		}
 		// A returned namespace can still have failed reviews (its affected
 		// actions are off), so failures are counted whatever the outcome.
@@ -220,9 +227,10 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 	}
 	sort.Slice(namespaces, func(i, j int) bool { return namespaces[i].Name < namespaces[j].Name })
 
-	// Decide "nothing could be found" before the shared reads: they are not
-	// a discovery source, so their failure alone never turns a result into 503.
-	unavailable := len(namespaces) == 0 && len(issues) > 0 && !onlyTruncated(issues)
+	// Unavailable means nothing could be decided at all. It is computed before
+	// the shared reads: they are not a discovery source, so their failure alone
+	// never turns a result into 503.
+	unavailable := decided == 0 && len(issues) > 0 && !onlyTruncated(issues)
 
 	sharedPerms, sharedFailed := r.runMatrix(ctx, lim, client, identity, r.sharedNamespace, SharedNamespacePermissionMatrix)
 	issues.add(models.IssueSharedAccessReviewFailed, sharedFailed)
@@ -255,6 +263,11 @@ func (r *NamespaceAccessRepository) Get(ctx context.Context, client k8s.Kubernet
 	defer cancel()
 	lim := r.newLimiter()
 	res := r.evaluate(ctx, lim, client, identity, name, knownNamespaces{})
+	if ctx.Err() != nil {
+		// Reviews left pending at the deadline were not decided; a lookup
+		// does not report a half-evaluated namespace as a success.
+		return models.NamespaceAccess{}, ErrNamespaceAccessReviewFailed
+	}
 	switch res.outcome {
 	case outcomeAuthorized:
 		return res.access, nil

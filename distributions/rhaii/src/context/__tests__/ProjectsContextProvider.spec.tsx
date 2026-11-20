@@ -63,7 +63,8 @@ const project = (name: string): ProjectKind => ({
 });
 
 const Consumer: React.FC = () => {
-  const { projects, modelServingProjects, preferredProject } = React.useContext(ProjectsContext);
+  const { projects, modelServingProjects, deploymentTargetProjects, preferredProject } =
+    React.useContext(ProjectsContext);
   const working = useWorkingProject();
   return (
     <>
@@ -71,8 +72,11 @@ const Consumer: React.FC = () => {
       <div data-testid="known-projects">
         {projects.map(({ metadata }) => metadata.name).join(',')}
       </div>
-      <div data-testid="deploy-targets">
+      <div data-testid="serving-projects">
         {modelServingProjects.map(({ metadata }) => metadata.name).join(',')}
+      </div>
+      <div data-testid="deploy-targets">
+        {(deploymentTargetProjects ?? []).map(({ metadata }) => metadata.name).join(',')}
       </div>
       <div data-testid="working-project">{working.activeProject?.name ?? 'none'}</div>
       <div data-testid="route-project">{preferredProject?.metadata.name ?? 'none'}</div>
@@ -406,6 +410,8 @@ describe('RHAII working project provider integration', () => {
       expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed,another,legacy'),
     );
     expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed,legacy');
+    // View-only projects stay available for browsing deployments.
+    expect(screen.getByTestId('serving-projects')).toHaveTextContent('allowed,another,legacy');
   });
 
   it('should preserve the legacy project context when UPS is disabled', async () => {
@@ -467,6 +473,68 @@ describe('ProjectsContextProvider — waitForProject settlement', () => {
     });
 
     await expect(second).resolves.toBeUndefined();
+  });
+
+  const renderWait = async (): Promise<(name: string) => Promise<void>> => {
+    let wait: (name: string) => Promise<void> = () => Promise.resolve();
+    const WaitConsumer: React.FC = () => {
+      wait = React.useContext(ProjectsContext).waitForProject;
+      return null;
+    };
+    await act(async () => {
+      render(
+        <ProjectsContextProvider>
+          <WaitConsumer />
+          <Consumer />
+        </ProjectsContextProvider>,
+      );
+    });
+    return (name) => wait(name);
+  };
+
+  it('keeps manually added projects when a partial poll succeeds', async () => {
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
+    mockFetchNamespaceByName.mockResolvedValue(project('allowed'));
+    const waitForProject = await renderWait();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add allowed'));
+    });
+    expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed');
+
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([project('project-c')]),
+    );
+    await act(async () => {
+      await expect(waitForProject('project-c')).resolves.toBeUndefined();
+    });
+    expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed,project-c');
+    expect(screen.getByTestId('source-status')).toHaveTextContent('listing-unavailable');
+  });
+
+  it('marks the listing partial when a poll after a complete load is partial', async () => {
+    mockFetchNamespaces.mockResolvedValue([project('allowed')]);
+    const waitForProject = await renderWait();
+    expect(screen.getByTestId('source-status')).not.toHaveTextContent('listing-unavailable');
+
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([project('allowed'), project('project-c')]),
+    );
+    await act(async () => {
+      await expect(waitForProject('project-c')).resolves.toBeUndefined();
+    });
+    expect(screen.getByTestId('source-status')).toHaveTextContent('listing-unavailable');
+  });
+
+  it('looks a project outside a partial listing up by name', async () => {
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError([]));
+    const waitForProject = await renderWait();
+    mockFetchNamespaceByName.mockResolvedValue(project('outside'));
+
+    await act(async () => {
+      await expect(waitForProject('outside')).resolves.toBeUndefined();
+    });
+    expect(mockFetchNamespaceByName).toHaveBeenCalledWith('outside', expect.any(AbortSignal));
+    expect(screen.getByTestId('known-projects')).toHaveTextContent('outside');
   });
 
   it('resolves when the project appears in a partial listing', async () => {

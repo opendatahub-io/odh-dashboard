@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
+import { useDeploymentTargetProjects } from './fields/ProjectSection';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
@@ -56,9 +57,13 @@ export const ModelDeploymentWizardPage: React.FC = () => {
   const refreshKey: number | undefined = location.state?.refreshKey;
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
+  const deploymentTargets = useDeploymentTargetProjects();
   const currentProject = React.useMemo(() => {
-    return projectName ? projects.find(byName(projectName)) : undefined;
-  }, [projects, projectName]);
+    // A new deployment may only target a deploy-capable project; an existing
+    // one is edited where it already lives.
+    const candidates = existingDeployment ? projects : deploymentTargets;
+    return projectName ? candidates.find(byName(projectName)) : undefined;
+  }, [projects, deploymentTargets, existingDeployment, projectName]);
 
   const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
     useAvailableClusterPlatforms();

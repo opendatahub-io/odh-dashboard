@@ -40,6 +40,13 @@ const readRecentNames = (): string[] => {
   }
 };
 
+/** Merges by name; entries from `incoming` replace earlier ones. */
+const mergeProjects = (previous: RhaiiProject[], incoming: RhaiiProject[]): RhaiiProject[] => {
+  const byProjectName = new Map(previous.map((project) => [project.metadata.name, project]));
+  incoming.forEach((project) => byProjectName.set(project.metadata.name, project));
+  return [...byProjectName.values()];
+};
+
 type ProjectsContextProviderProps = {
   children: React.ReactNode;
 };
@@ -128,30 +135,33 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [setStoredPreferredName, unifiedProjectSelectorEnabled],
   );
 
-  const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(() => {
-    const active: RhaiiProject[] = [];
-    const terminating: RhaiiProject[] = [];
-    for (const project of projectData) {
-      if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
-        continue;
+  const { projects, modelServingProjects, deploymentTargetProjects, nonActiveProjects } =
+    React.useMemo(() => {
+      const active: RhaiiProject[] = [];
+      const terminating: RhaiiProject[] = [];
+      for (const project of projectData) {
+        if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
+          continue;
+        }
+        if (project.status?.phase === NamespacePhase.Active) {
+          active.push(project);
+        } else {
+          terminating.push(project);
+        }
       }
-      if (project.status?.phase === NamespacePhase.Active) {
-        active.push(project);
-      } else {
-        terminating.push(project);
-      }
-    }
-    const sorted = active.toSorted((a, b) => a.metadata.name.localeCompare(b.metadata.name));
-    return {
-      projects: sorted,
-      // Namespace discovery marks where the caller may deploy; a project it
-      // reports without deploy access is shown but never offered as a target.
-      modelServingProjects: sorted.filter((project) => project.canDeploy !== false),
-      nonActiveProjects: terminating.toSorted((a, b) =>
-        a.metadata.name.localeCompare(b.metadata.name),
-      ),
-    };
-  }, [dashboardNamespace, projectData]);
+      const sorted = active.toSorted((a, b) => a.metadata.name.localeCompare(b.metadata.name));
+      return {
+        projects: sorted,
+        // On xKS every available namespace can hold model deployments to view.
+        modelServingProjects: sorted,
+        // Namespace discovery marks where the caller may deploy; a project it
+        // reports without deploy access is browsable but never a deployment target.
+        deploymentTargetProjects: sorted.filter((project) => project.canDeploy !== false),
+        nonActiveProjects: terminating.toSorted((a, b) =>
+          a.metadata.name.localeCompare(b.metadata.name),
+        ),
+      };
+    }, [dashboardNamespace, projectData]);
 
   React.useEffect(() => {
     if (
@@ -215,20 +225,43 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
           if (controller.signal.aborted) {
             return;
           }
-          let fresh: RhaiiProject[] | undefined;
+          let listed: RhaiiProject[] | undefined;
+          let partial = false;
           try {
-            fresh = await fetchNamespaces(controller.signal);
+            listed = await fetchNamespaces(controller.signal);
           } catch (err) {
-            fresh = err instanceof NamespaceListUnavailableError ? err.projects : undefined;
+            if (err instanceof NamespaceListUnavailableError) {
+              listed = err.projects ?? [];
+              partial = true;
+            }
           }
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal may change during await
           if (controller.signal.aborted) {
             return;
           }
-          if (fresh?.find(byName(projectName))) {
+          let found = listed?.find(byName(projectName));
+          if (!found && partial) {
+            // A partial listing is bounded to its candidates; look the project
+            // up by name. A failed or not-yet-ready lookup is retried.
+            found = await fetchNamespaceByName(projectName, controller.signal).catch(
+              () => undefined,
+            );
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal may change during await
+            if (controller.signal.aborted) {
+              return;
+            }
+          }
+          if (found && listed) {
             clearTimeout(timer);
             waitRejectRef.current = null;
-            setProjectData(fresh);
+            if (partial) {
+              // Keep projects added by manual entry or remembered selections.
+              const incoming = [...listed, found];
+              setProjectData((previous) => mergeProjects(previous, incoming));
+            } else {
+              setProjectData(listed);
+            }
+            setListingUnavailable(partial);
             resolve();
             return;
           }
@@ -409,6 +442,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     () => ({
       projects,
       modelServingProjects,
+      deploymentTargetProjects,
       nonActiveProjects,
       preferredProject:
         loaded && !loadError
@@ -422,6 +456,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [
       projects,
       modelServingProjects,
+      deploymentTargetProjects,
       nonActiveProjects,
       preferredProject,
       updatePreferredProject,

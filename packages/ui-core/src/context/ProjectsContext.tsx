@@ -6,6 +6,12 @@ export type ProjectsContextType = {
   modelServingProjects: ProjectKind[];
   /** eg. Terminating state, etc */
   nonActiveProjects: ProjectKind[];
+  /**
+   * The projects a new deployment may target, when the host knows the caller's
+   * deploy permission (RHAII on xKS). Unset means every project in `projects`.
+   * `projects` stays the full collection for browsing.
+   */
+  deploymentTargetProjects?: ProjectKind[];
 
   /** Some component set this value, you should use this instead of projects[0] */
   preferredProject: ProjectKind | null;

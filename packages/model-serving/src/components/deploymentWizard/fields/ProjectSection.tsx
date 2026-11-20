@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { FormGroup, HelperText, HelperTextItem, TextInput } from '@patternfly/react-core';
 import { ProjectsContext, ProjectSelector } from '@odh-dashboard/ui-core';
-import { byName } from '@odh-dashboard/k8s-core';
+import { byName, getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 
 export type ProjectSectionType = {
   initialProjectName?: string;
@@ -13,20 +14,30 @@ export const isValidProjectName = (projectName?: string): boolean => {
   return !!projectName;
 };
 
+/**
+ * The projects a new deployment may target: the host's deploy-capable subset
+ * when it provides one, otherwise every project.
+ */
+export const useDeploymentTargetProjects = (): ProjectKind[] => {
+  const { projects, deploymentTargetProjects } = React.useContext(ProjectsContext);
+  return deploymentTargetProjects ?? projects;
+};
+
 export const useProjectSection = (initialProjectName?: string): ProjectSectionType => {
   const [projectName, setProjectNameState] = React.useState<string | undefined>(initialProjectName);
-  const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
+  const { updatePreferredProject } = React.useContext(ProjectsContext);
+  const targets = useDeploymentTargetProjects();
 
   const setProjectName = React.useCallback(
     (newProjectName?: string) => {
       setProjectNameState(newProjectName);
 
-      const project = projects.find(byName(newProjectName));
+      const project = targets.find(byName(newProjectName));
       if (project) {
         updatePreferredProject(project);
       }
     },
-    [projects, updatePreferredProject],
+    [targets, updatePreferredProject],
   );
   return { initialProjectName, projectName, setProjectName };
 };
@@ -37,6 +48,15 @@ const ProjectSection: React.FC<ProjectSectionType> = ({
   setProjectName,
 }) => {
   const projectLabel = `This is the project where the model will be deployed.`;
+  const { deploymentTargetProjects } = React.useContext(ProjectsContext);
+  const targetNamespaces = React.useMemo(
+    () =>
+      deploymentTargetProjects?.map((project) => ({
+        name: project.metadata.name,
+        displayName: getDisplayNameFromK8sResource(project),
+      })),
+    [deploymentTargetProjects],
+  );
   if (!initialProjectName) {
     return (
       <FormGroup label="Project" isRequired>
@@ -47,6 +67,7 @@ const ProjectSection: React.FC<ProjectSectionType> = ({
           namespace={projectName ?? ''}
           onSelection={(newProjectName: string) => setProjectName(newProjectName)}
           placeholder="Select target project"
+          namespacesOverride={targetNamespaces}
           isFullWidth
         />
       </FormGroup>
