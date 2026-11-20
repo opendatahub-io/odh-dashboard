@@ -8,7 +8,9 @@ import {
   Grid,
   GridItem,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
+import { CaretDownIcon, CaretUpIcon } from '@patternfly/react-icons';
 import { ActionsColumn, ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -229,28 +231,29 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   testId,
 }) => (
   <Flex
-    justifyContent={{ default: 'justifyContentSpaceBetween' }}
     alignItems={{ default: 'alignItemsCenter' }}
+    gap={{ default: 'gapMd' }}
     className="pf-v6-u-mb-sm"
   >
+    {showToggle && (
+      <FlexItem>
+        <Tooltip content={allExpanded ? 'Collapse all' : 'Expand all'}>
+          <Button
+            variant="plain"
+            aria-label={allExpanded ? 'Collapse all' : 'Expand all'}
+            aria-expanded={allExpanded}
+            onClick={onToggleAll}
+            data-testid={testId}
+            icon={allExpanded ? <CaretUpIcon /> : <CaretDownIcon />}
+          />
+        </Tooltip>
+      </FlexItem>
+    )}
     <FlexItem>
       <Title headingLevel="h4" size="md">
         {title}
       </Title>
     </FlexItem>
-    {showToggle && (
-      <FlexItem>
-        <Button
-          variant="link"
-          isInline
-          onClick={onToggleAll}
-          style={{ textDecoration: 'none' }}
-          data-testid={testId}
-        >
-          {allExpanded ? 'Collapse all' : 'Expand all'}
-        </Button>
-      </FlexItem>
-    )}
   </Flex>
 );
 
