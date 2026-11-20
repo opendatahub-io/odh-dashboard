@@ -47,6 +47,17 @@ const verifyExternalModelStack = (selectedModelName: string): void => {
   });
 };
 
+const validatePortalUsername = (configName: string, user: UserAuthConfig): void => {
+  if (typeof user.USERNAME !== 'string' || !user.USERNAME.trim()) {
+    throw new Error(`${configName}.USERNAME is not configured in CY_TEST_CONFIG`);
+  }
+  if (user.USERNAME.includes('@')) {
+    throw new Error(
+      `${configName}.USERNAME must be the Keycloak username MaaS uses, not an email address; configure the login email in ${configName}.EMAIL`,
+    );
+  }
+};
+
 const getRequiredPortalConfig = (): {
   portalUrl: string;
   modelName: string;
@@ -57,6 +68,7 @@ const getRequiredPortalConfig = (): {
 } => {
   const portalUrl = Cypress.env('MAAS_PORTAL_URL') as string | undefined;
   const modelName = Cypress.env('MAAS_PORTAL_MODEL_NAME') as string | undefined;
+  const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string | undefined;
   const organizationId = Cypress.env('MAAS_PORTAL_ORGANIZATION_ID') as string | undefined;
   const userGroups = Cypress.env('MAAS_PORTAL_USER_GROUPS') as string[] | undefined;
 
@@ -66,6 +78,12 @@ const getRequiredPortalConfig = (): {
 
   if (!modelName?.trim()) {
     throw new Error('MAAS_PORTAL_MODEL_NAME is not configured in CY_TEST_CONFIG');
+  }
+
+  if (!applicationsNamespace?.trim()) {
+    throw new Error(
+      'APPLICATIONS_NAMESPACE is required for MaaS Portal API-key cleanup in CY_TEST_CONFIG',
+    );
   }
 
   if (!organizationId) {
@@ -89,6 +107,9 @@ const getRequiredPortalConfig = (): {
   if (!MAAS_PORTAL_USER) {
     throw new Error('MAAS_PORTAL_USER is not configured in CY_TEST_CONFIG');
   }
+
+  validatePortalUsername('MAAS_PORTAL_ADMIN_USER', MAAS_PORTAL_ADMIN_USER);
+  validatePortalUsername('MAAS_PORTAL_USER', MAAS_PORTAL_USER);
 
   return {
     portalUrl,
@@ -148,9 +169,14 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
 
     cy.step('Clean up isolated MaaS resources created by the portal test');
     ensureAdminOcSession();
-    cleanupApiKeys(apiKeyName);
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
     cleanupAuthPolicy(policyName, modelsAsAServiceNamespace);
+    const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string | undefined;
+    if (applicationsNamespace?.trim()) {
+      cleanupApiKeys(apiKeyName);
+    } else {
+      cy.log('Skipping API-key cleanup because APPLICATIONS_NAMESPACE is not configured');
+    }
   });
 
   it(
