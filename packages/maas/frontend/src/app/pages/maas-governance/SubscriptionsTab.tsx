@@ -145,7 +145,8 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
           !subscription.modelRefs.some(
             (ref) =>
               ref.name.toLowerCase().includes(modelFragment) ||
-              ref.displayName?.toLowerCase().includes(modelFragment),
+              ref.displayName?.toLowerCase().includes(modelFragment) ||
+              ref.description?.toLowerCase().includes(modelFragment),
           ))
       ) {
         return false;

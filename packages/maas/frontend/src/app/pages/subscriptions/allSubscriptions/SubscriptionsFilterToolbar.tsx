@@ -2,7 +2,10 @@ import * as React from 'react';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSSubscription } from '~/app/types/subscriptions';
-import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
+import TypeaheadFilterField, {
+  toSelectOptions,
+  TypeaheadFilterOption,
+} from '~/app/components/TypeaheadFilterField';
 import { CallerOrganizationContext, groupLabel } from '~/app/shared/GroupName';
 import {
   EventTrackingFilterAttribute,
@@ -44,20 +47,36 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
   const { subscriptionOptions, groupOptions, modelOptions } = React.useMemo(() => {
     const subscriptionLabels = new Map<string, string>();
     const groupLabels = new Map<string, string>();
-    const modelLabels = new Map<string, string>();
+    // Keyed by model name so the same model referenced by several subscriptions
+    // collapses into one option; each ref's description becomes a search alias
+    const modelsByName = new Map<string, TypeaheadFilterOption>();
     subscriptions.forEach((subscription) => {
       subscriptionLabels.set(subscription.name, subscription.displayName ?? subscription.name);
       subscription.owner.groups.forEach((group) =>
         groupLabels.set(group.name, groupLabel(group.name, organization)),
       );
-      subscription.modelRefs.forEach((modelRef) =>
-        modelLabels.set(modelRef.name, modelRef.displayName ?? modelRef.name),
-      );
+      subscription.modelRefs.forEach((modelRef) => {
+        const existing = modelsByName.get(modelRef.name);
+        if (!existing) {
+          modelsByName.set(modelRef.name, {
+            value: modelRef.name,
+            content: modelRef.displayName ?? modelRef.name,
+            ...(modelRef.description ? { searchAliases: [modelRef.description] } : {}),
+          });
+        } else if (
+          modelRef.description &&
+          !existing.searchAliases?.includes(modelRef.description)
+        ) {
+          existing.searchAliases = [...(existing.searchAliases ?? []), modelRef.description];
+        }
+      });
     });
     return {
       subscriptionOptions: toSelectOptions(subscriptionLabels),
       groupOptions: toSelectOptions(groupLabels),
-      modelOptions: toSelectOptions(modelLabels),
+      modelOptions: Array.from(modelsByName.values()).toSorted((a, b) =>
+        String(a.content).localeCompare(String(b.content)),
+      ),
     };
   }, [subscriptions, organization]);
 
@@ -95,7 +114,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
         [SubscriptionsFilterOptions.model]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={modelOptions}
-            placeholder="Filter by model name or ID"
+            placeholder="Filter by model name, ID, or description"
             testId={`${testIdPrefix}-model-filter-toggle`}
             onChange={onChange}
             value={value}
