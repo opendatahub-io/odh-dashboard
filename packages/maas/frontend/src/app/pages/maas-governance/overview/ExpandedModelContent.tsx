@@ -240,11 +240,17 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
         <Tooltip content={allExpanded ? 'Collapse all' : 'Expand all'}>
           <Button
             variant="plain"
+            size="sm"
             aria-label={allExpanded ? 'Collapse all' : 'Expand all'}
             aria-expanded={allExpanded}
             onClick={onToggleAll}
             data-testid={testId}
-            icon={allExpanded ? <CaretUpIcon /> : <CaretDownIcon />}
+            className="pf-v6-u-ml-md"
+            icon={
+              <div className="pf-v6-c-table__toggle-icon">
+                {allExpanded ? <CaretUpIcon /> : <CaretDownIcon />}
+              </div>
+            }
           />
         </Tooltip>
       </FlexItem>
@@ -305,7 +311,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
     <>
       <SectionHeader
         title="Subscriptions"
-        showToggle={subscriptions.length > 1}
+        showToggle={subscriptions.length > 0}
         allExpanded={allExpanded}
         onToggleAll={onToggleAll}
         testId="expand-all-subscriptions"
@@ -423,7 +429,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
     <>
       <SectionHeader
         title="Authorization policies"
-        showToggle={policies.length > 1}
+        showToggle={policies.length > 0}
         allExpanded={allExpanded}
         onToggleAll={onToggleAll}
         testId="expand-all-policies"
