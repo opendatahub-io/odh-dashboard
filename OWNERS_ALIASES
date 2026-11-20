@@ -120,17 +120,13 @@ aliases:
     - danpierce1
     - jharan1
     - NickGagan
-    - emilys314
   maas-reviewers:
-    - ashley-o0o
     - agagancarczyk
     - ikeola13
     - danpierce1
     - jharan1
     - NickGagan
-    - emilys314
-    - katieperry4
-
+ 
   # Pipelines team
   # (2026-11-19) Razzmatazz Scrum
   pipelines-approvers:

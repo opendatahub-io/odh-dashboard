@@ -27,22 +27,19 @@ describe('legacyDeploymentMethodOverride', () => {
       expect(result?.key).toBe(LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY);
     });
 
-    it('should suggest legacy when isLLMdDefault is undefined', () => {
+    it('should not suggest legacy when isLLMdDefault is undefined', () => {
       const result = legacyDeploymentMethodOverride.suggestion?.({});
-      expect(result).toBeDefined();
-      expect(result?.key).toBe(LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY);
+      expect(result).toBeUndefined();
     });
 
-    it('should suggest legacy when clusterSettings is null', () => {
+    it('should not suggest legacy when clusterSettings is null', () => {
       const result = legacyDeploymentMethodOverride.suggestion?.(null);
-      expect(result).toBeDefined();
-      expect(result?.key).toBe(LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY);
+      expect(result).toBeUndefined();
     });
 
-    it('should suggest legacy when clusterSettings is undefined', () => {
+    it('should not suggest legacy when clusterSettings is undefined', () => {
       const result = legacyDeploymentMethodOverride.suggestion?.(undefined);
-      expect(result).toBeDefined();
-      expect(result?.key).toBe(LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY);
+      expect(result).toBeUndefined();
     });
 
     it('should not suggest legacy when isLLMdDefault is true', () => {
