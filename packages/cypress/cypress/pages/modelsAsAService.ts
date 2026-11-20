@@ -1747,10 +1747,6 @@ class OverviewTableRow extends TableRow {
     return this.find().find('[data-label="Model name"]');
   }
 
-  findModelDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('table-row-title-description');
-  }
-
   findModelProject(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Project"]');
   }

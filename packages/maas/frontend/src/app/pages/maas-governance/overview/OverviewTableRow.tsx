@@ -113,8 +113,6 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
               </span>
             }
             subtitle={row.id}
-            description={row.modelDetails.description}
-            truncateDescriptionLines={2}
           />
         </Td>
         <Td dataLabel={overviewColumns[2].label}>{row.namespace}</Td>

@@ -99,7 +99,6 @@ describe('MaaS Governance Page / Overview Tab', () => {
     const overviewRow = overviewTabPage.getRow('flan-t5-small', 'maas-models');
     overviewRow.findModelName().should('contain.text', 'Flan T5 Small');
     overviewRow.findModelId().should('contain.text', 'flan-t5-small');
-    overviewRow.findModelDescription().should('contain.text', 'A compact text-to-text model');
     overviewRow.findModelProject().should('contain.text', 'maas-models');
     overviewRow.findModelSubscriptions().should('contain.text', '4');
     overviewRow.findModelPhase().should('contain.text', 'Ready');
