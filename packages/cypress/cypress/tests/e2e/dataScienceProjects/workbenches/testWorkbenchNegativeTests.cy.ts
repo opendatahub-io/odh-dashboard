@@ -63,7 +63,7 @@ describe('Workbenches - negative tests', () => {
 
   it(
     'Verify UI informs users about workbenches failed to start',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches', '@s390X'] },
     () => {
       const workbenchName = `${deriveWorkbenchName(projectName)}-large`;
 
@@ -105,7 +105,7 @@ describe('Workbenches - negative tests', () => {
   );
   it(
     'Verify User cannot create a workbench using special characters or long names in the Resource name field',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches', '@s390X'] },
     () => {
       const workbenchName = deriveWorkbenchName(projectName);
 

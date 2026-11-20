@@ -91,7 +91,15 @@ describe('Workbenches - variable tests', () => {
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
     {
-      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+      tags: [
+        '@Sanity',
+        '@SanitySet3',
+        '@ODS-1883',
+        '@ODS-1864',
+        '@Dashboard',
+        '@Workbenches',
+        '@s390X',
+      ],
     },
     () => {
       const workbenchName = projectName;

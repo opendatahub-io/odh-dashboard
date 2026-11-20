@@ -88,7 +88,16 @@ describe('Workbenches - node selector tests', () => {
 
   it(
     'Verify node selectors from hardware profile are applied to workbench pod',
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2', '@HardwareProfilesCI'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@HardwareProfiles',
+        '@Sanity',
+        '@SanitySet2',
+        '@HardwareProfilesCI',
+        '@s390X',
+      ],
+    },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
@@ -129,7 +138,16 @@ describe('Workbenches - node selector tests', () => {
 
   it(
     'Verify node selectors and tolerations are both applied when hardware profile has both',
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Sanity', '@SanitySet2', '@HardwareProfilesCI'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@HardwareProfiles',
+        '@Sanity',
+        '@SanitySet2',
+        '@HardwareProfilesCI',
+        '@s390X',
+      ],
+    },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);

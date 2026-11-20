@@ -26,6 +26,7 @@ describe('Verify Model Deployment General Settings access and model-serving cont
         '@Dashboard',
         '@ci-dashboard-regression-tags',
         '@SettingsCI',
+        '@s390X',
       ],
     },
     () => {
@@ -50,6 +51,7 @@ describe('Verify Model Deployment General Settings access and model-serving cont
         '@Dashboard',
         '@ci-dashboard-regression-tags',
         '@SettingsCI',
+        '@s390X',
       ],
     },
     () => {

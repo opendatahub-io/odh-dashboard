@@ -22,7 +22,7 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
 
   it(
     'Admin can filter the runtime image library, open a runtime image and see the Install action',
-    { tags: ['@Dashboard', '@RuntimeCatalog'] },
+    { tags: ['@Dashboard', '@RuntimeCatalog', '@s390X'] },
     () => {
       // Checked here rather than in a shared hook so a missing catalog only fails the admin test
       cy.step('Verify the model catalog backend that serves the runtime image library is deployed');
@@ -81,7 +81,7 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
   it(
     'Non-admin user cannot access the Runtime image library or its details pages',
     // Needs no runtime data, so unlike the admin test it runs in the model-registry CI set
-    { tags: ['@Dashboard', '@RuntimeCatalog', '@ModelCatalogCI'] },
+    { tags: ['@Dashboard', '@RuntimeCatalog', '@ModelCatalogCI', '@s390X'] },
     () => {
       cy.step('Visit the Runtime image library as a non-admin user');
       runtimeCatalogPage.visitAs(LDAP_CONTRIBUTOR_USER);

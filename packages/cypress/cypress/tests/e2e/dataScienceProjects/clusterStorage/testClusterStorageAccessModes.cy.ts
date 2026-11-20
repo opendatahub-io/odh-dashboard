@@ -91,7 +91,7 @@ describe('Cluster Storage Access Modes Tests', () => {
 
   it(
     'Should display storage classes with different access modes in cluster storage dropdown',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@s390X'] },
     () => {
       cy.step('Open the Create cluster storage modal');
       clusterStorage.findAddClusterStorageButton().click();

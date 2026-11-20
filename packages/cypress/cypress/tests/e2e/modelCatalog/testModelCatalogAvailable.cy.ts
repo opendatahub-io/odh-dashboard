@@ -28,7 +28,7 @@ describe('Verifies that Model Catalog is available for different users', () => {
 
   it(
     'Verifies that Model Catalog is available for an admin user',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI', '@s390X'] },
     () => {
       cy.step('Login as admin user');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
