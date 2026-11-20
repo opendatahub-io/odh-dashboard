@@ -93,7 +93,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         [OverviewFilterOptions.modelName]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={modelOptions}
-            placeholder="Select a model"
+            placeholder="Filter by model name, ID, or description"
             testId="overview-model-name-filter-toggle"
             onChange={onChange}
             value={value}
@@ -103,7 +103,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         [OverviewFilterOptions.project]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={projectOptions}
-            placeholder="Select a project"
+            placeholder="Filter by project"
             testId="overview-project-name-filter-toggle"
             onChange={onChange}
             value={value}
@@ -113,7 +113,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         [OverviewFilterOptions.groupName]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={groupOptions}
-            placeholder="Select a group"
+            placeholder="Filter by group name"
             testId="overview-group-name-filter-toggle"
             onChange={onChange}
             value={value}
@@ -123,7 +123,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         [OverviewFilterOptions.subscriptionName]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={subscriptionOptions}
-            placeholder="Select a subscription"
+            placeholder="Filter by subscription name"
             testId="overview-subscription-name-filter-toggle"
             onChange={onChange}
             value={value}
@@ -133,7 +133,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         [OverviewFilterOptions.authPolicyName]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={authPolicyOptions}
-            placeholder="Select an authorization policy"
+            placeholder="Filter by authorization policy name"
             testId="overview-policy-name-filter-toggle"
             onChange={onChange}
             value={value}
