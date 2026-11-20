@@ -252,7 +252,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                       data={wizardState.state.environmentVariables.data}
                       onChange={wizardState.state.environmentVariables.setData}
                       predefinedVars={getKServeContainerEnvVarStrs(selectedModelServer)}
-                      allowCreate={allowCreate}
                     />
                   </StackItem>
                 </Stack>
