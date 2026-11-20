@@ -1,0 +1,33 @@
+# EvalHub curated collection Run test: use Safety and Ethical Principles without a prerequisite
+# and the standard Llama 3.2 1B vLLM fixture.
+projectNamePrefix: eval-hub-curated-run-e2e
+evalHubCrName: evalhub
+evalHubInstanceResourceYamlPath: resources/eval-hub/evalhub-instance.yaml
+mlflowInstanceResourceYamlPath: resources/mlflow/mlflow-instance-minimal.yaml
+# Standard model deployment, with the regular vLLM runtime used by the suite tests.
+modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct
+inferenceServiceName: evalhub-suite-llm
+servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml
+hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
+suiteName: EvalHub Cypress curated run suite
+suiteDomains:
+  - knowledge_and_reasoning
+  - trustworthiness
+benchmarkProviderId: lm_evaluation_harness
+benchmarks:
+  - id: arc_easy
+    name: Basic science Q&A
+    numExamples: 2
+  - id: toxigen
+    name: Toxigen
+    numExamples: 2
+expectedBenchmarkIds: []
+curatedCollectionId: safety-ethical-principles-v1
+curatedRunNumExamples: 5
+inferenceModelName: evalhub-suite-llm
+mlflowExperimentName: Cy-Evalhub
+additionalBenchmarkParams: |
+  {
+    "limit": 2,
+    "tokenizer": "google/flan-t5-small"
+  }
