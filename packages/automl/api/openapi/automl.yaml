@@ -1303,7 +1303,7 @@ components:
               type: integer
               format: int64
               minimum: 0
-              description: Total CSV data records, excluding the header and blank lines
+              description: Total CSV data records, excluding the header and blank lines. Empty files return zero.
               example: 144
 
     S3ListObjectsResult:

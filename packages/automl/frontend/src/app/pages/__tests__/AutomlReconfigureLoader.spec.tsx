@@ -459,6 +459,32 @@ describe('AutomlReconfigureLoader', () => {
       expect(request).not.toHaveProperty('dataset_split_mode');
     });
 
+    it('should recover a valid test-data pair when an unrelated parameter is invalid', async () => {
+      const run = createMockPipelineRun(
+        {},
+        {
+          top_n: -1,
+          test_data_bucket_name: 'saved-bucket',
+          test_data_file_key: 'saved-test.csv',
+        },
+      );
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: run,
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+      await screen.findByTestId('configure-page');
+      expect(capturedProps.initialValues).toMatchObject({
+        dataset_split_mode: 'separate',
+        test_data_bucket_name: 'saved-bucket',
+        test_data_file_key: 'saved-test.csv',
+      });
+      expect(capturedProps.initialValues?.top_n).toBeUndefined();
+    });
+
     it.each([
       {},
       { test_data_bucket_name: 'my-bucket' },

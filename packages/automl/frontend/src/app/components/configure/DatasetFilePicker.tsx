@@ -32,6 +32,7 @@ import {
 export type DatasetFileSourceMode = 'select' | 'upload';
 
 type DatasetFilePickerProps = {
+  dataset: 'training' | 'test';
   testIdPrefix: string;
   selectDescription: string;
   fileKey: string;
@@ -53,6 +54,7 @@ type DatasetFilePickerProps = {
 };
 
 function DatasetFilePicker({
+  dataset,
   testIdPrefix,
   selectDescription,
   fileKey,
@@ -73,20 +75,15 @@ function DatasetFilePicker({
   onReplaceUpload,
 }: DatasetFilePickerProps): React.JSX.Element {
   const showUploadDropzone = !isUploading && !fileKey.trim();
-  const selectedTableLabel =
-    testIdPrefix === 'test-data' ? 'Selected test data file' : 'Selected training data file';
+  const selectedTableLabel = `Selected ${dataset} data file`;
   const uploadTableLabel =
-    testIdPrefix === 'test-data' ? 'Test data file upload' : 'Training data file upload';
+    dataset === 'test' ? 'Test data file upload' : 'Training data file upload';
 
   return (
     <>
       <StackItem className="pf-v6-u-mt-sm">
         <ToggleGroup
-          aria-label={
-            testIdPrefix === 'test-data'
-              ? 'Choose how to add test data'
-              : 'Choose how to add training data'
-          }
+          aria-label={`Choose how to add ${dataset} data`}
           className="automl-configure__toggle-group-full-width pf-v6-u-mb-md"
         >
           <ToggleGroupItem

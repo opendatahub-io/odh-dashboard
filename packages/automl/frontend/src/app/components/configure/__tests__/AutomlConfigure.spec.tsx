@@ -904,6 +904,24 @@ describe('AutomlConfigure', () => {
     });
 
     it('after S3 select then switch to upload, should only show the upload table (not both tables)', async () => {
+      jest.mocked(useS3GetFileRowCountQuery).mockImplementation(
+        (_namespace, _secret, _bucket, key) =>
+          ({
+            data: key === 'uploaded-key.csv' ? 250 : 144,
+            isFetching: false,
+            error: null,
+          }) as ReturnType<typeof useS3GetFileRowCountQuery>,
+      );
+      const replacementColumns = MOCK_COLUMNS.slice(0, 2);
+      mockuseS3GetFileSchemaQuery.mockImplementation(
+        (_namespace, _secret, _bucket, key) =>
+          ({
+            data: key === 'uploaded-key.csv' ? replacementColumns : MOCK_COLUMNS,
+            isLoading: false,
+            isFetching: false,
+            resetSchemaCache: mockResetSchemaCache,
+          }) as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+      );
       renderComponent();
       getMockS3MutateAsync().mockClear();
 
@@ -911,6 +929,9 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
+      expect(screen.getByTestId('training-data-load-success')).toHaveTextContent(
+        `Successfully loaded 144 rows with ${MOCK_COLUMNS.length} columns`,
+      );
       expect(screen.getByRole('grid', { name: 'Selected training data file' })).toBeInTheDocument();
       expect(
         screen.queryByRole('grid', { name: 'Training data file upload' }),
@@ -940,7 +961,7 @@ describe('AutomlConfigure', () => {
       expect(screen.getByText('uploaded-key.csv')).toBeInTheDocument();
       expect(screen.queryByText('data.csv')).not.toBeInTheDocument();
       expect(screen.getByTestId('training-data-load-success')).toHaveTextContent(
-        `Successfully loaded 144 rows with ${MOCK_COLUMNS.length} columns`,
+        `Successfully loaded 250 rows with ${replacementColumns.length} columns`,
       );
     });
   });

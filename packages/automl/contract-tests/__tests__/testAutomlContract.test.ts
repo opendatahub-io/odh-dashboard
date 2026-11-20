@@ -414,16 +414,59 @@ describe('AutoML API Contract Tests', () => {
   });
 
   describe('S3 File Schema Endpoint', () => {
+    const uploadRowCountFixture = async (filename: string, content: string): Promise<string> => {
+      const form = new FormData();
+      form.append('file', new Blob([content], { type: 'text/csv' }), filename);
+      const uploaded = await apiClient.postFormData(
+        `/api/v1/s3/files/${filename}?namespace=${NS}&secretName=${SECRET}&bucket=${BUCKET}`,
+        form,
+      );
+      expect(uploaded).toMatchContract(apiSchema, {
+        ref: '#/components/schemas/S3UploadSuccess',
+        status: 201,
+      });
+      if (!uploaded.success) {
+        throw new Error('CSV fixture upload failed');
+      }
+      return (uploaded.response.data as { key: string }).key;
+    };
+
     it('should retrieve the total CSV row count separately from the schema sample', async () => {
+      const key = await uploadRowCountFixture(
+        'row-count-total.csv',
+        `name,value\n${'a,1\n'.repeat(144)}`,
+      );
       const result = await apiClient.get(
         `/api/v1/s3/files/${encodeURIComponent(
-          TABULAR_CSV_FILE,
+          key,
         )}?view=row-count&namespace=${NS}&secretName=${SECRET}`,
       );
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/schemas/S3FileRowCountResponse',
         status: 200,
       });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.data).toEqual({ data: { row_count: 144 } });
+      }
+    });
+
+    it('should return a contracted CSV validation error for an oversized record', async () => {
+      const key = await uploadRowCountFixture(
+        'row-count-invalid.csv',
+        `name\n${'a'.repeat(1 << 20)}\n`,
+      );
+      const result = await apiClient.get(
+        `/api/v1/s3/files/${encodeURIComponent(
+          key,
+        )}?view=row-count&namespace=${NS}&secretName=${SECRET}`,
+      );
+      expect(result.error).toMatchContract(apiSchema, {
+        ref: '#/components/responses/BadRequest/content/application~1json/schema',
+        status: 400,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
     });
 
     it('should retrieve CSV column schema', async () => {
@@ -645,6 +688,10 @@ describe('AutoML API Contract Tests', () => {
           label_column: 'target',
           task_type: 'binary',
           ...testDataFields,
+        });
+        expect(result.error).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
         });
         expect(result.success).toBe(false);
         if (!result.success) {

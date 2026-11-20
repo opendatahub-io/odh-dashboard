@@ -191,7 +191,9 @@ function AutomlConfigure({
   const initialTestFileKey = getValues('test_data_file_key');
 
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
-    initialInputDataSecret,
+    initialInputDataSecret?.name === getValues('train_data_secret_name')
+      ? initialInputDataSecret
+      : undefined,
   );
   const [trainingDataSourceMode, setTrainingDataSourceMode] =
     useState<DatasetFileSourceMode>('select');
@@ -210,6 +212,14 @@ function AutomlConfigure({
   const [isTestDataUploadDropdownOpen, setIsTestDataUploadDropdownOpen] = useState(false);
   const testDataUploadSeqRef = useRef(0);
   const testDataNativeInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(
+    () => () => {
+      trainingDataUploadSeqRef.current += 1;
+      testDataUploadSeqRef.current += 1;
+    },
+    [],
+  );
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   // Initialized from initialFileKey so the file-change effect treats the pre-populated
   // value as the baseline in reconfigure and Back → Next flows, preventing an unnecessary reset on mount.
@@ -714,6 +724,7 @@ function AutomlConfigure({
                   additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
                   isDisabled={formIsSubmitting}
                   value={selectedSecret?.uuid}
+                  valueName={trainDataSecretName}
                   onChange={(secret) => {
                     if (!secret) {
                       setSelectedSecret(undefined);
@@ -1201,6 +1212,7 @@ function AutomlConfigure({
                                           <Content component="h4">2. Choose a file</Content>
                                         </StackItem>
                                         <DatasetFilePicker
+                                          dataset="training"
                                           testIdPrefix="training-data"
                                           selectDescription="Select one CSV file from this bucket to use as training data for your experiment."
                                           fileKey={trainDataFileKey}
@@ -1307,6 +1319,7 @@ function AutomlConfigure({
                                           <Content component="h4">2. Choose a file</Content>
                                         </StackItem>
                                         <DatasetFilePicker
+                                          dataset="test"
                                           testIdPrefix="test-data"
                                           selectDescription="Select one CSV file from this bucket to use as test data for your experiment."
                                           fileKey={testDataFileKey ?? ''}
@@ -1740,7 +1753,7 @@ function AutomlConfigure({
         id={`AutoMLConfigure-S3FileExplorer-${fileExplorerTarget}`}
         apiPath="/automl/api/v1/s3"
         namespace={namespace}
-        s3SecretName={selectedSecret?.name}
+        s3SecretName={trainDataSecretName}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelectFiles={(files) => {

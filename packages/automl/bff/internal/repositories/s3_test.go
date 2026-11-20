@@ -950,6 +950,43 @@ func TestS3Repository_GetCSVRowCount(t *testing.T) {
 	}
 }
 
+func TestS3Repository_GetCSVRowCount_GetObjectErrors(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{name: "empty data.csv object", err: s3.ErrInvalidRange},
+		{name: "missing object", err: s3.ErrObjectNotFound},
+		{name: "access denied", err: s3.ErrAccessDenied},
+		{name: "transfer failure", err: io.ErrUnexpectedEOF},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			k8s := &mockK8sService{
+				getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+					return makeK8sSecret("s", "ns", standardSecretData()), nil
+				},
+			}
+			s3svc := &mockS3Service{
+				getObjectFn: func(_ context.Context, _ s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error) {
+					if input.Key != "data.csv" || input.Range != fmt.Sprintf("bytes=0-%d", s3.MaxCSVRowCountBytes) {
+						t.Fatalf("unexpected range request: %+v", input)
+					}
+					return nil, "", tc.err
+				},
+			}
+			repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+			count, err := repo.GetCSVRowCount(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "data.csv")
+			if errors.Is(tc.err, s3.ErrInvalidRange) {
+				if count != 0 || err != nil {
+					t.Fatalf("expected an empty count, got %d, %v", count, err)
+				}
+			} else if count != 0 || !errors.Is(err, tc.err) {
+				t.Fatalf("expected original error %v without a partial count, got %d, %v", tc.err, count, err)
+			}
+		})
+	}
+}
+
 func TestResolveUploadChecksumOptionsFromSecretSources(t *testing.T) {
 	tests := []struct {
 		name           string

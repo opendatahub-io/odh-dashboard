@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"bufio"
 	"context"
 	"encoding/csv"
 	"errors"
@@ -22,20 +23,51 @@ const maxCSVRecordBytes int64 = 1 << 20 // 1 MiB
 func CountCSVRows(ctx context.Context, r io.Reader) (int64, error) {
 	input := &io.LimitedReader{R: r, N: MaxCSVRowCountBytes + 1}
 	recordInput := &io.LimitedReader{R: input}
-	reader := csv.NewReader(recordInput)
+	bufferedInput := bufio.NewReader(recordInput)
+	reader := csv.NewReader(bufferedInput)
 	reader.TrimLeadingSpace = true
 	reader.LazyQuotes = true
 	reader.FieldsPerRecord = -1
 	reader.ReuseRecord = true
 	var records int64
 	for {
+		// Skip empty physical lines only between records. Newlines inside quoted
+		// fields are still read by encoding/csv and count toward the record limit.
+		for {
+			if err := ctx.Err(); err != nil {
+				return 0, err
+			}
+			recordInput.N = maxCSVRecordBytes + 1
+			prefix, peekErr := bufferedInput.Peek(1)
+			if peekErr != nil && !errors.Is(peekErr, io.EOF) {
+				return 0, fmt.Errorf("error reading CSV: %w", peekErr)
+			}
+			if len(prefix) == 0 {
+				break
+			}
+			if prefix[0] == '\n' {
+				_, _ = bufferedInput.Discard(1)
+				continue
+			}
+			if prefix[0] == '\r' {
+				prefix, peekErr = bufferedInput.Peek(2)
+				if peekErr != nil && !errors.Is(peekErr, io.EOF) {
+					return 0, fmt.Errorf("error reading CSV: %w", peekErr)
+				}
+				if len(prefix) == 2 && prefix[1] == '\n' {
+					_, _ = bufferedInput.Discard(2)
+					continue
+				}
+			}
+			break
+		}
 		if err := ctx.Err(); err != nil {
 			return 0, err
 		}
 		recordStart := reader.InputOffset()
 		// encoding/csv may have buffered bytes beyond the previous record. Include
 		// those bytes in this record's budget, plus one byte to detect overflow.
-		buffered := MaxCSVRowCountBytes + 1 - input.N - recordStart
+		buffered := int64(bufferedInput.Buffered())
 		recordInput.N = maxCSVRecordBytes + 1 - buffered
 		_, err := reader.Read()
 		if input.N == 0 {

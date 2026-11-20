@@ -287,6 +287,10 @@ func (r *S3Repository) GetCSVRowCount(ctx context.Context, req S3RequestContext,
 		Key:    key,
 		Range:  fmt.Sprintf("bytes=0-%d", s3.MaxCSVRowCountBytes),
 	})
+	// A range starting at byte zero is unsatisfiable only for an empty object.
+	if errors.Is(err, s3.ErrInvalidRange) {
+		return 0, nil
+	}
 	if err != nil {
 		return 0, fmt.Errorf("error retrieving CSV file from S3: %w", err)
 	}

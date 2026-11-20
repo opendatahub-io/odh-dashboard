@@ -67,29 +67,21 @@ describe('useS3GetFileRowCountQuery', () => {
       headers: { get: () => null },
       blob: async () => new Blob([JSON.stringify({ data: { row_count: 144 } })]),
     } as unknown as Response);
-    let renders = 0;
     const { result, rerender } = renderHook(
-      () => {
-        renders++;
-        return useS3GetFileRowCountQuery(
-          'test-namespace',
-          'test-secret',
-          'test-bucket',
-          'data.csv',
-        );
-      },
+      () => useS3GetFileRowCountQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
       { wrapper: createWrapper().Wrapper },
     );
 
     expect(result.current.data).toBeUndefined();
     await waitFor(() => expect(result.current.data).toBe(144));
-    expect(renders).toBe(2);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining('view=row-count'),
       expect.anything(),
     );
     rerender();
-    expect(renders).toBe(3);
+    expect(result.current.data).toBe(144);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it.each([undefined, -1, 1.5, '144'])(
@@ -106,6 +98,9 @@ describe('useS3GetFileRowCountQuery', () => {
       );
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.data).toBeUndefined();
+      expect(result.current.error?.message).toBe(
+        'Unexpected API response: CSV row count is missing or invalid',
+      );
     },
   );
 
