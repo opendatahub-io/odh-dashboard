@@ -10,7 +10,7 @@ metadata:
     pipelinesascode.tekton.dev/on-comment: "^/build-konflux (odh-mod-arch-agent-ops|all)$"
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/on-cel-expression: |-
-      konflux_cluster == "stone-prod-p02"
+      konflux_cluster == "stone-prod-p01"
       && event == "pull_request"
       && ("packages/agent-ops/**".pathChanged() || "prefetch/pnpm/**".pathChanged() || ".tekton/odh-mod-arch-agent-ops-pull-request.yaml".pathChanged() || "Dockerfile.konflux.agent-ops".pathChanged())
   labels:

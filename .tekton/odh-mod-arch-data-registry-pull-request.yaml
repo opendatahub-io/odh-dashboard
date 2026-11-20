@@ -10,7 +10,7 @@ metadata:
     pipelinesascode.tekton.dev/on-comment: '^/build-konflux (odh-mod-arch-data-registry|all)$'
     build.appstudio.redhat.com/pull_request_number: "{{pull_request_number}}"
     pipelinesascode.tekton.dev/on-cel-expression: |-
-      konflux_cluster == "stone-prod-p02"
+      konflux_cluster == "stone-prod-p01"
       && event == "pull_request"
       && (files.all.exists(p, ! p.matches('^\\.tekton/')) || ".tekton/odh-mod-arch-data-registry-pull-request.yaml".pathChanged())
   labels:

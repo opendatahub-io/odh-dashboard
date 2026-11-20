@@ -10,7 +10,7 @@ metadata:
     pipelinesascode.tekton.dev/on-comment: "^/build-konflux (odh-dashboard|all)$"
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/on-cel-expression: |-
-      konflux_cluster == "stone-prod-p02"
+      konflux_cluster == "stone-prod-p01"
       && event == "pull_request"
       && (files.all.exists(p, ! p.matches('^\\.tekton/')) || ".tekton/odh-dashboard-pull-request.yaml".pathChanged())
   labels:
