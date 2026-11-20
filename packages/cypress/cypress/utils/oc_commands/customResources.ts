@@ -1,4 +1,5 @@
 import type { CommandLineResult } from '../../types';
+import { loadYamlFixture } from '../dataLoader';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const replaceMetadataName = (yamlContent: string, resourceName: string): string => {
@@ -24,7 +25,7 @@ export const createCustomResource = (
   customYamlPath: string,
   resourceName?: string,
 ): Cypress.Chainable<CommandLineResult> =>
-  cy.fixture(customYamlPath).then((yamlContent) => {
+  loadYamlFixture(customYamlPath).then((yamlContent) => {
     const resourceYaml = resourceName
       ? replaceMetadataName(yamlContent, resourceName)
       : yamlContent;
