@@ -110,11 +110,19 @@ it('replays #9945 and rejects the untagged new EvalHub Kueue spec', () => {
   assert.ok(result.errors.some((error) => error.includes('testEvalHubKueue.cy.ts')));
 });
 
-it('replays #9783 and rejects the untagged changed AutoRAG metric-variation spec', () => {
+it('replays #9783 and selects the CI-tagged AutoRAG metric-variation spec', () => {
   const result = replay(9783);
-  assert.equal(result.valid, false);
+  const metricSpec = `${e2e}autorag/testAutoragMetricVariations.cy.ts`;
+  assert.equal(result.valid, true, result.errors.join('\n'));
   assert.ok(result.summary.pathImpactTags.includes('@AutoRAGCI'));
-  assert.ok(result.errors.some((error) => error.includes('testAutoragMetricVariations.cy.ts')));
+  assert.ok(result.summary.selectedTags.includes('@AutoRAGCI'));
+  assert.ok(
+    result.matrix.some(
+      (job) => job.run_mode === 'tag' && job.tag.split(' ').includes('@AutoRAGCI'),
+    ),
+  );
+  assert.ok(inventory[metricSpec].executableTestTags.some((tags) => tags.includes('@AutoRAGCI')));
+  assert.ok(selected(result, metricSpec));
 });
 
 it('replays #9776 with explicit regression fallback when no DataConnectHub E2E suite exists', () => {
