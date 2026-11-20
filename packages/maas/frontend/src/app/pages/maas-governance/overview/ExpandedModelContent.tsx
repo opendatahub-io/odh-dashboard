@@ -124,7 +124,10 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
           <Tr>
             <Td expand={{ rowIndex, isExpanded, onToggle }} />
             <Td>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+              <Flex
+                justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
                 <FlexItem>
                   <Link
                     to={linkTo}
