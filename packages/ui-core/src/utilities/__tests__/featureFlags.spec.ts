@@ -12,6 +12,8 @@ describe('feature flag utilities', () => {
     });
 
     expect(isInvertedFeatureFlag('example')).toBe(false);
+    expect(isInvertedFeatureFlag('disabledExample')).toBe(false);
+    expect(isInvertedFeatureFlag('hideaway')).toBe(false);
   });
 
   it('should evaluate enabled state for regular and inverted flags', () => {
@@ -27,8 +29,18 @@ describe('feature flag utilities', () => {
     expect(getInvertedFeatureFlagName('example', ['disableExample'])).toBe('disableExample');
     expect(getInvertedFeatureFlagName('example', ['hideExample'])).toBe('hideExample');
     expect(getInvertedFeatureFlagName('example', ['otherExample'])).toBeUndefined();
+  });
+
+  it('should warn and ignore an ambiguous feature shorthand', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation();
+
     expect(
       getInvertedFeatureFlagName('example', ['disableExample', 'hideExample']),
     ).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      'Ignoring ambiguous feature flag shorthand "example": disableExample, hideExample.',
+    );
+
+    warn.mockRestore();
   });
 });

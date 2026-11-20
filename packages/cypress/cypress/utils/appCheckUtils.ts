@@ -53,7 +53,7 @@ export function filterHiddenApps(
 
 /**
  * Checks if a specific feature flag is enabled in the dashboard configuration.
- * Handles both regular flags (truthy = enabled) and "disable" flags (truthy = disabled).
+ * Handles both regular flags (truthy = enabled) and inverted flags (truthy = disabled).
  * @param flagPath - The path to the flag in the dashboard config (e.g., 'dashboardConfig.mlflow')
  * @returns Cypress chainable boolean indicating whether the feature is enabled.
  */

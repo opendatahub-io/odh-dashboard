@@ -34,9 +34,10 @@ export const useDevFlags: () => string[] = () => {
 
 /**
  * Override dashboard config feature flags in the query string: eg.
- * `devFeatureFlags=disableHome=false,appLauncher,support=true`
+ * `devFeatureFlags=disableHome=false,hideExample=false,appLauncher,support=true`
  * Results in:
  *  - disableHome = false
+ *  - hideExample = false
  *  - disableAppLauncher = false
  *  - disableSupport = false
  *
@@ -112,7 +113,7 @@ const useDevFeatureFlags = (
                 acc[name] = bool === 'true';
               } else {
                 const fullName = getInvertedFeatureFlagName(name, combinedFlags);
-                if (fullName && isFlag(fullName)) {
+                if (fullName) {
                   acc[fullName] = bool === 'false';
                 }
               }
