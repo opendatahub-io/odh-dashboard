@@ -15,6 +15,10 @@ rules:
   # propose them to callers who cannot list namespaces themselves. Names only
   # reach a caller after that caller's own access reviews authorize them, and
   # namespace metadata is shown only when the caller may get the namespace.
+  # Needed only while --namespace-discovery-label-selector is set; documented as
+  # the optional service-account exception in
+  # distributions/core-bff/docs/bootstrap-contract.md. The final RHAII RBAC is
+  # owned by RHOAIENG-104119.
   - apiGroups:
       - ''
     resources:

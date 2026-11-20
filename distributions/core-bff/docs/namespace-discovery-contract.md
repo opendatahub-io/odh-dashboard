@@ -57,7 +57,10 @@ The label enumeration is the only place discovery uses the dashboard service acc
 leaves it off unless `NAMESPACE_DISCOVERY_LABEL_SELECTOR` is set, and it requires a cluster-scoped
 `list` on `namespaces` for the service account. The RHAII bundle
 (`manifests/distributions/rhaii`) turns it on with `opendatahub.io/dashboard=true` and grants
-that `list`; `manifests/base` grants neither. It is narrow by construction:
+that `list`; `manifests/base` grants neither. The [bootstrap contract](./bootstrap-contract.md#service-account-permissions)
+lists it as the one optional service-account permission on `namespaces`. The final RHAII manifest
+RBAC is owned by [RHOAIENG-104119](https://redhat.atlassian.net/browse/RHOAIENG-104119). It is
+narrow by construction:
 
 - It lists only namespaces matching the configured selector.
 - It contributes names. Its copy of a namespace's metadata (display name, phase) is used only
