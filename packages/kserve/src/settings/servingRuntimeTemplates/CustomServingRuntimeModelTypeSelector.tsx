@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup } from '@patternfly/react-core';
+import { Badge, FormGroup } from '@patternfly/react-core';
 import { CheckboxSelect, CheckboxSelectOption } from '@patternfly/react-templates';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 
@@ -36,7 +36,16 @@ const CustomServingRuntimeModelTypeSelector: React.FC<
       {/* so we wrap it in a div with data-testid */}
       <div data-testid="custom-serving-model-type-selection">
         <CheckboxSelect
-          toggleContent="Select model types"
+          toggleContent={
+            <>
+              Select model types
+              {selectedModelTypes.length > 0 ? (
+                <Badge isRead data-testid="model-type-selection-count">
+                  {selectedModelTypes.length}
+                </Badge>
+              ) : null}
+            </>
+          }
           initialOptions={modelTypeOptions}
           onSelect={(_ev, value) => {
             if (
