@@ -482,6 +482,143 @@ export type CreateCollectionRequest = {
   benchmarks: CollectionBenchmark[];
 };
 
+export type CollectionGenerationRequest = {
+  evaluation_goal: string;
+  model: {
+    name: string;
+    url: string;
+    parameters?: Record<string, unknown>;
+    auth?: {
+      secret_ref?: string;
+    };
+  };
+  provider_filter?: string;
+  max_benchmarks?: number;
+  strictness?: 'lenient' | 'moderate' | 'strict';
+  generation_effort?: 'low' | 'standard' | 'high';
+};
+
+export type CollectionGenerationRequestSummary = CollectionGenerationRequest & {
+  max_benchmarks: number;
+  strictness: 'lenient' | 'moderate' | 'strict';
+  generation_effort: 'low' | 'standard' | 'high';
+};
+
+export type CollectionGenerationState =
+  'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+export type CollectionGenerationProgressActionName =
+  | 'guardrails_check'
+  | 'search_benchmarks'
+  | 'get_provider_details'
+  | 'list_collections'
+  | 'validate_proposal'
+  | 'calibrate_proposal'
+  | 'finalize_proposal';
+
+export type CollectionGenerationProgressAction = {
+  name: CollectionGenerationProgressActionName;
+  completed_at: string;
+};
+
+export type CollectionGenerationProgress = {
+  phase: 'guardrails' | 'catalog_discovery' | 'model_generation' | 'validation' | 'finalization';
+  updated_at: string;
+  last_completed_action?: CollectionGenerationProgressAction;
+};
+
+export type CollectionGenerationErrorCode =
+  | 'guardrails_rejected'
+  | 'guardrails_unavailable'
+  | 'model_failed'
+  | 'tool_failed'
+  | 'validation_failed'
+  | 'timeout'
+  | 'launch_failed'
+  | 'workload_failed';
+
+export type CollectionGenerationErrorCategory =
+  'prompt_injection' | 'exfiltration' | 'topic_relevance' | 'unsupported_capability';
+
+export type CollectionGenerationStatusError =
+  | {
+      code: 'guardrails_rejected';
+      message: string;
+      category: CollectionGenerationErrorCategory;
+    }
+  | {
+      code: Exclude<CollectionGenerationErrorCode, 'guardrails_rejected'>;
+      message: string;
+      category?: never;
+    };
+
+type CollectionGenerationStatusTimestamps = {
+  started_at?: string;
+  completed_at?: string;
+};
+
+export type CollectionGenerationStatus =
+  | (CollectionGenerationStatusTimestamps & { state: 'pending' })
+  | (CollectionGenerationStatusTimestamps & {
+      state: 'running';
+      progress?: CollectionGenerationProgress;
+    })
+  | (CollectionGenerationStatusTimestamps & { state: 'completed' })
+  | (CollectionGenerationStatusTimestamps & {
+      state: 'failed';
+      error: CollectionGenerationStatusError;
+    })
+  | (CollectionGenerationStatusTimestamps & { state: 'cancelled' });
+
+export type CollectionGenerationBenchmarkReason = {
+  provider_id: string;
+  id: string;
+  reason: string;
+};
+
+export type CollectionGenerationExplanation = {
+  selected_benchmarks: CollectionGenerationBenchmarkReason[];
+  rejected_benchmarks: CollectionGenerationBenchmarkReason[];
+};
+
+export type CollectionGenerationAction = {
+  name: string;
+  outcome: 'success' | 'error';
+  summary: string;
+};
+
+export type CollectionGenerationResult = {
+  collection: CreateCollectionRequest;
+  yaml: string;
+  rationale: string;
+  explanation: CollectionGenerationExplanation;
+  actions: CollectionGenerationAction[];
+  actions_truncated?: boolean;
+};
+
+export type CollectionGenerationResourceMetadata = {
+  id: string;
+  tenant: string;
+  owner: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type CollectionGenerationResourceFields = {
+  resource: CollectionGenerationResourceMetadata;
+  request: CollectionGenerationRequestSummary;
+};
+
+export type CollectionGenerationResource =
+  | (CollectionGenerationResourceFields & {
+      status: Extract<CollectionGenerationStatus, { state: 'completed' }>;
+      result: CollectionGenerationResult;
+    })
+  | (CollectionGenerationResourceFields & {
+      status: Exclude<CollectionGenerationStatus, { state: 'completed' }>;
+      result?: never;
+    });
+
 export type ListCollectionsParams = CollectionFilterParams & {
   namespace?: string;
   limit?: number;

@@ -177,6 +177,72 @@ describe('EvalHub API Contract Tests', () => {
     });
   });
 
+  describe('Collection Generation Endpoint', () => {
+    it('should create and retrieve a tenant-scoped generation resource', async () => {
+      const request = {
+        // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+        evaluation_goal: 'Assess reasoning and factual accuracy',
+        model: {
+          name: 'my-model',
+          url: 'https://models.example.com/v1',
+          auth: {
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            secret_ref: 'model-credentials',
+          },
+        },
+        // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+        max_benchmarks: 100,
+        strictness: 'strict',
+        // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+        generation_effort: 'high',
+      };
+      const created = await apiClient.post(
+        '/eval-hub/api/v1/evaluations/collections/generation?namespace=default',
+        request,
+      );
+
+      expect(created).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionGenerationAcceptedResponse/content/application~1json/schema',
+        status: 202,
+      });
+      if (!created.success) {
+        return;
+      }
+
+      const { location } = created.response.headers;
+      expect(location).toBe(
+        '/eval-hub/api/v1/evaluations/collections/generation/generation-001?namespace=default',
+      );
+      const polled = await apiClient.get(location);
+      expect(polled).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionGenerationResponse/content/application~1json/schema',
+        status: 200,
+      });
+
+      const deleted = await apiClient.delete(
+        '/eval-hub/api/v1/evaluations/collections/generation/generation-001?namespace=default',
+      );
+      expect(deleted.success).toBe(true);
+      if (deleted.success) {
+        expect(deleted.response.status).toBe(204);
+      }
+
+      const deletedUnknown = await apiClient.delete(
+        '/eval-hub/api/v1/evaluations/collections/generation/generation-unknown?namespace=default',
+      );
+      expect(deletedUnknown.success).toBe(false);
+      if (!deletedUnknown.success) {
+        expect({
+          status: deletedUnknown.error.status,
+          data: deletedUnknown.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/NotFound/content/application~1json/schema',
+          status: 404,
+        });
+      }
+    });
+  });
+
   describe('Create Collection Endpoint', () => {
     it('should create a collection with metadata and evaluation target arrays', async () => {
       const createRequest = {

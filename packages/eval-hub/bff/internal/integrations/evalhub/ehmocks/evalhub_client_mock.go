@@ -13,11 +13,16 @@ import (
 
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
-	mu                        sync.RWMutex
-	collectionOverrides       map[string]*evalhub.Collection
-	deletedCollections        map[string]bool
-	LastListCollectionsParams *evalhub.ListCollectionsParams
-	logsTruncated             bool
+	mu                                    sync.RWMutex
+	collectionOverrides                   map[string]*evalhub.Collection
+	collectionGenerations                 map[string]*evalhub.CollectionGenerationResource
+	deletedCollections                    map[string]bool
+	LastDeletedCollectionGenerationID     string
+	LastDeletedCollectionGenerationTenant string
+	LastListCollectionsParams             *evalhub.ListCollectionsParams
+	LastCollectionGenerationRequest       *evalhub.CreateCollectionGenerationRequest
+	LastCollectionGenerationNamespace     string
+	logsTruncated                         bool
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
@@ -122,6 +127,149 @@ func (m *MockEvalHubClient) CreateCollection(
 		PassCriteria:      req.PassCriteria,
 		Benchmarks:        req.Benchmarks,
 	}, nil
+}
+
+func (m *MockEvalHubClient) CreateCollectionGeneration(
+	_ context.Context,
+	namespace string,
+	req evalhub.CreateCollectionGenerationRequest,
+) (*evalhub.CollectionGenerationResource, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.LastCollectionGenerationNamespace = namespace
+	m.LastCollectionGenerationRequest = &req
+	if m.collectionGenerations == nil {
+		m.collectionGenerations = make(map[string]*evalhub.CollectionGenerationResource)
+	}
+
+	request := evalhub.CollectionGenerationRequestSummary{
+		EvaluationGoal:   req.EvaluationGoal,
+		Model:            req.Model,
+		ProviderFilter:   req.ProviderFilter,
+		MaxBenchmarks:    12,
+		Strictness:       "moderate",
+		GenerationEffort: "standard",
+	}
+	if req.MaxBenchmarks != nil {
+		request.MaxBenchmarks = *req.MaxBenchmarks
+	}
+	if req.Strictness != "" {
+		request.Strictness = req.Strictness
+	}
+	if req.GenerationEffort != "" {
+		request.GenerationEffort = req.GenerationEffort
+	}
+
+	generation := &evalhub.CollectionGenerationResource{
+		Resource: evalhub.CollectionGenerationResourceMetadata{
+			ID:        "generation-001",
+			Tenant:    namespace,
+			Owner:     "dev-user@example.com",
+			CreatedAt: "2026-01-01T00:00:00Z",
+			UpdatedAt: "2026-01-01T00:00:00Z",
+		},
+		Request: request,
+		Status:  evalhub.CollectionGenerationStatus{State: "pending"},
+	}
+	m.collectionGenerations[generation.Resource.ID] = generation
+	return generation, nil
+}
+
+func (m *MockEvalHubClient) SetCollectionGeneration(id string, generation *evalhub.CollectionGenerationResource) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.collectionGenerations == nil {
+		m.collectionGenerations = make(map[string]*evalhub.CollectionGenerationResource)
+	}
+	m.collectionGenerations[id] = generation
+}
+
+func (m *MockEvalHubClient) GetCollectionGeneration(
+	_ context.Context,
+	id string,
+	namespace string,
+) (*evalhub.CollectionGenerationResource, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	generation := m.collectionGenerations[id]
+	if generation == nil && id == "generation-001" {
+		// Contract tests use a fresh mock client per request, so keep one stable
+		// completed proposal available independently of a preceding POST.
+		generation = &evalhub.CollectionGenerationResource{
+			Resource: evalhub.CollectionGenerationResourceMetadata{
+				ID: "generation-001", Tenant: namespace, Owner: "dev-user@example.com",
+				CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:00:00Z",
+			},
+			Request: evalhub.CollectionGenerationRequestSummary{
+				EvaluationGoal: "Assess reasoning and factual accuracy",
+				Model:          evalhub.JobModel{Name: "my-model", URL: "https://models.example.com/v1"},
+				MaxBenchmarks:  12, Strictness: "moderate", GenerationEffort: "standard",
+			},
+			Status: evalhub.CollectionGenerationStatus{
+				State:       "completed",
+				StartedAt:   "2026-01-01T00:00:01Z",
+				CompletedAt: "2026-01-01T00:00:08Z",
+			},
+			Result: json.RawMessage(`{
+				"collection": {
+					"name": "Reasoning and Accuracy Recommendations",
+					"category": "Capability",
+					"domains": ["trustworthiness", "reasoning", "knowledge", "math", "code"],
+					"benchmarks": [
+						{"id":"truthfulqa_mc1","provider_id":"lm_evaluation_harness","primary_score":{"metric":"accuracy","lower_is_better":false},"pass_criteria":{"threshold":0.7}},
+						{"id":"hellaswag","provider_id":"lm_evaluation_harness","primary_score":{"metric":"accuracy","lower_is_better":false},"pass_criteria":{"threshold":0.6}},
+						{"id":"gsm8k","provider_id":"lm_evaluation_harness","primary_score":{"metric":"exact_match","lower_is_better":false},"pass_criteria":{"threshold":0.4}},
+						{"id":"mmlu","provider_id":"lm_evaluation_harness","primary_score":{"metric":"accuracy","lower_is_better":false},"pass_criteria":{"threshold":0.7}},
+						{"id":"humaneval","provider_id":"lm_evaluation_harness","primary_score":{"metric":"pass@1","lower_is_better":false},"pass_criteria":{"threshold":0.4}}
+					]
+				},
+				"yaml": "name: Reasoning and Accuracy Recommendations\ncategory: Capability\ndomains:\n  - trustworthiness\n  - reasoning\n  - knowledge\n  - math\n  - code",
+				"rationale": "These benchmarks cover factual accuracy, commonsense and multi-step reasoning, broad subject knowledge, math, and code generation.",
+				"explanation": {
+					"selected_benchmarks": [
+						{"provider_id":"lm_evaluation_harness","id":"truthfulqa_mc1","reason":"Directly measures whether answers are factually accurate and truthful."},
+						{"provider_id":"lm_evaluation_harness","id":"hellaswag","reason":"Measures commonsense reasoning about everyday situations."},
+						{"provider_id":"lm_evaluation_harness","id":"gsm8k","reason":"Tests multi-step mathematical reasoning."},
+						{"provider_id":"lm_evaluation_harness","id":"mmlu","reason":"Covers knowledge and reasoning across a wide range of subjects."},
+						{"provider_id":"lm_evaluation_harness","id":"humaneval","reason":"Measures functional code generation correctness."}
+					],
+					"rejected_benchmarks": [
+						{"provider_id":"lm_evaluation_harness","id":"crows_pairs","reason":"Bias measurement is less central to the stated reasoning and accuracy goal."},
+						{"provider_id":"lm_evaluation_harness","id":"winogrande","reason":"Pronoun resolution overlaps with the broader commonsense reasoning coverage."},
+						{"provider_id":"lm_evaluation_harness","id":"teleqna","reason":"Telecommunications knowledge is domain-specific and outside the general goal."},
+						{"provider_id":"lm_evaluation_harness","id":"triviaqa","reason":"Factual recall overlaps with the selected broad knowledge benchmark."},
+						{"provider_id":"lm_evaluation_harness","id":"commonsenseqa","reason":"Commonsense QA overlaps with the selected commonsense and reasoning benchmark."}
+					]
+				},
+				"actions": [
+					{"name":"search_benchmarks","outcome":"success","summary":"Reviewed the available benchmark catalog."},
+					{"name":"validate_proposal","outcome":"success","summary":"Checked the proposal against the selected evaluation goal."},
+					{"name":"calibrate_proposal","outcome":"success","summary":"Added example metrics and pass thresholds for the selected benchmarks."}
+				]
+			}`),
+		}
+	}
+	if generation != nil && generation.Resource.Tenant == namespace {
+		return generation, nil
+	}
+	return nil, nil
+}
+
+// DeleteCollectionGeneration is a stateless no-op in the local BFF mock.
+func (m *MockEvalHubClient) DeleteCollectionGeneration(_ context.Context, id string, namespace string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	generation := m.collectionGenerations[id]
+	if generation == nil && id != "generation-001" {
+		return evalhub.NewNotFoundError("collection generation not found")
+	}
+	if generation != nil && (generation.Resource.ID != id || generation.Resource.Tenant != namespace) {
+		return evalhub.NewNotFoundError("collection generation not found")
+	}
+	m.LastDeletedCollectionGenerationID = id
+	m.LastDeletedCollectionGenerationTenant = namespace
+	return nil
 }
 
 func containsCI(s, substr string) bool {

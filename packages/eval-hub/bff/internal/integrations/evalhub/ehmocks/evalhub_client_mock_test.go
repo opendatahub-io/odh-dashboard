@@ -1,0 +1,94 @@
+package ehmocks
+
+import (
+	"context"
+	"encoding/json"
+	"testing"
+
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestMockEvalHubClient_GetCollectionGenerationReturnsCompletedFixture(t *testing.T) {
+	client := NewMockEvalHubClient()
+	generation, err := client.GetCollectionGeneration(context.Background(), "generation-001", "test-ns")
+	require.NoError(t, err)
+	require.NotNil(t, generation)
+	assert.Equal(t, "generation-001", generation.Resource.ID)
+	assert.Equal(t, "test-ns", generation.Resource.Tenant)
+	assert.Equal(t, "completed", generation.Status.State)
+
+	var result struct {
+		Collection struct {
+			Name       string                        `json:"name"`
+			Category   string                        `json:"category"`
+			Domains    []string                      `json:"domains"`
+			Benchmarks []evalhub.CollectionBenchmark `json:"benchmarks"`
+		} `json:"collection"`
+		YAML        string `json:"yaml"`
+		Rationale   string `json:"rationale"`
+		Explanation struct {
+			SelectedBenchmarks []struct {
+				ProviderID string `json:"provider_id"`
+				ID         string `json:"id"`
+				Reason     string `json:"reason"`
+			} `json:"selected_benchmarks"`
+			RejectedBenchmarks []struct {
+				ProviderID string `json:"provider_id"`
+				ID         string `json:"id"`
+				Reason     string `json:"reason"`
+			} `json:"rejected_benchmarks"`
+		} `json:"explanation"`
+		Actions []struct {
+			Name    string `json:"name"`
+			Outcome string `json:"outcome"`
+			Summary string `json:"summary"`
+		} `json:"actions"`
+	}
+	require.True(t, json.Valid(generation.Result), "generation result must be valid JSON")
+	require.NoError(t, json.Unmarshal(generation.Result, &result))
+
+	assert.NotEmpty(t, result.Collection.Name)
+	assert.NotEmpty(t, result.Collection.Category)
+	assert.NotEmpty(t, result.Collection.Domains)
+	assert.NotEmpty(t, result.YAML)
+	assert.NotEmpty(t, result.Rationale)
+	assert.Len(t, result.Collection.Benchmarks, 5)
+	assert.Len(t, result.Explanation.SelectedBenchmarks, 5)
+	assert.Len(t, result.Explanation.RejectedBenchmarks, 5)
+	assert.NotEmpty(t, result.Actions)
+
+	knownBenchmarks := make(map[string]map[string]bool)
+	for _, provider := range mockProviders() {
+		knownBenchmarks[provider.Resource.ID] = make(map[string]bool)
+		for _, benchmark := range provider.Benchmarks {
+			knownBenchmarks[provider.Resource.ID][benchmark.ID] = true
+		}
+	}
+	for _, benchmark := range result.Collection.Benchmarks {
+		assert.True(t, knownBenchmarks[benchmark.ProviderID][benchmark.ID], "selected benchmark must exist in mockProviders")
+		assert.NotNil(t, benchmark.PrimaryScore, "selected benchmark should show its primary metric")
+		assert.NotNil(t, benchmark.PassCriteria, "selected benchmark should show its recommended threshold")
+	}
+	for _, reason := range result.Explanation.SelectedBenchmarks {
+		assert.True(t, knownBenchmarks[reason.ProviderID][reason.ID], "selected explanation must reference a mock benchmark")
+		assert.NotEmpty(t, reason.Reason)
+	}
+	for _, reason := range result.Explanation.RejectedBenchmarks {
+		assert.True(t, knownBenchmarks[reason.ProviderID][reason.ID], "rejected explanation must reference a mock benchmark")
+		assert.NotEmpty(t, reason.Reason)
+	}
+}
+
+func TestMockEvalHubClient_CreateCollectionGenerationRemainsPending(t *testing.T) {
+	client := NewMockEvalHubClient()
+	generation, err := client.CreateCollectionGeneration(context.Background(), "test-ns", evalhub.CreateCollectionGenerationRequest{
+		EvaluationGoal: "Assess reasoning and factual accuracy",
+		Model:          evalhub.JobModel{Name: "my-model", URL: "https://models.example.com/v1"},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, generation)
+	assert.Equal(t, "pending", generation.Status.State)
+	assert.Empty(t, generation.Result)
+}
