@@ -32,6 +32,7 @@ import {
   compareRunParamsTable,
   compareRunsMetricsContent,
 } from '../../../../pages/pipelines/compareRuns';
+import { appChrome } from '../../../../pages/appChrome';
 import { initMlmdIntercepts } from '../mlmdUtils';
 import {
   interceptDSPAMlflowIntegration,
@@ -295,6 +296,44 @@ describe('Compare runs', () => {
   });
 
   describe('Metrics', () => {
+    it('renders opaque sticky column backgrounds under glass', () => {
+      initIntercepts({});
+      compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id, mockRun3.run_id]);
+      cy.wait('@validRun');
+
+      appChrome.openAppearanceSettings();
+      appChrome.findContrastModeToggle('Glass').click();
+      cy.get('html').should('have.class', 'pf-v6-theme-glass');
+      cy.get('body').type('{esc}');
+
+      const expectOpaqueStickyCell = ($cell: JQuery) => {
+        const bg = $cell[0].ownerDocument.defaultView.getComputedStyle($cell[0]).backgroundColor;
+        // the pre-fix inline secondary surface rendered translucent under glass
+        expect(bg, 'sticky background is not translucent').to.not.match(/rgba\(.+,\s*0\.\d+\)/);
+      };
+
+      // parameters table sticky column
+      compareRunParamsTable
+        .find()
+        .find('tbody td.pf-v6-c-table__sticky-cell')
+        .first()
+        .then(expectOpaqueStickyCell);
+
+      // scalar metrics table sticky column
+      compareRunsMetricsContent
+        .findScalarMetricsTabContent()
+        .findScalarMetricsTable()
+        .should('exist')
+        .find('tbody td.pf-v6-c-table__sticky-cell')
+        .first()
+        .then(expectOpaqueStickyCell);
+
+      // restore the default appearance for subsequent tests
+      cy.window().then((win) => {
+        win.localStorage.removeItem('odh.dashboard.ui.contrastMode');
+      });
+    });
+
     describe('Metrics', () => {
       beforeEach(() => {
         initIntercepts({});
