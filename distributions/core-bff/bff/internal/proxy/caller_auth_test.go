@@ -34,6 +34,7 @@ func TestK8sProxy_StripsCallerSuppliedIdentityAndCredentialHeaders(t *testing.T)
 	for _, h := range []string{
 		"Impersonate-User", "Impersonate-Group", "Impersonate-Uid", "Impersonate-Extra-Scopes",
 		"X-Remote-User", "X-Remote-Group", "X-Remote-Extra-Scopes",
+		"X-Remote-Uid", "X-Remote-Anything-Else", "x-rEmOtE-lowercase",
 		"X-Forwarded-User", "X-Forwarded-Groups",
 		"X-Forwarded-Access-Token", "X-Entra-Access-Token",
 	} {

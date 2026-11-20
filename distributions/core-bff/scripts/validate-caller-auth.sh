@@ -49,6 +49,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# A BFF started here must own PORT: if something already listens there, the
+# checks below would run against that process instead. Refuse before creating
+# anything on the cluster.
+# curl exits 7 only when nothing accepts the connection (IPv4 or IPv6).
+port_free() {
+  local rc=0
+  curl -s -o /dev/null --connect-timeout 2 "http://localhost:$1/" || rc=$?
+  [[ $rc -eq 7 ]]
+}
+if [[ -z "${BFF_URL:-}" ]] && ! port_free "$PORT"; then
+  echo >&2 "port $PORT is already in use; stop that process or set PORT to a free port"
+  exit 1
+fi
+
 echo "Cluster: $(kubectl config current-context)  namespace: $NS  platform: $PLATFORM"
 if ! kubectl create namespace "$NS" >/dev/null; then
   echo >&2 "could not create namespace $NS (it may already exist); not touching it"
@@ -85,7 +99,21 @@ if [[ -z "${BFF_URL:-}" ]]; then
   LOG_LEVEL=debug "$work/core-bff" "${args[@]}" >"$work/bff.log" 2>&1 &
   bff_pid=$!
   BFF_URL=http://localhost:$PORT
-  for _ in $(seq 1 60); do curl -sf "$BFF_URL/healthcheck" >/dev/null && break; sleep 1; done
+  ready=false
+  for _ in $(seq 1 60); do
+    if ! kill -0 "$bff_pid" 2>/dev/null; then
+      echo >&2 "core-bff exited during startup; last log lines:"
+      tail -n 20 "$work/bff.log" >&2
+      exit 1
+    fi
+    if curl -sf "$BFF_URL/healthcheck" >/dev/null; then ready=true; break; fi
+    sleep 1
+  done
+  if [[ "$ready" != "true" ]]; then
+    echo >&2 "core-bff did not become ready on port $PORT within 60s; last log lines:"
+    tail -n 20 "$work/bff.log" >&2
+    exit 1
+  fi
 fi
 B=$BFF_URL
 
