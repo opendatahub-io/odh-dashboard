@@ -37,6 +37,7 @@ import (
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
+const conditionNamespacedRBACConsent = "NamespacedRBACConsentEnforced"
 
 var operatorDeploymentName = getOperatorDeploymentName()
 
@@ -141,22 +142,26 @@ var Version = "unknown"
 
 // Options configures the dashboard controller.
 type Options struct {
-	ManifestsBasePath     string
-	Platform              cluster.Platform
-	Namespace             string
-	ApplicationsNamespace string
+	ManifestsBasePath              string
+	Platform                       cluster.Platform
+	Namespace                      string
+	ApplicationsNamespace          string
+	NamespacedRBACAdmissionEnabled bool
+	NamespacedRBACWebhookEnabled   bool
 }
 
 // DashboardReconciler reconciles a Dashboard object.
 type DashboardReconciler struct {
 	client.Client
-	APIReader             client.Reader
-	Scheme                *runtime.Scheme
-	ManifestsBasePath     string
-	Platform              cluster.Platform
-	Namespace             string
-	ApplicationsNamespace string
-	RouteAPIAvailable     bool
+	APIReader                      client.Reader
+	Scheme                         *runtime.Scheme
+	ManifestsBasePath              string
+	Platform                       cluster.Platform
+	Namespace                      string
+	ApplicationsNamespace          string
+	NamespacedRBACAdmissionEnabled bool
+	NamespacedRBACWebhookEnabled   bool
+	RouteAPIAvailable              bool
 }
 
 // apiReader makes direct-read semantics explicit while retaining a fake-client
@@ -185,6 +190,11 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
+			// Revoke cross-namespace grants before any unrelated cleanup can fail or
+			// wait. The finalizer must not retain access after namespace consent ends.
+			if err := r.cleanupNamespacedRBAC(ctx, dashboard); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to cleanup namespaced RBAC: %w", err)
+			}
 			if dashboard.Spec.LegacyRedirects != nil {
 				if err := r.cleanupLegacyRedirects(ctx); err != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to cleanup legacy dashboard redirects: %w", err)
@@ -262,6 +272,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if dashboard.Spec.ManagementState == "Removed" {
 		cm.ClearCondition(conditionModelRegistryConfigValid)
 		logger.Info("ManagementState is Removed, tearing down resources")
+		// Revoke grants before module, portal, redirect, or core teardown. Those
+		// independent operations may fail and must not delay authorization cleanup.
+		if err := r.cleanupNamespacedRBAC(ctx, dashboard); err != nil {
+			r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "NamespacedRBACFailed", err)
+			return ctrl.Result{}, fmt.Errorf("failed to cleanup namespaced RBAC: %w", err)
+		}
 		var legacyRedirectErr error
 		if err := r.reconcileLegacyRedirects(ctx, dashboard); err != nil {
 			legacyRedirectErr = fmt.Errorf("failed to clean up legacy dashboard redirects: %w", err)
@@ -351,6 +367,14 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{RequeueAfter: portalRetryAfter}, legacyRedirectErr
 	}
 
+	// Revoke stale cross-namespace grants before any fallible configuration,
+	// rendering, deployment, or module reconciliation. This keeps namespace
+	// consent revocation independent of the health of unrelated resources.
+	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
+	if rbacErr != nil {
+		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
+	}
+
 	dashboard.Status.ObservedGeneration = dashboard.Generation
 
 	cfg := readOperatorConfig(ctx, r.apiReader(), r.Namespace)
@@ -378,6 +402,25 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			conditions.WithError(legacyRedirectErr),
 			conditions.WithReason("LegacyRedirectReconcileFailed"))
 		err = errors.Join(err, legacyRedirectErr)
+	}
+	if rbacErr != nil {
+		// Restore RBAC health after deployment helpers that may have recomputed
+		// aggregate conditions, then return the error so controller-runtime retries.
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithError(rbacErr),
+			conditions.WithReason("NamespacedRBACFailed"))
+		// Set the rollup directly after all dependent-condition updates so a
+		// concurrent deployment failure cannot hide the authorization failure.
+		conditions.SetStatusCondition(dashboard, common.Condition{
+			Type:     string(common.ConditionTypeReady),
+			Status:   metav1.ConditionFalse,
+			Severity: common.ConditionSeverityError,
+			Reason:   "NamespacedRBACFailed",
+			Message:  rbacErr.Error(),
+		})
+		err = errors.Join(err, rbacErr)
+	} else {
+		r.setNamespacedRBACTransitionCondition(dashboard)
 	}
 
 	releases := []common.ComponentRelease{{
@@ -408,6 +451,25 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	return result, err
+}
+
+func (r *DashboardReconciler) setNamespacedRBACTransitionCondition(dashboard *v1alpha1.Dashboard) {
+	if r.namespacedRBACConsentEnforced(dashboard) ||
+		(dashboard.Spec.NotebooksNamespace == "" && dashboard.Spec.ModelRegistryNamespace == "") {
+		conditions.RemoveStatusCondition(dashboard, conditionNamespacedRBACConsent)
+		return
+	}
+
+	// Transition state is orthogonal to workload health. Keep it in its own
+	// informational condition so it cannot overwrite Degraded or recompute
+	// an explicit Ready=False from modules or routing.
+	conditions.SetStatusCondition(dashboard, common.Condition{
+		Type:     conditionNamespacedRBACConsent,
+		Status:   metav1.ConditionFalse,
+		Severity: common.ConditionSeverityInfo,
+		Reason:   "NamespacedRBACConsentNotEnforced",
+		Message:  "Namespaced RBAC uses legacy grants until the platform enables consent enforcement",
+	})
 }
 
 // updateStatusIfChanged compares the final conditions with persisted state so
@@ -666,15 +728,6 @@ func (r *DashboardReconciler) reconcileDeployment(
 	dashboard.Status.ModuleStatuses = nextStatuses
 	r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
 
-	// Reconcile cross-namespace RBAC (notebooks, model-registry)
-	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
-	if rbacErr != nil {
-		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("NamespacedRBACFailed"),
-			conditions.WithError(rbacErr))
-	}
-
 	// A failed lookup leaves observability unknown, not disabled. Preserve its
 	// resources and Perses entry while reconciling the remaining federation entries.
 	observabilityRetryAfter := observabilityRetryInterval
@@ -710,15 +763,6 @@ func (r *DashboardReconciler) reconcileDeployment(
 	if requeueAfter == 0 {
 		r.reconcileDegradedCondition(cm, nextStatuses)
 	}
-	// reconcileURL and reconcileDegradedCondition overwrite Degraded on success;
-	// restore the RBAC failure so it is not silently cleared while cross-namespace
-	// grants are still broken.
-	if rbacErr != nil {
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("NamespacedRBACFailed"),
-			conditions.WithError(rbacErr))
-	}
-
 	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
 		requeueAfter = cfg.ReconcileInterval
 	}
@@ -883,7 +927,7 @@ func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context
 // cleanupCrossNamespaceResources explicitly removes resources on soft removal
 // as well as CR deletion. Observability remains shared while the portal needs it.
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard, preserveObservability bool) error {
-	if err := r.cleanupNamespacedRBAC(ctx); err != nil {
+	if err := r.cleanupNamespacedRBAC(ctx, dashboard); err != nil {
 		return fmt.Errorf("namespaced RBAC cleanup: %w", err)
 	}
 

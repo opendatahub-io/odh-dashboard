@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,14 +41,16 @@ func init() {
 
 func main() {
 	var (
-		manifestsBasePath string
-		metricsAddr       string
-		healthProbeAddr   string
-		leaderElect       bool
-		secureMetrics     bool
-		operatorNamespace string
-		enableWebhook     bool
-		webhookPort       int
+		manifestsBasePath     string
+		metricsAddr           string
+		healthProbeAddr       string
+		leaderElect           bool
+		secureMetrics         bool
+		operatorNamespace     string
+		enableWebhook         bool
+		webhookPort           int
+		namespacedRBACWriters string
+		enforceRBACConsent    bool
 	)
 
 	flag.StringVar(&manifestsBasePath, "manifests-base-path", "/opt/manifests/dashboard", "Base path for dashboard manifests")
@@ -58,13 +61,25 @@ func main() {
 	flag.StringVar(&operatorNamespace, "namespace", "", "Namespace where the operator is deployed")
 	flag.BoolVar(&enableWebhook, "enable-webhook", false, "Enable the validating webhook server (requires TLS certs)")
 	flag.IntVar(&webhookPort, "webhook-port", 9443, "Port the webhook server binds to")
+	flag.StringVar(&namespacedRBACWriters, "namespaced-rbac-writers", "", "Comma-separated usernames allowed to set namespaced RBAC target fields")
+	flag.BoolVar(&enforceRBACConsent, "enforce-namespaced-rbac-consent", false, "Require explicit target namespace consent before granting namespaced RBAC")
 
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+	writers := make([]string, 0)
+	for _, writer := range strings.Split(namespacedRBACWriters, ",") {
+		if writer = strings.TrimSpace(writer); writer != "" {
+			writers = append(writers, writer)
+		}
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	setupLog := ctrl.Log.WithName("setup")
+	if enforceRBACConsent && (!enableWebhook || len(writers) == 0) {
+		setupLog.Error(fmt.Errorf("consent enforcement requires the webhook and at least one trusted writer"), "invalid namespaced RBAC configuration")
+		os.Exit(1)
+	}
 
 	if operatorNamespace == "" {
 		operatorNamespace = os.Getenv("OPERATOR_NAMESPACE")
@@ -127,18 +142,31 @@ func main() {
 	setupLog.Info("Detected platform", "platform", platform)
 
 	if err := controller.SetupWithManager(mgr, controller.Options{
-		ManifestsBasePath:     manifestsBasePath,
-		Platform:              platform,
-		Namespace:             operatorNamespace,
-		ApplicationsNamespace: applicationsNamespace,
+		ManifestsBasePath:              manifestsBasePath,
+		Platform:                       platform,
+		Namespace:                      operatorNamespace,
+		ApplicationsNamespace:          applicationsNamespace,
+		NamespacedRBACAdmissionEnabled: enforceRBACConsent,
+		NamespacedRBACWebhookEnabled:   enableWebhook,
 	}); err != nil {
 		setupLog.Error(err, "unable to create Dashboard controller")
 		os.Exit(1)
 	}
 
 	if enableWebhook {
-		mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewSingletonHandler(mgr.GetAPIReader()))
-		setupLog.Info("Registered singleton validation webhook", "path", "/validate-dashboard")
+		serviceAccountName := os.Getenv("OPERATOR_SERVICE_ACCOUNT_NAME")
+		if serviceAccountName == "" {
+			serviceAccountName = "dashboard-operator"
+		}
+		controllerWriter := fmt.Sprintf("system:serviceaccount:%s:%s", operatorNamespace, serviceAccountName)
+		mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewDashboardHandler(
+			mgr.GetAPIReader(),
+			writers,
+			enforceRBACConsent,
+			controllerWriter,
+			operatorNamespace,
+		))
+		setupLog.Info("Registered Dashboard validation webhook", "path", "/validate-dashboard")
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
