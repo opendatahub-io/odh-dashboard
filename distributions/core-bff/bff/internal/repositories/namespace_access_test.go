@@ -154,8 +154,23 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 	}{
 		{
 			name:  "full deployer",
-			perms: map[string]models.ResourcePermissions{llm: all(models.AccessAllowed, "get", "list", "create", "patch", "delete"), sec: all(models.AccessAllowed, "create", "get", "patch", "delete")},
+			perms: map[string]models.ResourcePermissions{llm: all(models.AccessAllowed, "get", "list", "create", "update", "patch", "delete"), sec: all(models.AccessAllowed, "create", "get", "patch", "delete")},
 			want:  models.NamespaceActions{View: true, Deploy: true, Edit: true, Delete: true, ManageTokenAuth: true},
+		},
+		{
+			name:  "edit needs update as well as patch",
+			perms: map[string]models.ResourcePermissions{llm: {"get": models.AccessAllowed, "list": models.AccessAllowed, "patch": models.AccessAllowed, "update": models.AccessDenied}},
+			want:  models.NamespaceActions{View: true},
+		},
+		{
+			name:  "errored update fails edit closed",
+			perms: map[string]models.ResourcePermissions{llm: {"get": models.AccessAllowed, "list": models.AccessAllowed, "patch": models.AccessAllowed, "update": models.AccessError}},
+			want:  models.NamespaceActions{View: true},
+		},
+		{
+			name:  "update without patch is not edit",
+			perms: map[string]models.ResourcePermissions{llm: {"get": models.AccessAllowed, "list": models.AccessAllowed, "patch": models.AccessDenied, "update": models.AccessAllowed}},
+			want:  models.NamespaceActions{View: true},
 		},
 		{
 			name:  "read-only is never offered mutations",
@@ -542,6 +557,19 @@ func TestDiscover_ReliableDenialPlusFailureIsPartialEmptyNot503(t *testing.T) {
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err, "a reliable denial means discovery did not fail outright")
+	assert.Empty(t, list.Namespaces)
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+}
+
+func TestDiscover_NotFoundStillReportsItsFailedReviews(t *testing.T) {
+	allow := map[string]bool{}
+	deployer(allow, "gone")
+	client := &rbacClient{allow: allow, fail: map[string]bool{key("gone", "", "pods", "list"): true}}
+	repo := NewNamespaceAccessRepository([]string{"gone"}, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err, "a namespace that does not exist is a decided answer")
 	assert.Empty(t, list.Namespaces)
 	assert.False(t, list.Complete)
 	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)

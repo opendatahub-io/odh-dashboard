@@ -130,7 +130,7 @@ missing role; if nothing else decides, that review is reported as `error` as wel
 | ----------------- | ------------------------------------------------------------ |
 | `view`            | `llminferenceservices` `list`, `get`                         |
 | `deploy`          | `llminferenceservices` `create`                              |
-| `edit`            | `llminferenceservices` `patch`                               |
+| `edit`            | `llminferenceservices` `patch` and `update`                  |
 | `delete`          | `llminferenceservices` `delete`                              |
 | `manageTokenAuth` | `secrets` `create`, `get`, `patch`, `delete`                 |
 
@@ -193,7 +193,7 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
 
 ## Cost
 
-For each candidate, the 9 action reviews; for a namespace that is returned, 6 more matrix reviews
+For each candidate, the 10 action reviews; for a namespace that is returned, 5 more matrix reviews
 plus the named `get` (16 in all), and one namespace read when permitted. Reviews run concurrently
 with at most 16 in flight per request, which is what bounds the load on the API server. The
 caller's per-request client allows 400 requests per second (burst 800) instead of client-go's 5/10

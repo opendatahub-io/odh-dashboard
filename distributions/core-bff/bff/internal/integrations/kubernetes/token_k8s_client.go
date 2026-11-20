@@ -67,6 +67,15 @@ func NewKubeconfigKubernetesClient(ctx context.Context, logger *slog.Logger) (Ku
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
+	// Same rate as the per-request token client, so discovery in dev mode is
+	// not throttled to client-go's 5 QPS default.
+	if cfg.QPS == 0 {
+		cfg.QPS = TokenClientQPS
+	}
+	if cfg.Burst == 0 {
+		cfg.Burst = TokenClientBurst
+	}
+
 	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
