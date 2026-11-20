@@ -1,8 +1,16 @@
 import * as React from 'react';
 import { Button, Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import { useHostApi } from '@odh-dashboard/plugin-core';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { useTrackEvent } from '@odh-dashboard/analytics/react';
+
+const createProjectResource = {
+  group: 'project.openshift.io',
+  resource: 'projectrequests',
+  verb: 'create' as const,
+};
 
 type NewProjectButtonProps = {
   onProjectCreated?: (projectName: string) => void;
@@ -11,6 +19,7 @@ type NewProjectButtonProps = {
 const NewProjectButton: React.FC<NewProjectButtonProps> = ({ onProjectCreated }) => {
   const { createProject } = useHostApi();
   const trackEvent = useTrackEvent();
+  const [allowCreate, rbacLoaded] = useAccessReview(createProjectResource);
   const [open, setOpen] = React.useState(false);
   const [displayName, setDisplayName] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -66,6 +75,20 @@ const NewProjectButton: React.FC<NewProjectButtonProps> = ({ onProjectCreated })
     handleClose();
     onProjectCreated?.(projectName);
   };
+
+  if (!rbacLoaded) {
+    return null;
+  }
+
+  if (!allowCreate) {
+    return (
+      <WhosMyAdministrator
+        leadText="To request a new project, contact your administrator."
+        linkTestId="create-project-admin-help"
+        contentTestId="create-project-admin-help-content"
+      />
+    );
+  }
 
   return (
     <>
