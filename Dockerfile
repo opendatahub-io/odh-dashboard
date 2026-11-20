@@ -29,7 +29,8 @@ USER default
 RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile --prefer-offline
 
 ENV TURBO_TELEMETRY_DISABLED=1
-ENV NODE_OPTIONS=--max-old-space-size=8192
+ARG NODE_MAX_OLD_SPACE_SIZE=8192
+ENV NODE_OPTIONS=--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}
 RUN if [ "$BUILD_MODE" = "RHOAI" ]; then \
       echo "Setting up RHOAI vars.."; \
       echo '#!/bin/sh' > /tmp/env.sh; \

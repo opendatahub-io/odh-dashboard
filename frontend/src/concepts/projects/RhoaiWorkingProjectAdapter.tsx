@@ -236,7 +236,7 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
       activeProject={resolution.activeProject}
       onProjectChange={selectProject}
       registerProjectNavigation={registerProjectNavigation}
-      registerProjectRouteSync={registerProjectRouteSync}
+      registerProjectRouteSync={available ? registerProjectRouteSync : undefined}
       cancelProjectNavigation={cancelProjectNavigation}
       registerProjectNavigationBlocker={registerProjectNavigationBlocker}
     >
