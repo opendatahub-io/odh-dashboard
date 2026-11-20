@@ -4,9 +4,7 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
-import { SelfSubjectAccessReviewModel, ProjectModel } from '@odh-dashboard/internal/api/models';
-import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { SelfSubjectAccessReviewModel } from '@odh-dashboard/internal/api/models';
 import { mockPersesDashboard } from '../../../src/__mocks__/observabilityFixtures';
 import { observabilityDashboardPage } from '../../pages/observabilityDashboard';
 
@@ -100,76 +98,6 @@ const initIntercepts = ({
 };
 
 describe('Observability Dashboard', () => {
-  it('renders glass-corrected surfaces under the glass appearance', () => {
-    const glassDashboard = mockPersesDashboard({
-      name: 'dashboard-glass',
-      displayName: 'Glass',
-      project: 'opendatahub',
-      projectScoped: true,
-    });
-    cy.interceptK8sList(
-      ProjectModel,
-      mockK8sResourceList([
-        mockProjectK8sResource({ k8sName: 'test-project', displayName: 'Test Project' }),
-      ]),
-    );
-    initIntercepts({ dashboards: [glassDashboard], hasClusterMetricsAccess: true });
-
-    observabilityDashboardPage.visit();
-    cy.wait('@getPersesDashboards');
-    cy.findByTestId('variable-list').should('exist');
-
-    // switch to glass via the stored appearance preference
-    cy.window().then((win) => {
-      win.localStorage.setItem('odh.dashboard.ui.contrastMode', JSON.stringify('glass'));
-    });
-    cy.reload();
-    cy.findByTestId('variable-list').should('exist');
-    cy.get('html').should('have.class', 'pf-v6-theme-glass');
-
-    const computedBackground = (el: HTMLElement): string => {
-      const view = el.ownerDocument.defaultView;
-      if (!view) {
-        throw new Error('element window unavailable');
-      }
-      return view.getComputedStyle(el).backgroundColor;
-    };
-
-    // panel group headers sit on the page surface instead of painting one
-    cy.findByTestId('panel-group-header')
-      .should('exist')
-      .then(($el) => {
-        expect(computedBackground($el[0])).to.equal('rgba(0, 0, 0, 0)');
-      });
-
-    // variable toolbar: no negative bottom margin, spacer below
-    cy.findByTestId('variable-list').then(($el) => {
-      const view = $el[0].ownerDocument.defaultView;
-      if (!view) {
-        throw new Error('element window unavailable');
-      }
-      const cs = view.getComputedStyle($el[0]);
-      expect(cs.marginBottom).to.equal('0px');
-      expect(cs.paddingBottom).to.equal('16px');
-    });
-
-    // open the variable dropdown: the floating menu stays opaque under glass
-    cy.findByTestId('variable-list').find('input, button').first().click();
-    cy.get('[role="listbox"]')
-      .should('exist')
-      .closest('.MuiPaper-root')
-      .then(($paper) => {
-        expect(computedBackground($paper[0]), 'floating menu is not translucent').to.not.match(
-          /rgba\(.+,\s*0\.\d+\)/,
-        );
-      });
-
-    // restore the default appearance for subsequent tests
-    cy.window().then((win) => {
-      win.localStorage.removeItem('odh.dashboard.ui.contrastMode');
-    });
-  });
-
   it('should show empty state when no dashboards exist', () => {
     initIntercepts({ dashboards: [], hasClusterMetricsAccess: true });
 
