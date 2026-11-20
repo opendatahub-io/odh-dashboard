@@ -222,10 +222,11 @@ function AutomlConfigurePage({
     // Reconfigure keeps form state so users can edit step 1 without losing step 2 selections.
     if (!sourceRunId) {
       const createFieldSet = new Set<string>(createFields);
-      type DefaultKey = keyof typeof configureSchema.defaults;
-      const isDefaultKey = (key: string): key is DefaultKey => key in configureSchema.defaults;
-      for (const key of Object.keys(configureSchema.defaults)) {
-        if (!createFieldSet.has(key) && isDefaultKey(key)) {
+      type ConfigureKey = keyof ConfigureSchema;
+      const isConfigureKey = (key: string): key is ConfigureKey =>
+        key in configureSchema.base.shape;
+      for (const key of Object.keys(configureSchema.base.shape)) {
+        if (!createFieldSet.has(key) && isConfigureKey(key)) {
           form.setValue(key, configureSchema.defaults[key], { shouldValidate: false });
         }
       }
@@ -467,7 +468,6 @@ function AutomlConfigurePage({
                 <AutomlCreate />
               ) : (
                 <AutomlConfigure
-                  initialValues={initialValues}
                   initialInputDataSecret={initialInputDataSecret}
                   onRecommendationChange={(isRecommended) => {
                     isRecommendedRef.current = isRecommended;

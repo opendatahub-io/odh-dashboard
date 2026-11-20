@@ -228,6 +228,18 @@ func TestGetS3FileHandler(t *testing.T) {
 			wantBodyContains: `"row_count": 144`,
 		},
 		{
+			name:        "view=row-count returns a validation error for exceeded limits",
+			namespace:   "test-ns",
+			key:         "data.csv",
+			queryString: "secretName=my-secret&view=row-count",
+			setupMock: func(repo *mockS3Repo) {
+				repo.On("GetCSVRowCount", mock.Anything, mock.Anything, "data.csv").
+					Return(int64(0), fmt.Errorf("%w: row counting supports CSV records up to 1 MiB", s3.ErrInvalidCSV))
+			},
+			wantStatusCode:   http.StatusBadRequest,
+			wantBodyContains: "records up to 1 MiB",
+		},
+		{
 			name:      "view=row-count propagates access errors",
 			namespace: "test-ns", key: "data.csv",
 			queryString: "secretName=my-secret&view=row-count",

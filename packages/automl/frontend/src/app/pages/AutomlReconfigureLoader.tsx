@@ -18,6 +18,7 @@ import {
   EVAL_METRIC_ALIASES,
 } from '~/app/utilities/const';
 import { generateReconfigureName, getTaskType } from '~/app/utilities/utils';
+import { DATASET_SPLIT_AUTO, DATASET_SPLIT_SEPARATE } from '~/app/utilities/datasetSplit';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
@@ -187,6 +188,10 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     : DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType ?? ''];
   const initialValues: Partial<ConfigureSchema> = {
     ...parsed,
+    dataset_split_mode:
+      parsed.test_data_bucket_name?.trim() && parsed.test_data_file_key?.trim()
+        ? DATASET_SPLIT_SEPARATE
+        : DATASET_SPLIT_AUTO,
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
     target_column: targetColumn,

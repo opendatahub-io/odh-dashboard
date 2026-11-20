@@ -933,8 +933,8 @@ func TestS3Repository_GetCSVRowCount(t *testing.T) {
 	}
 	s3svc := &mockS3Service{
 		getObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error) {
-			if input.Range != "" || input.Key != "data.csv" {
-				t.Fatalf("expected an unrestricted CSV read, got %+v", input)
+			if input.Range != fmt.Sprintf("bytes=0-%d", s3.MaxCSVRowCountBytes) || input.Key != "data.csv" {
+				t.Fatalf("expected a bounded CSV read with one overflow byte, got %+v", input)
 			}
 			return io.NopCloser(strings.NewReader("name,value\n" + strings.Repeat("a,1\n", 144))), "text/csv", nil
 		},

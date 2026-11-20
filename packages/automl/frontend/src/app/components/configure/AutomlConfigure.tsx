@@ -131,6 +131,8 @@ import DatasetFilePicker, { type DatasetFileSourceMode } from './DatasetFilePick
 import './AutomlConfigure.scss';
 
 const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
+const SHARED_DATA_CONNECTION_DESCRIPTION =
+  'Training and test data use the same S3 connection and bucket. Changing the connection clears both file selections.';
 
 function explorerFileFromKey(fileKey?: string): ExplorerFile | undefined {
   if (!fileKey) {
@@ -143,7 +145,6 @@ function explorerFileFromKey(fileKey?: string): ExplorerFile | undefined {
 }
 
 type AutomlConfigureProps = {
-  initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: SecretSelection;
   /** Reports whether the currently selected prediction type matches the recommendation derived from the target column. */
   onRecommendationChange?: (isRecommended: boolean) => void;
@@ -152,12 +153,19 @@ type AutomlConfigureProps = {
 };
 
 function AutomlConfigure({
-  initialValues,
   initialInputDataSecret,
   onRecommendationChange,
   onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
   const trackEvent = useTrackEvent();
+  const form = useFormContext<ConfigureSchema>();
+  const {
+    control,
+    setValue,
+    getValues,
+    trigger,
+    formState: { isSubmitting: formIsSubmitting },
+  } = form;
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const automlConnectionTypes = React.useMemo(
@@ -179,8 +187,8 @@ function AutomlConfigure({
   const [fileExplorerTarget, setFileExplorerTarget] = useState<'train' | 'test'>('train');
   const [isTrainingAccordionExpanded, setIsTrainingAccordionExpanded] = useState(false);
   const [isTestAccordionExpanded, setIsTestAccordionExpanded] = useState(false);
-  const initialFileKey = initialValues?.train_data_file_key;
-  const initialTestFileKey = initialValues?.test_data_file_key;
+  const initialFileKey = getValues('train_data_file_key');
+  const initialTestFileKey = getValues('test_data_file_key');
 
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
     initialInputDataSecret,
@@ -190,15 +198,7 @@ function AutomlConfigure({
   const [testDataSourceMode, setTestDataSourceMode] = useState<DatasetFileSourceMode>('select');
   const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<
     ExplorerFile | undefined
-  >(() => {
-    if (!initialFileKey) {
-      return undefined;
-    }
-    const lastSegment = initialFileKey.split('/').pop();
-    const fileName = lastSegment || initialFileKey;
-    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
-    return { name: fileName, path: `/${initialFileKey}`, type: ext };
-  });
+  >(() => explorerFileFromKey(initialFileKey));
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);
   const [isTrainingDataUploadDropdownOpen, setIsTrainingDataUploadDropdownOpen] = useState(false);
   const trainingDataUploadSeqRef = useRef(0);
@@ -212,22 +212,12 @@ function AutomlConfigure({
   const testDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   // Initialized from initialFileKey so the file-change effect treats the pre-populated
-  // value as the baseline in reconfigure flows, preventing an unnecessary reset on mount.
+  // value as the baseline in reconfigure and Back → Next flows, preventing an unnecessary reset on mount.
   const previousFileKeyRef = useRef<string | undefined>(initialFileKey);
 
   const notification = useNotification();
 
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
-
-  const form = useFormContext<ConfigureSchema>();
-
-  const {
-    control,
-    setValue,
-    getValues,
-    trigger,
-    formState: { isSubmitting: formIsSubmitting },
-  } = form;
 
   const [
     trainDataSecretName,
@@ -1191,7 +1181,7 @@ function AutomlConfigure({
                                       </Content>
                                     </StackItem>
                                     {renderConnectionSelector(
-                                      'Select the S3 connection that contains your training data, or add a new connection.',
+                                      SHARED_DATA_CONNECTION_DESCRIPTION,
                                       'training-data-aws-secret-selector',
                                     )}
                                     {newConnectionNotLoaded && (
@@ -1297,7 +1287,7 @@ function AutomlConfigure({
                                       </Content>
                                     </StackItem>
                                     {renderConnectionSelector(
-                                      'Select the S3 connection that contains your test data, or add a new connection.',
+                                      SHARED_DATA_CONNECTION_DESCRIPTION,
                                       'test-data-aws-secret-selector',
                                     )}
                                     {newConnectionNotLoaded && (

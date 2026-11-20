@@ -2,7 +2,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -361,18 +361,15 @@ const fillConnectionModal = async () => {
 };
 
 const renderWithInitialValues = (
-  initialValues: Parameters<typeof AutomlConfigure>[0]['initialValues'] & {
+  initialValues: Partial<typeof configureSchema.defaults> & {
     initialInputDataSecret?: Parameters<typeof AutomlConfigure>[0]['initialInputDataSecret'];
   },
   defaultValues?: Partial<typeof configureSchema.defaults>,
 ) => {
   const { initialInputDataSecret, ...schemaValues } = initialValues;
   return renderWithQueryClient(
-    <AutomlConfigure
-      initialValues={schemaValues}
-      initialInputDataSecret={initialInputDataSecret}
-    />,
-    defaultValues,
+    <AutomlConfigure initialInputDataSecret={initialInputDataSecret} />,
+    { ...schemaValues, ...defaultValues },
   );
 };
 
@@ -1086,7 +1083,53 @@ describe('AutomlConfigure', () => {
           }),
         );
       });
+      await waitFor(() =>
+        expect(screen.getByRole('grid', { name: 'Test data file upload' })).toHaveTextContent(
+          'uploaded-key.csv',
+        ),
+      );
     });
+
+    it.each(['connection', 'split mode'])(
+      'should ignore a test upload that finishes after changing the %s',
+      async (change) => {
+        let finishUpload: () => void = () => {
+          throw new Error('Upload has not started');
+        };
+        mockS3MutateAsync.mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finishUpload = () => resolve({ uploaded: true, key: 'late-test.csv' });
+            }),
+        );
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByTestId('browse-bucket-button'));
+        fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+        fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+        fireEvent.click(
+          within(screen.getByTestId('test-data-source-upload-toggle')).getByRole('button'),
+        );
+        fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+          target: { files: [new File(['test rows'], 'test.csv', { type: 'text/csv' })] },
+        });
+        expect(mockS3MutateAsync).toHaveBeenCalled();
+
+        if (change === 'connection') {
+          fireEvent.click(screen.getByTestId('test-data-aws-secret-selector-select-secret-2'));
+        } else {
+          fireEvent.click(screen.getByTestId('dataset-split-auto'));
+          fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        }
+        await act(async () => finishUpload());
+
+        expect(screen.queryByText('late-test.csv')).not.toBeInTheDocument();
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
+        expect(screen.queryByText('2 of 2 datasets selected')).not.toBeInTheDocument();
+        expect(screen.getByText('Complete the Documents section')).toBeInTheDocument();
+      },
+    );
   });
 
   describe('with training data configured', () => {
@@ -1905,7 +1948,6 @@ describe('AutomlConfigure', () => {
       };
       renderWithQueryClient(
         <AutomlConfigure
-          initialValues={initialValues}
           initialInputDataSecret={{
             uuid: 'secret-1',
             name: 'Test Secret 1',
