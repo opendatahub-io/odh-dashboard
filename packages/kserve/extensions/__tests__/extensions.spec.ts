@@ -1,5 +1,5 @@
-import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import extensions from '../../extensions';
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import extensions, { KSERVE_ID } from '../../extensions';
 import { SERVING_RUNTIME_TEMPLATES_TAB_PATH } from '../../src/settings/servingRuntimeTemplates/paths';
 
 const routeExtensions = extensions.filter((extension) => extension.type === 'app.route');
@@ -9,6 +9,70 @@ const servingRuntimeTemplatesTab = extensions.find(
     extension.type === 'app.tab-route/tab' &&
     extension.properties.id === 'serving-runtime-templates',
 );
+
+describe('KServe UI capability gating', () => {
+  const kserveArea = extensions.find(
+    (extension) =>
+      extension.type === 'app.area' && extension.properties.id === SupportedArea.K_SERVE,
+  );
+  const watchDeployments = extensions.find(
+    (extension) => extension.type === 'model-serving.platform/watch-deployments',
+  );
+  const deleteDeployment = extensions.find(
+    (extension) => extension.type === 'model-serving.platform/delete-deployment',
+  );
+
+  it('should keep the KServe area gated on the disableKServe flag and DSC component', () => {
+    expect(kserveArea).toBeDefined();
+    expect(kserveArea?.properties).toEqual(
+      expect.objectContaining({
+        id: SupportedArea.K_SERVE,
+        featureFlags: ['disableKServe'],
+        requiredComponents: [DataScienceStackComponent.K_SERVE],
+        reliantAreas: [SupportedArea.MODEL_SERVING],
+      }),
+    );
+  });
+
+  it('should not register the shared single-model platform shell', () => {
+    // The platform shell is shared by KServe and LLMD and belongs to model-serving.
+    expect(extensions.map((extension) => extension.type)).not.toContain('model-serving.platform');
+  });
+
+  it('should keep InferenceService watch/delete capabilities behind the KServe area', () => {
+    expect(watchDeployments?.properties).toEqual(
+      expect.objectContaining({
+        platform: KSERVE_ID,
+      }),
+    );
+    expect(watchDeployments?.flags).toEqual({
+      required: [SupportedArea.K_SERVE],
+    });
+
+    expect(deleteDeployment?.properties).toEqual(
+      expect.objectContaining({
+        platform: KSERVE_ID,
+      }),
+    );
+    expect(deleteDeployment?.flags).toEqual({
+      required: [SupportedArea.K_SERVE],
+    });
+  });
+
+  it('should gate every KServe platform capability on the KServe area', () => {
+    const kserveCapabilityExtensions = extensions.filter(
+      (extension) =>
+        extension.type !== 'app.area' &&
+        'platform' in extension.properties &&
+        extension.properties.platform === KSERVE_ID,
+    );
+
+    expect(kserveCapabilityExtensions.length).toBeGreaterThan(0);
+    kserveCapabilityExtensions.forEach((extension) => {
+      expect(extension.flags?.required).toEqual(expect.arrayContaining([SupportedArea.K_SERVE]));
+    });
+  });
+});
 
 const formPaths = [
   `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/add`,
