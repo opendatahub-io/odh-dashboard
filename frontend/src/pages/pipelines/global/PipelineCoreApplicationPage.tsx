@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ButtonVariant } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import NoPipelineServer from '#~/concepts/pipelines/NoPipelineServer';
 import PipelineCoreProjectSelector from '#~/pages/pipelines/global/PipelineCoreProjectSelector';
@@ -31,6 +32,9 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
   ...pageProps
 }) => {
   const { pipelinesServer, pipelineLoadError } = usePipelinesAPI();
+  const isUnifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
 
   // Handle 403 errors with a specific message
   const loadErrorPage =
@@ -47,7 +51,9 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
       empty={!pipelinesServer.installed}
       emptyStatePage={<NoPipelineServer variant={ButtonVariant.primary} />}
       headerContent={
-        <PipelineCoreProjectSelector getRedirectPath={getRedirectPath} objectType={objectType} />
+        !isUnifiedProjectSelectorEnabled && (
+          <PipelineCoreProjectSelector getRedirectPath={getRedirectPath} objectType={objectType} />
+        )
       }
       provideChildrenPadding={!overrideChildPadding}
     >
