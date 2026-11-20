@@ -359,6 +359,19 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       },
     },
   },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.COMMUNITY_PLUGINS_SETTINGS, ADMIN_USER, 'RHOAI'],
+    },
+    properties: {
+      id: 'settings-community-plugins',
+      title: 'Community plugins',
+      href: '/settings/community-plugins',
+      section: 'settings',
+      group: '9_community_plugins',
+    },
+  },
 ];
 
 export default extensions;
