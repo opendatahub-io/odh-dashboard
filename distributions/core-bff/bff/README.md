@@ -55,6 +55,8 @@ make run LOG_LEVEL=DEBUG
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (requires `DEV_MODE=true`; rejected at startup otherwise) |
 | `-mock-bff-clients` | `MOCK_BFF_CLIENTS` | Use mock BFF clients (no real HTTP calls to other BFFs) |
 | `-namespace` | `NAMESPACE` / `POD_NAMESPACE` / `OC_PROJECT` | K8s namespace for dashboard resources (default `opendatahub`, falls back to `POD_NAMESPACE`, then `OC_PROJECT`) |
+| `-namespace-candidates` | `NAMESPACE_CANDIDATES` | Comma-separated namespace names that xKS namespace discovery evaluates for callers who cannot list namespaces (default empty). Each must be a DNS-1123 label. Candidates grant nothing: a name is returned only after the caller's own access reviews authorize it. See [namespace-discovery-contract.md](../docs/namespace-discovery-contract.md) |
+| `-namespace-discovery-label-selector` | `NAMESPACE_DISCOVERY_LABEL_SELECTOR` | Label selector for extra xKS discovery candidates, listed with the service account (default empty: off). Requires a cluster-scoped `list` on `namespaces` for the service account, the one optional service-account exception in [bootstrap-contract.md](../docs/bootstrap-contract.md#service-account-permissions). The RHAII manifest sets `opendatahub.io/dashboard=true` |
 | `-operator-namespace` | `OPERATOR_NAMESPACE` | Preferred namespace for the data science operator Subscription (default empty); probes the configured namespace when set, then the platform default and, for ODH, `openshift-operators` |
 | `-workbench-namespace` | `WORKBENCH_NAMESPACE` | K8s namespace for workbenches (defaults to dashboard namespace) |
 | `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME` | Name of the OdhDashboardConfig CR (default `odh-dashboard-config`) |

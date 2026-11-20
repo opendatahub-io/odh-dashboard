@@ -309,6 +309,7 @@ profile the dashboard **service account** needs:
 | `odhdashboardconfigs` (`opendatahub.io`)       | `get`         | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                                                                                                                                                                                                                                        |
 | `odhapplications` (`dashboard.opendatahub.io`) | `list`        | `/api/components`. **Always required**, also when the OdhApplication API is not installed: the API server authorizes a request before it resolves the resource, so without this rule an absent API is a 403. A forbidden list is an error. With the rule granted, an absent API or no instances degrades to an empty list. |
 | `configmaps` (core), dashboard namespace       | `get`, `list` | Connection-type templates (`GET /api/connection-types[/:name]`), filtered to the connection-type labels. Every authenticated user needs them to create a connection and is not granted ConfigMap access in the dashboard namespace.                                                                                        |
+| `namespaces` (core), cluster-scoped            | `list`        | **Only when `NAMESPACE_DISCOVERY_LABEL_SELECTOR` is set.** Namespace discovery's one service-account exception: it lists namespaces matching the selector to propose them as candidates. A proposed name reaches a caller only after the caller's own access reviews authorize it. See the [namespace discovery contract](./namespace-discovery-contract.md#the-service-account-exception). |
 
 All three rules are namespaced and the BFF reads in its dashboard namespace (`NAMESPACE`), so the
 Deployment sets `NAMESPACE` to the pod's own namespace, where the Role is bound. The shipped Roles
@@ -316,7 +317,8 @@ are exercised against an API server without the OdhApplication API in
 `bff/internal/api/components_sa_rbac_test.go`.
 
 On a confirmed xKS platform the service account needs **no** write verb on any resource, and no
-permission on `namespaces`, `servingruntimes`, `deployments` or `auths`. An _unconfirmed_ xKS guess
+permission on `namespaces` (other than the optional label-discovery `list` above),
+`servingruntimes`, `deployments` or `auths`. An _unconfirmed_ xKS guess
 keeps the `auth-resource` admission mode (see above), which reads `auths/auth` with the service
 account; set `ODH_PLATFORM_TYPE=XKS` so that read never happens. The current
 `manifests/base/cluster-role.yaml` grants more than this; the reduction is for

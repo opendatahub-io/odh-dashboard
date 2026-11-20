@@ -256,6 +256,8 @@ authoritative reference: it lists every setting, its precedence and what startup
 | `-enabled-apps-cm`       | `ENABLED_APPS_CM`                            | ConfigMap tracking enabled applications        | ""                       |
 | `-mf-remotes-config`     | `MF_REMOTES_CONFIG`                          | Path to module federation remotes config       | ""                       |
 | `-bundle-paths`          | `BUNDLE_PATHS`                               | Comma-separated PEM CA bundle paths            | (system defaults)        |
+| `-namespace-candidates`               | `NAMESPACE_CANDIDATES`               | xKS namespace discovery candidates, comma-separated; grant nothing                                                | ""                       |
+| `-namespace-discovery-label-selector` | `NAMESPACE_DISCOVERY_LABEL_SELECTOR` | xKS discovery candidates by label (service-account `list namespaces`; RHAII sets `opendatahub.io/dashboard=true`) | "" (off)                 |
 
 Startup validates every value before anything is built: numbers and booleans parse strictly, Kubernetes
 names and service URLs are checked, required settings may not be blank, and errors name the setting,
