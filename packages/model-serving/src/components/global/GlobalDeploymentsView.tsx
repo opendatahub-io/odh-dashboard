@@ -3,7 +3,6 @@ import { ApplicationsPage, ProjectObjectType, ProjectsContext } from '@odh-dashb
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { byName, type ProjectKind } from '@odh-dashboard/k8s-core';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useExtensions } from '@odh-dashboard/plugin-core';
 import { Alert, List, ListItem } from '@patternfly/react-core';
 import { GlobalNoModelsView } from './GlobalNoModelsView';
 import GlobalDeploymentsTable from './GlobalDeploymentsTable';
@@ -12,7 +11,7 @@ import NoProjectsPage from './NoProjectsPage';
 import GlobalModelsLoading from './GlobalModelsLoading';
 import { deploymentsInternalPath, deploymentsLegacyPath } from './deploymentsPaths';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
-import { isModelServingPlatformExtension } from '../../../extension-points';
+import { useModelServingDeployMethods } from '../../concepts/useModelServingDeployMethods';
 import EmptyModelServingPlatform from '../projectDetails/EmptyModelServingPlatform';
 import DeploymentsBannerSlot from '../deployments/DeploymentsBannerSlot';
 
@@ -32,7 +31,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   const { preferredProject } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
 
-  const allPlatforms = useExtensions(isModelServingPlatformExtension);
+  const { hasDeployMethods } = useModelServingDeployMethods();
   const {
     deployments,
     loaded: deploymentsLoaded,
@@ -40,8 +39,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   } = React.useContext(ModelDeploymentsContext);
   const hasDeployments = deployments && deployments.length > 0;
   const isLoading = !deploymentsLoaded || !projectsLoaded;
-  const isEmpty =
-    projects.length === 0 || (!isLoading && !hasDeployments) || allPlatforms.length === 0;
+  const isEmpty = projects.length === 0 || (!isLoading && !hasDeployments) || !hasDeployMethods;
 
   const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
   const { namespace: modelNamespace } = useParams<{ namespace: string }>();
@@ -97,7 +95,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
         emptyStatePage={
           projects.length === 0 ? (
             <NoProjectsPage />
-          ) : allPlatforms.length === 0 ? (
+          ) : !hasDeployMethods ? (
             <EmptyModelServingPlatform />
           ) : (
             <GlobalNoModelsView project={currentProject ?? undefined} />

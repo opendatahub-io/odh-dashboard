@@ -16,7 +16,7 @@ import {
   getCollections,
   getEvalHubCRStatus,
   validateHardwareProfiles,
-  getKueueWorkloadStatuses,
+  getInfo,
   getEvaluationJobs,
   getEvaluationJob,
   getProviders,
@@ -34,7 +34,7 @@ import type {
   EvalHubCRStatus,
   EvaluationJob,
   HardwareProfileValidationResponse,
-  KueueWorkloadStatus,
+  InfoResponse,
   Provider,
 } from '~/app/types';
 
@@ -128,31 +128,35 @@ describe('getEvalHubCRStatus', () => {
   });
 });
 
-describe('getKueueWorkloadStatuses', () => {
+describe('getInfo', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
   });
 
-  it('returns Kueue Workload statuses from the BFF response', async () => {
-    const statuses: KueueWorkloadStatus[] = [
-      {
-        evaluation_id: 'job-1',
-        queue_name: 'default',
-        state: 'queued',
-        message: 'Waiting for quota',
-      },
-    ];
-    mockRestGET.mockResolvedValue({ data: { items: statuses } });
+  it('returns the info response with tenant hardware profiles from the BFF', async () => {
+    const info: InfoResponse = {
+      version: '1.2.3',
+      hardware_profiles: [
+        {
+          name: 'gpu-small',
+          scheduling_type: 'queue',
+          queue_name: 'gpu',
+          identifiers: [{ identifier: 'cpu', default_count: '4' }],
+          queue_availability: { status: 'active', reason: 'Ready' },
+        },
+      ],
+    };
+    mockRestGET.mockResolvedValue({ data: info });
     mockIsModArchResponse.mockReturnValue(true);
 
-    const result = await getKueueWorkloadStatuses('', 'test-ns', ['job-1', 'job-2'])({});
+    const result = await getInfo('', 'test-ns')({});
 
-    expect(result).toEqual(statuses);
+    expect(result).toEqual(info);
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
-      '/eval-hub/api/v1/kueue/workloads',
-      { namespace: 'test-ns', evaluation_ids: 'job-1,job-2' },
+      '/eval-hub/api/v1/info',
+      { namespace: 'test-ns' },
       {},
     );
   });
@@ -161,9 +165,7 @@ describe('getKueueWorkloadStatuses', () => {
     mockRestGET.mockResolvedValue({ invalid: 'format' });
     mockIsModArchResponse.mockReturnValue(false);
 
-    await expect(getKueueWorkloadStatuses('', 'test-ns', ['job-1'])({})).rejects.toThrow(
-      'Invalid Kueue Workload status response format',
-    );
+    await expect(getInfo('', 'test-ns')({})).rejects.toThrow('Invalid info response format');
   });
 });
 
