@@ -6,7 +6,7 @@ ARG BUILD_MODE=ODH
 ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"
 ARG MINIMAL_IMAGE="registry.access.redhat.com/ubi9/nodejs-22-minimal:latest"
 
-FROM ${BASE_IMAGE} AS builder
+FROM --platform=$BUILDPLATFORM ${BASE_IMAGE} AS builder
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
