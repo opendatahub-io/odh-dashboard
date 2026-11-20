@@ -5,7 +5,7 @@ import useFetchState, {
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { DSPipelineKind } from '#~/k8sTypes';
 import { getPipelinesCR, listPipelinesCR } from '#~/api';
-import { FAST_POLL_INTERVAL } from '#~/utilities/const';
+import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const';
 import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils';
 import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon';
 
@@ -31,7 +31,21 @@ export const hasServerTimedOut = (
 
   const readyCondition = state.status?.conditions?.find((condition) => condition.type === 'Ready');
 
-  return !!readyCondition && getStatusFromCondition(readyCondition) === StatusType.ERROR;
+  if (readyCondition) {
+    return getStatusFromCondition(readyCondition) === StatusType.ERROR;
+  }
+
+  // The CR may not report a Ready condition yet.
+  // This falls back to the creation-time timeout
+  // only while the API server is still starting
+  // so established servers are never treated
+  // as timed out
+  const createTime = state.metadata.creationTimestamp;
+  if (!createTime || dspaLoaded([state, loaded])) {
+    return false;
+  }
+
+  return Date.now() - new Date(createTime).getTime() > SERVER_TIMEOUT;
 };
 
 const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {

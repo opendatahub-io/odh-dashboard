@@ -253,4 +253,67 @@ describe('EnsureAPIAvailability', () => {
     expect(screen.getByText('Child content')).toBeInTheDocument();
     expect(screen.queryByText('Pipeline server failed')).not.toBeInTheDocument();
   });
+
+  it('should time out an aged server without a Ready condition only while the API server is not ready', () => {
+    const now = Date.parse('2026-11-16T00:00:00Z');
+    jest.spyOn(Date, 'now').mockReturnValue(now);
+
+    const server = mockDataSciencePipelineApplicationK8sResource({});
+    server.metadata.creationTimestamp = new Date(now - SERVER_TIMEOUT - 60_000).toISOString();
+    const apiServerReadyCondition: K8sCondition = { type: 'APIServerReady', status: 'False' };
+    server.status = { conditions: [apiServerReadyCondition] };
+
+    mockUsePipelinesAPI.mockImplementation(() => {
+      const state: [typeof server, boolean] = [server, true];
+      const ready = isDspaAllReady(state);
+
+      return {
+        pipelinesServer: {
+          initializing: false,
+          installed: true,
+          compatible: true,
+          timedOut: hasServerTimedOut(state, ready),
+          name: server.metadata.name,
+          crStatus: server.status,
+          isStarting: !ready,
+        },
+        namespace: 'test-project',
+        project: mockProject,
+        refreshAllAPI: jest.fn(),
+        getRecurringRunInformation: jest.fn(),
+        metadataStoreServiceClient: {} as never,
+        refreshState: jest.fn(),
+        managedPipelines: undefined,
+        mlflowIntegrationMode: undefined,
+        mlflowInjectUserEnvVars: false,
+        apiAvailable: true,
+        api: {} as never,
+        pipelineLoadError: undefined,
+      };
+    });
+
+    const page = (
+      <MemoryRouter>
+        <EnsureAPIAvailability>
+          <div>Child content</div>
+        </EnsureAPIAvailability>
+      </MemoryRouter>
+    );
+    const { rerender } = render(page);
+
+    expect(screen.getByText('Pipeline server failed')).toBeInTheDocument();
+    expect(screen.queryByText('Starting pipeline server')).not.toBeInTheDocument();
+
+    apiServerReadyCondition.status = 'True';
+    rerender(
+      <MemoryRouter>
+        <EnsureAPIAvailability>
+          <div>Child content</div>
+        </EnsureAPIAvailability>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Starting pipeline server')).toBeInTheDocument();
+    expect(screen.queryByText('Pipeline server failed')).not.toBeInTheDocument();
+  });
 });
