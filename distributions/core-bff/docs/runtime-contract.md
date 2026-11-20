@@ -33,8 +33,10 @@ exits 0.
 ## Startup is a gate
 
 `parseStartupConfig` resolves the configuration and validates it before anything is built. A
-configuration that does not validate does not start, and the process prints every problem it
-found in one pass so a fix does not need one restart per mistake:
+configuration that does not validate does not start. Once parsing and enum resolution succeed,
+validation collects every problem it finds and prints them in one pass, so a fix does not need one
+restart per mistake. A flag or enum value that fails to parse stops startup on its own, before
+validation runs:
 
 ```
 core-bff refusing to start: invalid configuration (2 problems):
@@ -46,20 +48,20 @@ core-bff refusing to start: invalid configuration (2 problems):
 
 ### Core
 
-| Flag                      | Environment                    | Default                | Notes                                                              |
-| ------------------------- | ------------------------------ | ---------------------- | ------------------------------------------------------------------ |
+| Flag                      | Environment                    | Default                | Notes                                                               |
+| ------------------------- | ------------------------------ | ---------------------- | ------------------------------------------------------------------- |
 | `--port`                  | `PORT`                         | `4000`                 | Must be an integer 1–65535. A malformed explicit `PORT` is refused. |
-| `--deployment-mode`       | `DEPLOYMENT_MODE`              | `standalone`           | `standalone` or `federated`.                                       |
-| `--platform-type`         | `ODH_PLATFORM_TYPE`            | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection. |
-| `--admission-mode`        | `ADMISSION_MODE`               | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.    |
-| `--namespace`             | `NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required.                                     |
-| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`          | _(= namespace)_        | Namespace allowlist entry.                                         |
-| `--operator-namespace`    | `OPERATOR_NAMESPACE`           | _(empty)_              | Preferred subscription namespace (OpenShift).                      |
-| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`        | `odh-dashboard-config` | OdhDashboardConfig CR name.                                        |
-| `--enabled-apps-cm`       | `ENABLED_APPS_CM`              | _(empty)_              | ConfigMap tracking enabled applications.                           |
-| `--static-assets-dir`     | `STATIC_ASSETS_DIR`            | `./static`             | SPA asset root. Required.                                          |
-| `--log-level`             | `LOG_LEVEL`                    | `INFO`                 | `error`, `warn`, `info`, `debug`.                                  |
-| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`            | _(empty)_              | Module federation remotes file.                                    |
+| `--deployment-mode`       | `DEPLOYMENT_MODE`              | `standalone`           | `standalone` or `federated`.                                        |
+| `--platform-type`         | `ODH_PLATFORM_TYPE`            | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection.  |
+| `--admission-mode`        | `ADMISSION_MODE`               | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.     |
+| `--namespace`             | `NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required.                                      |
+| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`          | _(= namespace)_        | Namespace allowlist entry.                                          |
+| `--operator-namespace`    | `OPERATOR_NAMESPACE`           | _(empty)_              | Preferred subscription namespace (OpenShift).                       |
+| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`        | `odh-dashboard-config` | OdhDashboardConfig CR name.                                         |
+| `--enabled-apps-cm`       | `ENABLED_APPS_CM`              | _(empty)_              | ConfigMap tracking enabled applications.                            |
+| `--static-assets-dir`     | `STATIC_ASSETS_DIR`            | `./static`             | SPA asset root. Required.                                           |
+| `--log-level`             | `LOG_LEVEL`                    | `INFO`                 | `error`, `warn`, `info`, `debug`.                                   |
+| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`            | _(empty)_              | Module federation remotes file.                                     |
 
 ### Authentication
 
@@ -79,14 +81,15 @@ that the header name is configuration, not a constant.
 | ------------------------ | ---------------------- | ---------------------- | ------------------------------------------------------------------- |
 | `--cert-file`            | `CERT_FILE`            | _(empty)_              | Serving certificate. Both halves or neither.                        |
 | `--key-file`             | `KEY_FILE`             | _(empty)_              | Serving key.                                                        |
-| `--bundle-paths`         | `BUNDLE_PATHS`         | _(5 well-known paths)_ | Comma-separated PEM CA bundles for every outbound TLS connection.   |
+| `--bundle-paths`         | `BUNDLE_PATHS`         | _(5 well-known paths)_ | Comma-separated PEM CA bundles for the HTTP clients and proxies.    |
 | `--insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | `false`                | Rejected in a production profile.                                   |
 | `--allowed-origins`      | `ALLOWED_ORIGINS`      | _(none)_               | CORS origins. Production accepts exact `scheme://host[:port]` only. |
 
 ### Development and mocks
 
 `DEV_MODE`, `MOCK_K8S_CLIENT`, `MOCK_HTTP_CLIENT`, `MOCK_BFF_CLIENTS`, `DEV_MODE_CLIENT_PORT`,
-`DEV_USER`, `DEV_GROUPS`. All default to off/empty.
+`DEV_USER`, `DEV_GROUPS`. All default to off/empty, except `DEV_MODE_CLIENT_PORT` (`8080`) and
+`DEV_USER` (`developer`).
 
 ### Services
 
@@ -99,10 +102,10 @@ A deployment is in a **production profile** unless at least one of `DEV_MODE`,
 `MOCK_K8S_CLIENT`, `MOCK_HTTP_CLIENT` or `MOCK_BFF_CLIENTS` is on. Opting into a development
 profile is explicit, which is what makes these rejections safe:
 
-| Rejected in a production profile                                                                                             | Why                                                                                                                 | Way out                                                     |
-| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `AUTH_METHOD=disabled`                                                                                                       | No caller identity is extracted at all.                                                                             | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.       |
-| `INSECURE_SKIP_VERIFY=true`                                                                                                  | Disables upstream certificate verification on every outbound call.                                                  | Supply the upstream CA through `BUNDLE_PATHS`.              |
+| Rejected in a production profile                                                                                                                        | Why                                                                                                                                                                                                                                                                   | Way out                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `AUTH_METHOD=disabled`                                                                                                                                  | No caller identity is extracted at all.                                                                                                                                                                                                                               | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.       |
+| `INSECURE_SKIP_VERIFY=true`                                                                                                                             | Disables upstream certificate verification on outbound calls (Prometheus only in dev/mock mode).                                                                                                                                                                      | Supply the upstream CA through `BUNDLE_PATHS`.              |
 | `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), or an entry with a path (including a trailing `/`), query or user info | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. Browsers send `Origin` without a trailing slash, so `https://host/` could never match. Rejected entries are reported by position, never by value. | List each exact dashboard origin as `scheme://host[:port]`. |
 
 ## TLS inputs
@@ -135,7 +138,9 @@ in the kubeconfig out of cluster. `BUNDLE_PATHS` is for the upstream services th
 over plain HTTP clients, not for the API server.
 
 There is no per-transport trust override and no per-transport skip-verify: `INSECURE_SKIP_VERIFY`
-is global and rejected in a production profile.
+applies to every outbound transport and is rejected in a production profile. The Prometheus client
+honours it only when `DEV_MODE` or `MOCK_K8S_CLIENT` is also on, so `MOCK_BFF_CLIENTS` alone leaves
+Prometheus verification enabled.
 
 `BUNDLE_PATHS` has two modes, because the two cases have different failure semantics:
 
@@ -231,12 +236,12 @@ disagreement with the probe is logged.
 
 ## Retained supporting services
 
-| Service             | Endpoint                                                                                 | Namespace              | TLS                                      | Credentials                                                                              | Response contract                                                  |
-| ------------------- | ---------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Kubernetes API      | rest config (in-cluster or kubeconfig)                                                   | n/a                    | Root pool + bundles                      | Caller bearer token; SA client for the privileged reads listed in the bootstrap contract | Kubernetes `v1.Status` on failure, sanitized by the error contract |
-| Model serving       | `MODEL_SERVING_HOST`, else `https://model-serving-api.<namespace>.svc.cluster.local:443` | dashboard namespace    | Root pool + bundles, SSRF-guarded dialer | Caller bearer token forwarded                                                            | Passthrough; local failures use the proxy error contract           |
-| Module BFFs         | federation config / per-module service                                                   | per module             | Root pool + bundles                      | Caller bearer token forwarded                                                            | Passthrough, `Cache-Control: no-store` forced on replies           |
-| Prometheus / Thanos | `PROMETHEUS_HOST`, else built from namespace/instance/port                               | `PROMETHEUS_NAMESPACE` | Root pool + bundles                      | Caller bearer token                                                                      | OpenShift only; 404 on xKS via `requirePlatform`                   |
+| Service             | Endpoint                                                                                 | Namespace              | TLS                                                                   | Credentials                                                                              | Response contract                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Kubernetes API      | rest config (in-cluster or kubeconfig)                                                   | n/a                    | Clients: rest config CA. Proxies: root pool + bundles + kubeconfig CA | Caller bearer token; SA client for the privileged reads listed in the bootstrap contract | Kubernetes `v1.Status` on failure, sanitized by the error contract |
+| Model serving       | `MODEL_SERVING_HOST`, else `https://model-serving-api.<namespace>.svc.cluster.local:443` | dashboard namespace    | Root pool + bundles, SSRF-guarded dialer                              | Caller bearer token forwarded                                                            | Passthrough; local failures use the proxy error contract           |
+| Module BFFs         | federation config / per-module service                                                   | per module             | Root pool + bundles                                                   | Caller bearer token forwarded                                                            | Passthrough, `Cache-Control: no-store` forced on replies           |
+| Prometheus / Thanos | `PROMETHEUS_HOST`, else built from namespace/instance/port                               | `PROMETHEUS_NAMESPACE` | Root pool + bundles                                                   | Caller bearer token                                                                      | OpenShift only; 404 on xKS via `requirePlatform`                   |
 
 A mock response is never evidence that one of these is available. `MOCK_HTTP_CLIENT`,
 `MOCK_BFF_CLIENTS` and `MOCK_K8S_CLIENT` all move the deployment out of the production profile, so

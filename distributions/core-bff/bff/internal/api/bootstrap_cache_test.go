@@ -3,15 +3,30 @@ package api
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/stretchr/testify/assert"
 )
 
+// varyMembers splits every Vary field value into its comma-separated members,
+// lowercased, so assertions do not depend on how the members are combined.
+func varyMembers(h http.Header) []string {
+	var members []string
+	for _, v := range h.Values(constants.HeaderVary) {
+		for _, m := range strings.Split(v, ",") {
+			if m = strings.TrimSpace(m); m != "" {
+				members = append(members, strings.ToLower(m))
+			}
+		}
+	}
+	return members
+}
+
 // AC (RHOAIENG-101219): authenticated bootstrap responses prevent shared
-// caching. no-store forbids storage; Vary additionally stops an intermediary
-// that keys only on the URL from serving one caller's bootstrap to another.
+// caching. no-store forbids storage by compliant caches; Vary keys any cache
+// that honours it on the caller's identity headers.
 func TestBootstrapResponsesPreventSharedCaching(t *testing.T) {
 	app := newTestApp()
 	handler := app.SetSecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -30,10 +45,10 @@ func TestBootstrapResponsesPreventSharedCaching(t *testing.T) {
 
 			assert.Equal(t, constants.CacheControlNoStore, rr.Header().Get(constants.HeaderCacheControl))
 
-			vary := rr.Header().Values(constants.HeaderVary)
-			assert.Contains(t, vary, constants.HeaderAuthorization)
-			assert.Contains(t, vary, constants.HeaderForwardedToken)
-			assert.Contains(t, vary, constants.HeaderCookie)
+			vary := varyMembers(rr.Header())
+			assert.Contains(t, vary, strings.ToLower(constants.HeaderAuthorization))
+			assert.Contains(t, vary, strings.ToLower(constants.HeaderForwardedToken))
+			assert.Contains(t, vary, strings.ToLower(constants.HeaderCookie))
 		})
 	}
 }
@@ -48,7 +63,7 @@ func TestStaticResponsesAreNotMarkedVaryOnIdentity(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/assets/main.1a2b3c4d.js", nil))
 
-	assert.Empty(t, rr.Header().Values(constants.HeaderVary))
+	assert.Empty(t, varyMembers(rr.Header()))
 }
 
 // A handler that already set Vary keeps its entry exactly once.
@@ -63,8 +78,8 @@ func TestVaryIsNotDuplicated(t *testing.T) {
 	handler.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, StatusPath, nil))
 
 	var authorizationEntries int
-	for _, v := range rr.Header().Values(constants.HeaderVary) {
-		if v == "authorization" || v == constants.HeaderAuthorization {
+	for _, m := range varyMembers(rr.Header()) {
+		if m == strings.ToLower(constants.HeaderAuthorization) {
 			authorizationEntries++
 		}
 	}

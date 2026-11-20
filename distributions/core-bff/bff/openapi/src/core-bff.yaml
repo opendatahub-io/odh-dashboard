@@ -671,8 +671,11 @@ paths:
 
 
         **Admission** (`isAllowed`) says whether the dashboard shell may load.
-        How it is decided depends on the admission mode. In `auth-resource`
-        mode (the OpenShift default) the Auth resource gates it: an absent CRD
+        How it is decided depends on the admission mode. A caller whose `patch`
+        review on `auths/auth` succeeds (a dashboard admin) is admitted first,
+        without an Auth lookup or a `get` review. For everyone else, in
+        `auth-resource` mode (the OpenShift default) the Auth resource gates
+        it: an absent CRD
         or an `allowedGroups` entry of `system:authenticated` admits everyone,
         otherwise an SSAR for `get` on `auths/auth` decides. A missing Auth
         instance, a forbidden read, or an upstream failure each defer to that
@@ -693,9 +696,11 @@ paths:
         permission to call a guarded route.
 
 
-        Bootstrap reads are read-only. Required resources are provisioned by
-        the installation owner or supplied through the configured source; the
-        dashboard never creates them on the xKS profile.
+        On the xKS profile bootstrap reads are read-only: required resources
+        are provisioned by the installation owner or supplied through the
+        configured source, and the dashboard never creates them. On OpenShift,
+        `GET /api/config` still auto-creates a missing `OdhDashboardConfig`
+        instance when the CRD is installed, as RHOAI does today.
 
 
         See `docs/bootstrap-contract.md`.
@@ -2362,10 +2367,13 @@ components:
         maxLength: 36
     IdentityVary:
       description: >-
-        Lists the request headers that carry the caller identity. Sent on every
-        /api response alongside `Cache-Control: no-cache, no-store, private,
-        max-age=0, must-revalidate`, so an intermediary cannot serve one
-        caller's response to another.
+        A fixed list of the standard identity headers: `Authorization`,
+        `X-Forwarded-Access-Token` and `Cookie`. A custom `AUTH_TOKEN_HEADER`
+        is not added. Sent on every /api response alongside `Cache-Control:
+        no-cache, no-store, private, max-age=0, must-revalidate`. `no-store` is
+        what forbids a compliant cache from storing the response; `Vary` keys
+        any cache that honours it on these headers, and does not protect
+        against an intermediary that ignores it.
       schema:
         type: string
         example: 'Authorization, X-Forwarded-Access-Token, Cookie'

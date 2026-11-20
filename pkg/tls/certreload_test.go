@@ -189,7 +189,9 @@ func TestCertReloaderRejectsRotationOutsideValidityWindow(t *testing.T) {
 	}
 }
 
-// A later good rotation is still picked up after a bad one.
+// A later good rotation is still picked up after a bad one, even when the
+// repaired pair carries exactly the modification times of the failed attempt.
+// A failed load must not record those times, or the repair would be ignored.
 func TestCertReloaderRecoversAfterAnInvalidRotation(t *testing.T) {
 	dir := t.TempDir()
 	certFile, keyFile := writeCertPairWithSerial(t, dir, 1)
@@ -206,8 +208,14 @@ func TestCertReloaderRecoversAfterAnInvalidRotation(t *testing.T) {
 	if got := servedSerial(t, r); got != 1 {
 		t.Fatalf("serial = %d, want the previous 1", got)
 	}
+	failedCert, failedKey := modTime(certFile), modTime(keyFile)
 
 	writeCertPairWithSerial(t, dir, 3)
+	for p, mt := range map[string]time.Time{certFile: failedCert, keyFile: failedKey} {
+		if err := os.Chtimes(p, mt, mt); err != nil {
+			t.Fatalf("chtimes: %v", err)
+		}
+	}
 	if got := servedSerial(t, r); got != 3 {
 		t.Fatalf("serial after recovery = %d, want 3", got)
 	}

@@ -14,7 +14,10 @@ const headerValues = (headers: unknown, name: string): string[] => {
   if (raw === undefined) {
     return [];
   }
-  return (Array.isArray(raw) ? raw : raw.split(',')).map((v) => v.trim().toLowerCase());
+  return (Array.isArray(raw) ? raw : [raw])
+    .flatMap((v) => v.split(','))
+    .map((v) => v.trim().toLowerCase())
+    .filter((v) => v !== '');
 };
 
 describe('Core BFF bootstrap contract', () => {
@@ -65,9 +68,10 @@ describe('Core BFF bootstrap contract', () => {
       const { response } = expectSuccess(await restrictedClient.get('/api/status'));
       const { kube } = response.data as { kube: Record<string, boolean> };
 
+      expect(kube.isAllowed).toBe(true);
       expect(kube.isAdmin).toBe(false);
 
-      // Admitted or not, the guarded route runs its own review and refuses.
+      // Admitted, yet the guarded route runs its own review and refuses.
       const guarded = await restrictedClient.get('/api/cluster-settings');
       expectError(guarded, 403);
     });

@@ -27,7 +27,7 @@ describe('Core BFF bootstrap - XKS Platform', () => {
 
   it('serves the component bootstrap to a non-admin even with no OdhApplications', async () => {
     const { response } = expectSuccess(await restrictedClient.get('/api/components'));
-    expect(Array.isArray(response.data)).toBe(true);
+    expect(response.data).toEqual([]);
   });
 
   it('does not expose OpenShift-only bootstrap surfaces', async () => {

@@ -14,6 +14,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	k8stesting "k8s.io/client-go/testing"
 )
 
@@ -153,25 +154,32 @@ func TestResolveAdmission_AuthFailureModesDeferToTheReview(t *testing.T) {
 // including deployments where the Auth resource is outside the profile.
 func TestResolveAdmission_AuthenticatedModeNeedsNoAuthResourcePermissions(t *testing.T) {
 	cases := []struct {
-		name     string
-		authRepo *AuthRepository
+		name string
+		dyn  *dynamicfake.FakeDynamicClient // nil: no dynamic client at all
 	}{
-		{"CRD absent", NewAuthRepository(newFakeDynClientCRDAbsent())},
-		{"instance not provisioned", NewAuthRepository(newFakeDynClientInstanceAbsent())},
-		{"restricted group", NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))},
-		{"no dynamic client at all", NewAuthRepository(nil)},
+		{"CRD absent", newFakeDynClientCRDAbsent()},
+		{"instance not provisioned", newFakeDynClientInstanceAbsent()},
+		{"restricted group", newFakeDynClientWithAuth([]string{"restricted-group"})},
+		{"no dynamic client at all", nil},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			// A review that would deny, to prove it is never consulted.
 			client := &mockUserAllowedClient{allowed: false, err: errors.New("CANARY_REVIEW")}
+			authRepo := NewAuthRepository(nil)
+			if tc.dyn != nil {
+				authRepo = NewAuthRepository(tc.dyn)
+			}
 
-			got := admit(client, tc.authRepo, config.AdmissionModeAuthenticated, false)
+			got := admit(client, authRepo, config.AdmissionModeAuthenticated, false)
 
 			assert.True(t, got.Admitted)
 			assert.Equal(t, CodeAdmissionAuthenticated, got.Code)
 			assert.Zero(t, client.calls, "authenticated mode must not depend on an Auth-resource review")
+			if tc.dyn != nil {
+				assert.Empty(t, tc.dyn.Actions(), "authenticated mode must not read the Auth resource at all")
+			}
 		})
 	}
 }

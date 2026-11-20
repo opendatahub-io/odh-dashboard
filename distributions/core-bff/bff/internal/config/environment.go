@@ -125,8 +125,11 @@ type EnvConfig struct {
 	// AllowedOrigins lists CORS allowed origins.
 	AllowedOrigins []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
-	// The certificates are added to the Root CAs used for every outbound TLS
-	// connection. Individual missing or unreadable files are skipped; see
+	// The certificates are added to the Root CAs of the HTTP clients and proxy
+	// transports (Kubernetes HTTP/WebSocket proxies, model-serving and module
+	// proxies, inter-BFF and Prometheus clients). The client-go Kubernetes
+	// clients do not use this pool: they trust the CA from rest.Config.
+	// Individual missing or unreadable files are skipped; see
 	// BundlePathsRequired for what happens when none of them load.
 	BundlePaths []string
 

@@ -33,7 +33,7 @@ func (c EnvConfig) LogValue() slog.Value {
 
 		slog.Group("auth",
 			slog.String("method", c.AuthMethod),
-			slog.String("tokenHeader", c.AuthTokenHeader),
+			slog.Bool("tokenHeaderSet", strings.TrimSpace(c.AuthTokenHeader) != ""),
 			slog.Bool("tokenPrefixSet", c.AuthTokenPrefix != ""),
 		),
 
