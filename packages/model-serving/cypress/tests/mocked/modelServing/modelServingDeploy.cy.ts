@@ -443,16 +443,16 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findTokenAuthenticationCheckbox().click();
     modelServingWizard.findTokenWarningAlert().should('exist');
     modelServingWizard.findTokenAuthenticationCheckbox().click();
-    modelServingWizard.findServiceAccountByIndex(0).should('have.value', 'default-name');
-    modelServingWizard.findAddServiceAccountButton().click();
-    modelServingWizard.findServiceAccountByIndex(1).should('have.value', 'default-name');
-    modelServingWizard.findServiceNameAlert().should('exist');
-    modelServingWizard.findServiceAccountByIndex(1).clear().type('new-name');
-    modelServingWizard.findServiceNameAlert().should('not.exist');
-    modelServingWizard.findRemoveServiceAccountByIndex(1).click();
-    modelServingWizard.findServiceAccountByIndex(0).clear();
+    modelServingWizard.findSecretNameByIndex(0).should('have.value', 'default-name');
+    modelServingWizard.findAddSecretButton().click();
+    modelServingWizard.findSecretNameByIndex(1).should('have.value', 'default-name');
+    modelServingWizard.findSecretNameAlert().should('exist');
+    modelServingWizard.findSecretNameByIndex(1).clear().type('new-name');
+    modelServingWizard.findSecretNameAlert().should('not.exist');
+    modelServingWizard.findRemoveSecretByIndex(1).click();
+    modelServingWizard.findSecretNameByIndex(0).clear();
     modelServingWizard.findNextButton().should('be.disabled');
-    modelServingWizard.findServiceAccountByIndex(0).clear().type('new name');
+    modelServingWizard.findSecretNameByIndex(0).clear().type('new name');
 
     modelServingWizard.findDeploymentStrategySection().should('exist');
     modelServingWizard.findDeploymentStrategyRollingOption().should('be.checked');
@@ -1566,7 +1566,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
     modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
     modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
-    modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'default-name');
+    modelServingWizardEdit.findSecretNameByIndex(0).should('have.value', 'default-name');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
