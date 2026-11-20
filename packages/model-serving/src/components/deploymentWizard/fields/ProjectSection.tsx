@@ -23,6 +23,24 @@ export const useDeploymentTargetProjects = (): ProjectKind[] => {
   return deploymentTargetProjects ?? projects;
 };
 
+/**
+ * The deployment targets in ProjectSelector's shape, or undefined when the
+ * host sets none (the selector then lists every project).
+ */
+export const useDeploymentTargetNamespaces = ():
+  | { name: string; displayName: string }[]
+  | undefined => {
+  const { deploymentTargetProjects } = React.useContext(ProjectsContext);
+  return React.useMemo(
+    () =>
+      deploymentTargetProjects?.map((project) => ({
+        name: project.metadata.name,
+        displayName: getDisplayNameFromK8sResource(project),
+      })),
+    [deploymentTargetProjects],
+  );
+};
+
 export const useProjectSection = (initialProjectName?: string): ProjectSectionType => {
   const [projectName, setProjectNameState] = React.useState<string | undefined>(initialProjectName);
   const { updatePreferredProject } = React.useContext(ProjectsContext);
@@ -48,15 +66,7 @@ const ProjectSection: React.FC<ProjectSectionType> = ({
   setProjectName,
 }) => {
   const projectLabel = `This is the project where the model will be deployed.`;
-  const { deploymentTargetProjects } = React.useContext(ProjectsContext);
-  const targetNamespaces = React.useMemo(
-    () =>
-      deploymentTargetProjects?.map((project) => ({
-        name: project.metadata.name,
-        displayName: getDisplayNameFromK8sResource(project),
-      })),
-    [deploymentTargetProjects],
-  );
+  const targetNamespaces = useDeploymentTargetNamespaces();
   if (!initialProjectName) {
     return (
       <FormGroup label="Project" isRequired>

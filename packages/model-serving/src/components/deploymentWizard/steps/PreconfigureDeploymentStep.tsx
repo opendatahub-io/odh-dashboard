@@ -15,6 +15,7 @@ import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ValidatedArgumentsSection } from '../fields/validatedConfigurations/ValidatedArgumentsSection';
 import { hasValidatedConfigurationOptions } from '../fields/validatedConfigurations/validatedConfigurationUtils';
 import { getDeployWizardNavState } from '../../../shared/tracking/deployWizardTracking';
+import { useDeploymentTargetNamespaces } from '../fields/ProjectSection';
 
 type PreconfigureDeploymentStepProps = {
   wizardState: UseModelDeploymentWizardState;
@@ -30,6 +31,7 @@ export const PreconfigureDeploymentStepContent: React.FC<PreconfigureDeploymentS
   const location = useLocation();
   const navState = getDeployWizardNavState(location.state);
   const showValidatedArgumentsSection = hasValidatedConfigurationOptions(validatedConfigurations);
+  const targetNamespaces = useDeploymentTargetNamespaces();
 
   return (
     <Form>
@@ -59,6 +61,7 @@ export const PreconfigureDeploymentStepContent: React.FC<PreconfigureDeploymentS
             namespace={projectName ?? ''}
             isFullWidth
             placeholder="Select a project"
+            namespacesOverride={targetNamespaces}
           />
         )}
       </FormGroup>
