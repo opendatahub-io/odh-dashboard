@@ -39,10 +39,12 @@ export const preDeployAcceleratorConfig = (
 
 export const extractAcceleratorConfig = (
   deployment: LLMdDeployment,
-): AcceleratorConfigFieldData | undefined => {
+): AcceleratorConfigFieldData => {
   const configRef = deployment.model.metadata.annotations?.[ACCELERATOR_CONFIG_REF_ANNOTATION];
   if (!configRef) {
-    return undefined;
+    // On edit, a lack of configRef is a saved choice to use the built-in default, not an
+    // uninitialized field that should receive an automatic suggestion.
+    return { selectedConfig: ACCELERATOR_CONFIG_DEFAULT, autoSelect: false };
   }
   return { configRef };
 };

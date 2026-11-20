@@ -15,5 +15,6 @@ export const legacyDeploymentMethodOverride: DeploymentMethodFieldOverride = {
   type: 'modifier',
   isActive: () => true,
   options: [LEGACY_OPTION],
-  suggestion: (clusterSettings) => (!clusterSettings?.isLLMdDefault ? LEGACY_OPTION : undefined),
+  suggestion: (clusterSettings) =>
+    clusterSettings?.isLLMdDefault === false ? LEGACY_OPTION : undefined,
 };

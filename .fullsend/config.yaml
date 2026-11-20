@@ -127,11 +127,6 @@ authorization:
               - "70121:dca0fa75-1ce0-42e6-b2f0-f87a6fba6c66" # Guannan Sun
               - "712020:827a9d62-5a58-4f8d-adc4-571c3fb2ad23" # Bill Murdock
       labels: allowlist
-create_issues:
-    allow_targets:
-        repos:
-            - opendatahub-io/odh-dashboard
-            - fullsend-ai/fullsend
 # Shared Fullsend inference project (same one opendatahub-io/notebooks uses).
 # The workflows read the matching FULLSEND_GCP_PROJECT_ID and
 # FULLSEND_GCP_WIF_PROVIDER secrets; keep them in step with this block.
