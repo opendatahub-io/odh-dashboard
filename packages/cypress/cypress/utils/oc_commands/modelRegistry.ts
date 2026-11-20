@@ -295,86 +295,38 @@ export const createAndVerifyPostgresDatabase = (
     });
 };
 
+const deleteRegistryDatabase = (databaseName: string): Cypress.Chainable<boolean> => {
+  const namespace = getModelRegistryNamespace();
+  const command = [
+    'oc delete service,pvc,deployment,secret',
+    `-l app.kubernetes.io/name=${databaseName}`,
+    `-n ${namespace}`,
+    '--ignore-not-found=true',
+    '--wait=true',
+    '--timeout=480s',
+  ].join(' ');
+
+  return cy
+    .exec(command, {
+      failOnNonZeroExit: false,
+      timeout: 510000,
+    })
+    .then((result: CommandLineResult) => {
+      const output = maskSensitiveInfo([result.stdout, result.stderr].filter(Boolean).join('\n'));
+
+      cy.log(`Database cleanup ${namespace}/${databaseName}:\n${output}`);
+
+      return cy.wrap(result.exitCode === 0, { log: false });
+    });
+};
+
 /**
  * Delete the PostgreSQL database and wait until it's completely gone
  * @param databaseName Name of the database deployment
  * @returns Cypress.Chainable<boolean> that resolves to true when the database is gone
  */
-export const deletePostgresDatabase = (databaseName: string): Cypress.Chainable<boolean> => {
-  const targetNamespace = getModelRegistryNamespace();
-  const deleteCommand = `oc delete service,pvc,deployment,secret -l app.kubernetes.io/name=${databaseName} -n ${targetNamespace} --ignore-not-found=true`;
-  const maxAttempts = 48; // 8 minutes / 10 seconds = 48 attempts
-  let attempts = 0;
-
-  cy.log(`Deleting PostgreSQL database '${databaseName}' from namespace ${targetNamespace}`);
-
-  // check if the database exists
-  return cy
-    .exec(`oc get deployment ${databaseName} -n ${targetNamespace}`, {
-      failOnNonZeroExit: false,
-    })
-    .then((existsResult: CommandLineResult) => {
-      if (existsResult.exitCode !== 0) {
-        cy.log(`PostgreSQL database '${databaseName}' does not exist, nothing to delete`);
-        return cy.wrap(true);
-      }
-
-      cy.log(`PostgreSQL database '${databaseName}' exists, proceeding with deletion...`);
-
-      // Issue the delete command
-      return cy
-        .exec(deleteCommand, { failOnNonZeroExit: false })
-        .then((result: CommandLineResult) => {
-          const maskedStderr = maskSensitiveInfo(result.stderr);
-          cy.log(`Delete command output: ${result.stdout || maskedStderr}`);
-
-          // poll until the database is gone
-          const checkDeletionComplete = (): Cypress.Chainable<boolean> => {
-            attempts++;
-
-            return cy
-              .exec(`oc get deployment ${databaseName} -n ${targetNamespace}`, {
-                failOnNonZeroExit: false,
-              })
-              .then((checkResult: CommandLineResult) => {
-                // Database is gone!
-                if (checkResult.exitCode !== 0) {
-                  cy.log(
-                    `PostgreSQL database '${databaseName}' successfully deleted after ${attempts} attempts`,
-                  );
-                  return cy.wrap(true);
-                }
-
-                // Check if we've exceeded max attempts
-                if (attempts >= maxAttempts) {
-                  cy.log(
-                    `ERROR: PostgreSQL database '${databaseName}' still exists after ${maxAttempts} attempts (8 minutes)`,
-                  );
-                  // Log what's still there
-                  return cy
-                    .exec(
-                      `oc get deployment,pod,pvc -l app.kubernetes.io/name=${databaseName} -n ${targetNamespace} -o wide`,
-                      { failOnNonZeroExit: false },
-                    )
-                    .then((diagResult: CommandLineResult) => {
-                      cy.log(`Stuck resources:\n${diagResult.stdout || 'No output'}`);
-                      return cy.wrap(false);
-                    });
-                }
-
-                // Still exists, wait and check again
-                cy.log(
-                  `Attempt ${attempts}/${maxAttempts}: PostgreSQL database '${databaseName}' still exists, waiting 10s...`,
-                );
-                // eslint-disable-next-line cypress/no-unnecessary-waiting
-                return cy.wait(10000).then(() => checkDeletionComplete());
-              });
-          };
-
-          return checkDeletionComplete();
-        });
-    });
-};
+export const deletePostgresDatabase = (databaseName: string): Cypress.Chainable<boolean> =>
+  deleteRegistryDatabase(databaseName);
 
 /**
  * Delete the model registry database and wait until it's completely gone
@@ -383,81 +335,7 @@ export const deletePostgresDatabase = (databaseName: string): Cypress.Chainable<
  */
 export const deleteModelRegistryDatabase = (
   databaseName = 'model-registry-db',
-): Cypress.Chainable<boolean> => {
-  const targetNamespace = getModelRegistryNamespace();
-  const deleteCommand = `oc delete service,pvc,deployment,secret -l app.kubernetes.io/name=${databaseName} -n ${targetNamespace} --ignore-not-found=true`;
-  const maxAttempts = 48; // 8 minutes / 10 seconds = 48 attempts
-  let attempts = 0;
-
-  cy.log(`Deleting model registry database '${databaseName}' from namespace ${targetNamespace}`);
-
-  // check if the database exists
-  return cy
-    .exec(`oc get deployment ${databaseName} -n ${targetNamespace}`, {
-      failOnNonZeroExit: false,
-    })
-    .then((existsResult: CommandLineResult) => {
-      if (existsResult.exitCode !== 0) {
-        cy.log(`Model registry database '${databaseName}' does not exist, nothing to delete`);
-        return cy.wrap(true);
-      }
-
-      cy.log(`Database '${databaseName}' exists, proceeding with deletion...`);
-
-      // Issue the delete command
-      return cy
-        .exec(deleteCommand, { failOnNonZeroExit: false })
-        .then((result: CommandLineResult) => {
-          const maskedStderr = maskSensitiveInfo(result.stderr);
-          cy.log(`Delete command output: ${result.stdout || maskedStderr}`);
-
-          // poll until the database is gone
-          const checkDeletionComplete = (): Cypress.Chainable<boolean> => {
-            attempts++;
-
-            return cy
-              .exec(`oc get deployment ${databaseName} -n ${targetNamespace}`, {
-                failOnNonZeroExit: false,
-              })
-              .then((checkResult: CommandLineResult) => {
-                // Database is gone!
-                if (checkResult.exitCode !== 0) {
-                  cy.log(
-                    `Model registry database '${databaseName}' successfully deleted after ${attempts} attempts`,
-                  );
-                  return cy.wrap(true);
-                }
-
-                // Check if we've exceeded max attempts
-                if (attempts >= maxAttempts) {
-                  cy.log(
-                    `ERROR: Database '${databaseName}' still exists after ${maxAttempts} attempts (8 minutes)`,
-                  );
-                  // Log what's still there
-                  return cy
-                    .exec(
-                      `oc get deployment,pod,pvc -l app.kubernetes.io/name=${databaseName} -n ${targetNamespace} -o wide`,
-                      { failOnNonZeroExit: false },
-                    )
-                    .then((diagResult: CommandLineResult) => {
-                      cy.log(`Stuck resources:\n${diagResult.stdout || 'No output'}`);
-                      return cy.wrap(false);
-                    });
-                }
-
-                // Still exists, wait and check again
-                cy.log(
-                  `Attempt ${attempts}/${maxAttempts}: Database '${databaseName}' still exists, waiting 10s...`,
-                );
-                // eslint-disable-next-line cypress/no-unnecessary-waiting
-                return cy.wait(10000).then(() => checkDeletionComplete());
-              });
-          };
-
-          return checkDeletionComplete();
-        });
-    });
-};
+): Cypress.Chainable<boolean> => deleteRegistryDatabase(databaseName);
 
 /**
  * Check if a model registry exists in any namespace
@@ -693,11 +571,19 @@ export const cleanupModelRegistryComponents = (
  */
 export const deleteModelRegistry = (registryName: string): Cypress.Chainable<CommandLineResult> => {
   const targetNamespace = getModelRegistryNamespace();
-  const registryCommand = `oc delete modelregistry.modelregistry.opendatahub.io ${registryName} -n ${targetNamespace} --timeout=240s`;
+  const registryCommand = [
+    'oc delete modelregistry.modelregistry.opendatahub.io',
+    registryName,
+    `-n ${targetNamespace}`,
+    '--cascade=foreground',
+    '--ignore-not-found=true',
+    '--wait=true',
+    '--timeout=240s',
+  ].join(' ');
 
   cy.log(`Deleting model registry ${registryName} from namespace ${targetNamespace}`);
 
-  return cy.exec(registryCommand, { failOnNonZeroExit: false, timeout: 240000 });
+  return cy.exec(registryCommand, { failOnNonZeroExit: false, timeout: 270000 });
 };
 
 /**
