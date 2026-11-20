@@ -24,7 +24,8 @@ import {
 } from '@patternfly/react-core';
 import { InfoCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
-import type { HardwareProfile, KueueAvailability } from '~/app/types';
+import type { HardwareProfileInfo, KueueAvailability } from '~/app/types';
+import { parseEmbeddedErrorMessage } from '~/app/utilities/errorMessageUtils';
 import {
   formatHardwareProfileDetails,
   formatHardwareProfileResourceDetails,
@@ -33,16 +34,22 @@ import './HardwareProfileField.scss';
 
 type HardwareProfileFieldProps = {
   availability?: KueueAvailability;
-  profiles: HardwareProfile[];
+  profiles: HardwareProfileInfo[];
   loaded: boolean;
   error?: Error;
   compatibilityError?: Error;
   selectedProfile?: string;
-  onSelect: (profile: HardwareProfile | undefined) => void;
-  isRequired?: boolean;
+  selectionLost?: boolean;
+  onSelect: (profile: HardwareProfileInfo | undefined) => void;
   disabled?: boolean;
   className?: string;
 };
+
+// Sentinel scoped to this component: PF Select needs a concrete string value for
+// the no-profile option, but it never enters form state or the request — the
+// handler maps it to onSelect(undefined), which submits without hardware_config.
+const NO_HARDWARE_PROFILE_VALUE = '__no_hardware_profile__';
+const NO_HARDWARE_PROFILE_LABEL = 'Default (no hardware profile)';
 
 const KUEUE_PROFILE_FILTER_INFO =
   'Only hardware profiles configured with a local queue are shown because this project uses Kueue for workload scheduling.';
@@ -50,7 +57,7 @@ const KUEUE_PROFILE_FILTER_INFO =
 const hardwareProfileHelp = {
   ariaLabel: 'More info for hardware profile',
   content:
-    'Selecting a hardware profile allows you to match the hardware requirements of your workload to available node resources.',
+    'Selecting a hardware profile allows you to match the hardware requirements of your workload to available node resources. Leave the default to schedule through Kubernetes without a Kueue queue.',
 };
 
 const renderDetailsSection = (title: string, value: string) => (
@@ -62,7 +69,7 @@ const renderDetailsSection = (title: string, value: string) => (
   </DescriptionList>
 );
 
-const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfile }> = ({ profile }) => {
+const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfileInfo }> = ({ profile }) => {
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const [isVisible, setIsVisible] = React.useState(false);
 
@@ -80,11 +87,11 @@ const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfile }> = ({
       shouldOpen={() => setIsVisible(true)}
       shouldClose={closePopover}
       withFocusTrap={false}
-      headerContent={`${profile.display_name} details`}
+      headerContent={`${profile.display_name ?? profile.name} details`}
       bodyContent={
         <Stack hasGutter data-testid="hardware-profile-details-popover-content">
           {profile.description ? <StackItem>{profile.description}</StackItem> : null}
-          {(profile.resources ?? []).map((resource) => (
+          {profile.identifiers.map((resource) => (
             <StackItem key={resource.identifier}>
               {renderDetailsSection(
                 resource.display_name ?? resource.identifier,
@@ -92,12 +99,18 @@ const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfile }> = ({
               )}
             </StackItem>
           ))}
-          {profile.local_queue_name ? (
-            <StackItem>{renderDetailsSection('Local queue', profile.local_queue_name)}</StackItem>
-          ) : null}
-          {profile.cluster_queue_name ? (
+          {profile.queue_name ? (
             <StackItem>
-              {renderDetailsSection('Cluster queue', profile.cluster_queue_name)}
+              {renderDetailsSection(
+                'Local queue',
+                profile.queue_availability && profile.queue_availability.status !== 'active'
+                  ? `${profile.queue_name} — ${
+                      profile.queue_availability.message ??
+                      profile.queue_availability.reason ??
+                      'queue is not active'
+                    }`
+                  : profile.queue_name,
+              )}
             </StackItem>
           ) : null}
         </Stack>
@@ -124,50 +137,22 @@ type HardwareProfileFieldState = {
   helperVariant?: 'warning' | 'error';
 };
 
-const getHardwareProfileFieldState = ({
-  error,
-  hasNoQueues,
-  hasNoProfiles,
-  isRequired,
-}: {
-  error?: Error;
-  hasNoQueues: boolean;
-  hasNoProfiles: boolean;
-  isRequired: boolean;
-}): HardwareProfileFieldState => {
-  switch (true) {
-    case Boolean(error):
-      return {
-        unavailable: true,
-        placeholder: 'Hardware profiles unavailable',
-        helperText: `${
-          error?.message ?? 'Unable to load hardware profiles.'
-        } Resolve this error before starting an evaluation.`,
-        helperVariant: 'error',
-      };
-    case Boolean(hasNoQueues):
-      return {
-        unavailable: true,
-        placeholder: 'No LocalQueues available',
-        helperText:
-          'No LocalQueues are configured for this project. An evaluation cannot start until an administrator configures one.',
-        helperVariant: 'warning',
-      };
-    case hasNoProfiles:
-      return {
-        unavailable: true,
-        placeholder: 'No compatible hardware profiles available',
-        helperText:
-          'No compatible hardware profiles are configured for this project. An evaluation cannot start until an administrator configures one.',
-        helperVariant: 'warning',
-      };
-    default:
-      return {
-        unavailable: false,
-        placeholder: 'Select hardware profile',
-        helperText: isRequired ? undefined : 'Only queue-backed hardware profiles are shown.',
-      };
+const getHardwareProfileFieldState = ({ error }: { error?: Error }): HardwareProfileFieldState => {
+  if (error) {
+    return {
+      unavailable: true,
+      placeholder: 'Hardware profiles unavailable',
+      helperText: `${parseEmbeddedErrorMessage(
+        error.message,
+      )} You can still start the evaluation without a hardware profile.`,
+      helperVariant: 'error',
+    };
   }
+  return {
+    unavailable: false,
+    placeholder: NO_HARDWARE_PROFILE_LABEL,
+    helperText: 'Runs on the default cluster resources without Kueue queue scheduling.',
+  };
 };
 
 const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
@@ -177,29 +162,33 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
   error,
   compatibilityError,
   selectedProfile,
+  selectionLost,
   onSelect,
-  isRequired = false,
   disabled,
   className,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const schedulableProfiles = availability?.enabled
-    ? profiles.filter(
-        (profile) =>
-          !!profile.local_queue_name &&
-          availability.local_queue_names.includes(profile.local_queue_name),
-      )
-    : profiles;
+  // The service only returns queue-backed profiles while their LocalQueue exists in
+  // the tenant namespace, so the list needs no further filtering here.
+  const schedulableProfiles = profiles;
   const selected = schedulableProfiles.find((profile) => profile.name === selectedProfile);
-  const hasNoQueues = availability?.enabled === true && !availability.scheduling_ready;
-  const hasNoProfiles = availability?.scheduling_ready === true && schedulableProfiles.length === 0;
-  const fieldState = getHardwareProfileFieldState({
-    error,
-    hasNoQueues,
-    hasNoProfiles,
-    isRequired,
-  });
+  // The field is optional: an empty list or a failed load never blocks submission —
+  // the unselected state is the "Default (no hardware profile)" option, which submits
+  // without hardware_config and runs on the regular K8s path.
+  // A failed refetch can leave a retained selection alongside the error (React Query
+  // keeps the cached data), so the disabled selector must still offer a way to clear
+  // it — otherwise submission repeats the blocking /info revalidation and fails again.
+  // The same applies to a lost selection (refresh removed the profile, a later refetch
+  // failed): submission stays blocked until the stale value is explicitly cleared.
+  const fieldState = getHardwareProfileFieldState({ error });
   const profileSelectionDisabled = disabled || fieldState.unavailable;
+  // A lost selection must not display as Default: submission stays blocked until the
+  // user reselects or explicitly clears, so the toggle shows why instead of the
+  // no-profile label.
+  const togglePlaceholder =
+    selectionLost && !fieldState.unavailable
+      ? 'Hardware profile no longer available'
+      : fieldState.placeholder;
   if (!loaded) {
     return (
       <FormGroup
@@ -217,20 +206,17 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
     );
   }
 
-  if (!error && !availability?.enabled && !hasNoQueues) {
+  // A successful refresh that drops every queue-backed profile disables availability,
+  // but a retained explicit selection must stay visible and clearable — hiding the
+  // field would block submission with no recovery action.
+  if (!error && !availability?.enabled && !selectionLost) {
     return null;
   }
 
   return (
     <FormGroup
       className={className}
-      label={
-        <FormGroupLabel
-          label="Hardware profile"
-          isRequired={isRequired}
-          helpPopover={hardwareProfileHelp}
-        />
-      }
+      label={<FormGroupLabel label="Hardware profile" helpPopover={hardwareProfileHelp} />}
       fieldId="hardware-profile"
     >
       <Select
@@ -253,11 +239,19 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
             onClick={() => setIsOpen((open) => !open)}
             data-testid="hardware-profile-toggle"
           >
-            {selected?.display_name ?? fieldState.placeholder}
+            {selected ? (selected.display_name ?? selected.name) : togglePlaceholder}
           </MenuToggle>
         )}
       >
         <SelectList>
+          <SelectOption
+            value={NO_HARDWARE_PROFILE_VALUE}
+            description="Starts the evaluation without a hardware profile, scheduled by Kubernetes outside the Kueue queue."
+            isSelected={!selected && !selectionLost}
+            data-testid="hardware-profile-option-default"
+          >
+            {NO_HARDWARE_PROFILE_LABEL}
+          </SelectOption>
           {schedulableProfiles.map((profile) => (
             <SelectOption
               key={profile.name}
@@ -267,7 +261,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
               data-testid={`hardware-profile-option-${profile.name}`}
             >
               <Split hasGutter className="pf-v6-u-w-100">
-                <SplitItem isFilled>{profile.display_name}</SplitItem>
+                <SplitItem isFilled>{profile.display_name ?? profile.name}</SplitItem>
                 {profile.compatibility?.compatible === false ? (
                   <SplitItem>
                     <Label
@@ -284,6 +278,17 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
           ))}
         </SelectList>
       </Select>
+      {fieldState.unavailable && (selected || selectionLost) ? (
+        <Button
+          variant="link"
+          isInline
+          isDisabled={disabled}
+          onClick={() => onSelect(undefined)}
+          data-testid="hardware-profile-clear-selection"
+        >
+          Use default (no hardware profile)
+        </Button>
+      ) : null}
       <FormHelperText>
         <HelperText
           className="evalhub-hardware-profile-helper"
@@ -294,7 +299,13 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
               {formatHardwareProfileDetails(selected)}
             </HelperTextItem>
           ) : null}
-          {(!selected || fieldState.helperVariant) && fieldState.helperText ? (
+          {selectionLost ? (
+            <HelperTextItem variant="error" data-testid="hardware-profile-selection-lost">
+              The selected hardware profile is no longer available. Select another profile or the
+              default option to start the evaluation.
+            </HelperTextItem>
+          ) : null}
+          {!selectionLost && (!selected || fieldState.helperVariant) && fieldState.helperText ? (
             <HelperTextItem variant={fieldState.helperVariant}>
               {fieldState.helperText}
             </HelperTextItem>

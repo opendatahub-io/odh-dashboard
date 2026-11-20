@@ -36,7 +36,6 @@ const areaStatus = (status: boolean): IsAreaAvailableStatus => ({
   reliantAreas: null,
   requiredCapabilities: null,
   requiredComponents: null,
-  customCondition: () => false,
 });
 const LocationDisplay: React.FC = () => (
   <span data-testid="current-path">{useLocation().pathname}</span>

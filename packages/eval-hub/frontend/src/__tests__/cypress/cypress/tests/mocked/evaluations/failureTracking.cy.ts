@@ -3,7 +3,6 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvaluationJob } from '~/__mocks__/mockEvaluationJob';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
-import { mockKueueAvailability } from '~/__mocks__/mockKueueAvailability';
 import { mockCollectionsListResponse } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
 import { captureTracking, expectSafeTracking } from '~/__tests__/cypress/cypress/utils/analytics';
@@ -20,6 +19,7 @@ describe('Evaluation failure tracking', () => {
       const options = { path: { apiVersion: CLIENT_API_VERSION } };
       const marker = 'review-secret-resource-95482';
       cy.interceptApi('GET /api/:apiVersion/user', options, mockUserSettings({}));
+      cy.interceptApi('GET /api/:apiVersion/info', options, { hardware_profiles: [] });
       cy.interceptApi('GET /api/:apiVersion/namespaces', options, [
         mockNamespace({ name: namespace }),
       ]);
@@ -32,7 +32,6 @@ describe('Evaluation failure tracking', () => {
         options,
         mockCollectionsListResponse([]),
       );
-      cy.interceptApi('GET /api/:apiVersion/kueue/availability', options, mockKueueAvailability());
       cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', options, [
         mockEvaluationJob({ state: 'running', name: 'Review evaluation' }),
       ]).as('evalHubJobs');

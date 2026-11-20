@@ -43,7 +43,8 @@ func TestGetDCHConnections(t *testing.T) {
 		{name: "connection list endpoint not found", connections: dchConnectionsFixture, connectionErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "not found"), types: dchTypesFixture, wantError: true, wantFallback: true},
 		{name: "connection type list endpoint not found", connections: dchConnectionsFixture, types: dchTypesFixture, typeErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "not found"), wantError: true, wantFallback: true},
 		{name: "connection request timeout", connectionErr: bffclient.NewTimeoutError(bffclient.BFFTargetDCH), types: dchTypesFixture, wantError: true, wantFallback: true},
-		{name: "denial wins over transient failure", connectionErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "offline"), typeErr: bffclient.NewForbiddenError(bffclient.BFFTargetDCH, "denied"), wantError: true},
+		{name: "forbidden allows fallback", connectionErr: bffclient.NewForbiddenError(bffclient.BFFTargetDCH, "denied"), types: dchTypesFixture, wantError: true, wantFallback: true},
+		{name: "denial wins over transient failure and allows fallback", connectionErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "offline"), typeErr: bffclient.NewForbiddenError(bffclient.BFFTargetDCH, "denied"), wantError: true, wantFallback: true},
 		{name: "contract error wins over transient failure", connectionErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "offline"), types: `{}`, wantError: true},
 		{name: "request error forbids fallback", connectionErr: bffclient.NewBadRequestError(bffclient.BFFTargetDCH, "bad request"), types: dchTypesFixture, wantError: true},
 	} {

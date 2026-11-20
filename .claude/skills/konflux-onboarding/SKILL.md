@@ -150,7 +150,7 @@ Create the following subtasks under the new epic.
 | 6 | `<name>: Create Standalone Module Manifests` | Major | Create standalone deployment manifests in `manifests/modules/<name>/`. Partially automated by `/konflux-onboarding` Phase 4 (Type A only). |
 | 7 | `<name>: Onboard Module in Operator` | Major | Register the module in `dashboard-operator/internal/controller/modules.go` with all fields and update test assertions in `modules_test.go` and `charts/dashboard/values.yaml`. Proxy paths and imagesMap entries are read from the registry (single source of truth). The **opendatahub-operator** also needs a one-line addition to `relatedImages()` in `internal/controller/modules/dashboard/support.go` — open a PR and request review in `#ai-core-platform-requests` Slack channel. |
 | 8 | `<name>: Track & Verify RHOAI Konflux Onboarding` | Major | Track RHOAI Konflux component onboarding (downstream Quay, release pipeline, Renovate). Automated by DevOps CI. |
-| 9 | `<name>: Register image as a ProdSec pscomponent` | Major | Register `rhoai/<image>-rhel9` with ProdSec before the first release, so CVE `SecurityTracking` tickets are generated for it. Not done by the DevOps automation. See Phase 6 § ProdSec registration. |
+| 9 | `<name>: Register image as a ProdSec pscomponent` | Major | Register `rhoai/<image>-rhel9` with ProdSec (an MR to `prodsec/product-definitions`) before the first release, so CVE `SecurityTracking` tickets are generated for it. Not done by the DevOps automation. See Phase 6 § ProdSec registration. |
 
 For each subtask:
 
@@ -655,8 +655,12 @@ This phase does **not** run the DevOps skill inline — the user should run it s
 
 The DevOps automation builds and releases the image but does not register it with ProdSec. CVE `SecurityTracking` tickets are only generated for images registered as a `pscomponent`, so an unregistered image silently misses CVE and security-bulletin work. This happened to `data-connect-hub` and `data-registry` during the eMudhra remediation.
 
-1. Tell the user to request registration of `rhoai/<image>-rhel9` (`<image>` from Phase 0; defaults `odh-mod-arch-<name>` for Type A, `odh-<name>` for Type B) in ProdSec's product definitions, through `#forum-aipcc`, before the first release that ships the image. Record the request on subtask 9.
-2. Before the first release, get ProdSec to confirm in the `#forum-aipcc` request that the key is registered, and record the confirmation on subtask 9. That confirmation is the release gate: the Jira query below returns nothing until a CVE affecting the image has been processed, so an empty result before then proves nothing.
+1. Tell the user to open a merge request against [`prodsec/product-definitions`](https://gitlab.cee.redhat.com/prodsec/product-definitions) before the first release that ships the image. It registers `rhoai/<image>-rhel9` (`<image>` from Phase 0; defaults `odh-mod-arch-<name>` for Type A, `odh-<name>` for Type B) with two entries in `data/openshift/ps_modules.json`, each next to the existing dashboard images:
+   - the CC list for vulnerability notifications: `"rhoai/<image>-rhel9": ["+rhoai", "+rhoai-dashboard"]`
+   - the Jira component that receives the CVE tickets: `"rhoai/<image>-rhel9": "AI Core Dashboard"`
+
+   Copy both entries from a module that already ships (search the file for `odh-mod-arch-gen-ai-rhel9`), and use the owning team's component and CC list if the image is not a dashboard module. Run `pd-mr-check` as the MR template asks, or ask a ProdSec reviewer to run it. [MR !5548](https://gitlab.cee.redhat.com/prodsec/product-definitions/-/merge_requests/5548) (`data-connect-hub`) is a complete example. Link the MR on subtask 9, and ask in `#forum-aipcc` if it needs a reviewer.
+2. ProdSec merging the MR is the confirmation and the release gate. Record the merge on subtask 9 before the first release. The Jira query below returns nothing until a CVE affecting the image has been processed, so an empty result before then proves nothing.
 3. After the first downstream build, once ProdSec processes a CVE affecting the image, use this JQL to check that tracking tickets carry the label:
 
    ```text
@@ -664,6 +668,8 @@ The DevOps automation builds and releases the image but does not register it wit
    ```
 
    `<image>` is the Phase 0 value that the Dockerfile `name` label also uses. An empty result is evidence of missing registration only when the CVE is confirmed to affect this image, for example because the image ships the affected package and sibling images with the same dependency (such as `pscomponent:rhoai/odh-mod-arch-gen-ai-rhel9`) received tickets for it. In that case raise it in `#forum-aipcc`.
+
+[RHOAIENG-98677](https://redhat.atlassian.net/browse/RHOAIENG-98677) proposes adding this registration to the DevOps `/create-component-onboarding-jira` skill. Once the DevOps skill covers it, follow that flow and record its result on subtask 9 instead of opening the MR separately.
 
 Read [references/devops-integration.md](references/devops-integration.md) for the full integration guide including Q&A flow, schema validation, and troubleshooting.
 
@@ -682,7 +688,7 @@ If a tracking epic was created in Phase 1 (or provided via `--jira`), update eac
 - **Subtask 5** (OpenShift CI): Link to the `openshift/release` PR
 - **Subtask 6** (Standalone module manifests): Note whether manifests were created in `manifests/modules/<name>/` (Type A) or N/A (Type B)
 - **Subtask 7** (Operator): Link to the PR if operator registration was done in Phase 5a; note the opendatahub-operator change requires a separate PR reviewed via `#ai-core-platform-requests`
-- **Subtask 9** (ProdSec): Add the registration key requested, ProdSec's confirmation (or that it is still pending), and the Phase 6 JQL for later checks
+- **Subtask 9** (ProdSec): Add the registration key, the `product-definitions` MR link and whether ProdSec merged it (or that it is still pending), and the Phase 6 JQL for later checks
 
 For subtasks covered by DevOps automation (2, 4, 8), add a comment noting they will be tracked via the DevOps onboarding flow after the user runs `/create-component-onboarding-jira`.
 
@@ -709,7 +715,7 @@ Print a final report:
 - [ ] Standalone module manifests (`manifests/modules/<name>/`): created/already existed/skipped/N/A
 - [ ] OpenShift CI: PR created/skipped
 - [ ] Dashboard-operator registration: done/already registered/skipped/N/A
-- [ ] ProdSec pscomponent registration: requested/confirmed by ProdSec/pending
+- [ ] ProdSec pscomponent registration: MR opened/merged by ProdSec/pending
 - [ ] Jira subtasks updated: yes/skipped
 
 ### Files Created/Modified
@@ -725,5 +731,5 @@ Print a final report:
 7. Verify opendatahub+openshift_ci robot account has push on Quay repo
 8. Open a PR against `opendatahub-io/opendatahub-operator` adding `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `relatedImages()` in `internal/controller/modules/dashboard/support.go`, then request review in `#ai-core-platform-requests` Slack channel
 9. Verify first build succeeds end-to-end (both ODH and RHOAI)
-10. Request ProdSec `pscomponent` registration in `#forum-aipcc` for `rhoai/<image>-rhel9`, and get ProdSec's confirmation before the first release. After the first downstream build, use the matching Phase 6 JQL to check for tracking tickets once ProdSec processes an applicable CVE
+10. Open the ProdSec `product-definitions` MR that registers `rhoai/<image>-rhel9` in `ps_modules.json` (Phase 6 § ProdSec registration), and get it merged before the first release. After the first downstream build, use the matching Phase 6 JQL to check for tracking tickets once ProdSec processes an applicable CVE
 ```

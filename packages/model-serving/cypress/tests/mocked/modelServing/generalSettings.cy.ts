@@ -87,7 +87,7 @@ const initIntercepts = () => {
   cy.interceptOdh('PUT /api/cluster-settings', { success: true }).as('clusterSettings');
 };
 
-const initWizardIntercepts = ({ isLLMdDefault }: { isLLMdDefault: boolean }) => {
+const initWizardIntercepts = ({ isLLMdDefault }: { isLLMdDefault?: boolean } = {}) => {
   asProductAdminUser();
 
   cy.interceptOdh(
@@ -171,8 +171,7 @@ const initWizardIntercepts = ({ isLLMdDefault }: { isLLMdDefault: boolean }) => 
   );
 };
 
-const navigateToDeploymentMethodStep = () => {
-  modelServingGlobal.visit('test-project');
+const openWizardToDeploymentMethodStep = () => {
   modelServingGlobal.findDeployModelButton().click();
 
   modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
@@ -185,6 +184,11 @@ const navigateToDeploymentMethodStep = () => {
   modelServingWizard.findNextButton().should('be.enabled').click();
 
   modelServingWizard.findModelDeploymentStep().should('be.enabled');
+};
+
+const navigateToDeploymentMethodStep = () => {
+  modelServingGlobal.visit('test-project');
+  openWizardToDeploymentMethodStep();
 };
 
 describe('General Settings tab (model serving settings)', () => {
@@ -301,6 +305,16 @@ describe('Deployment wizard defaults from distributed inference setting', () => 
       .should('not.be.checked');
   });
 
+  it('should select llm-d by default when isLLMdDefault is unset', () => {
+    initWizardIntercepts();
+    navigateToDeploymentMethodStep();
+
+    modelServingWizard.findDeploymentMethodRadio('llm-inference-service-llmd').should('be.checked');
+    modelServingWizard
+      .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
+      .should('not.be.checked');
+  });
+
   it('should not select llm-d by default when isLLMdDefault is false', () => {
     initWizardIntercepts({ isLLMdDefault: false });
     navigateToDeploymentMethodStep();
@@ -311,5 +325,15 @@ describe('Deployment wizard defaults from distributed inference setting', () => 
     modelServingWizard
       .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
       .should('be.checked');
+  });
+
+  it('should select llm-d when cluster settings fail to load', () => {
+    // Seed false so a successful reload would pick vLLM; failure must still prefer llm-d.
+    initWizardIntercepts({ isLLMdDefault: false });
+    modelServingGlobal.visit('test-project');
+    cy.interceptOdh('GET /api/config', { statusCode: 500 });
+    openWizardToDeploymentMethodStep();
+
+    modelServingWizard.findDeploymentMethodRadio('llm-inference-service-llmd').should('be.checked');
   });
 });
