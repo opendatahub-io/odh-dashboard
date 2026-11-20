@@ -159,6 +159,10 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
 
       cy.step('Verify the original unsupportedserving runtime is hidden in the deploy wizard');
       waitForTemplateByServingRuntimeName(servingRuntimeId);
+      // The table re-renders after the delete; wait for the original row to be
+      // present before asserting its state (6.7 modal close timing shifts when
+      // the table settles relative to the delete modal animation).
+      runtimeRow.find().should('exist');
       runtimeRow.shouldBeEnabled(false);
       openDeployWizardToDeploymentStep(testData.modelLocationURI);
       modelServingWizard.selectDeploymentMethodByKey(testData.deploymentMethod);

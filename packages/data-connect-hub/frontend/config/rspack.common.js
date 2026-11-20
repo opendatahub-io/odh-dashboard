@@ -59,7 +59,7 @@ module.exports = (env) => ({
         // only process modules with this loader
         // if they live under a 'fonts' or 'pficon' directory
         include: [
-          path.dirname(require.resolve('monaco-editor/package.json')),
+          path.resolve(path.dirname(require.resolve('monaco-editor')), '../..'),
           path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly/dist/fonts'),
           path.resolve(
             RELATIVE_DIRNAME,

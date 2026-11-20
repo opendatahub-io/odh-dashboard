@@ -70,6 +70,7 @@ WORKDIR /usr/src/workspace
 
 COPY prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
 COPY .npmrc ./
 COPY packages/plugin-core/ ./packages/plugin-core/
 # ... other shared workspace packages ...
@@ -97,6 +98,7 @@ WORKDIR /usr/src/workspace
 
 COPY prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
 COPY .npmrc ./
 COPY packages/plugin-core/ ./packages/plugin-core/
 # ... other shared workspace packages ...

@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
@@ -101,7 +101,7 @@ describe('AutoragRunsTableRow', () => {
       expect(trackEventMock.mock.calls).toEqual([
         [eventName, { outcome: 'cancel', source: 'runsList' }],
       ]);
-      expect(screen.queryByTestId(modalId)).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByTestId(modalId)).not.toBeInTheDocument());
       expect(mockHandleConfirmStop).not.toHaveBeenCalled();
     },
   );

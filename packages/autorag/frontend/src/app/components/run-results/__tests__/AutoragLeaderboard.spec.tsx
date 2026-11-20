@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
@@ -336,7 +336,7 @@ const renderWithContext = ({
   );
 };
 
-const showAllColumns = () => {
+const showAllColumns = async () => {
   fireEvent.click(screen.getByTestId('manage-columns-button'));
   const checkboxes = screen.getAllByTestId(/^column-check-/);
   checkboxes.forEach((cb) => {
@@ -345,6 +345,7 @@ const showAllColumns = () => {
     }
   });
   fireEvent.click(screen.getByText('Save'));
+  await waitFor(() => expect(screen.queryByTestId('manage-columns-modal')).not.toBeInTheDocument());
 };
 
 // ============================================================================
@@ -353,7 +354,7 @@ const showAllColumns = () => {
 
 describe('AutoragLeaderboard utility functions', () => {
   describe('formatMetricName', () => {
-    it('should format RAG metrics correctly', () => {
+    it('should format RAG metrics correctly', async () => {
       renderWithContext({
         patterns: {
           'pattern-1': createMockPattern('Test Pattern', {
@@ -367,7 +368,7 @@ describe('AutoragLeaderboard utility functions', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Check that RAG metrics are displayed correctly (use testids since text appears multiple times)
       expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
@@ -383,7 +384,7 @@ describe('AutoragLeaderboard utility functions', () => {
       expect(within(faithfulnessHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
 
-    it('should convert snake_case to Title Case for custom metrics', () => {
+    it('should convert snake_case to Title Case for custom metrics', async () => {
       renderWithContext({
         patterns: {
           'pattern-1': createMockPattern('Test Pattern', {
@@ -393,7 +394,7 @@ describe('AutoragLeaderboard utility functions', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByTestId('metric-header-custom_metric-unitxt')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-another_test_metric-unitxt')).toBeInTheDocument();
@@ -571,7 +572,7 @@ describe('AutoragLeaderboard component', () => {
       );
     });
 
-    it('should open the executor log tearsheet from the failed-run message', () => {
+    it('should open the executor log tearsheet from the failed-run message', async () => {
       const logText = '[KFP Executor ERROR]: TestDataLoaderError: bad keys in test data record';
       mockUseTaskExecutorError.mockReturnValue({ logText, isLoading: false, isError: false });
       renderWithContext({
@@ -621,7 +622,9 @@ describe('AutoragLeaderboard component', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
-      expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument(),
+      );
     });
 
     it('should fall back to the first failed non-system task without a stage map', () => {
@@ -980,12 +983,12 @@ describe('AutoragLeaderboard component', () => {
       expect(within(header).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
 
-    it('should not mark non-optimized metrics', () => {
+    it('should not mark non-optimized metrics', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness-unitxt');
       expect(
@@ -993,7 +996,7 @@ describe('AutoragLeaderboard component', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('qualifies duplicate metric names by evaluator and uses the flagged evaluator value', () => {
+    it('qualifies duplicate metric names by evaluator and uses the flagged evaluator value', async () => {
       renderWithContext({
         patterns: { 'pattern-1': createMockPatternWithDuplicateFaithfulness() },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'ragas:faithfulness'),
@@ -1004,7 +1007,7 @@ describe('AutoragLeaderboard component', () => {
       expect(within(optimizedHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
       expect(screen.getByTestId('metric-faithfulness-ragas-1')).toHaveTextContent('0.771');
 
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByText('Faithfulness (Unitxt)')).toBeInTheDocument();
       expect(screen.getByText('Faithfulness (RAGAS)')).toBeInTheDocument();
@@ -1050,12 +1053,12 @@ describe('AutoragLeaderboard component', () => {
       expect(lastPatternName).toHaveTextContent('Hybrid RAG');
     });
 
-    it('should allow sorting by metric columns', () => {
+    it('should allow sorting by metric columns', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness-unitxt');
       const sortButton = within(answerCorrectnessHeader).getByRole('button', {
@@ -1100,7 +1103,7 @@ describe('AutoragLeaderboard component', () => {
   // ========================================================================
 
   describe('metric display', () => {
-    it('should keep metrics with the same name from different evaluators independent', () => {
+    it('should keep metrics with the same name from different evaluators independent', async () => {
       const pattern = createMockPattern('Duplicate metric names', { faithfulness: 0.8 });
       pattern.evaluation.metrics.push({
         evaluator: 'custom',
@@ -1120,7 +1123,7 @@ describe('AutoragLeaderboard component', () => {
       ).toBeInTheDocument();
       fireEvent.click(screen.getByText('Save'));
 
-      showAllColumns();
+      await showAllColumns();
 
       expect(
         screen.getByRole('columnheader', { name: /Faithfulness \(Unitxt\)/i }),
@@ -1157,24 +1160,24 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('metric-faithfulness-unranked-ambiguous')).toHaveTextContent('N/A');
     });
 
-    it('should provide definition hover help for metric headers including Answer correctness', () => {
+    it('should provide definition hover help for metric headers including Answer correctness', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       const header = screen.getByTestId('metric-header-answer_correctness-unitxt');
       fireEvent.click(within(header).getByRole('button', { name: /more info/i }));
       expect(screen.getByText(/matches the expected ground-truth answers/i)).toBeInTheDocument();
     });
 
-    it('should display all metrics for each pattern', () => {
+    it('should display all metrics for each pattern', async () => {
       renderWithContext({
         patterns: mockPatternsWithExtraMetrics,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Check that all metric headers are present (only mean values)
       expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
@@ -1253,12 +1256,12 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('leaderboard-row-3')).toBeInTheDocument();
     });
 
-    it('should display "N/A" for missing settings fields', () => {
+    it('should display "N/A" for missing settings fields', async () => {
       renderWithContext({
         patterns: mockPatternsWithMalformedSettings,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Check that N/A is displayed for missing settings
       // Pattern with null settings should show N/A for all fields
@@ -1274,7 +1277,7 @@ describe('AutoragLeaderboard component', () => {
       expect(within(row1).getByTestId('model-name-1')).toHaveTextContent('N/A');
     });
 
-    it('should allow sorting by settings columns with N/A values', () => {
+    it('should allow sorting by settings columns with N/A values', async () => {
       renderWithContext({
         patterns: {
           ...mockPatternsWithMalformedSettings,
@@ -1284,7 +1287,7 @@ describe('AutoragLeaderboard component', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Click to sort by chunking method
       const chunkingMethodHeader = screen.getByTestId('chunking-method-header');
@@ -1422,12 +1425,12 @@ describe('AutoragLeaderboard component', () => {
   // ========================================================================
 
   describe('settings columns', () => {
-    it('should display settings values for standard patterns', () => {
+    it('should display settings values for standard patterns', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Rank 1 is Advanced RAG
       const row1 = screen.getByTestId('leaderboard-row-1');
@@ -1439,12 +1442,12 @@ describe('AutoragLeaderboard component', () => {
       expect(within(row1).getByTestId('retrieval-search-mode-1')).toHaveTextContent('Vector');
     });
 
-    it('should render settings column headers', () => {
+    it('should render settings column headers', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByTestId('retrieval-method-header')).toBeInTheDocument();
       expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
@@ -1491,12 +1494,12 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('column-check-optimized-metric')).toBeInTheDocument();
     });
 
-    it('should allow toggling non-sticky metric columns', () => {
+    it('should allow toggling non-sticky metric columns', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Verify non-optimized metric headers exist before hiding
       expect(screen.getByTestId('metric-header-answer_correctness-unitxt')).toBeInTheDocument();
@@ -1517,12 +1520,12 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('metric-header-context_correctness-unitxt')).toBeInTheDocument();
     });
 
-    it('should allow toggling settings columns', () => {
+    it('should allow toggling settings columns', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Verify settings column exists
       expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
@@ -1540,12 +1543,12 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('retrieval-method-header')).toBeInTheDocument();
     });
 
-    it('should hide data cells when column is hidden', () => {
+    it('should hide data cells when column is hidden', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Verify data cell exists
       expect(screen.getByTestId('chunking-method-1')).toBeInTheDocument();
@@ -1559,12 +1562,12 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.queryByTestId('chunking-method-1')).not.toBeInTheDocument();
     });
 
-    it('should not change columns when modal is cancelled', () => {
+    it('should not change columns when modal is cancelled', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByTestId('metric-header-answer_correctness-unitxt')).toBeInTheDocument();
 
@@ -1595,12 +1598,12 @@ describe('AutoragLeaderboard component', () => {
     });
 
     describe('AutoRAG Results Column Toggled tracking', () => {
-      it('should fire with the mapped metric name when hiding a non-optimized metric column', () => {
+      it('should fire with the mapped metric name when hiding a non-optimized metric column', async () => {
         renderWithContext({
           patterns: mockStandardPatterns,
           pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
         });
-        showAllColumns();
+        await showAllColumns();
         trackEventMock.mockClear();
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
@@ -1613,12 +1616,12 @@ describe('AutoragLeaderboard component', () => {
         });
       });
 
-      it('should fire with the settings column id when hiding a settings column', () => {
+      it('should fire with the settings column id when hiding a settings column', async () => {
         renderWithContext({
           patterns: mockStandardPatterns,
           pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
         });
-        showAllColumns();
+        await showAllColumns();
         trackEventMock.mockClear();
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
@@ -1784,12 +1787,12 @@ describe('AutoragLeaderboard component', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('should reset to default visibility and order when reset button is clicked', () => {
+    it('should reset to default visibility and order when reset button is clicked', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
 
@@ -1859,12 +1862,12 @@ describe('AutoragLeaderboard component', () => {
       expect(toggle).toHaveTextContent('Full configuration');
     });
 
-    it('should reset sort when a sorted column is hidden', () => {
+    it('should reset sort when a sorted column is hidden', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Sort by answer_correctness
       const header = screen.getByTestId('metric-header-answer_correctness-unitxt');
@@ -1925,12 +1928,12 @@ describe('AutoragLeaderboard component', () => {
       ]);
     });
 
-    it('should reset column order (not just visibility) when reset is clicked', () => {
+    it('should reset column order (not just visibility) when reset is clicked', async () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Verify all columns are visible — capture original header order
       const originalHeaders = screen.getAllByTestId(
