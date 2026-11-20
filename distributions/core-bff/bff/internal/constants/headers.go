@@ -43,6 +43,7 @@ const (
 	HeaderAccessControlOrigin         = "Access-Control-Allow-Origin"
 	HeaderAccessControlMethod         = "Access-Control-Allow-Methods"
 	HeaderAccessControlHeader         = "Access-Control-Allow-Headers"
+	HeaderStrictTransportSecurity     = "Strict-Transport-Security"
 
 	ContentTypeJSON = "application/json"
 	ContentTypeYAML = "text/yaml"
@@ -69,4 +70,5 @@ const (
 	CrossOriginOpenerPolicySameOrigin         = "same-origin"
 	XFrameOptionsDeny                         = "DENY"
 	XDNSPrefetchControlOff                    = "off"
+	StrictTransportSecurityValue              = "max-age=31536000; includeSubDomains"
 )
