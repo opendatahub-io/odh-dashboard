@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isAreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { DashboardCommonConfig, DashboardConfigKind } from '@odh-dashboard/k8s-core';
-import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import { getInvertedFeatureFlagName, useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { definedFeatureFlags, SupportedAreasStateMap } from '#~/concepts/areas/const';
 import { DevFeatureFlags } from '#~/types';
@@ -13,8 +13,6 @@ import { isDefinedFeatureFlag } from '#~/concepts/areas/utils';
 const PARAM_NAME = 'devFeatureFlags';
 const SESSION_KEY = 'odh-feature-flags';
 const HEADER_NAME = 'x-odh-feature-flags';
-
-const capitalize = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
 
 export const useDevFlags: () => string[] = () => {
   const areaExtensions = useExtensions(isAreaExtension);
@@ -113,8 +111,8 @@ const useDevFeatureFlags = (
               if (isFlag(name)) {
                 acc[name] = bool === 'true';
               } else {
-                const fullName = `disable${capitalize(name)}`;
-                if (isFlag(fullName)) {
+                const fullName = getInvertedFeatureFlagName(name, combinedFlags);
+                if (fullName && isFlag(fullName)) {
                   acc[fullName] = bool === 'false';
                 }
               }
