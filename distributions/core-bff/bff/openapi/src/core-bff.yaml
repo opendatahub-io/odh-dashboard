@@ -2652,6 +2652,15 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/NamespaceAccessEnvelope'
+          example:
+            data:
+              name: team-a
+              displayName: Team A
+              phase: Active
+              actions: { view: true, deploy: true, edit: true, delete: true, manageTokenAuth: true }
+              permissions:
+                serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
+                core/secrets: { create: allowed, get: allowed, patch: allowed, delete: allowed }
 
     NamespacesResponse:
       headers:

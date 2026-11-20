@@ -70,9 +70,9 @@ var detailPermissionMatrix = []accessCheck{
 // documented in docs/namespace-discovery-contract.md; keep the two in step.
 var NamespacePermissionMatrix = append(append([]accessCheck{}, actionPermissionMatrix...), detailPermissionMatrix...)
 
-// SharedNamespacePermissionMatrix is evaluated once, in the dashboard namespace,
+// sharedNamespacePermissionMatrix is evaluated once, in the dashboard namespace,
 // for the shared resources the RHAII wizard reads from there.
-var SharedNamespacePermissionMatrix = []accessCheck{
+var sharedNamespacePermissionMatrix = []accessCheck{
 	{Group: groupInfrastructure, Resource: "hardwareprofiles", Verbs: []string{"get", "list"}},
 	{Group: groupServing, Resource: "llminferenceserviceconfigs", Verbs: []string{"get", "list"}},
 }
@@ -232,7 +232,7 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 	// never turns a result into 503.
 	unavailable := decided == 0 && len(issues) > 0 && !onlyTruncated(issues)
 
-	sharedPerms, sharedFailed := r.runMatrix(ctx, lim, client, identity, r.sharedNamespace, SharedNamespacePermissionMatrix)
+	sharedPerms, sharedFailed := r.runMatrix(ctx, lim, client, identity, r.sharedNamespace, sharedNamespacePermissionMatrix)
 	issues.add(models.IssueSharedAccessReviewFailed, sharedFailed)
 	if ctx.Err() != nil {
 		issues.add(models.IssueDiscoveryDeadlineExceeded, 1)
