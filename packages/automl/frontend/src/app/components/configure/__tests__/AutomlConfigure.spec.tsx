@@ -13,6 +13,7 @@ import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { formatMetricName } from '~/app/utilities/utils';
 import {
   AUTOML_TRAINING_UPLOAD_MAX_BYTES,
   AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
@@ -1298,6 +1299,89 @@ describe('AutomlConfigure', () => {
     });
 
     describe('Run preset', () => {
+      it('should preserve balanced and remap or reset metrics when switching prediction types', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn('income');
+        selectPredictionType('regression');
+
+        fireEvent.click(screen.getByTestId('preset-radio-balanced'));
+        fireEvent.click(screen.getByTestId('optimization-metric-edit'));
+        fireEvent.click(screen.getByTestId('eval-metric-radio-root_mean_squared_error'));
+        fireEvent.click(screen.getByTestId('optimization-metric-save'));
+
+        selectPredictionType('timeseries');
+        expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
+        fireEvent.click(screen.getByTestId('optimization-metric-edit'));
+        expect(screen.getByTestId('eval-metric-radio-RMSE')).toBeChecked();
+        fireEvent.click(screen.getByTestId('eval-metric-radio-MASE'));
+        fireEvent.click(screen.getByTestId('optimization-metric-save'));
+
+        selectPredictionType('regression');
+        expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
+        fireEvent.click(screen.getByTestId('optimization-metric-edit'));
+        expect(screen.getByTestId('eval-metric-radio-r2')).toBeChecked();
+      });
+
+      it.each([
+        { taskType: 'binary', target: 'approval_status', metric: 'f1', defaultMetric: 'accuracy' },
+        {
+          taskType: 'multiclass',
+          target: 'risk_category',
+          metric: 'f1_macro',
+          defaultMetric: 'accuracy',
+        },
+        {
+          taskType: 'regression',
+          target: 'income',
+          metric: 'root_mean_squared_error',
+          defaultMetric: 'r2',
+        },
+        { taskType: 'timeseries', target: 'income', metric: 'RMSE', defaultMetric: 'MASE' },
+      ])(
+        'should preserve $taskType settings across metric cancellation, saving, and preset changes',
+        async ({ taskType, target, metric, defaultMetric }) => {
+          renderComponent();
+          selectSecretAndFile();
+          selectTargetColumn(target);
+          selectPredictionType(taskType);
+
+          const topNInput = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(topNInput, { target: { value: '1' } });
+
+          fireEvent.click(screen.getByTestId('optimization-metric-edit'));
+          fireEvent.click(screen.getByTestId(`eval-metric-radio-${metric}`));
+          fireEvent.click(screen.getByTestId('optimization-metric-cancel'));
+          expect(screen.getByTestId('optimization-metric-value')).toHaveTextContent(
+            formatMetricName(defaultMetric),
+          );
+
+          fireEvent.click(screen.getByTestId('optimization-metric-edit'));
+          expect(screen.getByTestId(`eval-metric-radio-${defaultMetric}`)).toBeChecked();
+          fireEvent.click(screen.getByTestId(`eval-metric-radio-${metric}`));
+          fireEvent.click(screen.getByTestId('optimization-metric-save'));
+
+          const presets =
+            taskType === 'timeseries' ? ['balanced', 'speed'] : ['balanced', 'quality', 'speed'];
+          for (const preset of presets) {
+            fireEvent.click(screen.getByTestId(`preset-radio-${preset}`));
+            expect(screen.getByTestId(`preset-radio-${preset}`)).toBeChecked();
+            expect(screen.getByTestId(`task-type-radio-${taskType}`)).toBeChecked();
+            expect(topNInput).toHaveValue(1);
+            expect(screen.getByTestId('optimization-metric-value')).toHaveTextContent(
+              formatMetricName(metric),
+            );
+          }
+
+          fireEvent.click(screen.getByTestId('optimization-metric-edit'));
+          expect(screen.getByTestId(`eval-metric-radio-${metric}`)).toBeChecked();
+          fireEvent.click(screen.getByTestId('optimization-metric-cancel'));
+          await waitFor(() => {
+            expect(screen.queryByTestId('optimization-metric-modal')).not.toBeInTheDocument();
+          });
+        },
+      );
+
       it('should render preset radio buttons with Faster selected by default', () => {
         renderComponent();
         selectSecretAndFile();
