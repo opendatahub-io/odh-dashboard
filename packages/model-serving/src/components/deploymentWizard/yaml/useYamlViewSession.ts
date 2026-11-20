@@ -7,14 +7,13 @@ type YamlViewSessionResult = {
   isAutoFallback?: boolean;
   viewMode: ModelDeploymentWizardViewMode;
   switchToForm: () => void;
-  switchToYaml: (edit?: boolean) => void;
+  switchToYaml: (edit?: boolean, canEnterYAMLEditMode?: boolean) => void;
   lastUpdatedSource: ModelDeploymentWizardViewMode;
   setLastUpdatedSource: React.Dispatch<React.SetStateAction<ModelDeploymentWizardViewMode>>;
 };
 
 export const useYamlViewSession = (
   initialViewMode: ModelDeploymentWizardViewMode,
-  canEnterYAMLEditMode?: boolean,
 ): YamlViewSessionResult => {
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
   const isBidirectionalYamlWizardGaEnabled = useIsAreaAvailable('bidirectionalYamlWizardGa').status;
@@ -34,7 +33,7 @@ export const useYamlViewSession = (
     switchToForm: () => {
       setViewMode('form');
     },
-    switchToYaml: (edit?: boolean) => {
+    switchToYaml: (edit?: boolean, canEnterYAMLEditMode?: boolean) => {
       if (viewMode !== 'form' && !edit) {
         return;
       }

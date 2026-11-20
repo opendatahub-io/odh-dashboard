@@ -1,5 +1,5 @@
 import { stringify } from 'yaml';
-import { convertYamlToResources } from '../yamlUtils';
+import { convertYamlToResources, isYamlDirty } from '../yamlUtils';
 
 const resource = {
   apiVersion: 'v1',
@@ -112,4 +112,37 @@ describe('convertYamlToResources', () => {
       expect(result.error).toBeInstanceOf(Error);
     },
   );
+});
+
+describe('isYamlDirty', () => {
+  const atEntry = stringify({ ...resource, spec: { replicas: 1 } });
+
+  it('should not be dirty when the editor yaml is unchanged', () => {
+    expect(isYamlDirty(atEntry, atEntry)).toBe(false);
+  });
+
+  it('should not be dirty for comment, whitespace or key-order changes', () => {
+    const reformatted = `# my notes\nspec:\n    replicas: 1   # one\nmetadata: { namespace: test-ns, name: test-resource }\nkind: ConfigMap\napiVersion: v1\n`;
+    expect(isYamlDirty(reformatted, atEntry)).toBe(false);
+  });
+
+  it('should be dirty when a value changes', () => {
+    expect(isYamlDirty(stringify({ ...resource, spec: { replicas: 2 } }), atEntry)).toBe(true);
+  });
+
+  it('should be dirty when a value changes type', () => {
+    expect(isYamlDirty(stringify({ ...resource, spec: { replicas: '1' } }), atEntry)).toBe(true);
+  });
+
+  it('should be dirty without a snapshot', () => {
+    expect(isYamlDirty(atEntry, undefined)).toBe(true);
+  });
+
+  it('should be dirty when the editor yaml cannot be parsed', () => {
+    expect(isYamlDirty('spec: [unclosed', atEntry)).toBe(true);
+  });
+
+  it('should be dirty when the editor is cleared', () => {
+    expect(isYamlDirty('', atEntry)).toBe(true);
+  });
 });
