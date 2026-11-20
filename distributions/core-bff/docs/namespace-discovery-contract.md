@@ -147,10 +147,10 @@ user gets `view` only and is offered no mutation.
 | Namespace does not exist, caller cannot read namespaces    | not listed                                              | 403 (same as denied) |
 | Namespace does not exist, caller holds cluster-wide grants on matrix resources but no `get namespaces` | listed with `phase: Unknown` | 200 with `phase: Unknown` |
 | Namespace does not exist, caller may read it               | not listed                                              | 404             |
-| Some reviews or a source failed                            | 200, `complete: false`, `issues` lists codes and counts, including failures in namespaces that are still returned | 503 if no action could be decided |
-| Every source or review failed and nothing was found        | 503 `SERVICE_UNAVAILABLE`                               | 503             |
+| Some reviews or a source failed, and at least one candidate was decided (authorized, denied or not found) | 200, `complete: false`, `issues` lists codes and counts, including failures in namespaces that are still returned; `namespaces` may be empty | 503 if no action could be decided |
+| Nothing could be decided: every candidate's reviews failed, or there were no candidates and a source failed | 503 `SERVICE_UNAVAILABLE` | 503 |
 | More than 200 candidates                                   | 200, requested names first then the rest by name, `CANDIDATES_TRUNCATED` | n/a |
-| Request deadline (25 s) expired                            | pending reviews count as failed, `DISCOVERY_DEADLINE_EXCEEDED` | 503      |
+| Request deadline (25 s) expired                            | pending reviews count as failed, `DISCOVERY_DEADLINE_EXCEEDED`; 200 or 503 by the rows above | 503, even if an action was already allowed |
 
 `issues` never contains a namespace name, and error responses never echo one, so a failure cannot
 reveal a namespace the caller is not authorized for. Counts can reflect the size of the
@@ -180,8 +180,13 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
   authorized namespaces appear and manual entry stays available.
 - A `503` keeps manual entry available too, since looking a namespace up by name can still work.
 - `Active` and `Unknown` namespaces are selectable; `Terminating` ones are not.
-- Only namespaces with `actions.deploy` are offered as deployment targets
-  (`modelServingProjects`); the others are still listed for viewing.
+- Only namespaces with `actions.deploy` are deployment targets. The provider sets
+  `deploymentTargetProjects` on `ProjectsContext`; the model deployment wizard's project selector,
+  and its check of a target passed in by navigation, use that subset. `projects` keeps every
+  namespace for browsing. A host that does not set the field keeps today's behaviour.
+- Waiting for a newly created project polls discovery and, when the listing is partial and the
+  project is not in it, looks it up by name. A partial result is merged with the projects already
+  known (manual entry, remembered selections) and marks the listing partial.
 
 ## Cost
 

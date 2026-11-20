@@ -525,6 +525,49 @@ func TestDiscover_LabelledMetadataShownWhenCallerCanRead(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list.Namespaces, 1)
 	assert.Equal(t, "Labelled", list.Namespaces[0].DisplayName)
+	// The metadata is shown because of the caller's own named get, made the way
+	// the API server resolves GET /api/v1/namespaces/labelled.
+	assert.Contains(t, client.reviewed, k8s.AccessReviewAttributes{Verb: "get", Resource: "namespaces", Namespace: "labelled", Name: "labelled"})
+}
+
+func TestDiscover_ReliableDenialPlusFailureIsPartialEmptyNot503(t *testing.T) {
+	fail := map[string]bool{}
+	for _, c := range NamespacePermissionMatrix {
+		for _, v := range c.Verbs {
+			fail[key("broken", c.Group, c.Resource, v)] = true
+		}
+	}
+	client := &rbacClient{allow: map[string]bool{}, fail: fail}
+	repo := NewNamespaceAccessRepository([]string{"not-mine", "broken"}, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err, "a reliable denial means discovery did not fail outright")
+	assert.Empty(t, list.Namespaces)
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+}
+
+// detailBlockingClient answers the action reviews but never the rest, so the
+// deadline expires after a namespace was already authorized.
+type detailBlockingClient struct{ rbacClient }
+
+func (c *detailBlockingClient) ReviewAccess(ctx context.Context, id *k8s.RequestIdentity, a k8s.AccessReviewAttributes) (k8s.AccessReviewResult, error) {
+	if a.Resource == "pods" || a.Resource == "namespaces" || a.Verb == "watch" {
+		<-ctx.Done()
+		return k8s.AccessReviewDenied, ctx.Err()
+	}
+	return c.rbacClient.ReviewAccess(ctx, id, a)
+}
+
+func TestGet_DeadlineAfterAnAllowedReviewIsUnavailable(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	client := &detailBlockingClient{rbacClient{allow: allow}}
+	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+	repo.timeout = 50 * time.Millisecond
+
+	_, err := repo.Get(context.Background(), client, identity(), "team-a")
+	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
 }
 
 // An authorizer can allow a review made without a namespace yet deny the same
