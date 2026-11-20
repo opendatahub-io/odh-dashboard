@@ -1,25 +1,10 @@
 # OWNERS
 
 approvers:
-  - agagancarczyk
-  - ikeola13
-  - danpierce1
-  - jharan1
-  - NickGagan
-  - emilys314
-  - andrewballantyne
+  - maas-approvers
 
 reviewers:
-  - agagancarczyk
-  - ikeola13
-  - danpierce1
-  - jharan1
-  - NickGagan
-  - emilys314
-  - andrewballantyne
-  - ashley-o0o
-  - katieperry4
-  - sridarna
+  - maas-reviewers
 
 labels:
   - area/maas

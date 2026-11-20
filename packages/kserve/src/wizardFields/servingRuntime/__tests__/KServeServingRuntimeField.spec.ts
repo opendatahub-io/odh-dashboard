@@ -1,4 +1,9 @@
-import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
+import {
+  ServingRuntimeModelType,
+  getServingRuntimeFromTemplate,
+} from '@odh-dashboard/model-serving/shared';
+import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import * as hostApi from '@odh-dashboard/plugin-core/host-api';
 import * as servingRuntimeTemplates from '@odh-dashboard/model-serving/concepts/useServingRuntimeTemplates';
@@ -69,6 +74,27 @@ describe('isKServeServingRuntimeFieldActive', () => {
 });
 
 describe('resolveInitialModelServerFieldData', () => {
+  const templateWithAccelerator = (name: string, accelerator: string) => {
+    const result = mockServingRuntimeTemplateK8sResource({ name });
+    const runtimeObject = result.objects[0];
+    runtimeObject.metadata.annotations = {
+      ...runtimeObject.metadata.annotations,
+      'opendatahub.io/recommended-accelerators': JSON.stringify([accelerator]),
+    };
+    return result;
+  };
+  const gpuProfile = mockHardwareProfile({
+    identifiers: [
+      {
+        identifier: 'nvidia.com/gpu',
+        displayName: 'GPU',
+        resourceType: IdentifierResourceType.ACCELERATOR,
+        defaultCount: 1,
+        minCount: 1,
+        maxCount: 4,
+      },
+    ],
+  });
   const template = mockServingRuntimeTemplateK8sResource({
     name: 'sr-template',
     namespace: 'opendatahub',
@@ -122,6 +148,94 @@ describe('resolveInitialModelServerFieldData', () => {
     expect(resolveInitialModelServerFieldData(existing, { templates: [], extraOptions: [] })).toBe(
       existing,
     );
+  });
+
+  it('should exclude an accelerator-compatible template that does not support the model format', () => {
+    const nvidiaVllm = templateWithAccelerator('nvidia-vllm', 'nvidia.com/gpu');
+    const runtime = getServingRuntimeFromTemplate(nvidiaVllm);
+    if (!runtime) {
+      throw new Error('Expected a ServingRuntime in the template mock');
+    }
+    runtime.spec.supportedModelFormats = [{ name: 'vLLM' }];
+    const result = resolveInitialModelServerFieldData(
+      undefined,
+      { templates: [nvidiaVllm], extraOptions: [] },
+      { modelFormat: { name: 'onnx', version: '1' }, hardwareProfile: gpuProfile },
+    );
+
+    expect(result.data?.autoSelect).toBe(false);
+    expect(result.data?.selection).toBeUndefined();
+  });
+
+  it('should auto-select a single compatible template when an accelerator identifier is present', () => {
+    const compatible = templateWithAccelerator('compatible', 'nvidia.com/gpu');
+    const result = resolveInitialModelServerFieldData(
+      undefined,
+      { templates: [compatible], extraOptions: [] },
+      { modelFormat: { name: 'onnx', version: '1' }, hardwareProfile: gpuProfile },
+    );
+
+    expect(result.data?.autoSelect).toBe(true);
+    expect(result.data?.selection?.name).toBe('compatible');
+  });
+
+  it('should not auto-select when there are zero compatible templates', () => {
+    const incompatible = templateWithAccelerator('incompatible', 'amd.com/gpu');
+    const result = resolveInitialModelServerFieldData(
+      undefined,
+      { templates: [incompatible], extraOptions: [] },
+      { modelFormat: { name: 'onnx', version: '1' }, hardwareProfile: gpuProfile },
+    );
+
+    expect(result.data?.autoSelect).toBe(false);
+    expect(result.data?.selection).toBeUndefined();
+  });
+
+  it('should choose the first compatible template in the filtered template order', () => {
+    const incompatible = templateWithAccelerator('incompatible', 'amd.com/gpu');
+    const firstCompatible = templateWithAccelerator('first-compatible', 'nvidia.com/gpu');
+    const secondCompatible = templateWithAccelerator('second-compatible', 'nvidia.com/gpu');
+    const result = resolveInitialModelServerFieldData(
+      undefined,
+      { templates: [incompatible, firstCompatible, secondCompatible], extraOptions: [] },
+      { modelFormat: { name: 'onnx', version: '1' }, hardwareProfile: gpuProfile },
+    );
+
+    expect(result.data?.autoSelect).toBe(true);
+    expect(result.data?.selection?.name).toBe('first-compatible');
+  });
+
+  it('should not auto-select without a hardware profile accelerator, even for one match', () => {
+    const compatible = templateWithAccelerator('compatible', 'nvidia.com/gpu');
+    const cpuProfile = mockHardwareProfile({
+      identifiers: [
+        {
+          identifier: 'cpu',
+          displayName: 'CPU',
+          resourceType: IdentifierResourceType.CPU,
+          defaultCount: 1,
+          minCount: 1,
+          maxCount: 4,
+        },
+      ],
+    });
+    const dependencies = { modelFormat: { name: 'onnx', version: '1' } };
+
+    const withoutProfile = resolveInitialModelServerFieldData(
+      undefined,
+      { templates: [compatible], extraOptions: [] },
+      dependencies,
+    );
+    const cpuOnlyProfile = resolveInitialModelServerFieldData(
+      undefined,
+      { templates: [compatible], extraOptions: [] },
+      { ...dependencies, hardwareProfile: cpuProfile },
+    );
+
+    expect(withoutProfile.data?.autoSelect).toBe(false);
+    expect(withoutProfile.data?.selection).toBeUndefined();
+    expect(cpuOnlyProfile.data?.autoSelect).toBe(false);
+    expect(cpuOnlyProfile.data?.selection).toBeUndefined();
   });
 
   it('should use an override suggestion when there is no existing selection', () => {
