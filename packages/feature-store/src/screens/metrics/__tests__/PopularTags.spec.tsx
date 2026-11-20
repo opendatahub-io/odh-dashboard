@@ -52,18 +52,18 @@ describe('PopularTags', () => {
   it('renders skeletons while the tags are loading', () => {
     setupHook({ loaded: false, data: mockPopularTags({ popular_tags: [] }) });
 
-    const { container } = renderPopularTags();
+    renderPopularTags();
 
     expect(
       screen.queryByTestId('feature-store-popular-tag-card-team-driver_performance'),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('popular-tags-empty-state-title')).not.toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    // PF Skeleton renders a bare div with the pf-v6-c-skeleton class and no role, so a class
-    // query is the only way to assert the placeholders are actually there.
-    expect(container.querySelectorAll('.pf-v6-c-skeleton').length).toBeGreaterThan(0);
+    // Verify the loading skeleton gallery is rendered via its data-testid.
+    const loadingGallery = screen.getByTestId('popular-tags-loading');
+    expect(loadingGallery).toBeInTheDocument();
     // The loading branch hardcodes 4 placeholder cards regardless of the limit prop.
-    expect(container.querySelectorAll('.pf-v6-c-card')).toHaveLength(4);
+    expect(loadingGallery.children).toHaveLength(4);
   });
 
   it('renders the access denied state when the request fails', () => {
