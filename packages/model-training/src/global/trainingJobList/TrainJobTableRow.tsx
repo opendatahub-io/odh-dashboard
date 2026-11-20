@@ -14,6 +14,7 @@ import { CubesIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import JobProject from './JobProject';
+import { JOBS_TABLE_COLUMN_CLASS } from './const';
 import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import PauseTrainingJobModal from './PauseTrainingJobModal';
@@ -133,15 +134,15 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
   return (
     <>
       <Tr>
-        <Td dataLabel="Name">
+        <Td dataLabel="Name" modifier="breakWord">
           <Button variant="link" isInline onClick={() => onSelectJob(job)}>
             {displayName}
           </Button>
         </Td>
-        <Td dataLabel="Project">
+        <Td dataLabel="Project" className={JOBS_TABLE_COLUMN_CLASS.project}>
           <JobProject job={job} />
         </Td>
-        <Td dataLabel="Nodes">
+        <Td dataLabel="Nodes" className={JOBS_TABLE_COLUMN_CLASS.nodes}>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             spaceItems={{ default: 'spaceItemsSm' }}
@@ -177,15 +178,19 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
             */}
           </Flex>
         </Td>
-        <Td dataLabel="Cluster queue">
+        <Td dataLabel="Cluster queue" className={JOBS_TABLE_COLUMN_CLASS.clusterQueue}>
           <TrainingJobClusterQueue
             localQueueName={localQueueName}
             namespace={job.metadata.namespace}
           />
         </Td>
-        <Td dataLabel="Ray cluster">-</Td>
-        <Td dataLabel="Type">TrainJob</Td>
-        <Td dataLabel="Created">
+        <Td dataLabel="Ray cluster" className={JOBS_TABLE_COLUMN_CLASS.rayCluster}>
+          -
+        </Td>
+        <Td dataLabel="Type" className={JOBS_TABLE_COLUMN_CLASS.type}>
+          TrainJob
+        </Td>
+        <Td dataLabel="Created" className={JOBS_TABLE_COLUMN_CLASS.created}>
           {job.metadata.creationTimestamp ? (
             <Timestamp
               date={new Date(job.metadata.creationTimestamp)}
@@ -206,7 +211,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
             onClick={() => setStatusModalOpen(true)}
           />
         </Td>
-        <Td>
+        <Td className={JOBS_TABLE_COLUMN_CLASS.pauseResume}>
           {canPauseResume && (
             <StateActionToggle
               isPaused={isPaused}
