@@ -307,7 +307,11 @@ describe('Compare runs', () => {
       cy.get('body').type('{esc}');
 
       const expectOpaqueStickyCell = ($cell: JQuery) => {
-        const bg = $cell[0].ownerDocument.defaultView.getComputedStyle($cell[0]).backgroundColor;
+        const view = $cell[0].ownerDocument.defaultView;
+        if (!view) {
+          throw new Error('cell window unavailable');
+        }
+        const bg = view.getComputedStyle($cell[0]).backgroundColor;
         // the pre-fix inline secondary surface rendered translucent under glass
         expect(bg, 'sticky background is not translucent').to.not.match(/rgba\(.+,\s*0\.\d+\)/);
       };
