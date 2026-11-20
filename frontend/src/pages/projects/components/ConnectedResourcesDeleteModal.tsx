@@ -8,21 +8,21 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
 import { NotebookKind } from '#~/k8sTypes';
 import { useNotebooksStates } from '#~/pages/projects/notebook/useNotebooksStates';
 
 type ConnectedResourcesDeleteModalProps = {
   loaded: boolean;
   connectedNotebooks: NotebookKind[];
-  connectedModels: InferenceServiceKind[];
+  connectedResources: ConnectedResourceLabel[];
   namespace: string;
 };
 
 const ConnectedResourcesDeleteModal: React.FC<ConnectedResourcesDeleteModalProps> = ({
   loaded,
   connectedNotebooks,
-  connectedModels,
+  connectedResources,
   namespace,
 }) => {
   const [modelsExpanded, setModelsExpanded] = React.useState<boolean>(false);
@@ -43,10 +43,10 @@ const ConnectedResourcesDeleteModal: React.FC<ConnectedResourcesDeleteModalProps
       </Bullseye>
     );
   }
-  return connectedNotebooks.length !== 0 || connectedModels.length !== 0 ? (
+  return connectedNotebooks.length !== 0 || connectedResources.length !== 0 ? (
     <>
       <div className="pf-v6-u-mt-md">
-        {!connectedNotebooks.length && !connectedModels.length ? null : (
+        {!connectedNotebooks.length && !connectedResources.length ? null : (
           <>
             {connectedNotebooks.length ? (
               <>
@@ -87,7 +87,7 @@ const ConnectedResourcesDeleteModal: React.FC<ConnectedResourcesDeleteModalProps
                 ) : null}
               </>
             ) : null}
-            {connectedModels.length ? (
+            {connectedResources.length ? (
               <>
                 <ExpandableSectionToggle
                   isExpanded={modelsExpanded}
@@ -98,7 +98,7 @@ const ConnectedResourcesDeleteModal: React.FC<ConnectedResourcesDeleteModalProps
                 >
                   <span>Model deployments </span>
                   <Badge isRead data-testid="connections-delete-models-count">
-                    {connectedModels.length}
+                    {connectedResources.length}
                   </Badge>
                 </ExpandableSectionToggle>
                 {modelsExpanded ? (
@@ -110,13 +110,13 @@ const ConnectedResourcesDeleteModal: React.FC<ConnectedResourcesDeleteModalProps
                   >
                     <Content>
                       <Content component="ul" className="pf-v6-u-ml-lg">
-                        {connectedModels.map((model) => (
+                        {connectedResources.map((resource) => (
                           <Content
                             component="li"
-                            key={model.metadata.name}
+                            key={resource.key}
                             data-testid="connections-delete-models-item"
                           >
-                            {getDisplayNameFromK8sResource(model)}
+                            {resource.title}
                           </Content>
                         ))}
                       </Content>

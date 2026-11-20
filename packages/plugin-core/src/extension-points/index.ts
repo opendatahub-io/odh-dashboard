@@ -18,6 +18,7 @@ export * from './detail-cards';
 export * from './table-columns';
 export * from './connection-types';
 export * from './cluster-storage';
+export * from './connected-resources';
 
 // Suppress — declarative removal of (type, id)-keyed extensions
 export * from './suppress';
