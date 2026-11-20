@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/callerauth"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 )
 
 // KubernetesClientFactory creates per-request Kubernetes clients and extracts
@@ -39,8 +38,13 @@ func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (Kube
 // TokenClientFactory creates Kubernetes clients using user-provided bearer tokens.
 type TokenClientFactory struct {
 	Logger *slog.Logger
+	// Header and Prefix are the single-header settings. They are used only when
+	// Credentials was not built (tests and downstream code that construct the
+	// factory literally); NewTokenClientFactory always sets Credentials.
 	Header string
 	Prefix string
+	// Credentials is the caller-credential extractor shared by every transport.
+	Credentials *callerauth.Extractor
 	// NewTokenKubernetesClientFn is the function used to create token-based Kubernetes clients.
 	// Pass the request context and base logger; resolve audit correlation when logging.
 	// This can be overridden by downstream code to provide custom client creation logic.
@@ -49,33 +53,33 @@ type TokenClientFactory struct {
 
 // NewTokenClientFactory creates a new token-based Kubernetes client factory.
 func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) KubernetesClientFactory {
+	extractor := callerauth.New(cfg)
 	return &TokenClientFactory{
 		Logger:                     logger,
 		Header:                     cfg.AuthTokenHeader,
 		Prefix:                     cfg.AuthTokenPrefix,
+		Credentials:                &extractor,
 		NewTokenKubernetesClientFn: NewTokenKubernetesClient,
 	}
 }
 
+func (f *TokenClientFactory) extractor() callerauth.Extractor {
+	if f.Credentials != nil {
+		return *f.Credentials
+	}
+	return callerauth.Legacy(f.Header, f.Prefix)
+}
+
+// ExtractRequestIdentity resolves the caller credential. The identity carries
+// only the token; the user name is resolved later by SelfSubjectReview, so a
+// header can never assert who the caller is.
 func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error) {
-	raw := httpHeader.Get(f.Header)
-	if raw == "" {
-		return nil, fmt.Errorf("missing required header: %s: %w", f.Header, httpcontract.ErrCredentialsMissing)
-	}
-
-	token := raw
-	if f.Prefix != "" {
-		if !strings.HasPrefix(raw, f.Prefix) {
-			return nil, fmt.Errorf("malformed credential: %w", httpcontract.ErrCredentialsInvalid)
-		}
-		token = strings.TrimPrefix(raw, f.Prefix)
-	}
-
-	if strings.TrimSpace(token) == "" {
-		return nil, httpcontract.ErrCredentialsInvalid
+	cred, err := f.extractor().Extract(httpHeader)
+	if err != nil {
+		return nil, err
 	}
 	return &RequestIdentity{
-		Token: NewBearerToken(strings.TrimSpace(token)),
+		Token: NewBearerToken(cred.Token),
 	}, nil
 }
 

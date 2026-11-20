@@ -51,22 +51,21 @@ func readUserTrackingEnabled(ctx context.Context, saClientset kubernetes.Interfa
 
 // --- ConfigMap writers ---
 
-func (r *ClusterSettingsRepository) detectChanges(
-	ctx context.Context,
+func (r *ClusterSettingsRepository) detectChanges(ctx context.Context, cs kubernetes.Interface,
 	namespace string, settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
 ) bool {
 	if settings.PVCSize != currentPVCSize(currentConfig) {
 		return true
 	}
-	currentTimeout, err := readCullerTimeout(ctx, r.saClientset, namespace)
+	currentTimeout, err := readCullerTimeout(ctx, cs, namespace)
 	if err != nil {
 		return true
 	}
 	return settings.CullerTimeout != currentTimeout
 }
 
-func (r *ClusterSettingsRepository) updateCullerConfig(ctx context.Context, namespace string, cullerTimeout int) error {
-	cmClient := r.saClientset.CoreV1().ConfigMaps(namespace)
+func (r *ClusterSettingsRepository) updateCullerConfig(ctx context.Context, cs kubernetes.Interface, namespace string, cullerTimeout int) error {
+	cmClient := cs.CoreV1().ConfigMaps(namespace)
 	cullerMinutes := cullerTimeout / 60
 	isEnabled := cullerTimeout != defaultCullerTimeout
 
@@ -83,7 +82,7 @@ func (r *ClusterSettingsRepository) updateCullerConfig(ctx context.Context, name
 		if !k8serrors.IsNotFound(err) {
 			return err
 		}
-		return r.createCullerConfigMap(ctx, namespace, isEnabled, cullerMinutes)
+		return r.createCullerConfigMap(ctx, cs, namespace, isEnabled, cullerMinutes)
 	}
 
 	if cm.Data == nil {
@@ -95,7 +94,7 @@ func (r *ClusterSettingsRepository) updateCullerConfig(ctx context.Context, name
 	return err
 }
 
-func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, namespace string, isEnabled bool, cullerMinutes int) error {
+func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, cs kubernetes.Interface, namespace string, isEnabled bool, cullerMinutes int) error {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cullerConfigName,
@@ -110,12 +109,12 @@ func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, n
 			keyIdlenessCheckPeriod: defaultIdlenessCheckPeriod,
 		},
 	}
-	_, err := r.saClientset.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
+	_, err := cs.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
 	return err
 }
 
-func (r *ClusterSettingsRepository) updateSegmentKeyConfig(ctx context.Context, namespace string, enabled bool) error {
-	cmClient := r.saClientset.CoreV1().ConfigMaps(namespace)
+func (r *ClusterSettingsRepository) updateSegmentKeyConfig(ctx context.Context, cs kubernetes.Interface, namespace string, enabled bool) error {
+	cmClient := cs.CoreV1().ConfigMaps(namespace)
 	cm, err := cmClient.Get(ctx, segmentKeyConfigName, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -133,12 +132,12 @@ func (r *ClusterSettingsRepository) updateSegmentKeyConfig(ctx context.Context, 
 
 // --- Deployment rollout ---
 
-func (r *ClusterSettingsRepository) rolloutDeployment(ctx context.Context, namespace, name string) error {
+func (r *ClusterSettingsRepository) rolloutDeployment(ctx context.Context, cs kubernetes.Interface, namespace, name string) error {
 	patch := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"%s":"%s"}}}}}`,
 		annotationRestartedAt,
 		time.Now().UTC().Format(time.RFC3339))
 
-	_, err := r.saClientset.AppsV1().Deployments(namespace).Patch(
+	_, err := cs.AppsV1().Deployments(namespace).Patch(
 		ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{},
 	)
 	return err

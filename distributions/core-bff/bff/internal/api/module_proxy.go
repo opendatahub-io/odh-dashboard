@@ -160,11 +160,11 @@ func normalizeFederationEntries(entries []moduleFederationEntry) ([]normalizedPr
 }
 
 // validateProxyEntries rejects duplicate paths, reserved-route collisions, and invalid service refs.
-func validateProxyEntries(entries []normalizedProxyEntry, authTokenHeader string) error {
+func validateProxyEntries(entries []normalizedProxyEntry, authTokenHeaders ...string) error {
 	if err := validateProxyPaths(entries); err != nil {
 		return err
 	}
-	return validateServiceRefs(entries, authTokenHeader)
+	return validateServiceRefs(entries, authTokenHeaders...)
 }
 
 func validateProxyPaths(entries []normalizedProxyEntry) error {
@@ -218,7 +218,7 @@ func proxyPathsOverlap(a, b string) bool {
 	return a == b || strings.HasPrefix(a, b+"/") || strings.HasPrefix(b, a+"/")
 }
 
-func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeader string) error {
+func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeaders ...string) error {
 	for _, e := range entries {
 		if e.service.Service.Name == "" {
 			return fmt.Errorf("entry %s has empty service name", e.entryName)
@@ -241,8 +241,10 @@ func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeader string)
 				if strings.EqualFold(k, constants.HeaderAuthorization) {
 					return fmt.Errorf("entry %s sets a custom Authorization header while authorize is enabled; these conflict", e.entryName)
 				}
-				if authTokenHeader != "" && strings.EqualFold(k, authTokenHeader) {
-					return fmt.Errorf("entry %s sets a custom %s header while authorize is enabled; the server-resolved token takes precedence", e.entryName, authTokenHeader)
+				for _, authTokenHeader := range authTokenHeaders {
+					if authTokenHeader != "" && strings.EqualFold(k, authTokenHeader) {
+						return fmt.Errorf("entry %s sets a custom %s header while authorize is enabled; the server-resolved token takes precedence", e.entryName, authTokenHeader)
+					}
 				}
 			}
 		}
@@ -264,7 +266,7 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		PathRewriteFn: func(r *http.Request) string {
 			return pathRewrite + strings.TrimPrefix(r.URL.Path, proxyPath)
 		},
-		StripHeaders: proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
+		StripHeaders: proxy.SensitiveIngressHeaders(app.credentialHeaders()...),
 		// SSRF redirect check, then force no-store (Node rewriteNoStoreCacheHeaders parity).
 		ModifyResponse:     chainModifyResponse(ssrf.NewRedirectValidator(app.logger), forceNoStoreCacheHeaders),
 		SSRFValidateTarget: ssrfValidate,
@@ -347,7 +349,7 @@ func (app *App) initModuleProxies() error {
 		return nil
 	}
 
-	if err := validateProxyEntries(normalized, app.config.AuthTokenHeader); err != nil {
+	if err := validateProxyEntries(normalized, app.credentialHeaders()...); err != nil {
 		return err
 	}
 

@@ -27,12 +27,27 @@ type Repositories struct {
 }
 
 // RepositoriesConfig holds the dependencies needed to construct all repositories.
-// saDynClient and saClientset are service-account-scoped clients for privileged operations,
-// matching the privileged watcher model where the dashboard SA performs reads and admin-gated mutations.
+// SADynClient and SAClientset are service-account clients. They back the
+// documented service-account reads on every platform, and user-initiated access
+// only under CredentialPolicyServiceAccount (OpenShift).
 type RepositoriesConfig struct {
-	Platform          config.PlatformType
-	SADynClient       dynamic.Interface
-	SAClientset       kubernetes.Interface
+	Platform config.PlatformType
+	// PlatformConfirmed is false when Platform was guessed after a failed
+	// probe rather than detected or configured. It keeps a guess from relaxing
+	// the admission contract; see config.ResolveAdmissionMode.
+	PlatformConfirmed bool
+	// AdmissionMode is the configured bootstrap admission contract, or empty to
+	// resolve from the platform. See config.ResolveAdmissionMode.
+	AdmissionMode config.AdmissionMode
+	SADynClient   dynamic.Interface
+	SAClientset   kubernetes.Interface
+	// CredentialPolicy selects whose credentials perform user-initiated
+	// access. Empty resolves from Platform (see CredentialPolicyFor).
+	CredentialPolicy CredentialPolicy
+	// CallerClients resolves clients authenticated as the request's caller.
+	// Required under CredentialPolicyCaller; without it every caller-scoped
+	// operation fails rather than falling back to the service account.
+	CallerClients     CallerClientsFunc
 	Namespace         string
 	OperatorNamespace string
 	Prometheus        PrometheusConfig
@@ -41,20 +56,35 @@ type RepositoriesConfig struct {
 // NewRepositories creates a new Repositories instance with all repositories initialized.
 func NewRepositories(cfg RepositoriesConfig) *Repositories {
 	auth := NewAuthRepository(cfg.SADynClient)
+	clients := newClientSource(cfg)
+
+	dashboardConfig := newDashboardConfigRepository(cfg.Platform, cfg.PlatformConfirmed, cfg.SADynClient)
+	dashboardConfig.clients = clients
+	components := NewComponentsRepository(cfg.SADynClient, cfg.SAClientset)
+	components.clients = clients
+	clusterSettings := NewClusterSettingsRepository(cfg.SAClientset)
+	clusterSettings.clients = clients
+	connectionType := NewConnectionTypeRepository(cfg.SAClientset)
+	connectionType.clients = clients
+	servingRuntime := NewServingRuntimeRepository(cfg.SADynClient)
+	servingRuntime.clients = clients
+	namespaceMutation := NewNamespaceMutationRepository(cfg.SAClientset)
+	namespaceMutation.clients = clients
+
 	return &Repositories{
 		HealthCheck:                NewHealthCheckRepository(),
 		User:                       NewUserRepository(),
 		Namespace:                  NewNamespaceRepository(),
-		DashboardConfig:            NewDashboardConfigRepository(cfg.Platform, cfg.SADynClient),
-		Status:                     NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth),
+		DashboardConfig:            dashboardConfig,
+		Status:                     NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth, config.ResolveAdmissionMode(cfg.AdmissionMode, cfg.Platform, cfg.PlatformConfirmed)),
 		Auth:                       auth,
-		Components:                 NewComponentsRepository(cfg.SADynClient, cfg.SAClientset),
-		ClusterSettings:            NewClusterSettingsRepository(cfg.SAClientset),
-		ConnectionType:             NewConnectionTypeRepository(cfg.SAClientset),
+		Components:                 components,
+		ClusterSettings:            clusterSettings,
+		ConnectionType:             connectionType,
 		AllowedUsers:               NewAllowedUsersRepository(cfg.SADynClient),
-		ServingRuntime:             NewServingRuntimeRepository(cfg.SADynClient),
+		ServingRuntime:             servingRuntime,
 		NIM:                        NewNIMRepository(cfg.SADynClient, cfg.SAClientset),
-		NamespaceMutation:          NewNamespaceMutationRepository(cfg.SAClientset),
+		NamespaceMutation:          namespaceMutation,
 		Prometheus:                 NewPrometheusRepository(cfg.Prometheus),
 		OperatorSubscriptionStatus: NewOperatorSubscriptionStatusRepository(cfg.SADynClient, cfg.OperatorNamespace),
 	}

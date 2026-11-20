@@ -28,8 +28,12 @@ type WsProxyConfig struct {
 	K8sHost string
 	// RootCAs is the certificate pool for verifying the K8s API server's certificate.
 	RootCAs *x509.CertPool
-	// ClientCerts are client certificates for mTLS authentication.
+	// ClientCerts are client certificates presented on every upstream dial
+	// (envtest mock mode, where impersonation headers carry the identity).
 	ClientCerts []tls.Certificate
+	// DevFallbackClientCerts are presented only for a DevFallback identity; see
+	// K8sProxyConfig.DevFallbackClientCerts.
+	DevFallbackClientCerts []tls.Certificate
 	// InsecureSkipVerify disables TLS certificate verification.
 	InsecureSkipVerify bool
 	// AllowHTTP permits insecure HTTP connections to the K8s API server.
@@ -51,6 +55,7 @@ type wsProxy struct {
 	targetURL        *url.URL
 	wsScheme         string
 	tlsConfig        *tls.Config
+	devFallbackTLS   *tls.Config
 	devFallbackToken string
 	tracker          *ConnectionTracker
 	logger           *slog.Logger
@@ -61,7 +66,7 @@ type wsProxy struct {
 func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	httpcontract.EnsureID(w, r)
 	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-	if !ok || identity == nil {
+	if !ok || identity == nil || (!identity.DevFallback && identity.ResolveToken(p.devFallbackToken) == "") {
 		httpcontract.WriteLocal(w, r, http.StatusUnauthorized)
 		return
 	}
@@ -84,7 +89,11 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	watch := httpcontract.IsWatchRequest(upstreamRequest)
 	clientSubprotocols := websocket.Subprotocols(r)
 
-	targetConn, resp, dialErr := dialK8sWebSocket(targetWSURL, p.tlsConfig, token, p.targetURL, p.netDialContext, clientSubprotocols, httpcontract.RequestID(r.Context()))
+	tlsConfig := p.tlsConfig
+	if identity.DevFallback && p.devFallbackTLS != nil {
+		tlsConfig = p.devFallbackTLS
+	}
+	targetConn, resp, dialErr := dialK8sWebSocket(targetWSURL, tlsConfig, token, p.targetURL, p.netDialContext, clientSubprotocols, httpcontract.RequestID(r.Context()))
 	if dialErr != nil {
 		p.handleDialError(w, r, resp, dialErr)
 		return
@@ -149,6 +158,11 @@ func NewWsProxyHandler(cfg WsProxyConfig) (http.Handler, error) {
 	if len(cfg.ClientCerts) > 0 {
 		tlsConfig.Certificates = cfg.ClientCerts
 	}
+	var devFallbackTLS *tls.Config
+	if len(cfg.DevFallbackClientCerts) > 0 {
+		devFallbackTLS = tlsConfig.Clone()
+		devFallbackTLS.Certificates = append(append([]tls.Certificate{}, cfg.ClientCerts...), cfg.DevFallbackClientCerts...)
+	}
 
 	var netDialContext func(ctx context.Context, network, addr string) (net.Conn, error)
 	if cfg.SSRFValidateTarget {
@@ -159,6 +173,7 @@ func NewWsProxyHandler(cfg WsProxyConfig) (http.Handler, error) {
 		targetURL:        targetURL,
 		wsScheme:         wsScheme,
 		tlsConfig:        tlsConfig,
+		devFallbackTLS:   devFallbackTLS,
 		devFallbackToken: cfg.DevFallbackToken,
 		tracker:          cfg.Tracker,
 		logger:           cfg.Logger,

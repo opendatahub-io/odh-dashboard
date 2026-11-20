@@ -48,8 +48,10 @@ func (app *App) UpdateClusterSettingsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	currentConfig, err := app.repositories.DashboardConfig.GetDashboardConfig(
-		ctx, app.config.Namespace, app.config.DashboardConfigName, nil,
+	// On xKS the write is computed from the caller's own read, so a caller who
+	// cannot read the configuration is refused before anything is written.
+	currentConfig, err := app.repositories.DashboardConfig.GetDashboardConfigForUpdate(
+		ctx, app.config.Namespace, app.config.DashboardConfigName,
 	)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get current config: %w", err))
@@ -62,15 +64,24 @@ func (app *App) UpdateClusterSettingsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// The update is several separate writes. On xKS, check the caller may make
+	// all of them before the first one, so a denial cannot leave a partial change.
+	if err := app.repositories.ClusterSettings.AuthorizeUpdate(
+		ctx, app.config.Namespace, app.config.DashboardConfigName, &settings, currentConfig,
+	); err != nil {
+		app.clusterSettingsFailure(w, r, "unable to update cluster settings", err)
+		return
+	}
+
 	if _, err := app.repositories.DashboardConfig.PatchRawDashboardConfig(
 		ctx, app.config.Namespace, app.config.DashboardConfigName, patchBytes, types.MergePatchType,
 	); err != nil {
-		writeClusterSettingsError(app, w, r, fmt.Sprintf("unable to update cluster settings: %v", err))
+		app.clusterSettingsFailure(w, r, "unable to update cluster settings", err)
 		return
 	}
 
 	if err := app.repositories.ClusterSettings.UpdateConfigMaps(ctx, app.config.Namespace, &settings, currentConfig); err != nil {
-		writeClusterSettingsError(app, w, r, fmt.Sprintf("unable to update cluster settings: %v", err))
+		app.clusterSettingsFailure(w, r, "unable to update cluster settings", err)
 		return
 	}
 
@@ -78,6 +89,17 @@ func (app *App) UpdateClusterSettingsHandler(w http.ResponseWriter, r *http.Requ
 	if err := app.WriteJSON(w, http.StatusOK, result, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// clusterSettingsFailure writes a failed update. Under the caller policy an
+// authorization error is surfaced through the error contract (401/403); every
+// other failure keeps the legacy 200 response with success=false.
+func (app *App) clusterSettingsFailure(w http.ResponseWriter, r *http.Request, msg string, err error) {
+	if app.repositories.ClusterSettings.SurfacesAuthFailure(err) {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	writeClusterSettingsError(app, w, r, fmt.Sprintf("%s: %v", msg, err))
 }
 
 func writeClusterSettingsError(app *App, w http.ResponseWriter, r *http.Request, msg string) {

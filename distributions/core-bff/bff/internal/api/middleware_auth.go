@@ -2,12 +2,15 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/callerauth"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
@@ -27,7 +30,11 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 
 		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
 		if err != nil {
-			if app.config.DevMode {
+			// DEV_MODE substitutes the kubeconfig identity only when no credential
+			// was sent. A credential that was sent but is malformed or conflicting
+			// is rejected in every profile, so local runs surface the same
+			// failures production does.
+			if app.config.DevMode && errors.Is(err, httpcontract.ErrCredentialsMissing) {
 				// DevUser/DevGroups are used for audit log fallback labeling (see auditUser).
 				// The resolved identity for k8s operations comes from the kubeconfig's native auth,
 				// not from these values - GetUser() does a SelfSubjectReview against the kubeconfig client.
@@ -47,6 +54,19 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// credentialHeaders returns every header that may carry the caller credential:
+// the configured ordered list (or the single AUTH_TOKEN_HEADER) plus
+// AUTH_TOKEN_HEADER itself, which module proxies use as their outbound header.
+// Every inbound copy is stripped before proxying, redacted in logs, allowed by
+// CORS and listed in Vary.
+func (app *App) credentialHeaders() []string {
+	headers := callerauth.New(app.config).Headers()
+	if h := http.CanonicalHeaderKey(strings.TrimSpace(app.config.AuthTokenHeader)); h != "" && !slices.Contains(headers, h) {
+		headers = append(headers, h)
+	}
+	return slices.DeleteFunc(headers, func(h string) bool { return h == "" })
 }
 
 // auditUser returns the best available user identifier for audit logging.

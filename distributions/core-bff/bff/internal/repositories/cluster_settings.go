@@ -29,14 +29,15 @@ const (
 )
 
 // ClusterSettingsRepository handles cluster settings derived from DashboardConfig and ConfigMaps.
-// Uses the SA clientset for ConfigMap operations, matching the privileged watcher model where the dashboard
-// SA performs reads and admin-gated mutations.
+// Both endpoints are admin-only and user-initiated, so every ConfigMap and
+// Deployment access follows the credential policy: the service account on
+// OpenShift (privileged watcher model), the caller on xKS.
 type ClusterSettingsRepository struct {
-	saClientset kubernetes.Interface
+	clients clientSource
 }
 
 func NewClusterSettingsRepository(saClientset kubernetes.Interface) *ClusterSettingsRepository {
-	return &ClusterSettingsRepository{saClientset: saClientset}
+	return &ClusterSettingsRepository{clients: saSource(saClientset, nil)}
 }
 
 // GetClusterSettings builds a ClusterSettings from DashboardConfig and ConfigMaps.
@@ -48,14 +49,23 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 
 	applyDashboardConfigToSettings(dashConfig, &settings)
 
-	cullerTimeout, err := readCullerTimeout(ctx, r.saClientset, namespace)
+	cs, err := r.clients.typed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cullerTimeout, err := readCullerTimeout(ctx, cs, namespace)
 	if err != nil {
 		return nil, err
 	}
 	settings.CullerTimeout = cullerTimeout
 
 	if dashConfig != nil && !dashConfig.Spec.DashboardConfig.DisableTracking {
-		tracking, err := readUserTrackingEnabled(ctx, r.saClientset, namespace)
+		tracking, err := readUserTrackingEnabled(ctx, cs, namespace)
+		if err != nil && r.clients.surfacesAuthFailure(err) {
+			// A caller who may not read the segment-key ConfigMap gets the
+			// API server's answer, as for every other read here.
+			return nil, err
+		}
 		if err != nil {
 			slog.Warn("failed to read segment key config, defaulting to tracking disabled", slog.Any("error", err))
 		} else {
@@ -120,24 +130,28 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 
 // UpdateConfigMaps updates culler and segment-key ConfigMaps, and rolls out
 // notebook-controller-deployment when culler or PVC settings changed.
-// All operations use the SA clientset, matching the privileged watcher model.
+// Every operation uses the clients selected by the credential policy.
 func (r *ClusterSettingsRepository) UpdateConfigMaps(
 	ctx context.Context,
 	namespace string, settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
 ) error {
-	needsRollout := r.detectChanges(ctx, namespace, settings, currentConfig)
+	cs, err := r.clients.typed(ctx)
+	if err != nil {
+		return err
+	}
+	needsRollout := r.detectChanges(ctx, cs, namespace, settings, currentConfig)
 
-	if err := r.updateCullerConfig(ctx, namespace, settings.CullerTimeout); err != nil {
+	if err := r.updateCullerConfig(ctx, cs, namespace, settings.CullerTimeout); err != nil {
 		return fmt.Errorf("failed to update culler config: %w", err)
 	}
-	if err := r.updateSegmentKeyConfig(ctx, namespace, settings.UserTrackingEnabled); err != nil {
+	if err := r.updateSegmentKeyConfig(ctx, cs, namespace, settings.UserTrackingEnabled); err != nil {
 		return fmt.Errorf("failed to update segment key config: %w", err)
 	}
 
 	if needsRollout {
 		// TODO: Gate this notebook-controller restart on a platform capability; XKS
 		// must not expose the notebook (workbench) feature or its settings.
-		if err := r.rolloutDeployment(ctx, namespace, notebookControllerDeploy); err != nil {
+		if err := r.rolloutDeployment(ctx, cs, namespace, notebookControllerDeploy); err != nil {
 			return fmt.Errorf("failed to rollout %s: %w", notebookControllerDeploy, err)
 		}
 	}
