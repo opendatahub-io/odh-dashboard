@@ -1,8 +1,9 @@
 name: Fullsend scripts test
 
 # Runs the unit tests for the Jira code pilot's dispatch script and workflow
-# contracts (.fullsend/scripts/tests/test_jira_dispatch.py). No network calls,
-# no secrets.
+# contracts (.fullsend/scripts/tests/test_jira_dispatch.py) and for host-side
+# PR image capture (.fullsend/scripts/tests/test_fetch_pr_images.py).
+# No network calls, no secrets.
 
 on:
   pull_request:
@@ -33,3 +34,6 @@ jobs:
 
       - name: Run Jira dispatch tests
         run: python .fullsend/scripts/tests/test_jira_dispatch.py -v
+
+      - name: Run PR image capture tests
+        run: python .fullsend/scripts/tests/test_fetch_pr_images.py -v

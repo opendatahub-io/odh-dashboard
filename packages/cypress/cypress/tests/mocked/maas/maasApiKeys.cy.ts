@@ -435,7 +435,7 @@ describe('API Keys Page', () => {
       'searchByUsername',
     );
 
-    apiKeysPage.findFilterInput().find('input').type('alice');
+    apiKeysPage.findUsernameInput().type('alice');
     apiKeysPage.findUsernameFilterTooltip().should('be.visible');
     apiKeysPage.findFilterSearchButton().click();
 
@@ -456,7 +456,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     apiKeysPage.visit();
     cy.wait('@initialSearch');
-    apiKeysPage.findFilterInput().should('not.exist');
+    apiKeysPage.findOptionalFilterInput().should('not.exist');
     apiKeysPage.findUsernameFilterTooltip().should('not.exist');
   });
 

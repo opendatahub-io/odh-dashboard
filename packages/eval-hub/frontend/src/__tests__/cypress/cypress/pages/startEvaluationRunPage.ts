@@ -172,6 +172,10 @@ class StartEvaluationRunPage {
     return cy.findByTestId(`hardware-profile-option-${profileName}`);
   }
 
+  findHardwareProfileDefaultOption() {
+    return cy.findByTestId('hardware-profile-option-default');
+  }
+
   findHardwareProfileHelperText() {
     return cy.findByTestId('hardware-profile-helper-text');
   }

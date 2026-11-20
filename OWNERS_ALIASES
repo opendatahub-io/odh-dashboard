@@ -1,5 +1,15 @@
+# The aliases here will be best associated with our scrum understanding for
+#   contact needs around getting reviews & collaboration in spaces impacted
+# https://redhat.atlassian.net/wiki/spaces/RHODS/pages/304027784/Team+Configuration
+#
+# Values "(<date>) <name> Scrum" will speak to an owner of the alias, but
+#   people in the group may not be in the scrum. This is to help with cross
+#   communication
+
 aliases:
   # General group of approvers if specifics areas are not preferred instead
+  # Heavily limited by OWNERS files with no_parent_owners = trues
+  # Good for spaces that don't turn off parent owners to force collaboration
   general-approvers:
     - andrewballantyne
     - lucferbux
@@ -10,10 +20,8 @@ aliases:
     - DaoDaoNoCode
     - antowaddle
     - FedeAlonso
-    - Griffin-Sullivan
     - YuliaKrimerman
     - manaswinidas
-    - ederign
     - dpanshug
     - claudialphonse78
     - andyatmiami
@@ -24,6 +32,7 @@ aliases:
     - danreed-rh
 
   # Backup alias for managers to help with unblocking during PTO
+  # These members are mirroring general-approvers, same limitations
   managers-backup-approvers:
     - dgutride
     - darachcawley
@@ -32,24 +41,37 @@ aliases:
     - jessiehuff
     - tamdavid-git
 
+  # AI Grid (temp groups -- maybe)
+  # (2026-11-19) AI Grid Scrum
+  ai-grid-approvers:
+    - andrewballantyne
+    - manaswinidas
+    - DaoDaoNoCode
+  ai-grid-reviewers:
+    - manaswinidas
+    - DaoDaoNoCode
+    - ppadti
+    - jesuino
+
   # AI Trusty
+  # (2026-11-19) Crimson Scrum
   ai-trusty-approvers:
     - andrewballantyne
   ai-trusty-reviewers:
     - agagancarczyk
 
   # Connections & Connection Types
+  # (2026-11-19) Razzmatazz Scrum
   connections-approvers:
     - emilys314
-    - Griffin-Sullivan
     - andrewballantyne
   connections-reviewers:
     - ashley-o0o
     - emilys314
-    - Griffin-Sullivan
     - katieperry4
 
   # Hardware Profiles
+  # (2026-11-19) Razzmatazz Scrum
   hardware-profiles-approvers:
     - Gkrumbach07
     - DaoDaoNoCode
@@ -64,6 +86,7 @@ aliases:
     - DaltheCow
 
   # Model Registry & Model Catalog
+  # (2026-11-19) Razzmatazz Scrum
   model-registry-catalog-approvers:
     - mturley
     - YuliaKrimerman
@@ -77,6 +100,7 @@ aliases:
     - Philip-Carneiro
 
   # Model Serving & Model Metrics
+  # (2026-11-19) Zaffre Scrum
   model-serving-metrics-approvers:
     - emilys314
     - mturley
@@ -89,24 +113,22 @@ aliases:
     - sridarna
 
   # Models as a Service (MaaS)
+  # (2026-11-19) Crimson Scrum
   maas-approvers:
     - agagancarczyk
     - ikeola13
     - danpierce1
     - jharan1
     - NickGagan
-    - emilys314
   maas-reviewers:
-    - ashley-o0o
     - agagancarczyk
     - ikeola13
     - danpierce1
     - jharan1
     - NickGagan
-    - emilys314
-    - katieperry4
-
+ 
   # Pipelines team
+  # (2026-11-19) Razzmatazz Scrum
   pipelines-approvers:
     - Gkrumbach07
     - DaoDaoNoCode
@@ -118,6 +140,7 @@ aliases:
     - DaltheCow
 
   # General Dashboard infrastructure
+  # (2026-11-19) Pewter Scrum
   platform-approvers:
     - christianvogt
     - liday-rh
@@ -129,6 +152,7 @@ aliases:
     - lucferbux
 
   # Quality / E2E testing
+  # (2026-11-19) General test ownership (not scrum based)
   quality-e2e-testing-approvers:
     - antowaddle
     - FedeAlonso
@@ -152,6 +176,7 @@ aliases:
     - NickGagan
 
   # Workbenches (formerly Notebooks)
+  # (2026-11-19) Razzmatazz Scrum
   workbenches-approvers:
     - Gkrumbach07
     - srtanish1992
@@ -163,6 +188,7 @@ aliases:
     - nananosirova
 
   # Gen AI
+  # (2026-11-19) Crimson Scrum
   gen-ai-approvers:
     - agagancarczyk
     - ikeola13
@@ -174,7 +200,6 @@ aliases:
     - jharan1
     - NickGagan
     - mfleader
-    - ederign
     - rhdedgar
     - gmenher
     - chrjones-rh
@@ -189,7 +214,6 @@ aliases:
     - jharan1
     - NickGagan
     - mfleader
-    - ederign
     - rhdedgar
     - iamemilio
     - s-akhtar-baig
@@ -197,9 +221,9 @@ aliases:
     - chrjones-rh
 
   # Notebooks
+  # (2026-11-19) Turquoise Scrum
   notebooks-approvers:
     - andyatmiami
-    - ederign
     - harshad16
     - paulovmr
     - thaorell
@@ -207,7 +231,6 @@ aliases:
     - bobbravo2
   notebooks-reviewers:
     - andyatmiami
-    - ederign
     - harshad16
     - paulovmr
     - caponetto
@@ -217,6 +240,7 @@ aliases:
     - bobbravo2
 
   # NIM / Ecosystem Engineering
+  # (2026-11-19) External Contributors
   nim-serving-approvers:
     - TomerFi
     - TheiaSurette
@@ -233,6 +257,7 @@ aliases:
     - swati-kale
 
   # AutoRAG
+  # (2026-11-19) Purple Scrum
   autorag-approvers:
     - nickmazzi
     - chrjones-rh
@@ -251,6 +276,7 @@ aliases:
     - NickGagan
 
   # AutoML
+  # (2026-11-19) Purple Scrum
   automl-approvers:
     - nickmazzi
     - chrjones-rh
@@ -269,6 +295,7 @@ aliases:
     - NickGagan
 
   # Eval Hub
+  # (2026-11-19) Purple Scrum
   eval-hub-approvers:
     - chrjones-rh
     - nickmazzi
@@ -280,6 +307,7 @@ aliases:
     - jefho-rh
 
   # Agent Ops
+  # (2026-11-19) Razzmatazz Scrum
   agent-ops-approvers:
     - Gkrumbach07
     - DaoDaoNoCode
@@ -288,14 +316,18 @@ aliases:
     - DaoDaoNoCode
 
   # Distributions
+  # (2026-11-19) Pewter Scrum
   distributions-approvers:
     - andyatmiami
     - caponetto
     - paulovmr
+    - lucferbux
   distributions-reviewers:
     - jenny-s51
+    - lucferbux
 
   # Data Registry
+  # (2026-11-19) External Contributors
   data-registry-approvers:
     - briangallagher
     - Fiona-Waters
@@ -307,6 +339,7 @@ aliases:
     - Slowlybomb
 
   # Data Connect Hub
+  # (2026-11-19) Purple Scrum
   data-connect-hub-approvers:
     - chrjones-rh
     - tamdavid-git
@@ -319,6 +352,7 @@ aliases:
     - MatthewAThompson
 
   # AI Safety
+  # (2026-11-19) Crimson Scrum
   ai-safety-approvers:
     - chrjones-rh
     - GAUNSD
@@ -337,6 +371,7 @@ aliases:
     - tamdavid-git
 
   # MLflow
+  # (2026-11-19) Razzmatazz Scrum
   mlflow-approvers:
     - caponetto
     - DaoDaoNoCode

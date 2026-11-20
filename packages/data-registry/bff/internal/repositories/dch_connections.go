@@ -57,7 +57,9 @@ type dchConnectionType struct {
 }
 
 // DCHFallbackAllowed deliberately uses error codes, not HTTP status alone: a locally
-// detected malformed response has status 502 but must not trigger Secret fallback.
+// detected malformed response has status 502 but must not trigger Secret fallback. DCH can
+// return Forbidden when its backing API and RBAC resources are not installed, so that error
+// falls back to the independently authorized project Secret lookup.
 func DCHFallbackAllowed(err error) bool {
 	var upstream *bffclient.BFFClientError
 	if !errors.As(err, &upstream) {
@@ -67,6 +69,7 @@ func DCHFallbackAllowed(err error) bool {
 	case bffclient.ErrCodeConnectionFailed,
 		bffclient.ErrCodeTimeout,
 		bffclient.ErrCodeServerUnavailable,
+		bffclient.ErrCodeForbidden,
 		errCodeDCHListEndpointNotFound:
 		return true
 	default:

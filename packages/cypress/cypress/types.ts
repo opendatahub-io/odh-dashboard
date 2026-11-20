@@ -22,6 +22,7 @@ export type InterceptSnapshot = {
 export type UserAuthConfig = {
   AUTH_TYPE: string;
   USERNAME: string;
+  EMAIL?: string;
   PASSWORD: string;
 };
 
@@ -338,7 +339,14 @@ export type TestConfig = {
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
   MAAS_URL?: string;
+  MAAS_PORTAL_URL?: string;
+  ENABLE_MAAS_PORTAL_E2E?: boolean | string;
+  MAAS_PORTAL_MODEL_NAME?: string;
+  MAAS_PORTAL_ORGANIZATION_ID?: string;
+  MAAS_PORTAL_USER_GROUPS?: string[];
   MAAS_API_KEY?: string;
+  MAAS_PORTAL_ADMIN_USER?: UserAuthConfig;
+  MAAS_PORTAL_USER?: UserAuthConfig;
   HF_API_KEY?: string;
   MAAS_GENERATION_MODEL_ID?: string;
   MAAS_EMBEDDING_MODEL_ID?: string;
@@ -1032,6 +1040,10 @@ export type EvalHubBenchmarkSuiteTestData = Omit<
   }[];
   /** Benchmark IDs expected on the completed suite results page. */
   expectedBenchmarkIds: string[];
+  /** Curated system collection ID used by the Gallery Run scenario. */
+  curatedCollectionId?: string;
+  /** Runtime sample limit applied to every benchmark in the curated Gallery Run request. */
+  curatedRunNumExamples?: number;
 };
 
 export type ModelCatalogSourceTestData = {

@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - hardware-profiles-approvers
+
+reviewers:
+  - hardware-profiles-reviewers
+
+labels:
+  - area/hardware-profiles
+  - area/components
+
+options:
+  no_parent_owners: true

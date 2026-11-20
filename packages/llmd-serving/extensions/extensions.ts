@@ -17,7 +17,7 @@ import type {
   WizardFieldDeploymentFunctionsExtension,
   WizardTrackingPropertiesExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
   AreaExtension,
   HrefNavItemExtension,
@@ -418,7 +418,8 @@ const extensions: (
     type: 'app.area',
     properties: {
       id: LLMD_SERVING_ID,
-      reliantAreas: [SupportedArea.K_SERVE],
+      requiredComponents: [DataScienceStackComponent.K_SERVE],
+      reliantAreas: [SupportedArea.MODEL_SERVING],
       featureFlags: ['disableLLMd'],
     },
   },
