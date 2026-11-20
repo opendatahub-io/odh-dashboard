@@ -39,6 +39,7 @@ import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 
 interface KnowledgeTabContentProps {
   configId?: string;
+  onNavigateToPrompt?: () => void;
   sourceManagement: UseSourceManagementReturn;
   fileManagement: UseFileManagementReturn;
   alerts: {
@@ -50,6 +51,7 @@ interface KnowledgeTabContentProps {
 
 const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = ({
   configId = DEFAULT_CONFIG_ID,
+  onNavigateToPrompt,
   sourceManagement,
   fileManagement,
   alerts,
@@ -93,6 +95,47 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
   const selectedStoreName = React.useMemo(
     () => externalVectorStores.find((s) => s.id === selectedVectorStoreId)?.name,
     [selectedVectorStoreId, externalVectorStores],
+  );
+
+  const troubleshooting = isRagEnabled && fileManagement.files.length > 0 && (
+    <Popover
+      position="bottom-start"
+      aria-label="RAG troubleshooting"
+      closeBtnAriaLabel="Close troubleshooting"
+      maxWidth="28rem"
+      bodyContent={(hide) => (
+        <div>
+          <p style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}>
+            If RAG is enabled but the model is not using retrieved knowledge, add a clear rule in
+            your system prompt. For example, “Always use RAG”
+          </p>
+          <div className="pf-v6-u-mt-sm">
+            <Button
+              variant="link"
+              className="pf-v6-u-pl-xs"
+              onClick={() => {
+                hide();
+                onNavigateToPrompt?.();
+              }}
+              data-testid="go-to-prompt-tab"
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  borderBottom: '1px dotted var(--pf-t--global--text--color--subtle)',
+                }}
+              >
+                Go to <strong>Prompt</strong> tab
+              </span>
+            </Button>
+          </div>
+        </div>
+      )}
+    >
+      <Button variant="link" data-testid="rag-troubleshooting-button">
+        Troubleshooting
+      </Button>
+    </Popover>
   );
 
   // --- Upload fields (shared between flag-off and flag-on upload mode) ---
@@ -149,6 +192,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
 
     return (
       <TabContentWrapper title="RAG" headerActions={headerActions} titleTestId="rag-section-title">
+        {troubleshooting}
         <Form>{uploadFields}</Form>
       </TabContentWrapper>
     );
@@ -300,6 +344,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
       headerActions={headerActions}
       titleTestId="knowledge-section-title"
     >
+      {troubleshooting}
       <Form>
         <FormGroup fieldId="knowledge-mode" role="radiogroup" aria-label="RAG source">
           <Radio
