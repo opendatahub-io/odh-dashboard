@@ -3,8 +3,8 @@ import * as React from 'react';
 import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import SingleBenchmarkWizardPage from '~/app/pages/SingleBenchmarkWizardPage';
 import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
-import ChooseStandardisedBenchmarksPage from '~/app/pages/ChooseStandardisedBenchmarksPage';
 import { Provider } from '~/app/types';
 
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
@@ -43,19 +43,26 @@ const makeProvider = (overrides: Partial<Provider> = {}): Provider => ({
   ...overrides,
 });
 
-const renderPage = () =>
+const renderPage = (state?: Record<string, unknown>) =>
   render(
-    <MemoryRouter initialEntries={['/test-project/evaluation/benchmarks']}>
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: '/evaluation/test-project/create/single-benchmark',
+          state,
+        },
+      ]}
+    >
       <Routes>
         <Route
-          path="/:namespace/evaluation/benchmarks"
-          element={<ChooseStandardisedBenchmarksPage />}
+          path="/evaluation/:namespace/create/single-benchmark"
+          element={<SingleBenchmarkWizardPage />}
         />
       </Routes>
     </MemoryRouter>,
   );
 
-describe('ChooseStandardisedBenchmarksPage', () => {
+describe('SingleBenchmarkWizardPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseProviders.mockReturnValue({
@@ -109,7 +116,7 @@ describe('ChooseStandardisedBenchmarksPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('should track benchmark details opened from the catalog', () => {
+  it('should track benchmark details opened from the grid', () => {
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Basic science Q&A' }));
@@ -120,9 +127,38 @@ describe('ChooseStandardisedBenchmarksPage', () => {
         event_source: 'evalhub_ui',
         collection_type: 'unknown',
         provider_type: 'unknown',
-        source: 'catalogTable',
+        source: 'catalogGrid',
       },
       expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+    );
+  });
+
+  it('should navigate to run configuration with benchmark and source context when selected', () => {
+    renderPage({ source: 'gallery' });
+
+    fireEvent.click(screen.getAllByTestId('select-benchmark-button')[0]);
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/evaluation/test-project/create/start?type=benchmark&providerId=lm_evaluation_harness&benchmarkId=arc_easy',
+      {
+        state: expect.objectContaining({
+          benchmark: expect.objectContaining({ id: 'arc_easy' }),
+          source: 'gallery',
+          selectedBenchmarkKey: 'lm_evaluation_harness:arc_easy',
+        }),
+      },
+    );
+  });
+
+  it('should mark the benchmark selected after returning from run configuration', () => {
+    renderPage({
+      source: 'gallery',
+      selectedBenchmarkKey: 'lm_evaluation_harness:arc_easy',
+    });
+
+    expect(screen.getByTestId('benchmark-card-lm_evaluation_harness-arc_easy')).toHaveAttribute(
+      'data-selected',
+      'true',
     );
   });
 
