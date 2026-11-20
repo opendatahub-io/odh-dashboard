@@ -81,18 +81,22 @@ REST handlers, the Kubernetes HTTP proxy (`/api/k8s/*`), the Kubernetes WebSocke
 The identity carries only the token. Who the caller is comes from `SelfSubjectReview` against the
 API server, never from a header. `X-Forwarded-User`, `X-Forwarded-Groups`, `Impersonate-*` and
 `X-Remote-*` are never read as identity, are removed before any request is proxied, and cannot be
-configured as credential headers.
+configured as credential headers: startup rejects them, and any name that is not a valid HTTP
+header, in `AUTH_TOKEN_HEADERS` and in `AUTH_TOKEN_HEADER` alike. A rejected entry is reported by
+setting and position, never by its value, so a token pasted into the setting by mistake does not
+reach the log.
 
 ### Two modes, one setting
 
-| `AUTH_TOKEN_HEADERS` | Mode          | Used by                                                  | Behaviour                                                                                         |
-| -------------------- | ------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| unset _(default)_    | single header | OpenShift (unchanged)                                    | Reads `AUTH_TOKEN_HEADER`; strips `AUTH_TOKEN_PREFIX` when set (the prefix must then be present). |
-| ordered list         | precedence    | xKS (proposed: `Authorization,x-forwarded-access-token`) | Rules below. `AUTH_TOKEN_PREFIX` must be empty; the combination fails startup as ambiguous.       |
+| `AUTH_TOKEN_HEADERS` | Mode          | Used by                                                        | Behaviour                                                                                         |
+| -------------------- | ------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| unset _(default)_    | single header | OpenShift (unchanged)                                          | Reads `AUTH_TOKEN_HEADER`; strips `AUTH_TOKEN_PREFIX` when set (the prefix must then be present). |
+| ordered list         | precedence    | xKS (RHAII manifest: `Authorization,x-forwarded-access-token`) | Rules below. `AUTH_TOKEN_PREFIX` must be empty; the combination fails startup as ambiguous.       |
 
 The xKS gateway sends the Entra access token in both `Authorization: Bearer` and
 `x-forwarded-access-token`. Which one is the contract is not decided yet, so the xKS value accepts
-both, `Authorization` first. Switching to one header is a configuration change, not a code change.
+both, `Authorization` first; the RHAII manifest (`manifests/distributions/rhaii/deployment.yaml`)
+sets that value. Switching to one header is a configuration change, not a code change.
 
 ### Precedence rules (ordered list)
 

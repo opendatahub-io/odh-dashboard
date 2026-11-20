@@ -215,7 +215,7 @@ func TestValidate_AuthTokenHeaders(t *testing.T) {
 		{"blank entry", func(c *EnvConfig) { c.AuthTokenHeaders = []string{" "} }, "not a valid HTTP header name"},
 		{"duplicate ignoring case", func(c *EnvConfig) {
 			c.AuthTokenHeaders = []string{"Authorization", "authorization"}
-		}, "more than once"},
+		}, "entry 2 repeats an earlier entry"},
 		{"cookie", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Cookie"} }, "identity or session header"},
 		{"impersonation", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Impersonate-User"} }, "identity or session header"},
 		{"impersonation extra", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Impersonate-Extra-Scopes"} }, "identity or session header"},
@@ -229,6 +229,64 @@ func TestValidate_AuthTokenHeaders(t *testing.T) {
 			err := cfg.Validate(TLSFiles{})
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tc.message)
+		})
+	}
+}
+
+// Fullsend (low): the legacy single header gets the same name and
+// forbidden-header checks as AUTH_TOKEN_HEADERS.
+func TestValidate_LegacyAuthTokenHeader(t *testing.T) {
+	for _, header := range []string{"x-forwarded-access-token", "Authorization", "X-Entra-Access-Token"} {
+		t.Run("accepts "+header, func(t *testing.T) {
+			cfg := productionConfig()
+			cfg.AuthTokenHeader = header
+			require.NoError(t, cfg.Validate(TLSFiles{}))
+		})
+	}
+
+	for _, tc := range []struct {
+		name, header, message string
+	}{
+		{"invalid name", "Bad Header", "AUTH_TOKEN_HEADER/--auth-token-header is not a valid HTTP header name"},
+		{"cookie", "Cookie", "AUTH_TOKEN_HEADER/--auth-token-header is cookie, an identity or session header"},
+		{"impersonation", "Impersonate-User", "is impersonate-user, an identity or session header"},
+		{"impersonation extra", "Impersonate-Extra-Scopes", "an identity or session header"},
+		{"front-proxy user", "X-Remote-User", "an identity or session header"},
+		{"forwarded user", "X-Forwarded-User", "an identity or session header"},
+	} {
+		t.Run("rejects "+tc.name, func(t *testing.T) {
+			cfg := productionConfig()
+			cfg.AuthTokenHeader = tc.header
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.message)
+		})
+	}
+
+	t.Run("not checked when the list replaces it", func(t *testing.T) {
+		cfg := productionConfig()
+		cfg.AuthTokenHeader = "Cookie"
+		cfg.AuthTokenHeaders = []string{"Authorization"}
+		require.NoError(t, cfg.Validate(TLSFiles{}))
+	})
+}
+
+// A token pasted into a header setting by mistake must not be echoed into the
+// startup error, in either setting.
+func TestValidate_AuthTokenHeaderErrorsDoNotEchoValues(t *testing.T) {
+	const pasted = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJl"
+	for name, mutate := range map[string]func(*EnvConfig){
+		"legacy, invalid":  func(c *EnvConfig) { c.AuthTokenHeader = pasted + " trailing" },
+		"list, invalid":    func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Authorization", pasted + " x"} },
+		"list, duplicated": func(c *EnvConfig) { c.AuthTokenHeaders = []string{pasted, pasted} },
+	} {
+		t.Run(name, func(t *testing.T) {
+			cfg := productionConfig()
+			mutate(&cfg)
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err)
+			assert.NotContains(t, err.Error(), pasted)
+			assert.Contains(t, err.Error(), "value omitted")
 		})
 	}
 }

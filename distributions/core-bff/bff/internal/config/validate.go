@@ -130,11 +130,24 @@ var credentialHeaderForbidden = []string{
 	"x-forwarded-user", "x-forwarded-groups", "x-forwarded-email", "x-forwarded-preferred-username",
 }
 
-// validateAuthTokenHeaders checks AUTH_TOKEN_HEADERS. The list replaces the
-// single-header pair, so a prefix set alongside it is ambiguous (it would apply
-// to one header and not the other) and is rejected rather than guessed at.
+// validateAuthTokenHeaders checks the caller-credential header settings.
+//
+// AUTH_TOKEN_HEADERS, when set, replaces the single-header pair, so a prefix
+// set alongside it is ambiguous (it would apply to one header and not the
+// other) and is rejected rather than guessed at. Otherwise the legacy
+// AUTH_TOKEN_HEADER gets the same name and forbidden-header checks, so an
+// identity or session header cannot become the credential through either
+// setting.
+//
+// Rejected entries are identified by position, never echoed: a token pasted
+// into the setting by mistake is a valid header token and must not reach the
+// startup log. A forbidden header is named, since it can only match the fixed
+// credentialHeaderForbidden list.
 func (c EnvConfig) validateAuthTokenHeaders(add func(string, ...any)) {
 	if len(c.AuthTokenHeaders) == 0 {
+		if strings.TrimSpace(c.AuthTokenHeader) != "" {
+			validateCredentialHeaderName(add, "AUTH_TOKEN_HEADER/--auth-token-header", c.AuthTokenHeader)
+		}
 		return
 	}
 	if c.AuthTokenPrefix != "" {
@@ -142,21 +155,33 @@ func (c EnvConfig) validateAuthTokenHeaders(add func(string, ...any)) {
 	}
 
 	seen := map[string]bool{}
-	for _, raw := range c.AuthTokenHeaders {
-		name := strings.TrimSpace(raw)
-		lower := strings.ToLower(name)
-		switch {
-		case name == "" || !isHTTPToken(name):
-			add("AUTH_TOKEN_HEADERS/--auth-token-headers entry %q is not a valid HTTP header name", raw)
+	for i, raw := range c.AuthTokenHeaders {
+		setting := fmt.Sprintf("AUTH_TOKEN_HEADERS/--auth-token-headers entry %d", i+1)
+		if !validateCredentialHeaderName(add, setting, raw) {
 			continue
-		case seen[lower]:
-			add("AUTH_TOKEN_HEADERS/--auth-token-headers lists %q more than once", name)
+		}
+		lower := strings.ToLower(strings.TrimSpace(raw))
+		if seen[lower] {
+			add("%s repeats an earlier entry (value omitted); list each header once", setting)
 			continue
-		case isForbiddenCredentialHeader(lower):
-			add("AUTH_TOKEN_HEADERS/--auth-token-headers entry %q is an identity or session header and cannot carry the caller token", name)
 		}
 		seen[lower] = true
 	}
+}
+
+// validateCredentialHeaderName reports problems with one credential header name
+// under setting, and returns whether the name is a usable header name.
+func validateCredentialHeaderName(add func(string, ...any), setting, raw string) bool {
+	name := strings.TrimSpace(raw)
+	if !isHTTPToken(name) {
+		add("%s is not a valid HTTP header name (value omitted)", setting)
+		return false
+	}
+	lower := strings.ToLower(name)
+	if isForbiddenCredentialHeader(lower) {
+		add("%s is %s, an identity or session header that cannot carry the caller token", setting, lower)
+	}
+	return true
 }
 
 func isForbiddenCredentialHeader(lower string) bool {

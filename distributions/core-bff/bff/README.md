@@ -49,6 +49,7 @@ make run LOG_LEVEL=DEBUG
 | `-bundle-paths` | `BUNDLE_PATHS` | Comma separated PEM CA bundles for outbound TLS. Setting it explicitly makes it required: startup fails if none load |
 | `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read token from (default `x-forwarded-access-token`) |
 | `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default empty) |
+| `-auth-token-headers` | `AUTH_TOKEN_HEADERS` | Ordered, comma-separated headers that may carry the caller token (default empty). When set it replaces `AUTH_TOKEN_HEADER`/`AUTH_TOKEN_PREFIX`: `Authorization` must use the Bearer scheme, other headers carry the bare token, the first present header wins, and two different tokens are rejected. The RHAII xKS manifest sets `Authorization,x-forwarded-access-token`. Identity and session headers (cookies, impersonation, `X-Remote-*`, `X-Forwarded-User`) are rejected in either setting. See [runtime-contract.md](../docs/runtime-contract.md#caller-credentials) |
 | `-cert-file` | `CERT_FILE` | TLS serving certificate path (enables TLS; both halves required) |
 | `-key-file` | `KEY_FILE` | TLS serving key path (enables TLS; both halves required) |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (development profiles only; rejected at startup in a production profile) |
