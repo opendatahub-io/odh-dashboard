@@ -42,8 +42,9 @@ func (m *AdmissionMode) Set(value string) error {
 	case "":
 		*m = ""
 	default:
-		return fmt.Errorf("invalid admission mode: %s (must be %s, %s, or empty to resolve from the platform)",
-			value, AdmissionModeAuthResource, AdmissionModeAuthenticated)
+		// The rejected value is not echoed: startup diagnostics never quote raw input.
+		return fmt.Errorf("invalid admission mode (value omitted): it must be %s, %s, or empty to resolve from the platform",
+			AdmissionModeAuthResource, AdmissionModeAuthenticated)
 	}
 	return nil
 }

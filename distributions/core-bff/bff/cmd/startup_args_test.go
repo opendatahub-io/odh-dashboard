@@ -174,3 +174,27 @@ func writeKeyPairValidity(t *testing.T, notBefore, notAfter time.Time) (string, 
 	require.NoError(t, os.WriteFile(keyFile, pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}), 0o600))
 	return certFile, keyFile
 }
+
+// Rejected enum values are not echoed: the error names the setting and the
+// accepted values. A valid CLI flag still overrides an invalid environment value.
+func TestParseStartupConfig_EnumEnvironmentErrorsDoNotEchoValues(t *testing.T) {
+	const rejected = "sekret-looking-value"
+	for _, tc := range []struct{ env, flag, accepted, valid string }{
+		{"DEPLOYMENT_MODE", "deployment-mode", "federated or standalone", "standalone"},
+		{"ODH_PLATFORM_TYPE", "platform-type", "OpenShift, XKS", "XKS"},
+		{"ADMISSION_MODE", "admission-mode", "auth-resource, authenticated", "authenticated"},
+	} {
+		t.Run(tc.env, func(t *testing.T) {
+			isolateEnv(t)
+			t.Setenv(tc.env, rejected)
+			_, err := parse(t)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.env)
+			assert.Contains(t, err.Error(), tc.accepted)
+			assert.NotContains(t, err.Error(), rejected)
+
+			_, err = parse(t, "-"+tc.flag+"="+tc.valid)
+			require.NoError(t, err, "a valid CLI value wins over the invalid environment value")
+		})
+	}
+}

@@ -2,7 +2,7 @@
 package config
 
 import (
-	"fmt"
+	"errors"
 	"log/slog"
 	"strings"
 )
@@ -53,7 +53,8 @@ func (d *DeploymentMode) Set(value string) error {
 	case "standalone":
 		*d = DeploymentModeStandalone
 	default:
-		return fmt.Errorf("invalid deployment mode: %s (must be federated or standalone)", value)
+		// The rejected value is not echoed: startup diagnostics never quote raw input.
+		return errors.New("invalid deployment mode (value omitted): it must be federated or standalone")
 	}
 	return nil
 }
@@ -93,7 +94,7 @@ func (p *PlatformType) Set(value string) error {
 	case "":
 		*p = ""
 	default:
-		return fmt.Errorf("invalid platform type: %s (must be OpenShift, XKS, or empty for auto-detect)", value)
+		return errors.New("invalid platform type (value omitted): it must be OpenShift, XKS, or empty for auto-detect")
 	}
 	return nil
 }

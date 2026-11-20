@@ -153,3 +153,27 @@ func TestHasWildcardOrigin_FlagsEmbeddedWildcards(t *testing.T) {
 	assert.True(t, hasWildcardOrigin([]string{" * "}))
 	assert.False(t, hasWildcardOrigin([]string{"https://dashboard.example.com"}))
 }
+
+func TestValidate_EnumErrorsDoNotEchoValues(t *testing.T) {
+	const rejected = "sekret-looking-value"
+	for name, tc := range map[string]struct {
+		mutate  func(*EnvConfig)
+		setting string
+	}{
+		"deployment mode": {func(c *EnvConfig) { c.DeploymentMode = rejected }, "DEPLOYMENT_MODE/--deployment-mode"},
+		"platform type":   {func(c *EnvConfig) { c.PlatformType = rejected }, "ODH_PLATFORM_TYPE/--platform-type"},
+		"admission mode":  {func(c *EnvConfig) { c.AdmissionMode = rejected }, "ADMISSION_MODE/--admission-mode"},
+		"auth method":     {func(c *EnvConfig) { c.AuthMethod = rejected }, "AUTH_METHOD/--auth-method"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			cfg := productionConfig()
+			tc.mutate(&cfg)
+
+			err := cfg.Validate(TLSFiles{})
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.setting+" is not a supported value (value omitted)")
+			assert.NotContains(t, err.Error(), rejected)
+		})
+	}
+}

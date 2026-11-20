@@ -24,8 +24,11 @@ inherit environment configuration they cannot edit and correct it with container
 
 The command line accepts only `-flag=value` settings. A positional argument is refused, because
 flag parsing stops at the first one and any flag after it (for example `-cert-file`) would be
-silently ignored. Parse errors name at most the flag, never the argument text, and `-h` prints
-flag names and descriptions without their environment-derived defaults and exits 0.
+silently ignored. Parse errors name at most the flag, never the argument text. Enum settings
+(`DEPLOYMENT_MODE`, `ODH_PLATFORM_TYPE`, `ADMISSION_MODE`, `AUTH_METHOD`) and an unparseable
+`MODEL_SERVING_HOST` are reported by setting name and accepted values, never by the rejected
+value. `-h` prints flag names and descriptions without their environment-derived defaults and
+exits 0.
 
 ## Startup is a gate
 
@@ -157,8 +160,9 @@ rule as the serving pair. The dashboard never presents a client certificate it w
 Serving-certificate rotation matters because the pair is normally a mounted Secret, and both
 cert-manager and the OpenShift service CA rotate that Secret **in place without rolling the pod**.
 A listener that read the files once at startup would keep presenting the old certificate until it
-expired. Reading through `GetCertificate` costs two `stat` calls per handshake, which is nothing
-next to the handshake.
+expired. Checking through `GetCertificate` costs two `stat` calls per full handshake, which is
+nothing next to the handshake. A resumed TLS session may not call `GetCertificate`, so verify a
+rotation on a fresh, non-resumed connection.
 
 **An invalid rotation never causes an insecure downgrade.** The two directions are deliberately
 different:

@@ -77,22 +77,22 @@ func (c EnvConfig) validateCore(add func(string, ...any)) {
 	switch c.DeploymentMode {
 	case DeploymentModeFederated, DeploymentModeStandalone:
 	default:
-		add("DEPLOYMENT_MODE/--deployment-mode is %q; it must be %q or %q",
-			c.DeploymentMode, DeploymentModeFederated, DeploymentModeStandalone)
+		add("DEPLOYMENT_MODE/--deployment-mode is not a supported value (value omitted); it must be %q or %q",
+			DeploymentModeFederated, DeploymentModeStandalone)
 	}
 
 	switch c.PlatformType {
 	case PlatformOpenShift, PlatformXKS, "":
 	default:
-		add("ODH_PLATFORM_TYPE/--platform-type is %q; it must be %q, %q, or empty to auto-detect",
-			c.PlatformType, PlatformOpenShift, PlatformXKS)
+		add("ODH_PLATFORM_TYPE/--platform-type is not a supported value (value omitted); it must be %q, %q, or empty to auto-detect",
+			PlatformOpenShift, PlatformXKS)
 	}
 
 	switch c.AdmissionMode {
 	case AdmissionModeAuthResource, AdmissionModeAuthenticated, "":
 	default:
-		add("ADMISSION_MODE/--admission-mode is %q; it must be %q, %q, or empty to resolve from the platform",
-			c.AdmissionMode, AdmissionModeAuthResource, AdmissionModeAuthenticated)
+		add("ADMISSION_MODE/--admission-mode is not a supported value (value omitted); it must be %q, %q, or empty to resolve from the platform",
+			AdmissionModeAuthResource, AdmissionModeAuthenticated)
 	}
 
 	if strings.TrimSpace(c.Namespace) == "" {
@@ -108,8 +108,8 @@ func (c EnvConfig) validateAuth(add func(string, ...any)) {
 	switch c.AuthMethod {
 	case AuthMethodDisabled, AuthMethodUser:
 	default:
-		add("AUTH_METHOD/--auth-method is %q; it must be %q or %q",
-			c.AuthMethod, AuthMethodDisabled, AuthMethodUser)
+		add("AUTH_METHOD/--auth-method is not a supported value (value omitted); it must be %q or %q",
+			AuthMethodDisabled, AuthMethodUser)
 	}
 
 	if c.AuthMethod == AuthMethodUser && strings.TrimSpace(c.AuthTokenHeader) == "" {

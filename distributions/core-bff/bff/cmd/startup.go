@@ -189,7 +189,7 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 			continue
 		}
 		if err := e.apply(e.value); err != nil {
-			return sc, fmt.Errorf("invalid %s: %w", e.envName, err)
+			return sc, fmt.Errorf("%s: %w", e.envName, err)
 		}
 	}
 
