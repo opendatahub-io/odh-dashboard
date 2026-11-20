@@ -83,7 +83,7 @@ type DashboardFeatureFlags struct {
 	DisableKueue                 bool `json:"disableKueue"`
 	DisableLMEval                bool `json:"disableLMEval"`
 	Mlflow                       bool `json:"mlflow"`
-	Workspaces                   bool `json:"workspaces"`
+	WorkbenchesV2                bool `json:"workbenchesV2"`
 	McpCatalog                   bool `json:"mcpCatalog"`
 	McpRegistry                  bool `json:"mcpRegistry"`
 	SkillRegistry                bool `json:"skillRegistry"`
@@ -196,7 +196,7 @@ var BlankDashboardCR = DashboardConfig{
 			DisableKueue:                 true,
 			DisableLMEval:                true,
 			Mlflow:                       true,
-			Workspaces:                   false,
+			WorkbenchesV2:                false,
 			McpCatalog:                   false,
 			McpRegistry:                  false,
 			SkillRegistry:                false,

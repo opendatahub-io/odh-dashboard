@@ -4,27 +4,22 @@ import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core'
 import { isProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-points';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { SectionDefinition } from '#~/pages/projects/components/GenericHorizontalBar';
-import {
-  LEGACY_WORKBENCHES_V2_SECTION,
-  ProjectSectionID,
-} from '#~/pages/projects/screens/detail/types';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 
-export const useWorkspacesTab = (): SectionDefinition[] => {
+export const useWorkbenchesV2Tab = (): SectionDefinition[] => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const projectDetailsTabExtensions = useExtensions(isProjectDetailsTab);
-  const workspacesExtension = projectDetailsTabExtensions.find(
-    (tab) =>
-      tab.properties.id === ProjectSectionID.WORKSPACES ||
-      tab.properties.id === LEGACY_WORKBENCHES_V2_SECTION,
+  const workbenchesV2Extension = projectDetailsTabExtensions.find(
+    (tab) => tab.properties.id === ProjectSectionID.WORKBENCHES_V2,
   )?.properties.component;
 
-  if (!workspacesExtension) {
+  if (!workbenchesV2Extension) {
     return [];
   }
 
   return [
     {
-      id: ProjectSectionID.WORKSPACES,
+      id: ProjectSectionID.WORKBENCHES_V2,
       title: 'Workspaces',
       label: (
         <Label color="orange" variant="outline">
@@ -33,7 +28,7 @@ export const useWorkspacesTab = (): SectionDefinition[] => {
       ),
       component: (
         <LazyCodeRefComponent
-          component={workspacesExtension}
+          component={workbenchesV2Extension}
           props={{ namespace: currentProject.metadata.name }}
         />
       ),

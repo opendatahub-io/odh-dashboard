@@ -6,7 +6,7 @@ import type {
   RouteExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-// This must match SupportedArea.PLUGIN_NOTEBOOKS in packages/plugin-core/src/areas/types.ts
+// This must match SupportedArea.NOTEBOOKS_V2 in frontend/src/concepts/areas/types.ts
 const PLUGIN_NOTEBOOKS = 'plugin-notebooks';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | ProjectDetailsTab)[] = [
@@ -14,7 +14,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | ProjectDetail
     type: 'app.area',
     properties: {
       id: PLUGIN_NOTEBOOKS,
-      featureFlags: ['workspaces'],
+      featureFlags: ['workbenchesV2'],
     },
   },
   {
@@ -49,7 +49,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | ProjectDetail
   {
     type: 'app.project-details/tab',
     properties: {
-      id: 'workspaces',
+      id: 'workbenches-v2',
       title: 'Workspaces',
       component: () => import('./WorkspacesProjectDetailsTab'),
     },

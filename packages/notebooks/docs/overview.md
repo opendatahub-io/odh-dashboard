@@ -3,7 +3,7 @@
 ## Overview
 
 - Integrates [Kubeflow Notebooks v2](https://github.com/kubeflow/notebooks) workspace UI into ODH Dashboard via Module Federation.
-- Adds a **Workspaces** project-details tab and **Workspace Kinds** under Settings.
+- Adds Workspace and WorkspaceKind management under the AI Hub area.
 - Upstream sources live in a git subtree under `upstream/`.
 
 ## Design Intent
@@ -15,18 +15,6 @@
 - **`Dockerfile.workspace`**: Federated build depends on unpublished workspace packages (`@odh-dashboard/plugin-core`, `@odh-dashboard/internal`, dynamic plugin SDK) and needs monorepo context.
 - **Development**: Treat the **host** as source of truth for auth and navigation; the notebooks dev server is the federated asset origin only.
 
-## Feature flag
-
-| Flag | Default | Purpose |
-|------|---------|---------|
-| `workspaces` | `false` | Enables the Workspaces project tab and Workspace Kinds (Settings). |
-
-### Migration from `workbenchesV2`
-
-`workbenchesV2` was renamed to `workspaces`. The CRD still accepts `workbenchesV2` so existing `OdhDashboardConfig` objects are not pruned. On load, the dashboard backend copies `workbenchesV2` into `workspaces` when `workspaces` is absent from the raw CR. Prefer setting `workspaces` going forward; do not rely on the deprecated alias long term.
-
-Legacy project-details links (`/projects/<ns>?section=workbenches-v2`) open the **Workspaces** tab (`section=workspaces`).
-
 ## Key Concepts
 
 | Term | Definition |
@@ -36,7 +24,7 @@ Legacy project-details links (`/projects/<ns>?section=workbenches-v2`) open the 
 | **CustomNotebookEnvironment** | User-defined WorkspaceKind extending a base image. |
 | **Workspace** | Notebooks v2 CR (`kind: Workspace`) for a running notebook environment. |
 | **WorkspaceKind** | CR defining image and resource profile for Workspaces. |
-| **plugin-notebooks** | Area ID from this package’s extensions; gated by the `workspaces` feature flag. |
+| **notebooks-plugin** | Area ID from this package’s extensions; gated by dev/feature flags. |
 
 ## Interactions
 
@@ -53,4 +41,5 @@ Legacy project-details links (`/projects/<ns>?section=workbenches-v2`) open the 
 - **Subtree updates**: Refresh with `pnpm run update-subtree`; review upstream breaking changes to extensions or WorkspaceKind schema before merging — adjust `src/odh/` as needed.
 - **`pnpm run start:dev:ext`**: Isolates upstream UI without the ODH host — use `pnpm run start:dev` + root `pnpm run dev:frontend` for real integration (same class of issue as `start:dev:ext` on the main app for other federated packages).
 - **Docker**: Build `Dockerfile.workspace` from **repo root**, not `packages/notebooks/`, or workspace deps are missing.
-- **Visibility**: Gated by the `workspaces` feature flag in `OdhDashboardConfig` (default `false`).
+- **Visibility**: Area uses a dev flag (`Notebooks Plugin`); production exposure depends on promoting to a proper feature flag in `OdhDashboardConfig`.
+- **`OdhDashboardConfig`**: `reliantAreas: ['workbenches']` — core workbench area must be on for nav items.

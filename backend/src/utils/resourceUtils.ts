@@ -35,7 +35,6 @@ import { isHttpError } from '../utils';
 import { FastifyRequest } from 'fastify';
 import { fetchClusterStatus } from './dsc';
 import { fetchAIHub } from './aihub';
-import { migrateWorkspacesFeatureFlag } from './workspacesFeatureFlagMigration';
 
 const dashboardConfigMapName = 'odh-dashboard-config';
 const consoleLinksGroup = 'console.openshift.io';
@@ -100,9 +99,7 @@ const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<D
     )
     .then((res) => {
       const dashboardCR = res?.body as DashboardConfig;
-      // merge with blank CR to prevent any missing values
-      const merged = _.merge({}, blankDashboardCR, dashboardCR);
-      return migrateWorkspacesFeatureFlag(dashboardCR, merged);
+      return _.merge({}, blankDashboardCR, dashboardCR); // merge with blank CR to prevent any missing values
     })
     .catch((e) => {
       fastify.log.warn(

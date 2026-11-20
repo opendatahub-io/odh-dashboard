@@ -62,7 +62,7 @@ export type DashboardConfig = K8sResourceCommon & {
       mySubscriptions: boolean;
       inferencePriorityField: boolean;
       mlflow: boolean;
-      workspaces: boolean;
+      workbenchesV2: boolean;
       mcpCatalog: boolean;
       mcpRegistry: boolean;
       skillRegistry: boolean;

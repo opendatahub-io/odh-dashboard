@@ -112,7 +112,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableKueue: true,
       disableLMEval: true,
       mlflow: true,
-      workspaces: false,
+      workbenchesV2: false,
       mcpCatalog: false,
       mcpRegistry: false,
       skillRegistry: false,

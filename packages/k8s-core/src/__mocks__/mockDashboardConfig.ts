@@ -55,7 +55,7 @@ export type MockDashboardConfigType = {
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
-  workspaces?: boolean;
+  workbenchesV2?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
   skillRegistry?: boolean;
@@ -91,7 +91,7 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
-  workspaces = false,
+  workbenchesV2 = false,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -294,7 +294,7 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
-      workspaces,
+      workbenchesV2,
       projectRBAC,
       enablement: true,
       disableInfo,
