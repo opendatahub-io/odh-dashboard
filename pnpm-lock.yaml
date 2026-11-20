@@ -142,9 +142,6 @@ importers:
       mocha-junit-reporter:
         specifier: 2.2.1
         version: 2.2.1(mocha@10.8.2)(supports-color@8.1.1)
-      npm-run-all:
-        specifier: ^4.1.5
-        version: 4.1.5
       nyc:
         specifier: ^15.1.0
         version: 15.1.0(supports-color@8.1.1)
@@ -5383,12 +5380,12 @@ importers:
 
   packages/mlflow-embedded:
     dependencies:
-      '@odh-dashboard/analytics':
-        specifier: workspace:*
-        version: link:../analytics
       '@module-federation/runtime':
         specifier: '>=0.15.0'
         version: 0.24.1
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
@@ -5789,12 +5786,12 @@ importers:
 
   packages/model-serving:
     dependencies:
-      '@odh-dashboard/analytics':
-        specifier: workspace:*
-        version: link:../analytics
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../foundation
