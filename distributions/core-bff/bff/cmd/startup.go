@@ -95,9 +95,16 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	fs.StringVar(&cfg.AuthMethod, "auth-method", getEnvAsString("AUTH_METHOD", config.AuthMethodUser), "Authentication method (disabled or user_token)")
 	fs.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (default: x-forwarded-access-token)")
 	fs.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix to strip from the token header value (default: none)")
-	cfg.AuthTokenHeaders = splitList(getEnvAsString("AUTH_TOKEN_HEADERS", ""))
-	fs.Func("auth-token-headers", "Ordered, comma-separated headers that may carry the caller token, e.g. Authorization,x-forwarded-access-token (replaces --auth-token-header/--auth-token-prefix when set)",
-		newListParser(&cfg.AuthTokenHeaders))
+	// A list that is set but names no header (",", " , ") is rejected below
+	// rather than silently falling back to single-header mode.
+	authTokenHeadersRaw := getEnvAsString("AUTH_TOKEN_HEADERS", "")
+	cfg.AuthTokenHeaders = splitList(authTokenHeadersRaw)
+	fs.Func("auth-token-headers", "Ordered, comma-separated headers that may carry the caller token, e.g. Authorization,x-forwarded-access-token (replaces --auth-token-header; unset --auth-token-prefix when using it)",
+		func(s string) error {
+			authTokenHeadersRaw = s
+			cfg.AuthTokenHeaders = splitList(s)
+			return nil
+		})
 
 	// TLS configuration flags
 	fs.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (development profiles only, default: false)")
@@ -194,6 +201,10 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 		if err := e.apply(e.value); err != nil {
 			return sc, fmt.Errorf("%s: %w", e.envName, err)
 		}
+	}
+
+	if strings.TrimSpace(authTokenHeadersRaw) != "" && len(sc.Env.AuthTokenHeaders) == 0 {
+		return sc, errors.New("AUTH_TOKEN_HEADERS/--auth-token-headers is set but names no header (value omitted); list at least one header or leave it unset")
 	}
 
 	if err := sc.Env.Validate(sc.TLS); err != nil {

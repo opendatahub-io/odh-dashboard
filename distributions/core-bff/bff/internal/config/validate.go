@@ -126,7 +126,7 @@ func (c EnvConfig) validateAuth(add func(string, ...any)) {
 var credentialHeaderForbidden = []string{
 	"cookie", "set-cookie", "proxy-authorization", "host",
 	"impersonate-user", "impersonate-group", "impersonate-uid", "impersonate-extra-",
-	"x-remote-user", "x-remote-group", "x-remote-extra-",
+	"x-remote-",
 	"x-forwarded-user", "x-forwarded-groups", "x-forwarded-email", "x-forwarded-preferred-username",
 }
 
@@ -141,8 +141,8 @@ var credentialHeaderForbidden = []string{
 //
 // Rejected entries are identified by position, never echoed: a token pasted
 // into the setting by mistake is a valid header token and must not reach the
-// startup log. A forbidden header is named, since it can only match the fixed
-// credentialHeaderForbidden list.
+// startup log. A forbidden header is reported by the credentialHeaderForbidden
+// entry it matches (for a prefix entry, the prefix alone).
 func (c EnvConfig) validateAuthTokenHeaders(add func(string, ...any)) {
 	if len(c.AuthTokenHeaders) == 0 {
 		if strings.TrimSpace(c.AuthTokenHeader) != "" {
@@ -177,20 +177,26 @@ func validateCredentialHeaderName(add func(string, ...any), setting, raw string)
 		add("%s is not a valid HTTP header name (value omitted)", setting)
 		return false
 	}
-	lower := strings.ToLower(name)
-	if isForbiddenCredentialHeader(lower) {
-		add("%s is %s, an identity or session header that cannot carry the caller token", setting, lower)
+	if f, ok := forbiddenCredentialHeader(strings.ToLower(name)); ok {
+		if strings.HasSuffix(f, "-") {
+			add("%s is an %s* header (rest of the value omitted), an identity or session header that cannot carry the caller token", setting, f)
+		} else {
+			add("%s is %s, an identity or session header that cannot carry the caller token", setting, f)
+		}
 	}
 	return true
 }
 
-func isForbiddenCredentialHeader(lower string) bool {
+// forbiddenCredentialHeader returns the credentialHeaderForbidden entry lower
+// matches. Only that fixed entry is ever reported, never the configured text,
+// so a prefix match cannot echo an operator-supplied suffix.
+func forbiddenCredentialHeader(lower string) (string, bool) {
 	for _, f := range credentialHeaderForbidden {
 		if lower == f || (strings.HasSuffix(f, "-") && strings.HasPrefix(lower, f)) {
-			return true
+			return f, true
 		}
 	}
-	return false
+	return "", false
 }
 
 // isHTTPToken reports whether s is an RFC 9110 token, the grammar of a header name.

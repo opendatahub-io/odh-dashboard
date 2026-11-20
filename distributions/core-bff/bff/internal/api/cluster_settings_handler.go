@@ -48,8 +48,10 @@ func (app *App) UpdateClusterSettingsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	currentConfig, err := app.repositories.DashboardConfig.GetDashboardConfig(
-		ctx, app.config.Namespace, app.config.DashboardConfigName, nil,
+	// On xKS the write is computed from the caller's own read, so a caller who
+	// cannot read the configuration is refused before anything is written.
+	currentConfig, err := app.repositories.DashboardConfig.GetDashboardConfigForUpdate(
+		ctx, app.config.Namespace, app.config.DashboardConfigName,
 	)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get current config: %w", err))

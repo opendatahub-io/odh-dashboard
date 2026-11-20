@@ -63,12 +63,12 @@ core-bff refusing to start: invalid configuration (2 problems):
 
 ### Authentication
 
-| Flag                   | Environment          | Default                    | Notes                                                                                                                         |
-| ---------------------- | -------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `--auth-method`        | `AUTH_METHOD`        | `user_token`               | `user_token` or `disabled`. `disabled` is rejected in a production profile.                                                   |
-| `--auth-token-header`  | `AUTH_TOKEN_HEADER`  | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token`.                                                                                       |
-| `--auth-token-prefix`  | `AUTH_TOKEN_PREFIX`  | _(empty)_                  | Set to `Bearer ` when the header is `Authorization`.                                                                          |
-| `--auth-token-headers` | `AUTH_TOKEN_HEADERS` | _(empty)_                  | Ordered list of credential headers. When set, replaces the two settings above. See [Caller credentials](#caller-credentials). |
+| Flag                   | Environment          | Default                    | Notes                                                                                                                                                         |
+| ---------------------- | -------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--auth-method`        | `AUTH_METHOD`        | `user_token`               | `user_token` or `disabled`. `disabled` is rejected in a production profile.                                                                                   |
+| `--auth-token-header`  | `AUTH_TOKEN_HEADER`  | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token`.                                                                                                                       |
+| `--auth-token-prefix`  | `AUTH_TOKEN_PREFIX`  | _(empty)_                  | Set to `Bearer ` when the header is `Authorization`.                                                                                                          |
+| `--auth-token-headers` | `AUTH_TOKEN_HEADERS` | _(empty)_                  | Ordered list of credential headers. When set, replaces `AUTH_TOKEN_HEADER`; `AUTH_TOKEN_PREFIX` must be unset. See [Caller credentials](#caller-credentials). |
 
 ## Caller credentials
 

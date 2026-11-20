@@ -246,7 +246,7 @@ authoritative reference: it lists every setting, its precedence and what startup
 | `-auth-method`           | `AUTH_METHOD`              | `disabled` (mock) or `user_token`              | user_token               |
 | `-auth-token-header`     | `AUTH_TOKEN_HEADER`        | Header to read bearer token from               | x-forwarded-access-token |
 | `-auth-token-prefix`     | `AUTH_TOKEN_PREFIX`        | Prefix to strip from token header value        | (none)                   |
-| `-auth-token-headers`    | `AUTH_TOKEN_HEADERS`       | Ordered token headers; replaces the two above  | (none)                   |
+| `-auth-token-headers`    | `AUTH_TOKEN_HEADERS`       | Ordered token headers; unset the prefix        | (none)                   |
 | `-cert-file`             | `CERT_FILE`                | TLS certificate path                           | (none)                   |
 | `-key-file`              | `KEY_FILE`                 | TLS key path                                   | (none)                   |
 | `-insecure-skip-verify`  | `INSECURE_SKIP_VERIFY`     | Skip upstream TLS verify (dev only)            | false                    |

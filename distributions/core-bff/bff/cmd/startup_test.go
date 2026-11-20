@@ -543,6 +543,21 @@ func TestParseStartupConfig_AuthTokenHeaders(t *testing.T) {
 		assert.Equal(t, []string{"x-forwarded-access-token"}, sc.Env.AuthTokenHeaders)
 	})
 
+	for name, args := range map[string][]string{
+		"blank environment list fails startup": nil,
+		"blank CLI list fails startup":         {"-auth-token-headers", " , "},
+	} {
+		t.Run(name, func(t *testing.T) {
+			isolateEnv(t)
+			if args == nil {
+				t.Setenv("AUTH_TOKEN_HEADERS", ",")
+			}
+			_, err := parse(t, args...)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "names no header")
+		})
+	}
+
 	t.Run("a prefix next to the list fails startup", func(t *testing.T) {
 		isolateEnv(t)
 		t.Setenv("AUTH_TOKEN_HEADERS", "Authorization,x-forwarded-access-token")

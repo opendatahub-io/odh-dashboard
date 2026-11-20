@@ -2,6 +2,7 @@ package config
 
 import (
 	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -287,6 +288,23 @@ func TestValidate_AuthTokenHeaderErrorsDoNotEchoValues(t *testing.T) {
 			require.Error(t, err)
 			assert.NotContains(t, err.Error(), pasted)
 			assert.Contains(t, err.Error(), "value omitted")
+		})
+	}
+}
+
+// A prefix entry is reported by the prefix alone, so an operator-supplied
+// suffix never reaches the startup log, and the whole X-Remote-* family is
+// refused.
+func TestValidate_ForbiddenHeaderPrefixDoesNotEchoSuffix(t *testing.T) {
+	for _, header := range []string{"Impersonate-Extra-s3cretSuffix", "X-Remote-Uid", "x-remote-s3cretSuffix"} {
+		t.Run(header, func(t *testing.T) {
+			cfg := productionConfig()
+			cfg.AuthTokenHeaders = []string{"Authorization", header}
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "header (rest of the value omitted)")
+			assert.NotContains(t, err.Error(), "s3cret")
+			assert.NotContains(t, strings.ToLower(err.Error()), "uid")
 		})
 	}
 }

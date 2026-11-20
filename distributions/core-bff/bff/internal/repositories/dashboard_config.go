@@ -58,7 +58,39 @@ func (r *DashboardConfigRepository) GetDashboardConfig(
 	if err != nil {
 		return nil, err
 	}
+	return r.mergeDashboardConfig(raw, featureFlagOverrides)
+}
 
+// GetDashboardConfigForUpdate reads the configuration an admin write is
+// computed from. Under the service-account policy it is the bootstrap read.
+// Under the caller policy it is the caller's own read of the instance, with no
+// fallback: a denied, missing or absent configuration aborts the write instead
+// of diffing against defaults the caller never saw.
+func (r *DashboardConfigRepository) GetDashboardConfigForUpdate(
+	ctx context.Context,
+	namespace, name string,
+) (*models.DashboardConfig, error) {
+	if r.clients.policy != CredentialPolicyCaller {
+		return r.GetDashboardConfig(ctx, namespace, name, nil)
+	}
+	raw, err := r.GetRawDashboardConfig(ctx, namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	return r.mergeDashboardConfig(raw, nil)
+}
+
+// MergedDashboardConfig returns the effective configuration for a raw
+// OdhDashboardConfig object, such as the one a successful patch returns.
+func (r *DashboardConfigRepository) MergedDashboardConfig(raw map[string]any) (*models.DashboardConfig, error) {
+	return r.mergeDashboardConfig(raw, nil)
+}
+
+// mergeDashboardConfig layers raw over the code-level defaults and applies the
+// overrides, lockouts and platform overrides that every read applies.
+func (r *DashboardConfigRepository) mergeDashboardConfig(
+	raw map[string]any, featureFlagOverrides map[string]bool,
+) (*models.DashboardConfig, error) {
 	defaultsMap, err := maputil.ToUnstructuredMap(models.BlankDashboardCR)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert defaults: %w", err)
