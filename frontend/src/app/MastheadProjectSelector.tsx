@@ -18,11 +18,12 @@ const createProjectResource: AccessReviewResourceAttributes = {
 
 const MastheadProjectSelector: React.FC = () => {
   const { projects } = React.useContext(ProjectsContext);
-  const { projects: workingProjects, selectProject } = useWorkingProject();
+  const { projects: workingProjects } = useWorkingProject();
   const notification = useNotification();
   const [allowCreate, permissionsLoaded] = useAccessReview(createProjectResource);
   const [creation, setCreation] = React.useState<'empty' | 'create' | null>(null);
   const [pendingProjectName, setPendingProjectName] = React.useState<string | null>(null);
+  const notifiedProjectName = React.useRef<string | null>(null);
   const projectByName = React.useMemo(
     () => new Map(projects.map((project) => [project.metadata.name, project])),
     [projects],
@@ -32,19 +33,21 @@ const MastheadProjectSelector: React.FC = () => {
     if (!pendingProjectName) {
       return;
     }
+    if (notifiedProjectName.current === pendingProjectName) {
+      return;
+    }
     const createdProject = workingProjects.find(({ name }) => name === pendingProjectName);
     if (createdProject) {
-      selectProject(createdProject);
-      notification.info(
-        'Working project updated',
+      notifiedProjectName.current = pendingProjectName;
+      notification.success(
+        'Project created',
         <>
-          You&apos;re now working in{' '}
-          <strong>{createdProject.displayName || createdProject.name}</strong>.
+          <strong>{createdProject.displayName || createdProject.name}</strong> was created
+          successfully.
         </>,
       );
-      setPendingProjectName(null);
     }
-  }, [pendingProjectName, workingProjects, selectProject, notification]);
+  }, [pendingProjectName, workingProjects, notification]);
 
   return (
     <>
@@ -59,20 +62,30 @@ const MastheadProjectSelector: React.FC = () => {
         }}
         aiLabel={<AILabel />}
         getProjectHref={(name) => `/projects/${encodeURIComponent(name)}`}
-        emptyListContent={<EmptyProjects allowCreate={false} />}
-        onProjectSelected={(project) =>
+        emptyListContent={(closeSelector) => (
+          <EmptyProjects
+            allowCreate={Boolean(permissionsLoaded && allowCreate)}
+            onCancel={closeSelector}
+            onCreateProject={() => {
+              closeSelector();
+              if (permissionsLoaded && allowCreate) {
+                setCreation('empty');
+              }
+            }}
+          />
+        )}
+        projectToReview={pendingProjectName ?? undefined}
+        onProjectReviewClosed={() => setPendingProjectName(null)}
+        onProjectSelected={(project) => {
+          setPendingProjectName(null);
           notification.info(
             'Working project updated',
             <>
               You&apos;re now working in <strong>{project.displayName || project.name}</strong>.
             </>,
-          )
-        }
-        onCreateProject={
-          permissionsLoaded && allowCreate
-            ? (isEmpty) => setCreation(isEmpty ? 'empty' : 'create')
-            : undefined
-        }
+          );
+        }}
+        onCreateProject={permissionsLoaded && allowCreate ? () => setCreation('create') : undefined}
       />
       {creation && (
         <ManageProjectModal

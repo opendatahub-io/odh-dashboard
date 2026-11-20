@@ -15,9 +15,18 @@
   &__project-list.pf-v6-c-data-list.pf-m-grid-none {
     --pf-v6-c-data-list__cell--PaddingBlockStart: var(--pf-t--global--spacer--sm);
     --pf-v6-c-data-list__item-content--md--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
+  }
 
+  &__project-list-wrap {
     max-height: 50vh;
     overflow-y: auto;
+  }
+
+  &__available-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--pf-t--global--background--color--primary--default);
   }
 
   &__no-results {
@@ -37,5 +46,28 @@
     --pf-v6-c-badge--m-read--Color: var(--pf-t--global--text--color--nonstatus--on-blue--default);
     --pf-v6-c-badge--m-read--BorderColor: transparent;
     --pf-v6-c-badge--FontWeight: var(--pf-t--global--font--weight--body--default);
+  }
+
+  &__help {
+    align-self: center;
+    min-height: auto;
+    padding: 0;
+  }
+
+  &__section-heading {
+    margin-block-end: var(--pf-t--global--spacer--sm);
+  }
+
+  &__filter-toggle.pf-v6-c-menu-toggle {
+    --pf-v6-c-menu-toggle--BorderRadius: var(--pf-t--global--border--radius--small);
+    min-width: 17rem;
+
+    .pf-v6-c-menu-toggle__text {
+      font-size: var(--pf-t--global--font--size--body--md);
+    }
+  }
+
+  &__filter-option {
+    white-space: nowrap;
   }
 }

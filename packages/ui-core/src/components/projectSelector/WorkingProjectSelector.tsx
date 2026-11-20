@@ -14,8 +14,6 @@ import {
   DataListItemRow,
   EmptyState,
   EmptyStateBody,
-  EmptyStateActions,
-  EmptyStateFooter,
   Flex,
   FlexItem,
   FormGroup,
@@ -26,9 +24,10 @@ import {
   // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalBody,
   // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-  ModalFooter,
-  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalHeader,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
+  ModalFooter,
+  Popover,
   SearchInput,
   Stack,
   StackItem,
@@ -37,24 +36,24 @@ import {
 } from '@patternfly/react-core';
 import {
   CheckIcon,
-  ExclamationCircleIcon,
   OutlinedFolderIcon,
   SearchIcon,
+  OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { isValidK8sName } from '@odh-dashboard/k8s-core';
+import ProjectSelectorEmptyState from './ProjectSelectorEmptyState';
+import WorkingProjectSelectorFooter from './WorkingProjectSelectorFooter';
 import {
   type ProjectIdentity,
   type WorkingProjectStatus,
   useWorkingProject,
-  WorkingProjectSelectorLabelValue,
   WorkingProjectStatusLabelValue,
   WorkingProjectStatusValue,
 } from '../../context/WorkingProjectContext';
-import DashboardModalFooter from '../DashboardModalFooter';
 import SimpleSelect from '../SimpleSelect';
 import FieldGroupHelpLabelIcon from '../FieldGroupHelpLabelIcon';
-import projectEmptyStateImage from '../../images/empty-state-projects-color.svg';
+import DashboardModalFooter from '../DashboardModalFooter';
 import './WorkingProjectSelector.scss';
 
 type Props = {
@@ -64,22 +63,39 @@ type Props = {
   isAiProject?: (name: string) => boolean;
   aiLabel?: React.ReactNode;
   getProjectHref?: (name: string) => string;
-  onCreateProject?: (isEmpty: boolean) => void;
+  onCreateProject?: () => void;
   onProjectSelected?: (project: ProjectIdentity) => void;
-  emptyListContent: React.ReactNode;
+  onProjectReviewClosed?: () => void;
+  projectToReview?: string;
+  emptyListContent: React.ReactNode | ((onCreateProject: () => void) => React.ReactNode);
 };
+
+const selectorHelp = {
+  working:
+    'The project you are currently working in. Actions such as deployments and configurations will apply to this project.',
+  available:
+    'Projects you have access to in this cluster. Use the filter to narrow the list or add an existing project.',
+} as const;
+
+const SelectorHelp: React.FC<{ title: string; content: string; testId: string }> = ({
+  title,
+  content,
+  testId,
+}) => (
+  <Popover showClose headerContent={title} bodyContent={content}>
+    <Button
+      variant="plain"
+      className="odh-working-project-selector__help"
+      data-testid={testId}
+      aria-label={`${title} information`}
+    >
+      <OutlinedQuestionCircleIcon />
+    </Button>
+  </Popover>
+);
 
 const getWorkingProjectLabel = (status: WorkingProjectStatus): string =>
   WorkingProjectStatusLabelValue[status];
-
-const EmptyProjectIllustration: React.FC = () => (
-  <img
-    src={projectEmptyStateImage}
-    alt=""
-    className="odh-working-project-selector__empty-image"
-    data-testid="working-project-empty-image"
-  />
-);
 
 const AddProjectModal: React.FC<{
   manualProjectMode?: boolean;
@@ -275,15 +291,25 @@ const AddProjectModal: React.FC<{
 
 const WorkingProjectSelector: React.FC<Props> = (props) => {
   const { status, projects, activeProject, discoverProject, rememberProject } = useWorkingProject();
-  const manualFallback = props.manualProjectMode && status === 'listing-unavailable';
+  const isEmptyProjectList = status === WorkingProjectStatusValue.EmptyList;
+  const isListingUnavailable = status === WorkingProjectStatusValue.ListingUnavailable;
+  const manualFallback = props.manualProjectMode && isListingUnavailable;
   const [addedProject, setAddedProject] = React.useState<ProjectIdentity | null>(null);
   const [updatedProject, setUpdatedProject] = React.useState<ProjectIdentity | null>(null);
   const [open, setOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (props.projectToReview) {
+      setOpen(true);
+    }
+  }, [props.projectToReview]);
   const [adding, setAdding] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const close = () => {
     setOpen(false);
     setAdding(false);
+    if (props.projectToReview) {
+      props.onProjectReviewClosed?.();
+    }
     triggerRef.current?.focus();
   };
   const label = activeProject
@@ -302,25 +328,15 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
     <>
       <Button
         ref={triggerRef}
-        variant="tertiary"
+        variant="control"
         className="odh-working-project-selector"
         data-testid="working-project-selector"
         aria-haspopup="dialog"
         isDisabled={status === WorkingProjectStatusValue.Loading}
         isLoading={status === WorkingProjectStatusValue.Loading}
-        icon={
-          status === WorkingProjectStatusValue.EmptyList ? (
-            <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
-          ) : (
-            <OutlinedFolderIcon />
-          )
-        }
+        icon={isEmptyProjectList ? undefined : <OutlinedFolderIcon />}
         onClick={() => {
-          if (status === WorkingProjectStatusValue.EmptyList && props.onCreateProject) {
-            props.onCreateProject(true);
-          } else {
-            setOpen(true);
-          }
+          setOpen(true);
         }}
       >
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
@@ -393,7 +409,9 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
   );
 };
 
-const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?: () => void }> = ({
+const WorkingProjectModal: React.FC<
+  Omit<Props, 'onProjectReviewClosed'> & { onClose: () => void; onAddProject?: () => void }
+> = ({
   manualProjectMode = false,
   getProjectDescription,
   isAiProject,
@@ -401,6 +419,7 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?
   getProjectHref,
   onCreateProject,
   onProjectSelected,
+  projectToReview,
   emptyListContent,
   onClose,
   onAddProject,
@@ -408,15 +427,27 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?
   const headingId = React.useId();
   const descriptionId = React.useId();
   const { status, projects, activeProject, selectProject } = useWorkingProject();
-  const manualFallback = manualProjectMode && status === 'listing-unavailable';
+  const isEmptyProjectList = status === WorkingProjectStatusValue.EmptyList;
+  const isListingUnavailable = status === WorkingProjectStatusValue.ListingUnavailable;
+  const manualFallback = manualProjectMode && isListingUnavailable;
+  const showManualEmptyContent = isListingUnavailable && projects.length === 0;
   const [selecting, setSelecting] = React.useState(false);
+  const [hasUserSelectedProject, setHasUserSelectedProject] = React.useState(false);
   const [selectionError, setSelectionError] = React.useState<Error>();
   const close = () => {
     if (!selecting) {
       onClose();
     }
   };
-  const [selectedName, setSelectedName] = React.useState(activeProject?.name ?? '');
+  const [selectedName, setSelectedName] = React.useState(
+    projectToReview ?? activeProject?.name ?? '',
+  );
+  React.useEffect(() => {
+    if (projectToReview) {
+      setSelectedName(projectToReview);
+      setHasUserSelectedProject(true);
+    }
+  }, [projectToReview]);
   const [search, setSearch] = React.useState('');
   const [filter, setFilter] = React.useState(isAiProject ? 'ai' : 'all');
   const changeSelectedProject = (_event: React.SyntheticEvent, name: string) => {
@@ -424,22 +455,45 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?
       return;
     }
     setSelectedName(name);
+    setHasUserSelectedProject(true);
     setSelectionError(undefined);
   };
   const aiProjectCount = isAiProject ? projects.filter(({ name }) => isAiProject(name)).length : 0;
+  const projectCount = filter === 'ai' ? aiProjectCount : projects.length;
+  const filterLabel = filter === 'ai' ? 'AI projects only' : 'All projects';
   const filterToggleLabel = (
     <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-      <FlexItem>AI projects only</FlexItem>
+      <FlexItem>{filterLabel}</FlexItem>
       <FlexItem>
         <Badge
           isRead
           className="odh-working-project-selector__count"
-          screenReaderText="AI projects"
+          screenReaderText={`${filterLabel}: ${projectCount} projects`}
         >
-          {aiProjectCount}
+          {projectCount}
         </Badge>
       </FlexItem>
-      {aiLabel && <FlexItem>{aiLabel}</FlexItem>}
+      {filter === 'ai' && aiLabel && <FlexItem>{aiLabel}</FlexItem>}
+    </Flex>
+  );
+  const filterOptionLabel = (label: string, count: number, showAiLabel = false) => (
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      flexWrap={{ default: 'nowrap' }}
+      spaceItems={{ default: 'spaceItemsSm' }}
+      className="odh-working-project-selector__filter-option"
+    >
+      <FlexItem>{label}</FlexItem>
+      <FlexItem>
+        <Badge
+          isRead
+          className="odh-working-project-selector__count"
+          screenReaderText={`${label}: ${count} projects`}
+        >
+          {count}
+        </Badge>
+      </FlexItem>
+      {showAiLabel && aiLabel && <FlexItem>{aiLabel}</FlexItem>}
     </Flex>
   );
   const selectedProject = projects.find(({ name }) => name === selectedName);
@@ -453,14 +507,22 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?
         ))
     );
   });
+  React.useEffect(() => {
+    if (projectToReview) {
+      document
+        .querySelector<HTMLElement>(`[data-testid="working-project-option-${projectToReview}"]`)
+        ?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [projectToReview, visibleProjects]);
   const canSelectProject =
     status === WorkingProjectStatusValue.Listed ||
     status === WorkingProjectStatusValue.ListingUnavailable ||
     status === WorkingProjectStatusValue.NoProjectSelected ||
     status === WorkingProjectStatusValue.RouteInvalid;
-  const isManualEmpty = manualFallback && projects.length === 0;
   const activeLabel = activeProject?.displayName || activeProject?.name;
   const projectHref = activeProject ? getProjectHref?.(activeProject.name) : undefined;
+  const emptyProjectContent =
+    typeof emptyListContent === 'function' ? emptyListContent(onClose) : emptyListContent;
 
   const submitSelection = async () => {
     if (!selectedProject || (manualFallback && selectedName === activeProject?.name) || selecting) {
@@ -483,74 +545,43 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?
 
   return (
     <Modal
-      variant={
-        status === WorkingProjectStatusValue.EmptyList || manualFallback ? 'medium' : 'large'
-      }
+      variant={isEmptyProjectList || manualFallback ? 'medium' : 'large'}
       isOpen
       onClose={close}
       aria-labelledby={headingId}
       aria-describedby={!manualFallback && canSelectProject ? descriptionId : undefined}
     >
-      <ModalHeader
-        title={
-          status === 'listing-unavailable'
-            ? 'Project selector'
-            : status === 'empty-list'
-            ? WorkingProjectStatusLabelValue[WorkingProjectStatusValue.EmptyList]
-            : WorkingProjectSelectorLabelValue.ModalTitle
-        }
-        labelId={headingId}
-        descriptorId={descriptionId}
-        description={
-          !manualFallback && canSelectProject
-            ? 'Choose the project you want to work in.'
-            : undefined
-        }
-      />
+      <ModalHeader title="Project selector" labelId={headingId} descriptorId={descriptionId} />
       <ModalBody>
         <Stack hasGutter>
-          {status === WorkingProjectStatusValue.Loading ? (
-            <Content>Loading projects…</Content>
-          ) : status === WorkingProjectStatusValue.EmptyList ? (
-            emptyListContent
-          ) : status === WorkingProjectStatusValue.ProjectSourceError ||
-            status === WorkingProjectStatusValue.ProviderAbsent ? (
-            <Alert isInline variant="danger" title="Projects unavailable">
-              Unable to load projects. Try again later.
-            </Alert>
-          ) : status === 'listing-unavailable' && projects.length === 0 ? (
-            <EmptyState
-              headingLevel="h2"
-              titleText="Start by adding a project"
-              variant="lg"
-              icon={manualProjectMode ? EmptyProjectIllustration : undefined}
-            >
-              <EmptyStateBody>
-                Namespace listing is unavailable. Search for a project you have access to by its
-                resource name. Projects you add remain visible in this browser until its data is
-                cleared.
-              </EmptyStateBody>
-              <EmptyStateFooter>
-                {onAddProject && (
-                  <EmptyStateActions>
-                    <Button variant="primary" onClick={onAddProject}>
-                      Add project
-                    </Button>
-                  </EmptyStateActions>
-                )}
-                {manualProjectMode && (
-                  <EmptyStateActions>
-                    <Button variant="link" onClick={onClose}>
-                      Cancel
-                    </Button>
-                  </EmptyStateActions>
-                )}
-              </EmptyStateFooter>
-            </EmptyState>
+          {isEmptyProjectList || showManualEmptyContent ? (
+            <ProjectSelectorEmptyState
+              content={emptyProjectContent}
+              showManualEmptyContent={showManualEmptyContent}
+              manualProjectMode={manualProjectMode}
+              onAddProject={onAddProject}
+              onClose={onClose}
+            />
           ) : (
             <>
               {activeProject && (
                 <StackItem>
+                  {!manualFallback && (
+                    <Flex
+                      className="odh-working-project-selector__section-heading"
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      spaceItems={{ default: 'spaceItemsSm' }}
+                    >
+                      <Title headingLevel="h2" size="md">
+                        Working project
+                      </Title>
+                      <SelectorHelp
+                        title="Working project"
+                        content={selectorHelp.working}
+                        testId="working-project-help"
+                      />
+                    </Flex>
+                  )}
                   {manualFallback && (
                     <Flex
                       alignItems={{ default: 'alignItemsCenter' }}
@@ -566,15 +597,9 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?
                       />
                     </Flex>
                   )}
-                  <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                  <Flex>
                     <FlexItem>
-                      {manualFallback ? (
-                        activeLabel
-                      ) : (
-                        <>
-                          Current working project: <strong>{activeLabel}</strong>
-                        </>
-                      )}
+                      {manualFallback ? activeLabel : <strong>{activeLabel}</strong>}
                     </FlexItem>
                     {projectHref && (
                       <FlexItem>
@@ -591,76 +616,90 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?
                   Only individually validated projects are shown.
                 </Alert>
               )}
-              <StackItem>
-                <Flex
-                  alignItems={{ default: 'alignItemsCenter' }}
-                  spaceItems={{ default: 'spaceItemsSm' }}
-                >
-                  <Title headingLevel="h2" size={manualFallback ? 'md' : 'lg'}>
-                    Available projects
-                  </Title>
-                  {manualFallback && (
-                    <FieldGroupHelpLabelIcon
-                      title="Available projects"
-                      content="Only projects you have added and that the provider has validated are shown. Use Add project to search for another project by its resource name."
-                      buttonTestId="available-projects-help"
-                    />
-                  )}
-                </Flex>
-              </StackItem>
-              <StackItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'wrap' }}>
-                  {(isAiProject || manualFallback) && (
-                    <FlexItem>
-                      <SimpleSelect
-                        ariaLabel="Project type"
-                        value={filter}
-                        toggleLabel={
-                          manualFallback && filter === 'all' ? (
-                            <Flex
-                              alignItems={{ default: 'alignItemsCenter' }}
-                              spaceItems={{ default: 'spaceItemsSm' }}
-                            >
-                              <FlexItem>All projects</FlexItem>
-                              <FlexItem>
-                                <Badge
-                                  isRead
-                                  className="odh-working-project-selector__count"
-                                  screenReaderText="projects"
-                                >
-                                  {projects.length}
-                                </Badge>
-                              </FlexItem>
-                            </Flex>
-                          ) : filter === 'ai' ? (
-                            filterToggleLabel
-                          ) : undefined
-                        }
-                        onChange={setFilter}
-                        options={[
-                          ...(isAiProject ? [{ key: 'ai', label: 'AI projects only' }] : []),
-                          { key: 'all', label: 'All projects' },
-                        ]}
-                      />
-                    </FlexItem>
-                  )}
-                  <FlexItem flex={{ default: 'flex_1' }}>
-                    <SearchInput
-                      aria-label="Filter projects by name or description"
-                      placeholder="Filter by name or description"
-                      value={search}
-                      onChange={(_event, value) => setSearch(value)}
-                      onClear={() => setSearch('')}
-                    />
-                  </FlexItem>
-                </Flex>
+              <StackItem className="odh-working-project-selector__available-header pf-v6-u-mt-md">
+                <Stack hasGutter={false}>
+                  <StackItem className="pf-v6-u-mb-sm">
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      spaceItems={{ default: 'spaceItemsSm' }}
+                    >
+                      <Title headingLevel="h2" size="md">
+                        Available projects
+                      </Title>
+                      {!manualFallback && (
+                        <SelectorHelp
+                          title="Available projects"
+                          content={selectorHelp.available}
+                          testId="available-projects-help"
+                        />
+                      )}
+                      {manualFallback && (
+                        <FieldGroupHelpLabelIcon
+                          title="Available projects"
+                          content="Only projects you have added and that the provider has validated are shown. Use Add project to search for another project by its resource name."
+                          buttonTestId="available-projects-help"
+                        />
+                      )}
+                    </Flex>
+                  </StackItem>
+                  <StackItem>
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      flexWrap={{ default: 'wrap' }}
+                    >
+                      {(isAiProject || manualFallback) && (
+                        <FlexItem>
+                          <SimpleSelect
+                            ariaLabel="Project type"
+                            dataTestId="working-project-filter"
+                            value={filter}
+                            toggleLabel={filterToggleLabel}
+                            toggleProps={{
+                              className: 'odh-working-project-selector__filter-toggle',
+                            }}
+                            onChange={setFilter}
+                            options={[
+                              {
+                                key: 'all',
+                                label: 'All projects',
+                                dropdownLabel: filterOptionLabel('All projects', projects.length),
+                              },
+                              ...(isAiProject
+                                ? [
+                                    {
+                                      key: 'ai',
+                                      label: 'AI projects only',
+                                      dropdownLabel: filterOptionLabel(
+                                        'AI projects only',
+                                        aiProjectCount,
+                                        true,
+                                      ),
+                                    },
+                                  ]
+                                : []),
+                            ]}
+                          />
+                        </FlexItem>
+                      )}
+                      <FlexItem flex={{ default: 'flex_1' }}>
+                        <SearchInput
+                          aria-label="Filter projects by name or description"
+                          placeholder="Filter by name or description"
+                          value={search}
+                          onChange={(_event, value) => setSearch(value)}
+                          onClear={() => setSearch('')}
+                        />
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                </Stack>
               </StackItem>
               {selectedName && !selectedProject && (
                 <Alert isInline variant="warning" title="Selected project is no longer available">
                   Choose another project.
                 </Alert>
               )}
-              <StackItem>
+              <StackItem className="odh-working-project-selector__project-list-wrap">
                 {visibleProjects.length === 0 ? (
                   <Bullseye className="odh-working-project-selector__no-results">
                     <EmptyState
@@ -757,76 +796,24 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?
           )}
         </Stack>
       </ModalBody>
-      {manualFallback && !isManualEmpty ? (
-        <ModalFooter>
-          <DashboardModalFooter
-            submitLabel="Select"
-            isSubmitDisabled={!selectedProject || selectedName === activeProject?.name || selecting}
-            isSubmitLoading={selecting}
-            isCancelDisabled={selecting}
-            onSubmit={submitSelection}
-            error={selectionError}
-            alertTitle="Unable to change working project"
-            secondaryActions={
-              onAddProject ? (
-                <Button variant="secondary" isDisabled={selecting} onClick={onAddProject}>
-                  Add project
-                </Button>
-              ) : undefined
-            }
-            onCancel={close}
-          />
-        </ModalFooter>
-      ) : (
-        !isManualEmpty && (
-          <ModalFooter>
-            <Flex
-              className="pf-v6-u-w-100"
-              justifyContent={{ default: 'justifyContentSpaceBetween' }}
-            >
-              {onCreateProject && status === 'listed' && (
-                <FlexItem>
-                  <Button
-                    variant="secondary"
-                    isDisabled={selecting}
-                    onClick={() => {
-                      onClose();
-                      onCreateProject(false);
-                    }}
-                  >
-                    Create project
-                  </Button>
-                </FlexItem>
-              )}
-              {onAddProject && status === 'listing-unavailable' && projects.length > 0 && (
-                <FlexItem>
-                  <Button variant="secondary" isDisabled={selecting} onClick={onAddProject}>
-                    Add project
-                  </Button>
-                </FlexItem>
-              )}
-              <FlexItem align={{ default: 'alignRight' }}>
-                {canSelectProject ? (
-                  <DashboardModalFooter
-                    submitLabel="Select"
-                    onSubmit={submitSelection}
-                    isSubmitDisabled={!selectedProject || selecting}
-                    isSubmitLoading={selecting}
-                    isCancelDisabled={selecting}
-                    error={selectionError}
-                    alertTitle="Unable to change working project"
-                    onCancel={close}
-                  />
-                ) : (
-                  <Button variant="link" onClick={onClose}>
-                    Close
-                  </Button>
-                )}
-              </FlexItem>
-            </Flex>
-          </ModalFooter>
-        )
-      )}
+      <WorkingProjectSelectorFooter
+        isEmptyProjectList={isEmptyProjectList}
+        manualFallback={manualFallback}
+        showManualEmptyContent={showManualEmptyContent}
+        canSelectProject={canSelectProject}
+        status={status}
+        projects={projects}
+        selectedProject={selectedProject}
+        selectedName={selectedName}
+        activeProject={activeProject}
+        selecting={selecting}
+        hasUserSelectedProject={hasUserSelectedProject}
+        selectionError={selectionError}
+        onSubmit={submitSelection}
+        onClose={close}
+        onCreateProject={onCreateProject}
+        onAddProject={onAddProject}
+      />
     </Modal>
   );
 };
