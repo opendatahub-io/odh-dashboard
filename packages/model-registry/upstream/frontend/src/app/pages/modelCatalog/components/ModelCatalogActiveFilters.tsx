@@ -95,12 +95,17 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
 
     if (isEnumMember(categoryKey, ModelCatalogStringFilterKey)) {
       const currentValues = filters[categoryKey];
+      const nextValues = Array.isArray(currentValues)
+        ? currentValues.filter((v) => String(v) !== String(labelKey))
+        : [];
       if (Array.isArray(currentValues)) {
-        const newValues = currentValues.filter((v) => String(v) !== String(labelKey));
-        setFilters((prev) => ({ ...prev, [categoryKey]: newValues }));
+        setFilters((prev) => ({ ...prev, [categoryKey]: nextValues }));
       }
       if (categoryKey === ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION) {
-        queuePerformanceFilterReset(categoryKey);
+        setPendingPerformanceFilterAppliedTracking({
+          filterType: 'hardware',
+          action: nextValues.length === 0 ? 'reset' : 'applied',
+        });
       } else if (filterType) {
         setPendingFilterAppliedTracking({
           filterType,

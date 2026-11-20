@@ -97,27 +97,6 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
   };
 
   const handleReset = () => {
-    if (filterKey === ModelCatalogNumberFilterKey.MIN_VRAM) {
-      if (hasActiveFilter) {
-        setFilterValue(undefined);
-        setIsOpen(false);
-        setPendingVramFilterAppliedTracking({ action: 'reset' });
-      } else {
-        setLocalValue(range.max);
-      }
-      return;
-    }
-    const filterType = toFilterAppliedType(filterKey);
-    if (filterType && hasActiveFilter) {
-      setPendingFilterAppliedTracking({
-        filterType,
-        filterValue,
-        isSelected: false,
-      });
-      setFilterValue(undefined);
-      setIsOpen(false);
-      return;
-    }
     setLocalValue(filterValue ?? range.max);
   };
 

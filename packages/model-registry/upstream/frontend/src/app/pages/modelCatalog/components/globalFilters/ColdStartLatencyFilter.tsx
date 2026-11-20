@@ -76,16 +76,7 @@ const ColdStartLatencyFilter: React.FC = () => {
   };
 
   const handleReset = () => {
-    if (hasActiveFilter) {
-      setFilterValue(undefined);
-      setIsOpen(false);
-      setPendingPerformanceFilterAppliedTracking({
-        filterType: 'coldStart',
-        action: 'reset',
-      });
-      return;
-    }
-    setLocalValue(maxValue);
+    setLocalValue(filterValue ?? maxValue);
   };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (

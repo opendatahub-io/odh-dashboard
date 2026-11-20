@@ -61,16 +61,7 @@ const MaxRpsFilter: React.FC = () => {
   };
 
   const handleReset = () => {
-    if (hasActiveFilter) {
-      setRpsFilterValue(undefined);
-      setIsOpen(false);
-      setPendingPerformanceFilterAppliedTracking({
-        filterType: 'rps',
-        action: 'reset',
-      });
-      return;
-    }
-    setLocalValue(maxValue);
+    setLocalValue(rpsFilterValue ?? maxValue);
   };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (

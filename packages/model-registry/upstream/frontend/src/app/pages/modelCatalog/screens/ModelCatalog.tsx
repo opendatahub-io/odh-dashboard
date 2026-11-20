@@ -26,6 +26,8 @@ import ModelCatalogGalleryView from './ModelCatalogGalleryView';
 const ModelCatalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [pendingSearchTracking, setPendingSearchTracking] = React.useState(false);
+  /** Bumped only when the same search term is submitted again (no query refetch). */
+  const [searchResubmitNonce, setSearchResubmitNonce] = React.useState(0);
 
   React.useEffect(() => {
     resetDetailsViewedTracking();
@@ -72,10 +74,19 @@ const ModelCatalog: React.FC = () => {
     }
   }, [searchParams, setSearchParams, setSelectedSourceLabel, trackSimpleEvent]);
 
-  const handleSearch = React.useCallback((term: string) => {
-    setSearchTerm(term);
-    setPendingSearchTracking(true);
-  }, []);
+  const handleSearch = React.useCallback(
+    (term: string) => {
+      if (term === searchTerm) {
+        // Same query will not refetch — Gallery must emit without a loading cycle.
+        setPendingSearchTracking(true);
+        setSearchResubmitNonce((nonce) => nonce + 1);
+        return;
+      }
+      setSearchTerm(term);
+      setPendingSearchTracking(true);
+    },
+    [searchTerm],
+  );
 
   const handleClearSearch = React.useCallback(() => {
     if (searchTerm.trim().length > 0) {
@@ -151,6 +162,7 @@ const ModelCatalog: React.FC = () => {
             isSingleCategory={isSingleCategory}
             singleCategoryLabel={singleCategoryLabel}
             pendingSearchTracking={pendingSearchTracking}
+            searchResubmitNonce={searchResubmitNonce}
             onSearchTrackingFired={handleSearchTrackingFired}
           />
         )}

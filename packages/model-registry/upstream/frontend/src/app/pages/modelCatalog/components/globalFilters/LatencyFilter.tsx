@@ -208,25 +208,19 @@ const LatencyFilter: React.FC = () => {
   };
 
   const handleReset = () => {
-    if (currentActiveFilter) {
-      setFilters((prev) => {
-        const next = { ...prev };
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- dynamic latency filter key
-        (next as Record<string, unknown>)[currentActiveFilter.fieldName] = undefined;
-        return next;
-      });
-      setIsOpen(false);
-      setPendingPerformanceFilterAppliedTracking({
-        filterType: 'latency',
-        action: 'reset',
-        latencyMetric: toPerformanceFilterLatencyMetric(currentActiveFilter.metric),
-      });
-      return;
-    }
-
-    setLocalFilter(defaultFilterState);
-    prevMetricRef.current = defaultFilterState.metric;
-    prevPercentileRef.current = defaultFilterState.percentile;
+    // Reset to the filter state that was active when menu opened
+    const resetState = currentActiveFilter
+      ? {
+          metric: currentActiveFilter.metric,
+          percentile: currentActiveFilter.percentile,
+          value: currentActiveFilter.value,
+        }
+      : defaultFilterState;
+    setLocalFilter(resetState);
+    // Update the refs so the useEffect doesn't think metric/percentile changed
+    // This prevents the value from being reset to maxValue
+    prevMetricRef.current = resetState.metric;
+    prevPercentileRef.current = resetState.percentile;
   };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (

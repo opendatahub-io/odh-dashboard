@@ -47,6 +47,7 @@ type ModelCatalogPageProps = {
   isSingleCategory?: boolean;
   singleCategoryLabel?: string;
   pendingSearchTracking?: boolean;
+  searchResubmitNonce?: number;
   onSearchTrackingFired?: () => void;
 };
 
@@ -58,8 +59,11 @@ const useAfterCatalogQuery = (
   onReady: () => void,
   onSkip: () => void,
   deps: React.DependencyList,
+  /** When bumped while pending+loaded, settle without waiting for a loading cycle. */
+  settleWithoutLoadingKey = 0,
 ): void => {
   const hasSeenLoadingRef = React.useRef(false);
+  const lastSettleKeyRef = React.useRef(0);
 
   React.useEffect(() => {
     if (!pending) {
@@ -68,8 +72,13 @@ const useAfterCatalogQuery = (
     }
     if (!loaded) {
       hasSeenLoadingRef.current = true;
+      return;
     }
-  }, [pending, loaded]);
+    if (settleWithoutLoadingKey !== 0 && settleWithoutLoadingKey !== lastSettleKeyRef.current) {
+      hasSeenLoadingRef.current = true;
+      lastSettleKeyRef.current = settleWithoutLoadingKey;
+    }
+  }, [pending, loaded, settleWithoutLoadingKey]);
 
   React.useEffect(() => {
     if (!pending || !hasSeenLoadingRef.current || !loaded) {
@@ -84,7 +93,7 @@ const useAfterCatalogQuery = (
     const timeoutId = window.setTimeout(onReady, 0);
     return () => window.clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- onReady/onSkip close over caller deps
-  }, [pending, loaded, loadError, ...deps]);
+  }, [pending, loaded, loadError, settleWithoutLoadingKey, ...deps]);
 };
 
 const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
@@ -93,6 +102,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
   isSingleCategory = false,
   singleCategoryLabel,
   pendingSearchTracking = false,
+  searchResubmitNonce = 0,
   onSearchTrackingFired,
 }) => {
   const {
@@ -213,6 +223,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       trackSimpleEvent,
       onSearchTrackingFired,
     ],
+    searchResubmitNonce,
   );
 
   useAfterCatalogQuery(
