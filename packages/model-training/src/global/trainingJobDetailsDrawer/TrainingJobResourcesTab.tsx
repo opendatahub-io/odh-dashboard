@@ -52,7 +52,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
 
   const { clusterQueue, loaded: clusterQueueDataLoaded } = useClusterQueue(clusterQueueName);
 
-  const quotaSource = clusterQueue?.spec.cohortName || '-';
+  const quotaSource = clusterQueue?.spec.cohortName;
 
   const consumedResources = clusterQueue ? getAllConsumedResources(clusterQueue) : [];
 
@@ -155,18 +155,20 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
           <Title headingLevel="h3" size="md" data-testid="quotas-section">
             Quotas and consumption
           </Title>
-          <DescriptionListGroup>
-            <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-              Quota source:
-            </DescriptionListTerm>
-            {clusterQueueDataLoaded ? (
-              <DescriptionListDescription data-testid="quota-source-value">
-                {error ? '-' : quotaSource}
-              </DescriptionListDescription>
-            ) : (
-              <Skeleton width="150px" />
-            )}
-          </DescriptionListGroup>
+          {!clusterQueueDataLoaded || (!error && quotaSource) ? (
+            <DescriptionListGroup>
+              <DescriptionListTerm style={{ fontWeight: 'normal' }}>
+                Quota source:
+              </DescriptionListTerm>
+              {clusterQueueDataLoaded ? (
+                <DescriptionListDescription data-testid="quota-source-value">
+                  {quotaSource}
+                </DescriptionListDescription>
+              ) : (
+                <Skeleton width="150px" />
+              )}
+            </DescriptionListGroup>
+          ) : null}
           <DescriptionListGroup>
             {clusterQueueDataLoaded ? (
               <DescriptionListDescription data-testid="consumed-quota-value">
