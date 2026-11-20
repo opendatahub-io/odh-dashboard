@@ -23,15 +23,25 @@ import {
   Button,
   Skeleton,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
+import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
+import { getKueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import {
+  KueueWorkloadStatus,
+  KUEUE_STATUSES_OVERRIDE_WORKBENCH,
+} from '@odh-dashboard/k8s-core/kueue/types';
+import {
+  getHumanReadableKueueMessage,
+  getRequeuedMessage,
+} from '@odh-dashboard/k8s-core/kueue/messageUtils';
+import {
+  t_global_text_color_regular as RegularColor,
+  t_global_text_color_status_danger_default as DangerColor,
   t_color_gray_60 as Gray60,
   t_global_text_color_disabled as DisabledColor,
 } from '@patternfly/react-tokens';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-} from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import EventLog from '@odh-dashboard/internal/concepts/k8s/EventLog/EventLog';
 import TrainingJobStatus from './components/TrainingJobStatus';
 import {
@@ -39,6 +49,7 @@ import {
   getStatusInfo,
   getStatusFlags,
   getStatusAlert,
+  getTrainJobPodBlockers,
   getSectionStatusesFromJobsStatus,
   getSectionExistence,
   JobSectionName,
@@ -47,6 +58,7 @@ import { useWorkloadForTrainJob } from './hooks/useWorkloadForTrainJob';
 import { useWatchTrainJobEvents } from '../../api/events';
 import { TrainJobKind } from '../../k8sTypes';
 import { JobDisplayState, TrainingJobState } from '../../types';
+import useTrainJobPods from '../../hooks/useTrainJobPods';
 
 type TrainingJobStatusModalProps = {
   job: TrainJobKind;
@@ -88,8 +100,8 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
 }) => {
   const status = jobStatus || getTrainingJobStatusSync(job);
   const displayName = getDisplayNameFromK8sResource(job);
-  const description = getDescriptionFromK8sResource(job).trim();
-  const [workloads, workloadLoaded] = useWorkloadForTrainJob(job);
+  const [workloads, workloadLoaded, workloadError] = useWorkloadForTrainJob(job);
+  const { training, loaded: podsLoaded, error: podsError } = useTrainJobPods(job);
   const workload = React.useMemo(() => {
     if (!workloadLoaded || workloads.length === 0) return null;
     return workloads[0];
@@ -116,6 +128,15 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
   const statusFlags = React.useMemo(() => getStatusFlags(status), [status]);
   const { isFailed, isPaused, inProgress, isComplete, isInadmissible } = statusFlags;
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
+  const podBlockers =
+    podsLoaded &&
+    !podsError &&
+    !isPaused &&
+    !isComplete &&
+    !isFailed &&
+    status !== TrainingJobState.DELETING
+      ? getTrainJobPodBlockers(training)
+      : [];
 
   // Close status modal and trigger pause action
   const handlePauseClick = React.useCallback(() => {
@@ -127,6 +148,69 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
     () => getStatusAlert(status, workloadConditions, job.status?.conditions, events),
     [status, workloadConditions, job.status?.conditions, events],
   );
+
+  const renderQueueDetails = () => {
+    if (
+      !workload ||
+      workloadError ||
+      isComplete ||
+      isFailed ||
+      status === TrainingJobState.DELETING
+    ) {
+      return null;
+    }
+    const kueueStatus = getKueueWorkloadStatusWithMessage({
+      ...workload,
+      status: {
+        ...workload.status,
+        conditions: workloadConditions.filter(
+          (condition) =>
+            condition.observedGeneration === undefined ||
+            workload.metadata?.generation === undefined ||
+            condition.observedGeneration >= workload.metadata.generation,
+        ),
+      },
+    });
+    if (
+      kueueStatus.status === KueueWorkloadStatus.Complete ||
+      !KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status) ||
+      !kueueStatus.message
+    ) {
+      return null;
+    }
+    const info = getKueueStatusInfo(kueueStatus.status);
+    const message =
+      kueueStatus.status === KueueWorkloadStatus.Requeued
+        ? getRequeuedMessage({ ...kueueStatus, queueName: workload.spec.queueName })
+        : getHumanReadableKueueMessage(
+            kueueStatus.status,
+            kueueStatus.message,
+            workload.spec.queueName,
+          );
+    return (
+      <Content
+        component="p"
+        className="pf-v6-u-text-break-word"
+        style={{ color: info.status === 'danger' ? DangerColor.var : RegularColor.var }}
+        aria-live="polite"
+        data-testid="training-job-status-summary"
+      >
+        <Flex
+          component="span"
+          gap={{ default: 'gapSm' }}
+          flexWrap={{ default: 'nowrap' }}
+          alignItems={{ default: 'alignItemsBaseline' }}
+        >
+          <FlexItem component="span" flex={{ default: 'flexNone' }}>
+            <Icon isInline status={info.status}>
+              <info.IconComponent className={info.iconClassName} />
+            </Icon>
+          </FlexItem>
+          <FlexItem component="span">{message}</FlexItem>
+        </Flex>
+      </Content>
+    );
+  };
 
   const renderFailureMessage = () => {
     if (!isFailed || !statusMessage) {
@@ -259,6 +343,8 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
     );
   };
 
+  const queueDetails = renderQueueDetails();
+
   return (
     <Modal
       variant={ModalVariant.small}
@@ -269,13 +355,13 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
       <ModalHeader
         data-testid="training-job-status-modal-header"
         description={
-          description ? (
+          queueDetails || podBlockers.length > 0 ? (
             <Content
               component="p"
               data-testid="training-job-status-modal-description"
               style={{ color: Gray60.value }}
             >
-              {description}
+              Job status
             </Content>
           ) : undefined
         }
@@ -290,6 +376,38 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
         style={{ height: '400px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         <Stack hasGutter style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          {queueDetails || podBlockers.length > 0 ? (
+            <StackItem style={{ maxHeight: '50%', overflowY: 'auto', flexShrink: 0 }}>
+              <Stack hasGutter>
+                {queueDetails}
+                {podBlockers.map((message) => (
+                  <StackItem key={message}>
+                    <Content
+                      component="p"
+                      className="pf-v6-u-text-break-word"
+                      style={{ color: DangerColor.var }}
+                      aria-live="polite"
+                      data-testid="training-job-pod-summary"
+                    >
+                      <Flex
+                        component="span"
+                        gap={{ default: 'gapSm' }}
+                        flexWrap={{ default: 'nowrap' }}
+                        alignItems={{ default: 'alignItemsBaseline' }}
+                      >
+                        <FlexItem component="span" flex={{ default: 'flexNone' }}>
+                          <Icon isInline status="danger">
+                            <ExclamationCircleIcon />
+                          </Icon>
+                        </FlexItem>
+                        <FlexItem component="span">{message}</FlexItem>
+                      </Flex>
+                    </Content>
+                  </StackItem>
+                ))}
+              </Stack>
+            </StackItem>
+          ) : null}
           {renderStatus()}
           <StackItem>
             <Tabs
