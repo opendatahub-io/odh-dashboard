@@ -79,7 +79,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
         [AuthPoliciesFilterOptions.model]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={modelOptions}
-            placeholder="Select a model"
+            placeholder="Filter by model name, ID, or description"
             testId="auth-policies-model-filter-toggle"
             onChange={onChange}
             value={value}
@@ -89,7 +89,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
         [AuthPoliciesFilterOptions.group]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={groupOptions}
-            placeholder="Select a group"
+            placeholder="Filter by group name"
             testId="auth-policies-group-filter-toggle"
             onChange={onChange}
             value={value}
@@ -99,7 +99,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
         [AuthPoliciesFilterOptions.policy]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={policyOptions}
-            placeholder="Select an authorization policy"
+            placeholder="Filter by authorization policy name"
             testId="auth-policies-policy-filter-toggle"
             onChange={onChange}
             value={value}

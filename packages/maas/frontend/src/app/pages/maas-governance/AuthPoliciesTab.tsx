@@ -92,7 +92,10 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
         (modelSelection && !policy.modelRefs.some((ref) => ref.name === modelSelection.value)) ||
         (modelFragment &&
           !policy.modelRefs.some(
-            (ref) => includes(ref.name, modelFragment) || includes(ref.displayName, modelFragment),
+            (ref) =>
+              includes(ref.name, modelFragment) ||
+              includes(ref.displayName, modelFragment) ||
+              includes(ref.description, modelFragment),
           ))
       ) {
         return false;
