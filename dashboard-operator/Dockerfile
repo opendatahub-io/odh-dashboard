@@ -1,4 +1,4 @@
-FROM golang:1.26 AS builder
+FROM golang:1.27 AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -
     -ldflags="-s -w -X 'github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller.Version=${OPERATOR_VERSION}'" \
     -o /tmp/manager ./cmd/manager
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8-1793862054
 
 WORKDIR /
 
