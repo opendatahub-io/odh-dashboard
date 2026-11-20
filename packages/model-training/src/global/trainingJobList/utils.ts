@@ -549,6 +549,12 @@ const updateTitleAndDescription = (
 
 export const getTrainJobPodBlockers = (pods: PodKind[]): string[] => {
   const messages = new Set<string>();
+  const resourceNames: Record<string, string> = {
+    cpu: 'CPU',
+    'nvidia.com/gpu': 'GPU',
+    'amd.com/gpu': 'GPU',
+  };
+  const resourceListFormat = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' });
   pods.forEach((pod) => {
     if (
       pod.metadata.deletionTimestamp ||
@@ -564,25 +570,23 @@ export const getTrainJobPodBlockers = (pods: PodKind[]): string[] => {
     );
     if (scheduling) {
       const reported = scheduling.message ?? '';
-      const shortages: string[] = [];
-      if (/\bInsufficient cpu\b/i.test(reported)) {
-        shortages.push('CPU');
-      }
-      if (/\bInsufficient memory\b/i.test(reported)) {
-        shortages.push('memory');
-      }
-      if (/\bInsufficient nvidia\.com\/gpu\b/i.test(reported)) {
-        shortages.push('GPU');
-      }
-      const causes = shortages.length ? [`insufficient ${shortages.join(' and ')}`] : [];
+      const shortages = [
+        ...new Set(
+          Array.from(
+            reported.matchAll(/\bInsufficient\s+([a-zA-Z0-9][a-zA-Z0-9./_-]*)/gi),
+            ([, resource]) => resource.replace(/\.$/, ''),
+          ).map((resource) => resourceNames[resource] ?? resource),
+        ),
+      ];
+      const causes = shortages.length
+        ? [`insufficient ${resourceListFormat.format(shortages)}`]
+        : [];
       if (
         /had untolerated taint|didn't match (?:Pod's )?node (?:affinity|selector)/i.test(reported)
       ) {
         causes.push('node restrictions');
       }
-      messages.add(
-        `Unable to schedule a worker${causes.length ? `: ${causes.join(' and ')}` : ''}.`,
-      );
+      messages.add(`Unable to schedule a worker${causes.length ? `: ${causes.join('; ')}` : ''}.`);
     }
     const containers = [
       ...(pod.status?.initContainerStatuses ?? []),
