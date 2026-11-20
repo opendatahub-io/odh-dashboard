@@ -442,6 +442,77 @@ describe('OdhFederationPlugin share policy', () => {
     });
   });
 
+  // RHAI-20772: the MF runtime resolves a same-version singleton tie to the provider with the
+  // greatest container name (`maas` beats the host `app`) unless exactly one copy is eager. A remote
+  // copy of the CodeEditor brings its own @monaco-editor/react loader that the host never
+  // configures, so it loads Monaco from the CDN AMD loader and breaks every later UMD module.
+  describe('Monaco code editor sharing (RHAI-20772)', () => {
+    const CODE_EDITOR_MODULES = ['@patternfly/react-code-editor', '@monaco-editor/react'];
+
+    beforeEach(() => {
+      fs.writeFileSync(
+        path.join(root, 'package.json'),
+        JSON.stringify({
+          dependencies: {
+            '@monaco-editor/react': '^4.7.0',
+            '@patternfly/react-code-editor': '~6.6.1',
+          },
+        }),
+      );
+    });
+
+    it('should eager-share the code editor and its Monaco loader from the host', () => {
+      new CapturePlugin({ name: 'host', isHost: true }).apply({ options: { context: root } });
+
+      CODE_EDITOR_MODULES.forEach((moduleName) => {
+        expect(lastConfig?.shared[moduleName]).toEqual(
+          expect.objectContaining({ singleton: true, eager: true }),
+        );
+        expect(lastConfig?.shared[moduleName].import).toBeUndefined();
+      });
+    });
+
+    it('should share both modules from a remote without eager and with a fallback', () => {
+      new CapturePlugin({
+        name: 'maas',
+        isHost: false,
+        exposes: { './extensions': './src/odh/extensions' },
+      }).apply({ options: { context: root } });
+
+      CODE_EDITOR_MODULES.forEach((moduleName) => {
+        expect(lastConfig?.shared[moduleName]).toEqual(
+          expect.objectContaining({ singleton: true }),
+        );
+        expect(lastConfig?.shared[moduleName].eager).toBeUndefined();
+        expect(lastConfig?.shared[moduleName].import).toBeUndefined();
+      });
+    });
+
+    it('should declare @monaco-editor/react in every first-party MF package that uses the code editor', () => {
+      // OdhFederationPlugin only shares modules listed in the build context's dependencies. A
+      // package that depends on the CodeEditor but not on @monaco-editor/react ships a private,
+      // unconfigured Monaco loader inside its CodeEditor copy.
+      const repoRoot = path.resolve(__dirname, '../../../../..');
+      const mfBuildContexts = [
+        'frontend',
+        ...fs
+          .readdirSync(path.join(repoRoot, 'packages'))
+          .map((pkg) => path.join('packages', pkg, 'frontend'))
+          .filter((dir) =>
+            fs.existsSync(path.join(repoRoot, dir, 'config', 'moduleFederation.js')),
+          ),
+      ];
+
+      const missing = mfBuildContexts.filter((dir) => {
+        const deps = collectDependenciesFromContext(path.join(repoRoot, dir));
+        return '@patternfly/react-code-editor' in deps && !('@monaco-editor/react' in deps);
+      });
+
+      expect(mfBuildContexts.length).toBeGreaterThan(1);
+      expect(missing).toEqual([]);
+    });
+  });
+
   // RHOAIENG-83821: workspace images must compile with DEPLOYMENT_MODE=federated so remotes
   // consume host-provided singletons (import: false) instead of bundling their own copies.
   // moduleFederation.js maps `DEPLOYMENT_MODE === 'standalone'` -> isHost, so `federated` and
