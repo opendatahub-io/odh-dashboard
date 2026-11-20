@@ -425,6 +425,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         {groupWithHoverPreview}
         {isCollapsed && !isHidden ? (
           <foreignObject
+            className="odh-pipeline-node-overlay"
             x={0}
             y={0}
             width={Math.max(0, bounds.width - 12)}
