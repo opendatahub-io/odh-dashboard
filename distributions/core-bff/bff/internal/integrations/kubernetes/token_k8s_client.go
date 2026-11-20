@@ -73,6 +73,15 @@ func NewKubeconfigKubernetesClient(ctx context.Context, logger *slog.Logger) (Ku
 // which runs on the kubeconfig's own credentials, from a copy of base.
 func newKubeconfigKubernetesClientFromBase(ctx context.Context, base *rest.Config, logger *slog.Logger) (KubernetesClientInterface, error) {
 	cfg := rest.CopyConfig(base)
+	// Same rate as the per-request token client, so discovery in dev mode is
+	// not throttled to client-go's 5 QPS default.
+	if cfg.QPS == 0 {
+		cfg.QPS = TokenClientQPS
+	}
+	if cfg.Burst == 0 {
+		cfg.Burst = TokenClientBurst
+	}
+
 	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {

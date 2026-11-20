@@ -54,13 +54,13 @@ type accessCheck struct {
 // DeriveNamespaceActions). They run first: a namespace where none of them
 // enables an action is not returned, so its remaining reviews are skipped.
 var actionPermissionMatrix = []accessCheck{
-	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"get", "list", "create", "patch", "delete"}},
+	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"get", "list", "create", "update", "patch", "delete"}},
 	{Group: "", Resource: "secrets", Verbs: []string{"create", "get", "patch", "delete"}},
 }
 
 // detailPermissionMatrix completes the matrix for namespaces that are returned.
 var detailPermissionMatrix = []accessCheck{
-	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"watch", "update"}},
+	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"watch"}},
 	{Group: groupServing, Resource: "llminferenceserviceconfigs", Verbs: []string{"get", "list"}},
 	{Group: "", Resource: "pods", Verbs: []string{"get", "list"}},
 }
@@ -355,7 +355,7 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 		var getErr error
 		lim.do(func() { got, getErr = client.GetNamespace(ctx, identity, name) })
 		if k8serrors.IsNotFound(getErr) {
-			return evaluated{outcome: outcomeNotFound}
+			return evaluated{outcome: outcomeNotFound, failed: failed}
 		}
 		if getErr == nil && got != nil {
 			ns = got
@@ -386,10 +386,11 @@ func DeriveNamespaceActions(perms map[string]models.ResourcePermissions) models.
 		}
 		return true
 	}
+	// Edit needs both patch and update: the wizard may save with either verb.
 	return models.NamespaceActions{
 		View:            allowed(groupServing, "llminferenceservices", "list", "get"),
 		Deploy:          allowed(groupServing, "llminferenceservices", "create"),
-		Edit:            allowed(groupServing, "llminferenceservices", "patch"),
+		Edit:            allowed(groupServing, "llminferenceservices", "patch", "update"),
 		Delete:          allowed(groupServing, "llminferenceservices", "delete"),
 		ManageTokenAuth: allowed("", "secrets", "create", "get", "patch", "delete"),
 	}
