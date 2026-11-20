@@ -11,6 +11,12 @@ import {
   useHardwareConfigColumns,
   ControlledTableSortProps,
 } from '~/app/pages/modelCatalog/hooks/useHardwareConfigColumns';
+import { TrackingOutcome, useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MODEL_CATALOG_EVENTS,
+  ModelCatalogColumnCustomizationSource,
+  ModelCatalogColumnCustomizationUpdatedProperties,
+} from '~/app/pages/modelCatalog/tracking';
 import HardwareConfigurationTableRow from './HardwareConfigurationTableRow';
 import HardwareConfigurationFilterToolbar from './HardwareConfigurationFilterToolbar';
 
@@ -18,14 +24,17 @@ type HardwareConfigurationTableProps = {
   performanceArtifacts: CatalogPerformanceMetricsArtifact[];
   isLoading?: boolean;
   onSortChange?: (sort: { orderBy?: string; sortOrder?: string }) => void;
+  columnCustomizationSource?: ModelCatalogColumnCustomizationSource;
 };
 
 const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
   performanceArtifacts,
   isLoading = false,
   onSortChange,
+  columnCustomizationSource = 'modelDetails',
 }) => {
   const { filters, resetPerformanceFiltersToDefaults } = React.useContext(ModelCatalogContext);
+  const { trackFormEvent } = useUserInteraction();
 
   // Note: Filtering is now done server-side via the /performance_artifacts endpoint.
   // The performanceArtifacts prop contains pre-filtered data from the server.
@@ -45,6 +54,43 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
       onSortDirectionChange,
     },
   } = useHardwareConfigColumns(activeLatencyField);
+
+  // Wrap modal setters only — latency auto-column updates must not fire this event.
+  const pendingColumnSubmitRef = React.useRef(false);
+
+  const trackingManageColumnsResult = React.useMemo(() => {
+    const setVisibleColumnIds = (columnIds: string[]) => {
+      manageColumnsResult.setVisibleColumnIds(columnIds);
+      pendingColumnSubmitRef.current = true;
+      trackFormEvent(MODEL_CATALOG_EVENTS.COLUMN_CUSTOMIZATION_UPDATED, {
+        source: columnCustomizationSource,
+        outcome: TrackingOutcome.submit,
+        success: true,
+        countVisibleColumns: columnIds.length,
+      } satisfies ModelCatalogColumnCustomizationUpdatedProperties);
+    };
+
+    const closeModal = () => {
+      if (pendingColumnSubmitRef.current) {
+        pendingColumnSubmitRef.current = false;
+        manageColumnsResult.closeModal();
+        return;
+      }
+      trackFormEvent(MODEL_CATALOG_EVENTS.COLUMN_CUSTOMIZATION_UPDATED, {
+        source: columnCustomizationSource,
+        outcome: TrackingOutcome.cancel,
+        success: true,
+        countVisibleColumns: manageColumnsResult.visibleColumnIds.length,
+      } satisfies ModelCatalogColumnCustomizationUpdatedProperties);
+      manageColumnsResult.closeModal();
+    };
+
+    return {
+      ...manageColumnsResult,
+      setVisibleColumnIds,
+      closeModal,
+    };
+  }, [manageColumnsResult, columnCustomizationSource, trackFormEvent]);
 
   React.useEffect(() => {
     if (sortColumnField === null) {
@@ -124,7 +170,7 @@ const HardwareConfigurationTable: React.FC<HardwareConfigurationTableProps> = ({
         />
       </InnerScrollContainer>
       <ManageColumnsModal
-        manageColumnsResult={manageColumnsResult}
+        manageColumnsResult={trackingManageColumnsResult}
         description="Manage the columns that appear in the hardware configuration table."
         dataTestId="hardware-config-manage-columns"
       />

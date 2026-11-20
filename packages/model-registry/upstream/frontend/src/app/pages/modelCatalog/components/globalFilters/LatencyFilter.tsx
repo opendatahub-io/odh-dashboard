@@ -29,6 +29,7 @@ import {
 } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { getDefaultPerformanceFilters } from '~/app/pages/modelCatalog/utils/performanceFilterUtils';
 import useDropdownAutoFocus from '~/app/pages/modelCatalog/hooks/useDropdownAutoFocus';
+import { toPerformanceFilterLatencyMetric } from '~/app/pages/modelCatalog/tracking';
 import SliderWithInput from './SliderWithInput';
 
 type LatencyFilterState = {
@@ -57,7 +58,8 @@ const PERCENTILE_OPTIONS: { value: LatencyPercentile; label: LatencyPercentile }
 ).map((percentile) => ({ value: percentile, label: percentile }));
 
 const LatencyFilter: React.FC = () => {
-  const { filters, setFilters, filterOptions } = React.useContext(ModelCatalogContext);
+  const { filters, setFilters, filterOptions, setPendingPerformanceFilterAppliedTracking } =
+    React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
   const contentRef = useDropdownAutoFocus(isOpen);
   const [isMetricOpen, setIsMetricOpen] = React.useState(false);
@@ -198,6 +200,11 @@ const LatencyFilter: React.FC = () => {
       return next;
     });
     setIsOpen(false);
+    setPendingPerformanceFilterAppliedTracking({
+      filterType: 'latency',
+      action: 'applied',
+      latencyMetric: toPerformanceFilterLatencyMetric(localFilter.metric),
+    });
   };
 
   const handleReset = () => {

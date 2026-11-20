@@ -15,6 +15,7 @@ const DeployPrefillAction: React.FC<DeployPrefillActionProps> = ({
   deployPrefillLoaded,
   deployPrefillError,
   disabledTooltip,
+  onDeployClick,
 }) => {
   const availablePlatformIds = useAvailablePlatformIds();
   const navigateToWizard = useNavigateToDeploymentWizardWithData(deployPrefill);
@@ -55,12 +56,20 @@ const DeployPrefillAction: React.FC<DeployPrefillActionProps> = ({
     isLoading,
   ]);
 
+  const handleDeployClick = React.useCallback(() => {
+    if (!buttonState.enabled || !navigateToWizard) {
+      return;
+    }
+    onDeployClick?.();
+    navigateToWizard();
+  }, [buttonState.enabled, navigateToWizard, onDeployClick]);
+
   const deployButton = (
     <Button
       id="deploy-button"
       aria-label="Deploy model"
       variant={ButtonVariant.primary}
-      onClick={buttonState.enabled && navigateToWizard ? () => navigateToWizard() : undefined}
+      onClick={buttonState.enabled && navigateToWizard ? handleDeployClick : undefined}
       isAriaDisabled={!buttonState.enabled}
       data-testid="deploy-button"
     >

@@ -28,7 +28,11 @@ import {
   CATALOG_VALUE_LABEL_KEYS,
 } from '~/concepts/modelCatalog/const';
 import { useUserInteraction } from '~/concepts/userInteraction';
-import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
+import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
+import {
+  MODEL_CATALOG_EVENTS,
+  buildModelCatalogDetailsNavigationState,
+} from '~/app/pages/modelCatalog/tracking';
 import {
   getModelCatalogIsAccessGranted,
   getModelCatalogTrackingHfAccessType,
@@ -52,6 +56,17 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
   const accessLabelVariant = getHfAccessLabelVariant(model);
   const isGatedAccessDenied = accessLabelVariant === 'gated-denied';
   const { trackSimpleEvent } = useUserInteraction();
+  const { filters, performanceViewEnabled, getPerformanceFilterDefaultValue } =
+    React.useContext(ModelCatalogContext);
+
+  const cardNameDetailsNavigationState = React.useMemo(
+    () =>
+      buildModelCatalogDetailsNavigationState('cardName', filters, {
+        performanceViewEnabled,
+        getPerformanceFilterDefaultValue,
+      }),
+    [filters, performanceViewEnabled, getPerformanceFilterDefaultValue],
+  );
 
   const handleValidatedLabelClicked = React.useCallback(() => {
     trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_LABEL_CLICKED, {
@@ -128,6 +143,7 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
         <CardTitle>
           <Link
             to={catalogModelDetailsFromModel(model.name, source?.id)}
+            state={cardNameDetailsNavigationState}
             onClick={handleModelSelected}
           >
             <Button

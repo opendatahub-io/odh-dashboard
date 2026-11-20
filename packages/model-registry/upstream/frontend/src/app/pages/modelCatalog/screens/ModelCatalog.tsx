@@ -10,12 +10,28 @@ import { CategoryName } from '~/app/modelCatalogTypes';
 import { useHasVisibleFiltersApplied } from '~/app/hooks/modelCatalog/useHasVisibleFiltersApplied';
 import { CatalogPageLayout, EmptyCatalogState } from '~/app/shared/components/catalog';
 import { MODEL_CATALOG_TITLE, MODEL_CATALOG_DESCRIPTION } from '~/app/pages/modelCatalog/const';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MODEL_CATALOG_EVENTS,
+  ModelCatalogCategorySelectedProperties,
+  ModelCatalogFiltersResetProperties,
+  ModelCatalogFiltersResetSource,
+  resetDetailsViewedTracking,
+  toCategorySelectedValue,
+} from '~/app/pages/modelCatalog/tracking';
 import ModelCatalogSourceLabelSelectorNavigator from './ModelCatalogSourceLabelSelectorNavigator';
 import ModelCatalogAllModelsView from './ModelCatalogAllModelsView';
 import ModelCatalogGalleryView from './ModelCatalogGalleryView';
 
 const ModelCatalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [pendingSearchTracking, setPendingSearchTracking] = React.useState(false);
+  /** Bumped only when the same search term is submitted again (no query refetch). */
+  const [searchResubmitNonce, setSearchResubmitNonce] = React.useState(0);
+
+  React.useEffect(() => {
+    resetDetailsViewedTracking();
+  }, []);
   const {
     selectedSourceLabel,
     setSelectedSourceLabel,
@@ -25,11 +41,22 @@ const ModelCatalog: React.FC = () => {
     catalogSourcesLoaded,
     emptyCategoryLabels,
     setCategoryCount,
+    pendingFilterAppliedTracking,
+    pendingVramFilterAppliedTracking,
+    pendingPerformanceFilterAppliedTracking,
   } = React.useContext(ModelCatalogContext);
+  const { trackSimpleEvent } = useUserInteraction();
   const filtersApplied = useHasVisibleFiltersApplied();
 
+  // Keep Gallery mounted while search / filter tracking is still pending.
   const isAllModelsView =
-    selectedSourceLabel === CategoryName.allModels && !searchTerm && !filtersApplied;
+    selectedSourceLabel === CategoryName.allModels &&
+    !searchTerm &&
+    !filtersApplied &&
+    !pendingSearchTracking &&
+    !pendingFilterAppliedTracking &&
+    !pendingVramFilterAppliedTracking &&
+    !pendingPerformanceFilterAppliedTracking;
 
   const bannerExtensions = useExtensions(isModelCatalogBannerExtension);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,23 +65,51 @@ const ModelCatalog: React.FC = () => {
     const validatedParam = searchParams.get('validated');
     if (validatedParam === 'true') {
       setSearchParams({});
-      setSelectedSourceLabel('Red Hat AI validated');
+      const validatedLabel = 'Red Hat AI validated';
+      setSelectedSourceLabel(validatedLabel);
+      const properties: ModelCatalogCategorySelectedProperties = {
+        category: toCategorySelectedValue(validatedLabel),
+      };
+      trackSimpleEvent(MODEL_CATALOG_EVENTS.CATEGORY_SELECTED, properties);
     }
-  }, [searchParams, setSearchParams, setSelectedSourceLabel]);
+  }, [searchParams, setSearchParams, setSelectedSourceLabel, trackSimpleEvent]);
 
-  const handleSearch = React.useCallback((term: string) => {
-    setSearchTerm(term);
-  }, []);
+  const handleSearch = React.useCallback(
+    (term: string) => {
+      if (term === searchTerm) {
+        // Same query will not refetch — Gallery must emit without a loading cycle.
+        setPendingSearchTracking(true);
+        setSearchResubmitNonce((nonce) => nonce + 1);
+        return;
+      }
+      setSearchTerm(term);
+      setPendingSearchTracking(true);
+    },
+    [searchTerm],
+  );
 
   const handleClearSearch = React.useCallback(() => {
+    if (searchTerm.trim().length > 0) {
+      setPendingSearchTracking(true);
+    }
     setSearchTerm('');
-  }, []);
+  }, [searchTerm]);
 
-  const handleFilterReset = React.useCallback(() => {
-    setSearchTerm('');
-    // clearAllFilters clears basic filters to empty and resets performance filters to defaults
-    clearAllFilters();
-  }, [clearAllFilters]);
+  const handleFilterReset = React.useCallback(
+    (source: ModelCatalogFiltersResetSource) => {
+      setPendingSearchTracking(false);
+      setSearchTerm('');
+      clearAllFilters();
+      // Fire on click — Gallery often unmounts when All models returns.
+      const properties: ModelCatalogFiltersResetProperties = { source };
+      trackSimpleEvent(MODEL_CATALOG_EVENTS.FILTERS_RESET, properties);
+    },
+    [clearAllFilters, trackSimpleEvent],
+  );
+
+  const handleSearchTrackingFired = React.useCallback(() => {
+    setPendingSearchTracking(false);
+  }, []);
 
   return (
     <ApplicationsPage
@@ -96,16 +151,19 @@ const ModelCatalog: React.FC = () => {
             searchTerm={searchTerm}
             onSearch={handleSearch}
             onClearSearch={handleClearSearch}
-            onResetAllFilters={handleFilterReset}
+            onResetAllFilters={() => handleFilterReset('toolbar')}
           />
         )}
         renderAllItemsView={() => <ModelCatalogAllModelsView searchTerm={searchTerm} />}
         renderGalleryView={(isSingleCategory, singleCategoryLabel) => (
           <ModelCatalogGalleryView
             searchTerm={searchTerm}
-            handleFilterReset={handleFilterReset}
+            handleFilterReset={() => handleFilterReset('emptyState')}
             isSingleCategory={isSingleCategory}
             singleCategoryLabel={singleCategoryLabel}
+            pendingSearchTracking={pendingSearchTracking}
+            searchResubmitNonce={searchResubmitNonce}
+            onSearchTrackingFired={handleSearchTrackingFired}
           />
         )}
       />
