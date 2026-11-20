@@ -72,8 +72,8 @@ describe('Verify MLflow Experiments page', () => {
     'Verify MLflow Experiments page',
     {
       tags: [
-        '@Sanity',
-        '@SanitySet1',
+        '@Tier1',
+        '@Tier1Set1',
         '@MLflow',
         '@MLflowExperiments',
         '@NonConcurrent',

@@ -208,8 +208,8 @@ describe('Verify models can be deployed from model registry', () => {
         '@ModelRegistry',
         '@ModelRegistryCI',
         '@TestRegistryDeployModel',
-        '@Sanity',
-        '@SanitySet4',
+        '@Tier1',
+        '@Tier1Set4',
       ],
     },
     () => {

@@ -101,8 +101,8 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
     'Verify deployed model works in playground',
     {
       tags: [
-        '@Sanity',
-        '@SanitySet1',
+        '@Tier1',
+        '@Tier1Set1',
         '@GenAI',
         '@ModelServing',
         '@Deployment',

@@ -46,11 +46,11 @@ const FULL_COVERAGE_TAGS = [
   '@SmokeSet3',
   '@SmokeSet4',
   '@SmokeSet5',
-  '@SanitySet1',
-  '@SanitySet2',
-  '@SanitySet3',
-  '@SanitySet4',
-  '@SanitySet5',
+  '@Tier1Set1',
+  '@Tier1Set2',
+  '@Tier1Set3',
+  '@Tier1Set4',
+  '@Tier1Set5',
 ];
 
 const normalizeTag = (tag) => (tag.startsWith('@') ? tag : `@${tag}`);
@@ -966,7 +966,7 @@ const describeJobSelection = (job) => {
   if (job.tag_dir.startsWith('changedspec-')) {
     reason = 'Added, modified, or renamed E2E specs run explicitly';
   } else if (job.tag_dir.startsWith('full-coverage-')) {
-    reason = 'Broad or deleted support-code impact requires canonical Smoke/Sanity coverage';
+    reason = 'Broad or deleted support-code impact requires canonical Smoke/Tier1 coverage';
   } else if (job.tag_dir.startsWith('impactedspec-')) {
     reason = 'Impacted specs have tests not fully covered by the selected tag jobs';
   } else if (job.tag_dir.startsWith('impacted-tag-')) {
@@ -1207,7 +1207,7 @@ const buildSelectionPlan = ({
       details.push(
         `Broad support impact: ${uncoveredImpactedSpecs.length} specs need additional coverage; ` +
           `${impactTags.uncoveredSpecs.length} cannot be fully covered by package CI tags ` +
-          `(explicit-spec limit: ${MAX_EXPLICIT_IMPACTED_SPECS}). Using canonical Smoke/Sanity sets.`,
+          `(explicit-spec limit: ${MAX_EXPLICIT_IMPACTED_SPECS}). Using canonical Smoke/Tier1 sets.`,
       );
       const fullCoverageTags = resolveAvailableFullCoverageTags(inventory);
       if (fullCoverageTags.length === 0) {
