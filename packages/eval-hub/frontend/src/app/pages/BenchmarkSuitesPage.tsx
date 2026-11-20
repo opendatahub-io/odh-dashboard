@@ -10,6 +10,7 @@ import {
   FlexItem,
   PageSection,
   Stack,
+  Tooltip,
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
@@ -23,6 +24,7 @@ import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
+import { useCanImportCollections } from '~/app/hooks/collections';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
@@ -38,6 +40,9 @@ import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './BenchmarkSuitesPage.scss';
 
+// The import modal pulls in Monaco; load it only when the user opens Import.
+const ImportCollectionModal = React.lazy(() => import('~/app/components/ImportCollectionModal'));
+
 const BenchmarkSuitesPage: React.FC = () => {
   const { trackEvalHubEvent } = useEvalHubTracking();
 
@@ -45,6 +50,11 @@ const BenchmarkSuitesPage: React.FC = () => {
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
+  const canImportQuery = useCanImportCollections(namespace ?? '');
+  // Fall back to enabled when the access check is loading or failed; the
+  // server still enforces RBAC on submission.
+  const canImport = canImportQuery.data ?? true;
   const {
     selectedCollection,
     benchmarkDetailsMap,
@@ -148,13 +158,37 @@ const BenchmarkSuitesPage: React.FC = () => {
               }
               description="View, run, and manage all benchmark collections you have created or saved."
               headerAction={
-                <Button
-                  variant="primary"
-                  onClick={handleCreateSuite}
-                  data-testid="create-benchmark-suite-button"
-                >
-                  Create collection
-                </Button>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  {canImport ? (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setIsImportOpen(true)}
+                      data-testid="import-collection-button"
+                    >
+                      Import
+                    </Button>
+                  ) : (
+                    <Tooltip content="You do not have permission to create collections in this project">
+                      {/* Span wrapper: hover events do not fire on a disabled button. */}
+                      <span>
+                        <Button
+                          variant="secondary"
+                          isDisabled
+                          data-testid="import-collection-button"
+                        >
+                          Import
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  )}
+                  <Button
+                    variant="primary"
+                    onClick={handleCreateSuite}
+                    data-testid="create-benchmark-suite-button"
+                  >
+                    Create collection
+                  </Button>
+                </Flex>
               }
               breadcrumb={
                 <ContextBreadcrumb
@@ -205,6 +239,16 @@ const BenchmarkSuitesPage: React.FC = () => {
           trackingSource="benchmark_suites_page"
           onSuccess={handleRunSuccess}
         />
+      ) : null}
+      {isImportOpen ? (
+        <React.Suspense fallback={null}>
+          <ImportCollectionModal
+            isOpen
+            onClose={() => setIsImportOpen(false)}
+            namespace={namespace ?? ''}
+            surface="my_benchmark_suites"
+          />
+        </React.Suspense>
       ) : null}
     </>
   );

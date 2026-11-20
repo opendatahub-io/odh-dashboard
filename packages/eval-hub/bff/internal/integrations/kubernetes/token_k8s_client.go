@@ -333,6 +333,35 @@ func (kc *TokenKubernetesClient) CanListEvalHubInstances(ctx context.Context, _ 
 	return resp.Status.Allowed, nil
 }
 
+// CanCreateEvalHubResources performs a SelfSubjectAccessReview for the create verb on the
+// tenant-scoped virtual "evaluations" resource, so the dashboard can disable collection
+// import for users whose tenant Role is read-only. See the matching method on
+// InternalKubernetesClient for the verb/resource rationale.
+// The RequestIdentity parameter is unused because the token already represents the user.
+func (kc *TokenKubernetesClient) CanCreateEvalHubResources(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "create",
+				Group:     EvalHubCRDGroup,
+				Resource:  EvalHubVirtualResource,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform EvalHub create SAR", "namespace", namespace, "error", err)
+		return false, fmt.Errorf("failed to verify EvalHub create permissions: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
 // GetEvalHubServiceURL lists EvalHub CRs in the given namespace and returns the service URL
 // from status.url of the first found instance.
 // The RequestIdentity parameter is unused because the token already represents the user.

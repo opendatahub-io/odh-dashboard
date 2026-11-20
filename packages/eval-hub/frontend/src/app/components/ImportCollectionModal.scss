@@ -1,0 +1,73 @@
+// The import dialog needs a definite height, not just a min-height: Monaco
+// sizes itself with percentage heights, which only resolve when every ancestor
+// has a definite height. With an indefinite chain the editor collapses to a
+// single line and leaves the rest of the modal body empty.
+.evalhub-import-collection-modal {
+  height: min(90vh, 48rem);
+
+  .pf-v6-c-modal-box__body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .pf-v6-l-stack {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+// The form stack item carries the flex sizing that hands Monaco the space
+// left over from the dialog height set above. Every ancestor between the
+// stack item and the editor must pass that height through.
+.evalhub-import-collection-modal__form-item,
+.evalhub-import-collection-modal__form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.evalhub-import-collection-modal__definition-group {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  > .pf-v6-c-form__group-control {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+}
+
+.evalhub-import-collection-modal__editor {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  &--drag-hover {
+    outline: var(--pf-t--global--border--width--control--default) dashed
+      var(--pf-t--global--border--color--clicked);
+    outline-offset: var(--pf-t--global--spacer--xs);
+  }
+}
+
+.evalhub-import-collection-modal__editor-upload {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.evalhub-import-collection-modal__filename {
+  // PF aligns the toolbar controls to flex-start; center the label against
+  // the taller icon buttons.
+  align-self: center;
+  display: flex;
+  align-items: center;
+  font-family: var(--pf-t--global--font--family--mono);
+  font-size: var(--pf-t--global--font--size--xs);
+  color: var(--pf-t--global--text--color--subtle);
+}
