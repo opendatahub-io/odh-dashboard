@@ -1,16 +1,23 @@
 import * as React from 'react';
 import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
-import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { ActionsColumn, ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { useGovernanceResourceAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
 import {
+  getAuthPolicyEditUrl,
   getAuthPolicyViewUrl,
+  getSubscriptionEditUrl,
   getSubscriptionViewUrl,
 } from '~/app/utilities/maasGovernanceNavigation';
 import {
@@ -22,7 +29,11 @@ import {
   convertStringToPopoverViewedStatus,
   MaaSGovernanceGroupLabelSelectedProperties,
   MaaSSettingsDetailsViewedProperties,
+  MaaSResourceDeletedProperties,
+  EventTrackingEditSource,
 } from '~/app/types/event-tracking';
+import DeleteSubscriptionModal from '~/app/pages/subscriptions/DeleteSubscriptionModal';
+import DeleteAuthPolicyModal from '~/app/pages/auth-policies/DeleteAuthPolicyModal';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
 import styles from './ExpandedModelContent.module.scss';
@@ -70,6 +81,7 @@ type ExpandableItemProps = {
   status?: string;
   conditionType?: string;
   lastTransitionTime?: string;
+  actions?: React.ReactNode;
 };
 
 const ExpandableItem: React.FC<ExpandableItemProps> = ({
@@ -93,6 +105,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   status,
   conditionType,
   lastTransitionTime,
+  actions,
 }) => {
   const { affectedModels, overviewLoaded } = useGovernanceResourceAffectedModels(
     name,
@@ -147,6 +160,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                     }}
                   />
                 </FlexItem>
+                {actions && <FlexItem>{actions}</FlexItem>}
               </Flex>
             </Td>
           </Tr>
@@ -160,6 +174,25 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
     </div>
   );
 };
+
+type EntryActionsProps = {
+  testId: string;
+  onViewDetails: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+};
+
+const EntryActions: React.FC<EntryActionsProps> = ({ testId, onViewDetails, onEdit, onDelete }) => (
+  <ActionsColumn
+    data-testid={testId}
+    items={[
+      { title: 'View details', onClick: onViewDetails },
+      { title: 'Edit', onClick: onEdit },
+      { isSeparator: true },
+      { title: 'Delete', onClick: onDelete },
+    ]}
+  />
+);
 
 type SectionHeaderProps = {
   title: string;
@@ -223,6 +256,7 @@ type SubscriptionsSectionProps = {
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
   onGroupSelect: (group: string) => void;
+  setDeleteSubscription: (subscription: ModelOverviewSubscription) => void;
 };
 
 const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
@@ -234,7 +268,9 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
   setHighlightedGroup,
   returnTo,
   onGroupSelect,
+  setDeleteSubscription,
 }) => {
+  const navigate = useNavigate();
   const allExpanded =
     subscriptions.length > 0 &&
     subscriptions.every((sub) =>
@@ -291,6 +327,23 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               conditionType={sub.conditionType}
               lastTransitionTime={sub.lastTransitionTime}
               resourceUrl={getSubscriptionViewUrl(sub.name)}
+              actions={
+                <EntryActions
+                  testId={`overview-subscription-actions-${sub.name}`}
+                  onViewDetails={() =>
+                    navigate(getSubscriptionViewUrl(sub.name), { state: OVERVIEW_LINK_STATE })
+                  }
+                  onEdit={() =>
+                    navigate(getSubscriptionEditUrl(sub.name), {
+                      state: {
+                        ...OVERVIEW_LINK_STATE,
+                        editSource: EventTrackingEditSource.LIST_KEBAB,
+                      },
+                    })
+                  }
+                  onDelete={() => setDeleteSubscription(sub)}
+                />
+              }
             >
               <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
                 <strong className="pf-v6-u-mr-md">Token limits</strong>
@@ -319,6 +372,7 @@ type PoliciesSectionProps = {
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
   onGroupSelect: (group: string) => void;
+  setDeletePolicy: (policy: ModelOverviewPolicy) => void;
 };
 
 const PoliciesSection: React.FC<PoliciesSectionProps> = ({
@@ -330,7 +384,9 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
   setHighlightedGroup,
   returnTo,
   onGroupSelect,
+  setDeletePolicy,
 }) => {
+  const navigate = useNavigate();
   const allExpanded =
     policies.length > 0 &&
     policies.every((policy) =>
@@ -387,6 +443,23 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               status={policy.status}
               conditionType={policy.conditionType}
               lastTransitionTime={policy.lastTransitionTime}
+              actions={
+                <EntryActions
+                  testId={`overview-policy-actions-${policy.name}`}
+                  onViewDetails={() =>
+                    navigate(getAuthPolicyViewUrl(policy.name), { state: OVERVIEW_LINK_STATE })
+                  }
+                  onEdit={() =>
+                    navigate(getAuthPolicyEditUrl(policy.name), {
+                      state: {
+                        ...OVERVIEW_LINK_STATE,
+                        editSource: EventTrackingEditSource.LIST_KEBAB,
+                      },
+                    })
+                  }
+                  onDelete={() => setDeletePolicy(policy)}
+                />
+              }
             >
               <GroupChips
                 groups={policy.groups ?? []}
@@ -413,9 +486,12 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
   policies,
   returnTo,
 }) => {
+  const { refresh } = useMaaSGovernanceContext();
   const [expandedSubs, setExpandedSubs] = React.useState<Set<string>>(new Set());
   const [expandedPolicies, setExpandedPolicies] = React.useState<Set<string>>(new Set());
   const [highlightedGroup, setHighlightedGroup] = React.useState<string | null>(null);
+  const [deleteSubscription, setDeleteSubscription] = React.useState<ModelOverviewSubscription>();
+  const [deletePolicy, setDeletePolicy] = React.useState<ModelOverviewPolicy>();
 
   const toggleSub = React.useCallback(
     (name: string) => setExpandedSubs((prev) => toggleExpandedItem(prev, name)),
@@ -488,6 +564,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           setHighlightedGroup={setHighlightedGroup}
           returnTo={returnTo}
           onGroupSelect={onGroupSelect}
+          setDeleteSubscription={setDeleteSubscription}
         />
       </GridItem>
       <GridItem span={6}>
@@ -500,8 +577,43 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           setHighlightedGroup={setHighlightedGroup}
           returnTo={returnTo}
           onGroupSelect={onGroupSelect}
+          setDeletePolicy={setDeletePolicy}
         />
       </GridItem>
+      {deleteSubscription && (
+        <DeleteSubscriptionModal
+          subscription={deleteSubscription}
+          onClose={(deleted) => {
+            setDeleteSubscription(undefined);
+            if (deleted) {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deleteSubscription.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              } satisfies MaaSResourceDeletedProperties);
+              refresh();
+            }
+          }}
+        />
+      )}
+      {deletePolicy && (
+        <DeleteAuthPolicyModal
+          authPolicy={deletePolicy}
+          onClose={(deleted) => {
+            setDeletePolicy(undefined);
+            if (deleted) {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deletePolicy.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              } satisfies MaaSResourceDeletedProperties);
+              refresh();
+            }
+          }}
+        />
+      )}
     </Grid>
   );
 };
