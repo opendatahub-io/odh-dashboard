@@ -1,6 +1,11 @@
-import { convertFeatureViewLineageToVisualizationData } from '../lineageDataConverter';
-import { FeatureViewLineage } from '../../types/lineage';
+import { LineageData } from '@odh-dashboard/internal/components/lineage/types';
+import {
+  convertFeatureStoreLineageToVisualizationData,
+  convertFeatureViewLineageToVisualizationData,
+} from '../lineageDataConverter';
+import { FeatureViewLineage, LineageFeatureView } from '../../types/lineage';
 import { FeatureColumns } from '../../types/features';
+import { mockFeatureStoreLineage } from '../../__mocks__/mockLineage';
 
 jest.mock('@patternfly/react-topology', () => ({
   EdgeStyle: { default: 'default', dashed: 'dashed' },
@@ -172,5 +177,210 @@ describe('convertFeatureViewLineageToVisualizationData', () => {
 
     const currentNode = nodes.find((n) => n.name === 'driver_stats');
     expect(currentNode?.features).toHaveLength(2);
+  });
+});
+
+describe('convertFeatureStoreLineageToVisualizationData', () => {
+  const emptyObjects = {
+    entities: [],
+    dataSources: [],
+    featureViews: [],
+    featureServices: [],
+    features: [],
+  };
+
+  const nodeByName = (nodes: LineageData['nodes'], name: string) =>
+    nodes.find((node) => node.name === name);
+
+  it('creates one node per object in the lineage', () => {
+    const { nodes } = convertFeatureStoreLineageToVisualizationData(mockFeatureStoreLineage());
+
+    expect(nodes.map((node) => node.name).toSorted()).toEqual([
+      'credit_scoring_service',
+      'loan_data',
+      'user_id',
+      'zipcode_features',
+    ]);
+  });
+
+  it('assigns each node the layer configured for its object type', () => {
+    const { nodes } = convertFeatureStoreLineageToVisualizationData(mockFeatureStoreLineage());
+
+    expect(nodeByName(nodes, 'user_id')?.layer).toBe(0);
+    expect(nodeByName(nodes, 'loan_data')?.layer).toBe(1);
+    expect(nodeByName(nodes, 'zipcode_features')?.layer).toBe(2);
+    expect(nodeByName(nodes, 'credit_scoring_service')?.layer).toBe(3);
+  });
+
+  it('labels each node with its object type prefix', () => {
+    const { nodes } = convertFeatureStoreLineageToVisualizationData(mockFeatureStoreLineage());
+
+    expect(nodeByName(nodes, 'user_id')?.label).toBe('Entity: user_id');
+    expect(nodeByName(nodes, 'loan_data')?.label).toBe('Batch Data Source: loan_data');
+    expect(nodeByName(nodes, 'zipcode_features')?.label).toBe(
+      'Batch Feature View: zipcode_features',
+    );
+    expect(nodeByName(nodes, 'credit_scoring_service')?.label).toBe(
+      'FeatureService: credit_scoring_service',
+    );
+  });
+
+  it('maps fsObjectTypes and entityType per object type', () => {
+    const { nodes } = convertFeatureStoreLineageToVisualizationData(mockFeatureStoreLineage());
+
+    expect(nodeByName(nodes, 'user_id')).toMatchObject({
+      fsObjectTypes: 'entity',
+      entityType: 'entity',
+    });
+    expect(nodeByName(nodes, 'loan_data')).toMatchObject({
+      fsObjectTypes: 'data_source',
+      entityType: 'batch_data_source',
+    });
+    expect(nodeByName(nodes, 'zipcode_features')).toMatchObject({
+      fsObjectTypes: 'feature_view',
+      entityType: 'batch_feature_view',
+    });
+    expect(nodeByName(nodes, 'credit_scoring_service')).toMatchObject({
+      fsObjectTypes: 'feature_service',
+      entityType: 'feature_service',
+    });
+  });
+
+  it('creates one edge per relationship between known objects', () => {
+    const { edges } = convertFeatureStoreLineageToVisualizationData(mockFeatureStoreLineage());
+
+    const relationshipEdges = edges.filter((edge) => !edge.isPositioningEdge);
+    expect(relationshipEdges.map((edge) => [edge.id, edge.source, edge.target])).toEqual([
+      ['edge-0', 'entity-user_id', 'featureview-zipcode_features'],
+      ['edge-1', 'datasource-loan_data', 'featureview-zipcode_features'],
+      ['edge-2', 'featureview-zipcode_features', 'featureservice-credit_scoring_service'],
+    ]);
+  });
+
+  it('adds one invisible positioning edge between each consecutive layer', () => {
+    const { edges } = convertFeatureStoreLineageToVisualizationData(mockFeatureStoreLineage());
+
+    const positioningEdges = edges.filter((edge) => edge.isPositioningEdge);
+    expect(positioningEdges.map((edge) => [edge.id, edge.source, edge.target])).toEqual([
+      ['positioning-edge-0-1', 'entity-user_id', 'datasource-loan_data'],
+      ['positioning-edge-1-2', 'datasource-loan_data', 'featureview-zipcode_features'],
+      [
+        'positioning-edge-2-3',
+        'featureview-zipcode_features',
+        'featureservice-credit_scoring_service',
+      ],
+    ]);
+  });
+
+  it('creates no positioning edges between nodes of the same layer', () => {
+    const [firstEntity] = mockFeatureStoreLineage().objects.entities;
+    const secondEntity = { ...firstEntity, spec: { ...firstEntity.spec, name: 'customer' } };
+
+    const { nodes, edges } = convertFeatureStoreLineageToVisualizationData(
+      mockFeatureStoreLineage({
+        objects: { ...emptyObjects, entities: [firstEntity, secondEntity] },
+        relationships: [],
+      }),
+    );
+
+    expect(nodes).toHaveLength(2);
+    expect(nodes.map((node) => node.layer)).toEqual([0, 0]);
+
+    const positioningEdges = edges.filter((edge) => edge.isPositioningEdge);
+    expect(positioningEdges).toHaveLength(0);
+    expect(edges).toHaveLength(0);
+  });
+
+  it('creates nodes for objects that only appear in relationships', () => {
+    const { nodes } = convertFeatureStoreLineageToVisualizationData(
+      mockFeatureStoreLineage({ objects: emptyObjects }),
+    );
+
+    expect(nodes.map((node) => node.name).toSorted()).toEqual([
+      'credit_scoring_service',
+      'loan_data',
+      'user_id',
+      'zipcode_features',
+    ]);
+    expect(nodeByName(nodes, 'zipcode_features')?.layer).toBe(2);
+    expect(nodeByName(nodes, 'credit_scoring_service')?.layer).toBe(3);
+  });
+
+  it('synthesizes a missing data-source node when featureViews and services are populated', () => {
+    const baseLineage = mockFeatureStoreLineage();
+    const { nodes, edges } = convertFeatureStoreLineageToVisualizationData(
+      mockFeatureStoreLineage({
+        objects: {
+          ...baseLineage.objects,
+          dataSources: [],
+        },
+      }),
+    );
+
+    const loanDataNode = nodeByName(nodes, 'loan_data');
+    expect(loanDataNode).toBeDefined();
+    expect(loanDataNode?.layer).toBe(1);
+
+    const relationshipEdges = edges.filter((edge) => !edge.isPositioningEdge);
+    const loanEdge = relationshipEdges.find((edge) => edge.source === 'datasource-loan_data');
+    expect(loanEdge).toBeDefined();
+    expect(loanEdge?.target).toBe('featureview-zipcode_features');
+  });
+
+  it('does not duplicate a node referenced by several relationships', () => {
+    const { nodes } = convertFeatureStoreLineageToVisualizationData(
+      mockFeatureStoreLineage({
+        objects: emptyObjects,
+        relationships: [
+          buildRelationship('entity', 'driver', 'featureView', 'shared_view'),
+          buildRelationship('entity', 'customer', 'featureView', 'shared_view'),
+          buildRelationship('dataSource', 'driver_source', 'featureView', 'shared_view'),
+        ],
+      }),
+    );
+
+    const sharedViewNodes = nodes.filter((node) => node.name === 'shared_view');
+    expect(sharedViewNodes).toHaveLength(1);
+    expect(nodes.map((node) => node.id).toSorted()).toEqual([
+      'datasource-driver_source',
+      'entity-customer',
+      'entity-driver',
+      'featureview-shared_view',
+    ]);
+  });
+
+  it('ignores pagination metadata entries in the featureViews list', () => {
+    const realFeatureView = mockFeatureStoreLineage().objects.featureViews[0];
+    const paginationEntry = { totalCount: 0, totalPages: 0 } as unknown as LineageFeatureView;
+
+    const { nodes } = convertFeatureStoreLineageToVisualizationData(
+      mockFeatureStoreLineage({
+        objects: {
+          ...emptyObjects,
+          featureViews: [paginationEntry, realFeatureView],
+        },
+        relationships: [],
+      }),
+    );
+
+    expect(
+      nodes.filter((node) => node.id.startsWith('featureview-')).map((node) => node.id),
+    ).toEqual(['featureview-zipcode_features']);
+  });
+
+  it('drops relationships whose object type is unknown', () => {
+    const baseLineage = mockFeatureStoreLineage();
+
+    const { nodes, edges } = convertFeatureStoreLineageToVisualizationData(
+      mockFeatureStoreLineage({
+        relationships: [
+          ...baseLineage.relationships,
+          buildRelationship('unknownType', 'mystery', 'featureView', 'zipcode_features'),
+        ],
+      }),
+    );
+
+    expect(nodeByName(nodes, 'mystery')).toBeUndefined();
+    expect(edges.filter((edge) => !edge.isPositioningEdge)).toHaveLength(3);
   });
 });
