@@ -25,6 +25,10 @@ describe('LLM inference service configurations CRUD operations', () => {
       llmInferenceServiceConfigurations
         .findAppTitle()
         .should('have.text', 'Add LLM inference service configuration');
+      llmInferenceServiceConfigurations
+        .findYAMLCodeEditor()
+        .containsText('Add an LLM inference service configuration')
+        .should('be.visible');
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
       llmInferenceServiceConfigurations.findTabPageTitle().should('not.exist');
