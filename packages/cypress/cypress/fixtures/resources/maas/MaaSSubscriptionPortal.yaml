@@ -1,0 +1,24 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSSubscription
+metadata:
+  name: '{{SUBSCRIPTION_NAME}}'
+  namespace: models-as-a-service
+  annotations:
+    ai-grid/version: '1'
+    openshift.io/display-name: '{{SUBSCRIPTION_NAME}}'
+    openshift.io/description: '{{SUBSCRIPTION_DESCRIPTION}}'
+spec:
+  modelRefs:
+    - name: '{{MODEL_NAME}}'
+      namespace: '{{PROJECT_NAME}}'
+      tokenRateLimits:
+        - limit: 1000
+          window: 1h
+  organization:
+    id: '{{ORGANIZATION_ID}}'
+  owner:
+    groups: {{USER_GROUPS}}
+    # Regular-user access must depend on a matching group claim.
+    users:
+      - '{{PORTAL_ADMIN_USERNAME}}'
+  priority: 0
