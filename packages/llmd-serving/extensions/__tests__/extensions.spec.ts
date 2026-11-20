@@ -1,7 +1,7 @@
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { isWizardTrackingPropertiesExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
-import extensions from '../extensions';
+import extensions from '../index';
 import { extractLlmdDeploymentTrackingProperties } from '../../src/tracking/llmdWizardTracking';
 import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../../src/settings/llmInferenceServiceConfigs/paths';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';

@@ -9,6 +9,7 @@
 
 - **No package-local BFF:** all API traffic goes through the main dashboard backend (e.g. `/api/k8s/`) or equivalent cluster proxy; the UI never talks to a dedicated model-serving Go/Node service.
 - **Module Federation remote (hybrid):** model-serving operates in two modes. The `src/` subtree is consumed directly as a library via package `exports`. The `frontend/` subtree builds as a standalone MF remote (`modelServing`) producing `remoteEntry.js` on port 9109, exposing `./extensions` and `./extension-points`. Shared dependencies (React, PatternFly, all `@odh-dashboard/*` packages) are managed automatically by `OdhFederationPlugin` as singletons.
+- **Build-time extension selection:** the remote defaults to the full dashboard manifest. Set `MODEL_SERVING_EXTENSION_PROFILE=deployments` to expose only serving areas, the deployment list and wizard routes, and the deployment-method field through the same `./extensions` federation key. Explicit `full` keeps the default; unsupported values fail the build. This excludes project integrations, administration, runtime installation, and registry/catalog extension contributions from that entry point, without filtering them after compilation.
 - **Hub-and-spoke architecture:** model-serving is the hub. Platform packages (`packages/kserve`, `packages/nim-serving`, `packages/llmd-serving`) are spokes that implement extension points such as `model-serving.platform`, `watch-deployments`, and `deployment/deploy`. These platform packages form a **cohort** with model-serving — they are added and removed together.
 - **Data flow:** Kubernetes → main backend → React; platform-specific behaviour is injected through extension points instead of branching inside every component.
 
@@ -93,7 +94,8 @@ The `package.json` `exports` field defines the public API. Key categories:
 
 | Export Path | Category | Purpose |
 |---|---|---|
-| `./extensions` | Extensions | Extension manifest (aggregates `odh.ts`, `model-registry.ts`, `model-catalog.ts`) |
+| `./extensions` | Extensions | Full dashboard extension manifest, preserving contribution order and feature gates |
+| `./extensions/deployments` | Extensions | Build-time deployment surface without administration or project/registry/catalog contributions |
 | `./extension-points`, `./extension-points/deployment-wizard` | Extension contracts | Type definitions and type guards for all `model-serving.*` extension points |
 | `./shared`, `./shared/types`, `./shared/types/form-data` | Shared types | K8s resource types, wizard form data types, enums, utilities |
 | `./shared/types/deploy-prefill` | Types | `ModelDeployPrefillInfo` for deploy-from-registry/catalog flow |

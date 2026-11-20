@@ -3,12 +3,12 @@ import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
 import { useKueueStatusWithQueuePositions } from '@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getLLMdDeploymentEndpoints } from './endpoints';
 import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import { useWatchLLMInferenceService } from '../api/LLMInferenceService';
 import { useWatchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
-import { LLMD_SERVING_ID } from '../../extensions/extensions';
 
 export const useWatchDeployments = (
   project: ProjectKind,
@@ -68,7 +68,7 @@ export const useWatchDeployments = (
         ] ?? null;
 
       return {
-        modelServingPlatformId: LLMD_SERVING_ID,
+        modelServingPlatformId: SupportedArea.LLMD_SERVING,
         model: llmInferenceService,
         server: matchingBaseRefConfig
           ? llmInferenceServiceConfigs.find(

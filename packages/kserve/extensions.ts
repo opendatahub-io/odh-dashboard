@@ -38,7 +38,7 @@ import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRu
 import type { KServeDeployment } from './src/types';
 import type { KServeConnectedResourcesData } from './src/clusterStorage/connectedResources';
 
-export const KSERVE_ID = 'kserve';
+export const KSERVE_ID = SupportedArea.K_SERVE;
 const ADMIN_USER = 'ADMIN_USER';
 
 // Duplicated from src/settings/servingRuntimeTemplates/paths.ts — extensions.ts

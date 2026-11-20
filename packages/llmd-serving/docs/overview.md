@@ -8,7 +8,7 @@
 ## Design Intent
 
 - **No BFF**: CRUD for `LLMInferenceService` in `src/api/` uses the OpenShift dynamic plugin SDK from the browser with the main dashboard's in-cluster credentials.
-- **Extension points**: `extensions/extensions.ts` registers `model-serving.platform/watch-deployments`, `model-serving.deployment/deploy`, `model-serving.deployment/form-data`, `model-serving.deployment/wizard-field`, and `model-serving.deployments-table/start-stop-action`; host `model-serving` orchestrates; this package supplies LLM-d-specific behavior only.
+- **Extension points**: `./extensions` composes the full dashboard surface, including deployment lifecycle, wizard fields, runtime installation, administration, and start/stop actions. `./extensions/deployments` selects lifecycle, YAML assembly, basic wizard overrides, gateway selection, and tracking without optional topology/MaaS fields, administration, installation, or start/stop. Select the public entry point at build time; filtering the full array at runtime still bundles its lazy imports. Both entry points retain the existing feature gates and KServe-area prerequisite.
 - **No Module Federation remote**: Dashboard loads via monorepo exports (e.g. `./extensions`, `./types`, test helpers under `./__tests__/utils`).
 - **API**: Group `serving.kserve.io`, resource `llminferenceservices`, version `v1alpha2`; shapes in `src/types.ts` as `LLMInferenceServiceKind`.
 

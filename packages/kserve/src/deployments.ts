@@ -20,6 +20,7 @@ import { resolveKueueStatusForInferenceService } from '@odh-dashboard/model-serv
 import { useKueueStatusWithQueuePositions } from '@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import {
   useWatchDeploymentPods,
   useWatchServingRuntimes,
@@ -28,10 +29,9 @@ import {
 import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
 import { getKServeDeploymentStatus } from './deploymentStatus';
 import { KServeDeployment } from './types';
-import { KSERVE_ID } from '../extensions';
 
 export const isKServeDeployment = (deployment: Deployment): deployment is KServeDeployment =>
-  deployment.modelServingPlatformId === KSERVE_ID;
+  deployment.modelServingPlatformId === SupportedArea.K_SERVE;
 
 export const useWatchDeployments = (
   project: ProjectKind,
@@ -47,7 +47,10 @@ export const useWatchDeployments = (
   );
 
   const kserveExclusions = React.useMemo(
-    () => exclusionExtensions.filter((ext) => ext.properties.excludeFromPlatform === KSERVE_ID),
+    () =>
+      exclusionExtensions.filter(
+        (ext) => ext.properties.excludeFromPlatform === SupportedArea.K_SERVE,
+      ),
     [exclusionExtensions],
   );
 
@@ -99,7 +102,7 @@ export const useWatchDeployments = (
             ] ?? null
           : null;
         return {
-          modelServingPlatformId: KSERVE_ID,
+          modelServingPlatformId: SupportedArea.K_SERVE,
           model: inferenceService,
           server: servingRuntime,
           status: getKServeDeploymentStatus(inferenceService, deploymentPods, kueueStatus),
@@ -144,7 +147,7 @@ export const fetchDeploymentStatus = async (
     );
 
     const deployment: KServeDeployment = {
-      modelServingPlatformId: KSERVE_ID,
+      modelServingPlatformId: SupportedArea.K_SERVE,
       model: inferenceService,
       status: getKServeDeploymentStatus(inferenceService, deploymentPods, kueueStatus),
     };

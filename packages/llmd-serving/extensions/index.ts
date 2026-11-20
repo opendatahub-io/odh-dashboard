@@ -1,0 +1,44 @@
+import {
+  lifecycleExtensions,
+  modelServerFieldOverride,
+  commonFieldOverrides,
+  llmdDeploymentMethodFieldOverride,
+  gatewayExtensions,
+  llmdTrackingPropertiesExtension,
+  deploymentMethodExtractorExtensionLllmdOnly,
+  startStopAction,
+} from './deployments';
+import {
+  modelAvailabilityFieldOverride,
+  vllmDeploymentMethodFieldOverride,
+  llmConfigOptionsFieldExtension,
+  topologyConfigsExtensions,
+  deploymentMethodExtractorExtensionvLLMOnMaaS,
+} from './advanced';
+import settingsExtensions from './settings';
+import type { LLMDServingExtension } from './types';
+
+export const LLMD_SERVING_ID = 'llmd-serving';
+// Preserve named exports from the existing full public entry point.
+// eslint-disable-next-line no-barrel-files/no-barrel-files
+export { topologyConfigsExtensions };
+// eslint-disable-next-line no-barrel-files/no-barrel-files
+export type { TopologyConfigsExtensionsType } from './types';
+
+const extensions: LLMDServingExtension[] = [
+  ...lifecycleExtensions,
+  modelServerFieldOverride,
+  modelAvailabilityFieldOverride,
+  ...commonFieldOverrides,
+  vllmDeploymentMethodFieldOverride,
+  llmdDeploymentMethodFieldOverride,
+  llmConfigOptionsFieldExtension,
+  ...topologyConfigsExtensions,
+  ...gatewayExtensions,
+  llmdTrackingPropertiesExtension,
+  deploymentMethodExtractorExtensionLllmdOnly,
+  deploymentMethodExtractorExtensionvLLMOnMaaS,
+  startStopAction,
+  ...settingsExtensions,
+];
+export default extensions;
