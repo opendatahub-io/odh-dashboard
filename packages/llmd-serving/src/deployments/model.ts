@@ -54,6 +54,23 @@ export const applyModelLocation = (
     // Remove the connection name in the dry run or it will conflict during updates
     delete result.metadata.annotations[MetadataAnnotation.ConnectionName];
   }
+  // URI and PVC fields already contain the model location. Include it in both
+  // preview and submission instead of relying on connection webhook enrichment.
+  const uri = modelLocationData.fieldValues.URI;
+  if (
+    typeof uri === 'string' &&
+    (modelLocationData.type === ModelLocationType.PVC ||
+      !modelLocationData.connectionTypeObject ||
+      isModelServingCompatible(
+        modelLocationData.connectionTypeObject,
+        ModelServingCompatibleTypes.URI,
+      ))
+  ) {
+    result.spec.model.uri = uri.trim();
+  }
+  if (modelLocationData.type === ModelLocationType.PVC) {
+    delete result.metadata.annotations[MetadataAnnotation.ConnectionName];
+  }
   // Adds path annotation for S3
   if (
     modelLocationData.additionalFields.modelPath &&

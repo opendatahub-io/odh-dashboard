@@ -1,5 +1,13 @@
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import { ModelLocationType } from '@odh-dashboard/model-serving/shared/types/form-data';
+import {
+  mockConnectionTypeConfigMapObj,
+  mockModelServingFields,
+  mockOciConnectionType,
+} from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
+
 import { mockLLMInferenceServiceK8sResource } from '../../__mocks__/mockLLMInferenceServiceK8sResource';
-import { applyDefaultScheduler } from '../model';
+import { applyDefaultScheduler, applyModelLocation } from '../model';
 
 describe('applyDefaultScheduler', () => {
   it('should preserve a configured scheduler when llm-d is selected', () => {
@@ -53,5 +61,114 @@ describe('applyDefaultScheduler', () => {
     const result = applyDefaultScheduler(service, false);
 
     expect(result.spec.router).toBeUndefined();
+  });
+});
+
+describe('applyModelLocation', () => {
+  it.each(['hf://org/model', 'https://example.com/model', 'pvc://models/weights'])(
+    'should include the entered URI in the resource: %s',
+    (uri) => {
+      const service = mockLLMInferenceServiceK8sResource({ modelUri: '' });
+      const result = applyModelLocation(service, {
+        type: uri.startsWith('pvc:') ? ModelLocationType.PVC : ModelLocationType.NEW,
+        fieldValues: { URI: uri },
+        additionalFields: {},
+      });
+      expect(result.spec.model.uri).toBe(uri);
+      expect(service.spec.model.uri).toBe('');
+    },
+  );
+
+  it('should clear the previous URI when the entered URI is cleared', () => {
+    const service = mockLLMInferenceServiceK8sResource({ modelUri: 'hf://org/old-model' });
+    const result = applyModelLocation(service, {
+      type: ModelLocationType.NEW,
+      fieldValues: { URI: '' },
+      additionalFields: {},
+    });
+    expect(result.spec.model.uri).toBe('');
+  });
+
+  it('should retain connection-based resolution when selecting an existing connection', () => {
+    const service = mockLLMInferenceServiceK8sResource({ modelUri: '' });
+    const result = applyModelLocation(
+      service,
+      {
+        type: ModelLocationType.EXISTING,
+        connection: 'existing-connection',
+        fieldValues: {},
+        additionalFields: {},
+      },
+      'existing-connection',
+    );
+    expect(result.metadata.annotations?.[MetadataAnnotation.ConnectionName]).toBe(
+      'existing-connection',
+    );
+    expect(result.spec.model.uri).toBe('');
+  });
+
+  it.each([false, true])('should apply a URI-compatible connection field (dryRun=%s)', (dryRun) => {
+    const result = applyModelLocation(
+      mockLLMInferenceServiceK8sResource({ modelUri: '' }),
+      {
+        type: ModelLocationType.NEW,
+        connectionTypeObject: mockConnectionTypeConfigMapObj({
+          fields: [{ type: 'uri', name: 'URI', envVar: 'URI', required: true, properties: {} }],
+        }),
+        fieldValues: { URI: '  hf://org/model  ' },
+        additionalFields: {},
+      },
+      'new-connection',
+      undefined,
+      dryRun,
+    );
+    expect(result.spec.model.uri).toBe('hf://org/model');
+    expect(result.metadata.annotations?.[MetadataAnnotation.ConnectionName]).toBe(
+      dryRun ? undefined : 'new-connection',
+    );
+  });
+
+  it('should remove a stale connection reference when changing to a PVC', () => {
+    const result = applyModelLocation(
+      mockLLMInferenceServiceK8sResource({ secretName: 'old-connection' }),
+      {
+        type: ModelLocationType.PVC,
+        fieldValues: { URI: 'pvc://models/weights' },
+        additionalFields: {},
+      },
+      'old-connection',
+    );
+    expect(result.spec.model.uri).toBe('pvc://models/weights');
+    expect(result.metadata.annotations?.[MetadataAnnotation.ConnectionName]).toBeUndefined();
+  });
+
+  it('should retain the S3 path annotation and connection resolution', () => {
+    const result = applyModelLocation(
+      mockLLMInferenceServiceK8sResource({ modelUri: '' }),
+      {
+        type: ModelLocationType.EXISTING,
+        connectionTypeObject: mockConnectionTypeConfigMapObj({ fields: mockModelServingFields }),
+        fieldValues: {},
+        additionalFields: { modelPath: 'models/weights' },
+      },
+      's3-connection',
+    );
+    expect(result.spec.model.uri).toBe('');
+    expect(result.metadata.annotations).toEqual(
+      expect.objectContaining({
+        [MetadataAnnotation.ConnectionName]: 's3-connection',
+        'opendatahub.io/connection-path': 'models/weights',
+      }),
+    );
+  });
+
+  it('should preserve the OCI model URI field', () => {
+    const result = applyModelLocation(mockLLMInferenceServiceK8sResource({ modelUri: '' }), {
+      type: ModelLocationType.NEW,
+      connectionTypeObject: mockOciConnectionType(),
+      fieldValues: {},
+      additionalFields: { modelUri: 'oci://registry.example.com/model:v1' },
+    });
+    expect(result.spec.model.uri).toBe('oci://registry.example.com/model:v1');
   });
 });

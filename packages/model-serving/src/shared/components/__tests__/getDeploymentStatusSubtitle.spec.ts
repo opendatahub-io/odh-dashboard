@@ -1,8 +1,21 @@
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
+import { t_global_text_color_regular as RegularColor } from '@patternfly/react-tokens';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
-import { getDeploymentStatusSubtitle } from '../getDeploymentStatusSubtitle';
+import {
+  getDeploymentStatusSubtitle,
+  getDeploymentStatusSubtitleColor,
+} from '../getDeploymentStatusSubtitle';
 
 describe('getDeploymentStatusSubtitle', () => {
+  it('should show deletion progress ahead of a stale Kueue failure', () => {
+    const status = {
+      state: ModelDeploymentState.DELETING,
+      message: 'Waiting for serving controllers to finish deleting.',
+      kueueStatus: { status: KueueWorkloadStatus.Failed, queueName: 'my-queue' },
+    };
+    expect(getDeploymentStatusSubtitle(status)).toBe(status.message);
+    expect(getDeploymentStatusSubtitleColor(status)).toBe(RegularColor.var);
+  });
   it('shows only queue position for Queued status when queuePosition is set', () => {
     const subtitle = getDeploymentStatusSubtitle({
       state: ModelDeploymentState.PENDING,

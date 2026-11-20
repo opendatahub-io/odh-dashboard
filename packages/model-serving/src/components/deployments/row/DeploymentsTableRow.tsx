@@ -72,6 +72,7 @@ export const DeploymentRow: React.FC<{
   showCapabilities,
   servingDetailsEntry,
 }) => {
+  const isDeleting = Boolean(deployment.model.metadata.deletionTimestamp);
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
 
   const startStopActionExtension = useDeploymentExtension(
@@ -103,6 +104,7 @@ export const DeploymentRow: React.FC<{
       Boolean(hardwareProfile.spec.scheduling.kueue?.localQueueName)
     : Boolean(directQueueName);
   const showKueueAnomalyIndicator =
+    !isDeleting &&
     isKueueFeatureEnabled &&
     isProjectKueueEnabled &&
     !isStoppedOrStopping &&
@@ -169,7 +171,7 @@ export const DeploymentRow: React.FC<{
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <FlexItem>
               <ResourceNameTooltip resource={deployment.model}>
-                {shouldShowDeploymentMetricsLink(deployment, metricsExtension) ? (
+                {!isDeleting && shouldShowDeploymentMetricsLink(deployment, metricsExtension) ? (
                   <DeploymentMetricsLink deployment={deployment} />
                 ) : (
                   <span data-testid="deployed-model-name">
@@ -268,6 +270,7 @@ export const DeploymentRow: React.FC<{
               currentState={deployment.status.stoppedStates}
               onStart={onStart}
               onStop={onStop}
+              isDisabled={isDeleting}
             />
           ) : (
             '-'
@@ -324,17 +327,21 @@ export const DeploymentRow: React.FC<{
             setEditLoading(false);
           }}
           onStopDeployment={
-            startStopActionExtension && !deployment.status?.stoppedStates?.isStopped
+            !isDeleting && startStopActionExtension && !deployment.status?.stoppedStates?.isStopped
               ? () => {
                   setStatusModalOpen(false);
                   onStop();
                 }
               : undefined
           }
-          onEditDeployment={() => {
-            setEditLoading(true);
-            navigateToDeploymentWizard(deployment.model.metadata.namespace);
-          }}
+          onEditDeployment={
+            isDeleting
+              ? undefined
+              : () => {
+                  setEditLoading(true);
+                  navigateToDeploymentWizard(deployment.model.metadata.namespace);
+                }
+          }
           isEditLoading={isEditLoading}
         />
       )}

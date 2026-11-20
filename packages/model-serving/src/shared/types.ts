@@ -27,6 +27,7 @@ export type LabeledConnection = {
 };
 
 export enum ModelDeploymentState {
+  DELETING = 'Deleting',
   PENDING = 'Pending',
   STANDBY = 'Standby',
   FAILED_TO_LOAD = 'FailedToLoad',

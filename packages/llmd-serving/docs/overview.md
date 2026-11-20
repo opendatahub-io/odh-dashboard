@@ -57,3 +57,4 @@
 - **`spec.router`**: Base shape initializes empty `scheduler`, `route`, `gateway`; omitting them can cause operator rejection.
 - **`VLLM_ADDITIONAL_ARGS`**: Injected on container named `main`; operator renames break arg injection silently.
 - **Patch vs merge**: `patchLLMInferenceService` uses JSON Patch; `updateLLMInferenceService` uses merge patch—use wizard `overwrite: true` on redeploy to avoid stale fields.
+- **Deletion and configuration cleanup**: Copied configurations are removed only after deleting the `LLMInferenceService` succeeds or returns 404. Other primary deletion errors stop configuration cleanup, and missing copied configurations (404) are ignored so cleanup can be retried. Kubernetes and the serving controllers handle dependent workload garbage collection.

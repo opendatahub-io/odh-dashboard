@@ -57,6 +57,84 @@ describe('deleteDeployment', () => {
     mockK8sDeleteResource.mockResolvedValue({ kind: 'Status', status: 'Success' });
   });
 
+  it.each([403, 409, 500])(
+    'should retain configuration copies when primary deletion fails with %s',
+    async (code) => {
+      const denied = k8sStatusError(code);
+      mockK8sDeleteResource.mockImplementation((options) =>
+        options.model === LLMInferenceServiceModel
+          ? Promise.reject(denied)
+          : Promise.resolve({ kind: 'Status', status: 'Success' }),
+      );
+      await expect(
+        deleteDeployment(makeDeployment({ baseRefs: [{ name: DEPLOYMENT_NAME }] })),
+      ).rejects.toBe(denied);
+      expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([]);
+    },
+  );
+
+  it('should clean up configuration copies when the primary resource is already absent', async () => {
+    mockK8sDeleteResource.mockImplementation((options) =>
+      options.model === LLMInferenceServiceModel
+        ? Promise.reject(k8sStatusError(404))
+        : Promise.resolve({ kind: 'Status', status: 'Success' }),
+    );
+    const topology = `${DEPLOYMENT_NAME}-topology`;
+    await expect(
+      deleteDeployment(
+        makeDeployment({
+          baseRefs: [{ name: DEPLOYMENT_NAME }, { name: topology }],
+          annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: topology },
+        }),
+      ),
+    ).resolves.toBeUndefined();
+    expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([DEPLOYMENT_NAME, topology]);
+  });
+
+  it('should finish cleanup on retry after a partial configuration deletion failure', async () => {
+    const topology = `${DEPLOYMENT_NAME}-topology`;
+    const accelerator = `${DEPLOYMENT_NAME}-accelerator`;
+    const remainingConfigs = new Set([DEPLOYMENT_NAME, topology, accelerator]);
+    let primaryExists = true;
+    let failTopology = true;
+    const unavailable = k8sStatusError(503);
+    mockK8sDeleteResource.mockImplementation(async ({ model, queryOptions }) => {
+      if (model === LLMInferenceServiceModel) {
+        if (!primaryExists) throw k8sStatusError(404);
+        primaryExists = false;
+      } else {
+        const configName = queryOptions?.name ?? '';
+        if (configName === topology && failTopology) {
+          failTopology = false;
+          throw unavailable;
+        }
+        if (!remainingConfigs.delete(configName)) throw k8sStatusError(404);
+      }
+      return { kind: 'Status', status: 'Success' };
+    });
+    const deployment = makeDeployment({
+      baseRefs: [{ name: DEPLOYMENT_NAME }, { name: topology }, { name: accelerator }],
+      annotations: {
+        [TOPOLOGY_CONFIG_REF_ANNOTATION]: topology,
+        [ACCELERATOR_CONFIG_REF_ANNOTATION]: accelerator,
+      },
+    });
+
+    await expect(deleteDeployment(deployment)).rejects.toBe(unavailable);
+    expect(remainingConfigs).toEqual(new Set([topology]));
+    await expect(deleteDeployment(deployment)).resolves.toBeUndefined();
+    expect(remainingConfigs.size).toBe(0);
+    expect(deletedNames(LLMInferenceServiceModel)).toHaveLength(2);
+    expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([
+      DEPLOYMENT_NAME,
+      topology,
+      accelerator,
+      DEPLOYMENT_NAME,
+      topology,
+      accelerator,
+    ]);
+  });
+
   it('should delete only the deployment when it references no configs', async () => {
     await deleteDeployment(makeDeployment());
 

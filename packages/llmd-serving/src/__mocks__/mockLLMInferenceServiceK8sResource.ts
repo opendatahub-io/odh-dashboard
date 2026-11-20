@@ -1,7 +1,6 @@
 import type { PodSpec } from '@odh-dashboard/k8s-core';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { genUID } from '@odh-dashboard/foundation';
-import { ModelAnnotation } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/types';
 import { type LLMInferenceServiceKind } from '../types';
 
 type MockLLMInferenceServiceConfigType = {
@@ -30,6 +29,7 @@ type MockLLMInferenceServiceConfigType = {
   isLLMd?: boolean;
   additionalAnnotations?: Record<string, string>;
   resourceClaims?: PodSpec['resourceClaims'];
+  conditions?: NonNullable<LLMInferenceServiceKind['status']>['conditions'];
 };
 
 export const mockLLMInferenceServiceK8sResource = ({
@@ -55,6 +55,7 @@ export const mockLLMInferenceServiceK8sResource = ({
   isExistingResource = true,
   additionalAnnotations,
   resourceClaims,
+  conditions,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1alpha2',
   kind: 'LLMInferenceService',
@@ -64,7 +65,7 @@ export const mockLLMInferenceServiceK8sResource = ({
       'opendatahub.io/hardware-profile-name': 'small-profile',
       'opendatahub.io/hardware-profile-namespace': 'opendatahub',
       'opendatahub.io/model-type': ServingRuntimeModelType.GENERATIVE,
-      ...(isStopped ? { [ModelAnnotation.STOPPED_ANNOTATION]: 'true' } : {}),
+      ...(isStopped ? { 'serving.kserve.io/stop': 'true' } : {}),
       ...(description && { 'openshift.io/description': description }),
       ...(secretName && { 'opendatahub.io/connections': secretName }),
       ...additionalAnnotations,
@@ -148,7 +149,7 @@ export const mockLLMInferenceServiceK8sResource = ({
     },
   },
   status: {
-    conditions: [
+    conditions: conditions ?? [
       {
         lastTransitionTime,
         message: isReady ? '' : 'The following HTTPRoutes are not ready',

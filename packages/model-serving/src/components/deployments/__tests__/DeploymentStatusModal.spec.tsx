@@ -37,6 +37,21 @@ describe('DeploymentStatusModal', () => {
     jest.clearAllMocks();
   });
 
+  it('should show deletion progress instead of stale readiness conditions', () => {
+    const deployment = createMockDeployment(
+      [{ type: 'Ready', label: 'Deployment ready', status: 'True' }],
+      {
+        state: ModelDeploymentState.DELETING,
+        message: 'Waiting for serving controllers to delete.',
+      },
+    );
+    render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
+    expect(screen.getByTestId('deployment-deletion-progress')).toHaveTextContent(
+      'Waiting for serving controllers to delete.',
+    );
+    expect(screen.queryByText('Deployment ready')).not.toBeInTheDocument();
+  });
+
   it('should render the modal with deployment name and status', () => {
     const deployment = createMockDeployment([
       {

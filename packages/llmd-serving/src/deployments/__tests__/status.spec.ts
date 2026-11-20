@@ -1,7 +1,150 @@
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import type { LLMInferenceServiceKind } from '../../types';
-import { getLLMdDeploymentConditions } from '../status';
+import {
+  getLLMdDeploymentConditions,
+  getLLMInferenceServiceModelState,
+  getLLMInferenceServiceStatusMessage,
+} from '../status';
+
+describe('LLM inference service lifecycle state', () => {
+  it('should expose a missing configuration reported without severity by the controller', () => {
+    const service = mockLLMInferenceServiceK8sResource({
+      conditions: [
+        {
+          type: 'Ready',
+          status: 'False',
+          reason: 'ConfigNotFound',
+          message:
+            'LLMInferenceServiceConfig "missing-config" not found in namespaces [test-project]',
+        },
+      ],
+    });
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.FAILED_TO_LOAD);
+    expect(getLLMInferenceServiceStatusMessage(service)).toContain('missing-config');
+  });
+
+  it('should keep a resource in deleting state until Kubernetes removes it', () => {
+    const service = mockLLMInferenceServiceK8sResource({ deleted: true, isReady: true });
+    service.metadata.finalizers = ['serving.kserve.io/finalizer'];
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.DELETING);
+    expect(getLLMInferenceServiceStatusMessage(service)).toContain('delet');
+  });
+
+  it('should expose an explicit controller failure and its actionable message', () => {
+    const service = mockLLMInferenceServiceK8sResource({});
+    service.status = {
+      conditions: [
+        {
+          type: 'Ready',
+          status: 'False',
+          severity: 'Error',
+          reason: 'InvalidModelConfig',
+          message: 'The referenced model configuration does not exist.',
+        },
+      ],
+    };
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.FAILED_TO_LOAD);
+    expect(getLLMInferenceServiceStatusMessage(service)).toBe(
+      'The referenced model configuration does not exist.',
+    );
+  });
+
+  it.each([
+    'Progressing',
+    'MinimumReplicasUnavailable',
+    'Stopped',
+    'GatewaysNotReady',
+    'HTTPRouteNotObserved',
+    'HTTPRoutesNotReady',
+    'WaitingForGateway',
+    'InferencePoolNotReady',
+  ])('should preserve ordinary startup and stopped transitions: %s', (reason) => {
+    const service = mockLLMInferenceServiceK8sResource({});
+    service.status = {
+      conditions: [{ type: 'Ready', status: 'False', severity: 'Error', reason }],
+    };
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.PENDING);
+  });
+
+  it('should use the failing child condition when Ready has no actionable message', () => {
+    const service = mockLLMInferenceServiceK8sResource({});
+    service.status = {
+      conditions: [
+        { type: 'Ready', status: 'False', reason: 'Progressing' },
+        {
+          type: 'RouterReady',
+          status: 'False',
+          severity: 'Error',
+          reason: 'InvalidGateway',
+          message: 'The selected gateway is not available.',
+        },
+      ],
+    };
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.FAILED_TO_LOAD);
+    expect(getLLMInferenceServiceStatusMessage(service)).toBe(
+      'The selected gateway is not available.',
+    );
+  });
+
+  it.each(['True', 'Unknown'])('should not treat a %s condition as a failure', (status) => {
+    const service = mockLLMInferenceServiceK8sResource({});
+    service.status = {
+      conditions: [{ type: 'Ready', status, severity: 'Error', reason: 'InvalidModelConfig' }],
+    };
+    expect(getLLMInferenceServiceModelState(service)).toBe(
+      status === 'True' ? ModelDeploymentState.LOADED : ModelDeploymentState.UNKNOWN,
+    );
+  });
+
+  it.each(['True', 'False'])(
+    'should ignore stale child errors when Ready is %s or stopped',
+    (status) => {
+      const service = mockLLMInferenceServiceK8sResource({});
+      service.status = {
+        conditions: [
+          { type: 'Ready', status, reason: status === 'False' ? 'Stopped' : undefined },
+          { type: 'PresetsCombined', status: 'False', severity: 'Error', reason: 'ConfigNotFound' },
+        ],
+      };
+      expect(getLLMInferenceServiceModelState(service)).toBe(
+        status === 'True' ? ModelDeploymentState.LOADED : ModelDeploymentState.PENDING,
+      );
+    },
+  );
+
+  it('should ignore informational conditions that do not gate readiness', () => {
+    const service = mockLLMInferenceServiceK8sResource({});
+    service.status = {
+      conditions: [
+        { type: 'Ready', status: 'False', reason: 'Progressing' },
+        { type: 'GroupDegraded', status: 'False', severity: 'Error' },
+      ],
+    };
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.PENDING);
+  });
+
+  it('should preserve deadline failures without an explicit severity', () => {
+    const service = mockLLMInferenceServiceK8sResource({});
+    service.status = {
+      conditions: [{ type: 'Ready', status: 'False', reason: 'ProgressDeadlineExceeded' }],
+    };
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.FAILED_TO_LOAD);
+    expect(getLLMInferenceServiceStatusMessage(service)).toBe('ProgressDeadlineExceeded');
+  });
+
+  it.each([undefined, 'Warning', 'Info'])(
+    'should keep an unrecognized reason pending when severity is %s',
+    (severity) => {
+      const service = mockLLMInferenceServiceK8sResource({});
+      service.status = {
+        conditions: [{ type: 'Ready', status: 'False', reason: 'WaitingForDependency', severity }],
+      };
+      expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.PENDING);
+    },
+  );
+});
 
 describe('getLLMdDeploymentConditions', () => {
   it('should include deployment requested from creationTimestamp', () => {

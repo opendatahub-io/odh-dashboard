@@ -230,16 +230,22 @@ const DeploymentProgressDisclaimer: React.FC = () => (
 const DeploymentProgressTab: React.FC<{
   conditions: DeploymentCondition[];
   deploymentStatus?: DeploymentStatus | null;
-}> = ({ conditions, deploymentStatus }) => (
-  <Stack hasGutter>
-    <StackItem>
-      <DeploymentProgressDisclaimer />
-    </StackItem>
-    <StackItem>
-      <ConditionsProgressStepper conditions={conditions} deploymentStatus={deploymentStatus} />
-    </StackItem>
-  </Stack>
-);
+}> = ({ conditions, deploymentStatus }) =>
+  deploymentStatus?.state === ModelDeploymentState.DELETING ? (
+    <Content component={ContentVariants.p} data-testid="deployment-deletion-progress">
+      {deploymentStatus.message ||
+        'Waiting for serving controllers to finish deleting this deployment.'}
+    </Content>
+  ) : (
+    <Stack hasGutter>
+      <StackItem>
+        <DeploymentProgressDisclaimer />
+      </StackItem>
+      <StackItem>
+        <ConditionsProgressStepper conditions={conditions} deploymentStatus={deploymentStatus} />
+      </StackItem>
+    </Stack>
+  );
 
 const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
   deployment,
