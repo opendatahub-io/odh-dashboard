@@ -30,6 +30,14 @@ export const mockPersesDashboard = ({
         ]
       : [],
     panels: {},
-    layouts: [],
+    layouts: [
+      {
+        kind: 'Grid',
+        spec: {
+          display: { title: 'Test panel group' },
+          items: [],
+        },
+      },
+    ],
   },
 });

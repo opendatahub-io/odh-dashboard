@@ -196,6 +196,7 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme, currentYear: number): Th
       MuiAutocomplete: {
         styleOverrides: {
           option: {
+            padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
             paddingRight: 'var(--pf-t--global--spacer--lg) !important',
           },
           paper: {
