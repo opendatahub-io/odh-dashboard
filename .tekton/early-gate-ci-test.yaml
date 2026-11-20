@@ -1,3 +1,8 @@
+# Early-gate launcher for odh-dashboard — downstream-pointing version (RHAI-50780).
+# Rewrites the fork-inherited upstream launchers (which resolve odh-konflux-central in
+# open-data-hub-tenant) to resolve the gate from red-hat-data-services/konflux-central
+# in rhoai-tenant. Same shape as the installed upstream launchers (label gate, PR #8318).
+# Items marked "REVIEW:" need AIPCC confirmation.
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
@@ -5,16 +10,18 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "issue_comment" &&
-      body.comment.body.matches("^/early-gate-test$") &&
-      body.issue.labels.exists(l, l.name == "early-gate")
+    pipelinesascode.tekton.dev/on-cel-expression: |-
+      konflux_cluster == "stone-prod-p01"
+      && event == "issue_comment"
+      && body.comment.body.matches("^/early-gate-test$")
+      && body.issue.labels.exists(l, l.name == "early-gate")
   labels:
-    appstudio.openshift.io/application: early-gate
+    # REVIEW: same confirmation as the build launcher.
+    appstudio.openshift.io/application: rhoai-early-gate
     appstudio.openshift.io/component: early-gate-ci
     pipelines.appstudio.openshift.io/type: test
   name: early-gate-ci-test
-  namespace: open-data-hub-tenant
+  namespace: rhoai-tenant
 spec:
   params:
   - name: git-url
@@ -28,12 +35,13 @@ spec:
     resolver: git
     params:
     - name: url
-      value: https://github.com/opendatahub-io/odh-konflux-central.git
+      value: https://github.com/red-hat-data-services/konflux-central.git
     - name: revision
       value: 'main'
     - name: pathInRepo
       value: early-gate/early-gate-test-pipeline.yaml
   taskRunTemplate:
+    # REVIEW: same SA confirmation as the build launcher.
     serviceAccountName: build-pipeline-early-gate-ci
   workspaces:
   - name: git-auth
