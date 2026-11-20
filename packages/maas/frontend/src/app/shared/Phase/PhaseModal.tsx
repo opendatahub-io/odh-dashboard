@@ -15,7 +15,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   getModalAlertProps,
   getPhaseProps,
@@ -99,6 +99,7 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
   affectedLoadError,
   overviewLoaded,
 }) => {
+  const trackEvent = useTrackEvent();
   const showAffectedSection = shouldShowAffectedModelsSection(phase, resourceType);
   const hasAffectedModels = (affectedModels?.length ?? 0) > 0;
   const isAffectedModelsLoading =
@@ -156,7 +157,7 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
             state={returnTo ? { returnTo } : undefined}
             data-testid="phase-modal-view-details-link"
             onClick={() =>
-              fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+              trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
                 resourceType: convertPhaseResourceTypeToEventTrackingResourceType(resourceType),
                 source: EventTrackingSource.TAB_LINK,
                 resourceStatus: phase,

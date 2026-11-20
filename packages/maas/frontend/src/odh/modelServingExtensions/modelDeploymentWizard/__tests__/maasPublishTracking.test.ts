@@ -1,5 +1,4 @@
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSEvents, ModelDeploymentMode, PublishedAsMaasSource } from '~/app/types/event-tracking';
 import {
   endMaaSPublishTrackingSession,
@@ -11,16 +10,12 @@ import {
   updateMaaSPublishTrackingSession,
 } from '~/odh/modelServingExtensions/modelDeploymentWizard/maasPublishTracking';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
-
 describe('maasPublishTracking', () => {
+  let trackEvent: jest.Mock;
+
   beforeEach(() => {
     resetMaaSPublishTrackingSession();
-    mockFireFormTrackingEvent.mockClear();
+    trackEvent = jest.fn();
   });
 
   describe('isDeploymentWizardPath', () => {
@@ -38,11 +33,17 @@ describe('maasPublishTracking', () => {
   describe('fireMaaSPublishTrackingEvent', () => {
     it('should not fire when no session is active', () => {
       fireMaaSPublishTrackingEvent(TrackingOutcome.submit, true);
-      expect(mockFireFormTrackingEvent).not.toHaveBeenCalled();
+      expect(trackEvent).not.toHaveBeenCalled();
+    });
+
+    it('should emit nothing without a session even though deployment hooks call it', () => {
+      fireMaaSPublishTrackingEvent(TrackingOutcome.submit, true);
+      fireMaaSPublishTrackingEvent(TrackingOutcome.submit, false, { addedAsMaas: true });
+      expect(trackEvent).not.toHaveBeenCalled();
     });
 
     it('should fire submit success with session and override values', () => {
-      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE);
+      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE, trackEvent);
       updateMaaSPublishTrackingSession(false);
 
       fireMaaSPublishTrackingEvent(TrackingOutcome.submit, true, {
@@ -50,8 +51,8 @@ describe('maasPublishTracking', () => {
         mode: ModelDeploymentMode.EDIT,
       });
 
-      expect(mockFireFormTrackingEvent).toHaveBeenCalledTimes(1);
-      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, {
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+      expect(trackEvent).toHaveBeenCalledWith(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, {
         outcome: TrackingOutcome.submit,
         success: true,
         source: PublishedAsMaasSource.MODEL_DEPLOYMENT_WIZARD,
@@ -61,22 +62,56 @@ describe('maasPublishTracking', () => {
     });
 
     it('should fire only once per session', () => {
-      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE);
+      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE, trackEvent);
       fireMaaSPublishTrackingEvent(TrackingOutcome.submit, true);
       fireMaaSPublishTrackingEvent(TrackingOutcome.cancel, false);
 
-      expect(mockFireFormTrackingEvent).toHaveBeenCalledTimes(1);
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('startMaaSPublishTrackingSession', () => {
+    it('should update mode and callback without resetting state on repeated start', () => {
+      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE, trackEvent);
+      updateMaaSPublishTrackingSession(true);
+      markMaaSPublishSubmitAttempted();
+
+      const replacement = jest.fn();
+      startMaaSPublishTrackingSession(ModelDeploymentMode.EDIT, replacement);
+
+      // The replacement callback receives the pending session's preserved state.
+      endMaaSPublishTrackingSession(true);
+      expect(trackEvent).not.toHaveBeenCalled();
+      expect(replacement).toHaveBeenCalledTimes(1);
+      expect(replacement).toHaveBeenCalledWith(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        source: PublishedAsMaasSource.MODEL_DEPLOYMENT_WIZARD,
+        addedAsMaas: true,
+        mode: ModelDeploymentMode.EDIT,
+      });
+    });
+
+    it('should not re-open completion after the event fired', () => {
+      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE, trackEvent);
+      fireMaaSPublishTrackingEvent(TrackingOutcome.submit, true);
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+
+      const replacement = jest.fn();
+      startMaaSPublishTrackingSession(ModelDeploymentMode.EDIT, replacement);
+      endMaaSPublishTrackingSession(true);
+      expect(replacement).not.toHaveBeenCalled();
     });
   });
 
   describe('endMaaSPublishTrackingSession', () => {
     it('should fire cancel when leaving the wizard without a prior event', () => {
-      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE);
+      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE, trackEvent);
       updateMaaSPublishTrackingSession(true);
 
       endMaaSPublishTrackingSession(true);
 
-      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, {
+      expect(trackEvent).toHaveBeenCalledWith(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, {
         outcome: TrackingOutcome.cancel,
         success: false,
         source: PublishedAsMaasSource.MODEL_DEPLOYMENT_WIZARD,
@@ -86,13 +121,13 @@ describe('maasPublishTracking', () => {
     });
 
     it('should fire submit failure when leaving after a failed deploy attempt', () => {
-      startMaaSPublishTrackingSession(ModelDeploymentMode.EDIT);
+      startMaaSPublishTrackingSession(ModelDeploymentMode.EDIT, trackEvent);
       updateMaaSPublishTrackingSession(true);
       markMaaSPublishSubmitAttempted();
 
       endMaaSPublishTrackingSession(true);
 
-      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, {
+      expect(trackEvent).toHaveBeenCalledWith(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, {
         outcome: TrackingOutcome.submit,
         success: false,
         source: PublishedAsMaasSource.MODEL_DEPLOYMENT_WIZARD,
@@ -102,19 +137,19 @@ describe('maasPublishTracking', () => {
     });
 
     it('should not fire when the field becomes inactive while still on the wizard', () => {
-      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE);
+      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE, trackEvent);
       endMaaSPublishTrackingSession(false);
-      expect(mockFireFormTrackingEvent).not.toHaveBeenCalled();
+      expect(trackEvent).not.toHaveBeenCalled();
     });
 
     it('should not fire cancel after a successful submit', () => {
-      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE);
+      startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE, trackEvent);
       fireMaaSPublishTrackingEvent(TrackingOutcome.submit, true);
-      mockFireFormTrackingEvent.mockClear();
+      trackEvent.mockClear();
 
       endMaaSPublishTrackingSession(true);
 
-      expect(mockFireFormTrackingEvent).not.toHaveBeenCalled();
+      expect(trackEvent).not.toHaveBeenCalled();
     });
   });
 });

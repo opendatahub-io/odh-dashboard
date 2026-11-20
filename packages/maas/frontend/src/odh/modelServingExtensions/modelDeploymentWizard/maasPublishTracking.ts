@@ -1,4 +1,4 @@
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import type { TrackEvent } from '@odh-dashboard/analytics/types';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   MaaSEvents,
@@ -14,6 +14,7 @@ type MaaSPublishTrackingSession = {
   mode: ModelDeploymentMode;
   completed: boolean;
   submitAttempted: boolean;
+  trackEvent: TrackEvent;
 };
 
 let session: MaaSPublishTrackingSession | null = null;
@@ -21,16 +22,24 @@ let session: MaaSPublishTrackingSession | null = null;
 export const isDeploymentWizardPath = (pathname: string): boolean =>
   pathname.includes(DEPLOYMENT_WIZARD_PATH);
 
-export const startMaaSPublishTrackingSession = (mode: ModelDeploymentMode): void => {
+const noopTrackEvent: TrackEvent = () => undefined;
+
+export const startMaaSPublishTrackingSession = (
+  mode: ModelDeploymentMode,
+  trackEvent: TrackEvent,
+): void => {
   if (!session) {
     session = {
       addedAsMaas: false,
       mode,
       completed: false,
       submitAttempted: false,
+      trackEvent,
     };
   } else {
+    // Repeated start updates mode and callback without resetting completion state.
     session.mode = mode;
+    session.trackEvent = trackEvent;
   }
 };
 
@@ -65,7 +74,8 @@ const buildProperties = (
 
 /**
  * Fires the Model as Maas Published event once per wizard session when the
- * Subscribed users field is active.
+ * Subscribed users field is active. Uses the callback stored in the active
+ * session; with no session or an already-completed session, emits nothing.
  */
 export const fireMaaSPublishTrackingEvent = (
   outcome: TrackingOutcome,
@@ -76,8 +86,9 @@ export const fireMaaSPublishTrackingEvent = (
   if (!properties) {
     return;
   }
+  const trackEvent = session?.trackEvent ?? noopTrackEvent;
   session = session ? { ...session, completed: true } : null;
-  fireFormTrackingEvent(
+  trackEvent(
     MaaSEvents.MODEL_AS_MAAS_PUBLISHED,
     properties satisfies ModelAsMaasPublishedProperties,
   );

@@ -11,7 +11,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ModelRefInfo, TokenRateLimitInfo } from '~/app/types/subscriptions';
 import {
   MaaSEvents,
@@ -33,62 +33,65 @@ export const ModelInfoPopover: React.FC<{
   modelId: string;
   description?: string;
   context: ModelInfoContext;
-}> = ({ displayName, modelId, description, context }) => (
-  <Popover
-    headerContent={displayName}
-    bodyContent={
-      <div data-testid="model-info-popover-body">
-        <Content
-          component={ContentVariants.small}
-          className="pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
-        >
-          Model ID
-        </Content>
-        <ClipboardCopy
-          isReadOnly
-          hoverTip="Copy"
-          clickTip="Copied"
-          data-testid="model-id-copy"
-          onCopy={(event, text) => {
-            clipboardCopyFunc(event, text);
-            fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTION_MODEL_ID_COPIED, {
-              modelIdFrom: context,
-            } satisfies ModelIdCopiedProperties);
-          }}
-        >
-          {modelId}
-        </ClipboardCopy>
-        {description && (
-          <>
-            <Content
-              component={ContentVariants.small}
-              className="pf-v6-u-mt-sm pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
-            >
-              Description
-            </Content>
-            <Content component={ContentVariants.p} className="pf-v6-u-mt-0">
-              {description}
-            </Content>
-          </>
-        )}
-      </div>
-    }
-  >
-    <Button
-      variant="plain"
-      aria-label={`More info about ${displayName}`}
-      className="pf-v6-u-p-0"
-      data-testid={`model-info-button-${modelId}`}
-      onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTION_MODEL_INFO_VIEWED, {
-          context,
-        } satisfies ModelInfoViewedProperties);
-      }}
+}> = ({ displayName, modelId, description, context }) => {
+  const trackEvent = useTrackEvent();
+  return (
+    <Popover
+      headerContent={displayName}
+      bodyContent={
+        <div data-testid="model-info-popover-body">
+          <Content
+            component={ContentVariants.small}
+            className="pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
+          >
+            Model ID
+          </Content>
+          <ClipboardCopy
+            isReadOnly
+            hoverTip="Copy"
+            clickTip="Copied"
+            data-testid="model-id-copy"
+            onCopy={(event, text) => {
+              clipboardCopyFunc(event, text);
+              trackEvent(MaaSEvents.MY_SUBSCRIPTION_MODEL_ID_COPIED, {
+                modelIdFrom: context,
+              } satisfies ModelIdCopiedProperties);
+            }}
+          >
+            {modelId}
+          </ClipboardCopy>
+          {description && (
+            <>
+              <Content
+                component={ContentVariants.small}
+                className="pf-v6-u-mt-sm pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
+              >
+                Description
+              </Content>
+              <Content component={ContentVariants.p} className="pf-v6-u-mt-0">
+                {description}
+              </Content>
+            </>
+          )}
+        </div>
+      }
     >
-      <OutlinedQuestionCircleIcon />
-    </Button>
-  </Popover>
-);
+      <Button
+        variant="plain"
+        aria-label={`More info about ${displayName}`}
+        className="pf-v6-u-p-0"
+        data-testid={`model-info-button-${modelId}`}
+        onClick={() => {
+          trackEvent(MaaSEvents.MY_SUBSCRIPTION_MODEL_INFO_VIEWED, {
+            context,
+          } satisfies ModelInfoViewedProperties);
+        }}
+      >
+        <OutlinedQuestionCircleIcon />
+      </Button>
+    </Popover>
+  );
+};
 
 export const ModelRow: React.FC<{ model: ModelRefInfo; context: ModelInfoContext }> = ({
   model,
