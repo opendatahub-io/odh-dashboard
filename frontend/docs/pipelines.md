@@ -5,6 +5,13 @@
 - Manage Kubeflow Pipelines (KFP) v2 workflows in a Data Science Project: import definitions, create and schedule runs, inspect DAGs and outputs, compare metrics, and browse MLMD artifacts and executions.
 - Namespace-scoped; requires a ready pipeline server (`DSPipelineKind` CR) before operations are available.
 
+## Keyboard interaction with pipeline graphs
+
+- Tab through task, artifact, and task-group controls in visual reading order. Screen readers announce each control's name and available status.
+- Press Enter or Space on a task or artifact to open its details. Closing the details returns focus to the graph control.
+- For a collapsed task group, use its task-list button to choose a child or view group details. Use the task-group toggle to expand or collapse the group.
+- Focusing a graph control pans it into the visible graph viewport when needed.
+
 ## UI Entry Points
 
 | Nav Item | Route | Feature Flag(s) Required |

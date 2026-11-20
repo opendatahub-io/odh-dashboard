@@ -5,18 +5,31 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   InProgressIcon,
+  OutlinedWindowRestoreIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
 import { RunStatus } from '@patternfly/react-topology';
 import { Icon, Tooltip } from '@patternfly/react-core';
-import { runtimeStateLabels, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
+import {
+  ExecutionStateKF,
+  runtimeStateLabels,
+  RuntimeStateKF,
+} from '#~/concepts/pipelines/kfTypes';
 
-const NodeStatusIcon: React.FC<{ runStatus: RunStatus | string }> = ({ runStatus }) => {
+const NodeStatusIcon: React.FC<{
+  runStatus?: RunStatus | string;
+  executionState?: ExecutionStateKF | string;
+}> = ({ runStatus, executionState }) => {
   let icon: React.ReactNode;
   let status: React.ComponentProps<typeof Icon>['status'];
   let label: string;
 
-  switch (runStatus) {
+  switch (executionState === ExecutionStateKF.CACHED ? ExecutionStateKF.CACHED : runStatus) {
+    case ExecutionStateKF.CACHED:
+      icon = <OutlinedWindowRestoreIcon />;
+      status = 'success';
+      label = 'Cached';
+      break;
     case RunStatus.Pending:
     case RunStatus.Idle:
       icon = <PendingIcon />;
@@ -54,9 +67,13 @@ const NodeStatusIcon: React.FC<{ runStatus: RunStatus | string }> = ({ runStatus
       label = '';
   }
 
+  if (!icon || !label) {
+    return null;
+  }
+
   return (
     <Tooltip content={label}>
-      <Icon status={status} isInline>
+      <Icon status={status} isInline role="img" aria-label={label}>
         {icon}
       </Icon>
     </Tooltip>

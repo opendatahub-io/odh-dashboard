@@ -89,7 +89,7 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
   const panelContent = selectedNode ? (
     <SelectedTaskDrawerContent
       task={selectedNode.data.pipelineTask}
-      onClose={() => setSelectedIds(undefined)}
+      onClose={() => setSelectedIds([])}
     />
   ) : null;
 
