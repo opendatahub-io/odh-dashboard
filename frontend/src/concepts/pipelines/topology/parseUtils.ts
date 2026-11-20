@@ -185,12 +185,18 @@ export const parseRuntimeInfoFromRunDetails = (
     return undefined;
   }
 
+  // Prefer the task's own detail over its driver entry ("<taskId>-driver"); the
+  // driver entry can appear first in task_details and points at a driver pod
+  const [taskDetail = thisTaskDetail[0]] = thisTaskDetail.filter(
+    ({ display_name: name }) => name === taskId,
+  );
+
   return {
-    startTime: thisTaskDetail[0].start_time,
-    completeTime: thisTaskDetail[0].end_time,
+    startTime: taskDetail.start_time,
+    completeTime: taskDetail.end_time,
     state: lowestProgress(thisTaskDetail),
     taskId: `task.${taskId}`,
-    podName: thisTaskDetail[0].child_tasks?.find((o) => o.pod_name)?.pod_name,
+    podName: taskDetail.child_tasks?.find((o) => o.pod_name)?.pod_name,
   };
 };
 
@@ -203,10 +209,16 @@ export const parseRuntimeInfoFromExecutions = (
     return undefined;
   }
 
+  // The backend records the task key as the MLMD task_name custom property, but the
+  // spec's taskInfo.name (taskName) may differ from the key (e.g. Elyra-compiled
+  // pipelines set taskInfo.name to the notebook node name). Prefer taskName,
+  // then fall back to the task key so both naming conventions resolve.
   const execution =
-    executions.find(
-      (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === taskName,
-    ) ??
+    (taskName
+      ? executions.find(
+          (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === taskName,
+        )
+      : undefined) ??
     executions.find(
       (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === taskId,
     );

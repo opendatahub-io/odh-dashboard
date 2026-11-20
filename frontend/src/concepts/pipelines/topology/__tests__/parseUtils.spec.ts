@@ -159,6 +159,58 @@ describe('pipeline topology parseUtils', () => {
         taskId: 'task.test-task-id',
       });
     });
+
+    it('should prefer task detail over driver entry when driver appears first', () => {
+      const testRunDetails: RunDetailsKF = {
+        pipeline_context_id: 'pipeline-context-id',
+        pipeline_run_context_id: 'pipeline-run-context-id',
+        task_details: [
+          // Driver entry appears first
+          {
+            run_id: 'test-run-id',
+            task_id: testTaskId,
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: `${testTaskId}-driver`,
+            state: RuntimeStateKF.RUNNING,
+            child_tasks: [
+              {
+                task_id: `${testTaskId}-driver`,
+                pod_name: 'driver-pod-name', // Wrong pod name
+              },
+            ],
+          },
+          // Actual task entry appears second
+          {
+            run_id: 'test-run-id',
+            task_id: testTaskId,
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-04T00:00:00Z',
+            end_time: '2024-01-05T00:00:00Z',
+            display_name: testTaskId,
+            state: RuntimeStateKF.SUCCEEDED,
+            child_tasks: [
+              {
+                task_id: testTaskId,
+                pod_name: 'actual-task-pod-name', // Correct pod name
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = parseRuntimeInfoFromRunDetails(testTaskId, testRunDetails);
+
+      // Should use times and pod name from actual task, not driver
+      expect(result).toEqual({
+        completeTime: '2024-01-05T00:00:00Z',
+        podName: 'actual-task-pod-name', // NOT 'driver-pod-name'
+        startTime: '2024-01-04T00:00:00Z',
+        state: 'SUCCEEDED',
+        taskId: 'task.test-task-id',
+      });
+    });
   });
 
   describe('parseRuntimeInfoFromExecutions', () => {
@@ -193,6 +245,85 @@ describe('pipeline topology parseUtils', () => {
       mockExecution.setLastUpdateTimeSinceEpoch(1713285296524);
       mockExecution.setLastKnownState(Execution.State.COMPLETE);
       const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, [mockExecution]);
+      expect(result).toStrictEqual({
+        completeTime: '2024-04-16T16:34:56.524Z',
+        podName: undefined,
+        startTime: '2024-04-16T16:34:56.322Z',
+        state: 'Complete',
+        taskId: 'task.test-task-id',
+      });
+    });
+
+    it('should fall back to taskId when taskName does not match any execution', () => {
+      const testTaskName = 'notebook-node-name'; // Elyra notebook name
+
+      // Create execution that only matches taskId, not taskName
+      const mockExecution = new Execution();
+      const value = new Value();
+      mockExecution.getCustomPropertiesMap().set('task_name', value.setStringValue(testTaskId));
+      mockExecution.setCreateTimeSinceEpoch(1713285296322);
+      mockExecution.setLastUpdateTimeSinceEpoch(1713285296524);
+      mockExecution.setLastKnownState(Execution.State.COMPLETE);
+
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskName, [mockExecution]);
+
+      expect(result).toStrictEqual({
+        completeTime: '2024-04-16T16:34:56.524Z',
+        podName: undefined,
+        startTime: '2024-04-16T16:34:56.322Z',
+        state: 'Complete',
+        taskId: 'task.test-task-id',
+      });
+    });
+
+    it('should prefer taskName when both taskName and taskId match different executions', () => {
+      const testTaskName = 'notebook-node-name';
+
+      // Execution matching taskName (should be returned)
+      const taskNameExecution = new Execution();
+      const nameValue = new Value();
+      taskNameExecution
+        .getCustomPropertiesMap()
+        .set('task_name', nameValue.setStringValue(testTaskName));
+      taskNameExecution.setCreateTimeSinceEpoch(1713285296000);
+      taskNameExecution.setLastUpdateTimeSinceEpoch(1713285297000);
+      taskNameExecution.setLastKnownState(Execution.State.COMPLETE);
+
+      // Execution matching taskId (should be ignored)
+      const taskIdExecution = new Execution();
+      const idValue = new Value();
+      taskIdExecution.getCustomPropertiesMap().set('task_name', idValue.setStringValue(testTaskId));
+      taskIdExecution.setCreateTimeSinceEpoch(1713285298000);
+      taskIdExecution.setLastUpdateTimeSinceEpoch(1713285299000);
+      taskIdExecution.setLastKnownState(Execution.State.RUNNING);
+
+      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskName, [
+        taskNameExecution,
+        taskIdExecution,
+      ]);
+
+      // Should match taskNameExecution times, not taskIdExecution
+      expect(result).toStrictEqual({
+        completeTime: '2024-04-16T16:34:57.000Z',
+        podName: undefined,
+        startTime: '2024-04-16T16:34:56.000Z',
+        state: 'Complete',
+        taskId: 'task.test-task-id',
+      });
+    });
+
+    it('should fall back to taskId when taskName is empty string', () => {
+      const emptyTaskName = '';
+
+      const mockExecution = new Execution();
+      const value = new Value();
+      mockExecution.getCustomPropertiesMap().set('task_name', value.setStringValue(testTaskId));
+      mockExecution.setCreateTimeSinceEpoch(1713285296322);
+      mockExecution.setLastUpdateTimeSinceEpoch(1713285296524);
+      mockExecution.setLastKnownState(Execution.State.COMPLETE);
+
+      const result = parseRuntimeInfoFromExecutions(testTaskId, emptyTaskName, [mockExecution]);
+
       expect(result).toStrictEqual({
         completeTime: '2024-04-16T16:34:56.524Z',
         podName: undefined,
