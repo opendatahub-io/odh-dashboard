@@ -380,7 +380,7 @@ describe('FeatureStoreContext — refresh', () => {
     // requests. The underlying useFetch hook may also initiate a request on
     // mount. A full integration test through useFeatureStoreProjectsAPI with
     // listFeatureStoreProject mocked at the API boundary would cover both
-    // request paths. See finding M4 for future improvement.
+    // request paths. Future improvement: mock listFeatureStoreProject at the API layer.
     const refreshProjects = jest.fn().mockResolvedValue(undefined);
     bootstrapContext({ apiAvailable: true, refreshProjects });
 
