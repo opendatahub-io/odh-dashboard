@@ -72,6 +72,8 @@ describe('Unsupported inference service configs: CRUD + wizard gating', () => {
     cleanupLLMInferenceServiceConfig(duplicateResourceName);
   });
 
+  let acceleratorConfigRequestsInFlight = 0;
+
   const openDeployWizardToDeploymentStep = () => {
     projectListPage.navigate();
     projectListPage.filterProjectByName(projectName);
@@ -88,8 +90,41 @@ describe('Unsupported inference service configs: CRUD + wizard gating', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+    // Changing deployment method fetches the configs again; ignore earlier wizard requests.
+    cy.then(() => {
+      acceleratorConfigRequestsInFlight = 0;
+    });
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `**/namespaces/${namespace}/llminferenceserviceconfigs`,
+        query: { labelSelector: 'opendatahub.io/config-type=accelerator' },
+      },
+      (req) => {
+        acceleratorConfigRequestsInFlight += 1;
+        req.continue(() => {
+          acceleratorConfigRequestsInFlight -= 1;
+        });
+      },
+    ).as('wizardAcceleratorConfigs');
     modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
-    modelServingWizard.findModelServerManualSelectRadio().check();
+  };
+
+  const selectManualAcceleratorConfig = () => {
+    const waitForConfigs = (): void => {
+      cy.wait('@wizardAcceleratorConfigs')
+        .its('response.statusCode')
+        .should('eq', 200)
+        .then(() => {
+          // StrictMode may start another fetch whose response initializes the field.
+          if (acceleratorConfigRequestsInFlight > 0) {
+            waitForConfigs();
+          }
+        });
+    };
+    waitForConfigs();
+    modelServingWizard.findModelServerManualSelectRadio().check().should('be.checked');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('be.visible').click();
   };
 
   it(
@@ -188,7 +223,7 @@ describe('Unsupported inference service configs: CRUD + wizard gating', () => {
       cy.step(' Verify the unsupported accelerator config is hidden in the wizard');
       llmInferenceServiceConfigurations.getRowByName(resourceName).shouldBeEnabled(false);
       openDeployWizardToDeploymentStep();
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      selectManualAcceleratorConfig();
       modelServingWizard.findGlobalScopedTemplateOption(acceleratorConfigName).should('not.exist');
 
       cy.step('Enable the accelerator config');
@@ -202,7 +237,7 @@ describe('Unsupported inference service configs: CRUD + wizard gating', () => {
 
       cy.step('Verify the accelerator config is visible in the wizard');
       openDeployWizardToDeploymentStep();
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      selectManualAcceleratorConfig();
       modelServingWizard
         .findGlobalScopedTemplateOption(acceleratorConfigName)
         .should('exist')
