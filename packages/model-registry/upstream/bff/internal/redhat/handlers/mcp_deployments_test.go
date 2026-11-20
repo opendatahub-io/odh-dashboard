@@ -27,6 +27,7 @@ type mockMcpDeploymentRepo struct {
 	createFn func(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, req models.McpDeploymentCreateRequest) (models.McpDeployment, error)
 	updateFn func(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, name string, req models.McpDeploymentUpdateRequest) (models.McpDeployment, error)
 	deleteFn func(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, name string) error
+	deleteLayerFn func(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, layer string) error
 }
 
 func (m *mockMcpDeploymentRepo) List(ctx context.Context, client k8s.KubernetesClientInterface, namespace string) (models.McpDeploymentList, error) {
@@ -62,6 +63,13 @@ func (m *mockMcpDeploymentRepo) Delete(ctx context.Context, client k8s.Kubernete
 		return nil
 	}
 	return m.deleteFn(ctx, client, namespace, name)
+}
+
+func (m *mockMcpDeploymentRepo) DeleteLayer(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, layer string) error {
+	if m.deleteLayerFn == nil {
+		return nil
+	}
+	return m.deleteLayerFn(ctx, client, namespace, layer)
 }
 
 func withMcpDeploymentRepo(t *testing.T, repo mcpDeploymentRepository) {

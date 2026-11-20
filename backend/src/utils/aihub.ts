@@ -7,6 +7,28 @@ export const AIHUB_VERSION = 'v1alpha1';
 export const AIHUB_PLURAL = 'aihubs';
 export const AIHUB_NAME = 'default-aihub';
 
+const DSC_GROUP = 'datasciencecluster.opendatahub.io';
+const DSC_VERSION = 'v2';
+const DSC_PLURAL = 'datascienceclusters';
+const DSC_NAME = 'default-dsc';
+
+type DataScienceClusterResource = {
+  spec?: {
+    components?: {
+      modelregistry?: {
+        registriesNamespace?: string;
+      };
+    };
+  };
+  status?: {
+    components?: {
+      modelregistry?: {
+        registriesNamespace?: string;
+      };
+    };
+  };
+};
+
 type KubernetesApiError = {
   code?: unknown;
   statusCode?: unknown;
@@ -80,6 +102,44 @@ export const fetchAIHub = async (fastify: KubeFastifyInstance): Promise<AIHubKin
     );
     return response.body as AIHubKind;
   } catch (error) {
+    // RHOAI releases before the AIHub CRD was introduced expose the same
+    // model-registry namespace through the DataScienceCluster. Keep the
+    // upstream AIHub contract when it exists, but allow the dashboard to run
+    // against those installations without requiring a synthetic CRD.
+    // Some older RHOAI distributions report an unavailable optional API as
+    // 403 instead of 404 from the dashboard service account.
+    if ([403, 404].includes(getAIHubErrorStatus(error) ?? 0)) {
+      try {
+        const response = await fastify.kube.customObjectsApi.getClusterCustomObject(
+          DSC_GROUP,
+          DSC_VERSION,
+          DSC_PLURAL,
+          DSC_NAME,
+        );
+        const dsc = response.body as DataScienceClusterResource;
+        const instancesNamespace =
+          dsc.status?.components?.modelregistry?.registriesNamespace ??
+          dsc.spec?.components?.modelregistry?.registriesNamespace;
+
+        if (instancesNamespace) {
+          fastify.log.info(
+            { instancesNamespace },
+            'AIHub CR is unavailable; using the DataScienceCluster model-registry namespace',
+          );
+          return {
+            apiVersion: 'components.platform.opendatahub.io/v1alpha1',
+            kind: 'AIHub',
+            metadata: { name: AIHUB_NAME },
+            spec: { instancesNamespace },
+          };
+        }
+      } catch (fallbackError) {
+        fastify.log.debug(
+          { statusCode: getAIHubErrorStatus(fallbackError) },
+          'DataScienceCluster AIHub compatibility fallback was unavailable',
+        );
+      }
+    }
     fastify.log.error({ statusCode: getAIHubErrorStatus(error) }, 'Failure to fetch AIHub');
     throw error;
   }

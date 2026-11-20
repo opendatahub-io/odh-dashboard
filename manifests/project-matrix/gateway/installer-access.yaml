@@ -1,0 +1,53 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: project-matrix-gateway-installer-access
+  annotations:
+    description: Namespace-scoped end-user access for the Project Matrix Gateway installer.
+parameters:
+  - name: PROJECT_MATRIX_NAMESPACE
+    description: Namespace where the Gateway layer will be installed.
+    required: true
+  - name: PROJECT_MATRIX_INSTALLER_SUBJECT_KIND
+    description: Kubernetes subject kind, either Group or User.
+    value: Group
+    required: true
+  - name: PROJECT_MATRIX_INSTALLER_SUBJECT_NAME
+    description: Approved evaluator group or named user.
+    value: project-matrix-gateway-installers
+    required: true
+objects:
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: project-matrix-gateway-installer-user
+      namespace: ${PROJECT_MATRIX_NAMESPACE}
+      labels:
+        ai.redhat.com/managed-by: project-matrix
+        ai.redhat.com/layer: gateway
+    rules:
+      - apiGroups:
+          - mcp.x-k8s.io
+        resources:
+          - mcpservers
+        verbs:
+          - get
+          - list
+          - create
+          - patch
+          - delete
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: project-matrix-gateway-installer-user
+      namespace: ${PROJECT_MATRIX_NAMESPACE}
+      labels:
+        ai.redhat.com/managed-by: project-matrix
+        ai.redhat.com/layer: gateway
+    subjects:
+      - kind: ${PROJECT_MATRIX_INSTALLER_SUBJECT_KIND}
+        name: ${PROJECT_MATRIX_INSTALLER_SUBJECT_NAME}
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: project-matrix-gateway-installer-user

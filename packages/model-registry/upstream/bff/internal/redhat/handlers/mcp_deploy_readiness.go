@@ -27,6 +27,7 @@ const (
 
 // openShiftMcpServerCatalogName is the catalog name of the MCP server for Red Hat OpenShift.
 const openShiftMcpServerCatalogName = "com.redhat/openshift-mcp-server"
+const openShiftMcpServerCatalogShortName = "openshift-mcp-server"
 
 // openShiftMcpServerImageRepository matches the last path segment of the MCP server for
 // Red Hat OpenShift image repository (for example openshift-mcp-server-rhel9), on any
@@ -52,7 +53,7 @@ func init() {
 // Hat OpenShift. Replace with catalog metadata that declares the prerequisite; do not add
 // more servers here.
 func mcpServerRequiresGateway(server *models.McpServer) bool {
-	return server != nil && server.Name == openShiftMcpServerCatalogName
+	return server != nil && (server.Name == openShiftMcpServerCatalogName || server.Name == openShiftMcpServerCatalogShortName)
 }
 
 // mcpImageRequiresGateway reports whether deploying the given image requires an MCP
@@ -123,7 +124,11 @@ func overrideMcpServerDeployReadiness(app *api.App, _ func() httprouter.Handle) 
 			return
 		}
 
-		readiness := models.McpServerDeployReadiness{Deployable: true}
+		readiness := models.McpServerDeployReadiness{
+			Deployable:     true,
+			SupportLevel:   models.McpSupportLevelTechnologyPreview,
+			SupportMessage: "MCP Catalog, MCP Lifecycle, and MCP Gateway are Technology Preview features in this platform release.",
+		}
 		if mcpServerRequiresGateway(server) { //nolint:staticcheck // Deprecated helper is used until catalog metadata exists.
 			readiness = evaluateMcpGatewayReadiness(r.Context(), app, reader, "serverId", serverId)
 		}
@@ -154,7 +159,11 @@ func overrideMcpDeployReadiness(app *api.App, _ func() httprouter.Handle) httpro
 		// Other images need nothing, and saying so reveals nothing, so only the gated image
 		// needs the access check (as on create). Otherwise a caller without create access
 		// would see a failed check for every server.
-		readiness := models.McpServerDeployReadiness{Deployable: true}
+		readiness := models.McpServerDeployReadiness{
+			Deployable:     true,
+			SupportLevel:   models.McpSupportLevelTechnologyPreview,
+			SupportMessage: "MCP Catalog, MCP Lifecycle, and MCP Gateway are Technology Preview features in this platform release.",
+		}
 		if mcpImageRequiresGateway(image) { //nolint:staticcheck // Deprecated helper is used until catalog metadata exists.
 			// The gateway status is read with the BFF service account, so check the caller's
 			// own permission to deploy here for every auth method.

@@ -14,6 +14,8 @@ type McpDeploymentsTableProps = {
   onClearFilters: () => void;
   onDeleteClick: (deployment: McpDeployment) => void;
   onEditClick: (deployment: McpDeployment) => void;
+  onViewStatus: (deployment: McpDeployment) => void;
+  newDeploymentName?: string;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'toolbarContent'>>;
 
 const McpDeploymentsTable: React.FC<McpDeploymentsTableProps> = ({
@@ -22,6 +24,8 @@ const McpDeploymentsTable: React.FC<McpDeploymentsTableProps> = ({
   onClearFilters,
   onDeleteClick,
   onEditClick,
+  onViewStatus,
+  newDeploymentName,
 }) => {
   const tabExtensions = useExtensions(isTabRouteTabExtension);
   const showRegisteredVersion = tabExtensions.some(
@@ -53,6 +57,8 @@ const McpDeploymentsTable: React.FC<McpDeploymentsTableProps> = ({
           showRegisteredVersion={showRegisteredVersion}
           onDeleteClick={onDeleteClick}
           onEditClick={onEditClick}
+          onViewStatus={onViewStatus}
+          isNewInstall={deployment.name === newDeploymentName}
         />
       )}
     />

@@ -13,6 +13,7 @@ type MCPServer struct {
 type MCPMetadata struct {
 	Name        string            `json:"name"`
 	Namespace   string            `json:"namespace,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
