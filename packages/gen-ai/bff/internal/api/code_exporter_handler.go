@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -66,6 +67,11 @@ func (app *App) generatePythonCode(config models.CodeExportRequest, namespace st
 		return "", fmt.Errorf("failed to initialize Python template: %w", err)
 	}
 
+	// View Code calls OGX directly, so use the same qualified id the Playground
+	// sends (genai-bff-proxy/...). A namespace vLLM prefix is removed first.
+	// A MaaS id keeps the maas- discriminator the proxy uses to pick MaaS.
+	config.Model = modelNameForCodeExport(config.Model)
+
 	// Execute the template with config data, injecting server-side fields
 	result, err := templateRepo.ExecuteTemplate("python", codeExportTemplateData{
 		CodeExportRequest: config,
@@ -78,6 +84,52 @@ func (app *App) generatePythonCode(config models.CodeExportRequest, namespace st
 	}
 
 	return result, nil
+}
+
+// modelNameForCodeExport returns the model id the exported script must send to OGX.
+// This matches qualifyPassthroughModelID, which the Playground uses before calling OGX.
+// "vllm-inference-1/deepseek-r1" -> "genai-bff-proxy/deepseek-r1"
+// "vllm-inference-1/facebook/opt-125m" -> "genai-bff-proxy/facebook/opt-125m"
+// "maas-vllm-inference-2/llama-2-7b-chat" -> "genai-bff-proxy/maas-llama-2-7b-chat"
+// "genai-bff-proxy/llama-32-1b-instruct" is left unchanged.
+func modelNameForCodeExport(model string) string {
+	if strings.HasPrefix(model, constants.PassthroughProviderID+"/") {
+		return model
+	}
+
+	// maas-vllm-inference-N/<model> -> maas-<model>. The proxy selects MaaS
+	// when the id still starts with maas-, then looks up the catalog id.
+	if rest, ok := modelAfterNumberedProvider(model, "maas-vllm-inference-"); ok {
+		model = constants.MaaSProviderPrefix + rest
+	} else if rest, ok := modelAfterNumberedProvider(model, "vllm-inference-"); ok {
+		model = rest
+	}
+
+	return qualifyPassthroughModelID(model)
+}
+
+func modelAfterNumberedProvider(model, prefix string) (string, bool) {
+	if !strings.HasPrefix(model, prefix) {
+		return "", false
+	}
+	rest := model[len(prefix):]
+	slash := strings.Index(rest, "/")
+	if slash > 0 && isAllDigits(rest[:slash]) {
+		return rest[slash+1:], true
+	}
+	return "", false
+}
+
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // validateCodeExportRequest validates all parameters in the code export request
