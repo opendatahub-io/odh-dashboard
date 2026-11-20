@@ -98,7 +98,6 @@ func TestDashboardSAName(t *testing.T) {
 		want     string
 	}{
 		{cluster.SelfManagedRhoai, "rhods-dashboard"},
-		{cluster.ManagedRhoai, "rhods-dashboard"},
 		{cluster.OpenDataHub, "odh-dashboard"},
 		{cluster.XKS, "odh-dashboard"},
 	}

@@ -34,11 +34,35 @@ func TestOperatorRoleCoversDeployedClusterRoles(t *testing.T) {
 	}), "notebooks ClusterRole not found")
 
 	for _, role := range roles {
+		// The RHAII access role is rendered only on XKS. Its narrowly scoped
+		// synthetic permission belongs exclusively to the XKS Helm installation
+		// path, which chart_sync_test.go verifies. It must not leak into the
+		// generic Kustomize ClusterRole used by the other platforms.
+		if role.Name == "rhaii-dashboard-access" {
+			continue
+		}
 		t.Run(role.Name, func(t *testing.T) {
 			assert.Empty(t, uncoveredPermissions(role.Rules, operatorRole.Rules),
 				"operator role must hold these permissions to apply this ClusterRole")
 		})
 	}
+}
+
+// TestXKSAccessClusterRoleRequiresOnlyItsSyntheticPermission documents the one
+// exception to the generic escalation contract. The chart test verifies that
+// this precise permission is emitted only with xks.enabled=true.
+func TestXKSAccessClusterRoleRequiresOnlyItsSyntheticPermission(t *testing.T) {
+	roles := readManifestClusterRoles(t, filepath.Join("..", "..", "..", "manifests"))
+	accessRole, found := findClusterRole(roles, "rhaii-dashboard-access")
+	require.True(t, found, "RHAII access ClusterRole not found")
+
+	xksGrant := rbacv1.PolicyRule{
+		APIGroups: []string{"dashboard.opendatahub.io"},
+		Resources: []string{"rhaii-dashboard-access"},
+		Verbs:     []string{"list"},
+	}
+	assert.Empty(t, uncoveredPermissions(accessRole.Rules, []rbacv1.PolicyRule{xksGrant}),
+		"XKS synthetic permission must cover the unbound RHAII access ClusterRole")
 }
 
 func TestOperatorRoleDoesNotAllowImpersonation(t *testing.T) {
@@ -231,6 +255,15 @@ func readManifestClusterRoles(t *testing.T, dir string) []*rbacv1.ClusterRole {
 	})
 	require.NoError(t, err)
 	return roles
+}
+
+func findClusterRole(roles []*rbacv1.ClusterRole, name string) (*rbacv1.ClusterRole, bool) {
+	for _, role := range roles {
+		if role.Name == name {
+			return role, true
+		}
+	}
+	return nil, false
 }
 
 // uncoveredPermissions returns each permission in grants that held does not cover, one

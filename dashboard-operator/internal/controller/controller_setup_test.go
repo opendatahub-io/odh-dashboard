@@ -3,6 +3,7 @@ package controller
 import (
 	"testing"
 
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,11 +11,49 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+
+	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
+
+func TestMapXKSCertificateToDashboard(t *testing.T) {
+	r := &DashboardReconciler{ApplicationsNamespace: "applications", Platform: cluster.XKS}
+	certificate := &unstructured.Unstructured{}
+	certificate.SetGroupVersionKind(certificateGVK)
+	certificate.SetNamespace("applications")
+	certificate.SetName(rhaiiDashboardTLSName)
+
+	requests := r.mapXKSCertificateToDashboard(certificate)
+	require.Len(t, requests, 1)
+	assert.Equal(t, v1alpha1.DashboardInstanceName, requests[0].Name)
+
+	certificate.SetName("unrelated")
+	assert.Empty(t, r.mapXKSCertificateToDashboard(certificate))
+	certificate.SetName(rhaiiDashboardTLSName)
+	certificate.SetNamespace("other")
+	assert.Empty(t, r.mapXKSCertificateToDashboard(certificate))
+}
+
+func TestXKSCertificateWatchPredicate(t *testing.T) {
+	p := predicate.GenerationChangedPredicate{}
+	oldCertificate := &unstructured.Unstructured{}
+	oldCertificate.SetGroupVersionKind(certificateGVK)
+	oldCertificate.SetGeneration(1)
+
+	statusOnly := oldCertificate.DeepCopy()
+	assert.False(t, p.Update(event.UpdateEvent{ObjectOld: oldCertificate, ObjectNew: statusOnly}))
+
+	specChanged := oldCertificate.DeepCopy()
+	specChanged.SetGeneration(2)
+	assert.True(t, p.Update(event.UpdateEvent{ObjectOld: oldCertificate, ObjectNew: specChanged}))
+	assert.True(t, p.Create(event.CreateEvent{Object: oldCertificate}))
+	assert.True(t, p.Delete(event.DeleteEvent{Object: oldCertificate}))
+}
 
 func TestServiceChangedPredicate(t *testing.T) {
 	p := serviceChangedPredicate()

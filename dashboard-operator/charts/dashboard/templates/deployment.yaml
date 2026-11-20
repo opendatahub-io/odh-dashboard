@@ -91,6 +91,10 @@ spec:
               value: {{ include "dashboard.serviceAccountName" . }}
             - name: OPERATOR_CONFIGMAP_NAME
               value: {{ include "dashboard.configMapName" . }}
+            # The platform normally injects this value. Keep the chart value
+            # as the standalone/XKS default and the RBAC namespace source.
+            - name: APPLICATIONS_NAMESPACE
+              value: {{ include "dashboard.applicationsNamespace" . | quote }}
             {{- range $name, $value := .Values.relatedImages }}
             {{- if $value }}
             - name: {{ $name }}

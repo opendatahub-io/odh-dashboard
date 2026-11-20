@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
-	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
@@ -184,7 +183,7 @@ func newMainDashboardDeployment(name string) *appsv1.Deployment {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: integrationNamespace,
-			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+			Labels:    dashboardManagementLabels(),
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,

@@ -15,7 +15,7 @@ spec:
         deployment: rhaii-dashboard
         app.kubernetes.io/component: rhaii-dashboard
         app.kubernetes.io/part-of: rhaii-dashboard
-        platform.opendatahub.io/part-of: rhaii-dashboard
+        platform.opendatahub.io/part-of: dashboard
     spec:
       automountServiceAccountToken: false
       serviceAccountName: rhaii-dashboard
@@ -26,6 +26,15 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 100Mi
+        # xKS uses cert-manager rather than OpenShift serving-cert injection.
+        # The Certificate in this bundle maintains the Secret for the TLS
+        # boundary exposed by kube-rbac-proxy.
+        - name: proxy-tls
+          secret:
+            secretName: rhaii-dashboard-tls
+        - name: kube-rbac-proxy-config
+          configMap:
+            name: rhaii-dashboard-kube-rbac-proxy-config
         # The BFF needs an in-cluster client for its narrowly scoped
         # service-account operations. A projected, short-lived token avoids
         # the legacy automatically mounted credential volume.
@@ -51,7 +60,7 @@ spec:
           image: rhaii-dashboard-image
           imagePullPolicy: Always
           ports:
-            - containerPort: 8443
+            - containerPort: 8080
               name: dashboard
               protocol: TCP
           startupProbe:
@@ -93,7 +102,9 @@ spec:
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
           args:
-            - --port=8443
+            # TLS terminates at kube-rbac-proxy, which reaches this in-pod
+            # listener over loopback.
+            - --port=8080
             - --deployment-mode=standalone
             - --auth-method=user_token
             - --auth-token-header=x-forwarded-access-token
@@ -112,6 +123,80 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+        - name: kube-rbac-proxy
+          image: kube-rbac-proxy
+          args:
+            - --secure-listen-address=0.0.0.0:8443
+            - --upstream=http://127.0.0.1:8080
+            - --upstream-timeout=0
+            - --config-file=/etc/kube-rbac-proxy/config-file.yaml
+            - --tls-cert-file=/etc/tls/private/tls.crt
+            - --tls-private-key-file=/etc/tls/private/tls.key
+            - --auth-header-fields-enabled=true
+            - --auth-header-user-field-name=X-Auth-Request-User
+            - --auth-header-groups-field-name=X-Auth-Request-Groups
+            - --proxy-endpoints-port=8444
+            - --v=0
+          ports:
+            - containerPort: 8443
+              name: dashboard-ui
+              protocol: TCP
+            - containerPort: 8444
+              name: proxy-health
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: proxy-health
+              scheme: HTTPS
+            initialDelaySeconds: 1
+            timeoutSeconds: 1
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: proxy-health
+              scheme: HTTPS
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: proxy-health
+              scheme: HTTPS
+            timeoutSeconds: 1
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+              ephemeral-storage: 10Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: proxy-tls
+              mountPath: /etc/tls/private
+              readOnly: true
+            - name: kube-rbac-proxy-config
+              mountPath: /etc/kube-rbac-proxy
+              readOnly: true
+            # kube-rbac-proxy uses its pod identity to perform TokenReview and
+            # SubjectAccessReview requests for the forwarded user token.
+            - name: dashboard-sa-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

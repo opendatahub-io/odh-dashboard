@@ -90,10 +90,11 @@ func TestIntegration_MaaSPortalSubscriptionRBACWatches(t *testing.T) {
 			if !assert.NoError(c, directClient.Get(ctx, client.ObjectKey{Name: name, Namespace: integrationNamespace}, deployment)) {
 				return
 			}
-			if deployment.Status.ObservedGeneration != deployment.Generation || deployment.Status.ReadyReplicas != 1 {
+			if deployment.Status.ObservedGeneration != deployment.Generation || deployment.Status.ReadyReplicas != 1 || deployment.Status.AvailableReplicas != 1 {
 				deployment.Status.ObservedGeneration = deployment.Generation
 				deployment.Status.Replicas = 1
 				deployment.Status.ReadyReplicas = 1
+				deployment.Status.AvailableReplicas = 1
 				deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
 				if !assert.NoError(c, directClient.Status().Update(ctx, deployment)) {
 					return
@@ -106,7 +107,7 @@ func TestIntegration_MaaSPortalSubscriptionRBACWatches(t *testing.T) {
 		}
 		if len(route.Status.Parents) == 0 || len(route.Status.Parents[0].Conditions) == 0 ||
 			route.Status.Parents[0].Conditions[0].ObservedGeneration != route.Generation {
-			route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+			route.Status.Parents = []gatewayv1.RouteParentStatus{{ParentRef: route.Spec.ParentRefs[0], Conditions: []metav1.Condition{
 				{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 				{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 			}}}
