@@ -14,3 +14,24 @@ export const shouldUseBundledMonaco = (): void => {
     expect(typeof Reflect.get(win, 'define'), 'global AMD define').to.equal('undefined');
   });
 };
+
+/**
+ * The bundled Monaco runs language services in workers emitted by the host's Monaco webpack
+ * plugin. A language missing from the plugin's `languages` resolves to `<publicPath>/undefined`
+ * and its worker fails to load with an uncaught error event.
+ */
+export const shouldLoadMonacoLanguageWorker = (label: string): void => {
+  cy.window().should((win) => {
+    const workerScripts = win.performance
+      .getEntriesByType('resource')
+      .map((entry) => entry.name)
+      .filter((name) => name.endsWith('.worker.js') || name.endsWith('/undefined'));
+    expect(workerScripts, 'Monaco worker scripts').to.include.members([
+      `${win.location.origin}/${label}.worker.js`,
+    ]);
+    expect(
+      workerScripts.filter((name) => name.endsWith('/undefined')),
+      'unmapped Monaco workers',
+    ).to.have.length(0);
+  });
+};

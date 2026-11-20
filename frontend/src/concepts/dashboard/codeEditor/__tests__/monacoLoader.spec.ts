@@ -68,6 +68,23 @@ describe('monacoLoader', () => {
     expect(document.querySelector(AMD_LOADER_SELECTOR)).toBeNull();
   });
 
+  it('should retry the bundled import after a failed chunk load', async () => {
+    const { loader, monacoLoader } = loadModules();
+    const chunkError = new Error('Loading chunk monaco-editor failed');
+    const flakyImport = jest
+      .fn<Promise<MonacoApi>, []>()
+      .mockRejectedValueOnce(chunkError)
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      .mockResolvedValue(mockMonaco as unknown as MonacoApi);
+    monacoLoader.installMonacoLoader(flakyImport);
+
+    await expect(loader.init()).rejects.toBe(chunkError);
+    await expect(loader.init()).resolves.toBe(mockMonaco);
+
+    expect(flakyImport).toHaveBeenCalledTimes(2);
+    expect(document.querySelector(AMD_LOADER_SELECTOR)).toBeNull();
+  });
+
   it('should reject with a cancelation when the editor unmounts before Monaco loads', async () => {
     const { loader, monacoLoader } = loadModules();
     monacoLoader.installMonacoLoader(importMonaco);

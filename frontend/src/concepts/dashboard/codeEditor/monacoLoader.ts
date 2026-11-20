@@ -47,10 +47,17 @@ export const installMonacoLoader = (
 
   const { init }: { init: MonacoInit } = loader;
   const loadBundledMonaco = (): Promise<MonacoApi> => {
-    bundledMonaco ??= importMonaco().then((monaco) => {
-      configureMonacoLoader(monaco);
-      return monaco;
-    });
+    bundledMonaco ??= importMonaco().then(
+      (monaco) => {
+        configureMonacoLoader(monaco);
+        return monaco;
+      },
+      (error: unknown) => {
+        // Do not cache a failed chunk load: the next editor retries the import.
+        bundledMonaco = undefined;
+        throw error;
+      },
+    );
     return bundledMonaco;
   };
   loader.init = () => {
