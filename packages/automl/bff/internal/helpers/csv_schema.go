@@ -29,6 +29,8 @@ type ColumnSchema struct {
 type CSVSchemaResult struct {
 	Columns       []ColumnSchema `json:"columns"`
 	ParseWarnings int            `json:"parse_warnings"`
+	SampleRows    [][]string     `json:"sample_rows"`
+	SampleSize    int            `json:"sample_size"`
 }
 
 // maxBinaryUniqueValues is the maximum number of distinct values for a column
@@ -119,6 +121,8 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 	return CSVSchemaResult{
 		Columns:       columnSchemas,
 		ParseWarnings: parseWarnings,
+		SampleRows:    dataRows,
+		SampleSize:    len(dataRows),
 	}, nil
 }
 

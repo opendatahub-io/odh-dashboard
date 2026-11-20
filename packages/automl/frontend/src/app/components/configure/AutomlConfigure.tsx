@@ -54,6 +54,7 @@ import {
   CheckCircleIcon,
   CubesIcon,
   EllipsisVIcon,
+  ExclamationCircleIcon,
   ExclamationTriangleIcon,
   TimesIcon,
   UploadIcon,
@@ -127,6 +128,10 @@ import AutomlPredictionTypeHelperText from './AutomlPredictionTypeHelperText';
 import AutomlPredictionTypeSelector from './AutomlPredictionTypeSelector';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import OptimizationMetricModal from './OptimizationMetricModal';
+import DatasetCompatibilityCheck from './DatasetCompatibilityCheck';
+import DatasetFileDetailsPreview from './DatasetFileDetailsPreview';
+import DatasetFilePreview from './DatasetFilePreview';
+import DatasetSamplingError from './DatasetSamplingError';
 import DatasetFilePicker, { type DatasetFileSourceMode } from './DatasetFilePicker';
 import './AutomlConfigure.scss';
 
@@ -184,6 +189,7 @@ function AutomlConfigure({
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
+  const [filePreview, setFilePreview] = useState<{ fileKey: string; scope: string }>();
   const [fileExplorerTarget, setFileExplorerTarget] = useState<'train' | 'test'>('train');
   const [isTrainingAccordionExpanded, setIsTrainingAccordionExpanded] = useState(false);
   const [isTestAccordionExpanded, setIsTestAccordionExpanded] = useState(false);
@@ -211,6 +217,7 @@ function AutomlConfigure({
   const [isTestDataFileUploading, setIsTestDataFileUploading] = useState(false);
   const [isTestDataUploadDropdownOpen, setIsTestDataUploadDropdownOpen] = useState(false);
   const testDataUploadSeqRef = useRef(0);
+  const pendingTestDataCollapseRef = useRef<string>();
   const testDataNativeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(
@@ -343,12 +350,48 @@ function AutomlConfigure({
     isFetching: isFetchingColumns,
     error: columnsError,
     resetSchemaCache,
+    sample: trainingSample,
   } = useS3GetFileSchemaQuery(
     namespace ?? '',
     trainDataSecretName,
     trainDataBucketName,
     trainDataFileKey,
   );
+
+  const testSampleQuery = useS3GetFileSchemaQuery(
+    namespace ?? '',
+    trainDataSecretName,
+    trainDataBucketName,
+    datasetSplitMode === DATASET_SPLIT_SEPARATE ? testDataFileKey : undefined,
+  );
+
+  // Collapse after a new file loads, while preserving manual reopening across refetches.
+  useEffect(() => {
+    if (!testDataFileKey || datasetSplitMode !== DATASET_SPLIT_SEPARATE) {
+      pendingTestDataCollapseRef.current = undefined;
+    } else if (
+      pendingTestDataCollapseRef.current === testDataFileKey &&
+      !isTestDataFileUploading &&
+      !testSampleQuery.isFetching &&
+      !testSampleQuery.error &&
+      testSampleQuery.data.length > 0
+    ) {
+      pendingTestDataCollapseRef.current = undefined;
+      setIsTestAccordionExpanded(false);
+    }
+  }, [
+    datasetSplitMode,
+    testDataFileKey,
+    isTestDataFileUploading,
+    testSampleQuery.isFetching,
+    testSampleQuery.error,
+    testSampleQuery.data.length,
+  ]);
+
+  const previewScope = `${namespace}/${trainDataSecretName}/${trainDataBucketName}`;
+  const previewFileKey = filePreview?.scope === previewScope ? filePreview.fileKey : undefined;
+  const setPreviewFileKey = (fileKey?: string) =>
+    setFilePreview(fileKey ? { fileKey, scope: previewScope } : undefined);
 
   const {
     data: trainingDataRowCount,
@@ -380,10 +423,10 @@ function AutomlConfigure({
   const selectedColumn = columns.find((c) => c.name === targetColumn);
 
   useEffect(() => {
-    if (columnsError) {
+    if (columnsError && datasetSplitMode !== DATASET_SPLIT_SEPARATE) {
       notification.warning('Column schema error', columnsError.message);
     }
-  }, [columnsError, notification]);
+  }, [columnsError, datasetSplitMode, notification]);
 
   // Report whether the selected prediction type matches the target column's recommended type
   useEffect(() => {
@@ -651,6 +694,7 @@ function AutomlConfigure({
         if (uploadRequestId !== testDataUploadSeqRef.current) {
           return;
         }
+        pendingTestDataCollapseRef.current = uploadResult.key;
         setValue('test_data_file_key', uploadResult.key, { shouldValidate: true });
         setSelectedTestDataFile(explorerFileFromKey(uploadResult.key));
       } catch (err) {
@@ -1167,10 +1211,12 @@ function AutomlConfigure({
                                     <SplitItem>
                                       <Flex alignItems={{ default: 'alignItemsCenter' }}>
                                         <FlexItem>
-                                          {trainDataFileKey ? (
+                                          {columnsError && trainDataFileKey ? (
+                                            <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
+                                          ) : trainDataFileKey ? (
                                             <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" />
                                           ) : (
-                                            <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--status--warning--default)" />
+                                            <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
                                           )}
                                         </FlexItem>
                                         <FlexItem>
@@ -1244,6 +1290,11 @@ function AutomlConfigure({
                                           onClearUpload={clearTrainingDataUpload}
                                           onReplaceUpload={openTrainingDataReplaceFileDialog}
                                         />
+                                        {columnsError && (
+                                          <StackItem>
+                                            <DatasetSamplingError />
+                                          </StackItem>
+                                        )}
                                       </>
                                     )}
                                   </Stack>
@@ -1274,10 +1325,12 @@ function AutomlConfigure({
                                     <SplitItem>
                                       <Flex alignItems={{ default: 'alignItemsCenter' }}>
                                         <FlexItem>
-                                          {testDataFileKey ? (
+                                          {testSampleQuery.error && testDataFileKey ? (
+                                            <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
+                                          ) : testDataFileKey ? (
                                             <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" />
                                           ) : (
-                                            <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--status--warning--default)" />
+                                            <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
                                           )}
                                         </FlexItem>
                                         <FlexItem>
@@ -1351,12 +1404,35 @@ function AutomlConfigure({
                                           onClearUpload={clearTestDataUpload}
                                           onReplaceUpload={openTestDataReplaceFileDialog}
                                         />
+                                        {testSampleQuery.error && (
+                                          <StackItem>
+                                            <DatasetSamplingError />
+                                          </StackItem>
+                                        )}
                                       </>
                                     )}
                                   </Stack>
                                 </AccordionContent>
                               </AccordionItem>
                             </Accordion>
+                          </StackItem>
+                          <StackItem>
+                            <DatasetCompatibilityCheck
+                              key={`${namespace}/${trainDataSecretName}/${trainDataBucketName}/${trainDataFileKey}/${testDataFileKey}`}
+                              training={trainingSample}
+                              test={testSampleQuery.sample}
+                              trainingFile={trainDataFileKey}
+                              testFile={testDataFileKey ?? ''}
+                              isChecking={
+                                isFetchingColumns ||
+                                testSampleQuery.isFetching ||
+                                isTrainingDataFileUploading ||
+                                isTestDataFileUploading
+                              }
+                              isCovered={Boolean(previewFileKey)}
+                              hasError={Boolean(columnsError || testSampleQuery.error)}
+                              onViewFile={setPreviewFileKey}
+                            />
                           </StackItem>
                         </>
                       )}
@@ -1752,6 +1828,21 @@ function AutomlConfigure({
       <S3FileExplorer
         id={`AutoMLConfigure-S3FileExplorer-${fileExplorerTarget}`}
         apiPath="/automl/api/v1/s3"
+        presentation="tearsheet"
+        isCovered={Boolean(previewFileKey)}
+        bucket={trainDataBucketName}
+        renderFilePreview={(file) =>
+          file.type.toLowerCase() === 'csv' ? (
+            <DatasetFileDetailsPreview
+              key={file.path}
+              namespace={namespace}
+              secretName={trainDataSecretName}
+              bucket={trainDataBucketName}
+              fileKey={file.path.replace(/^\//, '')}
+              onViewFile={() => setPreviewFileKey(file.path.replace(/^\//, ''))}
+            />
+          ) : null
+        }
         namespace={namespace}
         s3SecretName={trainDataSecretName}
         isOpen={isFileExplorerOpen}
@@ -1761,6 +1852,7 @@ function AutomlConfigure({
             const file = files[0];
             const filePath = file.path.replace(/^\//, '');
             if (fileExplorerTarget === 'test') {
+              pendingTestDataCollapseRef.current = filePath;
               setValue('test_data_file_key', filePath, { shouldValidate: true });
               setSelectedTestDataFile(file);
             } else {
@@ -1778,6 +1870,16 @@ function AutomlConfigure({
           '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
         }}
       />
+      {previewFileKey && (
+        <DatasetFilePreview
+          key={`${namespace}/${trainDataSecretName}/${trainDataBucketName}/${previewFileKey}`}
+          namespace={namespace}
+          secretName={trainDataSecretName}
+          bucket={trainDataBucketName}
+          fileKey={previewFileKey}
+          onClose={() => setPreviewFileKey(undefined)}
+        />
+      )}
       <OptimizationMetricModal
         isOpen={isMetricModalOpen}
         onSave={(metric) => {

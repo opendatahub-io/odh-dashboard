@@ -1215,6 +1215,8 @@ components:
           required:
             - columns
             - parse_warnings
+            - sample_rows
+            - sample_size
           properties:
             columns:
               type: array
@@ -1288,6 +1290,23 @@ components:
               type: integer
               description: Number of rows that failed CSV parsing and were skipped during schema inference
               example: 0
+            sample_rows:
+              type: array
+              maxItems: 100
+              description: >-
+                The valid CSV records used for inference, in header column order. Values remain
+                strings, including empty cells. This bounded preview does not validate the full file.
+              items:
+                type: array
+                items:
+                  type: string
+              example: [["customer-1", "23", "active"]]
+            sample_size:
+              type: integer
+              minimum: 100
+              maximum: 100
+              description: Number of valid data records used for inference, excluding the header.
+              example: 100
 
     S3FileRowCountResponse:
       type: object

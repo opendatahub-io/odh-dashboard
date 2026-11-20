@@ -440,6 +440,46 @@ describe('AutomlConfigure', () => {
     mockSecretRefresh.mockResolvedValue([]);
   });
 
+  it.each([
+    { file: 'train.csv', accordion: /1\. Training data/ },
+    { file: 'test.csv', accordion: /2\. Test data/ },
+  ])('should show the sampling error for $file without a retry action', ({ file, accordion }) => {
+    mockuseS3GetFileSchemaQuery.mockImplementation(
+      (_namespace, _secret, _bucket, key) =>
+        ({
+          data: key === file ? [] : MOCK_COLUMNS,
+          error: key === file ? new Error('Sample failed') : null,
+          isLoading: false,
+          isFetching: false,
+          resetSchemaCache: mockResetSchemaCache,
+        }) as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+    );
+    renderWithInitialValues({
+      initialInputDataSecret: {
+        uuid: 'secret-1',
+        name: 'Test Secret 1',
+        data: { AWS_S3_BUCKET: 'test-bucket-1' },
+        type: 's3',
+        invalid: false,
+      },
+      dataset_split_mode: 'separate',
+      train_data_secret_name: 'Test Secret 1',
+      train_data_bucket_name: 'test-bucket-1',
+      train_data_file_key: 'train.csv',
+      test_data_file_key: 'test.csv',
+    });
+    fireEvent.click(screen.getByRole('button', { name: accordion }));
+    expect(screen.getByText('Unable to sample document data')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View details' })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'An error occurred while sampling data from this document. Try again, or upload a different document.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Try again' })).not.toBeInTheDocument();
+  });
+
   describe('initial state - no secret selected', () => {
     it('should track a successfully created connection through the shared modal', async () => {
       renderComponent();
@@ -1059,7 +1099,7 @@ describe('AutomlConfigure', () => {
       expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
     });
 
-    it('should enable configuration after both files are selected without requesting the test schema', () => {
+    it('should enable configuration and sample both selected files', () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
@@ -1072,7 +1112,7 @@ describe('AutomlConfigure', () => {
       expect(screen.getByText('2 of 2 datasets selected')).toBeInTheDocument();
       expect(screen.queryByText('Complete the Documents section')).not.toBeInTheDocument();
       expect(screen.getByTestId('target_column-select')).toBeEnabled();
-      expect(mockuseS3GetFileSchemaQuery).not.toHaveBeenCalledWith(
+      expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
         expect.anything(),
@@ -1080,6 +1120,74 @@ describe('AutomlConfigure', () => {
       );
       expect(screen.queryByTestId('dataset-compatibility-toggle')).not.toBeInTheDocument();
     });
+
+    it.each(['select', 'upload'])(
+      'should collapse the test section after a successful %s and allow manual reopening',
+      async (mode) => {
+        let isFetchingTest = true;
+        let testError: Error | null = null;
+        mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'test.csv' });
+        mockuseS3GetFileSchemaQuery.mockImplementation(
+          (_namespace, _secret, _bucket, key) =>
+            ({
+              data: key ? MOCK_COLUMNS : [],
+              isLoading: false,
+              isFetching: key === 'test.csv' && isFetchingTest,
+              error: key === 'test.csv' ? testError : null,
+              resetSchemaCache: mockResetSchemaCache,
+              refetch: jest.fn(),
+            }) as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+        );
+        const queryClient = createTestQueryClient();
+        const renderForm = () => (
+          <QueryClientProvider client={queryClient}>
+            <TrackingProvider trackEvent={trackEvent}>
+              <FormWrapper>
+                <AutomlConfigure />
+              </FormWrapper>
+            </TrackingProvider>
+          </QueryClientProvider>
+        );
+        const { rerender } = render(renderForm());
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+        if (mode === 'select') {
+          fireEvent.click(screen.getByTestId('test-data-browse-bucket-button'));
+          fireEvent.click(screen.getByTestId('file-explorer-select-test-file'));
+        } else {
+          fireEvent.click(
+            within(screen.getByTestId('test-data-source-upload-toggle')).getByRole('button'),
+          );
+          fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+            target: { files: [new File(['test rows'], 'test.csv', { type: 'text/csv' })] },
+          });
+          await waitFor(() =>
+            expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('test.csv'),
+          );
+        }
+        const toggle = screen.getByTestId('test-data-accordion-toggle');
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+        isFetchingTest = false;
+        testError = new Error('Sample failed');
+        rerender(renderForm());
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByText('Unable to sample document data')).toBeVisible();
+
+        testError = null;
+        rerender(renderForm());
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+        fireEvent.click(toggle);
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        isFetchingTest = true;
+        rerender(renderForm());
+        isFetchingTest = false;
+        rerender(renderForm());
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      },
+    );
 
     it('should upload the separate test file using the selected training connection', async () => {
       renderComponent();
@@ -1104,6 +1212,13 @@ describe('AutomlConfigure', () => {
           }),
         );
       });
+      await waitFor(() =>
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveAttribute(
+          'aria-expanded',
+          'false',
+        ),
+      );
+      fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
       await waitFor(() =>
         expect(screen.getByRole('grid', { name: 'Test data file upload' })).toHaveTextContent(
           'uploaded-key.csv',

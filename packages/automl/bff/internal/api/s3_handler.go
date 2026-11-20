@@ -255,6 +255,8 @@ func (h *S3Handler) getS3FileSchemaHandler(w http.ResponseWriter, r *http.Reques
 		"data": map[string]any{
 			"columns":        schemaResult.Columns,
 			"parse_warnings": schemaResult.ParseWarnings,
+			"sample_rows":    schemaResult.SampleRows,
+			"sample_size":    schemaResult.SampleSize,
 		},
 	}
 

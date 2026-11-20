@@ -481,6 +481,27 @@ describe('AutoML API Contract Tests', () => {
       });
     });
 
+    it('should return the inference sample as raw rows in schema column order', async () => {
+      const result = await apiClient.get(
+        `/api/v1/s3/files/${encodeURIComponent(
+          TABULAR_CSV_FILE,
+        )}?view=schema&namespace=${NS}&secretName=${SECRET}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/schemas/S3FileSchemaResponse',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const { data } = result.response.data as {
+          data: { columns: unknown[]; sample_rows: string[][]; sample_size: number };
+        };
+        expect(data.sample_size).toBe(100);
+        expect(data.sample_rows).toHaveLength(100);
+        data.sample_rows.forEach((row) => expect(row).toHaveLength(data.columns.length));
+      }
+    });
+
     it('should handle nested path keys', async () => {
       const result = await apiClient.get(
         `/api/v1/s3/files/${encodeURIComponent(

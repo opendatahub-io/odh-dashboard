@@ -35,6 +35,31 @@ describe('FileExplorer', () => {
   });
 
   describe('modal rendering', () => {
+    it('should support tear sheet selection and render a product preview only when details are opened', () => {
+      const renderPreview = jest.fn((file: ExplorerFile) => <span>Preview for {file.name}</span>);
+      render(
+        <FileExplorer
+          {...defaultProps}
+          presentation="tearsheet"
+          renderFilePreview={renderPreview}
+        />,
+      );
+      expect(renderPreview).not.toHaveBeenCalled();
+      const row = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row).getByRole('button', { name: /file-1\.json actions/i }));
+      fireEvent.click(screen.getByText('View details'));
+      expect(screen.getByText('Preview for file-1.json')).toBeInTheDocument();
+      fireEvent.click(within(row).getByRole('radio'));
+      expect(screen.queryByText('Current selection')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('file-explorer-close-details-btn'));
+      expect(screen.getByText('Current selection')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('file-explorer-select-btn'));
+      expect(mockOnPrimary).toHaveBeenCalledWith([
+        expect.objectContaining({ name: 'file-1.json' }),
+      ]);
+      expect(mockOnClose).toHaveBeenCalled();
+    });
+
     it('should render the modal when isOpen is true', () => {
       render(<FileExplorer {...defaultProps} />);
 
@@ -43,6 +68,22 @@ describe('FileExplorer', () => {
       expect(screen.getByTestId('file-explorer-select-btn')).toBeInTheDocument();
       expect(screen.getByTestId('file-explorer-cancel-btn')).toBeInTheDocument();
     });
+    it('should retain selection while a child preview temporarily covers the file explorer', () => {
+      const { rerender } = render(<FileExplorer {...defaultProps} presentation="tearsheet" />);
+      const firstRow = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(firstRow).getByRole('radio'));
+      rerender(<FileExplorer {...defaultProps} presentation="tearsheet" isCovered />);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      rerender(<FileExplorer {...defaultProps} presentation="tearsheet" />);
+      expect(
+        within(screen.getByTestId('file-explorer-row--file-1-json')).getByRole('radio'),
+      ).toBeChecked();
+      fireEvent.click(screen.getByTestId('file-explorer-select-btn'));
+      expect(mockOnPrimary).toHaveBeenCalledWith([
+        expect.objectContaining({ name: 'file-1.json' }),
+      ]);
+    });
+
     it('should not render the modal when isOpen is false', () => {
       render(<FileExplorer {...defaultProps} isOpen={false} />);
 

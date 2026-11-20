@@ -183,6 +183,56 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(result.current.fetchStatus).toBe('idle');
   });
 
+  it('should return bounded raw sample rows and clear them when the file changes', async () => {
+    const response = {
+      data: {
+        columns: [{ name: 'value', type: 'string', task_type: 'binary' }],
+        sample_rows: [['001']],
+        sample_size: 1,
+        parse_warnings: 2,
+      },
+    };
+    jest.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(response)]),
+    } as unknown as Response);
+    const { result, rerender } = renderHook(
+      ({ file }) => useS3GetFileSchemaQuery('ns', 'secret', 'bucket', file),
+      {
+        initialProps: { file: 'first.csv' },
+        wrapper: createWrapper().Wrapper,
+      },
+    );
+    await waitFor(() => expect(result.current.sample?.sampleRows).toEqual([['001']]));
+    expect(result.current.sample?.sampleSize).toBe(1);
+    expect(result.current.sample?.parseWarnings).toBe(2);
+    rerender({ file: 'second.csv' });
+    expect(result.current.sample?.sampleRows).toEqual([]);
+    expect(result.current.data).toEqual([]);
+  });
+
+  it('should reject preview rows that do not match the schema width', async () => {
+    const response = {
+      data: {
+        columns: [{ name: 'value', type: 'string', task_type: 'binary' }],
+        sample_rows: [['one', 'two']],
+        sample_size: 1,
+      },
+    };
+    jest.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(response)]),
+    } as unknown as Response);
+    const { result } = renderHook(
+      () => useS3GetFileSchemaQuery('ns', 'secret', 'bucket', 'file.csv'),
+      { wrapper: createWrapper().Wrapper },
+    );
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toContain('row and column counts do not match');
+  });
+
   it('should construct URL with all parameters including bucket', async () => {
     const mockResponse = {
       data: {
@@ -317,7 +367,7 @@ describe('useS3GetFileSchemaQuery', () => {
       await result.current.refetch();
     });
 
-    expect(result.current.data).toEqual(secondColumns);
+    await waitFor(() => expect(result.current.data).toEqual(secondColumns));
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
@@ -447,7 +497,12 @@ describe('useS3GetFileSchemaQuery', () => {
       bucket: 'test-bucket',
       view: 'schema',
     });
-    queryClient.setQueryData(queryKey, [{ name: 'stale-column' }]);
+    queryClient.setQueryData(queryKey, {
+      columns: [{ name: 'stale-column' }],
+      sampleRows: [],
+      sampleSize: 0,
+      parseWarnings: 0,
+    });
     queryClient.setQueryData(s3JsonQueryKey, { data: { columns: [] } });
     queryClient.setQueryData(
       ['files', 'test-namespace', 'test-secret', 'other-bucket', 'data.csv'],
@@ -461,7 +516,12 @@ describe('useS3GetFileSchemaQuery', () => {
 
     act(() => result.current.resetSchemaCache());
 
-    expect(queryClient.getQueryData(queryKey)).toEqual([]);
+    expect(queryClient.getQueryData(queryKey)).toEqual({
+      columns: [],
+      sampleRows: [],
+      sampleSize: 0,
+      parseWarnings: 0,
+    });
     expect(queryClient.getQueryState(s3JsonQueryKey)?.isInvalidated).toBe(true);
     expect(
       queryClient.getQueryData([
