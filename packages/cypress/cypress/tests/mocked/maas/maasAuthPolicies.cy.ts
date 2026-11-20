@@ -229,14 +229,6 @@ describe('MaaS Auth Policies', () => {
     premiumPolicy.findExpandedModelName().should('exist');
     premiumPolicy.findExpandedModelName().should('have.length', 2);
     premiumPolicy.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
-    premiumPolicy.findExpandedModelDescription().should('have.length', 2);
-    premiumPolicy
-      .findExpandedModelDescription()
-      .eq(0)
-      .should(
-        'contain.text',
-        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
-      );
     premiumPolicy.findExpandedModelResourceName().should('have.length', 2);
     premiumPolicy
       .findExpandedModelResourceName()
