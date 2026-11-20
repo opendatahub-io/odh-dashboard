@@ -195,10 +195,19 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
         aria-live="polite"
         data-testid="training-job-status-summary"
       >
-        <Icon isInline status={info.status}>
-          <info.IconComponent className={info.iconClassName} />
-        </Icon>{' '}
-        {message}
+        <Flex
+          component="span"
+          gap={{ default: 'gapSm' }}
+          flexWrap={{ default: 'nowrap' }}
+          alignItems={{ default: 'alignItemsBaseline' }}
+        >
+          <FlexItem component="span" flex={{ default: 'flexNone' }}>
+            <Icon isInline status={info.status}>
+              <info.IconComponent className={info.iconClassName} />
+            </Icon>
+          </FlexItem>
+          <FlexItem component="span">{message}</FlexItem>
+        </Flex>
       </Content>
     );
   };
@@ -380,10 +389,19 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
                       aria-live="polite"
                       data-testid="training-job-pod-summary"
                     >
-                      <Icon isInline status="danger">
-                        <ExclamationCircleIcon />
-                      </Icon>{' '}
-                      {message}
+                      <Flex
+                        component="span"
+                        gap={{ default: 'gapSm' }}
+                        flexWrap={{ default: 'nowrap' }}
+                        alignItems={{ default: 'alignItemsBaseline' }}
+                      >
+                        <FlexItem component="span" flex={{ default: 'flexNone' }}>
+                          <Icon isInline status="danger">
+                            <ExclamationCircleIcon />
+                          </Icon>
+                        </FlexItem>
+                        <FlexItem component="span">{message}</FlexItem>
+                      </Flex>
                     </Content>
                   </StackItem>
                 ))}

@@ -59,6 +59,17 @@ describe('TrainingJobStatusModal', () => {
       '0/2 nodes are available: 2 Insufficient cpu.',
       'Unable to schedule a worker: insufficient CPU.',
     ],
+    ['Unschedulable', 'Insufficient amd.com/gpu', 'Unable to schedule a worker: insufficient GPU.'],
+    [
+      'Unschedulable',
+      'Insufficient example.com/device, Insufficient example.com/device',
+      'Unable to schedule a worker: insufficient example.com/device.',
+    ],
+    [
+      'Unschedulable',
+      'Insufficient cpu, Insufficient memory, Insufficient nvidia.com/gpu',
+      'Unable to schedule a worker: insufficient CPU, memory, and GPU.',
+    ],
     ['Unschedulable', 'Insufficient memory', 'Unable to schedule a worker: insufficient memory.'],
     [
       'Unschedulable',
@@ -73,7 +84,7 @@ describe('TrainingJobStatusModal', () => {
     [
       'Unschedulable',
       '0/8 nodes are available: 3 Insufficient cpu, 5 node(s) had untolerated taint(s). preemption: 0/8 nodes are available: 8 Preemption is not helpful for scheduling.',
-      'Unable to schedule a worker: insufficient CPU and node restrictions.',
+      'Unable to schedule a worker: insufficient CPU; node restrictions.',
     ],
     ['Unschedulable', 'Scheduling failed for an unknown reason.', 'Unable to schedule a worker.'],
     ['ErrImagePull', undefined, 'Unable to pull the container image.'],
