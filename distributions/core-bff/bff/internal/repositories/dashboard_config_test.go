@@ -133,14 +133,15 @@ func TestApplyXKSOverrides(t *testing.T) {
 	config := map[string]any{
 		"spec": map[string]any{
 			"dashboardConfig": map[string]any{
-				"enablement":             true,
-				"disableProjects":        false,
-				"disableBYONImageStream": false,
-				"disableISVBadges":       false,
-				"disableAppLauncher":     false,
-				"disablePipelines":       false,
-				"mlflow":                 true,
-				"disableKServe":          false,
+				"enablement":                       true,
+				"disableProjects":                  false,
+				"disableBYONImageStream":           false,
+				"disableISVBadges":                 false,
+				"disableAppLauncher":               false,
+				"disablePipelines":                 false,
+				"hideCommunityPluginsSettingsPage": false,
+				"mlflow":                           true,
+				"disableKServe":                    false,
 			},
 		},
 	}
@@ -154,6 +155,7 @@ func TestApplyXKSOverrides(t *testing.T) {
 	assert.Equal(t, true, dc["disableISVBadges"])
 	assert.Equal(t, true, dc["disableAppLauncher"])
 	assert.Equal(t, true, dc["disablePipelines"])
+	assert.Equal(t, true, dc["hideCommunityPluginsSettingsPage"])
 	assert.Equal(t, false, dc["mlflow"])
 	assert.Equal(t, false, dc["disableKServe"])
 }
