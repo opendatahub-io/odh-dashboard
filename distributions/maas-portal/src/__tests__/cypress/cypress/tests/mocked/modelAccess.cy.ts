@@ -6,7 +6,7 @@ import { subscriptionsPage } from '@odh-dashboard/cypress/cypress/pages/modelsAs
 import { portal } from '../../pages/portal';
 import { maasApi, portalPath, setupPortalMocks } from '../../support/portal';
 
-describe('Grid Model Access', () => {
+describe('Grid Model access', () => {
   it('shows the read-only subscription table and deep links for a MaaS admin', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     cy.intercept('GET', maasApi('/subscriptions/premium-team-sub'), {
@@ -14,9 +14,9 @@ describe('Grid Model Access', () => {
     }).as('subscriptionDetails');
     portal.visit('/maas/models');
     cy.wait('@whoami');
-    portal.findNavLink('Model Access').click();
+    portal.findNavLink('Model access').click();
     cy.location('pathname').should('eq', portalPath('/maas/model-access'));
-    cy.findByTestId('app-page-title').should('have.text', 'Model Access');
+    cy.findByTestId('app-page-title').should('have.text', 'Model access');
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team');
     cy.findByRole('columnheader', { name: 'Status' }).should('not.exist');
     cy.findByRole('button', { name: /create subscription/i }).should('not.exist');
@@ -35,11 +35,11 @@ describe('Grid Model Access', () => {
     cy.findByTestId('subscriptions-table').should('be.visible');
   });
 
-  it('does not expose Model Access to non-admin users', () => {
+  it('does not expose Model access to non-admin users', () => {
     setupPortalMocks();
     portal.visit('/maas/models');
     cy.wait('@whoami');
-    portal.findNavLink('Model Access').should('not.exist');
+    portal.findNavLink('Model access').should('not.exist');
   });
 
   it('expands the group and model counts to show their rows', () => {
@@ -107,6 +107,61 @@ describe('Grid Model Access', () => {
     cy.findAllByTestId('subscription-row').should('not.exist');
     cy.findAllByRole('button', { name: 'Clear all filters' }).first().click();
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team Subscription');
+  });
+
+  it("shows the caller's organization groups by the organization's name, and other groups as they are", () => {
+    const orgId = '53d4f57e-3588-55e8-b96c-4ec54a7c42fa';
+    setupPortalMocks({ isMaaSAdmin: true });
+    cy.intercept('GET', maasApi('/whoami'), {
+      data: { sub: 'portal-user', isAdmin: true, orgId, orgName: 'Grid Tenant 2' },
+    }).as('whoami');
+    const premiumSubscription = mockSubscriptions()[0];
+    cy.intercept('GET', maasApi('/admin-subscriptions'), {
+      data: [
+        {
+          ...premiumSubscription,
+          owner: { groups: [{ name: `${orgId}/ai-grid-bob` }, { name: 'data-science' }] },
+        },
+      ],
+    }).as('adminSubscriptions');
+    portal.visit('/maas/model-access');
+    cy.wait('@adminSubscriptions');
+
+    const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
+    premiumRow.findExpandGroupButton().click();
+    premiumRow.findGroupsExpandedPanel().within(() => {
+      cy.findByTestId('group-name').should('have.text', 'Grid Tenant 2/ai-grid-bob');
+      cy.contains(orgId).should('not.exist');
+      cy.findAllByTestId('expanded-group-name').eq(1).should('have.text', 'data-science');
+      cy.findByTestId('group-organization').click();
+    });
+    cy.findByText('Organization ID').should('be.visible');
+    cy.contains(orgId).should('be.visible');
+
+    // The filter lists the group by the organization's name and still matches its full name.
+    cy.findByTestId('model-access-table-toolbar-dropdown').click();
+    cy.findByTestId('model-access-table-toolbar-option-group').findByRole('menuitem').click();
+    cy.findByTestId('model-access-table-toolbar').findByRole('combobox').click();
+    cy.findByRole('option', { name: 'Grid Tenant 2/ai-grid-bob' }).click();
+    cy.findByTestId('subscription-row').should('have.length', 1);
+  });
+
+  it('finds a subscription by its group as shown, with the organization name', () => {
+    const orgId = '53d4f57e-3588-55e8-b96c-4ec54a7c42fa';
+    setupPortalMocks({ isMaaSAdmin: true });
+    cy.intercept('GET', maasApi('/whoami'), {
+      data: { sub: 'portal-user', isAdmin: true, orgId, orgName: 'Grid Tenant 2' },
+    }).as('whoami');
+    const [premium, ...others] = mockSubscriptions();
+    cy.intercept('GET', maasApi('/admin-subscriptions'), {
+      data: [{ ...premium, owner: { groups: [{ name: `${orgId}/ai-grid-bob` }] } }, ...others],
+    }).as('adminSubscriptions');
+    portal.visit('/maas/model-access');
+    cy.wait(['@whoami', '@adminSubscriptions']);
+
+    cy.findByTestId('model-access-subscription-filter-input').type('Grid Tenant 2/ai-grid-bob');
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
+    cy.findByRole('link', { name: 'Premium Team Subscription' }).should('be.visible');
   });
 
   it('filters admin subscriptions by group', () => {

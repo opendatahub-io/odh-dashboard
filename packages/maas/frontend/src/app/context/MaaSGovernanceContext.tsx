@@ -50,14 +50,14 @@ type MaaSGovernanceProviderProps = {
   children: React.ReactNode;
   /**
    * Which subscriptions endpoint backs the context. Defaults to `all-subscriptions`
-   * (the MaaS governance page). Read-only consumers such as the Model Access page
+   * (the MaaS governance page). Read-only consumers such as the Model access page
    * pass `admin-subscriptions`.
    */
   subscriptionsEndpoint?: SubscriptionsEndpoint;
   /**
    * Fetch subscriptions only. Auth policies, model refs, and groups are Kubernetes-backed
    * (maasauthpolicies / maasmodelrefs / groups lists) and are skipped for read-only consumers
-   * that never render them, such as the Model Access page in the portal. Skipped fetches are
+   * that never render them, such as the Model access page in the portal. Skipped fetches are
    * reported as loaded with empty data, so dependent derived state stays defined.
    */
   subscriptionsOnly?: boolean;

@@ -4,7 +4,7 @@ import {
   EVAL_HUB_EVENTS,
   type ExternalConnectionTestedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import {
   getUserFriendlyConnectionError,
   RECOGNIZED_CONNECTION_ERROR_CODES,
@@ -34,6 +34,8 @@ export const useConnectionValidation = ({
   modelName,
   agentName,
 }: UseConnectionValidationParams): UseConnectionValidationResult => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const [connectionValidation, setConnectionValidation] = React.useState<ConnectionValidationState>(
     { status: 'idle' },
   );
@@ -115,7 +117,15 @@ export const useConnectionValidation = ({
       };
       trackEvalHubEvent(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, errorProps);
     }
-  }, [namespace, sourceMode, endpointUrl, apiKeySecretRef, modelName, agentName]);
+  }, [
+    trackEvalHubEvent,
+    namespace,
+    sourceMode,
+    endpointUrl,
+    apiKeySecretRef,
+    modelName,
+    agentName,
+  ]);
 
   React.useEffect(
     () => () => {

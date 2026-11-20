@@ -1,11 +1,10 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { act, waitFor } from '@testing-library/react';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { mockTrackEvent, renderHook } = setupTrackingTest();
 
 const mockVerifyConnection = jest.fn();
 jest.mock('~/app/api/k8s', () => ({
@@ -23,10 +22,12 @@ jest.mock('~/app/utils/validationUtils', () => ({
     code ? `Error ${code} for ${mode}` : `Unknown error for ${mode}`,
 }));
 
-const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
-
 const expectTracked = (eventName: string, properties: unknown): void => {
-  expect(mockFireMisc).toHaveBeenCalledWith(eventName, expect.objectContaining(properties));
+  expect(mockTrackEvent).toHaveBeenCalledWith(
+    eventName,
+    expect.objectContaining(properties),
+    expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+  );
 };
 
 const defaultParams = {
@@ -147,7 +148,7 @@ describe('useConnectionValidation - Tracking Events', () => {
     it('should not fire tracking event on initial render', () => {
       renderHook(() => useConnectionValidation(defaultParams));
 
-      expect(mockFireMisc).not.toHaveBeenCalled();
+      expect(mockTrackEvent).not.toHaveBeenCalled();
     });
 
     it('should not fire tracking event when namespace is undefined', async () => {
@@ -159,7 +160,7 @@ describe('useConnectionValidation - Tracking Events', () => {
         await result.current.handleVerifyConnection();
       });
 
-      expect(mockFireMisc).not.toHaveBeenCalled();
+      expect(mockTrackEvent).not.toHaveBeenCalled();
     });
   });
 });

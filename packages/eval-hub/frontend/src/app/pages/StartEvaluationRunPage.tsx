@@ -56,7 +56,7 @@ import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import HardwareProfileField from '~/app/components/HardwareProfileField';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   useStartEvaluationRunForm,
@@ -75,6 +75,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   initialValues,
   sourceJobId,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
@@ -138,7 +140,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
         providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
       },
     );
-  }, [benchmark, collection, dataLoaded, isReconfigure, loadError]);
+  }, [trackEvalHubEvent, benchmark, collection, dataLoaded, isReconfigure, loadError]);
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select collection' : 'Select benchmark';
 

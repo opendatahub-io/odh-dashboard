@@ -2,6 +2,8 @@ import * as React from 'react';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { MaaSGovernanceProvider } from '~/app/context/MaaSGovernanceContext';
 import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
+import { CallerOrganizationContext } from '~/app/shared/GroupName';
+import { useCallerOrganization } from '~/app/hooks/useCallerOrganization';
 import { getModelAccessSubscriptionViewUrl } from './utils';
 
 /**
@@ -23,8 +25,8 @@ import { getModelAccessSubscriptionViewUrl } from './utils';
  */
 const ModelAccessPageContent: React.FC = () => (
   <ApplicationsPage
-    title="Model Access"
-    description="View subscriptions that control access to models through the Models-as-a-Server (MaaS) gateway."
+    title="Model access"
+    description="View subscriptions for users in your organization. Subscriptions control which models served via the Model-as-a-Service (MaaS) gateway its members can access, and enforce token limits for each one."
     loaded
     empty={false}
   >
@@ -32,10 +34,16 @@ const ModelAccessPageContent: React.FC = () => (
   </ApplicationsPage>
 );
 
-const ModelAccessPage: React.FC = () => (
-  <MaaSGovernanceProvider subscriptionsEndpoint="admin-subscriptions" subscriptionsOnly>
-    <ModelAccessPageContent />
-  </MaaSGovernanceProvider>
-);
+const ModelAccessPage: React.FC = () => {
+  // Groups of the caller's organization show by its name (GroupName).
+  const [organization] = useCallerOrganization();
+  return (
+    <CallerOrganizationContext.Provider value={organization}>
+      <MaaSGovernanceProvider subscriptionsEndpoint="admin-subscriptions" subscriptionsOnly>
+        <ModelAccessPageContent />
+      </MaaSGovernanceProvider>
+    </CallerOrganizationContext.Provider>
+  );
+};
 
 export default ModelAccessPage;

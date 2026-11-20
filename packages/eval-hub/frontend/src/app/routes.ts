@@ -1,11 +1,9 @@
 import { DeploymentMode } from 'mod-arch-core';
 import { DEPLOYMENT_MODE } from '~/app/utilities/const';
+import { evaluationRootSegment, evaluationComparePathSegment } from './routeSegments';
 
 const globNamespace = ':namespace';
 export const globNamespaceAll = `/${globNamespace}?/*`;
-
-// Path segment used for route matching in AppRoutes
-export const evaluationRootSegment = 'evaluation';
 
 // Route helpers (used for navigation, resolved relative to the app mount root)
 export const evaluationsBaseRoute = (namespace?: string): string =>
@@ -67,8 +65,6 @@ export const evaluationCreateSuiteRoute = (namespace?: string): string =>
 
 export const evaluationResultsRoute = (namespace?: string, jobId?: string): string =>
   `${evaluationsBaseRoute(namespace)}/results/${jobId ?? ':jobId'}`;
-
-export const evaluationComparePathSegment = 'compare-runs';
 
 export const evaluationCompareRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}/${evaluationComparePathSegment}`;

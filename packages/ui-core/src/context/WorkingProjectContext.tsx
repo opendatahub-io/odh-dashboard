@@ -38,6 +38,15 @@ export const WorkingProjectStatusValue = {
 export type WorkingProjectStatus =
   (typeof WorkingProjectStatusValue)[keyof typeof WorkingProjectStatusValue];
 
+const PROJECT_SELECTION_STATUSES = new Set<WorkingProjectStatus>([
+  WorkingProjectStatusValue.Loading,
+  WorkingProjectStatusValue.ProjectSourceError,
+  WorkingProjectStatusValue.NoProjectSelected,
+]);
+
+export const requiresWorkingProjectSelection = (status: WorkingProjectStatus): boolean =>
+  PROJECT_SELECTION_STATUSES.has(status);
+
 export const WorkingProjectStatusLabelValue: Record<WorkingProjectStatus, string> = {
   /** Displayed when no provider is mounted or the project source is unavailable. */
   [WorkingProjectStatusValue.ProviderAbsent]: 'Projects unavailable',
@@ -66,7 +75,11 @@ export type WorkingProjectContextType = {
   status: WorkingProjectStatus;
   projects: readonly ProjectIdentity[];
   activeProject: ProjectIdentity | null;
-  selectProject: (project: ProjectIdentity) => void;
+  /** Hosts may return a promise when selection requires access validation. */
+  selectProject: (project: ProjectIdentity) => void | Promise<void>;
+  /** Optional host-owned discovery; no API or persistence behavior lives in ui-core. */
+  discoverProject?: (name: string, signal: AbortSignal) => Promise<ProjectIdentity>;
+  rememberProject?: (name: string, signal: AbortSignal) => Promise<void>;
   registerProjectNavigation?: (navigate: WorkingProjectNavigation) => () => void;
   /** Mark a route that writes its URL project into the preference. */
   registerProjectRouteSync?: (route?: RouteProjectInput) => () => void;
@@ -79,7 +92,9 @@ export type WorkingProjectProviderProps = {
   children: React.ReactNode;
   projects: readonly ProjectIdentity[];
   activeProject: ProjectIdentity | null;
-  onProjectChange: (project: ProjectIdentity) => void;
+  onProjectChange: WorkingProjectContextType['selectProject'];
+  discoverProject?: WorkingProjectContextType['discoverProject'];
+  rememberProject?: WorkingProjectContextType['rememberProject'];
   registerProjectNavigation?: (navigate: WorkingProjectNavigation) => () => void;
   registerProjectRouteSync?: (route?: RouteProjectInput) => () => void;
   cancelProjectNavigation?: () => void;
@@ -120,6 +135,8 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   projects,
   activeProject,
   onProjectChange,
+  discoverProject,
+  rememberProject,
   registerProjectNavigation,
   registerProjectRouteSync,
   cancelProjectNavigation,
@@ -137,11 +154,11 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   const knownActiveProject = knownProjects.find(({ name }) => name === activeProject?.name) ?? null;
 
   const selectProject = React.useCallback(
-    (project: ProjectIdentity): void => {
+    (project: ProjectIdentity): void | Promise<void> => {
       const selectableProject = knownProjects.find(({ name }) => name === project.name);
 
       if (selectableProject) {
-        onProjectChange(selectableProject);
+        return onProjectChange(selectableProject);
       }
     },
     [onProjectChange, knownProjects],
@@ -153,6 +170,8 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
       projects: knownProjects,
       activeProject: knownActiveProject,
       selectProject,
+      discoverProject,
+      rememberProject,
       ...(registerProjectNavigation && { registerProjectNavigation }),
       ...(registerProjectRouteSync && { registerProjectRouteSync }),
       ...(cancelProjectNavigation && { cancelProjectNavigation }),
@@ -163,6 +182,8 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
       knownProjects,
       knownActiveProject,
       selectProject,
+      discoverProject,
+      rememberProject,
       registerProjectNavigation,
       registerProjectRouteSync,
       cancelProjectNavigation,
