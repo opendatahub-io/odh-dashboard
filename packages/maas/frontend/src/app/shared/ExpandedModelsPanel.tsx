@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { Content, ContentVariants } from '@patternfly/react-core';
+import { Content } from '@patternfly/react-core';
 import { ModelRef, ModelSubscriptionRef } from '~/app/types/subscriptions';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
 
@@ -53,14 +53,6 @@ const ExpandedModelsPanel: React.FC<ExpandedModelsPanelProps> = ({
               {model.displayName && model.displayName !== model.name && (
                 <Content data-testid={`${testIdResource}-expanded-model-resource-name`}>
                   {model.name}
-                </Content>
-              )}
-              {model.description && (
-                <Content
-                  data-testid={`${testIdResource}-expanded-model-description`}
-                  component={ContentVariants.small}
-                >
-                  {model.description}
                 </Content>
               )}
             </Td>

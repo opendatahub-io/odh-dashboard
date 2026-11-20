@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { getSubscriptionsColumns } from './columns';
 import SubscriptionTableRow from './SubscriptionTableRow';
@@ -27,28 +28,32 @@ export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
   showStatus = true,
   showActions = true,
   getSubscriptionDetailUrl,
-}): React.ReactNode => (
-  <Table
-    data-testid="subscriptions-table"
-    data={subscriptions}
-    columns={getSubscriptionsColumns({ showStatus })}
-    enablePagination
-    disableRowRenderSupport
-    isExpandable
-    rowRenderer={(subscription: MaaSSubscription, rowIndex: number) => (
-      <SubscriptionTableRow
-        key={subscription.name}
-        subscription={subscription}
-        rowIndex={rowIndex}
-        setDeleteSubscription={setDeleteSubscription}
-        returnTo={returnTo}
-        showStatus={showStatus}
-        showActions={showActions}
-        getSubscriptionDetailUrl={getSubscriptionDetailUrl}
-      />
-    )}
-    emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
-    toolbarContent={toolbarContent}
-    onClearFilters={onClearFilters}
-  />
-);
+}): React.ReactNode => {
+  const showPriority = useIsAreaAvailable(SupportedArea.INFERENCE_PRIORITY_FIELD).status === true;
+  return (
+    <Table
+      data-testid="subscriptions-table"
+      data={subscriptions}
+      columns={getSubscriptionsColumns({ showStatus, showPriority })}
+      enablePagination
+      disableRowRenderSupport
+      isExpandable
+      rowRenderer={(subscription: MaaSSubscription, rowIndex: number) => (
+        <SubscriptionTableRow
+          key={subscription.name}
+          subscription={subscription}
+          rowIndex={rowIndex}
+          setDeleteSubscription={setDeleteSubscription}
+          returnTo={returnTo}
+          showStatus={showStatus}
+          showActions={showActions}
+          showPriority={showPriority}
+          getSubscriptionDetailUrl={getSubscriptionDetailUrl}
+        />
+      )}
+      emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+      toolbarContent={toolbarContent}
+      onClearFilters={onClearFilters}
+    />
+  );
+};

@@ -106,6 +106,7 @@ const OverviewTab: React.FC = () => {
           <OverviewToolbar
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
+            rows={rows}
             returnTo={OVERVIEW_RETURN_TO}
           />
         }

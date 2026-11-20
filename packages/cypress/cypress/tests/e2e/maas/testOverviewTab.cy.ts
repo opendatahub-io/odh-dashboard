@@ -123,12 +123,11 @@ describe('MaaS Governance Overview tab', () => {
       cy.step('Filter to the test model and validate the overview row');
       overviewTabPage.findFilterDropdownButton().click();
       overviewTabPage.findFilterDropdownItem('modelName').click();
-      overviewTabPage.findFilterInput('model').type(modelName);
+      overviewTabPage.filterByTypeahead('model', modelName, modelName);
 
       const overviewRow = overviewTabPage.getRow(modelName, projectName);
       overviewRow.findModelName().should('contain.text', modelName);
       overviewRow.findModelId().should('contain.text', modelName);
-      overviewRow.findModelDescription().should('contain.text', testData.singleModelDescription);
       overviewRow.findModelProject().should('contain.text', projectName);
       overviewRow.findModelPhase().should('contain.text', PhaseStatus.PENDING);
       // Verify the phase modal is displayed
@@ -277,16 +276,16 @@ describe('MaaS Governance Overview tab', () => {
       cy.step('Verify the filter dropdown is displayed');
       overviewTabPage.findFilterDropdownButton().click();
       overviewTabPage.findFilterDropdownItem('project').click();
-      overviewTabPage.findFilterInput('project').type(projectName);
+      overviewTabPage.filterByTypeahead('project', projectName, projectName);
       overviewTabPage.findFilterDropdownButton().click();
       overviewTabPage.findFilterDropdownItem('groupName').click();
-      overviewTabPage.findFilterInput('group').type(subscriptionGroups[0]);
+      overviewTabPage.filterByTypeahead('group', subscriptionGroups[0], subscriptionGroups[0]);
       overviewTabPage.findFilterDropdownButton().click();
       overviewTabPage.findFilterDropdownItem('subscriptionName').click();
-      overviewTabPage.findFilterInput('subscription').type(subscriptionName);
+      overviewTabPage.filterByTypeahead('subscription', subscriptionName, subscriptionName);
       overviewTabPage.findFilterDropdownButton().click();
       overviewTabPage.findFilterDropdownItem('authPolicyName').click();
-      overviewTabPage.findFilterInput('policy').type(policyName);
+      overviewTabPage.filterByTypeahead('policy', policyName, policyName);
       overviewTabPage.findModelRows().should('have.length', 1);
 
       cy.step('Verify the link on policy name navigates to the policy details page');

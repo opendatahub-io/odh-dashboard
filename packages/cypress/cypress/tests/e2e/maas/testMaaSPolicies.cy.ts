@@ -214,7 +214,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
       policyPage.findSubmitButton().click();
 
       cy.step('Verify the authorization policy is updated');
-      authPoliciesPage.findKeywordFilterInput().type(policiesUpdatedName);
+      authPoliciesPage.filterByTypeahead('policy', policiesUpdatedName, policiesUpdatedName);
       authPoliciesPage.findRows().should('have.length', 1);
       policyRow = authPoliciesPage.getRow(policiesUpdatedName);
       policyRow.findTitleButton().should('contain.text', policiesUpdatedName);
@@ -226,9 +226,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       policyRow.findModels().should('contain.text', `${policiesModelsCount}`);
       policyRow.findExpandModelButton().click();
       policyRow.findExpandedModelName().should('contain.text', modelName);
-      policyRow
-        .findExpandedModelDescription()
-        .should('contain.text', testData.singleModelDescription);
       cy.step('Delete the authorization policy');
       policyRow.findActionsToggle().click();
       policyRow.findDeleteButton().click();
@@ -290,7 +287,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
 
       cy.step('Verify the policy is visible in policies page');
       authPoliciesPage.visit();
-      authPoliciesPage.findKeywordFilterInput().type(subscriptionName);
+      authPoliciesPage.filterByTypeahead('policy', subscriptionName);
       authPoliciesPage.getFirstRowPolicyName().as('subscriptionPolicyName');
       policiesDescription = `Auth policy created for subscription "${subscriptionName}"`;
 
@@ -366,7 +363,11 @@ describe('An admin can manage MaaS authorization policies and control model acce
           cy.then(() => {
             cy.step(' Remove group from the policy');
             authPoliciesPage.visit();
-            authPoliciesPage.findKeywordFilterInput().type(subscriptionPolicyName);
+            authPoliciesPage.filterByTypeahead(
+              'policy',
+              subscriptionPolicyName,
+              subscriptionPolicyName,
+            );
             authPoliciesPage.findRows().should('have.length', 1);
             const editPolicyRow = authPoliciesPage.getRow(subscriptionPolicyName);
             editPolicyRow.findActionsToggle().click();
