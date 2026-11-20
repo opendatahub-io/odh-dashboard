@@ -313,6 +313,9 @@ func (r *S3Repository) GetCSVSchema(ctx context.Context, req S3RequestContext, k
 
 	body, _, err := r.s3Service.GetObject(ctx, opts, s3.GetObjectInput{Bucket: bucket, Key: key, Range: csvSchemaRange})
 	if err != nil {
+		if errors.Is(err, s3.ErrInvalidRange) {
+			return helper.CSVSchemaResult{}, fmt.Errorf("%w: CSV file is empty", helper.ErrCSVValidation)
+		}
 		return helper.CSVSchemaResult{}, fmt.Errorf("error retrieving CSV file from S3: %w", err)
 	}
 	defer body.Close()

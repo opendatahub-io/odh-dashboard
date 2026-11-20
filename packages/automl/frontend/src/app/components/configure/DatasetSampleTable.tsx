@@ -44,7 +44,7 @@ export default function DatasetSampleTable({
   const rowStart = compact ? 0 : (page - 1) * perPage;
   const rows = sample.sampleRows.slice(rowStart, rowStart + (compact ? 3 : perPage));
   return (
-    <div className="automl-dataset-preview">
+    <div className="automl-dataset-preview pf-v6-u-overflow-auto">
       <TableBase
         aria-label={label}
         caption={

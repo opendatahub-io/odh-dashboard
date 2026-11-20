@@ -60,6 +60,20 @@ describe('FileExplorer', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
 
+    it('should keep the current selection visible when viewing a different file in a tear sheet', () => {
+      render(<FileExplorer {...defaultProps} presentation="tearsheet" />);
+      const selectedRow = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(selectedRow).getByRole('radio'));
+      const viewedRow = screen.getByTestId('file-explorer-row--file-2-json');
+      fireEvent.click(within(viewedRow).getByRole('button', { name: /file-2\.json actions/i }));
+      fireEvent.click(screen.getByText('View details'));
+      expect(screen.getByText('Current selection')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('file-explorer-select-btn'));
+      expect(mockOnPrimary).toHaveBeenCalledWith([
+        expect.objectContaining({ name: 'file-1.json' }),
+      ]);
+    });
+
     it('should render the modal when isOpen is true', () => {
       render(<FileExplorer {...defaultProps} />);
 

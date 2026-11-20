@@ -125,6 +125,7 @@ function AutomlConfigurePage({
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
+  const [isDatasetUploading, setIsDatasetUploading] = useState(false);
   const isRecommendedRef = React.useRef(true);
   const funnelStepRef = React.useRef<AutomlFunnelStep>('defineDetails');
   // Cancel is only rendered on step 'create'. `sourceRunId` is set for every reconfigure flow
@@ -264,7 +265,7 @@ function AutomlConfigurePage({
           type="submit"
           variant="primary"
           data-testid="automl-create-run-button"
-          isDisabled={!form.formState.isValid || form.formState.isSubmitting}
+          isDisabled={!form.formState.isValid || form.formState.isSubmitting || isDatasetUploading}
         >
           {sourceRunId ? 'Create new run' : 'Create run'}
         </Button>
@@ -377,6 +378,10 @@ function AutomlConfigurePage({
               return;
             }
 
+            if (isDatasetUploading) {
+              return;
+            }
+
             form.handleSubmit(
               async (data: ConfigureSchema) => {
                 const trackingProperties = {
@@ -469,6 +474,7 @@ function AutomlConfigurePage({
               ) : (
                 <AutomlConfigure
                   initialInputDataSecret={initialInputDataSecret}
+                  onDatasetUploadChange={setIsDatasetUploading}
                   onRecommendationChange={(isRecommended) => {
                     isRecommendedRef.current = isRecommended;
                   }}

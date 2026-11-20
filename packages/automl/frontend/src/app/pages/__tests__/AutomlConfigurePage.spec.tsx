@@ -1438,6 +1438,58 @@ describe('AutomlConfigurePage', () => {
         );
       });
 
+      it('should block submission during a replacement upload and preserve the previous test file on failure', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={{
+              ...tabularInitialValues,
+              dataset_split_mode: 'separate',
+              test_data_file_key: 'old-test.csv',
+            }}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+        const user = await navigateToConfigure();
+        await user.click(screen.getByTestId('test-data-accordion-toggle'));
+        await user.click(
+          within(screen.getByRole('group', { name: 'Choose how to add test data' })).getByRole(
+            'button',
+            { name: 'Upload new file' },
+          ),
+        );
+        mockUploadMutateAsync.mockResolvedValueOnce({ uploaded: true, key: 'test.csv' });
+        fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+          target: { files: [new File(['name\na\n'], 'test.csv', { type: 'text/csv' })] },
+        });
+        const submit = screen.getByTestId('automl-create-run-button');
+        await waitFor(() => expect(submit).toBeEnabled());
+        let rejectUpload!: (error: Error) => void;
+        mockUploadMutateAsync.mockReturnValueOnce(
+          new Promise((_resolve, reject) => {
+            rejectUpload = reject;
+          }),
+        );
+        fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+          target: { files: [new File(['name\nb\n'], 'replacement.csv', { type: 'text/csv' })] },
+        });
+        await waitFor(() => expect(submit).toBeDisabled());
+        const form = submit.closest('form');
+        if (!form) {
+          throw new Error('Submit button must belong to the configure form');
+        }
+        fireEvent.submit(form);
+        expect(mockMutateAsync).not.toHaveBeenCalled();
+        await act(async () => rejectUpload(new Error('Upload failed')));
+        await waitFor(() => expect(submit).toBeEnabled());
+        await user.click(submit);
+        await waitFor(() =>
+          expect(mockMutateAsync).toHaveBeenCalledWith(
+            expect.objectContaining({ test_data_file_key: 'test.csv' }),
+          ),
+        );
+      });
+
       it.each(['training', 'test'] as const)(
         'should ignore a late %s upload after Back → Next and a replacement selection',
         async (dataset) => {

@@ -1420,7 +1420,7 @@ components:
           minLength: 1
           description: >-
             Optional S3 object key for a separate test data file. Must be supplied together with
-            test_data_bucket_name.
+            test_data_bucket_name and must differ from train_data_file_key.
           example: "data/test.csv"
         eval_metric:
           type: string

@@ -43,7 +43,11 @@ export default function DatasetFileDetailsPreview({
         {query.isFetching ? (
           <Spinner size="md" aria-label="Sampling file preview" />
         ) : query.error ? (
-          <DatasetSamplingError />
+          <DatasetSamplingError
+            onRetry={() => {
+              void query.refetch();
+            }}
+          />
         ) : (
           query.sample && (
             <DatasetSampleTable

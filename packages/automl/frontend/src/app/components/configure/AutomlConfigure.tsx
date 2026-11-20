@@ -19,9 +19,6 @@ import {
   CardTitle,
   Content,
   Divider,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   EmptyState,
   EmptyStateBody,
   Flex,
@@ -32,8 +29,6 @@ import {
   HelperText,
   HelperTextItem,
   MenuToggle,
-  MultipleFileUpload,
-  MultipleFileUploadMain,
   NumberInput,
   Radio,
   Select,
@@ -41,23 +36,14 @@ import {
   SelectOption,
   Split,
   SplitItem,
-  Spinner,
   Stack,
   StackItem,
-  ToggleGroup,
-  ToggleGroupItem,
-  Tooltip,
-  Truncate,
 } from '@patternfly/react-core';
-import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import {
   CheckCircleIcon,
   CubesIcon,
-  EllipsisVIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  TimesIcon,
-  UploadIcon,
 } from '@patternfly/react-icons';
 import type { FileRejection } from 'react-dropzone';
 import { findKey } from 'es-toolkit';
@@ -105,14 +91,10 @@ import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { DATASET_SPLIT_AUTO, DATASET_SPLIT_SEPARATE } from '~/app/utilities/datasetSplit';
 import {
   AUTOML_TRAINING_UPLOAD_MAX_BYTES,
-  AUTOML_TRAINING_UPLOAD_MAX_FILES,
-  AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB,
   AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
   getTrainingDataDropRejectedNotification,
   isAllowedTrainingDataUploadFile,
   resolveSingleFileDropOutcome,
-  TRAINING_DATA_FILE_ACCEPT,
-  TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
 } from '~/app/utilities/automlTrainingDataFile';
 import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import {
@@ -150,6 +132,7 @@ function explorerFileFromKey(fileKey?: string): ExplorerFile | undefined {
 
 type AutomlConfigureProps = {
   initialInputDataSecret?: SecretSelection;
+  onDatasetUploadChange?: (isUploading: boolean) => void;
   /** Reports whether the currently selected prediction type matches the recommendation derived from the target column. */
   onRecommendationChange?: (isRecommended: boolean) => void;
   /** Reports the furthest configure-step section the user has reached, for funnel exit tracking. */
@@ -158,6 +141,7 @@ type AutomlConfigureProps = {
 
 function AutomlConfigure({
   initialInputDataSecret,
+  onDatasetUploadChange,
   onRecommendationChange,
   onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
@@ -168,7 +152,7 @@ function AutomlConfigure({
     setValue,
     getValues,
     trigger,
-    formState: { isSubmitting: formIsSubmitting },
+    formState: { isSubmitting: formIsSubmitting, errors },
   } = form;
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -218,6 +202,12 @@ function AutomlConfigure({
   const testDataUploadSeqRef = useRef(0);
   const pendingTestDataCollapseRef = useRef<string>();
   const testDataNativeInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    onDatasetUploadChange?.(isTrainingDataFileUploading || isTestDataFileUploading);
+  }, [isTrainingDataFileUploading, isTestDataFileUploading, onDatasetUploadChange]);
+
+  useEffect(() => () => onDatasetUploadChange?.(false), [onDatasetUploadChange]);
 
   useEffect(
     () => () => {
@@ -326,7 +316,6 @@ function AutomlConfigure({
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
-  const showTrainingDataUploadDropzone = !isTrainingDataFileUploading && !trainDataFileKey.trim();
   const areDocumentsComplete =
     isFileSelected &&
     (datasetSplitMode !== DATASET_SPLIT_SEPARATE || Boolean(testDataFileKey?.trim()));
@@ -343,6 +332,7 @@ function AutomlConfigure({
     error: columnsError,
     resetSchemaCache,
     sample: trainingSample,
+    refetch: refetchTrainingSample,
   } = useS3GetFileSchemaQuery(
     namespace ?? '',
     trainDataSecretName,
@@ -672,7 +662,6 @@ function AutomlConfigure({
         return;
       }
       const uploadRequestId = ++testDataUploadSeqRef.current;
-      setValue('test_data_file_key', '', { shouldValidate: true });
       setIsTestDataUploadDropdownOpen(false);
       setIsTestDataFileUploading(true);
       try {
@@ -914,235 +903,37 @@ function AutomlConfigure({
                           <StackItem>
                             <Content component="h4">2. Choose a file</Content>
                           </StackItem>
-                          <StackItem className="pf-v6-u-mt-sm">
-                            <ToggleGroup
-                              aria-label="Choose how to add training data"
-                              className="automl-configure__toggle-group-full-width pf-v6-u-mb-md"
-                            >
-                              <ToggleGroupItem
-                                text="Select file from bucket"
-                                buttonId="training-data-input-select"
-                                data-testid="training-data-source-select-toggle"
-                                isSelected={trainingDataSourceMode === 'select'}
-                                isDisabled={formIsSubmitting}
-                                onChange={() => setTrainingDataSourceMode('select')}
-                              />
-                              <ToggleGroupItem
-                                text="Upload new file"
-                                buttonId="training-data-input-upload"
-                                data-testid="training-data-source-upload-toggle"
-                                isSelected={trainingDataSourceMode === 'upload'}
-                                isDisabled={formIsSubmitting}
-                                onChange={() => setTrainingDataSourceMode('upload')}
-                              />
-                            </ToggleGroup>
-                          </StackItem>
-
-                          {trainingDataSourceMode === 'select' && (
-                            <>
-                              <StackItem>
-                                <Content component="h4">Select file from bucket</Content>
-                              </StackItem>
-                              <StackItem>
-                                <Content component="small">
-                                  Select one CSV file from this bucket to use as training data for
-                                  your experiment.
-                                </Content>
-                              </StackItem>
-                              <StackItem>
-                                <Button
-                                  key="browse-bucket"
-                                  variant="secondary"
-                                  data-testid="browse-bucket-button"
-                                  onClick={() => {
-                                    setFileExplorerTarget('train');
-                                    setIsFileExplorerOpen(true);
-                                  }}
-                                  isDisabled={!canSelectFiles || formIsSubmitting}
-                                >
-                                  Browse bucket
-                                </Button>
-                              </StackItem>
-                              {selectedTrainingDataFile && (
-                                <StackItem>
-                                  <Table aria-label="Selected training data file" variant="compact">
-                                    <Thead>
-                                      <Tr>
-                                        <Th>Name</Th>
-                                        <Th>Type</Th>
-                                        <Th />
-                                      </Tr>
-                                    </Thead>
-                                    <Tbody>
-                                      <Tr>
-                                        <Td dataLabel="Name">
-                                          <span title={selectedTrainingDataFile.path}>
-                                            <Truncate content={selectedTrainingDataFile.name} />
-                                          </span>
-                                        </Td>
-                                        <Td dataLabel="Type">{selectedTrainingDataFile.type}</Td>
-                                        <Td isActionCell>
-                                          <Tooltip content="Remove selection">
-                                            <Button
-                                              size="sm"
-                                              variant="plain"
-                                              aria-label="Remove selection"
-                                              icon={<TimesIcon />}
-                                              isDisabled={formIsSubmitting}
-                                              onClick={() => {
-                                                setSelectedTrainingDataFile(undefined);
-                                                setValue('train_data_file_key', '', {
-                                                  shouldValidate: true,
-                                                });
-                                              }}
-                                            />
-                                          </Tooltip>
-                                        </Td>
-                                      </Tr>
-                                    </Tbody>
-                                  </Table>
-                                </StackItem>
-                              )}
-                            </>
-                          )}
-
-                          {trainingDataSourceMode === 'upload' && (
-                            <>
-                              <StackItem>
-                                <Content component="h4">Upload file</Content>
-                              </StackItem>
-                              <StackItem>
-                                <Content component="small" id="training-data-upload-description">
-                                  Drop a file here or browse to select a file.
-                                </Content>
-                              </StackItem>
-                              <StackItem>
-                                <input
-                                  ref={trainingDataNativeInputRef}
-                                  type="file"
-                                  hidden
-                                  data-testid="automl-upload-file-input"
-                                  accept={TRAINING_DATA_UPLOAD_NATIVE_ACCEPT}
-                                  aria-hidden
-                                  tabIndex={-1}
-                                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                    const input = event.currentTarget;
-                                    const file = input.files?.[0];
-                                    input.value = '';
-                                    if (!file) {
-                                      return;
-                                    }
-                                    void uploadTrainingDataFile(file);
-                                  }}
-                                />
-                                {showTrainingDataUploadDropzone && (
-                                  <MultipleFileUpload
-                                    aria-describedby="training-data-upload-description"
-                                    data-testid="training-data-upload-zone"
-                                    dropzoneProps={{
-                                      accept: TRAINING_DATA_FILE_ACCEPT,
-                                      disabled: formIsSubmitting || isTrainingDataFileUploading,
-                                      maxFiles: AUTOML_TRAINING_UPLOAD_MAX_FILES,
-                                      maxSize: AUTOML_TRAINING_UPLOAD_MAX_BYTES,
-                                      multiple: false,
-                                      onDrop: processTrainingDataDropOutcome,
-                                    }}
-                                  >
-                                    <MultipleFileUploadMain
-                                      titleIcon={<UploadIcon />}
-                                      titleText="Drag and drop files here"
-                                      titleTextSeparator="or"
-                                      infoText={`Accepted file types: CSV. Maximum file size: ${AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB} MiB`}
-                                      browseButtonText="Upload"
-                                    />
-                                  </MultipleFileUpload>
-                                )}
-                                {!showTrainingDataUploadDropzone && (
-                                  <Table
-                                    aria-label="Training data file upload"
-                                    borders
-                                    variant="compact"
-                                    className="pf-v6-u-w-100"
-                                  >
-                                    <Thead>
-                                      <Tr>
-                                        <Th>File</Th>
-                                        <Th aria-label="Actions" />
-                                      </Tr>
-                                    </Thead>
-                                    <Tbody>
-                                      <Tr>
-                                        <Td dataLabel="File" data-testid="uploaded-file-cell">
-                                          <Split hasGutter>
-                                            {isTrainingDataFileUploading && (
-                                              <SplitItem>
-                                                <Spinner
-                                                  size="md"
-                                                  aria-label="Uploading file"
-                                                  data-testid="training-data-upload-spinner"
-                                                />
-                                              </SplitItem>
-                                            )}
-                                            <SplitItem isFilled>
-                                              {isTrainingDataFileUploading ? (
-                                                'Uploading…'
-                                              ) : (
-                                                <Truncate content={trainDataFileKey} />
-                                              )}
-                                            </SplitItem>
-                                          </Split>
-                                        </Td>
-                                        <Td isActionCell modifier="fitContent">
-                                          <Dropdown
-                                            isOpen={isTrainingDataUploadDropdownOpen}
-                                            onOpenChange={setIsTrainingDataUploadDropdownOpen}
-                                            shouldFocusToggleOnSelect
-                                            toggle={(toggleRef) => (
-                                              <MenuToggle
-                                                ref={toggleRef}
-                                                variant="plain"
-                                                aria-label="Uploaded file actions"
-                                                icon={<EllipsisVIcon />}
-                                                onClick={() =>
-                                                  setIsTrainingDataUploadDropdownOpen(
-                                                    !isTrainingDataUploadDropdownOpen,
-                                                  )
-                                                }
-                                                isExpanded={isTrainingDataUploadDropdownOpen}
-                                                isDisabled={
-                                                  formIsSubmitting || isTrainingDataFileUploading
-                                                }
-                                              />
-                                            )}
-                                            popperProps={{ position: 'end', preventOverflow: true }}
-                                          >
-                                            <DropdownList>
-                                              <DropdownItem
-                                                key="remove"
-                                                data-testid="training-data-upload-remove"
-                                                isDisabled={formIsSubmitting}
-                                                onClick={clearTrainingDataUpload}
-                                              >
-                                                Remove
-                                              </DropdownItem>
-                                              <DropdownItem
-                                                key="replace"
-                                                data-testid="training-data-upload-replace"
-                                                isDisabled={formIsSubmitting}
-                                                onClick={openTrainingDataReplaceFileDialog}
-                                              >
-                                                Replace
-                                              </DropdownItem>
-                                            </DropdownList>
-                                          </Dropdown>
-                                        </Td>
-                                      </Tr>
-                                    </Tbody>
-                                  </Table>
-                                )}
-                              </StackItem>
-                            </>
-                          )}
+                          <DatasetFilePicker
+                            dataset="training"
+                            testIdPrefix="training-data"
+                            selectDescription="Select one CSV file from this bucket to use as training data for your experiment."
+                            fileKey={trainDataFileKey}
+                            selectedFile={selectedTrainingDataFile}
+                            sourceMode={trainingDataSourceMode}
+                            onSourceModeChange={setTrainingDataSourceMode}
+                            onBrowse={() => {
+                              setFileExplorerTarget('train');
+                              setIsFileExplorerOpen(true);
+                            }}
+                            onRemoveSelection={() => {
+                              setSelectedTrainingDataFile(undefined);
+                              setValue('train_data_file_key', '', {
+                                shouldValidate: true,
+                              });
+                            }}
+                            canSelectFiles={canSelectFiles}
+                            formIsSubmitting={formIsSubmitting}
+                            isUploading={isTrainingDataFileUploading}
+                            isUploadDropdownOpen={isTrainingDataUploadDropdownOpen}
+                            onUploadDropdownOpenChange={setIsTrainingDataUploadDropdownOpen}
+                            nativeInputRef={trainingDataNativeInputRef}
+                            onNativeFileChange={(file) => {
+                              void uploadTrainingDataFile(file);
+                            }}
+                            onDrop={processTrainingDataDropOutcome}
+                            onClearUpload={clearTrainingDataUpload}
+                            onReplaceUpload={openTrainingDataReplaceFileDialog}
+                          />
                           {isFileSelected &&
                             !isTrainingDataFileUploading &&
                             !isLoadingColumns &&
@@ -1284,7 +1075,12 @@ function AutomlConfigure({
                                         />
                                         {columnsError && (
                                           <StackItem>
-                                            <DatasetSamplingError />
+                                            <DatasetSamplingError
+                                              onRetry={() => {
+                                                void refetchTrainingSample();
+                                              }}
+                                              isRetrying={isFetchingColumns}
+                                            />
                                           </StackItem>
                                         )}
                                       </>
@@ -1396,9 +1192,23 @@ function AutomlConfigure({
                                           onClearUpload={clearTestDataUpload}
                                           onReplaceUpload={openTestDataReplaceFileDialog}
                                         />
+                                        {errors.test_data_file_key && (
+                                          <StackItem>
+                                            <HelperText>
+                                              <HelperTextItem variant="error">
+                                                {errors.test_data_file_key.message}
+                                              </HelperTextItem>
+                                            </HelperText>
+                                          </StackItem>
+                                        )}
                                         {testSampleQuery.error && (
                                           <StackItem>
-                                            <DatasetSamplingError />
+                                            <DatasetSamplingError
+                                              onRetry={() => {
+                                                void testSampleQuery.refetch();
+                                              }}
+                                              isRetrying={testSampleQuery.isFetching}
+                                            />
                                           </StackItem>
                                         )}
                                       </>

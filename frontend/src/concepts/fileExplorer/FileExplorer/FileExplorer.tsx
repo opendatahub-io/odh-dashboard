@@ -1048,7 +1048,13 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
   );
 
   const shouldRender = shouldDetailsPanelRender({ filesToView, selectedFiles });
-  const showSelection = shouldRender.selected && !(isSingleFileTearsheet && shouldRender.details);
+  const isViewingSelection =
+    Array.isArray(selectedFiles) &&
+    selectedFiles.length === 1 &&
+    Array.isArray(filesToView) &&
+    filesToView.length === 1 &&
+    filesToView[0].path === selectedFiles[0].path;
+  const showSelection = shouldRender.selected && !(isSingleFileTearsheet && isViewingSelection);
 
   return (
     <Card isFullHeight={!isSingleFileTearsheet} isCompact data-testid="file-explorer-details-panel">

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
@@ -895,6 +896,24 @@ func TestS3Repository_GetCSVSchema(t *testing.T) {
 		_, err := repo.GetCSVSchema(context.Background(), S3RequestContext{}, "data.parquet")
 		if err == nil || !strings.Contains(err.Error(), ".csv") {
 			t.Errorf("expected csv error, got %v", err)
+		}
+	})
+
+	t.Run("classifies an empty object as CSV validation", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+				return makeK8sSecret("s", "ns", standardSecretData()), nil
+			},
+		}
+		s3svc := &mockS3Service{
+			getObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error) {
+				return nil, "", fmt.Errorf("wrapped: %w", s3.ErrInvalidRange)
+			},
+		}
+		repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+		_, err := repo.GetCSVSchema(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "empty.csv")
+		if !errors.Is(err, helper.ErrCSVValidation) {
+			t.Fatalf("expected CSV validation error, got %v", err)
 		}
 	})
 

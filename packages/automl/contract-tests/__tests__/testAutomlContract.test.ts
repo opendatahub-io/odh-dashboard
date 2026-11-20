@@ -720,6 +720,27 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
+      it('should reject the same training and test object', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-identical-data',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TABULAR_CSV_FILE,
+          test_data_bucket_name: BUCKET,
+          test_data_file_key: TABULAR_CSV_FILE,
+          label_column: 'target',
+          task_type: 'binary',
+        });
+        expect(result.success).toBe(false);
+        expect(result.error).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
       it('should create a tabular pipeline run with all optional fields', async () => {
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'contract-test-tabular-full-options',

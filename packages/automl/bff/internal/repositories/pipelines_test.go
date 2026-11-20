@@ -176,6 +176,17 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects identical training and test objects", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TestDataBucketName = ptr(req.TrainDataBucketName)
+		req.TestDataFileKey = ptr(req.TrainDataFileKey)
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		var validationErr *ValidationError
+		if !errors.As(err, &validationErr) || !strings.Contains(err.Error(), "must differ") {
+			t.Fatalf("expected distinct-file validation error, got %v", err)
+		}
+	})
+
 	t.Run("rejects an incomplete test dataset pair", func(t *testing.T) {
 		tests := []struct {
 			name string

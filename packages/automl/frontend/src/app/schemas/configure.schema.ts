@@ -193,15 +193,25 @@ function createConfigureSchema() {
         return issues;
       },
       (data) => {
-        if (
-          data.dataset_split_mode === DATASET_SPLIT_SEPARATE &&
-          !data.test_data_file_key?.trim()
-        ) {
+        if (data.dataset_split_mode !== DATASET_SPLIT_SEPARATE) {
+          return [];
+        }
+        if (!data.test_data_file_key?.trim()) {
           return [
             {
               code: 'custom',
               path: ['test_data_file_key'],
               message: 'Test data file is required',
+              input: data.test_data_file_key,
+            },
+          ];
+        }
+        if (data.test_data_file_key === data.train_data_file_key) {
+          return [
+            {
+              code: 'custom',
+              path: ['test_data_file_key'],
+              message: 'Test data must use a different file from training data',
               input: data.test_data_file_key,
             },
           ];

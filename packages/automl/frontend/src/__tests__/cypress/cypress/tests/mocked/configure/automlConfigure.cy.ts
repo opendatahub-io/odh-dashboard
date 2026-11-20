@@ -13,12 +13,12 @@ describe('AutoML configure page dataset split', () => {
     automlConfigurePage.findAutoSplitRadio().should('be.checked');
     automlConfigurePage.findTrainingAccordion().should('not.exist');
     automlConfigurePage.findTestAccordion().should('not.exist');
-    cy.findByTestId('dataset-compatibility-toggle').should('not.exist');
+    cy.findByRole('button', { name: 'View details' }).should('not.exist');
 
     automlConfigurePage.findSeparateDatasetsRadio().click();
     automlConfigurePage.findTrainingAccordion().should('exist');
     automlConfigurePage.findTestAccordion().should('exist');
-    cy.findByTestId('dataset-compatibility-toggle').should('not.exist');
+    cy.findByRole('button', { name: 'View details' }).should('not.exist');
     cy.findByText('0 of 2 datasets selected').should('exist');
     automlConfigurePage.findIncompleteSteps().should('have.length', 2);
     automlConfigurePage.findCreateRunButton().should('be.disabled');

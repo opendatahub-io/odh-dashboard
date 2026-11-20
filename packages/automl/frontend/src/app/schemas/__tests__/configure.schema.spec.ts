@@ -90,6 +90,35 @@ describe('createConfigureSchema', () => {
       }
     });
 
+    it.each([
+      ['data/train.csv', false],
+      ['other/train.csv', true],
+      ['data/Train.csv', true],
+    ])('should validate a separate test file %s (valid: %s)', (testFileKey, isValid) => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'data/train.csv',
+        test_data_file_key: testFileKey,
+        dataset_split_mode: 'separate',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'target',
+      });
+      expect(result.success).toBe(isValid);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['test_data_file_key'],
+              message: 'Test data must use a different file from training data',
+            }),
+          ]),
+        );
+      }
+    });
+
     it('should submit a single-item time series without an ID column', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,

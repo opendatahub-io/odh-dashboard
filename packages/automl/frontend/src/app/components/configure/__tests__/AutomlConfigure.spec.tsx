@@ -440,13 +440,12 @@ describe('AutomlConfigure', () => {
     mockSecretRefresh.mockResolvedValue([]);
   });
 
-  it.each([
-    { file: 'train.csv', accordion: /1\. Training data/ },
-    { file: 'test.csv', accordion: /2\. Test data/ },
-  ])('should show the sampling error for $file without a retry action', ({ file, accordion }) => {
+  const renderSamplingFailure = (file: string, accordion: RegExp) => {
+    const refetch = jest.fn();
     mockuseS3GetFileSchemaQuery.mockImplementation(
       (_namespace, _secret, _bucket, key) =>
         ({
+          refetch,
           data: key === file ? [] : MOCK_COLUMNS,
           error: key === file ? new Error('Sample failed') : null,
           isLoading: false,
@@ -469,15 +468,28 @@ describe('AutomlConfigure', () => {
       test_data_file_key: 'test.csv',
     });
     fireEvent.click(screen.getByRole('button', { name: accordion }));
+    return refetch;
+  };
+
+  it.each([
+    { file: 'train.csv', accordion: /1\. Training data/ },
+    { file: 'test.csv', accordion: /2\. Test data/ },
+  ])('should retry sampling $file while preserving its selection', ({ file, accordion }) => {
+    const refetch = renderSamplingFailure(file, accordion);
     expect(screen.getByText('Unable to sample document data')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'View details' })).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'An error occurred while sampling data from this document. Try again, or upload a different document.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Try again' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('dataset-sampling-error')).toHaveTextContent(
+      'An error occurred while sampling data from this document. Try again, or upload a different document.',
+    );
+    fireEvent.click(screen.getByTestId('dataset-sampling-retry'));
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
+      'test-namespace',
+      'Test Secret 1',
+      'test-bucket-1',
+      file,
+    );
+    expect(screen.getByRole('button', { name: accordion })).toHaveTextContent(file);
   });
 
   describe('initial state - no secret selected', () => {
@@ -1065,7 +1077,7 @@ describe('AutomlConfigure', () => {
       expect(screen.getByTestId('test-data-accordion-toggle')).toBeInTheDocument();
       expect(screen.getByText('0 of 2 datasets selected')).toBeInTheDocument();
       expect(screen.getAllByText('Incomplete')).toHaveLength(2);
-      expect(screen.queryByTestId('dataset-compatibility-toggle')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'View details' })).not.toBeInTheDocument();
       expect(screen.queryByTestId('aws-secret-selector')).not.toBeInTheDocument();
       expect(screen.getByText('Complete the Documents section')).toBeInTheDocument();
 
@@ -1099,27 +1111,59 @@ describe('AutomlConfigure', () => {
       expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
     });
 
-    it('should enable configuration and sample both selected files', () => {
-      renderComponent();
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
-      fireEvent.click(screen.getByTestId('dataset-split-separate'));
-      fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
-      fireEvent.click(screen.getByTestId('test-data-browse-bucket-button'));
-      fireEvent.click(screen.getByTestId('file-explorer-select-test-file'));
+    it.each([false, true])(
+      'should show compatibility for both selected files (mismatch: %s)',
+      (hasMismatch) => {
+        mockuseS3GetFileSchemaQuery.mockImplementation((_namespace, _secret, _bucket, key) => {
+          const columns =
+            hasMismatch && key === 'test.csv' ? MOCK_COLUMNS.slice(0, 1) : MOCK_COLUMNS;
+          return {
+            data: key ? columns : [],
+            sample: key
+              ? {
+                  columns,
+                  sampleRows: [columns.map(() => 'value')],
+                  sampleSize: 1,
+                  parseWarnings: 0,
+                }
+              : undefined,
+            isLoading: false,
+            isFetching: false,
+            resetSchemaCache: mockResetSchemaCache,
+          } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>;
+        });
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+        fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+        fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+        fireEvent.click(screen.getByTestId('test-data-browse-bucket-button'));
+        fireEvent.click(screen.getByTestId('file-explorer-select-test-file'));
 
-      expect(screen.getByText('2 of 2 datasets selected')).toBeInTheDocument();
-      expect(screen.queryByText('Complete the Documents section')).not.toBeInTheDocument();
-      expect(screen.getByTestId('target_column-select')).toBeEnabled();
-      expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
-        'test.csv',
-      );
-      expect(screen.queryByTestId('dataset-compatibility-toggle')).not.toBeInTheDocument();
-    });
+        expect(screen.getByText('2 of 2 datasets selected')).toBeInTheDocument();
+        expect(screen.queryByText('Complete the Documents section')).not.toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toBeEnabled();
+        expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.anything(),
+          'test.csv',
+        );
+        expect(
+          screen.getByText(
+            hasMismatch
+              ? 'Compatibility check: incompatibilities found.'
+              : 'Compatibility check passed',
+            { exact: false },
+          ),
+        ).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+        expect(
+          screen.getByRole('grid', { name: 'Training and test column comparison' }),
+        ).toBeInTheDocument();
+      },
+    );
 
     it.each(['select', 'upload'])(
       'should collapse the test section after a successful %s and allow manual reopening',
@@ -1224,6 +1268,39 @@ describe('AutomlConfigure', () => {
           'uploaded-key.csv',
         ),
       );
+    });
+
+    it('should preserve the selected test file when a replacement upload fails', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByTestId('dataset-split-separate'));
+      fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+      fireEvent.click(
+        within(screen.getByTestId('test-data-source-upload-toggle')).getByRole('button'),
+      );
+      mockS3MutateAsync.mockResolvedValueOnce({ uploaded: true, key: 'test.csv' });
+      fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+        target: { files: [new File(['rows'], 'test.csv', { type: 'text/csv' })] },
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveAttribute(
+          'aria-expanded',
+          'false',
+        ),
+      );
+      fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+      mockS3MutateAsync.mockRejectedValueOnce(new Error('Upload failed'));
+      fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+        target: { files: [new File(['rows'], 'replacement.csv', { type: 'text/csv' })] },
+      });
+      await waitFor(() =>
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Failed to upload file',
+          'Upload failed',
+        ),
+      );
+      expect(screen.getByTestId('test-data-uploaded-file-cell')).toHaveTextContent('test.csv');
+      expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('test.csv');
     });
 
     it.each(['connection', 'split mode'])(

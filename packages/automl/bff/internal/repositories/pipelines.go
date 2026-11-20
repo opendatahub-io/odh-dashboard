@@ -454,6 +454,9 @@ func validateTestDataFields(req models.CreateAutoMLRunRequest) error {
 	if *req.TestDataBucketName != req.TrainDataBucketName {
 		return NewValidationError("test_data_bucket_name must match train_data_bucket_name")
 	}
+	if *req.TestDataFileKey == req.TrainDataFileKey {
+		return NewValidationError("test_data_file_key must differ from train_data_file_key")
+	}
 	return nil
 }
 
