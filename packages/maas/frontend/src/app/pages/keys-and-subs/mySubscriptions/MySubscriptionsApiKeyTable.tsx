@@ -22,6 +22,7 @@ import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 import ApiKeysTableRow from '~/app/pages/keys-and-subs/apiKeys/allKeys/ApiKeysTableRow';
 import { ApiKeyColumn } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import CreateApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/CreateApiKeyModal';
+import AccessDetailsModal from '~/app/pages/keys-and-subs/apiKeys/AccessDetailsModal';
 import RevokeApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/RevokeApiKeyModal';
 import { ApiKeyCreateInitiatedFrom, ApiKeyRevokeInitiatedFrom } from '~/app/types/event-tracking';
 
@@ -95,6 +96,9 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
   const subscriptionId = subscription.subscription_id_header;
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
+  const [accessDetailsApiKey, setAccessDetailsApiKey] = React.useState<APIKey | undefined>(
+    undefined,
+  );
   const { refresh: refreshKeysAndSubs } = useKeysAndSubsContext();
 
   const {
@@ -154,6 +158,13 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
         />
       )}
 
+      {accessDetailsApiKey && (
+        <AccessDetailsModal
+          apiKey={accessDetailsApiKey}
+          subscription={subscription}
+          onClose={() => setAccessDetailsApiKey(undefined)}
+        />
+      )}
       <Toolbar inset={{ default: 'insetNone' }} className="pf-v6-u-w-100">
         <ToolbarContent>
           <ToolbarItem>
@@ -241,6 +252,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
                 apiKey={apiKey}
                 columns={subscriptionApiKeyColumns}
                 onRevokeApiKey={setRevokeApiKey}
+                onViewAccessDetails={setAccessDetailsApiKey}
                 isInactive={false}
               />
             ))

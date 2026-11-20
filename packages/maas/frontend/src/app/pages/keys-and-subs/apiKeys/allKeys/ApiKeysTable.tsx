@@ -24,6 +24,7 @@ type ApiKeysTableProps = {
   onSort: (field: ApiKeySortField, direction: SortDirection) => void;
   toolbarContent?: React.ReactNode;
   onRevokeApiKey: (apiKey: APIKey) => void;
+  onViewAccessDetails: (apiKey: APIKey) => void;
   onClearFilters: () => void;
   isFetching?: boolean;
   isMaasAdmin: boolean;
@@ -43,6 +44,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
   onPerPageSelect,
   onSort,
   onRevokeApiKey,
+  onViewAccessDetails,
   toolbarContent,
   onClearFilters,
   isFetching,
@@ -163,6 +165,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
                   isMaasAdmin={isMaasAdmin}
                   isInactive={isKeyInactive(apiKey)}
                   onRevokeApiKey={onRevokeApiKey}
+                  onViewAccessDetails={onViewAccessDetails}
                 />
               ))
             )}

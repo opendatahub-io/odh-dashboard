@@ -332,6 +332,33 @@ describe('findMaaSModelBySubscriptionRef', () => {
     );
   });
 
+  it('should not cross namespaces in the last-segment fallback when a namespace was supplied', () => {
+    const colliding = [
+      {
+        id: 'publishers/team-a/models/qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-a/qwen',
+      },
+    ];
+    // The team-b model is absent from the catalog; the team-a short-name hit must not
+    // be substituted for the team-b reference.
+    expect(
+      findMaaSModelBySubscriptionRef(colliding, {
+        refName: 'qwen',
+        refNamespace: 'team-b',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined for a missing namespace-qualified model even without collisions', () => {
+    expect(
+      findMaaSModelBySubscriptionRef(models, {
+        refName: 'other-model',
+        refNamespace: 'some-other-namespace',
+      }),
+    ).toBeUndefined();
+  });
+
   it('should return undefined when no model matches', () => {
     expect(findMaaSModelBySubscriptionRef(models, { refName: 'missing-model' })).toBeUndefined();
   });
@@ -402,8 +429,55 @@ describe('buildApiKeyUsageExample', () => {
       'chat-model',
       'sk-test-key',
     );
-    expect(example).toContain('curl -X POST https://maas.apps.example.com/v1/chat/completions');
+    expect(example).toContain(
+      "curl -X POST --globoff 'https://maas.apps.example.com/v1/chat/completions'",
+    );
     expect(example).not.toContain('/v1/v1/');
+  });
+
+  it('should disable curl URL globbing so bracket ranges are requested literally', () => {
+    // Braces are percent-encoded by URL serialization, but brackets survive it —
+    // without --globoff, curl would expand [a-b] into multiple requests.
+    const example = buildApiKeyUsageExample(
+      'https://gateway.example.com/models/[a-b]',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(example).toContain(
+      "curl -X POST --globoff 'https://gateway.example.com/models/[a-b]/v1/chat/completions'",
+    );
+  });
+
+  it('should shell-quote URLs containing shell metacharacters', () => {
+    const example = buildApiKeyUsageExample(
+      'https://gateway.example.com/$(id)',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(example).toContain(
+      `curl -X POST --globoff 'https://gateway.example.com/$(id)/v1/chat/completions'`,
+    );
+    // The metacharacters must be inside single quotes, not executed on copy-paste.
+    expect(example).not.toMatch(/curl -X POST --globoff [^']/);
+
+    const semicolonExample = buildApiKeyUsageExample(
+      'https://gateway.example.com/a;b',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(semicolonExample).toContain(
+      `curl -X POST --globoff 'https://gateway.example.com/a;b/v1/chat/completions'`,
+    );
+
+    const quoteExample = buildApiKeyUsageExample(
+      "https://gateway.example.com/it's",
+      'chat-model',
+      'sk-test-key',
+    );
+    // Embedded single quotes are escaped by ending/restarting the shell quote.
+    expect(quoteExample).toContain(
+      "curl -X POST --globoff 'https://gateway.example.com/it'\\''s/v1/chat/completions'",
+    );
   });
 
   it('should return empty string for invalid or incomplete inputs', () => {

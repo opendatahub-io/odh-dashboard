@@ -78,9 +78,7 @@ describe('API Keys Page', () => {
 
   it('should display the API keys table page with active and expired keys on initial load', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
-    cy.contains('Manage API keys that can be used to authenticate with model endpoints.').should(
-      'exist',
-    );
+    cy.contains('Manage API keys used to authenticate with model endpoints.').should('exist');
 
     apiKeysPage.findTable().should('exist');
     apiKeysPage.findRows().should('have.length', 3);
