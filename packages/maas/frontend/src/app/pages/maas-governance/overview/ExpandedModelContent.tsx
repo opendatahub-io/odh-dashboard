@@ -140,30 +140,37 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                   </Link>
                 </FlexItem>
                 <FlexItem>
-                  <PhaseLabel
-                    phase={phase}
-                    resourceType={resourceType}
-                    statusMessage={statusMessage}
-                    status={status}
-                    conditionType={conditionType}
-                    lastTransitionTime={lastTransitionTime}
-                    reason={reason}
-                    resourceName={displayName ?? name}
-                    affectedModels={affectedModels}
-                    overviewLoaded={overviewLoaded}
-                    resourceUrl={resourceUrl}
-                    returnTo={returnTo}
-                    hideSubtext
-                    onClick={() => {
-                      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
-                        popoverType: EventTrackingPopoverType.STATUS,
-                        status: convertStringToPopoverViewedStatus(phase),
-                        location: PhaseLabelLocation.OVERVIEW,
-                      } satisfies MaaSGovernanceStatusPopoverViewedProperties);
-                    }}
-                  />
+                  <Flex
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                  >
+                    <FlexItem>
+                      <PhaseLabel
+                        phase={phase}
+                        resourceType={resourceType}
+                        statusMessage={statusMessage}
+                        status={status}
+                        conditionType={conditionType}
+                        lastTransitionTime={lastTransitionTime}
+                        reason={reason}
+                        resourceName={displayName ?? name}
+                        affectedModels={affectedModels}
+                        overviewLoaded={overviewLoaded}
+                        resourceUrl={resourceUrl}
+                        returnTo={returnTo}
+                        hideSubtext
+                        onClick={() => {
+                          fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+                            popoverType: EventTrackingPopoverType.STATUS,
+                            status: convertStringToPopoverViewedStatus(phase),
+                            location: PhaseLabelLocation.OVERVIEW,
+                          } satisfies MaaSGovernanceStatusPopoverViewedProperties);
+                        }}
+                      />
+                    </FlexItem>
+                    {actions && <FlexItem>{actions}</FlexItem>}
+                  </Flex>
                 </FlexItem>
-                {actions && <FlexItem>{actions}</FlexItem>}
               </Flex>
             </Td>
           </Tr>
