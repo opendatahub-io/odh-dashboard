@@ -7,11 +7,10 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     build.appstudio.redhat.com/pull_request_number: "{{pull_request_number}}"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-comment: "^/build-konflux (odh-mod-arch-automl|all)$"
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/on-cel-expression: |-
       konflux_cluster == "stone-prod-p01"
-      && event == "pull_request"
+      && (event == "pull_request" || event == "issue_comment")
       && ("packages/automl/**".pathChanged() || "prefetch/pnpm/**".pathChanged() || ".tekton/odh-mod-arch-automl-pull-request.yaml".pathChanged() || "Dockerfile.konflux.automl".pathChanged())
   labels:
     appstudio.openshift.io/application: rhoai-v3-7-ea-1
