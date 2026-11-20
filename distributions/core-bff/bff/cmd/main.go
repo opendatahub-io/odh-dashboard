@@ -39,6 +39,16 @@ func main() {
 
 	slog.SetDefault(logger)
 
+	// TEMPORARY: without CSP_MODE the policy is served as Report-Only, which reports
+	// violations but blocks nothing. Make that fallback visible at startup.
+	if api.CSPModeUnset() {
+		logger.Warn(
+			"CSP_MODE is unset or empty: Content-Security-Policy is sent as Report-Only, so violations are not blocked",
+			"env", constants.CSPModeEnvVar,
+			"enforceWith", constants.CSPModeEnvVar+"=enforce",
+		)
+	}
+
 	if cfg.MockK8Client {
 		if cleanup := startMockPrometheus(&cfg, logger); cleanup != nil {
 			defer cleanup()

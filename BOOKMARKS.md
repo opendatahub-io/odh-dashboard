@@ -25,6 +25,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Community Plugin Registration](docs/community-plugin-registration.md) | Fixed ConfigMap contract for installer-owned community federation entries |
 | [Extensibility](docs/extensibility.md) | Plugin/extension system |
 | [Quality Gates](docs/modular-architecture-quality-gates.md) | Modular architecture quality standards |
+| [Content Security Policy](docs/content-security-policy.md) | CSP on HTML responses for the Node backend and Go core-bff — `CSP_MODE`, directive rationale and development delta, Segment violation reporting |
 
 ---
 

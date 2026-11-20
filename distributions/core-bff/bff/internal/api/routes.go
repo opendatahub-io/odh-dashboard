@@ -1,9 +1,12 @@
 package api
 
 import (
+	"bytes"
 	"log/slog"
 	"net/http"
-	"path"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
@@ -24,7 +27,7 @@ const (
 // Routes builds the full HTTP handler tree: API router, proxies, static files, and middleware.
 func (app *App) Routes() http.Handler {
 	serviceMux := app.newServiceMux()
-	staticHandler := app.newStaticHandler()
+	staticHandler := withDocumentCSP(app.newStaticHandler())
 	return httpcontract.Middleware(app.EnableTelemetry(app.SetSecurityHeaders(app.RecoverPanic(app.EnableCORS(app.newCombinedMux(serviceMux, staticHandler))))), app.logger)
 }
 
@@ -75,22 +78,48 @@ func (app *App) newStaticHandler() http.Handler {
 	fileServer := http.FileServer(staticDir)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helpers.GetContextLoggerFromReq(r)
+		if isShellDocumentPath(r.URL.Path) {
+			app.serveIndexHTML(w, r)
+			return
+		}
 		if f, err := staticDir.Open(r.URL.Path); err == nil {
 			f.Close()
-			if r.URL.Path == "/" {
-				// SPA shell under `/` — document cache policy (Node setNoStoreCacheHeaders on /*).
-				w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
-			} else {
-				w.Header().Set(constants.HeaderCacheControl, getCacheControlForStaticFile(r.URL.Path))
-			}
+			w.Header().Set(constants.HeaderCacheControl, getCacheControlForStaticFile(r.URL.Path))
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
 		}
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
-		w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
-		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, constants.IndexHTMLFileName))
+		app.serveIndexHTML(w, r)
 	})
+}
+
+// isShellDocumentPath reports the two paths that are the SPA shell rather than an asset.
+// Deep links reach serveIndexHTML through the missing-file fallback instead.
+func isShellDocumentPath(urlPath string) bool {
+	return urlPath == "/" || urlPath == constants.IndexHTMLFileName
+}
+
+// serveIndexHTML renders the shell with the per-request nonce substituted for
+// CSPNoncePlaceholder. Reading the file instead of handing it to http.ServeFile is what
+// allows the body and the CSP header (set by withDocumentCSP) to carry the same nonce.
+func (app *App) serveIndexHTML(w http.ResponseWriter, r *http.Request) {
+	shell, err := os.ReadFile(filepath.Join(app.config.StaticAssetsDir, constants.IndexHTMLFileName))
+	if err != nil {
+		http.Error(w, "document unavailable", http.StatusInternalServerError)
+		return
+	}
+
+	nonce := cspNonceFromRequest(r)
+	body := bytes.ReplaceAll(shell, []byte(constants.CSPNoncePlaceholder), []byte(nonce))
+
+	w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
+	w.Header().Set(constants.HeaderContentType, "text/html; charset=utf-8")
+	w.Header().Set(constants.HeaderContentLength, strconv.Itoa(len(body)))
+	w.WriteHeader(http.StatusOK)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write(body)
+	}
 }
 
 // newCombinedMux wires public and authenticated routes into the top-level mux.

@@ -3,6 +3,11 @@ import * as os from 'os';
 import * as path from 'path';
 import { fastify, FastifyInstance } from 'fastify';
 import {
+  buildContentSecurityPolicy,
+  CSP_NONCE_PLACEHOLDER,
+  SEGMENT_TELEMETRY_ORIGIN,
+} from '@odh-dashboard/app-config/security-policy';
+import {
   CACHE_CONTROL_NO_STORE,
   CROSS_ORIGIN_OPENER_POLICY,
   REFERRER_POLICY,
@@ -37,7 +42,9 @@ describe('app static and view wiring', () => {
     // Mirrors frontend/src/index.html — ejs delimiter is '?' (set in app.ts)
     fs.writeFileSync(
       path.join(publicDir, 'index.html'),
-      '<!doctype html><html><head><script id="mf-remotes-json" type="application/json"><?- mfRemotesJson ?></script></head><body>app</body></html>',
+      '<!doctype html><html><head><script nonce="' +
+        CSP_NONCE_PLACEHOLDER +
+        '">1</script><script id="mf-remotes-json" type="application/json"><?- mfRemotesJson ?></script></head><body>app</body></html>',
     );
     fs.writeFileSync(path.join(publicDir, HASHED_ASSET), 'console.log(1);');
     fs.writeFileSync(path.join(publicDir, 'vendor.js'), 'console.log(2);');
@@ -97,7 +104,7 @@ describe('app static and view wiring', () => {
   });
 
   describe('security headers', () => {
-    const expectConsoleSecurityHeaders = (headers: Record<string, unknown>): void => {
+    const expectBrowserSecurityHeaders = (headers: Record<string, unknown>): void => {
       expect(headers['x-content-type-options']).toBe(X_CONTENT_TYPE_OPTIONS);
       expect(headers['cross-origin-opener-policy']).toBe(CROSS_ORIGIN_OPENER_POLICY);
       expect(headers['x-frame-options']).toBe(X_FRAME_OPTIONS);
@@ -105,12 +112,115 @@ describe('app static and view wiring', () => {
       expect(headers['referrer-policy']).toBe(REFERRER_POLICY);
     };
 
-    it('should set Console-equivalent headers and no-store on HTML', async () => {
+    const nonceOf = (policy: unknown): string =>
+      /'nonce-([^']+)'/.exec(String(policy ?? ''))?.[1] ?? '';
+
+    // Every response carries its own nonce, in the header and in the document body.
+    const expectEnforcingCsp = (headers: Record<string, unknown>): string => {
+      const policy = headers['content-security-policy'];
+      const nonce = nonceOf(policy);
+      expect(nonce).not.toBe('');
+      expect(policy).toBe(buildContentSecurityPolicy(nonce));
+      return nonce;
+    };
+
+    const expectReportOnlyCsp = (headers: Record<string, unknown>): string => {
+      const policy = headers['content-security-policy-report-only'];
+      const nonce = nonceOf(policy);
+      expect(nonce).not.toBe('');
+      expect(policy).toBe(buildContentSecurityPolicy(nonce));
+      expect(headers['content-security-policy']).toBeUndefined();
+      return nonce;
+    };
+
+    const expectNoCsp = (headers: Record<string, unknown>): void => {
+      expect(headers['content-security-policy']).toBeUndefined();
+      expect(headers['content-security-policy-report-only']).toBeUndefined();
+    };
+
+    it('should set browser security headers and no-store on HTML', async () => {
+      delete process.env.CSP_MODE;
       const response = await app.inject({ method: 'GET', url: '/projects' });
 
       expect(response.statusCode).toBe(200);
-      expectConsoleSecurityHeaders(response.headers);
+      expectBrowserSecurityHeaders(response.headers);
+      const nonce = expectReportOnlyCsp(response.headers);
+      expect(response.body).toContain(`nonce="${nonce}"`);
+      expect(response.body).not.toContain(CSP_NONCE_PLACEHOLDER);
       expect(response.headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
+    });
+
+    it('should default to Report-Only on the SPA shell', async () => {
+      delete process.env.CSP_MODE;
+      const response = await app.inject({ method: 'GET', url: '/' });
+
+      expect(response.statusCode).toBe(200);
+      expectReportOnlyCsp(response.headers);
+      expect(response.headers['content-security-policy-report-only']).toContain(
+        SEGMENT_TELEMETRY_ORIGIN,
+      );
+    });
+
+    it('should send the enforcing header when CSP_MODE=enforce', async () => {
+      const originalMode = process.env.CSP_MODE;
+      process.env.CSP_MODE = 'enforce';
+      try {
+        const response = await app.inject({ method: 'GET', url: '/projects' });
+
+        expect(response.statusCode).toBe(200);
+        expectEnforcingCsp(response.headers);
+        expect(response.headers['content-security-policy-report-only']).toBeUndefined();
+      } finally {
+        if (originalMode === undefined) {
+          delete process.env.CSP_MODE;
+        } else {
+          process.env.CSP_MODE = originalMode;
+        }
+      }
+    });
+
+    it('should send the Report-Only header when CSP_MODE=report-only', async () => {
+      const originalMode = process.env.CSP_MODE;
+      process.env.CSP_MODE = 'report-only';
+      try {
+        const response = await app.inject({ method: 'GET', url: '/projects' });
+
+        expect(response.statusCode).toBe(200);
+        expectReportOnlyCsp(response.headers);
+      } finally {
+        if (originalMode === undefined) {
+          delete process.env.CSP_MODE;
+        } else {
+          process.env.CSP_MODE = originalMode;
+        }
+      }
+    });
+
+    it('should fail closed to the enforcing header for an unknown CSP_MODE', async () => {
+      const originalMode = process.env.CSP_MODE;
+      process.env.CSP_MODE = 'off';
+      try {
+        const response = await app.inject({ method: 'GET', url: '/projects' });
+
+        expectEnforcingCsp(response.headers);
+      } finally {
+        if (originalMode === undefined) {
+          delete process.env.CSP_MODE;
+        } else {
+          process.env.CSP_MODE = originalMode;
+        }
+      }
+    });
+
+    it('should not set a CSP on non-document responses', async () => {
+      const health = await app.inject({ method: 'GET', url: '/api/health' });
+      const hashed = await app.inject({ method: 'GET', url: `/${HASHED_ASSET}` });
+      const unhashed = await app.inject({ method: 'GET', url: '/vendor.js' });
+      const image = await app.inject({ method: 'GET', url: '/logo.png' });
+
+      for (const response of [health, hashed, unhashed, image]) {
+        expectNoCsp(response.headers);
+      }
     });
 
     it('should keep host static file cache policies', async () => {
@@ -118,7 +228,7 @@ describe('app static and view wiring', () => {
       const unhashed = await app.inject({ method: 'GET', url: '/vendor.js' });
       const image = await app.inject({ method: 'GET', url: '/logo.png' });
 
-      expectConsoleSecurityHeaders(hashed.headers);
+      expectBrowserSecurityHeaders(hashed.headers);
       expect(hashed.headers['cache-control']).toBe('public, max-age=31536000, immutable');
       expect(unhashed.headers['cache-control']).toBe('no-cache');
       expect(image.headers['cache-control']).toBe('public, max-age=86400');
@@ -129,7 +239,7 @@ describe('app static and view wiring', () => {
       const status = await app.inject({ method: 'GET', url: '/api/status' });
 
       for (const response of [health, status]) {
-        expectConsoleSecurityHeaders(response.headers);
+        expectBrowserSecurityHeaders(response.headers);
         expect(response.headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
       }
       expect(health.json()).toEqual({ status: 'ok' });
@@ -215,6 +325,21 @@ describe('app static and view wiring', () => {
       await legacy.close();
     });
 
+    it('should serve /index.html through the SPA route so it carries the policy', async () => {
+      // globIgnore keeps index.html off the static plugin, so this hit reaches the same
+      // route as `/` and a deep link — the only place the CSP is applied.
+      delete process.env.CSP_MODE;
+      const response = await app.inject({ method: 'GET', url: '/index.html' });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toContain('text/html');
+      const policy = String(response.headers['content-security-policy-report-only'] ?? '');
+      const nonce = /'nonce-([^']+)'/.exec(policy)?.[1];
+      expect(nonce).toBeTruthy();
+      expect(policy).toBe(buildContentSecurityPolicy(nonce));
+      expect(response.body).toContain(`nonce="${nonce}"`);
+    });
+
     it('should not auto-serve index.html for the static root', async () => {
       // `index: false` — '/' must fall through to the view route, not the static plugin.
       const response = await app.inject({ method: 'GET', url: '/' });
@@ -251,7 +376,8 @@ describe('app static and view wiring', () => {
       );
 
       expect(response.statusCode).toBe(200);
-      expect(response.body.match(/<script/g)).toHaveLength(1);
+      // Two script elements: the inline bootstrap and the JSON data block.
+      expect(response.body.match(/<script/g)).toHaveLength(2);
       expect(response.body).not.toContain(SCRIPT_BREAKOUT);
       expect(jsonMatch).not.toBeNull();
       expect(JSON.parse(jsonMatch?.[1] ?? '')).toEqual([
