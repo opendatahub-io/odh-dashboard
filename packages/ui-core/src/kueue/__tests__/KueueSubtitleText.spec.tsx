@@ -1,10 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import {
-  QueueNameText,
-  QueuePositionText,
-  QueueSubtitleText,
-} from '#~/concepts/kueue/KueueSubtitleText';
+import { QueueNameText, QueuePositionText, QueueSubtitleText } from '../KueueSubtitleText';
 
 const LOCAL_QUEUE_NAME = 'manual-lifecycle-lq';
 

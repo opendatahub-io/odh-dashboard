@@ -21,10 +21,10 @@ import {
   getQueuePosition,
 } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import UnderlinedTruncateButton from '@odh-dashboard/ui-core/components/UnderlinedTruncateButton';
+import { QueueSubtitleText } from '@odh-dashboard/ui-core/kueue/KueueSubtitleText';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
-import { QueueSubtitleText } from '#~/concepts/kueue/KueueSubtitleText';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';

@@ -68,13 +68,13 @@ import {
 } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
+import { QueueNameText, QueuePositionText } from '@odh-dashboard/ui-core/kueue/KueueSubtitleText';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { getClusterQueueNameFromLocalQueues } from '#~/pages/hardwareProfiles/utils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useNotebookProgress, getNotebookDisplayName } from '#~/utilities/notebookControllerUtils';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { EventStatus, NotebookStatus } from '#~/types';
-import { QueueNameText, QueuePositionText } from '#~/concepts/kueue/KueueSubtitleText';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {

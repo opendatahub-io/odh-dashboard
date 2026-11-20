@@ -128,7 +128,7 @@ export const getLLMdDeploymentConditions = (
   const conditions: DeploymentCondition[] = [
     {
       type: 'DeploymentRequested',
-      label: 'Deployment requested',
+      label: 'Request deployment',
       status: 'True',
       lastTransitionTime: inferenceService.metadata.creationTimestamp,
     },

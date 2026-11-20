@@ -1,6 +1,7 @@
 export { ModelStatusIcon } from './ModelStatusIcon';
 export {
   getDeploymentStatusSubtitle,
+  getDeploymentStatusSubtitleBoldText,
   getDeploymentStatusSubtitleColor,
 } from './getDeploymentStatusSubtitle';
 export { renderDeploymentResourceVersionLabels } from './renderDeploymentResourceVersionLabels';
