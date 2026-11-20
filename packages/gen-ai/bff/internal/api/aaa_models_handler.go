@@ -254,6 +254,53 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 		aaModels = append(aaModels, aaModel)
 	}
 
+	if namespace == "" {
+		return aaModels, nil
+	}
+
+	var refs struct {
+		Data []struct {
+			Name        string `json:"name"`
+			Namespace   string `json:"namespace"`
+			DisplayName string `json:"displayName"`
+			Description string `json:"description"`
+			Phase       string `json:"phase"`
+			Endpoint    string `json:"endpoint"`
+		} `json:"data"`
+	}
+	if err := maasClient.Call(ctx, "GET", "/all-maas-models", nil, &refs); err != nil {
+		app.logger.Error("failed to list namespace MaaSModelRefs", "error", err, "namespace", namespace)
+		return aaModels, nil
+	}
+
+	seen := make(map[string]bool, len(aaModels))
+	for _, m := range aaModels {
+		seen[m.ModelID] = true
+	}
+	for _, ref := range refs.Data {
+		if ref.Namespace != namespace || ref.Name == "" || seen[ref.Name] {
+			continue
+		}
+		status := models.ModelStatusStop
+		if ref.Phase == "Ready" {
+			status = models.ModelStatusRunning
+		}
+		endpoints := []string{}
+		if ref.Endpoint != "" {
+			endpoints = []string{"external:" + ref.Endpoint}
+		}
+		aaModels = append(aaModels, models.AAModel{
+			ModelName:       ref.Name,
+			ModelID:         ref.Name,
+			DisplayName:     ref.DisplayName,
+			Description:     ref.Description,
+			Endpoints:       endpoints,
+			Status:          status,
+			ModelSourceType: models.ModelSourceTypeMaaS,
+			Capabilities:    constants.DefaultCapabilities(),
+		})
+	}
+
 	return aaModels, nil
 }
 
