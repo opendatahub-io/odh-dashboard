@@ -16,6 +16,7 @@ import {
 } from '../../../../utils/oc_commands/modelServing';
 import { addUserToProject } from '../../../../utils/oc_commands/project';
 import { cleanupTestProject } from '../../../../utils/projectChecker';
+import { ensureServingRuntimeTemplate } from '../../../../utils/oc_commands/templates';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
@@ -39,12 +40,12 @@ let modelFormat: string;
 let servingRuntime: string;
 let servingRuntimeVersionStatus: string;
 let contributor: string;
-const awsBucket = 'BUCKET_1' as const;
-const awsAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
-const awsSecretAccessKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
-const awsBucketName = AWS_BUCKETS.BUCKET_1.NAME;
-const awsBucketEndpoint = AWS_BUCKETS.BUCKET_1.ENDPOINT;
-const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
+let awsBucket: 'BUCKET_1' | 'BUCKET_3';
+let awsAccessKeyId: string;
+let awsSecretAccessKey: string;
+let awsBucketName: string;
+let awsBucketEndpoint: string;
+let awsBucketRegion: string;
 const podName = 'pvc-loader-pod';
 const uuid = generateTestUUID();
 
@@ -53,8 +54,8 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
   skipOnArm();
 
   retryableBefore(() => {
-    return loadDSPFixture('e2e/dataScienceProjects/testModelPvcDeployment.yaml').then(
-      (fixtureData: DataScienceProjectData) => {
+    return loadDSPFixture('e2e/dataScienceProjects/testModelPvcDeployment.yaml')
+      .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = testData.singleModelName;
@@ -65,15 +66,27 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         servingRuntime = testData.servingRuntime;
         servingRuntimeVersionStatus = testData.servingRuntimeVersionStatus;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
+        awsBucket = testData.awsBucket ?? 'BUCKET_1';
+        awsAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
+        awsSecretAccessKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
+        awsBucketName = AWS_BUCKETS[awsBucket].NAME;
+        awsBucketEndpoint = AWS_BUCKETS[awsBucket].ENDPOINT;
+        awsBucketRegion = AWS_BUCKETS[awsBucket].REGION;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
+
+        return ensureServingRuntimeTemplate(
+          testData.servingRuntimeName,
+          testData.servingRuntimeYamlPath,
+        );
+      })
+      .then(() => {
         // Create a Project for model serving and add contributor
         provisionProjectForModelServing(projectName, awsBucket);
         addUserToProject(projectName, contributor, 'edit');
-      },
-    );
+      });
   });
   after(() => {
     if (!projectName) {
@@ -96,6 +109,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         '@ODS-2552',
         '@ModelServingCI',
         '@KServeCI',
+        '@NonConcurrent',
       ],
     },
     () => {
@@ -187,8 +201,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         .then((val) => {
           resourceName = val as string;
         });
-      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-      modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      modelServingWizard.selectServingRuntimeAndFormat(servingRuntime, modelFormat);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');
