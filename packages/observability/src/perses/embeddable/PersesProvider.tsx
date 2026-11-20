@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ThemeProvider } from '@mui/material';
+import { GlobalStyles, ThemeProvider } from '@mui/material';
 import { ChartsProvider, SnackbarProvider } from '@perses-dev/components';
 import type { DashboardResource, DurationString, TimeRangeValue } from '@perses-dev/core';
 import {
@@ -90,6 +90,25 @@ const PersesProviderCore: React.FC<PersesProviderCoreProps> = ({
 
   return (
     <ThemeProvider theme={muiTheme}>
+      {/* Third-party Perses surfaces that need theme corrections the MUI theme
+          slots cannot express: panel group headers must not paint a surface
+          (they are inline content, and the paper token is translucent under
+          glass), and the variable toolbar's negative bottom margin pulls the
+          panel groups up against the variable row. */}
+      <GlobalStyles
+        styles={{
+          '[data-testid="panel-group-header"]': {
+            backgroundColor: 'transparent !important',
+          },
+          '[data-testid="variable-list"]': {
+            marginBottom: '0px !important',
+            paddingBottom: 'var(--pf-t--global--spacer--md)',
+            '& .MuiAppBar-root > .MuiBox-root > .MuiBox-root': {
+              paddingTop: '0px !important',
+            },
+          },
+        }}
+      />
       <ChartsProvider chartsTheme={chartsTheme}>
         <SnackbarProvider
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
