@@ -7,7 +7,7 @@ spec:
     display:
       name: Cluster
     duration: 1h
-    # Namespace variable - queries the cluster-scoped Prometheus datasource, can be overridden by NamespaceVariablesProvider
+    # Namespace variable on cluster-prometheus-datasource (:9091). customAllValue ".*" keeps cluster-wide All.
     variables:
       - kind: ListVariable
         spec:
@@ -17,6 +17,7 @@ spec:
             description: Filter by project
           allowMultiple: true
           allowAllValue: true
+          # :9091 is cluster-wide and does not take namespace=; keep PromQL All as .*.
           customAllValue: ".*"
           defaultValue: "$__all"
           plugin:
