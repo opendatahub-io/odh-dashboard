@@ -1,6 +1,7 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForAutoXDspaReady } from './oc_commands/autoX';
 import { waitForManagedPipelines } from './autoXPipelines';
+import { recordAutomlRun, recordAutomlUpload } from './automlCleanup';
 import { automlExperimentsPage } from '../pages/automl/experimentsPage';
 import { automlConfigurePage } from '../pages/automl/configurePage';
 import { automlResultsPage } from '../pages/automl/resultsPage';
@@ -48,6 +49,7 @@ export const configureAutomlRun = (
 
   cy.step('Upload CSV file');
   const uploadFileName = `${testData.trainingDataFile.replace('.csv', '')}-${uuid}.csv`;
+  cy.intercept('POST', '**/automl/api/v1/s3/files/**').as('automlUpload');
   automlConfigurePage.findUploadFileToggle().click();
   automlConfigurePage
     .findUploadFileInput()
@@ -56,32 +58,50 @@ export const configureAutomlRun = (
       { force: true },
     );
 
-  cy.step('Wait for upload to complete');
-  automlConfigurePage.findUploadedFileCell(60000).should('be.visible');
+  cy.step('Record the key returned by the upload API');
+  cy.wait('@automlUpload', { timeout: 120000 }).then(({ response }) => {
+    const key = (response?.body as { key?: unknown } | undefined)?.key;
+    if (typeof key !== 'string' || !key) {
+      throw new Error('AutoML upload response did not include the stored S3 key');
+    }
+    return recordAutomlUpload(projectName, key).then((storedKey) => {
+      automlConfigurePage.findUploadedFileCell(60000).should('be.visible');
+      automlConfigurePage.findUploadSpinner().should('not.exist');
 
-  cy.step('Verify uploaded file is browsable in file explorer and select it');
-  automlConfigurePage.findSelectFileToggle().find('button').click();
-  automlConfigurePage.findBrowseBucketButton().click();
-  automlConfigurePage.findFileExplorerTable().should('be.visible');
-  automlConfigurePage.findFileExplorerSearch(30000).should('be.visible').type(uploadFileName);
-  automlConfigurePage.findFileExplorerTable().contains('td', uploadFileName).should('be.visible');
-  automlConfigurePage.findFileExplorerTable().contains('td', uploadFileName).click();
-  automlConfigurePage.findFileExplorerSelectBtn().click();
+      cy.step('Browse and select the key returned by the upload API');
+      automlConfigurePage.findSelectFileToggle().find('button').click();
+      automlConfigurePage.findBrowseBucketButton().click();
+      automlConfigurePage.findFileExplorerTable().should('be.visible');
+      automlConfigurePage.findFileExplorerSearch(30000).should('be.visible').type(storedKey);
+      automlConfigurePage.findFileExplorerTable().contains('td', storedKey).should('be.visible');
+      automlConfigurePage.findFileExplorerTable().contains('td', storedKey).click();
+      return automlConfigurePage.findFileExplorerSelectBtn().click();
+    });
+  });
 };
 
 /**
  * Submit the AutoML run and verify redirect to results page.
  * Call after `configureAutomlRun()` and task-specific configuration.
  */
-export const submitAutomlRun = (): void => {
+export const submitAutomlRun = (testData: AutomlTestData, projectName: string): void => {
+  cy.intercept('POST', '**/automl/api/v1/pipeline-runs*').as('automlCreateRun');
   cy.step('Submit the form');
   automlConfigurePage.findCreateRunButton().click();
 
-  cy.step('Verify redirect to results page');
-  cy.url().should('include', '/develop-train/automl/results/');
+  cy.wait('@automlCreateRun', { timeout: 120000 }).then(({ response }) => {
+    const runId = (response?.body as { data?: { run_id?: unknown } } | undefined)?.data?.run_id;
+    if (typeof runId !== 'string' || !runId) {
+      throw new Error('AutoML create response did not include a KFP run ID');
+    }
+    return recordAutomlRun(projectName, runId, testData.taskType).then(() => {
+      cy.step('Verify redirect to results page');
+      cy.location('pathname').should('include', '/develop-train/automl/results/');
 
-  cy.step('Verify the run is in progress');
-  automlResultsPage.findRunInProgressMessage(30000).should('be.visible');
+      cy.step('Verify the run is in progress');
+      return automlResultsPage.findRunInProgressMessage(30000).should('be.visible');
+    });
+  });
 };
 
 /**
