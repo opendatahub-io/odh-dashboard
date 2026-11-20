@@ -17,6 +17,7 @@ import fetchNamespaces, {
   FETCH_TIMEOUT_MS,
   NamespaceListUnavailableError,
   fetchNamespaceByName,
+  type RhaiiProject,
 } from './fetchNamespaces';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 
@@ -39,6 +40,13 @@ const readRecentNames = (): string[] => {
   }
 };
 
+/** Merges by name; entries from `incoming` replace earlier ones. */
+const mergeProjects = (previous: RhaiiProject[], incoming: RhaiiProject[]): RhaiiProject[] => {
+  const byProjectName = new Map(previous.map((project) => [project.metadata.name, project]));
+  incoming.forEach((project) => byProjectName.set(project.metadata.name, project));
+  return [...byProjectName.values()];
+};
+
 type ProjectsContextProviderProps = {
   children: React.ReactNode;
 };
@@ -47,14 +55,16 @@ type ProjectsContextProviderProps = {
  * Host-side ProjectsContext for RHAII / xKS.
  * Loads namespaces via Core BFF and exposes them as ProjectKind-shaped values
  * so model-serving (and other packages) can consume ProjectsContext without
- * the OpenShift Project watch used by the main ODH frontend.
+ * the OpenShift Project watch used by the main ODH frontend. On xKS they come
+ * from the BFF's authorized namespace discovery; where that endpoint is absent
+ * the namespace list is used.
  */
 const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ children }) => {
   const unifiedProjectSelectorEnabled = useIsAreaAvailable(
     SupportedArea.UNIFIED_PROJECT_SELECTOR,
   ).status;
   const dashboardNamespace = React.useContext(DashboardNamespaceContext);
-  const [projectData, setProjectData] = React.useState<ProjectKind[]>([]);
+  const [projectData, setProjectData] = React.useState<RhaiiProject[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
   const [listingUnavailable, setListingUnavailable] = React.useState(false);
@@ -84,7 +94,8 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         }
       } catch (err) {
         if (!unmounted) {
-          setProjectData([]);
+          // A partial listing still carries the namespaces the BFF authorized.
+          setProjectData(err instanceof NamespaceListUnavailableError ? err.projects ?? [] : []);
           setListingUnavailable(err instanceof NamespaceListUnavailableError);
           setLoadError(
             err instanceof NamespaceListUnavailableError
@@ -124,29 +135,33 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [setStoredPreferredName, unifiedProjectSelectorEnabled],
   );
 
-  const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(() => {
-    const active: ProjectKind[] = [];
-    const terminating: ProjectKind[] = [];
-    for (const project of projectData) {
-      if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
-        continue;
+  const { projects, modelServingProjects, deploymentTargetProjects, nonActiveProjects } =
+    React.useMemo(() => {
+      const active: RhaiiProject[] = [];
+      const terminating: RhaiiProject[] = [];
+      for (const project of projectData) {
+        if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
+          continue;
+        }
+        if (project.status?.phase === NamespacePhase.Active) {
+          active.push(project);
+        } else {
+          terminating.push(project);
+        }
       }
-      if (project.status?.phase === NamespacePhase.Active) {
-        active.push(project);
-      } else {
-        terminating.push(project);
-      }
-    }
-    const sorted = active.toSorted((a, b) => a.metadata.name.localeCompare(b.metadata.name));
-    return {
-      projects: sorted,
-      // On xKS every available namespace is a valid deployment target.
-      modelServingProjects: sorted,
-      nonActiveProjects: terminating.toSorted((a, b) =>
-        a.metadata.name.localeCompare(b.metadata.name),
-      ),
-    };
-  }, [dashboardNamespace, projectData]);
+      const sorted = active.toSorted((a, b) => a.metadata.name.localeCompare(b.metadata.name));
+      return {
+        projects: sorted,
+        // On xKS every available namespace can hold model deployments to view.
+        modelServingProjects: sorted,
+        // Namespace discovery marks where the caller may deploy; a project it
+        // reports without deploy access is browsable but never a deployment target.
+        deploymentTargetProjects: sorted.filter((project) => project.canDeploy !== false),
+        nonActiveProjects: terminating.toSorted((a, b) =>
+          a.metadata.name.localeCompare(b.metadata.name),
+        ),
+      };
+    }, [dashboardNamespace, projectData]);
 
   React.useEffect(() => {
     if (
@@ -210,24 +225,45 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
           if (controller.signal.aborted) {
             return;
           }
+          let listed: RhaiiProject[] | undefined;
+          let partial = false;
           try {
-            const fresh = await fetchNamespaces(controller.signal);
+            listed = await fetchNamespaces(controller.signal);
+          } catch (err) {
+            if (err instanceof NamespaceListUnavailableError) {
+              listed = err.projects ?? [];
+              partial = true;
+            }
+          }
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal may change during await
+          if (controller.signal.aborted) {
+            return;
+          }
+          let found = listed?.find(byName(projectName));
+          if (!found && partial) {
+            // A partial listing is bounded to its candidates; look the project
+            // up by name. A failed or not-yet-ready lookup is retried.
+            found = await fetchNamespaceByName(projectName, controller.signal).catch(
+              () => undefined,
+            );
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal may change during await
             if (controller.signal.aborted) {
               return;
             }
-            if (fresh.find(byName(projectName))) {
-              clearTimeout(timer);
-              waitRejectRef.current = null;
-              setProjectData(fresh);
-              resolve();
-              return;
+          }
+          if (found && listed) {
+            clearTimeout(timer);
+            waitRejectRef.current = null;
+            if (partial) {
+              // Keep projects added by manual entry or remembered selections.
+              const incoming = [...listed, found];
+              setProjectData((previous) => mergeProjects(previous, incoming));
+            } else {
+              setProjectData(listed);
             }
-          } catch {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal may change during await
-            if (controller.signal.aborted) {
-              return;
-            }
+            setListingUnavailable(partial);
+            resolve();
+            return;
           }
           setTimeout(() => void poll(), WAIT_FOR_PROJECT_POLL_MS);
         };
@@ -237,7 +273,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   );
 
   const addProject = React.useCallback(
-    (project: ProjectKind, remember = true) => {
+    (project: RhaiiProject, remember = true) => {
       const { name } = project.metadata;
       if (
         !isAvailableProject(name, dashboardNamespace) ||
@@ -260,6 +296,10 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [dashboardNamespace],
   );
 
+  // Lookups validated in this session, so a project activated from a
+  // persisted identity keeps what the BFF reported for it (deploy access).
+  const validatedProjectsRef = React.useRef(new Map<string, RhaiiProject>());
+
   const validateProject = React.useCallback(
     async (name: string, signal?: AbortSignal) => {
       const project = await fetchNamespaceByName(name, signal);
@@ -269,6 +309,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
         throw new Error('No access to that project, or it does not exist.');
       }
+      validatedProjectsRef.current.set(name, project);
       return project;
     },
     [dashboardNamespace],
@@ -329,6 +370,11 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     (identity: { name: string; displayName?: string }) => {
       // The synchronization hook publishes a provider-validated identity before activation.
       // Preserve its display name, but do not infer access from persisted browser data.
+      const validated = validatedProjectsRef.current.get(identity.name);
+      if (validated) {
+        addProject(validated, false);
+        return;
+      }
       addProject(
         {
           apiVersion: 'v1',
@@ -396,6 +442,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     () => ({
       projects,
       modelServingProjects,
+      deploymentTargetProjects,
       nonActiveProjects,
       preferredProject:
         loaded && !loadError
@@ -409,6 +456,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [
       projects,
       modelServingProjects,
+      deploymentTargetProjects,
       nonActiveProjects,
       preferredProject,
       updatePreferredProject,

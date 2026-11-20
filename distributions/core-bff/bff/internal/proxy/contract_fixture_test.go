@@ -54,7 +54,7 @@ func TestContractFixtureServer(t *testing.T) {
 		correlationTransport.Base = contractFixtureTransport{base: transport}
 		reverse.Transport = correlationTransport
 	}
-	injectFailures(handler.(*httputil.ReverseProxy))
+	injectFailures(handler.(*k8sProxyHandler).ReverseProxy)
 	target, err := url.Parse(upstream.URL)
 	require.NoError(t, err)
 	modelServing, err := NewReverseProxy(ProxyConfig{

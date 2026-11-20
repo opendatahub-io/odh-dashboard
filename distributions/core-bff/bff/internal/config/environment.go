@@ -2,7 +2,7 @@
 package config
 
 import (
-	"fmt"
+	"errors"
 	"log/slog"
 	"strings"
 )
@@ -53,7 +53,8 @@ func (d *DeploymentMode) Set(value string) error {
 	case "standalone":
 		*d = DeploymentModeStandalone
 	default:
-		return fmt.Errorf("invalid deployment mode: %s (must be federated or standalone)", value)
+		// The rejected value is not echoed: startup diagnostics never quote raw input.
+		return errors.New("invalid deployment mode (value omitted): it must be federated or standalone")
 	}
 	return nil
 }
@@ -93,7 +94,7 @@ func (p *PlatformType) Set(value string) error {
 	case "":
 		*p = ""
 	default:
-		return fmt.Errorf("invalid platform type: %s (must be OpenShift, XKS, or empty for auto-detect)", value)
+		return errors.New("invalid platform type (value omitted): it must be OpenShift, XKS, or empty for auto-detect")
 	}
 	return nil
 }
@@ -124,10 +125,16 @@ type EnvConfig struct {
 	// AllowedOrigins lists CORS allowed origins.
 	AllowedOrigins []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
-	// If provided, the application will attempt to load these files and add the
-	// certificates to the HTTP client's Root CAs for outbound TLS connections.
-	// Missing or unreadable files are ignored.
+	// The certificates are added to the Root CAs used for every outbound TLS
+	// connection. Individual missing or unreadable files are skipped; see
+	// BundlePathsRequired for what happens when none of them load.
 	BundlePaths []string
+
+	// BundlePathsRequired is true when BUNDLE_PATHS was supplied explicitly
+	// (environment or CLI) rather than defaulted. An explicit trust bundle that
+	// yields no usable certificate fails startup instead of silently falling
+	// back to the system pool, which would be a trust downgrade.
+	BundlePathsRequired bool
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
@@ -141,6 +148,14 @@ type EnvConfig struct {
 	// Optional prefix to strip from the token header value.
 	// Default is "" (empty); set to "Bearer " when using the standard Authorization header.
 	AuthTokenPrefix string
+
+	// AuthTokenHeaders is an ordered list of headers that may carry the caller
+	// credential (AUTH_TOKEN_HEADERS / --auth-token-headers). When set it
+	// replaces AuthTokenHeader/AuthTokenPrefix: Authorization must use the
+	// Bearer scheme, any other header carries the bare token, and every header
+	// presented must carry the same token. Empty keeps the single-header mode.
+	// See docs/runtime-contract.md, "Caller credentials".
+	AuthTokenHeaders []string
 
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client
@@ -157,6 +172,11 @@ type EnvConfig struct {
 	// PlatformType indicates the target platform.
 	PlatformType PlatformType
 
+	// AdmissionMode selects the dashboard admission contract used by the
+	// bootstrap endpoints. Empty means "resolve from the platform at startup"
+	// (see ResolveAdmissionMode).
+	AdmissionMode AdmissionMode
+
 	// Namespace is the Kubernetes namespace where the dashboard is deployed.
 	Namespace string
 
@@ -166,6 +186,19 @@ type EnvConfig struct {
 	// WorkbenchNamespace is the Kubernetes namespace for workbenches.
 	// Defaults to Namespace if not set. Used in namespace allowlist validation.
 	WorkbenchNamespace string
+
+	// NamespaceCandidates is the operator-configured list of namespaces the xKS
+	// namespace discovery evaluates for callers who cannot list namespaces
+	// cluster-wide. Listing a namespace here grants nothing: each candidate is
+	// returned only after the caller's own access reviews allow it.
+	NamespaceCandidates []string
+
+	// NamespaceDiscoveryLabelSelector, when set, lets the dashboard service
+	// account enumerate namespaces matching this selector as additional xKS
+	// discovery candidates. Empty (the default) disables the enumeration. It is
+	// the one documented service-account exception in namespace discovery and
+	// needs a cluster-scoped list on namespaces for the service account.
+	NamespaceDiscoveryLabelSelector string
 
 	// DashboardConfigName is the name of the OdhDashboardConfig CR to read.
 	DashboardConfigName string

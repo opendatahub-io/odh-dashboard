@@ -43,7 +43,7 @@
     "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9112",
     "test:contract": "pnpm run test:contract:openshift && pnpm run test:contract:xks",
     "test:contract:openshift": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-http-client --auth-method=user_token --platform-type=OpenShift' CONTRACT_TEST_PATH='(foundation|openshift)' odh-ct-bff-consumer --bff-dir bff",
-    "test:contract:xks": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-http-client --auth-method=user_token --platform-type=XKS' CONTRACT_TEST_PATH='(foundation|xks)' odh-ct-bff-consumer --bff-dir bff",
+    "test:contract:xks": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-http-client --auth-method=user_token --auth-token-headers=Authorization,x-forwarded-access-token --platform-type=XKS --namespace-candidates=test-ns-a,test-ns-b,test-ns-c' CONTRACT_TEST_PATH='(foundation|xks)' odh-ct-bff-consumer --bff-dir bff",
     "lint": "cd frontend && pnpm run lint",
     "lint:fix": "cd frontend && pnpm run lint:fix",
     "lint:openapi": "redocly lint bff/openapi/src/core-bff.yaml"

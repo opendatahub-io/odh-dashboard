@@ -61,6 +61,28 @@ describe('PreconfigureDeploymentStep', () => {
     jest.clearAllMocks();
   });
 
+  it('should offer only deploy-capable projects when the host sets deployment targets', () => {
+    const viewer = mockProjectK8sResource({ k8sName: 'viewer', displayName: 'Viewer' });
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/', state: {} }]}>
+        <ProjectsContext.Provider
+          value={{
+            ...createProjectsContextValue(),
+            projects: [mockProject, viewer],
+            deploymentTargetProjects: [mockProject],
+          }}
+        >
+          <PreconfigureDeploymentStepContent wizardState={mockWizardStateWithoutProject()} />
+        </ProjectsContext.Provider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('project-selector-toggle'));
+
+    expect(screen.getByText('Test Project')).toBeInTheDocument();
+    expect(screen.queryByText('Viewer')).not.toBeInTheDocument();
+  });
+
   it('should render the description text', () => {
     const wizardState = mockWizardStateWithoutProject();
 
