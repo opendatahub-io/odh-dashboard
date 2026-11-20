@@ -10,7 +10,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CaretDownIcon, CaretUpIcon } from '@patternfly/react-icons';
+import { RhMicronsCaretDownIcon, RhMicronsCaretUpIcon } from '@patternfly/react-icons';
 import { ActionsColumn, ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -248,7 +248,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
             className="pf-v6-u-ml-md"
             icon={
               <div className="pf-v6-c-table__toggle-icon">
-                {allExpanded ? <CaretUpIcon /> : <CaretDownIcon />}
+                {allExpanded ? <RhMicronsCaretUpIcon /> : <RhMicronsCaretDownIcon />}
               </div>
             }
           />
