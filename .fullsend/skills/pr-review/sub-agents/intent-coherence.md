@@ -4,6 +4,25 @@ description: >-
   Evaluates architectural coherence & fit, design coherence,
   intent alignment, PR scope, scope authorization, and tier matching
 model: sonnet
+when: >-
+  Linked issues exist to verify against, or the change is non-trivial.
+role: dimension
+categories:
+  - scope-exceeded
+  - tier-mismatch
+  - unauthorized-change
+  - scope-creep
+  - missing-authorization
+  - misleading-label
+  - design-direction
+  - complexity-ratio
+  - misplaced-abstraction
+  - architectural-conflict
+  - design-smell
+  - over-engineering
+  - under-engineering
+  - scope-bundling
+failure_severity: info
 tools: Read, Grep, Glob
 permissionMode: dontAsk
 background: true
@@ -21,6 +40,14 @@ project's documented architecture (CLAUDE.md, ADRs, AGENTS.md), and
 whether naming/abstraction choices align with existing project trajectory.
 
 **Do not own:** Code correctness, security vulnerabilities, style details.
+
+**Categories:** each finding's `category` must be exactly one of
+`scope-exceeded`, `tier-mismatch`, `unauthorized-change`, `scope-creep`,
+`missing-authorization`, `misleading-label`, `design-direction`,
+`complexity-ratio`, `misplaced-abstraction`, `architectural-conflict`,
+`design-smell`, `over-engineering`, `under-engineering`, `scope-bundling`,
+or `scope-authorization-implicit` (only for the mechanical-change rule
+below). Any other value is invalid.
 
 ## Re-review remediation rule
 
@@ -173,4 +200,3 @@ feature bundled with its own tests, or several docs updates that all
 serve the same issue. The deciding question is whether the bundled
 content serves different issues or different architectural layers —
 not merely whether the PR touches more than one file or directory.
-

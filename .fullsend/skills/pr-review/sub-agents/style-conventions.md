@@ -4,6 +4,18 @@ description: >-
   Evaluates repo-specific naming, error-handling idioms, API shape,
   and code organization.
 model: sonnet
+when: >-
+  Every PR.
+role: dimension
+always: true
+categories:
+  - naming-convention
+  - error-handling-idiom
+  - api-shape
+  - code-organization
+  - doc-style
+  - pattern-inconsistency
+failure_severity: info
 tools: Read, Grep, Glob, LS
 permissionMode: dontAsk
 background: true
@@ -19,6 +31,11 @@ cannot detect. Derive the expected patterns from the existing codebase,
 not from general best practices.
 
 **Do not own:** Logic correctness, security, documentation content/staleness.
+
+**Categories:** each finding's `category` must be exactly one of
+`naming-convention`, `error-handling-idiom`, `api-shape`,
+`code-organization`, `doc-style`, `pattern-inconsistency`. Any other value
+is invalid.
 
 ## Tool-owned filenames
 
@@ -67,4 +84,3 @@ Do not read additional files beyond the diff context.
 This rule takes precedence over the size-based categories above: a
 25-line value-only change exits here rather than triggering non-trivial
 exploration.
-

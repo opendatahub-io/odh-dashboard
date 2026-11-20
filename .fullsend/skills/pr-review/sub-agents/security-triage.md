@@ -2,6 +2,10 @@
 name: security-triage
 description: Lightweight classifier that identifies security-critical files in large PRs for prioritized deep review.
 model: haiku
+when: >-
+  Step 2 selected per-file mode (large PR); runs before context
+  packages are prepared.
+role: preprocessor
 tools: Read, Grep, Glob
 permissionMode: dontAsk
 background: false
@@ -105,4 +109,3 @@ Return a JSON object:
   summary — this is a fast classification pass
 - Do not write any files
 - Do not generate review findings
-
