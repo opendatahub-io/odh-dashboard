@@ -91,20 +91,21 @@ const PersesProviderCore: React.FC<PersesProviderCoreProps> = ({
   return (
     <ThemeProvider theme={muiTheme}>
       {/* Third-party Perses surfaces that need theme corrections the MUI theme
-          slots cannot express: panel group headers must not paint a surface
-          (they are inline content, and the paper token is translucent under
-          glass), and the variable toolbar's negative bottom margin pulls the
-          panel groups up against the variable row. */}
+          slots cannot express. Selectors are element-qualified so they out-
+          specify the emotion classes the sx props generate, without !important.
+          Panel group headers are inline content and must not paint a surface
+          (the paper token is translucent under glass); the variable toolbar's
+          negative bottom margin pulls the panel groups up against the row. */}
       <GlobalStyles
         styles={{
-          '[data-testid="panel-group-header"]': {
-            backgroundColor: 'transparent !important',
+          'div[data-testid="panel-group-header"]': {
+            backgroundColor: 'transparent',
           },
-          '[data-testid="variable-list"]': {
-            marginBottom: '0px !important',
+          'div[data-testid="variable-list"]': {
+            marginBottom: 0,
             paddingBottom: 'var(--pf-t--global--spacer--md)',
             '& .MuiAppBar-root > .MuiBox-root > .MuiBox-root': {
-              paddingTop: '0px !important',
+              paddingTop: 0,
             },
           },
         }}
