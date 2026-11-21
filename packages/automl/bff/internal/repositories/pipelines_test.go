@@ -167,6 +167,66 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		}
 	})
 
+	t.Run("valid separate test dataset", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TestDataBucketName = ptr("bucket")
+		req.TestDataFileKey = ptr("test.csv")
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("rejects identical training and test objects", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TestDataBucketName = ptr(req.TrainDataBucketName)
+		req.TestDataFileKey = ptr(req.TrainDataFileKey)
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		var validationErr *ValidationError
+		if !errors.As(err, &validationErr) || !strings.Contains(err.Error(), "must differ") {
+			t.Fatalf("expected distinct-file validation error, got %v", err)
+		}
+	})
+
+	t.Run("rejects an incomplete test dataset pair", func(t *testing.T) {
+		tests := []struct {
+			name string
+			req  models.CreateAutoMLRunRequest
+		}{
+			{name: "bucket without key", req: func() models.CreateAutoMLRunRequest {
+				req := validTabularRequest()
+				req.TestDataBucketName = ptr("bucket")
+				return req
+			}()},
+			{name: "key without bucket", req: func() models.CreateAutoMLRunRequest {
+				req := validTabularRequest()
+				req.TestDataFileKey = ptr("test.csv")
+				return req
+			}()},
+			{name: "empty key", req: func() models.CreateAutoMLRunRequest {
+				req := validTabularRequest()
+				req.TestDataBucketName = ptr("bucket")
+				req.TestDataFileKey = ptr("  ")
+				return req
+			}()},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if err := ValidateCreateAutoMLRunRequest(tt.req, constants.PipelineTypeTabular); err == nil {
+					t.Fatal("expected test dataset validation error")
+				}
+			})
+		}
+	})
+
+	t.Run("rejects a different test bucket", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TestDataBucketName = ptr("another-bucket")
+		req.TestDataFileKey = ptr("test.csv")
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular); err == nil {
+			t.Fatal("expected test bucket validation error")
+		}
+	})
+
 	t.Run("quality preset is valid for tabular", func(t *testing.T) {
 		req := validTabularRequest()
 		req.Preset = ptr("quality")
@@ -492,6 +552,29 @@ func TestNormalizeCreateAutoMLRunRequest(t *testing.T) {
 }
 
 func TestBuildPipelineRunInput(t *testing.T) {
+	t.Run("omits test dataset parameters for auto-split runs", func(t *testing.T) {
+		kfp := BuildPipelineRunInput(validTabularRequest(), "pid", "vid", constants.PipelineTypeTabular)
+		if _, ok := kfp.RuntimeConfig.Parameters["test_data_bucket_name"]; ok {
+			t.Error("test_data_bucket_name should be omitted when no test dataset is provided")
+		}
+		if _, ok := kfp.RuntimeConfig.Parameters["test_data_file_key"]; ok {
+			t.Error("test_data_file_key should be omitted when no test dataset is provided")
+		}
+	})
+
+	t.Run("includes both test dataset parameters when provided", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TestDataBucketName = ptr("bucket")
+		req.TestDataFileKey = ptr("test.csv")
+		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTabular)
+		if got := kfp.RuntimeConfig.Parameters["test_data_bucket_name"]; got != "bucket" {
+			t.Errorf("test_data_bucket_name = %v, want bucket", got)
+		}
+		if got := kfp.RuntimeConfig.Parameters["test_data_file_key"]; got != "test.csv" {
+			t.Errorf("test_data_file_key = %v, want test.csv", got)
+		}
+	})
+
 	t.Run("tabular quality preset is passed to pipeline parameters", func(t *testing.T) {
 		req := validTabularRequest()
 		req.Preset = ptr("quality")

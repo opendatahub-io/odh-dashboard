@@ -277,6 +277,8 @@ var commonFields = []fieldCheck{
 	{"train_data_secret_name", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataSecretName != "" }, true},
 	{"train_data_bucket_name", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataBucketName != "" }, true},
 	{"train_data_file_key", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataFileKey != "" }, true},
+	{"test_data_bucket_name", func(r models.CreateAutoMLRunRequest) bool { return r.TestDataBucketName != nil }, false},
+	{"test_data_file_key", func(r models.CreateAutoMLRunRequest) bool { return r.TestDataFileKey != nil }, false},
 	{"preset", func(r models.CreateAutoMLRunRequest) bool { return r.Preset != nil }, false},
 	{"eval_metric", func(r models.CreateAutoMLRunRequest) bool { return r.EvalMetric != nil }, false},
 	{"top_n", func(r models.CreateAutoMLRunRequest) bool { return r.TopN != nil }, false},
@@ -331,6 +333,9 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	}
 	if len(missing) > 0 {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
+	}
+	if err := validateTestDataFields(req); err != nil {
+		return err
 	}
 
 	var unexpected []string
@@ -426,6 +431,35 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	return nil
 }
 
+func validateTestDataFields(req models.CreateAutoMLRunRequest) error {
+	bucketProvided := req.TestDataBucketName != nil
+	keyProvided := req.TestDataFileKey != nil
+	if !bucketProvided && !keyProvided {
+		return nil
+	}
+
+	var missing []string
+	if !bucketProvided || strings.TrimSpace(*req.TestDataBucketName) == "" {
+		missing = append(missing, "test_data_bucket_name")
+	}
+	if !keyProvided || strings.TrimSpace(*req.TestDataFileKey) == "" {
+		missing = append(missing, "test_data_file_key")
+	}
+	if len(missing) > 0 {
+		return NewValidationError(fmt.Sprintf(
+			"test data fields must be supplied together and non-empty: missing %s",
+			strings.Join(missing, ", "),
+		))
+	}
+	if *req.TestDataBucketName != req.TrainDataBucketName {
+		return NewValidationError("test_data_bucket_name must match train_data_bucket_name")
+	}
+	if *req.TestDataFileKey == req.TrainDataFileKey {
+		return NewValidationError("test_data_file_key must differ from train_data_file_key")
+	}
+	return nil
+}
+
 // normalizeColumnName strips a leading UTF-8 BOM then surrounding whitespace from CSV-derived names.
 func normalizeColumnName(name string) string {
 	name = strings.TrimPrefix(name, "\ufeff")
@@ -440,6 +474,10 @@ func normalizeCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) models.C
 	req.Description = strings.TrimSpace(req.Description)
 	req.TrainDataSecretName = strings.TrimSpace(req.TrainDataSecretName)
 	req.TrainDataBucketName = strings.TrimSpace(req.TrainDataBucketName)
+	if req.TestDataBucketName != nil {
+		v := strings.TrimSpace(*req.TestDataBucketName)
+		req.TestDataBucketName = &v
+	}
 
 	if req.LabelColumn != nil {
 		v := normalizeColumnName(*req.LabelColumn)
@@ -482,6 +520,11 @@ func BuildPipelineRunInput(req models.CreateAutoMLRunRequest, pipelineID, pipeli
 		"train_data_secret_name": req.TrainDataSecretName,
 		"train_data_bucket_name": req.TrainDataBucketName,
 		"train_data_file_key":    req.TrainDataFileKey,
+	}
+	if req.TestDataBucketName != nil && req.TestDataFileKey != nil &&
+		strings.TrimSpace(*req.TestDataBucketName) != "" && strings.TrimSpace(*req.TestDataFileKey) != "" {
+		params["test_data_bucket_name"] = *req.TestDataBucketName
+		params["test_data_file_key"] = *req.TestDataFileKey
 	}
 
 	switch pipelineType {

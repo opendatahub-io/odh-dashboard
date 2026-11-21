@@ -18,6 +18,7 @@ import {
   EVAL_METRIC_ALIASES,
 } from '~/app/utilities/const';
 import { generateReconfigureName, getTaskType } from '~/app/utilities/utils';
+import { DATASET_SPLIT_AUTO, DATASET_SPLIT_SEPARATE } from '~/app/utilities/datasetSplit';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
@@ -176,6 +177,13 @@ function AutomlReconfigureLoader(): React.JSX.Element {
   }
 
   const parsed = parsedParams?.success ? parsedParams.data : {};
+  const savedTestBucket = params?.test_data_bucket_name;
+  const savedTestKey = params?.test_data_file_key;
+  const hasSavedTestData =
+    typeof savedTestBucket === 'string' &&
+    Boolean(savedTestBucket.trim()) &&
+    typeof savedTestKey === 'string' &&
+    Boolean(savedTestKey.trim());
 
   // Prefer the unified key, then legacy timeseries key, then legacy tabular key.
   const targetColumn = parsed.target_column || parsed.target || parsed.label_column || '';
@@ -187,6 +195,11 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     : DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType ?? ''];
   const initialValues: Partial<ConfigureSchema> = {
     ...parsed,
+    ...(hasSavedTestData && {
+      test_data_bucket_name: savedTestBucket,
+      test_data_file_key: savedTestKey,
+    }),
+    dataset_split_mode: hasSavedTestData ? DATASET_SPLIT_SEPARATE : DATASET_SPLIT_AUTO,
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
     target_column: targetColumn,

@@ -5,7 +5,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import AutomlReconfigureLoader from '~/app/pages/AutomlReconfigureLoader';
 import type { PipelineRun } from '~/app/types';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 
 // ============================================================================
 // Mocks
@@ -428,6 +428,81 @@ describe('AutomlReconfigureLoader', () => {
         top_n: 7,
         display_name: 'Run A - 1',
       });
+    });
+
+    it('should preserve both test-data parameters when submitting restored separate datasets', async () => {
+      const params: Partial<ConfigureSchema> = {
+        task_type: 'binary',
+        train_data_secret_name: 'my-secret',
+        train_data_bucket_name: 'my-bucket',
+        train_data_file_key: 'train.csv',
+        test_data_bucket_name: 'my-bucket',
+        test_data_file_key: 'test.csv',
+        label_column: 'label',
+      };
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun({}, params),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+      await screen.findByTestId('configure-page');
+
+      expect(capturedProps.initialValues?.dataset_split_mode).toBe('separate');
+      const request = createConfigureSchema().full.parse(capturedProps.initialValues);
+      expect(request).toMatchObject({
+        test_data_bucket_name: 'my-bucket',
+        test_data_file_key: 'test.csv',
+      });
+      expect(request).not.toHaveProperty('dataset_split_mode');
+    });
+
+    it('should recover a valid test-data pair when an unrelated parameter is invalid', async () => {
+      const run = createMockPipelineRun(
+        {},
+        {
+          top_n: -1,
+          test_data_bucket_name: 'saved-bucket',
+          test_data_file_key: 'saved-test.csv',
+        },
+      );
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: run,
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+      await screen.findByTestId('configure-page');
+      expect(capturedProps.initialValues).toMatchObject({
+        dataset_split_mode: 'separate',
+        test_data_bucket_name: 'saved-bucket',
+        test_data_file_key: 'saved-test.csv',
+      });
+      expect(capturedProps.initialValues?.top_n).toBeUndefined();
+    });
+
+    it.each([
+      {},
+      { test_data_bucket_name: 'my-bucket' },
+      { test_data_file_key: 'test.csv' },
+      { test_data_bucket_name: 'my-bucket', test_data_file_key: ' ' },
+      { test_data_bucket_name: ' ', test_data_file_key: 'test.csv' },
+    ])('should restore automatic mode without a complete test-data pair: %j', async (params) => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun({}, params),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+      await screen.findByTestId('configure-page');
+
+      expect(capturedProps.initialValues?.dataset_split_mode).toBe('auto');
     });
 
     it('should pass timeseries parameters as initialValues', async () => {

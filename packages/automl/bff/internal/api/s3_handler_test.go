@@ -216,6 +216,40 @@ func TestGetS3FileHandler(t *testing.T) {
 			wantBodyContains: "csv issue",
 		},
 		{
+			name:      "view=row-count returns total data rows",
+			namespace: "test-ns", key: "data.csv",
+			queryString: "secretName=my-secret&view=row-count",
+			setupMock: func(repo *mockS3Repo) {
+				repo.On("GetCSVRowCount", mock.Anything, repositories.S3RequestContext{
+					Namespace: "test-ns", SecretName: "my-secret",
+				}, "data.csv").Return(int64(144), nil)
+			},
+			wantStatusCode:   http.StatusOK,
+			wantBodyContains: `"row_count": 144`,
+		},
+		{
+			name:        "view=row-count returns a validation error for exceeded limits",
+			namespace:   "test-ns",
+			key:         "data.csv",
+			queryString: "secretName=my-secret&view=row-count",
+			setupMock: func(repo *mockS3Repo) {
+				repo.On("GetCSVRowCount", mock.Anything, mock.Anything, "data.csv").
+					Return(int64(0), fmt.Errorf("%w: row counting supports CSV records up to 1 MiB", s3.ErrInvalidCSV))
+			},
+			wantStatusCode:   http.StatusBadRequest,
+			wantBodyContains: "records up to 1 MiB",
+		},
+		{
+			name:      "view=row-count propagates access errors",
+			namespace: "test-ns", key: "data.csv",
+			queryString: "secretName=my-secret&view=row-count",
+			setupMock: func(repo *mockS3Repo) {
+				repo.On("GetCSVRowCount", mock.Anything, mock.Anything, "data.csv").Return(int64(0), s3.ErrAccessDenied)
+			},
+			wantStatusCode:   http.StatusForbidden,
+			wantBodyContains: "access denied",
+		},
+		{
 			name:        "force download sets Content-Disposition",
 			namespace:   "test-ns",
 			key:         "binary.bin",

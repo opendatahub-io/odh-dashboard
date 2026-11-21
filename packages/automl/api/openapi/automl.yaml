@@ -187,6 +187,10 @@ paths:
       GET returns an arbitrary file with transfer-encoding: chunked for efficient streaming.
       When the query parameter view=schema is specified, GET instead returns the CSV column
       schema with inferred data types (see S3FileSchemaResponse for type inference details).
+      With view=row-count, GET streams the entire CSV and returns its data row count
+      (see S3FileRowCountResponse), independently of the bounded schema sample.
+      Row counting supports files up to 32 MiB and records up to 1 MiB;
+      exceeding either limit returns 400 without a partial count.
       POST uploads a CSV file using multipart/form-data (part name `file`) and credentials
       from a required Kubernetes secret; the stored object key may differ from the requested
       `key` when a name collision is resolved (numeric suffix).
@@ -233,11 +237,15 @@ paths:
             Selects an alternate representation of the file resource.
             When set to "schema", returns the CSV column schema with inferred types
             instead of streaming the file contents. Requires the file to be a CSV
-            with at least 100 data rows.
+            with at least 100 data rows. When set to 'row-count', returns the total
+            number of CSV data records by streaming the entire file. The header and
+            blank lines are excluded; quoted multiline fields count as one record.
+            Files over 32 MiB or records over 1 MiB return 400 without a partial count.
           schema:
             type: string
             enum:
               - schema
+              - row-count
         - name: key
           in: path
           required: true
@@ -251,6 +259,7 @@ paths:
           description: >-
             File retrieved successfully. When view=schema is specified for a CSV file,
             returns the column schema as JSON instead of the binary file content.
+            With view=row-count, returns the total CSV data row count as JSON.
           content:
             "*/*":
               schema:
@@ -1156,11 +1165,16 @@ components:
         - **view=schema (CSV files only):** Returns a JSON object containing
           the CSV column schema with inferred data types
           (see S3FileSchemaResponse).
+
+        - **view=row-count (CSV files only):** Returns the total number of CSV
+          data records, excluding the header and blank lines (see S3FileRowCountResponse).
+          Files over 32 MiB or records over 1 MiB return 400 without a partial count.
       oneOf:
         - type: string
           format: binary
           description: Raw file bytes (default). Includes JSON files served as-is.
         - $ref: "#/components/schemas/S3FileSchemaResponse"
+        - $ref: "#/components/schemas/S3FileRowCountResponse"
 
     S3FileSchemaResponse:
       description: >-
@@ -1201,6 +1215,8 @@ components:
           required:
             - columns
             - parse_warnings
+            - sample_rows
+            - sample_size
           properties:
             columns:
               type: array
@@ -1274,6 +1290,40 @@ components:
               type: integer
               description: Number of rows that failed CSV parsing and were skipped during schema inference
               example: 0
+            sample_rows:
+              type: array
+              maxItems: 100
+              description: >-
+                The valid CSV records used for inference, in header column order. Values remain
+                strings, including empty cells. This bounded preview does not validate the full file.
+              items:
+                type: array
+                items:
+                  type: string
+              example: [["customer-1", "23", "active"]]
+            sample_size:
+              type: integer
+              minimum: 100
+              maximum: 100
+              description: Number of valid data records used for inference, excluding the header.
+              example: 100
+
+    S3FileRowCountResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - row_count
+          properties:
+            row_count:
+              type: integer
+              format: int64
+              minimum: 0
+              description: Total CSV data records, excluding the header and blank lines. Empty files return zero.
+              example: 144
 
     S3ListObjectsResult:
       type: object
@@ -1358,6 +1408,20 @@ components:
           minLength: 1
           description: S3 object key for the training data file
           example: "data/train.csv"
+        test_data_bucket_name:
+          type: string
+          minLength: 1
+          description: >-
+            S3 bucket containing the optional test data file. Must match the training data bucket
+            and be supplied together with test_data_file_key. The training data secret is reused.
+          example: "automl-bucket"
+        test_data_file_key:
+          type: string
+          minLength: 1
+          description: >-
+            Optional S3 object key for a separate test data file. Must be supplied together with
+            test_data_bucket_name and must differ from train_data_file_key.
+          example: "data/test.csv"
         eval_metric:
           type: string
           enum:

@@ -24,6 +24,7 @@ import (
 type s3Repository interface {
 	GetObject(ctx context.Context, req repositories.S3RequestContext, key string) (*repositories.GetObjectResult, error)
 	GetCSVSchema(ctx context.Context, req repositories.S3RequestContext, key string) (helper.CSVSchemaResult, error)
+	GetCSVRowCount(ctx context.Context, req repositories.S3RequestContext, key string) (int64, error)
 	UploadCSVFile(ctx context.Context, req repositories.S3RequestContext, key string, body io.Reader, rawContentType, filename string, maxAttempts int) (string, error)
 	ListObjects(ctx context.Context, req repositories.S3RequestContext, options s3.ListObjectsOptions) (*s3.ListObjectsResponse, error)
 }
@@ -145,6 +146,7 @@ func handleS3RepoError(logger *slog.Logger, w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if errors.Is(err, s3.ErrInvalidKey) ||
+		errors.Is(err, s3.ErrInvalidCSV) ||
 		errors.Is(err, kubernetes.ErrAmbiguousSecretKey) ||
 		errors.Is(err, s3.ErrEndpointValidation) ||
 		errors.Is(err, repositories.ErrS3Configuration) ||
@@ -196,8 +198,8 @@ func (h *S3Handler) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	if v := queryParams.Get("view"); v != "" && v != "schema" {
-		badRequestResponse(h.logger, w, r, fmt.Sprintf("unsupported view: %q (supported: schema)", v))
+	if v := queryParams.Get("view"); v != "" && v != "schema" && v != "row-count" {
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("unsupported view: %q (supported: schema, row-count)", v))
 		return
 	}
 
@@ -208,6 +210,18 @@ func (h *S3Handler) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	if queryParams.Get("view") == "schema" {
 		h.getS3FileSchemaHandler(w, r, req, key)
+		return
+	}
+	if queryParams.Get("view") == "row-count" {
+		rowCount, err := h.repo.GetCSVRowCount(r.Context(), req, key)
+		if err != nil {
+			h.handleS3RepoError(w, r, err, key)
+			return
+		}
+		response := map[string]any{"data": map[string]any{"row_count": rowCount}}
+		if err := writeJSON(w, http.StatusOK, response, nil); err != nil {
+			h.logger.Error("error writing JSON response", "error", err)
+		}
 		return
 	}
 
@@ -241,6 +255,8 @@ func (h *S3Handler) getS3FileSchemaHandler(w http.ResponseWriter, r *http.Reques
 		"data": map[string]any{
 			"columns":        schemaResult.Columns,
 			"parse_warnings": schemaResult.ParseWarnings,
+			"sample_rows":    schemaResult.SampleRows,
+			"sample_size":    schemaResult.SampleSize,
 		},
 	}
 

@@ -1,0 +1,18 @@
+.automl-dataset-preview {
+  &__mismatch {
+    --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartWidth: var(
+      --pf-t--global--border--width--strong
+    );
+    --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartColor: var(
+      --pf-t--global--border--color--status--warning--default
+    );
+
+    background-color: color-mix(
+      in srgb,
+      var(--pf-t--global--color--status--warning--default) 20%,
+      var(--pf-t--global--background--color--primary--default)
+    );
+    color: var(--pf-t--global--text--color--regular);
+  }
+
+}

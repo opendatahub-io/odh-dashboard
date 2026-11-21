@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
@@ -14,6 +14,8 @@ const trackEvent = jest.fn();
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
+const mockResetSchemaCache = jest.fn();
+const mockUploadMutateAsync = jest.fn();
 let mockLocationState: { from?: string } | undefined;
 
 jest.mock('react-router', () => ({
@@ -78,8 +80,12 @@ jest.mock('~/app/hooks/useCreatePipelineRunMutation', () => ({
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3FileUploadMutation: jest.fn(() => ({
-    mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'data.csv' }),
+    mutateAsync: mockUploadMutateAsync,
   })),
+}));
+
+jest.mock('~/app/hooks/useS3GetFileRowCountQuery', () => ({
+  useS3GetFileRowCountQuery: jest.fn(() => ({ data: 144, isFetching: false, error: null })),
 }));
 
 jest.mock('~/app/hooks/useS3GetFileSchemaQuery', () => ({
@@ -92,7 +98,7 @@ jest.mock('~/app/hooks/useS3GetFileSchemaQuery', () => ({
     isLoading: false,
     isFetching: false,
     error: null,
-    resetSchemaCache: jest.fn(),
+    resetSchemaCache: mockResetSchemaCache,
   })),
 }));
 
@@ -146,15 +152,17 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
   __esModule: true,
   default: ({
     isOpen,
+    s3SecretName,
     onSelectFiles,
     onClose,
   }: {
     isOpen: boolean;
+    s3SecretName?: string;
     onSelectFiles: (files: unknown) => void;
     onClose: () => void;
   }) =>
     isOpen ? (
-      <div data-testid="file-explorer-modal">
+      <div data-testid="file-explorer-modal" data-secret-name={s3SecretName}>
         <button
           data-testid="file-explorer-select-file"
           onClick={() => {
@@ -184,6 +192,7 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
   SecretSelector: ({
     onChange,
     value,
+    valueName,
     dataTestId,
   }: {
     onChange: (
@@ -199,9 +208,16 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
         | undefined,
     ) => void;
     value?: string;
+    valueName?: string;
     dataTestId?: string;
   }) => {
-    const isAwsSelector = dataTestId === 'aws-secret-selector';
+    const isAwsSelector = dataTestId?.endsWith('aws-secret-selector');
+    let selectedValue = value;
+    if (valueName === 'Other AWS Secret') {
+      selectedValue = 'aws-secret-2';
+    } else if (valueName) {
+      selectedValue = 'aws-secret-1';
+    }
 
     const handleClick = () => {
       if (isAwsSelector) {
@@ -221,7 +237,21 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
         <button type="button" data-testid={`${dataTestId}-select-secret`} onClick={handleClick}>
           Select Secret
         </button>
-        {value && <div data-testid={`${dataTestId}-value`}>{value}</div>}
+        <button
+          type="button"
+          data-testid={`${dataTestId}-select-other-secret`}
+          onClick={() =>
+            onChange({
+              uuid: 'aws-secret-2',
+              name: 'Other AWS Secret',
+              data: { AWS_S3_BUCKET: 'other-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+              type: 's3',
+            })
+          }
+        >
+          Select Other Secret
+        </button>
+        {selectedValue && <div data-testid={`${dataTestId}-value`}>{selectedValue}</div>}
       </div>
     );
   },
@@ -252,6 +282,7 @@ describe('AutomlConfigurePage', () => {
     jest.clearAllMocks();
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
     mockLocationState = undefined;
+    mockUploadMutateAsync.mockReset().mockResolvedValue({ uploaded: true, key: 'data.csv' });
   });
 
   describe('Initial state', () => {
@@ -569,6 +600,44 @@ describe('AutomlConfigurePage', () => {
       // Verify form data is preserved
       expect(nameInputAfterBack).toHaveValue('Preserved Name');
       expect(descriptionInputAfterBack).toHaveValue('Preserved Description');
+    });
+
+    it('should clear optional test-data fields when restarting the configure step for a new run', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{
+            display_name: 'My Experiment',
+            train_data_secret_name: 'Test AWS Secret',
+            train_data_bucket_name: 'test-bucket',
+            train_data_file_key: 'train.csv',
+            dataset_split_mode: 'separate',
+            test_data_bucket_name: 'test-bucket',
+            test_data_file_key: 'test.csv',
+            task_type: 'binary',
+            target_column: 'column1',
+          }}
+          initialInputDataSecret={{
+            uuid: 'aws-secret-1',
+            name: 'Test AWS Secret',
+            data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          }}
+        />,
+      );
+      const next = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => expect(next).toBeEnabled());
+      await user.click(next);
+      expect(screen.getByText('2 of 2 datasets selected')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Back' }));
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+
+      expect(await screen.findByTestId('dataset-split-auto')).toBeChecked();
+      await user.click(screen.getByTestId('dataset-split-separate'));
+      expect(screen.getByText('0 of 2 datasets selected')).toBeInTheDocument();
+      expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
     });
 
     it('should hide file selection after back and returning to configure without reselecting S3', async () => {
@@ -1253,6 +1322,243 @@ describe('AutomlConfigurePage', () => {
         expect(screen.getByText('Target column')).toBeInTheDocument();
         expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       });
+
+      it('should submit the restored test dataset without changing separate mode', async () => {
+        mockMutateAsync.mockResolvedValue({ run_id: 'restored-run' });
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={{
+              ...tabularInitialValues,
+              dataset_split_mode: 'separate',
+              test_data_bucket_name: 'test-bucket',
+              test_data_file_key: 'my-data/test.csv',
+            }}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+        const user = await navigateToConfigure();
+
+        expect(screen.getByTestId('dataset-split-separate')).toBeChecked();
+        const submit = screen.getByRole('button', { name: 'Create new run' });
+        await waitFor(() => expect(submit).toBeEnabled());
+        await user.click(submit);
+
+        await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+        expect(mockMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            test_data_bucket_name: 'test-bucket',
+            test_data_file_key: 'my-data/test.csv',
+          }),
+        );
+        await waitFor(() =>
+          expect(mockNavigate).toHaveBeenCalledWith(
+            '/develop-train/automl/results/test-namespace/restored-run',
+            { state: { entrySource: 'direct' } },
+          ),
+        );
+      });
+
+      it.each(['replace', 'remove'] as const)(
+        'should retain the current test-file selection after %s and Back → Next',
+        async (action) => {
+          renderWithProviders(
+            <AutomlConfigurePage
+              initialValues={{
+                ...tabularInitialValues,
+                dataset_split_mode: 'separate',
+                test_data_bucket_name: 'test-bucket',
+                test_data_file_key: 'old/test.csv',
+              }}
+              initialInputDataSecret={tabularInitialSecret}
+              sourceRunId="run-1"
+            />,
+          );
+          const user = await navigateToConfigure();
+          await user.click(screen.getByTestId('test-data-accordion-toggle'));
+          if (action === 'replace') {
+            await user.click(screen.getByTestId('test-data-browse-bucket-button'));
+            await user.click(screen.getByTestId('file-explorer-select-file'));
+          } else {
+            await user.click(
+              within(screen.getByRole('grid', { name: 'Selected test data file' })).getByRole(
+                'button',
+                { name: 'Remove selection' },
+              ),
+            );
+          }
+
+          await user.click(screen.getByRole('button', { name: 'Back' }));
+          const next = await screen.findByRole('button', { name: 'Next' });
+          await waitFor(() => expect(next).toBeEnabled());
+          await user.click(next);
+          await user.click(await screen.findByTestId('test-data-accordion-toggle'));
+
+          if (action === 'replace') {
+            expect(screen.getByRole('grid', { name: 'Selected test data file' })).toHaveTextContent(
+              'test-file.csv',
+            );
+          } else {
+            expect(
+              screen.queryByRole('grid', { name: 'Selected test data file' }),
+            ).not.toBeInTheDocument();
+            expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent(
+              'Incomplete',
+            );
+            expect(screen.getByText('Complete the Documents section')).toBeInTheDocument();
+          }
+          expect(screen.queryByTitle('/old/test.csv')).not.toBeInTheDocument();
+        },
+      );
+
+      it('should retain the current connection in the selector and explorer after Back → Next', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+        const user = await navigateToConfigure();
+        await user.click(screen.getByTestId('aws-secret-selector-select-other-secret'));
+        await user.click(screen.getByTestId('browse-bucket-button'));
+        expect(screen.getByTestId('file-explorer-modal')).toHaveAttribute(
+          'data-secret-name',
+          'Other AWS Secret',
+        );
+        await user.click(screen.getByTestId('file-explorer-select-file'));
+        await user.click(screen.getByRole('button', { name: 'Back' }));
+        await navigateToConfigure();
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-2');
+        expect(screen.getByText('test-file.csv')).toBeInTheDocument();
+        await user.click(screen.getByTestId('browse-bucket-button'));
+        expect(screen.getByTestId('file-explorer-modal')).toHaveAttribute(
+          'data-secret-name',
+          'Other AWS Secret',
+        );
+      });
+
+      it('should block submission during a replacement upload and preserve the previous test file on failure', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={{
+              ...tabularInitialValues,
+              dataset_split_mode: 'separate',
+              test_data_file_key: 'old-test.csv',
+            }}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+        const user = await navigateToConfigure();
+        await user.click(screen.getByTestId('test-data-accordion-toggle'));
+        await user.click(
+          within(screen.getByRole('group', { name: 'Choose how to add test data' })).getByRole(
+            'button',
+            { name: 'Upload new file' },
+          ),
+        );
+        mockUploadMutateAsync.mockResolvedValueOnce({ uploaded: true, key: 'test.csv' });
+        fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+          target: { files: [new File(['name\na\n'], 'test.csv', { type: 'text/csv' })] },
+        });
+        const submit = screen.getByTestId('automl-create-run-button');
+        await waitFor(() => expect(submit).toBeEnabled());
+        let rejectUpload!: (error: Error) => void;
+        mockUploadMutateAsync.mockReturnValueOnce(
+          new Promise((_resolve, reject) => {
+            rejectUpload = reject;
+          }),
+        );
+        fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+          target: { files: [new File(['name\nb\n'], 'replacement.csv', { type: 'text/csv' })] },
+        });
+        await waitFor(() => expect(submit).toBeDisabled());
+        const form = submit.closest('form');
+        if (!form) {
+          throw new Error('Submit button must belong to the configure form');
+        }
+        fireEvent.submit(form);
+        expect(mockMutateAsync).not.toHaveBeenCalled();
+        await act(async () => rejectUpload(new Error('Upload failed')));
+        await waitFor(() => expect(submit).toBeEnabled());
+        await user.click(submit);
+        await waitFor(() =>
+          expect(mockMutateAsync).toHaveBeenCalledWith(
+            expect.objectContaining({ test_data_file_key: 'test.csv' }),
+          ),
+        );
+      });
+
+      it.each(['training', 'test'] as const)(
+        'should ignore a late %s upload after Back → Next and a replacement selection',
+        async (dataset) => {
+          let resolveUpload!: (value: { uploaded: boolean; key: string }) => void;
+          mockUploadMutateAsync.mockReturnValueOnce(
+            new Promise((resolve) => {
+              resolveUpload = resolve;
+            }),
+          );
+          renderWithProviders(
+            <AutomlConfigurePage
+              initialValues={{
+                ...tabularInitialValues,
+                ...(dataset === 'test' && {
+                  dataset_split_mode: 'separate',
+                  test_data_bucket_name: 'test-bucket',
+                  test_data_file_key: 'old-test.csv',
+                }),
+              }}
+              initialInputDataSecret={tabularInitialSecret}
+              sourceRunId="run-1"
+            />,
+          );
+          const user = await navigateToConfigure();
+          if (dataset === 'test') {
+            await user.click(screen.getByTestId('test-data-accordion-toggle'));
+          }
+          await user.click(
+            within(
+              screen.getByRole('group', {
+                name: `Choose how to add ${dataset} data`,
+              }),
+            ).getByRole('button', { name: 'Upload new file' }),
+          );
+          fireEvent.change(
+            screen.getByTestId(
+              dataset === 'test' ? 'test-data-upload-file-input' : 'automl-upload-file-input',
+            ),
+            { target: { files: [new File(['name\na\n'], 'pending.csv', { type: 'text/csv' })] } },
+          );
+          await waitFor(() => expect(mockUploadMutateAsync).toHaveBeenCalledTimes(1));
+
+          await user.click(screen.getByRole('button', { name: 'Back' }));
+          await navigateToConfigure();
+          if (dataset === 'test') {
+            await user.click(screen.getByTestId('test-data-accordion-toggle'));
+          }
+          await user.click(
+            screen.getByTestId(
+              dataset === 'test' ? 'test-data-browse-bucket-button' : 'browse-bucket-button',
+            ),
+          );
+          await user.click(screen.getByTestId('file-explorer-select-file'));
+          await act(async () => resolveUpload({ uploaded: true, key: 'stale-upload.csv' }));
+
+          // Remount again so the visible filename is read back from the retained form.
+          await user.click(screen.getByRole('button', { name: 'Back' }));
+          await navigateToConfigure();
+          if (dataset === 'test') {
+            await user.click(screen.getByTestId('test-data-accordion-toggle'));
+          }
+          expect(
+            screen.getByRole('grid', {
+              name: `Selected ${dataset} data file`,
+            }),
+          ).toHaveTextContent('test-file.csv');
+          expect(screen.queryByText('stale-upload.csv')).not.toBeInTheDocument();
+        },
+      );
 
       it('should retain configure-step fields after back and returning to configure', async () => {
         renderWithProviders(

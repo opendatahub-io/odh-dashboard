@@ -20,6 +20,13 @@
 // Modules -------------------------------------------------------------------->
 
 import {
+  Tearsheet,
+  TearsheetBody,
+  TearsheetFooter,
+  TearsheetHeader,
+} from '@patternfly/react-component-groups';
+
+import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
@@ -658,6 +665,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     </Td>
                     <Td width={TABLE_COLUMNS.actions.width} isActionCell>
                       <ActionsColumn
+                        popperProps={{ position: 'end', appendTo: 'inline' }}
                         actionsToggle={({ toggleRef, onToggle, isOpen, isDisabled }) => (
                           <MenuToggle
                             aria-label={`${file.name} actions`}
@@ -807,28 +815,34 @@ const PathBreadcrumbs: React.FC<PathBreadcrumbsProps> = ({
 };
 
 interface FileDetailsProps {
+  renderFilePreview?: (file: ExplorerFile) => ReactNode;
   file: ExplorerFile;
 }
-const FileDetails: React.FC<FileDetailsProps> = ({ file }) => (
+const FileDetails: React.FC<FileDetailsProps> = ({ file, renderFilePreview }) => (
   <>
-    <DescriptionListGroup>
-      <DescriptionListTerm>{defaults.labels.detailsPanelName}</DescriptionListTerm>
-      <DescriptionListDescription>{file.name}</DescriptionListDescription>
-    </DescriptionListGroup>
-    {file.details &&
-      Object.entries(file.details)
-        .filter(
-          (entry): entry is [string, RenderableDetailValue] =>
-            Boolean(entry[0]) && isRenderableDetailValue(entry[1]),
-        )
-        .map(([key, value]) => (
-          <DescriptionListGroup key={key}>
-            <DescriptionListTerm>{key}</DescriptionListTerm>
-            <DescriptionListDescription>
-              {typeof value === 'boolean' ? String(value) : value}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        ))}
+    <DescriptionList>
+      <DescriptionListGroup>
+        <DescriptionListTerm>{defaults.labels.detailsPanelName}</DescriptionListTerm>
+        <DescriptionListDescription>{file.name}</DescriptionListDescription>
+      </DescriptionListGroup>
+      {file.details &&
+        Object.entries(file.details)
+          .filter(
+            (entry): entry is [string, RenderableDetailValue] =>
+              Boolean(entry[0]) && isRenderableDetailValue(entry[1]),
+          )
+          .map(([key, value]) => (
+            <DescriptionListGroup key={key}>
+              <DescriptionListTerm>{key}</DescriptionListTerm>
+              <DescriptionListDescription>
+                {typeof value === 'boolean' ? String(value) : value}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ))}
+    </DescriptionList>
+    {renderFilePreview && !isFolder(file) && (
+      <div className="pf-v6-u-mt-lg">{renderFilePreview(file)}</div>
+    )}
   </>
 );
 
@@ -946,6 +960,8 @@ const SelectedFilesDataList: React.FC<SelectedFilesDataListProps> = ({
 };
 
 interface DetailsPanelProps {
+  isSingleFileTearsheet?: boolean;
+  renderFilePreview?: (file: ExplorerFile) => ReactNode;
   selectedFiles?: ExplorerFiles;
   filesToView?: ExplorerFiles;
   onViewDetails: (file: ExplorerFile) => void;
@@ -954,6 +970,8 @@ interface DetailsPanelProps {
   onClearDetails: () => void;
 }
 const DetailsPanel: React.FC<DetailsPanelProps> = ({
+  isSingleFileTearsheet = false,
+  renderFilePreview,
   selectedFiles,
   filesToView,
   onViewDetails,
@@ -980,13 +998,15 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
         <CardTitle>{defaults.labels.detailsPanelTitle}</CardTitle>
       </CardHeader>
       <CardBody className="pf-v6-u-pt-sm" isFilled={false}>
-        <DescriptionList>
-          {Array.isArray(filesToView) &&
-            filesToView.length > 0 &&
-            filesToView.map((fileToView) => (
-              <FileDetails key={fileToView.path} file={fileToView} />
-            ))}
-        </DescriptionList>
+        {Array.isArray(filesToView) &&
+          filesToView.length > 0 &&
+          filesToView.map((fileToView) => (
+            <FileDetails
+              key={fileToView.path}
+              file={fileToView}
+              renderFilePreview={renderFilePreview}
+            />
+          ))}
       </CardBody>
     </Card>
   );
@@ -1028,17 +1048,30 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
   );
 
   const shouldRender = shouldDetailsPanelRender({ filesToView, selectedFiles });
+  const isViewingSelection =
+    Array.isArray(selectedFiles) &&
+    selectedFiles.length === 1 &&
+    Array.isArray(filesToView) &&
+    filesToView.length === 1 &&
+    filesToView[0].path === selectedFiles[0].path;
+  const showSelection = shouldRender.selected && !(isSingleFileTearsheet && isViewingSelection);
 
   return (
-    <Card isFullHeight isCompact data-testid="file-explorer-details-panel">
+    <Card isFullHeight={!isSingleFileTearsheet} isCompact data-testid="file-explorer-details-panel">
       {shouldRender.details && detailsSubCard}
-      {shouldRender.details && shouldRender.selected && <Divider />}
-      {shouldRender.selected && selectedFilesSubCard}
+      {shouldRender.details && showSelection && <Divider />}
+      {showSelection && selectedFilesSubCard}
     </Card>
   );
 };
 
 interface FileExplorerProps {
+  /** Optional expanded presentation. Existing consumers retain the modal. */
+  presentation?: 'modal' | 'tearsheet';
+  /** Temporarily hide the dialog for a child preview, preserving selection and navigation. */
+  isCovered?: boolean;
+  /** Product-owned preview rendered only while viewing file details. */
+  renderFilePreview?: (file: ExplorerFile) => ReactNode;
   /** Optional unique identifier for the FileExplorer instance. */
   id?: string;
 
@@ -1131,6 +1164,9 @@ interface FileExplorerProps {
   allowedSearchCharactersLabel?: string;
 }
 const FileExplorer: React.FC<FileExplorerProps> = ({
+  presentation = 'modal',
+  isCovered = false,
+  renderFilePreview,
   id,
   isOpen,
   onClose,
@@ -1314,29 +1350,40 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         : defaults.labels.selectedPillPrefixFolder;
   }
 
+  const Dialog = presentation === 'tearsheet' ? Tearsheet : Modal;
+  const DialogHeader = presentation === 'tearsheet' ? TearsheetHeader : ModalHeader;
+  const DialogBody = presentation === 'tearsheet' ? TearsheetBody : ModalBody;
+  const DialogFooter = presentation === 'tearsheet' ? TearsheetFooter : ModalFooter;
+
   return (
     // Pure UI component — no data fetching or side effects on mount.
     // Wrappers gate all API calls behind `isOpen`, so always-mounted usage is safe.
     // eslint-disable-next-line no-restricted-syntax
-    <Modal
-      elementToFocus={`#${CSS.escape(`${rootId}-FileExplorer-search-input`)}`}
+    <Dialog
       id={id}
-      isOpen={isOpen}
+      isOpen={isOpen && !isCovered}
       onClose={(e) => {
         onClose(e);
         resetState();
       }}
-      variant="large"
+      {...(presentation === 'modal'
+        ? {
+            variant: 'large' as const,
+            elementToFocus: `#${CSS.escape(`${rootId}-FileExplorer-search-input`)}`,
+          }
+        : {
+            modalProps: { elementToFocus: `#${CSS.escape(`${rootId}-FileExplorer-search-input`)}` },
+          })}
       aria-labelledby={`${rootId}-FileExplorer-modal-title`}
       aria-describedby={modalDescription ? modalDescriptionId : `${rootId}-FileExplorer-modal-body`}
     >
-      <ModalHeader
+      <DialogHeader
         title={defaults.labels.modalTitle}
         description={modalDescription ?? defaults.labels.modalDescription(selection)}
         descriptorId={modalDescriptionId}
         labelId={`${rootId}-FileExplorer-modal-title`}
       />
-      <ModalBody id={`${rootId}-FileExplorer-modal-body`}>
+      <DialogBody id={`${rootId}-FileExplorer-modal-body`}>
         <Flex direction={{ default: 'column' }}>
           {typeof onSelectSource === 'function' && (
             <FlexItem>
@@ -1359,54 +1406,66 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
           </FlexItem>
           {/* Inline-Style antipattern: A strange bug in the Flex rendering of SearchInput + Tooltip(allowed chars) + Pagination causes extra height to be added to this flex item. Forcing the height to 37 (height of all items) fixes the issue for now. */}
           <FlexItem style={{ height: '37px' }}>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
-              <FlexItem className="pf-v6-u-w-50">
-                <SearchInput
-                  searchInputId={`${rootId}-FileExplorer-search-input`}
-                  data-testid="file-explorer-search"
-                  aria-label={defaults.labels.searchAriaLabel}
-                  placeholder={
-                    searchPlaceholderProp ??
-                    defaults.labels.searchPlaceholder(
-                      folders && folders.length > 0
-                        ? folders[folders.length - 1].name
-                        : source
-                        ? `${source.name} (root)`
-                        : undefined,
-                    )
-                  }
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  onClear={handleSearchClear}
-                  resultsCount={searchResultsCount}
-                  isDisabled={isEmpty}
-                />
-              </FlexItem>
-              {allowedSearchCharactersLabel && (
-                <FlexItem data-testid="file-explorer-search-chars-info">
-                  <Tooltip
-                    content={<div>{allowedSearchCharactersLabel}</div>}
-                    {...(showCharWarning ? { isVisible: true } : {})}
+            <Grid hasGutter>
+              <GridItem
+                span={presentation === 'tearsheet' && shouldRenderDetails.panel ? 8 : 12}
+                xl={presentation === 'tearsheet' && shouldRenderDetails.panel ? 9 : undefined}
+              >
+                <Flex alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
+                  <FlexItem
+                    className={presentation === 'modal' ? 'pf-v6-u-w-50' : undefined}
+                    grow={presentation === 'tearsheet' ? { default: 'grow' } : undefined}
                   >
-                    <InfoCircleIcon />
-                  </Tooltip>
-                </FlexItem>
-              )}
-              <FlexItem align={{ default: 'alignRight' }}>
-                <Pagination
-                  data-testid="file-explorer-pagination"
-                  widgetId={`${rootId}-FileExplorer-table-pagination`}
-                  itemCount={syntheticItemCount}
-                  perPage={currentPerPage}
-                  page={currentPage}
-                  onSetPage={handleSetPage}
-                  onPerPageSelect={handlePerPageSelect}
-                  isDisabled={loading || isEmpty}
-                  isCompact
-                  {...extraPaginationProps}
-                />
-              </FlexItem>
-            </Flex>
+                    <SearchInput
+                      searchInputId={`${rootId}-FileExplorer-search-input`}
+                      data-testid="file-explorer-search"
+                      aria-label={defaults.labels.searchAriaLabel}
+                      placeholder={
+                        searchPlaceholderProp ??
+                        defaults.labels.searchPlaceholder(
+                          folders && folders.length > 0
+                            ? folders[folders.length - 1].name
+                            : source
+                            ? `${source.name} (root)`
+                            : undefined,
+                        )
+                      }
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                      onClear={handleSearchClear}
+                      resultsCount={searchResultsCount}
+                      isDisabled={isEmpty}
+                    />
+                  </FlexItem>
+                  {allowedSearchCharactersLabel && (
+                    <FlexItem data-testid="file-explorer-search-chars-info">
+                      <Tooltip
+                        content={<div>{allowedSearchCharactersLabel}</div>}
+                        {...(showCharWarning ? { isVisible: true } : {})}
+                      >
+                        <InfoCircleIcon />
+                      </Tooltip>
+                    </FlexItem>
+                  )}
+                  <FlexItem
+                    align={presentation === 'modal' ? { default: 'alignRight' } : undefined}
+                  >
+                    <Pagination
+                      data-testid="file-explorer-pagination"
+                      widgetId={`${rootId}-FileExplorer-table-pagination`}
+                      itemCount={syntheticItemCount}
+                      perPage={currentPerPage}
+                      page={currentPage}
+                      onSetPage={handleSetPage}
+                      onPerPageSelect={handlePerPageSelect}
+                      isDisabled={loading || isEmpty}
+                      isCompact
+                      {...extraPaginationProps}
+                    />
+                  </FlexItem>
+                </Flex>
+              </GridItem>
+            </Grid>
           </FlexItem>
           {shouldRenderSelectionPill && (
             <FlexItem>
@@ -1433,6 +1492,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             <Grid hasGutter>
               <GridItem
                 span={shouldRenderDetails.panel ? 8 : 12}
+                xl={presentation === 'tearsheet' && shouldRenderDetails.panel ? 9 : undefined}
                 style={{ height: `${STICKY_TABLE_HEIGHT}px` }}
               >
                 <FilesTable
@@ -1453,8 +1513,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 />
               </GridItem>
               {shouldRenderDetails.panel && (
-                <GridItem span={4}>
+                <GridItem span={4} xl={presentation === 'tearsheet' ? 3 : undefined}>
                   <DetailsPanel
+                    isSingleFileTearsheet={presentation === 'tearsheet' && selection === 'radio'}
+                    renderFilePreview={renderFilePreview}
                     selectedFiles={selectedFiles}
                     filesToView={filesToView}
                     onViewDetails={handleViewDetails}
@@ -1467,8 +1529,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             </Grid>
           </FlexItem>
         </Flex>
-      </ModalBody>
-      <ModalFooter>
+      </DialogBody>
+      <DialogFooter>
         <Button
           key="select-files"
           data-testid="file-explorer-select-btn"
@@ -1493,8 +1555,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
         >
           {defaults.labels.modalSecondaryCTA}
         </Button>
-      </ModalFooter>
-    </Modal>
+      </DialogFooter>
+    </Dialog>
   );
 };
 

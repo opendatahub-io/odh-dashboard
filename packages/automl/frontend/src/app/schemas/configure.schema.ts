@@ -17,6 +17,7 @@ import {
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 import { isASCIIOnly, NON_ASCII_COLUMN_NAME_MESSAGE } from '~/app/utilities/columnUtils';
+import { DATASET_SPLIT_MODES, DATASET_SPLIT_SEPARATE } from '~/app/utilities/datasetSplit';
 
 // Make sure every field has a default to ensure RHF works as intended.
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -47,6 +48,9 @@ function createConfigureSchema() {
       train_data_secret_name: z.string().min(1).default(''),
       train_data_bucket_name: z.string().min(1).default(''),
       train_data_file_key: z.string().min(1).default(''),
+      dataset_split_mode: z.enum(DATASET_SPLIT_MODES).optional(),
+      test_data_bucket_name: z.string().optional(),
+      test_data_file_key: z.string().optional(),
       preset: z.enum(PRESETS).default(PRESET_FASTER),
       eval_metric: z.enum(ALL_EVAL_METRICS).optional(),
       top_n: z.int().min(MIN_TOP_N, `Minimum number of top models is ${MIN_TOP_N}`).default(3),
@@ -188,6 +192,32 @@ function createConfigureSchema() {
 
         return issues;
       },
+      (data) => {
+        if (data.dataset_split_mode !== DATASET_SPLIT_SEPARATE) {
+          return [];
+        }
+        if (!data.test_data_file_key?.trim()) {
+          return [
+            {
+              code: 'custom',
+              path: ['test_data_file_key'],
+              message: 'Test data file is required',
+              input: data.test_data_file_key,
+            },
+          ];
+        }
+        if (data.test_data_file_key === data.train_data_file_key) {
+          return [
+            {
+              code: 'custom',
+              path: ['test_data_file_key'],
+              message: 'Test data must use a different file from training data',
+              input: data.test_data_file_key,
+            },
+          ];
+        }
+        return [];
+      },
     ],
     /* eslint-disable no-param-reassign */
     transformers: [
@@ -216,6 +246,13 @@ function createConfigureSchema() {
         }
         delete data.training_data_column_count;
         delete data.target_column;
+        if (data.dataset_split_mode === DATASET_SPLIT_SEPARATE && data.test_data_file_key?.trim()) {
+          data.test_data_bucket_name = data.train_data_bucket_name;
+        } else {
+          delete data.test_data_bucket_name;
+          delete data.test_data_file_key;
+        }
+        delete data.dataset_split_mode;
         return data;
       },
     ],

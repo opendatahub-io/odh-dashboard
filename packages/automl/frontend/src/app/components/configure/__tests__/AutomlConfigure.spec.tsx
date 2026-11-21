@@ -2,7 +2,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -12,6 +12,7 @@ import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplore
 import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
+import { useS3GetFileRowCountQuery } from '~/app/hooks/useS3GetFileRowCountQuery';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTOML_TRAINING_UPLOAD_MAX_BYTES,
@@ -68,6 +69,7 @@ jest.mock('react-router', () => ({
 }));
 
 jest.mock('~/app/hooks/useS3GetFileSchemaQuery');
+jest.mock('~/app/hooks/useS3GetFileRowCountQuery');
 
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({
@@ -96,10 +98,12 @@ function getMockS3MutateAsync(): jest.Mock {
 jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
+    id,
     isOpen,
     onSelectFiles,
     onClose,
   }: {
+    id: string;
     isOpen: boolean;
     onSelectFiles: (files: ExplorerFiles) => void;
     onClose: () => void;
@@ -107,9 +111,13 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
     isOpen ? (
       <div data-testid="file-explorer-modal">
         <button
-          data-testid="file-explorer-select-file"
+          data-testid={`file-explorer-select-${id.endsWith('-test') ? 'test-' : ''}file`}
           onClick={() => {
-            onSelectFiles([{ path: '/data.csv', name: 'data.csv', type: 'csv' }]);
+            const isTestData = id.endsWith('-test');
+            const file = isTestData
+              ? { path: '/test.csv', name: 'test.csv', type: 'csv' }
+              : { path: '/data.csv', name: 'data.csv', type: 'csv' };
+            onSelectFiles([file]);
             onClose();
           }}
         >
@@ -353,18 +361,15 @@ const fillConnectionModal = async () => {
 };
 
 const renderWithInitialValues = (
-  initialValues: Parameters<typeof AutomlConfigure>[0]['initialValues'] & {
+  initialValues: Partial<typeof configureSchema.defaults> & {
     initialInputDataSecret?: Parameters<typeof AutomlConfigure>[0]['initialInputDataSecret'];
   },
   defaultValues?: Partial<typeof configureSchema.defaults>,
 ) => {
   const { initialInputDataSecret, ...schemaValues } = initialValues;
   return renderWithQueryClient(
-    <AutomlConfigure
-      initialValues={schemaValues}
-      initialInputDataSecret={initialInputDataSecret}
-    />,
-    defaultValues,
+    <AutomlConfigure initialInputDataSecret={initialInputDataSecret} />,
+    { ...schemaValues, ...defaultValues },
   );
 };
 
@@ -413,17 +418,78 @@ describe('AutomlConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockNotificationError.mockClear();
-    mockuseS3GetFileSchemaQuery.mockReturnValue({
-      data: MOCK_COLUMNS,
-      isLoading: false,
-      resetSchemaCache: mockResetSchemaCache,
-    } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
+    jest.mocked(useS3GetFileRowCountQuery).mockReturnValue({
+      data: 144,
+      isFetching: false,
+      error: null,
+    } as ReturnType<typeof useS3GetFileRowCountQuery>);
+    mockuseS3GetFileSchemaQuery.mockImplementation(
+      (_namespace, _secret, _bucket, key) =>
+        ({
+          data: key ? MOCK_COLUMNS : [],
+          isLoading: false,
+          isFetching: false,
+          resetSchemaCache: mockResetSchemaCache,
+        }) as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+    );
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
     // Reset the S3 upload mock to default resolved value
     mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
     mockCreateSecretMutateAsync.mockResolvedValue(undefined);
     mockSecretRefresh.mockResolvedValue([]);
+  });
+
+  const renderSamplingFailure = (file: string, accordion: RegExp) => {
+    const refetch = jest.fn();
+    mockuseS3GetFileSchemaQuery.mockImplementation(
+      (_namespace, _secret, _bucket, key) =>
+        ({
+          refetch,
+          data: key === file ? [] : MOCK_COLUMNS,
+          error: key === file ? new Error('Sample failed') : null,
+          isLoading: false,
+          isFetching: false,
+          resetSchemaCache: mockResetSchemaCache,
+        }) as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+    );
+    renderWithInitialValues({
+      initialInputDataSecret: {
+        uuid: 'secret-1',
+        name: 'Test Secret 1',
+        data: { AWS_S3_BUCKET: 'test-bucket-1' },
+        type: 's3',
+        invalid: false,
+      },
+      dataset_split_mode: 'separate',
+      train_data_secret_name: 'Test Secret 1',
+      train_data_bucket_name: 'test-bucket-1',
+      train_data_file_key: 'train.csv',
+      test_data_file_key: 'test.csv',
+    });
+    fireEvent.click(screen.getByRole('button', { name: accordion }));
+    return refetch;
+  };
+
+  it.each([
+    { file: 'train.csv', accordion: /1\. Training data/ },
+    { file: 'test.csv', accordion: /2\. Test data/ },
+  ])('should retry sampling $file while preserving its selection', ({ file, accordion }) => {
+    const refetch = renderSamplingFailure(file, accordion);
+    expect(screen.getByText('Unable to sample document data')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View details' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('dataset-sampling-error')).toHaveTextContent(
+      'An error occurred while sampling data from this document. Try again, or upload a different document.',
+    );
+    fireEvent.click(screen.getByTestId('dataset-sampling-retry'));
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
+      'test-namespace',
+      'Test Secret 1',
+      'test-bucket-1',
+      file,
+    );
+    expect(screen.getByRole('button', { name: accordion })).toHaveTextContent(file);
   });
 
   describe('initial state - no secret selected', () => {
@@ -482,18 +548,30 @@ describe('AutomlConfigure', () => {
     it('should NOT show training data source toggle when no secret is selected', () => {
       renderComponent();
 
-      expect(screen.queryByRole('button', { name: 'Upload file' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Upload new file' })).not.toBeInTheDocument();
     });
 
     it('should display an empty state when no secret is selected', () => {
       renderComponent();
+
+      const dataSplitting = screen.getByText('Data splitting');
+      const documentsHeading = screen.getByRole('heading', { name: 'Documents' });
+      expect(
+        dataSplitting.compareDocumentPosition(documentsHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(screen.getByText('1. Choose a connection')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Select or upload the CSV file used to train your model. Choose from an existing connection, create a new connection, or upload a file.',
+        ),
+      ).toBeInTheDocument();
 
       expect(
         screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
+          'In order to configure details and run an experiment, select a file or upload one in the Documents section.',
         ),
       ).toBeInTheDocument();
     });
@@ -511,7 +589,7 @@ describe('AutomlConfigure', () => {
 
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
-      expect(screen.getByRole('button', { name: 'Upload file' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Upload new file' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Select file from bucket' })).toBeInTheDocument();
     });
 
@@ -535,10 +613,10 @@ describe('AutomlConfigure', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('should show upload dropzone when "Upload file" is selected', () => {
+    it('should show upload dropzone when "Upload new file" is selected', () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
       expect(
         screen.queryByRole('heading', { name: 'Select file from bucket' }),
@@ -550,7 +628,7 @@ describe('AutomlConfigure', () => {
     it('should not upload an oversized file and should show a notification', () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
       const fileInput = screen.getByTestId('automl-upload-file-input');
 
@@ -570,7 +648,7 @@ describe('AutomlConfigure', () => {
     it('should not upload a disallowed file type and should show a notification', () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
       const fileInput = screen.getByTestId('automl-upload-file-input');
 
@@ -589,7 +667,7 @@ describe('AutomlConfigure', () => {
       it('should show a notification when a disallowed file type is dropped', async () => {
         renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
         const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
         getMockS3MutateAsync().mockClear();
@@ -607,7 +685,7 @@ describe('AutomlConfigure', () => {
       it('should show a notification when an oversized file is dropped', async () => {
         renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
         const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
         Object.defineProperty(largeFile, 'size', { value: AUTOML_TRAINING_UPLOAD_MAX_BYTES + 1 });
@@ -626,7 +704,7 @@ describe('AutomlConfigure', () => {
       it('should show a notification when more than one file is dropped', async () => {
         renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
         const fileA = new File(['a'], 'a.csv', { type: 'text/csv' });
         const fileB = new File(['b'], 'b.csv', { type: 'text/csv' });
@@ -645,7 +723,7 @@ describe('AutomlConfigure', () => {
       it('should upload an allowed file dropped on the zone', async () => {
         renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
         const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
         getMockS3MutateAsync().mockClear();
@@ -669,7 +747,7 @@ describe('AutomlConfigure', () => {
     it('should upload an allowed file from the native file input', async () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
       const fileInput = screen.getByTestId('automl-upload-file-input');
 
@@ -694,7 +772,7 @@ describe('AutomlConfigure', () => {
     it('should show human-readable error for max collision attempts (409)', async () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
       const fileInput = screen.getByTestId('automl-upload-file-input');
 
@@ -815,6 +893,45 @@ describe('AutomlConfigure', () => {
       expect(table).toBeInTheDocument();
       expect(screen.getByText('data.csv')).toBeInTheDocument();
       expect(screen.getByText('csv')).toBeInTheDocument();
+      expect(screen.getByTestId('training-data-load-success')).toHaveTextContent(
+        `Successfully loaded 144 rows with ${MOCK_COLUMNS.length} columns`,
+      );
+    });
+
+    it.each([
+      { state: 'loading', isLoading: true, isFetching: true, error: null },
+      { state: 'refetching', isLoading: false, isFetching: true, error: null },
+      { state: 'failed', isLoading: false, isFetching: false, error: new Error('Schema failed') },
+    ])('should hide the success message when the schema is $state', (queryState) => {
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        data: MOCK_COLUMNS,
+        ...queryState,
+        resetSchemaCache: mockResetSchemaCache,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(screen.queryByTestId('training-data-load-success')).not.toBeInTheDocument();
+    });
+
+    it.each([
+      { state: 'counting', data: undefined, isFetching: true, error: null },
+      { state: 'failed', data: undefined, isFetching: false, error: new Error('Count failed') },
+    ])('should hide the success message when row counting is $state', (queryState) => {
+      jest
+        .mocked(useS3GetFileRowCountQuery)
+        .mockReturnValue(queryState as unknown as ReturnType<typeof useS3GetFileRowCountQuery>);
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(screen.queryByTestId('training-data-load-success')).not.toBeInTheDocument();
+      if (queryState.error) {
+        expect(screen.getByText('Unable to count rows. Count failed')).toBeInTheDocument();
+      }
     });
 
     it('should remove the selected file when the remove button is clicked', () => {
@@ -835,9 +952,28 @@ describe('AutomlConfigure', () => {
       expect(
         screen.queryByRole('grid', { name: 'Selected training data file' }),
       ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('training-data-load-success')).not.toBeInTheDocument();
     });
 
     it('after S3 select then switch to upload, should only show the upload table (not both tables)', async () => {
+      jest.mocked(useS3GetFileRowCountQuery).mockImplementation(
+        (_namespace, _secret, _bucket, key) =>
+          ({
+            data: key === 'uploaded-key.csv' ? 250 : 144,
+            isFetching: false,
+            error: null,
+          }) as ReturnType<typeof useS3GetFileRowCountQuery>,
+      );
+      const replacementColumns = MOCK_COLUMNS.slice(0, 2);
+      mockuseS3GetFileSchemaQuery.mockImplementation(
+        (_namespace, _secret, _bucket, key) =>
+          ({
+            data: key === 'uploaded-key.csv' ? replacementColumns : MOCK_COLUMNS,
+            isLoading: false,
+            isFetching: false,
+            resetSchemaCache: mockResetSchemaCache,
+          }) as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+      );
       renderComponent();
       getMockS3MutateAsync().mockClear();
 
@@ -845,12 +981,15 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
+      expect(screen.getByTestId('training-data-load-success')).toHaveTextContent(
+        `Successfully loaded 144 rows with ${MOCK_COLUMNS.length} columns`,
+      );
       expect(screen.getByRole('grid', { name: 'Selected training data file' })).toBeInTheDocument();
       expect(
         screen.queryByRole('grid', { name: 'Training data file upload' }),
       ).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
       expect(
         screen.queryByRole('grid', { name: 'Selected training data file' }),
@@ -873,6 +1012,9 @@ describe('AutomlConfigure', () => {
 
       expect(screen.getByText('uploaded-key.csv')).toBeInTheDocument();
       expect(screen.queryByText('data.csv')).not.toBeInTheDocument();
+      expect(screen.getByTestId('training-data-load-success')).toHaveTextContent(
+        `Successfully loaded 250 rows with ${replacementColumns.length} columns`,
+      );
     });
   });
 
@@ -900,7 +1042,7 @@ describe('AutomlConfigure', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
+          'In order to configure details and run an experiment, select a file or upload one in the Documents section.',
         ),
       ).toBeInTheDocument();
     });
@@ -915,6 +1057,379 @@ describe('AutomlConfigure', () => {
       const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
       expect(browseButton).toBeEnabled();
     });
+  });
+
+  describe('dataset split mode', () => {
+    it('should default to automatic splitting and show the radios before selecting a connection', () => {
+      renderComponent();
+
+      expect(screen.getByTestId('dataset-split-auto')).toBeChecked();
+      expect(screen.getByTestId('dataset-split-separate')).toBeInTheDocument();
+      expect(screen.queryByTestId('training-data-accordion-toggle')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('test-data-accordion-toggle')).not.toBeInTheDocument();
+    });
+
+    it('should show both incomplete file accordions before a connection is selected', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('dataset-split-separate'));
+
+      expect(screen.getByTestId('training-data-accordion-toggle')).toBeInTheDocument();
+      expect(screen.getByTestId('test-data-accordion-toggle')).toBeInTheDocument();
+      expect(screen.getByText('0 of 2 datasets selected')).toBeInTheDocument();
+      expect(screen.getAllByText('Incomplete')).toHaveLength(2);
+      expect(screen.queryByRole('button', { name: 'View details' })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('aws-secret-selector')).not.toBeInTheDocument();
+      expect(screen.getByText('Complete the Documents section')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('training-data-accordion-toggle'));
+      fireEvent.click(screen.getByTestId('training-data-aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+      expect(screen.getByText('1 of 2 datasets selected')).toBeInTheDocument();
+      expect(screen.getByText('Complete the Documents section')).toBeInTheDocument();
+    });
+
+    it('should clear the test file when switching back to automatic splitting', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByTestId('dataset-split-separate'));
+      fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+      fireEvent.click(screen.getByTestId('test-data-browse-bucket-button'));
+      fireEvent.click(screen.getByTestId('file-explorer-select-test-file'));
+
+      expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('test.csv');
+
+      fireEvent.click(screen.getByTestId('dataset-split-auto'));
+      expect(screen.queryByTestId('test-data-accordion-toggle')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+      expect(screen.getByRole('grid', { name: 'Selected training data file' })).toHaveTextContent(
+        'data.csv',
+      );
+
+      fireEvent.click(screen.getByTestId('dataset-split-separate'));
+      expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
+    });
+
+    it.each([false, true])(
+      'should show compatibility for both selected files (mismatch: %s)',
+      (hasMismatch) => {
+        mockuseS3GetFileSchemaQuery.mockImplementation((_namespace, _secret, _bucket, key) => {
+          const columns =
+            hasMismatch && key === 'test.csv' ? MOCK_COLUMNS.slice(0, 1) : MOCK_COLUMNS;
+          return {
+            data: key ? columns : [],
+            sample: key
+              ? {
+                  columns,
+                  sampleRows: [columns.map(() => 'value')],
+                  sampleSize: 1,
+                  parseWarnings: 0,
+                }
+              : undefined,
+            isLoading: false,
+            isFetching: false,
+            resetSchemaCache: mockResetSchemaCache,
+          } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>;
+        });
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+        fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+        fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+        fireEvent.click(screen.getByTestId('test-data-browse-bucket-button'));
+        fireEvent.click(screen.getByTestId('file-explorer-select-test-file'));
+
+        expect(screen.getByText('2 of 2 datasets selected')).toBeInTheDocument();
+        expect(screen.queryByText('Complete the Documents section')).not.toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toBeEnabled();
+        expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.anything(),
+          'test.csv',
+        );
+        expect(
+          screen.getByText(
+            hasMismatch
+              ? 'Compatibility check: incompatibilities found.'
+              : 'Compatibility check passed',
+            { exact: false },
+          ),
+        ).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+        expect(
+          screen.getByRole('grid', { name: 'Training and test column comparison' }),
+        ).toBeInTheDocument();
+      },
+    );
+
+    it('should show the identical-file error when training changes to a collapsed test selection', async () => {
+      renderWithInitialValues({
+        dataset_split_mode: 'separate',
+        train_data_secret_name: 'Test Secret 1',
+        train_data_bucket_name: 'test-bucket-1',
+        train_data_file_key: 'train.csv',
+        test_data_file_key: 'data.csv',
+      });
+      expect(screen.getByTestId('test-data-accordion-toggle')).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+      fireEvent.click(screen.getByTestId('training-data-accordion-toggle'));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+      const error = await screen.findByText(
+        'Test data must use a different file from training data',
+      );
+      expect(error).toBeVisible();
+      expect(screen.queryByText(/Compatibility check passed/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('training-data-accordion-toggle'));
+      expect(error).toBeVisible();
+    });
+
+    it.each(['select', 'upload', 'remove'])(
+      'should keep an identical-file error visible and refresh it after training-file %s',
+      async (change) => {
+        mockuseS3GetFileSchemaQuery.mockImplementation(
+          (_namespace, _secret, _bucket, key) =>
+            ({
+              data: key ? MOCK_COLUMNS : [],
+              sample: key
+                ? {
+                    columns: MOCK_COLUMNS,
+                    sampleRows: [MOCK_COLUMNS.map(() => 'value')],
+                    sampleSize: 1,
+                    parseWarnings: 0,
+                  }
+                : undefined,
+              isFetching: false,
+              error: null,
+              resetSchemaCache: mockResetSchemaCache,
+            }) as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+        );
+        renderWithInitialValues({
+          display_name: 'test-run',
+          task_type: 'regression',
+          target_column: 'age',
+          dataset_split_mode: 'separate',
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'test.csv',
+        });
+        fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+        fireEvent.click(screen.getByTestId('test-data-browse-bucket-button'));
+        fireEvent.click(screen.getByTestId('file-explorer-select-test-file'));
+        const message = 'Test data must use a different file from training data';
+        expect(await screen.findByText(message)).toBeVisible();
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveAttribute(
+          'aria-expanded',
+          'true',
+        );
+        expect(screen.queryByText(/Compatibility check passed/)).not.toBeInTheDocument();
+        fireEvent.click(screen.getByTestId('training-data-accordion-toggle'));
+        if (change === 'select') {
+          fireEvent.click(screen.getByTestId('browse-bucket-button'));
+          fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+        } else if (change === 'upload') {
+          fireEvent.click(
+            within(screen.getByTestId('training-data-source-upload-toggle')).getByRole('button'),
+          );
+          mockS3MutateAsync.mockResolvedValueOnce({ uploaded: true, key: 'replacement.csv' });
+          fireEvent.change(screen.getByTestId('automl-upload-file-input'), {
+            target: { files: [new File(['rows'], 'replacement.csv', { type: 'text/csv' })] },
+          });
+        } else {
+          fireEvent.click(screen.getByRole('button', { name: 'Remove selection' }));
+        }
+        await waitFor(() => expect(screen.queryByText(message)).not.toBeInTheDocument());
+        if (change !== 'remove') {
+          expect(
+            await screen.findByText('Compatibility check passed', { exact: false }),
+          ).toBeInTheDocument();
+        }
+      },
+    );
+
+    it.each(['select', 'upload'])(
+      'should collapse the test section after a successful %s and allow manual reopening',
+      async (mode) => {
+        let isFetchingTest = true;
+        let testError: Error | null = null;
+        mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'test.csv' });
+        mockuseS3GetFileSchemaQuery.mockImplementation(
+          (_namespace, _secret, _bucket, key) =>
+            ({
+              data: key ? MOCK_COLUMNS : [],
+              isLoading: false,
+              isFetching: key === 'test.csv' && isFetchingTest,
+              error: key === 'test.csv' ? testError : null,
+              resetSchemaCache: mockResetSchemaCache,
+              refetch: jest.fn(),
+            }) as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+        );
+        const queryClient = createTestQueryClient();
+        const renderForm = () => (
+          <QueryClientProvider client={queryClient}>
+            <TrackingProvider trackEvent={trackEvent}>
+              <FormWrapper>
+                <AutomlConfigure />
+              </FormWrapper>
+            </TrackingProvider>
+          </QueryClientProvider>
+        );
+        const { rerender } = render(renderForm());
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+        if (mode === 'select') {
+          fireEvent.click(screen.getByTestId('test-data-browse-bucket-button'));
+          fireEvent.click(screen.getByTestId('file-explorer-select-test-file'));
+        } else {
+          fireEvent.click(
+            within(screen.getByTestId('test-data-source-upload-toggle')).getByRole('button'),
+          );
+          fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+            target: { files: [new File(['test rows'], 'test.csv', { type: 'text/csv' })] },
+          });
+          await waitFor(() =>
+            expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('test.csv'),
+          );
+        }
+        const toggle = screen.getByTestId('test-data-accordion-toggle');
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+        isFetchingTest = false;
+        testError = new Error('Sample failed');
+        rerender(renderForm());
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByText('Unable to sample document data')).toBeVisible();
+
+        testError = null;
+        rerender(renderForm());
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+        fireEvent.click(toggle);
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        isFetchingTest = true;
+        rerender(renderForm());
+        isFetchingTest = false;
+        rerender(renderForm());
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      },
+    );
+
+    it('should upload the separate test file using the selected training connection', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByTestId('dataset-split-separate'));
+      fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+      fireEvent.click(
+        within(screen.getByTestId('test-data-source-upload-toggle')).getByRole('button'),
+      );
+
+      const fileInput = screen.getByTestId('test-data-upload-file-input');
+      const testFile = new File(['test rows'], 'test.csv', { type: 'text/csv' });
+      fireEvent.change(fileInput, { target: { files: [testFile] } });
+
+      await waitFor(() => {
+        expect(mockS3MutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({
+            namespace: 'test-namespace',
+            secretName: 'Test Secret 1',
+            bucket: 'test-bucket-1',
+            key: 'test.csv',
+          }),
+        );
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveAttribute(
+          'aria-expanded',
+          'false',
+        ),
+      );
+      fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+      await waitFor(() =>
+        expect(screen.getByRole('grid', { name: 'Test data file upload' })).toHaveTextContent(
+          'uploaded-key.csv',
+        ),
+      );
+    });
+
+    it('should preserve the selected test file when a replacement upload fails', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByTestId('dataset-split-separate'));
+      fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+      fireEvent.click(
+        within(screen.getByTestId('test-data-source-upload-toggle')).getByRole('button'),
+      );
+      mockS3MutateAsync.mockResolvedValueOnce({ uploaded: true, key: 'test.csv' });
+      fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+        target: { files: [new File(['rows'], 'test.csv', { type: 'text/csv' })] },
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveAttribute(
+          'aria-expanded',
+          'false',
+        ),
+      );
+      fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+      mockS3MutateAsync.mockRejectedValueOnce(new Error('Upload failed'));
+      fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+        target: { files: [new File(['rows'], 'replacement.csv', { type: 'text/csv' })] },
+      });
+      await waitFor(() =>
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Failed to upload file',
+          'Upload failed',
+        ),
+      );
+      expect(screen.getByTestId('test-data-uploaded-file-cell')).toHaveTextContent('test.csv');
+      expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('test.csv');
+    });
+
+    it.each(['connection', 'split mode'])(
+      'should ignore a test upload that finishes after changing the %s',
+      async (change) => {
+        let finishUpload: () => void = () => {
+          throw new Error('Upload has not started');
+        };
+        mockS3MutateAsync.mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finishUpload = () => resolve({ uploaded: true, key: 'late-test.csv' });
+            }),
+        );
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByTestId('browse-bucket-button'));
+        fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+        fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+        fireEvent.click(
+          within(screen.getByTestId('test-data-source-upload-toggle')).getByRole('button'),
+        );
+        fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+          target: { files: [new File(['test rows'], 'test.csv', { type: 'text/csv' })] },
+        });
+        expect(mockS3MutateAsync).toHaveBeenCalled();
+
+        if (change === 'connection') {
+          fireEvent.click(screen.getByTestId('test-data-aws-secret-selector-select-secret-2'));
+        } else {
+          fireEvent.click(screen.getByTestId('dataset-split-auto'));
+          fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        }
+        await act(async () => finishUpload());
+
+        expect(screen.queryByText('late-test.csv')).not.toBeInTheDocument();
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
+        expect(screen.queryByText('2 of 2 datasets selected')).not.toBeInTheDocument();
+        expect(screen.getByText('Complete the Documents section')).toBeInTheDocument();
+      },
+    );
   });
 
   describe('with training data configured', () => {
@@ -1057,7 +1572,7 @@ describe('AutomlConfigure', () => {
       it('should fire AutoML Training Data Configured with trainingDataSourceType "upload" when a file is uploaded', async () => {
         renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
 
         const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
         dropFilesOnTrainingDataUploadZone([goodFile]);
@@ -1738,7 +2253,6 @@ describe('AutomlConfigure', () => {
       };
       renderWithQueryClient(
         <AutomlConfigure
-          initialValues={initialValues}
           initialInputDataSecret={{
             uuid: 'secret-1',
             name: 'Test Secret 1',

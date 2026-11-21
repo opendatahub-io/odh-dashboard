@@ -435,6 +435,8 @@ func translateS3Error(err error) error {
 			return ErrBucketNotFound
 		case "AccessDenied":
 			return ErrAccessDenied
+		case "InvalidRange":
+			return ErrInvalidRange
 		}
 	}
 

@@ -312,6 +312,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
 const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
+  const [useTearsheet, setUseTearsheet] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<ExplorerFiles>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [lastNavigatedDir, setLastNavigatedDir] = useState<Folder | null>(null);
@@ -429,6 +430,13 @@ const App: React.FC = () => {
           <CardTitle>Controls</CardTitle>
           <CardBody>
             <Switch
+              id="presentation-toggle"
+              label="Use tear sheet"
+              isChecked={useTearsheet}
+              onChange={(_event, checked) => setUseTearsheet(checked)}
+              className="pf-v6-u-mr-lg"
+            />
+            <Switch
               id="theme-toggle"
               label={isDarkTheme ? 'Dark theme' : 'Light theme'}
               isChecked={isDarkTheme}
@@ -485,6 +493,7 @@ const App: React.FC = () => {
       </Flex>
 
       <FileExplorer
+        presentation={useTearsheet ? 'tearsheet' : 'modal'}
         files={filesWithSelection}
         source={sourceToRender}
         sources={sourcesToRender}
