@@ -45,7 +45,6 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
 } from '@patternfly/react-icons';
-import type { FileRejection } from 'react-dropzone';
 import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
@@ -58,9 +57,9 @@ import {
   SecretSelector,
   type SecretSelection,
 } from '@odh-dashboard/autox-core/ui/components/feature';
-import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
 import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
 import { getInferredPredictionType } from '~/app/utilities/predictionTypeUtils';
+import useDatasetUpload from '~/app/hooks/useDatasetUpload';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { useS3GetFileRowCountQuery } from '~/app/hooks/useS3GetFileRowCountQuery';
@@ -89,13 +88,6 @@ import {
 } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { DATASET_SPLIT_AUTO, DATASET_SPLIT_SEPARATE } from '~/app/utilities/datasetSplit';
-import {
-  AUTOML_TRAINING_UPLOAD_MAX_BYTES,
-  AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
-  getTrainingDataDropRejectedNotification,
-  isAllowedTrainingDataUploadFile,
-  resolveSingleFileDropOutcome,
-} from '~/app/utilities/automlTrainingDataFile';
 import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import {
   fireAutomlS3ConnectionCreated,
@@ -223,8 +215,6 @@ function AutomlConfigure({
 
   const notification = useNotification();
 
-  const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
-
   const [
     trainDataSecretName,
     trainDataBucketName,
@@ -319,6 +309,11 @@ function AutomlConfigure({
   const areDocumentsComplete =
     isFileSelected &&
     (datasetSplitMode !== DATASET_SPLIT_SEPARATE || Boolean(testDataFileKey?.trim()));
+  const areDatasetFilesDistinct = trainDataFileKey !== testDataFileKey;
+  const hasIdenticalDatasetFiles = !areDatasetFilesDistinct && isFileSelected;
+  const testDataFileError = hasIdenticalDatasetFiles
+    ? 'Test data must use a different file from training data'
+    : errors.test_data_file_key?.message;
   const selectedDatasetCount =
     Number(Boolean(trainDataFileKey.trim())) + Number(Boolean(testDataFileKey?.trim()));
 
@@ -347,11 +342,18 @@ function AutomlConfigure({
     datasetSplitMode === DATASET_SPLIT_SEPARATE ? testDataFileKey : undefined,
   );
 
+  useEffect(() => {
+    if (datasetSplitMode === DATASET_SPLIT_SEPARATE) {
+      void trigger('test_data_file_key');
+    }
+  }, [trainDataFileKey, datasetSplitMode, trigger]);
+
   // Collapse after a new file loads, while preserving manual reopening across refetches.
   useEffect(() => {
     if (!testDataFileKey || datasetSplitMode !== DATASET_SPLIT_SEPARATE) {
       pendingTestDataCollapseRef.current = undefined;
     } else if (
+      areDatasetFilesDistinct &&
       pendingTestDataCollapseRef.current === testDataFileKey &&
       !isTestDataFileUploading &&
       !testSampleQuery.isFetching &&
@@ -364,6 +366,7 @@ function AutomlConfigure({
   }, [
     datasetSplitMode,
     testDataFileKey,
+    areDatasetFilesDistinct,
     isTestDataFileUploading,
     testSampleQuery.isFetching,
     testSampleQuery.error,
@@ -554,86 +557,29 @@ function AutomlConfigure({
     setValue('train_data_file_key', '', { shouldValidate: true });
   }, [setValue]);
 
-  const uploadTrainingDataFile = useCallback(
-    async (file?: File) => {
-      if (!file || !namespace) {
-        return;
-      }
-      if (file.size > AUTOML_TRAINING_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL);
-        return;
-      }
-      if (!isAllowedTrainingDataUploadFile(file)) {
-        notification.error('Invalid file type', 'File type must be CSV.');
-        return;
-      }
-      const uploadRequestId = ++trainingDataUploadSeqRef.current;
-      setValue('train_data_file_key', '', { shouldValidate: true });
-      setIsTrainingDataUploadDropdownOpen(false);
-      setIsTrainingDataFileUploading(true);
-      try {
-        const uploadResult = await uploadFileToS3({
-          namespace,
-          secretName: trainDataSecretName,
-          bucket: trainDataBucketName,
-          key: file.name,
-          file,
-        });
-        if (uploadRequestId !== trainingDataUploadSeqRef.current) {
-          return;
-        }
-        setValue('train_data_file_key', uploadResult.key, { shouldValidate: true });
-        fireTrainingDataMilestoneOnce('upload');
-      } catch (err) {
-        if (uploadRequestId === trainingDataUploadSeqRef.current) {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+  const startTrainingDataUpload = useCallback(() => {
+    setValue('train_data_file_key', '', { shouldValidate: true });
+    setIsTrainingDataUploadDropdownOpen(false);
+  }, [setValue]);
 
-          notification.error(
-            'Failed to upload file',
-            isConflict
-              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
-              : errorMessage,
-          );
-        }
-      } finally {
-        if (uploadRequestId === trainingDataUploadSeqRef.current) {
-          setIsTrainingDataFileUploading(false);
-        }
-      }
+  const completeTrainingDataUpload = useCallback(
+    (key: string) => {
+      setValue('train_data_file_key', key, { shouldValidate: true });
+      fireTrainingDataMilestoneOnce('upload');
     },
-    [
+    [setValue, fireTrainingDataMilestoneOnce],
+  );
+
+  const { uploadFile: uploadTrainingDataFile, processDrop: processTrainingDataDropOutcome } =
+    useDatasetUpload({
       namespace,
-      notification,
-      setValue,
-      trainDataBucketName,
-      trainDataSecretName,
-      uploadFileToS3,
-      fireTrainingDataMilestoneOnce,
-    ],
-  );
-
-  const handleTrainingDataDropRejected = useCallback(
-    (fileRejections: FileRejection[]) => {
-      const payload = getTrainingDataDropRejectedNotification(fileRejections);
-      if (payload) {
-        notification.error(payload.title, payload.description);
-      }
-    },
-    [notification],
-  );
-
-  const processTrainingDataDropOutcome = useCallback(
-    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
-      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
-      if (outcome.kind === 'reject') {
-        handleTrainingDataDropRejected(outcome.fileRejections);
-      } else if (outcome.kind === 'upload') {
-        void uploadTrainingDataFile(outcome.file);
-      }
-    },
-    [handleTrainingDataDropRejected, uploadTrainingDataFile],
-  );
+      secretName: trainDataSecretName,
+      bucket: trainDataBucketName,
+      requestSequenceRef: trainingDataUploadSeqRef,
+      onStart: startTrainingDataUpload,
+      onSuccess: completeTrainingDataUpload,
+      onUploadingChange: setIsTrainingDataFileUploading,
+    });
 
   const openTrainingDataReplaceFileDialog = useCallback(() => {
     setIsTrainingDataUploadDropdownOpen(false);
@@ -648,70 +594,29 @@ function AutomlConfigure({
     setSelectedTestDataFile(undefined);
   }, [setValue]);
 
-  const uploadTestDataFile = useCallback(
-    async (file?: File) => {
-      if (!file || !namespace) {
-        return;
-      }
-      if (file.size > AUTOML_TRAINING_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL);
-        return;
-      }
-      if (!isAllowedTrainingDataUploadFile(file)) {
-        notification.error('Invalid file type', 'File type must be CSV.');
-        return;
-      }
-      const uploadRequestId = ++testDataUploadSeqRef.current;
-      setIsTestDataUploadDropdownOpen(false);
-      setIsTestDataFileUploading(true);
-      try {
-        const uploadResult = await uploadFileToS3({
-          namespace,
-          secretName: trainDataSecretName,
-          bucket: trainDataBucketName,
-          key: file.name,
-          file,
-        });
-        if (uploadRequestId !== testDataUploadSeqRef.current) {
-          return;
-        }
-        pendingTestDataCollapseRef.current = uploadResult.key;
-        setValue('test_data_file_key', uploadResult.key, { shouldValidate: true });
-        setSelectedTestDataFile(explorerFileFromKey(uploadResult.key));
-      } catch (err) {
-        if (uploadRequestId === testDataUploadSeqRef.current) {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          const isConflict = errorMessage.toLowerCase().includes('unique filename');
-          notification.error(
-            'Failed to upload file',
-            isConflict
-              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
-              : errorMessage,
-          );
-        }
-      } finally {
-        if (uploadRequestId === testDataUploadSeqRef.current) {
-          setIsTestDataFileUploading(false);
-        }
-      }
+  const startTestDataUpload = useCallback(() => {
+    setIsTestDataUploadDropdownOpen(false);
+  }, []);
+
+  const completeTestDataUpload = useCallback(
+    (key: string) => {
+      pendingTestDataCollapseRef.current = key;
+      setValue('test_data_file_key', key, { shouldValidate: true });
+      setSelectedTestDataFile(explorerFileFromKey(key));
     },
-    [namespace, notification, setValue, trainDataBucketName, trainDataSecretName, uploadFileToS3],
+    [setValue],
   );
 
-  const processTestDataDropOutcome = useCallback(
-    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
-      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
-      if (outcome.kind === 'reject') {
-        const payload = getTrainingDataDropRejectedNotification(outcome.fileRejections);
-        if (payload) {
-          notification.error(payload.title, payload.description);
-        }
-      } else if (outcome.kind === 'upload') {
-        void uploadTestDataFile(outcome.file);
-      }
-    },
-    [notification, uploadTestDataFile],
-  );
+  const { uploadFile: uploadTestDataFile, processDrop: processTestDataDropOutcome } =
+    useDatasetUpload({
+      namespace,
+      secretName: trainDataSecretName,
+      bucket: trainDataBucketName,
+      requestSequenceRef: testDataUploadSeqRef,
+      onStart: startTestDataUpload,
+      onSuccess: completeTestDataUpload,
+      onUploadingChange: setIsTestDataFileUploading,
+    });
 
   const openTestDataReplaceFileDialog = useCallback(() => {
     setIsTestDataUploadDropdownOpen(false);
@@ -1079,6 +984,7 @@ function AutomlConfigure({
                                               onRetry={() => {
                                                 void refetchTrainingSample();
                                               }}
+                                              error={columnsError}
                                               isRetrying={isFetchingColumns}
                                             />
                                           </StackItem>
@@ -1113,7 +1019,8 @@ function AutomlConfigure({
                                     <SplitItem>
                                       <Flex alignItems={{ default: 'alignItemsCenter' }}>
                                         <FlexItem>
-                                          {testSampleQuery.error && testDataFileKey ? (
+                                          {(testSampleQuery.error && testDataFileKey) ||
+                                          hasIdenticalDatasetFiles ? (
                                             <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
                                           ) : testDataFileKey ? (
                                             <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" />
@@ -1192,11 +1099,11 @@ function AutomlConfigure({
                                           onClearUpload={clearTestDataUpload}
                                           onReplaceUpload={openTestDataReplaceFileDialog}
                                         />
-                                        {errors.test_data_file_key && (
+                                        {testDataFileError && !hasIdenticalDatasetFiles && (
                                           <StackItem>
                                             <HelperText>
                                               <HelperTextItem variant="error">
-                                                {errors.test_data_file_key.message}
+                                                {testDataFileError}
                                               </HelperTextItem>
                                             </HelperText>
                                           </StackItem>
@@ -1207,6 +1114,7 @@ function AutomlConfigure({
                                               onRetry={() => {
                                                 void testSampleQuery.refetch();
                                               }}
+                                              error={testSampleQuery.error}
                                               isRetrying={testSampleQuery.isFetching}
                                             />
                                           </StackItem>
@@ -1217,6 +1125,11 @@ function AutomlConfigure({
                                 </AccordionContent>
                               </AccordionItem>
                             </Accordion>
+                            {hasIdenticalDatasetFiles && (
+                              <HelperText className="pf-v6-u-mt-sm">
+                                <HelperTextItem variant="error">{testDataFileError}</HelperTextItem>
+                              </HelperText>
+                            )}
                           </StackItem>
                           <StackItem>
                             <DatasetCompatibilityCheck

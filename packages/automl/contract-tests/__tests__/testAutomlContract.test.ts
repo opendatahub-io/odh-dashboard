@@ -699,6 +699,9 @@ describe('AutoML API Contract Tests', () => {
 
       it.each([
         ['bucket without file key', { test_data_bucket_name: BUCKET }],
+        ['explicit null pair', { test_data_bucket_name: null, test_data_file_key: null }],
+        ['null bucket', { test_data_bucket_name: null, test_data_file_key: 'test.csv' }],
+        ['null file key', { test_data_bucket_name: BUCKET, test_data_file_key: null }],
         ['file key without bucket', { test_data_file_key: 'automl input data/test.csv' }],
       ])('should reject a partial test dataset pair: %s', async (_case, testDataFields) => {
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {

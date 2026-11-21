@@ -21,8 +21,21 @@ import { CheckCircleIcon, ExclamationTriangleIcon, TimesIcon } from '@patternfly
 import { TableBase } from '@odh-dashboard/ui-core';
 import { Td, Tr } from '@patternfly/react-table';
 import type { DatasetSample } from '~/app/hooks/useS3GetFileSchemaQuery';
-import { COLUMN_COMPARISON_STATUS, compareDatasetColumns } from '~/app/utilities/datasetSplit';
+import {
+  COLUMN_COMPARISON_STATUS,
+  compareDatasetColumns,
+  type ColumnComparison,
+} from '~/app/utilities/datasetSplit';
 import DatasetSampleTable from './DatasetSampleTable';
+
+const COLUMN_STATUS_COLOR: Record<ColumnComparison['status'], string> = {
+  match: 'success',
+  'type-mismatch': 'danger',
+  'missing-training': 'danger',
+  'missing-test': 'danger',
+  'duplicate-name': 'danger',
+  unknown: 'warning',
+};
 
 type Props = {
   training?: DatasetSample;
@@ -47,7 +60,7 @@ function DatasetCompatibilityCheck({
 }: Props): React.JSX.Element | null {
   const [isOpen, setIsOpen] = React.useState(false);
   const [tab, setTab] = React.useState<string | number>(0);
-  if (!trainingFile || !testFile) {
+  if (!trainingFile || !testFile || trainingFile === testFile) {
     return null;
   }
   if (isChecking) {
@@ -68,35 +81,49 @@ function DatasetCompatibilityCheck({
     return null;
   }
   const comparison = compareDatasetColumns(training.columns, test.columns);
-  const hasDifferences = comparison.some(({ status }) => status !== 'match');
-  const hasWarnings = hasDifferences || training.parseWarnings > 0 || test.parseWarnings > 0;
+  const hasConflicts = comparison.some(({ status }) => status !== 'match' && status !== 'unknown');
+  const hasWarnings =
+    comparison.some(({ status }) => status === 'unknown') ||
+    training.parseWarnings > 0 ||
+    test.parseWarnings > 0;
+  const needsReview = hasConflicts || hasWarnings;
   const highlightedColumns = new Set(
     comparison.filter(({ status }) => status !== 'match').map(({ name }) => name),
   );
-  const sampleDescription = hasWarnings
-    ? 'Review the sampled data below. Inconsistencies were detected that might cause your experiment to fail, but you can continue anyway.'
-    : 'Review the sampled data below. Sampled rows are compatible, but differences in unchecked rows might still cause your experiment to fail.';
+  let title = 'Compatibility check passed';
+  let description = 'The sampled data uses matching column names and compatible data types.';
+  let sampleDescription =
+    'Review the sampled data below. Sampled rows are compatible, but differences in unchecked rows might still cause your experiment to fail.';
+  if (hasConflicts) {
+    title = 'Compatibility check: incompatibilities found.';
+    description = 'The selected files have conflicting schemas or data formats.';
+    sampleDescription =
+      'Review the sampled data below. Inconsistencies were detected that might cause your experiment to fail, but you can continue anyway.';
+  } else if (hasWarnings) {
+    title = 'Compatibility check: inconclusive.';
+    description =
+      'Insufficient sample values or skipped rows prevented a complete compatibility check.';
+    sampleDescription =
+      'Review the sampled data below. Insufficient values or skipped rows prevented a complete compatibility check. You can continue, but review the source files first.';
+  }
+
   return (
     <>
       <Alert
         isInline
         isPlain
-        variant={hasWarnings ? 'warning' : 'success'}
+        variant={needsReview ? 'warning' : 'success'}
         title={
           <>
-            {hasWarnings
-              ? 'Compatibility check: incompatibilities found.'
-              : 'Compatibility check passed'}
-            {hasWarnings ? ' ' : ' · '}
+            {title}
+            {needsReview ? ' ' : ' · '}
             <Button variant="link" isInline onClick={() => setIsOpen(true)}>
               View details
             </Button>
           </>
         }
       >
-        {hasWarnings
-          ? 'The selected files have conflicting schemas or data formats.'
-          : 'The sampled data uses matching column names and compatible data types.'}
+        {description}
       </Alert>
       {isOpen && (
         <Tearsheet
@@ -164,13 +191,7 @@ function DatasetCompatibilityCheck({
                               <Flex
                                 alignItems={{ default: 'alignItemsCenter' }}
                                 spaceItems={{ default: 'spaceItemsSm' }}
-                                className={`automl-dataset-preview__status${
-                                  column.status === 'unknown'
-                                    ? ' m-unknown'
-                                    : column.status !== 'match'
-                                      ? ' m-mismatch'
-                                      : ''
-                                }`}
+                                className={`pf-v6-u-text-color-status-${COLUMN_STATUS_COLOR[column.status]}`}
                               >
                                 <FlexItem>
                                   {column.status === 'match' ? (

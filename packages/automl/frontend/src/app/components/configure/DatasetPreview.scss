@@ -15,15 +15,4 @@
     color: var(--pf-t--global--text--color--regular);
   }
 
-  &__status {
-    color: var(--pf-t--global--text--color--status--success--default);
-
-    &.m-mismatch {
-      color: var(--pf-t--global--text--color--status--danger--default);
-    }
-
-    &.m-unknown {
-      color: var(--pf-t--global--text--color--status--warning--default);
-    }
-  }
 }

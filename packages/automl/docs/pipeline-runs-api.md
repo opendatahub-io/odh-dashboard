@@ -408,7 +408,7 @@ The request body schema varies based on the `task_type` field. The API uses a di
 | `train_data_bucket_name` | string | Yes | S3 bucket name containing the training data |
 | `train_data_file_key` | string | Yes | S3 object key for the training data file |
 | `test_data_bucket_name` | string | No | S3 bucket containing test data. Must match `train_data_bucket_name` and be supplied together with a non-empty `test_data_file_key`. Uses the credentials from `train_data_secret_name`. |
-| `test_data_file_key` | string | No | S3 object key for the test data file. Must be non-empty and supplied together with `test_data_bucket_name`. Omit both test-data fields for automatic splitting. |
+| `test_data_file_key` | string | No | S3 object key for the test data file. Must be non-empty, differ from `train_data_file_key`, and be supplied together with `test_data_bucket_name`. Omit both test-data fields for automatic splitting. |
 | `task_type` | string | Yes | Type of task (discriminator): `binary`, `multiclass`, `regression`, or `timeseries` |
 | `top_n` | integer | No | Number of top models to consider (default: 3) |
 

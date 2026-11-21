@@ -1165,6 +1165,93 @@ describe('AutomlConfigure', () => {
       },
     );
 
+    it('should show the identical-file error when training changes to a collapsed test selection', async () => {
+      renderWithInitialValues({
+        dataset_split_mode: 'separate',
+        train_data_secret_name: 'Test Secret 1',
+        train_data_bucket_name: 'test-bucket-1',
+        train_data_file_key: 'train.csv',
+        test_data_file_key: 'data.csv',
+      });
+      expect(screen.getByTestId('test-data-accordion-toggle')).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+      fireEvent.click(screen.getByTestId('training-data-accordion-toggle'));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+      const error = await screen.findByText(
+        'Test data must use a different file from training data',
+      );
+      expect(error).toBeVisible();
+      expect(screen.queryByText(/Compatibility check passed/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('training-data-accordion-toggle'));
+      expect(error).toBeVisible();
+    });
+
+    it.each(['select', 'upload', 'remove'])(
+      'should keep an identical-file error visible and refresh it after training-file %s',
+      async (change) => {
+        mockuseS3GetFileSchemaQuery.mockImplementation(
+          (_namespace, _secret, _bucket, key) =>
+            ({
+              data: key ? MOCK_COLUMNS : [],
+              sample: key
+                ? {
+                    columns: MOCK_COLUMNS,
+                    sampleRows: [MOCK_COLUMNS.map(() => 'value')],
+                    sampleSize: 1,
+                    parseWarnings: 0,
+                  }
+                : undefined,
+              isFetching: false,
+              error: null,
+              resetSchemaCache: mockResetSchemaCache,
+            }) as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+        );
+        renderWithInitialValues({
+          display_name: 'test-run',
+          task_type: 'regression',
+          target_column: 'age',
+          dataset_split_mode: 'separate',
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'test.csv',
+        });
+        fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+        fireEvent.click(screen.getByTestId('test-data-browse-bucket-button'));
+        fireEvent.click(screen.getByTestId('file-explorer-select-test-file'));
+        const message = 'Test data must use a different file from training data';
+        expect(await screen.findByText(message)).toBeVisible();
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveAttribute(
+          'aria-expanded',
+          'true',
+        );
+        expect(screen.queryByText(/Compatibility check passed/)).not.toBeInTheDocument();
+        fireEvent.click(screen.getByTestId('training-data-accordion-toggle'));
+        if (change === 'select') {
+          fireEvent.click(screen.getByTestId('browse-bucket-button'));
+          fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+        } else if (change === 'upload') {
+          fireEvent.click(
+            within(screen.getByTestId('training-data-source-upload-toggle')).getByRole('button'),
+          );
+          mockS3MutateAsync.mockResolvedValueOnce({ uploaded: true, key: 'replacement.csv' });
+          fireEvent.change(screen.getByTestId('automl-upload-file-input'), {
+            target: { files: [new File(['rows'], 'replacement.csv', { type: 'text/csv' })] },
+          });
+        } else {
+          fireEvent.click(screen.getByRole('button', { name: 'Remove selection' }));
+        }
+        await waitFor(() => expect(screen.queryByText(message)).not.toBeInTheDocument());
+        if (change !== 'remove') {
+          expect(
+            await screen.findByText('Compatibility check passed', { exact: false }),
+          ).toBeInTheDocument();
+        }
+      },
+    );
+
     it.each(['select', 'upload'])(
       'should collapse the test section after a successful %s and allow manual reopening',
       async (mode) => {

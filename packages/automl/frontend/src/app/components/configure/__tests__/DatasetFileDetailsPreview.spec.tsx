@@ -62,6 +62,31 @@ describe('DatasetFileDetailsPreview', () => {
     },
   );
 
+  it.each([DatasetFileDetailsPreview, DatasetFilePreview])(
+    'should explain deterministic CSV validation errors without offering a retry',
+    (Preview) => {
+      jest.mocked(useS3GetFileSchemaQuery).mockReturnValue({
+        error: new Error(
+          'Failed to fetch file: CSV validation error: file must have at least 100 data rows (found 1)',
+        ),
+        isFetching: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      render(
+        <Preview
+          namespace="ns"
+          secretName="s3"
+          fileKey="small.csv"
+          onViewFile={jest.fn()}
+          onClose={jest.fn()}
+        />,
+      );
+      expect(screen.getByTestId('dataset-sampling-error')).toHaveTextContent(
+        'Use a UTF-8 CSV file with a header and at least 100 data rows.',
+      );
+      expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+    },
+  );
+
   it('should offer retry without an empty table or row count when preview rows are unavailable', () => {
     const refetch = jest.fn();
     jest.mocked(useS3GetFileSchemaQuery).mockReturnValue({

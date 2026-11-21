@@ -35,6 +35,24 @@ describe('DatasetCompatibilityCheck', () => {
     expect(screen.queryByText('View details')).not.toBeInTheDocument();
   });
 
+  it('should not compare the same training and test file', () => {
+    render(<DatasetCompatibilityCheck {...props()} testFile="train.csv" />);
+    expect(screen.queryByText('View details')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Compatibility check passed/)).not.toBeInTheDocument();
+  });
+
+  it('should describe insufficient values as inconclusive rather than a schema conflict', () => {
+    const input = props();
+    input.test.columns[0].unique_count = 0;
+    render(<DatasetCompatibilityCheck {...input} />);
+    expect(
+      screen.getByRole('heading', { name: /Compatibility check: inconclusive/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/conflicting schemas/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+    expect(screen.getByRole('cell', { name: 'Insufficient sample values' })).toBeInTheDocument();
+  });
+
   it('should show matching column details without an inconsistency warning in a tear sheet', () => {
     render(<DatasetCompatibilityCheck {...props()} />);
     expect(screen.getByRole('heading', { name: /Compatibility check passed/ })).toBeInTheDocument();
@@ -102,6 +120,10 @@ describe('DatasetCompatibilityCheck', () => {
     const input = props();
     input.test.parseWarnings = 2;
     render(<DatasetCompatibilityCheck {...input} />);
+    expect(
+      screen.getByRole('heading', { name: /Compatibility check: inconclusive/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/conflicting schemas/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: /Compatibility check passed/ }),
     ).not.toBeInTheDocument();

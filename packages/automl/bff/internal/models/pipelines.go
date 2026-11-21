@@ -1,7 +1,9 @@
 package models
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 
 	plsvc "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
@@ -84,4 +86,41 @@ type CreateAutoMLRunRequest struct {
 	TimestampColumn      *string   `json:"timestamp_column,omitempty"`
 	PredictionLength     *int      `json:"prediction_length,omitempty"`
 	KnownCovariatesNames *[]string `json:"known_covariates_names,omitempty"`
+}
+
+// UnmarshalJSON preserves omission of optional test-data fields but rejects null,
+// which is not a string in the public request contract.
+func (r *CreateAutoMLRunRequest) UnmarshalJSON(data []byte) error {
+	type requestAlias CreateAutoMLRunRequest
+	var decoded requestAlias
+	fields := struct {
+		*requestAlias
+		TestDataBucketName json.RawMessage `json:"test_data_bucket_name"`
+		TestDataFileKey    json.RawMessage `json:"test_data_file_key"`
+	}{requestAlias: &decoded}
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&fields); err != nil {
+		return err
+	}
+	for _, field := range []struct {
+		name   string
+		raw    json.RawMessage
+		target **string
+	}{
+		{"test_data_bucket_name", fields.TestDataBucketName, &decoded.TestDataBucketName},
+		{"test_data_file_key", fields.TestDataFileKey, &decoded.TestDataFileKey},
+	} {
+		if len(field.raw) == 0 {
+			continue
+		}
+		if bytes.Equal(bytes.TrimSpace(field.raw), []byte("null")) {
+			return fmt.Errorf("%s must be a string, not null", field.name)
+		}
+		if err := json.Unmarshal(field.raw, field.target); err != nil {
+			return fmt.Errorf("%s: %w", field.name, err)
+		}
+	}
+	*r = CreateAutoMLRunRequest(decoded)
+	return nil
 }

@@ -395,6 +395,24 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "invalid request body",
 		},
 		{
+			name:           "null test-data pair",
+			body:           `{"test_data_bucket_name":null,"test_data_file_key":null}`,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "test_data_bucket_name must be a string, not null",
+		},
+		{
+			name:           "null test file with string bucket",
+			body:           `{"test_data_bucket_name":"b","test_data_file_key":null}`,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "test_data_file_key must be a string, not null",
+		},
+		{
+			name:           "null bucket with string test file",
+			body:           `{"test_data_bucket_name":null,"test_data_file_key":"test.csv"}`,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "test_data_bucket_name must be a string, not null",
+		},
+		{
 			name:           "multiple JSON objects in body",
 			body:           validBody + `{"extra": true}`,
 			repoResult:     nil,
