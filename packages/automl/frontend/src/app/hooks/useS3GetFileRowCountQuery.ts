@@ -1,6 +1,7 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
 import { useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import { getS3FileSchemaQueryKey } from './useS3GetFileSchemaQuery';
 
 const RowCountResponseSchema = z.object({
   data: z.object({
@@ -17,12 +18,19 @@ export function useS3GetFileRowCountQuery(
   enabled = true,
 ): UseQueryResult<number, Error> {
   const { fetchS3Json } = useS3FileFetchers();
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ['fileRowCount', namespace, secretName, bucket, key],
     queryFn: async ({ signal }) => {
       if (!namespace || !secretName || !key) {
         throw new Error('Select a connection and CSV file to count rows');
       }
+      // A first count (including separate → automatic) must refresh any cached schema.
+      await queryClient.refetchQueries({
+        queryKey: getS3FileSchemaQueryKey(namespace, secretName, bucket, key),
+        exact: true,
+      });
+      signal.throwIfAborted();
       const result = await fetchS3Json<unknown>(namespace, key, {
         signal,
         secretName,
@@ -37,6 +45,8 @@ export function useS3GetFileRowCountQuery(
       return parsed.data.data.row_count;
     },
     enabled: enabled && Boolean(namespace && secretName && key),
+    // Match the schema query: returning to the form reuses the selected file snapshot.
+    refetchOnMount: false,
     retry: false,
   });
 }

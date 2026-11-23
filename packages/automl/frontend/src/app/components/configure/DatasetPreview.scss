@@ -1,4 +1,8 @@
 .automl-dataset-preview {
+  // Keep wide CSV content inside its own scroller instead of expanding the details card.
+  contain: inline-size;
+  overflow-x: auto;
+
   &__mismatch {
     --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartWidth: var(
       --pf-t--global--border--width--strong
@@ -14,5 +18,4 @@
     );
     color: var(--pf-t--global--text--color--regular);
   }
-
 }

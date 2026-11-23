@@ -38,6 +38,7 @@ import {
   SplitItem,
   Stack,
   StackItem,
+  Truncate,
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
@@ -672,8 +673,8 @@ function AutomlConfigure({
   ): React.JSX.Element => (
     <StackItem>
       <ConfigureFormGroup label="1. Choose a connection" description={description}>
-        <Split hasGutter isWrappable>
-          <SplitItem style={{ width: '10rem' }} isFilled>
+        <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsStretch' }}>
+          <FlexItem>
             <Controller
               control={control}
               name="train_data_secret_name"
@@ -705,13 +706,13 @@ function AutomlConfigure({
                     secretsRefreshRef.current = refresh;
                   }}
                   placeholder="Select connection"
-                  toggleWidth="16rem"
+                  toggleWidth="100%"
                   dataTestId={dataTestId}
                 />
               )}
             />
-          </SplitItem>
-          <SplitItem>
+          </FlexItem>
+          <FlexItem>
             <Button
               key={`add-new-connection-${dataTestId}`}
               variant="secondary"
@@ -720,8 +721,8 @@ function AutomlConfigure({
             >
               Add new connection
             </Button>
-          </SplitItem>
-        </Split>
+          </FlexItem>
+        </Flex>
       </ConfigureFormGroup>
     </StackItem>
   );
@@ -733,7 +734,7 @@ function AutomlConfigure({
   return (
     <>
       <Grid className="pf-v6-u-h-100" hasGutter>
-        <GridItem span={4}>
+        <GridItem span={12} lg={5} xl2={4}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div style={{ overflow: 'auto' }}>
               <CardBody>
@@ -746,15 +747,24 @@ function AutomlConfigure({
                         header: 'Data splitting',
                         body: (
                           <Content>
-                            <Content component="p">
-                              The system uses 80% of your data to train the model and 20% to test
-                              how well it learned.
-                            </Content>
-                            <Content component="p">
-                              It splits data randomly for regression, keeps categories balanced for
-                              classification, and uses earlier records for training and later
-                              records for testing with time series data.
-                            </Content>
+                            {datasetSplitMode === DATASET_SPLIT_SEPARATE ? (
+                              <Content component="p">
+                                The system uses your supplied training and test files instead of
+                                splitting a single file.
+                              </Content>
+                            ) : (
+                              <>
+                                <Content component="p">
+                                  The system uses 80% of your data to train the model and 20% to
+                                  test how well it learned.
+                                </Content>
+                                <Content component="p">
+                                  It splits data randomly for regression, keeps categories balanced
+                                  for classification, and uses earlier records for training and
+                                  later records for testing with time series data.
+                                </Content>
+                              </>
+                            )}
                             <Content component="p">
                               The system also uses part of the training data to choose the best
                               model, so you do not need to provide a separate validation file.
@@ -960,9 +970,18 @@ function AutomlConfigure({
                                   }}
                                 >
                                   <Split hasGutter>
-                                    <SplitItem isFilled>1. Training data</SplitItem>
-                                    <SplitItem>
-                                      <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                                    <SplitItem className="pf-v6-u-text-nowrap">
+                                      1. Training data
+                                    </SplitItem>
+                                    <SplitItem
+                                      isFilled
+                                      className="automl-configure__dataset-status"
+                                    >
+                                      <Flex
+                                        flexWrap={{ default: 'nowrap' }}
+                                        spaceItems={{ default: 'spaceItemsSm' }}
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                      >
                                         <FlexItem>
                                           {columnsError && trainDataFileKey ? (
                                             <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
@@ -972,10 +991,19 @@ function AutomlConfigure({
                                             <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
                                           )}
                                         </FlexItem>
-                                        <FlexItem>
-                                          {trainDataFileKey
-                                            ? (selectedTrainingDataFile?.name ?? trainDataFileKey)
-                                            : 'Incomplete'}
+                                        <FlexItem
+                                          flex={{ default: 'flex_1' }}
+                                          className="automl-configure__dataset-status"
+                                        >
+                                          <Truncate
+                                            className="automl-configure__dataset-filename pf-v6-u-w-100"
+                                            content={
+                                              trainDataFileKey
+                                                ? (selectedTrainingDataFile?.name ??
+                                                  trainDataFileKey)
+                                                : 'Incomplete'
+                                            }
+                                          />
                                         </FlexItem>
                                       </Flex>
                                     </SplitItem>
@@ -1080,9 +1108,18 @@ function AutomlConfigure({
                                   }}
                                 >
                                   <Split hasGutter>
-                                    <SplitItem isFilled>2. Test data</SplitItem>
-                                    <SplitItem>
-                                      <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                                    <SplitItem className="pf-v6-u-text-nowrap">
+                                      2. Test data
+                                    </SplitItem>
+                                    <SplitItem
+                                      isFilled
+                                      className="automl-configure__dataset-status"
+                                    >
+                                      <Flex
+                                        flexWrap={{ default: 'nowrap' }}
+                                        spaceItems={{ default: 'spaceItemsSm' }}
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                      >
                                         <FlexItem>
                                           {(testSampleQuery.error && testDataFileKey) ||
                                           hasIdenticalDatasetFiles ? (
@@ -1093,10 +1130,18 @@ function AutomlConfigure({
                                             <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
                                           )}
                                         </FlexItem>
-                                        <FlexItem>
-                                          {testDataFileKey
-                                            ? (selectedTestDataFile?.name ?? testDataFileKey)
-                                            : 'Incomplete'}
+                                        <FlexItem
+                                          flex={{ default: 'flex_1' }}
+                                          className="automl-configure__dataset-status"
+                                        >
+                                          <Truncate
+                                            className="automl-configure__dataset-filename pf-v6-u-w-100"
+                                            content={
+                                              testDataFileKey
+                                                ? (selectedTestDataFile?.name ?? testDataFileKey)
+                                                : 'Incomplete'
+                                            }
+                                          />
                                         </FlexItem>
                                       </Flex>
                                     </SplitItem>
@@ -1223,7 +1268,7 @@ function AutomlConfigure({
             </div>
           </Card>
         </GridItem>
-        <GridItem span={8}>
+        <GridItem span={12} lg={7} xl2={8}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div style={{ overflow: 'auto' }}>
               <CardHeader>
@@ -1646,11 +1691,15 @@ function AutomlConfigure({
             const file = files[0];
             const filePath = file.path.replace(/^\//, '');
             if (fileExplorerTarget === 'test') {
-              pendingTestDataCollapseRef.current = filePath;
+              if (filePath !== testDataFileKey) {
+                pendingTestDataCollapseRef.current = filePath;
+              }
               setValue('test_data_file_key', filePath, { shouldValidate: true });
               setSelectedTestDataFile(file);
             } else {
-              pendingTrainingDataCollapseRef.current = filePath;
+              if (filePath !== trainDataFileKey) {
+                pendingTrainingDataCollapseRef.current = filePath;
+              }
               setValue('train_data_file_key', filePath, { shouldValidate: true });
               setSelectedTrainingDataFile(file);
               fireTrainingDataMilestoneOnce('select');

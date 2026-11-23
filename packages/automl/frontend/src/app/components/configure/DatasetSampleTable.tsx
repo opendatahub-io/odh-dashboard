@@ -41,10 +41,11 @@ export default function DatasetSampleTable({
       </Stack>
     );
   }
-  const rowStart = compact ? 0 : (page - 1) * perPage;
+  const currentPage = Math.min(page, Math.ceil(sample.sampleRows.length / perPage));
+  const rowStart = compact ? 0 : (currentPage - 1) * perPage;
   const rows = sample.sampleRows.slice(rowStart, rowStart + (compact ? 3 : perPage));
   return (
-    <div className="automl-dataset-preview pf-v6-u-overflow-auto">
+    <div className="automl-dataset-preview">
       <TableBase
         aria-label={label}
         caption={
@@ -75,7 +76,7 @@ export default function DatasetSampleTable({
         enablePagination={!compact && sample.sampleRows.length > 0}
         showBottomPagination={false}
         itemCount={sample.sampleRows.length}
-        page={page}
+        page={currentPage}
         perPage={perPage}
         onSetPage={(_event, value) => setPage(value)}
         onPerPageSelect={(_event, value) => {

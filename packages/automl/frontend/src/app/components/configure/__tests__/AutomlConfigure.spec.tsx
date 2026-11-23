@@ -966,22 +966,62 @@ describe('AutomlConfigure', () => {
       },
     );
 
+    it.each(['automatic', 'separate'])(
+      'should show data splitting help appropriate for %s mode',
+      async (mode) => {
+        renderComponent();
+        if (mode === 'separate') {
+          fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        }
+        fireEvent.click(screen.getByRole('button', { name: 'More info for data splitting' }));
+        const automaticCopy =
+          'The system uses 80% of your data to train the model and 20% to test how well it learned.';
+        const separateCopy =
+          'The system uses your supplied training and test files instead of splitting a single file.';
+        await waitFor(() =>
+          expect(
+            screen.getByText(mode === 'automatic' ? automaticCopy : separateCopy),
+          ).toBeVisible(),
+        );
+        expect(
+          screen.queryByText(mode === 'automatic' ? separateCopy : automaticCopy),
+        ).not.toBeInTheDocument();
+      },
+    );
+
     it.each([
-      { state: 'loading', isLoading: true, isFetching: true, error: null },
+      { state: 'loading', isLoading: true, isFetching: false, error: null },
       { state: 'refetching', isLoading: false, isFetching: true, error: null },
       { state: 'failed', isLoading: false, isFetching: false, error: new Error('Schema failed') },
     ])('should hide the success message when the schema is $state', (queryState) => {
-      mockuseS3GetFileSchemaQuery.mockReturnValue({
+      const schemaQuery = {
         data: MOCK_COLUMNS,
+        sample: {
+          columns: MOCK_COLUMNS,
+          sampleRows: [MOCK_COLUMNS.map(() => 'value')],
+          sampleSize: 1,
+          parseWarnings: 0,
+        },
         ...queryState,
         resetSchemaCache: mockResetSchemaCache,
-      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
-      renderComponent();
+      };
+      mockuseS3GetFileSchemaQuery.mockReturnValue(
+        schemaQuery as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+      );
+      const { rerender } = renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByTestId('browse-bucket-button'));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       expect(screen.queryByTestId('training-data-load-success')).not.toBeInTheDocument();
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        ...schemaQuery,
+        isLoading: false,
+        isFetching: false,
+        error: null,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
+      rerender(<AutomlConfigure />);
+      expect(screen.getByTestId('training-data-load-success')).toBeVisible();
     });
 
     it.each([
@@ -1398,6 +1438,20 @@ describe('AutomlConfigure', () => {
 
         fireEvent.click(toggle);
         expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        if (mode === 'select') {
+          // Reselecting the existing file must not schedule a collapse on a later refetch.
+          fireEvent.click(
+            screen.getByTestId(
+              isTraining ? 'browse-bucket-button' : 'test-data-browse-bucket-button',
+            ),
+          );
+          fireEvent.click(
+            screen.getByTestId(
+              isTraining ? 'file-explorer-select-file' : 'file-explorer-select-test-file',
+            ),
+          );
+          expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        }
         isFetchingSample = true;
         rerender(<AutomlConfigure />);
         isFetchingSample = false;

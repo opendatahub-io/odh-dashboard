@@ -101,6 +101,23 @@ describe('DatasetCompatibilityCheck', () => {
     expect(input.onViewFile).toHaveBeenCalledWith('test.csv');
   });
 
+  it('should clamp the preview page when a refreshed sample has fewer rows', () => {
+    const input = props();
+    const { rerender } = render(<DatasetCompatibilityCheck {...input} />);
+    fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Data preview' }));
+    fireEvent.click(screen.getAllByLabelText('Go to last page')[0]);
+    expect(screen.getByText('Previewing rows 21–21 of 21')).toBeInTheDocument();
+
+    const training = { ...input.training, sampleRows: [['replacement']], sampleSize: 1 };
+    rerender(<DatasetCompatibilityCheck {...input} training={training} />);
+    expect(screen.getByText('Previewing rows 1–1 of 1')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('grid', { name: 'Training data preview' })).getByText('replacement'),
+    ).toBeInTheDocument();
+    expect(screen.getAllByLabelText('Go to next page')[0]).toBeDisabled();
+  });
+
   it('should preserve the comparison tab when returning from a file preview', () => {
     const input = props();
     const { rerender } = render(<DatasetCompatibilityCheck {...input} />);
