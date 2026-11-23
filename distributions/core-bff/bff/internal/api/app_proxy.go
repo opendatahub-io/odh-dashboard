@@ -51,7 +51,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 			return err
 		}
 	} else {
-		clientCerts, err = app.loadKubeconfigTLS(k8sRootCAs)
+		clientCerts, err = app.loadKubeconfigTLS(k8sRootCAs, cfg.DevMode)
 		if err != nil {
 			return err
 		}

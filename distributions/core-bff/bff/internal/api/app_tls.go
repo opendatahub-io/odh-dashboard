@@ -3,11 +3,13 @@ package api
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"strings"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 
 	"k8s.io/client-go/rest"
@@ -135,7 +137,16 @@ func (app *App) loadEnvtestTLS(pool *x509.CertPool, testEnv *envtest.Environment
 	return app.loadClientCert(tlsCfg, "envtest")
 }
 
-func (app *App) loadKubeconfigTLS(pool *x509.CertPool) ([]tls.Certificate, error) {
+// loadKubeconfigTLS adds the kubeconfig CA to pool and returns the client
+// certificate the Kubernetes proxies present, if any.
+//
+// The proxies are caller-scoped: every request carries the caller's bearer
+// token. A kubeconfig client certificate is the BFF's own identity, and the
+// API server does not define which authenticator wins when a request carries
+// both, so presenting it could authorize the call as the certificate owner.
+// It is therefore returned only in DEV_MODE, where the developer's kubeconfig
+// identity is the documented fallback for requests without a token.
+func (app *App) loadKubeconfigTLS(pool *x509.CertPool, devMode bool) ([]tls.Certificate, error) {
 	kubeconfig, err := helpers.GetKubeconfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kubeconfig for TLS: %w", err)
@@ -143,5 +154,25 @@ func (app *App) loadKubeconfigTLS(pool *x509.CertPool) ([]tls.Certificate, error
 	if err := app.appendCAFromTLSConfig(pool, kubeconfig.TLSClientConfig, "kubeconfig"); err != nil {
 		return nil, err
 	}
-	return app.loadClientCert(kubeconfig.TLSClientConfig, "kubeconfig")
+	certs, err := app.loadClientCert(kubeconfig.TLSClientConfig, "kubeconfig")
+	if err != nil {
+		return nil, err
+	}
+	if len(certs) > 0 && !devMode {
+		app.logger.Info("Kubeconfig client certificate is not presented on caller-scoped Kubernetes proxy requests; callers authenticate with their own token")
+		return nil, nil
+	}
+	return certs, nil
+}
+
+// requireVerifiedKubeconfig rejects a kubeconfig that disables API server
+// certificate verification (insecure-skip-tls-verify) outside DEV_MODE. Both
+// the service-account clients and the per-caller clients are built from this
+// configuration, and client-go honours its Insecure flag regardless of
+// INSECURE_SKIP_VERIFY, so the production rule has to be applied here.
+func requireVerifiedKubeconfig(cfg config.EnvConfig, kubeconfig *rest.Config) error {
+	if kubeconfig != nil && kubeconfig.Insecure && cfg.IsProductionProfile() {
+		return errors.New("the kubeconfig disables Kubernetes API certificate verification (insecure-skip-tls-verify), which is not supported in a production profile; supply the cluster CA instead, or set DEV_MODE=true for local development")
+	}
+	return nil
 }
