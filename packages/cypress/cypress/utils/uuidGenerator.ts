@@ -1,6 +1,6 @@
 /**
  * Generates a deterministic unique identifier for test runs.
- * The UUID is derived from the spec file path and the CI build number,
+ * The UUID is derived from the spec file path, CI job, and build number,
  * so it is always the same for a given spec in a given build — no randomness,
  * no caching, no state to lose across cross-origin spec re-evaluations.
  *
@@ -12,10 +12,12 @@
 export const generateTestUUID = (): string => {
   const spec = Cypress.spec.relative;
   const build = Cypress.env('BUILD_NUMBER') || Cypress.env('GITHUB_RUN_ID') || '0';
-  const input = `${spec}:${build}`;
+  const job = Cypress.env('JOB_NAME') || 'local';
+  const input = `${spec}:${job}:${build}`;
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
     hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
   }
-  return Math.abs(hash).toString().slice(0, 6).padStart(6, '0');
+  // Preserve the full hash. Truncating its decimal form made nearby builds share a suffix.
+  return (hash >>> 0).toString(36).padStart(7, '0');
 };

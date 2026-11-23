@@ -2,10 +2,12 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForAutoXDspaReady } from './oc_commands/autoX';
 import { waitForManagedPipelines } from './autoXPipelines';
 import { getVectorDatabaseConnection, resetAutoragConnections } from './oc_commands/autoragInfra';
+import { recordAutoXRun, recordAutoXUpload } from './automlCleanup';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
 import type { AutoragTestData } from '../types';
+import { AUTORAG_OUTPUT_ROOT } from '../../src/automlCleanupCommands';
 
 const RESOURCES_PATH = 'resources/autorag';
 
@@ -333,6 +335,7 @@ export const configureAutoragRun = (
 
   cy.step('Upload document file');
   const uploadFileName = `${testData.documentFile.replace('.txt', '')}-${uuid}.txt`;
+  cy.intercept('POST', '**/autorag/api/v1/s3/files/**').as('autoragDocumentUpload');
   autoragConfigurePage.findUploadFileToggle().click();
   autoragConfigurePage
     .findUploadFileInput()
@@ -342,6 +345,13 @@ export const configureAutoragRun = (
     );
 
   cy.step('Wait for upload to complete');
+  cy.wait('@autoragDocumentUpload', { timeout: 120000 }).then(({ response }) => {
+    const key = (response?.body as { key?: unknown } | undefined)?.key;
+    if (typeof key !== 'string' || !key) {
+      throw new Error('AutoRAG document upload response did not include the stored S3 key');
+    }
+    return recordAutoXUpload(projectName, key);
+  });
   autoragConfigurePage.findUploadSpinner().should('not.exist');
   autoragConfigurePage.findUploadedFileCell().should('be.visible');
 
@@ -366,7 +376,15 @@ export const configureAutoragRun = (
     .contains('What information does this document contain?')
     .should('be.visible');
   autoragConfigurePage.findEvalSubmit().should('be.enabled');
+  cy.intercept('POST', '**/autorag/api/v1/s3/files/**').as('autoragCreatorUpload');
   autoragConfigurePage.findEvalSubmit().click();
+  cy.wait('@autoragCreatorUpload', { timeout: 120000 }).then(({ response }) => {
+    const key = (response?.body as { key?: unknown } | undefined)?.key;
+    if (typeof key !== 'string' || !key) {
+      throw new Error('AutoRAG evaluation creator response did not include the stored S3 key');
+    }
+    return recordAutoXUpload(projectName, key);
+  });
   autoragConfigurePage.findEvaluationCreatorModal().should('not.exist');
 
   cy.step('Verify created evaluation file appears in the selector');
@@ -378,6 +396,7 @@ export const configureAutoragRun = (
 
   cy.step('Upload evaluation dataset JSON');
   const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
+  cy.intercept('POST', '**/autorag/api/v1/s3/files/**').as('autoragEvaluationUpload');
   autoragConfigurePage
     .findEvaluationFileInput()
     .selectFile(
@@ -386,6 +405,13 @@ export const configureAutoragRun = (
     );
 
   cy.step('Wait for evaluation file upload to complete');
+  cy.wait('@autoragEvaluationUpload', { timeout: 120000 }).then(({ response }) => {
+    const key = (response?.body as { key?: unknown } | undefined)?.key;
+    if (typeof key !== 'string' || !key) {
+      throw new Error('AutoRAG evaluation upload response did not include the stored S3 key');
+    }
+    return recordAutoXUpload(projectName, key);
+  });
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
   cy.step('Select database connection');
@@ -461,23 +487,26 @@ export const submitAutoragRun = (
   return cy
     .wait('@autoragCreateRun')
     .then(({ request, response }) => {
-      const body = request.body as Record<string, unknown>;
-      expect(body.input_data_keys).to.deep.equal([inputDataKey]);
-      expect(body.maas_secret_name).to.equal(testData.maasSecretName);
-      expect(body.db_secret_name).to.equal(testData.vectorDbSecretName);
-      expect(body.generation_models).to.deep.equal([maasFixture.generationModelId]);
-      expect(body.embedding_models).to.deep.equal([maasFixture.embeddingModelId]);
-      expect(body.optimization_metric).to.equal(
-        testData.optimizationMetric ?? 'custom:overall_score',
-      );
-      expect(body.preset).to.equal('speed');
-      expect(body.optimization_max_rag_patterns).to.equal(testData.maxRagPatterns);
-
       const runId = response?.body?.data?.run_id;
       if (typeof runId !== 'string' || !runId) {
         throw new Error('AutoRAG create response did not include the submitted run ID.');
       }
-      return runId;
+      // Record as soon as the API confirms creation. Later request assertions can fail,
+      // and teardown still needs the run ID to terminate the run and remove its outputs.
+      return recordAutoXRun(projectName, runId, AUTORAG_OUTPUT_ROOT).then(() => {
+        const body = request.body as Record<string, unknown>;
+        expect(body.input_data_keys).to.deep.equal([inputDataKey]);
+        expect(body.maas_secret_name).to.equal(testData.maasSecretName);
+        expect(body.db_secret_name).to.equal(testData.vectorDbSecretName);
+        expect(body.generation_models).to.deep.equal([maasFixture.generationModelId]);
+        expect(body.embedding_models).to.deep.equal([maasFixture.embeddingModelId]);
+        expect(body.optimization_metric).to.equal(
+          testData.optimizationMetric ?? 'custom:overall_score',
+        );
+        expect(body.preset).to.equal('speed');
+        expect(body.optimization_max_rag_patterns).to.equal(testData.maxRagPatterns);
+        return runId;
+      });
     })
     .then((runId) => {
       cy.step('Verify redirect to results page');
