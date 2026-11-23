@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, FlexItem, Label, Progress, Skeleton } from '@patternfly/react-core';
+import { Flex, FlexItem, Label, LabelProps, Progress, Skeleton } from '@patternfly/react-core';
 import { getTrainingJobStatusSync, getStatusInfo } from '../utils';
 import { TrainJobKind } from '../../../k8sTypes';
 import { JobDisplayState, TrainingJobState } from '../../../types';
@@ -9,6 +9,7 @@ type TrainingJobStatusProps = {
   job: TrainJobKind;
   jobStatus?: JobDisplayState;
   onClick?: () => void;
+  variant?: LabelProps['variant'];
   isCompact?: boolean;
   showProgressBar?: boolean;
 };
@@ -17,6 +18,7 @@ const TrainingJobStatus = ({
   job,
   jobStatus,
   onClick,
+  variant,
   isCompact = true,
   showProgressBar = true,
 }: TrainingJobStatusProps): React.ReactElement => {
@@ -46,7 +48,7 @@ const TrainingJobStatus = ({
       alignItems={{ default: 'alignItemsFlexStart' }}
     >
       <Label
-        variant={onClick ? 'filled' : 'outline'}
+        variant={variant ?? (onClick ? 'filled' : 'outline')}
         isCompact={isCompact}
         status={statusInfo.status}
         color={statusInfo.color}
