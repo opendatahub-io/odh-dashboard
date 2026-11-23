@@ -7,6 +7,32 @@ import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 import { isAreaAvailable } from '#~/concepts/areas/utils';
 
 describe('isAreaAvailable', () => {
+  describe('community plugins settings', () => {
+    it('should show the settings area when the dashboard feature flag is not disabled', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.COMMUNITY_PLUGINS_SETTINGS,
+        mockDashboardConfig({}).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ hideCommunityPluginsSettingsPage: 'on' });
+    });
+
+    it('should hide the settings area when the dashboard feature flag disables it', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.COMMUNITY_PLUGINS_SETTINGS,
+        mockDashboardConfig({ hideCommunityPluginsSettingsPage: true }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ hideCommunityPluginsSettingsPage: 'off' });
+    });
+  });
+
   describe('v1 Operator (deprecated)', () => {
     it('should enable component (flag true)', () => {
       const isAvailable = isAreaAvailable(

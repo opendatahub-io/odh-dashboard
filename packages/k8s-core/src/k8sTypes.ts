@@ -326,6 +326,7 @@ export type DashboardCommonConfig = {
   disableStorageClasses: boolean;
   disableNIMModelServing: boolean;
   disableAdminConnectionTypes: boolean;
+  hideCommunityPluginsSettingsPage: boolean;
   disableFineTuning: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
