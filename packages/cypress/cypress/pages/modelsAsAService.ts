@@ -1958,7 +1958,11 @@ class OverviewTabPage {
   }
 
   findKebabToggleInRow(modelId: string, namespace: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelRowRoot(modelId, namespace).findByLabelText('Kebab toggle');
+    // Scoped to the model actions cell: the nested subscription/policy rows in
+    // the same tbody also render kebab toggles, which would make the label ambiguous.
+    return this.findModelRowRoot(modelId, namespace)
+      .findByTestId('overview-model-actions')
+      .findByLabelText('Kebab toggle');
   }
 
   findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {

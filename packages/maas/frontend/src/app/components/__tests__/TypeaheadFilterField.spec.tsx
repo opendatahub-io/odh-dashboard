@@ -128,6 +128,32 @@ describe('TypeaheadFilterField', () => {
     expect(onFilterApplied).toHaveBeenCalledTimes(1);
   });
 
+  it('should fire onFilterApplied when switching between an exact selection and a fragment with the same text', () => {
+    const onFilterApplied = jest.fn();
+    render(
+      <TypeaheadFilterField
+        options={[{ value: 'granite-8b', content: 'Granite 8B' }]}
+        placeholder="Filter"
+        testId="filter-field"
+        onChange={onChange}
+        onFilterApplied={onFilterApplied}
+      />,
+    );
+
+    // Select the exact option
+    typeaheadProps.onSelect!(null, 'granite-8b');
+    expect(onFilterApplied).toHaveBeenCalledTimes(1);
+
+    // Commit a fragment with the same text: the applied filter semantics change
+    act(() => {
+      typeaheadProps.onInputChange!('granite-8b');
+    });
+    const fragmentOption = typeaheadProps.selectOptions.find((o) => o.isCreateOption);
+    typeaheadProps.onSelect!(null, String(fragmentOption!.value));
+
+    expect(onFilterApplied).toHaveBeenCalledTimes(2);
+  });
+
   it('should match typed text against search aliases', () => {
     render(
       <TypeaheadFilterField

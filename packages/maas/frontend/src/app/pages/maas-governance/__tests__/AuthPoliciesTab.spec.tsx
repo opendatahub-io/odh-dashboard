@@ -83,8 +83,14 @@ const policyC: MaaSAuthPolicy = {
   subjects: {},
 } as unknown as MaaSAuthPolicy;
 
+const policyD: MaaSAuthPolicy = {
+  name: 'policy-granite-preview-team-c',
+  modelRefs: [{ name: 'granite-8b-preview', namespace: 'maas' }],
+  subjects: { groups: [{ name: 'team-c' }] },
+} as unknown as MaaSAuthPolicy;
+
 const renderTab = () => {
-  mockContextValue.policies = [policyA, policyB, policyC];
+  mockContextValue.policies = [policyA, policyB, policyC, policyD];
   render(<AuthPoliciesTab />);
   expect(screen.getByTestId('mock-auth-policies-table')).toBeInTheDocument();
 };
@@ -106,6 +112,7 @@ describe('AuthPoliciesTab filtering', () => {
     renderTab();
 
     expect(visiblePolicyNames()).toEqual([
+      'policy-granite-preview-team-c',
       'policy-granite-team-a',
       'policy-mistral-team-b',
       'policy-no-groups',
@@ -117,7 +124,7 @@ describe('AuthPoliciesTab filtering', () => {
 
     setFilter(AuthPoliciesFilterOptions.model, { label: 'granite-8b', value: 'granite-8b' });
 
-    // granite-8b-preview shares the prefix but must not match an exact selection
+    // granite-8b-preview (policyD) shares the prefix but must not match an exact selection
     expect(visiblePolicyNames()).toEqual(['policy-granite-team-a']);
   });
 
@@ -127,7 +134,11 @@ describe('AuthPoliciesTab filtering', () => {
     // Partial text committed as a fragment matches by inclusion
     setFilter(AuthPoliciesFilterOptions.model, 'GRANITE');
 
-    expect(visiblePolicyNames()).toEqual(['policy-granite-team-a', 'policy-no-groups']);
+    expect(visiblePolicyNames()).toEqual([
+      'policy-granite-preview-team-c',
+      'policy-granite-team-a',
+      'policy-no-groups',
+    ]);
 
     setFilter(AuthPoliciesFilterOptions.model, 'Mistral 7');
     expect(visiblePolicyNames()).toEqual(['policy-mistral-team-b']);

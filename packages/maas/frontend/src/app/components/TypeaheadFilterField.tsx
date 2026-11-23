@@ -76,6 +76,12 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
   // Track the typed text so the fragment option can be part of selectOptions;
   // TypeaheadSelect only resolves selections against selectOptions.
   const [filterValue, setFilterValue] = React.useState('');
+  // Tracks the last applied selection so switching between an exact selection
+  // and a committed fragment with the same text still counts as a change.
+  const lastApplied = React.useRef<{ value?: string; isFragment: boolean }>({
+    value,
+    isFragment: false,
+  });
 
   // A committed fragment (or a navigation-initialized display name) has no
   // option with a matching resource value; synthesize one so it stays visible
@@ -116,12 +122,19 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
         }
         // TypeaheadSelect replays the current selection when clearing edited
         // input; only a selection that changes the applied filter counts as a
-        // filter application.
-        if (next !== value) {
+        // filter application. The fragment flag matters too: committing a
+        // fragment with the same text as the current exact selection (or vice
+        // versa) changes the applied filter semantics.
+        const isFragment = !option && selected.startsWith(FRAGMENT_VALUE_PREFIX);
+        if (next !== lastApplied.current.value || isFragment !== lastApplied.current.isFragment) {
+          lastApplied.current = { value: next, isFragment };
           onFilterApplied?.();
         }
       }}
-      onClearSelection={() => onChange('')}
+      onClearSelection={() => {
+        lastApplied.current = { value: '', isFragment: false };
+        onChange('');
+      }}
       onInputChange={setFilterValue}
       onToggle={(nextIsOpen) => {
         // Drop the typed text once the menu closes so the fragment option
