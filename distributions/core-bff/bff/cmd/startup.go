@@ -264,6 +264,10 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 		}
 	}
 
+	// Validation trims the header name, so every consumer must see the trimmed
+	// value too: Header.Get, the proxy strip list, CORS and Vary all use it.
+	sc.Env.AuthTokenHeader = strings.TrimSpace(sc.Env.AuthTokenHeader)
+
 	if strings.TrimSpace(authTokenHeadersRaw) != "" && len(sc.Env.AuthTokenHeaders) == 0 {
 		return sc, errors.New("AUTH_TOKEN_HEADERS/--auth-token-headers is set but names no header (value omitted); list at least one header or leave it unset")
 	}

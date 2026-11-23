@@ -158,3 +158,11 @@ func TestExtract_NoHeaderConfigured(t *testing.T) {
 	_, err = Extractor{}.Extract(headers("Authorization", "Bearer "+tokenA))
 	assert.ErrorIs(t, err, httpcontract.ErrCredentialsMissing)
 }
+
+// Review (liday-rh): a padded legacy header name still matches requests.
+func TestLegacy_TrimsHeaderName(t *testing.T) {
+	cred, err := Legacy(" x-forwarded-access-token ", "").Extract(headers("X-Forwarded-Access-Token", tokenA))
+	require.NoError(t, err)
+	assert.Equal(t, tokenA, cred.Token)
+	assert.Equal(t, []string{"X-Forwarded-Access-Token"}, Legacy(" x-forwarded-access-token ", "").Headers())
+}

@@ -684,6 +684,23 @@ func TestParseStartupConfig_AuthTokenHeaders(t *testing.T) {
 		})
 	}
 
+	// Review (liday-rh): a padded name passes validation, so it must also be
+	// the name every consumer uses, or no request could ever match it.
+	for name, args := range map[string][]string{
+		"padded environment header is normalized": nil,
+		"padded CLI header is normalized":         {"-auth-token-header", "  x-forwarded-access-token "},
+	} {
+		t.Run(name, func(t *testing.T) {
+			isolateEnv(t)
+			if args == nil {
+				t.Setenv("AUTH_TOKEN_HEADER", " x-forwarded-access-token")
+			}
+			sc, err := parse(t, args...)
+			require.NoError(t, err)
+			assert.Equal(t, "x-forwarded-access-token", sc.Env.AuthTokenHeader)
+		})
+	}
+
 	t.Run("a prefix next to the list fails startup", func(t *testing.T) {
 		isolateEnv(t)
 		t.Setenv("AUTH_TOKEN_HEADERS", "Authorization,x-forwarded-access-token")

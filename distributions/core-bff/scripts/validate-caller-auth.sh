@@ -34,6 +34,10 @@ bff_pid=""
 ns_created=false
 fails=0
 
+# Every curl call is bounded, so a BFF that accepts a connection and then
+# stalls fails the run instead of hanging it.
+CURL_TIMEOUTS=(--connect-timeout 5 --max-time 30)
+
 for tool in kubectl curl; do
   command -v "$tool" >/dev/null 2>&1 || { echo >&2 "$tool is required"; exit 1; }
 done
@@ -55,7 +59,7 @@ trap cleanup EXIT
 # curl exits 7 only when nothing accepts the connection (IPv4 or IPv6).
 port_free() {
   local rc=0
-  curl -s -o /dev/null --connect-timeout 2 "http://localhost:$1/" || rc=$?
+  curl -s -o /dev/null --connect-timeout 2 --max-time 5 "http://localhost:$1/" || rc=$?
   [[ $rc -eq 7 ]]
 }
 if [[ -z "${BFF_URL:-}" ]] && ! port_free "$PORT"; then
@@ -100,13 +104,14 @@ if [[ -z "${BFF_URL:-}" ]]; then
   bff_pid=$!
   BFF_URL=http://localhost:$PORT
   ready=false
-  for _ in $(seq 1 60); do
+  deadline=$((SECONDS + 60))
+  while ((SECONDS < deadline)); do
     if ! kill -0 "$bff_pid" 2>/dev/null; then
       echo >&2 "core-bff exited during startup; last log lines:"
       tail -n 20 "$work/bff.log" >&2
       exit 1
     fi
-    if curl -sf "$BFF_URL/healthcheck" >/dev/null; then ready=true; break; fi
+    if curl -sf --connect-timeout 2 --max-time 5 "$BFF_URL/healthcheck" >/dev/null; then ready=true; break; fi
     sleep 1
   done
   if [[ "$ready" != "true" ]]; then
@@ -117,8 +122,8 @@ if [[ -z "${BFF_URL:-}" ]]; then
 fi
 B=$BFF_URL
 
-code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
-body() { curl -s "$@"; }
+code() { curl -s "${CURL_TIMEOUTS[@]}" -o /dev/null -w '%{http_code}' "$@"; }
+body() { curl -s "${CURL_TIMEOUTS[@]}" "$@"; }
 check() { # id description expected actual
   local verdict=PASS
   [[ "$3" == "$4" ]] || { verdict=FAIL; fails=$((fails + 1)); }

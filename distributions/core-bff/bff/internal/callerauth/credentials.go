@@ -52,8 +52,10 @@ func New(cfg config.EnvConfig) Extractor {
 
 // Legacy is the single-header extractor: one configured header, an optional
 // prefix that must be present when configured.
+// Surrounding whitespace in the header name is dropped, as for Ordered, so a
+// value that passes startup validation also matches incoming requests.
 func Legacy(header, prefix string) Extractor {
-	return Extractor{headers: []string{http.CanonicalHeaderKey(header)}, legacyPrefix: prefix}
+	return Extractor{headers: []string{http.CanonicalHeaderKey(strings.TrimSpace(header))}, legacyPrefix: prefix}
 }
 
 // Ordered is the multi-header extractor. Headers are consulted in the given
