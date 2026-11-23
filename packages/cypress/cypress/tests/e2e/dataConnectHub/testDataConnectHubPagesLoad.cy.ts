@@ -2,19 +2,21 @@ import { createCleanProject, cleanupTestProject } from '../../../utils/projectCh
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { dataConnectHubConnectionsPage } from '../../../pages/dataConnectHub/connectionsPage';
 import { isDataConnectHubBackendAvailable } from '../../../utils/oc_commands/dataConnectHub';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 
 describe('Data Connect Hub Pages Load E2E', () => {
   const projectName = `dch-e2e-${generateTestUUID()}`;
   let dataConnectHubBackendAvailable = false;
 
-  before(() =>
+  before(() => {
+    ensureAdminOcSession();
     isDataConnectHubBackendAvailable().then((backendAvailable) => {
       dataConnectHubBackendAvailable = backendAvailable;
       if (backendAvailable) {
         createCleanProject(projectName);
       }
-    }),
-  );
+    });
+  });
 
   after(() => {
     if (dataConnectHubBackendAvailable) {
