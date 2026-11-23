@@ -41,21 +41,24 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		return err
 	}
 
+	// The proxies get their own pool so the kubeconfig CA never reaches the
+	// other outbound transports that share app.rootCAs.
+	k8sRootCAs := app.kubernetesProxyRootCAs()
 	var clientCerts []tls.Certificate
 	if cfg.MockK8Client && k8sResult.testEnv != nil {
-		clientCerts, err = app.loadEnvtestTLS(k8sResult.testEnv)
+		clientCerts, err = app.loadEnvtestTLS(k8sRootCAs, k8sResult.testEnv)
 		if err != nil {
 			return err
 		}
 	} else {
-		clientCerts, err = app.loadKubeconfigTLS()
+		clientCerts, err = app.loadKubeconfigTLS(k8sRootCAs)
 		if err != nil {
 			return err
 		}
 	}
 
 	allowHTTP := cfg.DevMode || cfg.MockK8Client
-	insecureSkipVerify := cfg.InsecureSkipVerify && (cfg.DevMode || cfg.MockK8Client)
+	insecureSkipVerify := cfg.SkipsTLSVerification()
 
 	var outboundHeadersFn func(*http.Request, http.Header)
 	if cfg.MockK8Client {
@@ -78,7 +81,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 
 	k8sProxyHandler, err := proxy.NewK8sProxyHandler(proxy.K8sProxyConfig{
 		K8sHost:              k8sHost,
-		RootCAs:              app.rootCAs,
+		RootCAs:              k8sRootCAs,
 		ClientCerts:          clientCerts,
 		InsecureSkipVerify:   insecureSkipVerify,
 		AllowHTTP:            allowHTTP,
@@ -97,7 +100,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 
 	wsHandler, err := proxy.NewWsProxyHandler(proxy.WsProxyConfig{
 		K8sHost:            k8sHost,
-		RootCAs:            app.rootCAs,
+		RootCAs:            k8sRootCAs,
 		ClientCerts:        clientCerts,
 		InsecureSkipVerify: insecureSkipVerify,
 		AllowHTTP:          allowHTTP,

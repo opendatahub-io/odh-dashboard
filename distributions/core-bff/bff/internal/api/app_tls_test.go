@@ -75,32 +75,63 @@ func TestInitRootCAs_EmptyStringSkipped(t *testing.T) {
 	require.NotNil(t, pool, "should skip empty strings and load valid cert")
 }
 
-func TestEnsureRootCAs_CreatesPoolWhenNil(t *testing.T) {
+func TestKubernetesProxyRootCAs_CreatesPoolWhenNil(t *testing.T) {
 	app := &App{}
-	assert.Nil(t, app.rootCAs)
 
-	app.ensureRootCAs()
-	assert.NotNil(t, app.rootCAs)
+	assert.NotNil(t, app.kubernetesProxyRootCAs())
+	assert.Nil(t, app.rootCAs, "building the proxy pool must not install a shared pool")
 }
 
-func TestEnsureRootCAs_PreservesExistingPool(t *testing.T) {
-	existing := x509.NewCertPool()
-	app := &App{rootCAs: existing}
+// The kubeconfig CA is trusted for the Kubernetes proxies only. Appending it
+// to the proxy pool must leave the shared outbound pool untouched, or the
+// model-serving, module, inter-BFF and Prometheus transports would trust it too.
+func TestKubernetesProxyRootCAs_IsACopyOfTheSharedPool(t *testing.T) {
+	shared := x509.NewCertPool()
+	app := &App{rootCAs: shared, logger: testLogger()}
+	before := shared.Clone()
 
-	app.ensureRootCAs()
-	assert.Same(t, existing, app.rootCAs, "should not replace existing pool")
+	pool := app.kubernetesProxyRootCAs()
+	require.NotSame(t, shared, pool)
+	require.NoError(t, app.appendCACerts(pool, readPEM(t, writeSelfSignedCert(t, t.TempDir(), "kubeconfig-ca")), "test"))
+
+	assert.True(t, shared.Equal(before), "the shared pool must not gain the kubeconfig CA")
+	assert.False(t, pool.Equal(before), "the proxy pool must carry the kubeconfig CA")
+}
+
+// End to end through the proxy initialisation, with the envtest CA standing in
+// for the kubeconfig CA: the shared pool other transports use stays unchanged.
+func TestInitK8sProxy_DoesNotAddTheClusterCAToTheSharedPool(t *testing.T) {
+	shared := x509.NewCertPool()
+	require.NoError(t, (&App{logger: testLogger()}).appendCACerts(shared,
+		readPEM(t, writeSelfSignedCert(t, t.TempDir(), "service-ca")), "test"))
+	before := shared.Clone()
+
+	app := newTestApp(func(a *App) { a.rootCAs = shared })
+	cfg := app.config
+	cfg.MockK8Client = true
+	require.NoError(t, app.initK8sProxy(cfg, k8sSetupResult{testEnv: testEnvInstance}))
+	t.Cleanup(app.wsTracker.Stop)
+
+	assert.True(t, app.rootCAs.Equal(before), "the envtest CA must reach only the Kubernetes proxies")
+}
+
+func readPEM(t *testing.T, path string) []byte {
+	t.Helper()
+	pemBytes, err := os.ReadFile(path)
+	require.NoError(t, err)
+	return pemBytes
 }
 
 func TestAppendCACerts_InvalidPEM_ReturnsError(t *testing.T) {
 	app := &App{logger: testLogger()}
-	err := app.appendCACerts([]byte("not valid PEM"), "test-source")
+	err := app.appendCACerts(x509.NewCertPool(), []byte("not valid PEM"), "test-source")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no valid certificates")
 }
 
 func TestAppendCAFromTLSConfig_UnreadableCAFile_ReturnsError(t *testing.T) {
 	app := &App{logger: testLogger()}
-	err := app.appendCAFromTLSConfig(rest.TLSClientConfig{
+	err := app.appendCAFromTLSConfig(x509.NewCertPool(), rest.TLSClientConfig{
 		CAFile: "/nonexistent/ca.pem",
 	}, "test")
 	require.Error(t, err)
@@ -109,7 +140,7 @@ func TestAppendCAFromTLSConfig_UnreadableCAFile_ReturnsError(t *testing.T) {
 
 func TestAppendCAFromTLSConfig_InvalidInlineCA_ReturnsError(t *testing.T) {
 	app := &App{logger: testLogger()}
-	err := app.appendCAFromTLSConfig(rest.TLSClientConfig{
+	err := app.appendCAFromTLSConfig(x509.NewCertPool(), rest.TLSClientConfig{
 		CAData: []byte("not valid PEM"),
 	}, "test")
 	require.Error(t, err)
@@ -123,11 +154,12 @@ func TestAppendCAFromTLSConfig_ValidInlineCA_Succeeds(t *testing.T) {
 	require.NoError(t, err)
 
 	app := &App{logger: testLogger()}
-	err = app.appendCAFromTLSConfig(rest.TLSClientConfig{
+	pool := x509.NewCertPool()
+	err = app.appendCAFromTLSConfig(pool, rest.TLSClientConfig{
 		CAData: pemBytes,
 	}, "test")
 	require.NoError(t, err)
-	assert.NotNil(t, app.rootCAs)
+	assert.False(t, pool.Equal(x509.NewCertPool()), "the CA must land in the pool it was given")
 }
 
 func TestLoadClientCert_PartialInline_CertWithoutKey(t *testing.T) {

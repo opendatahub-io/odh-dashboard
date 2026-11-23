@@ -52,39 +52,43 @@ func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
 	return rootCAs
 }
 
-func (app *App) ensureRootCAs() {
+// kubernetesProxyRootCAs returns the trust pool for the Kubernetes HTTP and
+// WebSocket proxies: the shared outbound pool (system + BUNDLE_PATHS) plus,
+// once the caller appends it, the kubeconfig or envtest CA. It is always a
+// copy. The kubeconfig CA is trusted for the API server only, so appending it
+// to app.rootCAs in place would also make the model-serving, module, inter-BFF
+// and Prometheus transports trust it, which the runtime contract rules out.
+func (app *App) kubernetesProxyRootCAs() *x509.CertPool {
 	if app.rootCAs != nil {
-		return
+		return app.rootCAs.Clone()
 	}
 	if pool, err := x509.SystemCertPool(); err == nil {
-		app.rootCAs = pool
-	} else {
-		app.rootCAs = x509.NewCertPool()
+		return pool
 	}
+	return x509.NewCertPool()
 }
 
-func (app *App) appendCACerts(pem []byte, source string) error {
+func (app *App) appendCACerts(pool *x509.CertPool, pem []byte, source string) error {
 	if len(pem) == 0 {
 		return nil
 	}
-	app.ensureRootCAs()
-	if !app.rootCAs.AppendCertsFromPEM(pem) {
+	if !pool.AppendCertsFromPEM(pem) {
 		return fmt.Errorf("failed to append CA certs from %s: PEM data contains no valid certificates", source)
 	}
 	app.logger.Debug("Loaded CA certs", slog.String("source", source))
 	return nil
 }
 
-func (app *App) appendCAFromTLSConfig(tlsCfg rest.TLSClientConfig, source string) error {
+func (app *App) appendCAFromTLSConfig(pool *x509.CertPool, tlsCfg rest.TLSClientConfig, source string) error {
 	if len(tlsCfg.CAData) > 0 {
-		return app.appendCACerts(tlsCfg.CAData, source+" inline CA")
+		return app.appendCACerts(pool, tlsCfg.CAData, source+" inline CA")
 	}
 	if tlsCfg.CAFile != "" {
 		pemBytes, err := os.ReadFile(tlsCfg.CAFile)
 		if err != nil {
 			return fmt.Errorf("failed to read %s CA file %s: %w", source, tlsCfg.CAFile, err)
 		}
-		return app.appendCACerts(pemBytes, source+" CA file")
+		return app.appendCACerts(pool, pemBytes, source+" CA file")
 	}
 	return nil
 }
@@ -123,20 +127,20 @@ func (app *App) loadClientCert(tlsCfg rest.TLSClientConfig, source string) ([]tl
 	return nil, nil
 }
 
-func (app *App) loadEnvtestTLS(testEnv *envtest.Environment) ([]tls.Certificate, error) {
+func (app *App) loadEnvtestTLS(pool *x509.CertPool, testEnv *envtest.Environment) ([]tls.Certificate, error) {
 	tlsCfg := testEnv.Config.TLSClientConfig
-	if err := app.appendCACerts(tlsCfg.CAData, "envtest"); err != nil {
+	if err := app.appendCACerts(pool, tlsCfg.CAData, "envtest"); err != nil {
 		return nil, err
 	}
 	return app.loadClientCert(tlsCfg, "envtest")
 }
 
-func (app *App) loadKubeconfigTLS() ([]tls.Certificate, error) {
+func (app *App) loadKubeconfigTLS(pool *x509.CertPool) ([]tls.Certificate, error) {
 	kubeconfig, err := helpers.GetKubeconfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kubeconfig for TLS: %w", err)
 	}
-	if err := app.appendCAFromTLSConfig(kubeconfig.TLSClientConfig, "kubeconfig"); err != nil {
+	if err := app.appendCAFromTLSConfig(pool, kubeconfig.TLSClientConfig, "kubeconfig"); err != nil {
 		return nil, err
 	}
 	return app.loadClientCert(kubeconfig.TLSClientConfig, "kubeconfig")

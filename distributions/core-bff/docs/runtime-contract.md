@@ -25,9 +25,9 @@ inherit environment configuration they cannot edit and correct it with container
 The command line accepts only `-flag=value` settings. A positional argument is refused, because
 flag parsing stops at the first one and any flag after it (for example `-cert-file`) would be
 silently ignored. Parse errors name at most the flag, never the argument text. Enum settings
-(`DEPLOYMENT_MODE`, `ODH_PLATFORM_TYPE`, `ADMISSION_MODE`, `AUTH_METHOD`) and an unparseable
-`MODEL_SERVING_HOST` are reported by setting name and accepted values, never by the rejected
-value. `-h` prints flag names and descriptions without their environment-derived defaults and
+(`DEPLOYMENT_MODE`, `ODH_PLATFORM_TYPE`, `ADMISSION_MODE`, `AUTH_METHOD`) and an invalid
+`MODEL_SERVING_HOST` or `PROMETHEUS_HOST` are reported by setting name and accepted values, never
+by the rejected value. `-h` prints flag names and descriptions without their environment-derived defaults and
 exits 0.
 
 ## Startup is a gate
@@ -96,17 +96,25 @@ that the header name is configuration, not a constant.
 `MODEL_SERVING_HOST`, `PROMETHEUS_HOST`, `PROMETHEUS_NAMESPACE` (`openshift-monitoring`),
 `PROMETHEUS_INSTANCE` (`thanos-querier`), `PROMETHEUS_PORT` (`9092`).
 
+`MODEL_SERVING_HOST` and `PROMETHEUS_HOST`, when set, must be absolute `http(s)://host[:port]`
+URLs; a bare host name fails startup instead of failing the first request. Both receive the
+caller's bearer token, so a production profile requires `https`. Problems name the setting, never
+the value.
+
 ## Profiles
 
-A deployment is in a **production profile** unless at least one of `DEV_MODE`,
-`MOCK_K8S_CLIENT`, `MOCK_HTTP_CLIENT` or `MOCK_BFF_CLIENTS` is on. Opting into a development
-profile is explicit, which is what makes these rejections safe:
+A deployment is in a **production profile** unless `DEV_MODE` or `MOCK_K8S_CLIENT` is on. Both
+mean there is no real cluster behind the process. `MOCK_HTTP_CLIENT` and `MOCK_BFF_CLIENTS` replace
+one client each while every other client stays real, so on their own they keep the production
+profile and its rejections. Opting into a development profile is explicit, which is what makes
+these rejections safe:
 
-| Rejected in a production profile                                                                                                                                                                   | Why                                                                                                                                                                                                                                                                                                                                            | Way out                                                     |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `AUTH_METHOD=disabled`                                                                                                                                                                             | No caller identity is extracted at all.                                                                                                                                                                                                                                                                                                        | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.       |
-| `INSECURE_SKIP_VERIFY=true`                                                                                                                                                                        | Disables upstream certificate verification on outbound calls (Prometheus only in dev/mock mode).                                                                                                                                                                                                                                               | Supply the upstream CA through `BUNDLE_PATHS`.              |
-| `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), an entry with a path (including a trailing `/`), query or user info, or the scheme's default port (`:443`, `:80`) | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. Browsers send `Origin` without a trailing slash, so `https://host/` could never match; they also omit the default port, so `https://host:443` could not either. Rejected entries are reported by position, never by value. | List each exact dashboard origin as `scheme://host[:port]`. |
+| Rejected in a production profile                                                                                                                                                                   | Why                                                                                                                                                                                                                                                                                                                                            | Way out                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `AUTH_METHOD=disabled`                                                                                                                                                                             | No caller identity is extracted at all.                                                                                                                                                                                                                                                                                                        | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.          |
+| `INSECURE_SKIP_VERIFY=true`                                                                                                                                                                        | Disables upstream certificate verification on every outbound call.                                                                                                                                                                                                                                                                             | Supply the upstream CA through `BUNDLE_PATHS`.                 |
+| `MODEL_SERVING_HOST` or `PROMETHEUS_HOST` over `http`                                                                                                                                              | Both receive the caller's bearer token, which plaintext HTTP would expose.                                                                                                                                                                                                                                                                     | Use an `https://` URL; plaintext targets need `DEV_MODE=true`. |
+| `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), an entry with a path (including a trailing `/`), query or user info, or the scheme's default port (`:443`, `:80`) | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. Browsers send `Origin` without a trailing slash, so `https://host/` could never match; they also omit the default port, so `https://host:443` could not either. Rejected entries are reported by position, never by value. | List each exact dashboard origin as `scheme://host[:port]`.    |
 
 ## TLS inputs
 
@@ -123,11 +131,11 @@ topology, where a Gateway or Ingress terminates TLS at the edge.
 Getting this wrong is an easy way to pass startup validation and still fail every request, so the
 split is explicit:
 
-| Transport                                                                                         | Trust source                                                        | Does `BUNDLE_PATHS` apply? |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------- |
-| Kubernetes API **clients** (client-go: the service-account clients and the caller-token clients)  | The kubeconfig or in-cluster service-account CA, from `rest.Config` | **No**                     |
-| Kubernetes HTTP and WebSocket **proxies** (`/api/k8s/*`, `/wss/k8s/*`)                            | System pool + `BUNDLE_PATHS` + the kubeconfig CA merged in          | Yes                        |
-| Model-serving proxy, module proxies, inter-BFF clients, Prometheus client, connection-test probes | System pool + `BUNDLE_PATHS`                                        | Yes                        |
+| Transport                                                                                         | Trust source                                                         | Does `BUNDLE_PATHS` apply? |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------- |
+| Kubernetes API **clients** (client-go: the service-account clients and the caller-token clients)  | The kubeconfig or in-cluster service-account CA, from `rest.Config`  | **No**                     |
+| Kubernetes HTTP and WebSocket **proxies** (`/api/k8s/*`, `/wss/k8s/*`)                            | A copy of system pool + `BUNDLE_PATHS`, with the kubeconfig CA added | Yes                        |
+| Model-serving proxy, module proxies, inter-BFF clients, Prometheus client, connection-test probes | System pool + `BUNDLE_PATHS`                                         | Yes                        |
 
 The practical consequence: **supplying the Kubernetes API CA only through `BUNDLE_PATHS` does not
 configure the client-go clients.** Identity resolution and every service-account read would still
@@ -135,12 +143,13 @@ fail certificate verification. The Kubernetes API CA must reach the pod the way 
 it — the projected service-account CA at
 `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt` in-cluster, or the `certificate-authority`
 in the kubeconfig out of cluster. `BUNDLE_PATHS` is for the upstream services the dashboard calls
-over plain HTTP clients, not for the API server.
+over plain HTTP clients, not for the API server. The kubeconfig CA is added to a copy of the shared
+pool that only the two Kubernetes proxies use, so the other transports never trust it.
 
 There is no per-transport trust override and no per-transport skip-verify: `INSECURE_SKIP_VERIFY`
-applies to every outbound transport and is rejected in a production profile. The Prometheus client
-honours it only when `DEV_MODE` or `MOCK_K8S_CLIENT` is also on, so `MOCK_BFF_CLIENTS` alone leaves
-Prometheus verification enabled.
+applies to every outbound transport and is rejected in a production profile. Every transport
+also checks the profile itself, so it skips verification only when `DEV_MODE` or `MOCK_K8S_CLIENT`
+is on; `MOCK_HTTP_CLIENT` or `MOCK_BFF_CLIENTS` alone leaves verification enabled everywhere.
 
 `BUNDLE_PATHS` has two modes, because the two cases have different failure semantics:
 
@@ -244,9 +253,9 @@ disagreement with the probe is logged.
 | Module BFFs         | federation config / per-module service                                                   | per module             | Root pool + bundles                                                   | Caller bearer token forwarded                                                            | Passthrough, `Cache-Control: no-store` forced on replies           |
 | Prometheus / Thanos | `PROMETHEUS_HOST`, else built from namespace/instance/port                               | `PROMETHEUS_NAMESPACE` | Root pool + bundles                                                   | Caller bearer token                                                                      | OpenShift only; 404 on xKS via `requirePlatform`                   |
 
-A mock response is never evidence that one of these is available. `MOCK_HTTP_CLIENT`,
-`MOCK_BFF_CLIENTS` and `MOCK_K8S_CLIENT` all move the deployment out of the production profile, so
-a configuration that relies on them cannot be mistaken for a production one.
+A mock response is never evidence that one of these is available. `MOCK_K8S_CLIENT` moves the
+deployment out of the production profile. `MOCK_HTTP_CLIENT` and `MOCK_BFF_CLIENTS` do not, so the
+real clients next to them keep every production check.
 
 ## See also
 
