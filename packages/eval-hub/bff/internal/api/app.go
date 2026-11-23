@@ -45,9 +45,7 @@ const (
 	CollectionImportPath           = ApiPathPrefix + "/evaluations/collection-imports"
 	CollectionImportAccessPath     = ApiPathPrefix + "/evaluations/collection-imports/access"
 	ProvidersPath                  = ApiPathPrefix + "/evaluations/providers"
-	KueueAvailabilityPath          = ApiPathPrefix + "/kueue/availability"
-	KueueWorkloadStatusesPath      = ApiPathPrefix + "/kueue/workloads"
-	HardwareProfilesPath           = ApiPathPrefix + "/hardwareprofiles"
+	InfoPath                       = ApiPathPrefix + "/info"
 	HardwareProfileValidationPath  = ApiPathPrefix + "/hardwareprofiles/validate"
 	EvaluationJobLogsPath          = ApiPathPrefix + "/evaluations/jobs/:id/logs"
 	EvaluationJobBenchmarkLogsPath = ApiPathPrefix + "/evaluations/jobs/:id/benchmarks/:benchmark_index/logs"
@@ -262,10 +260,8 @@ func (app *App) Routes() http.Handler {
 	// does not need the EvalHub REST client.
 	apiRouter.GET(CollectionImportAccessPath, app.AttachNamespace(app.RequireAccessToService(app.ImportAccessHandler)))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
-	apiRouter.GET(KueueAvailabilityPath, app.AttachNamespace(app.RequireAccessToService(app.KueueAvailabilityHandler)))
-	apiRouter.GET(KueueWorkloadStatusesPath, app.AttachNamespace(app.RequireAccessToService(app.KueueWorkloadStatusesHandler)))
-	apiRouter.POST(HardwareProfileValidationPath, app.AttachNamespace(app.RequireAccessToService(app.ValidateHardwareProfilesHandler)))
-	apiRouter.GET(HardwareProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.HardwareProfilesHandler)))
+	apiRouter.GET(InfoPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.InfoHandler))))
+	apiRouter.POST(HardwareProfileValidationPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ValidateHardwareProfilesHandler))))
 
 	// InferenceService listing (user-token dynamic client, no EvalHub REST client needed)
 	apiRouter.GET(InferenceServicesPath, app.AttachNamespace(app.RequireAccessToService(app.InferenceServicesHandler)))

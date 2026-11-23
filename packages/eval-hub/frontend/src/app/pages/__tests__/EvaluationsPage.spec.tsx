@@ -4,7 +4,7 @@ import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
-import { EvaluationJobsResult } from '~/app/types';
+import { EvaluationJob, EvaluationJobsResult, HardwareProfileInfo } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import {
   mockBenchmarkSuiteCollections,
@@ -42,6 +42,30 @@ jest.mock('~/app/hooks/useEvalHubHealth', () => ({
   default: () => mockUseEvalHubHealth(),
 }));
 
+const mockUseEvaluationJobDetailPolling = jest.fn<
+  { polledJobDataMap: Map<string, EvaluationJob>; isWarning: boolean },
+  []
+>();
+
+jest.mock('~/app/hooks/useEvaluationJobDetailPolling', () => ({
+  __esModule: true,
+  default: () => mockUseEvaluationJobDetailPolling(),
+}));
+
+const mockUseHardwareProfiles = jest.fn<
+  {
+    profiles: HardwareProfileInfo[];
+    loaded: boolean;
+    error: Error | undefined;
+    compatibilityError: Error | undefined;
+  },
+  []
+>();
+
+jest.mock('~/app/hooks/useHardwareProfiles', () => ({
+  useHardwareProfiles: () => mockUseHardwareProfiles(),
+}));
+
 const mockUseUser = jest.fn<{ clusterAdmin: boolean }, []>();
 
 jest.mock('~/app/hooks/useUser', () => ({
@@ -76,8 +100,22 @@ jest.mock('mod-arch-core', () => ({
 
 jest.mock('~/app/components/EvaluationStatusModal', () => ({
   __esModule: true,
-  default: ({ job, namespace }: { job: unknown; namespace: string }) =>
-    job ? <div data-testid="evaluation-status-modal" data-namespace={namespace} /> : null,
+  default: ({
+    job,
+    namespace,
+    polledJobData,
+  }: {
+    job?: unknown;
+    namespace: string;
+    polledJobData?: { hardware_config?: { queue?: { name?: string } } };
+  }) =>
+    job ? (
+      <div
+        data-testid="evaluation-status-modal"
+        data-namespace={namespace}
+        data-queue={polledJobData?.hardware_config?.queue?.name ?? 'none'}
+      />
+    ) : null,
 }));
 
 jest.mock('~/app/components/StartEvaluationRunModal', () => ({
@@ -216,6 +254,16 @@ describe('EvaluationsPage', () => {
       mockRefresh,
     ]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
+    mockUseEvaluationJobDetailPolling.mockReturnValue({
+      polledJobDataMap: new Map(),
+      isWarning: false,
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: true,
+      error: undefined,
+      compatibilityError: undefined,
+    });
     mockDeleteCollection.mockResolvedValue(undefined);
     mockUseDeleteCollectionMutation.mockReturnValue({
       error: null,
@@ -984,6 +1032,175 @@ describe('EvaluationsPage', () => {
     renderPage('test-project', '?tab=runs');
 
     expect(screen.queryByTestId('evaluations-truncated-alert')).not.toBeInTheDocument();
+  });
+
+  describe('hardware profile queue derivation', () => {
+    const profileModeJob = mockEvaluationJob({
+      id: 'job-profile',
+      name: 'Profile Evaluation',
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+    const queueBackedProfiles: HardwareProfileInfo[] = [
+      {
+        name: 'gpu-default',
+        scheduling_type: 'queue',
+        queue_name: 'tenant-gpu-queue',
+        identifiers: [],
+      },
+    ];
+
+    it('should show Queued for a pending profile-mode job when its hardware profile is queue-backed', () => {
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs: [profileModeJob], totalCount: 1, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
+      mockUseHardwareProfiles.mockReturnValue({
+        profiles: queueBackedProfiles,
+        loaded: true,
+        error: undefined,
+        compatibilityError: undefined,
+      });
+      renderPage('test-project', '?tab=runs');
+
+      const row = screen.getByText('Profile Evaluation').closest('tr');
+      expect(row).not.toBeNull();
+      expect(within(row!).getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
+
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Queued' }));
+
+      expect(screen.getByText('Profile Evaluation')).toBeInTheDocument();
+    });
+
+    it('should show Pending for a pending profile-mode job when hardware profiles are unavailable', () => {
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs: [profileModeJob], totalCount: 1, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
+      renderPage('test-project', '?tab=runs');
+
+      const row = screen.getByText('Profile Evaluation').closest('tr');
+      expect(row).not.toBeNull();
+      expect(within(row!).getByTestId('evaluation-status-button')).toHaveTextContent('Pending');
+    });
+
+    it('should show Pending for a pending profile-mode job when the /info request fails', () => {
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs: [profileModeJob], totalCount: 1, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
+      mockUseHardwareProfiles.mockReturnValue({
+        profiles: [],
+        loaded: true,
+        error: new Error('info request failed'),
+        compatibilityError: undefined,
+      });
+      renderPage('test-project', '?tab=runs');
+
+      const row = screen.getByText('Profile Evaluation').closest('tr');
+      expect(row).not.toBeNull();
+      expect(within(row!).getByTestId('evaluation-status-button')).toHaveTextContent('Pending');
+    });
+
+    it('should queue-enrich an already-open status modal when profile info arrives after opening', async () => {
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs: [profileModeJob], totalCount: 1, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
+      // /info has not resolved yet — no queue-backed profiles available when the modal opens.
+      renderPage('test-project', '?tab=runs');
+
+      const row = screen.getByText('Profile Evaluation').closest('tr');
+      expect(row).not.toBeNull();
+      expect(within(row!).getByTestId('evaluation-status-button')).toHaveTextContent('Pending');
+
+      const statusLabel = within(row!).getByTestId('evaluation-status-button');
+      fireEvent.click(within(statusLabel).getByRole('button'));
+      await waitFor(() =>
+        expect(screen.getByTestId('evaluation-status-modal')).toBeInTheDocument(),
+      );
+      expect(screen.getByTestId('evaluation-status-modal')).toHaveAttribute('data-queue', 'none');
+
+      // /info resolves with queue-backed profiles after the modal is already open.
+      mockUseHardwareProfiles.mockReturnValue({
+        profiles: queueBackedProfiles,
+        loaded: true,
+        error: undefined,
+        compatibilityError: undefined,
+      });
+      // Re-render the page; switching tabs preserves the open modal.
+      fireEvent.click(screen.getByTestId('gallery-tab'));
+      fireEvent.click(screen.getByTestId('runs-tab'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('evaluation-status-modal')).toHaveAttribute(
+          'data-queue',
+          'tenant-gpu-queue',
+        ),
+      );
+    });
+
+    it('should queue-enrich an open status modal when a newer detail snapshot omits the profile', async () => {
+      // Detail polling returns a newer snapshot that omits hardware_config entirely —
+      // the profile name only exists on the raw list job.
+      const detailJob = mockEvaluationJob({
+        id: 'job-profile',
+        name: 'Profile Evaluation',
+        state: 'pending',
+        createdAt: '2026-02-20T10:05:00Z',
+      });
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs: [profileModeJob], totalCount: 1, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
+      mockUseEvaluationJobDetailPolling.mockReturnValue({
+        polledJobDataMap: new Map([['job-profile', detailJob]]),
+        isWarning: false,
+      });
+      // /info has not resolved yet — no queue-backed profiles available when the modal opens.
+      renderPage('test-project', '?tab=runs');
+
+      const row = screen.getByText('Profile Evaluation').closest('tr');
+      expect(row).not.toBeNull();
+
+      const statusLabel = within(row!).getByTestId('evaluation-status-button');
+      fireEvent.click(within(statusLabel).getByRole('button'));
+      await waitFor(() =>
+        expect(screen.getByTestId('evaluation-status-modal')).toBeInTheDocument(),
+      );
+      expect(screen.getByTestId('evaluation-status-modal')).toHaveAttribute('data-queue', 'none');
+
+      // /info resolves with queue-backed profiles after the modal is already open.
+      mockUseHardwareProfiles.mockReturnValue({
+        profiles: queueBackedProfiles,
+        loaded: true,
+        error: undefined,
+        compatibilityError: undefined,
+      });
+      // Re-render the page; switching tabs preserves the open modal.
+      fireEvent.click(screen.getByTestId('gallery-tab'));
+      fireEvent.click(screen.getByTestId('runs-tab'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('evaluation-status-modal')).toHaveAttribute(
+          'data-queue',
+          'tenant-gpu-queue',
+        ),
+      );
+    });
   });
 
   it('should persist tab selection in the URL when switching tabs', () => {

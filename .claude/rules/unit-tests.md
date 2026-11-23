@@ -457,7 +457,6 @@ describe('useFeature', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
   });
 

@@ -388,6 +388,14 @@ class EvaluationsPage {
     return this.findStatusModal().findByTestId('status-modal-tab-content');
   }
 
+  findStatusModalDescription() {
+    return this.findStatusModal().findByTestId('status-description');
+  }
+
+  findStatusModalBenchmarkNameHeader() {
+    return this.findStatusModal().findByTestId('benchmark-name-header');
+  }
+
   findStatusDetailHeader() {
     return cy.findByTestId('status-detail-header');
   }

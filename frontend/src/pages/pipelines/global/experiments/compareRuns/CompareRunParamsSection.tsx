@@ -22,9 +22,6 @@ export const CompareRunParamsSection: React.FunctionComponent = () => {
           field: 'run-name',
           isStickyColumn: true,
           hasRightBorder: true,
-          // https://github.com/patternfly/patternfly-react/discussions/10269
-          // Utility class pf-v6-u-background-color-200 does not exist in v6 currently but a replacement may be added, replacing with secondary background color token for now
-          style: { backgroundColor: 'var(--pf-t--global--background--color--secondary--default)' },
           sortable: false,
         },
         ...selectedRuns.map(
@@ -80,15 +77,7 @@ export const CompareRunParamsSection: React.FunctionComponent = () => {
 
       return (
         <Tr key={paramKey}>
-          <Td
-            dataLabel={paramKey}
-            hasRightBorder
-            isStickyColumn
-            modifier="fitContent"
-            style={{
-              backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-            }}
-          >
+          <Td dataLabel={paramKey} hasRightBorder isStickyColumn modifier="fitContent">
             <b>{paramKey}</b>
           </Td>
 

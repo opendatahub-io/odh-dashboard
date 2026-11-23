@@ -6,7 +6,7 @@ import { InvalidArgoDeploymentAlert } from '#~/concepts/pipelines/content/Invali
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   useIsAreaAvailable: jest.fn(),
-  SupportedArea: { DS_PIPELINES: 'ds-pipelines' },
+  SupportedArea: { DS_PIPELINES_ARGO_INVALID: 'ds-pipelines-argo-invalid' },
 }));
 
 jest.mock('@odh-dashboard/ui-core/utilities', () => ({
@@ -25,6 +25,18 @@ jest.mock('#~/utilities/const', () => ({
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockUseBrowserStorage = jest.mocked(useBrowserStorage);
 
+/** The area is available when an unmanaged Argo install is blocking pipelines. */
+const mockAreaStatus = (status: boolean) => {
+  mockUseIsAreaAvailable.mockReturnValue({
+    status,
+    devFlags: null,
+    featureFlags: null,
+    reliantAreas: null,
+    requiredComponents: null,
+    requiredCapabilities: null,
+  });
+};
+
 describe('InvalidArgoDeploymentAlert', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -32,22 +44,7 @@ describe('InvalidArgoDeploymentAlert', () => {
 
   it('should display Pipelines enablement failed alert', () => {
     mockUseBrowserStorage.mockReturnValue([false, jest.fn()]);
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: true,
-      devFlags: null,
-      featureFlags: null,
-      reliantAreas: null,
-      requiredComponents: null,
-      requiredCapabilities: null,
-      customCondition: (conditionFunc) =>
-        conditionFunc({
-          dashboardConfigSpec: {} as never,
-          dscStatus: {
-            conditions: [{ type: 'CapabilityDSPv2Argo', status: 'False' }],
-          } as never,
-          dsciStatus: null,
-        }),
-    });
+    mockAreaStatus(true);
 
     render(<InvalidArgoDeploymentAlert />);
 
@@ -57,22 +54,7 @@ describe('InvalidArgoDeploymentAlert', () => {
 
   it('should not display alert when condition is not met', () => {
     mockUseBrowserStorage.mockReturnValue([false, jest.fn()]);
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: true,
-      devFlags: null,
-      featureFlags: null,
-      reliantAreas: null,
-      requiredComponents: null,
-      requiredCapabilities: null,
-      customCondition: (conditionFunc) =>
-        conditionFunc({
-          dashboardConfigSpec: {} as never,
-          dscStatus: {
-            conditions: [],
-          } as never,
-          dsciStatus: null,
-        }),
-    });
+    mockAreaStatus(false);
 
     render(<InvalidArgoDeploymentAlert />);
 
@@ -81,22 +63,7 @@ describe('InvalidArgoDeploymentAlert', () => {
 
   it('should not display alert when dismissed', () => {
     mockUseBrowserStorage.mockReturnValue([true, jest.fn()]);
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: true,
-      devFlags: null,
-      featureFlags: null,
-      reliantAreas: null,
-      requiredComponents: null,
-      requiredCapabilities: null,
-      customCondition: (conditionFunc) =>
-        conditionFunc({
-          dashboardConfigSpec: {} as never,
-          dscStatus: {
-            conditions: [{ type: 'CapabilityDSPv2Argo', status: 'False' }],
-          } as never,
-          dsciStatus: null,
-        }),
-    });
+    mockAreaStatus(true);
 
     render(<InvalidArgoDeploymentAlert />);
 
@@ -106,22 +73,7 @@ describe('InvalidArgoDeploymentAlert', () => {
   it('should dismiss alert when close button is clicked', () => {
     const mockSetDismissed = jest.fn();
     mockUseBrowserStorage.mockReturnValue([false, mockSetDismissed]);
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: true,
-      devFlags: null,
-      featureFlags: null,
-      reliantAreas: null,
-      requiredComponents: null,
-      requiredCapabilities: null,
-      customCondition: (conditionFunc) =>
-        conditionFunc({
-          dashboardConfigSpec: {} as never,
-          dscStatus: {
-            conditions: [{ type: 'CapabilityDSPv2Argo', status: 'False' }],
-          } as never,
-          dsciStatus: null,
-        }),
-    });
+    mockAreaStatus(true);
 
     render(<InvalidArgoDeploymentAlert />);
 

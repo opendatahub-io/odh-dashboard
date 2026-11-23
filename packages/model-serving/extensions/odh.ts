@@ -7,15 +7,21 @@ import type {
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+// eslint-disable-next-line no-restricted-syntax
+import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line no-restricted-syntax
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import type {
   WizardFieldExtension,
   WizardFieldApplyExtension,
   WizardFieldExtractorExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type { ModelServingPlatformExtension } from '../extension-points';
 import type { DeploymentMethodSelectFieldType } from '../src/components/deploymentWizard/fields/DeploymentMethodSelectField';
 import type { ModelCapabilitiesFieldType } from '../src/components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField';
 
 const ADMIN_USER = 'ADMIN_USER';
+const SINGLE_MODEL_PLATFORM_ID = 'kserve';
 const BIDIRECTIONAL_YAML_WIZARD_GA = 'bidirectionalYamlWizardGa';
 
 // Base path of the Model deployment settings tabbed page.
@@ -94,6 +100,7 @@ const extensions: (
   | WizardFieldExtension<ModelCapabilitiesFieldType>
   | WizardFieldApplyExtension<string[]>
   | WizardFieldExtractorExtension<string[]>
+  | ModelServingPlatformExtension
 )[] = [
   {
     type: 'app.area',
@@ -179,6 +186,38 @@ const extensions: (
         from: '/modelServing/:namespace?/*',
         to: '/ai-hub/models/deployments/:namespace?/*',
       }),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
+  },
+  {
+    type: 'model-serving.platform',
+    properties: {
+      id: SINGLE_MODEL_PLATFORM_ID,
+      manage: {
+        namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
+        priority: 0,
+        default: true,
+        projectRequirements: {
+          labels: {
+            'modelmesh-enabled': 'false',
+          },
+        },
+      },
+      enableCardText: {
+        title: 'Enable model serving',
+        description:
+          'Enable users to serve models using the single-model serving platform which deploys each model on its own dedicated model server. ',
+        selectText: 'Select single-model',
+        enabledText: 'Single-model serving enabled',
+        objectType: ProjectObjectType.singleModel,
+      },
+      deployedModelsView: {
+        startHintTitle: 'Start by deploying a model',
+        startHintDescription: 'Each model is deployed on its own model server',
+        deployButtonText: 'Deploy model',
+      },
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],

@@ -653,10 +653,12 @@ jobs:
           console.log(`Reason: ${env.MATRIX_SELECTION_REASON}`);
           console.log(`Expected Cypress E2E CI test executions: ${env.MATRIX_PLANNED_TEST_COUNT}`);
           console.log(`Selection mode: ${env.MATRIX_RUN_MODE}`);
-          if (env.MATRIX_RUN_MODE === 'spec') {
+          const specs = JSON.parse(env.MATRIX_SPECS || '[]') || [];
+          if (specs.length > 0) {
             console.log('Explicit specs:');
-            for (const spec of JSON.parse(env.MATRIX_SPECS)) console.log(`- ${spec}`);
-          } else {
+            for (const spec of specs) console.log(`- ${spec}`);
+          }
+          if (env.MATRIX_RUN_MODE === 'tag') {
             console.log(`Selected tags: ${env.MATRIX_TAG}`);
           }
           NODE
@@ -1254,8 +1256,14 @@ jobs:
           export CYPRESS_grepOmitFiltered=true
           SKIP_TAGS_GREP="--@Bug --@Maintain --@NonConcurrent"
           CYPRESS_COMMAND="pnpm --filter odh-dashboard-frontend cypress:run:chrome"
-          if [[ "$MATRIX_RUN_MODE" == "spec" ]]; then
-            mapfile -t SPEC_PATHS < <(jq -r '.[]' <<< "$MATRIX_SPECS")
+
+          SPEC_PATHS_JSON="${MATRIX_SPECS:-[]}"
+          if [[ "$MATRIX_RUN_MODE" == "spec" && ( -z "$SPEC_PATHS_JSON" || "$SPEC_PATHS_JSON" == "[]" || "$SPEC_PATHS_JSON" == "null" ) ]]; then
+            echo "❌ Explicit spec job has no specs"
+            exit 1
+          fi
+          if [[ -n "$SPEC_PATHS_JSON" && "$SPEC_PATHS_JSON" != "[]" && "$SPEC_PATHS_JSON" != "null" ]]; then
+            mapfile -t SPEC_PATHS < <(jq -r '.[]' <<< "$SPEC_PATHS_JSON")
             SPEC_LIST=""
             for spec in "${SPEC_PATHS[@]}"; do
               if [[ ! "$spec" =~ ^[A-Za-z0-9_./-]+\.cy\.ts$ ]]; then
@@ -1266,15 +1274,17 @@ jobs:
             done
             printf -v ESCAPED_SPEC_LIST '%q' "${SPEC_LIST%,}"
             CYPRESS_COMMAND+=" --spec $ESCAPED_SPEC_LIST"
-            export CYPRESS_grepTags="$SKIP_TAGS_GREP"
-            export CYPRESS_grepFilterSpecs=false
             echo "Running explicit Cypress specs: ${SPEC_LIST%,}"
+          fi
+
+          if [[ "$MATRIX_RUN_MODE" == "spec" ]]; then
+            export CYPRESS_grepTags="$SKIP_TAGS_GREP"
           else
             export CYPRESS_grepTags="$MATRIX_TAG $SKIP_TAGS_GREP"
-            # The registration filter handles constant/inherited tags that the
-            # grep plugin cannot resolve during its static spec pre-filter.
-            export CYPRESS_grepFilterSpecs=false
           fi
+          # The registration filter handles constant/inherited tags that the
+          # grep plugin cannot resolve during its static spec pre-filter.
+          export CYPRESS_grepFilterSpecs=false
           export CYPRESS_video=true
           export CYPRESS_screenshotsFolder="$CY_RESULTS_DIR/screenshots"
           export CYPRESS_videosFolder="$CY_RESULTS_DIR/videos"
