@@ -6,7 +6,10 @@ export const suiteSettingsSchema = z.object({
   suiteName: z.string().trim().min(1, 'Enter a collection name.'),
   suiteDescription: z.string(),
   maxBenchmarks: z.number().int().min(1).max(20),
-  strictness: z.enum(['', 'lenient', 'moderate', 'strict']),
+});
+
+export const recommendationSettingsSchema = z.object({
+  strictness: z.enum(['lenient', 'moderate', 'strict']),
   generationEffort: z.enum(['low', 'standard', 'high']),
 });
 
@@ -65,12 +68,15 @@ export const collectionSettingsFieldNames = [
   'suiteName',
   'suiteDescription',
   'maxBenchmarks',
-  'strictness',
-  'generationEffort',
 ] as const;
 
 export const MAX_EVALUATION_GOAL_LENGTH = 10000;
-export const defineGoalFieldNames = ['evaluationGoal', 'generatorModel'] as const;
+export const defineGoalFieldNames = [
+  'evaluationGoal',
+  'generatorModel',
+  'strictness',
+  'generationEffort',
+] as const;
 
 export const generatorModelSelectionSchema = z.object({
   source: z.enum(['cluster', 'external']),
@@ -103,6 +109,7 @@ const defineGoalShape = {
     .refine((value): boolean => value !== null, {
       message: 'Select a recommendation model.',
     }),
+  ...recommendationSettingsSchema.shape,
 };
 
 export const defineGoalSchema = z.object(defineGoalShape);

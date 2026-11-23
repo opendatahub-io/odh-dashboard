@@ -22,7 +22,7 @@ import {
 import { AngleDownIcon, AngleUpIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { defineGoalExamples } from '~/app/components/collectionBuilder/data/defineGoalExamples';
-import RecommendationModelModal from '~/app/components/collectionBuilder/RecommendationModelModal';
+import RecommendationSettingsModal from '~/app/components/collectionBuilder/RecommendationSettingsModal';
 import {
   defineGoalFieldNames,
   generatorModelSelectionSchema,
@@ -58,6 +58,8 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
   const { control, setValue, trigger } = useFormContext<CollectionBuilderFormValues>();
   const { goToNextStep } = useWizardContext();
   const selectedModel = useWatch({ control, name: 'generatorModel' });
+  const selectedStrictness = useWatch({ control, name: 'strictness' });
+  const selectedGenerationEffort = useWatch({ control, name: 'generationEffort' });
   const [isModelModalOpen, setIsModelModalOpen] = React.useState(false);
   const [areAllExamplesVisible, setAreAllExamplesVisible] = React.useState(false);
   const visibleExamples = areAllExamplesVisible
@@ -84,12 +86,26 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
     setIsModelModalOpen(false);
   };
 
-  const handleSaveModel = (model: GeneratorModelSelection) => {
-    const parsedModel = generatorModelSelectionSchema.safeParse(model);
+  const handleSaveSettings = (settings: {
+    model: GeneratorModelSelection;
+    strictness: CollectionBuilderFormValues['strictness'];
+    generationEffort: CollectionBuilderFormValues['generationEffort'];
+  }) => {
+    const parsedModel = generatorModelSelectionSchema.safeParse(settings.model);
     if (!parsedModel.success) {
       return;
     }
     setValue('generatorModel', parsedModel.data, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    setValue('strictness', settings.strictness, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    setValue('generationEffort', settings.generationEffort, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
@@ -121,6 +137,50 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
           label="What would you like to evaluate?"
           fieldId="goal-suite-evaluation-goal"
           isRequired
+          className="evalhub-goal-collection__goal-form-group"
+          labelInfo={
+            <div
+              className="evalhub-goal-collection__goal-label-info"
+              data-testid="recommendation-model-summary"
+            >
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                <FlexItem>
+                  <strong>
+                    Recommendation model
+                    <span
+                      className="pf-v6-c-form__label-required"
+                      aria-hidden="true"
+                      data-testid="recommendation-model-required"
+                    >
+                      *
+                    </span>
+                  </strong>
+                </FlexItem>
+                <FlexItem>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                    <FlexItem data-testid="selected-recommendation-model">
+                      {selectedModel?.name ?? 'No model selected'}
+                    </FlexItem>
+                    <FlexItem>
+                      <Button
+                        type="button"
+                        variant="plain"
+                        size="sm"
+                        icon={<PencilAltIcon aria-hidden />}
+                        aria-label={
+                          selectedModel
+                            ? 'Edit recommendation model'
+                            : 'Choose recommendation model'
+                        }
+                        onClick={handleOpenModelModal}
+                        data-testid="edit-recommendation-model"
+                      />
+                    </FlexItem>
+                  </Flex>
+                </FlexItem>
+              </Flex>
+            </div>
+          }
         >
           <Controller
             name="evaluationGoal"
@@ -218,45 +278,6 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
             {areAllExamplesVisible ? 'View fewer examples' : 'View more examples'}
           </Button>
         </section>
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapMd' }}
-          className="evalhub-goal-collection__recommendation-model pf-v6-u-mt-md"
-          data-testid="recommendation-model-summary"
-        >
-          <FlexItem>
-            <strong>
-              Recommendation model
-              <span
-                className="pf-v6-c-form__label-required"
-                aria-hidden="true"
-                data-testid="recommendation-model-required"
-              >
-                *
-              </span>
-            </strong>
-          </FlexItem>
-          <FlexItem>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-              <FlexItem data-testid="selected-recommendation-model">
-                {selectedModel?.name ?? 'No model selected'}
-              </FlexItem>
-              <FlexItem>
-                <Button
-                  type="button"
-                  variant="plain"
-                  size="sm"
-                  icon={<PencilAltIcon aria-hidden />}
-                  aria-label={
-                    selectedModel ? 'Edit recommendation model' : 'Choose recommendation model'
-                  }
-                  onClick={handleOpenModelModal}
-                  data-testid="edit-recommendation-model"
-                />
-              </FlexItem>
-            </Flex>
-          </FlexItem>
-        </Flex>
         {selectedModel?.source === 'cluster' && !selectedModelIsAvailable ? (
           <FormHelperText>
             <HelperText>
@@ -270,7 +291,7 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
         ) : null}
       </Form>
 
-      <RecommendationModelModal
+      <RecommendationSettingsModal
         key={
           isModelModalOpen
             ? `${selectedModel?.source ?? 'no-selection'}-${selectedModel?.name ?? ''}`
@@ -278,11 +299,13 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
         }
         isOpen={isModelModalOpen}
         selectedModel={selectedModel}
+        selectedStrictness={selectedStrictness}
+        selectedGenerationEffort={selectedGenerationEffort}
         inferenceServices={inferenceServices}
         inferenceServicesLoaded={inferenceServicesLoaded}
         inferenceServicesError={inferenceServicesError}
         onClose={handleCloseModelModal}
-        onSave={handleSaveModel}
+        onSave={handleSaveSettings}
       />
     </div>
   );

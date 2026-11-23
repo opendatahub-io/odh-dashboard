@@ -82,11 +82,11 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     reValidateMode: 'onChange',
     shouldUnregister: false,
   });
-  const [suiteName, suiteDescription, maxBenchmarks, strictness, generationEffort] = useWatch({
+  const [suiteName, suiteDescription, maxBenchmarks] = useWatch({
     control: methods.control,
     name: [...collectionSettingsFieldNames],
   });
-  const [evaluationGoal, generatorModel] = useWatch({
+  const [evaluationGoal, generatorModel, strictness, generationEffort] = useWatch({
     control: methods.control,
     name: [...defineGoalFieldNames],
   });
@@ -103,8 +103,6 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     suiteName,
     suiteDescription,
     maxBenchmarks,
-    strictness,
-    generationEffort,
   }).success;
   const hasSuiteSettingsErrors = collectionSettingsFieldNames.some(
     (fieldName) => errors[fieldName],
@@ -113,6 +111,8 @@ const CreateCollectionFromGoalPage: React.FC = () => {
   const isDefineGoalValid = defineGoalSchema.safeParse({
     evaluationGoal,
     generatorModel,
+    strictness,
+    generationEffort,
   }).success;
   const selectedGeneratorModelIsAvailable =
     generatorModel?.source !== 'cluster' ||
@@ -213,7 +213,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
           : {}),
       },
       max_benchmarks: maxBenchmarks,
-      ...(strictness ? { strictness } : {}),
+      strictness,
       generation_effort: generationEffort,
     };
 

@@ -8,23 +8,15 @@ class CollectionBuilderPage {
   }
 
   findMaxBenchmarksSlider() {
-    return cy.findByRole('slider', { name: 'Number of benchmarks' });
+    return cy.findByRole('slider', { name: 'Max number of benchmarks' });
   }
 
   findMaxBenchmarksInput() {
-    return cy.findByRole('spinbutton', { name: 'Number of benchmarks' });
+    return cy.findByRole('spinbutton', { name: 'Max number of benchmarks' });
   }
 
   findMaxBenchmarksHelper() {
-    return cy.findByText('Set the maximum number of benchmarks AI should recommend, from 1 to 20.');
-  }
-
-  findStrictnessSelect() {
-    return cy.findByTestId('goal-suite-strictness');
-  }
-
-  findGenerationEffortSelect() {
-    return cy.findByTestId('goal-suite-generation-effort');
+    return cy.findByText('Choose how many benchmarks AI should recommend, up to 20.');
   }
 
   findEvaluationGoalInput() {

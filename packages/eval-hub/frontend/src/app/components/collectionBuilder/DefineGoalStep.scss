@@ -24,3 +24,34 @@
     outline-offset: var(--pf-t--global--focus-ring--position--offset);
   }
 }
+
+.evalhub-goal-collection__goal-form-group .pf-v6-c-form__group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pf-t--global--spacer--sm);
+  flex-wrap: wrap;
+}
+
+.evalhub-goal-collection__goal-label-info {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 100%;
+  text-align: right;
+}
+
+@media screen and (max-width: 768px) {
+  .evalhub-goal-collection__goal-form-group .pf-v6-c-form__group-label {
+    align-items: flex-start;
+  }
+
+  .evalhub-goal-collection__goal-form-group .pf-v6-c-form__group-label-info {
+    flex-basis: 100%;
+    margin-inline-start: 0;
+  }
+
+  .evalhub-goal-collection__goal-label-info {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}

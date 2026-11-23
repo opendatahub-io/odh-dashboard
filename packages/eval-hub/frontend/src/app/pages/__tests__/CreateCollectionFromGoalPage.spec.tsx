@@ -317,27 +317,27 @@ describe('CreateCollectionFromGoalPage', () => {
     );
     expect(
       screen.getByText(
-        'Set the collection name, description, and optional recommendation settings.',
+        'Set the collection name, description, and maximum number of benchmarks to recommend.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByText('Collection name')).toBeInTheDocument();
     expect(screen.getByText('Create collection', { selector: 'li' })).toBeInTheDocument();
     expect(screen.getByLabelText('Collection creation steps')).toBeInTheDocument();
-    expect(screen.getByTestId('goal-suite-evaluates')).toHaveTextContent('Model');
-    const maxBenchmarksSlider = screen.getByRole('slider', { name: 'Number of benchmarks' });
+    const maxBenchmarksSlider = screen.getByRole('slider', { name: 'Max number of benchmarks' });
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuemin', '1');
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuemax', '20');
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuenow', '12');
-    expect(screen.getByRole('spinbutton', { name: 'Number of benchmarks' })).toHaveValue(12);
+    expect(screen.getByRole('spinbutton', { name: 'Max number of benchmarks' })).toHaveValue(12);
     expect(
-      screen.getByText('Set the maximum number of benchmarks AI should recommend, from 1 to 20.'),
+      screen.getByText('Choose how many benchmarks AI should recommend, up to 20.'),
     ).toBeInTheDocument();
     expect(maxBenchmarksSlider).toHaveAttribute(
       'aria-describedby',
       'suite-builder-max-benchmarks-helper',
     );
-    expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('moderate');
-    expect(screen.getByTestId('goal-suite-generation-effort')).toHaveValue('standard');
+    expect(screen.queryByTestId('goal-suite-strictness')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('goal-suite-generation-effort')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('goal-suite-evaluates')).not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /default/i })).not.toBeInTheDocument();
     expect(
       screen.queryByText('Leave blank to use the default of 12 (1–20).'),
@@ -345,9 +345,6 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(
       screen.queryByText('Leave blank to use the default of Moderate.'),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByText('The recommended benchmarks are configured to evaluate models.'),
-    ).toBeInTheDocument();
     expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
     expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
 
@@ -363,33 +360,25 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
   });
 
-  it('should update the maximum benchmarks slider with the keyboard and preserve settings', async () => {
+  it('should update the maximum benchmarks slider with the keyboard and preserve it on return', async () => {
     await renderPage();
 
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
       target: { value: 'Reasoning suite' },
     });
-    const maxBenchmarksSlider = screen.getByRole('slider', { name: 'Number of benchmarks' });
+    const maxBenchmarksSlider = screen.getByRole('slider', { name: 'Max number of benchmarks' });
     fireEvent.keyDown(maxBenchmarksSlider, { key: 'ArrowRight' });
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuenow', '13');
-    expect(screen.getByRole('spinbutton', { name: 'Number of benchmarks' })).toHaveValue(13);
-    fireEvent.change(screen.getByTestId('goal-suite-strictness'), {
-      target: { value: 'strict' },
-    });
-    fireEvent.change(screen.getByTestId('goal-suite-generation-effort'), {
-      target: { value: 'high' },
-    });
+    expect(screen.getByRole('spinbutton', { name: 'Max number of benchmarks' })).toHaveValue(13);
     await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
     fireEvent.click(screen.getByTestId('next-suite-settings'));
     expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Collection settings/ }));
-    expect(screen.getByRole('slider', { name: 'Number of benchmarks' })).toHaveAttribute(
+    expect(screen.getByRole('slider', { name: 'Max number of benchmarks' })).toHaveAttribute(
       'aria-valuenow',
       '13',
     );
-    expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('strict');
-    expect(screen.getByTestId('goal-suite-generation-effort')).toHaveValue('high');
   });
 
   it('should advance after valid settings and preserve values when returning', async () => {
@@ -455,10 +444,23 @@ describe('CreateCollectionFromGoalPage', () => {
     );
 
     fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    expect(screen.getByText('Choose a recommendation model')).toBeInTheDocument();
+    expect(screen.getByText('Recommendation settings')).toBeInTheDocument();
     expect(
-      screen.getByText('Choose the model that suggests benchmarks for your goal.'),
+      screen.getByText(
+        'This model suggests benchmarks for your goal. It is not the model being evaluated.',
+      ),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText('Required model used to suggest benchmarks, not the model being evaluated.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Match to evaluation goal' })).toHaveAttribute(
+      'aria-valuetext',
+      'Balanced',
+    );
+    expect(screen.getByRole('slider', { name: 'Recommendation depth' })).toHaveAttribute(
+      'aria-valuetext',
+      'Balanced',
+    );
     fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
     expect(
       within(screen.getByTestId('recommendation-model-option-missing-url')).getByRole('option', {

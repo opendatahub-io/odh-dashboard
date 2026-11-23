@@ -4,8 +4,6 @@ import {
   Form,
   FormHelperText,
   FormGroup,
-  FormSelect,
-  FormSelectOption,
   Grid,
   GridItem,
   HelperText,
@@ -45,10 +43,10 @@ const CollectionSettingsStep: React.FC<CollectionSettingsStepProps> = ({ canCont
         Collection settings
       </Title>
       <Content component="p" className="pf-v6-u-mb-lg">
-        Set the collection name, description, and optional recommendation settings.
+        Set the collection name, description, and maximum number of benchmarks to recommend.
       </Content>
       <Grid hasGutter>
-        <GridItem sm={12} lg={6}>
+        <GridItem sm={12} lg={9}>
           <Form
             id="suite-settings-form"
             data-testid="suite-settings-form"
@@ -104,11 +102,11 @@ const CollectionSettingsStep: React.FC<CollectionSettingsStepProps> = ({ canCont
               name="maxBenchmarks"
               control={control}
               render={({ field, fieldState }) => (
-                <FormGroup label="Number of benchmarks" fieldId="goal-suite-max-benchmarks">
+                <FormGroup label="Max number of benchmarks" fieldId="goal-suite-max-benchmarks">
                   <FormHelperText>
                     <HelperText>
                       <HelperTextItem id="suite-builder-max-benchmarks-helper">
-                        Set the maximum number of benchmarks AI should recommend, from 1 to 20.
+                        Choose how many benchmarks AI should recommend, up to 20.
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
@@ -125,8 +123,8 @@ const CollectionSettingsStep: React.FC<CollectionSettingsStepProps> = ({ canCont
                     inputPosition="end"
                     inputValue={field.value}
                     className="evalhub-collection-settings-step__max-benchmarks-slider"
-                    inputAriaLabel="Number of benchmarks"
-                    thumbAriaLabel="Number of benchmarks"
+                    inputAriaLabel="Max number of benchmarks"
+                    thumbAriaLabel="Max number of benchmarks"
                     aria-describedby={
                       fieldState.error
                         ? 'suite-builder-max-benchmarks-helper suite-builder-max-benchmarks-error'
@@ -151,88 +149,6 @@ const CollectionSettingsStep: React.FC<CollectionSettingsStepProps> = ({ canCont
                 </FormGroup>
               )}
             />
-            <FormGroup label="Strictness" fieldId="goal-suite-strictness">
-              <Controller
-                name="strictness"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <>
-                    <FormSelect
-                      id="goal-suite-strictness"
-                      value={field.value}
-                      onChange={(_event, value) => field.onChange(value)}
-                      onBlur={field.onBlur}
-                      validated={fieldState.error ? 'error' : 'default'}
-                      aria-invalid={fieldState.error ? true : undefined}
-                      data-testid="goal-suite-strictness"
-                    >
-                      <FormSelectOption value="lenient" label="Lenient" />
-                      <FormSelectOption value="moderate" label="Moderate" />
-                      <FormSelectOption value="strict" label="Strict" />
-                    </FormSelect>
-                    {fieldState.error?.message ? (
-                      <FormHelperText>
-                        <HelperText>
-                          <HelperTextItem
-                            variant="error"
-                            data-testid="suite-builder-strictness-error"
-                          >
-                            {fieldState.error.message}
-                          </HelperTextItem>
-                        </HelperText>
-                      </FormHelperText>
-                    ) : null}
-                  </>
-                )}
-              />
-            </FormGroup>
-            <FormGroup label="Generation effort" fieldId="goal-suite-generation-effort">
-              <Controller
-                name="generationEffort"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <>
-                    <FormSelect
-                      id="goal-suite-generation-effort"
-                      value={field.value}
-                      onChange={(_event, value) => field.onChange(value)}
-                      onBlur={field.onBlur}
-                      validated={fieldState.error ? 'error' : 'default'}
-                      aria-invalid={fieldState.error ? true : undefined}
-                      data-testid="goal-suite-generation-effort"
-                    >
-                      <FormSelectOption value="low" label="Low" />
-                      <FormSelectOption value="standard" label="Standard" />
-                      <FormSelectOption value="high" label="High" />
-                    </FormSelect>
-                    {fieldState.error?.message ? (
-                      <FormHelperText>
-                        <HelperText>
-                          <HelperTextItem
-                            variant="error"
-                            data-testid="suite-builder-generation-effort-error"
-                          >
-                            {fieldState.error.message}
-                          </HelperTextItem>
-                        </HelperText>
-                      </FormHelperText>
-                    ) : null}
-                  </>
-                )}
-              />
-            </FormGroup>
-            <FormGroup label="Evaluates" fieldId="goal-suite-evaluates" isRequired>
-              <Content component="p" className="pf-v6-u-mb-0" data-testid="goal-suite-evaluates">
-                Model
-              </Content>
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>
-                    The recommended benchmarks are configured to evaluate models.
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            </FormGroup>
           </Form>
         </GridItem>
       </Grid>
