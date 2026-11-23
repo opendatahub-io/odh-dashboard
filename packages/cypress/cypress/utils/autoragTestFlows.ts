@@ -1,13 +1,84 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForAutoXDspaReady } from './oc_commands/autoX';
-import { waitForManagedPipelines } from './autoXPipelines';
-import { getVectorDatabaseConnection, resetAutoragConnections } from './oc_commands/autoragInfra';
+import { waitForAutoragManagedPipelines } from './autoXPipelines';
+import {
+  getVectorDatabaseConnection,
+  resetAutoragConnections,
+  verifyAutoragVectorDatabaseConnectionSecret,
+} from './oc_commands/autoragInfra';
+import { AWS_BUCKETS } from './s3Buckets';
+import { resolveAutoXS3Endpoint } from './autoXS3';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
 import type { AutoragTestData } from '../types';
+import {
+  AUTORAG_CANCELLATION_TIMEOUT_MS,
+  AUTORAG_COMPLETION_TIMEOUT_MS,
+} from '../support/timeouts';
 
 const RESOURCES_PATH = 'resources/autorag';
+const DOCUMENT_KEYS_FIELD = 'correct_answer_document_keys';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
+
+const renderAutoragEvaluationData = (
+  evaluationData: string,
+  documentFile: string,
+  uploadFileName: string,
+): string => {
+  let parsedEvaluationData: unknown;
+  try {
+    parsedEvaluationData = JSON.parse(evaluationData);
+  } catch {
+    throw new Error('AutoRAG evaluation dataset is not valid JSON.');
+  }
+
+  if (!Array.isArray(parsedEvaluationData)) {
+    throw new Error('AutoRAG evaluation dataset must be a JSON array.');
+  }
+
+  let replacedDocumentReferenceCount = 0;
+  const renderedEvaluationData = parsedEvaluationData.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new Error(`AutoRAG evaluation entry ${index} must be a JSON object.`);
+    }
+
+    const documentKeys = entry[DOCUMENT_KEYS_FIELD];
+    if (
+      !Array.isArray(documentKeys) ||
+      documentKeys.some((documentKey) => typeof documentKey !== 'string')
+    ) {
+      throw new Error(
+        `AutoRAG evaluation entry ${index} must contain string correct_answer_document_keys.`,
+      );
+    }
+
+    return {
+      ...entry,
+      [DOCUMENT_KEYS_FIELD]: documentKeys.map((documentKey) => {
+        if (documentKey !== documentFile) {
+          return documentKey;
+        }
+
+        replacedDocumentReferenceCount += 1;
+        return uploadFileName;
+      }),
+    };
+  });
+
+  if (replacedDocumentReferenceCount === 0) {
+    throw new Error(
+      `Evaluation dataset does not reference the configured document ${documentFile}.`,
+    );
+  }
+
+  return JSON.stringify(renderedEvaluationData, null, 2);
+};
 
 type MaaSModel = { id?: unknown; ready?: unknown };
 
@@ -127,15 +198,63 @@ const getMaaSServiceRoot = (configuredUrl: string): string => {
 const isMaaSModel = (value: unknown): value is MaaSModel =>
   typeof value === 'object' && value !== null;
 
+const isValidAutoragS3Configuration = (
+  testData: Pick<AutoragTestData, 'awsBucket' | 's3SecretName'>,
+): boolean => {
+  const buckets: unknown = AWS_BUCKETS;
+  if (!isRecord(buckets) || !isNonEmptyString(testData.s3SecretName)) {
+    return false;
+  }
+
+  const bucket = buckets[testData.awsBucket];
+  if (
+    !isRecord(bucket) ||
+    !isNonEmptyString(bucket.NAME) ||
+    !isNonEmptyString(bucket.REGION) ||
+    !isNonEmptyString(buckets.AWS_ACCESS_KEY_ID) ||
+    !isNonEmptyString(buckets.AWS_SECRET_ACCESS_KEY)
+  ) {
+    return false;
+  }
+
+  try {
+    const bucketEndpoint = typeof bucket.ENDPOINT === 'string' ? bucket.ENDPOINT : '';
+    const endpoint = resolveAutoXS3Endpoint(bucketEndpoint);
+    if (!isNonEmptyString(endpoint)) {
+      return false;
+    }
+    const normalizedEndpoint = /^https?:\/\//i.test(endpoint) ? endpoint : `https://${endpoint}`;
+    const parsedEndpoint = new URL(normalizedEndpoint);
+    return (
+      (parsedEndpoint.protocol === 'http:' || parsedEndpoint.protocol === 'https:') &&
+      !!parsedEndpoint.hostname &&
+      parsedEndpoint.pathname === '/' &&
+      !parsedEndpoint.username &&
+      !parsedEndpoint.password &&
+      !parsedEndpoint.search &&
+      !parsedEndpoint.hash
+    );
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Verify the hosted MaaS models before provisioning AutoRAG resources.
  * Response details and credentials are intentionally never logged or included in failures.
  */
-export const checkAutoragMaaSReadiness = (): Cypress.Chainable<AutoragMaaSFixture> => {
+export const checkAutoragMaaSReadiness = (
+  testData: Pick<AutoragTestData, 'awsBucket' | 's3SecretName'>,
+): Cypress.Chainable<AutoragMaaSFixture> => {
   const fixture = resolveAutoragMaaSFixture();
+  const hasValidS3Configuration = isValidAutoragS3Configuration(testData);
   if (fixture.mode === 'simulator') {
     return cy.wrap<AutoragMaaSFixture>(fixture);
   }
+
+  // Completion/results require both live MaaS models and a complete, usable AutoX S3 setup.
+  // Keep this boolean-only check free of endpoint, access-key, and secret logging.
+  const supportsCompletionResults = hasValidS3Configuration;
 
   const serviceRoot = getMaaSServiceRoot(fixture.maasUrl);
 
@@ -164,7 +283,7 @@ export const checkAutoragMaaSReadiness = (): Cypress.Chainable<AutoragMaaSFixtur
           throw new Error('A configured MaaS model is missing or not ready.');
         }
       }
-      return fixture;
+      return { ...fixture, supportsCompletionResults };
     });
 };
 
@@ -205,10 +324,13 @@ const createMaaSConnection = (testData: AutoragTestData, maasFixture: AutoragMaa
   autoragConfigurePage.findMaasConnectionSubmitButton().click();
 };
 
-const createVectorDbConnection = (testData: AutoragTestData): void => {
+const createVectorDbConnection = (
+  testData: AutoragTestData,
+  projectName: string,
+): Cypress.Chainable<void> => {
   autoragConfigurePage.findAddDatabaseDropdownToggle().click();
   autoragConfigurePage.findAddPgvectorConnectionOption().click();
-  const connection = getVectorDatabaseConnection();
+  const connection = getVectorDatabaseConnection(projectName);
   autoragConfigurePage.findPgvectorConnectionNameInput().clear().type(testData.vectorDbSecretName);
   autoragConfigurePage.findPgvectorInput('host').type(connection.host);
   autoragConfigurePage.findPgvectorInput('port').type(connection.port);
@@ -216,45 +338,11 @@ const createVectorDbConnection = (testData: AutoragTestData): void => {
   autoragConfigurePage.findPgvectorInput('user').type(connection.user);
   autoragConfigurePage.findPgvectorInput('password').type(connection.password, { log: false });
   autoragConfigurePage.findPgvectorConnectionSubmitButton().click();
-};
-
-/** Create and select project-scoped connections without probing existing secrets. */
-export const createAutoragConnections = (
-  testData: AutoragTestData,
-  projectName: string,
-  maasFixture: AutoragMaaSFixture,
-  ownership: AutoragConnectionOwnership,
-): void => {
-  const connectionOwnership = ownership;
-  cy.step('Open AutoRAG run configuration');
-  interceptSimulatorMaaSModels(projectName, testData, maasFixture);
-  cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
-  waitForAutoXDspaReady(projectName);
-  waitForManagedPipelines(projectName);
-  autoragExperimentsPage.visit(projectName);
-  autoragExperimentsPage.findAnyCreateRunButton({ timeout: 120000 }).click();
-  autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
-  autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
-
-  cy.step('Create MaaS connection through the dashboard');
-  resetAutoragConnections(projectName, testData.maasSecretName, testData.vectorDbSecretName);
-  createMaaSConnection(testData, maasFixture);
-  connectionOwnership.maasSecretCreated = true;
-  autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
-  autoragConfigurePage
-    .findMaasSecretSelector()
-    .find('input')
-    .should('have.value', testData.maasSecretName);
-
-  cy.step('Create PGVector connection through the dashboard');
-  autoragConfigurePage.findNextButton().click();
-  autoragConfigurePage.findDatabaseSelector({ timeout: 60000 }).should('not.be.disabled');
-  createVectorDbConnection(testData);
-  connectionOwnership.vectorDbSecretCreated = true;
-  autoragConfigurePage
-    .findDatabaseSelector()
-    .find('input')
-    .should('have.value', testData.vectorDbSecretName);
+  return verifyAutoragVectorDatabaseConnectionSecret(
+    testData.vectorDbSecretName,
+    projectName,
+    connection,
+  );
 };
 
 /**
@@ -282,7 +370,7 @@ export const configureAutoragRun = (
   interceptSimulatorMaaSModels(projectName, testData, maasFixture);
   cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
   waitForAutoXDspaReady(projectName);
-  waitForManagedPipelines(projectName);
+  waitForAutoragManagedPipelines(projectName);
 
   cy.step('Navigate to AutoRAG experiments page');
   autoragExperimentsPage.visit(projectName);
@@ -378,12 +466,20 @@ export const configureAutoragRun = (
 
   cy.step('Upload evaluation dataset JSON');
   const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
-  autoragConfigurePage
-    .findEvaluationFileInput()
-    .selectFile(
-      { contents: `${RESOURCES_PATH}/${testData.evaluationFile}`, fileName: evalFileName },
-      { force: true },
+  cy.readFile(`${RESOURCES_PATH}/${testData.evaluationFile}`, null).then((evaluationData) => {
+    const renderedEvaluationData = renderAutoragEvaluationData(
+      evaluationData.toString('utf8'),
+      testData.documentFile,
+      uploadFileName,
     );
+
+    autoragConfigurePage
+      .findEvaluationFileInput()
+      .selectFile(
+        { contents: Cypress.Buffer.from(renderedEvaluationData, 'utf8'), fileName: evalFileName },
+        { force: true },
+      );
+  });
 
   cy.step('Wait for evaluation file upload to complete');
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
@@ -391,7 +487,7 @@ export const configureAutoragRun = (
   cy.step('Select database connection');
   if (options.createConnections) {
     cy.step('Create PGVector connection through the dashboard');
-    createVectorDbConnection(testData);
+    createVectorDbConnection(testData, projectName);
     if (connectionOwnership) {
       connectionOwnership.vectorDbSecretCreated = true;
     }
@@ -510,12 +606,14 @@ export const verifyAutoragRunTerminated = (projectName: string, runId: string): 
     )}`,
   );
 
-  // The timeout must be on `.invoke` for the `.should` to get the 80s timeout.
-  // Putting it on `.findRunStatusLabel` will not work as that will only give 80s
-  // to find the initial label and not to match for the cancelled state.
+  // The timeout must be on `.invoke` for the `.should` to get the full cancellation timeout.
+  // Putting it on `.findRunStatusLabel` will only give the initial label lookup the timeout
+  // and not the retry period needed to reach the final terminal state. After the terminate request
+  // is successfully acknowledged, the pipeline can report Failed instead of CANCELED/CANCELLED.
+  // The caller must confirm that request before using this helper.
   autoragResultsPage
     .findRunStatusLabel()
-    .invoke({ timeout: 80000 }, 'text')
+    .invoke({ timeout: AUTORAG_CANCELLATION_TIMEOUT_MS }, 'text')
     .should('match', /CANCELED|CANCELLED|FAILED/i);
 };
 
@@ -527,10 +625,11 @@ export const verifyAutoragRunListed = (projectName: string, runName: string): vo
 };
 
 /**
- * Waits up to `timeoutMs` (default 45 min) for the run to complete.
+ * Waits up to `timeoutMs` (default 60 min, configurable with AUTORAG_COMPLETION_TIMEOUT_MS)
+ * for the run to complete.
  * Asserts that the leaderboard table appears.
  */
-export const waitForAutoragRunCompletion = (timeoutMs = 2700000): void => {
+export const waitForAutoragRunCompletion = (timeoutMs = AUTORAG_COMPLETION_TIMEOUT_MS): void => {
   cy.step('Wait for run in-progress indicator to appear');
   autoragResultsPage.findRunInProgressMessage(60000).should('exist');
 
@@ -577,31 +676,42 @@ export const verifyAutoragResultsInteraction = (): void => {
   autoragResultsPage.findPatternDetailsModal().should('be.visible');
 
   cy.step('Verify Pattern information tab (overview) is active by default');
-  autoragResultsPage.findPatternDetailsTab('pattern_information').should('exist');
+  autoragResultsPage
+    .findPatternDetailsTab('pattern_information')
+    .should('have.attr', 'aria-selected', 'true');
+  autoragResultsPage
+    .findPatternDetailsContent()
+    .should('have.attr', 'aria-label', 'Pattern information');
 
   cy.step('Verify CI scores chart on overview tab');
   autoragResultsPage.findCIScoresChart().should('exist');
   autoragResultsPage.findCIScoresLegend().should('exist');
 
+  const selectPatternDetailsTab = (tabKey: string, tabLabel: string): void => {
+    autoragResultsPage.findPatternDetailsTab(tabKey).click();
+    autoragResultsPage.findPatternDetailsTab(tabKey).should('have.attr', 'aria-selected', 'true');
+    autoragResultsPage.findPatternDetailsContent().should('have.attr', 'aria-label', tabLabel);
+  };
+
   cy.step('Navigate to Vector store settings tab');
-  autoragResultsPage.findPatternDetailsTab('vector_store_binding').should('exist').click();
+  selectPatternDetailsTab('store_binding', 'Store binding');
 
   cy.step('Navigate to Chunking settings tab');
-  autoragResultsPage.findPatternDetailsTab('chunking').should('exist').click();
+  selectPatternDetailsTab('chunking', 'Chunking');
 
   cy.step('Navigate to Embedding settings tab');
-  autoragResultsPage.findPatternDetailsTab('embedding').should('exist').click();
+  selectPatternDetailsTab('embedding', 'Embedding');
 
   cy.step('Navigate to Retrieval settings tab');
-  autoragResultsPage.findPatternDetailsTab('retrieval').should('exist').click();
+  selectPatternDetailsTab('retrieval', 'Retrieval');
 
   cy.step('Navigate to Generation settings tab');
-  autoragResultsPage.findPatternDetailsTab('generation').should('exist').click();
+  selectPatternDetailsTab('generation', 'Generation');
 
   cy.step('Check if Sample Q&A tab exists (conditional on evaluation results)');
-  autoragResultsPage.findPatternDetailsModal().then(($modal) => {
-    if ($modal.find('[data-testid="tab-sample_qa"]').length) {
-      autoragResultsPage.findPatternDetailsTab('sample_qa').click();
+  autoragResultsPage.findPatternDetailsTabIfPresent('sample_qa').then(($tab) => {
+    if ($tab.length) {
+      selectPatternDetailsTab('sample_qa', 'Sample Q&A');
     }
   });
 
