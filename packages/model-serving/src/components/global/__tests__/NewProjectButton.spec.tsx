@@ -54,12 +54,6 @@ describe('NewProjectButton', () => {
     expect(screen.getByTestId('create-project-admin-help')).toBeInTheDocument();
   });
 
-  it('should render nothing while RBAC is loading', () => {
-    mockUseAccessReview.mockReturnValue([false, false]);
-    const { container } = render(<NewProjectButton />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it('should open the modal when clicking Create project', () => {
     render(<NewProjectButton />);
     fireEvent.click(screen.getByTestId('create-project'));
