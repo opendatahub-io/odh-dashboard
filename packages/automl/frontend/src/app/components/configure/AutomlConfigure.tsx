@@ -673,8 +673,12 @@ function AutomlConfigure({
   ): React.JSX.Element => (
     <StackItem>
       <ConfigureFormGroup label="1. Choose a connection" description={description}>
-        <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsStretch' }}>
-          <FlexItem>
+        <Flex
+          flexWrap={{ default: 'wrap' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          spaceItems={{ default: 'spaceItemsMd' }}
+        >
+          <FlexItem flex={{ default: 'flex_1' }} className="automl-configure__connection-selector">
             <Controller
               control={control}
               name="train_data_secret_name"
@@ -971,7 +975,7 @@ function AutomlConfigure({
                                 >
                                   <Split hasGutter>
                                     <SplitItem className="pf-v6-u-text-nowrap">
-                                      1. Training data
+                                      <strong>1. Training data</strong>
                                     </SplitItem>
                                     <SplitItem
                                       isFilled
@@ -981,6 +985,7 @@ function AutomlConfigure({
                                         flexWrap={{ default: 'nowrap' }}
                                         spaceItems={{ default: 'spaceItemsSm' }}
                                         alignItems={{ default: 'alignItemsCenter' }}
+                                        justifyContent={{ default: 'justifyContentFlexEnd' }}
                                       >
                                         <FlexItem>
                                           {columnsError && trainDataFileKey ? (
@@ -991,19 +996,17 @@ function AutomlConfigure({
                                             <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
                                           )}
                                         </FlexItem>
-                                        <FlexItem
-                                          flex={{ default: 'flex_1' }}
-                                          className="automl-configure__dataset-status"
-                                        >
-                                          <Truncate
-                                            className="automl-configure__dataset-filename pf-v6-u-w-100"
-                                            content={
-                                              trainDataFileKey
-                                                ? (selectedTrainingDataFile?.name ??
-                                                  trainDataFileKey)
-                                                : 'Incomplete'
-                                            }
-                                          />
+                                        <FlexItem className="automl-configure__dataset-status">
+                                          {trainDataFileKey ? (
+                                            <Truncate
+                                              className="automl-configure__dataset-filename pf-v6-u-w-100"
+                                              content={
+                                                selectedTrainingDataFile?.name ?? trainDataFileKey
+                                              }
+                                            />
+                                          ) : (
+                                            'Incomplete'
+                                          )}
                                         </FlexItem>
                                       </Flex>
                                     </SplitItem>
@@ -1109,7 +1112,7 @@ function AutomlConfigure({
                                 >
                                   <Split hasGutter>
                                     <SplitItem className="pf-v6-u-text-nowrap">
-                                      2. Test data
+                                      <strong>2. Test data</strong>
                                     </SplitItem>
                                     <SplitItem
                                       isFilled
@@ -1119,6 +1122,7 @@ function AutomlConfigure({
                                         flexWrap={{ default: 'nowrap' }}
                                         spaceItems={{ default: 'spaceItemsSm' }}
                                         alignItems={{ default: 'alignItemsCenter' }}
+                                        justifyContent={{ default: 'justifyContentFlexEnd' }}
                                       >
                                         <FlexItem>
                                           {(testSampleQuery.error && testDataFileKey) ||
@@ -1130,18 +1134,17 @@ function AutomlConfigure({
                                             <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
                                           )}
                                         </FlexItem>
-                                        <FlexItem
-                                          flex={{ default: 'flex_1' }}
-                                          className="automl-configure__dataset-status"
-                                        >
-                                          <Truncate
-                                            className="automl-configure__dataset-filename pf-v6-u-w-100"
-                                            content={
-                                              testDataFileKey
-                                                ? (selectedTestDataFile?.name ?? testDataFileKey)
-                                                : 'Incomplete'
-                                            }
-                                          />
+                                        <FlexItem className="automl-configure__dataset-status">
+                                          {testDataFileKey ? (
+                                            <Truncate
+                                              className="automl-configure__dataset-filename pf-v6-u-w-100"
+                                              content={
+                                                selectedTestDataFile?.name ?? testDataFileKey
+                                              }
+                                            />
+                                          ) : (
+                                            'Incomplete'
+                                          )}
                                         </FlexItem>
                                       </Flex>
                                     </SplitItem>

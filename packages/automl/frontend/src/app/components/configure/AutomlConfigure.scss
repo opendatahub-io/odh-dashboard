@@ -69,4 +69,9 @@
 
 .automl-configure__dataset-status {
   min-width: 0;
+  font-weight: var(--pf-t--global--font--weight--body--default);
+}
+
+.automl-configure__connection-selector {
+  min-width: min(100%, 12rem);
 }
