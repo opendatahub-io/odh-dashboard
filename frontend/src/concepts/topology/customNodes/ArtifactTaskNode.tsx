@@ -107,17 +107,12 @@ type ArtifactTaskNodeInnerProps = WithSelectionProps & {
 
 const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
   ({ element, selected, onSelect, ...rest }) => {
-    const bounds = element.getBounds();
     const [isHover, hoverRef] = useHover<SVGGElement>();
     const [isFocused, setIsFocused] = React.useState(false);
     const nodeRef = React.useRef<SVGGElement>(null);
     const combinedRef = useCombineRefs(hoverRef, nodeRef);
     React.useLayoutEffect(() => hideSvgTaskLabelsFromKeyboard(nodeRef.current));
-    const detailsLevel = element.getGraph().getDetailsLevel();
     const data = element.getData();
-    const scale = element.getGraph().getScale();
-    const iconSize = 16;
-    const iconPadding = 4;
 
     const whenDecorator = data?.pipelineTask.whenStatus ? (
       <WhenDecorator
@@ -126,10 +121,6 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
         leftOffset={DEFAULT_WHEN_OFFSET}
       />
     ) : null;
-    const upScale = 1 / scale;
-
-    const translateX = bounds.width / 2 - (iconSize / 2) * upScale;
-    const translateY = iconPadding * upScale;
 
     const statusLabel = getRunStatusLabel(data?.runStatus);
     const taskName = element.getLabel();
@@ -141,40 +132,25 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
         data-testid={`pipeline-artifact-visual-${element.getLabel()}`}
         ref={combinedRef}
       >
-        {isHover || isFocused || detailsLevel !== ScaleDetailsLevel.high ? (
-          <g>
-            <TaskNode
-              nameLabelClass="artifact-node-label"
-              hideDetailsAtMedium
-              customStatusIcon={
-                isMetricsArtifactType(data?.artifactType) ? <MonitoringIcon /> : <ListIcon />
-              }
-              truncateLength={30}
-              element={element}
-              hover
-              selected={selected}
-              onSelect={onSelect}
-              hiddenDetailsShownStatuses={[]}
-              status={data?.runStatus}
-              scaleNode={isHover || isFocused}
-              {...rest}
-            >
-              {whenDecorator}
-            </TaskNode>
-            {!isHover && !isFocused ? (
-              <g transform={`translate(${translateX}, ${translateY}) scale(${upScale})`}>
-                <g
-                  color={
-                    selected
-                      ? 'var(--pf-t--global--icon--color--inverse)'
-                      : 'var(--pf-t--global--icon--color--subtle)'
-                  }
-                >
-                  {isMetricsArtifactType(data?.artifactType) ? <MonitoringIcon /> : <ListIcon />}
-                </g>
-              </g>
-            ) : null}
-          </g>
+        {/* Pipeline graphs stay at high detail (see PIPELINE_DETAILS_LEVEL_THRESHOLDS), so
+            artifacts are icon-only at rest and show their name on hover or focus. */}
+        {isHover || isFocused ? (
+          <TaskNode
+            nameLabelClass="artifact-node-label"
+            customStatusIcon={
+              isMetricsArtifactType(data?.artifactType) ? <MonitoringIcon /> : <ListIcon />
+            }
+            truncateLength={30}
+            element={element}
+            hover
+            selected={selected}
+            onSelect={onSelect}
+            status={data?.runStatus}
+            scaleNode
+            {...rest}
+          >
+            {whenDecorator}
+          </TaskNode>
         ) : (
           <IconTaskNode selected={selected} onSelect={onSelect} element={element} />
         )}

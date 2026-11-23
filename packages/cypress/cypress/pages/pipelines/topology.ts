@@ -67,6 +67,32 @@ class PipelinesTopology {
     return this.findTaskNode(name).find('.pf-topology-pipelines__pill-text');
   }
 
+  findTaskHoverTarget(name: string) {
+    return cy.findByTestId(`pipeline-task-node-${name}`);
+  }
+
+  findTaskPillBackground(name: string) {
+    // PatternFly owns the pill shape; scope its class to the named task node.
+    return this.findTaskNode(name).find('.pf-topology-pipelines__pill-background');
+  }
+
+  findTaskStatusCircle(name: string) {
+    // PatternFly draws this status-only circle when it hides task details.
+    return this.findTaskNode(name).find('.pf-topology-pipelines__status-icon-background');
+  }
+
+  findTaskNodeScaleGroup(name: string) {
+    // PatternFly applies hover magnification as scale() on its task-node group.
+    return this.findTaskHoverTarget(name).find('g.pf-topology__pipelines__task-node').first();
+  }
+
+  findEdgePath(id: string) {
+    // PatternFly renders each edge twice; only the ElementWrapper copy has the task handler path.
+    return cy.get(
+      `[data-kind="edge"][data-id="${id}"] [data-test-id="task-handler"] > path[transform]`,
+    );
+  }
+
   findTaskButton(name: string) {
     return cy.findByTestId(`pipeline-node-button-${name}`);
   }
@@ -85,6 +111,16 @@ class PipelinesTopology {
 
   findCollapsedGroupLabelText(name: string) {
     return this.findGroupNode(name).find('.pf-topology-pipelines__pill-text');
+  }
+
+  findGroupLabel(name: string) {
+    return cy.findByTestId(`pipeline-group-label-${name}`);
+  }
+
+  findExpandedGroupBackground() {
+    // PatternFly portals expanded group bodies outside the node element and gives them no test ID.
+    // Callers must render exactly one expanded group.
+    return cy.get('.pf-topology__group__background');
   }
 
   findExpandedGroupHoverSurface() {
@@ -192,6 +228,25 @@ class PipelinesTopology {
 
   findResetViewButton() {
     return this.findControlBar().findByRole('button', { name: /reset view/i });
+  }
+
+  // PF Topology owns the zoomable graph surface; it has no test ID.
+  findGraphSurface() {
+    return cy.get('[data-surface="true"]');
+  }
+
+  shouldHaveGraphScale(assertScale: (scale: number) => void) {
+    return this.findGraphSurface().should(($surface) => {
+      const match = /scale\(([^)]+)\)/.exec($surface.attr('transform') ?? '');
+      assertScale(Number(match?.[1]));
+    });
+  }
+
+  /** Zoom out by `steps` control-bar clicks (×0.75 each; PatternFly clamps at 0.25). */
+  zoomOut(steps: number) {
+    for (let i = 0; i < steps; i++) {
+      this.findZoomOutButton().click();
+    }
   }
 
   findArtifactNode(name: string) {

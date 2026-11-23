@@ -4,6 +4,7 @@ import { GRAPH_LAYOUT_END_EVENT, Visualization } from '@patternfly/react-topolog
 const mockGraph = {
   fit: jest.fn(),
   getNodes: jest.fn().mockReturnValue([]),
+  setDetailsLevelThresholds: jest.fn(),
 };
 
 // Track registered listeners so we can dispatch events and verify removal
@@ -49,6 +50,7 @@ jest.mock('#~/concepts/topology/factories', () => ({
 }));
 
 jest.mock('#~/concepts/topology/const', () => ({
+  ...jest.requireActual('#~/concepts/topology/const'),
   PIPELINE_LAYOUT: 'PipelineDagreGroupsLayout',
   PIPELINE_NODE_SEPARATION_HORIZONTAL: 200,
   PIPELINE_NODE_SEPARATION_VERTICAL: 75,
@@ -68,6 +70,16 @@ describe('useTopologyController', () => {
 
     expect(Visualization).toHaveBeenCalledTimes(1);
     expect(mockVisualization.setFitToScreenOnLayout).toHaveBeenCalledWith(true);
+  });
+
+  it('should keep the graph at the high details level at every zoom', () => {
+    testHook(useTopologyController)('g1');
+
+    // Below high detail, PatternFly hides task headings and uses hidden-details geometry.
+    expect(mockGraph.setDetailsLevelThresholds).toHaveBeenCalledWith({ low: 0, medium: 0 });
+    expect(mockGraph.setDetailsLevelThresholds.mock.invocationCallOrder[0]).toBeGreaterThan(
+      mockVisualization.fromModel.mock.invocationCallOrder[0],
+    );
   });
 
   it('should register persistent ordering and one-time initial fit listeners', () => {

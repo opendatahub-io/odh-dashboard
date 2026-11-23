@@ -18,6 +18,7 @@ import { mock404Error, mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mo
 import {
   RecurringRunStatus,
   RuntimeStateKF,
+  type PipelineSpec,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import {
   mockParallelForPipelineSpec,
@@ -98,6 +99,42 @@ longNamedGroupTasks[longGroupName] = {
   taskInfo: { name: longGroupName },
 };
 delete longNamedGroupTasks['for-loop-2'];
+// Twenty parallel tasks make the initial fit land below PatternFly's 0.5 medium-details scale,
+// like large imported pipelines. Names stay within PatternFly's 14-character truncation.
+const wideTaskNames = Array.from(
+  { length: 20 },
+  (_, index) => `task-${String(index + 1).padStart(2, '0')}`,
+);
+const mockWideVersion = buildMockPipelineVersion({
+  pipeline_id: mockPipeline.pipeline_id,
+  display_name: 'wide-pipeline-version',
+});
+const wideSpec: PipelineSpec = {
+  components: {
+    'comp-wide-task': { executorLabel: 'exec-wide-task' },
+  },
+  deploymentSpec: {
+    executors: { 'exec-wide-task': { container: { image: 'python:3.11' } } },
+  },
+  pipelineInfo: { name: 'wide-pipeline' },
+  root: {
+    dag: {
+      tasks: Object.fromEntries(
+        wideTaskNames.map((name) => [
+          name,
+          {
+            cachingOptions: { enableCache: true },
+            componentRef: { name: 'comp-wide-task' },
+            taskInfo: { name },
+          },
+        ]),
+      ),
+    },
+  },
+  schemaVersion: '2.1.0',
+  sdkVersion: 'kfp-2.15.2',
+};
+mockWideVersion.pipeline_spec = wideSpec;
 const mockRun = buildMockRunKF({
   display_name: 'test-pipeline-run',
   run_id: 'test-pipeline-run-id',
@@ -703,38 +740,6 @@ describe('Pipeline topology', () => {
       pipelineDetails.findGroupActionIcon(longGroupName).should('be.visible');
     });
 
-    it('keeps collapsed group headings visible when zoomed out', () => {
-      initIntercepts(mockLongNamedGroupedVersion);
-      pipelineDetails.visit(
-        projectId,
-        mockPipeline.pipeline_id,
-        mockLongNamedGroupedVersion.pipeline_version_id,
-      );
-
-      for (let i = 0; i < 5; i++) {
-        pipelineDetails.findZoomOutButton().click();
-      }
-      pipelineDetails.findCollapsedGroupLabelText(longGroupName).should('be.visible');
-    });
-
-    it('keeps task and expanded group headings visible when zoomed out', () => {
-      initIntercepts(mockLongNamedGroupedVersion);
-      pipelineDetails.visit(
-        projectId,
-        mockPipeline.pipeline_id,
-        mockLongNamedGroupedVersion.pipeline_version_id,
-      );
-
-      pipelineDetails.findGroupToggle(longGroupName).focus();
-      cy.press(Cypress.Keyboard.Keys.ENTER);
-      pipelineDetails.findTaskButton('create-features').should('exist');
-      for (let i = 0; i < 5; i++) {
-        pipelineDetails.findZoomOutButton().click();
-      }
-      pipelineDetails.findTaskLabelText('create-features').should('be.visible');
-      pipelineDetails.findGroupLabelText(longGroupName).should('be.visible');
-    });
-
     it('keeps the expanded group label out of keyboard navigation', () => {
       initIntercepts(mockGroupedVersion);
       pipelineDetails.visit(
@@ -775,6 +780,100 @@ describe('Pipeline topology', () => {
 
       pipelineDetails.findGroupNode('for-loop-2').click('center');
       pipelineDetails.findDrawerTaskTitle().should('exist');
+    });
+  });
+
+  describe('Reduced zoom', () => {
+    const visitPipelineVersion = (version: typeof mockVersion) => {
+      initIntercepts(version);
+      pipelineDetails.visit(projectId, mockPipeline.pipeline_id, version.pipeline_version_id);
+    };
+
+    // PatternFly's medium-details threshold is 0.5; test well below it to cover both lower levels.
+    const zoomOutToLowDetailScale = () => {
+      pipelineDetails.zoomOut(5);
+      pipelineDetails.shouldHaveGraphScale((scale) => expect(scale).to.be.at.most(0.3));
+    };
+
+    it('shows every task heading when a wide pipeline first fits the screen', () => {
+      visitPipelineVersion(mockWideVersion);
+
+      pipelineDetails.shouldHaveGraphScale((scale) => expect(scale).to.be.lessThan(0.5));
+      wideTaskNames.forEach((name) => {
+        pipelineDetails.findTaskLabelText(name).should('have.text', name);
+        pipelineDetails.findTaskStatusCircle(name).should('not.exist');
+      });
+    });
+
+    it('shows collapsed group headings', () => {
+      visitPipelineVersion(mockGroupedVersion);
+      zoomOutToLowDetailScale();
+
+      pipelineDetails.findCollapsedGroupLabelText('for-loop-2').should('have.text', 'for-loop-2');
+    });
+
+    it('keeps an expanded group heading centered on its group', () => {
+      visitPipelineVersion(mockGroupedVersion);
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findTaskButton('simple-task').should('exist');
+      zoomOutToLowDetailScale();
+
+      pipelineDetails.findGroupLabelText('for-loop-2').should('have.text', 'for-loop-2');
+      pipelineDetails
+        .findExpandedGroupBackground()
+        .should('have.length', 1)
+        .then(($group) => {
+          const group = $group[0].getBoundingClientRect();
+          pipelineDetails.findGroupLabel('for-loop-2').should(($label) => {
+            const label = $label[0].getBoundingClientRect();
+            const labelCenter = label.left + label.width / 2;
+            const groupCenter = group.left + group.width / 2;
+            expect(Math.abs(labelCenter - groupCenter)).to.be.at.most(2);
+          });
+        });
+    });
+
+    it('keeps edges attached to the bottom of their source task', () => {
+      visitPipelineVersion(mockVersion);
+      zoomOutToLowDetailScale();
+
+      pipelineDetails.findTaskPillBackground('create-dataset').then(($pill) => {
+        const pillBottom = $pill[0].getBoundingClientRect().bottom;
+        pipelineDetails.findEdgePath('create-dataset-normalize-dataset').should(($path) => {
+          // The edge starts at the 35-unit node bounds, just below PatternFly's measured pill.
+          // Hidden-details anchors start about 10 px lower at this scale.
+          expect($path[0].getBoundingClientRect().top - pillBottom).to.be.within(-1, 3);
+        });
+      });
+    });
+
+    it('keeps SVG task headings out of keyboard navigation', () => {
+      visitPipelineVersion(mockVersion);
+      zoomOutToLowDetailScale();
+
+      pipelineDetails
+        .findTaskLabelText('create-dataset')
+        .should('have.attr', 'tabindex', '-1')
+        .and('have.attr', 'aria-hidden', 'true');
+    });
+
+    it('magnifies a hovered task', () => {
+      visitPipelineVersion(mockVersion);
+      zoomOutToLowDetailScale();
+
+      pipelineDetails.findTaskHoverTarget('create-dataset').trigger('mouseenter');
+      pipelineDetails.findTaskNodeScaleGroup('create-dataset').should(($group) => {
+        const match = /scale\(([^)]+)\)/.exec($group.attr('transform') ?? '');
+        expect(Number(match?.[1])).to.be.greaterThan(1);
+      });
+    });
+
+    it('shows artifacts as icons', () => {
+      visitPipelineVersion(mockVersion);
+      zoomOutToLowDetailScale();
+
+      pipelineDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('exist');
     });
   });
 

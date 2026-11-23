@@ -10,6 +10,7 @@ import {
 import { pipelineComponentFactory } from './factories';
 import { orderNodesForKeyboard } from './a11yUtils';
 import {
+  PIPELINE_DETAILS_LEVEL_THRESHOLDS,
   PIPELINE_LAYOUT,
   PIPELINE_NODE_SEPARATION_HORIZONTAL,
   PIPELINE_NODE_SEPARATION_VERTICAL,
@@ -44,6 +45,7 @@ const useTopologyController = (graphId: string): Visualization | null => {
       },
       false,
     );
+    visualizationController.getGraph().setDetailsLevelThresholds(PIPELINE_DETAILS_LEVEL_THRESHOLDS);
     let isActive = true;
     let isInitialLayout = true;
     let orderQueued = false;

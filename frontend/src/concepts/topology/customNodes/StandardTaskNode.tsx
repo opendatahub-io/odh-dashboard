@@ -8,7 +8,6 @@ import {
   NodeModel,
   observer,
   RunStatus,
-  ScaleDetailsLevel,
   TaskNode,
   useCombineRefs,
   useHover,
@@ -28,6 +27,7 @@ import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineTaskStatusLabel } from '#~/concepts/topology/utils';
 import PipelineNodeButton from '#~/concepts/topology/PipelineNodeButton';
 import { hideSvgTaskLabelsFromKeyboard } from '#~/concepts/topology/a11yUtils';
+import { NODE_HOVER_SCALE_MAX_ZOOM } from '#~/concepts/topology/const';
 
 type StandardTaskNodeInnerProps = {
   element: Node<NodeModel, StandardTaskNodeData>;
@@ -41,7 +41,6 @@ const StandardTaskNodeInner: React.FunctionComponent<StandardTaskNodeInnerProps>
     const nodeRef = React.useRef<SVGGElement>(null);
     const combinedRef = useCombineRefs(hoverRef, nodeRef);
     React.useLayoutEffect(() => hideSvgTaskLabelsFromKeyboard(nodeRef.current));
-    const detailsLevel = element.getGraph().getDetailsLevel();
     const state = data?.pipelineTask.status?.state;
 
     const status = React.useMemo(() => {
@@ -77,20 +76,15 @@ const StandardTaskNodeInner: React.FunctionComponent<StandardTaskNodeInnerProps>
     const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
 
     return (
-      <g ref={combinedRef}>
+      <g ref={combinedRef} data-testid={`pipeline-task-node-${taskName}`}>
         <TaskNode
           element={element}
           onSelect={onSelect}
           selected={selected}
-          scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
+          // Read the scale only while hovered so zooming does not re-render every node.
+          scaleNode={hover && element.getGraph().getScale() <= NODE_HOVER_SCALE_MAX_ZOOM}
           status={status}
           customStatusIcon={customStatusIcon}
-          hiddenDetailsShownStatuses={[
-            RunStatus.Succeeded,
-            RunStatus.Cancelled,
-            RunStatus.Failed,
-            RunStatus.Running,
-          ]}
           whenOffset={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_OFFSET : 0}
           whenSize={data?.pipelineTask.whenStatus ? DEFAULT_WHEN_SIZE : 0}
           {...rest}

@@ -8,7 +8,6 @@ import {
   Node,
   GraphElement,
   RunStatus,
-  ScaleDetailsLevel,
   NodeModel,
   useHover,
   PipelineNodeModel,
@@ -30,7 +29,7 @@ import {
   panFocusedControlIntoView,
 } from '#~/concepts/topology/a11yUtils';
 import { activateNodeButtonOnKeyDown } from '#~/concepts/topology/PipelineNodeButton';
-import { NODE_HEIGHT, NODE_WIDTH } from './const';
+import { NODE_HEIGHT, NODE_HOVER_SCALE_MAX_ZOOM, NODE_WIDTH } from './const';
 
 const MAX_TIP_ITEMS = 6;
 // Approximate PF pill-label action bounds until the measured SVG rectangles are available:
@@ -171,7 +170,6 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       });
     }, []);
     const focusToggleAfterCollapse = React.useRef(false);
-    const detailsLevel = element.getGraph().getDetailsLevel();
     const isCollapsed = element.isCollapsed();
     const isHidden = isHiddenByCollapsedAncestor(element);
     const runStatus = element.getData()?.runStatus;
@@ -386,16 +384,12 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
           labelPosition={LabelPosition.top}
           showStatusState
           hover={isCollapsed ? hover || toggleFocused : toggleFocused || undefined}
-          scaleNode={(hover || toggleFocused) && detailsLevel !== ScaleDetailsLevel.high}
+          // Read the scale only while active so zooming does not re-render every group.
+          scaleNode={
+            (hover || toggleFocused) && element.getGraph().getScale() <= NODE_HOVER_SCALE_MAX_ZOOM
+          }
           customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
-          showLabelOnHover
           status={status}
-          hiddenDetailsShownStatuses={[
-            RunStatus.Succeeded,
-            RunStatus.Pending,
-            RunStatus.Failed,
-            RunStatus.Cancelled,
-          ]}
           collapsedHeight={NODE_HEIGHT}
           collapsedWidth={NODE_WIDTH}
         />
