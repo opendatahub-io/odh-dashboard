@@ -17,7 +17,7 @@ It is the *initial* state on install, and then it becomes **Unmanaged** and the 
 
 ## Things to Avoid
 
-* **Never** state a feature flag as disabled (aka setting a `disable<Flag Name>` to `true`)
+* **Never** state a feature flag as disabled (aka setting a `disable<Flag Name>` or `hide<Flag Name>` to `true`)
     * Why? Because we need the operator to undo this action -- since we do not manage this file it _cannot ever_ be updated by the Dashboard component
     * Okay "never" is not exactly true -- but it's unlikely; there may be an ODH feature not present in RHOAI
 * There is almost never a reason to state duplicated feature flags in this file that mirror what is in the blankDashboardCR constant in the backend

@@ -129,6 +129,9 @@ spec:
                     disableAdminConnectionTypes:
                       type: boolean
                       description: 'When true, hides the Connection Types administration page.'
+                    hideCommunityPluginsSettingsPage:
+                      type: boolean
+                      description: 'When true, hides the Community plugins Settings page without disabling installed Community plugins.'
                     disableKueue:
                       type: boolean
                       description: 'When true, disables Kueue workload queue management features.'
