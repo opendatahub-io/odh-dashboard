@@ -2098,7 +2098,7 @@ components:
 
     NamespaceAccess:
       type: object
-      required: [name, phase, actions, permissions]
+      required: [name, phase, isAiProject, actions, permissions]
       properties:
         name:
           type: string
@@ -2112,6 +2112,11 @@ components:
             Namespace status.phase when the namespace object could be read. Unknown when the caller
             is authorized in the namespace but cannot read the Namespace object; such a namespace
             is usable and the UI labels it by name.
+        isAiProject:
+          type: boolean
+          description: >-
+            True only when the namespace object could be read and its opendatahub.io/dashboard
+            label is exactly true, as on /api/v1/namespaces. False when the object is unreadable.
         actions:
           $ref: '#/components/schemas/NamespaceActions'
         permissions:
@@ -2687,6 +2692,7 @@ components:
                 - name: team-a
                   displayName: Team A
                   phase: Active
+                  isAiProject: true
                   actions: { view: true, deploy: true, edit: true, delete: true, manageTokenAuth: true }
                   permissions:
                     serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
@@ -2710,6 +2716,7 @@ components:
               name: team-a
               displayName: Team A
               phase: Active
+              isAiProject: true
               actions: { view: true, deploy: true, edit: true, delete: true, manageTokenAuth: true }
               permissions:
                 serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }

@@ -296,10 +296,6 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [dashboardNamespace],
   );
 
-  // Lookups validated in this session, so a project activated from a
-  // persisted identity keeps what the BFF reported for it (deploy access).
-  const validatedProjectsRef = React.useRef(new Map<string, RhaiiProject>());
-
   const validateProject = React.useCallback(
     async (name: string, signal?: AbortSignal) => {
       const project = await fetchNamespaceByName(name, signal);
@@ -309,7 +305,6 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
         throw new Error('No access to that project, or it does not exist.');
       }
-      validatedProjectsRef.current.set(name, project);
       return project;
     },
     [dashboardNamespace],
@@ -369,27 +364,13 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   const validatedProjects = React.useRef(new WeakMap<object, ProjectKind>());
   const onProjectValidated = React.useCallback(
     (identity: { name: string; displayName?: string }) => {
-      // The synchronization hook publishes a provider-validated identity before activation.
-      // Preserve its display name, but do not infer access from persisted browser data.
-      const validated = validatedProjectsRef.current.get(identity.name);
-      if (validated) {
-        addProject(validated, false);
-        return;
+      // Only a project this provider just validated is added, with what the BFF
+      // reported for it (deploy access included); persisted data grants nothing.
+      const project = validatedProjects.current.get(identity);
+      if (project) {
+        addProject(project, false);
+        validatedProjects.current.delete(identity);
       }
-      addProject(
-        {
-          apiVersion: 'v1',
-          kind: 'Namespace',
-          metadata: {
-            name: identity.name,
-            ...(identity.displayName && {
-              annotations: { 'openshift.io/display-name': identity.displayName },
-            }),
-          },
-          status: { phase: NamespacePhase.Active },
-        },
-        false,
-      );
     },
     [addProject],
   );

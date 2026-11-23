@@ -58,6 +58,29 @@ describe('fetchNamespaces', () => {
   });
 
   describe('with namespace discovery (xKS)', () => {
+    it.each([true, false, undefined, 'true', null])(
+      'should classify discovered projects only for boolean true (%s)',
+      async (classification) => {
+        mockRoutes({
+          access: ok(
+            accessList('cluster-list', [
+              {
+                ...accessEntry('my-project', { displayName: 'My project' }),
+                isAiProject: classification,
+              },
+            ]),
+          ),
+        });
+
+        const [result] = await fetchNamespaces();
+        expect(isAiProject(result)).toBe(classification === true);
+        expect(result.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]).toBe(
+          classification === true ? 'true' : undefined,
+        );
+        expect(result.metadata.annotations?.['openshift.io/display-name']).toBe('My project');
+      },
+    );
+
     it('should map discovered namespaces with their deploy access', async () => {
       const fetchMock = mockRoutes({
         access: ok(
@@ -173,6 +196,31 @@ describe('fetchNamespaces', () => {
   });
 
   describe('without namespace discovery', () => {
+    it.each([true, false, undefined, 'true', null])(
+      'should classify listed projects only for boolean true (%s)',
+      async (classification) => {
+        mockRoutes({
+          legacy: ok({
+            data: [
+              {
+                name: 'my-project',
+                displayName: 'My project',
+                phase: 'Active',
+                isAiProject: classification,
+              },
+            ],
+          }),
+        });
+
+        const [result] = await fetchNamespaces();
+        expect(isAiProject(result)).toBe(classification === true);
+        expect(result.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]).toBe(
+          classification === true ? 'true' : undefined,
+        );
+        expect(result.metadata.annotations?.['openshift.io/display-name']).toBe('My project');
+      },
+    );
+
     it('should fall back to the namespace list and map it to ProjectKind objects', async () => {
       const fetchMock = mockRoutes({ legacy: ok(mockNamespaceList(['ns-a', 'ns-b'])) });
 
@@ -237,6 +285,31 @@ describe('fetchNamespaces', () => {
 });
 
 describe('fetchNamespaceByName', () => {
+  it.each([true, false, undefined, 'true', null])(
+    'should classify looked-up projects only for boolean true (%s)',
+    async (classification) => {
+      mockRoutes({
+        access: ok({ data: { ...accessEntry('from-discovery'), isAiProject: classification } }),
+        legacy: ok({ data: { name: 'from-lookup', phase: 'Active', isAiProject: classification } }),
+      });
+
+      expect(isAiProject(await fetchNamespaceByName('from-discovery'))).toBe(
+        classification === true,
+      );
+    },
+  );
+
+  it.each([true, false, undefined, 'true', null])(
+    'should classify projects from the fallback lookup only for boolean true (%s)',
+    async (classification) => {
+      mockRoutes({
+        legacy: ok({ data: { name: 'my-project', phase: 'Active', isAiProject: classification } }),
+      });
+
+      expect(isAiProject(await fetchNamespaceByName('my-project'))).toBe(classification === true);
+    },
+  );
+
   it('should return the authorized namespace from discovery with its deploy access', async () => {
     const fetchMock = mockRoutes({
       access: ok({ data: accessEntry('my-project', { displayName: 'My project', deploy: false }) }),

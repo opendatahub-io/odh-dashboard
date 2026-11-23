@@ -79,8 +79,11 @@ type NamespaceAccess struct {
 	DisplayName string `json:"displayName,omitempty"`
 	// Phase is always set: the namespace's status.phase when it could be read,
 	// otherwise NamespacePhaseUnknown.
-	Phase   string           `json:"phase"`
-	Actions NamespaceActions `json:"actions"`
+	Phase string `json:"phase"`
+	// IsAiProject is true only when the namespace object could be read and its
+	// opendatahub.io/dashboard label is exactly "true", as on /api/v1/namespaces.
+	IsAiProject bool             `json:"isAiProject"`
+	Actions     NamespaceActions `json:"actions"`
 	// Permissions is keyed by "<group>/<resource>" ("core" for the empty group).
 	Permissions map[string]ResourcePermissions `json:"permissions"`
 }

@@ -367,6 +367,7 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 	if ns != nil {
 		m := models.NewNamespaceModelFromNamespace(*ns)
 		access.DisplayName = m.DisplayName
+		access.IsAiProject = m.IsAiProject
 		if m.Phase != "" {
 			access.Phase = m.Phase
 		}

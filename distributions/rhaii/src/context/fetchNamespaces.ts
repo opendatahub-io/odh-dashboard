@@ -8,7 +8,12 @@ import { isValidK8sName, KnownLabels, NamespacePhase } from '@odh-dashboard/k8s-
  */
 export type RhaiiProject = ProjectKind & { canDeploy?: boolean };
 
-type K8sNamespaceItem = { name?: string; displayName?: string; phase?: string };
+type K8sNamespaceItem = {
+  name?: string;
+  displayName?: string;
+  phase?: string;
+  isAiProject?: unknown;
+};
 
 type K8sNamespaceList = {
   items?: K8sNamespaceItem[];
@@ -18,6 +23,7 @@ type NamespaceAccessItem = {
   name?: unknown;
   displayName?: unknown;
   phase?: unknown;
+  isAiProject?: unknown;
   actions?: unknown;
 };
 
@@ -65,14 +71,21 @@ const parseNamespaceAccessList = (value: unknown): NamespaceAccessList => {
   };
 };
 
-const namespaceToProject = (name: string, phase?: string): ProjectKind => ({
+const namespaceToProject = (
+  name: string,
+  phase?: unknown,
+  displayName?: unknown,
+  isAiProject?: unknown,
+): ProjectKind => ({
   apiVersion: 'v1',
   kind: 'Namespace',
   metadata: {
     name,
-    ...(typeof displayName === 'string' && {
-      annotations: { 'openshift.io/display-name': displayName },
-    }),
+    ...(typeof displayName === 'string' &&
+      displayName.length > 0 && {
+        annotations: { 'openshift.io/display-name': displayName },
+      }),
+    // Only boolean true marks an AI project; the shared classifier reads this label.
     ...(isAiProject === true && {
       labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
     }),
@@ -80,17 +93,6 @@ const namespaceToProject = (name: string, phase?: string): ProjectKind => ({
   status: {
     // Unknown phases must never become selectable by default.
     phase: phase === NamespacePhase.Active ? NamespacePhase.Active : NamespacePhase.Terminating,
-  },
-});
-
-const withDisplayName = (project: ProjectKind, displayName: unknown): ProjectKind => ({
-  ...project,
-  metadata: {
-    name: project.metadata.name,
-    ...(typeof displayName === 'string' &&
-      displayName.length > 0 && {
-        annotations: { 'openshift.io/display-name': displayName },
-      }),
   },
 });
 
@@ -106,9 +108,11 @@ const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
   }
   const usable = phase === NamespacePhase.Active || phase === PHASE_UNKNOWN;
   return {
-    ...withDisplayName(
-      namespaceToProject(name, usable ? NamespacePhase.Active : undefined),
+    ...namespaceToProject(
+      name,
+      usable ? NamespacePhase.Active : undefined,
       item.displayName,
+      item.isAiProject,
     ),
     canDeploy: isRecord(actions) && actions.deploy === true,
   };
@@ -131,7 +135,13 @@ export class NamespaceListUnavailableError extends Error {
 }
 
 type NamespaceResponse = {
-  data?: { name?: unknown; displayName?: unknown; phase?: unknown; actions?: unknown };
+  data?: {
+    name?: unknown;
+    displayName?: unknown;
+    phase?: unknown;
+    isAiProject?: unknown;
+    actions?: unknown;
+  };
 };
 
 const lookupError = (status: number): Error => {
@@ -156,7 +166,7 @@ const fetchLegacyNamespaceByName = async (
   if (body.data?.name !== name || body.data.phase !== NamespacePhase.Active) {
     throw new Error(NO_ACCESS_MESSAGE);
   }
-  return withDisplayName(namespaceToProject(name, NamespacePhase.Active), body.data.displayName);
+  return namespaceToProject(name, body.data.phase, body.data.displayName, body.data.isAiProject);
 };
 
 export const fetchNamespaceByName = async (
@@ -200,7 +210,7 @@ const fetchLegacyNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject
       if (typeof name !== 'string' || name.length === 0) {
         return null;
       }
-      return withDisplayName(namespaceToProject(name, item.phase), item.displayName);
+      return namespaceToProject(name, item.phase, item.displayName, item.isAiProject);
     })
     .filter((project): project is RhaiiProject => project !== null);
 };

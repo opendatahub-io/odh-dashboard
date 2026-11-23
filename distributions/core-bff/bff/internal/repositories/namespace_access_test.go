@@ -417,7 +417,31 @@ func TestDiscover_LabelledNamespacesAreOnlyCandidates(t *testing.T) {
 	assert.Equal(t, []string{"labelled-mine"}, names(list), "a label never grants access, and unlabelled namespaces are not discovered")
 	assert.Empty(t, list.Namespaces[0].DisplayName)
 	assert.Equal(t, models.NamespacePhaseUnknown, list.Namespaces[0].Phase)
+	assert.False(t, list.Namespaces[0].IsAiProject, "the label is metadata too: unreadable means not classified")
 	assert.Equal(t, models.AccessDenied, list.Namespaces[0].Permissions[PermissionKey("", "namespaces")]["get"])
+}
+
+func TestDiscover_IsAiProjectFollowsTheReadableLabel(t *testing.T) {
+	ai := activeNS("ai", "AI")
+	ai.Labels = map[string]string{"opendatahub.io/dashboard": "true"}
+	notExact := activeNS("not-exact", "Not exact")
+	notExact.Labels = map[string]string{"opendatahub.io/dashboard": "yes"}
+	allow := map[string]bool{}
+	viewer(allow, "ai")
+	viewer(allow, "not-exact")
+	viewer(allow, "plain")
+	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{
+		"ai": ai, "not-exact": notExact, "plain": activeNS("plain", "Plain"),
+	}}
+	repo := NewNamespaceAccessRepository([]string{"ai", "not-exact", "plain"}, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	got := map[string]bool{}
+	for _, ns := range list.Namespaces {
+		got[ns.Name] = ns.IsAiProject
+	}
+	assert.Equal(t, map[string]bool{"ai": true, "not-exact": false, "plain": false}, got)
 }
 
 func TestDiscover_LabelDiscoveryFailureIsReported(t *testing.T) {
