@@ -58,6 +58,6 @@ export type PipelineTask = {
   isSubDag?: boolean;
   /** Number of ParallelFor iterations — present only on the ParallelFor group node */
   iterationCount?: number;
-  /** MLMD execution ID of the iteration DAG — used to scope drawer executions in inline mode */
-  iterationParentDagId?: number;
+  /** PipelineTask id of this iteration. Hierarchy is parent_task_id / child_tasks. */
+  iterationParentTaskId?: string;
 };

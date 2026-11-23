@@ -7,10 +7,14 @@ import {
   InputOutputArtifactType,
   InputOutputDefinition,
   PipelineComponentsKF,
+  PipelineTaskKF,
   PlatformSpec,
   RunDetailsKF,
   RuntimeStateKF,
   TaskDetailKF,
+  TaskPodTypeKF,
+  TaskStateKF,
+  TaskTypeKF,
 } from '#~/concepts/pipelines/kfTypes';
 import { Artifact, Event, Execution } from '#~/third_party/mlmd';
 import { LinkedArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
@@ -199,45 +203,81 @@ export const parseRuntimeInfoFromRunDetails = (
   };
 };
 
-export const parseRuntimeInfoFromExecutions = (
-  taskId: string,
-  taskName: string,
-  executions?: Execution[] | null,
-): PipelineTaskRunStatus | undefined => {
-  if (!executions) {
+/** protojson int64 fields arrive as decimal strings. Values past MAX_SAFE_INTEGER collapse to the cap. */
+export const parseInt64Decimal = (value?: string): number | undefined => {
+  if (value == null || !/^-?\d+$/.test(value)) {
     return undefined;
   }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    return parsed > 0 ? Number.MAX_SAFE_INTEGER : undefined;
+  }
+  return parsed;
+};
 
-  const execution = executions.find(
-    (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
+export const taskMatchesSpecName = (
+  task: PipelineTaskKF,
+  taskName: string,
+  taskId: string,
+): boolean => {
+  const label = taskName || taskId;
+  return task.display_name === label || task.name === label;
+};
+
+export const findTaskForSpec = (
+  taskName: string,
+  taskId: string,
+  tasks?: PipelineTaskKF[] | null,
+): PipelineTaskKF | undefined =>
+  tasks?.find(
+    (task) => task.type !== TaskTypeKF.ROOT && taskMatchesSpecName(task, taskName, taskId),
   );
 
-  if (!execution) {
+const terminalTaskState = (state?: TaskStateKF): boolean =>
+  state === TaskStateKF.SUCCEEDED ||
+  state === TaskStateKF.FAILED ||
+  state === TaskStateKF.CACHED ||
+  state === TaskStateKF.SKIPPED;
+
+/** Map a v2beta1 task state onto the node status union the graph already renders. */
+export const taskStateToNodeState = (
+  state?: TaskStateKF,
+): ExecutionStateKF | RuntimeStateKF | undefined => {
+  switch (state) {
+    case TaskStateKF.SUCCEEDED:
+    case TaskStateKF.CACHED:
+      return ExecutionStateKF.COMPLETE;
+    case TaskStateKF.FAILED:
+      return ExecutionStateKF.FAILED;
+    case TaskStateKF.SKIPPED:
+      return RuntimeStateKF.SKIPPED;
+    case TaskStateKF.RUNNING:
+      return ExecutionStateKF.RUNNING;
+    case TaskStateKF.RUNTIME_STATE_UNSPECIFIED:
+    default:
+      return undefined;
+  }
+};
+
+const executorPodName = (task: PipelineTaskKF): string | undefined =>
+  task.pods?.find((pod) => pod.type === TaskPodTypeKF.EXECUTOR)?.name ?? task.pods?.[0]?.name;
+
+export const parseRuntimeInfoFromTasks = (
+  taskId: string,
+  taskName: string,
+  tasks?: PipelineTaskKF[] | null,
+): PipelineTaskRunStatus | undefined => {
+  const task = findTaskForSpec(taskName, taskId, tasks);
+  if (!task) {
     return undefined;
   }
 
-  const lastUpdatedTime = execution.getLastUpdateTimeSinceEpoch();
-  let completeTime;
-  const lastKnownState = execution.getLastKnownState();
-  // Logic comes from https://github.com/opendatahub-io/data-science-pipelines/blob/master/frontend/src/components/tabs/RuntimeNodeDetailsV2.tsx#L245-L253
-  if (
-    lastUpdatedTime &&
-    (lastKnownState === Execution.State.COMPLETE ||
-      lastKnownState === Execution.State.FAILED ||
-      lastKnownState === Execution.State.CACHED ||
-      lastKnownState === Execution.State.CANCELED)
-  ) {
-    completeTime = new Date(lastUpdatedTime).toISOString();
-  }
   return {
-    startTime: new Date(execution.getCreateTimeSinceEpoch()).toISOString(),
-    completeTime,
-    state: getResourceStateText({
-      resourceType: ResourceType.EXECUTION,
-      resource: execution,
-    }),
+    startTime: task.create_time ?? '',
+    completeTime: terminalTaskState(task.state) ? task.end_time : undefined,
+    state: taskStateToNodeState(task.state),
     taskId: `task.${taskId}`,
-    podName: execution.getCustomPropertiesMap().get('pod_name')?.getStringValue(),
+    podName: executorPodName(task),
   };
 };
 
@@ -331,49 +371,85 @@ export const translateStatusForNode = (
 };
 
 /**
- * Find the ParallelFor DAG execution for a given task — the one that has
- * `iteration_count` set and whose `task_name` matches.
+ * ParallelFor group for a spec task. `iteration_count` is a decimal string on type LOOP.
  */
-export const findParallelForDagExecution = (
+export const findParallelForTask = (
   taskName: string,
   taskId: string,
-  executions?: Execution[] | null,
-): Execution | undefined =>
-  executions?.find((e) => {
-    const props = e.getCustomPropertiesMap();
-    return (
-      props.get('task_name')?.getStringValue() === (taskName || taskId) &&
-      props.has('iteration_count')
-    );
-  });
-
-/**
- * Read `iteration_count` from an execution's MLMD custom properties.
- * Returns undefined when the property is absent.
- */
-export const getIterationCount = (execution: Execution): number | undefined => {
-  const props = execution.getCustomPropertiesMap();
-  if (!props.has('iteration_count')) {
-    return undefined;
-  }
-  return props.get('iteration_count')?.getIntValue();
+  tasks?: PipelineTaskKF[] | null,
+): PipelineTaskKF | undefined => {
+  const matches =
+    tasks?.filter(
+      (task) => task.type !== TaskTypeKF.ROOT && taskMatchesSpecName(task, taskName, taskId),
+    ) ?? [];
+  return (
+    matches.find((task) => task.type === TaskTypeKF.LOOP) ??
+    matches.find((task) => task.type_attributes?.iteration_count != null)
+  );
 };
 
+/** Parse `type_attributes.iteration_count`. Undefined when the field is absent or not a decimal string. */
+export const getIterationCount = (task: PipelineTaskKF): number | undefined =>
+  parseInt64Decimal(task.type_attributes?.iteration_count);
+
+const isChildTask = (
+  task: PipelineTaskKF,
+  parentTaskId: string,
+  parent?: PipelineTaskKF,
+): boolean =>
+  task.parent_task_id === parentTaskId ||
+  (parent?.child_tasks?.some((child) => child.task_id === task.task_id) ?? false);
+
 /**
- * Find the iteration execution for a specific index under a ParallelFor parent.
+ * Iteration under a ParallelFor parent.
+ * `iteration_index` is a decimal string. Parentage is `parent_task_id` or `child_tasks`.
  */
-export const findIterationExecution = (
-  parentDagId: number,
+export const findIterationTask = (
+  parentTaskId: string,
   iterationIndex: number,
-  executions: Execution[],
-): Execution | undefined =>
-  executions.find((e) => {
-    const props = e.getCustomPropertiesMap();
-    return (
-      props.get('parent_dag_id')?.getIntValue() === parentDagId &&
-      props.get('iteration_index')?.getIntValue() === iterationIndex
+  tasks: PipelineTaskKF[],
+): PipelineTaskKF | undefined => {
+  const parent = tasks.find((task) => task.task_id === parentTaskId);
+  return tasks.find(
+    (task) =>
+      parseInt64Decimal(task.type_attributes?.iteration_index) === iterationIndex &&
+      isChildTask(task, parentTaskId, parent),
+  );
+};
+
+/** Direct children of a parent. No parent id means the tasks under ROOT, or tasks with no parent. */
+export const tasksInScope = (tasks: PipelineTaskKF[], parentTaskId?: string): PipelineTaskKF[] => {
+  if (!parentTaskId) {
+    const root = tasks.find((task) => task.type === TaskTypeKF.ROOT);
+    if (!root) {
+      return tasks.filter((task) => !task.parent_task_id && task.type !== TaskTypeKF.ROOT);
+    }
+    const childIds = new Set(root.child_tasks?.map((child) => child.task_id));
+    return tasks.filter(
+      (task) => task.parent_task_id === root.task_id || childIds.has(task.task_id),
     );
-  });
+  }
+
+  const parent = tasks.find((task) => task.task_id === parentTaskId);
+  const childIds = new Set(parent?.child_tasks?.map((child) => child.task_id));
+  return tasks.filter((task) => task.parent_task_id === parentTaskId || childIds.has(task.task_id));
+};
+
+/** Every task under a parent, following `parent_task_id` and `child_tasks`. */
+export const descendantTasks = (
+  parentTaskId: string,
+  childrenIndex: Map<string, PipelineTaskKF[]>,
+): PipelineTaskKF[] => {
+  const result: PipelineTaskKF[] = [];
+  const walk = (id: string) => {
+    (childrenIndex.get(id) ?? []).forEach((child) => {
+      result.push(child);
+      walk(child.task_id);
+    });
+  };
+  walk(parentTaskId);
+  return result;
+};
 
 export const parseVolumeMounts = (
   platformSpec?: PlatformSpec,

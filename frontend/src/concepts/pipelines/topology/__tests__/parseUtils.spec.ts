@@ -9,12 +9,13 @@ import {
   parseRuntimeInfoFromRunDetails,
   getResourceStateText,
   ResourceType,
-  parseRuntimeInfoFromExecutions,
+  parseRuntimeInfoFromTasks,
   parseVolumeMounts,
   getExecutionLinkedArtifactMap,
-  findParallelForDagExecution,
+  findParallelForTask,
+  findIterationTask,
   getIterationCount,
-  findIterationExecution,
+  parseInt64Decimal,
 } from '#~/concepts/pipelines/topology/parseUtils';
 import {
   ArtifactStateKF,
@@ -22,14 +23,18 @@ import {
   ExecutionStateKF,
   InputDefinitionParameterType,
   PipelineComponentsKF,
+  PipelineTaskKF,
   PlatformSpec,
   RunDetailsKF,
   RuntimeStateKF,
   TaskDetailKF,
   TaskKF,
+  TaskPodTypeKF,
+  TaskStateKF,
+  TaskTypeKF,
   TriggerStrategy,
 } from '#~/concepts/pipelines/kfTypes';
-import { Artifact, Execution, Value, Event } from '#~/third_party/mlmd';
+import { Artifact, Execution, Event } from '#~/third_party/mlmd';
 
 describe('pipeline topology parseUtils', () => {
   describe('parseInputOutput', () => {
@@ -171,45 +176,61 @@ describe('pipeline topology parseUtils', () => {
     });
   });
 
-  describe('parseRuntimeInfoFromExecutions', () => {
+  describe('parseRuntimeInfoFromTasks', () => {
     const testTaskId = 'test-task-id';
-
-    it('returns undefined when executions are not provided', () => {
-      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId);
-      expect(result).toBeUndefined();
+    const runtimeTask = (overrides: Partial<PipelineTaskKF> = {}): PipelineTaskKF => ({
+      task_id: 'task-1',
+      run_id: 'run-1',
+      name: testTaskId,
+      display_name: testTaskId,
+      type: TaskTypeKF.RUNTIME,
+      state: TaskStateKF.SUCCEEDED,
+      create_time: '2024-04-16T16:34:56.322Z',
+      end_time: '2024-04-16T16:34:56.524Z',
+      ...overrides,
     });
 
-    it('returns undefined when executions is null', () => {
-      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, null);
-      expect(result).toBeUndefined();
+    it('returns undefined when tasks are not provided', () => {
+      expect(parseRuntimeInfoFromTasks(testTaskId, testTaskId)).toBeUndefined();
     });
 
-    it('returns undefined when executions are empty', () => {
-      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, []);
-      expect(result).toBeUndefined();
+    it('returns undefined when tasks is null', () => {
+      expect(parseRuntimeInfoFromTasks(testTaskId, testTaskId, null)).toBeUndefined();
     });
 
-    it('returns undefined when there are no match executions', () => {
-      const mockExecution = new Execution();
-      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, [mockExecution]);
-      expect(result).toBeUndefined();
+    it('returns undefined when tasks are empty', () => {
+      expect(parseRuntimeInfoFromTasks(testTaskId, testTaskId, [])).toBeUndefined();
     });
 
-    it('returns runtime info when execution id matches', () => {
-      const mockExecution = new Execution();
-      const value = new Value();
-      mockExecution.getCustomPropertiesMap().set('task_name', value.setStringValue(testTaskId));
-      mockExecution.setCreateTimeSinceEpoch(1713285296322);
-      mockExecution.setLastUpdateTimeSinceEpoch(1713285296524);
-      mockExecution.setLastKnownState(Execution.State.COMPLETE);
-      const result = parseRuntimeInfoFromExecutions(testTaskId, testTaskId, [mockExecution]);
+    it('returns undefined when no task name matches', () => {
+      expect(
+        parseRuntimeInfoFromTasks(testTaskId, testTaskId, [
+          runtimeTask({ name: 'other', display_name: 'other' }),
+        ]),
+      ).toBeUndefined();
+    });
+
+    it('returns runtime info when the task name matches', () => {
+      const result = parseRuntimeInfoFromTasks(testTaskId, testTaskId, [
+        runtimeTask({
+          pods: [{ name: 'exec-pod', uid: 'uid-1', type: TaskPodTypeKF.EXECUTOR }],
+        }),
+      ]);
       expect(result).toStrictEqual({
         completeTime: '2024-04-16T16:34:56.524Z',
-        podName: undefined,
+        podName: 'exec-pod',
         startTime: '2024-04-16T16:34:56.322Z',
         state: 'Complete',
         taskId: 'task.test-task-id',
       });
+    });
+
+    it('omits completeTime while the task is running', () => {
+      const result = parseRuntimeInfoFromTasks(testTaskId, testTaskId, [
+        runtimeTask({ state: TaskStateKF.RUNNING }),
+      ]);
+      expect(result?.completeTime).toBeUndefined();
+      expect(result?.state).toBe('Running');
     });
   });
 
@@ -657,126 +678,145 @@ describe('pipeline topology parseUtils', () => {
   });
 });
 
-describe('findParallelForDagExecution', () => {
-  it('should return undefined when executions are not provided', () => {
-    expect(findParallelForDagExecution('task-name', 'task-id')).toBeUndefined();
+const loopTask = (overrides: Partial<PipelineTaskKF> = {}): PipelineTaskKF => ({
+  task_id: 'loop-1',
+  run_id: 'run-1',
+  name: 'for-loop',
+  display_name: 'for-loop',
+  type: TaskTypeKF.LOOP,
+  ...overrides,
+});
+
+describe('parseInt64Decimal', () => {
+  it('should parse a decimal string', () => {
+    expect(parseInt64Decimal('4')).toBe(4);
+    expect(parseInt64Decimal('0')).toBe(0);
   });
 
-  it('should return undefined when executions is null', () => {
-    expect(findParallelForDagExecution('task-name', 'task-id', null)).toBeUndefined();
+  it('should reject values that are not decimal strings', () => {
+    expect(parseInt64Decimal(undefined)).toBeUndefined();
+    expect(parseInt64Decimal('')).toBeUndefined();
+    expect(parseInt64Decimal('1.5')).toBeUndefined();
+    expect(parseInt64Decimal('4n')).toBeUndefined();
+  });
+});
+
+describe('findParallelForTask', () => {
+  it('should return undefined when tasks are not provided', () => {
+    expect(findParallelForTask('task-name', 'task-id')).toBeUndefined();
   });
 
-  it('should return undefined when executions is empty', () => {
-    expect(findParallelForDagExecution('task-name', 'task-id', [])).toBeUndefined();
+  it('should return undefined when tasks is null', () => {
+    expect(findParallelForTask('task-name', 'task-id', null)).toBeUndefined();
   });
 
-  it('should return undefined when no execution matches task_name and has iteration_count', () => {
-    const exec = new Execution();
-    const value = new Value();
-    exec.getCustomPropertiesMap().set('task_name', value.setStringValue('other-task'));
-    expect(findParallelForDagExecution('task-name', 'task-id', [exec])).toBeUndefined();
+  it('should return undefined when tasks is empty', () => {
+    expect(findParallelForTask('task-name', 'task-id', [])).toBeUndefined();
   });
 
-  it('should return undefined when execution matches task_name but has no iteration_count', () => {
-    const exec = new Execution();
-    const value = new Value();
-    exec.getCustomPropertiesMap().set('task_name', value.setStringValue('task-name'));
-    expect(findParallelForDagExecution('task-name', 'task-id', [exec])).toBeUndefined();
+  it('should return undefined when no task matches the name and has iteration_count', () => {
+    expect(
+      findParallelForTask('task-name', 'task-id', [
+        loopTask({ name: 'other', display_name: 'other' }),
+      ]),
+    ).toBeUndefined();
   });
 
-  it('should return the execution when task_name matches and iteration_count exists', () => {
-    const exec = new Execution();
-    const nameValue = new Value();
-    const countValue = new Value();
-    exec.getCustomPropertiesMap().set('task_name', nameValue.setStringValue('for-loop'));
-    exec.getCustomPropertiesMap().set('iteration_count', countValue.setIntValue(3));
-    expect(findParallelForDagExecution('for-loop', 'for-loop-2', [exec])).toBe(exec);
+  it('should return undefined when the name matches but iteration_count is absent and the type is not LOOP', () => {
+    expect(
+      findParallelForTask('task-name', 'task-id', [
+        loopTask({ name: 'task-name', display_name: 'task-name', type: TaskTypeKF.RUNTIME }),
+      ]),
+    ).toBeUndefined();
+  });
+
+  it('should return the LOOP task and parse its decimal iteration_count', () => {
+    const task = loopTask({ type_attributes: { iteration_count: '3' } });
+    expect(findParallelForTask('for-loop', 'for-loop-2', [task])).toBe(task);
+    expect(getIterationCount(task)).toBe(3);
   });
 
   it('should match by taskId when taskName is empty', () => {
-    const exec = new Execution();
-    const nameValue = new Value();
-    const countValue = new Value();
-    exec.getCustomPropertiesMap().set('task_name', nameValue.setStringValue('task-id'));
-    exec.getCustomPropertiesMap().set('iteration_count', countValue.setIntValue(5));
-    expect(findParallelForDagExecution('', 'task-id', [exec])).toBe(exec);
+    const task = loopTask({
+      name: 'task-id',
+      display_name: 'task-id',
+      type_attributes: { iteration_count: '5' },
+    });
+    expect(findParallelForTask('', 'task-id', [task])).toBe(task);
   });
 });
 
 describe('getIterationCount', () => {
-  it('should return undefined when iteration_count property is absent', () => {
-    const exec = new Execution();
-    expect(getIterationCount(exec)).toBeUndefined();
+  it('should return undefined when iteration_count is absent', () => {
+    expect(getIterationCount(loopTask())).toBeUndefined();
   });
 
-  it('should return the iteration count when property exists', () => {
-    const exec = new Execution();
-    const value = new Value();
-    exec.getCustomPropertiesMap().set('iteration_count', value.setIntValue(4));
-    expect(getIterationCount(exec)).toBe(4);
-  });
-
-  it('should return 0 for zero iterations', () => {
-    const exec = new Execution();
-    const value = new Value();
-    exec.getCustomPropertiesMap().set('iteration_count', value.setIntValue(0));
-    expect(getIterationCount(exec)).toBe(0);
+  it('should return 0 for a zero decimal string', () => {
+    expect(getIterationCount(loopTask({ type_attributes: { iteration_count: '0' } }))).toBe(0);
   });
 
   it('should return large counts', () => {
-    const exec = new Execution();
-    const value = new Value();
-    exec.getCustomPropertiesMap().set('iteration_count', value.setIntValue(1000));
-    expect(getIterationCount(exec)).toBe(1000);
+    expect(getIterationCount(loopTask({ type_attributes: { iteration_count: '1000' } }))).toBe(
+      1000,
+    );
+  });
+
+  it('should return undefined when iteration_count is not a decimal string', () => {
+    expect(
+      getIterationCount(loopTask({ type_attributes: { iteration_count: 'many' } })),
+    ).toBeUndefined();
   });
 });
 
-describe('findIterationExecution', () => {
-  it('should return undefined when executions is empty', () => {
-    expect(findIterationExecution(100, 0, [])).toBeUndefined();
+describe('findIterationTask', () => {
+  const iteration = (overrides: Partial<PipelineTaskKF>): PipelineTaskKF => ({
+    task_id: 'iter-1',
+    run_id: 'run-1',
+    name: 'for-loop',
+    type: TaskTypeKF.RUNTIME,
+    parent_task_id: 'loop-1',
+    type_attributes: { iteration_index: '0' },
+    ...overrides,
   });
 
-  it('should return undefined when no execution matches parent_dag_id and iteration_index', () => {
-    const exec = new Execution();
-    const parentValue = new Value();
-    const indexValue = new Value();
-    exec.getCustomPropertiesMap().set('parent_dag_id', parentValue.setIntValue(999));
-    exec.getCustomPropertiesMap().set('iteration_index', indexValue.setIntValue(0));
-    expect(findIterationExecution(100, 0, [exec])).toBeUndefined();
+  it('should return undefined when tasks is empty', () => {
+    expect(findIterationTask('loop-1', 0, [])).toBeUndefined();
   });
 
-  it('should return undefined when parent_dag_id matches but iteration_index does not', () => {
-    const exec = new Execution();
-    const parentValue = new Value();
-    const indexValue = new Value();
-    exec.getCustomPropertiesMap().set('parent_dag_id', parentValue.setIntValue(100));
-    exec.getCustomPropertiesMap().set('iteration_index', indexValue.setIntValue(1));
-    expect(findIterationExecution(100, 0, [exec])).toBeUndefined();
+  it('should return undefined when parent and index do not match', () => {
+    expect(
+      findIterationTask('loop-1', 0, [iteration({ parent_task_id: 'other' })]),
+    ).toBeUndefined();
   });
 
-  it('should return the execution when both parent_dag_id and iteration_index match', () => {
-    const exec = new Execution();
-    const parentValue = new Value();
-    const indexValue = new Value();
-    exec.getCustomPropertiesMap().set('parent_dag_id', parentValue.setIntValue(100));
-    exec.getCustomPropertiesMap().set('iteration_index', indexValue.setIntValue(2));
-    expect(findIterationExecution(100, 2, [exec])).toBe(exec);
+  it('should return undefined when the parent matches but the decimal index does not', () => {
+    expect(
+      findIterationTask('loop-1', 0, [iteration({ type_attributes: { iteration_index: '1' } })]),
+    ).toBeUndefined();
   });
 
-  it('should return the first match when multiple executions match', () => {
-    const exec1 = new Execution();
-    const p1 = new Value();
-    const i1 = new Value();
-    exec1.getCustomPropertiesMap().set('parent_dag_id', p1.setIntValue(100));
-    exec1.getCustomPropertiesMap().set('iteration_index', i1.setIntValue(0));
+  it('should match parent_task_id and a decimal iteration_index', () => {
+    const task = iteration({ type_attributes: { iteration_index: '2' } });
+    expect(findIterationTask('loop-1', 2, [task])).toBe(task);
+  });
 
-    const exec2 = new Execution();
-    const p2 = new Value();
-    const i2 = new Value();
-    exec2.getCustomPropertiesMap().set('parent_dag_id', p2.setIntValue(100));
-    exec2.getCustomPropertiesMap().set('iteration_index', i2.setIntValue(0));
+  it('should match a child listed only in child_tasks', () => {
+    const parent = loopTask({
+      task_id: 'loop-1',
+      child_tasks: [{ task_id: 'iter-only', name: 'for-loop' }],
+    });
+    const child = iteration({
+      task_id: 'iter-only',
+      parent_task_id: undefined,
+      type_attributes: { iteration_index: '0' },
+    });
+    expect(findIterationTask('loop-1', 0, [parent, child])).toBe(child);
+  });
 
-    expect(findIterationExecution(100, 0, [exec1, exec2])).toBe(exec1);
+  it('should return the first match when several tasks share the index', () => {
+    const first = iteration({ task_id: 'first' });
+    const second = iteration({ task_id: 'second' });
+    expect(findIterationTask('loop-1', 0, [first, second])).toBe(first);
   });
 });
 
