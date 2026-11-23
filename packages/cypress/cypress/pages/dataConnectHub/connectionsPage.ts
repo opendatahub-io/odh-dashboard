@@ -26,11 +26,11 @@ class DataConnectHubConnectionsPage {
   }
 
   findConnectionTypesDescription() {
-    return cy.findByText(/Discover and configure pre-defined data connections/);
+    return cy.findByTestId('connection-types-description');
   }
 
   findConnectionsEmptyState() {
-    return cy.findByRole('heading', { name: 'Get started with data connections' });
+    return cy.findByTestId('connections-empty-state');
   }
 
   findNavItem() {

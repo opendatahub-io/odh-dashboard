@@ -415,6 +415,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           headingLevel="h3"
           icon={() => <img src={emptyStateImage} alt="" width={320} height={320} />}
           titleText="Get started with data connections"
+          data-testid="connections-empty-state"
         >
           <EmptyStateBody>
             Create a connection in this project to link storage credentials to catalog assets and
