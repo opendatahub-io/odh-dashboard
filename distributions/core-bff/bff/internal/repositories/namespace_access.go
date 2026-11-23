@@ -18,9 +18,11 @@ import (
 const (
 	// MaxRequestedNamespaces bounds the caller-supplied candidates per request.
 	MaxRequestedNamespaces = 50
-	// MaxDiscoveryCandidates bounds the namespaces evaluated per request. A
-	// candidate can cost one access review per matrix entry, so an unbounded
-	// cluster list would turn one page load into thousands of reviews.
+	// MaxDiscoveryCandidates bounds the namespaces evaluated per request when
+	// they come from configured candidates or label discovery. A caller who may
+	// list namespaces has every listed namespace evaluated instead, so the
+	// result keeps the namespaces they could already list; that request is
+	// bounded by the review concurrency, the client rate limit and the deadline.
 	MaxDiscoveryCandidates = 200
 	// DiscoveryTimeout bounds one discovery request, below the server's 60s
 	// write timeout. Reviews still pending at the deadline count as failed.
@@ -55,7 +57,7 @@ type accessCheck struct {
 // enables an action is not returned, so its remaining reviews are skipped.
 var actionPermissionMatrix = []accessCheck{
 	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"get", "list", "create", "update", "patch", "delete"}},
-	{Group: "", Resource: "secrets", Verbs: []string{"create", "get", "patch", "delete"}},
+	{Group: "", Resource: "secrets", Verbs: []string{"create", "get", "update", "patch", "delete"}},
 }
 
 // detailPermissionMatrix completes the matrix for namespaces that are returned.
@@ -65,10 +67,10 @@ var detailPermissionMatrix = []accessCheck{
 	{Group: "", Resource: "pods", Verbs: []string{"get", "list"}},
 }
 
-// NamespacePermissionMatrix is the exact set of reviews reported for every
+// namespacePermissionMatrix is the exact set of reviews reported for every
 // returned namespace, evaluated as the caller in that namespace. It is
 // documented in docs/namespace-discovery-contract.md; keep the two in step.
-var NamespacePermissionMatrix = append(append([]accessCheck{}, actionPermissionMatrix...), detailPermissionMatrix...)
+var namespacePermissionMatrix = append(append([]accessCheck{}, actionPermissionMatrix...), detailPermissionMatrix...)
 
 // sharedNamespacePermissionMatrix is evaluated once, in the dashboard namespace,
 // for the shared resources the RHAII wizard reads from there.
@@ -173,6 +175,16 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 			known.byCaller[listed[i].Name] = &listed[i]
 			addName(listed[i].Name)
 		}
+		// The caller's own list is authoritative for what exists: a requested
+		// name absent from it is dropped rather than reported from cluster-wide
+		// grants as if it existed.
+		kept := names[:0]
+		for _, name := range names {
+			if known.byCaller[name] != nil {
+				kept = append(kept, name)
+			}
+		}
+		names = kept
 	}
 
 	if source == models.NamespaceSourceCandidates {
@@ -196,7 +208,7 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 	}
 	sort.Strings(others)
 	names = append(names, others...)
-	if len(names) > MaxDiscoveryCandidates {
+	if source == models.NamespaceSourceCandidates && len(names) > MaxDiscoveryCandidates {
 		issues.add(models.IssueCandidatesTruncated, len(names)-MaxDiscoveryCandidates)
 		names = names[:MaxDiscoveryCandidates]
 	}
@@ -420,12 +432,13 @@ func DeriveNamespaceActions(perms map[string]models.ResourcePermissions) models.
 		return true
 	}
 	// Edit needs both patch and update: the wizard may save with either verb.
+	// Saving over an existing token Secret replaces it, which needs update.
 	return models.NamespaceActions{
 		View:            allowed(groupServing, "llminferenceservices", "list", "get"),
 		Deploy:          allowed(groupServing, "llminferenceservices", "create"),
 		Edit:            allowed(groupServing, "llminferenceservices", "patch", "update"),
 		Delete:          allowed(groupServing, "llminferenceservices", "delete"),
-		ManageTokenAuth: allowed("", "secrets", "create", "get", "patch", "delete"),
+		ManageTokenAuth: allowed("", "secrets", "create", "get", "update", "patch", "delete"),
 	}
 }
 

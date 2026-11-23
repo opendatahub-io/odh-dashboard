@@ -122,7 +122,7 @@ func grant(allow map[string]bool, ns, group, resource string, verbs ...string) {
 
 func deployer(allow map[string]bool, ns string) {
 	grant(allow, ns, groupServing, "llminferenceservices", "get", "list", "watch", "create", "update", "patch", "delete")
-	grant(allow, ns, "", "secrets", "create", "get", "patch", "delete")
+	grant(allow, ns, "", "secrets", "create", "get", "update", "patch", "delete")
 	grant(allow, ns, "", "namespaces", "get")
 }
 
@@ -158,7 +158,7 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 	}{
 		{
 			name:  "full deployer",
-			perms: map[string]models.ResourcePermissions{llm: all(models.AccessAllowed, "get", "list", "create", "update", "patch", "delete"), sec: all(models.AccessAllowed, "create", "get", "patch", "delete")},
+			perms: map[string]models.ResourcePermissions{llm: all(models.AccessAllowed, "get", "list", "create", "update", "patch", "delete"), sec: all(models.AccessAllowed, "create", "get", "update", "patch", "delete")},
 			want:  models.NamespaceActions{View: true, Deploy: true, Edit: true, Delete: true, ManageTokenAuth: true},
 		},
 		{
@@ -198,7 +198,7 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 		},
 		{
 			name:  "Secret access alone does not grant model actions",
-			perms: map[string]models.ResourcePermissions{sec: all(models.AccessAllowed, "create", "get", "patch", "delete")},
+			perms: map[string]models.ResourcePermissions{sec: all(models.AccessAllowed, "create", "get", "update", "patch", "delete")},
 			want:  models.NamespaceActions{ManageTokenAuth: true},
 		},
 		{name: "nothing", perms: map[string]models.ResourcePermissions{}, want: models.NamespaceActions{}},
@@ -238,7 +238,7 @@ func TestDiscover_NoNamespaceListPermission_MixedAccess(t *testing.T) {
 	assert.Equal(t, models.AccessAllowed, b.Permissions[PermissionKey("", "namespaces")]["get"])
 
 	// Every matrix entry is reported.
-	for _, c := range NamespacePermissionMatrix {
+	for _, c := range namespacePermissionMatrix {
 		for _, v := range c.Verbs {
 			assert.Contains(t, a.Permissions[PermissionKey(c.Group, c.Resource)], v)
 		}
@@ -279,7 +279,7 @@ func TestDiscover_FailedReviewsAreReportedWithoutNames(t *testing.T) {
 	allow := map[string]bool{}
 	deployer(allow, "team-a")
 	fail := map[string]bool{}
-	for _, c := range NamespacePermissionMatrix {
+	for _, c := range namespacePermissionMatrix {
 		for _, v := range c.Verbs {
 			fail[key("broken", c.Group, c.Resource, v)] = true
 		}
@@ -320,7 +320,7 @@ func TestDiscover_IndeterminateReviewsAreErrorsNotDenials(t *testing.T) {
 	allow := map[string]bool{}
 	viewer(allow, "team-a")
 	indeterminate := map[string]bool{key("team-a", groupServing, "llminferenceservices", "create"): true}
-	for _, c := range NamespacePermissionMatrix {
+	for _, c := range namespacePermissionMatrix {
 		for _, v := range c.Verbs {
 			indeterminate[key("webhook-down", c.Group, c.Resource, v)] = true
 		}
@@ -524,7 +524,7 @@ func TestGet_Outcomes(t *testing.T) {
 	viewer(allow, "gone") // allowed by RBAC but the namespace does not exist
 	grant(allow, "no-meta", groupServing, "llminferenceservices", "create")
 	failAll := map[string]bool{}
-	for _, c := range NamespacePermissionMatrix {
+	for _, c := range namespacePermissionMatrix {
 		for _, v := range c.Verbs {
 			failAll[key("broken", c.Group, c.Resource, v)] = true
 		}
@@ -576,7 +576,7 @@ func TestDiscover_LabelledMetadataShownWhenCallerCanRead(t *testing.T) {
 
 func TestDiscover_ReliableDenialPlusFailureIsPartialEmptyNot503(t *testing.T) {
 	fail := map[string]bool{}
-	for _, c := range NamespacePermissionMatrix {
+	for _, c := range namespacePermissionMatrix {
 		for _, v := range c.Verbs {
 			fail[key("broken", c.Group, c.Resource, v)] = true
 		}
@@ -736,12 +736,12 @@ func TestDiscover_HiddenNamespacesCostOnlyTheActionReviews(t *testing.T) {
 
 func TestNamespacePermissionMatrix_CoversEveryActionReview(t *testing.T) {
 	verbs := map[string]int{}
-	for _, c := range NamespacePermissionMatrix {
+	for _, c := range namespacePermissionMatrix {
 		for _, v := range c.Verbs {
 			verbs[PermissionKey(c.Group, c.Resource)+"|"+v]++
 		}
 	}
-	assert.Len(t, verbs, 15)
+	assert.Len(t, verbs, 16)
 	for k, n := range verbs {
 		assert.Equal(t, 1, n, k)
 	}
@@ -782,4 +782,52 @@ func TestDiscover_DeadlineFailsClosedAndIsReported(t *testing.T) {
 
 	_, err = repo.Get(context.Background(), &blockingClient{}, identity(), "team-a")
 	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
+}
+
+func TestDiscover_ClusterListDropsRequestedNamesItDoesNotList(t *testing.T) {
+	allow := map[string]bool{}
+	// Cluster-wide grants allow every action review, even for a name that does
+	// not exist; only the named get is missing.
+	grant(allow, "*", groupServing, "llminferenceservices", "get", "list", "watch", "create", "update", "patch", "delete")
+	client := &rbacClient{canList: true, allow: allow, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
+	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), []string{"ghost", "team-a"})
+	require.NoError(t, err)
+	assert.Equal(t, models.NamespaceSourceClusterList, list.Source)
+	assert.Equal(t, []string{"team-a"}, names(list), "a requested name absent from the caller's list does not exist")
+	assert.True(t, list.Complete)
+}
+
+func TestDiscover_ClusterListIsNotCapped(t *testing.T) {
+	allow := map[string]bool{}
+	existing := map[string]*corev1.Namespace{}
+	for i := 0; i < MaxDiscoveryCandidates+5; i++ {
+		n := "ns-" + itoa(i)
+		existing[n] = activeNS(n, "")
+	}
+	// Sorted by name, ns-99 falls past the first 200 candidates.
+	viewer(allow, "ns-204")
+	viewer(allow, "ns-99")
+	client := &rbacClient{canList: true, allow: allow, namespaces: existing}
+	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.True(t, list.Complete, "a caller who can list keeps every listed namespace evaluated")
+	assert.Empty(t, list.Issues)
+	assert.ElementsMatch(t, []string{"ns-204", "ns-99"}, names(list))
+}
+
+func TestDiscover_ManageTokenAuthNeedsUpdateOnSecrets(t *testing.T) {
+	allow := map[string]bool{}
+	grant(allow, "team-a", groupServing, "llminferenceservices", "get", "list", "create")
+	grant(allow, "team-a", "", "secrets", "create", "get", "patch", "delete")
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), &rbacClient{allow: allow}, identity(), nil)
+	require.NoError(t, err)
+	require.Len(t, list.Namespaces, 1)
+	assert.False(t, list.Namespaces[0].Actions.ManageTokenAuth, "replacing an existing token Secret is a PUT")
+	assert.Equal(t, models.AccessDenied, list.Namespaces[0].Permissions[PermissionKey("", "secrets")]["update"])
 }

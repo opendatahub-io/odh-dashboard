@@ -175,7 +175,10 @@ paths:
         reviews (an authorizer error with no decision) are reported as error, never
         grant an action, and are counted in issues. An empty result is
         data.namespaces: []. Discovery that found nothing because every source or
-        review failed is 503. Absent (404) on OpenShift. See
+        review failed is 503, with the failed sources and reviews in error.issues.
+        A caller who may list namespaces is not limited by the candidate cap, and a
+        namespace parameter absent from that caller's list is dropped. Absent (404)
+        on OpenShift. See
         docs/namespace-discovery-contract.md.
       parameters:
         - name: namespace
@@ -208,7 +211,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
-          $ref: '#/components/responses/BFFServiceUnavailable'
+          $ref: '#/components/responses/NamespaceDiscoveryUnavailable'
 
   /api/v1/namespace-access/{name}:
     get:
@@ -2088,13 +2091,13 @@ components:
           description: create on llminferenceservices
         edit:
           type: boolean
-          description: patch on llminferenceservices
+          description: patch and update on llminferenceservices
         delete:
           type: boolean
           description: delete on llminferenceservices
         manageTokenAuth:
           type: boolean
-          description: create, get, patch and delete on secrets
+          description: create, get, update, patch and delete on secrets
 
     NamespaceAccess:
       type: object
@@ -2170,6 +2173,22 @@ components:
               type: string
             permissions:
               $ref: '#/components/schemas/PermissionMatrix'
+
+    NamespaceDiscoveryUnavailableEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          allOf:
+            - $ref: '#/components/schemas/Error'
+            - type: object
+              required: [issues]
+              properties:
+                issues:
+                  type: array
+                  description: Which sources or reviews failed; never carries a namespace name
+                  items:
+                    $ref: '#/components/schemas/NamespaceDiscoveryIssue'
 
     NamespaceAccessListEnvelope:
       type: object
@@ -2685,24 +2704,57 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/NamespaceAccessListEnvelope'
-          example:
-            data:
-              source: candidates
-              complete: true
-              issues: []
-              namespaces:
-                - name: team-a
-                  displayName: Team A
-                  phase: Active
-                  isAiProject: true
-                  actions: { view: true, deploy: true, edit: true, delete: true, manageTokenAuth: true }
-                  permissions:
-                    serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
-                    core/secrets: { create: allowed, get: allowed, patch: allowed, delete: allowed }
-              shared:
-                namespace: opendatahub
-                permissions:
-                  infrastructure.opendatahub.io/hardwareprofiles: { get: allowed, list: allowed }
+          examples:
+            usableNamespace:
+              summary: A complete listing with one namespace the caller can deploy to
+              value:
+                data:
+                  source: cluster-list
+                  complete: true
+                  issues: []
+                  namespaces:
+                    - name: team-a
+                      displayName: Team A
+                      phase: Active
+                      isAiProject: true
+                      actions: { view: true, deploy: true, edit: true, delete: true, manageTokenAuth: true }
+                      permissions:
+                        serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
+                        serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed }
+                        core/secrets: { create: allowed, get: allowed, update: allowed, patch: allowed, delete: allowed }
+                        core/pods: { get: allowed, list: allowed }
+                        core/namespaces: { get: allowed }
+                  shared:
+                    namespace: opendatahub
+                    permissions:
+                      infrastructure.opendatahub.io/hardwareprofiles: { get: allowed, list: allowed }
+                      serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed }
+            incompleteDiscovery:
+              summary: >-
+                Candidates for a caller who cannot list namespaces, with one failed
+                review; the view-only namespace cannot be read, so its phase is Unknown
+                and isAiProject is omitted
+              value:
+                data:
+                  source: candidates
+                  complete: false
+                  issues:
+                    - { code: ACCESS_REVIEW_FAILED, count: 1 }
+                  namespaces:
+                    - name: team-b
+                      phase: Unknown
+                      actions: { view: true, deploy: false, edit: false, delete: false, manageTokenAuth: false }
+                      permissions:
+                        serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: denied, update: denied, patch: denied, delete: error }
+                        serving.kserve.io/llminferenceserviceconfigs: { get: denied, list: denied }
+                        core/secrets: { create: denied, get: denied, update: denied, patch: denied, delete: denied }
+                        core/pods: { get: denied, list: denied }
+                        core/namespaces: { get: denied }
+                  shared:
+                    namespace: opendatahub
+                    permissions:
+                      infrastructure.opendatahub.io/hardwareprofiles: { get: allowed, list: allowed }
+                      serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed }
 
     NamespaceAccessResponse:
       headers:
@@ -2722,7 +2774,7 @@ components:
               actions: { view: true, deploy: true, edit: true, delete: true, manageTokenAuth: true }
               permissions:
                 serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
-                core/secrets: { create: allowed, get: allowed, patch: allowed, delete: allowed }
+                core/secrets: { create: allowed, get: allowed, update: allowed, patch: allowed, delete: allowed }
 
     NamespacesResponse:
       headers:
@@ -3073,6 +3125,26 @@ components:
               code: 'SERVICE_UNAVAILABLE'
               message: 'the upstream service is temporarily unavailable'
               requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
+
+    NamespaceDiscoveryUnavailable:
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      description: >-
+        Discovery decided nothing because every source or review failed. issues
+        tells a candidate-source failure (for example LABEL_DISCOVERY_FAILED) from
+        an authorization-service failure (ACCESS_REVIEW_FAILED).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceDiscoveryUnavailableEnvelope'
+          example:
+            error:
+              code: 'SERVICE_UNAVAILABLE'
+              message: 'the upstream service is temporarily unavailable'
+              requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
+              issues:
+                - { code: LABEL_DISCOVERY_FAILED, count: 1 }
 
     BFFForbidden:
       headers:

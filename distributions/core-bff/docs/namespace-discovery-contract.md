@@ -51,6 +51,14 @@ the caller's own reviews allow at least one action in it.
 `source: candidates` tells the UI the list is not exhaustive and manual entry should stay
 available.
 
+With `cluster-list`, the caller's list is also authoritative for what exists: a `namespace` query
+parameter it does not contain is dropped, rather than reported as usable from cluster-wide grants.
+The candidate cap does not apply to it, so a caller who could already list every namespace keeps
+seeing every one they are authorized in (see [Cost](#cost)).
+
+`NAMESPACE_DISCOVERY_LABEL_SELECTOR` is trimmed once at startup; a whitespace-only value disables
+label discovery, as validation treats it, instead of matching every namespace.
+
 ### The service-account exception
 
 The label enumeration is the only place discovery uses the dashboard service account. The BFF
@@ -91,7 +99,7 @@ not returned, and its remaining reviews are skipped.
 | `serving.kserve.io/llminferenceservices`           | `get` `list` `watch` `create` `update` `patch` `delete`  | Model lifecycle: list/inspect/watch, deploy, edit, delete (finalizers run server-side) |
 | `serving.kserve.io/llminferenceserviceconfigs`     | `get` `list`                                             | Namespace-local configs the wizard offers                                       |
 | `core/pods`                                        | `get` `list`                                             | Deployment status and troubleshooting                                           |
-| `core/secrets`                                     | `create` `get` `patch` `delete`                          | Token-authentication Secrets; `patch` sets the owner reference to the LLMInferenceService, `delete` is explicit cleanup |
+| `core/secrets`                                     | `create` `get` `update` `patch` `delete`                 | Token-authentication Secrets; `update` replaces an existing token Secret, `patch` sets the owner reference to the LLMInferenceService, `delete` is explicit cleanup |
 | `core/namespaces`                                  | `get` (on the namespace itself)                          | Whether display name and phase can be read                                      |
 
 Cleanup of owned Secrets after a delete is Kubernetes garbage collection and needs no caller
@@ -132,7 +140,7 @@ missing role; if nothing else decides, that review is reported as `error` as wel
 | `deploy`          | `llminferenceservices` `create`                              |
 | `edit`            | `llminferenceservices` `patch` and `update`                  |
 | `delete`          | `llminferenceservices` `delete`                              |
-| `manageTokenAuth` | `secrets` `create`, `get`, `patch`, `delete`                 |
+| `manageTokenAuth` | `secrets` `create`, `get`, `update`, `patch`, `delete`       |
 
 An action is `true` only when every review it needs is `allowed`; a `denied` or `error` review
 hides it. A namespace is returned when at least one action is `true`. Admin flags, admission,
@@ -151,8 +159,8 @@ user gets `view` only and is offered no mutation.
 | Namespace does not exist, caller holds cluster-wide grants on matrix resources but no `get namespaces` | listed with `phase: Unknown` | 200 with `phase: Unknown` |
 | Namespace does not exist, caller may read it               | not listed                                              | 404             |
 | Some reviews or a source failed, and at least one candidate was decided (authorized, denied or not found; a candidate is denied when no action is possible even if every failed review had been allowed) | 200, `complete: false`, `issues` lists codes and counts, including failures in namespaces that are still returned; `namespaces` may be empty | 503 if no action could be decided |
-| Nothing could be decided: every candidate's reviews failed, or there were no candidates and a source failed | 503 `SERVICE_UNAVAILABLE` | 503 |
-| More than 200 candidates                                   | 200, requested names first then the rest by name, `CANDIDATES_TRUNCATED` | n/a |
+| Nothing could be decided: every candidate's reviews failed, or there were no candidates and a source failed | 503 `SERVICE_UNAVAILABLE`, `error.issues` lists the codes and counts | 503 |
+| More than 200 candidates with `source: candidates`         | 200, requested names first then the rest by name, `CANDIDATES_TRUNCATED` | n/a |
 | Request deadline (25 s) expired                            | pending reviews count as failed, `DISCOVERY_DEADLINE_EXCEEDED`; 200 or 503 by the rows above | 503, even if an action was already allowed |
 
 `issues` never contains a namespace name, and error responses never echo one, so a failure cannot
@@ -188,7 +196,18 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
 - Only `source: cluster-list` with `complete: true` is a complete listing. Anything else
   (`source: candidates`, failed reviews, the candidate cap) is shown as a partial listing: the
   authorized namespaces appear and manual entry stays available.
-- A `503` keeps manual entry available too, since looking a namespace up by name can still work.
+- A `503` falls back to `GET /api/v1/namespaces`, so a caller who may list namespaces keeps the
+  list they had before discovery (without deploy access, as on other platforms). For anyone else
+  it keeps manual entry available, since looking a namespace up by name can still work.
+- `projects` and `modelServingProjects` hold only namespaces with `actions.view`: listing
+  deployments in a create-only namespace would fail. A create-only namespace is still a deployment
+  target.
+- `getProjectDeploymentActions` on `ProjectsContext` carries `actions.edit` and `actions.delete`;
+  the deployments table offers Edit and Delete only where each is allowed.
+- A lookup the BFF denies (`403`, or `404` for a missing namespace) drops the project this session
+  cached, so it is no longer offered as a target. A failed lookup keeps it. A new deployment is
+  valid only while its project is still a deployment target; editing an existing deployment is not
+  affected.
 - `Active` and `Unknown` namespaces are selectable; `Terminating` ones are not.
 - Only namespaces with `actions.deploy` are deployment targets. The provider sets
   `deploymentTargetProjects` on `ProjectsContext`; the model deployment wizard's project selector,
@@ -200,12 +219,13 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
 
 ## Cost
 
-For each candidate, the 10 action reviews; for a namespace that is returned, 5 more matrix reviews
-plus the named `get` (16 in all), and one namespace read when permitted. Reviews run concurrently
+For each candidate, the 11 action reviews; for a namespace that is returned, 5 more matrix reviews
+plus the named `get` (17 in all), and one namespace read when permitted. Reviews run concurrently
 with at most 16 in flight per request, which is what bounds the load on the API server. The
 caller's per-request client allows 400 requests per second (burst 800) instead of client-go's 5/10
-default, which would otherwise throttle discovery to minutes. A request evaluates at most
-200 candidates and stops after 25 seconds, below the server's 60-second write timeout. Results are
+default, which would otherwise throttle discovery to minutes. A request from configured
+candidates and label discovery evaluates at most 200 of them; a caller's own cluster list is not
+capped. Every request stops after 25 seconds, below the server's 60-second write timeout. Results are
 not cached server-side; the response carries the per-identity no-store headers from the bootstrap
 contract.
 
@@ -228,7 +248,7 @@ contract.
           "serving.kserve.io/llminferenceservices": { "get": "allowed", "list": "allowed", "watch": "allowed", "create": "denied", "update": "denied", "patch": "denied", "delete": "denied" },
           "serving.kserve.io/llminferenceserviceconfigs": { "get": "denied", "list": "denied" },
           "core/pods": { "get": "denied", "list": "denied" },
-          "core/secrets": { "create": "denied", "get": "denied", "patch": "denied", "delete": "denied" },
+          "core/secrets": { "create": "denied", "get": "denied", "update": "denied", "patch": "denied", "delete": "denied" },
           "core/namespaces": { "get": "allowed" }
         }
       }

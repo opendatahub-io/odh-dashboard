@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,6 +15,9 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	clienttesting "k8s.io/client-go/testing"
 )
 
 // These run against envtest, whose API server authorizes the reviews with real
@@ -175,4 +179,31 @@ func mustField(t *testing.T, body []byte, field string) json.RawMessage {
 	v, ok := env.Data[field]
 	require.True(t, ok, "missing %s", field)
 	return v
+}
+
+func TestNamespaceAccess_UnavailableCarriesTheIssueCodes(t *testing.T) {
+	failingSA := k8sfake.NewSimpleClientset()
+	failingSA.PrependReactor("list", "namespaces", func(clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("label lookup failed")
+	})
+	app := newTestApp(func(a *App) {
+		a.config.PlatformType = config.PlatformXKS
+		a.repositories.NamespaceAccess = repositories.NewNamespaceAccessRepository(nil, "team=ai", failingSA, "opendatahub")
+	})
+	rr := httptest.NewRecorder()
+	app.GetNamespaceAccessHandler(rr, namespaceAccessRequest(k8mocks.DefaultTestUsers[2], NamespaceAccessPath), nil)
+
+	require.Equal(t, http.StatusServiceUnavailable, rr.Code, rr.Body.String())
+	var body struct {
+		Error struct {
+			Code      string                           `json:"code"`
+			RequestID string                           `json:"requestId"`
+			Issues    []models.NamespaceDiscoveryIssue `json:"issues"`
+		} `json:"error"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+	assert.Equal(t, "SERVICE_UNAVAILABLE", body.Error.Code)
+	assert.NotEmpty(t, body.Error.RequestID)
+	assert.Contains(t, body.Error.Issues, models.NamespaceDiscoveryIssue{Code: models.IssueLabelDiscoveryFailed, Count: 1},
+		"the cause tells a candidate-source failure from an authorization failure")
 }

@@ -243,7 +243,7 @@ func createLLMInferenceServiceRBAC(ctx context.Context, client k8sclient.Interfa
 		rules = append(rules, rbacv1.PolicyRule{
 			APIGroups: []string{""},
 			Resources: []string{"secrets"},
-			Verbs:     []string{"create", "get", "patch", "delete"},
+			Verbs:     []string{"create", "get", "update", "patch", "delete"},
 		})
 	}
 	rules = append(rules, rbacv1.PolicyRule{

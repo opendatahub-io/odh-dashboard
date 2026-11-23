@@ -275,6 +275,10 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	// value too: Header.Get, the proxy strip list, CORS and Vary all use it.
 	sc.Env.AuthTokenHeader = strings.TrimSpace(sc.Env.AuthTokenHeader)
 
+	// Normalized once, so validation and discovery read the same value: a
+	// whitespace-only selector would otherwise pass as empty and match every namespace.
+	sc.Env.NamespaceDiscoveryLabelSelector = strings.TrimSpace(sc.Env.NamespaceDiscoveryLabelSelector)
+
 	// Any nonempty value is a list the operator set, including whitespace only.
 	if authTokenHeadersRaw != "" && len(sc.Env.AuthTokenHeaders) == 0 {
 		return sc, errors.New("AUTH_TOKEN_HEADERS/--auth-token-headers is set but names no header (value omitted); list at least one header or leave it unset")

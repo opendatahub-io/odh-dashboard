@@ -7,6 +7,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
@@ -30,6 +31,30 @@ func (app *App) namespaceAccessErrorResponse(w http.ResponseWriter, r *http.Requ
 		app.serviceUnavailableResponse(w, r, err)
 	default:
 		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// namespaceDiscoveryUnavailableError is the 503 body for a discovery that
+// decided nothing. Its issues say which source or review failed, so a client
+// can tell a candidate-source failure from an authorization-service failure.
+type namespaceDiscoveryUnavailableError struct {
+	Error struct {
+		httpcontract.ErrorPayload
+		Issues []models.NamespaceDiscoveryIssue `json:"issues"`
+	} `json:"error"`
+}
+
+func (app *App) namespaceDiscoveryUnavailableResponse(w http.ResponseWriter, r *http.Request, err error, issues []models.NamespaceDiscoveryIssue) {
+	app.logRejection(r, err, http.StatusServiceUnavailable)
+	var body namespaceDiscoveryUnavailableError
+	body.Error.ErrorPayload = httpcontract.Local(http.StatusServiceUnavailable).Error
+	body.Error.RequestID = httpcontract.EnsureID(w, r)
+	body.Error.Issues = issues
+	if body.Error.Issues == nil {
+		body.Error.Issues = []models.NamespaceDiscoveryIssue{}
+	}
+	if writeErr := app.WriteJSON(w, http.StatusServiceUnavailable, body, nil); writeErr != nil {
+		app.LogError(r, writeErr)
 	}
 }
 
@@ -68,6 +93,10 @@ func (app *App) GetNamespaceAccessHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	list, err := app.repositories.NamespaceAccess.Discover(ctx, client, identity, requested)
+	if errors.Is(err, repositories.ErrNamespaceDiscoveryUnavailable) {
+		app.namespaceDiscoveryUnavailableResponse(w, r, err, list.Issues)
+		return
+	}
 	if err != nil {
 		app.namespaceAccessErrorResponse(w, r, err)
 		return
