@@ -1,3 +1,4 @@
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import type { ProjectKind, PodKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
@@ -199,9 +200,33 @@ describe('useWatchDeployments', () => {
     expect(errors).toContain(mockError);
   });
 
+  it('should expose ordered model Pods from the existing project watch', () => {
+    const pod = (name: string, model?: string) =>
+      mockPodK8sResource({
+        name,
+        labels: model ? { 'serving.kserve.io/inferenceservice': model } : undefined,
+      });
+    const first = pod('first', 'model-1');
+    const second = pod('second', 'model-1');
+    mockUseWatchDeploymentPods.mockReturnValue([
+      [pod('other', 'model-2'), first, pod('unlabeled'), second],
+      true,
+      undefined,
+    ]);
+    const { result } = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+    expect(result.current[0]?.[0]?.podDiscovery).toEqual({ pods: [first, second], loaded: true });
+    expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, undefined, true);
+  });
+
   it('should pass through error state from deployment pods', () => {
     const mockError = new Error('Failed to fetch deployment pods');
-    mockUseWatchDeploymentPods.mockReturnValue([[], true, mockError]);
+    mockUseWatchDeploymentPods.mockReturnValue([[], false, mockError]);
+    const { result } = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+    expect(result.current[0]?.[0]?.podDiscovery).toEqual({
+      pods: [],
+      loaded: false,
+      error: mockError,
+    });
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
 

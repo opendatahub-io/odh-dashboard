@@ -1,3 +1,4 @@
+import { isModelServingEventsDiscovery } from '@odh-dashboard/model-serving/extension-points';
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import extensions, { KSERVE_ID } from '../../extensions';
 import { SERVING_RUNTIME_TEMPLATES_TAB_PATH } from '../../src/settings/servingRuntimeTemplates/paths';
@@ -11,6 +12,37 @@ const servingRuntimeTemplatesTab = extensions.find(
 );
 
 describe('KServe UI capability gating', () => {
+  it('should register the Standard KServe Events discovery inputs', () => {
+    const inputs = extensions.filter(isModelServingEventsDiscovery);
+    expect(inputs).toEqual([
+      expect.objectContaining({
+        flags: { required: [SupportedArea.K_SERVE] },
+        properties: {
+          platform: KSERVE_ID,
+          modelLabelSelector: expect.any(Function),
+          resources: [
+            {
+              apiGroup: 'apps',
+              apiVersion: 'v1',
+              kind: 'Deployment',
+              plural: 'deployments',
+              scope: 'model',
+            },
+            {
+              apiGroup: 'apps',
+              apiVersion: 'v1',
+              kind: 'ReplicaSet',
+              plural: 'replicasets',
+              scope: 'model',
+            },
+          ],
+        },
+      }),
+    ]);
+    expect(inputs[0]?.properties.modelLabelSelector('test-model')).toEqual({
+      'serving.kserve.io/inferenceservice': 'test-model',
+    });
+  });
   const kserveArea = extensions.find(
     (extension) =>
       extension.type === 'app.area' && extension.properties.id === SupportedArea.K_SERVE,

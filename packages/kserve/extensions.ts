@@ -2,6 +2,7 @@
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import type {
   ModelServingDeleteModal,
+  ModelServingEventsDiscovery,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingMetricsExtension,
   ModelServingAuthExtension,
@@ -161,6 +162,7 @@ export const kserveFormDataExtension: ModelServingDeploymentFormDataExtension<KS
 
 const extensions: (
   | AreaExtension
+  | ModelServingEventsDiscovery
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentFormDataExtension<KServeDeployment>
   | ModelServingAuthExtension<KServeDeployment>
@@ -219,6 +221,30 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.K_SERVE],
+    },
+  },
+  {
+    type: 'model-serving.platform/events-discovery',
+    flags: { required: [SupportedArea.K_SERVE] },
+    properties: {
+      platform: KSERVE_ID,
+      modelLabelSelector: (name) => ({ 'serving.kserve.io/inferenceservice': name }),
+      resources: [
+        {
+          apiGroup: 'apps',
+          apiVersion: 'v1',
+          kind: 'Deployment',
+          plural: 'deployments',
+          scope: 'model',
+        },
+        {
+          apiGroup: 'apps',
+          apiVersion: 'v1',
+          kind: 'ReplicaSet',
+          plural: 'replicasets',
+          scope: 'model',
+        },
+      ],
     },
   },
   {
