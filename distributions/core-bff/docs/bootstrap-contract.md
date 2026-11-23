@@ -155,7 +155,12 @@ For the xKS profile the dashboard **service account** needs:
 | Resource                                       | Verbs  | Needed for                                                                                               |
 | ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
 | `odhdashboardconfigs` (`opendatahub.io`)       | `get`  | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                      |
-| `odhapplications` (`dashboard.opendatahub.io`) | `list` | `/api/components`. **Required when the OdhApplication API is installed**: a forbidden list is an error. Only an absent API or no instances degrades to an empty list. |
+| `odhapplications` (`dashboard.opendatahub.io`) | `list` | `/api/components`. **Always required**, also when the OdhApplication API is not installed: the API server authorizes a request before it resolves the resource, so without this rule an absent API is a 403. A forbidden list is an error. With the rule granted, an absent API or no instances degrades to an empty list. |
+
+Both rules are namespaced and the BFF reads in its dashboard namespace (`NAMESPACE`), so the
+Deployment sets `NAMESPACE` to the pod's own namespace, where the Role is bound. The shipped Roles
+are exercised against an API server without the OdhApplication API in
+`bff/internal/api/components_sa_rbac_test.go`.
 
 `auths` is **not** in this list. In `authenticated` mode it is never read, which is the point: the
 service-account RBAC can be reduced to the reads above without introducing an undocumented
