@@ -1075,7 +1075,7 @@ class WorkbenchStatusModal extends Modal {
     return cy.findByTestId('expand-resources');
   }
 
-  findLogEntry(text: string) {
+  findLogEntry(text: string | RegExp) {
     return cy.findByTestId('event-logs').find('li span').contains(text);
   }
 

@@ -48,6 +48,7 @@ import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
 import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+import BenchmarkTestDataRefFields from '~/app/components/BenchmarkTestDataRefFields';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField';
 import SourceModelFields from '~/app/components/SourceModelFields';
@@ -55,7 +56,7 @@ import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import HardwareProfileField from '~/app/components/HardwareProfileField';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   useStartEvaluationRunForm,
@@ -74,6 +75,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   initialValues,
   sourceJobId,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
@@ -137,7 +140,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
         providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
       },
     );
-  }, [benchmark, collection, dataLoaded, isReconfigure, loadError]);
+  }, [trackEvalHubEvent, benchmark, collection, dataLoaded, isReconfigure, loadError]);
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select collection' : 'Select benchmark';
 
@@ -456,10 +459,23 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               accessToken={form.accessToken}
               onAccessTokenChange={form.setAccessToken}
               datasetUrlError={form.datasetUrlError}
+              accessTokenError={form.accessTokenError}
               touched={form.touched}
               markTouched={form.markTouched}
             />
           )}
+
+          {/* ── Test data (single benchmark, model mode) ─────── */}
+          {!isCollectionFlow && form.sourceMode === 'model' ? (
+            <BenchmarkTestDataRefFields
+              value={form.testDataRef}
+              idPrefix="start-evaluation"
+              testIdPrefix="start-evaluation-test-data-ref"
+              isRequired={form.testDataRefRequired}
+              errors={form.testDataRefErrors}
+              onChange={form.setTestDataRef}
+            />
+          ) : null}
 
           <HardwareProfileField
             availability={form.kueueAvailability}
@@ -468,8 +484,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             error={form.hardwareProfilesError}
             compatibilityError={form.hardwareProfileCompatibilityError}
             selectedProfile={form.hardwareProfile}
+            selectionLost={form.hardwareProfileSelectionLost}
             onSelect={(profile) => form.setHardwareProfile(profile?.name)}
-            isRequired={form.requiresHardwareProfile}
           />
 
           {/* ── Benchmark display ──────────────────────────────── */}

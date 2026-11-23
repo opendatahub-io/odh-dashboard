@@ -303,6 +303,23 @@
   gap: var(--pf-t--global--spacer--md);
 }
 
+// Details drawer click region: the title and body open the drawer while the kebab,
+// metadata tooltips, and footer actions keep their own behavior. Text selection is
+// disabled so click attempts do not highlight the description; the same description
+// stays selectable in the details drawer that the click opens.
+.evalhub-benchmark-suite-card.m-clickable {
+  .evalhub-benchmark-suite-card__title,
+  .evalhub-benchmark-suite-card__body {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .evalhub-benchmark-suite-card__title:hover .evalhub-benchmark-suite-card__title-name {
+    text-decoration-color: var(--pf-t--global--text-decoration--color--hover);
+    text-decoration-line: var(--pf-t--global--text-decoration--link--line--hover);
+  }
+}
+
 .evalhub-benchmark-suite-card__metadata {
   align-items: baseline;
   display: flex;

@@ -1,4 +1,5 @@
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import type { DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
@@ -6,6 +7,32 @@ import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 import { isAreaAvailable } from '#~/concepts/areas/utils';
 
 describe('isAreaAvailable', () => {
+  describe('community plugins settings', () => {
+    it('should show the settings area when the dashboard feature flag is not disabled', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.COMMUNITY_PLUGINS_SETTINGS,
+        mockDashboardConfig({}).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ hideCommunityPluginsSettingsPage: 'on' });
+    });
+
+    it('should hide the settings area when the dashboard feature flag disables it', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.COMMUNITY_PLUGINS_SETTINGS,
+        mockDashboardConfig({ hideCommunityPluginsSettingsPage: true }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ hideCommunityPluginsSettingsPage: 'off' });
+    });
+  });
+
   describe('v1 Operator (deprecated)', () => {
     it('should enable component (flag true)', () => {
       const isAvailable = isAreaAvailable(
@@ -311,7 +338,7 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.devFlags).toEqual({ [testDevFlag]: 'on' });
       });
 
-      it('should disable Guided Tour by default when guidedTour is unset', () => {
+      it('should enable Guided Tour by default when guidedTour is unset', () => {
         const isAvailable = isAreaAvailable(
           SupportedArea.GUIDED_TOUR,
           mockDashboardConfig({}).spec,
@@ -319,9 +346,22 @@ describe('isAreaAvailable', () => {
           null,
         );
 
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.devFlags).toEqual({ guidedTour: 'on' });
+        expect(isAvailable.featureFlags).toBe(null);
+      });
+
+      it('should disable Guided Tour when guidedTour is overridden to false', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.GUIDED_TOUR,
+          mockDashboardConfig({}).spec,
+          null,
+          null,
+          { internalStateMap: SupportedAreasStateMap, flagState: { guidedTour: false } },
+        );
+
         expect(isAvailable.status).toBe(false);
         expect(isAvailable.devFlags).toEqual({ guidedTour: 'off' });
-        expect(isAvailable.featureFlags).toBe(null);
       });
 
       it('should disable Unified Project Selector by default', () => {
@@ -544,6 +584,90 @@ describe('isAreaAvailable', () => {
 
       expect(isAvailable.status).toBe(true);
       expect(isAvailable.featureFlags).toEqual({ roleManagement: 'on' });
+    });
+  });
+
+  describe('DS_PIPELINES_ARGO_INVALID area', () => {
+    const argoCondition = (status: string) => [{ type: 'CapabilityDSPv2Argo', status }];
+
+    it('should be available when an unmanaged Argo install blocks pipelines', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.DS_PIPELINES_ARGO_INVALID,
+        mockDashboardConfig({ disablePipelines: false }).spec,
+        mockDscStatus({ conditions: argoCondition('False') }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+    });
+
+    it('should be unavailable when the DSC status is null', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.DS_PIPELINES_ARGO_INVALID,
+        mockDashboardConfig({ disablePipelines: false }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+    });
+
+    it.each(['True', 'Unknown'])(
+      'should be unavailable when the Argo condition is %s',
+      (status) => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.DS_PIPELINES_ARGO_INVALID,
+          mockDashboardConfig({ disablePipelines: false }).spec,
+          mockDscStatus({ conditions: argoCondition(status) }),
+          null,
+        );
+
+        expect(isAvailable.status).toBe(false);
+      },
+    );
+
+    // `conditions` is typed as required, but the backend spreads live DSC status onto the
+    // response, so a status object without it can reach the UI. Must not throw — an exception
+    // here would break AreaContextProvider for every area, not just this one.
+    it('should stay unavailable when the DSC status has no conditions array', () => {
+      const dscStatus = mockDscStatus({});
+      delete (dscStatus as Partial<DataScienceClusterKindStatus>).conditions;
+
+      const run = () =>
+        isAreaAvailable(
+          SupportedArea.DS_PIPELINES_ARGO_INVALID,
+          mockDashboardConfig({ disablePipelines: false }).spec,
+          dscStatus,
+          null,
+        );
+
+      expect(run).not.toThrow();
+      expect(run().status).toBe(false);
+    });
+
+    it('should be unavailable when the Argo condition is absent', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.DS_PIPELINES_ARGO_INVALID,
+        mockDashboardConfig({ disablePipelines: false }).spec,
+        mockDscStatus({ conditions: [] }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+    });
+
+    // Pins the deliberate omission of `reliantAreas: [DS_PIPELINES]`. This area reports a pipelines
+    // failure, so it must not be gated on pipelines being available.
+    it('should stay available when pipelines are disabled', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.DS_PIPELINES_ARGO_INVALID,
+        mockDashboardConfig({ disablePipelines: true }).spec,
+        mockDscStatus({ conditions: argoCondition('False') }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.reliantAreas).toBe(null);
     });
   });
 

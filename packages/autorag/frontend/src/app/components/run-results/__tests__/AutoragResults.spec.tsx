@@ -4,7 +4,7 @@ import { fireEvent, render, screen, within, waitFor } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 import {
@@ -22,6 +22,13 @@ import * as useAutoragTaskTopologyModule from '~/app/topology/useAutoragTaskTopo
 import * as utils from '~/app/utilities/utils';
 import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import { resolveObjectiveReference } from '~/app/utilities/metricUtils';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 const mockFetchS3File = jest.fn();
 
@@ -106,13 +113,6 @@ jest.mock('~/app/hooks/useCreateIndexingPipelineRunMutation', () => ({
     reset: jest.fn(),
   }),
 }));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
   usePatternEvaluationResults: jest.fn().mockReturnValue({
@@ -288,7 +288,10 @@ describe('AutoragResults', () => {
     namespace = 'test-namespace',
     contextOverrides?: Partial<AutoragResultsContextProps>,
     props?: React.ComponentProps<typeof AutoragResults>,
-  ) => render(createResultsElement(pipelineRun, patterns, namespace, contextOverrides, props));
+  ) =>
+    renderWithTracking(
+      createResultsElement(pipelineRun, patterns, namespace, contextOverrides, props),
+    );
 
   it('should render the pipeline visualization component', () => {
     renderWithContext(mockPipelineRun);
@@ -373,7 +376,7 @@ describe('AutoragResults', () => {
         expect(screen.getByText('Notebook download failed')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('Pattern: Pattern1')).toBeInTheDocument();
+      expect(screen.getByText('Pattern: Pattern A')).toBeInTheDocument();
       expect(screen.getByText('S3 connection failed', { exact: false })).toBeInTheDocument();
     });
 
@@ -381,7 +384,7 @@ describe('AutoragResults', () => {
       const testPattern = createMockPattern('Pattern1');
       const patterns = { Pattern1: testPattern };
 
-      render(
+      renderWithTracking(
         <MemoryRouter initialEntries={['/autorag/results']}>
           <Routes>
             <Route
@@ -535,12 +538,12 @@ describe('AutoragResults', () => {
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(
           mockBlob,
-          'My AutoRAG Run_Pattern1_indexing_notebook.ipynb',
+          'My AutoRAG Run_PatternA_indexing_notebook.ipynb',
         );
       });
 
       expect(screen.queryByText('Notebook download failed')).not.toBeInTheDocument();
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
         notebookType: 'indexing',
       });
     });
@@ -571,10 +574,10 @@ describe('AutoragResults', () => {
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(
           mockBlob,
-          'My AutoRAG Run_Pattern1_inference_notebook.ipynb',
+          'My AutoRAG Run_PatternA_inference_notebook.ipynb',
         );
       });
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
         notebookType: 'inference',
       });
     });
@@ -600,7 +603,7 @@ describe('AutoragResults', () => {
         expect(screen.getByText('Notebook download failed')).toBeInTheDocument();
       });
 
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED,
         expect.anything(),
       );
@@ -638,7 +641,7 @@ describe('AutoragResults', () => {
       await pendingDownload;
       await waitFor(() => {
         expect(downloadBlobMock).not.toHaveBeenCalled();
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        expect(trackEventMock).not.toHaveBeenCalledWith(
           AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED,
           expect.anything(),
         );
@@ -668,7 +671,7 @@ describe('AutoragResults', () => {
       await pendingDownload.catch(() => undefined);
 
       expect(downloadBlobMock).not.toHaveBeenCalled();
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED,
         expect.anything(),
       );
@@ -711,10 +714,10 @@ describe('AutoragResults', () => {
       resolveSecondDownload(secondBlob);
       await waitFor(() => {
         expect(downloadBlobMock).toHaveBeenCalledTimes(2);
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
           notebookType: 'indexing',
         });
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
           notebookType: 'inference',
         });
       });
@@ -1071,6 +1074,7 @@ describe('AutoragResults', () => {
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
 
       const row = screen.getByTestId('leaderboard-row-1');
+      expect(within(row).getByText('Pattern A')).toBeInTheDocument();
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
 
       fireEvent.click(screen.getByText('Try this pattern'));
@@ -1194,10 +1198,9 @@ describe('AutoragResults', () => {
 
       fireEvent.click(screen.getByTestId('pattern-link-1'));
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
-        { source: 'resultsTable' },
-      );
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED, {
+        source: 'resultsTable',
+      });
     });
 
     it('should select a pattern by record key when its display name differs', async () => {
@@ -1227,10 +1230,9 @@ describe('AutoragResults', () => {
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
       fireEvent.click(screen.getByText('View details'));
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
-        { source: 'resultsTable' },
-      );
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED, {
+        source: 'resultsTable',
+      });
     });
 
     it('should select a pattern by record key from the row kebab action', async () => {
@@ -1275,13 +1277,13 @@ describe('AutoragResults', () => {
       renderWithContext(mockPipelineRun, patterns);
 
       fireEvent.click(screen.getByTestId('pattern-link-1'));
-      fireMiscTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
 
       fireEvent.change(screen.getByTestId('pattern-selector-dropdown'), {
         target: { value: '1' },
       });
 
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
         expect.anything(),
       );

@@ -163,7 +163,7 @@ Given a set of issues (typically from triage Fetch), analyze each issue and prod
 - **Standalone backlog labeling**: Find backlog issues missing area labels. Includes the standard filters from `jira-project-reference.md` § Standard Query Filters:
 
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND type in ({triage_types})
@@ -195,7 +195,7 @@ All values come from `jira-project-reference.md`. Include `resolution = Unresolv
 
 **Issues with area labels (audit for correctness):**
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND type in ({triage_types})

@@ -1,5 +1,8 @@
 import type { SourceMode } from '~/app/types';
 
+// S3 bucket naming rules: 3-63 characters of lowercase letters, numbers, dots, and hyphens
+export const S3_BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
+
 export const isValidUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
@@ -21,6 +24,13 @@ export const getUrlValidationError = (url: string): string | undefined => {
   }
   return undefined;
 };
+
+export const RECOGNIZED_CONNECTION_ERROR_CODES = new Set([
+  'CONNECTION_FAILED',
+  'TIMEOUT',
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+]);
 
 export const getUserFriendlyConnectionError = (
   errorCode: string | undefined,

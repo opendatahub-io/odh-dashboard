@@ -1,0 +1,96 @@
+name: Fullsend Jira code run
+run-name: Jira poll ${{ inputs.poll_run_id }} record ${{ inputs.record_index }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      poll_run_id:
+        description: Trusted main-branch poll run ID
+        required: true
+        type: string
+      poll_attempt:
+        description: Poll run attempt
+        required: true
+        type: string
+      record_index:
+        description: Zero-based index in the poll artifact
+        required: true
+        type: string
+
+permissions: {}
+
+# Runs one record from fullsend-poll-jira.yaml (the fullsend#8961 fan-out).
+
+jobs:
+  validate:
+    if: vars.FULLSEND_JIRA_CODE_ENABLED == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      matrix: ${{ steps.record.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      # Inputs identify an artifact, never an event payload or executable ref.
+      # The poll run must be a recent main-branch run whose commit is this
+      # run's commit or an ancestor of it (main may move between the two).
+      - name: Validate poll provenance and revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          POLL_RUN_ID: ${{ inputs.poll_run_id }}
+          POLL_ATTEMPT: ${{ inputs.poll_attempt }}
+        run: python3 .fullsend/scripts/jira_dispatch.py validate
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: jira-dispatches-${{ inputs.poll_attempt }}
+          run-id: ${{ inputs.poll_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Select one trusted dispatch record
+        id: record
+        env:
+          RECORD_INDEX: ${{ inputs.record_index }}
+        run: python3 .fullsend/scripts/jira_dispatch.py select
+
+  code:
+    needs: validate
+    if: needs.validate.outputs.matrix != ''
+    # The union of what reusable-dispatch.yml's jobs request. GitHub refuses
+    # to start a reusable workflow when any of its jobs, skipped ones
+    # included, asks for more than the caller grants, so none can be dropped.
+    # The job that runs here (harness-run) asks for contents: read; pushes and
+    # PRs use the coder GitHub App token the mint issues, not GITHUB_TOKEN.
+    # test_jira_dispatch.py pins this set.
+    permissions:
+      actions: write
+      id-token: write
+      contents: write
+      issues: write
+      packages: read
+      pull-requests: write
+    # v0.54.0. Keep in step with fullsend-poll-jira.yaml.
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@90b7310ff8751a3c70e5d68214770dc168a1cbe7
+    with:
+      matrix: ${{ needs.validate.outputs.matrix }}
+      install_mode: per-repo
+      mint_url: ${{ vars.FULLSEND_MINT_URL }}
+      gcp_region: ${{ vars.FULLSEND_GCP_REGION }}
+      project_number: ${{ vars.FULLSEND_PROJECT_NUMBER }}
+      jira_base_url: https://redhat.atlassian.net
+      runner_image: ubuntu-24.04
+    secrets:
+      # The post-script links the PR on the Jira issue as the bot account.
+      JIRA_TOKEN: ${{ secrets.FULLSEND_JIRA_BOT_TOKEN }}
+      JIRA_USER_EMAIL: ${{ secrets.FULLSEND_JIRA_BOT_EMAIL }}
+      FULLSEND_GCP_WIF_PROVIDER: ${{ secrets.FULLSEND_GCP_WIF_PROVIDER }}
+      FULLSEND_GCP_PROJECT_ID: ${{ secrets.FULLSEND_GCP_PROJECT_ID }}
+      FULLSEND_OPENAI_API_KEY: ${{ secrets.FULLSEND_OPENAI_API_KEY }}
+      OTEL_EXPORTER_OTLP_TRACES_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_TRACES_HEADERS }}
+      OTEL_EXPORTER_OTLP_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}

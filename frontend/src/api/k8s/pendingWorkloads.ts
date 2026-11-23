@@ -1,4 +1,5 @@
 import { commonFetchJSON, getK8sResourceURL } from '@openshift/dynamic-plugin-sdk-utils';
+import { mergeRequestInit, type K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { PendingWorkloadsSummary } from '#~/k8sTypes';
 import { VisibilityLocalQueueModel } from '#~/api/models/kueue';
 
@@ -9,6 +10,7 @@ import { VisibilityLocalQueueModel } from '#~/api/models/kueue';
 export const getPendingWorkloads = (
   namespace: string,
   localQueueName: string,
+  opts?: K8sAPIOptions,
 ): Promise<PendingWorkloadsSummary> =>
   commonFetchJSON<PendingWorkloadsSummary>(
     getK8sResourceURL(VisibilityLocalQueueModel, undefined, {
@@ -16,4 +18,5 @@ export const getPendingWorkloads = (
       ns: namespace,
       path: 'pendingworkloads',
     }),
+    mergeRequestInit(opts),
   );

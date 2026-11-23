@@ -8,6 +8,7 @@ import {
 import {
   getSubscriptionInfo,
   listSubscriptions,
+  listSubscriptionsFrom,
   listUserSubscriptions,
   updateSubscription,
 } from '~/app/api/subscriptions';
@@ -191,6 +192,39 @@ describe('listSubscriptions', () => {
     const result = await listSubscriptions()({} as never);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('test-sub');
+  });
+});
+
+describe('listSubscriptionsFrom', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((p: Promise<unknown>) => p);
+  });
+
+  it('should default to the all-subscriptions endpoint', async () => {
+    mockRestGET.mockResolvedValue({ data: [] });
+
+    await listSubscriptionsFrom()({} as never);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      expect.stringContaining('/all-subscriptions'),
+      {},
+      expect.anything(),
+    );
+  });
+
+  it('should use the requested endpoint', async () => {
+    mockRestGET.mockResolvedValue({ data: [] });
+
+    await listSubscriptionsFrom('admin-subscriptions')({} as never);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      expect.stringContaining('/admin-subscriptions'),
+      {},
+      expect.anything(),
+    );
   });
 });
 

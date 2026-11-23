@@ -5,8 +5,10 @@ import { isK8sStatus, passThroughResource } from './pass-through';
 import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
 import { getAccessToken, getDirectCallOptions } from './directCallUtils';
+import { bracketHostIfIPv6 } from './networkUtils';
 import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { V1Service } from '@kubernetes/client-node';
+import { getUndiciTLSOptions } from './caBundles';
 
 export const getParam = <F extends FastifyRequest<any, any>>(req: F, name: string): string =>
   (req.params as { [key: string]: string })[name];
@@ -87,6 +89,7 @@ export const proxyService =
       upstream: '',
       prefix: `${!service.namespace ? '/:namespace' : ''}${!service.name ? '/:name' : ''}`,
       rewritePrefix: '',
+      undici: tls ? getUndiciTLSOptions() : undefined,
       replyOptions: {
         // preHandler must set the `upstream` param
         getUpstream: (request) => getParam(request, 'upstream'),
@@ -113,7 +116,7 @@ export const proxyService =
           if (DEV_MODE) {
             // Use port forwarding for local development:
             // kubectl port-forward -n <namespace> svc/<service-name> <local.port>:<service.port>
-            return `${scheme}://${local.host}:${local.port}`;
+            return `${scheme}://${bracketHostIfIPv6(local.host)}:${local.port}`;
           }
           if (service.constructUrl) {
             return service.constructUrl(resource);
@@ -132,7 +135,7 @@ export const proxyService =
               }
               const address = k8sService.metadata?.annotations?.[service.addressAnnotation];
               if (address) {
-                return `${scheme}://${address}`;
+                return `${scheme}://${bracketHostIfIPv6(address)}`;
               }
               fastify.log.error(
                 `Proxy could not find address annotation on k8s service ${serviceName} in namespace ${namespace}, falling back to internal address. Annotation expected: ${service.addressAnnotation}`,
@@ -228,7 +231,8 @@ export const registerProxy = async (
     headers?: Record<string, string>;
   },
 ): Promise<void> => {
-  const scheme = tls === false ? 'http' : 'https';
+  const useTls = tls !== false;
+  const scheme = useTls ? 'https' : 'http';
   const upstream = DEV_MODE
     ? `${scheme}://${local?.host || 'localhost'}:${local?.port ?? service.port}`
     : `${scheme}://${service.name}.${service.namespace}.svc.cluster.local:${service.port}`;
@@ -237,6 +241,7 @@ export const registerProxy = async (
     prefix,
     rewritePrefix: rewritePrefix ?? '',
     upstream,
+    undici: useTls ? getUndiciTLSOptions() : undefined,
     replyOptions: {
       getUpstream: () => upstream,
       onError,

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   isConnectionType,
   isConnectionTypeDataField,
@@ -74,7 +75,6 @@ import {
   PRESET_BETTER_QUALITY,
   PRESET_FASTER,
   PRESET_LABELS,
-  PRESET_QUALITY,
   PRESETS,
   REQUIRED_CONNECTION_SECRET_KEYS,
   TASK_TYPE_TIMESERIES,
@@ -131,6 +131,7 @@ function AutomlConfigure({
   onRecommendationChange,
   onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const automlConnectionTypes = React.useMemo(
@@ -223,13 +224,6 @@ function AutomlConfigure({
   const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
   const availablePresets = isTimeseries ? TIMESERIES_PRESETS : PRESETS;
 
-  // Normalize unsupported presets on initial values as well as when switching to timeseries.
-  useEffect(() => {
-    if (isTimeseries && getValues('preset') === PRESET_QUALITY) {
-      setValue('preset', PRESET_FASTER, { shouldValidate: true });
-    }
-  }, [isTimeseries, getValues, setValue]);
-
   // Clear timeseries fields that conflict with the selected target column
   useEffect(() => {
     if (!targetColumn) {
@@ -281,7 +275,7 @@ function AutomlConfigure({
       });
       void trigger('top_n');
     }
-  }, [taskType, isTaskTypeSelected, isTimeseries, getValues, setValue, trigger]);
+  }, [taskType, isTaskTypeSelected, getValues, setValue, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
@@ -345,12 +339,15 @@ function AutomlConfigure({
   const hasFiredTrainingDataMilestoneRef = useRef(false);
   const hasFiredTargetColumnMilestoneRef = useRef(false);
 
-  const fireTrainingDataMilestoneOnce = useCallback((mode: 'select' | 'upload') => {
-    if (!hasFiredTrainingDataMilestoneRef.current) {
-      hasFiredTrainingDataMilestoneRef.current = true;
-      fireAutomlTrainingDataConfigured(mode);
-    }
-  }, []);
+  const fireTrainingDataMilestoneOnce = useCallback(
+    (mode: 'select' | 'upload') => {
+      if (!hasFiredTrainingDataMilestoneRef.current) {
+        hasFiredTrainingDataMilestoneRef.current = true;
+        fireAutomlTrainingDataConfigured(trackEvent, mode);
+      }
+    },
+    [trackEvent],
+  );
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
@@ -933,7 +930,7 @@ function AutomlConfigure({
                                     // only ever runs in response to one.
                                     if (!hasFiredTargetColumnMilestoneRef.current) {
                                       hasFiredTargetColumnMilestoneRef.current = true;
-                                      fireAutomlTargetColumnConfigured();
+                                      fireAutomlTargetColumnConfigured(trackEvent);
                                     }
                                     // Surface configure-step progress to the page so exit tracking
                                     // (cancel/abandon/breadcrumb) reports how far the user actually
@@ -1079,7 +1076,9 @@ function AutomlConfigure({
                                         <>
                                           4 vCPU / 16 GiB
                                           <br />
-                                          45-minute model-selection budget.
+                                          {isTimeseries
+                                            ? '10-minute model-selection budget.'
+                                            : '45-minute model-selection budget.'}
                                           <br />
                                           Use fewer resources to prioritize speed
                                         </>
@@ -1087,15 +1086,27 @@ function AutomlConfigure({
                                         <>
                                           8 vCPU / 32 GiB
                                           <br />
-                                          Up to 3 hours for model selection.
+                                          {isTimeseries
+                                            ? 'Up to 1 hour for model selection.'
+                                            : 'Up to 3 hours for model selection.'}
                                           <br />
                                           Use more resources to prioritize accuracy
+                                        </>
+                                      ) : isTimeseries ? (
+                                        <>
+                                          16 vCPU / 64 GiB
+                                          <br />
+                                          Up to 2 hours for model selection; data loading and refit
+                                          may extend total run time. Samples up to 10 GiB.
+                                          <br />
+                                          Choose for large datasets when maximum model search
+                                          quality is worth the longer run and higher resource use.
                                         </>
                                       ) : (
                                         <>
                                           16 vCPU / 64 GiB
                                           <br />
-                                          Up to 6 h for model selection, plus data loading and
+                                          Up to 6 hours for model selection, plus data loading and
                                           refit; samples up to 10 GiB.
                                           <br />
                                           Choose for large datasets when maximum model search
@@ -1236,7 +1247,7 @@ function AutomlConfigure({
             }
           }}
           onOutcome={(outcome) =>
-            fireAutomlS3ConnectionCreated({
+            fireAutomlS3ConnectionCreated(trackEvent, {
               outcome:
                 outcome.outcome === 'submit' ? TrackingOutcome.submit : TrackingOutcome.cancel,
               ...(outcome.success === false && { error: 'actionFailed' }),

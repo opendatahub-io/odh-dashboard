@@ -31,6 +31,9 @@ import {
   type LlmConfigRefType,
 } from '../utils';
 
+const EMPTY_LLM_INFERENCE_SERVICE_CONFIGS_RESULT: K8sWatchResult<LLMInferenceServiceConfigKind[]> =
+  [[], true, undefined];
+
 export class ConfigInUseError extends Error {
   constructor(message = CONFIG_IN_USE_ERROR_MESSAGE) {
     super(message);
@@ -237,21 +240,26 @@ export const useWatchLLMInferenceServiceConfigs = (
   namespace: string,
   matchLabels?: Record<string, string>,
   opts?: K8sAPIOptions,
+  enabled = true,
 ): K8sWatchResult<LLMInferenceServiceConfigKind[]> => {
-  return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
-      namespace,
-      ...(matchLabels && {
-        selector: {
-          matchLabels,
-        },
-      }),
-    },
+  const result = useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
+    enabled
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
+          namespace,
+          ...(matchLabels && {
+            selector: {
+              matchLabels,
+            },
+          }),
+        }
+      : null,
     LLMInferenceServiceConfigModel,
     opts,
   );
+
+  return enabled ? result : EMPTY_LLM_INFERENCE_SERVICE_CONFIGS_RESULT;
 };
 
 // --- Topology Configuration APIs ---

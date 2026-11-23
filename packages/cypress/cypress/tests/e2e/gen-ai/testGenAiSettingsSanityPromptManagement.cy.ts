@@ -10,6 +10,7 @@ import {
   startPortForward,
   stopPortForward,
   waitForResource,
+  getClusterArchitecture,
   type PortForwardHandle,
 } from '../../../utils/oc_commands/baseCommands';
 import {
@@ -37,7 +38,6 @@ import {
   chatbotPromptDrawer,
   chatbotPromptAssistant,
 } from '../../../pages/chatbotPromptManagement';
-import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
 
 type PromptManagementTestData = {
@@ -53,6 +53,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   let projectName: string;
   let globalNamespace: string;
   let servingRuntimeName: string;
+  let servingRuntimeYamlPath: string;
   let hardwareProfileName: string;
   let portForwardHandle: PortForwardHandle | null = null;
   const globalMLflowNamespacesBaselines: GlobalMLflowNamespacesBaseline[] = [];
@@ -70,9 +71,15 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       .then((yamlContent: string) => {
         promptManagementTestData = yaml.load(yamlContent) as PromptManagementTestData;
       })
-      .then(() => getVllmCpuAmd64RuntimeInfo())
-      .then((info) => {
-        servingRuntimeName = info.singleModelServingName;
+      .then(() => getClusterArchitecture())
+      .then((arch) => {
+        servingRuntimeYamlPath =
+          arch === 'arm64' ? testData.servingRuntimeArm64YamlPath : testData.servingRuntimeYamlPath;
+        return cy.fixture(servingRuntimeYamlPath, 'utf8');
+      })
+      .then((runtimeYaml: string) => {
+        const runtime = yaml.load(runtimeYaml) as { metadata: { name: string } };
+        servingRuntimeName = runtime.metadata.name;
         return cleanupServingRuntimeTemplate(servingRuntimeName);
       })
       .then(() => {
@@ -82,7 +89,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
           .then(() => waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME))
           .then(() => {
             cy.step('Deploy Gen AI model');
-            deployGenAiModel(projectName, testData);
+            deployGenAiModel(projectName, testData, servingRuntimeYamlPath, servingRuntimeName);
           });
       })
       .then(() => {
@@ -99,7 +106,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       })
       .then(() => {
         cy.step('Configure global namespaces');
-        cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
+        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
         setGlobalMLflowNamespaces([globalNamespace], globalMLflowNamespacesBaselines);
         forceDashboardConfigRefresh();
       })
@@ -118,6 +125,9 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   });
 
   after(() => {
+    if (!projectName) {
+      return;
+    }
     stopPortForward(portForwardHandle);
 
     if (globalNamespace) {
@@ -145,7 +155,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
     },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to AI asset endpoints page');
       genAiPlayground.navigateToAssets(projectName);
@@ -167,7 +177,8 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       });
 
       cy.step('Navigate to playground');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+      genAiPlayground.navigate(projectName);
+      genAiPlayground.findMessageInput({ timeout: 120000 }).should('be.visible');
 
       cy.step('Open settings panel and switch to prompt tab');
       genAiPlayground.ensureSettingsPanelOpen();

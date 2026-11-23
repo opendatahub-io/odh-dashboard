@@ -339,7 +339,7 @@ describe('Workbench page', () => {
 
   it('Cannot create workbench without a connection', () => {
     initIntercepts({ isEmpty: true });
-    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptOdh('GET /api/connection-types', []);
     cy.interceptK8sList({ model: SecretModel, ns: 'test-project' }, mockK8sResourceList([]));
 
@@ -352,7 +352,7 @@ describe('Workbench page', () => {
 
   it('Cannot create workbench without a storage', () => {
     initIntercepts({ isEmpty: true });
-    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptK8sList({ model: PVCModel, ns: 'test-project' }, mockK8sResourceList([]));
 
     workbenchPage.visit('test-project');
@@ -366,7 +366,7 @@ describe('Workbench page', () => {
 
   it('Create workbench with connection', () => {
     initIntercepts({ isEmpty: true });
-    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
     cy.interceptK8sList(
       { model: SecretModel, ns: 'test-project' },

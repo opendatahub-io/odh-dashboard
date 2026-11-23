@@ -1,8 +1,10 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
+import { ConnectionApiError } from '~/app/api/dch';
+import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import ConnectionTypesTab from '~/app/pages/ConnectionTypesTab';
 
@@ -13,6 +15,11 @@ jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
 }));
 
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
+const mockTrackEvent = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={mockTrackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: TrackingWrapper });
 const connectionTypes = [
   mockConnectionType(),
   mockConnectionType({
@@ -53,12 +60,48 @@ describe('ConnectionTypesTab', () => {
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
   });
 
-  it('should load and group connection types by capability', () => {
+  it('should use a replacement host callback without emitting during renders', async () => {
+    const firstTrackEvent = jest.fn();
+    const replacementTrackEvent = jest.fn();
+    const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([
+      [mockConnectionType({ resource: { name: 'Provider type' } })],
+      true,
+      undefined,
+    ]);
+    const tab = (
+      <MemoryRouter initialEntries={['/connection-types?project=test-project']}>
+        <ConnectionTypesTab namespace="test-project" />
+      </MemoryRouter>
+    );
+    const { rerender } = rtlRender(
+      <TrackingProvider trackEvent={firstTrackEvent}>{tab}</TrackingProvider>,
+    );
+    rerender(<TrackingProvider trackEvent={replacementTrackEvent}>{tab}</TrackingProvider>);
+
+    expect(firstTrackEvent).not.toHaveBeenCalled();
+    expect(replacementTrackEvent).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Provider type' }));
+
+    expect(firstTrackEvent).not.toHaveBeenCalled();
+    expect(replacementTrackEvent.mock.calls).toEqual([
+      [
+        'Connections Type Selected',
+        {
+          connectionTypeProvider: 'postgresql',
+          isGlobalType: false,
+          project: 'test-project',
+        },
+      ],
+    ]);
+  });
+
+  it('should load connection types and show ingestion capability badges', () => {
     renderTab();
 
     expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project');
-    expect(screen.getByRole('heading', { name: 'Full integration' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Credentials only' })).toBeTruthy();
+    expect(screen.getAllByText('Ingestion supported')).toHaveLength(2);
+    expect(screen.queryByText('No ingestion')).toBeNull();
     expect(screen.getByText('S3')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Custom source')).toBeTruthy();
@@ -83,6 +126,11 @@ describe('ConnectionTypesTab', () => {
     expect(screen.getByTestId('location').textContent).toBe(
       '/connection-types/550e8400-e29b-41d4-a716-446655440007?project=test-project',
     );
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Type Selected', {
+      connectionTypeProvider: 'postgresql',
+      isGlobalType: false,
+      project: 'test-project',
+    });
   });
 
   it('should filter connection types by name or description', async () => {
@@ -138,8 +186,8 @@ describe('ConnectionTypesTab', () => {
     );
 
     expect(screen.getByText('No matching data connection types')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Ingestion supported' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'No ingestion' })).toBeNull();
   });
 
   it('should render a loading state before connection types load', () => {
@@ -162,5 +210,19 @@ describe('ConnectionTypesTab', () => {
 
     expect(screen.getByText('Connection types request failed')).toBeTruthy();
     expect(screen.queryByText('Get started with data connection types')).toBeNull();
+  });
+
+  it('should show the unauthorized state when loading connection types is forbidden', () => {
+    mockUseConnectionTypes.mockReturnValue([
+      [],
+      false,
+      new ConnectionApiError('Access forbidden', 403),
+    ]);
+
+    renderTab();
+
+    expect(screen.getByTestId('unauthorized-error')).toBeTruthy();
+    expect(screen.getByTestId('unauthorized-error-title')).toBeTruthy();
+    expect(screen.queryByText('Unable to load data connection types')).toBeNull();
   });
 });

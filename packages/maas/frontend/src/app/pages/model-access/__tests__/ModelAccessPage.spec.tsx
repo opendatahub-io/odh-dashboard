@@ -1,0 +1,457 @@
+import * as React from 'react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { restGET } from 'mod-arch-core';
+import '@testing-library/jest-dom';
+import ModelAccessPage from '~/app/pages/model-access/ModelAccessPage';
+import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
+import { MaaSGovernanceProvider } from '~/app/context/MaaSGovernanceContext';
+import type { MaaSSubscription } from '~/app/types/subscriptions';
+import type { MaaSWhoAmI } from '~/app/types/whoami';
+
+jest.mock('mod-arch-core', () => ({
+  ...jest.requireActual('mod-arch-core'),
+  restGET: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  ApplicationsPage: ({
+    children,
+    title,
+    description,
+  }: React.PropsWithChildren<{ title: string; description: React.ReactNode }>) => (
+    <div>
+      <h1>{title}</h1>
+      <p>{description}</p>
+      {children}
+    </div>
+  ),
+}));
+
+// Host-only presentation and analytics depend on the dashboard's module aliases.
+jest.mock('@odh-dashboard/internal/components/table/TableRowTitleDescription', () => ({
+  __esModule: true,
+  default: ({ title, description }: { title: React.ReactNode; description?: string }) => (
+    <div>
+      {title}
+      <p>{description}</p>
+    </div>
+  ),
+}));
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+  fireFormTrackingEvent: jest.fn(),
+}));
+
+const mockRestGET = jest.mocked(restGET);
+
+// whoami for a caller without an organization: groups show as they are. The organization's
+// tests pass organizationWhoAmI instead.
+const whoAmI: MaaSWhoAmI = { sub: 'carol', isAdmin: true };
+const organizationWhoAmI: MaaSWhoAmI = {
+  ...whoAmI,
+  orgId: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa',
+  orgName: 'Grid Tenant 1',
+};
+
+/** Answers whoami with the caller and every other request with the subscription data. */
+const mockAPI = (data: MaaSSubscription[], caller: MaaSWhoAmI = whoAmI) =>
+  mockRestGET.mockImplementation((_host: string, path: string) =>
+    Promise.resolve({ data: path.endsWith('/whoami') ? caller : data }),
+  );
+
+// Mirrors the admin-subscriptions response produced from the mock maas-api fixture.
+const subscription = (): MaaSSubscription => ({
+  name: 'premium-team-sub',
+  namespace: 'maas-system',
+  displayName: 'Premium Team',
+  description: 'Premium Team Subscription',
+  owner: {
+    groups: [
+      { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users' },
+      { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/data-science' },
+    ],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      displayName: 'Granite 3 8B Instruct',
+      tokenRateLimits: [{ limit: 100000, window: '24h' }],
+    },
+    {
+      name: 'flan-t5-small',
+      namespace: 'maas-models',
+      displayName: 'Flan T5 Small',
+      tokenRateLimits: [{ limit: 200000, window: '24h' }],
+    },
+  ],
+});
+
+// Shares the data-science group and the flan-t5-small model with the premium team
+// subscription so each filter has a different matching subset.
+const basicSubscription = (): MaaSSubscription => ({
+  ...subscription(),
+  name: 'basic-team-sub',
+  displayName: 'Basic Team',
+  description: 'Basic Team Subscription',
+  owner: { groups: [{ name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/data-science' }] },
+  modelRefs: [subscription().modelRefs[1]],
+});
+
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <ModelAccessPage />
+    </MemoryRouter>,
+  );
+
+const renderTwoSubscriptions = () => {
+  mockAPI([subscription(), basicSubscription()]);
+  return renderPage();
+};
+
+const selectFilterType = async (user: ReturnType<typeof userEvent.setup>, optionTestId: string) => {
+  await user.click(screen.getByTestId('model-access-table-toolbar-dropdown'));
+  // The data-testid lands on the list item; the click handler is on its menu item button.
+  await user.click(within(screen.getByTestId(optionTestId)).getByRole('menuitem'));
+};
+
+const openTypeahead = async (user: ReturnType<typeof userEvent.setup>) => {
+  const combobox = within(screen.getByTestId('model-access-table-toolbar')).getByRole('combobox');
+  await user.click(combobox);
+  return combobox;
+};
+
+describe('ModelAccessPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAPI([subscription()]);
+  });
+
+  it('should render admin-subscriptions data in the real read-only table', async () => {
+    renderPage();
+    expect(await screen.findByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Model access' })).toBeInTheDocument();
+    expect(screen.getByText('Premium Team Subscription')).toBeInTheDocument();
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.queryByText('Basic Team')).not.toBeInTheDocument();
+    expect(screen.getByTestId('subscription-groups-expand-btn')).toHaveTextContent('2');
+    expect(screen.getByTestId('subscription-models-expand-btn')).toHaveTextContent('2');
+    expect(screen.queryByRole('columnheader', { name: 'Status' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('subscription-actions')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /create subscription/i })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+    // The page also reads whoami for the caller's organization (GroupName).
+    expect(mockRestGET.mock.calls.map((call) => call[1]).toSorted()).toEqual(
+      ['/maas/api/v1/whoami', '/maas/api/v1/admin-subscriptions'].toSorted(),
+    );
+  });
+
+  it('should expand the groups and models supplied by admin-subscriptions', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const groups = await screen.findByTestId('subscription-groups-expand-btn');
+    await user.click(within(groups).getByRole('button'));
+    expect(screen.getByText('42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users')).toBeVisible();
+    expect(screen.getByText('42c3e46f-2477-44d7-a85b-d3b43f6b31fa/data-science')).toBeVisible();
+    await user.click(
+      within(screen.getByTestId('subscription-models-expand-btn')).getByRole('button'),
+    );
+    expect(screen.getByText('Granite 3 8B Instruct')).toBeVisible();
+    expect(screen.getByText('Flan T5 Small')).toBeVisible();
+  });
+
+  it("should show the caller's organization groups by the organization's name", async () => {
+    const user = userEvent.setup();
+    mockAPI([subscription(), basicSubscription()], organizationWhoAmI);
+    renderPage();
+    await screen.findByRole('link', { name: 'Premium Team' });
+    // Both rows' groups: ai-grid-users and data-science, and data-science.
+    expect(await screen.findAllByTestId('group-name')).toHaveLength(3);
+    expect(screen.queryByText(/42c3e46f-2477-44d7-a85b-d3b43f6b31fa/)).not.toBeInTheDocument();
+
+    // The search finds a group as it is shown.
+    await user.type(
+      screen.getByTestId('model-access-subscription-filter-input'),
+      'Grid Tenant 1/ai-grid',
+    );
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+
+    await selectFilterType(user, 'model-access-table-toolbar-option-group');
+    await openTypeahead(user);
+    await user.click(screen.getByRole('option', { name: 'Grid Tenant 1/ai-grid-users' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+  });
+
+  it('should reflect zero groups and models without hiding the subscription', async () => {
+    mockAPI([{ ...subscription(), owner: { groups: [] }, modelRefs: [] }]);
+    renderPage();
+    expect(await screen.findByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+    expect(screen.getByTestId('subscription-groups-expand-btn')).toHaveTextContent('0');
+    expect(screen.getByTestId('subscription-models-expand-btn')).toHaveTextContent('0');
+  });
+
+  it('should show the empty state when no admin subscriptions are returned', async () => {
+    mockAPI([]);
+    renderPage();
+    expect(await screen.findByText('No subscriptions')).toBeInTheDocument();
+    expect(screen.queryByTestId('subscription-row')).not.toBeInTheDocument();
+  });
+
+  it('should show the API error instead of subscription data', async () => {
+    mockRestGET.mockRejectedValue(new Error('Subscriptions unavailable'));
+    renderPage();
+    expect(await screen.findByTestId('error-empty-state-body')).toHaveTextContent(
+      'Error communicating with server',
+    );
+    expect(screen.queryByTestId('subscription-row')).not.toBeInTheDocument();
+  });
+
+  it('should offer Subscription, Group, and Model filters instead of the keyword search', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+
+    expect(screen.queryByTestId('subscriptions-filter-input')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('model-access-table-toolbar-dropdown'));
+    expect(screen.getByTestId('model-access-table-toolbar-option-subscription')).toHaveTextContent(
+      'Subscription',
+    );
+    expect(screen.getByTestId('model-access-table-toolbar-option-group')).toHaveTextContent(
+      'Group',
+    );
+    expect(screen.getByTestId('model-access-table-toolbar-option-model')).toHaveTextContent(
+      'Model',
+    );
+  });
+
+  it('should use the same three filters by default on the management subscriptions table', async () => {
+    const user = userEvent.setup();
+    mockAPI([subscription(), basicSubscription()]);
+    render(
+      <MemoryRouter>
+        <MaaSGovernanceProvider subscriptionsOnly>
+          <SubscriptionsTab />
+        </MaaSGovernanceProvider>
+      </MemoryRouter>,
+    );
+    await screen.findByRole('link', { name: 'Premium Team' });
+    expect(screen.getByTestId('create-subscription-button')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument();
+
+    await user.type(screen.getByTestId('subscriptions-subscription-filter-input'), 'ANITE 3');
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    await user.click(screen.getByTestId('subscriptions-table-toolbar-dropdown'));
+    for (const filter of ['subscription', 'group', 'model']) {
+      expect(
+        screen.getByTestId(`subscriptions-table-toolbar-option-${filter}`),
+      ).toBeInTheDocument();
+    }
+    await user.click(
+      within(screen.getByTestId('subscriptions-table-toolbar-option-model')).getByRole('menuitem'),
+    );
+    const modelInput = within(screen.getByTestId('subscriptions-table-toolbar')).getByRole(
+      'combobox',
+    );
+    await user.type(modelInput, 'ANITE');
+    await user.click(screen.getByRole('option', { name: 'Filter by "ANITE"' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    await user.click(screen.getByTestId('subscriptions-table-toolbar-dropdown'));
+    await user.click(
+      within(screen.getByTestId('subscriptions-table-toolbar-option-group')).getByRole('menuitem'),
+    );
+    await user.click(
+      within(screen.getByTestId('subscriptions-table-toolbar')).getByRole('combobox'),
+    );
+    await user.click(
+      screen.getByRole('option', { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users' }),
+    );
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+  });
+
+  it('should filter the table by subscription text', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+
+    await user.type(screen.getByTestId('model-access-subscription-filter-input'), 'Basic Team');
+
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Basic Team' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Premium Team' })).not.toBeInTheDocument();
+    // The active filter renders as a chip labeled with the display name
+    expect(screen.getByTestId('subscription-filter-chip')).toHaveTextContent('Basic Team');
+  });
+
+  it('should filter the table by the selected group', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+
+    await selectFilterType(user, 'model-access-table-toolbar-option-group');
+    await openTypeahead(user);
+    await user.click(
+      screen.getByRole('option', { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users' }),
+    );
+
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Basic Team' })).not.toBeInTheDocument();
+  });
+
+  it.each(['ANITE 3', 'ANITE-3'])(
+    'should narrow model options by partial text and filter the table after selection: %s',
+    async (text) => {
+      const user = userEvent.setup();
+      renderTwoSubscriptions();
+      await screen.findByRole('link', { name: 'Premium Team' });
+
+      await selectFilterType(user, 'model-access-table-toolbar-option-model');
+      const input = await openTypeahead(user);
+      await user.type(input, text);
+
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+      expect(screen.getByRole('option', { name: `Filter by "${text}"` })).toBeInTheDocument();
+      expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+      await user.click(screen.getByRole('option', { name: 'Granite 3 8B Instruct' }));
+
+      expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+      expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Basic Team' })).not.toBeInTheDocument();
+      expect(screen.getByTestId('model-filter-chip')).toHaveTextContent('Granite 3 8B Instruct');
+    },
+  );
+
+  it.each(['MIUM-T', 'mium Te', 'exclusive description', 'AI-GRID', 'ANITE-3', 'ANITE 3'])(
+    'should search subscription details by partial text: %s',
+    async (text) => {
+      const user = userEvent.setup();
+      mockAPI([
+        { ...subscription(), description: 'An exclusive description for this subscription' },
+        basicSubscription(),
+      ]);
+      renderPage();
+      await screen.findByRole('link', { name: 'Premium Team' });
+
+      await user.type(screen.getByTestId('model-access-subscription-filter-input'), text);
+
+      expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+      expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Basic Team' })).not.toBeInTheDocument();
+    },
+  );
+
+  it('should match substrings in the model dropdown and restore rows when selection is cleared', async () => {
+    const user = userEvent.setup();
+    mockAPI(
+      ['xabx', 'yaby', 'abc', 'other'].map((name) => ({
+        ...subscription(),
+        name,
+        displayName: name,
+        modelRefs: [{ name, namespace: 'maas-models', tokenRateLimits: [] }],
+      })),
+    );
+    renderPage();
+    await screen.findByRole('link', { name: 'xabx' });
+    await selectFilterType(user, 'model-access-table-toolbar-option-model');
+    const input = await openTypeahead(user);
+    await user.type(input, 'AB');
+
+    expect(screen.getAllByRole('option')).toHaveLength(4);
+    expect(screen.getAllByRole('option')[3]).toHaveTextContent('Filter by "AB"');
+    for (const name of ['xabx', 'yaby', 'abc']) {
+      expect(screen.getByRole('option', { name })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole('option', { name: 'other' })).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(4);
+
+    await user.click(screen.getByRole('option', { name: 'Filter by "AB"' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(3);
+    expect(screen.queryByRole('link', { name: 'other' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('model-filter-chip')).toHaveTextContent('Filter by "AB"');
+    expect(input).toHaveValue('Filter by "AB"');
+
+    await user.clear(input);
+    await user.type(input, 'xabx');
+    // Text search remains available even when the input exactly matches a model.
+    expect(screen.getByRole('option', { name: 'Filter by "xabx"' })).toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: 'xabx' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'xabx' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(4);
+  });
+
+  it.each(['ANITE 3', 'ANITE-3'])(
+    'should apply model text searches to display and resource names: %s',
+    async (text) => {
+      const user = userEvent.setup();
+      renderTwoSubscriptions();
+      await screen.findByRole('link', { name: 'Premium Team' });
+      await selectFilterType(user, 'model-access-table-toolbar-option-model');
+      await user.type(await openTypeahead(user), text);
+      await user.click(screen.getByRole('option', { name: `Filter by "${text}"` }));
+
+      expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+      expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Basic Team' })).not.toBeInTheDocument();
+
+      await selectFilterType(user, 'model-access-table-toolbar-option-subscription');
+      await user.type(screen.getByTestId('model-access-subscription-filter-input'), 'Basic');
+      expect(screen.queryByTestId('subscription-row')).not.toBeInTheDocument();
+    },
+  );
+
+  it('should allow a model text search with no matches and clear it', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+    await selectFilterType(user, 'model-access-table-toolbar-option-model');
+    await user.type(await openTypeahead(user), 'missing-model');
+    await user.click(screen.getByRole('option', { name: 'Filter by "missing-model"' }));
+
+    expect(screen.queryByTestId('subscription-row')).not.toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: 'Clear all filters' })[0]);
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+  });
+
+  it('should combine filters and restore the table when filters are cleared', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+
+    // Subscription: Basic Team
+    await user.type(screen.getByTestId('model-access-subscription-filter-input'), 'Basic Team');
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+
+    // Group: ai-grid-users belongs to Premium Team only, so no subscription matches both
+    await selectFilterType(user, 'model-access-table-toolbar-option-group');
+    await openTypeahead(user);
+    await user.click(
+      screen.getByRole('option', { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users' }),
+    );
+    expect(screen.queryByTestId('subscription-row')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Clear all filters' }).length).toBeGreaterThan(0);
+
+    // Both the toolbar and the filtered empty state expose a clear-filters button
+    await user.click(screen.getAllByRole('button', { name: 'Clear all filters' })[0]);
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Basic Team' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+  });
+});

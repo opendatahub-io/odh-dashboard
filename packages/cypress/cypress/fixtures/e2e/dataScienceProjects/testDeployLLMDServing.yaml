@@ -12,9 +12,11 @@ modelType: 'Generative AI model (Example, LLM)'
 modelLocationURI: 'hf://facebook/opt-125m'
 existingImage: '- name: main'
 replaceImage: "- name: main\n        image: quay.io/pierdipi/vllm-cpu:latest"
+replaceImageArm64: "- name: main\n        image: docker.io/vllm/vllm-openai-cpu:v0.31.0\n        args: [--model, facebook/opt-125m, --dtype, float32, --max-model-len, '1024']"
 connectionNameSuffix: '-connection'
 yamlEditorModelName: 'facebook-opt-125m-single'
 
 # llm-d LLMInferenceService path
 deploymentMethod: 'llm-inference-service-llmd'
 servingRuntime: 'Distributed inference with llm-d'
+yamlEditorModelPathArm64: 'cypress/fixtures/resources/yaml/yaml_editor_model_serving_arm64.yaml'

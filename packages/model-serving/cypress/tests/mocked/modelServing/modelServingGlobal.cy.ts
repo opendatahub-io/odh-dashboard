@@ -153,7 +153,11 @@ const initIntercepts = ({
   ).as('getServingRuntimes');
   cy.interceptK8sList(
     { model: InferenceServiceModel, ns: 'test-project' },
-    mockK8sResourceList(inferenceServices),
+    {
+      // Delay primary resource: ServingRuntimes/Pods are skipped when InferenceServices are empty.
+      delay: delayInferenceServices ? 500 : 0,
+      body: mockK8sResourceList(inferenceServices),
+    },
   );
   cy.interceptK8sList(
     { model: InferenceServiceModel, ns: undefined },
@@ -240,6 +244,22 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findDeployModelButton().should('be.enabled');
   });
 
+  it('Should show the no platforms message when no deployment methods are available', () => {
+    initIntercepts({
+      servingRuntimes: [],
+      inferenceServices: [],
+    });
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableKServe: true,
+        disableLLMd: true,
+      }),
+    );
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findNoPlatformsMessage().should('exist');
+  });
+
   it('Should not get stuck in loading state when no projects exist as user', () => {
     // Use basic user
     initIntercepts({
@@ -258,7 +278,6 @@ describe('Model Serving Global', () => {
     asClusterAdminUser();
     initIntercepts({
       delayInferenceServices: true,
-      delayServingRuntimes: true,
       servingRuntimes: [],
       inferenceServices: [],
     });

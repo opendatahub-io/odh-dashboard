@@ -10,9 +10,6 @@ export {
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
 } from '@odh-dashboard/hardware-profiles/shared/const';
 
-export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
-  'Omitting CPU or Memory resources is not recommended.';
-
 export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
   {
     op: 'remove',

@@ -18,7 +18,7 @@ import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { modelServingGlobal, modelServingWizard } from '../../../../pages/modelServing';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import type { DataScienceProjectData, ServingRuntimeSettingsTestData } from '../../../../types';
-import { unsupportedStatusAcceptanceModal } from '../../../../pages/modelDeploymentSettings/llmAcceleratorConfigurations';
+import { unsupportedStatusAcceptanceModal } from '../../../../pages/modelDeploymentSettings/llmInferenceServiceConfigurations';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
@@ -40,10 +40,10 @@ const openDeployWizardToDeploymentStep = (modelURI: string) => {
   modelServingGlobal.selectSingleServingModelButtonIfExists();
   modelServingGlobal.findDeployModelButton().click();
 
-  modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+  modelServingWizard.selectModelLocationOption(ModelLocationSelectOption.URI);
   modelServingWizard.findUrilocationInput().clear().type(modelURI);
   modelServingWizard.findSaveConnectionCheckbox().uncheck();
-  modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+  modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
   modelServingWizard.findNextButton().should('be.enabled').click();
 
   modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);

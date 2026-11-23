@@ -40,21 +40,23 @@ const TrainingJobStatus = ({
     progressPercentage <= 100;
 
   return (
-    <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
-      <FlexItem>
-        <Label
-          variant={onClick ? 'filled' : 'outline'}
-          isCompact={isCompact}
-          status={statusInfo.status}
-          color={statusInfo.color}
-          icon={<statusInfo.IconComponent />}
-          data-testid="training-job-status"
-          onClick={onClick}
-          style={onClick ? { cursor: 'pointer' } : undefined}
-        >
-          {statusInfo.label}
-        </Label>
-      </FlexItem>
+    <Flex
+      direction={{ default: 'column' }}
+      gap={{ default: 'gapXs' }}
+      alignItems={{ default: 'alignItemsFlexStart' }}
+    >
+      <Label
+        variant={onClick ? 'filled' : 'outline'}
+        isCompact={isCompact}
+        status={statusInfo.status}
+        color={statusInfo.color}
+        icon={<statusInfo.IconComponent />}
+        data-testid="training-job-status"
+        onClick={onClick}
+        style={onClick ? { cursor: 'pointer' } : undefined}
+      >
+        {statusInfo.label}
+      </Label>
       {showProgress && (
         <FlexItem>
           <Progress

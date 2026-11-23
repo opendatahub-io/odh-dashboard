@@ -33,8 +33,9 @@ import {
 import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
 import { createCustomResource } from '../../../../utils/oc_commands/customResources';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import { skipOnArm } from '../../../../utils/skipUtils';
 
-let testData: ModelTolerationsTestData;
+let testData: ModelTolerationsTestData | undefined;
 let projectName: string;
 let resourceName: string;
 let contributor: string;
@@ -49,6 +50,8 @@ const projectUuid = generateTestUUID();
 const applicationNamespace: string = Cypress.env('APPLICATIONS_NAMESPACE');
 
 describe('ModelServing - tolerations tests', () => {
+  skipOnArm();
+
   retryableBefore(() => {
     // Setup: Load test data and ensure clean state
     return loadModelTolerationsFixture(
@@ -98,17 +101,22 @@ describe('ModelServing - tolerations tests', () => {
   });
 
   //Cleanup: Delete Hardware Profile and the associated Project
-  after(() => {
+  after(function cleanup() {
+    if (!testData) {
+      return;
+    }
+    // testData is narrowed to non-undefined after the guard
+    const data = testData;
     ensureAdminOcSession();
     // Use the actual hardware profile name from the YAML, not the variable with UUID
-    cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
-    cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
-      if (testData.clusterRole) {
-        removeClusterRoleFromUser(testData.clusterRole, contributor, projectName);
+    cy.log(`Cleaning up Hardware Profile: ${data.hardwareProfileName}`);
+    cleanupHardwareProfiles(data.hardwareProfileName).then(() => {
+      if (data.clusterRole) {
+        removeClusterRoleFromUser(data.clusterRole, contributor, projectName);
       }
-      if (isS390x && testData.servingRuntimeName) {
-        cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
-        cleanupTemplates(testData.servingRuntimeName);
+      if (isS390x && data.servingRuntimeName) {
+        cy.log(`Cleaning up ServingRuntime: ${data.servingRuntimeName}`);
+        cleanupTemplates(data.servingRuntimeName);
       }
       // Delete provisioned Project
       if (projectName) {
@@ -132,6 +140,11 @@ describe('ModelServing - tolerations tests', () => {
       ],
     },
     () => {
+      if (!testData) {
+        throw new Error('testData is not loaded');
+      }
+      const data = testData;
+
       cy.log('Model Name:', modelName);
       // Authentication and navigation
       cy.step('Log into the application as non-admin');
@@ -173,8 +186,8 @@ describe('ModelServing - tolerations tests', () => {
           resourceName = val as string;
         });
       inferenceServiceModal.selectPotentiallyDisabledProfile(
-        testData.hardwareProfileDeploymentSize,
-        testData.hardwareProfileName,
+        data.hardwareProfileDeploymentSize,
+        data.hardwareProfileName,
       );
       if (isS390x) {
         modelServingWizard.selectServingRuntimeOption(servingRuntime);
@@ -192,11 +205,11 @@ describe('ModelServing - tolerations tests', () => {
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
 
-      if (isS390x && testData.inferenceServicePatch) {
+      if (isS390x && data.inferenceServicePatch) {
         patchOpenShiftResource(
           'inferenceservice',
           modelName,
-          testData.inferenceServicePatch,
+          data.inferenceServicePatch,
           projectName,
         );
       }

@@ -13,15 +13,13 @@ import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/ar
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { formatMemory } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
+import { getHardwareProfileDisplayName } from '@odh-dashboard/hardware-profiles/shared/utils';
 import { AppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { getResourceSize } from '#~/pages/modelServing/utils';
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
-import {
-  getHardwareProfileDisplayName,
-  isHardwareProfileEnabled,
-} from '#~/pages/hardwareProfiles/utils.ts';
+import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
 
 type ServingRuntimeDetailsProps = {
   project?: string;

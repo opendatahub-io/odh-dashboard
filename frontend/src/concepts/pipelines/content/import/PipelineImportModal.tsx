@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 import { pipelineVersionDetailsRoute } from '#~/routes/pipelines/global';

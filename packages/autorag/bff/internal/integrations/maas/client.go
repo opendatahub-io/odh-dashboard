@@ -43,10 +43,11 @@ func appendStreamOutput(builder *strings.Builder, delta string) error {
 
 // Client wraps the official OpenAI client configured for a MaaS endpoint.
 type Client struct {
-	oai     openai.Client
-	baseURL string
-	http    *http.Client
-	apiKey  string
+	oai           openai.Client
+	baseURL       string
+	http          *http.Client
+	apiKey        string
+	trustedOrigin *MaaSOrigin
 }
 
 // ClientFactory creates a MaaS client with per-secret credentials and a shared
@@ -101,8 +102,25 @@ func NewClientWithHTTPClient(baseURL, apiKey string, httpClient *http.Client) (*
 	}, nil
 }
 
+// WithTrustedMaaSOrigin returns a client copy that carries the installation
+// trusted origin into every outbound request. The origin is obtained from the
+// MaaS BFF, never from the user-provided MaaS Secret.
+func (c *Client) WithTrustedMaaSOrigin(origin MaaSOrigin) *Client {
+	clone := *c
+	clone.trustedOrigin = &origin
+	return &clone
+}
+
+func (c *Client) requestContext(ctx context.Context) context.Context {
+	if c.trustedOrigin == nil {
+		return ctx
+	}
+	return WithTrustedMaaSOrigin(ctx, *c.trustedOrigin)
+}
+
 // Embed returns the embedding vector for text using the given model.
 func (c *Client) Embed(ctx context.Context, model, text string) ([]float32, error) {
+	ctx = c.requestContext(ctx)
 	body, err := json.Marshal(map[string]string{"input": text, "model": model})
 	if err != nil {
 		return nil, fmt.Errorf("maas embed request: %w", err)
@@ -162,6 +180,7 @@ func chatParams(req ChatRequest) openai.ChatCompletionNewParams {
 
 // ChatComplete performs a non-streaming chat completion.
 func (c *Client) ChatComplete(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
+	ctx = c.requestContext(ctx)
 	resp, err := c.oai.Chat.Completions.New(ctx, chatParams(req))
 	if err != nil {
 		return nil, fmt.Errorf("maas chat: %w", err)
@@ -187,6 +206,7 @@ type StreamResult struct {
 // ChatCompleteStreamWithCallback streams a chat completion, calling onDelta for each text token.
 // Returns the full answer and usage/timing stats.
 func (c *Client) ChatCompleteStreamWithCallback(ctx context.Context, req ChatRequest, onDelta func(delta string)) (*StreamResult, error) {
+	ctx = c.requestContext(ctx)
 	start := time.Now()
 	params := chatParams(req)
 	params.StreamOptions = openai.ChatCompletionStreamOptionsParam{

@@ -51,7 +51,7 @@ import {
   toggleBenchmarkSelectionKey,
 } from '~/app/utilities/benchmarkDetailsUtils';
 import type { FlatBenchmark, Provider } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import useSearchInputTracking from '~/app/hooks/useSearchInputTracking';
 import {
   EVAL_HUB_EVENTS,
@@ -94,6 +94,8 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
   onBack,
   onCancel,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const [draftSelectedBenchmarkKeys, setDraftSelectedBenchmarkKeys] =
     React.useState(selectedBenchmarkKeys);
   const [page, setPage] = React.useState(1);
@@ -289,7 +291,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
         value: normalizedSelectedValues.join(', '),
       });
     },
-    [],
+    [trackEvalHubEvent],
   );
 
   const handleSearchCommit = React.useCallback(
@@ -298,7 +300,10 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     },
     [trackBenchmarkCatalogFilter],
   );
-  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit);
+  const searchInputTrackingProps = useSearchInputTracking(
+    handleSearchCommit,
+    filterData[BenchmarkFilterOptions.name],
+  );
 
   const onClearFilters = React.useCallback(() => {
     setFilterDataFromUser(initialBenchmarkFilterData);
@@ -371,7 +376,6 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                             }));
                             setPage(1);
                           }}
-                          onSearch={searchInputTrackingProps.onSearch}
                           inputProps={searchInputTrackingProps.inputProps}
                           onClear={() => {
                             setFilterDataFromUser((prev) => ({

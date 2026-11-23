@@ -40,7 +40,16 @@ module.exports = (env) => ({
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
-            ? { loader: 'swc-loader' }
+            ? {
+                loader: 'swc-loader',
+                options: {
+                  jsc: {
+                    transform: {
+                      react: { development: true },
+                    },
+                  },
+                },
+              }
             : {
                 loader: 'ts-loader',
                 options: {

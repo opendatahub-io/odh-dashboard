@@ -8,7 +8,7 @@ Single source of truth for all Jira-specific values used by triage skills. This 
 
 | Constant | Value | Notes |
 |---|---|---|
-| Project key | `RHOAIENG` | |
+| Project keys | `RHAI`, `RHOAIENG` | `RHAI` (Red Hat AI All) is the primary project — **all new issues are created there**. `RHOAIENG` is the legacy project where the pre-migration Dashboard backlog lives. Queries must cover both projects: use `project in (RHAI, RHOAIENG)`; the `{project_keys}` placeholder resolves to `RHAI, RHOAIENG`. Never create new issues in `RHOAIENG`; link to legacy issues cross-project instead. |
 | Component | `AI Core Dashboard` | |
 | Team field | `customfield_10001` | Jira Teams (`atlassian-team`). **JQL** name: `Team`; dashboard value: `ec74d716-af36-4b3c-950f-f79213d08f71-1809`. **Search/get fields:** include `customfield_10001` (not legacy ids). **SET_FIELDS:** `{"customfield_10001": "ec74d716-af36-4b3c-950f-f79213d08f71-1809"}` for RHOAI Dashboard (plain string, **not** `{"id": "..."}` — the MCP tool double-wraps object values). |
 | Epic Link field | `customfield_12311140` | |

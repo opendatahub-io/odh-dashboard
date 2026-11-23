@@ -2,7 +2,7 @@ import * as React from 'react';
 import { FormGroup, MenuToggle, Select, SelectList, SelectOption } from '@patternfly/react-core';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { SubscriptionInfo } from '~/app/types';
+import { AIModel, SubscriptionInfo } from '~/app/types';
 import { splitLlamaModelId } from '~/app/utilities/utils';
 
 interface SubscriptionDropdownProps {
@@ -32,6 +32,29 @@ const isValidSubscription = (s: unknown): s is SubscriptionInfo =>
 const DEFAULT_HELP_TEXT =
   'Select the subscription to use for this model. Subscriptions control access and rate limits for model endpoints.';
 
+/**
+ * Subscriptions available for a model, derived from the MaaS catalog. Shared with
+ * the Playground dirty check so "the subscription the dropdown would auto-pick"
+ * is computed identically in both places.
+ */
+export const getModelSubscriptions = (
+  selectedModel: string,
+  maasModels: AIModel[],
+  isMaaSModel = false,
+): SubscriptionInfo[] => {
+  if (!selectedModel) {
+    return [];
+  }
+  const rawId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
+  // Strip "maas-" prefix added by the passthrough models handler so the ID
+  // matches what the MaaS catalog returns (e.g. "publishers/llm/models/gemini-proxy").
+  const maasModelId = rawId.startsWith('maas-') ? rawId.slice(5) : rawId;
+  const matchingModel = maasModels.find((m) => (m.id ?? m.model_id) === maasModelId);
+  const subs = matchingModel?.subscriptions;
+  // Validate each subscription has the required name field before returning
+  return Array.isArray(subs) ? subs.filter(isValidSubscription) : [];
+};
+
 const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> = ({
   selectedModel,
   selectedSubscription,
@@ -45,19 +68,10 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
   const [isOpen, setIsOpen] = React.useState(false);
   const { maasModels } = React.useContext(ChatbotContext);
 
-  const subscriptions: SubscriptionInfo[] = React.useMemo(() => {
-    if (!selectedModel) {
-      return [];
-    }
-    const rawId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
-    // Strip "maas-" prefix added by the passthrough models handler so the ID
-    // matches what the MaaS catalog returns (e.g. "publishers/llm/models/gemini-proxy").
-    const maasModelId = rawId.startsWith('maas-') ? rawId.slice(5) : rawId;
-    const matchingModel = maasModels.find((m) => (m.id ?? m.model_id) === maasModelId);
-    const subs = matchingModel?.subscriptions;
-    // Validate each subscription has the required name field before returning
-    return Array.isArray(subs) ? subs.filter(isValidSubscription) : [];
-  }, [selectedModel, isMaaSModel, maasModels]);
+  const subscriptions: SubscriptionInfo[] = React.useMemo(
+    () => getModelSubscriptions(selectedModel, maasModels, isMaaSModel),
+    [selectedModel, isMaaSModel, maasModels],
+  );
 
   // Auto-select highest-priority subscription when current selection is empty or invalid.
   // Subscriptions arrive pre-sorted by priority (desc) from the MaaS API.

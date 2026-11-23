@@ -1,0 +1,989 @@
+{
+  "description": "Actual GitHub PR changed-file lists, retrieved 2026-11-06. Replay uses the current test inventory and tags; it does not recreate historical application builds or clusters.",
+  "prs": [
+    {
+      "number": 9579,
+      "url": "https://github.com/opendatahub-io/odh-dashboard/pull/9579",
+      "title": "fix(e2e): stabilize serving runtime row and project list lookups",
+      "headSha": "2d88189a4e5f145a4800f1c9f921ff709396450e",
+      "files": [
+        {
+          "path": "packages/cypress/cypress/pages/projects.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/settings/servingRuntimes/testSingleServingRuntimeCreation.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/oc_commands/project.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/projectChecker.ts",
+          "status": "M",
+          "previousPath": null
+        }
+      ]
+    },
+    {
+      "number": 9911,
+      "url": "https://github.com/opendatahub-io/odh-dashboard/pull/9911",
+      "title": "test(e2e): fix model catalog source and workbench flakes",
+      "headSha": "ed89c47e32d9de9ff29f3883d34efcb38479c5f3",
+      "files": [
+        {
+          "path": "packages/cypress/cypress/fixtures/e2e/modelCatalog/testSourceEnableDisable.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/modelCatalog/testCatalogDeployModel.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/modelCatalog/testCatalogToolCalling.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/modelCatalog/testModelCatalogAvailable.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/modelCatalog/testPerformanceFiltersAvailable.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/modelCatalog/testSourceEnableDisable.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/settings/hardwareProfiles/testModifyAppliedHardwareProfile.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/types.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/modelCatalogToolCallingSetup.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/oc_commands/modelCatalog.ts",
+          "status": "M",
+          "previousPath": null
+        }
+      ]
+    },
+    {
+      "number": 9923,
+      "url": "https://github.com/opendatahub-io/odh-dashboard/pull/9923",
+      "title": "Create Context Provider for API Keys and My Subscriptions",
+      "headSha": "c72905a64e01143dff1b65aef07e784515b343f3",
+      "files": [
+        {
+          "path": "packages/cypress/cypress/tests/mocked/maas/maasApiKeys.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/maas/frontend/src/app/AppRoutes.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/maas/frontend/src/app/context/KeysAndSubsContext.tsx",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/maas/frontend/src/app/hooks/useApiKeysPageLoad.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/maas/frontend/src/app/pages/keys-and-subs/apiKeys/ApiKeysTab.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/maas/frontend/src/app/pages/keys-and-subs/apiKeys/CreateApiKeyModal.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/maas/frontend/src/app/pages/keys-and-subs/mySubscriptions/SubscriptionsTab.tsx",
+          "status": "M",
+          "previousPath": null
+        }
+      ]
+    },
+    {
+      "number": 9776,
+      "url": "https://github.com/opendatahub-io/odh-dashboard/pull/9776",
+      "title": "feat(DCH): Konflux onboarding - dashboard-operator changes for data-connect-hub",
+      "headSha": "9824cfa310051e97ef4f15890ca1b0e1648d107c",
+      "files": [
+        {
+          "path": "dashboard-operator/charts/dashboard/values.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "dashboard-operator/internal/controller/federation_integration_test.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "dashboard-operator/internal/controller/modules.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "dashboard-operator/internal/controller/modules_test.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/data-connect-hub/deployment.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/data-connect-hub/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/data-connect-hub/service.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/kustomization.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/data-connect-hub/package.json",
+          "status": "M",
+          "previousPath": null
+        }
+      ]
+    },
+    {
+      "number": 9945,
+      "url": "https://github.com/opendatahub-io/odh-dashboard/pull/9945",
+      "title": "feat(eval-hub): add Kueue hardware profile scheduling support",
+      "headSha": "ef391d8a3a43b4cdf9fd2bf50cee2d62e1324db9",
+      "files": [
+        {
+          "path": "manifests/modules/eval-hub/cluster-role.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHubBenchmarkSuite.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHubKueue.yaml",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/fixtures/resources/hardwareProfile/evalhub_kueue_profile.yaml",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/pages/evalHub/createEvaluationPage.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/eval-hub/testEvalHubKueue.cy.ts",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/eval-hub/testEvalHubSingleBenchmark.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/types.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/evalHubBenchmarkSuiteScenarios.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/evalHubTestFlows.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/oc_commands/evalHubHardwareProfile.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/oc_commands/evalHubInstance.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/.env.development",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/.env.local.example",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/api/openapi/eval-hub.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/cmd/main.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/api/app.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/api/hardware_profile_validation_handler.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/api/hardware_profile_validation_handler_test.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/api/hardware_profiles_handler.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/api/kueue_handler.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/api/kueue_hardware_profiles_handler_test.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/api/kueue_workload_status_handler.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/api/test_utils.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/config/environment.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/evalhub/evalhub_client.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/evalhub/evalhub_client_test.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/client.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/hardware_profiles.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/hardware_profiles_test.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/internal_k8s_client.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/k8mocks/internal_k8s_client_mock.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/k8mocks/token_k8s_client_mock.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/kueue.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/kueue_test.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/kueue_workloads_test.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/token_k8s_client.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/integrations/kubernetes/token_kueue_rbac_test.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/models/hardware_profile.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/internal/models/kueue.go",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/bff/openapi/src/eval-hub.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/contract-tests/__tests__/testEvalHubContract.test.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/jest.config.js",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/__mocks__/mockHardwareProfile.ts",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/__mocks__/mockKueueAvailability.ts",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/pages/evaluationsPage.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/pages/startEvaluationRunPage.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/createFlow/startEvaluationRun.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/evaluations/evaluationsPage.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/api/__tests__/k8s.spec.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/api/k8s.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/CopySuiteBenchmarkSelectionStep.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/EvaluationStatusLabel.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/EvaluationStatusModal.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/EvaluationsTable.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/EvaluationsTableRow.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/FormGroupLabel.scss",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/FormGroupLabel.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/HardwareProfileField.scss",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/HardwareProfileField.tsx",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/StartEvaluationRunModal.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/__tests__/CopySuiteBenchmarkSelectionStep.spec.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/__tests__/EvaluationStatusLabel.spec.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/__tests__/EvaluationStatusModal.spec.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/__tests__/EvaluationsTable.spec.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/__tests__/EvaluationsTableRow.spec.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/__tests__/HardwareProfileField.spec.tsx",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/components/__tests__/StartEvaluationRunModal.spec.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/hooks/__tests__/useHardwareProfiles.spec.tsx",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/hooks/__tests__/useKueueAvailability.spec.tsx",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/hooks/__tests__/useKueueWorkloadStatuses.spec.ts",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/hooks/useHardwareProfiles.ts",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/hooks/useKueueAvailability.ts",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/hooks/useKueueWorkloadStatuses.ts",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/pages/CopySuiteBenchmarksStep.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/pages/CopySuitePage.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/pages/EvaluationsPage.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/pages/StartEvaluationRunPage.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/pages/__tests__/CopySuitePage.spec.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/pages/__tests__/useStartEvaluationRunForm.tracking.spec.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/pages/useStartEvaluationRunForm.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/schemas/startEvaluationRun.schema.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/types.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/utilities/__tests__/evaluationUtils.spec.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/utilities/__tests__/hardwareProfileUtils.spec.ts",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/utilities/evaluationUtils.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/utilities/hardwareProfileUtils.ts",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/utils/__tests__/buildEvaluationRequest.spec.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/utils/__tests__/extractReconfigureData.spec.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/utils/buildEvaluationRequest.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/eval-hub/frontend/src/app/utils/extractReconfigureData.ts",
+          "status": "M",
+          "previousPath": null
+        }
+      ]
+    },
+    {
+      "number": 10016,
+      "url": "https://github.com/opendatahub-io/odh-dashboard/pull/10016",
+      "title": "Sync from kubeflow/model-registry 22e0edc",
+      "headSha": "baea3b518b95c80c085f09459add924b69b9fa78",
+      "files": [
+        {
+          "path": "packages/model-registry/package.json",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/api/openapi/mod-arch.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/bff/go.mod",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/bff/go.sum",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/bff/internal/api/model_catalog_settings_handler_test.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/bff/internal/models/model_catalog_source_configs.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/bff/internal/repositories/helpers.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/bff/internal/repositories/model_catalog_settings.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/bff/internal/repositories/model_catalog_settings_helpers_test.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/bff/internal/repositories/model_catalog_settings_test.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/package-lock.json",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/__mocks__/mockCatalogSourceConfigList.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/pages/modelCatalog.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelCatalogSettings/modelCatalogPerformanceFiltersApi.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelCatalogSettings/modelCatalogSettings.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/app/api/modelCatalogSettings/__tests__/service.spec.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/app/api/modelCatalogSettings/service.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/app/modelCatalogTypes.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/components/ModelCatalogFilters.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/screens/ModelDetailsView.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalogSettings/components/ManageSourceForm.tsx",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalogSettings/utils/__tests__/modelCatalogSettingsUtils.spec.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalogSettings/utils/modelCatalogSettingsUtils.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/model-registry/upstream/frontend/src/concepts/modelCatalog/const.ts",
+          "status": "M",
+          "previousPath": null
+        }
+      ]
+    },
+    {
+      "number": 9766,
+      "url": "https://github.com/opendatahub-io/odh-dashboard/pull/9766",
+      "title": "feat(manifests): add least-privilege operand NetworkPolicies (RHOAIENG-93714)",
+      "headSha": "80d44614ba1cdc52c2f4969537551b8a388aec97",
+      "files": [
+        {
+          "path": "manifests/base/kustomization.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/base/networkpolicy.yaml",
+          "status": "A",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/distributions/maas-portal/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/agent-ops/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/automl/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/autorag/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/data-registry/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/eval-hub/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/gen-ai/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/maas/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/mlflow/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/model-registry/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/notebooks/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/rhoai/kustomization.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/rhoai/networkpolicy.yaml",
+          "status": "A",
+          "previousPath": null
+        }
+      ]
+    },
+    {
+      "number": 9783,
+      "url": "https://github.com/opendatahub-io/odh-dashboard/pull/9783",
+      "title": "test(cypress/autorag): migrate ogx to maas for e2e tests",
+      "headSha": "0bf3f1195b72356b36cb1ef885a975d494eed5e3",
+      "files": [
+        {
+          "path": ".github/scripts/mask-cypress-test-secrets.sh",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "manifests/modules/autorag/networkpolicy.yaml",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/autox-core/services/pipelines/cache.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/autox-core/services/pipelines/client.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/autox-core/services/pipelines/client_test.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/autox-core/services/pipelines/errors.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/autox-core/services/pipelines/models.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/autox-core/services/pipelines/service.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/autox-core/services/pipelines/service_test.go",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/fixtures/resources/autorag/pgvector-standalone.yaml",
+          "status": "D",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/pages/autorag/configurePage.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/pages/autorag/resultsPage.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/autorag/testAutoragExperimentsAndRunManagement.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/autorag/testAutoragMetricVariations.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/tests/e2e/autorag/testAutoragOptimization.cy.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/types.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/autoragTestFlows.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/maskSensitiveInfo.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/oc_commands/autoragInfra.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/oc_commands/maasSecret.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/oc_commands/ogxNetworkPolicy.ts",
+          "status": "D",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/cypress/utils/testConfig.ts",
+          "status": "M",
+          "previousPath": null
+        },
+        {
+          "path": "packages/cypress/test-variables.yml.example",
+          "status": "M",
+          "previousPath": null
+        }
+      ]
+    }
+  ]
+}

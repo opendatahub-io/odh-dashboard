@@ -2,7 +2,7 @@ import { DEFAULT_SPACER_NODE_TYPE, RunStatus } from '@patternfly/react-topology'
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { normalizePipelineRunState } from '~/app/utilities/utils';
+import { formatPatternName, normalizePipelineRunState } from '~/app/utilities/utils';
 
 import { getPatternRowLabel, resolveStageLabel, resolveStepLabel } from './stageMapLabels';
 import {
@@ -192,7 +192,9 @@ export const buildStageMapTopology = (
       const resolvedName =
         resolvePatternDisplayName(patternRecords ?? {}, patternId) ??
         patternId.replace(/(\D)(\d)/, '$1 $2');
-      const patternLabel = isPlaceholder ? getPatternRowLabel(patternIdx) : resolvedName;
+      const patternLabel = isPlaceholder
+        ? getPatternRowLabel(patternIdx)
+        : formatPatternName(resolvedName);
       const branchKey = `branch-${patternIdx}`;
 
       // Emit step nodes first in each branch (e.g. chunking → embedding → …)

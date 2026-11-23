@@ -66,6 +66,16 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Output: Saved as the `dashboard-operator-image` artifact for reuse in the Phase 4 Kind cluster (no rebuild)
   - Triggers: Runs when the PR touches `dashboard-operator/**` (alongside frontend/backend/manifest changes)
 
+- ✅ **Core BFF image build** (`distributions/core-bff/Dockerfile.workspace`)
+  - Builds: The Core BFF from the PR checkout
+  - Output: Saved as an artifact and loaded into the Phase 4 Kind cluster
+  - Why: Keeps the simulator independent of the mutable published Core BFF `:main` image
+
+- ✅ **RHAII PR image build** (`distributions/rhaii/Dockerfile`)
+  - Builds: The RHAII frontend shell, embedded Core BFF, and Model Serving federated remote from the PR checkout
+  - Output: Saved as the `rhaii-dashboard-image` artifact for its dedicated image smoke-test cluster
+  - Why: Catches image-build and packaged-asset regressions independently of the ODH dashboard/operator integration scenario
+
 ### Phase 2: Runtime Validation
 - ✅ **Container startup health**
   - Starts container and waits 30 seconds
@@ -94,6 +104,19 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Container runs as user 1001 (non-root)
   - Catches: Permission denied errors on logs, temp files
 
+#### RHAII image runtime smoke validation
+- ✅ **Dedicated Kind cluster deployment**
+  - Loads: The Phase 1 RHAII image artifact into a fresh Kind cluster
+  - Deploys: A CI-only harness based on the Core BFF manifest in the `opendatahub` namespace
+  - Why: Keeps image startup validation isolated from the ODH dashboard and operator integration test
+
+- ✅ **PR-image smoke checks**
+  - Waits: For the RHAII deployment rollout
+  - Tests: `/healthcheck`, the root HTML shell, and the Model Serving `/_mf/modelServing/remoteEntry.js` response
+  - Catches: BFF startup failures, missing static assets, and a broken same-origin federated remote in the PR-built image
+
+> **Scope**: This is image-level validation only. It does not validate RHAII/XKS production manifests, Gateway or HTTPRoute behavior, dashboard-operator reconciliation, related-image injection, Quay publication, or Konflux component onboarding.
+
 ### Phase 3: Module Federation Validation
 - ✅ **remoteEntry.js presence and size**
   - Validates: File exists and is not empty
@@ -121,16 +144,37 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Reports: Total size per module
   - Helps: Track bundle bloat over time
 
+- ✅ **CSS logical-properties lowering guard** (RHOAIENG-100835)
+  - Scans: Emitted production CSS from the ODH host image's `frontend/public`,
+    each changed module image's `/static` output (BFF Build Shards run only for
+    modules the PR touches), and model-serving's standalone federated build when
+    it changes (`model-serving-css-guard` job — model-serving has no
+    `Dockerfile.workspace`, so the module shard never builds it). The RHOAI-mode
+    image is built but not scanned; its frontend uses the same shared
+    production config as the ODH build
+  - Detects: `:lang(ae...)` RTL fallback selectors that LightningCSS emits when
+    it lowers CSS logical properties — bare `:lang(ae)` under the default es6
+    targets, comma-separated lists like `:lang(ae,ar,...)` under older targets
+    (e.g. safari 14) — the production-only lowering that beats PatternFly
+    contextual-override specificity
+  - Local invocation: `bash scripts/check-css-lowering.sh <dist-dir>` after any
+    production build (e.g. `make -C packages/model-serving frontend-build-federated`,
+    then scan `packages/model-serving/frontend/dist`)
+  - Fails: On offending selectors, on scan errors (unreadable output), and on
+    empty scan targets (missing build output) — a missing check never passes
+
 **Note:** This does NOT test runtime proxy endpoints (`/_mf/*` routes) — those proxy to K8s services and require a cluster.
 
 ### Phase 4: Operator Integration (Kind Cluster)
 - ✅ **Kind cluster creation**
   - Creates: Temporary local Kubernetes cluster
-  - Loads: Built dashboard Docker image and the dashboard-operator image (from the Phase 1 artifacts)
+  - Loads: Built dashboard, Core BFF, and dashboard-operator images from Phase 1 artifacts
 
 - ✅ **Manifest application**
-  - Applies: Kustomize overlays (`manifests/odh`)
+  - Renders: The current `manifests/odh` through a CI-only Kind overlay
+  - Adapts: Dashboard deployment images and resources for Kind, and the existing dashboard RBAC binding subjects for the Kind namespace without changing production manifests
   - Tests: CRD installation, ConfigMap generation
+  - Note: Missing OpenShift and Gateway API mappings are expected in Kind
 
 - ✅ **Deployment validation**
   - Waits: Up to 5 minutes for pod to be ready
@@ -241,8 +285,8 @@ Local testing is not yet available. The validation currently only runs in GitHub
 
 ### GitHub Actions (Parallel)
 - Phase 0: 1-2 minutes
-- Phase 1 (ODH + RHOAI + operator): 8-12 minutes (parallel)
-- Phase 2-3 (ODH + RHOAI): 3-5 minutes (parallel, after Phase 1)
+- Phase 1 (ODH + RHOAI + Core BFF + RHAII + operator): 8-12 minutes (parallel)
+- Phase 2-3 (ODH + RHOAI + RHAII): 3-5 minutes (parallel, after Phase 1)
 - Phase 4 (dashboard + operator CRD/CR reconciliation): 6-10 minutes
 - Phase 5 (manifest validation): 1-2 minutes (parallel, independent of Docker build)
 

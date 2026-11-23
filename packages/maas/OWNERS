@@ -1,17 +1,14 @@
 # OWNERS
 
 approvers:
-  - Griffin-Sullivan
-  - emilys314
-  - andrewballantyne
+  - maas-approvers
 
 reviewers:
-  - Griffin-Sullivan
-  - emilys314
-  - andrewballantyne
-  - ashley-o0o
-  - katieperry4
-  - sridarna
+  - maas-reviewers
 
 labels:
   - area/maas
+  - area/components
+
+options:
+  no_parent_owners: true

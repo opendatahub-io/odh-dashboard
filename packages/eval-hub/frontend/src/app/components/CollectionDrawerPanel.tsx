@@ -29,7 +29,7 @@ import {
 } from '@patternfly/react-core';
 import { ChartLineIcon, SearchIcon } from '@patternfly/react-icons';
 import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
@@ -207,7 +207,8 @@ const CollectionBenchmarksSection: React.FC<CollectionBenchmarksSectionProps> = 
                   <Card isCompact>
                     <CardBody>
                       {/* Collection benchmarks can override provider defaults for
-                         primary_score, pass_criteria, and url. */}
+                         primary_score, pass_criteria, and url, and can carry their own
+                         test_data_ref. */}
                       <BenchmarkDrawerTileContent
                         name={details?.name ?? b.id}
                         id={b.id}
@@ -217,6 +218,8 @@ const CollectionBenchmarksSection: React.FC<CollectionBenchmarksSectionProps> = 
                         providerAgent={details?.providerAgent}
                         primaryScore={b.primary_score ?? details?.primary_score}
                         passCriteria={b.pass_criteria ?? details?.pass_criteria}
+                        testDataRef={b.test_data_ref}
+                        providerId={b.provider_id}
                         url={b.url ?? details?.url}
                         trackingSurface="collection_drawer"
                         isCompact
@@ -257,6 +260,8 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   isSystemCollection = false,
   primaryActionLabel = 'Select collection',
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const availableMetrics = React.useMemo(() => {
     const metricSet = new Set<string>();
     (collection?.benchmarks ?? []).forEach((b) => {
@@ -290,7 +295,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
       },
     );
     onRunCollection(collection, isSystemCollection);
-  }, [collection, isSystemCollection, onRunCollection]);
+  }, [trackEvalHubEvent, collection, isSystemCollection, onRunCollection]);
 
   const metadataSections = [
     {
@@ -321,10 +326,11 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     return <DrawerPanelContent isResizable minSize="380px" />;
   }
 
-  const prerequisite = collection.resource.tenant
+  const curatedConfig = collection.resource.tenant
     ? undefined
-    : getCuratedCollectionConfig(collection)?.prerequisite.long;
-  const showCustomize = Boolean(onCustomizeCollection && (isSystemCollection || prerequisite));
+    : getCuratedCollectionConfig(collection);
+  const prerequisite = curatedConfig?.prerequisites.map((part) => part.long).join(' ');
+  const showCustomize = Boolean(onCustomizeCollection && (isSystemCollection || curatedConfig));
 
   return (
     <DrawerPanelContent isResizable minSize="380px" data-testid="collection-drawer-panel">
@@ -377,7 +383,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }} className="pf-v6-u-mt-md">
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-          {!prerequisite ? (
+          {!curatedConfig?.requiresConfiguration ? (
             <FlexItem>
               <Button
                 variant="primary"

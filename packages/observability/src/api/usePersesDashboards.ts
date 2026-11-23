@@ -8,7 +8,8 @@ import { filterDashboards, THANOS_QUERIER_NON_TENANCY_ACCESS } from '../utils/da
 
 export type UsePersesDashboardsOptions = {
   /**
-   * When false, skips the Perses dashboard list request (e.g. DSCI already reports monitoring is not available).
+   * When false, skips the Perses dashboard list and its access review
+   * (e.g. DSCI already reports monitoring is not available).
    */
   fetchDashboardList?: boolean;
   /** Same-origin Perses proxy used for dashboard discovery. */
@@ -29,6 +30,7 @@ export const usePersesDashboards = (
   const persesProxyBasePath = options?.persesProxyBasePath;
   const [canAccessThanosNonTenancy, thanosNonTenancyAccessLoaded] = useAccessReview(
     THANOS_QUERIER_NON_TENANCY_ACCESS,
+    fetchDashboardList,
   );
 
   const fetchDashboards = React.useCallback(
@@ -56,7 +58,7 @@ export const usePersesDashboards = (
 
   return {
     dashboards,
-    loaded: loaded && thanosNonTenancyAccessLoaded,
+    loaded: loaded && (!fetchDashboardList || thanosNonTenancyAccessLoaded),
     error,
     refresh,
   };

@@ -1274,3 +1274,18 @@ func TestLlamaStackDocumentUploadHandler(t *testing.T) {
 		assert.Equal(t, []string{"file-abc123abc456def0"}, client.DeletedFileIDs)
 	})
 }
+
+func TestEnsureStaticChunkMaxDefaultsUnsetMaximum(t *testing.T) {
+	strategy := &llamastack.ChunkingStrategy{
+		Type: "static",
+		Static: &llamastack.StaticChunkingConfig{
+			ChunkOverlapTokens: 0,
+		},
+	}
+
+	ensureStaticChunkMax(strategy)
+
+	require.NotNil(t, strategy.Static)
+	assert.Equal(t, defaultMaxChunkSizeTokens, strategy.Static.MaxChunkSizeTokens)
+	assert.Equal(t, 0, strategy.Static.ChunkOverlapTokens)
+}

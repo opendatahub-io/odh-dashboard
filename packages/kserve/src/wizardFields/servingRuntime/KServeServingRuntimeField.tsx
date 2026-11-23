@@ -6,6 +6,7 @@ import type {
   SupportedModelFormats,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
+import { isCompatibleWithIdentifier } from '@odh-dashboard/k8s-core';
 import {
   ServingRuntimeModelType,
   getServingRuntimeDisplayNameFromTemplate,
@@ -36,7 +37,6 @@ import {
   mergeProjectAndGlobalTemplates,
 } from '@odh-dashboard/model-serving/concepts/servingRuntimeTemplates/templateUtils';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
-import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import { useProfileIdentifiers } from '@odh-dashboard/hardware-profiles/shared';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from '../deploymentMethodField';
 
@@ -297,14 +297,19 @@ const computeSuggestion = (
     );
   }
 
+  // A unique model-format match alone is not enough: automatic selection requires an accelerator.
   const accelerator = getAcceleratorIdentifierFromHardwareProfile(hardwareProfile);
-  if (accelerator) {
-    filtered = filtered?.filter((template) =>
-      isCompatibleWithIdentifier(accelerator, getServingRuntimeFromTemplate(template)),
-    );
+  if (!accelerator) {
+    return undefined;
   }
 
-  if (filtered?.length === 1) {
+  filtered = filtered?.filter((template) =>
+    isCompatibleWithIdentifier(accelerator, getServingRuntimeFromTemplate(template)),
+  );
+
+  if (filtered && filtered.length > 0) {
+    // Filtering preserves the supplied template order (including project/global precedence).
+    // Multiple matches are valid: use the first rather than forcing a manual choice.
     const suggestedTemplate = filtered[0];
     return {
       name: suggestedTemplate.metadata.name,

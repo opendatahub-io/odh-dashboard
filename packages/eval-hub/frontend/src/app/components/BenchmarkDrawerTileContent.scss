@@ -1,0 +1,5 @@
+// No PatternFly utility expresses the heading weight (300); the token-backed
+// class replaces an inline style per the utility-before-custom-styling ladder.
+.evalhub-benchmark-tile__name {
+  font-weight: var(--pf-t--global--font--weight--heading--default);
+}

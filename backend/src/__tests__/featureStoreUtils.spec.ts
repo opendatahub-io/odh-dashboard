@@ -120,6 +120,9 @@ const spyKubeConfigForMockApi = (getMockApi: () => ReturnType<typeof createMockA
       ({
         loadFromClusterAndUser,
         makeApiClient: jest.fn().mockReturnValue(getMockApi()),
+        // applyIpv6AwareIdentityCheck wraps applyToRequest and reads getCurrentCluster().server.
+        applyToRequest: jest.fn(),
+        getCurrentCluster: () => ({ server: 'https://test' }),
       } as any),
   );
   return { loadFromClusterAndUser };
@@ -136,7 +139,10 @@ const mockHttpsJsonResponse = (
   body: unknown,
   options: { requestError?: Error } = {},
 ) => {
-  mockHttpsRequest.mockImplementation((_options, callback) => {
+  // `makeAuthenticatedHttpRequest` calls `request(url, options, callback)`, so the response callback
+  // is always the last argument regardless of how many leading args are passed.
+  mockHttpsRequest.mockImplementation((...args) => {
+    const callback = args[args.length - 1] as ((res: unknown) => void) | undefined;
     const req = new EventEmitter() as any;
     req.end = jest.fn();
     req.setTimeout = jest.fn();

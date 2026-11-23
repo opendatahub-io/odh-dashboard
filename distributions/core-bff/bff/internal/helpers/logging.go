@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
@@ -32,15 +33,17 @@ var sensitiveHeaders = []string{
 	constants.HeaderSetCookie,
 	constants.HeaderProxyAuthorization,
 	constants.HeaderForwardedToken,
+	constants.HeaderSecWebSocketProto,
 }
 
 func isSensitiveHeader(h string) bool {
-	return slices.Contains(sensitiveHeaders, http.CanonicalHeaderKey(h))
+	return slices.ContainsFunc(sensitiveHeaders, func(name string) bool { return strings.EqualFold(name, h) })
 }
 
 // HeaderLogValuer provides safe logging of HTTP headers with sensitive values redacted.
 type HeaderLogValuer struct {
-	Header http.Header
+	Header           http.Header
+	SensitiveHeaders []string
 }
 
 func (h HeaderLogValuer) LogValue() slog.Value {
@@ -52,7 +55,7 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 			continue
 		}
 
-		if isSensitiveHeader(k) {
+		if isSensitiveHeader(k) || slices.ContainsFunc(h.SensitiveHeaders, func(name string) bool { return http.CanonicalHeaderKey(name) == http.CanonicalHeaderKey(k) }) {
 			values = append(values, slog.String(k, "[REDACTED]"))
 			continue
 		}
@@ -65,7 +68,8 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 
 // RequestLogValuer provides safe logging of HTTP requests with sensitive data redacted.
 type RequestLogValuer struct {
-	Request *http.Request
+	Request          *http.Request
+	SensitiveHeaders []string
 }
 
 func (r RequestLogValuer) LogValue() slog.Value {
@@ -81,9 +85,9 @@ func (r RequestLogValuer) LogValue() slog.Value {
 
 	return slog.GroupValue(
 		slog.String("method", r.Request.Method),
-		slog.String("url", r.Request.URL.String()),
+		slog.String("url", r.Request.URL.EscapedPath()),
 		slog.String("body", body),
-		slog.Any("headers", HeaderLogValuer{Header: r.Request.Header}))
+		slog.Any("headers", HeaderLogValuer{Header: r.Request.Header, SensitiveHeaders: r.SensitiveHeaders}))
 }
 
 // ResponseLogValuer provides safe logging of HTTP responses.

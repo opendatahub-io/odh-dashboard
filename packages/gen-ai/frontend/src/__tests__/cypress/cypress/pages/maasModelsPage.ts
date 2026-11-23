@@ -1,10 +1,4 @@
 class MaaSModelsPage {
-  visit() {
-    cy.visit('/maas-portal/maas/models');
-    this.findPage().should('be.visible');
-    cy.testA11y();
-  }
-
   findPage() {
     return cy.findByTestId('maas-models-page');
   }
@@ -13,16 +7,12 @@ class MaaSModelsPage {
     return cy.findByTestId('app-page-title');
   }
 
-  findModelsNavigation() {
-    return cy.findByRole('link', { name: 'Models endpoints' });
-  }
-
-  findAIAssetsNavigation() {
-    return cy.findByRole('link', { name: 'AI asset endpoints' });
-  }
-
   findTable() {
     return cy.findByTestId('ai-models-table');
+  }
+
+  findRow(modelName: string) {
+    return this.findTable().findByRole('row', { name: new RegExp(modelName) });
   }
 
   findModelIds() {

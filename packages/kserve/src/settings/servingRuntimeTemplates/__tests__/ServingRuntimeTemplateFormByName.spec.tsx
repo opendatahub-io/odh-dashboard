@@ -11,6 +11,7 @@ import {
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimeTemplateFormByName } from '../CustomServingRuntimeAddTemplate';
 import { CustomServingRuntimeContext } from '../CustomServingRuntimeContext';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
 jest.mock('@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor', () => ({
   __esModule: true,
@@ -29,9 +30,7 @@ jest.mock('@odh-dashboard/internal/services/templateService', () => ({
   updateServingRuntimeTemplateBackend: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
-}));
+const { wrapper, tracking } = createTestProviders({ dashboardNamespace: 'custom-dashboard' });
 
 const LIST_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates';
@@ -61,6 +60,7 @@ const renderByName = (mode: 'edit' | 'duplicate', name: string, templates: Templ
         </Routes>
       </MemoryRouter>
     </CustomServingRuntimeContext.Provider>,
+    { wrapper },
   );
 
 describe('ServingRuntimeTemplateFormByName', () => {
@@ -104,7 +104,21 @@ describe('ServingRuntimeTemplateFormByName', () => {
     expect(screen.getByTestId('create-button')).toBeEnabled();
     fireEvent.click(screen.getByTestId('create-button'));
     await waitFor(() => expect(updateServingRuntimeTemplateBackend).toHaveBeenCalledTimes(1));
+    expect(jest.mocked(updateServingRuntimeTemplateBackend).mock.calls[0][2]).toBe(
+      'custom-dashboard',
+    );
     expect(createServingRuntimeTemplateBackend).not.toHaveBeenCalled();
+    expect(tracking.trackEvent.mock.calls).toEqual([
+      [
+        'Model Serving Serving Runtime Template Updated',
+        {
+          outcome: 'submit',
+          success: true,
+          apiProtocol: 'REST',
+          modelTypes: 'predictive,generative',
+        },
+      ],
+    ]);
   });
 
   it('should keep duplicate prefilled and use the existing create path', async () => {
@@ -115,7 +129,49 @@ describe('ServingRuntimeTemplateFormByName', () => {
     expect(screen.getByTestId('create-button')).toBeEnabled();
     fireEvent.click(screen.getByTestId('create-button'));
     await waitFor(() => expect(createServingRuntimeTemplateBackend).toHaveBeenCalledTimes(1));
+    expect(jest.mocked(createServingRuntimeTemplateBackend).mock.calls[0][1]).toBe(
+      'custom-dashboard',
+    );
     expect(updateServingRuntimeTemplateBackend).not.toHaveBeenCalled();
+  });
+
+  it('should preserve update failure payloads without leaking errors or YAML', async () => {
+    const source = mockServingRuntimeTemplateK8sResource({ name: 'edit-runtime' });
+    jest
+      .mocked(updateServingRuntimeTemplateBackend)
+      .mockRejectedValueOnce(new Error('Private failure detail'));
+    renderByName('edit', 'edit-runtime', [source]);
+    const editor = screen.getByTestId('dashboard-code-editor');
+    if (!(editor instanceof HTMLTextAreaElement)) {
+      throw new Error('Expected YAML editor to be a textarea');
+    }
+    fireEvent.change(editor, { target: { value: `${editor.value}\n# edited` } });
+    fireEvent.click(screen.getByTestId('create-button'));
+    expect(await screen.findByText('Private failure detail')).toBeInTheDocument();
+    expect(tracking.trackEvent.mock.calls).toEqual([
+      [
+        'Model Serving Serving Runtime Template Updated',
+        {
+          outcome: 'submit',
+          success: false,
+          apiProtocol: 'REST',
+          modelTypes: 'predictive,generative',
+        },
+      ],
+    ]);
+    expect(tracking.trackPageEvent).not.toHaveBeenCalled();
+  });
+
+  it('should report one update cancellation with no success property', () => {
+    renderByName('edit', 'edit-runtime', [
+      mockServingRuntimeTemplateK8sResource({ name: 'edit-runtime' }),
+    ]);
+    expect(tracking.trackEvent).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(tracking.trackEvent.mock.calls).toEqual([
+      ['Model Serving Serving Runtime Template Updated', { outcome: 'cancel' }],
+    ]);
+    expect(tracking.trackPageEvent).not.toHaveBeenCalled();
   });
 
   it('should render the not-found empty state when the named template is absent (edit)', () => {

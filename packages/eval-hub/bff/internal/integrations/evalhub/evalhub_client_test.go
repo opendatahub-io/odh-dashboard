@@ -163,6 +163,94 @@ func TestEvalHubClient_ListEvaluationJobs(t *testing.T) {
 	assert.Equal(t, "test-model", result.Items[0].Model.Name)
 }
 
+func TestEvalHubClient_GetEvaluationJob_DecodesNonNumericMetricsAndArtifacts(t *testing.T) {
+	// Real EvalHub API shape per the published spec: metric values may be a
+	// scalar, list, or object, and artifacts is a map of artifact name to
+	// location/info (live keys are evalhub.eval_card and evalhub.env_card).
+	jobJSON := `{
+		"resource": {"id": "job-1", "created_at": "2026-02-20T10:00:00Z"},
+		"status": {"state": "completed"},
+		"results": {
+			"benchmarks": [
+				{
+					"id": "harmful_request_refusal",
+					"provider_id": "safety_eval_suite",
+					"metrics": {
+						"refusal_rate": 0.95,
+						"verdicts": ["safe", "unsafe", "safe"],
+						"latency_ms": {"p50": 120, "p99": 340},
+						"total_tokens": 9007199254740993
+					},
+					"artifacts": {
+						"evalhub.eval_card": "evalcards/job-1-card",
+						"evalhub.env_card": "envcards/job-1-env"
+					}
+				}
+			]
+		},
+		"model": {"name": "test-model"}
+	}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/jobs/job-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(jobJSON))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "test-token", false, nil, "/api/v1")
+	job, err := client.GetEvaluationJob(context.Background(), "job-1", "my-ns")
+
+	require.NoError(t, err)
+	require.Len(t, job.Results.Benchmarks, 1)
+
+	benchmark := job.Results.Benchmarks[0]
+	refusalRate, err := benchmark.Metrics["refusal_rate"].(json.Number).Float64()
+	require.NoError(t, err)
+	assert.InDelta(t, 0.95, refusalRate, 0.0001)
+	assert.Equal(t, []any{"safe", "unsafe", "safe"}, benchmark.Metrics["verdicts"])
+	assert.Equal(t, map[string]any{"p50": json.Number("120"), "p99": json.Number("340")}, benchmark.Metrics["latency_ms"])
+	assert.Equal(t, map[string]any{
+		"evalhub.eval_card": "evalcards/job-1-card",
+		"evalhub.env_card":  "envcards/job-1-env",
+	}, benchmark.Artifacts)
+
+	// The BFF serves the decoded job to the frontend unmodified, so the values
+	// must survive a JSON round-trip. JSONEq alone cannot catch precision loss
+	// (both sides parse to float64), so assert the exact literal for the
+	// large integer beyond float64 precision.
+	encoded, err := json.Marshal(job)
+	require.NoError(t, err)
+	assert.JSONEq(t, jobJSON, string(encoded))
+	assert.Contains(t, string(encoded), `"total_tokens":9007199254740993`)
+}
+
+func TestDecodeJSON_RejectsTrailingData(t *testing.T) {
+	tests := []struct {
+		name    string
+		body    string
+		wantErr bool
+	}{
+		{name: "valid body", body: `{"status":"healthy"}`},
+		{name: "valid trailing whitespace", body: "{\"status\":\"healthy\"}\n\t "},
+		{name: "trailing garbage", body: `{"status":"healthy"} garbage`, wantErr: true},
+		{name: "second JSON value", body: `{"status":"healthy"}{"status":"other"}`, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := decodeJSON[HealthResponse]([]byte(tt.body))
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, result)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.Equal(t, "healthy", result.Status)
+		})
+	}
+}
+
 func TestEvalHubClient_ListEvaluationJobs_FetchesAllPages(t *testing.T) {
 	firstPage := EvaluationJobsResponse{
 		TotalCount: 3,
@@ -1242,11 +1330,119 @@ func TestEvalHubClient_GetCollection_ParsesStatus(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.GetCollection(context.Background(), "332c3b1c", "tenant")
+	result, raw, err := client.GetCollection(context.Background(), "332c3b1c", "tenant")
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "tool-use-v1", result.DerivedFrom)
 	require.NotNil(t, result.Status)
 	assert.Equal(t, 1, result.Status.RunCount)
+	assert.Contains(t, string(raw), `"derived_from": "tool-use-v1"`)
+}
+
+func TestEvalHubClient_GetInfo(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/info", r.URL.Path)
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(InfoResponse{
+			Version: "1.2.3",
+			HardwareProfiles: []HardwareProfileInfo{
+				{
+					Name:              "gpu-small",
+					SchedulingType:    "queue",
+					QueueName:         "gpu",
+					PriorityClassName: "high",
+					Identifiers: []HardwareProfileIdentifier{
+						{Identifier: "cpu", ResourceType: "cpu", DefaultCount: "4", MinCount: "2", MaxCount: "8"},
+					},
+					QueueAvailability: &QueueAvailability{Status: "active", Reason: "Ready"},
+				},
+				{
+					Name:           "cpu-direct",
+					SchedulingType: "node",
+					Identifiers: []HardwareProfileIdentifier{
+						{Identifier: "cpu", ResourceType: "cpu", DefaultCount: "1"},
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	resp, err := client.GetInfo(context.Background(), "my-ns")
+
+	require.NoError(t, err)
+	assert.Equal(t, "1.2.3", resp.Version)
+	require.Len(t, resp.HardwareProfiles, 2)
+	queueProfile := resp.HardwareProfiles[0]
+	assert.Equal(t, "gpu-small", queueProfile.Name)
+	assert.Equal(t, "queue", queueProfile.SchedulingType)
+	assert.Equal(t, "gpu", queueProfile.QueueName)
+	assert.Equal(t, "high", queueProfile.PriorityClassName)
+	require.Len(t, queueProfile.Identifiers, 1)
+	assert.Equal(t, "4", queueProfile.Identifiers[0].DefaultCount)
+	require.NotNil(t, queueProfile.QueueAvailability)
+	assert.Equal(t, "active", queueProfile.QueueAvailability.Status)
+	nodeProfile := resp.HardwareProfiles[1]
+	assert.Equal(t, "node", nodeProfile.SchedulingType)
+	assert.Nil(t, nodeProfile.QueueAvailability)
+}
+
+func TestEvalHubClient_GetInfo_NormalizesNilHardwareProfiles(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/info", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"version":"1.2.3"}`)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	resp, err := client.GetInfo(context.Background(), "my-ns")
+
+	require.NoError(t, err)
+	require.NotNil(t, resp.HardwareProfiles)
+	assert.Empty(t, resp.HardwareProfiles)
+}
+
+func TestEvalHubClient_GetInfo_NormalizesNilIdentifiers(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/info", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"version":"1.2.3","hardware_profiles":[{"name":"cpu-direct","scheduling_type":"node"}]}`)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	resp, err := client.GetInfo(context.Background(), "my-ns")
+
+	require.NoError(t, err)
+	require.Len(t, resp.HardwareProfiles, 1)
+	require.NotNil(t, resp.HardwareProfiles[0].Identifiers)
+	assert.Empty(t, resp.HardwareProfiles[0].Identifiers)
+}
+
+func TestEvalHubClient_GetInfo_RequiresNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://example.invalid", "", false, nil, "/api/v1")
+	_, err := client.GetInfo(context.Background(), "")
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
+}
+
+func TestEvalHubClient_GetInfo_ForwardsBearerToken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(InfoResponse{HardwareProfiles: []HardwareProfileInfo{}})
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "test-token", false, nil, "/api/v1")
+	_, err := client.GetInfo(context.Background(), "my-ns")
+
+	require.NoError(t, err)
 }

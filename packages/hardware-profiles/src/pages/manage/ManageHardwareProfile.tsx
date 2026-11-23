@@ -18,12 +18,11 @@ import ManageResourceAllocationSection from './ManageResourceAllocationSection.t
 import { manageHardwareProfileValidationSchema } from './validationUtils';
 import { HardwareProfileVisibilitySection } from './HardwareProfileVisibilitySection';
 import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
+import { filterRecognizedVisibility, isHardwareProfileEnabled } from '../utils';
 import {
-  filterRecognizedVisibility,
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
-  isHardwareProfileEnabled,
-} from '../utils';
+} from '../../../shared/utils';
 import { DEFAULT_HARDWARE_PROFILE_FORM_DATA, ManageHardwareProfileSectionTitles } from '../const';
 
 type ManageHardwareProfileProps = {

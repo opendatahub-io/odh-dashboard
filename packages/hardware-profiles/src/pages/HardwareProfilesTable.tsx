@@ -12,11 +12,8 @@ import {
 import HardwareProfilesTableRow from './HardwareProfilesTableRow';
 import DeleteHardwareProfileModal from './DeleteHardwareProfileModal';
 import HardwareProfilesToolbar from './HardwareProfilesToolbar';
-import {
-  getHardwareProfileDisplayName,
-  isHardwareProfileEnabled,
-  orderHardwareProfiles,
-} from './utils';
+import { isHardwareProfileEnabled, orderHardwareProfiles } from './utils';
+import { getHardwareProfileDisplayName } from '../../shared/utils';
 
 type HardwareProfilesTableProps = {
   hardwareProfiles: HardwareProfileKind[];

@@ -115,8 +115,10 @@ only. Host warns if `challenger.removed` ≠ audit list length.
 `### Justified (N)` (after the severity groups), not in the Challenger
 removed audit. Each shows the original severity, description, and
 `removal_reason` labeled as a justification. A fixed disclaimer notes
-these do not block disposition. The section is wrapped in HTML markers
-(`<!-- fullsend:justified-findings -->`) for downstream tooling.
+these do not block disposition. The section is delimited by the
+`### Justified (N)` heading; do not wrap it in an HTML comment.
+`fullsend post-review` escapes comment openers in agent-authored bodies,
+so a wrapper would show as visible text in the sticky.
 
 ### Author rebuttals (Justifications vs Evidence)
 
@@ -126,7 +128,7 @@ They are **not** interchangeable:
 | Channel | Where authors write | How it is used |
 | --- | --- | --- |
 | **Challenger** (findings) | `## Justifications` | If a justification adequately rebuts a finding against the diff, the challenger marks it `challenger_action: justified` and it follows the removed path — visible under `### Justified` with the challenger's reason, but not disposition-blocking. Insufficient justifications leave the finding at its original severity. Host policy categories (`protected-path`, `approach-rejected`) cannot be justified; the host restores them into `findings[]` if mistagged. |
-| **test-impact** (check) | Typically `## Evidence` | A sufficient **constraint justification** (why automation could not or should not be added, and what alternative verification exists) adjusts Automation/Efficiency scoring to ⚠️ instead of ❌. When Automation is ⚠️ solely because there are no tests, Efficiency stays ➖. Evidence depth still requires verification proof in the description — a waiver does not satisfy it. |
+| **test-impact** (check) | Typically `## Evidence` | A sufficient **Automation** constraint justification (why automation could not or should not be added, and what alternative verification exists) moves Automation to ⚠️ instead of ❌; it does not waive Efficiency, which needs its own rationale explaining why unit tests are inappropriate and the chosen tier is correct. When Automation is ⚠️ solely because there are no tests, Efficiency stays ➖. The waiver does not satisfy Evidence depth: proof is still required, either from required-CI suites covering the changed packages or, for what CI cannot show, from the description. |
 
 These rebuttals are **not** a shared ruleset applied to every producer.
 Rating, pr-description-review, and other producers are not affected.
@@ -175,10 +177,11 @@ Control labels that must not appear in agent `label_actions`:
 
 ### Findings
 
-Host blocking: severity `medium` and above, except categories excluded in
-[`.fullsend/rating-policy.json`](../../rating-policy.json) (today:
-`protected-path` → needs judgment / `comment`, not author `request-changes`).
-`low` / `info` can ride with `approve`. Category `approach-rejected` → `reject`.
+Host blocking: the severities in `blocking_finding_severities`, except
+categories excluded in [`.fullsend/rating-policy.json`](../../rating-policy.json).
+`human_judgment_finding_severities` do not block but yield `comment` / needs
+judgment; `low` / `info` can ride with `approve`. Category `approach-rejected`
+→ `reject`.
 
 ### Checks
 
@@ -188,14 +191,28 @@ Host blocking: severity `medium` and above, except categories excluded in
 | `fail` | `request-changes`; refuse approve |
 | `could-not-verify` | Refuse approve; `comment` → `requires-manual-review`; also caps high confidence via incompleteness |
 
+### Adapters
+
+| Adapter `status` | Host disposition |
+| --- | --- |
+| `ok`, `skipped`, `none` | No effect on `action` |
+| `error` | Refuse approve; `comment` → `requires-manual-review`; caps high confidence; Status headline names producer(s) + reason |
+
+An adapter with `status: ok` and empty `findings` is a successful empty
+review — it can ride with `approve`. An adapter with `status: error` means
+the pipeline did not complete (e.g. rate limit, CLI failure); the host
+refuses approve regardless of findings.
+
 #### Test impact vs PR description (Evidence)
 
 | Check | Role |
 | --- | --- |
 | `pr-description-review` | Surface: Problem / Solution / Evidence — is meaningful test evidence present on the face of the PR body? |
-| `test-impact-review` | Depth: **Automation**, **Efficiency**, **Evidence depth** — durable automation (incl. edge cases); efficient tier (unit over Cypress mock; heavy Cypress / unit-light fails unless the description justifies); dig into proof so it covers the change and protects integrity while tests stay green. Missing description call-out → Evidence depth `fail` even if tests exist in the tree. |
+| `test-impact-review` | Depth: **Automation**, **Efficiency**, **Evidence depth** — durable automation (incl. edge cases); efficient tier (unit over Cypress mock; heavy Cypress / unit-light fails unless the description justifies); dig into proof so it covers the change and protects integrity while tests stay green. Suites exercised by required PR status checks need no description call-out; missing author-supplied proof for what required CI cannot show → Evidence depth `fail` even if tests exist in the tree. Visual proof is owned here via visual-evidence triage (`screenshot` / `recording` / `none`); a missing visual artifact caps at `warning` and never solely fails the check. |
 
-`test-impact-review` may return **`fail`**, which maps to `request-changes`. Per-aspect N/A: Automation/Efficiency may be N/A for non-product-code heads (lockfile/manifest/docs with nothing to unit-test), or when there are no tests to evaluate for Efficiency; **Evidence depth remains required** for those heads. Do not N/A the whole check solely because the change is non-code.
+`test-impact-review` may return **`fail`**, which maps to `request-changes`. Per-aspect N/A: Automation/Efficiency may be N/A for non-product-code heads (lockfile/manifest/docs with nothing to unit-test), or when there are no tests to evaluate for Efficiency; **Evidence depth remains required** for those heads, satisfied by required-CI coverage or — for non-behavioral edits such as localization strings, docs, or formatting — an explicit scope statement (e.g. “localization only; no behavior change”). The check does not inspect current CI status; the merge gate enforces it. Do not N/A the whole check solely because the change is non-code.
+
+Committed tests that exercise the changed scenario are runtime evidence: the check judges their steps and assertions, not whether they have executed. Required-CI status checks and the merge gate own execution, so an unrun or not-yet-green test is not an evidence gap.
 
 ### Signals (`risk` / `confidence`)
 
@@ -208,7 +225,7 @@ mismatch or incomplete checks; it does not invent risk.
 Closed recipe after the report is assembled (kind/status-driven, not producer-id
 branches). Prefer `{category,text}` objects:
 
-1. `findings` — blocking findings → remediation / location pointers
+1. `findings` — findings that block or need judgment → remediation / location pointers
 2. `checks` — check `fail` → that check’s summary
 3. `judgement` — check `could-not-verify`, refuse-approve levels from `rating-policy.json`, section `needs_human` → concrete follow-ups
 4. `nits` — one bullet per `low`/`info` finding with `actionable: true` (whenever
@@ -312,8 +329,8 @@ job, in [`pre-review.sh`](../../scripts/pre-review.sh), after the PR-state and
 skip-author checks:
 
 - **Credentials.** The shim composes `FULLSEND_GITHUB_RUNNER_SECRETS` from the
-  `CODERABBIT_API_KEY`, `JIRA_URL`, `JIRA_USERNAME` and `JIRA_API_TOKEN`
-  secrets, and [`harness/review.yaml`](../../harness/review.yaml) references
+  `CODERABBIT_API_KEY`, `JIRA_URL`, `JIRA_USERNAME` and `JIRA_API_TOKEN` secrets, and
+  [`harness/review.yaml`](../../harness/review.yaml) references
   them in `env.runner` (Fullsend ADR 0136). Every name is always sent: an
   unset secret goes as the placeholder `odh-adapter-credential-unset`, because
   `fullsend run` refuses an unset reference and an empty value alike, and
@@ -323,6 +340,13 @@ skip-author checks:
   `host.credentials`, under the generic `FULLSEND_ADAPTER_*` names. None of
   them reaches the sandbox. `env.runner` also reaches `post-review.sh`, which
   unsets them first, and the validation loop, which does not read them.
+- **Jira URLs.** The review harness sets public `JIRA_BASE_URL` to the Jira site
+  URL for browse links. `JIRA_URL` is passed only to the Jira adapter for REST
+  requests when it is an Atlassian API gateway URL. Without that URL, the Jira
+  snapshot reports `jira-api-url-unset`; it does not request from the site URL.
+  The gateway does not appear in review links. [`post-review.sh`](../../scripts/post-review.sh)
+  resolves each Product ask label from its own `.run/jira.json` snapshot rather
+  than the section's `key`/`url`.
 - **Order and cost.** `fullsend run` posts the review start-status comment
   before it runs the pre-script, so it is up before any adapter work. A closed PR or a
   skipped author exits before the adapters, so it buys no CodeRabbit run.
@@ -334,6 +358,29 @@ skip-author checks:
   `failure_severity: info`.
 - **Cancellation.** The adapters share the review job's
   `cancel-in-progress` group, so a newer push cancels them with the review.
+- **PR image capture.** In the same pre-script, and concurrently with the
+  adapters, [`fetch-pr-images.sh`](../../scripts/fetch-pr-images.sh) captures
+  the GitHub-hosted images referenced by the PR body and by non-bot issue
+  comments, and stages `pr-images.json` plus `pr-images.tar.gz` for the
+  sandbox (see [`SKILL.md`](SKILL.md) step 3d). Only GitHub media hosts are
+  fetched, media requests carry no credentials, and every failure is a skip
+  reason or a `::warning::` rather than a failed review. Each bound is an
+  environment override read by
+  [`fetch_pr_images.py`](../../scripts/fetch_pr_images.py):
+
+  | Variable | Default | Effect |
+  | --- | --- | --- |
+  | `REVIEW_PR_IMAGES_MAX` | `12` | Accepted images per capture. Additional candidates are skipped as `image-limit`. |
+  | `REVIEW_PR_IMAGE_MAX_BYTES` | `8388608` (8 MiB) | Per-image byte ceiling; larger bodies are skipped as `image-too-large`. |
+  | `REVIEW_PR_IMAGES_MAX_BYTES` | `25165824` (24 MiB) | Total accepted bytes. Once filled, remaining candidates are skipped as `total-bytes-limit` without a request. |
+  | `REVIEW_PR_IMAGE_MAX_DIMENSION` | `8192` | Per-side pixel ceiling; larger images are skipped as `dimension-limit`. |
+  | `REVIEW_PR_IMAGE_MAX_PIXELS` | `40000000` | Width×height ceiling; larger images are skipped as `pixel-limit`. |
+  | `REVIEW_PR_IMAGE_TIMEOUT` | `20` | Per-request socket timeout in seconds, further shortened by the capture deadline's remaining budget. |
+  | `REVIEW_PR_IMAGES_MAX_ATTEMPTS` | `24` | Request budget covering failed, rejected, and unsupported candidates; further candidates are skipped as `attempt-limit`. |
+  | `REVIEW_PR_IMAGES_MAX_SECONDS` | `120` | Capture deadline in seconds for the whole step (comment listing, parsing, downloads). Remaining candidates are skipped as `capture-deadline` and the manifest records a `capture-deadline-reached` limitation. A hard stop 15 seconds later, for work cooperative checks cannot interrupt, records `capture-hard-timeout` and keeps whatever was already captured. |
+
+  Empty or non-numeric values fall back to the default, so a malformed
+  override cannot disable the limits.
 - **Stale context.** Head-dependent context is read from the forge when the
   pre-script runs, not from the event: `pre-review.sh` reads the head SHA,
   base, title and body with `gh pr view`, and CodeRabbit reviews that head SHA
@@ -341,6 +388,15 @@ skip-author checks:
   this one. If a run is not cancelled, its adapter context still describes the
   head the sandbox reviewed. Fullsend's steer and coalesce work (fullsend#7689
   follow-ups) can change this; recheck it when that lands.
+- **Jira key selection.** [`fetch-jira-context.sh`](../../scripts/fetch-jira-context.sh)
+  collects keys from the PR preamble (before the first Markdown heading),
+  after stripping HTML comments so template placeholders in `<!-- ... -->`
+  are ignored; if the preamble has none, it falls back to the
+  comment-stripped title. Keys are deduplicated in encounter order and capped
+  at 10 (`omitted_keys` records the rest). Fetches land in `issues[]` next to
+  the backward-compatible top-level fields (first successful issue).
+  `post-review.sh` surfaces failed keys/reasons and `omitted_keys` as an
+  evaluation-limit notice under Product ask when that section is rendered.
 - **Adding a credential.** Add the secret to the shim's `format(...)`
   expression with the same placeholder fallback, reference it in
   `env.runner`, add it to `post-review.sh`'s unset line, and name it in the
@@ -398,10 +454,11 @@ Stock files track [fullsend-ai/agents](https://github.com/fullsend-ai/agents)
 at `2da538b` (v0.48.1, 2026-10-17). The harness base in
 [`harness/review.yaml`](../../harness/review.yaml) and the sandbox image are on
 v0.48.1. The reusable workflow in
-[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) is pinned to
-fullsend `main` at `af8cd47`, just past v0.48.1, for the review-findings marker
-fix (fullsend#8544); move it to v0.48.2 or later once that is released. The
-three move together. v0.48 is the first release line that passes declared
+[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) is on fullsend
+v0.56.1 (`27c1d6c`), which still runs this base (its `forge:` block is
+deprecated but read) and carries the review-findings marker fix
+(fullsend#8544). The fix agent pin in [`config.yaml`](../../config.yaml) moves
+with the reusable workflow. v0.48 is the first release line that passes declared
 secrets to host-side scripts (ADR 0136), keys skills on their declared
 `SKILL.md` name, and refuses `host_files` under `/sandbox/workspace/.fullsend`,
 so the registry and the adapter output reach the sandbox under
@@ -420,7 +477,7 @@ Claude Code roles.
 | [`references/re-review.md`](references/re-review.md) | Upstream text; categories map to dimensions through the registry instead of a fixed table |
 | `issue-labels` | Not vendored. The base's `skills/issue-labels/github` loads: v0.48 keys skills on their declared name, so it no longer collides with `pr-review/github` |
 | [`SKILL.md`](SKILL.md) | Local orchestrator. Carries upstream's time budget, runtime-aware dispatch, PR-head materialisation, commit-message and same-repository issue context for intent-coherence, challenger accounting and re-review contract, expressed through the registry |
-| `scripts/pre-review.sh` | Rebased onto upstream's `2da538b` bundle; the bundled forge libraries are upstream text. Local additions (host-adapter registry and runner, dispatch normalisation, skip signal, registry-driven prior-review validation, self-test) sit on top; its header lists them |
+| `scripts/pre-review.sh` | Rebased onto upstream's `2da538b` bundle; the bundled forge libraries are upstream text. Local additions (host-adapter registry and runner, dispatch normalisation, skip signal, registry-driven prior-review validation, PR image capture and staging, self-test) sit on top; its header lists them |
 | `scripts/post-review.sh` | Local script, derived from `bb167e2` (the last upstream revision before the multi-forge rewrite), plus four changes from `ce2eedd`: the prior-findings projection, `label_actions` hardening, the PR file-list retry, and a failed job when the result is a `failure`. Nothing later is carried; see below |
 
 Not carried from that revision:
@@ -461,6 +518,172 @@ unlisted category withholds the whole projection.
 The first re-review of a PR whose sticky comment predates the marker runs as a
 first review.
 
+## Tracing
+
+Fullsend on the Pi runtime exports only `run`, `sandbox_create` and `agent` spans.
+[`fullsend-trace.yaml`](../../../.github/workflows/fullsend-trace.yaml) runs after each
+`fullsend` run completes (`workflow_run`, or a manual dispatch with a past run ID to
+backfill). It downloads that run's `fullsend-review` artifact and
+[`trace-bridge.py`](../../scripts/trace-bridge.py) sends spans to MLflow under the run's own
+trace ID.
+
+**Setup.** Repo variable `FULLSEND_TRACE_OTLP_ENDPOINT` (`<mlflow>/v1/traces`; RHOAI
+MLflow 3.17+ serves it at `<route>/mlflow/v1/traces`), and an environment
+`fullsend-trace` whose deployment branches are limited to the default branch, holding the
+secret `FULLSEND_TRACE_OTLP_HEADERS` (`Authorization=Bearer%20<token>,x-mlflow-experiment-id=<id>`,
+plus `X-MLFLOW-WORKSPACE=<namespace>` for RHOAI). Keep the secret only in that environment,
+never as a repository secret: anyone who can push a branch could dispatch an edited copy of
+this workflow or the bridge from it and read a repository secret. Use a credential that can only write
+traces to one experiment. The endpoint must be `https` (plain `http` only for localhost),
+and redirects are not followed. Without the variable the job is skipped. The bridge
+re-sends Fullsend's run and agent spans, so Fullsend's own
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` can stay unset. If Fullsend exports its own spans later,
+add `--no-base-spans` (or use `recover: bridge-only`).
+
+**Exported data.**
+
+| Span | Contents |
+| --- | --- |
+| `persona <name>` | Sub-agent model, cost, tokens, duration, stop reason, tool counts, files read by category, guidance opened and missed |
+| `execute_tool <name>` | Tool name, repo-relative path, search pattern, or for shell commands the programs run and paths named; duration, result size, error |
+| `context_coverage` | Rules/ADRs that apply to the PR (`fetch-guidance-context.sh`), which were opened, which were missed |
+| `review_result` | Verdict, finding counts, risk, confidence, dispatched/skipped producers, adapter status, real cost |
+
+Trace tags (`fullsend.pr`, `fullsend.verdict`, `fullsend.cost_usd`,
+`fullsend.guidance.coverage`, …) make the MLflow trace table filterable. MLflow's own cost
+column ignores cache discounts; use `fullsend.cost_usd`.
+
+"Opened" means a successful `read`, or a file argument to `cat`/`head`/`sed`-style programs
+in a shell command whose success is established: it is in the command's last list
+(after the last `;` or newline), joined only by `&&`, and not piped into another command.
+Searches, failed reads, paths that only appear in prompts, redirection targets
+(`cat > f`), heredoc bodies, reads masked by a later command (`cat f; ls`), an `||`
+fallback (`cat f || true`) or a pipe (`cat f | head`), negated pipelines (`! cat f`,
+`! true | cat f`), background jobs (`cat f &`), input redirections to programs that
+don't show the file (`grep -q x < f`), reads whose output is sent away (`cat f >/dev/null`,
+`cat f >& file`, `cat f 2>/dev/null 1>&2`; redirections are followed in order), `sed -i`, bodies of functions that may never be called (`f() { cat f; }`), and
+anything after an `exit` that may have ended the shell (`exit 0`, `exit`, `exit $x`; a literal
+nonzero `exit 1` can't have, in a command that succeeded) do not count. Relative paths are resolved against
+a top-level `cd` whose success is established (by the same rule); after any other directory change they are dropped. Coverage needs
+`.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the
+reviewed commit: when the selector is missing, or the PR head has moved past that commit
+(a later push or a backfill), the trace is sent without `context_coverage` data.
+
+**Trust and retention.** The artifact is untrusted (the sandbox read PR code), so it is only
+parsed as JSON; nothing from it is executed or interpolated into a shell. The job checks
+out the default branch only, without persisted credentials, and its token has `actions`,
+`contents` and `pull-requests` read access. Exported data excludes file contents, model
+messages, prompts and tool results; only paths, search patterns and an allowlist of tool
+arguments leave the artifact. Shell command text is never exported: a command becomes the
+list of programs it runs plus the files it reads with a read program (`cat`, `head`,
+`sed`, …) or redirects to or from. Other arguments, including those of `git`, `grep` and
+`echo`, quoted text, heredoc bodies and inline scripts, stay behind. Fields from the sandbox (`agent-result.json`,
+transcripts, usage) are checked for shape and dropped when malformed; numbers must be
+finite. Credential-looking values, text under sensitive key names and `--token`-style
+flags are redacted, including in span names and attribute keys. Fullsend's own spans keep
+only IDs, name, kind, times, status code and an allowlist of metadata attributes (model,
+token counts, cost, tool-call and turn counts, harness, mint and HTTP status); content
+attributes such as `gen_ai.output.messages`, events, links and status messages are dropped.
+They must sit in the host's run directory with well-formed IDs. Strings
+are capped at 1,000 characters. What MLflow keeps follows the MLflow instance's own
+retention; anyone who can read the experiment can read these traces.
+
+**Failure behavior.** The job runs outside the review, so it cannot change a review's
+outcome. Only runs of this repository's `.github/workflows/fullsend.yaml` for events that use the
+base repository's definition (`pull_request_target`, `issue_comment`, `issues`,
+`workflow_dispatch`, `schedule`; all but `pull_request_target` must run from the default
+branch, and a `pull_request_target` run's PR must target it and not have been retargeted since
+the run started, since a run from another ref
+or a PR into another branch could use an edited file) are traced; a fork PR could edit that file and run it on
+`pull_request` or `pull_request_review`, so those runs are skipped. A run whose artifact
+list has no `fullsend-review` artifact is skipped; an
+artifact API or download error fails the job so it can be rerun. On a rerun (`run_attempt` > 1) the reviewed commit is unknown, because the review
+fetched the PR's head when it ran, so the commit, coverage and verdict are left out. The PR identity comes from a `pull_request_target`
+Fullsend run's own head commit, repository and branch, which must match exactly one PR
+(comment- and review-triggered runs report the default branch, so they carry none); the bridge gets it as
+`--pr-number` and ignores the PR fields the sandbox wrote. There are two stages. The
+trust check before the download (trusted workflow, event, branch and, for
+`pull_request_target`, a single default-branch PR not retargeted since the run) skips the
+trace when its answer is negative: the job succeeds and nothing is exported. A GitHub API
+error during that check fails the job instead, so it can be rerun. After that, the PR metadata
+lookups are optional: without a single match, or when a lookup fails, the trace is still
+sent, just without PR identity or the missing metadata. The reviewed commit (`fullsend.head_sha`) comes from the
+same run, and `fullsend.verdict` only from the Fullsend bot's review posted during it; the
+artifact's `action` is exported separately as `fullsend.verdict.claimed` (for example
+`failure`, which posts no review). The matched PR must also contain the reviewed commit. A failed PR, files, run
+or review lookup only drops that optional metadata (author, coverage, posted verdict);
+the spans are still sent. If guidance selection fails, the trace is sent without coverage.
+If the endpoint is unreachable, the job fails and the review is unaffected; rerun it from
+the Actions tab. If the bridge's spans are already in MLflow (its `fullsend.bridge.version`
+tag is set, or the `fullsend.pr` tag that bridge version 1 used as its marker), a rerun
+only refreshes tags, because re-sending spans doubles MLflow's token
+totals. An export the endpoint only partly accepts (HTTP 200 with
+`partialSuccess.rejectedSpans`) fails the job without writing the marker, and so does a
+marker write that keeps failing after an export. A rerun then finds the trace without the
+marker and stops rather than guess which spans MLflow holds. Check the trace, then run the
+workflow manually with `recover`: `mark-only` records the marker when the spans are
+complete (it stops if MLflow doesn't have the trace), `resend` sends all spans again (the ones already accepted count twice, so never use it on a
+trace that already has either bridge marker), and
+`bridge-only` adds only the bridge's spans to a trace Fullsend exported itself (it stops if
+MLflow doesn't have the trace yet). Use
+`bridge-only` only when the bridge never sent to that trace: after a bridge export whose
+marker write failed it would send the bridge spans twice, so use `mark-only` there. To
+back this up, a bridge-only export records `fullsend.bridge.pending` on the trace before
+sending, failed or timed-out exports and marker writes try to record it too (best effort: if
+MLflow rejects that tag write as well, check the trace before choosing `bridge-only`), and `bridge-only` refuses
+a trace that has it. A
+malformed `agent-result.json` doesn't stop the export and doesn't affect the PR identity,
+author, coverage or posted verdict: in the workflow those come from the run and GitHub (the
+bridge's own `shared.md` fallback is only for runs without `--pr-number`). It only loses the
+artifact's own fields, such as the claimed verdict, risk and findings. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
+and then stops a normal run instead of exporting; rerun it. `recover: resend` goes
+ahead even when the lookup keeps failing; `recover: mark-only` doesn't, because it needs the
+lookup to confirm the trace is in MLflow. The bridge's run summary in the Actions log has counts and tags
+only, never the PR, run URL, file or guidance paths (missed guidance is a count); the
+workflow's own notices can still name a run ID or PR number.
+
+## CodeRabbit coexistence
+
+CodeRabbit (the org-wide GitHub App) is **not** a peer reviewer here.
+Its auto-review is disabled to avoid duplicate review noise.
+
+### What still works
+
+- **CLI findings** — active via the Fullsend adapter
+  (`coderabbit review --agent --deep --remote`)
+- **Chat commands** — `@coderabbitai` works for ad-hoc queries
+- **On-demand pre-merge checks** — `@coderabbitai run pre-merge checks`
+
+### What is disabled
+
+- **Auto-review comments** — no review body or inline comments from
+  CodeRabbit on PRs
+- **Automatic pre-merge checks** — coupled with auto-review in
+  CodeRabbit, cannot be split. These were warning-only and not gating.
+  Migration to Fullsend `check:*` producers is tracked separately.
+
+### CodeRabbit architecture
+
+```
+PR opened/updated (non-draft)
+       |
+       +--> Fullsend (review-of-record)
+       |       +-- CodeRabbit CLI adapter (.fullsend/scripts/)
+       |       +-- Other dimensions (.fullsend/dimensions.json)
+       |       +-- Posts single sticky review
+       |
+       +--> CodeRabbit App (auto-review: DISABLED)
+               +-- No review comments posted
+               +-- Chat commands still work on-demand
+```
+
+### CodeRabbit config reference
+
+- `.coderabbit.yaml` — repo-level CodeRabbit config (auto-review disabled)
+- `.fullsend/dimensions.json` — dimensions including CodeRabbit CLI adapter
+- `.fullsend/scripts/fetch-coderabbit-context.sh` — CLI adapter script
+- Org baseline: `opendatahub-io/coderabbit/.coderabbit.yaml`
+
 ## Related files
 
 | Path | Role |
@@ -474,3 +697,5 @@ first review.
 | [`.fullsend/scripts/pre-review.sh`](../../scripts/pre-review.sh) | Host preflight / adapter prep |
 | [`.fullsend/scripts/validate-dimensions.sh`](../../scripts/validate-dimensions.sh) | Registry contract |
 | [`.github/workflows/fullsend.yaml`](../../../.github/workflows/fullsend.yaml) | Event routing |
+| [`.github/workflows/fullsend-trace.yaml`](../../../.github/workflows/fullsend-trace.yaml) | Post-review trace export to MLflow (see [Tracing](#tracing)) |
+| [`.fullsend/scripts/trace-bridge.py`](../../scripts/trace-bridge.py) | Turns a `fullsend-review` artifact into OTLP spans; `--self-test` |

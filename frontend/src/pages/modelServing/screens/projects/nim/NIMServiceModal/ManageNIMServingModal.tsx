@@ -156,7 +156,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   );
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const [defaultSc] = useDefaultStorageClass();
+  const [defaultSc, defaultScLoaded] = useDefaultStorageClass();
   const defaultStorageClassName = defaultSc?.metadata.name ?? '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
   const [storageClassName, setStorageClassName] = React.useState(
@@ -177,14 +177,12 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   React.useEffect(() => {
     if (pvc?.spec.storageClassName) {
       // If a deployed storage class exists, use it.
-      if (storageClassName !== pvc.spec.storageClassName) {
-        setStorageClassName(pvc.spec.storageClassName);
-      }
-    } else if (defaultStorageClassName && storageClassName === '') {
-      // Otherwise, if the default storage class is available and state is empty, use it.
-      setStorageClassName(defaultStorageClassName);
+      setStorageClassName(pvc.spec.storageClassName);
+    } else if (defaultStorageClassName) {
+      // New deployment: fill in the resolved default only if nothing has been picked yet.
+      setStorageClassName((prev) => prev || defaultStorageClassName);
     }
-  }, [pvc, defaultStorageClassName, storageClassName]);
+  }, [pvc, defaultStorageClassName]);
 
   React.useEffect(() => {
     if (currentProjectName) {
@@ -209,6 +207,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !baseInputValueValid ||
     !validateHardwareProfileForm() ||
     !isExistingPvcValid ||
+    (!editInfo && pvcMode === 'create-new' && !defaultScLoaded) ||
     createDataInferenceService.servingRuntimeEnvVars?.some(
       (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
     );
@@ -284,6 +283,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   const submit = () => {
+    if (!editInfo && pvcMode === 'create-new' && !defaultScLoaded) {
+      return;
+    }
     setError(undefined);
     setActionInProgress(true);
 

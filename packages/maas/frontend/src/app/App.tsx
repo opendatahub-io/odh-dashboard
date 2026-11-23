@@ -18,13 +18,10 @@ import {
   UserSettings,
   logout,
   useModularArchContext,
-  useSettings,
 } from 'mod-arch-core';
-import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
-import { useGridSettings } from '~/app/hooks/useGridSettings';
-import { isGridFeatureFlagEnabledFromDevStorage } from '~/app/utilities/gridFeatureFlag';
+import { useMaaSSettings } from '~/app/hooks/useMaaSSettings';
 
 type AppShellProps = {
   configSettings: ConfigSettings | null;
@@ -101,29 +98,7 @@ const AppShell: React.FC<AppShellProps> = ({
 };
 
 const AppContent: React.FC = () => {
-  const {
-    configSettings,
-    userSettings,
-    loaded: configLoaded,
-    loadError: configError,
-  } = useSettings();
-
-  const { namespacesLoaded, namespacesLoadError, initializationError } =
-    useNamespaceSelectorWithPersistence();
-
-  return (
-    <AppShell
-      configSettings={configSettings}
-      userSettings={userSettings}
-      loaded={configLoaded && namespacesLoaded}
-      loadError={configError || namespacesLoadError || initializationError}
-      showLogoutAction
-    />
-  );
-};
-
-const GridAppContent: React.FC = () => {
-  const { configSettings, userSettings, loaded, loadError } = useGridSettings();
+  const { configSettings, userSettings, loaded, loadError } = useMaaSSettings();
 
   return (
     <AppShell
@@ -135,7 +110,6 @@ const GridAppContent: React.FC = () => {
   );
 };
 
-const App: React.FC = () =>
-  isGridFeatureFlagEnabledFromDevStorage() ? <GridAppContent /> : <AppContent />;
+const App: React.FC = () => <AppContent />;
 
 export default App;

@@ -3,6 +3,8 @@ package bffclient
 import (
 	"fmt"
 	"os"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 )
 
 // BFFTarget represents a target BFF service
@@ -86,7 +88,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				PathPrefix:      "/api/v1",
 				TLSEnabled:      false,
 				AuthMethod:      "user_token",
-				AuthTokenHeader: "x-forwarded-access-token",
+				AuthTokenHeader: config.DefaultAuthTokenHeader,
 				AuthTokenPrefix: "",
 			},
 			BFFTargetGenAI: {
@@ -96,7 +98,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				PathPrefix:      "/api/v1",
 				TLSEnabled:      false,
 				AuthMethod:      "user_token",
-				AuthTokenHeader: "x-forwarded-access-token",
+				AuthTokenHeader: config.DefaultAuthTokenHeader,
 				AuthTokenPrefix: "",
 			},
 			BFFTargetModelRegistry: {
@@ -106,7 +108,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				PathPrefix:      "/api/v1",
 				TLSEnabled:      false,
 				AuthMethod:      "user_token",
-				AuthTokenHeader: "x-forwarded-access-token",
+				AuthTokenHeader: config.DefaultAuthTokenHeader,
 				AuthTokenPrefix: "",
 			},
 			BFFTargetMLflow: {
@@ -116,7 +118,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				PathPrefix:      "/api/v1",
 				TLSEnabled:      false,
 				AuthMethod:      "user_token",
-				AuthTokenHeader: "x-forwarded-access-token",
+				AuthTokenHeader: config.DefaultAuthTokenHeader,
 				AuthTokenPrefix: "",
 			},
 		},

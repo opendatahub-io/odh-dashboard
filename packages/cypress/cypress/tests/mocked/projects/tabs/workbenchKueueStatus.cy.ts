@@ -52,23 +52,31 @@ const mockNotebookEvents = [
     apiVersion: 'v1',
     kind: 'Event',
     metadata: { name: 'ev-1', namespace: 'test-project', uid: 'ev-1-uid' },
-    involvedObject: { name: 'test-notebook', kind: 'StatefulSet' },
+    involvedObject: {
+      name: 'test-notebook',
+      kind: 'StatefulSet',
+      fieldPath: 'spec.containers{notebook}',
+    },
     lastTimestamp: '2024-01-15T10:00:00Z',
     eventTime: '2024-01-15T10:00:00Z',
     type: 'Normal' as const,
     reason: 'Created',
-    message: 'Created container notebook',
+    message: 'Container created',
   },
   {
     apiVersion: 'v1',
     kind: 'Event',
     metadata: { name: 'ev-2', namespace: 'test-project', uid: 'ev-2-uid' },
-    involvedObject: { name: 'test-notebook', kind: 'StatefulSet' },
+    involvedObject: {
+      name: 'test-notebook',
+      kind: 'StatefulSet',
+      fieldPath: 'spec.containers{notebook}',
+    },
     lastTimestamp: '2024-01-15T10:01:00Z',
     eventTime: '2024-01-15T10:01:00Z',
     type: 'Normal' as const,
     reason: 'Started',
-    message: 'Started container notebook',
+    message: 'Container started',
   },
 ];
 
@@ -507,7 +515,7 @@ describe('Workbench page — Kueue & Status', () => {
         .findHaveNotebookStatusText()
         .should('have.text', 'Requeued')
         .click();
-      workbenchStatusModal.find().should('contain.text', 'attempt 2');
+      workbenchStatusModal.find().should('contain.text', 'Attempt 2');
       workbenchStatusModal.findProgressTab().click();
       workbenchStatusModal
         .findProgressStepByLabel('Waiting for resources in test-queue')

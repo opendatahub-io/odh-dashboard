@@ -93,8 +93,16 @@ export const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   (v.phase === undefined || typeof v.phase === 'string') &&
   (v.endpoint === undefined || typeof v.endpoint === 'string');
 
+// Labels are a string-valued map; exclude null and arrays, which also pass typeof 'object'.
+const isStringRecord = (v: unknown): v is Record<string, string> =>
+  isRecord(v) && !Array.isArray(v) && Object.values(v).every((value) => typeof value === 'string');
+
 const isTokenMetadata = (v: unknown): v is TokenMetadata =>
-  isRecord(v) && typeof v.organizationId === 'string' && typeof v.costCenter === 'string';
+  isRecord(v) &&
+  !Array.isArray(v) &&
+  (v.organizationId === undefined || typeof v.organizationId === 'string') &&
+  (v.costCenter === undefined || typeof v.costCenter === 'string') &&
+  (v.labels === undefined || isStringRecord(v.labels));
 
 export const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isRecord(v) &&
@@ -145,6 +153,7 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
   isRecord(v) &&
   typeof v.subscription_id_header === 'string' &&
   typeof v.subscription_description === 'string' &&
+  (v.priority === undefined || typeof v.priority === 'number') &&
   (v.inference_priority === undefined || typeof v.inference_priority === 'number') &&
   Array.isArray(v.model_refs) &&
   v.model_refs.every(isModelRefInfo);
@@ -154,18 +163,42 @@ const isCreateSubscriptionResponse = (v: unknown): v is CreateSubscriptionRespon
   isMaaSSubscription(v.subscription) &&
   (v.authPolicy === undefined || isMaaSAuthPolicy(v.authPolicy));
 
-/** GET /api/v1/all-subscriptions - List all subscriptions */
-export const listSubscriptions =
-  (hostPath = '') =>
+/**
+ * Subscriptions endpoints that return the same `MaaSSubscription[]` payload.
+ *
+ * - `all-subscriptions`: governance/admin view used by the MaaS governance page
+ *   (reads MaaSSubscription CRs from Kubernetes).
+ * - `admin-subscriptions`: read-only view backed by the maas-api `/v1/subscriptions`
+ *   passthrough, unfiltered. Same payload shape, kept as a separate contract so it can
+ *   diverge (scoping, RBAC) without changing the all-subscriptions consumers. Note the
+ *   payload is sanitised upstream: `owner.groups` is always empty and no status/phase
+ *   is available.
+ */
+export type SubscriptionsEndpoint = 'all-subscriptions' | 'admin-subscriptions';
+
+type SubscriptionFetcher = (opts: APIOptions) => Promise<MaaSSubscription[]>;
+
+const fetchSubscriptions =
+  (endpoint: SubscriptionsEndpoint, hostPath = '') =>
   (opts: APIOptions): Promise<MaaSSubscription[]> =>
     handleRestFailures(
-      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/all-subscriptions`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/${endpoint}`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
         return response.data.filter(isMaaSSubscription).map(normalizeSubscription);
       }
       throw new Error('Invalid response format');
     });
+
+/** GET /api/v1/all-subscriptions - List all subscriptions */
+export const listSubscriptions = (hostPath = ''): SubscriptionFetcher =>
+  fetchSubscriptions('all-subscriptions', hostPath);
+
+/** List subscriptions from the requested endpoint. Defaults to all-subscriptions. */
+export const listSubscriptionsFrom = (
+  endpoint: SubscriptionsEndpoint = 'all-subscriptions',
+  hostPath = '',
+): SubscriptionFetcher => fetchSubscriptions(endpoint, hostPath);
 
 export const deleteSubscription =
   (hostPath = '') =>

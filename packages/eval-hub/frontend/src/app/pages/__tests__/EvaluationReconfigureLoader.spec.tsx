@@ -1,10 +1,13 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationReconfigureLoader from '~/app/pages/EvaluationReconfigureLoader';
 import { Collection, EvaluationJob, InferenceServiceItem } from '~/app/types';
+
+const { render } = setupTrackingTest();
 
 const mockUseEvaluationJob = jest.fn<
   [EvaluationJob | null, boolean, Error | undefined],

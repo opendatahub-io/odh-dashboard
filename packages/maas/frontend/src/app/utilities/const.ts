@@ -9,6 +9,7 @@ const KUBEFLOW_USERNAME = process.env.KUBEFLOW_USERNAME || 'user@example.com';
 const IMAGE_DIR = process.env.IMAGE_DIR || 'images';
 const LOGO_LIGHT = process.env.LOGO || 'logo-light-theme.svg';
 const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
+const MAAS_MANDATORY_NAMESPACE = '__maas_grid__';
 const URL_PREFIX = '/maas';
 const API_URL_PREFIX = `${process.env.BASE_PATH || ''}${URL_PREFIX}`;
 const BFF_API_VERSION = 'v1';
@@ -26,6 +27,7 @@ export {
   DEPLOYMENT_MODE,
   BFF_API_VERSION,
   MANDATORY_NAMESPACE,
+  MAAS_MANDATORY_NAMESPACE,
   COMPANY_URI,
 };
 

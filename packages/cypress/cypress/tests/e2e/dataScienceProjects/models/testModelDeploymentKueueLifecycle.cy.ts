@@ -27,7 +27,6 @@ const TAB_READY_TIMEOUT = 120000;
 const QUEUE_POSITION_REGEX = /\d+(st|nd|rd|th) in/;
 const INADMISSIBLE_MESSAGE = /> maximum capacity \(0\)/i;
 const QUEUED_MESSAGE = /insufficient unused quota/i;
-const TEST_TAGS = ['@Kueue', '@Dashboard', '@ModelServing', '@Featureflagged', '@NonConcurrent'];
 
 const FIXTURE = {
   projectName: 'kueue-md-proj',
@@ -128,14 +127,14 @@ const deployModelViaWizard = (ctx: TestContext, modelName: string) => {
   waitForDeployModelButton();
   modelServingGlobal.findDeployModelButton().should('be.visible').click();
 
-  modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+  modelServingWizard.selectModelLocationOption(ModelLocationSelectOption.URI);
   modelServingWizard.findUrilocationInput().clear().type(FIXTURE.modelLocationURI);
   modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
   modelServingWizard
     .findSaveConnectionInput()
     .clear()
     .type(`${modelName}${FIXTURE.connectionNameSuffix}`);
-  modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+  modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
   modelServingWizard.findNextButton().should('be.enabled').click();
 
   modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
@@ -241,7 +240,7 @@ describeAdminOnly('Model deployment Kueue status tests', () => {
 
     it(
       'Verify model deployment shows Inadmissible when ClusterQueue quota is zero',
-      { tags: TEST_TAGS },
+      { tags: ['@Kueue', '@Dashboard', '@ModelServing', '@Featureflagged', '@NonConcurrent'] },
       () => {
         openModelServerTabForDeploy(ctx);
         deployModelViaWizard(ctx, modelName);
@@ -276,7 +275,7 @@ describeAdminOnly('Model deployment Kueue status tests', () => {
 
     it(
       'Verify model deployment shows Queued when ClusterQueue quota is consumed by another deployment',
-      { tags: TEST_TAGS },
+      { tags: ['@Kueue', '@Dashboard', '@ModelServing', '@Featureflagged', '@NonConcurrent'] },
       () => {
         openModelServerTabForDeploy(ctx);
         deployModelViaWizard(ctx, firstModelName);

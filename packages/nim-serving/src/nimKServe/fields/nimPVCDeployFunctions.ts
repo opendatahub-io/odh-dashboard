@@ -3,6 +3,8 @@ import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/exte
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import { createPvc } from '@odh-dashboard/internal/api';
 import {
+  getNIMPVCDisplayName,
+  getNIMPVCK8sName,
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
 } from '../../pages/deploymentWizard/fields/NIMPVCField';
@@ -35,7 +37,8 @@ export const nimPVCPreDeploy = async (
 
   await createPvc(
     {
-      name: fieldData.pvcName,
+      name: getNIMPVCDisplayName(fieldData),
+      k8sName: getNIMPVCK8sName(fieldData),
       description: '',
       size: `${fieldData.storageSizeGi}Gi`,
       storageClassName: fieldData.storageClassName,

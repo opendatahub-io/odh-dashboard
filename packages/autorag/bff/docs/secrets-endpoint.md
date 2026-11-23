@@ -82,6 +82,29 @@ The optional `*_CA_CERT` keys hold a PEM-encoded CA certificate that the BFF add
 
 The `database` result requires every required value for a matching provider to be non-empty after trimming whitespace and excludes secrets matching more than one provider. `provider=neo4j` requires non-empty `NEO4J_URI` and `NEO4J_PASSWORD` values and returns only unambiguous Neo4j connections. Optional CA keys are `MILVUS_CA_CERT`, its legacy alias `MILVUS_SERVER_CERT`, `PGVECTOR_CA_CERT`, and `NEO4J_CA_CERT`; legacy keys do not exclude any provider.
 
+### S3 upload checksums
+
+The S3 connection Secret can optionally include `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM`
+or `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS`. The algorithm key accepts `CRC32`,
+`CRC32C`, `SHA1`, `SHA256`, and `SHA512` (case-insensitive). These are Secret
+keys, not BFF environment variables.
+
+When the key is absent or empty, uploads retain the AWS SDK's default checksum
+behavior, including CRC32 for supported S3 upload operations. This preserves
+existing connections, including buckets that require upload checksums. Set an
+explicit algorithm when a bucket requires a particular checksum and the endpoint
+supports its streaming trailer.
+
+Set `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS=true` for S3-compatible endpoints
+that reject optional `STREAMING-UNSIGNED-PAYLOAD-TRAILER` uploads, including
+[affected NetApp ONTAP versions](https://kb.netapp.com/on-prem/ontap/da/S3/S3-Issues/CONTAP-576720).
+This disables optional checksums; it does not satisfy bucket-level checksum
+requirements such as Object Lock. Enabling the flag and setting an explicit
+checksum algorithm are mutually exclusive. With no algorithm selected and the
+flag absent or `false`, the SDK default is preserved. The setting applies only
+to uploads through this S3 connection; selecting or downloading existing
+objects is unaffected.
+
 ## Response Format
 
 The response follows the envelope pattern:

@@ -19,8 +19,15 @@ import type { GenAiTestData } from '../../types';
  *
  * @param projectName - Namespace to deploy into.
  * @param testData - Fixture data with model URI, names, and hardware profile paths.
+ * @param servingRuntimeYamlPath - Path to the ServingRuntime YAML template.
+ * @param servingRuntimeName - Name of the ServingRuntime resource.
  */
-export const deployGenAiModel = (projectName: string, testData: GenAiTestData): void => {
+export const deployGenAiModel = (
+  projectName: string,
+  testData: GenAiTestData,
+  servingRuntimeYamlPath: string,
+  servingRuntimeName: string,
+): void => {
   const {
     inferenceServiceName,
     connectionURI,
@@ -32,17 +39,15 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   createCleanHardwareProfile(hardwareProfileResourceYamlPath);
 
   cy.step('Apply ServingRuntime to project namespace');
-  cy.fixture('resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml', 'utf8').then(
-    (srYaml: string) => {
-      const tmpFile = `/tmp/genai-sr-${Date.now()}.yaml`;
-      cy.writeFile(tmpFile, srYaml);
-      cy.exec(`oc apply -n ${projectName} -f ${tmpFile}`).then((result) => {
-        if (result.exitCode !== 0) {
-          throw new Error(`ServingRuntime apply failed: ${result.stderr}`);
-        }
-      });
-    },
-  );
+  cy.fixture(servingRuntimeYamlPath, 'utf8').then((srYaml: string) => {
+    const tmpFile = `/tmp/genai-sr-${Date.now()}.yaml`;
+    cy.writeFile(tmpFile, srYaml);
+    cy.exec(`oc apply -n ${projectName} -f ${tmpFile}`).then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(`ServingRuntime apply failed: ${result.stderr}`);
+      }
+    });
+  });
 
   cy.step('Apply InferenceService with genai-asset label');
   cy.fixture('resources/genAi/gen-ai-inference-service.yaml', 'utf8').then(
@@ -50,6 +55,7 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
       const isvcYaml = isvcTemplate
         .replace('__ISVC_NAME__', inferenceServiceName)
         .replace('__HW_PROFILE__', hardwareProfileName)
+        .replace('__RUNTIME_NAME__', servingRuntimeName)
         .replace('__MODEL_URI__', connectionURI);
       const isvcTmpFile = `/tmp/genai-isvc-${Date.now()}.yaml`;
       cy.writeFile(isvcTmpFile, isvcYaml);
@@ -356,18 +362,66 @@ export const waitForModelInLSD = (
   check(1);
 };
 
+export interface NemoGuardrailsService {
+  namespace: string;
+  name: string;
+  port: number;
+}
+
+const NEMO_GUARDRAILS_MAX_ATTEMPTS = 360;
+const NEMO_GUARDRAILS_POLL_INTERVAL_MS = 5000;
+
 /**
- * Wait for the namespace's NemoGuardrails instance, deployment, and service endpoint to become ready.
- * The custom resource can report Ready before the separately provisioned workload is available.
+ * Wait for the project's NemoGuardrails CR and its published Service endpoint to become ready.
+ * The Service may run in a shared infrastructure namespace rather than the project namespace.
  *
  * @param namespace - Namespace containing the NemoGuardrails custom resource.
  */
-export const waitForNemoGuardrailsReady = (namespace: string): Cypress.Chainable<Cypress.Exec> =>
-  pollUntilSuccess(
-    `oc get nemoguardrails nemoguardrails -n ${namespace} -o json | jq -e '.status.phase == "Ready"' && oc get deployment nemoguardrails -n ${namespace} -o json | jq -e '.status.availableReplicas != null and .status.availableReplicas == .spec.replicas' && oc get endpoints nemoguardrails -n ${namespace} -o json | jq -e '[.subsets[]?.addresses[]?] | length > 0'`,
-    `NemoGuardrails to be Ready in namespace ${namespace}`,
-    { maxAttempts: 60, pollIntervalMs: 5000 },
-  );
+export const waitForNemoGuardrailsReady = (
+  namespace: string,
+): Cypress.Chainable<NemoGuardrailsService> =>
+  cy.then(() => {
+    const startedAt = Date.now();
+    return pollUntilSuccess(
+      `oc get nemoguardrails nemoguardrails -n ${namespace} -o json | jq -er 'select(.status.phase == "Ready" and (.status.endpoint | type == "string" and length > 0)) | .status.endpoint'`,
+      `NemoGuardrails endpoint to be Ready for namespace ${namespace}`,
+      {
+        maxAttempts: NEMO_GUARDRAILS_MAX_ATTEMPTS,
+        pollIntervalMs: NEMO_GUARDRAILS_POLL_INTERVAL_MS,
+      },
+    ).then(({ stdout }) => {
+      const endpoint = new URL(stdout.trim());
+      const [name, serviceNamespace, serviceSegment] = endpoint.hostname.split('.');
+      const isDNSLabel = (value: string): boolean => /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(value);
+      if (
+        !isDNSLabel(name) ||
+        !isDNSLabel(serviceNamespace) ||
+        serviceSegment !== 'svc' ||
+        !['http:', 'https:'].includes(endpoint.protocol)
+      ) {
+        throw new Error(
+          `NemoGuardrails status.endpoint is not an in-cluster Service URL: ${endpoint.toString()}`,
+        );
+      }
+
+      const port = endpoint.port
+        ? Number(endpoint.port)
+        : endpoint.protocol === 'https:'
+        ? 443
+        : 80;
+      const remainingMs =
+        NEMO_GUARDRAILS_MAX_ATTEMPTS * NEMO_GUARDRAILS_POLL_INTERVAL_MS - (Date.now() - startedAt);
+      const remainingAttempts = Math.max(
+        1,
+        Math.ceil(remainingMs / NEMO_GUARDRAILS_POLL_INTERVAL_MS),
+      );
+      return pollUntilSuccess(
+        `oc get endpoints ${name} -n ${serviceNamespace} -o json | jq -e '[.subsets[]?.addresses[]?] | length > 0'`,
+        `NemoGuardrails Service ${serviceNamespace}/${name} to have ready endpoints`,
+        { maxAttempts: remainingAttempts, pollIntervalMs: NEMO_GUARDRAILS_POLL_INTERVAL_MS },
+      ).then(() => ({ namespace: serviceNamespace, name, port }));
+    });
+  });
 
 /**
  * Create a prompt via the Gen AI BFF MLflow prompts API.

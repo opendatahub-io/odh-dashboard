@@ -8,12 +8,28 @@ metadata:
 spec:
   entrypoint: "python -c \"import time; print('RayJob running'); time.sleep(300); print('Done')\""
   shutdownAfterJobFinishes: true
+  submitterPodTemplate:
+    spec:
+      nodeSelector: ${nodeSelector}
+      restartPolicy: Never
+      containers:
+        - name: ray-job-submitter
+          image: ${rayImage}
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 200Mi
   rayClusterSpec:
     headGroupSpec:
       rayStartParams:
         dashboard-host: '0.0.0.0'
       template:
         spec:
+          nodeSelector: ${nodeSelector}
+          restartPolicy: Never
           containers:
             - name: ray-head
               image: ${rayImage}
@@ -31,7 +47,6 @@ spec:
                 limits:
                   cpu: "1"
                   memory: 2Gi
-          restartPolicy: Never
     workerGroupSpecs:
       - groupName: worker-group-1
         replicas: 1
@@ -40,6 +55,8 @@ spec:
         rayStartParams: {}
         template:
           spec:
+            nodeSelector: ${nodeSelector}
+            restartPolicy: Never
             containers:
               - name: ray-worker
                 image: ${rayImage}
@@ -50,4 +67,3 @@ spec:
                   limits:
                     cpu: "1"
                     memory: 2Gi
-            restartPolicy: Never

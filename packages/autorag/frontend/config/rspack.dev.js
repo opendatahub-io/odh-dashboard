@@ -29,26 +29,64 @@ const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/autorag/' : PUBLIC_PATH;
 const IS_CYPRESS_RUN = process.env.CYPRESS_RUN === 'true';
 
-// Get the kubeconfig token at startup as a fallback for standalone dev mode.
-const getKubeconfigToken = () => {
-  try {
-    const token = execSync(
-      "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
-    )
-      .toString()
-      .trim();
-    const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
-      .toString()
-      .trim();
-    console.info('Logged in as user:', username);
-    return token;
-  } catch (error) {
-    console.error('Failed to get Kubernetes token:', error.message);
-    return '';
+// A stalled CLI (e.g. a credential helper waiting on a prompt) must not block
+// dev-server startup indefinitely; execSync throws on timeout, which falls
+// through to the next CLI.
+const CLI_COMMAND_TIMEOUT_MS = 5000;
+
+// Get the CLI token at startup as a fallback for standalone dev mode. Use the
+// same oc-first lookup as the Gen AI dev server so the playground's relay can
+// forward a bearer token when only oc is installed.
+const getCLIToken = () => {
+  if (process.env.KUBE_TOKEN) {
+    return process.env.KUBE_TOKEN;
   }
+  const cliCommands = [
+    { token: 'oc whoami --show-token', username: 'oc whoami' },
+    {
+      token: "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
+      username: "kubectl auth whoami -o jsonpath='{.status.userInfo.username}'",
+    },
+  ];
+  for (const { token: tokenCommand, username: usernameCommand } of cliCommands) {
+    try {
+      const token = execSync(tokenCommand, { timeout: CLI_COMMAND_TIMEOUT_MS }).toString().trim();
+      if (!token) {
+        continue;
+      }
+      // The username lookup is best-effort: a CLI can yield a token while
+      // failing the whoami lookup (e.g. RBAC blocks self-subject review), so
+      // its failure must not discard a valid token. stderr is suppressed for
+      // this optional lookup only.
+      let username = '';
+      try {
+        username = execSync(usernameCommand, {
+          stdio: ['pipe', 'pipe', 'ignore'],
+          timeout: CLI_COMMAND_TIMEOUT_MS,
+        })
+          .toString()
+          .trim();
+      } catch {
+        // Keep the token; the relay only needs it, not the username.
+      }
+      console.info('Logged in as user:', username || '(unknown)');
+      return token;
+    } catch {
+      // Try the next CLI, then fall through to an empty token.
+    }
+  }
+  console.error(
+    'Failed to get a Kubernetes token. Run `oc login` or set KUBE_TOKEN for the playground relay.',
+  );
+  return '';
 };
 
-const fallbackToken = AUTH_METHOD === 'user_token' ? getKubeconfigToken() : '';
+// Only capture the CLI token when the dev server binds a loopback host. On a
+// non-loopback bind (e.g. kubeflow mode's 0.0.0.0), anyone who can reach the
+// dev server would receive the cluster token on proxied requests.
+const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1'];
+const fallbackToken =
+  AUTH_METHOD === 'user_token' && LOOPBACK_HOSTS.includes(HOST) ? getCLIToken() : '';
 
 // Build static proxy headers for auth methods that don't need dynamic forwarding.
 const getProxyHeaders = () => {

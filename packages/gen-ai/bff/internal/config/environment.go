@@ -61,6 +61,16 @@ type EnvConfig struct {
 	// TLS verification settings for HTTP client connections
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
 	InsecureSkipVerify bool
+	// AllowLocalModelEndpoints when true, allows verification of model endpoints on
+	// localhost/loopback addresses (local development only). Enabling it requires
+	// both DevMode and a loopback listen host. Independently of those prerequisites,
+	// it is refused at startup whenever TLS certificates are configured, i.e. in
+	// deployed environments.
+	AllowLocalModelEndpoints bool
+	// DevMode explicitly marks the process as running in local development mode
+	DevMode bool
+	// Host is the listen host for the API server (empty binds all interfaces)
+	Host string
 	// Custom distribution name
 	DistributionName string
 
@@ -174,7 +184,17 @@ type EnvConfig struct {
 	// ─── GATEWAY ───────────────────────────────────────────────
 	// GatewayDomain is the external domain of the OpenShift Gateway/Route used to
 	// reach the BFF from user namespaces. Used to construct the base_url for the
-	// remote::passthrough provider in OGX configurations.
+	// remote::passthrough provider in OGX configurations. Must be a bare host:
+	// consumers prepend https:// themselves, so a scheme-qualified value would
+	// produce malformed passthrough URLs.
 	// Injected by the operator via GATEWAY_DOMAIN env var.
 	GatewayDomain string
+
+	// RelayTargetURL is an optional scheme-qualified base URL that the responses
+	// relay forwards to instead of the gateway route. It exists so local
+	// development can point the relay at a locally running BFF without
+	// repurposing GATEWAY_DOMAIN (whose passthrough consumers require a bare
+	// host). A plain http:// value is accepted only for loopback hosts.
+	// Set via the RELAY_TARGET_URL env var.
+	RelayTargetURL string
 }

@@ -94,6 +94,32 @@ spec:
                 required:
                 - domain
                 type: object
+              legacyRedirects:
+                description: |-
+                  LegacyRedirects configures redirects from the legacy dashboard and gateway
+                  Routes. When omitted, the Dashboard operator does not manage redirect
+                  resources; this is the compatibility state used before platform ownership
+                  is explicitly handed over.
+                properties:
+                  legacyHostname:
+                    description: |-
+                      LegacyHostname is the externally visible hostname of the pre-Gateway
+                      data-science-gateway Route. The orchestrator projects this value so the
+                      Dashboard operator can recreate the same compatibility endpoint after the
+                      redirect resources have been removed.
+                    maxLength: 253
+                    pattern: ^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$
+                    type: string
+                  managementState:
+                    default: Managed
+                    description: |-
+                      ManagementState controls whether the operator actively manages the
+                      component (Managed) or removes it (Removed).
+                    enum:
+                    - Managed
+                    - Removed
+                    type: string
+                type: object
               maasConsumerPortal:
                 description: |-
                   MaaSConsumerPortal is the pre-DSC-v3 spelling. It is accepted for
@@ -147,6 +173,15 @@ spec:
                   Absent means model registry RBAC is skipped.
                 maxLength: 63
                 pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
+                type: string
+              modelRegistryOCIBaseImage:
+                description: |-
+                  ModelRegistryOCIBaseImage is the base image pulled by the Model Registry
+                  async-upload Job while uploading to an OCI destination. It is separate
+                  from the Job container image and the destination registry. When unset,
+                  the BFF selects its own default. The value must include a registry host.
+                maxLength: 2048
+                pattern: ^(|(localhost|[^/\s]*[.:][^/\s]*)/\S+)$
                 type: string
               modules:
                 additionalProperties:

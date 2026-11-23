@@ -2,7 +2,7 @@ import {
   BenchmarkState,
   EvaluationJob,
   EvaluationJobState,
-  KueueWorkloadStatus,
+  HardwareProfileInfo,
 } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
@@ -10,7 +10,77 @@ export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
 export const getEvaluationQueue = (job: EvaluationJob): string | undefined =>
-  job.hardware_config?.queue?.name || job.status.queue || job.resource.queue;
+  job.hardware_config?.queue?.name;
+
+export const getQueueNameByProfileName = (profiles: HardwareProfileInfo[]): Map<string, string> =>
+  new Map(
+    profiles.flatMap((profile): [string, string][] =>
+      profile.scheduling_type === 'queue' && profile.queue_name
+        ? [[profile.name, profile.queue_name]]
+        : [],
+    ),
+  );
+
+/**
+ * Injects the queue-backed profile's queue name into pending jobs submitted in profile mode.
+ *
+ * The job response contract does not guarantee a resolved `hardware_config.queue` when the
+ * submission carried only `hardware_profile_name` — the request config is echoed back. This
+ * derives the queue from the /info hardware profiles list as a display-only stand-in so the
+ * Queued classification works while the contract catches up. An explicitly echoed queue always
+ * wins, and jobs that cannot be resolved pass through unchanged by reference.
+ */
+export const resolveEvaluationJobQueues = (
+  jobs: EvaluationJob[],
+  queueNameByProfileName: Map<string, string>,
+): EvaluationJob[] =>
+  jobs.map((job) => {
+    const profileName = job.hardware_config?.hardware_profile_name;
+    if (job.status.state !== 'pending' || job.hardware_config?.queue?.name || !profileName) {
+      return job;
+    }
+    const queueName = queueNameByProfileName.get(profileName);
+    if (!queueName) {
+      return job;
+    }
+    return {
+      ...job,
+      // eslint-disable-next-line camelcase -- API field name.
+      hardware_config: { ...job.hardware_config, queue: { name: queueName } },
+    };
+  });
+
+/**
+ * Merges list-response hardware_config metadata into a detail-poll snapshot.
+ *
+ * Detail polling can omit hardware_config fields the list response carries. The profile
+ * name is recovered so /info queue inference still resolves, and an explicit list queue
+ * assignment is carried over regardless of updated_at so a server-assigned queue is never
+ * discarded in favor of an inferred one. Lifecycle fields always come from the snapshot.
+ * Jobs are returned unchanged by reference when there is nothing to merge.
+ */
+export const mergeListEvaluationJobMetadata = (
+  job: EvaluationJob,
+  listJob: EvaluationJob | undefined,
+): EvaluationJob => {
+  const listConfig = listJob?.hardware_config;
+  if (!listConfig) {
+    return job;
+  }
+  /* eslint-disable camelcase -- API field names. */
+  let merged = false;
+  const hardwareConfig = { ...job.hardware_config };
+  if (!hardwareConfig.hardware_profile_name && listConfig.hardware_profile_name) {
+    hardwareConfig.hardware_profile_name = listConfig.hardware_profile_name;
+    merged = true;
+  }
+  if (!hardwareConfig.queue?.name && listConfig.queue) {
+    hardwareConfig.queue = listConfig.queue;
+    merged = true;
+  }
+  return merged ? { ...job, hardware_config: hardwareConfig } : job;
+  /* eslint-enable camelcase */
+};
 
 export const getLatestEvaluationJob = (
   currentJob: EvaluationJob,
@@ -32,16 +102,6 @@ export const getLatestEvaluationJob = (
 
 export const isEvaluationJobQueued = (job: EvaluationJob): boolean =>
   job.status.state === 'pending' && Boolean(getEvaluationQueue(job));
-
-/** Formats a positive queue position with its English ordinal suffix. */
-export const formatOrdinal = (position: number): string => {
-  const lastTwoDigits = position % 100;
-  const suffix =
-    lastTwoDigits >= 11 && lastTwoDigits <= 13
-      ? 'th'
-      : (['th', 'st', 'nd', 'rd'][position % 10] ?? 'th');
-  return `${position}${suffix}`;
-};
 
 export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob['benchmarks']> => {
   if (job.benchmarks?.length) {
@@ -400,29 +460,23 @@ const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
 
 export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
 
-export type EvaluationDisplayState =
-  EvaluationJobState | 'not_started' | 'queued' | 'admitted' | 'inadmissible';
+export type EvaluationDisplayState = EvaluationJobState | 'not_started' | 'queued';
 
 type EvaluationDisplayStateOptions = {
   isQueued?: boolean;
   isPreStartFailure?: boolean;
-  kueueWorkloadStatus?: KueueWorkloadStatus;
 };
 
 /**
  * Resolves the single user-facing status for an evaluation.
  *
- * EvalHub owns the evaluation lifecycle and final outcome, so its terminal
- * states always win. Before that, a live Kueue Workload shows whether it is
- * waiting for resources or has admitted the evaluation to its LocalQueue.
+ * EvalHub owns the evaluation lifecycle and final outcome, so its states
+ * always win. A pending evaluation assigned to a Kueue queue is shown as
+ * queued — waiting for resources to be admitted.
  */
 export const getEvaluationDisplayState = (
   state: EvaluationJobState,
-  {
-    isQueued = false,
-    isPreStartFailure = false,
-    kueueWorkloadStatus,
-  }: EvaluationDisplayStateOptions = {},
+  { isQueued = false, isPreStartFailure = false }: EvaluationDisplayStateOptions = {},
 ): EvaluationDisplayState => {
   if (state === 'failed' && isPreStartFailure) {
     return 'not_started';
@@ -436,19 +490,7 @@ export const getEvaluationDisplayState = (
   if (state === 'stopping') {
     return state;
   }
-  switch (kueueWorkloadStatus?.state) {
-    case 'queued':
-    case 'preempted':
-      return 'queued';
-    case 'admitted':
-      return state === 'pending' ? 'admitted' : state;
-    case 'inadmissible':
-      return 'inadmissible';
-    case 'finished':
-      return state;
-    default:
-      return state === 'pending' && isQueued ? 'queued' : state;
-  }
+  return state === 'pending' && isQueued ? 'queued' : state;
 };
 
 /** Only completed runs with the MLflow data required by compare can be selected. */

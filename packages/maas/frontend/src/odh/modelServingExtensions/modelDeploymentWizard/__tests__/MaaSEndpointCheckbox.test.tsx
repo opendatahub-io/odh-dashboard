@@ -50,6 +50,11 @@ describe('MaaSEndpointCheckbox', () => {
     );
 
     expect((screen.getByTestId('project-members-radio') as HTMLInputElement).checked).toBe(true);
+    expect(
+      screen.getByText(
+        'Available via Model-as-a-Service (MaaS) to users with an admin-assigned subscription and authorization policy.',
+      ),
+    ).toBeTruthy();
     fireEvent.click(screen.getByTestId('maas/save-as-maas-checkbox'));
     expect(onChange).toHaveBeenCalledWith({ isChecked: true });
   });

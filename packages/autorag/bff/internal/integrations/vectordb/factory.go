@@ -37,7 +37,7 @@ func newFromSecretDataWithClient(
 	newClient milvusClientFactory,
 ) (VectorDB, error) {
 	providers := database.Classify(data)
-	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector) {
+	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector && providers[0] != database.Neo4j) {
 		return nil, fmt.Errorf("%w: expected exactly one supported vector database provider", ErrUnsupportedVectorDB)
 	}
 
@@ -78,6 +78,9 @@ func newFromSecretDataWithClient(
 		host := strings.TrimSuffix(strings.TrimSpace(string(data["PGVECTOR_HOST"])), ".")
 		allowLoopback := forwardURL != nil && strings.EqualFold(host, "localhost")
 		return newPgvectorFromSecretWithLoopback(ctx, data, allowLoopback)
+	}
+	if providers[0] == database.Neo4j {
+		return newNeo4jFromSecret(ctx, data)
 	}
 	return nil, fmt.Errorf("%w", ErrUnsupportedVectorDB)
 }

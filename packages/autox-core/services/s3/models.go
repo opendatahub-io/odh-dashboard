@@ -1,6 +1,79 @@
 package s3
 
-import "io"
+import (
+	"errors"
+	"fmt"
+	"io"
+	"strings"
+
+	transfertypes "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
+)
+
+// ChecksumAlgorithmSecretKey selects a checksum algorithm for S3 uploads.
+const ChecksumAlgorithmSecretKey = "AWS_S3_UPLOAD_CHECKSUM_ALGORITHM"
+
+// DisableUploadChecksumTrailersSecretKey disables optional streaming checksum
+// trailers for S3 uploads when set to true.
+const DisableUploadChecksumTrailersSecretKey = "AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS"
+
+// ChecksumAlgorithm is the checksum algorithm accepted by the AWS S3 transfer manager.
+type ChecksumAlgorithm = transfertypes.ChecksumAlgorithm
+
+// ParseChecksumAlgorithm validates and normalizes a transfer manager checksum algorithm.
+// An empty value keeps the SDK default checksum behavior for backwards compatibility.
+func ParseChecksumAlgorithm(value string) (ChecksumAlgorithm, error) {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "":
+		return "", nil
+	case string(transfertypes.ChecksumAlgorithmCrc32):
+		return transfertypes.ChecksumAlgorithmCrc32, nil
+	case string(transfertypes.ChecksumAlgorithmCrc32c):
+		return transfertypes.ChecksumAlgorithmCrc32c, nil
+	case string(transfertypes.ChecksumAlgorithmSha1):
+		return transfertypes.ChecksumAlgorithmSha1, nil
+	case string(transfertypes.ChecksumAlgorithmSha256):
+		return transfertypes.ChecksumAlgorithmSha256, nil
+	case string(transfertypes.ChecksumAlgorithmSha512):
+		return transfertypes.ChecksumAlgorithmSha512, nil
+	default:
+		return "", errors.New("unsupported S3 upload checksum algorithm (supported: CRC32, CRC32C, SHA1, SHA256, SHA512)")
+	}
+}
+
+// ParseDisableUploadChecksumTrailers parses the opt-out setting for optional
+// streaming checksum trailers. An empty value preserves the SDK default.
+func ParseDisableUploadChecksumTrailers(value string) (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "":
+		return false, nil
+	case "true":
+		return true, nil
+	case "false":
+		return false, nil
+	default:
+		return false, errors.New("must be true or false")
+	}
+}
+
+// ParseUploadChecksumOptions parses the optional upload checksum settings from
+// their Secret values. Disabling optional checksum trailers and selecting an
+// explicit checksum algorithm are mutually exclusive.
+func ParseUploadChecksumOptions(algorithmValue, disableTrailersValue string) (ChecksumAlgorithm, bool, error) {
+	algorithm, err := ParseChecksumAlgorithm(algorithmValue)
+	if err != nil {
+		return "", false, fmt.Errorf("field %s: %w", ChecksumAlgorithmSecretKey, err)
+	}
+
+	disableTrailers, err := ParseDisableUploadChecksumTrailers(disableTrailersValue)
+	if err != nil {
+		return "", false, fmt.Errorf("field %s: %w", DisableUploadChecksumTrailersSecretKey, err)
+	}
+	if disableTrailers && algorithm != "" {
+		return "", false, fmt.Errorf("field %s cannot be combined with field %s", DisableUploadChecksumTrailersSecretKey, ChecksumAlgorithmSecretKey)
+	}
+
+	return algorithm, disableTrailers, nil
+}
 
 // ObjectInfo represents a single S3 object in the listing response.
 type ObjectInfo struct {

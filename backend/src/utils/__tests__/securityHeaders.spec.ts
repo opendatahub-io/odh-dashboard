@@ -97,9 +97,9 @@ describe('resolveStaticProxyCacheControl', () => {
   });
 
   it.each([
-    ['/_mf/genAi/app.abcdef123456.js', 'no-cache, no-store, must-revalidate'],
+    ['/_mf/genAi/app.abcdef123456.js', 'no-cache, no-store, private, max-age=0, must-revalidate'],
     ['/_mf/genAi/remoteEntry.js', 'private, max-age=0'],
-    ['/_mf/genAi/api/v1/user', 'no-cache, no-store, must-revalidate'],
+    ['/_mf/genAi/api/v1/user', 'no-cache, no-store, private, max-age=0, must-revalidate'],
   ])('preserves upstream restrictive Cache-Control for %s', (url, upstream) => {
     expect(resolveStaticProxyCacheControl(url, upstream)).toBe(upstream);
   });

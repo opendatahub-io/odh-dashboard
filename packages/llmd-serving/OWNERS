@@ -1,0 +1,14 @@
+# OWNERS
+
+approvers:
+  - model-serving-metrics-approvers
+
+reviewers:
+  - model-serving-metrics-reviewers
+
+labels:
+  - area/model-serving
+  - area/components
+
+options:
+  no_parent_owners: true

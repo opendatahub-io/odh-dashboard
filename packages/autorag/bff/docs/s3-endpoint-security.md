@@ -222,6 +222,8 @@ For a Kubernetes secret to be used with S3 endpoints, it must contain:
 | Field | Description | Example |
 |-------|-------------|---------|
 | `AWS_S3_BUCKET` | Default bucket name | `my-training-data` |
+| `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` | Optional explicit upload checksum algorithm | `CRC32` |
+| `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS` | Disable optional streaming checksum trailers | `true` |
 
 **Note**: Field names are case-insensitive (`AWS_S3_ENDPOINT` = `aws_s3_endpoint`)
 
@@ -297,6 +299,12 @@ go test -v ./internal/api -run 'S3|PostS3'
 Validator tests live in **`internal/integrations/s3/client_test.go`**. HTTP status and handler behaviour (including **400** for `ErrEndpointValidation`) are covered in **`internal/api/s3_handler_test.go`**.
 
 ## Troubleshooting
+
+### "The S3 endpoint rejected the upload's streaming checksum trailer."
+
+**Problem**: The endpoint returned `400 InvalidArgument` because it does not support streaming checksum trailers. This can occur with affected NetApp ONTAP versions.
+
+**Solution**: Set `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS=true` on the data connection Secret. If the Secret has `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM`, remove it first because the two settings cannot be combined. Disabling optional trailers does not disable checksums required by the S3 operation.
 
 ### "endpoint URL must use HTTPS scheme"
 

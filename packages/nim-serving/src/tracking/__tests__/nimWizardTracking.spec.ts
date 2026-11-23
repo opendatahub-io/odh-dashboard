@@ -36,7 +36,7 @@ describe('getNIMWizardTrackingProperties', () => {
           [NIM_IMAGE_FIELD_ID]: imageValue,
           [NIM_PVC_STORAGE_FIELD_ID]: {
             storageMode: NIMPVCStorageMode.NEW,
-            pvcName: 'user-pvc',
+            existingPvcDisplayName: 'user-pvc',
             subPath: 'private-path',
             storageClassName: 'gp3-csi',
             storageSizeGi: 75,
@@ -60,7 +60,7 @@ describe('getNIMWizardTrackingProperties', () => {
           [NIM_IMAGE_FIELD_ID]: imageValue,
           [NIM_PVC_STORAGE_FIELD_ID]: {
             storageMode: NIMPVCStorageMode.EXISTING,
-            pvcName: 'user-pvc',
+            existingPvcDisplayName: 'user-pvc',
             subPath: 'private-path',
             storageClassName: '',
             storageSizeGi: 75,

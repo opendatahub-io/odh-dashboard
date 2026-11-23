@@ -2,7 +2,6 @@ import {
   K8sStatus,
   k8sCreateResource,
   k8sDeleteResource,
-  k8sGetResource,
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
@@ -14,31 +13,29 @@ import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sRe
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { ServingRuntimeModel } from '@odh-dashboard/model-serving/shared/api/models';
 import { mockServingRuntimeModalData } from '#~/__mocks__/mockServingRuntimeModalData';
 import {
   assembleServingRuntime,
   createServingRuntime,
   deleteServingRuntime,
-  getServingRuntime,
   getServingRuntimeContext,
   listScopedServingRuntimes,
   listServingRuntimes,
   updateServingRuntime,
 } from '#~/api/k8s/servingRuntimes';
-import { ProjectModel, ServingRuntimeModel } from '#~/api/models';
+import { ProjectModel } from '#~/api/models';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
-  k8sGetResource: jest.fn(),
   k8sUpdateResource: jest.fn(),
   k8sCreateResource: jest.fn(),
   k8sDeleteResource: jest.fn(),
 }));
 
 const k8sListResourceMock = jest.mocked(k8sListResource<ServingRuntimeKind | ProjectKind>);
-const k8sGetResourceMock = jest.mocked(k8sGetResource<ServingRuntimeKind>);
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<ServingRuntimeKind>);
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource<ServingRuntimeKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<ServingRuntimeKind, K8sStatus>);
@@ -309,30 +306,6 @@ describe('getServingRuntimeContext', () => {
       fetchOptions: { requestInit: {} },
       model: ServingRuntimeModel,
       queryOptions: { ns: 'namespace', queryParams: { labelSelector: 'labelSelector' } },
-    });
-  });
-});
-
-describe('getServingRuntime', () => {
-  it('should list serving runtimes', async () => {
-    k8sGetResourceMock.mockResolvedValue(mockServingRuntimeK8sResource({}));
-    const result = await getServingRuntime('name', 'namespace');
-    expect(k8sGetResourceMock).toHaveBeenCalledWith({
-      fetchOptions: { requestInit: {} },
-      model: ServingRuntimeModel,
-      queryOptions: { name: 'name', ns: 'namespace', queryParams: {} },
-    });
-    expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual(mockServingRuntimeK8sResource({}));
-  });
-  it('should handle errors and rethrow', async () => {
-    k8sGetResourceMock.mockRejectedValue(new Error('error1'));
-    await expect(getServingRuntime('name', 'namespace')).rejects.toThrow('error1');
-    expect(k8sGetResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sGetResourceMock).toHaveBeenCalledWith({
-      fetchOptions: { requestInit: {} },
-      model: ServingRuntimeModel,
-      queryOptions: { name: 'name', ns: 'namespace', queryParams: {} },
     });
   });
 });

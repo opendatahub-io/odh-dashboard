@@ -1,7 +1,7 @@
 import { HardwareProfileBindingState } from '@odh-dashboard/hardware-profiles/shared/const';
 import type { HardwareProfileBindingStateInfo } from '@odh-dashboard/hardware-profiles/shared/types';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { getCompatibleIdentifiers, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import {
   splitValueUnit,
   CPU_UNITS,
@@ -9,7 +9,6 @@ import {
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ImageStreamKind } from '#~/k8sTypes';
-import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH } from './const';
 
 export {

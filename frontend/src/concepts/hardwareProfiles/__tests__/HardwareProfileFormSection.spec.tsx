@@ -67,6 +67,7 @@ const renderFormSection = ({
   initialResources,
   excludeDRAProfiles = false,
   claimTemplateMissingText,
+  isLocalQueueMissing = false,
 }: {
   hardwareProfiles: HardwareProfileKind[];
   formData: HardwareProfileConfig;
@@ -74,6 +75,7 @@ const renderFormSection = ({
   initialResources?: ContainerResources;
   excludeDRAProfiles?: boolean;
   claimTemplateMissingText?: string;
+  isLocalQueueMissing?: boolean;
 }) => {
   const setFormData = jest.fn();
   useHardwareProfilesByFeatureVisibilityMock.mockReturnValue({
@@ -99,6 +101,7 @@ const renderFormSection = ({
         <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
           <HardwareProfileFormSection
             isEditing
+            isLocalQueueMissing={isLocalQueueMissing}
             isHardwareProfileSupported={() => true}
             podSpecOptionsState={{
               hardwareProfile: {
@@ -342,6 +345,26 @@ describe('HardwareProfileFormSection', () => {
   });
 
   describe('validation errors', () => {
+    it('should show the invalid hardware profile heading and missing queue guidance', async () => {
+      const profile = regularProfile();
+      renderFormSection({
+        hardwareProfiles: [profile],
+        formData: { selectedProfile: profile, useExistingSettings: false },
+        isLocalQueueMissing: true,
+      });
+
+      await userEvent.click(screen.getByTestId('local-queue-missing-icon'));
+
+      expect(
+        await screen.findByRole('heading', { name: /Invalid hardware profile/ }),
+      ).toBeVisible();
+      expect(
+        screen.getByText(
+          "This hardware profile requires a local queue that isn't available in this project. Select a different hardware profile.",
+        ),
+      ).toBeVisible();
+    });
+
     it('should not show a required error while no profile is selected', () => {
       renderFormSection({
         hardwareProfiles: [regularProfile(), draProfile()],

@@ -6,7 +6,7 @@ argument-hint: "[PR number]"
 
 # CI Status Review
 
-Interpret raw CI state for a PR or local branch. This skill uses the existing preflight CI collector for data gathering and delegates flake judgment to `ci-flake-classifier`; it does not reproduce flake heuristics.
+Interpret raw CI state for a PR or local branch. This skill uses the CI collector for data gathering and delegates flake judgment to `ci-flake-classifier`; it does not reproduce flake heuristics.
 
 ## Invocation contract
 
@@ -19,7 +19,7 @@ The caller may supply PR metadata, whether the local checkout matches the PR hea
 Otherwise, determine the repository owner and name. With a PR number, compare `gh pr view <PR> --json headRefOid` with `git rev-parse HEAD`, then collect raw data with:
 
 ```bash
-"${CLAUDE_SKILL_DIR}/../preflight/scripts/analyze-ci.sh" "$owner" "$repo" "<PR>"
+"${CLAUDE_SKILL_DIR}/scripts/analyze-ci.sh" "$owner" "$repo" "<PR>"
 ```
 
 With no PR number, invoke the same collector without its final argument to discover local workflows. Report CI as not applicable to a local-only change until those inferred commands have been run.

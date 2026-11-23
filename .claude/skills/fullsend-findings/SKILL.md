@@ -98,7 +98,7 @@ From the sticky body, extract only the section starting at a line that is exactl
 Build two sets from `## Findings`:
 
 1. **Actionable** — top-level `- ` bullets under **severity** `###` headings only (`High` / `Medium` / `Low` / `Info`, etc.).
-2. **Justified (informational)** — content under `### Justified (N)` (HTML-marked `<!-- fullsend:justified-findings -->` … `<!-- /fullsend:justified-findings -->`). Already challenger-adjudicated via PR `## Justifications`.
+2. **Justified (informational)** — content under `### Justified (N)`. Already challenger-adjudicated via PR `## Justifications`.
 
 **Justified never enter the work queue:** not numbered for accept/reject, not passed to yolo workers, not fixed or re-justified.
 

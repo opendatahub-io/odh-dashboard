@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { Content, Flex, FlexItem, Title } from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
-import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
 import GenAiCoreProjectSelector from '~/app/GenAiCoreProjectSelector';
 import HeaderIcon from '~/app/HeaderIcon';
 import { IconType } from '~/app/types';
-import { GRID } from '~/odh/extensions';
 
 type GenAiCoreHeaderProps = {
   title: string;
@@ -17,7 +16,9 @@ type GenAiCoreHeaderProps = {
 
 const GenAiCoreHeader: React.FC<GenAiCoreHeaderProps> = ({ title, getRedirectPath, icon }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const [gridEnabled] = useFeatureFlag(GRID);
+  const isUnifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
   return (
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
       <FlexItem>
@@ -34,7 +35,7 @@ const GenAiCoreHeader: React.FC<GenAiCoreHeaderProps> = ({ title, getRedirectPat
           </FlexItem>
         </Flex>
       </FlexItem>
-      {!gridEnabled && (
+      {!isUnifiedProjectSelectorEnabled && (
         <FlexItem>
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <ProjectIconWithSize size={IconSize.LG} />

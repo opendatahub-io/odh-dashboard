@@ -21,7 +21,6 @@ type HardwareProfileTableColumnProps = {
     bindingStateLoaded: boolean;
     loadError: Error | undefined;
   };
-  onExpandRow?: () => void;
 };
 
 const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
@@ -29,7 +28,6 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
   resource,
   isActive = false,
   bindingState,
-  onExpandRow,
 }) => {
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const { bindingStateInfo, bindingStateLoaded, loadError } = bindingState;
@@ -77,12 +75,13 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
                 nodeSelector={hardwareProfile.spec.scheduling?.node?.nodeSelector}
                 localQueueName={hardwareProfile.spec.scheduling?.kueue?.localQueueName}
                 priorityClass={hardwareProfile.spec.scheduling?.kueue?.priorityClass}
+                resourceType={resourceType}
                 tableView
               />
             ) : (
               <HardwareProfileDetailsPopover
                 localQueueName={directQueueName}
-                onExpandRow={onExpandRow}
+                resourceType={resourceType}
                 tableView
               />
             )}

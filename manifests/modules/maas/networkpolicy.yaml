@@ -35,6 +35,9 @@ spec:
               deployment: gen-ai-ui
         - podSelector:
             matchLabels:
+              deployment: autorag-ui
+        - podSelector:
+            matchLabels:
               deployment: maas-portal
   egress:
     - to:

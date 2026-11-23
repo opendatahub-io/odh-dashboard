@@ -86,8 +86,8 @@ func TestGetOperatorSubscriptionStatusHandlerFailures(t *testing.T) {
 			}
 			return unavailable
 		}},
-		{name: "DataScienceCluster lookup forbidden", listError: apierrors.NewForbidden(models.DataScienceClusterGVR.GroupResource(), "", errors.New("forbidden")), wantStatus: http.StatusInternalServerError},
-		{name: "DataScienceCluster API missing", listError: apierrors.NewNotFound(models.DataScienceClusterGVR.GroupResource(), ""), wantStatus: http.StatusInternalServerError},
+		{name: "DataScienceCluster lookup forbidden", listError: apierrors.NewForbidden(models.DataScienceClusterGVR.GroupResource(), "", errors.New("forbidden")), wantStatus: http.StatusForbidden},
+		{name: "DataScienceCluster API missing", listError: apierrors.NewNotFound(models.DataScienceClusterGVR.GroupResource(), ""), wantStatus: http.StatusNotFound},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			dynClient := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{

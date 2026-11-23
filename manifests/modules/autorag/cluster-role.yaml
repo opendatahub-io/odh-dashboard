@@ -17,3 +17,27 @@ rules:
       - create
     resources:
       - subjectaccessreviews
+  # TODO(RHAI-18194 follow-up): replace the router CA rules below with
+  # namespace-scoped Roles/RoleBindings. resourceNames restricts object names,
+  # not namespaces, so this ClusterRoleBinding currently permits access to
+  # same-named resources cluster-wide. Prefer a verified public CA-only source,
+  # or scope Secret access to openshift-ingress-operator/router-ca and the
+  # ConfigMap access to the AutoRAG namespace. This Gen-AI-aligned pattern is
+  # intentionally retained here to avoid shared Dashboard operator changes.
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+    resources:
+      - secrets
+    resourceNames:
+      - router-ca
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - update
+    resources:
+      - configmaps
+    resourceNames:
+      - autorag-router-ca-bundle

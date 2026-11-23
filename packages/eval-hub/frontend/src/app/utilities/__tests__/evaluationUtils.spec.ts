@@ -1,5 +1,5 @@
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import type { KueueWorkloadState, KueueWorkloadStatus } from '~/app/types';
+import type { HardwareProfileInfo } from '~/app/types';
 import {
   getEvaluationName,
   getBenchmarkName,
@@ -18,10 +18,12 @@ import {
   getThresholdRequestValue,
   formatDate,
   formatDurationCompact,
-  formatOrdinal,
   getEvaluationDisplayState,
   getLatestEvaluationJob,
   getEvaluationQueue,
+  getQueueNameByProfileName,
+  mergeListEvaluationJobMetadata,
+  resolveEvaluationJobQueues,
   isBenchmarkFailed,
   isEvaluationJobComparable,
   isTerminalState,
@@ -955,83 +957,25 @@ describe('isTerminalState', () => {
   );
 });
 
-const makeKueueWorkloadStatus = (state: KueueWorkloadState): KueueWorkloadStatus => ({
-  // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
-  evaluation_id: 'evaluation-1',
-  // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
-  queue_name: 'default',
-  state,
-});
-
 describe('getEvaluationDisplayState', () => {
-  it.each([
-    ['queued', 'queued'],
-    ['preempted', 'queued'],
-  ] as const)('should show the Kueue "%s" resource wait as "%s"', (state, expected) => {
-    expect(
-      getEvaluationDisplayState('pending', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus(state),
-      }),
-    ).toBe(expected);
+  it('should show a queue-assigned pending evaluation as queued', () => {
+    expect(getEvaluationDisplayState('pending', { isQueued: true })).toBe('queued');
   });
 
-  it('should show an inadmissible Kueue workload as inadmissible', () => {
-    expect(
-      getEvaluationDisplayState('pending', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus('inadmissible'),
-      }),
-    ).toBe('inadmissible');
+  it('should show a pending evaluation without a queue as pending', () => {
+    expect(getEvaluationDisplayState('pending', { isQueued: false })).toBe('pending');
   });
 
-  it('should preserve EvalHub Running after Kueue admits the evaluation', () => {
-    expect(
-      getEvaluationDisplayState('running', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus('admitted'),
-      }),
-    ).toBe('running');
-  });
-
-  it.each(['queued', 'preempted', 'inadmissible'] as const)(
-    'should preserve stopping when Kueue reports "%s"',
-    (state) => {
-      expect(
-        getEvaluationDisplayState('stopping', {
-          kueueWorkloadStatus: makeKueueWorkloadStatus(state),
-        }),
-      ).toBe('stopping');
-    },
-  );
-
-  it('should preserve the EvalHub state when Kueue has finished the workload', () => {
-    expect(
-      getEvaluationDisplayState('pending', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus('finished'),
-      }),
-    ).toBe('pending');
-  });
-
-  it('should show a Kueue resource wait over a stale EvalHub running status', () => {
-    expect(
-      getEvaluationDisplayState('running', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus('queued'),
-      }),
-    ).toBe('queued');
+  it('should preserve stopping regardless of the queue assignment', () => {
+    expect(getEvaluationDisplayState('stopping', { isQueued: true })).toBe('stopping');
   });
 
   it.each(['completed', 'failed', 'cancelled'] as const)(
-    'should preserve terminal EvalHub state "%s" over a stale Kueue admission',
+    'should preserve terminal EvalHub state "%s"',
     (state) => {
-      expect(
-        getEvaluationDisplayState(state, {
-          kueueWorkloadStatus: makeKueueWorkloadStatus('admitted'),
-        }),
-      ).toBe(state);
+      expect(getEvaluationDisplayState(state, { isQueued: true })).toBe(state);
     },
   );
-
-  it('should preserve the existing queued status when no Kueue Workload is available', () => {
-    expect(getEvaluationDisplayState('pending', { isQueued: true })).toBe('queued');
-  });
 });
 
 describe('getEvaluationQueue', () => {
@@ -1042,7 +986,212 @@ describe('getEvaluationQueue', () => {
 
     expect(getEvaluationQueue(job)).toBe('gpu-default');
   });
+
+  it('should return undefined when no hardware configuration is present', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+
+    expect(getEvaluationQueue(job)).toBeUndefined();
+  });
+
+  it('should ignore removed legacy queue fields on status and resource', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // The queue fields were removed from the API contract; simulate a legacy
+    // payload that still carries them to guard against fallback reintroduction.
+    Object.assign(job.status, { queue: 'legacy-status-queue' });
+    Object.assign(job.resource, { queue: 'legacy-resource-queue' });
+
+    expect(getEvaluationQueue(job)).toBeUndefined();
+  });
 });
+
+/* eslint-disable camelcase -- API field names. */
+describe('getQueueNameByProfileName', () => {
+  it('should map queue-scheduled profiles to their queue names', () => {
+    const profiles: HardwareProfileInfo[] = [
+      { name: 'gpu-default', scheduling_type: 'queue', queue_name: 'gpu-queue', identifiers: [] },
+      { name: 'cpu-small', scheduling_type: 'queue', queue_name: 'cpu-queue', identifiers: [] },
+    ];
+
+    expect(getQueueNameByProfileName(profiles)).toEqual(
+      new Map([
+        ['gpu-default', 'gpu-queue'],
+        ['cpu-small', 'cpu-queue'],
+      ]),
+    );
+  });
+
+  it('should skip node-scheduled profiles and profiles without a queue name', () => {
+    const profiles: HardwareProfileInfo[] = [
+      {
+        name: 'node-profile',
+        scheduling_type: 'node',
+        queue_name: 'node-queue',
+        identifiers: [],
+      },
+      { name: 'queue-no-name', scheduling_type: 'queue', identifiers: [] },
+      { name: 'gpu-default', scheduling_type: 'queue', queue_name: 'gpu-queue', identifiers: [] },
+    ];
+
+    expect(getQueueNameByProfileName(profiles)).toEqual(new Map([['gpu-default', 'gpu-queue']]));
+  });
+
+  it('should return an empty map for an empty profile list', () => {
+    expect(getQueueNameByProfileName([])).toEqual(new Map());
+  });
+});
+
+describe('resolveEvaluationJobQueues', () => {
+  const queueNameByProfileName = new Map([['gpu-default', 'tenant-gpu-queue']]);
+
+  it('should inject the profile queue name into a pending profile-mode job', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+
+    const [enriched] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(enriched.hardware_config?.queue).toEqual({ name: 'tenant-gpu-queue' });
+  });
+
+  it('should not mutate the input job', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+
+    resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(job.hardware_config?.queue).toBeUndefined();
+  });
+
+  it('should keep an explicitly echoed queue assignment untouched', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'echoed-queue' } },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved).toBe(job);
+    expect(resolved.hardware_config?.queue).toEqual({ name: 'echoed-queue' });
+  });
+
+  it('should leave a pending job unchanged when the profile is not queue-backed', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'node-profile' },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved).toBe(job);
+  });
+
+  it('should leave non-pending jobs unchanged', () => {
+    const job = mockEvaluationJob({
+      state: 'running',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved).toBe(job);
+  });
+
+  it('should leave jobs without hardware config unchanged', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved).toBe(job);
+  });
+
+  it('should pass all jobs through unchanged when no profiles are available', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], new Map());
+
+    expect(resolved).toBe(job);
+  });
+
+  it('should enrich a pending job whose echoed queue object has an empty name', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: '' } },
+    });
+
+    const [resolved] = resolveEvaluationJobQueues([job], queueNameByProfileName);
+
+    expect(resolved.hardware_config?.queue).toEqual({ name: 'tenant-gpu-queue' });
+  });
+});
+
+/* eslint-disable camelcase -- API field names. */
+describe('mergeListEvaluationJobMetadata', () => {
+  it('should recover the profile name and explicit queue from the list job', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    const listJob = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'server-queue' } },
+    });
+
+    const merged = mergeListEvaluationJobMetadata(job, listJob);
+
+    expect(merged.hardware_config?.hardware_profile_name).toBe('gpu-default');
+    expect(merged.hardware_config?.queue).toEqual({ name: 'server-queue' });
+  });
+
+  it('should carry an explicit list queue into a newer snapshot that omits it', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default' },
+    });
+    job.resource.updated_at = '2026-02-20T10:02:00Z';
+    const listJob = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'server-queue' } },
+    });
+    listJob.resource.updated_at = '2026-02-20T10:01:00Z';
+
+    const merged = mergeListEvaluationJobMetadata(job, listJob);
+
+    expect(merged.hardware_config?.queue).toEqual({ name: 'server-queue' });
+  });
+
+  it('should keep the snapshot queue when both snapshots carry one', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'snapshot-queue' } },
+    });
+    const listJob = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'server-queue' } },
+    });
+
+    const merged = mergeListEvaluationJobMetadata(job, listJob);
+
+    expect(merged.hardware_config?.queue).toEqual({ name: 'snapshot-queue' });
+  });
+
+  it('should return the job unchanged by reference when there is nothing to merge', () => {
+    const job = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'snapshot-queue' } },
+    });
+    const listJob = mockEvaluationJob({
+      state: 'pending',
+      hardwareConfig: { hardware_profile_name: 'gpu-default', queue: { name: 'server-queue' } },
+    });
+
+    expect(mergeListEvaluationJobMetadata(job, listJob)).toBe(job);
+    expect(mergeListEvaluationJobMetadata(job, undefined)).toBe(job);
+  });
+});
+/* eslint-enable camelcase */
 
 describe('getLatestEvaluationJob', () => {
   it('should prefer refreshed job data only when it is newer', () => {
@@ -1053,21 +1202,6 @@ describe('getLatestEvaluationJob', () => {
 
     expect(getLatestEvaluationJob(currentJob, refreshedJob)).toBe(refreshedJob);
     expect(getLatestEvaluationJob(refreshedJob, currentJob)).toBe(refreshedJob);
-  });
-});
-
-describe('formatOrdinal', () => {
-  it.each([
-    [1, '1st'],
-    [2, '2nd'],
-    [3, '3rd'],
-    [4, '4th'],
-    [11, '11th'],
-    [12, '12th'],
-    [13, '13th'],
-    [21, '21st'],
-  ])('should format queue position %s as %s', (position, expected) => {
-    expect(formatOrdinal(position)).toBe(expected);
   });
 });
 

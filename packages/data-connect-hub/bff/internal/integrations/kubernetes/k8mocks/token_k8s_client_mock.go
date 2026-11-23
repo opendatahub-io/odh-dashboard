@@ -1,9 +1,12 @@
 package k8mocks
 
 import (
+	"context"
 	"log/slog"
 
 	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -30,6 +33,19 @@ func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface,
 
 // GetServiceDetails overrides to simulate ClusterIP for localhost access
 // Client service discovery removed in minimal starter.
+
+// GetNamespaces overrides the OpenShift Projects implementation because envtest
+// provides core Namespaces but does not install the OpenShift Projects API.
+func (m *TokenKubernetesClientMock) GetNamespaces(
+	ctx context.Context,
+	_ *k8s.RequestIdentity,
+) ([]corev1.Namespace, error) {
+	namespaceList, err := m.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return []corev1.Namespace{}, err
+	}
+	return namespaceList.Items, nil
+}
 
 // BearerToken always returns a fake token for tests
 func (m *TokenKubernetesClientMock) BearerToken() (string, error) {

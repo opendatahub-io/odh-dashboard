@@ -4,6 +4,7 @@ import {
   getCopySuiteSchema,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 
 const validValues = (): CopySuiteFormValues => ({
   ...copySuiteDefaultValues,
@@ -17,6 +18,7 @@ const validValues = (): CopySuiteFormValues => ({
       parameters: [],
       threshold: 70,
       availableMetrics: ['accuracy'],
+      testDataRef: { ...testDataRefDefaultValues },
     },
   ],
 });
@@ -278,6 +280,113 @@ describe('copySuiteSchema', () => {
           {
             ...validValues().benchmarks[0],
             parameters: [{ key: 'judge_model', type: 'text' }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('testDataRef', () => {
+    it('should accept a benchmark with no test data source', () => {
+      const result = copySuiteSchema.safeParse(validValues());
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject a benchmark with an incomplete test data ref', () => {
+      const result = copySuiteSchema.safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            testDataRef: {
+              ...testDataRefDefaultValues,
+              source: 's3',
+              bucket: 'eval-data',
+              key: '',
+              secretRef: '',
+            },
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'testDataRef', 'key'],
+              message: 'Key is required.',
+            }),
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'testDataRef', 'secretRef'],
+              message: 'Secret is required.',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should accept a benchmark with a complete test data ref', () => {
+      const result = copySuiteSchema.safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            testDataRef: {
+              ...testDataRefDefaultValues,
+              source: 'git',
+              url: 'https://github.com/org/datasets.git',
+              ref: 'main',
+            },
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject a required-test-data benchmark with no test data source', () => {
+      const result = copySuiteSchema.safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            id: 'ragas_rag_default',
+            providerId: 'ragas',
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'testDataRef', 'source'],
+              message: 'Test data source is required for this benchmark.',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should accept a required-test-data benchmark with a complete test data ref', () => {
+      const result = copySuiteSchema.safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            id: 'ragas_rag_default',
+            providerId: 'ragas',
+            testDataRef: {
+              ...testDataRefDefaultValues,
+              source: 's3',
+              bucket: 'eval-data',
+              key: 'ragas',
+              secretRef: 's3-secret',
+            },
           },
         ],
       });

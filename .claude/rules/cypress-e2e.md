@@ -270,12 +270,12 @@ When quarantining a test, add TWO markers to clearly identify it:
 
 ```typescript
 // For product bugs (issue in the application code):
-describe('[Product Bug: RHOAIENG-12345] Feature Name', () => {
+describe('[Product Bug: RHAI-12345] Feature Name', () => {
   // test code
 });
 
 // For automation bugs (issue in the test itself):
-describe('[Automation Bug: RHOAIENG-12345] Feature Name', () => {
+describe('[Automation Bug: RHAI-12345] Feature Name', () => {
   // test code
 });
 ```
@@ -363,7 +363,7 @@ describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
    - **Remove bug prefix from describe block**:
    ```text
    // Before:
-   describe('[Product Bug: RHOAIENG-12345] Feature Name', () => { ... });
+   describe('[Product Bug: RHAI-12345] Feature Name', () => { ... });
 
    // After:
    describe('Feature Name', () => { ... });
@@ -401,7 +401,7 @@ describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
 7. **Commit with descriptive message**:
    ```bash
    git add .
-   git commit -m "test(e2e): Remove tests from quarantine - RHOAIENG-XXXXX
+   git commit -m "test(e2e): Remove tests from quarantine - RHAI-XXXXX
 
    Tests validated stable across RHOAI and ODH clusters:
    - testFeatureName1.cy.ts

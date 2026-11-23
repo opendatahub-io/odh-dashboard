@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { type LLMInferenceServiceConfigKind } from '../../types';
 import { useWatchTopologyConfigs } from '../../api/LLMInferenceServiceConfigs';
 

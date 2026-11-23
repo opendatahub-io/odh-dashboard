@@ -6,6 +6,7 @@ type TableColumnSortProps<DataType> = {
   subColumns?: SortableData<DataType>[];
   sortDirection?: 'asc' | 'desc';
   setSortDirection: (dir: 'asc' | 'desc') => void;
+  onSort?: (columnIndex: number, direction: 'asc' | 'desc') => void;
 };
 
 type TableColumnSortByFieldProps<DataType> = TableColumnSortProps<DataType> & {
@@ -41,6 +42,7 @@ const getTableColumnSortByIndex =
     sortDirection,
     setSortIndex,
     setSortDirection,
+    onSort,
   }: TableColumnSortByIndexProps<T>): GetColumnSort =>
   (columnIndex: number) =>
     (columnIndex < columns.length
@@ -56,6 +58,7 @@ const getTableColumnSortByIndex =
           onSort: (_event, index, direction) => {
             setSortIndex(index);
             setSortDirection(direction);
+            onSort?.(index, direction);
           },
           columnIndex,
         }
@@ -66,6 +69,7 @@ const useTableColumnSort = <T>(
   subColumns: SortableData<T>[],
   defaultSortColIndex?: number,
   enableCustomOrder?: boolean,
+  onSort?: (columnIndex: number, direction: 'asc' | 'desc') => void,
 ): {
   transformData: (data: T[]) => T[];
   getColumnSort: GetColumnSort;
@@ -98,15 +102,24 @@ const useTableColumnSort = <T>(
           defaultDirection: 'asc',
         },
         onSort: (_event, index) => {
+          const direction =
+            activeSortDirection !== 'custom' &&
+            index === activeSortIndex &&
+            activeSortDirection === 'asc'
+              ? 'desc'
+              : 'asc';
           // If user clicked a different column, start at asc for that column.
           if (activeSortDirection !== 'custom' && index !== activeSortIndex) {
             setActiveSortIndex(index);
-            setActiveSortDirection('asc');
+            setActiveSortDirection(direction);
+            onSort?.(index, direction);
           } else if (activeSortDirection === 'custom') {
             setActiveSortIndex(index);
             setActiveSortDirection('asc');
+            onSort?.(index, 'asc');
           } else if (activeSortDirection === 'asc') {
             setActiveSortDirection('desc');
+            onSort?.(index, 'desc');
           } else {
             setActiveSortIndex(undefined);
             setActiveSortDirection('custom');
@@ -127,6 +140,7 @@ const useTableColumnSort = <T>(
       },
       sortIndex: activeSortIndex,
       setSortIndex: setActiveSortIndex,
+      onSort,
     });
   };
 

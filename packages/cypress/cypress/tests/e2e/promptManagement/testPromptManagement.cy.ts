@@ -70,7 +70,7 @@ describe('Verify Prompt Management page', () => {
       const promptName = `${prompt.name}-${testSuffix}`;
 
       cy.step('Log into the application');
-      cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Prompt Management page');
       promptManagement.visit(projectName);

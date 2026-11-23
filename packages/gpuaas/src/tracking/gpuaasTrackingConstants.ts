@@ -18,6 +18,22 @@ export const GPUAAS_EVENTS = {
   VIEW_KUEUE_PROJECTS_SELECTED: 'Infrastructure View Kueue Projects Selected',
   BORROWING_POPOVER_LINK_SELECTED: 'Infrastructure Borrowing Popover Link Selected',
   DRAWER_WORKLOADS_FILTER_APPLIED: 'Infrastructure Drawer Workloads Filter Applied',
+  WORKLOADS_TAB_PROJECT_FILTER_SELECTED: 'Workloads Tab Project Filter Selected',
+  WORKLOADS_TAB_ATTRIBUTE_FILTER_APPLIED: 'Workloads Tab Attribute Filter Applied',
+  WORKLOADS_TAB_WORKLOAD_DETAILS_OPENED: 'Workloads Tab Workload Details Opened',
+  WORKLOADS_TAB_STATUS_OVERVIEW_SEGMENT_CLICKED: 'Workloads Tab Status Overview Segment Clicked',
+  WORKLOADS_TAB_OVERVIEW_TAB_SELECTED: 'Workloads Tab Overview Tab Selected',
+  WORKLOADS_TAB_STATUS_LABEL_CLICKED: 'Workloads Tab Status Label Clicked',
+  WORKLOADS_TAB_STATUS_OVERVIEW_POPOVER_CLOSED: 'Workloads Tab Status Overview Popover Closed',
+  WORKLOADS_TAB_COLUMN_SORTED: 'Workloads Tab Column Sorted',
+  WORKLOADS_TAB_ADMISSION_TIME_RANGE_CHANGED: 'Workloads Tab Admission Time Range Changed',
+  WORKLOADS_TAB_STATUS_OVERVIEW_VIEW_IN_TABLE_CLICKED:
+    'Workloads Tab Status Overview View In Table Clicked',
+  WORKLOADS_TAB_PAGINATION_USED: 'Workloads Tab Pagination Used',
+  WORKLOADS_TAB_SECTION_TOGGLED: 'Workloads Tab Section Toggled',
+  WORKLOADS_TAB_WORKLOAD_SEARCH_USED: 'Workloads Tab Workload Search Used',
+  WORKLOADS_TAB_INTERACTED: 'Workloads Tab Interacted',
+  WORKLOADS_TAB_FILTERS_CLEARED: 'Workloads Tab Filters Cleared',
 } as const;
 
 export const QUOTA_USAGE_INTERACTION_TYPES = {
@@ -29,6 +45,10 @@ export const QUOTA_USAGE_INTERACTION_TYPES = {
   viewProjects: 'view-projects',
   workloadsFilter: 'workloads-filter',
   breadcrumb: 'breadcrumb',
+} as const;
+
+export const WORKLOADS_INTERACTION_TYPES = {
+  refresh: 'refresh',
 } as const;
 
 export const QUOTA_USAGE_DETAIL_SECTION_NAMES = {
@@ -83,7 +103,7 @@ export type CohortSectionToggledProperties = {
 
 export type DataRefreshedProperties = {
   /** Set when refresh outcome can be determined; omitted for fire-and-forget clicks. */
-  refreshSource?: 'utilization' | 'quota-usage';
+  refreshSource?: 'utilization' | 'quota-usage' | 'workloads';
   outcome?: 'click';
   success?: boolean;
   error?: string;
@@ -160,3 +180,86 @@ export type DrawerWorkloadsFilterAppliedProperties = {
   filterValue: string;
   matchCount: number;
 };
+
+export type WorkloadsTabProjectFilterSelectedProperties = { projectName: string };
+
+export type WorkloadsTabAttributeFilterAppliedProperties = {
+  filterType: 'status' | 'type' | 'hardwareProfile';
+  filterValue: string;
+};
+
+export type WorkloadsTabWorkloadDetailsOpenedProperties = {
+  workloadStatus: string;
+  workloadType: string;
+  source: 'workload-name' | 'status-label';
+};
+
+export type WorkloadsTabStatusLabelClickedProperties = {
+  workloadStatus: string;
+  workloadType: string;
+};
+
+export type WorkloadsTabStatusOverviewSegmentClickedProperties = {
+  statusClicked: string;
+};
+
+export type WorkloadsTabOverviewTabSelectedProperties = {
+  tabName: 'status' | 'admission';
+};
+
+export const WORKLOADS_POPOVER_CLOSE_METHODS = {
+  closeButton: 'close-button',
+  outsideClick: 'outside-click',
+  escape: 'escape',
+} as const;
+
+export type WorkloadsTabStatusOverviewPopoverClosedProperties = {
+  statusClicked: string;
+  closeMethod: (typeof WORKLOADS_POPOVER_CLOSE_METHODS)[keyof typeof WORKLOADS_POPOVER_CLOSE_METHODS];
+};
+
+export type WorkloadsTabColumnSortedProperties = {
+  columnName: string;
+  direction: 'asc' | 'desc';
+};
+
+export type WorkloadsTabAdmissionTimeRangeChangedProperties = {
+  timeRange: string;
+};
+
+export type WorkloadsTabStatusOverviewViewInTableClickedProperties = {
+  overviewSegment: string;
+};
+
+export type WorkloadsTabPaginationUsedProperties = {
+  action: 'first' | 'previous' | 'next' | 'last';
+  currentPage: number;
+};
+
+export type WorkloadsTabSectionToggledProperties = {
+  sectionName: 'workload-overview' | 'workloads';
+  action: 'expand' | 'collapse';
+};
+
+export type WorkloadsTabWorkloadSearchUsedProperties = {
+  queryLength: number;
+};
+
+export const getWorkloadsSearchTrackingProperties = (
+  query: string,
+): WorkloadsTabWorkloadSearchUsedProperties => ({ queryLength: query.length });
+
+export const shouldTrackWorkloadsSearch = (query: string): boolean => Boolean(query.trim());
+
+export type WorkloadsTabFiltersClearedProperties = {
+  hadActiveFilters: boolean;
+  filterCount: number;
+};
+
+export const getWorkloadsFilterClearTrackingProperties = (
+  previousFilterCount: number,
+  remainingFilterCount: number,
+): WorkloadsTabFiltersClearedProperties => ({
+  hadActiveFilters: previousFilterCount > 0,
+  filterCount: remainingFilterCount,
+});

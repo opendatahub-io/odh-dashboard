@@ -1,6 +1,13 @@
 [
   {
     "subscription_id_header": "premium-team-sub",
+    "roles": ["user", "admin"],
+    "owner": {
+      "groups": [
+        { "name": "42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users" },
+        { "name": "42c3e46f-2477-44d7-a85b-d3b43f6b31fa/data-science" }
+      ]
+    },
     "subscription_description": "Premium Team Subscription",
     "display_name": "Premium Team",
     "inference_priority": 10,
@@ -34,6 +41,7 @@
   },
   {
     "subscription_id_header": "basic-team-sub",
+    "roles": ["user"],
     "subscription_description": "Basic Team Subscription",
     "display_name": "Basic Team",
     "inference_priority": 1,

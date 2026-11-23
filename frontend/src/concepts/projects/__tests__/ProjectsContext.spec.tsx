@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { act, render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
@@ -30,6 +31,11 @@ const WorkingConsumer: React.FC = () => {
   working = useWorkingProject();
   return null;
 };
+const RouterProjectsContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <MemoryRouter>
+    <ProjectsContextProvider>{children}</ProjectsContextProvider>
+  </MemoryRouter>
+);
 const project = (name: string, displayName = name, phase: 'Active' | 'Terminating' = 'Active') =>
   mockProjectK8sResource({ k8sName: name, displayName, phase });
 
@@ -58,16 +64,46 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     >);
   };
 
+  it.each([false, true])('should synchronize normal tabs only when UPS is %s', (enabled) => {
+    if (enabled) {
+      enableUnifiedProjectSelector();
+    }
+    const a = project('a');
+    const b = project('b');
+    watch([a, b]);
+    localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, '"a"');
+    render(
+      <RouterProjectsContextProvider>
+        <Consumer />
+        <WorkingConsumer />
+      </RouterProjectsContextProvider>,
+    );
+    localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, '"b"');
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+    act(() =>
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: PREFERRED_NAMESPACE_STORAGE_KEY,
+          newValue: '"b"',
+          storageArea: localStorage,
+        }),
+      ),
+    );
+    expect(context.preferredProject).toBe(enabled ? b : a);
+    expect(working.activeProject?.name ?? null).toBe(enabled ? 'b' : null);
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
   it('should leave default restoration, ordering and clearing unchanged', () => {
     const z = project('z', 'Z');
     const a = project('a', 'A');
     watch([z, a]);
     localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, 'z');
     render(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
         <WorkingConsumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     expect(context.projects).toEqual([a, z]);
     expect(context.preferredProject).toBe(z);
@@ -85,9 +121,9 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     watch([b, a]);
     const storageWrites = jest.spyOn(Storage.prototype, 'setItem');
     const { rerender } = render(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     const initialUpdater = context.updatePreferredProject;
     expect(context.projects).toEqual([a, b]);
@@ -100,9 +136,9 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
 
     watch([a]);
     rerender(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     // The legacy provider does not clear a preferred project when the watch changes.
     expect(context.preferredProject).toBe(b);
@@ -123,10 +159,10 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     watch([a, b]);
     localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, 'b');
     render(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
         <WorkingConsumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     expect(context.preferredProject).toBe(b);
     expect(working.activeProject?.name).toBe('b');
@@ -143,9 +179,9 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     const terminating = project('terminating', 'Terminating', 'Terminating');
     watch([a, terminating]);
     render(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     const getItem = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => null);
     const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
@@ -172,10 +208,10 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     });
     try {
       render(
-        <ProjectsContextProvider>
+        <RouterProjectsContextProvider>
           <Consumer />
           <WorkingConsumer />
-        </ProjectsContextProvider>,
+        </RouterProjectsContextProvider>,
       );
       expect(working.activeProject?.name).toBe('a');
       expect(context.preferredProject).toBe(a);
@@ -190,38 +226,38 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     const a = project('a');
     watch([a]);
     const { rerender } = render(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     act(() => context.updatePreferredProject(a));
     const refreshed = project('a', 'Refreshed');
     watch([refreshed]);
     rerender(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     expect(context.preferredProject).toBe(refreshed);
     watch([], true);
     rerender(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     expect(context.preferredProject).toBeNull();
     watch([refreshed], false);
     rerender(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     expect(context.preferredProject).toBeNull();
     watch([refreshed], true, new Error('forbidden'));
     rerender(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     expect(context.preferredProject).toBeNull();
   });
@@ -233,10 +269,10 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     watch([a, b]);
     localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, 'b');
     render(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
         <WorkingConsumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     expect(context.preferredProject).toBe(b);
     expect(working.activeProject?.name).toBe('b');
@@ -261,10 +297,10 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     const b = project('b');
     watch([a, b]);
     const tree = () => (
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
         <WorkingConsumer />
-      </ProjectsContextProvider>
+      </RouterProjectsContextProvider>
     );
     const { rerender } = render(tree());
     act(() => working.selectProject({ name: 'b' }));
@@ -285,10 +321,10 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     const a = project('a');
     watch([a]);
     const tree = () => (
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
         <WorkingConsumer />
-      </ProjectsContextProvider>
+      </RouterProjectsContextProvider>
     );
     const { rerender } = render(tree());
     expect(working.activeProject?.name).toBe('a');
@@ -313,10 +349,10 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     const b = project('b');
     watch([a, b]);
     const tree = () => (
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
         <WorkingConsumer />
-      </ProjectsContextProvider>
+      </RouterProjectsContextProvider>
     );
     const { rerender } = render(tree());
     act(() => working.selectProject({ name: 'b' }));
@@ -346,10 +382,10 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
       accessible,
     ]);
     render(
-      <ProjectsContextProvider>
+      <RouterProjectsContextProvider>
         <Consumer />
         <WorkingConsumer />
-      </ProjectsContextProvider>,
+      </RouterProjectsContextProvider>,
     );
     expect(working.projects).toEqual([{ name: 'accessible', displayName: 'Accessible' }]);
     expect(working.activeProject?.name).toBe('accessible');

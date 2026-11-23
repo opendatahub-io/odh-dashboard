@@ -8,7 +8,8 @@ import type {
   FeatureFlag,
   SupportedAreaType,
 } from '@odh-dashboard/plugin-core/areas';
-import { definedFeatureFlags, SupportedAreasStateMap } from './const';
+import { isFeatureFlagEnabled } from '@odh-dashboard/ui-core/utilities';
+import { definedFeatureFlags, devFlagDefaults, SupportedAreasStateMap } from './const';
 
 export const isDefinedFeatureFlag = (key: string): key is FeatureFlag =>
   definedFeatureFlags.includes(key);
@@ -25,11 +26,12 @@ export type IsAreaAvailableOptions = {
 export const getFlags = (dashboardConfigSpec: DashboardConfigKind['spec']): FlagState =>
   dashboardConfigSpec.dashboardConfig;
 
-const isFlagOn = (flag: string, flagState: FlagState): 'on' | 'off' => {
-  if (flagState[flag] === undefined) {
+const isFlagOn = (flag: string, flagState: FlagState, fallback?: boolean): 'on' | 'off' => {
+  const value = flagState[flag] ?? fallback;
+  if (value === undefined) {
     return 'off';
   }
-  const enabled = flag.startsWith('disable') ? !flagState[flag] : flagState[flag];
+  const enabled = isFeatureFlagEnabled(flag, value);
   return enabled ? 'on' : 'off';
 };
 
@@ -77,7 +79,7 @@ export const isAreaAvailable = (
 
   const devFlagsState = devFlags
     ? devFlags.reduce<NonNullable<IsAreaAvailableStatus['devFlags']>>((acc, flag) => {
-        acc[flag] = isFlagOn(flag, options.flagState);
+        acc[flag] = isFlagOn(flag, options.flagState, devFlagDefaults[flag]);
         return acc;
       }, {})
     : null;
@@ -142,7 +144,5 @@ export const isAreaAvailable = (
     featureFlags: featureFlagState,
     requiredComponents: requiredComponentsState,
     requiredCapabilities: requiredCapabilitiesState,
-    customCondition: (conditionFunc) =>
-      conditionFunc({ dashboardConfigSpec, dscStatus, dsciStatus }),
   };
 };

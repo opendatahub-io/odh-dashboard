@@ -2,8 +2,9 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { getModelAccessSubscriptionViewUrl } from '~/app/pages/model-access/utils';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { getSubscriptionViewUrl } from '~/app/utilities/maasGovernanceNavigation';
+import { getSubscriptionViewUrl, isMaaSPortalHost } from '~/app/utilities/maasGovernanceNavigation';
 import { SubscriptionDetail } from '~/app/types/api-key';
 import {
   MaaSEvents,
@@ -20,7 +21,7 @@ type SubscriptionCellProps = {
    * Without access, show plain text.
    */
   linkable?: boolean;
-  /** Admins  get a secondary link to the MaaS governance subscription view. */
+  /** Admins get a secondary link to the subscription governance view. */
   isMaasAdmin?: boolean;
 };
 
@@ -36,6 +37,11 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
 
   const displayLabel = subscriptionDetail?.displayName || subscriptionName;
   const showGovernanceLink = isMaasAdmin && !!subscriptionDetail;
+  const isPortalHost = isMaaSPortalHost();
+  const governanceLink = isPortalHost
+    ? getModelAccessSubscriptionViewUrl(subscriptionName)
+    : getSubscriptionViewUrl(subscriptionName);
+  const governanceLabel = isPortalHost ? 'View in Model access' : 'View in MaaS governance';
 
   const nameContent = linkable ? (
     <Link
@@ -63,11 +69,11 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
       <StackItem>{nameContent}</StackItem>
       <StackItem>
         <Link
-          to={getSubscriptionViewUrl(subscriptionName)}
+          to={governanceLink}
           data-testid="subscription-governance-link"
           className="pf-v6-u-font-size-sm"
         >
-          View in MaaS governance
+          {governanceLabel}
         </Link>
       </StackItem>
     </Stack>

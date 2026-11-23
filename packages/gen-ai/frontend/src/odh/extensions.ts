@@ -32,7 +32,6 @@ export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
 export const GEN_AI_AGENT_DEPLOYMENT = 'genAiAgentDeployment';
 export const MCP_REGISTRY = 'mcpRegistry';
 export const GEN_AI_MCP_REGISTRY_SERVERS = 'genAiMcpRegistryServers';
-export const GRID = 'grid';
 const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
 
 const extensions: (
@@ -222,6 +221,7 @@ const extensions: (
       required: [PLUGIN_GEN_AI],
     },
     properties: {
+      id: 'gen-ai-routes',
       path: globGenAiAll,
       component: () => import('./GenAiWrapper'),
     },

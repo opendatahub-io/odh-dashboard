@@ -1,0 +1,149 @@
+name: Fullsend Jira code poll
+
+# Pilot: a person on the jira write list in .fullsend/config.yaml starts the
+# Fullsend code agent on a RHAI or RHOAIENG dashboard issue by adding
+# ready-to-code or commenting /fs-code. The agent opens a PR in this
+# repository. Guide:
+# https://github.com/fullsend-ai/fullsend/blob/v0.54.0/docs/guides/user/jira-integration.md
+#
+# To turn it on: create a dedicated Jira account (the token owner's own actions
+# never start a run) with Browse Projects, Edit Issues, Add Comments and Edit
+# Own Comments on RHAI and RHOAIENG. Store its email and token as the
+# FULLSEND_JIRA_BOT_EMAIL and FULLSEND_JIRA_BOT_TOKEN secrets, then set the
+# variable FULLSEND_JIRA_CODE_ENABLED to "true" (anything else stops it).
+#
+# A label set when the issue is created doesn't count, and the poller looks
+# back only 24 hours: comment /fs-code instead. Polling isn't exactly-once, so
+# check for an existing PR before retrying. The poller saves its Jira
+# checkpoint before the launch step starts each run, so if a launch still
+# fails after its retries, the job log says how to start that run by hand
+# (within 2 hours), or comment /fs-code again.
+#
+# One run per record (fullsend-code-jira.yaml) works around fullsend#8961:
+# same-agent records in one matrix collide on the fullsend-<agent> artifact.
+# Drop the fan-out once fullsend#9003 is released.
+
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch: {}
+
+permissions: {}
+
+# Serialize discovery and dispatch, including manual runs.
+concurrency:
+  group: fullsend-jira-code-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    if: vars.FULLSEND_JIRA_CODE_ENABLED == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # actions: write is only for starting fullsend-code-jira.yaml runs.
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      # Fullsend v0.54.0 = fullsend-ai/fullsend@90b7310ff8751a3c70e5d68214770dc168a1cbe7,
+      # the same commit as reusable-dispatch.yml in fullsend-code-jira.yaml.
+      # Release assets can be replaced, so the archive is checked against a
+      # hash pinned here (it matches the release's checksums.txt) before it
+      # runs with the Jira token.
+      - name: Install Fullsend v0.54.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FULLSEND_TAG: v0.54.0
+          FULLSEND_ARCHIVE: fullsend_0.54.0_linux_amd64.tar.gz
+          FULLSEND_SHA256: 71c0d39294e5cea9d84f8799169d9d393780e026b97139d8365e0505a88c11a1
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="${RUNNER_TEMP}/fullsend"
+          mkdir -p "${dir}"
+          gh release download "${FULLSEND_TAG}" -R fullsend-ai/fullsend -p "${FULLSEND_ARCHIVE}" -D "${dir}"
+          echo "${FULLSEND_SHA256}  ${dir}/${FULLSEND_ARCHIVE}" | sha256sum -c -
+          tar -xzf "${dir}/${FULLSEND_ARCHIVE}" -C "${dir}" fullsend
+          echo "${dir}" >> "${GITHUB_PATH}"
+
+      - name: Poll RHAI and RHOAIENG issues
+        env:
+          JIRA_TOKEN: ${{ secrets.FULLSEND_JIRA_BOT_TOKEN }}
+          JIRA_USER_EMAIL: ${{ secrets.FULLSEND_JIRA_BOT_EMAIL }}
+          JIRA_BASE_URL: https://redhat.atlassian.net
+          TARGET_REPO: ${{ github.repository }}
+          # Open dashboard Stories, Tasks, Bugs and Epics in RHAI (where new
+          # issues go) or RHOAIENG (being retired), outside the jira-autofix
+          # flow, updated in the last day, that have ready-to-code or mention
+          # fs-code in a comment. The poller only processes 5 random
+          # candidates per run, so the list has to stay short; the label or
+          # the /fs-code comment, from someone on the write list, is what
+          # actually starts a run.
+          JQL: >-
+            project in (RHAI, RHOAIENG)
+            AND component = "AI Core Dashboard"
+            AND issuetype in (Story, Task, Bug, Epic)
+            AND (labels = "ready-to-code" OR comment ~ "\"fs-code\"")
+            AND updated >= -1d
+            AND (labels is EMPTY OR labels not in ("opt-in-autofix", "jira-autofix", "jira-autofix-pending", "jira-autofix-review"))
+            AND statusCategory != Done
+            ORDER BY updated DESC
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No --jira-project: it takes one key and is only read for Jira
+          # project roles, which this setup never uses (the jira write list
+          # with labels: allowlist decides who may start a run).
+          [[ -n "${JIRA_TOKEN}" && -n "${JIRA_USER_EMAIL}" ]] || { echo 'Configure FULLSEND_JIRA_BOT_TOKEN and FULLSEND_JIRA_BOT_EMAIL Actions secrets.' >&2; exit 1; }
+          fullsend poll \
+            --input-driver jira-poll \
+            --jira-url "${JIRA_BASE_URL}" \
+            --jql "${JQL}" \
+            --target-repo "${TARGET_REPO}" \
+            --output dispatches.json \
+            --fullsend-dir .fullsend
+
+      # The poller writes dispatches.json before it commits any checkpoint,
+      # so keep and launch the records even when the poll step fails later
+      # (a failed checkpoint commit means that issue may run twice, which
+      # beats dropping a request whose checkpoint did commit). The code runs
+      # read the records from this artifact, so the upload is retried once
+      # and nothing launches unless an upload succeeded.
+      - name: Save poll records
+        id: save
+        if: ${{ !cancelled() && hashFiles('dispatches.json') != '' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jira-dispatches-${{ github.run_attempt }}
+          path: dispatches.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Save poll records (retry)
+        id: save-retry
+        if: ${{ !cancelled() && steps.save.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jira-dispatches-${{ github.run_attempt }}
+          path: dispatches.json
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Launch one workflow run per record
+        if: ${{ !cancelled() && (steps.save.outcome == 'success' || steps.save-retry.outcome == 'success') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .fullsend/scripts/jira_dispatch.py launch
+
+      # Both uploads failed: the checkpoints are already saved, so name the
+      # issues (keys only) for someone to comment /fs-code on again.
+      - name: List issues that were not launched
+        if: ${{ !cancelled() && steps.save.outcome == 'failure' && steps.save-retry.outcome != 'success' }}
+        run: python3 .fullsend/scripts/jira_dispatch.py keys

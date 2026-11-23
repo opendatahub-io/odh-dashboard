@@ -9,13 +9,15 @@
 # and GitLab paths, none of which this host uses (README "Upstream sync").
 #
 # Local changes from the stock script:
-#   1. Set the GitHub review action from findings (any medium+ →
-#      request-changes; risk/confidence/needs-human → comment) and rewrite
-#      the sticky comment. Floors/caps live in rating-policy.json.
+#   1. Set the GitHub review action from findings (blocking severities →
+#      request-changes; human-judgment severities → comment; risk/
+#      confidence/needs-human → comment) and rewrite the sticky comment.
+#      Floors/caps live in rating-policy.json.
 #   2. Categorize sticky ## TODO (Findings / Checks / Judgement / Nits).
 #      Do not append the stock /fs-fix "Next steps" footer.
-#   3. Link file/line references in the sticky summary and suppress inline
-#      review comments by omitting line numbers only from the CLI payload.
+#   3. Link file/line references in the sticky summary to the PR's Files
+#      changed view (diff anchor, not a commit-pinned blob URL) and suppress
+#      inline review comments by omitting line numbers only from the CLI payload.
 #   4. Render the durable structured review: change summary, host status,
 #      Signal|Level|Assessment (risk/confidence), decisions, findings, Jira
 #      coherence, inspected evidence, signals, checks, and labels.
@@ -101,15 +103,20 @@ export FULLSEND_CONFIG_DIR
 # $1 = path to agent-result.json. Writes transformed JSON to stdout.
 transform_review_result() {
   python3 - "$1" <<'PY'
-import json, os, re, sys
+import hashlib, json, os, re, sys
 from datetime import datetime, timezone
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
+
+JIRA_KEY_RE = re.compile(r"[A-Z][A-Z0-9]+-\d+")
 
 # Host policy: .fullsend/rating-policy.json (floors/caps/refuse lists only).
 # Judgment criteria live in the rating skill — not here.
 DEFAULT_POLICY = {
-    "blocking_finding_severities": ["critical", "high", "medium"],
+    "blocking_finding_severities": ["critical", "high"],
     "exclude_blocking_categories": ["protected-path"],
+    # Below the blocking bar, these severities still defer to a human
+    # instead of approving. Empty the list to let them ride with approve.
+    "human_judgment_finding_severities": ["medium"],
     "risk_refuse_approve": ["high", "critical"],
     "confidence_refuse_approve": ["low"],
     "product_ask": {
@@ -156,6 +163,8 @@ def load_rating_policy():
                     merged[key] = value
     merged["_blocking_severities"] = _lower_set(merged.get("blocking_finding_severities"))
     merged["_exclude_categories"] = _lower_set(merged.get("exclude_blocking_categories"))
+    merged["_human_judgment_severities"] = _lower_set(
+        merged.get("human_judgment_finding_severities"))
     merged["_risk_refuse"] = _lower_set(merged.get("risk_refuse_approve"))
     merged["_confidence_refuse"] = _lower_set(merged.get("confidence_refuse_approve"))
     return merged
@@ -235,12 +244,27 @@ def is_blocking(finding):
     severity = (finding.get("severity") or "info").lower()
     return severity in POLICY["_blocking_severities"]
 
+def is_human_judgment_finding(finding):
+    """A below-bar finding that still defers to a human."""
+    cat = (finding.get("category") or "").lower()
+    if cat in POLICY["_exclude_categories"]:
+        return False
+    return (finding.get("severity") or "").lower() in POLICY["_human_judgment_severities"]
+
 def is_actionable_nit(finding):
     severity = (finding.get("severity") or "info").lower()
     return severity in ("low", "info") and bool(finding.get("actionable"))
 
 def blocking_count(result):
     return sum(1 for finding in (result.get("findings") or []) if is_blocking(finding))
+
+def human_judgment_findings(result):
+    """Non-excluded findings at a human-judgment severity."""
+    return [f for f in (result.get("findings") or []) if is_human_judgment_finding(f)]
+
+def human_judgment_needed(result):
+    """True when below-bar findings must yield comment instead of approve."""
+    return bool(human_judgment_findings(result))
 
 def checks(result):
     return [c for c in (result.get("checks") or []) if isinstance(c, dict)]
@@ -256,6 +280,8 @@ def needs_human(result):
     if os.environ.get("REVIEW_FORCE_PROTECTED_PATH"):
         return True
     if checks_with_status(result, "could-not-verify"):
+        return True
+    if errored_adapters(result):
         return True
     if "needs_human" in pa:
         if pa.get("needs_human"):
@@ -277,6 +303,16 @@ def producers_block(result):
     """Self-contained producers object on the review result (schema v3)."""
     raw = result.get("producers") if isinstance(result, dict) else None
     return raw if isinstance(raw, dict) else None
+
+def errored_adapters(result):
+    """Adapters that reported status=error, as "<Label> (<reason>)" notes."""
+    producers = producers_block(result)
+    notes = []
+    for item in (producers or {}).get("adapters") or []:
+        if isinstance(item, dict) and str(item.get("status") or "").strip().lower() == "error":
+            name = result_label(item.get("id") or "adapter")
+            notes.append(f"{name} ({adapter_reason(item) or 'adapter error'})")
+    return notes
 
 def add_limit(inspected, note):
     notes = list(inspected.get("could_not_verify") or [])
@@ -400,10 +436,11 @@ def unverified_producers(result):
     """Everything this run could not establish, by whatever shape reported it.
 
     A readiness check that could not be verified is a producer that did not
-    establish its result."""
+    establish its result. An errored adapter is also incomplete."""
     names = []
     for check in checks_with_status(result, "could-not-verify"):
-        names.append(dimension_label(check.get("id") or "readiness check"))
+        names.append(result_label(check.get("id") or "readiness check"))
+    names.extend(errored_adapters(result))
     producers = producers_block(result)
     if producers is not None and challenger_problem(challenger_record(producers), result.get("findings") or []):
         names.append("challenger (its skip state contradicts the reported findings)")
@@ -449,7 +486,7 @@ def infer_todo_category(text, result):
     nit_match = False
     for finding in (result.get("findings") or []):
         desc = (finding.get("description") or "").strip()
-        if is_blocking(finding):
+        if is_blocking(finding) or is_human_judgment_finding(finding):
             rem = (finding.get("remediation") or "").strip()
             if (rem and rem in text) or (desc and desc in text):
                 return "findings"
@@ -525,6 +562,8 @@ def compute_action(result):
         return "request-changes", "blocking-findings"
     if failed_checks(result):
         return "request-changes", "check-fail"
+    if human_judgment_needed(result):
+        return "comment", "human-judgment-findings"
     refuse = approve_refuse_reason(result)
     if refuse == "risk":
         return "comment", "risk-blocks-approve"
@@ -533,6 +572,34 @@ def compute_action(result):
     if needs_human(result):
         return "comment", "needs-human"
     return "approve", "no-blocking-findings"
+
+def compute_product_ask_overall(result):
+    """Overwrite top-level product_ask.status from per-issue statuses when issues[] is present."""
+    pa = result.get("product_ask")
+    if not isinstance(pa, dict):
+        return result
+    issues = pa.get("issues")
+    if not isinstance(issues, list) or not issues:
+        return result
+    rank = {"mismatch-unjustified": 3, "mismatch-justified": 2, "aligned": 1, "none": 0}
+    best = 0
+    any_human = False
+    any_justified = False
+    for issue in issues:
+        s = issue.get("status") or "none"
+        best = max(best, rank.get(s, 0))
+        if issue.get("needs_human"):
+            any_human = True
+        if issue.get("justified_in_description"):
+            any_justified = True
+    reverse = {v: k for k, v in rank.items()}
+    pa["status"] = reverse.get(best, "none")
+    if any_human:
+        pa["needs_human"] = True
+    if any_justified:
+        pa["justified_in_description"] = True
+    return result
+
 
 def apply_product_ask(result):
     """Floor confidence for unjustified Jira-vs-description mismatch. Never bump risk."""
@@ -561,9 +628,12 @@ def augment_inspected(result):
     could_not_verify = list(inspected.get("could_not_verify") or [])
     for check in checks_with_status(result, "could-not-verify"):
         note = (
-            f"{dimension_label(check.get('id') or 'readiness check')}: "
+            f"{result_label(check.get('id') or 'readiness check')}: "
             f"{check.get('summary') or 'could not be verified'}"
         )
+        if note not in could_not_verify:
+            could_not_verify.append(note)
+    for note in errored_adapters(result):
         if note not in could_not_verify:
             could_not_verify.append(note)
     if could_not_verify:
@@ -583,6 +653,20 @@ def suppress_mentions(text):
     """Keep agent prose from turning @words into GitHub mentions/links."""
     return re.sub(r"@(?=[A-Za-z0-9-])", "@\u200b", text or "")
 
+def escape_link_syntax(text):
+    """Escape backslashes and brackets so Markdown renders them literally."""
+    return text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+
+def repo_relative_path(path):
+    """Diff-anchor path: repo-relative, no leading slash or ./ prefix.
+
+    .lstrip("./") would eat the dot in .github/x.yml, so strip explicitly.
+    """
+    p = (path or "").strip()
+    while p.startswith("./"):
+        p = p[2:]
+    return p.lstrip("/")
+
 def render_location(result, finding, server_url):
     path = (finding.get("file") or "").strip()
     line = finding.get("line")
@@ -592,16 +676,47 @@ def render_location(result, finding, server_url):
     safe_display = code_span_text(label)
     repo = (result.get("repo") or os.environ.get("GITHUB_REPOSITORY") or "").strip("/")
     sha = (result.get("head_sha") or "").strip()
-    if not path or path.lower() == "n/a" or not repo or not sha:
+    pr_number = str(result.get("pr_number") or os.environ.get("PR_NUMBER") or "").strip()
+    if not path or path.lower() == "n/a" or not repo:
         return f"`{safe_display}`"
-    target = f"{server_url.rstrip('/')}/{repo}/blob/{sha}/{quote(path.lstrip('/'), safe='/')}"
-    if line:
-        target += f"#L{line}"
-    link_label = safe_display.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+    link_label = escape_link_syntax(safe_display)
+    # Only an ASCII line number can form a GitHub line anchor.
+    line_suffix = str(line).strip() if line else ""
+    if not re.fullmatch(r"[0-9]+", line_suffix):
+        line_suffix = ""
+    if pr_number:
+        # PR-scoped diff anchor — the destination inline review comments use.
+        # A commit-pinned /blob/ URL is not the PR diff: when the head commit
+        # is not on a branch in this repo (fork PR head, force-push), GitHub
+        # warns "This commit does not belong to any branch..." and the reader
+        # leaves the review flow. `diff-` is the SHA256 of the repo-relative
+        # path; R is the post-image (right) side. Files that are not part of
+        # the PR diff have no anchor, so GitHub lands at the top of the diff.
+        anchor = "diff-" + hashlib.sha256(
+            repo_relative_path(path).encode("utf-8")
+        ).hexdigest()
+        target = f"{server_url.rstrip('/')}/{repo}/pull/{pr_number}/changes#{anchor}"
+        if line_suffix:
+            target += f"R{line_suffix}"
+    elif sha:
+        # No PR context: keep the commit-pinned file view.
+        target = (
+            f"{server_url.rstrip('/')}/{repo}/blob/{sha}/"
+            f"{quote(repo_relative_path(path), safe='/')}"
+        )
+        if line_suffix:
+            target += f"#L{line_suffix}"
+    else:
+        return f"`{safe_display}`"
     return f"[{link_label}]({target})"
 
 def clean(text):
-    return suppress_mentions(str(text or "").strip())
+    # Normalize every line ending to LF first: GitHub treats a bare CR as a
+    # line ending, so a value that reaches a renderer before flattening could
+    # otherwise start a new Markdown block.
+    return suppress_mentions(
+        str(text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    )
 
 def render_remediation(text):
     """A one-line remediation stays inline; a patch snippet gets a fenced block.
@@ -610,7 +725,7 @@ def render_remediation(text):
     them unreadable. List continuation needs four-space indentation, and the
     fence is padded past any backticks inside the snippet.
     """
-    body = suppress_mentions(str(text or "").strip())
+    body = clean(text)
     if not body:
         return []
     if "\n" not in body:
@@ -630,11 +745,46 @@ def table_cell(text):
 def inline_text(text):
     """Untrusted finding/audit field for Markdown outside tables.
 
-    clean() only strips @mentions. Neutralize HTML so a field cannot close
-    the host <details> block; flatten newlines so a value cannot inject
-    headings or extra list items.
+    clean() normalizes line endings and strips @mentions. Neutralize HTML so
+    a field cannot close the host <details> block; flatten newlines so a
+    value cannot inject headings or extra list items.
     """
     return clean(text).replace("\n", " ").replace("<", "&lt;")
+
+def markdown_prose(text):
+    """Agent/Jira-echoed prose that may keep newlines and Markdown styling.
+
+    Strips HTML comments (concealment) before clean()/mention suppression so
+    values like `@<!-- conceal -->org/team` cannot reassemble into a live
+    mention. Escapes raw `<` (no HTML expected) and keeps newlines so
+    multi-line Markdown remains readable. Unlike inline_text(), does not
+    flatten newlines.
+    """
+    stripped = re.sub(r"<!--.*?-->", "", str(text or ""), flags=re.S)
+    return clean(stripped).replace("<", "&lt;")
+
+def prose_bullet_lines(items):
+    """Render prose array items as Markdown bullets with indented continuations."""
+    lines = []
+    for item in items:
+        body = markdown_prose(item)
+        if not body:
+            continue
+        first, *rest = body.split("\n")
+        lines.append(f"- {first}")
+        lines.extend(f"  {cont}" if cont.strip() else "" for cont in rest)
+    return lines
+
+def label_text(text):
+    """Registry label or id as literal Markdown.
+
+    Ids are result data; flattening and escaping link syntax keeps a forged
+    id from adding blocks or becoming a bot-authored link."""
+    return escape_link_syntax(inline_text(text))
+
+def result_label(dim_id):
+    """Display label for a result-authored registry id."""
+    return label_text(dimension_label(dim_id))
 
 def code_span_text(text):
     """Untrusted text for a single Markdown inline-code span (`...`).
@@ -876,14 +1026,20 @@ def justified_findings(result):
     ]
 
 def render_justified_section(result):
-    """Render ### Justified under ## Findings with omit markers."""
+    """Render ### Justified under ## Findings.
+
+    Heading-delimited on purpose. `fullsend post-review` runs agent-authored
+    bodies through upstream's NeutralizeMarkers, which HTML-escapes every
+    `<!-- fullsend:` opener, so an HTML comment wrapper would surface as
+    visible text in the sticky. Readers find these items by the
+    `### Justified (N)` heading.
+    """
     items = justified_findings(result)
     if not items:
         return []
     run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
     lines = [
         "",
-        "<!-- fullsend:justified-findings -->",
         f"### Justified ({len(items)})",
         "",
         "_These findings were raised by review producers but the PR's "
@@ -904,7 +1060,6 @@ def render_justified_section(result):
         reason = inline_text(finding.get("removal_reason") or "")
         if reason:
             lines.append(f"  - Justification: {reason}")
-    lines += ["", "<!-- /fullsend:justified-findings -->"]
     return lines
 
 def render_removed_audit(result):
@@ -1078,21 +1233,21 @@ def adapter_producer_row(entry, result, review_checks):
         return None
     if not isinstance(name, str) or not name:
         return None
-    shown = dimension_label(name)
+    shown = result_label(name)
     typ = dimension_type(name)
     if not isinstance(envelope, dict) or "status" not in envelope:
-        return (clean(shown), typ, "❔", "adapter status missing")
+        return (shown, typ, "❔", "adapter status missing")
     status = str(envelope.get("status") or "").strip().lower()
     reason = adapter_reason(envelope)
     if status == "ok":
         res = producer_result(name, result, review_checks, kind=typ)
-        return (clean(shown), typ, "✅", res)
+        return (shown, typ, "✅", res)
     if status in ("none", "skipped"):
         default = "No usable adapter context." if status == "none" else "Adapter skipped."
-        return (clean(shown), typ, "⚪", reason or default)
+        return (shown, typ, "⚪", reason or default)
     if status == "error":
-        return (clean(shown), typ, "❌", reason or "Adapter error.")
-    return (clean(shown), typ, "❔", reason or f"Unrecognized adapter status: {status or 'missing'}")
+        return (shown, typ, "❌", reason or "Adapter error.")
+    return (shown, typ, "❔", reason or f"Unrecognized adapter status: {status or 'missing'}")
 
 def producer_rows(result):
     """What ran, by kind, with a Result cell — from result.producers only.
@@ -1110,7 +1265,7 @@ def producer_rows(result):
         if isinstance(name, str):
             typ = dimension_type(name)
             rows.append((
-                clean(dimension_label(name)),
+                result_label(name),
                 typ,
                 "✅",
                 producer_result(name, result, review_checks, kind=typ),
@@ -1123,7 +1278,7 @@ def producer_rows(result):
         if isinstance(row, dict) and isinstance(row.get("id"), str):
             reason = clean(row.get("reason") or "not selected")
             rows.append((
-                clean(dimension_label(row["id"])),
+                result_label(row["id"]),
                 dimension_type(row["id"]),
                 "➖",
                 reason,
@@ -1133,8 +1288,21 @@ def producer_rows(result):
 
 def status_headline(result, action):
     """Visible status line: icon + bold label + remainder."""
+    errs = errored_adapters(result)
+    incomplete = inline_text(", ".join(errs)) if errs else ""
+    incomplete_note = (
+        f" Review incomplete — {incomplete}. Retry or escalate." if errs else ""
+    )
     if action == "request-changes":
-        return f"{mark(ACTION_MARK, action)} **Waiting on author** — {author_wait_detail(result)}"
+        return (f"{mark(ACTION_MARK, action)} **Waiting on author** — "
+                f"{author_wait_detail(result)}{incomplete_note}")
+    if action == "comment" and errs:
+        return f"{mark(ACTION_MARK, action)} **Review incomplete** — {incomplete}. Retry or escalate."
+    if action == "comment" and human_judgment_needed(result):
+        count = len(human_judgment_findings(result))
+        noun = "finding" if count == 1 else "findings"
+        return (f"{mark(ACTION_MARK, action)} **Needs human judgment** — "
+                f"{count} non-blocking {noun}. Human still finalizes.")
     if action == "comment" and needs_human(result):
         return f"{mark(ACTION_MARK, action)} **Needs human judgment.**"
     if action == "comment":
@@ -1149,7 +1317,7 @@ def status_headline(result, action):
     if action == "approve":
         return f"{mark(ACTION_MARK, action)} **Agent bar cleared for this head.** Human still finalizes."
     if action == "reject":
-        return f"{mark(ACTION_MARK, action)} **Approach rejected.**"
+        return f"{mark(ACTION_MARK, action)} **Approach rejected.**{incomplete_note}"
     return f"{mark(ACTION_MARK, action)} This review did not complete. Do not treat this head as reviewed."
 
 def render_signal_table(result):
@@ -1177,7 +1345,7 @@ def render_checks_table(result):
     for check in rows:
         status = check.get("status") or ""
         lines.append(
-            f"| {table_cell(dimension_label(check.get('id')))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
+            f"| {table_cell(result_label(check.get('id')))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
             f"| {check_details_cell(check)} |")
     return lines
 
@@ -1193,21 +1361,215 @@ def render_todo_section(result):
         items = by_category[cid]
         if not items:
             continue
-        lines += ["", label] + [f"- {clean(text)}" for text in items]
+        lines += ["", label] + [f"- {inline_text(text)}" for text in items]
     return lines
+
+def _pa_status_line(label, record, suffix=""):
+    status = record.get("status") or "none"
+    human = " · needs human review" if record.get("needs_human") else ""
+    return f"**{label}:** `{clean(status)}`{human}{suffix}"
+
+
+def load_trusted_jira_context():
+    """URLs, failed fetches, and omitted keys from the host Jira snapshot."""
+    empty = {"urls": {}, "failed": [], "omitted": []}
+    config_dir = os.environ.get("FULLSEND_CONFIG_DIR") or ""
+    if not config_dir:
+        return empty
+    path = os.path.join(config_dir, ".run", "jira.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError, TypeError):
+        return empty
+    if not isinstance(data, dict):
+        return empty
+
+    issues = data.get("issues")
+    if not isinstance(issues, list):
+        issues = []
+
+    entries = []
+    if data.get("key"):
+        entries.append(data)
+    entries.extend(issue for issue in issues if isinstance(issue, dict))
+    urls = {
+        str(issue.get("key")): str(issue.get("url") or "")
+        for issue in entries
+        if issue.get("key")
+    }
+
+    failed = []
+    seen_failed = set()
+    for issue in issues:
+        if not isinstance(issue, dict) or issue.get("status") != "error":
+            continue
+        key = str(issue.get("key") or "").strip()
+        if not key or key in seen_failed:
+            continue
+        seen_failed.add(key)
+        failed.append({
+            "key": key,
+            "reason": str(issue.get("reason") or "error"),
+        })
+
+    omitted = []
+    seen_omitted = set()
+    raw_omitted = data.get("omitted_keys")
+    if isinstance(raw_omitted, list):
+        for item in raw_omitted:
+            key = str(item or "").strip()
+            if not key or key in seen_omitted:
+                continue
+            seen_omitted.add(key)
+            omitted.append(key)
+
+    return {"urls": urls, "failed": failed, "omitted": omitted}
+
+
+TRUSTED_JIRA = load_trusted_jira_context()
+TRUSTED_JIRA_ISSUES = TRUSTED_JIRA["urls"]
+
+
+def trusted_jira_issue_url(key):
+    url = TRUSTED_JIRA_ISSUES.get(key, "")
+    if not url:
+        return ""
+    parsed = urlsplit(url)
+    expected_path = f"/browse/{quote(key, safe='')}"
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path != expected_path
+        or parsed.query
+        or parsed.fragment
+    ):
+        return ""
+    return url
+
+
+def _pa_key_label(key):
+    """Safe label for a trusted Jira key. Invalid shapes are omitted, never echoed."""
+    key = str(key or "").strip()
+    if not key or not JIRA_KEY_RE.fullmatch(key):
+        return ""
+    url = trusted_jira_issue_url(key)
+    return f"[{key}]({url})" if url else f"`{code_span_text(key)}`"
+
+
+class PaIssueKeyResolver:
+    """Map untrusted issues[] entries onto keys from the host Jira snapshot.
+
+    Match a well-formed key, then its URL. Fall back to a lone unclaimed
+    snapshot key only when the snapshot holds a single distinct key, key-only
+    failure entries included, and the reported key is unusable, so masked or
+    truncated metadata still renders. A well-formed key that contradicts an
+    existing snapshot is never swapped for a different issue, a key absent
+    from an existing snapshot is never published even when it is well formed,
+    and a key outside ``JIRA_KEY_RE`` is never returned.
+    """
+
+    def __init__(self):
+        # Every well-formed key in the snapshot, including key-only entries
+        # whose fetch failed, so snapshot absence stays distinguishable from
+        # the absence of URL-bearing keys.
+        self.snapshot_keys = {
+            key for key in TRUSTED_JIRA_ISSUES if JIRA_KEY_RE.fullmatch(key)
+        }
+        # URL-bearing snapshot keys, the only candidates for URL recovery.
+        self.url_keys = [
+            key for key in TRUSTED_JIRA_ISSUES
+            if JIRA_KEY_RE.fullmatch(key) and trusted_jira_issue_url(key)
+        ]
+        self.claimed = set()
+
+    def _claim(self, key):
+        if key in self.snapshot_keys and key not in self.claimed:
+            self.claimed.add(key)
+            return key
+        return ""
+
+    def resolve(self, issue):
+        if not isinstance(issue, dict):
+            return ""
+        raw = str(issue.get("key") or "").strip()
+        well_formed = bool(JIRA_KEY_RE.fullmatch(raw))
+        if well_formed and self._claim(raw):
+            return raw
+        if well_formed and self.snapshot_keys:
+            # A well-formed key outside an existing snapshot contradicts it;
+            # never borrow a different issue via URL recovery.
+            return ""
+        url = str(issue.get("url") or "").strip()
+        if url:
+            for candidate in self.url_keys:
+                if candidate in self.claimed:
+                    continue
+                if trusted_jira_issue_url(candidate) == url:
+                    return self._claim(candidate)
+        if not well_formed and len(self.snapshot_keys) == 1:
+            # Only a snapshot holding exactly one distinct key, key-only
+            # failures included, may resolve an unusable key to itself.
+            return self._claim(next(iter(self.snapshot_keys)))
+        # With no snapshot, a well-formed key is still safe to display.
+        return raw if well_formed and not self.snapshot_keys else ""
+
+
+def render_product_ask_evaluation_limits():
+    """Surface snapshot fetch failures and omitted keys in the published review."""
+    failed = TRUSTED_JIRA["failed"]
+    omitted = TRUSTED_JIRA["omitted"]
+    if not failed and not omitted:
+        return []
+    lines = [
+        "",
+        "**Evaluation limits:** Product-ask covered only the issues that could be fetched. The following linked issues were not evaluated:",
+        "",
+    ]
+    for item in failed:
+        label = _pa_key_label(item["key"])
+        if label:
+            lines.append(
+                f"- {label} — could not fetch (`{code_span_text(item['reason'])}`)"
+            )
+    for key in omitted:
+        label = _pa_key_label(key)
+        if label:
+            lines.append(f"- {label} — omitted (10-key cap)")
+    lines.append("")
+    return lines
+
+
+def _render_pa_block(issue, suffix=""):
+    lines = [_pa_status_line("Status", issue, suffix), ""]
+    if issue.get("aligned"):
+        lines += ["Aligned:"] + prose_bullet_lines(issue["aligned"]) + [""]
+    if issue.get("mismatched"):
+        lines += ["Mismatched:"] + prose_bullet_lines(issue["mismatched"]) + [""]
+    return lines
+
 
 def render_product_ask_section(pa):
     if not pa or (pa.get("status") or "none") == "none":
         return []
-    status = pa.get("status") or "none"
+    issues = pa.get("issues") if isinstance(pa.get("issues"), list) else []
+    ok_issues = [i for i in issues if (i.get("status") or "none") != "none"]
+    resolver = PaIssueKeyResolver()
     lines = ["", "## Product ask", ""]
-    human = " · needs human review" if pa.get("needs_human") else ""
-    lines.append(f"**Status:** `{clean(status)}`{human}")
-    lines.append("")
-    if pa.get("aligned"):
-        lines += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
-    if pa.get("mismatched"):
-        lines += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
+    if len(ok_issues) > 1:
+        lines += [_pa_status_line("Overall", pa), ""]
+        for issue in ok_issues:
+            link = _pa_key_label(resolver.resolve(issue))
+            lines += [f"### {link or 'Linked Jira issue'}", ""]
+            lines += _render_pa_block(issue)
+    elif len(ok_issues) == 1:
+        link = _pa_key_label(resolver.resolve(ok_issues[0]))
+        lines += _render_pa_block(ok_issues[0], suffix=f" · {link}" if link else "")
+    else:
+        lines += _render_pa_block(pa)
+    lines += render_product_ask_evaluation_limits()
     return lines
 
 def render_body(result, previous_md, action):
@@ -1219,7 +1581,7 @@ def render_body(result, previous_md, action):
         lines += ["", f"This review did not complete (`{reason}`). Do not treat this head as reviewed."]
         return "\n".join(lines).rstrip() + "\n"
 
-    lines += ["", "## Change summary", "", clean(result.get("change_summary"))]
+    lines += ["", "## Change summary", "", inline_text(result.get("change_summary"))]
     lines += ["", "## Status", "", status_headline(result, action)]
     lines += render_signal_table(result)
     lines += render_checks_table(result)
@@ -1235,12 +1597,14 @@ def render_body(result, previous_md, action):
                 origin = ""
                 if finding.get("dimension"):
                     origin_ids = producer_ids(finding)
-                    origin_shown = ", ".join(dimension_label(i) for i in origin_ids) or clean(finding.get("dimension"))
+                    origin_shown = ", ".join(
+                        code_span_text(dimension_label(i)) for i in origin_ids
+                    ) or code_span_text(finding.get("dimension"))
                     origin = f"`{origin_shown}` · "
                 tail = " · actionable follow-up" if is_actionable_nit(finding) else ""
-                lines += ["", f"- {origin}**{clean(finding.get('category'))}** ({loc}){tail}: {clean(finding.get('description'))}"]
+                lines += ["", f"- {origin}**{inline_text(finding.get('category'))}** ({loc}){tail}: {inline_text(finding.get('description'))}"]
                 if finding.get("why"):
-                    lines.append(f"  - Why: {clean(finding.get('why'))}")
+                    lines.append(f"  - Why: {inline_text(finding.get('why'))}")
                 if finding.get("remediation"):
                     lines += render_remediation(finding.get("remediation"))
         lines += render_justified_section(result)
@@ -1278,10 +1642,10 @@ def render_body(result, previous_md, action):
     if inspected.get("summary") or inspected.get("could_not_verify"):
         details_body += ["### Evidence inspected", ""]
         if inspected.get("summary"):
-            details_body += [clean(inspected["summary"]), ""]
+            details_body += [inline_text(inspected["summary"]), ""]
         if inspected.get("could_not_verify"):
             details_body += ["**Could not verify:**", ""]
-            details_body += [f"- {clean(i)}" for i in inspected["could_not_verify"]] + [""]
+            details_body += [f"- {inline_text(i)}" for i in inspected["could_not_verify"]] + [""]
 
     sig = clean(os.environ.get("REVIEW_SIGNALS"))
     if sig:
@@ -1322,6 +1686,7 @@ result = normalize_protected_findings(result)
 result = reconcile_producers(result)
 result = apply_host_todos(result)
 result = augment_inspected(result)
+result = compute_product_ask_overall(result)
 result = apply_product_ask(result)
 result = cap_confidence(result)
 action, _reason = compute_action(result)
@@ -1478,7 +1843,7 @@ run_self_test() {
     [[ -n "${cred_name}" ]] || continue
     if [[ " ${unset_line#unset } " != *" ${cred_name} "* ]] \
       || ! grep -qxF "    ${cred_name}: \"\${${cred_name}}\"" <<<"${runner_env}" \
-      || { [[ -f "${shim}" ]] && ! grep -qF "secrets.${cred_name} != '' && toJSON(secrets.${cred_name}) || '\"odh-adapter-credential-unset\"'" "${shim}"; }; then
+      || { [[ -f "${shim}" ]] && ! grep -qF "toJSON(secrets.${cred_name}) || '\"odh-adapter-credential-unset\"'" "${shim}"; }; then
       missing_creds+=" ${cred_name}"
     fi
   done < <(jq -r '[.dimensions[] | select(.kind == "cli-adapter") | .host.credentials // {}
@@ -1557,9 +1922,33 @@ run_self_test() {
 
   render_fixture needs-human comment "{${common},\"findings\":[],\"todo\":[{\"category\":\"judgement\",\"text\":\"Decide which product scope this PR implements.\"}],\"product_ask\":{\"status\":\"mismatch-justified\",\"needs_human\":true}}"
 
-  local pa body
+  local jira_config body
+  jira_config="${tmp}/jira-config"
+  mkdir -p "${jira_config}/.run"
+  write_default_jira_snapshot() {
+    cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "key": "RHOAIENG-100655",
+  "url": "https://jira.example.test/browse/RHOAIENG-100655",
+  "issues": [
+    {"key": "RHOAIENG-100580", "url": "https://jira.example.test/browse/RHOAIENG-100580"},
+    {"key": "RHOAIENG-100583", "url": "https://jira.example.test/browse/RHOAIENG-100583"},
+    {"key": "RHOAIENG-100655", "url": "https://jira.example.test/browse/RHOAIENG-100655"},
+    {"key": "bad]\n[more]\n@org/team\n<script>alert(1)</script>", "url": "https://jira.example.test/browse/RHOAIENG-100655"}
+  ]
+}
+JSON
+  }
+  write_default_jira_snapshot
+  render_jira_fixture() {
+    local name="$1"
+    (
+      export FULLSEND_CONFIG_DIR="${jira_config}"
+      transform_review_result "${tmp}/${name}.json" > "${tmp}/${name}-out.json"
+    )
+  }
   printf '%s' "{${common},\"product_ask\":{\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for export\"]}}" > "${tmp}/product-ask.json"
-  transform_review_result "${tmp}/product-ask.json" > "${tmp}/product-ask-out.json"
+  render_jira_fixture product-ask
   if ! jq -e '.action == "comment" and .risk.level == "low" and .confidence.level == "low" and (.confidence.why | contains("Jira"))' "${tmp}/product-ask-out.json" >/dev/null; then
     echo "FAIL product-ask: want confidence floor only (risk unchanged) + comment" >&2
     fail=1
@@ -1570,8 +1959,354 @@ run_self_test() {
     echo "PASS product-ask floors confidence only; risk unchanged"
   fi
 
-  # Gate matrix: any medium finding → request-changes (no advisory carve-out).
-  render_fixture medium-blocks request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Naming drift.\",\"why\":\"Public export renamed without alias.\"}],\"product_ask\":{\"status\":\"none\"}}"
+  # Multi-issue product-ask: overall computed from per-issue statuses.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]},{\"key\":\"RHOAIENG-100583\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100583\",\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for import.\"],\"needs_human\":true}]}}" > "${tmp}/pa-multi.json"
+  render_jira_fixture pa-multi
+  body=$(jq -r .body "${tmp}/pa-multi-out.json")
+  if ! grep -qF '**Overall:** `mismatch-unjustified` · needs human review' <<<"${body}"; then
+    echo "FAIL pa-multi: Overall line missing or wrong" >&2
+    fail=1
+  elif ! grep -qF '### [RHOAIENG-100580](https://jira.example.test/browse/RHOAIENG-100580)' <<<"${body}"; then
+    echo "FAIL pa-multi: first issue heading missing" >&2
+    fail=1
+  elif ! grep -qF '### [RHOAIENG-100583](https://jira.example.test/browse/RHOAIENG-100583)' <<<"${body}"; then
+    echo "FAIL pa-multi: second issue heading missing" >&2
+    fail=1
+  elif ! jq -e '.confidence.level == "low"' "${tmp}/pa-multi-out.json" >/dev/null; then
+    echo "FAIL pa-multi: confidence floor not applied from computed overall" >&2
+    fail=1
+  else
+    echo "PASS pa-multi: overall computed, per-issue headings, confidence floored"
+  fi
+
+  # Single-issue product-ask: key linked on status line, no Overall.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-single.json"
+  render_jira_fixture pa-single
+  body=$(jq -r .body "${tmp}/pa-single-out.json")
+  if grep -qF '**Overall:**' <<<"${body}"; then
+    echo "FAIL pa-single: Overall line should not appear for one issue" >&2
+    fail=1
+  elif ! grep -qF '[RHOAIENG-100655](https://jira.example.test/browse/RHOAIENG-100655)' <<<"${body}"; then
+    echo "FAIL pa-single: key link missing on status line" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-single: Status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-single: single issue renders linked status, no Overall"
+  fi
+
+  # Hostile issue metadata cannot escape the link or inject Markdown/HTML.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://example.com)\\n\\n@org/team\\n\\n[more](https://example.com\",\"status\":\"aligned\",\"aligned\":[\"Safe link only.\"]},{\"key\":\"bad]\\n[more]\\n@org/team\\n<script>alert(1)</script>\",\"url\":\"https://example.com\",\"status\":\"aligned\",\"aligned\":[\"Hostile key only.\"]}]}}" > "${tmp}/pa-hostile.json"
+  render_jira_fixture pa-hostile
+  body=$(jq -r .body "${tmp}/pa-hostile-out.json")
+  if ! grep -qF '[RHOAIENG-100655](https://jira.example.test/browse/RHOAIENG-100655)' <<<"${body}"; then
+    echo "FAIL pa-hostile: trusted issue link missing" >&2
+    fail=1
+  elif grep -qF -e 'https://example.com)' \
+                -e '[more](https://example.com' \
+                -e '<script>' \
+                -e '@org/team' <<<"${body}"; then
+    echo "FAIL pa-hostile: hostile URL, Markdown, HTML, or mention reached the body" >&2
+    fail=1
+  elif grep -qF 'bad]' <<<"${body}"; then
+    echo "FAIL pa-hostile: hostile key reached the body" >&2
+    fail=1
+  elif ! grep -qF '### Linked Jira issue' <<<"${body}"; then
+    echo "FAIL pa-hostile: unresolved issue heading missing" >&2
+    fail=1
+  else
+    echo "PASS pa-hostile: trusted link kept, hostile key omitted, metadata escaped"
+  fi
+
+  # Hostile aligned/mismatched prose: strip comments before mention suppression,
+  # escape HTML, keep newlines. Comment-separated @mentions must not go live.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Matches.\\n\\n<!-- hide -->\\n## Injected\\n<script>alert(1)</script>\\n@<!-- conceal -->org/team\"],\"mismatched\":[\"Drift.\\n<!-- x -->\\n<details>\\n@<!-- hide -->alice\"]}]}}" > "${tmp}/pa-prose.json"
+  render_jira_fixture pa-prose
+  body=$(jq -r .body "${tmp}/pa-prose-out.json")
+  if ! grep -qF 'Matches.' <<<"${body}"; then
+    echo "FAIL pa-prose: aligned prose missing" >&2
+    fail=1
+  elif grep -qF -e '<!-- hide -->' -e '<!-- x -->' -e '<!-- conceal -->' <<<"${body}"; then
+    echo "FAIL pa-prose: injected HTML comment leaked into body" >&2
+    fail=1
+  elif grep -qF '<script>' <<<"${body}"; then
+    echo "FAIL pa-prose: raw script tag leaked into body" >&2
+    fail=1
+  elif ! grep -qF '&lt;script>alert(1)&lt;/script>' <<<"${body}"; then
+    echo "FAIL pa-prose: HTML was not escaped" >&2
+    fail=1
+  elif ! grep -qF '&lt;details>' <<<"${body}"; then
+    echo "FAIL pa-prose: mismatched HTML was not escaped" >&2
+    fail=1
+  elif grep -qF 'Matches. ## Injected' <<<"${body}"; then
+    echo "FAIL pa-prose: newlines were flattened into a single line" >&2
+    fail=1
+  elif ! grep -qE '^  ## Injected$' <<<"${body}"; then
+    echo "FAIL pa-prose: multi-line prose was not kept as list continuation" >&2
+    fail=1
+  elif grep -qF -e '@org/team' -e '@alice' <<<"${body}"; then
+    echo "FAIL pa-prose: comment-separated mention became a live @mention" >&2
+    fail=1
+  else
+    echo "PASS pa-prose: comments stripped, HTML escaped, newlines kept, mentions suppressed"
+  fi
+
+  # Legacy product-ask without issues: same block as before.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"aligned\":[\"Matches.\"]}}" > "${tmp}/pa-legacy.json"
+  transform_review_result "${tmp}/pa-legacy.json" > "${tmp}/pa-legacy-out.json"
+  body=$(jq -r .body "${tmp}/pa-legacy-out.json")
+  if grep -qF '**Overall:**' <<<"${body}"; then
+    echo "FAIL pa-legacy: Overall line should not appear without issues" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-legacy: Status line missing" >&2
+    fail=1
+  elif ! grep -qF 'Matches.' <<<"${body}"; then
+    echo "FAIL pa-legacy: aligned items missing" >&2
+    fail=1
+  else
+    echo "PASS pa-legacy: legacy single-key renders unchanged"
+  fi
+
+  # Mixed fetch success/failure: aligned evaluation must still show fetch limits.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "id": "jira-snapshot",
+  "status": "ok",
+  "key": "RHOAIENG-100580",
+  "url": "https://jira.example.test/browse/RHOAIENG-100580",
+  "issues": [
+    {"key": "RHOAIENG-100580", "url": "https://jira.example.test/browse/RHOAIENG-100580", "summary": "Export"},
+    {"key": "RHOAIENG-100583", "status": "error", "reason": "http-404"},
+    {"key": "RHOAIENG-100655", "status": "error", "reason": "URLError"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]}]}}" > "${tmp}/pa-partial.json"
+  render_jira_fixture pa-partial
+  body=$(jq -r .body "${tmp}/pa-partial-out.json")
+  if ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-partial: aligned status missing" >&2
+    fail=1
+  elif ! grep -qF '**Evaluation limits:**' <<<"${body}"; then
+    echo "FAIL pa-partial: evaluation-limit notice missing" >&2
+    fail=1
+  elif ! grep -qF '`RHOAIENG-100583` — could not fetch (`http-404`)' <<<"${body}"; then
+    echo "FAIL pa-partial: failed key/reason not rendered" >&2
+    fail=1
+  elif ! grep -qF '`RHOAIENG-100655` — could not fetch (`URLError`)' <<<"${body}"; then
+    echo "FAIL pa-partial: second failed key not rendered" >&2
+    fail=1
+  else
+    echo "PASS pa-partial: mixed fetch failure surfaces evaluation limits"
+  fi
+
+  # Over-cap omitted keys: notice even when every fetched issue aligned.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "id": "jira-snapshot",
+  "status": "ok",
+  "key": "RHOAIENG-100580",
+  "url": "https://jira.example.test/browse/RHOAIENG-100580",
+  "issues": [
+    {"key": "RHOAIENG-100580", "url": "https://jira.example.test/browse/RHOAIENG-100580", "summary": "Export"}
+  ],
+  "omitted_keys": ["RHOAIENG-100511", "RHOAIENG-100512"]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]}]}}" > "${tmp}/pa-omitted.json"
+  render_jira_fixture pa-omitted
+  body=$(jq -r .body "${tmp}/pa-omitted-out.json")
+  if ! grep -qF '**Evaluation limits:**' <<<"${body}"; then
+    echo "FAIL pa-omitted: evaluation-limit notice missing" >&2
+    fail=1
+  elif ! grep -qF '`RHOAIENG-100511` — omitted (10-key cap)' <<<"${body}"; then
+    echo "FAIL pa-omitted: first omitted key missing" >&2
+    fail=1
+  elif ! grep -qF '`RHOAIENG-100512` — omitted (10-key cap)' <<<"${body}"; then
+    echo "FAIL pa-omitted: second omitted key missing" >&2
+    fail=1
+  elif grep -qF 'could not fetch' <<<"${body}"; then
+    echo "FAIL pa-omitted: fetch-failure wording should not appear" >&2
+    fail=1
+  else
+    echo "PASS pa-omitted: over-cap keys surface evaluation limits"
+  fi
+
+  # An issues[].key that is not a valid key never reaches the body; the label
+  # comes from the host snapshot instead.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "key": "RHOAIENG-100828",
+  "url": "https://jira.example.test/browse/RHOAIENG-100828",
+  "issues": [
+    {"key": "RHOAIENG-100828", "url": "https://jira.example.test/browse/RHOAIENG-100828", "summary": "Sticky key"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOA...\",\"url\":\"***/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-truncated.json"
+  render_jira_fixture pa-truncated
+  body=$(jq -r .body "${tmp}/pa-truncated-out.json")
+  if ! grep -qF '[RHOAIENG-100828](https://jira.example.test/browse/RHOAIENG-100828)' <<<"${body}"; then
+    echo "FAIL pa-truncated: snapshot key was not linked" >&2
+    fail=1
+  elif grep -qF -e 'RHOA...' -e '***' <<<"${body}"; then
+    echo "FAIL pa-truncated: truncated or masked key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned` · [RHOAIENG-100828]' <<<"${body}"; then
+    echo "FAIL pa-truncated: status line lost the snapshot link" >&2
+    fail=1
+  else
+    echo "PASS pa-truncated: snapshot key replaces a truncated/masked key"
+  fi
+
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"***\",\"url\":\"***/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-masked.json"
+  render_jira_fixture pa-masked
+  body=$(jq -r .body "${tmp}/pa-masked-out.json")
+  if ! grep -qF '[RHOAIENG-100828](https://jira.example.test/browse/RHOAIENG-100828)' <<<"${body}"; then
+    echo "FAIL pa-masked: snapshot key was not linked" >&2
+    fail=1
+  elif grep -qF '***' <<<"${body}"; then
+    echo "FAIL pa-masked: masked key reached the body" >&2
+    fail=1
+  else
+    echo "PASS pa-masked: snapshot key replaces a masked key"
+  fi
+
+  # A well-formed key that contradicts the snapshot must not borrow the
+  # snapshot key. Only masked or truncated metadata may use the fallback.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-conflict.json"
+  render_jira_fixture pa-conflict
+  body=$(jq -r .body "${tmp}/pa-conflict-out.json")
+  if grep -qF 'RHOAIENG-100828' <<<"${body}"; then
+    echo "FAIL pa-conflict: conflicting key was relabeled as the snapshot key" >&2
+    fail=1
+  elif grep -qF 'RHOAIENG-999999' <<<"${body}"; then
+    echo "FAIL pa-conflict: unknown well-formed key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-conflict: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-conflict: well-formed key never borrows the snapshot key"
+  fi
+
+  # The same conflict carrying the snapshot issue's URL must not be recovered
+  # through URL matching: a well-formed key that cannot be claimed is final.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-conflict-url.json"
+  render_jira_fixture pa-conflict-url
+  body=$(jq -r .body "${tmp}/pa-conflict-url-out.json")
+  if grep -qF 'RHOAIENG-100828' <<<"${body}"; then
+    echo "FAIL pa-conflict-url: conflicting key was relabeled via URL recovery" >&2
+    fail=1
+  elif grep -qF 'RHOAIENG-999999' <<<"${body}"; then
+    echo "FAIL pa-conflict-url: unknown well-formed key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-conflict-url: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-conflict-url: URL recovery cannot relabel a claimed-key conflict"
+  fi
+
+  # In a multi-issue snapshot, an exact match claims one key; a later
+  # malformed entry without a matching URL must stay unlabeled rather than
+  # inherit the snapshot's remaining key.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "issues": [
+    {"key": "RHOAIENG-100828", "url": "https://jira.example.test/browse/RHOAIENG-100828", "summary": "First"},
+    {"key": "RHOAIENG-100829", "url": "https://jira.example.test/browse/RHOAIENG-100829", "summary": "Second"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100828\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"First matches.\"]},{\"key\":\"***\",\"status\":\"aligned\",\"aligned\":[\"Second matches.\"]}]}}" > "${tmp}/pa-multi-orphan.json"
+  render_jira_fixture pa-multi-orphan
+  body=$(jq -r .body "${tmp}/pa-multi-orphan-out.json")
+  if ! grep -qF '[RHOAIENG-100828](https://jira.example.test/browse/RHOAIENG-100828)' <<<"${body}"; then
+    echo "FAIL pa-multi-orphan: exact-match key lost its link" >&2
+    fail=1
+  elif grep -qF 'RHOAIENG-100829' <<<"${body}"; then
+    echo "FAIL pa-multi-orphan: malformed entry inherited the remaining snapshot key" >&2
+    fail=1
+  elif ! grep -qF '### Linked Jira issue' <<<"${body}"; then
+    echo "FAIL pa-multi-orphan: unresolved heading missing" >&2
+    fail=1
+  else
+    echo "PASS pa-multi-orphan: multi-issue snapshot does not exhaust into a malformed entry"
+  fi
+
+  # A key-only snapshot exists: a well-formed producer key that is absent from
+  # it must not be published as the evaluated ticket.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "issues": [
+    {"key": "RHOAIENG-100828", "summary": "Key-only host snapshot"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-keyonly.json"
+  render_jira_fixture pa-keyonly
+  body=$(jq -r .body "${tmp}/pa-keyonly-out.json")
+  if grep -qF 'RHOAIENG-999999' <<<"${body}"; then
+    echo "FAIL pa-keyonly: producer key outside a key-only snapshot reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-keyonly: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-keyonly: key-only snapshot still rejects keys it does not contain"
+  fi
+
+  # Mixed fetch success/failure: the snapshot holds two distinct keys, so an
+  # unusable producer key must stay unlabeled instead of taking the one key
+  # that happened to fetch.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "issues": [
+    {"key": "RHOAIENG-100580", "url": "https://jira.example.test/browse/RHOAIENG-100580", "summary": "Export"},
+    {"key": "RHOAIENG-100583", "status": "error", "reason": "http-404"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"***\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-mixed-unresolved.json"
+  render_jira_fixture pa-mixed-unresolved
+  body=$(jq -r .body "${tmp}/pa-mixed-unresolved-out.json")
+  if grep -qF '](https://jira.example.test/browse/RHOAIENG-100580)' <<<"${body}"; then
+    echo "FAIL pa-mixed-unresolved: unusable key inherited the only fetched snapshot key" >&2
+    fail=1
+  elif grep -qF '***' <<<"${body}"; then
+    echo "FAIL pa-mixed-unresolved: unusable key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-mixed-unresolved: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-mixed-unresolved: mixed-success snapshot does not absorb an unusable key"
+  fi
+
+  # Restore the shared jira fixture for later tests that reuse render_jira_fixture.
+  write_default_jira_snapshot
+
+  # Gate matrix: below-bar findings defer to a human instead of blocking.
+  render_fixture judgment-findings comment "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Naming drift.\",\"why\":\"Public export renamed without alias.\",\"remediation\":\"Rename the export or add an alias.\"}],\"todo\":[{\"category\":\"findings\",\"text\":\"Rename the export or add an alias.\"}],\"product_ask\":{\"status\":\"none\"}}"
+  body=$(jq -r .body "${tmp}/judgment-findings-out.json")
+  if ! grep -Fq '**Needs human judgment** — 1 non-blocking finding.' <<<"${body}" ||
+     ! grep -q '### Medium (1)' <<<"${body}" ||
+     ! grep -q '## TODO' <<<"${body}" ||
+     ! grep -Fxq 'Findings' <<<"${body}"; then
+    echo "FAIL judgment-findings: status, severity group, or TODO missing" >&2
+    fail=1
+  else
+    echo "PASS below-bar review yields comment/needs-human and keeps the finding visible"
+  fi
+
+  # A blocking-severity finding still blocks when a judgment finding is present.
+  render_fixture blocking-plus-judgment request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Naming drift.\",\"why\":\"Export renamed.\"},{\"severity\":\"high\",\"category\":\"logic-error\",\"file\":\"b.ts\",\"line\":4,\"description\":\"Crash.\",\"why\":\"Null dereference.\",\"remediation\":\"Guard the value.\"}],\"product_ask\":{\"status\":\"none\"}}"
+
+  # A failed readiness check still blocks when a judgment finding is present.
+  render_fixture judgment-plus-check request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Naming drift.\",\"why\":\"Export renamed.\"}],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem missing.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}},\"product_ask\":{\"status\":\"none\"}}"
 
   # low/info may ride with approve.
   render_fixture low-rides-approve approve "{${common},\"findings\":[{\"severity\":\"low\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Minor naming nit.\",\"actionable\":true}],\"product_ask\":{\"status\":\"none\"}}"
@@ -1592,13 +2327,49 @@ run_self_test() {
     echo "PASS sticky Signal table includes risk and confidence"
   fi
 
+  # Compute the expected GitHub diff anchor rather than hardcoding a digest:
+  # a literal sha256 in a fixture reads like a live link and can drift from the
+  # path it is supposed to describe.
+  diff_anchor() {
+    python3 -c 'import hashlib,sys; print(hashlib.sha256(sys.argv[1].encode("utf-8")).hexdigest())' "$1"
+  }
+  local a_anchor b_anchor
+  a_anchor="$(diff_anchor a.ts)"
+  b_anchor="$(diff_anchor b.ts)"
+
   body=$(jq -r .body "${tmp}/request-changes-out.json")
   if ! grep -Fq '**Waiting on author** — 1 blocking finding' <<<"${body}" ||
-     ! grep -Fq '[a.ts:12](https://github.com/o/r/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/a.ts#L12)' <<<"${body}"; then
-    echo "FAIL request-changes: status count or commit-pinned link missing" >&2
+     ! grep -Fq "[a.ts:12](https://github.com/o/r/pull/1/changes#diff-${a_anchor}R12)" <<<"${body}" ||
+     grep -Fq '/blob/' <<<"${body}"; then
+    echo "FAIL request-changes: status count or PR Files-changed link missing" >&2
     fail=1
   else
-    echo "PASS request-changes status and linked location"
+    echo "PASS request-changes status and PR Files-changed link"
+  fi
+
+  # A finding without a line anchors the file only; a result with no PR number
+  # falls back to the commit-pinned blob URL instead of dropping the link.
+  jq -n --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {findings: [{severity: "medium", category: "style-conventions", file: "b.ts", description: "Nit."}]}' \
+    > "${tmp}/loc-noline.json"
+  body=$(transform_review_result "${tmp}/loc-noline.json" | jq -r .body)
+  if ! grep -Fq "changes#diff-${b_anchor})" <<<"${body}" ||
+     grep -Eq 'diff-[0-9a-f]{64}R' <<<"${body}"; then
+    echo "FAIL loc-noline: line-less finding should anchor the file without a line suffix" >&2
+    fail=1
+  else
+    echo "PASS line-less finding anchors the file without a line suffix"
+  fi
+
+  jq -n --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {findings: [{severity: "medium", category: "style-conventions", file: "b.ts", line: 7, description: "Nit."}]} | del(.pr_number)' \
+    > "${tmp}/loc-no-pr.json"
+  body=$(transform_review_result "${tmp}/loc-no-pr.json" | jq -r .body)
+  if ! grep -Fq 'blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/b.ts#L7' <<<"${body}"; then
+    echo "FAIL loc-no-pr: missing pr_number should fall back to the commit-pinned blob URL" >&2
+    fail=1
+  else
+    echo "PASS missing pr_number falls back to the commit-pinned blob URL"
   fi
   body=$(jq -r .body "${tmp}/needs-human-out.json")
   if ! grep -Fq '**Needs human judgment.**' <<<"${body}" ||
@@ -1699,8 +2470,8 @@ run_self_test() {
   fi
 
   prepare_summary_only_result "${tmp}/request-changes-out.json" "${tmp}/summary-only.json"
-  if ! jq -e '(.findings[0] | has("line") | not) and (.body | contains("a.ts#L12"))' "${tmp}/summary-only.json" >/dev/null; then
-    echo "FAIL summary-only: expected linked body location without structured line" >&2
+  if ! jq -e --arg anchor "${a_anchor}R12" '(.findings[0] | has("line") | not) and (.body | contains($anchor))' "${tmp}/summary-only.json" >/dev/null; then
+    echo "FAIL summary-only: expected linked PR-diff body location without structured line" >&2
     fail=1
   else
     echo "PASS summary-only suppresses inline comments"
@@ -1956,6 +2727,7 @@ run_self_test() {
   fi
 
   # Adapter status comes from result.producers.adapters, not collected.json.
+  # ok + empty findings must still approve.
   printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[{\"id\":\"jira-snapshot\",\"status\":\"none\",\"reason\":\"no-issue-key\"},{\"id\":\"coderabbit\",\"status\":\"ok\"}],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[],\"coderabbit\":[]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-status.json"
   transform_review_result "${tmp}/adapter-status.json" > "${tmp}/adapter-status-out.json"
   body=$(jq -r .body "${tmp}/adapter-status-out.json")
@@ -1968,18 +2740,123 @@ run_self_test() {
   elif ! grep -q '2 producer(s) ran, 1 unavailable' <<<"${body}"; then
     echo "FAIL adapter-status: review-details blurb should separate ran from unavailable" >&2
     fail=1
+  elif ! jq -e '.action == "approve"' "${tmp}/adapter-status-out.json" >/dev/null; then
+    echo "FAIL adapter-status: ok + empty findings must approve" >&2
+    fail=1
   else
-    echo "PASS adapter status on result.producers distinguishes unavailable from ran-clean"
+    echo "PASS adapter status on result.producers distinguishes unavailable from ran-clean and approves"
   fi
 
+  # Adapter error must refuse approve and surface error on Status.
   printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"error\",\"reason\":\"cli-unavailable\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-error.json"
   transform_review_result "${tmp}/adapter-error.json" > "${tmp}/adapter-error-out.json"
   body=$(jq -r .body "${tmp}/adapter-error-out.json")
   if ! grep -qE '^\| CodeRabbit \| findings \| ❌ \| cli unavailable' <<<"${body}"; then
     echo "FAIL adapter-error: status=error adapter was not marked errored" >&2
     fail=1
+  elif ! jq -e '.action == "comment"' "${tmp}/adapter-error-out.json" >/dev/null; then
+    echo "FAIL adapter-error: status=error must refuse approve (comment action)" >&2
+    fail=1
+  elif ! grep -q 'Review incomplete' <<<"${body}"; then
+    echo "FAIL adapter-error: status=error must show Review incomplete on Status" >&2
+    fail=1
+  elif ! grep -qi 'CodeRabbit' <<<"$(grep 'Review incomplete' <<<"${body}")"; then
+    echo "FAIL adapter-error: Status must name the failed producer" >&2
+    fail=1
+  elif jq -e '.confidence.level == "high"' "${tmp}/adapter-error-out.json" >/dev/null; then
+    echo "FAIL adapter-error: confidence must not be left high with an errored adapter" >&2
+    fail=1
+  elif ! jq -e '(.inspected.could_not_verify // []) | any(.[]; . == "CodeRabbit (cli unavailable)")' "${tmp}/adapter-error-out.json" >/dev/null; then
+    echo "FAIL adapter-error: inspected.could_not_verify must use label (reason) for errored adapter" >&2
+    fail=1
   else
-    echo "PASS adapter error status on result renders as errored, not ran-clean"
+    echo "PASS adapter error refuses approve, surfaces incomplete Status, caps confidence"
+  fi
+
+  # A below-bar finding no longer blocks, but the Status must still report
+  # the incomplete review and name the failed producer.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"logic-error\",\"file\":\"a.ts\",\"description\":\"Off by one.\"}],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"error\",\"reason\":\"review-failed\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-error-blocking.json"
+  transform_review_result "${tmp}/adapter-error-blocking.json" > "${tmp}/adapter-error-blocking-out.json"
+  body=$(jq -r .body "${tmp}/adapter-error-blocking-out.json")
+  if ! jq -e '.action == "comment"' "${tmp}/adapter-error-blocking-out.json" >/dev/null; then
+    echo "FAIL adapter-error-blocking: expected comment" >&2
+    fail=1
+  elif ! grep -qE '\*\*Review incomplete\*\*.*CodeRabbit \(review failed\)' <<<"${body}"; then
+    echo "FAIL adapter-error-blocking: Status must report the incomplete review" >&2
+    fail=1
+  else
+    echo "PASS adapter error with judgment findings defers to a human and reports incompleteness"
+  fi
+
+  # An approach-rejected action keeps its headline, but must still report an
+  # incomplete review when an adapter errored.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"approach-rejected\",\"file\":\"a.ts\",\"description\":\"Approach rejected.\"}],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"error\",\"reason\":\"review-failed\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-error-reject.json"
+  transform_review_result "${tmp}/adapter-error-reject.json" > "${tmp}/adapter-error-reject-out.json"
+  body=$(jq -r .body "${tmp}/adapter-error-reject-out.json")
+  if ! jq -e '.action == "reject"' "${tmp}/adapter-error-reject-out.json" >/dev/null; then
+    echo "FAIL adapter-error-reject: expected reject" >&2
+    fail=1
+  elif ! grep -qE '\*\*Approach rejected\.\*\*.*Review incomplete — CodeRabbit \(review failed\)' <<<"${body}"; then
+    echo "FAIL adapter-error-reject: Status must keep Approach rejected and report the incomplete review" >&2
+    fail=1
+  else
+    echo "PASS adapter error with approach-rejected findings reports incompleteness"
+  fi
+
+  # Adapter ids come from the result, not the registry: a forged id must not
+  # inject headings, HTML, mentions, carriage-return blocks, or links into
+  # host-authored Status / Evidence.
+  printf '%s' "{${common},\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"evil\\n## FAKE <b>x</b> @octocat\",\"status\":\"error\",\"reason\":\"review-failed\"},{\"id\":\"evil\\r## CRFAKE [CodeRabbit](https://example.com/)\",\"status\":\"error\",\"reason\":\"review-failed\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-inject.json"
+  transform_review_result "${tmp}/adapter-inject.json" > "${tmp}/adapter-inject-out.json"
+  body=$(jq -r .body "${tmp}/adapter-inject-out.json")
+  if grep -qE '^## (FAKE|CRFAKE)' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id injected a heading" >&2
+    fail=1
+  elif grep -qF '<b>' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id injected raw HTML" >&2
+    fail=1
+  elif grep -qF '@octocat' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id injected a mention" >&2
+    fail=1
+  elif grep -qF $'\r' <<<"${body}"; then
+    echo "FAIL adapter-inject: standalone carriage return survived" >&2
+    fail=1
+  elif grep -qE '(^|[^\\])\]\(https://example\.com/' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id rendered as a Markdown link" >&2
+    fail=1
+  elif ! grep -qF '\[CodeRabbit\]' <<<"${body}"; then
+    echo "FAIL adapter-inject: link-shaped adapter id was not escaped" >&2
+    fail=1
+  else
+    echo "PASS adapter id cannot inject headings, HTML, mentions, carriage returns, or links"
+  fi
+
+  # Finding text is result data too: CR blocks and HTML must not escape the
+  # main Findings list.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"logic\",\"file\":\"a.ts\",\"description\":\"body\\r## FAKE2 <b>y</b>\"}]}" > "${tmp}/finding-inject.json"
+  transform_review_result "${tmp}/finding-inject.json" > "${tmp}/finding-inject-out.json"
+  body=$(jq -r .body "${tmp}/finding-inject-out.json")
+  if grep -qE '^## FAKE2' <<<"${body}"; then
+    echo "FAIL finding-inject: finding description injected a heading" >&2
+    fail=1
+  elif grep -qF '<b>' <<<"${body}"; then
+    echo "FAIL finding-inject: finding description injected raw HTML" >&2
+    fail=1
+  elif grep -qF $'\r' <<<"${body}"; then
+    echo "FAIL finding-inject: finding description kept a standalone carriage return" >&2
+    fail=1
+  else
+    echo "PASS finding text cannot inject headings, HTML, or carriage returns"
+  fi
+
+  # Adapter skipped must still allow approve when otherwise clean.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"skipped\",\"reason\":\"all-files-ignored\"}],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-skipped.json"
+  transform_review_result "${tmp}/adapter-skipped.json" > "${tmp}/adapter-skipped-out.json"
+  if ! jq -e '.action == "approve"' "${tmp}/adapter-skipped-out.json" >/dev/null; then
+    echo "FAIL adapter-skipped: skipped adapter must still allow approve" >&2
+    fail=1
+  else
+    echo "PASS adapter skipped still allows approve"
   fi
 
   # Free-form reasons fall back to the status default; Result cells must not
@@ -2270,6 +3147,9 @@ run_self_test() {
   printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"remediation\":\"Follow existing.\"}]},\"challenger\":{\"status\":\"ran\",\"input\":1,\"kept\":0,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"removal_reason\":\"PR Justifications explain the architectural choice; diff confirms the new pattern is consistent.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified.json"
   transform_review_result "${tmp}/justified.json" > "${tmp}/justified-out.json"
   body=$(jq -r .body "${tmp}/justified-out.json")
+  # Same boundaries the author helper parses by: ## Findings up to the next
+  # ## heading or the <details> review block.
+  findings_section=$(awk '/^## Findings$/{f=1; next} f && (/^## / || /^<details>/){exit} f' <<<"${body}")
   if [[ "$(jq -r .action "${tmp}/justified-out.json")" != "approve" ]]; then
     echo "FAIL justified: justified-only findings must not block disposition" >&2
     fail=1
@@ -2279,8 +3159,11 @@ run_self_test() {
   elif ! grep -q '### Justified (1)' <<<"${body}"; then
     echo "FAIL justified: ### Justified subheading missing or wrong count" >&2
     fail=1
-  elif ! grep -q 'fullsend:justified-findings' <<<"${body}"; then
-    echo "FAIL justified: HTML omit markers missing" >&2
+  elif grep -qE '^<!--' <<<"${findings_section}"; then
+    echo "FAIL justified: an HTML marker leaked into ## Findings" >&2
+    fail=1
+  elif grep -qiE '<(!--[[:space:]]*fullsend[[:space:]]*:)' <<<"${body}"; then
+    echo "FAIL justified: body carries a fullsend: marker upstream would escape as text" >&2
     fail=1
   elif ! grep -q 'Justification:' <<<"${body}"; then
     echo "FAIL justified: challenger reason not rendered under Justified" >&2
@@ -2305,8 +3188,8 @@ run_self_test() {
   printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"bounds\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"Off by one.\",\"why\":\"Index.\"}],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"remediation\":\"Follow existing.\"},{\"severity\":\"medium\",\"category\":\"bounds\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"Off by one.\",\"why\":\"Index.\"}]},\"challenger\":{\"status\":\"ran\",\"input\":2,\"kept\":1,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"removal_reason\":\"Architecture justified per PR body.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified-mixed.json"
   transform_review_result "${tmp}/justified-mixed.json" > "${tmp}/justified-mixed-out.json"
   body=$(jq -r .body "${tmp}/justified-mixed-out.json")
-  if [[ "$(jq -r .action "${tmp}/justified-mixed-out.json")" != "request-changes" ]]; then
-    echo "FAIL justified-mixed: surviving medium finding must still block" >&2
+  if [[ "$(jq -r .action "${tmp}/justified-mixed-out.json")" != "comment" ]]; then
+    echo "FAIL justified-mixed: surviving judgment finding must yield comment/needs-human" >&2
     fail=1
   elif ! grep -q '### Medium (1)' <<<"${body}"; then
     echo "FAIL justified-mixed: severity group missing for surviving finding" >&2

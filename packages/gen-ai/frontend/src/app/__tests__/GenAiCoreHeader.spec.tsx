@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 
-jest.mock('@openshift/dynamic-plugin-sdk', () => ({
-  useFeatureFlag: jest.fn(),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  SupportedArea: { UNIFIED_PROJECT_SELECTOR: 'unified-project-selector' },
+  useIsAreaAvailable: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/projects/ProjectIconWithSize', () => ({
@@ -22,7 +23,7 @@ jest.mock('~/app/HeaderIcon', () => ({
   default: () => <span data-testid="header-icon" />,
 }));
 
-const mockUseFeatureFlag = jest.mocked(useFeatureFlag);
+const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 
 const renderHeader = () =>
   render(
@@ -35,21 +36,32 @@ const renderHeader = () =>
   );
 
 describe('GenAiCoreHeader', () => {
-  it('keeps the project selector when Grid mode is disabled', () => {
-    mockUseFeatureFlag.mockReturnValue([false, jest.fn()]);
-
-    renderHeader();
-
-    expect(screen.getByText('Project')).toBeInTheDocument();
-    expect(screen.getByTestId('project-selector')).toBeInTheDocument();
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseIsAreaAvailable.mockReturnValue({ status: false } as ReturnType<
+      typeof useIsAreaAvailable
+    >);
   });
 
-  it('hides the project selector when Grid mode is enabled', () => {
-    mockUseFeatureFlag.mockReturnValue([true, jest.fn()]);
+  it.each([
+    { unifiedProjectSelectorEnabled: false, selectorVisible: true },
+    { unifiedProjectSelectorEnabled: true, selectorVisible: false },
+  ])(
+    'should handle project selector visibility when UPS=$unifiedProjectSelectorEnabled',
+    ({ unifiedProjectSelectorEnabled, selectorVisible }) => {
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: unifiedProjectSelectorEnabled,
+      } as ReturnType<typeof useIsAreaAvailable>);
 
-    renderHeader();
+      renderHeader();
 
-    expect(screen.queryByText('Project')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('project-selector')).not.toBeInTheDocument();
-  });
+      if (selectorVisible) {
+        expect(screen.getByText('Project')).toBeInTheDocument();
+        expect(screen.getByTestId('project-selector')).toBeInTheDocument();
+      } else {
+        expect(screen.queryByText('Project')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('project-selector')).not.toBeInTheDocument();
+      }
+    },
+  );
 });

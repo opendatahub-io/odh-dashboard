@@ -83,10 +83,6 @@ const makeStageMap = (components: ComponentStageMapComponent[]): ComponentStageM
   published_at: '2025-01-01T00:00:00Z',
 });
 
-// Mirrors buildStageMapTopology's non-placeholder label formatting (inserts a space
-// before a trailing digit run, e.g. "Pattern_1" -> "Pattern_ 1") for label assertions.
-const expectedPatternLabel = (raw: string): string => raw.replace(/(\D)(\d)/, '$1 $2');
-
 const makeRunDetails = (
   tasks: { display_name?: string; state: string; task_id?: string }[],
 ): RunDetailsKF =>
@@ -175,6 +171,27 @@ describe('buildStageMapTopology', () => {
       );
       expect(patternNodes[0].label).toBe('pattern_a');
       expect(patternNodes[1].label).toBe('pattern_b');
+    });
+
+    it('should display lettered labels while preserving pattern keys', () => {
+      const stageMap = makeStageMap([
+        makeComponent('rag_optimization', [
+          makeStage('optimize_templates', { selected_patterns: ['Pattern1', 'Pattern2'] }),
+        ]),
+      ]);
+      const nodes = buildStageMapTopology(stageMap);
+      const patternNodes = nodes.filter(
+        (node) => node.id.includes('__pattern__') && node.type !== 'DEFAULT_SPACER_NODE',
+      );
+
+      expect(patternNodes.map((node) => node.label)).toStrictEqual([
+        'Pattern\u00a0A',
+        'Pattern\u00a0B',
+      ]);
+      expect(patternNodes.map((node) => node.data?.patternKey)).toStrictEqual([
+        'Pattern1',
+        'Pattern2',
+      ]);
     });
 
     it('should normalize display-name branch identifiers to loaded pattern record keys', () => {
@@ -477,9 +494,9 @@ describe('buildStageMapTopology', () => {
         (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
       expect(patternNodes).toHaveLength(3);
-      expect(patternNodes[0].label).toBe('Pattern 1');
-      expect(patternNodes[1].label).toBe('Pattern 2');
-      expect(patternNodes[2].label).toBe('Pattern 3');
+      expect(patternNodes[0].label).toBe('Pattern\u00a0A');
+      expect(patternNodes[1].label).toBe('Pattern\u00a0B');
+      expect(patternNodes[2].label).toBe('Pattern\u00a0C');
     });
 
     it('should use maxPatterns parameter for placeholder count', () => {
@@ -554,10 +571,8 @@ describe('buildStageMapTopology', () => {
         (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
       expect(patternNodes).toHaveLength(MAX_CONFIGURE_MAX_PATTERNS);
-      expect(patternNodes[0].label).toBe(expectedPatternLabel(oversizedSelectedPatterns[0]));
-      expect(patternNodes[MAX_CONFIGURE_MAX_PATTERNS - 1].label).toBe(
-        expectedPatternLabel(oversizedSelectedPatterns[MAX_CONFIGURE_MAX_PATTERNS - 1]),
-      );
+      expect(patternNodes[0].label).toBe('Pattern_\u00a01');
+      expect(patternNodes[MAX_CONFIGURE_MAX_PATTERNS - 1].label).toBe('Pattern_\u00a010');
     });
 
     it('should dedupe selected_patterns before clamping to the configure UI maximum', () => {
@@ -610,9 +625,9 @@ describe('buildStageMapTopology', () => {
         (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
       expect(patternNodes).toHaveLength(MAX_CONFIGURE_MAX_PATTERNS);
-      expect(patternNodes[0].label).toBe(expectedPatternLabel(oversizedLeaderboardNames[0]));
+      expect(patternNodes[0].label).toBe('LeaderboardPattern_\u00a01');
       expect(patternNodes[MAX_CONFIGURE_MAX_PATTERNS - 1].label).toBe(
-        expectedPatternLabel(oversizedLeaderboardNames[MAX_CONFIGURE_MAX_PATTERNS - 1]),
+        'LeaderboardPattern_\u00a010',
       );
     });
 

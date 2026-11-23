@@ -6,6 +6,17 @@ import {
   DataScienceStackComponent,
 } from '@odh-dashboard/plugin-core/areas';
 
+// Set by the operator when an Argo Workflows install it does not manage blocks pipelines.
+// `CapabilityDSPv2Argo` is the v2 condition name, which is what the dashboard receives.
+const hasUnmanagedArgoWorkflows: CustomConditionFunction = ({ dscStatus }) => {
+  const conditions = dscStatus?.conditions;
+  return (
+    conditions?.some(
+      (condition) => condition.type === 'CapabilityDSPv2Argo' && condition.status === 'False',
+    ) ?? false
+  );
+};
+
 // Shared operator readiness does not establish per-child backend reachability.
 const isFeastOperatorReady: CustomConditionFunction = ({ dscStatus }) => {
   const conditions = dscStatus?.conditions;
@@ -22,6 +33,7 @@ export const techPreviewFlags = {
   genAiTracing: false,
   guardrails: false,
   modelAsService: true,
+  mySubscriptions: false,
   inferencePriorityField: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
@@ -41,13 +53,11 @@ export const techPreviewFlags = {
   agentOps: false,
   dataRegistry: false,
   dataConnectHub: false,
+  aiSafety: false,
   hardwareProfileDRA: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
-  // Temporary Grid migration switch: enables MaaS Gateway API paths for the MaaS and Gen AI
-  // packages while grid-aware screens are migrated away from Kubernetes APIs.
-  grid: false,
   disableKueue: true,
   disableProjectScoped: true,
   nimServiceOperator: false,
@@ -75,6 +85,7 @@ export const projectManagementFlags = {
   disableClusterManager: false,
   disableBYONImageStream: false,
   disableAdminConnectionTypes: false,
+  hideCommunityPluginsSettingsPage: false,
   disableStorageClasses: false,
   projectRBAC: true,
   roleManagement: true,
@@ -128,6 +139,11 @@ const allFeatureFlagsConfig = {
 
 export const definedFeatureFlags: string[] = Object.keys(allFeatureFlagsConfig);
 
+// Defaults for dev-only area flags that are unset in flagState. Unlisted dev flags default to off.
+export const devFlagDefaults: Partial<Record<string, boolean>> = {
+  guidedTour: true,
+};
+
 export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {
     featureFlags: ['disableBYONImageStream'],
@@ -145,6 +161,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.DS_PIPELINES]: {
     featureFlags: ['disablePipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+  },
+  // Intentionally not reliant on DS_PIPELINES: this reports a pipelines failure, so it must not be
+  // gated on pipelines looking healthy.
+  [SupportedArea.DS_PIPELINES_ARGO_INVALID]: {
+    customCondition: hasUnmanagedArgoWorkflows,
   },
   [SupportedArea.HOME]: {
     featureFlags: ['disableHome'],
@@ -234,6 +255,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.ADMIN_CONNECTION_TYPES]: {
     featureFlags: ['disableAdminConnectionTypes'],
+  },
+  [SupportedArea.COMMUNITY_PLUGINS_SETTINGS]: {
+    featureFlags: ['hideCommunityPluginsSettingsPage'],
   },
   [SupportedArea.FINE_TUNING]: {
     featureFlags: ['disableFineTuning'],
@@ -344,7 +368,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.DATA_REGISTRY],
   },
   [SupportedArea.GUIDED_TOUR]: {
-    // Dev-only flag — not in OdhDashboardConfig CRD. Off by default.
+    // Dev-only flag — not in OdhDashboardConfig CRD. On by default via devFlagDefaults;
+    // useIsGuidedTourAvailable additionally hides the tour on ODH regardless of this flag.
     devFlags: ['guidedTour'],
   },
   [SupportedArea.UNIFIED_PROJECT_SELECTOR]: {
@@ -353,6 +378,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_DATA_CONNECT_HUB]: {
     featureFlags: ['dataConnectHub'],
+  },
+  [SupportedArea.PLUGIN_AI_SAFETY]: {
+    featureFlags: ['aiSafety'],
   },
   [SupportedArea.INFERENCE_PRIORITY_FIELD]: {
     featureFlags: ['inferencePriorityField'],

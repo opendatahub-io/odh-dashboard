@@ -1,8 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome, type TrackEvent } from '@odh-dashboard/analytics/types';
 import {
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
@@ -46,8 +42,11 @@ export const AUTORAG_EVENTS = {
   PATTERNS_COMPARED: 'AutoRAG Patterns Compared',
 } as const;
 
-export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.PROJECT_DROPDOWN_OPTION_SELECTED, { selectedProject });
+export const fireAutoragProjectDropdownOptionSelected = (
+  trackEvent: TrackEvent,
+  selectedProject: string,
+): void => {
+  trackEvent(AUTORAG_EVENTS.PROJECT_DROPDOWN_OPTION_SELECTED, { selectedProject });
 };
 
 /**
@@ -80,8 +79,11 @@ export type ExperimentCreatedProperties = {
  * models, vector DB) is captured later, on AutoRAG Run Triggered, once the Knowledge/Eval/Models
  * sections of the configure step are also complete.
  */
-export const fireAutoragExperimentCreated = (properties: ExperimentCreatedProperties): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.EXPERIMENT_CREATED, properties);
+export const fireAutoragExperimentCreated = (
+  trackEvent: TrackEvent,
+  properties: ExperimentCreatedProperties,
+): void => {
+  trackEvent(AUTORAG_EVENTS.EXPERIMENT_CREATED, properties);
 };
 
 export type KnowledgeSourceType = 's3' | 'upload';
@@ -103,9 +105,10 @@ export type KnowledgeSourceConfiguredProperties = {
  * was actually configured.
  */
 export const fireAutoragKnowledgeSourceConfigured = (
+  trackEvent: TrackEvent,
   properties: KnowledgeSourceConfiguredProperties,
 ): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED, properties);
+  trackEvent(AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED, properties);
 };
 
 export type EvaluationSourceType = 's3' | 'upload';
@@ -127,9 +130,10 @@ export type EvaluationSourceConfiguredProperties = {
  * was actually configured.
  */
 export const fireAutoragEvaluationSourceConfigured = (
+  trackEvent: TrackEvent,
   properties: EvaluationSourceConfiguredProperties,
 ): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED, properties);
+  trackEvent(AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED, properties);
 };
 
 export type ModelsSelectedProperties = {
@@ -149,8 +153,11 @@ export type ModelsSelectedProperties = {
  * is reverted. This is a pure local step with no backend call, so `success` is always `true` and
  * `error` is omitted.
  */
-export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.MODELS_SELECTED, properties);
+export const fireAutoragModelsSelected = (
+  trackEvent: TrackEvent,
+  properties: ModelsSelectedProperties,
+): void => {
+  trackEvent(AUTORAG_EVENTS.MODELS_SELECTED, properties);
 };
 
 /** Categorized vector I/O provider type, derived from the `SUPPORTED_VECTOR_STORE_PROVIDER_TYPES` allowlist. */
@@ -208,9 +215,10 @@ export const getVectorStoreProviderTypeFromDatabaseProviders = (
  * with no direct backend call, so `outcome` is always `submit` and `success` is always `true`.
  */
 export const fireAutoragVectorStoreConfigured = (
+  trackEvent: TrackEvent,
   properties: VectorStoreConfiguredProperties,
 ): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.VECTOR_STORE_CONFIGURED, properties);
+  trackEvent(AUTORAG_EVENTS.VECTOR_STORE_CONFIGURED, properties);
 };
 
 /** Product-wide, camelCase taxonomy for the RAG optimization metric, independent of the schema's snake_case values. */
@@ -297,8 +305,11 @@ export type RunTriggeredProperties = {
  * `outcome` is always `submit`; `success`/`error` distinguish a successful pipeline-run creation
  * from a failed one.
  */
-export const fireAutoragRunTriggered = (properties: RunTriggeredProperties): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.RUN_TRIGGERED, properties);
+export const fireAutoragRunTriggered = (
+  trackEvent: TrackEvent,
+  properties: RunTriggeredProperties,
+): void => {
+  trackEvent(AUTORAG_EVENTS.RUN_TRIGGERED, properties);
 };
 
 /**
@@ -371,8 +382,11 @@ export type RunReconfiguredProperties = {
  * `outcome: cancel` when the user cancels out of the flow from the "Define details" step before
  * ever submitting — before any backend call is made, so `success` is omitted in that case.
  */
-export const fireAutoragRunReconfigured = (properties: RunReconfiguredProperties): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.RUN_RECONFIGURED, {
+export const fireAutoragRunReconfigured = (
+  trackEvent: TrackEvent,
+  properties: RunReconfiguredProperties,
+): void => {
+  trackEvent(AUTORAG_EVENTS.RUN_RECONFIGURED, {
     ...properties,
     changedFields: properties.changedFields.join(','),
   });
@@ -401,8 +415,11 @@ export type RunOutcomeTrackingProperties = {
  * in that case. `outcome: submit` fires once the terminate request resolves, with `success`/
  * `error` reflecting whether it succeeded.
  */
-export const fireAutoragRunStopped = (properties: RunOutcomeTrackingProperties): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, properties);
+export const fireAutoragRunStopped = (
+  trackEvent: TrackEvent,
+  properties: RunOutcomeTrackingProperties,
+): void => {
+  trackEvent(AUTORAG_EVENTS.RUN_STOPPED, properties);
 };
 
 /**
@@ -411,8 +428,11 @@ export const fireAutoragRunStopped = (properties: RunOutcomeTrackingProperties):
  * confirmation modal — it's a direct action — so this always fires with `outcome: submit`,
  * with `success`/`error` reflecting whether the retry request succeeded.
  */
-export const fireAutoragRunRetried = (properties: RunOutcomeTrackingProperties): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.RUN_RETRIED, properties);
+export const fireAutoragRunRetried = (
+  trackEvent: TrackEvent,
+  properties: RunOutcomeTrackingProperties,
+): void => {
+  trackEvent(AUTORAG_EVENTS.RUN_RETRIED, properties);
 };
 
 /**
@@ -422,8 +442,11 @@ export const fireAutoragRunRetried = (properties: RunOutcomeTrackingProperties):
  * call has been made yet, so `success` is omitted in that case. `outcome: submit` fires once the
  * delete request resolves, with `success`/`error` reflecting whether it succeeded.
  */
-export const fireAutoragExperimentDeleted = (properties: RunOutcomeTrackingProperties): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.EXPERIMENT_DELETED, properties);
+export const fireAutoragExperimentDeleted = (
+  trackEvent: TrackEvent,
+  properties: RunOutcomeTrackingProperties,
+): void => {
+  trackEvent(AUTORAG_EVENTS.EXPERIMENT_DELETED, properties);
 };
 
 /** Where the user came from when navigating to the results page. */
@@ -454,8 +477,11 @@ export const isAutoragResultsNavigationState = (
  * router state set by the link/navigation that brought the user here, falling back to `'other'`
  * when the page was reached without that state (e.g. a bookmarked/pasted URL or a page refresh).
  */
-export const fireAutoragResultsViewed = (entrySource: AutoragResultsEntrySource): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.RESULTS_VIEWED, { entrySource });
+export const fireAutoragResultsViewed = (
+  trackEvent: TrackEvent,
+  entrySource: AutoragResultsEntrySource,
+): void => {
+  trackEvent(AUTORAG_EVENTS.RESULTS_VIEWED, { entrySource });
 };
 
 /**
@@ -494,11 +520,12 @@ export type AutoragExitDestination =
  * Router's `useBlocker` can't be used.
  */
 export const fireAutoragFlowExited = (
+  trackEvent: TrackEvent,
   exitType: 'abandon' | 'navigate',
   lastFunnelStep: AutoragFunnelStep,
   exitDestination: AutoragExitDestination,
 ): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.FLOW_EXITED, {
+  trackEvent(AUTORAG_EVENTS.FLOW_EXITED, {
     exitType,
     lastFunnelStep,
     exitDestination,
@@ -522,8 +549,11 @@ export type S3ConnectionCreatedProperties = {
  * cancel is fired once creation has already succeeded or failed, since that outcome was already
  * reported.
  */
-export const fireAutoragS3ConnectionCreated = (properties: S3ConnectionCreatedProperties): void => {
-  fireFormTrackingEvent(AUTORAG_EVENTS.S3_CONNECTION_CREATED, properties);
+export const fireAutoragS3ConnectionCreated = (
+  trackEvent: TrackEvent,
+  properties: S3ConnectionCreatedProperties,
+): void => {
+  trackEvent(AUTORAG_EVENTS.S3_CONNECTION_CREATED, properties);
 };
 
 /**
@@ -532,8 +562,8 @@ export const fireAutoragS3ConnectionCreated = (properties: S3ConnectionCreatedPr
  * rejection, so this fires immediately after the download is triggered — there is no separate
  * "completed" signal to wait for.
  */
-export const fireAutoragEvaluationTemplateDownloaded = (): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.EVALUATION_TEMPLATE_DOWNLOADED, {
+export const fireAutoragEvaluationTemplateDownloaded = (trackEvent: TrackEvent): void => {
+  trackEvent(AUTORAG_EVENTS.EVALUATION_TEMPLATE_DOWNLOADED, {
     downloadType: 'evaluationTemplate',
   });
 };
@@ -552,8 +582,11 @@ export type PlaygroundOpenedSource = 'resultsTable' | 'patternDetails' | 'other'
  * when the user switches patterns from the pattern select within an already-open playground
  * drawer — that's a pattern swap, not a new "open".
  */
-export const fireAutoragPlaygroundOpened = (source: PlaygroundOpenedSource): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.PLAYGROUND_OPENED, { source });
+export const fireAutoragPlaygroundOpened = (
+  trackEvent: TrackEvent,
+  source: PlaygroundOpenedSource,
+): void => {
+  trackEvent(AUTORAG_EVENTS.PLAYGROUND_OPENED, { source });
 };
 
 /**
@@ -569,12 +602,15 @@ export type NotebookDownloadedType = 'indexing' | 'inference' | 'other';
  * pattern details modal's "Save as ... notebook" actions. Does not fire on a failed download
  * attempt, since the signal we care about is completed engagement, not the click itself.
  */
-export const fireAutoragNotebookDownloaded = (notebookType: NotebookDownloadedType): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, { notebookType });
+export const fireAutoragNotebookDownloaded = (
+  trackEvent: TrackEvent,
+  notebookType: NotebookDownloadedType,
+): void => {
+  trackEvent(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, { notebookType });
 };
 
-export const fireAutoragStarterKitDownloaded = (): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, { downloadType: 'starterKit' });
+export const fireAutoragStarterKitDownloaded = (trackEvent: TrackEvent): void => {
+  trackEvent(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, { downloadType: 'starterKit' });
 };
 
 /**
@@ -605,10 +641,11 @@ export type ResultsColumnName =
  * (Cancel) don't get counted. Reordering-only saves fire nothing, since no `isShown` changed.
  */
 export const fireAutoragResultsColumnToggled = (
+  trackEvent: TrackEvent,
   columnName: ResultsColumnName,
   isVisible: boolean,
 ): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED, { columnName, isVisible });
+  trackEvent(AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED, { columnName, isVisible });
 };
 
 /**
@@ -625,8 +662,11 @@ export type PatternDetailsEntrySource = 'resultsTable' | 'pipelineVis' | 'other'
  * navigating between patterns (prev/next arrows or "Compare patterns") within an already-open
  * modal — that's in-session navigation, not a new "drill into details".
  */
-export const fireAutoragPatternDetailsViewed = (source: PatternDetailsEntrySource): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED, { source });
+export const fireAutoragPatternDetailsViewed = (
+  trackEvent: TrackEvent,
+  source: PatternDetailsEntrySource,
+): void => {
+  trackEvent(AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED, { source });
 };
 
 /**
@@ -636,8 +676,8 @@ export const fireAutoragPatternDetailsViewed = (source: PatternDetailsEntrySourc
  * there is no reliable "completed" signal to wait for. This fires on the click itself, same as
  * {@link fireAutoragEvaluationTemplateDownloaded}.
  */
-export const fireAutoragPatternDetailsDownloadInitiated = (): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED, {
+export const fireAutoragPatternDetailsDownloadInitiated = (trackEvent: TrackEvent): void => {
+  trackEvent(AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED, {
     downloadType: 'patternDetails',
   });
 };
@@ -661,10 +701,11 @@ export type ViewCodeEntrySource = 'resultsTable' | 'patternDetails' | 'other';
  * same modal session.
  */
 export const fireAutoragCodeSnippetsExported = (
+  trackEvent: TrackEvent,
   action: CodeSnippetAction,
   entrySource?: ViewCodeEntrySource,
 ): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED, {
+  trackEvent(AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED, {
     action,
     ...(entrySource ? { entrySource } : {}),
   });
@@ -686,8 +727,11 @@ export type LeaderboardPresetType =
  * modal is subsequently saved or cancelled, since choosing the preset is itself the signal we
  * care about.
  */
-export const fireAutoragLeaderboardPresetApplied = (presetType: LeaderboardPresetType): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED, { presetType });
+export const fireAutoragLeaderboardPresetApplied = (
+  trackEvent: TrackEvent,
+  presetType: LeaderboardPresetType,
+): void => {
+  trackEvent(AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED, { presetType });
 };
 
 /**
@@ -721,11 +765,12 @@ const roundScoreDifference = (value: number): number => Math.round(value * 10000
  * this field is best analyzed per-run/per-metric rather than aggregated wholesale across events.
  */
 export const fireAutoragPatternsCompared = (
+  trackEvent: TrackEvent,
   interactionType: PatternComparedInteractionType,
   rankDifference: number,
   scoreDifference: number,
 ): void => {
-  fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+  trackEvent(AUTORAG_EVENTS.PATTERNS_COMPARED, {
     interactionType,
     rankDifference,
     scoreDifference: roundScoreDifference(scoreDifference),

@@ -72,7 +72,6 @@ const uuid = generateTestUUID();
 let apiKeyName: string;
 let modelURI: string;
 let llmInferenceServiceConfigName: string;
-let llmInferenceServiceConfigDisplayName: string;
 const llmInferenceServiceConfigYamlPath =
   'resources/modelServing/llmd-inference-service-config-simulator.yaml';
 let llmInferenceServiceConfigContainerImage: string;
@@ -86,7 +85,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-maassubs-${uuid}`;
         llmInferenceServiceConfigName = `${testData.llmInferenceServiceConfigName}-${uuid}`;
-        llmInferenceServiceConfigDisplayName = testData.llmInferenceServiceConfigDisplayName;
         llmInferenceServiceConfigContainerImage = testData.llmInferenceServiceConfigContainerImage;
         modelURI = testData.modelLocationURI;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
@@ -181,14 +179,14 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details - select Generative type');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectModelLocationOption(ModelLocationSelectOption.URI);
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard
         .findSaveConnectionInput()
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 2: Model deployment - select LLM-d inference simulator config');
@@ -209,7 +207,11 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard
-        .findGlobalScopedTemplateOption(llmInferenceServiceConfigDisplayName)
+        .findServingRuntimeTemplateSearchInput()
+        .clear()
+        .type(llmInferenceServiceConfigName);
+      modelServingWizard
+        .findGlobalScopedTemplateOption(llmInferenceServiceConfigName)
         .should('exist')
         .click();
       modelServingWizard.findNextButton().should('be.enabled').click();

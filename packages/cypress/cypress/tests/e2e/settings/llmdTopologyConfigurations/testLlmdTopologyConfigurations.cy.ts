@@ -85,10 +85,10 @@ describe('LLMD Topology Configurations - Admin Settings', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Fill model details and advance to deployment step');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectModelLocationOption(ModelLocationSelectOption.URI);
       modelServingWizard.findUrilocationInput().clear().type('hf://facebook/opt-125m');
       modelServingWizard.findSaveConnectionCheckbox().uncheck();
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select llm-d deployment method and verify topology fields');

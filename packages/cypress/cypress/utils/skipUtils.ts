@@ -2,6 +2,27 @@
  * Utility functions for conditionally skipping tests based on cluster configuration.
  */
 
+import { getClusterArchitecture, type ClusterArchitecture } from './oc_commands/baseCommands';
+
+/** Skips the entire suite (including its setup hooks) when the cluster is ARM. */
+export const skipOnArm = (): void => {
+  before(function skipSuiteOnArm() {
+    const cachedArch = Cypress.env('CLUSTER_ARCH') as ClusterArchitecture | undefined;
+    const archChain = cachedArch
+      ? cy.wrap(cachedArch)
+      : getClusterArchitecture({ strict: true }).then((arch) => {
+          Cypress.env('CLUSTER_ARCH', arch);
+          return arch;
+        });
+
+    return archChain.then((architecture) => {
+      if (architecture === 'arm64') {
+        this.skip();
+      }
+    });
+  });
+};
+
 /**
  * Checks if the current cluster is a BYOIDC (Bring Your Own Identity Provider) cluster.
  * BYOIDC clusters use external identity providers (like Keycloak) instead of LDAP/htpasswd.

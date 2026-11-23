@@ -2,14 +2,12 @@
 
 import React from 'react';
 import {
-  Content,
   EmptyState,
   EmptyStateBody,
   Gallery,
   SearchInput,
   Stack,
   StackItem,
-  Title,
   ToolbarItem,
 } from '@patternfly/react-core';
 import {
@@ -81,7 +79,7 @@ const defaults = {
 // Components ----------------------------------------------------------------->
 
 type ConnectionTypesGalleryProps = {
-  connectionTypes: ConnectionType[];
+  connectionTypes: ConnectionTypeInstance[];
   onConnectionTypeClick: (connectionType: ConnectionType) => void;
   isSelectable?: boolean;
   selectedConnectionTypeId?: string;
@@ -145,15 +143,13 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
       credentials: [],
     };
 
-    connectionTypes
-      .map((connectionType) => new ConnectionTypeInstance(connectionType))
-      .forEach((connectionType) => {
-        if (connectionType.isFullIntegration()) {
-          groupedConnectionTypes.full_integration.push(connectionType);
-        } else {
-          groupedConnectionTypes.credentials.push(connectionType);
-        }
-      });
+    connectionTypes.forEach((connectionType) => {
+      if (connectionType.isFullIntegration()) {
+        groupedConnectionTypes.full_integration.push(connectionType);
+      } else {
+        groupedConnectionTypes.credentials.push(connectionType);
+      }
+    });
 
     return groupedConnectionTypes;
   }, [connectionTypes]);
@@ -191,8 +187,6 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   }, [connectionTypesByGroup]);
 
   const hasFilters = Boolean(filterValues.capability) || Boolean(filterValues.labels.length);
-
-  const shouldRenderGroupTitles = !hasFilters && !normalizedSearchTerm;
 
   const dynamicFilterConfig = React.useMemo(
     () => ({
@@ -240,28 +234,16 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   const galleryCards = Object.values(defaults.toolbar.groups)
     .filter((group) => connectionTypesByGroupToRender[group.id].length)
     .filter((group) => !selectedConnectionGroup || group.id === selectedConnectionGroup)
-    .map((group) => (
-      <React.Fragment key={group.id}>
-        {shouldRenderGroupTitles && (
-          <>
-            <Title headingLevel="h3">{group.label}</Title>
-            <Content component="p" className="pf-v6-u-mb-sm pf-v6-u-mt-sm">
-              {group.description}
-            </Content>
-          </>
-        )}
-        <Gallery hasGutter maxWidths={{ default: '350px' }} className="pf-v6-u-mb-lg">
-          {connectionTypesByGroupToRender[group.id].map((connectionType) => (
-            <ConnectionTypeCard
-              key={ConnectionTypeCardIdentifier(connectionType.metadata.id)}
-              connectionType={connectionType}
-              isSelectable={isSelectable}
-              isSelected={connectionType.metadata.id === selectedConnectionTypeId}
-              onClick={() => onConnectionTypeClick(connectionType)}
-            />
-          ))}
-        </Gallery>
-      </React.Fragment>
+    .map((group) => connectionTypesByGroupToRender[group.id])
+    .flat()
+    .map((connectionType) => (
+      <ConnectionTypeCard
+        key={ConnectionTypeCardIdentifier(connectionType.metadata.id)}
+        connectionType={connectionType}
+        isSelectable={isSelectable}
+        isSelected={connectionType.metadata.id === selectedConnectionTypeId}
+        onClick={() => onConnectionTypeClick(connectionType)}
+      />
     ));
 
   const shouldRenderEmptyState = connectionTypes.length === 0;
@@ -294,7 +276,11 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   return (
     <Stack>
       <StackItem>{toolbar}</StackItem>
-      <StackItem>{galleryCards}</StackItem>
+      <StackItem>
+        <Gallery hasGutter maxWidths={{ default: '350px' }} className="pf-v6-u-mb-lg">
+          {galleryCards}
+        </Gallery>
+      </StackItem>
       {shouldRenderEmptyState && <StackItem>{emptyState}</StackItem>}
       {shouldRenderEmptySearchState && <StackItem>{emptySearchState}</StackItem>}
     </Stack>

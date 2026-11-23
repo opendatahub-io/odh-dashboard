@@ -3,6 +3,8 @@ package api
 import (
 	"log/slog"
 	"net/http"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 )
 
 // emitAuditLog writes a structured audit log entry.
@@ -10,6 +12,8 @@ import (
 // routes do not perform an SSAR check and the value would be misleading.
 func (app *App) emitAuditLog(username string, r *http.Request, needsAdmin bool, isAdmin bool) {
 	attrs := []any{
+		slog.String("request_id", httpcontract.RequestID(r.Context())),
+		slog.String("upstream_audit_id", httpcontract.AuditID(r.Context())),
 		slog.String("user", username),
 		slog.String("namespace", app.config.Namespace),
 		slog.String("action", r.Method),
@@ -26,12 +30,14 @@ func (app *App) emitAuditLog(username string, r *http.Request, needsAdmin bool, 
 // fails, so log consumers can distinguish "confirmed non-admin" from "couldn't determine."
 func (app *App) emitAuditLogWithAdminCheckError(username string, r *http.Request, adminErr error) {
 	app.logger.Info("audit",
+		slog.String("request_id", httpcontract.RequestID(r.Context())),
+		slog.String("upstream_audit_id", httpcontract.AuditID(r.Context())),
 		slog.String("user", username),
 		slog.String("namespace", app.config.Namespace),
 		slog.String("action", r.Method),
 		slog.String("endpoint", r.URL.Path),
 		slog.Bool("isAdmin", false),
 		slog.Bool("needsAdmin", true),
-		slog.Any("error", adminErr),
+		slog.String("code", httpcontract.SafeErrorCode(adminErr)),
 	)
 }

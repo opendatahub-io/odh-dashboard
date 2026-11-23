@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -55,7 +56,12 @@ rails:
 func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 	ctx context.Context,
 	namespace string,
+	bffNamespace string,
 ) (string, error) {
+	if bffNamespace == "" {
+		return "", fmt.Errorf("missing Gen AI BFF namespace for NemoGuardrails ingress")
+	}
+
 	// Guard: fail fast if NemoGuardrails already exists in this namespace.
 	existing, err := kc.GetNemoGuardrailsCR(ctx, namespace)
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -93,6 +99,21 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 				},
 			},
 			"spec": map[string]interface{}{
+				// TrustyAI's NetworkPolicy otherwise only admits same-namespace callers.
+				// The Gen AI BFF runs in the dashboard namespace and calls the published
+				// NeMo Service from there, regardless of where TrustyAI places the workload.
+				"networkPolicy": map[string]interface{}{
+					"additionalIngress": []interface{}{
+						map[string]interface{}{
+							"namespaceSelector": map[string]interface{}{
+								"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": bffNamespace},
+							},
+							"podSelector": map[string]interface{}{
+								"matchLabels": map[string]interface{}{"app.kubernetes.io/name": "gen-ai"},
+							},
+						},
+					},
+				},
 				"nemoConfigs": []interface{}{
 					map[string]interface{}{
 						"name":       nemoGuardrailsPlaceholderName,
@@ -133,7 +154,7 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 
 	// Set the NemoGuardrails CR as owner of the ConfigMap so it is garbage collected
 	// when the CR is deleted.
-	cm.OwnerReferences = []metav1.OwnerReference{
+	ownerReferences := []metav1.OwnerReference{
 		{
 			APIVersion:         constants.NemoGuardrailsAPIVersion,
 			Kind:               constants.NemoGuardrailsKind,
@@ -143,7 +164,14 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 			BlockOwnerDeletion: &[]bool{false}[0],
 		},
 	}
-	if err := kc.Client.Update(ctx, cm); err != nil {
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		current := &corev1.ConfigMap{}
+		if getErr := kc.Client.Get(ctx, client.ObjectKey{Name: cm.Name, Namespace: namespace}, current); getErr != nil {
+			return getErr
+		}
+		current.OwnerReferences = ownerReferences
+		return kc.Client.Update(ctx, current)
+	}); err != nil {
 		// Roll back both resources so we don't leave a CR without a properly owned ConfigMap.
 		if deleteErr := kc.Client.Delete(ctx, cr); deleteErr != nil {
 			kc.Logger.Error("failed to clean up CR after owner reference update failure", "error", deleteErr)

@@ -3,15 +3,19 @@ package api
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -84,7 +88,7 @@ func TestTestConnection_UnsupportedType_Returns400(t *testing.T) {
 	err := json.Unmarshal(rr.Body.Bytes(), &httpErr)
 	require.NoError(t, err)
 	assert.Equal(t, "UNSUPPORTED_TYPE", httpErr.Error.Code)
-	assert.Contains(t, httpErr.Error.Message, "unknown-type")
+	assert.NotContains(t, httpErr.Error.Message, "unknown-type")
 }
 
 func TestTestConnection_MockMode_S3_Success(t *testing.T) {
@@ -200,6 +204,56 @@ func TestTestConnection_ProbeBusy_Returns503(t *testing.T) {
 }
 
 // --- URI Probe Tests ---
+
+func TestConnectionProbesForwardRequestCorrelation(t *testing.T) {
+	const auditID = "2895b0a0-7694-47d0-8cb4-869b93fe68be"
+	received := make(chan http.Header, 1)
+	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received <- r.Header.Clone()
+		w.Header().Set(httpcontract.AuditIDHeader, auditID)
+		w.Header().Set(constants.HeaderContentType, "application/xml")
+		_, _ = fmt.Fprint(w, `<ListAllMyBucketsResult><Buckets></Buckets></ListAllMyBucketsResult>`)
+	}))
+	defer upstream.Close()
+	rootCAs := x509.NewCertPool()
+	rootCAs.AddCert(upstream.Certificate())
+	for _, tc := range []struct {
+		name   string
+		probe  ProbeFunc
+		fields map[string]string
+	}{
+		{"uri", probeURI, map[string]string{"URI": upstream.URL}},
+		{"oci", probeOCI, map[string]string{"OCI_HOST": strings.TrimPrefix(upstream.URL, "https://")}},
+		{"s3-list", probeS3, map[string]string{
+			"AWS_S3_ENDPOINT": upstream.URL, "AWS_ACCESS_KEY_ID": "testkey", "AWS_SECRET_ACCESS_KEY": "testsecret",
+		}},
+		{"s3-bucket", probeS3, map[string]string{
+			"AWS_S3_ENDPOINT": upstream.URL, "AWS_S3_BUCKET": "test-bucket",
+			"AWS_ACCESS_KEY_ID": "testkey", "AWS_SECRET_ACCESS_KEY": "testsecret",
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, ConnectionTestPath, nil)
+			request.Header.Set(httpcontract.RequestIDHeader, "untrusted-caller-id")
+			httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				result := tc.probe(ProbeContext{Ctx: r.Context(), FieldValues: tc.fields, RootCAs: rootCAs})
+				require.True(t, result.Success, "%+v", result)
+				w.WriteHeader(http.StatusOK)
+			})).ServeHTTP(response, request)
+			headers := <-received
+			id := response.Header().Get(httpcontract.RequestIDHeader)
+			require.NotEmpty(t, id)
+			require.NotEqual(t, "untrusted-caller-id", id)
+			require.Equal(t, id, headers.Get(httpcontract.RequestIDHeader))
+			require.Empty(t, headers.Get(httpcontract.AuditIDHeader))
+			require.Empty(t, response.Header().Get(httpcontract.AuditIDHeader))
+			if strings.HasPrefix(tc.name, "s3-") {
+				require.True(t, strings.HasPrefix(headers.Get(constants.HeaderAuthorization), "AWS4-HMAC-SHA256 "))
+			}
+		})
+	}
+}
 
 func TestProbeURI_Success(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -845,7 +899,9 @@ func TestParseOCIRef_WithOCIScheme(t *testing.T) {
 }
 
 func TestProbeOCI_BearerTokenExchange(t *testing.T) {
+	received := make(chan http.Header, 3)
 	tokenServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received <- r.Header.Clone()
 		auth := r.Header.Get("Authorization")
 		if auth != "Basic dXNlcjpwYXNz" {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -857,6 +913,7 @@ func TestProbeOCI_BearerTokenExchange(t *testing.T) {
 	defer tokenServer.Close()
 
 	registry := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received <- r.Header.Clone()
 		if r.URL.Path == "/v2/myorg/myimage/manifests/v1" {
 			auth := r.Header.Get("Authorization")
 			if auth == "Bearer test-bearer-token-123" {
@@ -875,8 +932,10 @@ func TestProbeOCI_BearerTokenExchange(t *testing.T) {
 	host := registry.Listener.Addr().String()
 	dockercfg := fmt.Sprintf(`{"auths":{"%s":{"auth":"dXNlcjpwYXNz"}}}`, host)
 
+	request := httptest.NewRequest(http.MethodPost, ConnectionTestPath, nil)
+	requestID := httpcontract.EnsureID(httptest.NewRecorder(), request)
 	result := probeOCI(ProbeContext{
-		Ctx: t.Context(),
+		Ctx: request.Context(),
 		FieldValues: map[string]string{
 			"OCI_HOST":          host + "/myorg/myimage:v1",
 			".dockerconfigjson": dockercfg,
@@ -885,6 +944,11 @@ func TestProbeOCI_BearerTokenExchange(t *testing.T) {
 	})
 	assert.True(t, result.Success)
 	assert.Contains(t, result.Message, "myorg/myimage:v1")
+	require.Len(t, received, 3)
+	for range 3 {
+		headers := <-received
+		assert.Equal(t, requestID, headers.Get(httpcontract.RequestIDHeader))
+	}
 }
 
 func TestProbeOCI_BearerTokenExchange_BadCredentials(t *testing.T) {
@@ -1032,7 +1096,7 @@ func TestTestConnection_ErrorResponse_HasCorrectFormat(t *testing.T) {
 	errObj, ok := resp["error"].(map[string]interface{})
 	assert.True(t, ok, "response must have 'error' object")
 	assert.Equal(t, "UNSUPPORTED_TYPE", errObj["code"])
-	assert.Contains(t, errObj["message"], "unknown-type-xyz")
+	assert.NotContains(t, errObj["message"], "unknown-type-xyz")
 }
 
 func TestTestConnection_SuccessResponse_HasCorrectFormat(t *testing.T) {

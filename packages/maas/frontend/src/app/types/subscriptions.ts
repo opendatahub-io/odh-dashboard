@@ -49,9 +49,11 @@ export type GroupReference = {
   name: string;
 };
 
+// All fields are optional per the BFF OpenAPI TokenMetadata schema; e.g. an
+// auth policy may carry only labels for metering.
 export type TokenMetadata = {
-  organizationId: string;
-  costCenter: string;
+  organizationId?: string;
+  costCenter?: string;
   labels?: Record<string, string>;
 };
 
@@ -170,12 +172,15 @@ export type UserSubscription = {
   subscription_id_header: string;
   subscription_description: string;
   display_name?: string;
+  priority?: number;
   inference_priority?: number;
   key_count?: number;
   model_refs: ModelRefInfo[];
   organization_id?: string;
   cost_center?: string;
   labels?: Record<string, string>;
+  /** Owner group references from the maas-api passthrough; populated for admins. */
+  owner?: OwnerSpec;
 };
 
 export type RateLimit = {

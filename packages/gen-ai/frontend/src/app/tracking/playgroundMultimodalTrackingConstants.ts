@@ -1,4 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 
 export const PLAYGROUND_MULTIMODAL_EVENTS = {
   IMAGE_UPLOAD_SELECTED: 'Playground Image Upload Selected',

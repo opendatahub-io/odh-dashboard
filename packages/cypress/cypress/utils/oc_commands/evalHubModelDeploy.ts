@@ -415,7 +415,7 @@ export function removeEvalHubTenantLabel(ns: string): Cypress.Chainable<Cypress.
 }
 
 export function getVllmEndpointUrl(
-  td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
+  td: Omit<EvalHubTestData, 'benchmarkCardTitle' | 'benchmarkProviderId' | 'benchmarkId'>,
   ns: string,
 ): string {
   return `http://${td.inferenceServiceName}-predictor.${ns}.svc.cluster.local:8080`;
@@ -423,7 +423,7 @@ export function getVllmEndpointUrl(
 
 export function setupTenantAndDeployModel(
   ns: string,
-  td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
+  td: Omit<EvalHubTestData, 'benchmarkCardTitle' | 'benchmarkProviderId' | 'benchmarkId'>,
   hwProfileName: string,
   evalHubInstance: EvalHubInstance,
 ): void {

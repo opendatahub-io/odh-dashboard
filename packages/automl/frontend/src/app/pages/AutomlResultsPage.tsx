@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Alert,
   AlertActionCloseButton,
@@ -25,7 +26,6 @@ import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/c
 import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useFetchS3File, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
@@ -52,7 +52,7 @@ import {
   resolveUniqueUuidPrefix,
 } from '~/app/utilities/utils';
 import {
-  AUTOML_EVENTS,
+  fireAutomlRunStopped,
   fireAutomlResultsViewed,
   fireAutomlRunNotebookDownloaded,
   isAutomlResultsNavigationState,
@@ -69,6 +69,7 @@ const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError';
 
 function AutomlResultsPage(): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const { namespace, runId } = useParams();
   const location = useLocation();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
@@ -199,7 +200,7 @@ function AutomlResultsPage(): React.JSX.Element {
         return;
       }
       downloadBlob(notebook, RUN_NOTEBOOK_FILENAME);
-      fireAutomlRunNotebookDownloaded();
+      fireAutomlRunNotebookDownloaded(trackEvent);
     } catch (error) {
       if (
         isAbortError(error) ||
@@ -220,7 +221,7 @@ function AutomlResultsPage(): React.JSX.Element {
         runNotebookDownloadController.current = null;
       }
     }
-  }, [fetchS3File, namespace, runNotebookDisabled, runNotebookKey]);
+  }, [fetchS3File, namespace, runNotebookDisabled, runNotebookKey, trackEvent]);
 
   // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
   // notification with stale data, while initial load errors (no data yet) show a full error page.
@@ -250,8 +251,8 @@ function AutomlResultsPage(): React.JSX.Element {
     resultsViewedTrackedRunId.current = pipelineRun.run_id;
 
     const navState = isAutomlResultsNavigationState(location.state) ? location.state : undefined;
-    fireAutomlResultsViewed(navState?.entrySource ?? 'other');
-  }, [pipelineRun?.run_id, location.state]);
+    fireAutomlResultsViewed(trackEvent, navState?.entrySource ?? 'other');
+  }, [pipelineRun?.run_id, location.state, trackEvent]);
 
   // Fetch and process AutoML results using custom hook
   const {
@@ -327,7 +328,7 @@ function AutomlResultsPage(): React.JSX.Element {
           <SplitItem>
             {runTerminatable && !stopInitiated && (
               <Button
-                variant="secondary"
+                variant="link"
                 icon={<StopCircleIcon />}
                 onClick={() => setIsStopModalOpen(true)}
                 isDisabled={isTerminating || isStopModalOpen}
@@ -340,7 +341,7 @@ function AutomlResultsPage(): React.JSX.Element {
             )}
             {runRetryable && (
               <Button
-                variant="secondary"
+                variant="link"
                 icon={<RedoIcon />}
                 onClick={() => void handleRetry().catch(() => undefined)}
                 isDisabled={isRetrying}
@@ -355,7 +356,7 @@ function AutomlResultsPage(): React.JSX.Element {
         ) : null}
         <SplitItem>
           <Button
-            variant="secondary"
+            variant="link"
             icon={<CogIcon />}
             component={ReconfigureLink}
             data-testid="reconfigure-run-button"
@@ -369,7 +370,7 @@ function AutomlResultsPage(): React.JSX.Element {
             trigger={runNotebookDisabled ? 'mouseenter focus' : ''}
           >
             <Button
-              variant="secondary"
+              variant="link"
               icon={<DownloadIcon />}
               onClick={() => void handleDownloadRunNotebook()}
               isAriaDisabled={runNotebookDisabled}
@@ -531,7 +532,7 @@ function AutomlResultsPage(): React.JSX.Element {
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
         onCancel={() =>
-          fireFormTrackingEvent(AUTOML_EVENTS.RUN_STOPPED, {
+          fireAutomlRunStopped(trackEvent, {
             outcome: TrackingOutcome.cancel,
             source: 'resultsPage',
           })

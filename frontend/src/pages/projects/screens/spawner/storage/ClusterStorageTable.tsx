@@ -58,10 +58,10 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
 
       if (storageType === StorageType.NEW_PVC) {
         setStorageData((prevData) =>
-          prevData.map((data) =>
-            initialStorageData.id === 0
+          prevData.map((data, index) =>
+            index === 0
               ? {
-                  ...initialStorageData,
+                  ...data,
                   name: workbenchName
                     ? (!pvcName.includes('-') ? `${workbenchName}-${pvcName}` : pvcName).replace(
                         /.*(?=-)/,
@@ -165,6 +165,9 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
       {isDetachModalOpen && selectedStorage && (
         <ClusterStorageDetachModal
           onConfirm={() => {
+            if (selectedStorage === storageData[0]) {
+              hasUpdatedDefaultNameRef.current = true;
+            }
             setStorageData(() => storageData.filter((storage) => storage.id !== selectedId));
             setIsDetachModalOpen(false);
           }}

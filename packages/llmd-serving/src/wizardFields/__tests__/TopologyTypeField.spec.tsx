@@ -1,25 +1,27 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 import { LlmdTrackingEvent } from '../../tracking/llmdTrackingConstants';
-import { TopologyType, TopologyTypeLabels, type LLMInferenceServiceConfigKind } from '../../types';
+import {
+  TopologyType,
+  TopologyTypeLabels,
+  type LLMInferenceServiceConfigKind,
+  type TopologyTypeFieldData,
+} from '../../types';
 import {
   TopologyTypeFieldWizardField,
   useTopologyTypeData,
   type TopologyTypeExternalData,
-  type TopologyTypeFieldData,
 } from '../TopologyTypeField';
 import {
   useFetchTopologyConfigs,
   useFetchLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { trackEvent: mockTrackEvent, wrapper } = createTestProviders();
 
 jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
@@ -31,7 +33,6 @@ jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
   useFetchLLMInferenceServiceConfig: jest.fn(),
 }));
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 const mockUseFetchTopologyConfigs = jest.mocked(useFetchTopologyConfigs);
 const mockUseFetchLLMInferenceServiceConfig = jest.mocked(useFetchLLMInferenceServiceConfig);
 
@@ -85,6 +86,7 @@ describe('TopologyTypeField tracking', () => {
         onChange={mockOnChange}
         externalData={externalData}
       />,
+      { wrapper },
     );
 
   const openDropdown = async () => {
@@ -97,65 +99,36 @@ describe('TopologyTypeField tracking', () => {
   const getMultiNodeOption = () =>
     within(screen.getByTestId(`topology-type-${TopologyType.MULTI_NODE}`)).getByRole('option');
 
-  it('should fire topology type selected tracking with undefined previousPattern on first selection', async () => {
-    renderComponent({
-      externalData: {
-        data: {
-          configsByTopology: {
-            [TopologyType.SINGLE_NODE]: [],
-            [TopologyType.MULTI_NODE]: [],
-            [TopologyType.SINGLE_NODE_DISAGGREGATED]: [],
-            [TopologyType.MULTI_NODE_DISAGGREGATED]: [],
-          },
-        },
-        loaded: true,
-      },
+  it('should allow topology selection when the host disables tracking', async () => {
+    render(<TopologyTypeFieldComponent id="llmd-serving/topology-type" onChange={mockOnChange} />, {
+      wrapper: createTestProviders({ trackEvent: () => undefined }).wrapper,
     });
 
     await openDropdown();
-
     await act(async () => {
       fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.SINGLE_NODE]));
     });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED,
-      {
-        llmdComposablePattern: TopologyType.SINGLE_NODE,
-        previousPattern: undefined,
-      },
-    );
+    expect(mockOnChange).toHaveBeenCalledWith({ topologyType: TopologyType.SINGLE_NODE });
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
-  it('should fire topology type selected tracking with previous pattern when switching', async () => {
-    renderComponent({
-      value: { topologyType: TopologyType.SINGLE_NODE },
-      externalData: {
-        data: {
-          configsByTopology: {
-            [TopologyType.SINGLE_NODE]: [],
-            [TopologyType.MULTI_NODE]: [{ metadata: { name: 'multi-config' } } as never],
-            [TopologyType.SINGLE_NODE_DISAGGREGATED]: [],
-            [TopologyType.MULTI_NODE_DISAGGREGATED]: [],
-          },
-        },
-        loaded: true,
-      },
-    });
-
+  it('should track a topology change immediately with its previous pattern', async () => {
+    renderComponent({ value: { topologyType: TopologyType.MULTI_NODE } });
     await openDropdown();
-
     await act(async () => {
-      fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.MULTI_NODE]));
+      fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.SINGLE_NODE]));
     });
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED, {
+      llmdComposablePattern: TopologyType.SINGLE_NODE,
+      previousPattern: TopologyType.MULTI_NODE,
+    });
+  });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED,
-      {
-        llmdComposablePattern: TopologyType.MULTI_NODE,
-        previousPattern: TopologyType.SINGLE_NODE,
-      },
-    );
+  it('should not track initial render or edit hydration', () => {
+    renderComponent({ value: { topologyType: TopologyType.MULTI_NODE } });
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should call onChange with the selected topology type', async () => {

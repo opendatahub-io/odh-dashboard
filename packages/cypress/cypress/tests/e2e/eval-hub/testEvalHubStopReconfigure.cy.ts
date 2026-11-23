@@ -48,6 +48,8 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
   let evalHubInstanceYamlPath = '';
   let mlflowInstanceYamlPath = '';
   let benchmarkCardTitle = '';
+  let benchmarkProviderId = '';
+  let benchmarkId = '';
   let mlflowExperimentName = '';
   let additionalBenchmarkParams = '';
   let projectNamePrefix = '';
@@ -63,6 +65,8 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
         evalHubInstanceYamlPath = testData.evalHubInstanceResourceYamlPath;
         mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
         benchmarkCardTitle = testData.benchmarkCardTitle;
+        benchmarkProviderId = testData.benchmarkProviderId;
+        benchmarkId = testData.benchmarkId;
         additionalBenchmarkParams = testData.additionalBenchmarkParams;
         projectNamePrefix = testData.projectNamePrefix;
         evaluationTenantProject = `${testData.projectNamePrefix}-reconfig-${uuid}`;
@@ -149,6 +153,8 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
 
       submitSingleBenchmarkEvaluation({
         benchmarkCardTitle,
+        benchmarkProviderId,
+        benchmarkId,
         evaluationRunName,
         inferenceServiceName,
         mlflowExperimentName,

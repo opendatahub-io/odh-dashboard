@@ -5,28 +5,24 @@ import { mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { SelfSubjectAccessReviewModel } from '@odh-dashboard/internal/api/models';
+import { mockPersesDashboard } from '../../../src/__mocks__/observabilityFixtures';
 import { observabilityDashboardPage } from '../../pages/observabilityDashboard';
 
-// Minimal test fixtures following the naming pattern from packages/observability/setup
-// Dashboard names: dashboard-{N}-{name} for regular, dashboard-{N}-{name}-admin for admin-only
-const createMockPersesDashboard = (name: string, displayName: string): DashboardResource => {
-  const dashboard: DashboardResource = {
-    kind: 'Dashboard',
-    metadata: { name, project: 'opendatahub' },
-    spec: {
-      display: { name: displayName },
-      duration: '1h',
-      variables: [],
-      panels: {},
-      layouts: [],
-    },
-  };
-  return dashboard;
-};
-
-const mockClusterDashboard = createMockPersesDashboard('dashboard-0-cluster-admin', 'Cluster');
-const mockModelDashboard = createMockPersesDashboard('dashboard-1-model', 'Model');
-const mockTenancyDashboard = createMockPersesDashboard('dashboard-2-tenancy', 'Tenancy');
+const mockClusterDashboard = mockPersesDashboard({
+  name: 'dashboard-0-cluster-admin',
+  displayName: 'Cluster',
+  project: 'opendatahub',
+});
+const mockModelDashboard = mockPersesDashboard({
+  name: 'dashboard-1-model',
+  displayName: 'Model',
+  project: 'opendatahub',
+});
+const mockTenancyDashboard = mockPersesDashboard({
+  name: 'dashboard-2-tenancy',
+  displayName: 'Tenancy',
+  project: 'opendatahub',
+});
 
 const HEALTHY_DSCI_CONDITIONS: K8sCondition[] = [
   {

@@ -10,6 +10,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 )
 
@@ -81,7 +82,7 @@ func (app *App) resolveRequestAuth(w http.ResponseWriter, r *http.Request, needs
 	username, err := client.GetUser(ctx, nil)
 	if err != nil {
 		app.emitAuditLog(auditUser(identity, app.logger), r, needsAdmin, false)
-		app.unauthorizedResponse(w, r, fmt.Errorf("invalid or expired token: %w", err))
+		app.serverErrorResponse(w, r, err)
 		return "", nil, nil, false
 	}
 
@@ -114,7 +115,7 @@ func (app *App) secureAdminRoute(next httprouter.Handle) httprouter.Handle {
 
 		isAdmin, err := client.IsUserAdmin(r.Context(), identity)
 		if err != nil {
-			app.logger.Warn("admin SAR check failed", slog.Any("error", err))
+			httpcontract.Log(app.logger, r).Warn("admin SAR check failed", "code", httpcontract.SafeErrorCode(err))
 			app.emitAuditLogWithAdminCheckError(username, r, err)
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to evaluate admin status: %w", err))
 			return
@@ -174,7 +175,7 @@ func (app *App) isAllowedNamespace(namespace string) bool {
 // No auth enforcement is applied. Use this on combinedMux registrations
 // that intentionally skip authentication (healthcheck, OpenAPI, static files).
 func (app *App) publicRoute(next http.Handler) http.Handler {
-	return app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(next)))
+	return next
 }
 
 // publicRouteFunc is a convenience wrapper for publicRoute with a plain handler function.

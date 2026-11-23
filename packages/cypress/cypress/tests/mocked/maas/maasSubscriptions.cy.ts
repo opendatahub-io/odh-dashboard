@@ -35,7 +35,10 @@ const setupCommonIntercepts = () => {
     'GET /api/config',
     mockDashboardConfig({ modelAsService: true, inferencePriorityField: true }),
   );
-  cy.interceptOdh('GET /maas/api/v1/user', { data: { userId: 'test-user', clusterAdmin: false } });
+  cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
+  cy.interceptOdh('GET /maas/api/v1/user', {
+    data: { userId: 'test-user', clusterAdmin: false },
+  });
   cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -151,7 +154,7 @@ describe('Subscriptions Page', () => {
     const pendingRow = subscriptionsPage.getRow('pending-sub');
     pendingRow.findPhase().should('contain.text', 'Pending');
 
-    subscriptionsPage.findFilterInput().should('exist').type('premium');
+    subscriptionsPage.findFilterInput().should('exist').type('Premium Team');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
     subscriptionsPage.findRows().should('have.length', 8);
@@ -343,7 +346,7 @@ describe('View Subscription Page', () => {
     subscriptionsPage.findRows().should('have.length', 8);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
-    subscriptionsPage.findFilterInput().type('premium');
+    subscriptionsPage.findFilterInput().type('Premium Team');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);

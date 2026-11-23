@@ -59,7 +59,7 @@ describe('External vector store full lifecycle', () => {
 
       cy.step('Log into the application with external vector stores enabled');
       cy.visitWithLogin(
-        '/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false',
+        '/?devFeatureFlags=aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
       forceDashboardConfigRefresh();
@@ -93,7 +93,7 @@ describe('External vector store full lifecycle', () => {
   it(
     'validates the registered store through a grounded Playground response',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent', '@Playground'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent', '@Playground'],
     },
     () => {
       cy.step('Wait for the inference endpoint in AI assets');

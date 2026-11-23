@@ -43,6 +43,15 @@ func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
 	assert.Contains(t, err.Error(), "literal IP")
 }
 
+func TestNewFromSecretData_DispatchesToNeo4j(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"NEO4J_URI":      []byte("neo4j://neo4j.example.com:7687"),
+		"NEO4J_PASSWORD": []byte("password"),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "neo4j external endpoints must use neo4j+s or bolt+s")
+}
+
 func TestNewFromSecretData_PgvectorWithMilvusLegacyKeysDispatchesToPgvector(t *testing.T) {
 	_, err := NewFromSecretData(context.Background(), map[string][]byte{
 		"PGVECTOR_HOST":      []byte("127.0.0.1"),

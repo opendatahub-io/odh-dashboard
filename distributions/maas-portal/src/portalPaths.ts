@@ -4,7 +4,4 @@
  */
 export const PORTAL_BASE_PATH = '/maas-portal';
 
-/** Internal route; React Router applies PORTAL_BASE_PATH as its basename. */
-export const PORTAL_ROOT_REDIRECT_PATH = '/gen-ai-studio/assets';
-
 export const PORTAL_MODELS_PATH = '/maas/models';

@@ -7,9 +7,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"k8s.io/client-go/dynamic"
@@ -45,21 +45,23 @@ func (r *StatusRepository) GetStatus(
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// Uses SSAR: patch on auths/default-auth.
-	// Errors degrade to false so that transient SAR failures don't break dashboard bootstrap with a 500.
+	// Uses SSAR: patch on auths/auth.
+	// Status is a session probe, not an authorization gate. Match Fastify's
+	// conservative flags on review failures without discarding the authenticated user.
 	isAdmin, err := client.IsUserAdmin(ctx, identity)
 	if err != nil {
-		slog.Warn("admin SAR check failed, defaulting to non-admin", slog.Any("error", err))
 		isAdmin = false
+		httpcontract.LogContext(nil, ctx).Warn("admin status review unavailable; reporting non-admin", "code", httpcontract.SafeErrorCode(err))
 	}
 
 	// Check if Auth CRD is present. When absent, all users are allowed (no group restrictions).
-	// When present, non-admin users need SSAR for get on auths/default-auth.
+	// When present, non-admin users need SSAR for get on auths/auth.
 	isAllowed := true
 	if !isAdmin {
 		isAllowed, err = resolveIsAllowed(ctx, client, identity, authRepo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check allowed status: %w", err)
+			isAllowed = false
+			httpcontract.LogContext(nil, ctx).Warn("access status review unavailable; reporting not allowed", "code", httpcontract.SafeErrorCode(err))
 		}
 	}
 
@@ -82,8 +84,8 @@ func (r *StatusRepository) GetStatus(
 // resolveIsAllowed determines if a non-admin user is allowed to access the dashboard.
 // 1. If Auth CRD is absent (discovery error): all users allowed (no group restrictions).
 // 2. If Auth CR has system:authenticated in allowedGroups: all authenticated users allowed.
-// 3. If Auth CR instance missing or error reading it (e.g. 403): fall through to SSAR check.
-// 4. Otherwise: SSAR for get on auths/default-auth.
+// 3. If Auth cannot be read or parsed, fall through to the caller's authoritative SSAR.
+// 4. Otherwise: SSAR for get on auths/auth.
 func resolveIsAllowed(
 	ctx context.Context, client k8s.KubernetesClientInterface,
 	identity *k8s.RequestIdentity, authRepo *AuthRepository,
@@ -102,13 +104,12 @@ func resolveIsAllowed(
 	}
 
 	if authErr != nil {
-		slog.Warn("failed to fetch Auth CR, falling through to SSAR check", slog.Any("error", authErr))
+		httpcontract.LogContext(nil, ctx).Warn("access configuration unavailable; falling back to SSAR", "code", httpcontract.SafeErrorCode(authErr))
 	}
 
 	allowed, ssarErr := client.IsUserAllowed(ctx, identity)
 	if ssarErr != nil {
-		slog.Warn("allowed SAR check failed, defaulting to not allowed", slog.Any("error", ssarErr))
-		return false, nil
+		return false, fmt.Errorf("failed to evaluate access: %w", ssarErr)
 	}
 	return allowed, nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	openapispec "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/openapi"
 )
 
@@ -74,14 +75,14 @@ func (h *OpenAPIHandler) HandleOpenAPIJSON(w http.ResponseWriter, r *http.Reques
 
 	jsonData, err := json.MarshalIndent(&specCopy, "", "  ")
 	if err != nil {
-		h.logger.Error("Failed to marshal OpenAPI spec to JSON", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		h.logger.Error("Failed to marshal OpenAPI spec to JSON", "code", httpcontract.SafeErrorCode(err))
+		httpcontract.WriteLocal(w, r, http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(jsonData); err != nil {
-		h.logger.Error("Failed to write JSON response", "error", err)
+		h.logger.Error("Failed to write JSON response", "code", httpcontract.SafeErrorCode(err))
 	}
 }
 
@@ -98,7 +99,7 @@ func (h *OpenAPIHandler) HandleOpenAPIYAML(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(h.specYAML); err != nil {
-		h.logger.Error("Failed to write YAML response", "error", err)
+		h.logger.Error("Failed to write YAML response", "code", httpcontract.SafeErrorCode(err))
 	}
 }
 
@@ -154,7 +155,7 @@ func (h *OpenAPIHandler) HandleSwaggerUI(w http.ResponseWriter, r *http.Request,
 
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write([]byte(html)); err != nil {
-		h.logger.Error("Failed to write HTML response", "error", err)
+		h.logger.Error("Failed to write HTML response", "code", httpcontract.SafeErrorCode(err))
 	}
 }
 

@@ -112,9 +112,9 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       createCleanProject(projectName);
       waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
 
-      cy.step('Log into the application with genAiStudio and custom endpoints enabled');
+      cy.step('Log into the application with custom endpoints enabled');
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false`,
+        '/?devFeatureFlags=aiAssetCustomEndpoints=true,modelAsService=false',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -198,7 +198,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         '@Multimodal',
         '@Inference',
         '@VisionModel',
-        '@FeatureFlagged',
+        '@Featureflagged',
       ],
     },
     () => {
@@ -286,7 +286,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         '@Multimodal',
         '@Inference',
         '@Audio',
-        '@FeatureFlagged',
+        '@Featureflagged',
         '@NonConcurrent',
       ],
     },

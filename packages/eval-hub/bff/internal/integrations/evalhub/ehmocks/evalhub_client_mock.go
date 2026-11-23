@@ -134,6 +134,32 @@ func (m *MockEvalHubClient) ListProviders(_ context.Context, _ string, _, _ int)
 	return evalhub.ProvidersResponse{Items: providers, TotalCount: countBenchmarks(providers)}, nil
 }
 
+// GetInfo returns build metadata and a queue-backed tenant hardware profile
+// for test environments.
+func (m *MockEvalHubClient) GetInfo(_ context.Context, _ string) (*evalhub.InfoResponse, error) {
+	return &evalhub.InfoResponse{
+		Version: "0.0.0-mock",
+		Build:   "mock",
+		HardwareProfiles: []evalhub.HardwareProfileInfo{
+			{
+				Name:           "default-gpu",
+				DisplayName:    "Default GPU",
+				SchedulingType: "queue",
+				QueueName:      "default",
+				Identifiers: []evalhub.HardwareProfileIdentifier{
+					{Identifier: "cpu", DisplayName: "CPU", ResourceType: "cpu", DefaultCount: "1"},
+					{Identifier: "memory", DisplayName: "Memory", ResourceType: "memory", DefaultCount: "4Gi"},
+				},
+				QueueAvailability: &evalhub.QueueAvailability{
+					Status:  "active",
+					Reason:  "Ready",
+					Message: "Can admit new workloads",
+				},
+			},
+		},
+	}, nil
+}
+
 func countBenchmarks(providers []evalhub.Provider) int {
 	total := 0
 	for _, p := range providers {
@@ -411,10 +437,18 @@ func mockProviders() []evalhub.Provider {
 	}
 }
 
-func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, error) {
+func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, json.RawMessage, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.getCollection(id)
+	collection, err := m.getCollection(id)
+	if err != nil || collection == nil {
+		return nil, nil, err
+	}
+	raw, err := json.Marshal(collection)
+	if err != nil {
+		return nil, nil, err
+	}
+	return collection, raw, nil
 }
 
 func (m *MockEvalHubClient) getCollection(id string) (*evalhub.Collection, error) {
@@ -480,7 +514,7 @@ func (m *MockEvalHubClient) DeleteCollection(_ context.Context, id string, _ str
 }
 
 func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ string, req evalhub.CloneCollectionRequest) (*evalhub.Collection, error) {
-	source, err := m.GetCollection(context.Background(), id, "")
+	source, _, err := m.GetCollection(context.Background(), id, "")
 	if err != nil {
 		return nil, err
 	}
@@ -673,13 +707,19 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			Tags:   []string{"Safety"},
 			Status: evalhub.JobStatus{State: "completed"},
 			Results: evalhub.JobResults{
-				TotalEvaluations: 1,
 				Benchmarks: []evalhub.BenchmarkResult{
 					{
 						ID:         "harmful_request_refusal",
 						ProviderID: "safety_eval_suite",
-						Metrics:    map[string]float64{"refusal_rate": 0.30},
-						Test:       &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.30), Threshold: ptr(0.5), Pass: &fail},
+						Metrics: map[string]any{
+							"refusal_rate": 0.30,
+							"verdicts":     []any{"safe", "unsafe", "safe"},
+						},
+						Artifacts: map[string]any{
+							"evalhub.eval_card": "evalcards/eval-job-004-card",
+							"evalhub.env_card":  "envcards/eval-job-004-env",
+						},
+						Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.30), Threshold: ptr(0.5), Pass: &fail},
 					},
 				},
 				Test: &evalhub.ResultTest{
@@ -723,16 +763,15 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			Tags:   []string{"Safety"},
 			Status: evalhub.JobStatus{State: "completed"},
 			Results: evalhub.JobResults{
-				TotalEvaluations: 8,
 				Benchmarks: []evalhub.BenchmarkResult{
-					{ID: "harmful_request_refusal", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"refusal_rate": 0.95, "false_positive_rate": 0.02}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.95), Threshold: ptr(0.8), Pass: &pass}},
-					{ID: "truthfulqa_mc1", ProviderID: "lm_evaluation_harness", Metrics: map[string]float64{"accuracy": 0.68, "calibration": 0.72}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.68), Threshold: ptr(0.5), Pass: &pass}},
-					{ID: "toxigen", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"toxicity_score": 0.12, "false_negative_rate": 0.08}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.88), Threshold: ptr(0.7), Pass: &pass}},
-					{ID: "toxicity_risk", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"risk_score": 0.45}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.55), Threshold: ptr(0.6), Pass: &fail}},
-					{ID: "ethical_alignment", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"alignment_score": 0.81}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.81), Threshold: ptr(0.7), Pass: &pass}},
-					{ID: "winobias", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"bias_score": 0.73}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.73), Threshold: ptr(0.8), Pass: &fail}},
-					{ID: "adversarial_robustness", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"robustness": 0.62}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.62), Threshold: ptr(0.5), Pass: &pass}},
-					{ID: "truthfulqa_gen", ProviderID: "lm_evaluation_harness", Metrics: map[string]float64{"truthfulness": 0.59}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.59), Threshold: ptr(0.5), Pass: &pass}},
+					{ID: "harmful_request_refusal", ProviderID: "safety_eval_suite", Metrics: map[string]any{"refusal_rate": 0.95, "false_positive_rate": 0.02}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.95), Threshold: ptr(0.8), Pass: &pass}},
+					{ID: "truthfulqa_mc1", ProviderID: "lm_evaluation_harness", Metrics: map[string]any{"accuracy": 0.68, "calibration": 0.72}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.68), Threshold: ptr(0.5), Pass: &pass}},
+					{ID: "toxigen", ProviderID: "safety_eval_suite", Metrics: map[string]any{"toxicity_score": 0.12, "false_negative_rate": 0.08}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.88), Threshold: ptr(0.7), Pass: &pass}},
+					{ID: "toxicity_risk", ProviderID: "safety_eval_suite", Metrics: map[string]any{"risk_score": 0.45}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.55), Threshold: ptr(0.6), Pass: &fail}},
+					{ID: "ethical_alignment", ProviderID: "safety_eval_suite", Metrics: map[string]any{"alignment_score": 0.81}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.81), Threshold: ptr(0.7), Pass: &pass}},
+					{ID: "winobias", ProviderID: "safety_eval_suite", Metrics: map[string]any{"bias_score": 0.73}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.73), Threshold: ptr(0.8), Pass: &fail}},
+					{ID: "adversarial_robustness", ProviderID: "safety_eval_suite", Metrics: map[string]any{"robustness": 0.62}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.62), Threshold: ptr(0.5), Pass: &pass}},
+					{ID: "truthfulqa_gen", ProviderID: "lm_evaluation_harness", Metrics: map[string]any{"truthfulness": 0.59}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.59), Threshold: ptr(0.5), Pass: &pass}},
 				},
 				Test: &evalhub.ResultTest{Score: ptr(0.72), Threshold: ptr(0.3), Pass: &pass},
 			},

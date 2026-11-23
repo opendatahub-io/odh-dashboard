@@ -24,7 +24,7 @@ import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { EvaluationJob } from '~/app/types';
 import { getBenchmarkDisplayName, getEvaluationName } from '~/app/utilities/evaluationUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import {
   COMPARE_RUNS_PAGE_TITLE,
   buildMlflowCompareSearchParams,
@@ -41,6 +41,8 @@ import {
 import { evaluationCompareRoute, evaluationsBaseRoute, projectHomeRoute } from '~/app/routes';
 
 const ChooseCompareBenchmarksPage: React.FC = () => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const { namespace } = useParams<{ namespace: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -118,7 +120,7 @@ const ChooseCompareBenchmarksPage: React.FC = () => {
         return selectedJob ? getEvaluationName(selectedJob) : run.jobId;
       }),
     });
-  }, [canCompare, namespace, navigate, selectedBenchmarkKeys, selectedJobs]);
+  }, [trackEvalHubEvent, canCompare, namespace, navigate, selectedBenchmarkKeys, selectedJobs]);
 
   const handleSelectionChange = React.useCallback((selectionKeys: string[], checked: boolean) => {
     setSelectedBenchmarkKeys((prev) => {

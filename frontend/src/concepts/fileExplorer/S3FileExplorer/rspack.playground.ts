@@ -133,6 +133,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
               transform: {
                 react: {
                   runtime: 'classic',
+                  development: true,
                   refresh: true,
                 },
               },

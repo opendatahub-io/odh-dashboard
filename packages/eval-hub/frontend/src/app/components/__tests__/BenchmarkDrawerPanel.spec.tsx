@@ -1,14 +1,13 @@
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Drawer, DrawerContent } from '@patternfly/react-core';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { mockFlatBenchmark } from '~/__mocks__/mockBenchmark';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import { FlatBenchmark } from '~/app/types';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { render } = setupTrackingTest();
 
 const mockOnClose = jest.fn();
 const mockOnRunBenchmark = jest.fn();
@@ -65,6 +64,39 @@ describe('BenchmarkDrawerPanel', () => {
     );
     expect(screen.queryByTestId('benchmark-drawer-panel')).not.toBeInTheDocument();
     expect(screen.queryByText('TruthfulQA MC1')).not.toBeInTheDocument();
+  });
+
+  it('should keep the panel DOM node mounted when a benchmark is selected', async () => {
+    // PF's slide-in/out animation only plays when the panel element persists across
+    // the collapsed/expanded switch. A focusTrap mismatch between the empty and
+    // populated branches changes the panel's root element type, which remounts the
+    // node and skips the transition. The panel class is PF-internal structure and
+    // is queried here precisely to assert that node identity is preserved.
+    const PanelHost = ({ benchmark }: { benchmark: FlatBenchmark | undefined }) => (
+      <Drawer isExpanded={!!benchmark}>
+        <DrawerContent
+          panelContent={
+            <BenchmarkDrawerPanel
+              benchmark={benchmark}
+              onClose={mockOnClose}
+              onRunBenchmark={mockOnRunBenchmark}
+            />
+          }
+        >
+          <div />
+        </DrawerContent>
+      </Drawer>
+    );
+
+    const view = render(<PanelHost benchmark={undefined} />);
+    const collapsedPanel = view.container.querySelector('.pf-v6-c-drawer__panel');
+    expect(collapsedPanel).toBeInTheDocument();
+
+    view.rerender(<PanelHost benchmark={mockFlatBenchmark()} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('benchmark-drawer-panel')).toBeInTheDocument();
+    });
+    expect(view.container.querySelector('.pf-v6-c-drawer__panel')).toBe(collapsedPanel);
   });
 
   it('should show provider name as plain text when no recommended_when', () => {

@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# CI-only Kind overlay. It renders the manifests from the current PR checkout;
+# no production manifest is copied or references this directory.
+namespace: opendatahub
+resources:
+  - ../../../manifests/odh
+patches:
+  # The production rendering path supplies the ServiceAccount namespace. Direct
+  # Kind application does not, so make the two existing bindings valid here.
+  - target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: odh-dashboard
+    patch: |-
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: odh-dashboard
+      subjects:
+        - kind: ServiceAccount
+          name: odh-dashboard
+          namespace: opendatahub
+  - target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: odh-dashboard-auth-delegator
+    patch: |-
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: odh-dashboard-auth-delegator
+      subjects:
+        - kind: ServiceAccount
+          name: odh-dashboard
+          namespace: opendatahub
+  - path: dashboard-kind.patch.yaml

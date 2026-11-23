@@ -44,6 +44,7 @@ module.exports = (env) => ({
                 transform: {
                   react: {
                     runtime: 'classic',
+                    development: env === 'development',
                     refresh: env === 'development',
                   },
                 },

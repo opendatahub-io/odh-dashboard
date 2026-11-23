@@ -221,7 +221,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               <EmptyState
                 data-testid={
                   unavailableReason === 'unsupported-provider'
-                    ? 'playground-neo4j-unavailable'
+                    ? 'playground-unsupported-provider'
                     : unavailableReason === 'database-secret' || unavailableReason === 'collection'
                       ? 'playground-vector-db-unavailable'
                       : unavailableReason === 'maas-secret'
@@ -232,7 +232,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
                 icon={ExclamationCircleIcon}
                 titleText={
                   unavailableReason === 'unsupported-provider'
-                    ? 'GraphRAG playground unavailable'
+                    ? 'Playground unavailable'
                     : unavailableReason === 'database-secret'
                       ? 'Playground unavailable'
                       : unavailableReason === 'maas-secret'
@@ -248,9 +248,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               >
                 <EmptyStateBody>
                   {unavailableReason === 'unsupported-provider'
-                    ? provider === 'neo4j'
-                      ? 'GraphRAG runs using Neo4j are not supported by the Responses playground. Use the run results and pattern details instead.'
-                      : 'This vector store provider is not supported by the Responses playground. Use the run results and pattern details instead.'
+                    ? 'This vector store provider is not supported by the Responses playground. Use the run results and pattern details instead.'
                     : unavailableReason === 'database-secret'
                       ? 'The database connection is unavailable for this historical run. Rerun or configure the run with its database connection to use the playground.'
                       : unavailableReason === 'maas-secret'

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
+import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import { cloneCollection } from '~/app/api/k8s';
 import { useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -109,6 +110,11 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
     [deleteCollection, namespace],
   );
 
+  const runPrerequisite = getCuratedCollectionConfig(collection)
+    ?.prerequisites.filter((part) => part.kind === 'run')
+    .map((part) => part.long)
+    .join(' ');
+
   return (
     <StartEvaluationRunModal
       isOpen={isOpen}
@@ -117,6 +123,7 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
       collection={collection}
       isCollectionFlow
       description={CURATED_SUITE_RUN_DESCRIPTION}
+      prerequisite={runPrerequisite || undefined}
       modalId="curated-suite-start-evaluation-run-modal"
       resolveCollection={resolveCollection}
       trackingSource={trackingSource}

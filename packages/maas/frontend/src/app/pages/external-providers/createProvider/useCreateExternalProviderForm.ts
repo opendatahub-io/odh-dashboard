@@ -11,7 +11,7 @@ import {
 } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { ZodIssue } from 'zod';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { AuthMechanism, SecretSummary } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useCreateExternalProvider } from '~/app/hooks/useCreateExternalProvider';

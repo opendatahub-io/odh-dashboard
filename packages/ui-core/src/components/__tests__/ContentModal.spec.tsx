@@ -122,6 +122,33 @@ describe('ContentModal', () => {
     expect(screen.getByText('This is a description')).toBeInTheDocument();
   });
 
+  it.each([
+    ['content', <div key="content">Test content</div>, true],
+    ['null', null, false],
+    ['undefined', undefined, false],
+  ])(
+    'should render the modal body only when contents are provided (%s)',
+    (_, contents, hasBody) => {
+      render(
+        <ContentModal
+          onClose={mockOnClose}
+          title="Test Modal"
+          bodyLabel="Modal body"
+          contents={contents}
+          buttonActions={[{ label: 'Close', onClick: jest.fn(), dataTestId: 'close-button' }]}
+        />,
+      );
+
+      expect(screen.getByText('Test Modal')).toBeInTheDocument();
+      expect(screen.getByTestId('close-button')).toBeInTheDocument();
+      if (hasBody) {
+        expect(screen.getByLabelText('Modal body')).toBeInTheDocument();
+      } else {
+        expect(screen.queryByLabelText('Modal body')).not.toBeInTheDocument();
+      }
+    },
+  );
+
   it('should render titleIconVariant when provided', () => {
     render(
       <ContentModal

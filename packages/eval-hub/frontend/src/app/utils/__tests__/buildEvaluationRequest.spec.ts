@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
-import type { FlatBenchmark, Collection } from '~/app/types';
+import type { FlatBenchmark, Collection, TestDataRef } from '~/app/types';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 
 const baseParams = {
   evaluationName: ' My Eval ',
@@ -14,6 +15,7 @@ const baseParams = {
   sourceName: '',
   datasetUrl: '',
   accessToken: '',
+  testDataRef: { ...testDataRefDefaultValues },
   additionalArgs: {} as Record<string, unknown>,
 };
 
@@ -184,34 +186,43 @@ describe('buildEvaluationRequest', () => {
       expect(result.model).not.toHaveProperty('auth');
     });
 
-    it('should add test_data_ref with s3 key and secret_ref to benchmarks', () => {
+    it('should add test_data_ref with a complete s3 ref to benchmarks', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
-          key: 's3://bucket/data.jsonl',
+          bucket: 'bucket',
+          key: 'data.jsonl',
           secret_ref: 'tok-123',
         },
       });
     });
 
-    it('should omit secret_ref when accessToken is empty', () => {
+    it('should not add test_data_ref when accessToken is empty', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         accessToken: '',
         benchmark: makeBenchmark(),
       });
-      expect(result.benchmarks![0].test_data_ref).toEqual({
-        s3: { key: 's3://bucket/data.jsonl' },
-      });
+      expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
     });
 
     it('should not add test_data_ref when datasetUrl is empty', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         datasetUrl: '   ',
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
+    });
+
+    it('should not add test_data_ref when datasetUrl is not a well-formed s3 url', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        datasetUrl: 'https://example.com/data.jsonl',
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
@@ -225,22 +236,487 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
-          key: 's3://bucket/data.jsonl',
+          bucket: 'bucket',
+          key: 'data.jsonl',
           secret_ref: 'tok-123',
         },
       });
     });
 
-    it('should omit secret_ref when accessToken is only whitespace', () => {
+    it('should not add test_data_ref when accessToken is only whitespace', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         accessToken: '   ',
         benchmark: makeBenchmark(),
       });
-      expect(result.benchmarks![0].test_data_ref).toEqual({
-        s3: { key: 's3://bucket/data.jsonl' },
+      expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
+    });
+  });
+
+  describe('prerecorded collection flow', () => {
+    it('should apply the edited reference to benchmarks that ran with a prerecorded s3 ref', () => {
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              type: 'pre_recorded_data',
+              s3: {
+                bucket: 'old-bucket',
+                key: 'old-data.jsonl',
+                secret_ref: 'old-secret',
+              },
+            },
+          },
+          {
+            id: 'hellaswag',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              type: 'pre_recorded_data',
+              s3: { bucket: 'old-bucket', key: 'legacy.jsonl' },
+            },
+          },
+        ],
       });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://new-bucket/new-data.jsonl',
+        accessToken: 'new-secret',
+        collection: col,
+      });
+
+      const expectedRef = {
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'new-bucket',
+          key: 'new-data.jsonl',
+          secret_ref: 'new-secret',
+        },
+      };
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(expectedRef);
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(expectedRef);
+    });
+
+    it('should preserve per-benchmark references that are not prerecorded s3 refs', () => {
+      const dataSetRef: TestDataRef = {
+        type: 'data_set',
+        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              type: 'pre_recorded_data',
+              s3: {
+                bucket: 'old-bucket',
+                key: 'old-data.jsonl',
+                secret_ref: 'old-secret',
+              },
+            },
+          },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: dataSetRef },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://new-bucket/new-data.jsonl',
+        accessToken: 'new-secret',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'new-bucket',
+          key: 'new-data.jsonl',
+          secret_ref: 'new-secret',
+        },
+      });
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(dataSetRef);
+    });
+
+    it('should keep stored prerecorded references when the edited fields are incomplete', () => {
+      const storedRef: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'old-bucket',
+          key: 'old-data.jsonl',
+          secret_ref: 'old-secret',
+        },
+      };
+      const col = makeCollection({
+        benchmarks: [{ id: 'mmlu', provider_id: 'lm_harness', test_data_ref: storedRef }],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://new-bucket/new-data.jsonl',
+        accessToken: '',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(storedRef);
+    });
+
+    it('should keep each stored reference on an unchanged reconfiguration with distinct prerecorded refs', () => {
+      const refA: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-a',
+          secret_ref: 'shared-secret',
+        },
+      };
+      const refB: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-b',
+          secret_ref: 'shared-secret',
+        },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          { id: 'mmlu', provider_id: 'lm_harness', test_data_ref: refA },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: refB },
+        ],
+      });
+      // Hydrated from the first stored reference and left untouched by the user.
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/benchmark-a',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(refA);
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(refB);
+    });
+
+    it('should rotate only the secret on a secret-only edit', () => {
+      const refA: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-a',
+          secret_ref: 'old-secret',
+        },
+      };
+      const refB: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-b',
+          secret_ref: 'old-secret',
+        },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          { id: 'mmlu', provider_id: 'lm_harness', test_data_ref: refA },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: refB },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/benchmark-a',
+        accessToken: 'new-secret',
+        collection: col,
+      });
+
+      // Each benchmark keeps its own dataset location; only the secret rotates.
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-a',
+          secret_ref: 'new-secret',
+        },
+      });
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-b',
+          secret_ref: 'new-secret',
+        },
+      });
+    });
+
+    it('should replace only the location on a location-only edit', () => {
+      const refA: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-a',
+          secret_ref: 'secret-a',
+        },
+      };
+      const refB: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-b',
+          secret_ref: 'secret-b',
+        },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          { id: 'mmlu', provider_id: 'lm_harness', test_data_ref: refA },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: refB },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/new-location',
+        accessToken: 'secret-a',
+        collection: col,
+      });
+
+      // The location is replaced everywhere; each benchmark keeps its own secret.
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'new-location',
+          secret_ref: 'secret-a',
+        },
+      });
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'results',
+          key: 'new-location',
+          secret_ref: 'secret-b',
+        },
+      });
+    });
+
+    it('should preserve the model endpoint and auth for a mixed collection in prerecorded mode', () => {
+      const dataSetRef: TestDataRef = {
+        type: 'data_set',
+        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              type: 'pre_recorded_data',
+              s3: {
+                bucket: 'results',
+                key: 'benchmark-a',
+                secret_ref: 'shared-secret',
+              },
+            },
+          },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: dataSetRef },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        endpointUrl: 'https://ext.example.com/v1',
+        apiKeySecretRef: 'endpoint-secret',
+        datasetUrl: 's3://results/benchmark-a',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.model.url).toBe('https://ext.example.com/v1');
+      expect(result.model.auth).toEqual({ secret_ref: 'endpoint-secret' });
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(
+        col.benchmarks![0].test_data_ref,
+      );
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(dataSetRef);
+    });
+
+    it('should clear the model endpoint and auth for a purely prerecorded collection', () => {
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              type: 'pre_recorded_data',
+              s3: {
+                bucket: 'results',
+                key: 'benchmark-a',
+                secret_ref: 'shared-secret',
+              },
+            },
+          },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        endpointUrl: 'https://ext.example.com/v1',
+        apiKeySecretRef: 'endpoint-secret',
+        datasetUrl: 's3://results/benchmark-a',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.model.url).toBe('');
+      expect(result.model).not.toHaveProperty('auth');
+    });
+  });
+
+  describe('model mode test data', () => {
+    it('should serialize an s3 test data ref with type data_set', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        testDataRef: {
+          ...testDataRefDefaultValues,
+          source: 's3',
+          bucket: 'eval-data',
+          key: 'ragas/dataset.jsonl',
+          secretRef: 'my-s3-secret',
+        },
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'data_set',
+        s3: {
+          bucket: 'eval-data',
+          key: 'ragas/dataset.jsonl',
+          secret_ref: 'my-s3-secret',
+        },
+      });
+    });
+
+    it('should serialize a pvc test data ref and strip empty optionals', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        testDataRef: {
+          ...testDataRefDefaultValues,
+          source: 'pvc',
+          claimName: 'eval-datasets-pvc',
+          subPath: '  ',
+        },
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'data_set',
+        pvc: { claim_name: 'eval-datasets-pvc' },
+      });
+    });
+
+    it('should serialize a git test data ref with optionals', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        testDataRef: {
+          ...testDataRefDefaultValues,
+          source: 'git',
+          url: 'https://github.com/org/datasets.git',
+          ref: 'main',
+          subPath: 'benchmark-a',
+          secretRef: 'git-auth',
+        },
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'data_set',
+        git: {
+          url: 'https://github.com/org/datasets.git',
+          ref: 'main',
+          sub_path: 'benchmark-a',
+          secret_ref: 'git-auth',
+        },
+      });
+    });
+
+    it('should serialize an hf test data ref and strip empty optionals', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+        testDataRef: {
+          ...testDataRefDefaultValues,
+          source: 'hf',
+          repoId: 'cais/mmlu',
+          revision: '  ',
+        },
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'data_set',
+        hf: { repo_id: 'cais/mmlu' },
+      });
+    });
+
+    it('should not include test_data_ref when the source is none', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
+    });
+
+    it('should not include model mode test data in prerecorded mode', () => {
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://bucket/data.jsonl',
+        accessToken: 'tok-123',
+        benchmark: makeBenchmark(),
+        testDataRef: {
+          ...testDataRefDefaultValues,
+          source: 's3',
+          bucket: 'eval-data',
+          key: 'ragas/dataset.jsonl',
+          secretRef: 'my-s3-secret',
+        },
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'bucket',
+          key: 'data.jsonl',
+          secret_ref: 'tok-123',
+        },
+      });
+    });
+
+    it('should carry per-benchmark test_data_ref through collection flow requests', () => {
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'ragas_rag_default',
+            provider_id: 'ragas',
+            test_data_ref: {
+              type: 'data_set',
+              s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
+            },
+          },
+          { id: 'hellaswag', provider_id: 'lm_harness' },
+        ],
+      });
+      const result = buildEvaluationRequest({ ...baseParams, collection: col });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'data_set',
+        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
+      });
+      expect(result.collection!.benchmarks![1]).not.toHaveProperty('test_data_ref');
     });
   });
 

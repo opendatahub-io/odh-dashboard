@@ -1,10 +1,12 @@
 import * as React from 'react';
 import { Checkbox, Content, Grid, GridItem, Tab, TabTitleText, Tabs } from '@patternfly/react-core';
 import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
+import { isInvertedFeatureFlag } from '@odh-dashboard/ui-core/utilities';
 import { FeatureFlagLauncherProps } from '#~/app/featureFlags/FeatureFlagLauncher';
 import { useDevFlags } from '#~/app/featureFlags/useDevFeatureFlags';
 import {
   devTemporaryFeatureFlags,
+  devFlagDefaults,
   techPreviewFlags,
   coreDashboardFlags,
   projectManagementFlags,
@@ -26,10 +28,9 @@ const FeatureFlagModal: React.FC<Props> = ({
 
   const safeDevFeatureFlags = devFeatureFlags || {};
 
-  const determineValueByName = (flagName: string) => flagName.startsWith('disable');
+  const determineValueByName = (flagName: string) => isInvertedFeatureFlag(flagName);
 
-  // if no value:  if starts with disable : check it
-  // if doesn't start with disable: then unchecked
+  // If no value, inverted flags are checked and regular flags are unchecked.
   const renderFlags = (flags: string[], fallbackFlags?: Record<string, boolean | undefined>) => (
     <Grid hasGutter span={6} md={3}>
       {flags.toSorted().map((key) => {
@@ -91,9 +92,10 @@ const FeatureFlagModal: React.FC<Props> = ({
         <Tab eventKey={1} title={<TabTitleText>Dev Flags</TabTitleText>} data-testid="devFlagTab">
           <Content style={{ height: '400px', padding: '8px' }}>
             <Content component="p">
-              Dev flags default to inactive and can only be changed for the current session.
+              Dev flags are inactive by default unless a default is set in code, and can only be
+              changed for the current session.
             </Content>
-            {renderFlags(devFlags)}
+            {renderFlags(devFlags, devFlagDefaults)}
           </Content>
         </Tab>
       )}

@@ -1,79 +1,58 @@
 import * as React from 'react';
-import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
+import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { getSubscriptionCreateUrl } from '~/app/utilities/maasGovernanceNavigation';
-import {
-  EventTrackingFilterAttribute,
-  MaaSEvents,
-  EventTrackingResourceType,
-  MaaSSettingsListFilteredProperties,
-} from '~/app/types/event-tracking';
-import {
-  SubscriptionsFilterDataType,
-  SubscriptionsFilterOptions,
-  subscriptionsFilterOptions,
-} from './const';
+import { MaaSSubscription } from '~/app/types/subscriptions';
+import { SubscriptionsFilterDataType, SubscriptionsFilterOptions } from './const';
+import SubscriptionsFilterToolbar from './SubscriptionsFilterToolbar';
 
 type SubscriptionsToolbarProps = {
+  subscriptions: MaaSSubscription[];
+  testIdPrefix?: string;
   filterData: SubscriptionsFilterDataType;
   onFilterUpdate: (
     key: SubscriptionsFilterOptions,
     value?: string | { label: string; value: string },
   ) => void;
   returnTo?: string;
+  /** Read-only viewers cannot create subscriptions. Defaults to true. */
+  showCreateButton?: boolean;
 };
 
 const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
   filterData,
   onFilterUpdate,
   returnTo,
+  showCreateButton = true,
+  subscriptions,
+  testIdPrefix,
 }) => (
-  <FilterToolbar<SubscriptionsFilterOptions>
-    data-testid="subscriptions-table-toolbar"
-    filterOptions={subscriptionsFilterOptions}
-    filterOptionRenders={{
-      [SubscriptionsFilterOptions.keyword]: ({ onChange, ...props }) => (
-        <SearchInput
-          {...props}
-          style={{ minWidth: '350px' }}
-          aria-label="Filter by name, resource name, or description"
-          placeholder="Filter by name, resource name, or description"
-          onChange={(_event, value) => onChange(value)}
-          data-testid="subscriptions-filter-input"
-          inputProps={{
-            onBlur: () => {
-              fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
-                filterAttribute: EventTrackingFilterAttribute.KEYWORD,
-                resourceType: EventTrackingResourceType.SUBSCRIPTION,
-              } satisfies MaaSSettingsListFilteredProperties);
-            },
-          }}
-        />
-      ),
-    }}
+  <SubscriptionsFilterToolbar
+    subscriptions={subscriptions}
+    testIdPrefix={testIdPrefix}
     filterData={filterData}
     onFilterUpdate={onFilterUpdate}
   >
     <ToolbarGroup>
-      <ToolbarItem>
-        <Button
-          variant="primary"
-          component={(props) => (
-            <Link
-              {...props}
-              to={getSubscriptionCreateUrl()}
-              state={returnTo ? { returnTo } : undefined}
-            />
-          )}
-          data-testid="create-subscription-button"
-        >
-          Create subscription
-        </Button>
-      </ToolbarItem>
+      {showCreateButton && (
+        <ToolbarItem>
+          <Button
+            variant="primary"
+            component={(props) => (
+              <Link
+                {...props}
+                to={getSubscriptionCreateUrl()}
+                state={returnTo ? { returnTo } : undefined}
+              />
+            )}
+            data-testid="create-subscription-button"
+          >
+            Create subscription
+          </Button>
+        </ToolbarItem>
+      )}
     </ToolbarGroup>
-  </FilterToolbar>
+  </SubscriptionsFilterToolbar>
 );
 
 export default SubscriptionsToolbar;

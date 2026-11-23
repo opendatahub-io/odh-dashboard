@@ -295,13 +295,8 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		// the value set here is the trusted, server-resolved token. Both headers
 		// are forwarded so upstreams reading either convention authenticate.
 		//
-		// This injection also covers the case where the configured auth header IS
-		// the standard Authorization header: SensitiveIngressHeaders appends the
-		// configured header to StripHeaders, so the "Bearer <token>" value set by
-		// AuthHeaderFn would otherwise be stripped and never reach the upstream.
-		// Because SetOutboundHeadersFn runs after stripping, re-injecting here (with
-		// the "Bearer " prefix for the Authorization header, raw otherwise) restores
-		// the trusted token regardless of which header is configured.
+		// Keep the Bearer prefix when the configured ingress header is Authorization;
+		// other configured headers receive the raw token.
 		authTokenHeader := app.config.AuthTokenHeader
 		if authTokenHeader != "" || len(customHeaders) > 0 {
 			isAuthorizationHeader := strings.EqualFold(authTokenHeader, constants.HeaderAuthorization)

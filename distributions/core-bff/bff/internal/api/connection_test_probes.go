@@ -15,6 +15,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
+
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -128,7 +131,7 @@ func newTLSHTTPClient(rootCAs *x509.CertPool, insecureSkipVerify bool) *http.Cli
 		MaxConnsPerHost:     2,
 	}
 	return &http.Client{
-		Transport: transport,
+		Transport: httpcontract.Transport{Base: transport, SkipAuditCapture: true},
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -381,7 +384,7 @@ func probeURI(pc ProbeContext) models.ConnectionTestResult {
 
 	displayURI := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 
-	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusBadRequest {
 		return successResult(fmt.Sprintf("URI %s is reachable (HTTP %d)", displayURI, resp.StatusCode))
 	}
 
@@ -494,9 +497,9 @@ func probeOCI(pc ProbeContext) models.ConnectionTestResult {
 	if err != nil {
 		return failedResult("Failed to create probe request")
 	}
-	req.Header.Set("Accept", ociAcceptHeader)
+	req.Header.Set(constants.HeaderAccept, ociAcceptHeader)
 	if basicAuth != "" {
-		req.Header.Set("Authorization", basicAuth)
+		req.Header.Set(constants.HeaderAuthorization, basicAuth)
 	}
 
 	resp, err := httpClient.Do(req)
@@ -517,8 +520,8 @@ func probeOCI(pc ProbeContext) models.ConnectionTestResult {
 		if token, ok := fetchBearerToken(pc.Ctx, httpClient, challenge, basicAuth); ok {
 			retryReq, retryErr := http.NewRequestWithContext(pc.Ctx, http.MethodHead, probeURL, nil)
 			if retryErr == nil {
-				retryReq.Header.Set("Accept", ociAcceptHeader)
-				retryReq.Header.Set("Authorization", "Bearer "+token)
+				retryReq.Header.Set(constants.HeaderAccept, ociAcceptHeader)
+				retryReq.Header.Set(constants.HeaderAuthorization, "Bearer "+token)
 				retryResp, retryDoErr := httpClient.Do(retryReq)
 				if retryDoErr != nil {
 					if pc.Ctx.Err() != nil {
@@ -601,7 +604,7 @@ func fetchBearerToken(ctx context.Context, client *http.Client, challenge, basic
 	if err != nil {
 		return "", false
 	}
-	req.Header.Set("Authorization", basicAuth)
+	req.Header.Set(constants.HeaderAuthorization, basicAuth)
 
 	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {

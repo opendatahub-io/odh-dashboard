@@ -1,7 +1,11 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import BenchmarkConfigAccordion from '~/app/components/BenchmarkConfigAccordion';
 import type { CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
+
+const { render } = setupTrackingTest();
 
 const benchmarks: CopySuiteBenchmark[] = [
   {
@@ -16,6 +20,7 @@ const benchmarks: CopySuiteBenchmark[] = [
     ],
     threshold: 70,
     availableMetrics: ['accuracy', 'f1'],
+    testDataRef: { ...testDataRefDefaultValues },
   },
   {
     id: 'truthfulqa',
@@ -29,6 +34,7 @@ const benchmarks: CopySuiteBenchmark[] = [
     ],
     threshold: 75,
     availableMetrics: ['accuracy'],
+    testDataRef: { ...testDataRefDefaultValues },
   },
 ];
 

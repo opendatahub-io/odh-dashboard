@@ -25,4 +25,5 @@ func (app *App) registerBaseRoutes(r *httprouter.Router) {
 	// Authenticated
 	r.GET(UserPath, app.secureRoute(app.UserHandler))
 	r.GET(NamespacePath, app.secureRoute(app.GetNamespacesHandler))
+	r.GET(NamespacePath+"/:name", app.secureRoute(app.GetNamespaceHandler))
 }

@@ -7,7 +7,7 @@ import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { DEFAULT_LIST_WATCH_RESULT } from '@odh-dashboard/internal/utilities/const';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { useTemplates } from '@odh-dashboard/internal/api';
 import useTemplateOrder from './useTemplateOrder';
 import useTemplateDisablement from './useTemplateDisablement';

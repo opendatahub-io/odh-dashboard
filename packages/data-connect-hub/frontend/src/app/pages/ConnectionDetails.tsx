@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,6 +11,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -25,6 +27,9 @@ import {
   Skeleton,
   Stack,
   StackItem,
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, InProgressIcon } from '@patternfly/react-icons';
 import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
@@ -45,25 +50,48 @@ import RelativeTimestamp from '~/app/components/RelativeTimestamp';
 import { useConnection } from '~/app/hooks/useConnection';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
+import { getConnectionAccessTooltip } from '~/app/utilities/connectionAccess';
+import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+  getConnectionTypeProvider,
+} from '~/app/utilities/tracking';
 import {
   hasVerificationOutcome,
   isValidTimestamp,
   statusVariant,
 } from '~/app/utilities/connectionStatus';
+import * as snippets from '~/app/utilities/dchSnippets';
+import { ConnectionTypeLabel } from '~/app/components/ConnectionType.tsx';
+import useDarkMode from '~/app/hooks/useDarkMode';
+
+const DCHCodeEditor = React.lazy(() => import('~/app/components/DCHCodeEditor'));
 
 type ConnectionDetailsContentProps = {
   namespace: string;
 };
 
 const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ namespace }) => {
+  const trackEvent = useTrackEvent();
   const { connectionId = '' } = useParams<'connectionId'>();
   const { search } = useLocation();
+  const { isAllowed: canVerifyConnection, loaded: verifyAccessLoaded } = useConnectionAccess(
+    namespace,
+    'create',
+  );
+  const { isAllowed: canDeleteConnection, loaded: deleteAccessLoaded } = useConnectionAccess(
+    namespace,
+    'delete',
+  );
+  const isVerifyAccessDisabled = !canVerifyConnection || !verifyAccessLoaded;
   const [namespaces] = useNamespaces();
   const [connection, loaded, loadError, refresh] = useConnection(namespace, connectionId);
   const [verifying, setVerifying] = React.useState(false);
   const [verificationError, setVerificationError] = React.useState<Error>();
   const [actionsOpen, setActionsOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [ingestionExample, setIngestionExample] = React.useState<'python' | 'rest'>('python');
   const verificationOperationRef = React.useRef(0);
   const navigate = useNavigate();
   const connectionsPath = { pathname: '..', search };
@@ -84,6 +112,19 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
     Boolean(connectionTypeId),
   );
   const connectionTypeName = connectionType?.resource.name ?? connectionTypeId;
+  const isVerifyDisabled = isVerifyAccessDisabled || !connection || verifying;
+  const verifyButton = (
+    <Button
+      variant="link"
+      data-testid="connection-verify-button"
+      isAriaDisabled={isVerifyDisabled}
+      onClick={() => void handleVerify()}
+    >
+      Verify connection
+    </Button>
+  );
+  const dataIngestionCode = snippets.python(namespace, connectionId);
+  const restIngestionCode = snippets.bash(namespace, connectionId);
 
   React.useEffect(
     () => () => {
@@ -92,8 +133,10 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
     [],
   );
 
+  const isDarkMode = useDarkMode();
+
   const handleVerify = async () => {
-    if (!connection || verifying) {
+    if (isVerifyAccessDisabled || !connection || verifying) {
       return;
     }
 
@@ -132,6 +175,11 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
               Connection
             </Label>
           </FlexItem>
+          {connectionType && (
+            <FlexItem>
+              <ConnectionTypeLabel connectionType={connectionType} />
+            </FlexItem>
+          )}
         </Flex>
       }
       breadcrumb={
@@ -169,7 +217,16 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
           >
             <DropdownList>
               <DropdownItem
-                isDisabled={verifying}
+                isAriaDisabled={isVerifyAccessDisabled || verifying}
+                tooltipProps={
+                  isVerifyAccessDisabled
+                    ? {
+                        content: verifyAccessLoaded
+                          ? getConnectionAccessTooltip('create')
+                          : 'Checking access...',
+                      }
+                    : undefined
+                }
                 onClick={() => {
                   setActionsOpen(false);
                   void handleVerify();
@@ -177,9 +234,31 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
               >
                 Verify connection
               </DropdownItem>
+              <Divider />
               <DropdownItem
+                isAriaDisabled={!canDeleteConnection || !deleteAccessLoaded}
+                tooltipProps={
+                  !canDeleteConnection || !deleteAccessLoaded
+                    ? {
+                        content: deleteAccessLoaded
+                          ? getConnectionAccessTooltip('delete')
+                          : 'Checking access...',
+                      }
+                    : undefined
+                }
                 onClick={() => {
+                  if (!canDeleteConnection || !deleteAccessLoaded) {
+                    return;
+                  }
                   setActionsOpen(false);
+                  fireDataConnectHubTrackEvent(trackEvent, {
+                    eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
+                    properties: {
+                      project: namespace,
+                      connectionTypeProvider:
+                        getConnectionTypeProvider(connectionType) ?? 'unknown',
+                    },
+                  });
                   setDeleteOpen(true);
                 }}
               >
@@ -242,6 +321,65 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                   </Card>
                 </StackItem>
               )}
+              {connectionType?.isFullIntegration() && (
+                <StackItem>
+                  <Card data-testid="connection-ingestion-card">
+                    <CardTitle>Ingestion integration code</CardTitle>
+                    <CardBody>
+                      <Stack hasGutter>
+                        <StackItem>
+                          <DescriptionList
+                            columnModifier={{ default: '2Col' }}
+                            isCompact
+                            isFillColumns
+                          >
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Format</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                {connection?.resource.format}
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                          </DescriptionList>
+                        </StackItem>
+                        <StackItem>
+                          <ToggleGroup aria-label="Data ingestion example language">
+                            <ToggleGroupItem
+                              text="Python"
+                              buttonId="ingestion-example-python"
+                              data-testid="ingestion-example-python"
+                              isSelected={ingestionExample === 'python'}
+                              onChange={() => setIngestionExample('python')}
+                            />
+                            <ToggleGroupItem
+                              text="REST API (cURL)"
+                              buttonId="ingestion-example-rest"
+                              data-testid="ingestion-example-rest"
+                              isSelected={ingestionExample === 'rest'}
+                              isDisabled={connection?.resource.format === 'tabular'}
+                              onChange={() => setIngestionExample('rest')}
+                            />
+                          </ToggleGroup>
+                        </StackItem>
+                        <StackItem>
+                          <React.Suspense
+                            fallback={<Skeleton screenreaderText="Loading ingestion example" />}
+                          >
+                            <DCHCodeEditor
+                              code={
+                                ingestionExample === 'python'
+                                  ? dataIngestionCode
+                                  : restIngestionCode
+                              }
+                              example={ingestionExample}
+                              isDarkTheme={isDarkMode}
+                            />
+                          </React.Suspense>
+                        </StackItem>
+                      </Stack>
+                    </CardBody>
+                  </Card>
+                </StackItem>
+              )}
             </Stack>
           </GridItem>
           <GridItem lg={4} md={12}>
@@ -265,9 +403,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                           variant="outline"
                           status={statusVariant[testedConnection.status.state]}
                         >
-                          {testedConnection.status.state === 'ready'
-                            ? 'Verified'
-                            : 'Verification failed'}
+                          {testedConnection.status.state === 'ready' ? 'Verified' : 'Failed'}
                         </Label>
                       ) : (
                         <Label variant="outline" color="grey">
@@ -289,14 +425,19 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                 </DescriptionList>
               </CardBody>
               <CardBody>
-                <Button
-                  variant="link"
-                  data-testid="connection-verify-button"
-                  isDisabled={!connection || verifying}
-                  onClick={() => void handleVerify()}
-                >
-                  Verify connection
-                </Button>
+                {isVerifyAccessDisabled ? (
+                  <Tooltip
+                    content={
+                      verifyAccessLoaded
+                        ? getConnectionAccessTooltip('create')
+                        : 'Checking access...'
+                    }
+                  >
+                    {verifyButton}
+                  </Tooltip>
+                ) : (
+                  verifyButton
+                )}
                 {verificationError && (
                   <HelperText>
                     <HelperTextItem variant="error">{verificationError.message}</HelperTextItem>

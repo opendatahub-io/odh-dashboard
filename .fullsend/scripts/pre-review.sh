@@ -35,6 +35,9 @@
 #      and no apply_human_dismissals step, because post-review.sh writes no
 #      ids or dispositions and posts no inline threads to dismiss. Their forge
 #      helpers stay in the bundled library unused.
+#  10. Capture images attached to the PR body and issue comments for the
+#      sandbox (fetch-pr-images.sh), run alongside the host adapters. It
+#      fails open and never exposes REVIEW_TOKEN to the sandbox.
 # The local main-flow steps call `gh` directly, so this copy only completes a
 # review on GitHub; the GitLab library is carried as bundled.
 #
@@ -153,7 +156,7 @@ validate_adapter_registry() {
       (.host.setup_runner | type == "string" and
         (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
       all(
-        [.host.credentials.url_env, .host.credentials.username_env, .host.credentials.token_env][];
+        [(.host.credentials.url_env // ""), (.host.credentials.username_env // ""), (.host.credentials.token_env // "")][];
         type == "string" and test("^([A-Z][A-Z0-9_]*)?$")
       )
     )
@@ -258,7 +261,8 @@ adapter_credential() {
 # environment holds the minted review token (REVIEW_TOKEN, GH_TOKEN) and the
 # other host-script variables, and a setup step runs a vendor installer, so
 # neither setup nor runner inherits it: they get these names, plus what
-# run_adapter adds.
+# run_adapter adds. JIRA_BASE_URL is the public browse URL; the Jira API URL
+# is forwarded only to its adapter as a credential.
 adapter_base_env() {
   local name
   for name in PATH HOME TMPDIR LANG LC_ALL RUNNER_TEMP; do
@@ -291,6 +295,7 @@ run_adapter() {
   fi
 
   env -i "${base_env[@]}" \
+    JIRA_BASE_URL="${JIRA_BASE_URL:-}" \
     FULLSEND_ADAPTER_URL="$(adapter_credential "${url_env}")" \
     FULLSEND_ADAPTER_USERNAME="$(adapter_credential "${username_env}")" \
     FULLSEND_ADAPTER_TOKEN="${token}" \
@@ -342,8 +347,7 @@ run_pre_review_adapters() {
     .dimensions[]
     | select(.kind == "cli-adapter" and .host.execution == "pre_review")
     | [.id, .output, .producer_file, .runner, (.host.setup_runner // ""),
-       (.host.credentials.url_env // ""), (.host.credentials.username_env // ""),
-       (.host.credentials.token_env // "")]
+       (.host.credentials.url_env // ""), (.host.credentials.username_env // ""), (.host.credentials.token_env // "")]
     | join("|")
   ' "${registry}")
   for ((i = 0; i < ${#ids[@]}; i++)); do
@@ -485,7 +489,7 @@ run_self_test() {
   fi
   if ! (
     unset GITHUB_PR_URL PR_URL PR_NUMBER
-    FULLSEND_WORK_ITEM_URL='https://github.com/Gkrumbach07/odh-dashboard/pull/61'
+    FULLSEND_WORK_ITEM_URL='https://github.com/example-owner/example-repo/pull/61'
     ISSUE_NUMBER=61
     normalize_dispatch_context
     [[ "${GITHUB_PR_URL}" == "${FULLSEND_WORK_ITEM_URL}" && "${PR_URL}" == "${FULLSEND_WORK_ITEM_URL}" && "${PR_NUMBER}" == "61" ]]
@@ -541,7 +545,7 @@ run_self_test() {
     _SCRIPT_DIR="${temp_dir}/scripts"
     mkdir -p "${_SCRIPT_DIR}" "${temp_dir}/.run"
     printf '%s\n' '#!/usr/bin/env bash' \
-      'env | grep -E "^(FULLSEND_ADAPTER_|ALPHA_|BETA_|REVIEW_|GH_)" | sort > "${0%.sh}.env"' > "${_SCRIPT_DIR}/a.sh"
+      'env | grep -E "^(FULLSEND_ADAPTER_|JIRA_BASE_URL|ALPHA_|BETA_|REVIEW_|GH_)" | sort > "${0%.sh}.env"' > "${_SCRIPT_DIR}/a.sh"
     cp "${_SCRIPT_DIR}/a.sh" "${_SCRIPT_DIR}/b.sh"
     cp "${_SCRIPT_DIR}/a.sh" "${_SCRIPT_DIR}/c.sh"
     printf '%s\n' '#!/usr/bin/env bash' \
@@ -552,19 +556,20 @@ run_self_test() {
     jq -n '{dimensions: [
       {id: "a", kind: "cli-adapter", output: "context", runner: "scripts/a.sh", producer_file: ".run/a.json",
        host: {execution: "pre_review", setup_runner: "scripts/setup.sh",
-              credentials: {url_env: "ALPHA_URL", username_env: "", token_env: "ALPHA_TOKEN"}}},
+              credentials: {url_env: "ALPHA_URL", token_env: "ALPHA_TOKEN"}}},
       {id: "b", kind: "cli-adapter", output: "findings", runner: "scripts/b.sh", producer_file: ".run/b.json",
        host: {execution: "pre_review", setup_runner: "",
-              credentials: {url_env: "", username_env: "", token_env: "BETA_TOKEN"}}},
+              credentials: {token_env: "BETA_TOKEN"}}},
       {id: "c", kind: "cli-adapter", output: "findings", runner: "scripts/c.sh", producer_file: ".run/c.json",
        host: {execution: "pre_review", setup_runner: "scripts/setup-c.sh",
-              credentials: {url_env: "", username_env: "", token_env: "GAMMA_TOKEN"}}},
+              credentials: {token_env: "GAMMA_TOKEN"}}},
       {id: "d", kind: "cli-adapter", output: "findings", runner: "scripts/d.sh", producer_file: ".run/d.json",
        host: {execution: "pre_review", setup_runner: "",
-              credentials: {url_env: "", username_env: "", token_env: ""}}}
+              credentials: {}}}
     ]}' > "${temp_dir}/dimensions.json"
-    export ALPHA_URL="https://alpha.example.test" ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
+    export ALPHA_URL="https://api.example.test" ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
     export REVIEW_TOKEN="review-token-value" GH_TOKEN="gh-token-value"
+    export JIRA_BASE_URL="https://jira.example.test"
     # GAMMA's secret is not set, so the shim sends the placeholder.
     export GAMMA_TOKEN="${ADAPTER_CREDENTIAL_UNSET}"
     capture_adapter_credentials || exit 1
@@ -579,14 +584,16 @@ run_self_test() {
       [[ -f "${_SCRIPT_DIR}/${f}" ]] || exit 1
     done
     expect_line 'FULLSEND_ADAPTER_TOKEN=alpha-token-value' a.env
-    expect_line 'FULLSEND_ADAPTER_URL=https://alpha.example.test' a.env
+    expect_line 'FULLSEND_ADAPTER_URL=https://api.example.test' a.env
     expect_line 'FULLSEND_ADAPTER_BIN=/opt/tool' a.env
     expect_line 'FULLSEND_ADAPTER_REPO=o/r' a.env
     expect_line 'FULLSEND_ADAPTER_BASE_REF=main' a.env
+    expect_line 'JIRA_BASE_URL=https://jira.example.test' a.env
     expect_line 'FULLSEND_ADAPTER_TOKEN=beta-token-value' b.env
     expect_line 'FULLSEND_ADAPTER_BIN=' b.env
     expect_line 'FULLSEND_ADAPTER_TOKEN=' c.env
     refuse_text 'alpha-token-value' "${_SCRIPT_DIR}/b.env"
+    refuse_text 'api.example.test' "${_SCRIPT_DIR}/b.env"
     refuse_text 'beta-token-value' "${_SCRIPT_DIR}/a.env"
     refuse_text '^(ALPHA_|BETA_|REVIEW_TOKEN|GH_)' "${_SCRIPT_DIR}/a.env" "${_SCRIPT_DIR}/b.env" "${_SCRIPT_DIR}/c.env" "${_SCRIPT_DIR}/setup.env"
     [[ ! -e "${_SCRIPT_DIR}/setup-c.env" ]] || exit 1
@@ -654,6 +661,15 @@ run_self_test() {
     echo "PASS prior-review projection validation"
   fi
   rm -rf "${prior_dir}"
+  if [[ -f "${_SCRIPT_DIR}/../scripts/fetch-pr-images.sh" ]]; then
+    if image_test_output="$(bash "${_SCRIPT_DIR}/../scripts/fetch-pr-images.sh" --self-test 2>&1)"; then
+      echo "PASS PR image capture self-test"
+    else
+      echo "FAIL PR image capture self-test" >&2
+      printf '%s\n' "${image_test_output}" >&2
+      fail=1
+    fi
+  fi
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
@@ -1585,10 +1601,34 @@ fi
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
+# Capture images attached to the PR body and issue comments while the host
+# adapters run. Only GitHub attachment hosts are fetched; the local manifest
+# and tarball are staged for the sandbox by host_files. The script fails open.
+PR_IMAGE_LOG=""
+PR_IMAGE_PID=""
+if [[ -f "${_SCRIPT_DIR}/../scripts/fetch-pr-images.sh" ]]; then
+  PR_IMAGE_LOG="$(mktemp)"
+  (
+    # REVIEW_TOKEN and REVIEW_PR_BODY are already exported above; the rest are
+    # set for this child only.
+    export REPO="${REPO:-}" PR_NUMBER="${PR_NUMBER:-}" PR_HEAD_SHA="${PR_HEAD_SHA:-}"
+    bash "${_SCRIPT_DIR}/../scripts/fetch-pr-images.sh"
+  ) >"${PR_IMAGE_LOG}" 2>&1 &
+  PR_IMAGE_PID="$!"
+fi
+
 # Run the registered host adapters and collect every envelope generically.
 # This runs only after the state and author checks above, so a skipped review
 # buys no CodeRabbit run, and inside the review job, so a newer push cancels
 # it with the review. Adapter credentials never enter the sandbox.
 prepare_cli_adapters
+
+if [[ -n "${PR_IMAGE_PID}" ]]; then
+  if ! wait "${PR_IMAGE_PID}"; then
+    echo "::warning::PR image capture failed; continuing without images"
+  fi
+  cat "${PR_IMAGE_LOG}" 2>/dev/null || true
+  rm -f "${PR_IMAGE_LOG}"
+fi
 
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"

@@ -11,6 +11,8 @@ servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtim
 hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
 # Benchmark + evaluation config
 benchmarkCardTitle: Basic science Q&A
+benchmarkProviderId: lm_evaluation_harness
+benchmarkId: arc_easy
 inferenceModelName: evalhub-llm
 mlflowExperimentName: Cy-Evalhub
 additionalBenchmarkParams: |

@@ -89,6 +89,19 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
+# When HTTPS is enabled the backend resolves the cluster-wide TLS security profile
+# and adherence from apiservers.config.openshift.io/cluster and watches it for
+# changes. list/watch are required by the informer-based watcher (and must omit
+# resourceNames to be granted); apiservers is a cluster singleton. Plaintext
+# (default) deployments do not exercise this path.
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - apiservers
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

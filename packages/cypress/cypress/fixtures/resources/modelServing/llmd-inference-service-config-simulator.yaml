@@ -4,7 +4,7 @@ metadata:
   annotations:
     description: llm-d-inference-sim LLMInferenceServiceConfig for MaaS E2E (no model weights).
     opendatahub.io/runtime-version: v0.1
-    openshift.io/display-name: LLM-d inference simulator
+    openshift.io/display-name: "{{CONFIG_NAME}}"
   name: "{{CONFIG_NAME}}"
   labels:
     opendatahub.io/config-type: accelerator

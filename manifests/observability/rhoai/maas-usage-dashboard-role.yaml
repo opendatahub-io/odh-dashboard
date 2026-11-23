@@ -1,0 +1,9 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: odh-dashboard-maas-usage-dashboards
+rules:
+  - apiGroups: [perses.dev]
+    resources: [persesdashboards]
+    resourceNames: [dashboard-5-maas-usage-logs, dashboard-4-maas-usage-logs-admin]
+    verbs: [get]

@@ -12,6 +12,7 @@ This document describes environment variables that are injected into the dashboa
 
 - Main dashboard container (`odh-dashboard` or `rhods-dashboard`)
 - All modular architecture BFF containers:
+  - `autorag-ui`
   - `gen-ai-ui`
   - `model-registry-ui`
   - `maas-ui`

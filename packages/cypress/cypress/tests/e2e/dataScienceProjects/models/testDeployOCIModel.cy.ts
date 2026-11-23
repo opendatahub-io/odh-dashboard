@@ -18,33 +18,29 @@ import {
 import type { DeployOCIModelData } from '../../../../types';
 import { loadDeployOCIModelFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import { skipOnArm } from '../../../../utils/skipUtils';
 
 let projectName: string;
 let resourceName: string;
 let connectionName: string;
-let secretDetailsFile: string;
 let ociRegistryHost: string;
 let modelDeploymentURI: string;
 let modelDeploymentName: string;
 let modelFormat: string;
 let servingRuntime: string;
 const uuid = generateTestUUID();
+let secretDetailsFile: string;
 
-const updateSecretDetailsFile = (
-  secretValue: string,
-  fixtureRelativePath: string,
-  fixtureFullPath: string,
-) => {
-  return cy.fixture(fixtureRelativePath).then((templateContent) => {
-    const updatedContent = {
-      ...templateContent,
-      auths: {
-        'quay.io': {
-          auth: secretValue,
-        },
+const updateSecretDetailsFile = (secretValue: string) => {
+  const updatedContent = {
+    auths: {
+      'quay.io': {
+        auth: secretValue,
       },
-    };
-    return cy.writeFile(fixtureFullPath, updatedContent);
+    },
+  };
+  return cy.task<string>('createOCISecretFile', updatedContent, { log: false }).then((filePath) => {
+    secretDetailsFile = filePath;
   });
 };
 
@@ -54,6 +50,8 @@ describe(
   () => {
     let testData: DeployOCIModelData;
 
+    skipOnArm();
+
     retryableBefore(() => {
       cy.log('Loading test data');
       return loadDeployOCIModelFixture('e2e/dataScienceProjects/testDeployOCIModel.yaml').then(
@@ -61,11 +59,9 @@ describe(
           testData = fixtureData;
           projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
-          // Load fixture file and update with actual secret value
+          // Build pull-secret from env value and write to temp file (removed in after hook)
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
-          const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
-          secretDetailsFile = `cypress/fixtures/${secretDetailsFixture}`;
-          updateSecretDetailsFile(secretValue, secretDetailsFixture, secretDetailsFile);
+          updateSecretDetailsFile(secretValue);
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
           modelDeploymentName = testData.modelDeploymentName;
@@ -78,6 +74,12 @@ describe(
     });
 
     after(() => {
+      if (secretDetailsFile) {
+        cy.task('deleteOCISecretFile', secretDetailsFile, { log: false });
+      }
+      if (!projectName) {
+        return;
+      }
       // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
       // TODO: Review this timeout once RHOAIENG-19969 is resolved
       deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });

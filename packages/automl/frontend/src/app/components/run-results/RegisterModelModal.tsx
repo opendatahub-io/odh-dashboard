@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import {
   Alert,
@@ -57,6 +58,7 @@ export const REGISTRIES_LOAD_FAILURE_MESSAGE =
   'Unable to load model registries. Try again or contact an administrator.';
 
 const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelName, source }) => {
+  const trackEvent = useTrackEvent();
   const { namespace } = useParams<{ namespace: string }>();
   const { models, pipelineRun } = useAutomlResultsContext();
   const notification = useNotification();
@@ -122,7 +124,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
           onClick: () => window.open(modelDetailsUrl, '_blank', 'noopener,noreferrer'),
         },
       ]);
-      fireAutomlModelRegistered({
+      fireAutomlModelRegistered(trackEvent, {
         outcome: TrackingOutcome.submit,
         success: true,
         source,
@@ -130,17 +132,17 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
       });
       onClose();
     },
-    [notification, onClose, source],
+    [notification, onClose, source, trackEvent],
   );
   const handleRegistrationError = React.useCallback(() => {
     notification.error('Failed to register model', REGISTRATION_FAILURE_MESSAGE);
-    fireAutomlModelRegistered({
+    fireAutomlModelRegistered(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: false,
       source,
       error: AUTOML_FAILURE_CATEGORY,
     });
-  }, [notification, source]);
+  }, [notification, source, trackEvent]);
   const registerMutation = useRegisterModelMutation(namespace, {
     onSuccess: handleRegistrationSuccess,
     onError: handleRegistrationError,
@@ -194,9 +196,9 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     if (isSubmitting) {
       return;
     }
-    fireAutomlModelRegistered({ outcome: TrackingOutcome.cancel, source });
+    fireAutomlModelRegistered(trackEvent, { outcome: TrackingOutcome.cancel, source });
     onClose();
-  }, [isSubmitting, onClose, source]);
+  }, [isSubmitting, onClose, source, trackEvent]);
 
   return (
     <Modal isOpen onClose={handleCancel} variant="medium" data-testid="register-model-modal">

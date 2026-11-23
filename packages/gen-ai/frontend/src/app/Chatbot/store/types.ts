@@ -191,6 +191,12 @@ export interface ChatbotConfigStoreActions {
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
   /**
+   * Reset a single configuration's values in place, keeping compare mode and
+   * sibling panes intact. Also persists the restored MCP tool selections to
+   * sessionStorage for that config.
+   */
+  resetConfigurationValues: (id: string, initialValues?: Partial<ChatbotConfiguration>) => void;
+  /**
    * Apply an AgentProfile to the store. Behaves like resetConfiguration but sets
    * profileApplied: true so the knowledge-mode sync effect in ChatbotConfigInstance
    * knows not to clear an external vector store ID that came from the profile.

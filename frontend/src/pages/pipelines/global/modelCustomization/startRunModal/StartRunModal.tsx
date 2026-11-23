@@ -16,7 +16,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import ProjectSelector from '#~/concepts/projects/ProjectSelector';
 import { PipelineContextProvider } from '#~/concepts/pipelines/context';

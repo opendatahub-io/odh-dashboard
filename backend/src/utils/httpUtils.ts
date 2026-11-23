@@ -3,6 +3,7 @@ import http from 'http';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { getProxyForUrl } from 'proxy-from-env';
 import { getDirectCallOptions } from './directCallUtils';
+import { ipv6AwareCheckServerIdentity, isIPv6Url } from './networkUtils';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import { DEV_MODE } from './constants';
 
@@ -104,6 +105,15 @@ export const proxyCall = (
         const reqOpts: https.RequestOptions = { method, ...requestOptions };
         if (agent) {
           reqOpts.agent = agent;
+        }
+        if (url.startsWith('https:') && isIPv6Url(url) && !agent) {
+          // Only for direct IPv6 connections (the production path this fix targets): tolerate IPv6
+          // canonicalization differences when validating the server cert against its `iPAddress`
+          // SANs. DNS and IPv4 targets keep Node's default identity check untouched. We deliberately
+          // skip this when a proxy agent is in use (E2E-only, via E2E_USE_PROXY_FROM_ENV): the
+          // tunneled TLS connection may not surface the origin host to the identity callback, so we
+          // leave Node's default check in place rather than risk validating against the proxy host.
+          reqOpts.checkServerIdentity = ipv6AwareCheckServerIdentity;
         }
 
         const httpsRequest = web(url)

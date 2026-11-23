@@ -9,6 +9,7 @@ const markdown = require('./markdown');
 const node = require('./node');
 const yaml = require('./yaml');
 const prettier = require('./prettier');
+const featureAnalytics = require('./feature-analytics');
 
 const { merge } = require('./utils');
 
@@ -107,6 +108,7 @@ module.exports = {
   markdown,
   node,
   yaml,
+  featureAnalytics,
 
   // always include prettier
   prettier,

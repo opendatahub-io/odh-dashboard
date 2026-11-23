@@ -97,6 +97,35 @@ class AutomlResultsPage {
     return cy.findByTestId('run-details-button');
   }
 
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
+  findRunNotebookDownloadButton() {
+    return cy.findByTestId('run-notebook-download-button');
+  }
+
+  // Pipeline topology
+  findTopology() {
+    return cy.findByTestId('tree-topology');
+  }
+
+  findModelsExpandToggle() {
+    return cy.findByTestId('models-expand-toggle');
+  }
+
+  findTopologyNodeLabel(componentId: string, nodeType: 'model' | 'row-label', branchIndex: number) {
+    const nodeId =
+      nodeType === 'model'
+        ? `${componentId}__model__branch-${branchIndex}`
+        : `automl-row-label-${branchIndex}`;
+    return cy.findByTestId(`tree-node-label-${nodeId}`);
+  }
+
+  findTopologyRowLabel(branchIndex: number) {
+    return this.findTopologyNodeLabel('', 'row-label', branchIndex);
+  }
+
   findRunDetailsDrawerPanel() {
     return cy.findByTestId('run-details-drawer-panel');
   }

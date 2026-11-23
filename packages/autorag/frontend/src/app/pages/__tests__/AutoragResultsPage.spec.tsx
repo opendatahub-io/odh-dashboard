@@ -5,7 +5,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import AutoragResultsPage, {
   buildResponsesTemplate,
   getResponsesTemplateForPattern,
@@ -22,13 +22,14 @@ import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 import { downloadBlob } from '~/app/utilities/utils';
 import { canUseResponsesForPattern } from '~/app/utilities/responses';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 const downloadBlobMock = jest.mocked(downloadBlob);
 
 // ============================================================================
@@ -152,18 +153,27 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
     isTerminating,
     onConfirm,
     onClose,
+    onCancel,
   }: {
     isOpen: boolean;
     isTerminating: boolean;
     onConfirm: () => void;
     onClose: () => void;
+    onCancel?: () => void;
   }) =>
     isOpen ? (
       <div data-testid="stop-run-modal">
         <button data-testid="confirm-stop-run-button" onClick={onConfirm} disabled={isTerminating}>
           Stop
         </button>
-        <button data-testid="cancel-stop-run-button" onClick={onClose} disabled={isTerminating}>
+        <button
+          data-testid="cancel-stop-run-button"
+          onClick={() => {
+            onCancel?.();
+            onClose();
+          }}
+          disabled={isTerminating}
+        >
           Cancel
         </button>
       </div>
@@ -326,6 +336,27 @@ describe('buildResponsesTemplate', () => {
       ranker: 'rrf',
       ranker_k: 60,
     });
+  });
+
+  it('should omit ranking options for a Neo4j hybrid pattern (graph retrieval does not support hybrid ranking)', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        store_binding: {
+          ...mockPatterns['pattern-1'].settings.store_binding,
+          provider_type: 'neo4j',
+        },
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_strategy: 'weighted',
+          ranker_alpha: 0.5,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toBeUndefined();
   });
 
   it('should reject a Milvus RRF ranker_k at the exclusive maximum', () => {
@@ -508,6 +539,23 @@ describe('buildResponsesTemplate', () => {
 });
 
 describe('normalizeResponsesTemplate', () => {
+  it('should strip ranking options from a persisted Neo4j template', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const persistedTemplate = {
+      ...template,
+      tools: [
+        {
+          ...template.tools[0],
+          ranking_options: { ranker: 'weighted' as const, alpha: 0.5 },
+        },
+      ],
+    } as typeof template;
+
+    expect(
+      normalizeResponsesTemplate(persistedTemplate, 'neo4j').tools[0].ranking_options,
+    ).toBeUndefined();
+  });
+
   it('should remove legacy ranking fields from a persisted response template', () => {
     const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
     const legacyTemplate = {
@@ -788,7 +836,7 @@ const createTestQueryClient = () =>
 
 const renderPage = () => {
   const queryClient = createTestQueryClient();
-  return render(
+  return renderWithTracking(
     <MemoryRouter>
       <QueryClientProvider client={queryClient}>
         <AutoragResultsPage />
@@ -807,11 +855,7 @@ const expectHeaderActions = (conditionalAction?: 'stop' | 'retry') => {
   ].filter((id): id is string => id !== undefined);
 
   const actions = actionIds.map((id) => screen.getByTestId(id));
-  actions.forEach((action) =>
-    expect(action).toHaveClass(
-      action.dataset.testid === 'run-details-button' ? 'pf-m-link' : 'pf-m-secondary',
-    ),
-  );
+  actions.forEach((action) => expect(action).toHaveClass('pf-m-link'));
   actions.slice(0, -1).forEach((action, index) => {
     expect(action.compareDocumentPosition(actions[index + 1])).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
@@ -1576,6 +1620,19 @@ describe('AutoragResultsPage', () => {
       expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
     });
 
+    it('should track results-page stop cancellation once without a success field', async () => {
+      setupWithRunState('RUNNING');
+      renderPage();
+      trackEventMock.mockClear();
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      expect(trackEventMock).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByTestId('cancel-stop-run-button'));
+      expect(trackEventMock.mock.calls).toEqual([
+        ['AutoRAG Run Stopped', { outcome: 'cancel', source: 'resultsPage' }],
+      ]);
+      expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
+    });
+
     it('should call terminate mutation when stop is confirmed', async () => {
       setupWithRunState('RUNNING');
       const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
@@ -1677,7 +1734,7 @@ describe('AutoragResultsPage', () => {
         isPending: false,
       });
 
-      const { rerender } = render(
+      const { rerender } = renderWithTracking(
         <MemoryRouter>
           <QueryClientProvider client={createTestQueryClient()}>
             <AutoragResultsPage />
@@ -1842,7 +1899,7 @@ describe('AutoragResultsPage', () => {
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
       expect(mockNotification.warning).toHaveBeenCalledWith(
         '2 of 4 patterns could not be loaded',
-        'The following patterns failed to load: BrokenPattern1, BrokenPattern2',
+        'The following patterns failed to load: BrokenPattern\u00a01, BrokenPattern\u00a02',
       );
     });
 
@@ -1877,7 +1934,7 @@ describe('AutoragResultsPage', () => {
 
       const testQueryClient = createTestQueryClient();
 
-      const { rerender } = render(
+      const { rerender } = renderWithTracking(
         <MemoryRouter>
           <QueryClientProvider client={testQueryClient}>
             <AutoragResultsPage />
@@ -2155,10 +2212,9 @@ describe('AutoragResultsPage', () => {
           expect.objectContaining({ signal: expect.any(AbortSignal) }),
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'starter_kit.zip');
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED,
-          { downloadType: 'starterKit' },
-        );
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, {
+          downloadType: 'starterKit',
+        });
       });
     });
 
@@ -2170,7 +2226,7 @@ describe('AutoragResultsPage', () => {
       await userEvent.click(screen.getByTestId('starter-kit-download-button'));
 
       expect(await screen.findByText('Starter kit download failed')).toBeInTheDocument();
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED,
         expect.anything(),
       );
@@ -2256,7 +2312,7 @@ describe('AutoragResultsPage', () => {
       await pendingDownload.catch(() => undefined);
 
       expect(downloadBlobMock).not.toHaveBeenCalled();
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED,
         expect.anything(),
       );
@@ -2347,7 +2403,7 @@ describe('AutoragResultsPage', () => {
 
       renderPage();
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
         entrySource: 'experimentsList',
       });
     });
@@ -2364,7 +2420,7 @@ describe('AutoragResultsPage', () => {
 
       renderPage();
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
         entrySource: 'other',
       });
     });
@@ -2387,7 +2443,7 @@ describe('AutoragResultsPage', () => {
         </MemoryRouter>,
       );
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+      expect(trackEventMock).toHaveBeenCalledTimes(1);
     });
 
     it('should not fire while the pipeline run has not yet loaded', () => {
@@ -2401,7 +2457,7 @@ describe('AutoragResultsPage', () => {
 
       renderPage();
 
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalled();
+      expect(trackEventMock).not.toHaveBeenCalled();
     });
   });
 });

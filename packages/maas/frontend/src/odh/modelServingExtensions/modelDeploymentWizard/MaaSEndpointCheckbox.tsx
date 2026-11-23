@@ -103,7 +103,7 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
         id={id}
         name="model-users"
         label="Subscribed users"
-        description="Available as a service (MaaS) to users with an admin-assigned subscription and authorization policy."
+        description="Available via Model-as-a-Service (MaaS) to users with an admin-assigned subscription and authorization policy."
         isChecked={value?.isChecked}
         isDisabled={isDisabled}
         onChange={() => onChange({ isChecked: true })}

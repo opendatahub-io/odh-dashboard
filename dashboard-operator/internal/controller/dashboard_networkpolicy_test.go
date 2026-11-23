@@ -32,24 +32,33 @@ func loadDashboardAllowPorts(t *testing.T) networkingv1.NetworkPolicy {
 // egressAllowsPort reports whether the policy has an egress rule that both targets a
 // peer matching peerMatches and permits the given TCP port.
 func egressAllowsPort(policy networkingv1.NetworkPolicy, port int32, peerMatches func(networkingv1.NetworkPolicyPeer) bool) bool {
+	return egressAllowsProtocolPort(policy, port, corev1.ProtocolTCP, peerMatches)
+}
+
+// egressAllowsProtocolPort reports whether the policy has an egress rule that both targets a
+// peer matching peerMatches and permits the given port and protocol.
+func egressAllowsProtocolPort(
+	policy networkingv1.NetworkPolicy,
+	port int32,
+	protocol corev1.Protocol,
+	peerMatches func(networkingv1.NetworkPolicyPeer) bool,
+) bool {
 	for _, rule := range policy.Spec.Egress {
-		hasPort := false
 		for _, p := range rule.Ports {
-			// Treat a nil protocol as TCP (the Kubernetes default) and accept only TCP,
-			// so a UDP rule on the same port number does not satisfy the assertion.
-			if p.Port != nil &&
-				p.Port.IntVal == port &&
-				(p.Protocol == nil || *p.Protocol == corev1.ProtocolTCP) {
-				hasPort = true
-				break
+			if p.Port == nil || p.Port.IntVal != port {
+				continue
 			}
-		}
-		if !hasPort {
-			continue
-		}
-		for _, peer := range rule.To {
-			if peerMatches(peer) {
-				return true
+			// Treat a nil protocol as TCP (the Kubernetes default).
+			if p.Protocol == nil && protocol != corev1.ProtocolTCP {
+				continue
+			}
+			if p.Protocol != nil && *p.Protocol != protocol {
+				continue
+			}
+			for _, peer := range rule.To {
+				if peerMatches(peer) {
+					return true
+				}
 			}
 		}
 	}
@@ -79,6 +88,16 @@ func namespacePeer(name string) func(networkingv1.NetworkPolicyPeer) bool {
 			len(peer.NamespaceSelector.MatchLabels) == 1 &&
 			peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] == name &&
 			len(peer.NamespaceSelector.MatchExpressions) == 0
+	}
+}
+
+// ipBlockPeer returns a matcher for an exact standalone IPBlock peer.
+func ipBlockPeer(cidr string) func(networkingv1.NetworkPolicyPeer) bool {
+	return func(peer networkingv1.NetworkPolicyPeer) bool {
+		return peer.IPBlock != nil &&
+			peer.IPBlock.CIDR == cidr &&
+			peer.PodSelector == nil &&
+			peer.NamespaceSelector == nil
 	}
 }
 

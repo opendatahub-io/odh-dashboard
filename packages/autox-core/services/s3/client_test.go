@@ -3,8 +3,14 @@ package s3
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"net/http"
 	"strings"
@@ -12,8 +18,10 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+	transfertypes "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
 // --- Mock implementations ---
@@ -62,6 +70,73 @@ func (m *mockProvider) CreateTransferClient(opts ConnectionOptions) (TransferCli
 
 func testOpts() ConnectionOptions {
 	return ConnectionOptions{AccessKeyID: "AK", SecretAccessKey: "SK", Region: "us-east-1", BaseEndpoint: "https://s3.example.com"}
+}
+
+func TestParseChecksumAlgorithm(t *testing.T) {
+	tests := []struct {
+		value string
+		want  string
+	}{
+		{value: "", want: ""},
+		{value: " crc32 ", want: "CRC32"},
+		{value: "CRC32C", want: "CRC32C"},
+		{value: "sha1", want: "SHA1"},
+		{value: "sha256", want: "SHA256"},
+		{value: "sha512", want: "SHA512"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			got, err := ParseChecksumAlgorithm(tt.value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != tt.want {
+				t.Errorf("ParseChecksumAlgorithm(%q) = %q, want %q", tt.value, got, tt.want)
+			}
+		})
+	}
+
+	for _, value := range []string{"NONE", "not-a-checksum"} {
+		if _, err := ParseChecksumAlgorithm(value); err == nil {
+			t.Errorf("expected unsupported checksum algorithm %q to fail", value)
+		}
+	}
+}
+
+func TestParseUploadChecksumOptions(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		algorithmValue string
+		disableValue   string
+		wantAlgorithm  ChecksumAlgorithm
+		wantDisable    bool
+		wantErrorField string
+	}{
+		{name: "unset options"},
+		{name: "false disable flag", disableValue: "false"},
+		{name: "true disable flag", disableValue: "true", wantDisable: true},
+		{name: "algorithm", algorithmValue: "sha256", wantAlgorithm: ChecksumAlgorithm(transfertypes.ChecksumAlgorithmSha256)},
+		{name: "invalid flag", disableValue: "sometimes", wantErrorField: DisableUploadChecksumTrailersSecretKey},
+		{name: "invalid algorithm", algorithmValue: "invalid", wantErrorField: ChecksumAlgorithmSecretKey},
+		{name: "conflicting options", algorithmValue: "CRC32", disableValue: "true", wantErrorField: DisableUploadChecksumTrailersSecretKey},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			algorithm, disable, err := ParseUploadChecksumOptions(tc.algorithmValue, tc.disableValue)
+			if tc.wantErrorField != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantErrorField) {
+					t.Fatalf("error = %v, want error mentioning %s", err, tc.wantErrorField)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if algorithm != tc.wantAlgorithm || disable != tc.wantDisable {
+				t.Errorf("ParseUploadChecksumOptions() = (%q, %t), want (%q, %t)", algorithm, disable, tc.wantAlgorithm, tc.wantDisable)
+			}
+		})
+	}
 }
 
 // --- GetObject ---
@@ -204,12 +279,17 @@ func TestClient_UploadObject(t *testing.T) {
 				if aws.ToString(params.IfNoneMatch) != "*" {
 					t.Error("expected If-None-Match: * for conditional create")
 				}
+				if params.ChecksumAlgorithm != transfertypes.ChecksumAlgorithmCrc32 {
+					t.Errorf("ChecksumAlgorithm = %q, want %q", params.ChecksumAlgorithm, transfertypes.ChecksumAlgorithmCrc32)
+				}
 				return &transfermanager.UploadObjectOutput{}, nil
 			},
 		}
 		c := &client{Provider: &mockProvider{transferClient: tc}}
+		opts := testOpts()
+		opts.ChecksumAlgorithm = transfertypes.ChecksumAlgorithmCrc32
 
-		err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{
+		err := c.UploadObject(context.Background(), opts, UploadObjectInput{
 			Bucket: "b", Key: "k", Body: bytes.NewReader([]byte("data")), ContentType: "text/plain",
 		})
 		if err != nil {
@@ -244,6 +324,325 @@ func TestClient_UploadObject(t *testing.T) {
 			t.Errorf("expected ErrObjectAlreadyExists, got %v", err)
 		}
 	})
+}
+
+func TestClient_UploadObjectClassifiesChecksumRejection(t *testing.T) {
+	const checksumTrailerRejectionMessage = "x-amz-content-sha256 must be UNSIGNED-PAYLOAD, STREAMING-AWS4-HMAC-SHA256-PAYLOAD or a valid sha256 value"
+
+	for _, tc := range []struct {
+		name              string
+		statusCode        int
+		errorCode         string
+		errorMessage      string
+		disableTrailers   bool
+		wantChecksumError bool
+		wantOriginalError bool
+	}{
+		{name: "optional checksum trailer rejected", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", errorMessage: checksumTrailerRejectionMessage, wantChecksumError: true},
+		{name: "ambiguous InvalidArgument", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", errorMessage: "The request is invalid", wantOriginalError: true},
+		{name: "unrelated streaming error", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", errorMessage: "x-amz-content-sha256 is invalid"},
+		{name: "trailers disabled", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", errorMessage: checksumTrailerRejectionMessage, disableTrailers: true},
+		{name: "other HTTP status", statusCode: http.StatusForbidden, errorCode: "InvalidArgument"},
+		{name: "other S3 error", statusCode: http.StatusBadRequest, errorCode: "AccessDenied"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			responseErr := &smithyhttp.ResponseError{
+				Response: &smithyhttp.Response{Response: &http.Response{StatusCode: tc.statusCode}},
+				Err:      &s3CodedError{code: tc.errorCode, message: tc.errorMessage},
+			}
+			transferClient := &mockTransferClient{
+				uploadObjectFn: func(context.Context, *transfermanager.UploadObjectInput, ...func(*transfermanager.Options)) (*transfermanager.UploadObjectOutput, error) {
+					return nil, responseErr
+				},
+			}
+			c := &client{Provider: &mockProvider{transferClient: transferClient}}
+			opts := testOpts()
+			opts.DisableUploadChecksumTrailers = tc.disableTrailers
+
+			err := c.UploadObject(context.Background(), opts, UploadObjectInput{
+				Bucket: "bucket", Key: "object", Body: bytes.NewReader([]byte("data")),
+			})
+			if got := errors.Is(err, ErrUploadChecksumRejected); got != tc.wantChecksumError {
+				t.Errorf("errors.Is(err, ErrUploadChecksumRejected) = %t, want %t (err: %v)", got, tc.wantChecksumError, err)
+			}
+			if tc.wantOriginalError {
+				var gotResponseErr *smithyhttp.ResponseError
+				if !errors.As(err, &gotResponseErr) || gotResponseErr != responseErr {
+					t.Errorf("ambiguous InvalidArgument did not preserve its response error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+// NetApp ONTAP S3 rejects the optional streaming checksum trailer, so its
+// connection must explicitly disable optional checksum calculation.
+func TestDefaultClient_UploadObjectWithoutChecksumTrailer(t *testing.T) {
+	const content = "small PDF payload"
+	var receivedBody string
+	var receivedSHA256 string
+	var receivedChecksumAlgorithm string
+
+	c := NewDefaultClient(ClientConfig{
+		WrapTransport: func(http.RoundTripper) http.RoundTripper {
+			return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				receivedSHA256 = req.Header.Get("X-Amz-Content-Sha256")
+				receivedChecksumAlgorithm = req.Header.Get("X-Amz-Sdk-Checksum-Algorithm")
+				if got := req.Header.Get("If-None-Match"); got != "*" {
+					t.Errorf("If-None-Match = %q, want *", got)
+				}
+				if receivedSHA256 == "STREAMING-UNSIGNED-PAYLOAD-TRAILER" || req.Header.Get("X-Amz-Trailer") != "" {
+					return &http.Response{
+						StatusCode: http.StatusBadRequest,
+						Header:     http.Header{"Content-Type": []string{"application/xml"}},
+						Body:       io.NopCloser(strings.NewReader("<Error><Code>InvalidArgument</Code><Message>x-amz-content-sha256 must be UNSIGNED-PAYLOAD, STREAMING-AWS4-HMAC-SHA256-PAYLOAD or a valid sha256 value</Message></Error>")),
+						Request:    req,
+					}, nil
+				}
+
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				receivedBody = string(body)
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     http.Header{"Etag": []string{"\"test-etag\""}},
+					Body:       io.NopCloser(strings.NewReader("")),
+					Request:    req,
+				}, nil
+			})
+		},
+	})
+
+	opts := testOpts()
+	opts.DisableUploadChecksumTrailers = true
+	err := c.UploadObject(context.Background(), opts, UploadObjectInput{
+		Bucket: "bucket", Key: "file.pdf", Body: io.LimitReader(strings.NewReader(content), int64(len(content))), ContentType: "application/pdf",
+	})
+	if err != nil {
+		t.Fatalf("small upload rejected by strict S3 endpoint (x-amz-content-sha256=%q): %v", receivedSHA256, err)
+	}
+	if receivedSHA256 != "UNSIGNED-PAYLOAD" {
+		t.Errorf("x-amz-content-sha256 = %q, want UNSIGNED-PAYLOAD", receivedSHA256)
+	}
+	if receivedChecksumAlgorithm != "" {
+		t.Errorf("x-amz-sdk-checksum-algorithm = %q, want no optional checksum", receivedChecksumAlgorithm)
+	}
+	if receivedBody != content {
+		t.Errorf("uploaded body = %q, want %q", receivedBody, content)
+	}
+}
+
+func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
+	const content = "retention-protected object"
+	for _, tc := range []struct {
+		name               string
+		connectionChecksum ChecksumAlgorithm
+		disableTrailers    bool
+		wantAlgorithm      string
+		wantTrailer        string
+	}{
+		{
+			name:          "SDK default preserves existing behavior",
+			wantAlgorithm: "CRC32",
+			wantTrailer:   "x-amz-checksum-crc32",
+		},
+		{
+			name:            "disable flag opts out of optional checksum",
+			disableTrailers: true,
+		},
+		{
+			name:               "CRC32",
+			connectionChecksum: transfertypes.ChecksumAlgorithmCrc32,
+			wantAlgorithm:      "CRC32",
+			wantTrailer:        "x-amz-checksum-crc32",
+		},
+		{
+			name:               "CRC32C",
+			connectionChecksum: transfertypes.ChecksumAlgorithmCrc32c,
+			wantAlgorithm:      "CRC32C",
+			wantTrailer:        "x-amz-checksum-crc32c",
+		},
+		{
+			name:               "SHA1",
+			connectionChecksum: transfertypes.ChecksumAlgorithmSha1,
+			wantAlgorithm:      "SHA1",
+			wantTrailer:        "x-amz-checksum-sha1",
+		},
+		{
+			name:               "SHA256",
+			connectionChecksum: transfertypes.ChecksumAlgorithmSha256,
+			wantAlgorithm:      "SHA256",
+			wantTrailer:        "x-amz-checksum-sha256",
+		},
+		{
+			name:               "SHA512",
+			connectionChecksum: transfertypes.ChecksumAlgorithmSha512,
+			wantAlgorithm:      "SHA512",
+			wantTrailer:        "x-amz-checksum-sha512",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var receivedChecksumAlgorithm, receivedChecksumTrailer, receivedSHA256, receivedIfNoneMatch string
+			var receivedWireBody []byte
+			c := NewDefaultClient(ClientConfig{
+				WrapTransport: func(http.RoundTripper) http.RoundTripper {
+					return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+						receivedChecksumAlgorithm = req.Header.Get("X-Amz-Sdk-Checksum-Algorithm")
+						receivedChecksumTrailer = req.Header.Get("X-Amz-Trailer")
+						receivedSHA256 = req.Header.Get("X-Amz-Content-Sha256")
+						receivedIfNoneMatch = req.Header.Get("If-None-Match")
+						var err error
+						receivedWireBody, err = io.ReadAll(req.Body)
+						if err != nil {
+							return nil, err
+						}
+						status := http.StatusOK
+						body := ""
+						if receivedChecksumAlgorithm == "" || receivedChecksumTrailer == "" {
+							status = http.StatusBadRequest
+							body = "<Error><Code>InvalidRequest</Code><Message>Object Lock requires a checksum</Message></Error>"
+						}
+						return &http.Response{
+							StatusCode: status,
+							Header:     http.Header{"Content-Type": []string{"application/xml"}, "Etag": []string{`"test-etag"`}},
+							Body:       io.NopCloser(strings.NewReader(body)),
+							Request:    req,
+						}, nil
+					})
+				},
+			})
+
+			body := http.MaxBytesReader(nil, io.NopCloser(strings.NewReader(content)), int64(len(content)))
+			defer body.Close()
+			opts := testOpts()
+			opts.ChecksumAlgorithm = tc.connectionChecksum
+			opts.DisableUploadChecksumTrailers = tc.disableTrailers
+			err := c.UploadObject(context.Background(), opts, UploadObjectInput{
+				Bucket: "bucket", Key: "locked-file.pdf",
+				Body: body, ContentType: "application/pdf",
+			})
+			if tc.wantAlgorithm == "" {
+				if err == nil || !strings.Contains(err.Error(), "InvalidRequest") {
+					t.Fatalf("expected checksum-required S3 endpoint to reject an upload without a checksum, got %v", err)
+				}
+				if receivedChecksumTrailer != "" || receivedSHA256 != "UNSIGNED-PAYLOAD" {
+					t.Errorf("unexpected checksum framing with disabled trailers: trailer=%q, sha256=%q", receivedChecksumTrailer, receivedSHA256)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("upload with %s checksum failed: %v", tc.wantAlgorithm, err)
+				}
+				if receivedChecksumTrailer != tc.wantTrailer || receivedSHA256 != "STREAMING-UNSIGNED-PAYLOAD-TRAILER" {
+					t.Errorf("unexpected checksum framing: trailer=%q, sha256=%q", receivedChecksumTrailer, receivedSHA256)
+				}
+				wantChecksum := expectedChecksumValue(t, tc.wantAlgorithm, []byte(content))
+				if !strings.Contains(string(receivedWireBody), tc.wantTrailer+":"+wantChecksum+"\r\n") {
+					t.Errorf("%s checksum trailer value is incorrect in wire body %q", tc.wantAlgorithm, receivedWireBody)
+				}
+			}
+			if receivedChecksumAlgorithm != tc.wantAlgorithm {
+				t.Errorf("x-amz-sdk-checksum-algorithm = %q, want %q", receivedChecksumAlgorithm, tc.wantAlgorithm)
+			}
+			if receivedIfNoneMatch != "*" {
+				t.Errorf("If-None-Match = %q, want *", receivedIfNoneMatch)
+			}
+			if !strings.Contains(string(receivedWireBody), content) {
+				t.Errorf("uploaded payload missing from wire body %q", receivedWireBody)
+			}
+		})
+	}
+}
+
+func expectedChecksumValue(t *testing.T, algorithm string, content []byte) string {
+	t.Helper()
+	var digest []byte
+	switch algorithm {
+	case "CRC32":
+		checksum := make([]byte, 4)
+		binary.BigEndian.PutUint32(checksum, crc32.ChecksumIEEE(content))
+		digest = checksum
+	case "CRC32C":
+		checksum := make([]byte, 4)
+		binary.BigEndian.PutUint32(checksum, crc32.Checksum(content, crc32.MakeTable(crc32.Castagnoli)))
+		digest = checksum
+	case "SHA1":
+		checksum := sha1.Sum(content)
+		digest = checksum[:]
+	case "SHA256":
+		checksum := sha256.Sum256(content)
+		digest = checksum[:]
+	case "SHA512":
+		checksum := sha512.Sum512(content)
+		digest = checksum[:]
+	default:
+		t.Fatalf("unsupported test checksum algorithm %q", algorithm)
+	}
+	return base64.StdEncoding.EncodeToString(digest)
+}
+
+func TestDefaultClient_UploadObjectToAmazonS3WithObjectLock(t *testing.T) {
+	const content = "retention-protected object"
+	var receivedChecksumAlgorithm, receivedChecksumTrailer, receivedSHA256, receivedIfNoneMatch string
+	var receivedWireBody []byte
+
+	c := NewDefaultClient(ClientConfig{
+		WrapTransport: func(http.RoundTripper) http.RoundTripper {
+			return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				receivedChecksumAlgorithm = req.Header.Get("X-Amz-Sdk-Checksum-Algorithm")
+				receivedChecksumTrailer = req.Header.Get("X-Amz-Trailer")
+				receivedSHA256 = req.Header.Get("X-Amz-Content-Sha256")
+				receivedIfNoneMatch = req.Header.Get("If-None-Match")
+				var err error
+				receivedWireBody, err = io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				status := http.StatusOK
+				body := ""
+				if receivedChecksumAlgorithm == "" || receivedChecksumTrailer == "" {
+					status = http.StatusBadRequest
+					body = "<Error><Code>InvalidRequest</Code><Message>Object Lock requires a checksum</Message></Error>"
+				}
+				return &http.Response{
+					StatusCode: status,
+					Header:     http.Header{"Etag": []string{`"test-etag"`}},
+					Body:       io.NopCloser(strings.NewReader(body)),
+					Request:    req,
+				}, nil
+			})
+		},
+	})
+	opts := testOpts()
+	opts.BaseEndpoint = "https://s3.us-east-1.amazonaws.com"
+	err := c.UploadObject(context.Background(), opts, UploadObjectInput{
+		Bucket: "bucket", Key: "locked-file.pdf", Body: io.LimitReader(strings.NewReader(content), int64(len(content))), ContentType: "application/pdf",
+	})
+	if err != nil {
+		t.Fatalf("upload to checksum-required Amazon S3 endpoint failed: %v", err)
+	}
+	if receivedChecksumAlgorithm != string(transfertypes.ChecksumAlgorithmCrc32) {
+		t.Errorf("x-amz-sdk-checksum-algorithm = %q, want CRC32", receivedChecksumAlgorithm)
+	}
+	if receivedChecksumTrailer != "x-amz-checksum-crc32" {
+		t.Errorf("x-amz-trailer = %q, want x-amz-checksum-crc32", receivedChecksumTrailer)
+	}
+	if receivedSHA256 != "STREAMING-UNSIGNED-PAYLOAD-TRAILER" {
+		t.Errorf("x-amz-content-sha256 = %q, want STREAMING-UNSIGNED-PAYLOAD-TRAILER", receivedSHA256)
+	}
+	if receivedIfNoneMatch != "*" {
+		t.Errorf("If-None-Match = %q, want *", receivedIfNoneMatch)
+	}
+	if !strings.Contains(string(receivedWireBody), content) || !strings.Contains(string(receivedWireBody), "x-amz-checksum-crc32:") {
+		t.Errorf("wire body missing payload or checksum trailer: %q", receivedWireBody)
+	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
 
 // --- ListObjects ---
@@ -557,10 +956,12 @@ func TestBuildHTTPClient_TransportTimeouts(t *testing.T) {
 
 // --- test helpers ---
 
-// s3CodedError implements the ErrorCode() interface used by translateS3Error.
+// s3CodedError implements the error interfaces used by S3 response classification and translation.
 type s3CodedError struct {
-	code string
+	code    string
+	message string
 }
 
-func (e *s3CodedError) Error() string     { return "s3 error: " + e.code }
-func (e *s3CodedError) ErrorCode() string { return e.code }
+func (e *s3CodedError) Error() string        { return "s3 error: " + e.code }
+func (e *s3CodedError) ErrorCode() string    { return e.code }
+func (e *s3CodedError) ErrorMessage() string { return e.message }

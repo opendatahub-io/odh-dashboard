@@ -28,6 +28,7 @@ import {
   checkLLMInferenceServiceConfigState,
 } from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import { getClusterArchitecture } from '../../../../utils/oc_commands/baseCommands';
 import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
 
 let testData: DataScienceProjectData;
@@ -40,8 +41,8 @@ let modelURI: string;
 let deploymentMethod: DataScienceProjectData['deploymentMethod'];
 const llmInferenceServiceConfigName = 'test-llm-template-cpu';
 const llmInferenceServiceConfigDisplayName = 'Test vLLM CPU LLMInferenceServiceConfig';
-const llmInferenceServiceConfigYamlPath =
-  'resources/modelServing/llmd-inference-service-config.yaml';
+let llmInferenceServiceConfigYamlPath = 'resources/modelServing/llmd-inference-service-config.yaml';
+let expectedContainerImage = 'quay.io/pierdipi/vllm-cpu:latest';
 
 describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)', () => {
   retryableBefore(() => {
@@ -57,6 +58,15 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
+      })
+      .then(() => getClusterArchitecture())
+      .then((arch) => {
+        if (arch === 'arm64') {
+          llmInferenceServiceConfigYamlPath =
+            'resources/modelServing/llmd-inference-service-config-arm64.yaml';
+          // Must match image tag in llmd-inference-service-config-arm64.yaml line 14
+          expectedContainerImage = 'docker.io/vllm/vllm-openai-cpu:v0.31.0';
+        }
       })
       .then(() => {
         cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
@@ -109,14 +119,14 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details - select Generative type');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectModelLocationOption(ModelLocationSelectOption.URI);
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard
         .findSaveConnectionInput()
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 2: Model deployment - select Test vLLM CPU LLMInferenceServiceConfig');
@@ -157,7 +167,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
       cy.step('Verify LLMInferenceServiceConfig was copied to the project namespace');
       cy.then(() => {
         checkLLMInferenceServiceConfigState(resourceName, projectName, {
-          containerImage: 'quay.io/pierdipi/vllm-cpu:latest',
+          containerImage: expectedContainerImage,
         });
       });
 

@@ -36,29 +36,18 @@ describe('EvalHub API Contract Tests', () => {
     });
   });
 
-  describe('Kueue and HardwareProfile endpoints', () => {
-    it('should return the documented Kueue availability response', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/kueue/availability?namespace=default');
+  describe('Queue and HardwareProfile endpoints', () => {
+    it('should return the documented info response with tenant hardware profiles', async () => {
+      const result = await apiClient.get('/eval-hub/api/v1/info?namespace=default');
 
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/paths/~1eval-hub~1api~1v1~1kueue~1availability/get/responses/200/content/application~1json/schema',
+        ref: '#/paths/~1eval-hub~1api~1v1~1info/get/responses/200/content/application~1json/schema',
         status: 200,
       });
     });
 
-    it('should return the documented Kueue Workload statuses response', async () => {
-      const result = await apiClient.get(
-        '/eval-hub/api/v1/kueue/workloads?namespace=default&evaluation_ids=evaluation-001',
-      );
-
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/paths/~1eval-hub~1api~1v1~1kueue~1workloads/get/responses/200/content/application~1json/schema',
-        status: 200,
-      });
-    });
-
-    it('should return a BadRequest error when evaluation_ids are missing', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/kueue/workloads?namespace=default');
+    it('should return a BadRequest error when the namespace is missing', async () => {
+      const result = await apiClient.get('/eval-hub/api/v1/info');
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -70,15 +59,6 @@ describe('EvalHub API Contract Tests', () => {
           },
         );
       }
-    });
-
-    it('should return the documented compatible HardwareProfiles response', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/hardwareprofiles?namespace=default');
-
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/paths/~1eval-hub~1api~1v1~1hardwareprofiles/get/responses/200/content/application~1json/schema',
-        status: 200,
-      });
     });
 
     it('should return the documented HardwareProfile validation response', async () => {
@@ -253,6 +233,32 @@ describe('EvalHub API Contract Tests', () => {
             weight: 0.8,
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
             parameters: { num_few_shot: 5 },
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            test_data_ref: {
+              type: 'data_set',
+              s3: {
+                bucket: 'evalhub-test',
+                key: 'datasets/arc-challenge',
+                // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                secret_ref: 's3-credentials',
+              },
+            },
+          },
+          {
+            id: 'helm',
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            provider_id: 'lm_evaluation_harness',
+            weight: 0.2,
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            test_data_ref: {
+              type: 'data_set',
+              pvc: {
+                // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                claim_name: 'eval-datasets-pvc',
+                // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                sub_path: 'datasets/helm',
+              },
+            },
           },
         ],
       };
@@ -283,6 +289,49 @@ describe('EvalHub API Contract Tests', () => {
             benchmarks: cloneRequest.benchmarks,
           },
         });
+      }
+    });
+
+    it('should return a BadRequest error when a benchmark sets both s3 and pvc in test_data_ref', async () => {
+      const result = await apiClient.post(
+        '/eval-hub/api/v1/evaluations/collections/collection-001/clones?namespace=default',
+        {
+          name: 'Invalid Cloned Collection',
+          benchmarks: [
+            {
+              id: 'arc_challenge',
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              provider_id: 'lm_evaluation_harness',
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              test_data_ref: {
+                type: 'data_set',
+                s3: {
+                  bucket: 'evalhub-test',
+                  key: 'datasets/arc-challenge',
+                  // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                  secret_ref: 's3-credentials',
+                },
+                pvc: {
+                  // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                  claim_name: 'eval-datasets-pvc',
+                  // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                  sub_path: 'datasets/arc-challenge',
+                },
+              },
+            },
+          ],
+        },
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          },
+        );
       }
     });
 

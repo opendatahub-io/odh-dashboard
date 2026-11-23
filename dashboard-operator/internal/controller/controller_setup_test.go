@@ -3,6 +3,7 @@ package controller
 import (
 	"testing"
 
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -81,18 +82,22 @@ func TestAPIResourceAvailable(t *testing.T) {
 
 func TestOptionalOwnedResources(t *testing.T) {
 	httpRouteGVK := gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute")
+	routeGVK := routev1.SchemeGroupVersion.WithKind("Route")
 	mapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{
 		httpRouteGVK.GroupVersion(),
+		routeGVK.GroupVersion(),
 		consoleLinkGVK.GroupVersion(),
 	})
 	mapper.Add(httpRouteGVK, meta.RESTScopeNamespace)
+	mapper.Add(routeGVK, meta.RESTScopeNamespace)
 	mapper.Add(consoleLinkGVK, meta.RESTScopeRoot)
 
 	resources, err := optionalOwnedResources(mapper)
 	require.NoError(t, err)
-	require.Len(t, resources, 2)
+	require.Len(t, resources, 3)
 	assert.IsType(t, &gatewayv1.HTTPRoute{}, resources[0])
-	assert.Equal(t, consoleLinkGVK, resources[1].GetObjectKind().GroupVersionKind())
+	assert.IsType(t, &routev1.Route{}, resources[1])
+	assert.Equal(t, consoleLinkGVK, resources[2].GetObjectKind().GroupVersionKind())
 
 	resources, err = optionalOwnedResources(meta.NewDefaultRESTMapper(nil))
 	require.NoError(t, err)

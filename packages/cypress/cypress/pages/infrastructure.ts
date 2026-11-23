@@ -123,6 +123,12 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-workloads-status-filter');
   }
 
+  selectWorkloadsFilterType(filterType: string) {
+    cy.findByTestId('infrastructure-workloads-filter-type').click();
+    cy.findByTestId(`infrastructure-workloads-filter-option-${filterType}`).click();
+    return this;
+  }
+
   findWorkloadsStatusOption(status: string) {
     return cy.findByTestId(`infrastructure-workloads-status-option-${status}`);
   }
@@ -173,6 +179,18 @@ class InfrastructurePage {
 
   findWorkbenchStatusModal() {
     return cy.findByTestId('notebook-status-modal');
+  }
+
+  findWorkbenchStatusResourcesTab() {
+    return this.findWorkbenchStatusModal().findByTestId('expand-resources');
+  }
+
+  findWorkbenchStatusClusterQueueSection() {
+    return this.findWorkbenchStatusModal().findByTestId('cluster-queue-section');
+  }
+
+  findWorkbenchStatusQueueValue() {
+    return this.findWorkbenchStatusModal().findByTestId('queue-value');
   }
 
   findTrainingJobStatusModal() {

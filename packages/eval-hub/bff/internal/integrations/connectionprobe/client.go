@@ -163,7 +163,7 @@ func NewConnectionProbeClient(
 	if opts.SkipTLSVerification || internal {
 		transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, //nolint:gosec // cluster-local services use self-signed certs
+				InsecureSkipVerify: true, //nolint:gosec // cluster-local services may use self-signed certificates
 				MinVersion:         tls.VersionTLS12,
 			},
 		}

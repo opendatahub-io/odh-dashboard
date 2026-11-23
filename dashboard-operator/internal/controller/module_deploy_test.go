@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -150,8 +152,31 @@ func TestReconcileModuleDemand_ReturnsCleanupError(t *testing.T) {
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}}}
 
 	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
-	assert.Nil(t, statuses)
 	require.ErrorContains(t, err, "deleting deployment for module maas: simulated delete failure")
+	assert.Nil(t, statuses, "failed reconciliation must not expose statuses for federation updates")
+}
+
+func TestReconcileModuleDemand_DeploymentFailureStopsCleanup(t *testing.T) {
+	scheme := testScheme(t)
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{
+		Name: "model-registry-ui", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "model-registry"},
+	}}
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).Build()
+	manifests := t.TempDir()
+	modulePath := filepath.Join(manifests, "modules", "maas")
+	require.NoError(t, os.MkdirAll(modulePath, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(modulePath, "kustomization.yaml"), []byte("invalid: ["), 0644))
+	r := &ctrlpkg.DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: manifests,
+		Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		Modules: map[string]v1alpha1.ModuleOverride{"modelRegistry": {State: v1alpha1.ModuleDisabled}},
+	}}
+	statuses, err := r.ReconcileModuleDemand(context.Background(), dashboard)
+	require.ErrorContains(t, err, "failed to render manifests for module maas")
+	assert.Nil(t, statuses, "failed reconciliation must not expose statuses for federation updates")
+	assert.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(deployment), &appsv1.Deployment{}),
+		"disabled module must remain until required modules deploy successfully")
 }
 
 func TestReconcileModuleDemand_OverlaysStandaloneReadiness(t *testing.T) {

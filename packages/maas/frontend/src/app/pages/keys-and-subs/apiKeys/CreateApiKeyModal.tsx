@@ -53,7 +53,7 @@ import { z } from 'zod';
 import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
@@ -279,7 +279,10 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
 
   const sortedSubscriptions = React.useMemo(
     () =>
-      subscriptions.toSorted((a, b) => (b.inference_priority ?? 0) - (a.inference_priority ?? 0)),
+      subscriptions.toSorted(
+        (a, b) =>
+          (b.priority ?? b.inference_priority ?? 0) - (a.priority ?? a.inference_priority ?? 0),
+      ),
     [subscriptions],
   );
 

@@ -117,4 +117,68 @@ describe('ModelServingPlatformSettings', () => {
     expect(screen.getByTestId('enable-llmd-switch')).toBeDisabled();
     expect(screen.getByTestId('use-distributed-llm-default-switch')).toBeDisabled();
   });
+
+  it('should uncheck and disable the default llm-d switch when llmd is disabled', () => {
+    render(
+      <ModelServingPlatformSettings
+        {...defaultProps}
+        enabledPlatforms={{ kServe: true, LLMd: false }}
+        isDistributedInferencingDefault
+      />,
+    );
+
+    const defaultSwitch = screen.getByTestId('use-distributed-llm-default-switch');
+    expect(defaultSwitch).not.toBeChecked();
+    expect(defaultSwitch).toBeDisabled();
+  });
+
+  it('should call setIsDistributedInferencingDefault(false) when llmd switch is toggled off', () => {
+    render(<ModelServingPlatformSettings {...defaultProps} />);
+
+    fireEvent.click(screen.getByTestId('enable-llmd-switch'));
+
+    expect(mockSetEnabledPlatforms).toHaveBeenCalledWith({
+      kServe: true,
+      LLMd: false,
+    });
+    expect(mockSetIsDistributedInferencingDefault).toHaveBeenCalledWith(false);
+  });
+
+  it('should uncheck and disable the default llm-d switch when model serving is disabled', () => {
+    render(
+      <ModelServingPlatformSettings
+        {...defaultProps}
+        enabledPlatforms={{ kServe: false, LLMd: false }}
+        isDistributedInferencingDefault
+      />,
+    );
+
+    expect(screen.getByTestId('use-distributed-llm-default-switch')).not.toBeChecked();
+    expect(screen.getByTestId('use-distributed-llm-default-switch')).toBeDisabled();
+  });
+
+  it('should call setIsDistributedInferencingDefault when the default switch is toggled', () => {
+    render(<ModelServingPlatformSettings {...defaultProps} />);
+
+    fireEvent.click(screen.getByTestId('use-distributed-llm-default-switch'));
+
+    expect(mockSetIsDistributedInferencingDefault).toHaveBeenCalledWith(false);
+  });
+
+  it('should keep the default llm-d switch enabled and checked when llmd is enabled', () => {
+    render(<ModelServingPlatformSettings {...defaultProps} />);
+
+    const defaultSwitch = screen.getByTestId('use-distributed-llm-default-switch');
+    expect(defaultSwitch).toBeChecked();
+    expect(defaultSwitch).toBeEnabled();
+  });
+
+  it('should uncheck the default llm-d switch when distributed inferencing is not the default', () => {
+    render(
+      <ModelServingPlatformSettings {...defaultProps} isDistributedInferencingDefault={false} />,
+    );
+    const defaultSwitch = screen.getByTestId('use-distributed-llm-default-switch');
+    expect(defaultSwitch).not.toBeChecked();
+    expect(defaultSwitch).toBeEnabled();
+  });
 });

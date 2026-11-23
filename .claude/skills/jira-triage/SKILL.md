@@ -142,7 +142,7 @@ Placeholder reference:
 
 | Placeholder | Reference section |
 |---|---|
-| `{project_key}` | Project Constants |
+| `{project_keys}` | Project Constants |
 | `{component}` | Project Constants |
 | `{jql_team_id}` | Project Constants → Team field (JQL) |
 | `{triage_types}` | Issue Types → Standard Query Filters |
@@ -153,7 +153,7 @@ Placeholder reference:
 
 **Untriaged issues:**
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND status = New
@@ -174,7 +174,7 @@ This is the one query that uses `(Team is EMPTY OR Team = ...)` because incoming
 
 **Issues missing area labels:**
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND type in ({triage_types})
@@ -187,7 +187,7 @@ ORDER BY key ASC
 
 **Issues assigned to a scrum team:**
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND type in ({triage_types})
@@ -199,7 +199,7 @@ ORDER BY key ASC
 
 **Stale assigned issues (no update in N days):**
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND type in ({triage_types})
@@ -212,7 +212,7 @@ ORDER BY key ASC
 
 **Issues needing triage attention:**
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND type in ({triage_types})
@@ -236,7 +236,7 @@ The JSON format that sits between analysis and execution. Analysis skills produc
 {
   "metadata": {
     "generated": "2026-03-11",
-    "query": "project = RHOAIENG AND component = \"AI Core Dashboard\" AND status = New",
+    "query": "project in (RHAI, RHOAIENG) AND component = \"AI Core Dashboard\" AND status = New",
     "issueCount": 12
   },
   "issues": {
@@ -791,7 +791,7 @@ Use Full Triage when the user asks to "triage new issues", "run triage", or want
 Full Triage always uses this JQL to select its issue set:
 
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND status = New
@@ -818,7 +818,7 @@ When the user asks to triage a **specific scrum team** (e.g., "triage Zaffre", "
 The resulting query:
 
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND status = New

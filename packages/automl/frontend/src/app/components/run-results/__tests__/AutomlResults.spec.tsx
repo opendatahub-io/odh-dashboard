@@ -1,10 +1,9 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
 import {
   AutomlResultsContext,
@@ -18,14 +17,16 @@ import * as transformPipelineDataModule from '~/app/topology/tree-view/transform
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
 import * as useAutomlTaskTopologyModule from '~/app/topology/useAutomlTaskTopology';
 import * as utils from '~/app/utilities/utils';
-import { AUTOML_EVENTS } from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactNode) => rtlRender(ui, { wrapper: TrackingWrapper });
+
+const trackEvent = jest.fn();
 
 const mockFetchS3File = jest.fn();
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
 
 jest.mock('~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModal', () => ({
   __esModule: true,
@@ -110,7 +111,6 @@ const createMockModel = (modelName: string): AutomlModel => ({
   },
 });
 
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 const fetchS3FileMock = jest.mocked(mockFetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
 const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
@@ -231,6 +231,7 @@ describe('AutomlResults', () => {
         expect(screen.getByText('Notebook download failed')).toBeInTheDocument();
       });
 
+      expect(trackEvent).not.toHaveBeenCalledWith('AutoML Notebook Downloaded', expect.anything());
       expect(screen.getByText('Model: Test Model')).toBeInTheDocument();
       expect(screen.getByText('S3 connection failed', { exact: false })).toBeInTheDocument();
     });
@@ -408,6 +409,10 @@ describe('AutomlResults', () => {
           'My AutoML Run_Test Model_notebook.ipynb',
         );
       });
+
+      expect(trackEvent.mock.calls).toEqual([
+        ['AutoML Notebook Downloaded', { downloadType: 'notebook', source: 'leaderboard' }],
+      ]);
 
       // No error should be shown
       expect(screen.queryByText('Notebook download failed')).not.toBeInTheDocument();
@@ -734,7 +739,7 @@ describe('AutomlResults', () => {
 
       await userEvent.click(screen.getByTestId('model-link-1'));
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Model Details Viewed', {
         entrySource: 'resultsTable',
       });
       expect(screen.getByTestId('automl-model-details-modal')).toBeInTheDocument();
@@ -753,7 +758,7 @@ describe('AutomlResults', () => {
       await userEvent.click(kebabButton);
       await userEvent.click(screen.getByText('View details'));
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Model Details Viewed', {
         entrySource: 'resultsTable',
       });
     });

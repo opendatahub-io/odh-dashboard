@@ -70,7 +70,11 @@ make run LOG_LEVEL=DEBUG
 | `-data-registry-configmap-name` | `DATA_REGISTRY_CONFIGMAP_NAME` | Name of the ConfigMap (in the pod's own namespace) holding the Data Registry API URL (default `data-registry-config`) |
 | `-data-registry-configmap-key`  | `DATA_REGISTRY_CONFIGMAP_KEY`  | Key within that ConfigMap holding the URL (default `apiURL`)                                                          |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+### TLS
+
+If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2). Note the startup vs. reload distinction: the Intermediate fallback on transient errors applies only at **startup**; during a periodic **reload**, any failed profile read (transient, denied, or malformed) instead **retains the current configuration** and keeps serving, re-applying automatically on the next clean read. The cluster profile's cipher list governs only TLS 1.2 and earlier — Go always manages TLS 1.3 cipher suites itself, so they cannot be restricted through the profile (this applies to Custom profiles too). The reload retention described here applies to *failed* reads; a successful read that finds the APIServer config API absent (`NotFound`) resolves to Intermediate rather than retaining the previous policy.
 
 ## Running the linter locally
 
@@ -366,12 +370,12 @@ with `DEV_MODE=true`; startup rejects this setting outside development mode when
 Production must keep TLS enabled and certificate verification on.
 
 `BFF_DCH_TIMEOUT_SECONDS` bounds both requests together (default 5 seconds). Network errors,
-timeouts, upstream 5xx, and 404 responses from either DCH collection endpoint trigger Secret
-fallback using the original request context. Treating collection-endpoint 404s as unavailable
-supports clusters where the DCH BFF is present before its backend API is installed. 401/403,
-other 4xx (excluding these collection-endpoint 404s), and invalid contracts do not trigger
-fallback. DCH authentication failures return 401, access denials return 403, and other
-non-fallback errors return 502.
+timeouts, upstream 5xx, 403 responses, and 404 responses from either DCH collection endpoint
+trigger Secret fallback using the original request context. Treating collection-endpoint 403s
+and 404s as unavailable supports clusters where the DCH BFF is present before its backend API
+and RBAC resources are installed. The fallback uses the current user's token and independently
+enforces project Secret access. A 401, other 4xx responses, and invalid contracts do not trigger
+fallback. DCH authentication failures return 401, and other non-fallback errors return 502.
 A missing connector type omits that connection and returns a warning. The service does not
 probe DCH during startup, cache user connection lists, or convert saved references.
 

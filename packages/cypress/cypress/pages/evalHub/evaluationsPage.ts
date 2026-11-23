@@ -15,6 +15,14 @@ class EvaluationsPage {
     return cy.findByTestId('evaluate-tab', options);
   }
 
+  findGalleryTab(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('gallery-tab', options);
+  }
+
+  findGalleryTabContent(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('gallery-tab-content', options);
+  }
+
   findEvaluateTabContent(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('evaluate-tab-content', options);
   }
@@ -29,15 +37,43 @@ class EvaluationsPage {
     return this.findEvaluateTabContent(options).findByTestId('benchmark-suites-gallery', options);
   }
 
+  findGalleryBenchmarkSuiteName(collectionId: string, options?: Partial<Cypress.Timeoutable>) {
+    return this.findGalleryTabContent(options).findByTestId(
+      `benchmark-suite-card-name-${collectionId}`,
+      options,
+    );
+  }
+
+  findGalleryBenchmarkSuitePrimaryAction(
+    collectionId: string,
+    options?: Partial<Cypress.Timeoutable>,
+  ) {
+    return this.findGalleryTabContent(options).findByTestId(
+      `benchmark-suite-card-primary-action-${collectionId}`,
+      options,
+    );
+  }
+
   findCreateSuiteButton(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('create-suite-button', options);
   }
 
   findBenchmarkSuiteCardByName(suiteName: string, options?: Partial<Cypress.Timeoutable>) {
+    // Derive the collection ID from the name element's test ID and resolve the card root exactly.
+    // A prefix-matching .parents() query would match nearer ancestors first — the clickable title
+    // region (benchmark-suite-card-title-region-<id>) sits between the name and the card root.
     return this.findBenchmarkSuitesGallery(options)
       .contains('[data-testid^="benchmark-suite-card-name-"]', suiteName, options)
-      .parents('[data-testid^="benchmark-suite-card-"]')
-      .first();
+      .then(($name) => {
+        const collectionId = ($name.attr('data-testid') ?? '').replace(
+          'benchmark-suite-card-name-',
+          '',
+        );
+        return cy.wrap(
+          $name.closest(`[data-testid="benchmark-suite-card-${collectionId}"]`),
+          options,
+        );
+      });
   }
 
   findBenchmarkSuitePrimaryActionByName(suiteName: string, options?: Partial<Cypress.Timeoutable>) {
@@ -45,6 +81,14 @@ class EvaluationsPage {
       '[data-testid^="benchmark-suite-card-primary-action-"]',
       options,
     );
+  }
+
+  findBenchmarkSuiteMenu(collectionId: string, options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId(`benchmark-suite-card-menu-${collectionId}`, options);
+  }
+
+  findBenchmarkSuiteAction(action: string, collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-action-${action}-${collectionId}`).find('button');
   }
 
   findEvaluationsTable(options?: Partial<Cypress.Timeoutable>) {

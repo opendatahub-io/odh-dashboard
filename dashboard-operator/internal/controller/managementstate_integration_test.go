@@ -31,7 +31,7 @@ import (
 func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	seedOperatorOwnedResources(t)
 
-	manifests := createIntegrationManifests(t, []string{"model-registry"})
+	manifests := createOCIBaseImageIntegrationManifests(t)
 	r := newManifestReconciler(manifests)
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
@@ -57,10 +57,12 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	// so the post-teardown assertion below proves teardown actually deletes managed ConfigMaps
 	// rather than skipping every ConfigMap that shares the label.
 	assertExists(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "dashboard-core-config", Namespace: integrationNamespace})
+	assertExists(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "model-registry-ui-config", Namespace: integrationNamespace})
 
 	// Flip to Removed and reconcile once to run the teardown path.
 	dashboard = getDashboard(t)
 	dashboard.Spec.ManagementState = "Removed"
+	dashboard.Spec.ModelRegistryOCIBaseImage = "mirror.example.com/Busybox:1"
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
 
 	reconcile(t, r)
@@ -71,6 +73,7 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 
 	// The managed core ConfigMap is deleted — teardown discriminates by name, not just by label.
 	assertGone(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "dashboard-core-config", Namespace: integrationNamespace})
+	assertGone(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "model-registry-ui-config", Namespace: integrationNamespace})
 	assertGone(t, &gatewayv1.HTTPRoute{}, client.ObjectKeyFromObject(coreRoute))
 
 	// Operator-owned resources are preserved (skipped by name during teardown). The webhook

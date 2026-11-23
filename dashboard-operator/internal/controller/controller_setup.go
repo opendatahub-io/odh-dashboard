@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -43,7 +44,9 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}, builder.WithPredicates(serviceChangedPredicate())).
-		Owns(&corev1.ServiceAccount{}).
+		// ServiceAccounts are watched for ownership drift only; the reconciler never
+		// reads their spec/status from cache, so a metadata-only informer suffices.
+		Owns(&corev1.ServiceAccount{}, builder.OnlyMetadata).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
@@ -54,6 +57,11 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	if err := addConfigMapWatches(mgr, controllerBuilder, r); err != nil {
 		return err
 	}
+	routeAPIAvailable, err := apiResourceAvailable(mgr.GetRESTMapper(), routev1.SchemeGroupVersion.WithKind("Route"))
+	if err != nil {
+		return fmt.Errorf("discovering OpenShift Route API: %w", err)
+	}
+	r.RouteAPIAvailable = routeAPIAvailable
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
 		return err
 	}
@@ -100,6 +108,14 @@ func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *
 		return err
 	}
 	for _, resource := range resources {
+		// ConsoleLink is watched for ownership drift only and is never read from
+		// cache (teardown lists it directly via the API reader), so a metadata-only
+		// informer suffices. HTTPRoute status drives MaaS portal availability, so it
+		// must keep its full-object informer.
+		if resource.GetObjectKind().GroupVersionKind() == consoleLinkGVK {
+			controllerBuilder.Owns(resource, builder.OnlyMetadata)
+			continue
+		}
 		controllerBuilder.Owns(resource)
 	}
 	return nil
@@ -112,6 +128,7 @@ func optionalOwnedResources(mapper meta.RESTMapper) ([]client.Object, error) {
 		object client.Object
 	}{
 		{gvk: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute"), object: &gatewayv1.HTTPRoute{}},
+		{gvk: routev1.SchemeGroupVersion.WithKind("Route"), object: &routev1.Route{}},
 		{gvk: consoleLinkGVK, object: newConsoleLinkObject()},
 	} {
 		available, err := apiResourceAvailable(mapper, resource.gvk)

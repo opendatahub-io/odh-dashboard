@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { isEqual } from 'lodash-es';
 import { Button, Bullseye, PageSection, Spinner, Stack, StackItem } from '@patternfly/react-core';
-import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
+import { useNotification } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   useHostApiCore,
-  useTrackEvent,
   type ClusterSettingsType,
   type ModelServingPlatformEnabled,
 } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import ModelServingPlatformSettings from './ModelServingPlatformSettings';
 import DeploymentStrategySettings, { DeploymentStrategy } from './DeploymentStrategySettings';
 import {

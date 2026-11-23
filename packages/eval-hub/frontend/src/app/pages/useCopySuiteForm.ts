@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import isEqual from 'lodash-es/isEqual';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import {
   getThresholdInputValue,
@@ -22,7 +22,7 @@ import {
   EVAL_HUB_EVENTS,
   type CollectionSavedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
 // import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
@@ -38,6 +38,11 @@ import {
   type CopySuiteBenchmarkParameter,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
+import {
+  parseTestDataRef,
+  serializeTestDataRef,
+  testDataRefDefaultValues,
+} from '~/app/schemas/testDataRef.schema';
 import type {
   Collection,
   CollectionBenchmark,
@@ -300,6 +305,7 @@ export const buildPendingCollection = ({
         : undefined,
       pass_criteria: { threshold: getThresholdRequestValue(b.threshold, b.primaryMetric) },
       parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
+      test_data_ref: serializeTestDataRef(b.testDataRef),
     };
   });
   /* eslint-enable camelcase */
@@ -470,6 +476,7 @@ const buildBenchmarkFromProvider = (
         )
       : DEFAULT_SUITE_THRESHOLD,
     availableMetrics: providerBenchmark.metrics ?? [],
+    testDataRef: { ...testDataRefDefaultValues },
   };
 };
 
@@ -519,6 +526,7 @@ const buildInitialBenchmarks = (
           ? getThresholdInputValue(cb.pass_criteria.threshold, primaryScore?.metric)
           : DEFAULT_SUITE_THRESHOLD,
         availableMetrics: pb?.metrics ?? [],
+        testDataRef: parseTestDataRef(cb.test_data_ref),
       };
     }),
   );
@@ -669,7 +677,7 @@ export const buildCollectionPatchOperations = (
   ];
 
   if (request.benchmarks !== undefined) {
-    operations.push({ op: 'add', path: '/benchmarks', value: request.benchmarks });
+    operations.push({ op: 'replace', path: '/benchmarks', value: request.benchmarks });
   }
 
   return operations;
@@ -685,6 +693,8 @@ export function useCopySuiteForm({
   onSaveAndRunRequest,
   cancelRoute,
 }: UseCopySuiteFormParams) {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const navigate = useNavigate();
   const notification = useNotification();
   const { refresh: refreshCollections } = useCollectionsContext();
@@ -922,6 +932,7 @@ export function useCopySuiteForm({
           : undefined,
         pass_criteria: { threshold: getThresholdRequestValue(b.threshold, b.primaryMetric) },
         parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
+        test_data_ref: serializeTestDataRef(b.testDataRef),
       };
     });
     /* eslint-enable camelcase */
@@ -1014,7 +1025,7 @@ export function useCopySuiteForm({
         { collectionType: 'custom' },
       );
     },
-    [isCreateMode, isEditMode, isSourceCollectionCurated, sourceCollection],
+    [trackEvalHubEvent, isCreateMode, isEditMode, isSourceCollectionCurated, sourceCollection],
   );
 
   const cloneCollectionForRun = React.useCallback(
@@ -1103,6 +1114,7 @@ export function useCopySuiteForm({
       }
     },
     [
+      trackEvalHubEvent,
       sourceCollection,
       namespace,
       form,
@@ -1187,6 +1199,7 @@ export function useCopySuiteForm({
       }
     },
     [
+      trackEvalHubEvent,
       isCreateMode,
       namespace,
       form,

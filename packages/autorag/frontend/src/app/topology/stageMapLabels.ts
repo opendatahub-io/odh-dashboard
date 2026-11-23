@@ -1,5 +1,7 @@
 /* eslint-disable camelcase -- keys match backend stage IDs */
 
+import { formatPatternName } from '~/app/utilities/utils';
+
 export const STAGE_DISPLAY_NAMES: Record<string, string> = {
   validate_inputs: 'Validate inputs',
   download_and_sample: 'Download and sample',
@@ -47,7 +49,8 @@ export const resolveStepLabel = (stepId: string): string =>
     ? STEP_DISPLAY_NAMES[stepId]
     : fallbackStageLabel(stepId);
 
-/** Branch-order labels in the expanded table (Pattern 1, Pattern 2, …). */
-export const getPatternRowLabel = (index: number): string => `Pattern ${index + 1}`;
+/** Branch-order labels in the expanded table (Pattern A, Pattern B, …). */
+export const getPatternRowLabel = (index: number): string =>
+  formatPatternName(`Pattern${index + 1}`);
 
 /* eslint-enable camelcase */

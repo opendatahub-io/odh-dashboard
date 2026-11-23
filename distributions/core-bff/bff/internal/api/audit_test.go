@@ -216,7 +216,7 @@ func TestSecureAdminRoute_EmitsAuditLogOnAdminCheckError(t *testing.T) {
 	assert.Equal(t, "test-user", auditAttr(rec, "user"))
 	assert.True(t, auditAttrBool(rec, "needsAdmin"))
 	assert.False(t, auditAttrBool(rec, "isAdmin"))
-	assert.NotEmpty(t, auditAttr(rec, "error"))
+	assert.NotEmpty(t, auditAttr(rec, "code"))
 	assert.Equal(t, "test-ns", auditAttr(rec, "namespace"))
 }
 

@@ -55,7 +55,7 @@ import {
 } from '~/app/components/benchmarkUtils';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
-import { createEvalHubTrackingScope, trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import type {
   BenchmarkCollectionFilterType,
   EvalHubCollectionSurface,
@@ -308,6 +308,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   onDuplicateCollection,
   onSelectCollection,
 }) => {
+  const { createEvalHubTrackingScope, trackEvalHubEvent } = useEvalHubTracking();
+
   const [nameFilter, setNameFilter] = React.useState('');
   const [domainFilter, setDomainFilter] = React.useState<string[]>([]);
   const [evaluatesFilter, setEvaluatesFilter] = React.useState<string[]>([]);
@@ -349,7 +351,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
         { collectionType: scope === 'system' ? 'system' : 'custom' },
       );
     },
-    [scope, trackingSurface],
+    [trackEvalHubEvent, scope, trackingSurface],
   );
 
   const handleToggleCollectionFilter = React.useCallback(
@@ -372,7 +374,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     },
     [trackCollectionFilterApplied],
   );
-  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit);
+  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit, nameFilter);
   const resetSearchInputTracking = searchInputTrackingProps.reset;
 
   const clearFilters = React.useCallback(() => {
@@ -858,7 +860,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       notification.error('Unable to delete collection', message);
       setCollectionToDelete(null);
     }
-  }, [collectionToDelete, deleteCollection, notification]);
+  }, [trackEvalHubEvent, collectionToDelete, deleteCollection, notification]);
 
   const handleDeleteClose = React.useCallback(() => {
     resetDeleteMutation();
@@ -918,7 +920,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     value={nameFilter}
                     isDisabled={areFiltersDisabled}
                     onChange={(_event, value) => setNameFilter(value)}
-                    onSearch={searchInputTrackingProps.onSearch}
                     inputProps={searchInputTrackingProps.inputProps}
                     onClear={() => {
                       setNameFilter('');
@@ -1370,10 +1371,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
               </GalleryItem>
             )}
             {visibleCollections.map((collection) => {
-              const prerequisite = !collection.resource.tenant
-                ? getCuratedCollectionConfig(collection)?.prerequisite.short
+              const curatedConfig = !collection.resource.tenant
+                ? getCuratedCollectionConfig(collection)
                 : undefined;
-              const hasPrerequisite = Boolean(prerequisite);
+              const prerequisite = curatedConfig?.prerequisites.map((part) => part.short).join(' ');
+              const hasBlockingPrerequisite = Boolean(curatedConfig?.requiresConfiguration);
 
               return (
                 <GalleryItem key={collection.resource.id}>
@@ -1383,20 +1385,20 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     prerequisite={prerequisite}
                     showRunCount={scope === 'tenant'}
                     primaryAction={{
-                      label: hasPrerequisite ? 'Customize' : primaryActionLabel,
-                      href: hasPrerequisite
+                      label: hasBlockingPrerequisite ? 'Customize' : primaryActionLabel,
+                      href: hasBlockingPrerequisite
                         ? dropdownActionRoute?.(collection)
                         : primaryActionRoute?.(collection),
-                      state: hasPrerequisite ? dropdownActionState : primaryActionState,
-                      variant: hasPrerequisite ? 'secondary' : primaryActionVariant,
-                      tracksRunSelection: !hasPrerequisite,
+                      state: hasBlockingPrerequisite ? dropdownActionState : primaryActionState,
+                      variant: hasBlockingPrerequisite ? 'secondary' : primaryActionVariant,
+                      tracksRunSelection: !hasBlockingPrerequisite,
                       onClick: () =>
-                        hasPrerequisite
+                        hasBlockingPrerequisite
                           ? onDropdownAction?.(collection)
                           : onPrimaryAction(collection),
                     }}
                     dropdownAction={
-                      !hasPrerequisite && dropdownActionLabel
+                      !hasBlockingPrerequisite && dropdownActionLabel
                         ? {
                             label: dropdownActionLabel,
                             href: dropdownActionRoute?.(collection),

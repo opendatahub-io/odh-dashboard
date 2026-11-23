@@ -2,10 +2,13 @@
 package proxy
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -15,6 +18,7 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ssrf"
 )
 
@@ -25,6 +29,7 @@ type ProxyConfig struct {
 	ClientCerts          []tls.Certificate
 	InsecureSkipVerify   bool
 	AllowHTTP            bool
+	DisableCompression   bool
 	PathRewriteFn        func(*http.Request) string
 	AuthHeaderFn         func(*http.Request) string
 	SetOutboundHeadersFn func(*http.Request, http.Header)
@@ -40,7 +45,7 @@ func (cfg ProxyConfig) validate() error {
 	if cfg.TargetURL == nil {
 		return fmt.Errorf("target URL is required")
 	}
-	if cfg.TargetURL.Scheme == "http" && !cfg.AllowHTTP {
+	if cfg.TargetURL.Scheme == constants.SchemeHTTP && !cfg.AllowHTTP {
 		return fmt.Errorf("insecure HTTP target URLs are not allowed")
 	}
 	if cfg.Logger == nil {
@@ -59,9 +64,10 @@ func (cfg ProxyConfig) rewriteFunc() func(*httputil.ProxyRequest) {
 			pr.Out.URL.Path = cfg.PathRewriteFn(pr.In)
 		}
 
-		rewriteAuthHeader(pr, cfg.AuthHeaderFn)
 		stripImpersonationHeaders(pr.Out.Header)
 		stripConfiguredHeaders(pr.Out.Header, cfg.StripHeaders)
+		// Install trusted authentication after stripping caller-provided headers.
+		rewriteAuthHeader(pr, cfg.AuthHeaderFn)
 		// SetOutboundHeadersFn must run after stripImpersonationHeaders so that
 		// mock-mode impersonation headers are not stripped immediately after being set.
 		if cfg.SetOutboundHeadersFn != nil {
@@ -101,15 +107,19 @@ func (cfg ProxyConfig) errorHandler() func(http.ResponseWriter, *http.Request, e
 	if cfg.ErrorHandler != nil {
 		return cfg.ErrorHandler
 	}
-	target := cfg.TargetURL
 	return func(w http.ResponseWriter, r *http.Request, err error) {
+		httpcontract.EnsureID(w, r)
+		if errors.Is(err, context.Canceled) || errors.Is(r.Context().Err(), context.Canceled) {
+			httpcontract.Log(cfg.Logger, r).Debug("proxy canceled", "code", "CANCELED")
+			panic(http.ErrAbortHandler)
+		}
 		if errors.Is(err, ssrf.ErrSSRFBlocked) {
-			cfg.Logger.Warn("SSRF blocked", slog.String("target", target.String()), slog.Any("error", err))
-			http.Error(w, "Forbidden", http.StatusForbidden)
+			httpcontract.Log(cfg.Logger, r).Warn("proxy policy rejection", "code", "FORBIDDEN")
+			httpcontract.WriteLocal(w, r, http.StatusForbidden)
 			return
 		}
-		cfg.Logger.Error("proxy error", slog.String("target", target.String()), slog.Any("error", err))
-		http.Error(w, "Bad Gateway", http.StatusBadGateway)
+		httpcontract.Log(cfg.Logger, r).Error("proxy failed", "code", httpcontract.Classify(err, http.StatusBadGateway).Error.Code)
+		httpcontract.WriteError(w, r, err, http.StatusBadGateway)
 	}
 }
 
@@ -129,6 +139,7 @@ func NewReverseProxy(cfg ProxyConfig) (*httputil.ReverseProxy, error) {
 		KeepAlive: 30 * time.Second,
 	}
 	transport := &http.Transport{
+		DisableCompression:    cfg.DisableCompression,
 		TLSClientConfig:       tlsConfig,
 		DialContext:           dialer.DialContext,
 		TLSHandshakeTimeout:   10 * time.Second,
@@ -144,7 +155,8 @@ func NewReverseProxy(cfg ProxyConfig) (*httputil.ReverseProxy, error) {
 	// http.Transport does not follow redirects; the upstream response is returned as-is
 	proxy := &httputil.ReverseProxy{
 		Rewrite:        cfg.rewriteFunc(),
-		Transport:      transport,
+		Transport:      httpcontract.Transport{Base: transport, Logger: cfg.Logger},
+		ErrorLog:       log.New(io.Discard, "", 0),
 		ErrorHandler:   cfg.errorHandler(),
 		ModifyResponse: cfg.ModifyResponse,
 	}

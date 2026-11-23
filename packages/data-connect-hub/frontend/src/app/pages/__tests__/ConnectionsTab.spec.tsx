@@ -1,22 +1,27 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
+import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
-import { deleteConnection, verifyConnection } from '~/app/api/dch';
+import { ConnectionApiError, deleteConnection, verifyConnection } from '~/app/api/dch';
+import { ConnectionTypeInstance } from '~/app/components/ConnectionType.tsx';
 
 jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useConnectionTypes');
+jest.mock('~/app/hooks/useConnectionAccess');
 jest.mock('~/app/hooks/useNamespaces');
 const mockNotificationSuccess = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({ success: mockNotificationSuccess, error: jest.fn() }),
 }));
 jest.mock('~/app/api/dch', () => ({
+  ...jest.requireActual<typeof import('~/app/api/dch')>('~/app/api/dch'),
   createConnection: jest.fn(),
   deleteConnection: jest.fn(),
   verifyConnection: jest.fn(),
@@ -48,9 +53,15 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 
 const mockUseConnections = jest.mocked(useConnections);
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
+const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
+const mockTrackEvent = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={mockTrackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: TrackingWrapper });
 
 const renderConnectionsTab = (props: React.ComponentProps<typeof ConnectionsTab>) =>
   render(
@@ -83,7 +94,7 @@ const connections = [
 ];
 
 const connectionTypes = [
-  {
+  new ConnectionTypeInstance({
     metadata: {
       id: '550e8400-e29b-41d4-a716-446655440003',
       created_at: '2026-09-08T16:00:00Z',
@@ -98,8 +109,8 @@ const connectionTypes = [
       ],
     },
     status: { flight_ready: true },
-  },
-  {
+  }),
+  new ConnectionTypeInstance({
     metadata: {
       id: '550e8400-e29b-41d4-a716-446655440004',
       created_at: '2026-09-08T16:00:00Z',
@@ -107,7 +118,7 @@ const connectionTypes = [
     },
     resource: { name: 'S3', provider: 's3', credentials_fields: [] },
     status: { flight_ready: true },
-  },
+  }),
 ];
 
 const newConnection = {
@@ -121,14 +132,14 @@ const newConnection = {
   status: { state: 'ready' as const },
 };
 
-const newConnectionType = {
+const newConnectionType = new ConnectionTypeInstance({
   metadata: {
     id: '550e8400-e29b-41d4-a716-446655440006',
     created_at: '2026-09-08T16:00:00Z',
     updated_at: '2026-09-08T16:00:00Z',
   },
   resource: { name: 'Snowflake', provider: 'snowflake', credentials_fields: [] },
-};
+});
 
 describe('ConnectionsTab', () => {
   beforeEach(() => {
@@ -137,6 +148,7 @@ describe('ConnectionsTab', () => {
     mockDeleteConnection.mockImplementation(() => () => Promise.resolve());
     mockUseConnections.mockReturnValue([connections, true, undefined, jest.fn()]);
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
     mockUseNamespaces.mockReturnValue([[{ name: 'test-project' }], true, undefined]);
   });
 
@@ -145,19 +157,25 @@ describe('ConnectionsTab', () => {
       synchronizeTypeSelection(
         ['550e8400-e29b-41d4-a716-446655440003'],
         ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
-        ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
       ),
     ).toEqual(['550e8400-e29b-41d4-a716-446655440003']);
   });
 
-  it('adds a newly discovered type while preserving existing selection', () => {
+  it('keeps an absent type selection absent when types become available', () => {
+    expect(synchronizeTypeSelection(null, ['type-one', 'type-two'])).toBeNull();
+  });
+
+  it('keeps an empty type selection empty when new types are discovered', () => {
+    expect(synchronizeTypeSelection([], ['type-one', 'type-two'])).toEqual([]);
+  });
+
+  it('keeps a newly discovered type unselected while preserving existing selection', () => {
     expect(
       synchronizeTypeSelection(
         ['550e8400-e29b-41d4-a716-446655440003'],
-        ['550e8400-e29b-41d4-a716-446655440003'],
         ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006'],
       ),
-    ).toEqual(['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006']);
+    ).toEqual(['550e8400-e29b-41d4-a716-446655440003']);
   });
 
   it('renders connection names and readable type names', () => {
@@ -166,6 +184,75 @@ describe('ConnectionsTab', () => {
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Unverified')).toBeTruthy();
+  });
+
+  it('defaults the type filter to unselected without filtering connections', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.getByText('object-store')).toBeTruthy();
+    expect(screen.queryByTestId('connections-type-filter-badge')).toBeNull();
+    expect(screen.queryByTestId('connections-type-filter-labels')).toBeNull();
+
+    await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
+    expect(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
+    expect(
+      within(screen.getByRole('menuitem', { name: 'S3' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
+  });
+
+  it('shows a count badge and filters by selected connection types', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
+    fireEvent.click(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('connections-type-filter-badge').textContent).toBe('1'),
+    );
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.queryByText('object-store')).toBeNull();
+
+    fireEvent.click(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    );
+
+    expect(screen.queryByTestId('connections-type-filter-badge')).toBeNull();
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.getByText('object-store')).toBeTruthy();
+  });
+
+  it('clears the name and type filters from the empty state', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
+    fireEvent.click(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    );
+    await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'no-match');
+
+    expect(screen.getByText('No results found')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.getByText('object-store')).toBeTruthy();
+    expect(screen.queryByTestId('connections-type-filter-badge')).toBeNull();
+
+    await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
+    expect(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
+    expect(
+      within(screen.getByRole('menuitem', { name: 'S3' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
   });
 
   it('renders a newly created connection as unverified', () => {
@@ -229,6 +316,63 @@ describe('ConnectionsTab', () => {
     expect(screen.getAllByText('Review').length).toBeGreaterThan(0);
   });
 
+  it('tracks starting the create connection flow from the toolbar', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Add Started', {
+      project: 'test-project',
+      source: 'connections_tab',
+    });
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks starting the create connection flow from the empty state', async () => {
+    const user = userEvent.setup();
+    mockUseConnections.mockReturnValue([[], true, undefined, jest.fn()]);
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Add Started', {
+      project: 'test-project',
+      source: 'empty_state',
+    });
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables creating a connection when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    const button = screen.getByRole('button', { name: 'Create connection' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    await user.hover(button);
+    expect(
+      screen.getByText(
+        'This action requires the create permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(button);
+    expect(screen.queryByTestId('create-connection-tearsheet')).toBeNull();
+    expect(mockTrackEvent).not.toHaveBeenCalledWith('Connections Add Started', {
+      project: 'test-project',
+      source: 'connections_tab',
+    });
+  });
+
+  it('disables creating a connection while access is loading', () => {
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: false });
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    const button = screen.getByRole('button', { name: 'Create connection' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('disables connection polling while the Connections tab is inactive', () => {
     renderConnectionsTab({ namespace: 'test-project', isActive: false });
 
@@ -243,6 +387,86 @@ describe('ConnectionsTab', () => {
     await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
 
     expect(screen.queryByText('warehouse')).toBeNull();
+    expect(screen.getByText('object-store')).toBeTruthy();
+  });
+
+  it('tracks a name filter after typing stops', async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderConnectionsTab({ namespace: 'test-project' });
+
+      await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
+      expect(mockTrackEvent).not.toHaveBeenCalledWith('Connections List Filter Applied', {
+        filterType: 'name',
+        project: 'test-project',
+      });
+
+      jest.advanceTimersByTime(750);
+
+      expect(mockTrackEvent).toHaveBeenCalledWith('Connections List Filter Applied', {
+        filterType: 'name',
+        project: 'test-project',
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('tracks clearing a name filter once when cleared before the debounce fires', async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderConnectionsTab({ namespace: 'test-project' });
+
+      await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
+      await user.click(screen.getByRole('button', { name: 'Reset' }));
+      jest.advanceTimersByTime(750);
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledWith('Connections List Filter Applied', {
+        filterType: 'name',
+        project: 'test-project',
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('cancels name-filter tracking when clearing all filters before the debounce fires', async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderConnectionsTab({ namespace: 'test-project' });
+
+      await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'no-match');
+      await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+      jest.advanceTimersByTime(750);
+
+      expect(mockTrackEvent).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('tracks a type filter when a type is deselected and reselected', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByTestId('connection-type-filter-toggle'));
+    const postgresqlFilter = screen.getByRole('menuitem', { name: 'PostgreSQL' });
+    fireEvent.click(within(postgresqlFilter).getByRole('checkbox'));
+
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.queryByText('object-store')).toBeNull();
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections List Filter Applied', {
+      filterType: 'type',
+      project: 'test-project',
+    });
+
+    fireEvent.click(within(postgresqlFilter).getByRole('checkbox'));
+
+    expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('object-store')).toBeTruthy();
   });
 
@@ -269,11 +493,91 @@ describe('ConnectionsTab', () => {
     renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
+    await user.hover(deleteItem);
+    expect(
+      screen.queryByText(
+        'This action requires the delete permission. To request permission, contact your administrator.',
+      ),
+    ).toBeNull();
+    await user.click(deleteItem);
     await user.click(screen.getByTestId('delete-confirm'));
 
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(screen.queryByTestId('delete-modal')).toBeNull();
+  });
+
+  it('tracks delete initiation without the connection name', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Connection Delete Initiated', {
+      project: 'test-project',
+      connectionTypeProvider: 'postgresql',
+    });
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables deleting a connection when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
+    const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
+    expect(deleteItem.getAttribute('aria-disabled')).toBe('true');
+
+    await user.hover(deleteItem);
+    expect(
+      screen.getByText(
+        'This action requires the delete permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(deleteItem);
+    expect(screen.queryByTestId('delete-modal')).toBeNull();
+    expect(mockTrackEvent).not.toHaveBeenCalledWith('Connections Connection Delete Initiated', {
+      project: 'test-project',
+      connectionTypeProvider: 'postgresql',
+    });
+  });
+
+  it('disables verifying a connection when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
+    const verifyItem = screen.getByRole('menuitem', { name: 'Verify connection' });
+    expect(verifyItem.getAttribute('aria-disabled')).toBe('true');
+
+    await user.hover(verifyItem);
+    expect(
+      screen.getByText(
+        'This action requires the create permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(verifyItem);
+    expect(mockVerifyConnection).not.toHaveBeenCalled();
+  });
+
+  it('shows the unauthorized state when loading connections is forbidden', () => {
+    mockUseConnections.mockReturnValue([
+      [],
+      false,
+      new ConnectionApiError('Access forbidden', 403),
+      jest.fn(),
+    ]);
+
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    expect(screen.getByTestId('unauthorized-error')).toBeTruthy();
+    expect(screen.getByTestId('unauthorized-error-title')).toBeTruthy();
+    expect(screen.queryByText('Unable to load data connections')).toBeNull();
   });
 
   it('ignores a stale delete completion after the modal is replaced', async () => {
@@ -313,12 +617,12 @@ describe('ConnectionsTab', () => {
     expect(screen.queryByTestId('delete-modal')).toBeNull();
   });
 
-  it('includes newly discovered connection types after polling', async () => {
+  it('keeps newly discovered connection types unselected after polling', async () => {
     const user = userEvent.setup();
     const { rerender } = renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'S3' }));
+    fireEvent.click(within(screen.getByRole('menuitem', { name: 'S3' })).getByRole('checkbox'));
     mockUseConnections.mockReturnValue([
       [...connections, newConnection],
       true,
@@ -336,7 +640,13 @@ describe('ConnectionsTab', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => expect(screen.getByText('analytics')).toBeTruthy());
+    expect(screen.getByTestId('connections-type-filter-badge').textContent).toBe('1');
+    expect(screen.getByText('object-store')).toBeTruthy();
+    expect(screen.queryByText('warehouse')).toBeNull();
+    expect(screen.queryByText('analytics')).toBeNull();
+    expect(
+      within(screen.getByRole('menuitem', { name: 'Snowflake' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
   });
 
   it('resets type selections when the project changes', async () => {

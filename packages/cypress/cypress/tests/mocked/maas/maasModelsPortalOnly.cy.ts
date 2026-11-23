@@ -4,11 +4,11 @@ import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 
 describe('MaaS Models portal-only route', () => {
-  it('should not expose the portal models page in RHOAI even when grid is enabled', () => {
+  it('should not expose the portal-only models page in RHOAI', () => {
     asProductAdminUser();
     cy.interceptOdh(
       'GET /api/config',
-      mockDashboardConfig({ genAiStudio: true, modelAsService: true, grid: true }),
+      mockDashboardConfig({ genAiStudio: true, modelAsService: true }),
     );
     cy.visitWithLogin('/maas/models');
     pageNotfound.findPage().should('be.visible');

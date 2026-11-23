@@ -5,35 +5,37 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ssrf"
 )
 
 // K8sProxyPrefix is the URL path prefix for Kubernetes API proxy requests.
-const K8sProxyPrefix = "/api/k8s/"
+const K8sProxyPrefix = constants.K8sProxyPrefix
 
 // SensitiveIngressHeaders returns header names that must not leak from the ingress
 // layer to upstream services. authTokenHeader is included dynamically because it
 // is configurable (default: x-forwarded-access-token).
 func SensitiveIngressHeaders(authTokenHeader string) []string {
 	headers := []string{
-		"cookie",
-		"x-forwarded-for",
-		"x-forwarded-host",
-		"x-forwarded-port",
-		"x-forwarded-proto",
-		"x-forwarded-scheme",
-		"x-forwarded-email",
-		"x-forwarded-user",
-		"x-forwarded-preferred-username",
-		"x-forwarded-groups",
-		"x-real-ip",
-		"forwarded",
+		constants.HeaderCookie,
+		constants.HeaderXForwardedFor,
+		constants.HeaderXForwardedHost,
+		constants.HeaderXForwardedPort,
+		constants.HeaderXForwardedProto,
+		constants.HeaderXForwardedScheme,
+		constants.HeaderXForwardedEmail,
+		constants.HeaderXForwardedUser,
+		constants.HeaderXForwardedPreferredUsername,
+		constants.HeaderXForwardedGroups,
+		constants.HeaderXRealIP,
+		constants.HeaderForwarded,
 	}
 	if authTokenHeader != "" {
 		headers = append(headers, authTokenHeader)
@@ -82,16 +84,29 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 	}
 
 	proxy, err := NewReverseProxy(ProxyConfig{
-		TargetURL:            targetURL,
-		RootCAs:              cfg.RootCAs,
-		ClientCerts:          cfg.ClientCerts,
-		InsecureSkipVerify:   cfg.InsecureSkipVerify,
-		AllowHTTP:            cfg.AllowHTTP,
-		SetOutboundHeadersFn: cfg.SetOutboundHeadersFn,
-		StripHeaders:         SensitiveIngressHeaders(cfg.AuthTokenHeader),
-		SSRFValidateTarget:   cfg.SSRFValidateTarget,
-		SSRFAllowedHosts:     []string{targetURL.Hostname()},
-		Logger:               cfg.Logger,
+		TargetURL:          targetURL,
+		RootCAs:            cfg.RootCAs,
+		ClientCerts:        cfg.ClientCerts,
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		AllowHTTP:          cfg.AllowHTTP,
+		// Keep compressed error bytes visible to the bounded Status decoder.
+		DisableCompression: true,
+		SetOutboundHeadersFn: func(in *http.Request, out http.Header) {
+			if cfg.SetOutboundHeadersFn != nil {
+				cfg.SetOutboundHeadersFn(in, out)
+			}
+			out.Del(constants.HeaderConnection)
+			out.Del(constants.HeaderUpgrade)
+			if httpcontract.IsWatchRequest(in) {
+				out.Set(constants.HeaderAccept, jsonWatchAccept(out.Values(constants.HeaderAccept)))
+				// Watch decoding is handled explicitly before event sanitization.
+				out.Set(constants.HeaderAcceptEncoding, constants.ContentEncodingGzip)
+			}
+		},
+		StripHeaders:       SensitiveIngressHeaders(cfg.AuthTokenHeader),
+		SSRFValidateTarget: cfg.SSRFValidateTarget,
+		SSRFAllowedHosts:   []string{targetURL.Hostname()},
+		Logger:             cfg.Logger,
 		PathRewriteFn: func(r *http.Request) string {
 			return strings.TrimPrefix(r.URL.Path, strings.TrimSuffix(K8sProxyPrefix, "/"))
 		},
@@ -102,11 +117,53 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			}
 			return k8s.BearerTokenPrefix + identity.ResolveToken(cfg.DevFallbackToken)
 		},
-		ModifyResponse: ssrf.NewRedirectValidator(cfg.Logger),
+		ModifyResponse: func(resp *http.Response) error {
+			if resp.StatusCode == http.StatusSwitchingProtocols {
+				return fmt.Errorf("protocol upgrades require the Kubernetes WebSocket endpoint")
+			}
+			if err := ssrf.NewRedirectValidator(cfg.Logger)(resp); err != nil {
+				return err
+			}
+			if resp.StatusCode >= http.StatusBadRequest {
+				resp.Header.Del(cfg.AuthTokenHeader)
+			}
+			return httpcontract.KubernetesResponse(resp)
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create K8s reverse proxy: %w", err)
 	}
 
 	return proxy, nil
+}
+
+// jsonWatchAccept keeps JSON representations and their parameters while excluding binary encodings.
+func jsonWatchAccept(values []string) string {
+	var entries []string
+	for _, value := range values {
+		start := 0
+		quoted, escaped := false, false
+		// Quoted parameters may contain commas; the appended comma flushes the final entry.
+		for i, c := range value + "," {
+			switch {
+			case escaped:
+				escaped = false
+			case quoted && c == '\\':
+				escaped = true
+			case c == '"':
+				quoted = !quoted
+			case c == ',' && !quoted:
+				entry := strings.TrimSpace(value[start:i])
+				mediaType, _, err := mime.ParseMediaType(entry)
+				if err == nil && mediaType == constants.ContentTypeJSON {
+					entries = append(entries, entry)
+				}
+				start = i + 1
+			}
+		}
+	}
+	if len(entries) == 0 {
+		return constants.ContentTypeJSON
+	}
+	return strings.Join(entries, ",")
 }

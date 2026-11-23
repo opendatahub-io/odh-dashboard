@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Button,
   Modal,
@@ -28,6 +29,9 @@ type ModelSelectionDraft = {
   embeddingModels: string[];
 };
 
+const MODEL_SELECTION_MODAL_TITLE_ID = 'autorag-model-selection-modal-title';
+const MODEL_SELECTION_MODAL_DESCRIPTION_ID = 'autorag-model-selection-modal-description';
+
 // Foundation selections win when persisted values overlap before the user makes a choice.
 const resolveModelSelectionOverlap = ({
   generationModels,
@@ -45,6 +49,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
   modelsLoaded,
   modelsLoading,
 }) => {
+  const trackEvent = useTrackEvent();
   const {
     getValues,
     setValue,
@@ -77,7 +82,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
 
   const fireModelsSelected = (outcome: TrackingOutcome) => {
     const { generation_models: foundationModels, embedding_models: embeddingModels } = getValues();
-    fireAutoragModelsSelected({
+    fireAutoragModelsSelected(trackEvent, {
       countOfFoundationModels: foundationModels.length,
       countOfEmbeddingModels: embeddingModels.length,
       outcome,
@@ -111,6 +116,8 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
     <Modal
       variant={ModalVariant.medium}
       isOpen={isOpen}
+      aria-labelledby={MODEL_SELECTION_MODAL_TITLE_ID}
+      aria-describedby={MODEL_SELECTION_MODAL_DESCRIPTION_ID}
       onClose={() => {
         fireModelsSelected(TrackingOutcome.cancel);
         revertChanges();
@@ -118,7 +125,12 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
       }}
       data-testid="experiment-settings-modal"
     >
-      <ModalHeader title="Model configuration" />
+      <ModalHeader
+        labelId={MODEL_SELECTION_MODAL_TITLE_ID}
+        descriptorId={MODEL_SELECTION_MODAL_DESCRIPTION_ID}
+        title="Select foundation and embedding models"
+        description="Choose at least 1 foundation model and 1 embedding model. A single model cannot act as both a foundation and embedding model in the same run."
+      />
       <ModalBody>
         <AutoragExperimentSettingsModelSelection
           models={models}

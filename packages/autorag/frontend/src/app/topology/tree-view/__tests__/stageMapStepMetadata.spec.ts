@@ -242,6 +242,30 @@ describe('getStageMapDetails', () => {
     );
   });
 
+  it('formats numbered patterns in optimize_templates stage details', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: mockComponentStageMap.components[0].stages.map((stage) =>
+            stage.id === 'optimize_templates'
+              ? { ...stage, selected_patterns: ['Pattern1', 'Pattern10'] }
+              : stage,
+          ),
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('rag_optimization__optimize_templates');
+    const details = getStageMapDetails(parsed!, stageMap);
+
+    expect(details).toEqual(
+      expect.arrayContaining([
+        { label: 'Selected patterns', value: 'Pattern\u00a0A, Pattern\u00a0J' },
+      ]),
+    );
+  });
+
   it('includes selected patterns nested under stage metadata', () => {
     const stageMap: ComponentStageMap = {
       ...mockComponentStageMap,
@@ -328,6 +352,33 @@ describe('getStageMapDetails', () => {
         { label: 'Duration', value: '8 s' },
         { label: 'Selected pattern', value: 'PatternHyDE' },
       ]),
+    );
+  });
+
+  it('formats numbered selected patterns in branch step details', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: mockComponentStageMap.components[0].stages.map((stage) =>
+            stage.id === 'optimize_templates'
+              ? { ...stage, selected_patterns: ['Pattern1', 'Pattern10'] }
+              : stage,
+          ),
+        },
+      ],
+    };
+    const firstBranch = parseStageMapNodeId('rag_optimization__step__chunking__branch-0');
+    const secondBranch = parseStageMapNodeId('rag_optimization__step__chunking__branch-1');
+    const firstBranchDetails = getStageMapDetails(firstBranch!, stageMap);
+    const secondBranchDetails = getStageMapDetails(secondBranch!, stageMap);
+
+    expect(firstBranchDetails).toEqual(
+      expect.arrayContaining([{ label: 'Selected pattern', value: 'Pattern\u00a0A' }]),
+    );
+    expect(secondBranchDetails).toEqual(
+      expect.arrayContaining([{ label: 'Selected pattern', value: 'Pattern\u00a0J' }]),
     );
   });
 

@@ -236,11 +236,14 @@ describe('PlaygroundDrawerPanel', () => {
     expect(screen.queryByRole('button', { name: 'View Code' })).not.toBeInTheDocument();
   });
 
-  it('should disable the playground for Neo4j patterns', () => {
+  it('should enable the playground for Neo4j patterns', () => {
     const neo4jPattern = {
       ...mockPatterns.pattern_a,
       name: 'neo4j-pattern',
-      settings: { ...mockPatternSettings, store_binding: { provider_type: 'neo4j' } },
+      settings: {
+        ...mockPatternSettings,
+        store_binding: { provider_type: 'neo4j', collection_name: 'vs-1' },
+      },
     } as AutoragPattern;
     render(
       <AutoragResultsContext.Provider
@@ -261,10 +264,7 @@ describe('PlaygroundDrawerPanel', () => {
       </AutoragResultsContext.Provider>,
     );
 
-    expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
-    expect(screen.getByTestId('playground-neo4j-unavailable')).toHaveTextContent(
-      'GraphRAG runs using Neo4j are not supported',
-    );
+    expect(screen.getByTestId('mock-embedded-playground')).toBeInTheDocument();
   });
 
   it('should render the pattern select toggle', () => {

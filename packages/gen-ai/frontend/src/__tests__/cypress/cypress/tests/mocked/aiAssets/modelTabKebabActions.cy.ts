@@ -6,7 +6,7 @@ import {
   kebabMenu,
 } from '~/__tests__/cypress/cypress/pages/modelsTabPage';
 import { setupModelsTabIntercepts } from '~/__tests__/cypress/cypress/support/helpers/modelsTab/modelsTabTestHelpers';
-import { mockAAModel } from '~/__tests__/cypress/cypress/__mocks__/mockAAModels';
+import { mockAAModel } from '~/__mocks__/genAiFixtures';
 
 const TEST_NAMESPACE = 'test-namespace';
 

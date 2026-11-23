@@ -602,7 +602,7 @@ describe('Project Details', () => {
 
       const notebookRow = projectDetails.getNotebookRow('test-notebook');
       notebookRow.findKueueAnomalyIndicator().should('exist');
-      notebookRow.findKueueAnomalyTooltip().should('contain.text', 'not managed by Kueue');
+      notebookRow.findKueueAnomalyTooltip().should('contain.text', "doesn't use Kueue scheduling");
     });
 
     it('does not show warning icon when the project is not Kueue-managed', () => {

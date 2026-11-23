@@ -14,8 +14,9 @@ const (
 	APIKeyConfigPath = ApiPathPrefix + "/api-keys-config"
 
 	// Access review
-	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
-	WhoAmIPath      = ApiPathPrefix + "/whoami"
+	IsMaasAdminPath     = ApiPathPrefix + "/is-maas-admin"
+	WhoAmIPath          = ApiPathPrefix + "/whoami"
+	UsageDashboardsPath = ApiPathPrefix + "/usage-dashboards"
 
 	// Gateway discovery
 	MaaSGatewayURLPath = ApiPathPrefix + "/gateway-url"
@@ -25,11 +26,12 @@ const (
 	SubscriptionByIDPassthroughPath = ApiPathPrefix + "/subscriptions/:id"
 
 	// Subscription routes
-	SubscriptionListPath   = ApiPathPrefix + "/all-subscriptions"
-	SubscriptionInfoPath   = ApiPathPrefix + "/subscription-info/:name"
-	SubscriptionCreatePath = ApiPathPrefix + "/new-subscription"
-	SubscriptionUpdatePath = ApiPathPrefix + "/update-subscription/:name"
-	SubscriptionDeletePath = ApiPathPrefix + "/subscription/:name"
+	SubscriptionListPath      = ApiPathPrefix + "/all-subscriptions"
+	AdminSubscriptionListPath = ApiPathPrefix + "/admin-subscriptions"
+	SubscriptionInfoPath      = ApiPathPrefix + "/subscription-info/:name"
+	SubscriptionCreatePath    = ApiPathPrefix + "/new-subscription"
+	SubscriptionUpdatePath    = ApiPathPrefix + "/update-subscription/:name"
+	SubscriptionDeletePath    = ApiPathPrefix + "/subscription/:name"
 
 	// Policy routes
 	PolicyListPath   = ApiPathPrefix + "/all-policies"

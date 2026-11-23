@@ -1,6 +1,6 @@
 import React from 'react';
 import type { StatusProviderHook } from '@odh-dashboard/plugin-core/extension-points';
-import { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
+import { useWatchHardwareProfiles } from '@odh-dashboard/ui-core/context/HardwareProfilesContext';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import {
   generateWarningForHardwareProfiles,

@@ -1,0 +1,9 @@
+# Teach kustomize that Certificate.spec.issuerRef.name refers to an Issuer, so
+# namePrefix renames the reference along with the Issuer.
+nameReference:
+  - kind: Issuer
+    group: cert-manager.io
+    fieldSpecs:
+      - kind: Certificate
+        group: cert-manager.io
+        path: spec/issuerRef/name

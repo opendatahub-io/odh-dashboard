@@ -546,13 +546,22 @@ const CONTAINER_EVENT_REASONS: Set<string> = new Set([
 ]);
 
 /**
- * Attempts to parse a container name directly from "Created container <name>"
+ * Attempts to parse a container name directly from "Created container: <name>"
  * or "Started container <name>" event messages.
  */
 const parseContainerNameFromMessage = (message: string): string | undefined => {
-  const match = /^(?:Created|Started) container (\S+)/.exec(message);
+  const match = /^(?:Created container:|Started container)\s+(\S+)/i.exec(message);
   return match?.[1];
 };
+
+/**
+ * Kubernetes 1.35 removed the container name from Created and Started event messages.
+ * For those events, the container remains identified by involvedObject.fieldPath
+ * as "spec.containers{<name>}".
+ */
+const parseContainerNameFromEvent = (event: EventKind): string | undefined =>
+  parseContainerNameFromMessage(event.message) ??
+  /^spec\.containers\{([^}]+)\}$/.exec(event.involvedObject.fieldPath ?? '')?.[1];
 
 /**
  * Maps a single K8s event to a NotebookProgressStep.
@@ -569,14 +578,18 @@ export const getNotebookEventStatus = (
   if (CONTAINER_EVENT_REASONS.has(reason)) {
     // Longest-name-first prevents a short name from matching inside a longer sibling name.
     const matchCandidates = containerNames.toSorted((a, b) => b.length - a.length);
-    let matchedContainer = matchCandidates.find((name) => message.includes(name));
+    let matchedContainer: string | undefined;
 
-    // For Created/Started, try parsing the container name directly from the message.
-    if (!matchedContainer && (reason === 'Created' || reason === 'Started')) {
-      const parsed = parseContainerNameFromMessage(message);
+    // For Created/Started, parse the container name from the legacy message or fieldPath.
+    if (reason === 'Created' || reason === 'Started') {
+      const parsed = parseContainerNameFromEvent(event);
       if (parsed && containerNames.includes(parsed)) {
         matchedContainer = parsed;
       }
+    }
+
+    if (!matchedContainer) {
+      matchedContainer = matchCandidates.find((name) => message.includes(name));
     }
 
     if (!matchedContainer) {

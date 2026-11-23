@@ -112,7 +112,7 @@ Apply this conservatively — a real regression can produce the same symptoms as
 - If your analysis concludes the failure is likely deterministic (wrong selector, missing element, new test with a bug), classify as Likely real instead and explain why
 - Do NOT label it flaky — surface it as a possibility
 - Prompt the dev: is this related to their changes? Has this test passed on `main` recently?
-- Recommended action: gather multiple signals to confirm — see "If You Confirm It's Flaky" in any investigation report; then log a RHOAIENG Bug with label `flaky-test` if not already tracked
+- Recommended action: gather multiple signals to confirm — see "If You Confirm It's Flaky" in any investigation report; then log an `RHAI` Bug with label `flaky-test` if not already tracked
 
 **Likely real**
 - No symptom pattern match and no cross-PR recurrence signal
@@ -297,7 +297,7 @@ gh api repos/opendatahub-io/odh-dashboard/actions/runs/<run_id>/artifacts \
   ```bash
   gh pr view <number> --json title,body,headRefName --jq '{title: .title, branch: .headRefName, body: .body}'
   ```
-  Look for keywords: `flake`, `flaky`, `stabilize`, `intermittent`, `timing`, `fix test`, `test fix`, or a RHOAIENG ticket reference in a known flaky-test context. Then apply one of:
+  Look for keywords: `flake`, `flaky`, `stabilize`, `intermittent`, `timing`, `fix test`, `test fix`, or an `RHAI`/legacy `RHOAIENG` ticket reference in a known flaky-test context. Then apply one of:
   - *Flake fix signals found* — PR title/body/branch suggests this is a flake fix attempt; classify as **⚠️ Suspected Flaky — PR appears to be a flake fix (fix may be incomplete)**; note the test is still failing and the underlying issue may not yet be resolved; recommend cross-PR recurrence and rerun checks to confirm
   - *No flake fix signals* — no evidence the PR is trying to fix this test; the test file edit may be incidental; classify as **⚠️ Suspected Flaky — PR modifies the failing test file (ambiguous)**; recommend gathering more signals before drawing conclusions
 - **No overlap** — PR changes are in a different domain than the test's feature area (e.g. PR touches `api-keys/`, test is in `pipelines/runs/`) → refine to **⚠️ Suspected Flaky — no code overlap (likely unrelated to this PR)**; lower the alarm level in the report
@@ -372,11 +372,11 @@ When you have enough evidence, **proactively ask the user** whether they want yo
 
 > "Would you like me to search Jira for existing tracking tickets for these suspected flaky tests? (Requires Jira MCP to be configured.)"
 
-If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom. Always include `component = "AI Core Dashboard"` to exclude flaky-test tickets from other repos (e.g. kserve) that share the RHOAIENG project:
+If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom. Always include `component = "AI Core Dashboard"` to exclude flaky-test tickets from other repos (e.g. kserve). Dashboard tickets live in `RHAI` and the legacy `RHOAIENG` project, so query both:
 
-1. **Test file name** — `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
-2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
-3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
+1. **Test file name** — `project in (RHAI, RHOAIENG) AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
+2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project in (RHAI, RHOAIENG) AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
+3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project in (RHAI, RHOAIENG) AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
 
 Deduplicate results across queries. Report unique matches (key, summary, status) for each test. If a ticket already exists, link to it. If no existing ticket — say "create the Jira" and I'll file it, or copy these fields:
 
@@ -578,10 +578,10 @@ List PRs flagged `⚠️` or `❓` and offer:
 
 > "Would you like me to search Jira for existing tracking tickets for these suspected flaky tests? (Requires Jira MCP to be configured.)"
 
-If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom. Always include `component = "AI Core Dashboard"` to exclude flaky-test tickets from other repos (e.g. kserve) that share the RHOAIENG project:
+If they agree and Jira MCP is available, run up to three searches per suspected test — a single query on the full test name is often too narrow and will miss tickets filed against the file name or symptom. Always include `component = "AI Core Dashboard"` to exclude flaky-test tickets from other repos (e.g. kserve). Dashboard tickets live in `RHAI` and the legacy `RHOAIENG` project, so query both:
 
-1. **Test file name** — `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
-2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
-3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project = RHOAIENG AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
+1. **Test file name** — `project in (RHAI, RHOAIENG) AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<filename>" ORDER BY created DESC`
+2. **Short it() fragment** — 2–3 distinctive words from the `it()` description, not the full sentence: `project in (RHAI, RHOAIENG) AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<short fragment>" ORDER BY created DESC`
+3. **Error symptom** — if a distinctive error token is known (e.g. `modal-submit-button`, `pf-m-progress`, `ECONNRESET`): `project in (RHAI, RHOAIENG) AND component = "AI Core Dashboard" AND labels = "flaky-test" AND text ~ "<symptom token>" ORDER BY created DESC`
 
 Deduplicate results across queries. Report unique matches (key, summary, status) for each test. If a match exists, link to it and note whether it is open or closed. If no match is found, say so and offer to file a new ticket.

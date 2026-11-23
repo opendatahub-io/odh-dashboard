@@ -31,7 +31,7 @@ import {
   mlflowPromptManagementBaseRoute,
   WORKSPACE_QUERY_PARAM,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 import MLflowNotConfigured from '../shared/MLflowNotConfigured';
 import MlflowBreadcrumbs, { type BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
@@ -39,6 +39,7 @@ import LaunchMlflowButton from '../shared/LaunchMlflowButton';
 import { PROMPT_MANAGEMENT_PAGE_TITLE } from '../shared/const';
 
 const MlflowPromptManagementPage: React.FC = () => {
+  const trackEvent = useTrackEvent();
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
   const [breadcrumbs, setBreadcrumbs] = React.useState<BreadcrumbEntry[]>([]);
@@ -65,12 +66,12 @@ const MlflowPromptManagementPage: React.FC = () => {
 
   const handleProjectSelectChange = React.useCallback(
     (projectName: string) => {
-      fireMiscTrackingEvent('Prompts global project changed', {
+      trackEvent('Prompts global project changed', {
         isGlobalProject: projectName === globalNamespace,
         selectedProject: projectName,
       });
     },
-    [globalNamespace],
+    [globalNamespace, trackEvent],
   );
 
   const isTopLevel = breadcrumbs.length === 0;

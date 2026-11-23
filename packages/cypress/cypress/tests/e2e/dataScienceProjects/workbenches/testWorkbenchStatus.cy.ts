@@ -23,6 +23,9 @@ describe('Workbenches - status tests', () => {
   let projectDescription: string;
   let notebookImage: string;
   let hardwareProfileName: string;
+  let createdContainerEventPattern: string;
+  let startedContainerEventPattern: string;
+  let pulledImageEventText: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -33,6 +36,9 @@ describe('Workbenches - status tests', () => {
         projectDescription = fixtureData.wbStatusTestDescription;
         notebookImage = fixtureData.notebookImage;
         hardwareProfileName = fixtureData.hardwareProfileName;
+        createdContainerEventPattern = fixtureData.createdContainerEventPattern;
+        startedContainerEventPattern = fixtureData.startedContainerEventPattern;
+        pulledImageEventText = fixtureData.pulledImageEventText;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -106,15 +112,15 @@ describe('Workbenches - status tests', () => {
             notebookRow.findHaveNotebookStatusText().click();
             workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Ready);
 
-            cy.step('Verify the workbench description is displayed in the status modal');
-            workbenchStatusModal.findModalDescription().should('have.text', projectDescription);
+            cy.step('Verify the resource-type description is absent when there is no live summary');
+            workbenchStatusModal.findModalDescription().should('not.exist');
 
             // Click on the Events log and validate that successful list messages display.
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');
             workbenchStatusModal.findEventlogTab().click();
-            workbenchStatusModal.findLogEntry('Created container');
-            workbenchStatusModal.findLogEntry('Started container');
-            workbenchStatusModal.findLogEntry('Successfully pulled image');
+            workbenchStatusModal.findLogEntry(new RegExp(createdContainerEventPattern));
+            workbenchStatusModal.findLogEntry(new RegExp(startedContainerEventPattern));
+            workbenchStatusModal.findLogEntry(pulledImageEventText);
           });
         },
       );

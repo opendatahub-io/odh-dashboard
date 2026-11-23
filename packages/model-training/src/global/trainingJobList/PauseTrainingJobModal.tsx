@@ -1,16 +1,7 @@
 import * as React from 'react';
-import {
-  Modal,
-  ModalVariant,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Checkbox,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { TrainJobKind } from '../../k8sTypes';
 
 type PauseTrainingJobModalProps = {
@@ -42,44 +33,48 @@ const PauseTrainingJobModal: React.FC<PauseTrainingJobModalProps> = ({
     onClose();
   };
 
-  return (
-    <Modal
-      variant={ModalVariant.small}
-      isOpen
-      onClose={onBeforeClose}
-      data-testid="pause-training-job-modal"
-    >
-      <ModalHeader title="Pause training job?" />
-      <ModalBody>
-        <Stack hasGutter>
-          <StackItem>
-            The <strong>{displayName}</strong> job will be temporarily stopped, and its resources
-            will be released. Job progress and state, such as model weights and optimizer state,
-            will be saved. You can resume the job from its last checkpoint at any time.
-          </StackItem>
-          <StackItem>
-            <Checkbox
-              id="dont-show-again"
-              data-testid="dont-show-again-checkbox"
-              label="Don't show again"
-              isChecked={dontShowModalValue}
-              onChange={(_e, checked) => setDontShowModalValue(checked)}
-            />
-          </StackItem>
-        </Stack>
-      </ModalBody>
-      <ModalFooter>
-        <DashboardModalFooter
-          onCancel={onBeforeClose}
-          onSubmit={onConfirm}
-          submitLabel="Pause"
-          submitButtonVariant="primary"
-          isSubmitLoading={isPausing}
-          isSubmitDisabled={isPausing}
-          isCancelDisabled={isPausing}
+  const modalContent = (
+    <Stack hasGutter>
+      <StackItem>
+        Pausing <strong>{displayName}</strong> will stop the job and release its resources. Job
+        progress will be lost if checkpointing is not enabled.
+      </StackItem>
+      <StackItem>
+        <Checkbox
+          id="dont-show-again"
+          data-testid="dont-show-again-checkbox"
+          label="Don't show again"
+          isChecked={dontShowModalValue}
+          onChange={(_e, checked) => setDontShowModalValue(checked)}
         />
-      </ModalFooter>
-    </Modal>
+      </StackItem>
+    </Stack>
+  );
+
+  return (
+    <ContentModal
+      title="Pause training job?"
+      titleIconVariant="warning"
+      dataTestId="pause-training-job-modal"
+      variant="small"
+      onClose={onBeforeClose}
+      contents={modalContent}
+      buttonActions={[
+        {
+          label: 'Pause',
+          onClick: onConfirm,
+          variant: 'danger',
+          isLoading: isPausing,
+          isDisabled: isPausing,
+        },
+        {
+          label: 'Cancel',
+          onClick: onBeforeClose,
+          variant: 'link',
+          isDisabled: isPausing,
+        },
+      ]}
+    />
   );
 };
 

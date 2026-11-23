@@ -38,6 +38,18 @@
     }
   }
 
+  &__detached-toggle {
+    --pf-v6-c-button--m-link--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-link--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-link--m-clicked--Color: var(--pf-t--global--text--color--regular);
+
+    .pf-v6-c-button,
+    .pf-v6-c-button__text,
+    .pf-v6-c-button__icon {
+      color: var(--pf-t--global--text--color--regular);
+    }
+  }
+
   &__status {
     padding-block-start: var(--pf-t--global--spacer--lg);
   }

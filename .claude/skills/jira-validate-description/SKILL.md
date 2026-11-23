@@ -312,7 +312,7 @@ Given a bug RHOAIENG-55000 ("Model serving endpoint returns 500") with a descrip
 {
   "metadata": {
     "generated": "2026-03-25T14:00:00Z",
-    "query": "project = RHOAIENG AND component = \"AI Core Dashboard\" AND issuetype = Bug AND status = New",
+    "query": "project in (RHAI, RHOAIENG) AND component = \"AI Core Dashboard\" AND issuetype = Bug AND status = New",
     "issueCount": 1
   },
   "operations": [

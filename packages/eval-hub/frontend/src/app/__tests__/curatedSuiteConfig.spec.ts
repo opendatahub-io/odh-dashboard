@@ -16,10 +16,14 @@ describe('getCuratedCollectionConfig', () => {
     });
 
     expect(getCuratedCollectionConfig(collection)).toEqual({
-      prerequisite: {
-        short: 'Requires a model that supports multiple tool/function calls.',
-        long: 'The model you are evaluating must support multiple tool/function calls.',
-      },
+      prerequisites: [
+        {
+          kind: 'run',
+          short: 'Requires a model that supports multiple tool/function calls.',
+          long: 'The model you are evaluating must support multiple tool/function calls.',
+        },
+      ],
+      requiresConfiguration: false,
     });
   });
 
@@ -32,10 +36,14 @@ describe('getCuratedCollectionConfig', () => {
     });
 
     expect(getCuratedCollectionConfig(collection)).toEqual({
-      prerequisite: {
-        short: 'Requires a judge model.',
-        long: 'Requires a judge model in addition to the model you are evaluating. The judge model scores and evaluates the responses produced by the model you are evaluating.',
-      },
+      prerequisites: [
+        {
+          kind: 'config',
+          short: 'Requires a judge model.',
+          long: 'Requires a judge model in addition to the model you are evaluating. The judge model scores and evaluates the responses produced by the model you are evaluating.',
+        },
+      ],
+      requiresConfiguration: true,
       parameters: {
         judge_model: {
           required: true,
@@ -65,11 +73,19 @@ describe('getCuratedCollectionConfig', () => {
     });
 
     expect(getCuratedCollectionConfig(collection)).toEqual({
-      prerequisite: {
-        short:
-          'Requires a model that supports multiple tool/function calls. Requires a judge model.',
-        long: 'The model you are evaluating must support multiple tool/function calls. Requires a judge model in addition to the model you are evaluating. The judge model scores and evaluates the responses produced by the model you are evaluating.',
-      },
+      prerequisites: [
+        {
+          kind: 'run',
+          short: 'Requires a model that supports multiple tool/function calls.',
+          long: 'The model you are evaluating must support multiple tool/function calls.',
+        },
+        {
+          kind: 'config',
+          short: 'Requires a judge model.',
+          long: 'Requires a judge model in addition to the model you are evaluating. The judge model scores and evaluates the responses produced by the model you are evaluating.',
+        },
+      ],
+      requiresConfiguration: true,
       parameters: {
         judge_model: {
           required: true,

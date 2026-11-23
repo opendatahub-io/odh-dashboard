@@ -43,6 +43,10 @@ func (t *limitedResponseBodyRoundTripper) RoundTrip(req *http.Request) (*http.Re
 	return resp, nil
 }
 
+func (t *limitedResponseBodyRoundTripper) CloseIdleConnections() {
+	closeIdleConnections(t.base)
+}
+
 type limitedResponseBody struct {
 	io.ReadCloser
 	remaining int

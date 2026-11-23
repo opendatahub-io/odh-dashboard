@@ -54,12 +54,12 @@ class APIKeysPage {
 
   getRow(name: string): APIKeyTableRow {
     return new APIKeyTableRow(() =>
-      this.findTable().find('tbody tr').contains('td', name).parents('tr'),
+      this.findTable().find('tr:has(td)').contains('td', name).parents('tr'),
     );
   }
 
   findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().find('tbody tr');
+    return this.findTable().find('tr:has(td)');
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -126,12 +126,35 @@ class APIKeysPage {
     return cy.findByTestId('username-filter-input');
   }
 
+  findUsernameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('textbox', { name: 'Filter by username' });
+  }
+
+  findOptionalFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('body').find('[data-testid="username-filter-input"]');
+  }
+
   findFilterSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findFilterInput().find('button[type="submit"]');
+    return cy.findByRole('button', { name: 'Search' });
+  }
+
+  filterByUsername(username: string): void {
+    this.findUsernameInput()
+      .should('be.visible')
+      .click()
+      .clear()
+      .type(username)
+      .should('have.value', username);
+    this.findFilterSearchButton().click();
+    this.findRows().should('be.visible').and('contain.text', username);
   }
 
   findUsernameFilterTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('username-filter-tooltip');
+  }
+
+  findRevokeMenuItem(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: /^Revoke$/ });
   }
 
   findRevokeActionsButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -196,6 +219,10 @@ class MySubscriptionsPage {
 }
 
 class APIKeyTableRow extends TableRow {
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: 'Kebab toggle' });
+  }
+
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-name');
   }
@@ -529,6 +556,10 @@ class CopyApiKeyModal extends Modal {
     return this.find().findByTestId('api-key-usage-example');
   }
 
+  findUsageExampleCopyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-usage-example-copy-button');
+  }
+
   findEndpointCompatibilityAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-endpoint-compatibility-alert');
   }
@@ -658,7 +689,7 @@ class SubscriptionsPage {
   }
 
   findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscriptions-filter-input');
+    return cy.findByTestId('subscriptions-subscription-filter-input');
   }
 
   findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -679,6 +710,10 @@ class SubscriptionsPage {
 
   findEditButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.getRow(rowName).findKebabAction('Edit');
+  }
+
+  findDeleteMenuItem(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Delete' });
   }
 
   findDeleteButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -885,9 +920,17 @@ class CreateSubscriptionPage {
     return cy.findByTestId('subscription-groups');
   }
 
+  findGroupOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('option', { name });
+  }
+
+  findGroupsInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findGroupsSelect().find('input');
+  }
+
   selectGroup(name: string): void {
     this.findGroupsSelect().click();
-    cy.findByRole('option', { name }).click();
+    this.findGroupOption(name).click();
     this.findGroupsSelect().closeSelectMenu();
   }
 
@@ -1728,14 +1771,12 @@ class OverviewTableRow extends TableRow {
 }
 
 class OverviewTabPage {
-  getRow(modelId: string, namespace: string): OverviewTableRow {
-    return new OverviewTableRow(() =>
-      cy.findByTestId(`overview-model-row-${modelId}-${namespace}`).find('tr').first(),
-    );
+  findModelRow(modelId: string, namespace: string): OverviewTableRow {
+    return new OverviewTableRow(() => this.findModelRowRoot(modelId, namespace).find('tr').first());
   }
 
-  getRowByIndex(index: number): OverviewTableRow {
-    return new OverviewTableRow(() => this.findModelRows().eq(index).find('tr').first());
+  getRow(modelId: string, namespace: string): OverviewTableRow {
+    return this.findModelRow(modelId, namespace);
   }
 
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1746,6 +1787,10 @@ class OverviewTabPage {
     return this.findTable().find('[data-testid^="overview-model-row-"]');
   }
 
+  findModelRowRoot(modelId: string, namespace: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`overview-model-row-${modelId}-${namespace}`);
+  }
+
   findColumnSortButton(label: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findTable().find('thead').contains('th', label).findByRole('button');
   }
@@ -1754,61 +1799,87 @@ class OverviewTabPage {
     return cy.findByTestId('overview-view-toggle');
   }
 
-  expandModelRow(index: number): void {
-    this.findModelRows().eq(index).findByTestId('expand-model').find('button').click();
+  expandModelRow(modelId: string, namespace: string): void {
+    this.findModelRowRoot(modelId, namespace).findByTestId('expand-model').find('button').click();
   }
 
-  findGroupChip(group: string, index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+  findGroupChip(
+    group: string,
+    modelId: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
     // Chips for the same group exist on every matching sub/policy in the DOM;
     // only query chips inside expanded nested items (not collapsed ones).
-    return this.findModelRows()
-      .eq(index)
+    return this.findModelRowRoot(modelId, namespace)
       .find('tbody.pf-m-expanded')
       .find(`[data-testid="group-chip-${group}"]`)
       .first();
   }
 
-  findGroupChips(group: string, index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelRows()
-      .eq(index)
+  findGroupChips(
+    group: string,
+    modelId: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRowRoot(modelId, namespace)
       .find('tbody.pf-m-expanded')
       .find(`[data-testid="group-chip-${group}"]`);
   }
 
   findExpandableItemInRow(
-    rowIndex: number,
+    modelId: string,
+    namespace: string,
     name: string,
   ): Cypress.Chainable<JQuery<HTMLTableSectionElement>> {
-    return this.findModelRows().eq(rowIndex).contains(name).closest('tbody');
+    return this.findModelRowRoot(modelId, namespace).contains(name).closest('tbody');
   }
 
-  findExpandableItemName(rowIndex: number, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findExpandableItemInRow(rowIndex, name).findByTestId('expandable-item-name');
+  findExpandableItemName(
+    modelId: string,
+    namespace: string,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(modelId, namespace, name).findByTestId(
+      'expandable-item-name',
+    );
   }
 
-  findExpandableItemPhase(rowIndex: number, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findExpandableItemInRow(rowIndex, name).findByTestId('phase-label');
+  findExpandableItemPhase(
+    modelId: string,
+    namespace: string,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(modelId, namespace, name).findByTestId('phase-label');
   }
 
   findExpandableItemTokenLimits(
-    rowIndex: number,
+    modelId: string,
+    namespace: string,
     name: string,
   ): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findExpandableItemInRow(rowIndex, name).findByTestId(
+    return this.findExpandableItemInRow(modelId, namespace, name).findByTestId(
       'expandable-item-token-limits',
     );
   }
 
   findExpandableItemGroupChip(
-    rowIndex: number,
+    modelId: string,
+    namespace: string,
     itemName: string,
     group: string,
   ): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findExpandableItemInRow(rowIndex, itemName).findByTestId(`group-chip-${group}`);
+    return this.findExpandableItemInRow(modelId, namespace, itemName).findByTestId(
+      `group-chip-${group}`,
+    );
   }
 
-  shouldExpandableItemInRowBeExpanded(rowIndex: number, name: string, expanded = true): void {
-    const chain = this.findExpandableItemInRow(rowIndex, name);
+  shouldExpandableItemInRowBeExpanded(
+    modelId: string,
+    namespace: string,
+    name: string,
+    expanded = true,
+  ): void {
+    const chain = this.findExpandableItemInRow(modelId, namespace, name);
     if (expanded) {
       chain.should('have.class', 'pf-m-expanded');
     } else {
@@ -1818,11 +1889,12 @@ class OverviewTabPage {
 
   shouldGroupChipsBeHighlighted(
     group: string,
-    rowIndex: number,
+    modelId: string,
+    namespace: string,
     highlighted = true,
     expectedCount?: number,
   ): void {
-    const chips = this.findGroupChips(group, rowIndex);
+    const chips = this.findGroupChips(group, modelId, namespace);
     if (expectedCount !== undefined) {
       chips.should('have.length', expectedCount);
     }
@@ -1831,33 +1903,44 @@ class OverviewTabPage {
     });
   }
 
-  expandExpandableItemInRow(rowIndex: number, name: string): void {
-    this.findModelRows()
-      .eq(rowIndex)
+  expandExpandableItemInRow(modelId: string, namespace: string, name: string): void {
+    this.findModelRowRoot(modelId, namespace)
       .contains(name)
       .closest('tr')
       .find('button[aria-label="Details"]')
       .click();
   }
 
-  findExpandAllSubscriptionsInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelRows().eq(index).findByTestId('expand-all-subscriptions');
+  findExpandAllSubscriptionsInRow(
+    modelId: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRowRoot(modelId, namespace).findByTestId('expand-all-subscriptions');
   }
 
-  findExpandAllPoliciesInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelRows().eq(index).findByTestId('expand-all-policies');
+  findExpandAllPoliciesInRow(
+    modelId: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRowRoot(modelId, namespace).findByTestId('expand-all-policies');
   }
 
-  findShowMoreGroupsInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelRows().eq(index).findByTestId('show-more-groups');
+  findShowMoreGroupsInRow(
+    modelId: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRowRoot(modelId, namespace).findByTestId('show-more-groups');
   }
 
-  findShowLessGroupsInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelRows().eq(index).findByTestId('show-less-groups');
+  findShowLessGroupsInRow(
+    modelId: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRowRoot(modelId, namespace).findByTestId('show-less-groups');
   }
 
-  findKebabToggleInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelRows().eq(index).findByLabelText('Kebab toggle');
+  findKebabToggleInRow(modelId: string, namespace: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRowRoot(modelId, namespace).findByLabelText('Kebab toggle');
   }
 
   findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1896,8 +1979,8 @@ class OverviewTabPage {
     return cy.findByTestId('clear-filters-button');
   }
 
-  findPhaseLabelInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModelRows().eq(index).findByTestId('phase-label');
+  findPhaseLabelInRow(modelId: string, namespace: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRowRoot(modelId, namespace).findByTestId('phase-label');
   }
 }
 

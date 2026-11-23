@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -68,7 +69,7 @@ func ManagerCacheOptions(applicationsNamespace string, mapper meta.RESTMapper) (
 	}
 	for _, object := range optionalResources {
 		switch object.(type) {
-		case *gatewayv1.HTTPRoute:
+		case *gatewayv1.HTTPRoute, *routev1.Route:
 			byObject[object] = cache.ByObject{Namespaces: applicationsNamespaceOnly, Label: ownedSelector}
 		default:
 			byObject[object] = cache.ByObject{Label: dashboardSelector}
@@ -82,8 +83,8 @@ func ManagerCacheOptions(applicationsNamespace string, mapper meta.RESTMapper) (
 }
 
 // NewManagerCache builds the cache after the manager has initialized its REST
-// mapper. This lets optional HTTPRoute and ConsoleLink APIs be omitted without
-// making manager startup fail on clusters where their CRDs are unavailable.
+// mapper. This lets optional HTTPRoute, OpenShift Route, and ConsoleLink APIs be
+// omitted without making manager startup fail where their CRDs are unavailable.
 func NewManagerCache(applicationsNamespace string) cache.NewCacheFunc {
 	return func(config *rest.Config, options cache.Options) (cache.Cache, error) {
 		scoped, err := ManagerCacheOptions(applicationsNamespace, options.Mapper)

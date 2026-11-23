@@ -1,11 +1,8 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { renderHook } from '~/__tests__/unit/testUtils/hooks';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
+
 import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -15,13 +12,11 @@ import {
   updateBenchmarkParameter,
   useCopySuiteForm,
 } from '~/app/pages/useCopySuiteForm';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, Provider } from '~/app/types';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { mockTrackEvent, renderHook } = setupTrackingTest();
 
 jest.mock('react-router-dom', () => ({
   useNavigate: jest.fn(),
@@ -56,8 +51,7 @@ const mockPatchCollection = jest.mocked(patchCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseCollectionsContext = jest.mocked(useCollectionsContext);
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+
 const mockRefreshCollections = jest.fn();
 const defaultSuiteNamePattern =
   /^Curated suite - [A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2} (AM|PM)$/;
@@ -226,6 +220,60 @@ describe('createBenchmarkFromKey', () => {
     );
   });
 
+  it('serializes test_data_ref from the benchmark form values', () => {
+    const benchmark = createBenchmarkFromKey('provider-one:benchmark-one', providers)!;
+
+    expect(
+      buildPendingCollection({
+        suiteName: 'New suite',
+        suiteDescription: '',
+        suiteDomains: [],
+        suiteTasks: [],
+        suiteModalities: [],
+        suiteIndustries: [],
+        suiteEvaluates: ['model'],
+        suiteThreshold: 70,
+        benchmarks: [
+          {
+            ...benchmark,
+            testDataRef: {
+              ...testDataRefDefaultValues,
+              source: 's3',
+              bucket: 'eval-data',
+              key: 'ragas/dataset.jsonl',
+              secretRef: 'my-s3-secret',
+            },
+          },
+        ],
+      }).benchmarks?.[0].test_data_ref,
+    ).toEqual({
+      type: 'data_set',
+      s3: {
+        bucket: 'eval-data',
+        key: 'ragas/dataset.jsonl',
+        secret_ref: 'my-s3-secret',
+      },
+    });
+  });
+
+  it('omits test_data_ref when the source is none', () => {
+    const benchmark = createBenchmarkFromKey('provider-one:benchmark-one', providers)!;
+
+    expect(
+      buildPendingCollection({
+        suiteName: 'New suite',
+        suiteDescription: '',
+        suiteDomains: [],
+        suiteTasks: [],
+        suiteModalities: [],
+        suiteIndustries: [],
+        suiteEvaluates: ['model'],
+        suiteThreshold: 70,
+        benchmarks: [benchmark],
+      }).benchmarks?.[0].test_data_ref,
+    ).toBeUndefined();
+  });
+
   it('should preserve raw metric thresholds from provider benchmarks', () => {
     const benchmark = createBenchmarkFromKey('provider-raw:benchmark-throughput', [
       rawMetricProvider,
@@ -288,6 +336,90 @@ describe('useCopySuiteForm', () => {
       }),
     ]);
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
+  });
+
+  it('should hydrate test data refs from the source collection benchmarks', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        benchmarks: [
+          {
+            ...sourceCollection.benchmarks![0],
+            test_data_ref: {
+              type: 'data_set',
+              s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
+            },
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks[0].id).toBe('benchmark-one'));
+    expect(result.result.current.benchmarks[0].testDataRef).toEqual({
+      ...testDataRefDefaultValues,
+      source: 's3',
+      type: 'data_set',
+      bucket: 'eval-data',
+      key: 'ragas',
+      secretRef: 's3-secret',
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
+      type: 'data_set',
+      s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
+    });
+  });
+
+  it('should preserve a pre_recorded_data test data ref through hydrate and serialize', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        benchmarks: [
+          {
+            ...sourceCollection.benchmarks![0],
+            test_data_ref: {
+              type: 'pre_recorded_data',
+              pvc: { claim_name: 'responses' },
+            },
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks[0].id).toBe('benchmark-one'));
+    expect(result.result.current.benchmarks[0].testDataRef).toEqual({
+      ...testDataRefDefaultValues,
+      source: 'pvc',
+      type: 'pre_recorded_data',
+      claimName: 'responses',
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
+      type: 'pre_recorded_data',
+      pvc: { claim_name: 'responses' },
+    });
+  });
+
+  it('should update a benchmark test data ref through updateBenchmark', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.benchmarks[0].id).toBe('benchmark-one'));
+
+    act(() => {
+      result.result.current.updateBenchmark(0, 'testDataRef', {
+        ...testDataRefDefaultValues,
+        source: 'pvc',
+        claimName: 'eval-datasets-pvc',
+        subPath: 'benchmark-a',
+      });
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
+      type: 'data_set',
+      pvc: { claim_name: 'eval-datasets-pvc', sub_path: 'benchmark-a' },
+    });
   });
 
   it('should reuse the suite editor to update an unrun source collection', async () => {
@@ -366,7 +498,7 @@ describe('useCopySuiteForm', () => {
       (operation) => operation.path === '/benchmarks',
     );
     expect(benchmarkOperation).toEqual({
-      op: 'add',
+      op: 'replace',
       path: '/benchmarks',
       value: [
         expect.objectContaining({
@@ -585,6 +717,7 @@ describe('useCopySuiteForm', () => {
           additionalParameters: '{"seed":42,"labels":["nightly"]}',
           threshold: 70,
           availableMetrics: ['accuracy'],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -622,7 +755,7 @@ describe('useCopySuiteForm', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
     expect(mockCloneCollection).not.toHaveBeenCalled();
 
-    const savedCall = mockFireFormTrackingEvent.mock.calls.find(
+    const savedCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(savedCall?.[1]).toEqual(
@@ -673,6 +806,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -719,6 +853,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -735,7 +870,7 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({ name: 'New suite' }),
     );
     expect(createFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
-    const runSelectedCall = mockFireMiscTrackingEvent.mock.calls.find(
+    const runSelectedCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
     );
     expect(runSelectedCall?.[1]).toEqual(
@@ -747,7 +882,7 @@ describe('useCopySuiteForm', () => {
       }),
     );
     expect(runSelectedCall?.[1]).not.toHaveProperty('collectionName');
-    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+    const saveAndRunCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(saveAndRunCall?.[1]).toEqual(
@@ -780,6 +915,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -1611,8 +1747,8 @@ describe('useCopySuiteForm', () => {
     );
     expect(cloneFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(cloned).toEqual(clonedCollection);
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
-    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+    expect(mockTrackEvent).toHaveBeenCalled();
+    const saveAndRunCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(saveAndRunCall?.[1]).toEqual(
@@ -1716,7 +1852,7 @@ describe('useCopySuiteForm', () => {
 
     await expect(clonePromise).resolves.toBeUndefined();
     expect(mockNotification.error).not.toHaveBeenCalled();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should abort a create run when its parent request is cancelled', async () => {
@@ -1741,6 +1877,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -1764,7 +1901,7 @@ describe('useCopySuiteForm', () => {
 
     await expect(createPromise).resolves.toBeUndefined();
     expect(mockNotification.error).not.toHaveBeenCalled();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should build a pending collection from current form state', async () => {
@@ -1861,7 +1998,7 @@ describe('useCopySuiteForm', () => {
       '"Saved suite" has been added to your collections.',
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
-    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+    const copiedCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(copiedCall?.[1]).toEqual(
@@ -1895,7 +2032,7 @@ describe('useCopySuiteForm', () => {
       await result.result.current.handleSaveOnly();
     });
 
-    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+    const copiedCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(copiedCall?.[1]).toEqual(

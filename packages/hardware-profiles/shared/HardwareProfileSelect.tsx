@@ -28,17 +28,10 @@ import {
   ProjectScopedSearchDropdown,
 } from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
-import {
-  getHardwareProfileDescription,
-  getHardwareProfileDisplayName,
-  isHardwareProfileEnabled,
-  orderHardwareProfiles,
-  prioritizeHardwareProfiles,
-} from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { useApplicationSettings } from '@odh-dashboard/internal/app/useApplicationSettings';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import {
   computeLocalQueueNamesResult,
   filterProfilesByKueue,
@@ -48,6 +41,8 @@ import {
 import {
   formatResource,
   formatResourceValue,
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
   getClaimTemplateMissingText as getProfileClaimTemplateMissingText,
   isDRAHardwareProfile,
   isSameHardwareProfileBinding,
@@ -59,6 +54,11 @@ import {
 } from './useResourceClaimTemplateNames';
 import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
+import {
+  isHardwareProfileEnabled,
+  orderHardwareProfiles,
+  prioritizeHardwareProfiles,
+} from '../src/pages/utils';
 
 const getIdentifiersText = (
   identifiers: HardwareProfileKind['spec']['identifiers'],
@@ -170,11 +170,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const { currentProject } = React.useContext(CurrentProjectContext);
   const { localQueues } = React.useContext(LocalQueuesContext);
   const { projects } = React.useContext(ProjectsContext);
-  const { dashboardConfig } = useApplicationSettings();
+  const dashboardConfig = React.useContext(DashboardConfigContext);
   const isDRAEnabled = useIsDRAHardwareProfileEnabled();
   const hardwareProfileOrder = React.useMemo(
-    () => dashboardConfig?.spec.hardwareProfileOrder || [],
-    [dashboardConfig?.spec.hardwareProfileOrder],
+    () => dashboardConfig?.hardwareProfileOrder || [],
+    [dashboardConfig?.hardwareProfileOrder],
   );
 
   const orderProfiles = React.useCallback(
@@ -518,8 +518,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             }
             data-testid="kueue-filtering-info"
           >
-            Only hardware profiles configured with a local queue are shown because this project uses
-            Kueue for workload scheduling.
+            This project uses the local queue workload allocation strategy. Only hardware profiles
+            with a local queue are available in the dropdown.
           </HelperTextItem>
         </HelperText>
       </FormHelperText>

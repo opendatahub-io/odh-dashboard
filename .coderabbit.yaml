@@ -14,8 +14,14 @@ reviews:
   # TODO:  Temporary — shows which KB files were ingested. Remove after confirming.
   review_details: true
   auto_review:
-    # Review every push, not just the first; avoids stale reviews on force-pushes.
-    auto_pause_after_reviewed_commits: 0
+    # Fullsend is the review-of-record for all non-draft PRs.
+    # CodeRabbit auto-review disabled to stop duplicate review noise.
+    # CLI findings still flow through the Fullsend adapter (unaffected).
+    # Pre-merge checks are also disabled (coupled with auto-review);
+    # they were warning-only and not gating. Follow-up ticket tracks
+    # migrating them to Fullsend check:* producers.
+    # See also: .fullsend/skills/pr-review/README.md (## CodeRabbit coexistence)
+    enabled: false
     # Mergify merge-queue drafts are speculative CI targets, not review targets.
     drafts: false
     ignore_usernames:

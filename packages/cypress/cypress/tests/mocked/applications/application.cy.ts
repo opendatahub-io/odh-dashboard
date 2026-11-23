@@ -4,6 +4,7 @@ import {
   dataScienceStackComponentMap,
 } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import {
+  mockConsoleLink,
   mockConsoleLinks,
   mockMLflowLink,
   mockOpenDataHubConsoleLink,
@@ -90,8 +91,19 @@ describe('Application', () => {
             text: 'MLflow wrong section',
           },
         },
+        mockConsoleLink({
+          name: 'external-image-link',
+          displayText: 'External image link',
+          section: 'Git Repos',
+          href: 'https://github.com/opendatahub-io/odh-dashboard',
+          imageURL: 'https://example.com/logo.svg',
+        }),
       ]),
     );
+    cy.intercept('GET', 'https://example.com/logo.svg', {
+      headers: { 'content-type': 'image/svg+xml' },
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+    });
     cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     interceptMlflowStatus();
@@ -111,6 +123,15 @@ describe('Application', () => {
     applicationLauncherMenuGroupStatic
       .findApplicationLauncherItem('MLflow')
       .should('have.attr', 'href', '/mlflow');
+
+    // Absolute image URLs (data URIs and http(s) URLs) are rendered untouched
+    applicationLauncherMenuGroupStatic
+      .findApplicationLauncherItemImage('MLflow')
+      .should('have.attr', 'src', mockMLflowLink.spec.applicationMenu?.imageURL);
+    applicationLauncher
+      .getApplicationLauncherMenuGroup('Git Repos')
+      .findApplicationLauncherItemImage('External image link')
+      .should('have.attr', 'src', 'https://example.com/logo.svg');
 
     applicationLauncher.toggleAppLauncherButton();
   });

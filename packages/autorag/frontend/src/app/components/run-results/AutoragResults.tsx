@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -13,7 +14,12 @@ import { transformPipelineData } from '~/app/topology/tree-view/transformPipelin
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import { downloadBlob, normalizePipelineRunState, sanitizeFilename } from '~/app/utilities/utils';
+import {
+  downloadBlob,
+  formatPatternName,
+  normalizePipelineRunState,
+  sanitizeFilename,
+} from '~/app/utilities/utils';
 import { computePatternRankMap } from '~/app/utilities/metricUtils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
 import { resolveDatabaseSecretName, resolveMaaSSecretName } from '~/app/utilities/responses';
@@ -43,6 +49,7 @@ type AutoragResultsProps = {
 };
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const { namespace, runId: routeRunId } = useParams<{ namespace: string; runId: string }>();
   const fetchS3File = useFetchS3File();
   const navigate = useNavigate();
@@ -259,10 +266,13 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     };
   }, [namespace, routeRunId]);
 
-  const handleViewDetails = React.useCallback((patternKey: string) => {
-    setSelectedPatternKey(patternKey);
-    fireAutoragPatternDetailsViewed('resultsTable');
-  }, []);
+  const handleViewDetails = React.useCallback(
+    (patternKey: string) => {
+      setSelectedPatternKey(patternKey);
+      fireAutoragPatternDetailsViewed(trackEvent, 'resultsTable');
+    },
+    [trackEvent],
+  );
 
   const handleOpenRunIndexing = React.useCallback(
     (patternName: string) => {
@@ -354,10 +364,12 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
           return;
         }
         const displayName = sanitizeFilename(pipelineRun?.display_name || 'pipeline');
-        const safePatternName = sanitizeFilename(patternName);
+        // formatPatternName joins the label with a non-breaking space; filenames omit it (PatternA).
+        const patternLabel = formatPatternName(patternName).replace(/\u00a0/g, '');
+        const safePatternName = sanitizeFilename(patternLabel);
         const filename = `${displayName}_${safePatternName}_${notebookType}_notebook.ipynb`;
         downloadBlob(notebook, filename);
-        fireAutoragNotebookDownloaded(notebookType);
+        fireAutoragNotebookDownloaded(trackEvent, notebookType);
       } catch (error) {
         if (
           isAbortError(error) ||
@@ -375,14 +387,14 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         activeDownloadControllers.current.delete(controller);
       }
     },
-    [fetchS3File, namespace, ragPatternsBasePath, pipelineRun?.display_name],
+    [trackEvent, fetchS3File, namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
   const runIndexingHandler = indexingPipelineAvailable ? handleOpenRunIndexing : undefined;
 
   return (
     <>
-      <Stack hasGutter className="autorag-results">
+      <Stack hasGutter className="autorag-results pf-v6-u-h-auto">
         {downloadError && (
           <StackItem>
             <Alert
@@ -390,7 +402,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
               title="Notebook download failed"
               actionClose={<AlertActionCloseButton onClose={() => setDownloadError(null)} />}
             >
-              <strong>Pattern: {downloadError.patternName}</strong>
+              <strong>Pattern: {formatPatternName(downloadError.patternName)}</strong>
               <br />
               {downloadError.message}
             </Alert>

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
@@ -56,6 +59,7 @@ var newK8sClientset = func(restCfg *rest.Config) (k8sclient.Interface, error) {
 	return k8sclient.NewForConfig(restCfg)
 }
 var newPortForwardManager = k8s.NewPortForwardManager
+var newInClusterK8sClient = k8s.NewInClusterClient
 
 func initPortForwardManager(cfg config.EnvConfig, logger *slog.Logger) *k8s.PortForwardManager {
 	if !cfg.DevMode || cfg.MockK8sClient {
@@ -104,6 +108,8 @@ type App struct {
 	rootCAs *x509.CertPool
 	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
 	portForwardManager *k8s.PortForwardManager
+	// routerCACancel stops the background refresh of the installation router CA.
+	routerCACancel context.CancelFunc
 
 	// Handler-composition middleware (namespace extraction, RBAC)
 	mw *Middleware
@@ -157,6 +163,22 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			rootCAs = nil
 			logger.Warn("No CA certificates loaded from bundle-paths; falling back to system defaults")
 		}
+	}
+
+	// Synchronize the OpenShift router CA when the installation exposes a
+	// configured gateway domain. The source Secret is read with the AutoRAG
+	// service account; public MaaS endpoints remain usable if synchronization
+	// is unavailable, while private gateway TLS fails closed until trust exists.
+	// Synchronization is intentionally asynchronous so a missing Kubernetes API
+	// or router Secret cannot block BFF startup; private calls may be temporarily
+	// unavailable while the first refresh completes.
+	var routerCACancel context.CancelFunc
+	var routerCARefreshEnabled bool
+	var maasRootCAPool *maas.DynamicRootCAPool
+	if cfg.GatewayDomain != "" && cfg.PodNamespace != "" {
+		routerCARefreshEnabled = true
+		rootCAs = ensureRootCAPool(rootCAs)
+		maasRootCAPool = maas.NewDynamicRootCAPool(rootCAs)
 	}
 
 	// LOCAL DEVELOPMENT ONLY: Enable dynamic port-forwarding when DevMode is true
@@ -230,6 +252,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		InsecureSkipVerify: cfg.InsecureSkipVerify,
 		RootCAs:            rootCAs,
 	}
+	if maasRootCAPool != nil {
+		maasCfg.RootCAPool = maasRootCAPool.Current
+	}
 	if pfManager != nil {
 		maasCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
 	}
@@ -238,6 +263,20 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasClient = &fake.MaaSClient{}
 	} else {
 		maasClient = maas.NewMaaSClient(maasHTTPClient)
+	}
+
+	var gatewayResolver maas.GatewayHostResolver
+	if cfg.PodNamespace != "" && cfg.BFFMaaSServiceName != "" {
+		gatewayResolver = maas.NewCachedGatewayHostResolver(maas.NewHTTPGatewayHostResolver(maas.GatewayResolverConfig{
+			ServiceName:     cfg.BFFMaaSServiceName,
+			ServicePort:     cfg.BFFMaaSServicePort,
+			Namespace:       cfg.PodNamespace,
+			TLSEnabled:      cfg.BFFMaaSTLSEnabled,
+			AuthTokenHeader: cfg.BFFMaaSAuthTokenHeader,
+			AuthTokenPrefix: cfg.BFFMaaSAuthTokenPrefix,
+			RootCAs:         rootCAs,
+			RootCAPool:      rootCAPoolProvider(maasRootCAPool),
+		}))
 	}
 
 	// The Responses repository uses the same configured MaaS transport as discovery.
@@ -249,9 +288,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	var responsesRepo *repositories.ResponsesRepository
 	if pfManager != nil {
-		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactory(logger, k8sService, responsesFactory, pfManager)
+		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactoryAndGatewayResolver(logger, k8sService, responsesFactory, gatewayResolver, pfManager)
 	} else {
-		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactory(logger, k8sService, responsesFactory)
+		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactoryAndGatewayResolver(logger, k8sService, responsesFactory, gatewayResolver)
+	}
+	if routerCARefreshEnabled {
+		routerCACancel = startRouterCARefresh(cfg.PodNamespace, maasRootCAPool, logger)
 	}
 
 	app := &App{
@@ -260,6 +302,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		k8sService:         k8sService,
 		rootCAs:            rootCAs,
 		portForwardManager: pfManager,
+		routerCACancel:     routerCACancel,
 		mw: &Middleware{
 			logger:     logger,
 			config:     cfg,
@@ -288,7 +331,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		},
 		maas: &MaaSHandler{
 			logger: logger,
-			repo:   repositories.NewMaaSRepository(logger, maasClient, k8sService),
+			repo:   repositories.NewMaaSRepository(logger, maasClient, k8sService, gatewayResolver),
 		},
 		responses: &ResponsesHandler{
 			logger: logger,
@@ -298,8 +341,138 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	return app, nil
 }
 
+func ensureRootCAPool(rootCAs *x509.CertPool) *x509.CertPool {
+	if rootCAs == nil {
+		if systemPool, err := x509.SystemCertPool(); err == nil && systemPool != nil {
+			rootCAs = systemPool
+		} else {
+			rootCAs = x509.NewCertPool()
+		}
+	}
+	return rootCAs
+}
+
+const (
+	routerCARefreshInterval = 5 * time.Minute
+)
+
+var routerCAInitialRetryDelays = []time.Duration{
+	time.Second,
+	2 * time.Second,
+	4 * time.Second,
+	8 * time.Second,
+	16 * time.Second,
+	30 * time.Second,
+}
+
+func rootCAPoolProvider(pool *maas.DynamicRootCAPool) func() *x509.CertPool {
+	if pool == nil {
+		return nil
+	}
+	return pool.Current
+}
+
+func syncRouterCAOnce(
+	ctx context.Context,
+	namespace string,
+	client k8sclient.Interface,
+	logger *slog.Logger,
+) []byte {
+	syncContext, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	certificate, syncErr := k8s.SyncRouterCABundle(syncContext, client, namespace)
+	if syncErr != nil {
+		logger.Warn("router CA ConfigMap synchronization failed", "error", syncErr)
+	}
+	if len(certificate) == 0 {
+		return nil
+	}
+	return certificate
+}
+
+func startRouterCARefresh(
+	namespace string,
+	rootCAPool *maas.DynamicRootCAPool,
+	logger *slog.Logger,
+) context.CancelFunc {
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		lastCertificate := []byte(nil)
+		refresh := func() bool {
+			if ctx.Err() != nil {
+				return false
+			}
+			client, clientErr := newInClusterK8sClient()
+			if clientErr != nil {
+				logger.Warn("router CA refresh unavailable", "error", clientErr)
+				return false
+			}
+			certificate := syncRouterCAOnce(ctx, namespace, client, logger)
+			if ctx.Err() != nil || len(certificate) == 0 {
+				return false
+			}
+			if bytes.Equal(lastCertificate, certificate) {
+				return len(lastCertificate) > 0
+			}
+			if updateErr := rootCAPool.Update(certificate); updateErr != nil {
+				logger.Warn("router CA could not be added to MaaS trust", "error", updateErr)
+				return false
+			}
+			lastCertificate = append(lastCertificate[:0], certificate...)
+			return true
+		}
+
+		retryRouterCARefresh(ctx, refresh, routerCAInitialRetryDelays)
+		ticker := time.NewTicker(routerCARefreshInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				refresh()
+			}
+		}
+	}()
+	return func() {
+		cancel()
+		<-done
+	}
+}
+
+func retryRouterCARefresh(ctx context.Context, refresh func() bool, delays []time.Duration) bool {
+	if refresh() {
+		return true
+	}
+	for _, delay := range delays {
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			return false
+		case <-timer.C:
+		}
+		if refresh() {
+			return true
+		}
+	}
+	return false
+}
+
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.routerCACancel != nil {
+		app.routerCACancel()
+	}
 	if app.portForwardManager != nil {
 		app.portForwardManager.Close()
 	}

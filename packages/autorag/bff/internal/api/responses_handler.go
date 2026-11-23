@@ -68,8 +68,10 @@ const genericStreamingErrorMessage = "The response could not be completed."
 const (
 	vectorDBUnavailableMessage = "The vector database is unavailable."
 	vectorDBTimeoutMessage     = "The vector database request timed out."
+	vectorDBQueryFailedMessage = "The vector database rejected the search."
 	vectorDBUnavailableCode    = "vector_database_unavailable"
 	vectorDBTimeoutCode        = "vector_database_timeout"
+	vectorDBQueryFailedCode    = "vector_database_query_failed"
 )
 
 // ResponsesHandler handles POST /api/v1/responses.
@@ -459,7 +461,9 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 
 	if err != nil {
 		deadline := errors.Is(err, context.DeadlineExceeded) || errors.Is(streamCtx.Err(), context.DeadlineExceeded)
-		vectorDBError := errors.Is(err, vectordb.ErrDatabaseTimeout) || errors.Is(err, vectordb.ErrDatabaseUnavailable)
+		vectorDBError := errors.Is(err, vectordb.ErrDatabaseTimeout) ||
+			errors.Is(err, vectordb.ErrDatabaseUnavailable) ||
+			errors.Is(err, vectordb.ErrDatabaseQueryFailed)
 		if vectorDBError {
 			h.logger.Error("RAG streaming response failed",
 				"namespace", params.Namespace,
@@ -486,6 +490,9 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 		} else if errors.Is(err, vectordb.ErrDatabaseUnavailable) {
 			errorEvent["code"] = vectorDBUnavailableCode
 			errorEvent["message"] = vectorDBUnavailableMessage
+		} else if errors.Is(err, vectordb.ErrDatabaseQueryFailed) {
+			errorEvent["code"] = vectorDBQueryFailedCode
+			errorEvent["message"] = vectorDBQueryFailedMessage
 		}
 		if deadline {
 			_ = sseData(w, flusher, errorEvent)
@@ -614,6 +621,13 @@ func (h *ResponsesHandler) mapError(w http.ResponseWriter, r *http.Request, err 
 	}
 	if errors.Is(err, vectordb.ErrDatabaseUnavailable) {
 		serviceUnavailableResponseWithMessage(h.logger, w, r, err, vectorDBUnavailableMessage)
+		return
+	}
+	if errors.Is(err, vectordb.ErrDatabaseQueryFailed) {
+		// The database server rejected the query or its configuration (invalid
+		// query, missing index): not an availability problem, so answer 502
+		// rather than the 503 used for unreachable/timing-out databases.
+		badGatewayResponseWithMessage(h.logger, w, r, err, vectorDBQueryFailedMessage)
 		return
 	}
 	var maaSErr *maas.MaaSError

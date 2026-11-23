@@ -252,7 +252,7 @@ All queries include the standard filters from `jira-project-reference.md` § Sta
 
 **Issues with needs-\* labels:**
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND type in ({triage_types})
@@ -263,7 +263,7 @@ project = {project_key}
 
 **Issues with Blocked=True:**
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND type in ({triage_types})
@@ -274,7 +274,7 @@ project = {project_key}
 
 **Combined (all potentially blocked issues):**
 ```jql
-project = {project_key}
+project in ({project_keys})
   AND component = "{component}"
   AND resolution = Unresolved
   AND type in ({triage_types})
@@ -604,7 +604,7 @@ Given issue RHOAIENG-12345 with `needs-ux` label and a recent comment from a UX 
 {
   "metadata": {
     "generated": "2026-03-25T14:00:00Z",
-    "query": "project = RHOAIENG AND component = \"AI Core Dashboard\" AND resolution = Unresolved AND labels in (needs-ux)",
+    "query": "project in (RHAI, RHOAIENG) AND component = \"AI Core Dashboard\" AND resolution = Unresolved AND labels in (needs-ux)",
     "issueCount": 1
   },
   "operations": [

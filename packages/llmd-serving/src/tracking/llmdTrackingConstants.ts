@@ -1,8 +1,4 @@
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import type { TrackEvent, FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
 import type { TopologyType } from '../types';
 
 export enum LlmdTrackingEvent {
@@ -16,16 +12,21 @@ export type TopologyTypeSelectedProperties = {
 };
 
 export type RoutingSelectedProperties = {
-  routingConfigurationId: string;
   isDefaultRouting: boolean;
 };
 
-export const fireTopologyTypeSelected = (properties: TopologyTypeSelectedProperties): void => {
-  fireMiscTrackingEvent(LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED, properties);
+export const fireTopologyTypeSelected = (
+  trackEvent: TrackEvent,
+  properties: TopologyTypeSelectedProperties,
+): void => {
+  trackEvent(LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED, properties);
 };
 
-export const fireRoutingSelected = (properties: RoutingSelectedProperties): void => {
-  fireMiscTrackingEvent(LlmdTrackingEvent.ROUTING_SELECTED, properties);
+export const fireRoutingSelected = (
+  trackEvent: TrackEvent,
+  properties: RoutingSelectedProperties,
+): void => {
+  trackEvent(LlmdTrackingEvent.ROUTING_SELECTED, properties);
 };
 
 // --- Admin settings CRUD tracking (Model deployment settings tabs) ---
@@ -33,46 +34,54 @@ export const fireRoutingSelected = (properties: RoutingSelectedProperties): void
 /** Where a config form was seeded from when created. */
 export type ConfigSource = 'template' | 'editor';
 
-export enum LlmAcceleratorConfigTrackingEvent {
-  CREATED = 'Model Serving LLM Accelerator Config Created',
-  UPDATED = 'Model Serving LLM Accelerator Config Updated',
-  DELETED = 'Model Serving LLM Accelerator Config Deleted',
-  ENABLEMENT_CHANGED = 'Model Serving LLM Accelerator Config Enablement Changed',
+export enum LlmInferenceServiceConfigTrackingEvent {
+  CREATED = 'Model Serving LLM Inference Service Config Created',
+  UPDATED = 'Model Serving LLM Inference Service Config Updated',
+  DELETED = 'Model Serving LLM Inference Service Config Deleted',
+  ENABLEMENT_CHANGED = 'Model Serving LLM Inference Service Config Enablement Changed',
 }
 
-export type LlmAcceleratorConfigCreatedProperties = FormTrackingEventProperties & {
+export type LlmInferenceServiceConfigCreatedProperties = FormTrackingEventProperties & {
   /** Form mode; 'create' is also accepted for callers without an Add form. */
   mode: 'add' | 'create' | 'duplicate' | 'install';
 };
 
-export type LlmAcceleratorConfigEnablementChangedProperties = FormTrackingEventProperties & {
+export type LlmInferenceServiceConfigEnablementChangedProperties = FormTrackingEventProperties & {
   /** The actual enabled state after the toggle attempt (reverts to the prior state on failure). */
   enabled: boolean;
 };
 
-export const fireLlmAcceleratorConfigCreated = (
-  properties: LlmAcceleratorConfigCreatedProperties,
+export const fireLlmInferenceServiceConfigCreated = (
+  trackEvent: TrackEvent,
+  properties: LlmInferenceServiceConfigCreatedProperties,
 ): void => {
   const { mode, ...outcomeProperties } = properties;
-  fireFormTrackingEvent(LlmAcceleratorConfigTrackingEvent.CREATED, {
+  trackEvent(LlmInferenceServiceConfigTrackingEvent.CREATED, {
     ...outcomeProperties,
     mode: mode === 'duplicate' ? 'duplicate' : 'create',
     ...(mode === 'install' && { source: 'install' }),
   });
 };
 
-export const fireLlmAcceleratorConfigUpdated = (properties: FormTrackingEventProperties): void => {
-  fireFormTrackingEvent(LlmAcceleratorConfigTrackingEvent.UPDATED, properties);
-};
-
-export const fireLlmAcceleratorConfigDeleted = (properties: FormTrackingEventProperties): void => {
-  fireFormTrackingEvent(LlmAcceleratorConfigTrackingEvent.DELETED, properties);
-};
-
-export const fireLlmAcceleratorConfigEnablementChanged = (
-  properties: LlmAcceleratorConfigEnablementChangedProperties,
+export const fireLlmInferenceServiceConfigUpdated = (
+  trackEvent: TrackEvent,
+  properties: FormTrackingEventProperties,
 ): void => {
-  fireFormTrackingEvent(LlmAcceleratorConfigTrackingEvent.ENABLEMENT_CHANGED, properties);
+  trackEvent(LlmInferenceServiceConfigTrackingEvent.UPDATED, properties);
+};
+
+export const fireLlmInferenceServiceConfigDeleted = (
+  trackEvent: TrackEvent,
+  properties: FormTrackingEventProperties,
+): void => {
+  trackEvent(LlmInferenceServiceConfigTrackingEvent.DELETED, properties);
+};
+
+export const fireLlmInferenceServiceConfigEnablementChanged = (
+  trackEvent: TrackEvent,
+  properties: LlmInferenceServiceConfigEnablementChangedProperties,
+): void => {
+  trackEvent(LlmInferenceServiceConfigTrackingEvent.ENABLEMENT_CHANGED, properties);
 };
 
 export enum TopologyConfigTrackingEvent {
@@ -91,16 +100,25 @@ export type TopologyConfigUpdatedProperties = FormTrackingEventProperties & {
   topologyType?: TopologyType;
 };
 
-export const fireTopologyConfigCreated = (properties: TopologyConfigCreatedProperties): void => {
-  fireFormTrackingEvent(TopologyConfigTrackingEvent.CREATED, properties);
+export const fireTopologyConfigCreated = (
+  trackEvent: TrackEvent,
+  properties: TopologyConfigCreatedProperties,
+): void => {
+  trackEvent(TopologyConfigTrackingEvent.CREATED, properties);
 };
 
-export const fireTopologyConfigUpdated = (properties: TopologyConfigUpdatedProperties): void => {
-  fireFormTrackingEvent(TopologyConfigTrackingEvent.UPDATED, properties);
+export const fireTopologyConfigUpdated = (
+  trackEvent: TrackEvent,
+  properties: TopologyConfigUpdatedProperties,
+): void => {
+  trackEvent(TopologyConfigTrackingEvent.UPDATED, properties);
 };
 
-export const fireTopologyConfigDeleted = (properties: FormTrackingEventProperties): void => {
-  fireFormTrackingEvent(TopologyConfigTrackingEvent.DELETED, properties);
+export const fireTopologyConfigDeleted = (
+  trackEvent: TrackEvent,
+  properties: FormTrackingEventProperties,
+): void => {
+  trackEvent(TopologyConfigTrackingEvent.DELETED, properties);
 };
 
 export enum RoutingConfigTrackingEvent {
@@ -119,14 +137,23 @@ export type RoutingConfigUpdatedProperties = FormTrackingEventProperties & {
   topologyType?: TopologyType;
 };
 
-export const fireRoutingConfigCreated = (properties: RoutingConfigCreatedProperties): void => {
-  fireFormTrackingEvent(RoutingConfigTrackingEvent.CREATED, properties);
+export const fireRoutingConfigCreated = (
+  trackEvent: TrackEvent,
+  properties: RoutingConfigCreatedProperties,
+): void => {
+  trackEvent(RoutingConfigTrackingEvent.CREATED, properties);
 };
 
-export const fireRoutingConfigUpdated = (properties: RoutingConfigUpdatedProperties): void => {
-  fireFormTrackingEvent(RoutingConfigTrackingEvent.UPDATED, properties);
+export const fireRoutingConfigUpdated = (
+  trackEvent: TrackEvent,
+  properties: RoutingConfigUpdatedProperties,
+): void => {
+  trackEvent(RoutingConfigTrackingEvent.UPDATED, properties);
 };
 
-export const fireRoutingConfigDeleted = (properties: FormTrackingEventProperties): void => {
-  fireFormTrackingEvent(RoutingConfigTrackingEvent.DELETED, properties);
+export const fireRoutingConfigDeleted = (
+  trackEvent: TrackEvent,
+  properties: FormTrackingEventProperties,
+): void => {
+  trackEvent(RoutingConfigTrackingEvent.DELETED, properties);
 };

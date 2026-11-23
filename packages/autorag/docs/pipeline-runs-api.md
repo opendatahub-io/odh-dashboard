@@ -17,15 +17,17 @@ The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs with a
 GET    /api/v1/pipeline-runs
 GET    /api/v1/pipeline-runs/{runId}
 POST   /api/v1/pipeline-runs
+POST   /api/v1/indexing-pipeline-runs
 POST   /api/v1/pipeline-runs/{runId}/terminate
 POST   /api/v1/pipeline-runs/{runId}/retry
 DELETE /api/v1/pipeline-runs/{runId}
 ```
 
-The API provides six endpoints:
+The API provides seven endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
 - **Create Run**: Submit a new AutoRAG pipeline run with optimization parameters
+- **Create Indexing Run**: Submit a new documents-indexing pipeline run (Neo4j GraphRAG)
 - **Terminate Run**: Stop an active pipeline run that is currently in progress
 - **Retry Run**: Re-initiate a failed or canceled pipeline run from the point of failure
 - **Delete Run**: Permanently delete a pipeline run in a terminal state
@@ -491,6 +493,125 @@ Returns `200 OK` with the created pipeline run:
   "error": {
     "code": "400",
     "message": "invalid optimization_metric \"custom\": must be one of overall_score, faithfulness, answer_correctness, context_correctness"
+  }
+}
+```
+
+## Create Indexing Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/indexing-pipeline-runs
+```
+
+Creates a run of the managed documents-indexing pipeline (Neo4j GraphRAG). Parameters come from the pattern's `indexing.pipeline_spec.parameters` and are filtered against the discovered pipeline version before submission to KFP.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `display_name` | string | Yes | Human-readable name for the run |
+| `description` | string | No | Optional description of the run |
+| `parameters` | object | Yes | Pipeline parameters from the pattern's indexing pipeline spec |
+
+**Notes:**
+- Unknown JSON fields are rejected (strict decoding)
+- `display_name` is limited to 250 characters and `description` to 255 characters
+- The BFF discovers the managed indexing pipeline by exact display name (case-insensitive) and injects `pipeline_id` / `pipeline_version_id` automatically
+- Submitted parameters are filtered against the discovered pipeline version's parameter list; unsupported names are dropped silently, and a request whose parameters are all unsupported is rejected with `no supported indexing pipeline parameters were provided`
+
+#### Graph-Extraction Validation
+
+When supplied and non-`null`, the `graph_extraction_config` parameter (or `graph_extraction`, the persisted pattern setting name — both keys are accepted, but not both in one request) must be an object or a JSON string encoding an object. It is validated before the run is created; invalid values produce `400 Bad Request`. A `graph_extraction` setting is forwarded to the pipeline under the canonical `graph_extraction_config` input name:
+
+- **`mode`** (optional string, default `constrained`): must be `constrained` or `free`
+- **Constrained mode** (the default) takes no extra settings: any key other than `mode` is rejected with `graph_extraction_config.<key> is not allowed in constrained mode`
+- **Free mode** requires positive integers for both:
+  - `max_entities_per_chunk` — maximum entities extracted per chunk
+  - `max_relationships_per_chunk` — maximum relationships extracted per chunk
+
+These rules mirror ai4rag's `_validate_kg_extraction_config`.
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4000/api/v1/indexing-pipeline-runs?namespace=my-namespace" \
+  -H "kubeflow-userid: user@example.com" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "my-indexing-run",
+    "description": "Indexing documents for Neo4j GraphRAG",
+    "parameters": {
+      "test_data_secret_name": "minio-secret",
+      "test_data_bucket_name": "autorag",
+      "test_data_key": "test_data.json",
+      "input_data_secret_name": "minio-secret",
+      "input_data_bucket_name": "autorag",
+      "input_data_keys": ["documents/"],
+      "maas_secret_name": "maas-secret",
+      "db_secret_name": "database-secret",
+      "graph_extraction_config": {
+        "mode": "free",
+        "max_entities_per_chunk": 50,
+        "max_relationships_per_chunk": 50
+      }
+    }
+  }'
+```
+
+### Response Format
+
+Returns `200 OK` with the created pipeline run, in the same envelope as [Create Pipeline Run](#response-format-1).
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing required fields, malformed JSON, unknown JSON fields, invalid graph-extraction settings, or missing `namespace` |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Required managed pipelines are unavailable in the namespace |
+| `500 Internal Server Error` | KFP client failure or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+#### Example Validation Errors
+
+**Non-object graph extraction config:**
+
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "graph_extraction_config must be an object"
+  }
+}
+```
+
+**Constrained mode with extra keys:**
+
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "graph_extraction_config.max_entities_per_chunk is not allowed in constrained mode"
+  }
+}
+```
+
+**Free mode with a non-positive limit:**
+
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "graph_extraction_config.max_relationships_per_chunk must be a positive integer"
   }
 }
 ```
