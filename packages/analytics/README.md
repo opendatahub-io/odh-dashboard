@@ -76,9 +76,58 @@ const tracking = createSegmentTracking(() => ({
 </AnalyticsTrackingProvider>;
 ```
 
+The adapter forwards events to `window.analytics`, the client assigned by `initSegment` during host setup. The host's `segmentKey` becomes the SDK's write key, which identifies the Segment source; `apiHost` and `protocol` configure the ingestion endpoint. Cluster ID and app version are event metadata. In development mode, the adapter logs events; otherwise, calls made before a client exists are dropped.
+
 RHOAI uses the shared Segment adapter with its existing runtime metadata and SDK enablement behavior. Its legacy custom/page helpers reuse the same adapter. RHAII, MaaS Portal, and intentionally disabled standalone roots mount `NoopAnalyticsTrackingProvider` from `@odh-dashboard/analytics/react`. It supplies stable no-ops for both operations; tests needing spies use `AnalyticsTrackingProvider`. Federated feature roots inherit the host provider. Keep SDK initialization, consent, router effects, and identity in the host lifecycle.
 
-Standalone roots call `createStandaloneAnalytics({ devMode, version })` from `@odh-dashboard/analytics/standalone` once outside React rendering and pass the result to `AnalyticsTrackingProvider`. The application supplies its build-time values. The factory logs events in development mode; otherwise, it forwards through an existing `window.analytics` and remains silent when none exists. It reads the current `window.clusterID` per operation, defaulting to `''`. It neither initializes the SDK nor changes consent or identity ownership. Hosts with different metadata or delivery policies use `createSegmentTracking(getOptions)` explicitly.
+Standalone roots that need compatibility with an externally initialized client call `createStandaloneAnalytics({ devMode, version })` from `@odh-dashboard/analytics/standalone` once outside React rendering and pass the result to `AnalyticsTrackingProvider`. The application supplies its build-time values. The factory logs events in development mode; otherwise, it forwards through an existing `window.analytics` and remains silent when none exists. It reads the current `window.clusterID` per operation, defaulting to `''`. It neither initializes the SDK nor changes consent or identity ownership. Intentionally disabled roots use the no-op provider. Hosts with different metadata or delivery policies use `createSegmentTracking(getOptions)` explicitly.
+
+### Reusable host setup
+
+Use `useSegmentSetup` from `@odh-dashboard/analytics` to initialize Segment and invoke host-owned identity and page callbacks. Hosts obtain their own key, readiness, enablement, and cluster/user information. Use `createSegmentTracking` to bind delivery metadata such as cluster ID, development mode, and version.
+
+Keep the identify and page callbacks stable. Changing either reference reruns setup; changing the page callback also triggers `usePageTracking`, even when the route key is unchanged.
+
+For `userKey`, use any stable value that changes when the user changes, such as a username or user ID. RHOAI uses the username.
+
+```tsx
+import { usePageTracking, useSegmentSetup } from '@odh-dashboard/analytics';
+
+// Inside the host's setup component; identify and tracking callbacks are stable.
+useSegmentSetup({
+  segmentKey,
+  ready: configurationLoaded && identityLoaded,
+  enabled: initializationEnabled, // Controls SDK initialization only.
+  clusterID,
+  userKey: userID,
+  identify,
+  trackPageEvent: tracking.trackPageEvent,
+  // Each host supplies its own connection endpoints.
+  cdnURL: segmentCdnURL,
+  apiHost: segmentApiHost,
+  protocol: 'https',
+});
+usePageTracking(pathname, tracking.trackPageEvent);
+```
+
+`enabled: false` skips SDK initialization; it does **not** prevent the identify and page callbacks from running when setup has a nonempty key and is ready. The host supplies its own `identify` callback and applies its delivery policy there. To gate custom/page calls through the adapter, return `enabled: false` from its options getter; omitting that option allows delivery through an existing client.
+
+Connection settings are host-supplied:
+
+- `cdnURL`: required full CDN base URL, including the scheme, such as `https://cdn.example.com`.
+- `apiHost`: required ingestion hostname and path, without a scheme, such as `events.example.com/v1`.
+- `protocol`: optional ingestion protocol; defaults to `https`.
+
+Each host obtains its user information and supplies a stable `identify` callback. RHOAI keeps `useTrackUser` in the main frontend because it reads dashboard Redux state and checks OpenShift project-creation permissions, then uses its existing `fireIdentifyEvent` mapping. Distributions can use different identity sources and traits. The shared `computeAnonymousUserId` utility is available when a host needs to hash a username.
+
+`usePageTracking` observes a host-supplied route key and has no router dependency; RHOAI continues to observe pathname changes through `useTrackHistory`.
+
+Setup and route observation behave as follows:
+
+- Setup skips all work when the key is empty or `ready` is false.
+- Otherwise, setup assigns `window.clusterID`, invokes `initSegment`, and calls identify followed by page when that function resolves.
+- `usePageTracking` invokes its callback on mount and when the route key or callback reference changes, independently of setup readiness. Setup and route observation can each emit an initial page event.
+- Changed setup inputs can initialize another client. These hooks do not add retries, event queues, deduplication, or SDK teardown.
 
 ### Per-event page-context policy
 
@@ -90,7 +139,9 @@ Disabled delivery, development logging, and absent SDKs do not evaluate policies
 
 ### SDK Initialization
 
-`initSegment` initializes the shared browser client on `window.analytics`. It skips initialization when disabled or given an empty key. It does **not** stop an existing client, and repeated enabled calls load a client again.
+`initSegment` assigns a Segment browser client to `window.analytics` without waiting for SDK readiness. Segment buffers events while loading. It skips initialization when disabled or given an empty key; repeated enabled calls with a nonempty key load another client. It uses the connection settings described above.
+
+Awaiting `initSegment()` waits only for the initialization function to return after assigning the client, or skipping initialization. It does not wait for SDK readiness or successful event delivery.
 
 The two `enabled` options control different operations:
 
@@ -104,7 +155,12 @@ After the host has authorized initialization:
 ```ts
 import { initSegment, computeAnonymousUserId } from '@odh-dashboard/analytics';
 
-await initSegment({ segmentKey: 'write-key', enabled: true });
+await initSegment({
+  segmentKey: 'write-key',
+  enabled: true,
+  cdnURL: segmentCdnURL,
+  apiHost: segmentApiHost,
+});
 
 // Compute an anonymous user ID (SHA-1 hash).
 const anonId = await computeAnonymousUserId('username');

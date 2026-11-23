@@ -94,6 +94,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableStorageClasses: false,
       disableNIMModelServing: false,
       disableAdminConnectionTypes: false,
+      hideCommunityPluginsSettingsPage: false,
       disableFeatureStore: false,
       featureStoreAdmin: false,
       dataRegistry: false,
