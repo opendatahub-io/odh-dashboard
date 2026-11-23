@@ -113,7 +113,7 @@ describe('CollectionDetailPage', () => {
       within(menu)
         .getAllByRole('menuitem')
         .map((item) => item.textContent.trim()),
-    ).toEqual(['Register data', 'Manage collections', 'Delete collection']);
+    ).toEqual(['Register data', 'Manage collections', 'Rename collection', 'Delete collection']);
     expect(screen.getByTestId('collection-action-delete')).toHaveClass('pf-m-danger');
     expect(menu.querySelector('.pf-v6-c-divider')).toBeInTheDocument();
   });
@@ -131,7 +131,7 @@ describe('CollectionDetailPage', () => {
     expect(deleteAction).toHaveClass('pf-m-aria-disabled');
   });
 
-  it('should explain that assets must be removed before deleting a non-default collection', async () => {
+  it('should explain that deleting a non-default collection also deletes its registry records', async () => {
     const user = userEvent.setup();
     const nonDefaultCollection: CollectionDetail = {
       ...mockCollectionDetail,
@@ -152,10 +152,13 @@ describe('CollectionDetailPage', () => {
     fireEvent.click(screen.getByTestId('collection-actions-toggle'));
 
     const deleteAction = screen.getByTestId('collection-action-delete');
-    expect(deleteAction).toHaveClass('pf-m-aria-disabled');
+    expect(deleteAction).not.toHaveClass('pf-m-aria-disabled');
+    expect(screen.getByTestId('collection-action-rename')).not.toHaveClass('pf-m-aria-disabled');
     await user.hover(deleteAction);
     expect(
-      await screen.findByText('Remove all associated assets to delete this collection'),
+      await screen.findByText(
+        'Delete this collection and its registry records. Storage files are not removed. You will be asked to confirm.',
+      ),
     ).toBeInTheDocument();
   });
 

@@ -400,6 +400,79 @@ paths:
           $ref: "data-registry-api.yaml#/components/responses/NotFound"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/namespaces/{collection}/rename:
+    post:
+      tags: [namespaces]
+      operationId: proxyRenameNamespace
+      summary: Rename a collection (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/namespaces/{collection}/rename` on the
+        upstream Data Registry API. Renames the collection and its catalog-managed assets.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/RenameNamespaceRequest"
+      responses:
+        "200":
+          description: Collection renamed
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/NamespaceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "409":
+          $ref: "data-registry-api.yaml#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/namespaces/{collection}/assets/{asset}/move:
+    post:
+      tags: [assets]
+      operationId: proxyMoveAsset
+      summary: Move an asset to another collection (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/namespaces/{collection}/assets/{asset}/move`
+        on the upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/asset"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/MoveAssetRequest"
+      responses:
+        "200":
+          description: Asset moved
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/MovedAssetResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "409":
+          $ref: "data-registry-api.yaml#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 
   # ===========================================================================
   # Data Registry proxy routes — tables (Iceberg REST)

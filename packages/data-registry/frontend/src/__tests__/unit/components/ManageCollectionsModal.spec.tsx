@@ -44,6 +44,7 @@ describe('ManageCollectionsModal', () => {
           name: 'default',
           description: '',
           assetNames: [],
+          assets: [],
           tableCount: 0,
           volumeCount: 0,
         },
@@ -51,6 +52,7 @@ describe('ManageCollectionsModal', () => {
           name: 'with-assets',
           description: '',
           assetNames: ['asset-1'],
+          assets: [{ name: 'asset-1', assetType: 'table' }],
           tableCount: 1,
           volumeCount: 0,
         },
@@ -218,6 +220,7 @@ describe('ManageCollectionsModal', () => {
           name: 'default',
           description: '',
           assetNames: [],
+          assets: [],
           tableCount: 0,
           volumeCount: 0,
         },
@@ -268,16 +271,20 @@ describe('ManageCollectionsModal', () => {
     expect(screen.queryByTestId('delete-collection-modal')).not.toBeInTheDocument();
   });
 
-  it('disables deletion for collections with assets', () => {
+  it('allows deletion for collections with assets after a warning', () => {
     render(
       <MemoryRouter>
         <ManageCollectionsModal {...defaultProps} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId('collection-delete-with-assets')).toBeDisabled();
+    expect(screen.getByTestId('collection-delete-with-assets')).toBeEnabled();
+    expect(screen.getByTestId('collection-rename-with-assets')).toBeEnabled();
+    expect(screen.getByTestId('collection-rename-default')).toBeDisabled();
     expect(
-      screen.getByText('Remove all associated assets to delete a collection.'),
+      screen.getByText(
+        'Delete this collection and its registry records. Storage files are not removed. You will be asked to confirm.',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByTestId('collection-filter')).toHaveClass(
       'odh-data-registry-manage-collections__search',

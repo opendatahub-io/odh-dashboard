@@ -18,7 +18,7 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { CheckIcon, TimesIcon, TrashIcon } from '@patternfly/react-icons';
+import { CheckIcon, PencilAltIcon, TimesIcon, TrashIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { useSettings } from 'mod-arch-core';
@@ -27,20 +27,23 @@ import { useAssets } from '~/app/hooks/useAssets';
 import { useCollections, type CollectionInfo } from '~/app/hooks/useCollections';
 import { collectionDetailUrl } from '~/app/utilities/routes';
 import {
+  COLLECTION_DELETE_WITH_ASSETS_MESSAGE,
   DEFAULT_COLLECTION_DELETE_MESSAGE,
   DEFAULT_COLLECTION_NAME,
-  NON_EMPTY_COLLECTION_DELETE_MESSAGE,
+  DEFAULT_COLLECTION_RENAME_MESSAGE,
 } from '~/app/utilities/collectionConstants';
+import { collectionNameError } from '~/app/utilities/collectionUtils';
 import DeleteCollectionModal from './DeleteCollectionModal';
+import RenameCollectionModal from './RenameCollectionModal';
 import './ManageCollectionsModal.scss';
 
 const COLLECTION_SEARCH_PLACEHOLDER = 'Filter by name or description';
-const COLLECTION_NAME_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 type ManageCollectionsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   project: string;
   onRefresh: () => void | Promise<void>;
+  onCollectionRenamed?: (previousName: string, nextName: string) => void;
 };
 
 const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
@@ -48,6 +51,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   onClose,
   project,
   onRefresh,
+  onCollectionRenamed,
 }) => {
   const { userSettings } = useSettings();
   const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
@@ -69,20 +73,12 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<CollectionInfo | null>(null);
+  const [renameTarget, setRenameTarget] = React.useState<CollectionInfo | null>(null);
 
-  const nameValidationError = React.useMemo(() => {
-    const trimmed = newCollectionName.trim();
-    if (!trimmed) {
-      return '';
-    }
-    if (trimmed.length > 63) {
-      return 'Name must be 63 characters or fewer.';
-    }
-    if (!COLLECTION_NAME_REGEX.test(trimmed)) {
-      return 'Name must contain only lowercase letters, numbers, and hyphens.';
-    }
-    return '';
-  }, [newCollectionName]);
+  const nameValidationError = React.useMemo(
+    () => collectionNameError(newCollectionName),
+    [newCollectionName],
+  );
 
   const resetCreateForm = () => {
     setIsCreating(false);
@@ -168,7 +164,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   return (
     <>
       <Modal
-        isOpen={isOpen && deleteTarget === null}
+        isOpen={isOpen && deleteTarget === null && renameTarget === null}
         onClose={handleClose}
         onEscapePress={handleEscapePress}
         variant="large"
@@ -201,7 +197,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
               <Alert
                 variant="info"
                 isInline
-                title="Remove all associated assets to delete a collection."
+                title={COLLECTION_DELETE_WITH_ASSETS_MESSAGE}
               />
             </StackItem>
             <StackItem>
@@ -345,15 +341,31 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                     {collection.assetNames.length > 0 ? collection.assetNames.join(', ') : '–'}
                   </Td>
                   <Td isActionCell>
-                    {collection.name === DEFAULT_COLLECTION_NAME ||
-                    collection.assetNames.length > 0 ? (
-                      <Tooltip
-                        content={
-                          collection.name === DEFAULT_COLLECTION_NAME
-                            ? DEFAULT_COLLECTION_DELETE_MESSAGE
-                            : NON_EMPTY_COLLECTION_DELETE_MESSAGE
-                        }
+                    {collection.name === DEFAULT_COLLECTION_NAME ? (
+                      <Tooltip content={DEFAULT_COLLECTION_RENAME_MESSAGE}>
+                        <span>
+                          <Button
+                            variant="plain"
+                            isDisabled
+                            aria-label={`Rename ${collection.name}`}
+                            data-testid={`collection-rename-${collection.name}`}
+                          >
+                            <PencilAltIcon />
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    ) : (
+                      <Button
+                        variant="plain"
+                        aria-label={`Rename ${collection.name}`}
+                        onClick={() => setRenameTarget(collection)}
+                        data-testid={`collection-rename-${collection.name}`}
                       >
+                        <PencilAltIcon />
+                      </Button>
+                    )}
+                    {collection.name === DEFAULT_COLLECTION_NAME ? (
+                      <Tooltip content={DEFAULT_COLLECTION_DELETE_MESSAGE}>
                         <span>
                           <Button
                             variant="plain"
@@ -366,14 +378,22 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                         </span>
                       </Tooltip>
                     ) : (
-                      <Button
-                        variant="plain"
-                        aria-label={`Delete ${collection.name}`}
-                        onClick={() => setDeleteTarget(collection)}
-                        data-testid={`collection-delete-${collection.name}`}
+                      <Tooltip
+                        content={
+                          collection.tableCount + collection.volumeCount > 0
+                            ? COLLECTION_DELETE_WITH_ASSETS_MESSAGE
+                            : 'Delete this collection'
+                        }
                       >
-                        <TrashIcon />
-                      </Button>
+                        <Button
+                          variant="plain"
+                          aria-label={`Delete ${collection.name}`}
+                          onClick={() => setDeleteTarget(collection)}
+                          data-testid={`collection-delete-${collection.name}`}
+                        >
+                          <TrashIcon />
+                        </Button>
+                      </Tooltip>
                     )}
                   </Td>
                 </Tr>
@@ -398,6 +418,23 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
         project={project}
         collection={deleteTarget}
         onDeleted={handleRefresh}
+      />
+      <RenameCollectionModal
+        isOpen={isOpen && renameTarget !== null}
+        project={project}
+        collectionName={renameTarget?.name ?? ''}
+        onClose={() => setRenameTarget(null)}
+        onRenamed={(previousName, nextName) => {
+          setRenameTarget(null);
+          onCollectionRenamed?.(previousName, nextName);
+          handleRefresh().catch((err: unknown) => {
+            setActionError(
+              err instanceof Error
+                ? `Collection renamed, but the list could not be refreshed: ${err.message}`
+                : 'Collection renamed, but the list could not be refreshed.',
+            );
+          });
+        }}
       />
     </>
   );

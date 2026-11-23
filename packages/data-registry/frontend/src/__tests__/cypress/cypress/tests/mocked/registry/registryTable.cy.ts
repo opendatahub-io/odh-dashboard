@@ -312,13 +312,14 @@ describe('Registry Table', () => {
     });
   });
 
-  it('should disable delete when collection has assets', () => {
+  it('should warn before deleting a collection that has assets', () => {
     visitWithData();
     cy.findByTestId('registry-kebab').click();
     cy.findByTestId('manage-collections-action').click();
-    cy.findByTestId('collection-delete-analytics').should('be.disabled');
-    cy.findByTestId('manage-collections-modal').should('exist');
-    cy.findByTestId('delete-collection-modal').should('not.exist');
+    cy.findByTestId('collection-delete-analytics').should('be.enabled').click();
+    cy.findByTestId('delete-collection-modal').should('exist');
+    cy.findByText('This deletes registry records').should('exist');
+    cy.findByTestId('confirm-delete-button').should('be.enabled');
   });
 
   it('should delete an empty collection without confirmation text', () => {

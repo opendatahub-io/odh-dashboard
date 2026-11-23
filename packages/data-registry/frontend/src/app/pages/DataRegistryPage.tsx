@@ -396,6 +396,7 @@ const DataRegistryPage: React.FC = () => {
             connectionsLoaded={connectionsLoaded}
             connectionsError={connectionsError}
             project={selectedProject}
+            collections={collectionNames}
             onManageCollections={(onReturnToEdit) => {
               setReturnToRegisterData(false);
               if (!collectionsError) {
