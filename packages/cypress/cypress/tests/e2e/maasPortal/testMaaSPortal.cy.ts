@@ -12,6 +12,12 @@ import {
   waitForMaaSModelReady,
 } from '../../../utils/oc_commands/maas';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
+import {
+  configureMaaSPortalOnly,
+  restoreDsc,
+  waitForMaaSPortalOnlyInstall,
+  type MaaSPortalDscSnapshot,
+} from '../../../utils/oc_commands/dsc';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import {
   apiKeysPage,
@@ -59,22 +65,16 @@ const validatePortalUsername = (configName: string, user: UserAuthConfig): void 
 };
 
 const getRequiredPortalConfig = (): {
-  portalUrl: string;
   modelName: string;
   organizationId: string;
   userGroups: string[];
   adminUser: UserAuthConfig;
   portalUser: UserAuthConfig;
 } => {
-  const portalUrl = Cypress.env('MAAS_PORTAL_URL') as string | undefined;
   const modelName = Cypress.env('MAAS_PORTAL_MODEL_NAME') as string | undefined;
   const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string | undefined;
   const organizationId = Cypress.env('MAAS_PORTAL_ORGANIZATION_ID') as string | undefined;
   const userGroups = Cypress.env('MAAS_PORTAL_USER_GROUPS') as string[] | undefined;
-
-  if (!portalUrl) {
-    throw new Error('MAAS_PORTAL_URL is not configured in CY_TEST_CONFIG');
-  }
 
   if (!modelName?.trim()) {
     throw new Error('MAAS_PORTAL_MODEL_NAME is not configured in CY_TEST_CONFIG');
@@ -112,7 +112,6 @@ const getRequiredPortalConfig = (): {
   validatePortalUsername('MAAS_PORTAL_USER', MAAS_PORTAL_USER);
 
   return {
-    portalUrl,
     modelName: modelName.trim(),
     organizationId,
     userGroups,
@@ -122,6 +121,9 @@ const getRequiredPortalConfig = (): {
 };
 
 describe('MaaS Portal role access and API-key lifecycle', () => {
+  let dscSnapshot: MaaSPortalDscSnapshot | undefined;
+  let portalUrl: string;
+
   before(function setupMaaSPortalResources() {
     if (!runMaaSPortalE2E) {
       this.skip();
@@ -136,8 +138,21 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       PORTAL_ADMIN_USERNAME: adminUser.USERNAME,
     };
 
-    cy.step('Verify the configured pre-provisioned ExternalModel for the portal test');
+    cy.step('Configure and verify the RHOAI portal-only DSC install');
     ensureAdminOcSession();
+    configureMaaSPortalOnly()
+      .then((snapshot) => {
+        dscSnapshot = snapshot;
+        return waitForMaaSPortalOnlyInstall(
+          Cypress.env('APPLICATIONS_NAMESPACE') as string,
+          snapshot,
+        );
+      })
+      .then((statusPortalUrl) => {
+        portalUrl = statusPortalUrl;
+      });
+
+    cy.step('Verify the configured pre-provisioned ExternalModel for the portal test');
     verifyExternalModelStack(modelName);
     createMaaSSubscription(
       subscriptionName,
@@ -177,13 +192,16 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
     } else {
       cy.log('Skipping API-key cleanup because APPLICATIONS_NAMESPACE is not configured');
     }
+    if (dscSnapshot) {
+      restoreDsc(dscSnapshot);
+    }
   });
 
   it(
     'validates role access, API-key creation and revocation, and revoked-key authorization',
     { tags: ['@Smoke', '@Dashboard', '@MaaS', '@MaaSPortal', '@MaaSAccess', '@Maintain'] },
     () => {
-      const { portalUrl, adminUser, portalUser } = getRequiredPortalConfig();
+      const { adminUser, portalUser } = getRequiredPortalConfig();
 
       cy.step('Log into the MaaS Portal as an administrator');
       maasPortalPage.loginWithCachedSession(portalUrl, adminUser);

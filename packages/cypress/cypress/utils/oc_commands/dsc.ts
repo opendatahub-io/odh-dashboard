@@ -2,6 +2,35 @@ import type { CommandLineResult } from '../../types';
 
 type DSC = Record<string, unknown>;
 
+type DashboardComponent = {
+  managementState?: string;
+  maasPortal?: Record<string, unknown>;
+};
+
+type DscResource = {
+  metadata?: {
+    name?: string;
+    namespace?: string;
+  };
+  spec?: {
+    components?: {
+      dashboard?: DashboardComponent;
+    };
+  };
+};
+
+export type MaaSPortalDscSnapshot = {
+  name: string;
+  namespace?: string;
+  dashboardManagementState?: string;
+  maasPortal?: Record<string, unknown>;
+};
+
+const shellQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`;
+
+const dscResourceArgs = (dsc: MaaSPortalDscSnapshot): string =>
+  `${shellQuote(dsc.name)}${dsc.namespace ? ` -n ${shellQuote(dsc.namespace)}` : ''}`;
+
 const getDSC = (): Cypress.Chainable<DSC | null> => {
   const ocCommand = 'oc get datasciencecluster -o json';
   cy.log(`Executing command: ${ocCommand}`);
@@ -82,3 +111,161 @@ export const isTrainerManaged = (): Cypress.Chainable<boolean> =>
 
     return cy.wrap(isManaged);
   });
+
+/**
+ * Configure the real RHOAI DSC for the portal-only browser journey.
+ * The caller must restore the returned snapshot in its cleanup hook.
+ */
+export const configureMaaSPortalOnly = (): Cypress.Chainable<MaaSPortalDscSnapshot> =>
+  getDSC().then((rawDsc) => {
+    const dsc = rawDsc as DscResource | null;
+    const dashboard = dsc?.spec?.components?.dashboard;
+    const name = dsc?.metadata?.name;
+
+    if (!dsc || !name || !dashboard) {
+      throw new Error(
+        'A DataScienceCluster with spec.components.dashboard is required for the MaaS Portal E2E',
+      );
+    }
+
+    const snapshot: MaaSPortalDscSnapshot = {
+      name,
+      namespace: dsc.metadata?.namespace,
+      dashboardManagementState: dashboard.managementState,
+      maasPortal: dashboard.maasPortal,
+    };
+    const patch = {
+      spec: {
+        components: {
+          dashboard: {
+            managementState: 'Removed',
+            maasPortal: { managementState: 'Managed' },
+          },
+        },
+      },
+    };
+
+    return cy
+      .exec(
+        `oc patch datasciencecluster ${dscResourceArgs(snapshot)} --type=merge -p ${shellQuote(
+          JSON.stringify(patch),
+        )}`,
+        { failOnNonZeroExit: false },
+      )
+      .then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(`Failed to configure portal-only DSC: ${result.stderr || result.stdout}`);
+        }
+        cy.log('Configured DSC with dashboard=Removed and maasPortal=Managed');
+        return cy.wrap(snapshot);
+      });
+  });
+
+/** Wait for the Dashboard operator to expose the portal-only state on a real cluster. */
+export const waitForMaaSPortalOnlyInstall = (
+  applicationsNamespace: string,
+  snapshot: MaaSPortalDscSnapshot,
+): Cypress.Chainable<string> =>
+  cy
+    .exec(
+      'oc wait dashboards.components.platform.opendatahub.io/default-dashboard --for=condition=MaaSPortalAvailable --timeout=600s',
+      { failOnNonZeroExit: false, timeout: 610000 },
+    )
+    .then((conditionResult) => {
+      if (conditionResult.exitCode !== 0) {
+        throw new Error(
+          `Dashboard did not report MaaSPortalAvailable: ${
+            conditionResult.stderr || conditionResult.stdout
+          }`,
+        );
+      }
+      return cy
+        .exec('oc get dashboards.components.platform.opendatahub.io/default-dashboard -o json', {
+          failOnNonZeroExit: true,
+        })
+        .then((dashboardResult) => {
+          const dashboard = JSON.parse(dashboardResult.stdout) as {
+            status?: { maasPortalUrl?: string };
+          };
+          const portalUrl = dashboard.status?.maasPortalUrl?.trim();
+          if (!portalUrl) {
+            throw new Error('Dashboard status.maasPortalUrl is empty');
+          }
+          return cy
+            .exec(`oc get datasciencecluster ${dscResourceArgs(snapshot)} -o json`, {
+              failOnNonZeroExit: true,
+            })
+            .then((dscResult) => {
+              const dsc = JSON.parse(dscResult.stdout) as DscResource;
+              const dashboardSpec = dsc.spec?.components?.dashboard;
+              if (
+                dashboardSpec?.managementState !== 'Removed' ||
+                dashboardSpec.maasPortal?.managementState !== 'Managed'
+              ) {
+                throw new Error(
+                  'DataScienceCluster does not reflect dashboard=Removed and maasPortal=Managed',
+                );
+              }
+              return cy
+                .exec(`oc get deployment -n ${shellQuote(applicationsNamespace)} -o json`, {
+                  failOnNonZeroExit: true,
+                })
+                .then((deploymentResult) => {
+                  const deployments = JSON.parse(deploymentResult.stdout) as {
+                    items?: Array<{ metadata?: { name?: string } }>;
+                  };
+                  const deploymentNames = (deployments.items ?? [])
+                    .map((deployment) => deployment.metadata?.name)
+                    .filter((name): name is string => Boolean(name));
+                  const coreDeployments = deploymentNames.filter(
+                    (name) => name === 'odh-dashboard' || name === 'rhods-dashboard',
+                  );
+                  if (coreDeployments.length > 0) {
+                    throw new Error(
+                      `Core Dashboard Deployment(s) still exist in ${applicationsNamespace}: ${coreDeployments.join(
+                        ', ',
+                      )}`,
+                    );
+                  }
+                  if (!deploymentNames.includes('maas-portal')) {
+                    throw new Error(
+                      `MaaS Portal Deployment is missing from ${applicationsNamespace}: expected maas-portal`,
+                    );
+                  }
+                  cy.log('Verified portal-only install: no core Dashboard Deployment exists');
+                  return cy.wrap(portalUrl);
+                });
+            });
+        });
+    });
+
+/** Restore the DSC state captured by configureMaaSPortalOnly. */
+export const restoreDsc = (snapshot: MaaSPortalDscSnapshot): Cypress.Chainable<null> => {
+  const patch = {
+    spec: {
+      components: {
+        dashboard: {
+          managementState: snapshot.dashboardManagementState ?? null,
+          maasPortal: snapshot.maasPortal ?? null,
+        },
+      },
+    },
+  };
+
+  return cy
+    .exec(
+      `oc patch datasciencecluster ${dscResourceArgs(snapshot)} --type=merge -p ${shellQuote(
+        JSON.stringify(patch),
+      )}`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to restore DSC after MaaS Portal E2E: ${result.stderr || result.stdout}`,
+        );
+      }
+      cy.log('Restored the original DSC dashboard and MaaS Portal management states');
+      return cy.wrap(null);
+    });
+};
