@@ -1382,6 +1382,12 @@ components:
         - train_data_secret_name
         - train_data_bucket_name
         - train_data_file_key
+      anyOf:
+        - required: [test_data_bucket_name, test_data_file_key]
+        - not:
+            anyOf:
+              - required: [test_data_bucket_name]
+              - required: [test_data_file_key]
       properties:
         display_name:
           type: string

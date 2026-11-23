@@ -62,14 +62,8 @@
   --pf-v6-c-table--BackgroundColor: transparent;
 }
 
-.automl-configure__dataset-filename {
-  --pf-v6-c-truncate--MinWidth: 0;
-  --pf-v6-c-truncate__start--MinWidth: 0;
-}
-
 .automl-configure__dataset-status {
   min-width: 0;
-  font-weight: var(--pf-t--global--font--weight--body--default);
 }
 
 .automl-configure__connection-selector {

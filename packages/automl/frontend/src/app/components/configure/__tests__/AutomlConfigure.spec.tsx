@@ -1432,9 +1432,21 @@ describe('AutomlConfigure', () => {
         expect(toggle).toHaveAttribute('aria-expanded', 'true');
         expect(screen.getByText('Unable to sample document data')).toBeVisible();
 
+        const panel = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
+        expect(panel).toContainElement(screen.getByTestId(`${prefix}-source-upload-toggle`));
+        // Cover focus inside and outside each panel when asynchronous sampling completes.
+        const focusedElement =
+          mode === 'select'
+            ? screen.getByTestId(
+                isTraining ? 'browse-bucket-button' : 'test-data-browse-bucket-button',
+              )
+            : screen.getByTestId('dataset-split-auto');
+        focusedElement.focus();
+        expect(focusedElement).toHaveFocus();
         sampleError = null;
         rerender(<AutomlConfigure />);
         expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(mode === 'select' ? toggle : focusedElement).toHaveFocus();
 
         fireEvent.click(toggle);
         expect(toggle).toHaveAttribute('aria-expanded', 'true');
@@ -1459,6 +1471,32 @@ describe('AutomlConfigure', () => {
         expect(toggle).toHaveAttribute('aria-expanded', 'true');
       },
     );
+
+    it('should keep long filenames out of the tab order and show their tooltip on the toggle', async () => {
+      const user = userEvent.setup();
+      const trainingFile = `${'long-training-filename-'.repeat(10)}.csv`;
+      const testFile = `${'long-test-filename-'.repeat(10)}.csv`;
+      renderComponent({
+        dataset_split_mode: 'separate',
+        train_data_file_key: trainingFile,
+        test_data_file_key: testFile,
+      });
+      const trainingToggle = screen.getByTestId('training-data-accordion-toggle');
+      const testToggle = screen.getByTestId('test-data-accordion-toggle');
+      expect(trainingToggle).toHaveAccessibleName(`1. Training data ${trainingFile}`);
+      expect(testToggle).toHaveAccessibleName(`2. Test data ${testFile}`);
+      act(() => trainingToggle.focus());
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(trainingFile);
+      await user.tab();
+      expect(testToggle).toHaveFocus();
+      await waitFor(() => {
+        expect(screen.queryByRole('tooltip', { name: trainingFile })).not.toBeInTheDocument();
+        expect(screen.getByRole('tooltip')).toHaveTextContent(testFile);
+      });
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+      expect(testToggle).toHaveFocus();
+    });
 
     it('should upload the separate test file using the selected training connection', async () => {
       renderComponent();

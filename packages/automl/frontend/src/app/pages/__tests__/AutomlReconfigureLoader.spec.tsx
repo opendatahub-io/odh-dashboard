@@ -464,6 +464,7 @@ describe('AutomlReconfigureLoader', () => {
         {},
         {
           top_n: -1,
+          train_data_bucket_name: 'saved-bucket',
           test_data_bucket_name: 'saved-bucket',
           test_data_file_key: 'saved-test.csv',
         },
@@ -491,7 +492,12 @@ describe('AutomlReconfigureLoader', () => {
       { test_data_file_key: 'test.csv' },
       { test_data_bucket_name: 'my-bucket', test_data_file_key: ' ' },
       { test_data_bucket_name: ' ', test_data_file_key: 'test.csv' },
-    ])('should restore automatic mode without a complete test-data pair: %j', async (params) => {
+      {
+        train_data_bucket_name: 'my-bucket',
+        test_data_bucket_name: 'other-bucket',
+        test_data_file_key: 'test.csv',
+      },
+    ])('should restore automatic mode without a usable test-data pair: %j', async (params) => {
       mockUsePipelineRunQuery.mockReturnValue({
         data: createMockPipelineRun({}, params),
         isPending: false,

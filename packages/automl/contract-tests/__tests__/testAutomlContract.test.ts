@@ -30,6 +30,43 @@ describe('AutoML API Contract Tests', () => {
   const KNOWN_REGISTRY = '6fb09186-eb11-4b68-8e3a-8017fb3bf18f';
   const UNKNOWN_REGISTRY = '00000000-0000-0000-0000-000000000000';
 
+  describe.each([
+    {
+      schema: 'CreateTabularRunRequest',
+      task: { task_type: 'binary', label_column: 'label' },
+    },
+    {
+      schema: 'CreateTimeSeriesRunRequest',
+      task: { task_type: 'timeseries', target: 'target', timestamp_column: 'timestamp' },
+    },
+  ])('Optional test dataset pairing in $schema', ({ schema, task }) => {
+    it.each([
+      { name: 'neither field', testData: {}, accepted: true },
+      {
+        name: 'both fields',
+        testData: { test_data_bucket_name: BUCKET, test_data_file_key: 'test.csv' },
+        accepted: true,
+      },
+      { name: 'bucket only', testData: { test_data_bucket_name: BUCKET }, accepted: false },
+      { name: 'key only', testData: { test_data_file_key: 'test.csv' }, accepted: false },
+    ])('should validate $name', ({ testData, accepted }) => {
+      const request = {
+        display_name: 'test-dataset-pair',
+        train_data_secret_name: SECRET,
+        train_data_bucket_name: BUCKET,
+        train_data_file_key: TABULAR_CSV_FILE,
+        ...task,
+        ...testData,
+      };
+      const contract = { ref: `#/components/schemas/${schema}` };
+      if (accepted) {
+        expect(request).toMatchContract(apiSchema, contract);
+      } else {
+        expect(request).not.toMatchContract(apiSchema, contract);
+      }
+    });
+  });
+
   describe('Time series ID column contract', () => {
     const request = {
       display_name: 'contract-test-id-characters',

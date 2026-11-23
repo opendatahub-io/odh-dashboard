@@ -38,7 +38,7 @@ import {
   SplitItem,
   Stack,
   StackItem,
-  Truncate,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
@@ -107,11 +107,19 @@ import DatasetFileDetailsPreview from './DatasetFileDetailsPreview';
 import DatasetFilePreview from './DatasetFilePreview';
 import DatasetSamplingError from './DatasetSamplingError';
 import DatasetFilePicker, { type DatasetFileSourceMode } from './DatasetFilePicker';
+import '@patternfly/react-styles/css/utilities/Text/text.css';
 import './AutomlConfigure.scss';
 
 const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
 const SHARED_DATA_CONNECTION_DESCRIPTION =
   'Training and test data use the same S3 connection and bucket. Changing the connection clears both file selections.';
+
+function focusDatasetToggleBeforeCollapse(dataset: 'training' | 'test'): void {
+  const panel = document.getElementById(`${dataset}-data-accordion-content`);
+  if (panel?.contains(document.activeElement)) {
+    document.getElementById(`${dataset}-data-accordion-toggle`)?.focus();
+  }
+}
 
 function explorerFileFromKey(fileKey?: string): ExplorerFile | undefined {
   if (!fileKey) {
@@ -169,6 +177,7 @@ function AutomlConfigure({
   const [fileExplorerTarget, setFileExplorerTarget] = useState<'train' | 'test'>('train');
   const [isTrainingAccordionExpanded, setIsTrainingAccordionExpanded] = useState(false);
   const [isTestAccordionExpanded, setIsTestAccordionExpanded] = useState(false);
+  const [focusedDataset, setFocusedDataset] = useState<'training' | 'test'>();
   const initialFileKey = getValues('train_data_file_key');
   const initialTestFileKey = getValues('test_data_file_key');
 
@@ -364,6 +373,7 @@ function AutomlConfigure({
       schemaColumns.length > 0
     ) {
       pendingTrainingDataCollapseRef.current = undefined;
+      focusDatasetToggleBeforeCollapse('training');
       setIsTrainingAccordionExpanded(false);
     }
   }, [
@@ -389,6 +399,7 @@ function AutomlConfigure({
       testSampleQuery.data.length > 0
     ) {
       pendingTestDataCollapseRef.current = undefined;
+      focusDatasetToggleBeforeCollapse('test');
       setIsTestAccordionExpanded(false);
     }
   }, [
@@ -964,6 +975,9 @@ function AutomlConfigure({
                               <AccordionItem isExpanded={isTrainingAccordionExpanded}>
                                 <AccordionToggle
                                   id="training-data-accordion-toggle"
+                                  aria-controls="training-data-accordion-content"
+                                  onFocus={() => setFocusedDataset('training')}
+                                  onBlur={() => setFocusedDataset(undefined)}
                                   data-testid="training-data-accordion-toggle"
                                   onClick={() => {
                                     const isExpanding = !isTrainingAccordionExpanded;
@@ -979,7 +993,7 @@ function AutomlConfigure({
                                     </SplitItem>
                                     <SplitItem
                                       isFilled
-                                      className="automl-configure__dataset-status"
+                                      className="automl-configure__dataset-status pf-v6-u-font-weight-normal"
                                     >
                                       <Flex
                                         flexWrap={{ default: 'nowrap' }}
@@ -996,23 +1010,30 @@ function AutomlConfigure({
                                             <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
                                           )}
                                         </FlexItem>
-                                        <FlexItem className="automl-configure__dataset-status">
-                                          {trainDataFileKey ? (
-                                            <Truncate
-                                              className="automl-configure__dataset-filename pf-v6-u-w-100"
-                                              content={
-                                                selectedTrainingDataFile?.name ?? trainDataFileKey
-                                              }
-                                            />
-                                          ) : (
-                                            'Incomplete'
-                                          )}
+                                        <FlexItem
+                                          id="training-data-filename"
+                                          className="automl-configure__dataset-status pf-v6-u-text-truncate"
+                                        >
+                                          {selectedTrainingDataFile?.name ??
+                                            (trainDataFileKey || 'Incomplete')}
                                         </FlexItem>
                                       </Flex>
                                     </SplitItem>
                                   </Split>
                                 </AccordionToggle>
-                                <AccordionContent>
+                                {trainDataFileKey && (
+                                  <Tooltip
+                                    position="top"
+                                    trigger="mouseenter"
+                                    isVisible={focusedDataset === 'training'}
+                                    aria="none"
+                                    content={selectedTrainingDataFile?.name ?? trainDataFileKey}
+                                    triggerRef={() =>
+                                      document.getElementById('training-data-filename')!
+                                    }
+                                  />
+                                )}
+                                <AccordionContent id="training-data-accordion-content">
                                   <Stack hasGutter>
                                     <StackItem>
                                       <Content component="p">
@@ -1101,6 +1122,9 @@ function AutomlConfigure({
                               <AccordionItem isExpanded={isTestAccordionExpanded}>
                                 <AccordionToggle
                                   id="test-data-accordion-toggle"
+                                  aria-controls="test-data-accordion-content"
+                                  onFocus={() => setFocusedDataset('test')}
+                                  onBlur={() => setFocusedDataset(undefined)}
                                   data-testid="test-data-accordion-toggle"
                                   onClick={() => {
                                     const isExpanding = !isTestAccordionExpanded;
@@ -1116,7 +1140,7 @@ function AutomlConfigure({
                                     </SplitItem>
                                     <SplitItem
                                       isFilled
-                                      className="automl-configure__dataset-status"
+                                      className="automl-configure__dataset-status pf-v6-u-font-weight-normal"
                                     >
                                       <Flex
                                         flexWrap={{ default: 'nowrap' }}
@@ -1134,23 +1158,30 @@ function AutomlConfigure({
                                             <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
                                           )}
                                         </FlexItem>
-                                        <FlexItem className="automl-configure__dataset-status">
-                                          {testDataFileKey ? (
-                                            <Truncate
-                                              className="automl-configure__dataset-filename pf-v6-u-w-100"
-                                              content={
-                                                selectedTestDataFile?.name ?? testDataFileKey
-                                              }
-                                            />
-                                          ) : (
-                                            'Incomplete'
-                                          )}
+                                        <FlexItem
+                                          id="test-data-filename"
+                                          className="automl-configure__dataset-status pf-v6-u-text-truncate"
+                                        >
+                                          {selectedTestDataFile?.name ??
+                                            (testDataFileKey || 'Incomplete')}
                                         </FlexItem>
                                       </Flex>
                                     </SplitItem>
                                   </Split>
                                 </AccordionToggle>
-                                <AccordionContent>
+                                {testDataFileKey && (
+                                  <Tooltip
+                                    position="top"
+                                    trigger="mouseenter"
+                                    isVisible={focusedDataset === 'test'}
+                                    aria="none"
+                                    content={selectedTestDataFile?.name ?? testDataFileKey}
+                                    triggerRef={() =>
+                                      document.getElementById('test-data-filename')!
+                                    }
+                                  />
+                                )}
+                                <AccordionContent id="test-data-accordion-content">
                                   <Stack hasGutter>
                                     <StackItem>
                                       <Content component="p">

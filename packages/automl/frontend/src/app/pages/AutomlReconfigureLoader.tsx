@@ -185,6 +185,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
   const hasSavedTestData =
     typeof savedTestBucket === 'string' &&
     Boolean(savedTestBucket.trim()) &&
+    savedTestBucket === params?.train_data_bucket_name &&
     typeof savedTestKey === 'string' &&
     Boolean(savedTestKey.trim());
 
