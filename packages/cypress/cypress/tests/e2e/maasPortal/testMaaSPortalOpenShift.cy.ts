@@ -14,6 +14,7 @@ import {
   cleanupApiKeys,
   cleanupAuthPolicy,
   cleanupMaaSModelRef,
+  checkExternalModelExists,
   cleanupSubscription,
   createLLMInferenceServiceWithMaaSEnabled,
   createMaaSAuthPolicy,
@@ -42,9 +43,13 @@ const modelName = `portal-oc-model-${suffix}`;
 const subscriptionName = `portal-oc-sub-${suffix}`;
 const policyName = `portal-oc-policy-${suffix}`;
 const apiKeyName = `portal-oc-key-${suffix}`;
+const configuredExternalModel = Cypress.env('MAAS_PORTAL_MODEL_NAME') as string | undefined;
 
 describe('MaaS Portal API keys with OpenShift authentication', () => {
   let portalUrl: string;
+  let usesExternalModel = false;
+  let modelNamespace = projectName;
+  let selectedModel = modelName;
   before(() => {
     cy.step('Verify the gateway MaaS Portal is already enabled and available');
     ensureAdminOcSession();
@@ -52,29 +57,51 @@ describe('MaaS Portal API keys with OpenShift authentication', () => {
       portalUrl = url;
     });
 
-    cy.step('Create a model, subscription and policy for the OpenShift user');
-    createAndVerifyProject(projectName);
-    addUserToProject(projectName, LDAP_CONTRIBUTOR_USER.USERNAME, 'admin');
-    createLLMInferenceServiceWithMaaSEnabled(
-      projectName,
-      modelName,
-      'resources/maas/llmInferenceServiceSimulatorPremium.yaml',
-    );
-    checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
-    createMaaSModelRef(projectName, modelName);
-    createMaaSSubscription(
-      subscriptionName,
-      'Cypress OpenShift MaaS Portal subscription',
-      projectName,
-      modelName,
-    );
-    createMaaSAuthPolicy(policyName, projectName, modelName);
-    checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {
-      phase: 'Active',
-      models: [modelName],
-    });
-    checkMaaSAuthPolicyState(policyName, modelsAsAServiceNamespace, { phase: 'Active' });
-    waitForMaaSModelReady(projectName, modelName);
+    cy.step('Use an existing external model when available, otherwise create a test model');
+    const externalModel = configuredExternalModel?.trim();
+    cy.exec(
+      externalModel
+        ? `oc get externalmodels.inference.opendatahub.io ${externalModel} -n ${modelsAsAServiceNamespace} -o name`
+        : 'true',
+      { failOnNonZeroExit: false, log: false },
+    )
+      .then((result) => {
+        usesExternalModel = Boolean(externalModel && result.exitCode === 0);
+        if (usesExternalModel) {
+          if (!externalModel) {
+            throw new Error('External model detection succeeded without a configured model name');
+          }
+          modelNamespace = modelsAsAServiceNamespace;
+          selectedModel = externalModel;
+          checkExternalModelExists(modelNamespace, selectedModel);
+          return cy.wrap(null);
+        }
+        createAndVerifyProject(projectName);
+        addUserToProject(projectName, LDAP_CONTRIBUTOR_USER.USERNAME, 'admin');
+        createLLMInferenceServiceWithMaaSEnabled(
+          projectName,
+          modelName,
+          'resources/maas/llmInferenceServiceSimulatorPremium.yaml',
+        );
+        checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
+        createMaaSModelRef(projectName, modelName);
+        return cy.wrap(null);
+      })
+      .then(() => {
+        createMaaSSubscription(
+          subscriptionName,
+          'Cypress OpenShift MaaS Portal subscription',
+          modelNamespace,
+          selectedModel,
+        );
+        createMaaSAuthPolicy(policyName, modelNamespace, selectedModel);
+        checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {
+          phase: 'Active',
+          models: [selectedModel],
+        });
+        checkMaaSAuthPolicyState(policyName, modelsAsAServiceNamespace, { phase: 'Active' });
+        return waitForMaaSModelReady(modelNamespace, selectedModel);
+      });
   });
 
   after(() => {
@@ -82,9 +109,11 @@ describe('MaaS Portal API keys with OpenShift authentication', () => {
     cy.step('Remove only the MaaS resources created by this test');
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
     cleanupAuthPolicy(policyName, modelsAsAServiceNamespace);
-    cleanupMaaSModelRef(modelName, projectName);
-    cleanupLLMInferenceService(modelName, projectName);
-    deleteOpenShiftProjectBestEffort(projectName);
+    if (!usesExternalModel) {
+      cleanupMaaSModelRef(modelName, projectName);
+      cleanupLLMInferenceService(modelName, projectName);
+      deleteOpenShiftProjectBestEffort(projectName);
+    }
     cleanupApiKeys(apiKeyName);
   });
 
@@ -149,8 +178,8 @@ describe('MaaS Portal API keys with OpenShift authentication', () => {
       apiKeysPage.findTitle().should('contain.text', 'API keys');
 
       createPortalApiKeyAndVerifyInference(portalUrl, subscriptionName, apiKeyName, {
-        projectName,
-        modelName,
+        projectName: modelNamespace,
+        modelName: selectedModel,
       });
 
       cy.step('Revoke the test API key after successful inference');
