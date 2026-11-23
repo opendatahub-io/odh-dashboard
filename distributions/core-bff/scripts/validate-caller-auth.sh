@@ -122,11 +122,23 @@ if [[ -z "${BFF_URL:-}" ]]; then
 fi
 B=$BFF_URL
 
-code() { curl -s "${CURL_TIMEOUTS[@]}" -o /dev/null -w '%{http_code}' "$@"; }
-body() { curl -s "${CURL_TIMEOUTS[@]}" "$@"; }
+# code and body print what curl printed, or "curl-exit-N" when curl exits
+# nonzero (a timeout can print a 200 status and still exit 28), so check can
+# fail the request before comparing anything.
+curl_or_exit() {
+  local out rc=0
+  out=$(curl -s "${CURL_TIMEOUTS[@]}" "$@") || rc=$?
+  if ((rc != 0)); then printf 'curl-exit-%d' "$rc"; else printf '%s' "$out"; fi
+}
+code() { curl_or_exit -o /dev/null -w '%{http_code}' "$@"; }
+body() { curl_or_exit "$@"; }
 check() { # id description expected actual
   local verdict=PASS
-  [[ "$3" == "$4" ]] || { verdict=FAIL; fails=$((fails + 1)); }
+  if [[ "$4" == curl-exit-* ]]; then
+    verdict=FAIL; fails=$((fails + 1))
+  elif [[ "$3" != "$4" ]]; then
+    verdict=FAIL; fails=$((fails + 1))
+  fi
   printf '%-4s %-58s expect %-18s got %-18s %s\n' "$1" "$2" "$3" "$4" "$verdict"
 }
 skip() { printf '%-4s %-58s SKIP (%s)\n' "$1" "$2" "$3"; }
