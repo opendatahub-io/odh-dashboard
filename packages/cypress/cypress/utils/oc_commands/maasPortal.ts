@@ -159,6 +159,23 @@ export const prepareOpenShiftMaaSPortal = (
     }),
   );
 
+/** Read the already-enabled MaaS Portal URL without changing cluster state. */
+export const getEnabledOpenShiftMaaSPortalUrl = (): Cypress.Chainable<string> =>
+  readDSC().then((dsc) =>
+    readDashboard().then((dashboard) => {
+      const managementState = dsc.spec?.components?.dashboard?.maasPortal?.managementState;
+      const portalUrl = dashboard.status?.maasPortalUrl;
+      if (managementState !== 'Managed' || !portalUrl) {
+        throw new Error(
+          `MaaS Portal must already be enabled before this test (managementState=${
+            managementState ?? 'unset'
+          }, url=${portalUrl ?? 'unset'}). Enable it in the DataScienceCluster and rerun the test.`,
+        );
+      }
+      return cy.wrap(portalUrl);
+    }),
+  );
+
 export const restoreOpenShiftMaaSPortal = ({
   name,
   previousState,

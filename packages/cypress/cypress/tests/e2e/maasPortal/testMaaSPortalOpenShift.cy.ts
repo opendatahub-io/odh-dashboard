@@ -1,6 +1,5 @@
 // Uses TEST_USER_3 and discovers the Portal URL from Dashboard.status.maasPortalUrl.
-// If the Portal is Removed, setup enables it through DataScienceCluster.spec.components.dashboard.maasPortal
-// and restores the original state after the test. This spec does not need MAAS_PORTAL_URL.
+// The Portal must already be enabled; this spec does not mutate the DataScienceCluster.
 // The cluster needs MaaS, model serving, TEST_USER_3 in rhods-users, Dashboard.spec.gateway.domain,
 // and an operator/image capable of deploying the Portal.
 // In CI, the cluster URL serves its installed Portal build. The local E2E proxy serves the PR's
@@ -23,11 +22,7 @@ import {
   modelsAsAServiceNamespace,
   waitForMaaSModelReady,
 } from '../../../utils/oc_commands/maas';
-import {
-  prepareOpenShiftMaaSPortal,
-  restoreOpenShiftMaaSPortal,
-  waitForRestoredOpenShiftMaaSPortal,
-} from '../../../utils/oc_commands/maasPortal';
+import { getEnabledOpenShiftMaaSPortalUrl } from '../../../utils/oc_commands/maasPortal';
 import {
   addUserToProject,
   deleteOpenShiftProjectBestEffort,
@@ -50,26 +45,10 @@ const apiKeyName = `portal-oc-key-${suffix}`;
 
 describe('MaaS Portal API keys with OpenShift authentication', () => {
   let portalUrl: string;
-  let restorePortal: (() => void) | undefined;
-  let waitForPortalRestore: (() => void) | undefined;
-  let restoreError: string | undefined;
-
   before(() => {
-    cy.step('Ensure the gateway MaaS Portal is managed and available');
+    cy.step('Verify the gateway MaaS Portal is already enabled and available');
     ensureAdminOcSession();
-    prepareOpenShiftMaaSPortal((state) => {
-      restorePortal = () => {
-        restoreOpenShiftMaaSPortal(state).then((result) => {
-          if (result.exitCode !== 0) {
-            restoreError = `Could not restore the original MaaS Portal state: ${result.stderr}`;
-          } else {
-            const restored = JSON.parse(result.stdout) as { metadata: { generation: number } };
-            waitForPortalRestore = () =>
-              waitForRestoredOpenShiftMaaSPortal(state, restored.metadata.generation);
-          }
-        });
-      };
-    }).then((url) => {
+    getEnabledOpenShiftMaaSPortalUrl().then((url) => {
       portalUrl = url;
     });
 
@@ -100,10 +79,6 @@ describe('MaaS Portal API keys with OpenShift authentication', () => {
 
   after(() => {
     ensureAdminOcSession();
-    if (restorePortal) {
-      cy.step('Restore the original MaaS Portal management state');
-      restorePortal();
-    }
     cy.step('Remove only the MaaS resources created by this test');
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
     cleanupAuthPolicy(policyName, modelsAsAServiceNamespace);
@@ -111,15 +86,6 @@ describe('MaaS Portal API keys with OpenShift authentication', () => {
     cleanupLLMInferenceService(modelName, projectName);
     deleteOpenShiftProjectBestEffort(projectName);
     cleanupApiKeys(apiKeyName);
-    cy.then(() => {
-      if (restoreError) {
-        throw new Error(restoreError);
-      }
-      if (waitForPortalRestore) {
-        cy.step('Wait for the DataScienceCluster and Dashboard to finish reconciling');
-        waitForPortalRestore();
-      }
-    });
   });
 
   it(
