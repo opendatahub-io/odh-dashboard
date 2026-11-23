@@ -16,8 +16,8 @@ const REGISTRIES_NAMESPACE = 'team-a-model-registry';
 const gatedDeniedModel = {
   source_id: SOURCE_ID,
   name: MODEL_NAME,
-  description: '',
-  readme: '',
+  description: 'Gated model details remain visible after upstream #3309.',
+  readme: '# Llama gated model',
   provider: 'Meta',
   license: 'apache-2.0',
   tasks: ['text-generation'],
@@ -115,60 +115,27 @@ const visitGatedModelDetails = () => {
   modelDetailsPage.findPageTitle().should('exist');
 };
 
-describe('Model Catalog Details Page - Gated access denied', () => {
-  it('non-admin sees gated empty state with disabled deploy and register actions', () => {
+describe('Model Catalog Details Page - Gated models', () => {
+  it('non-admin sees standard details UI with Gated label (no access-required empty state)', () => {
     asProjectEditUser();
     setupGatedAccessIntercepts({ hfUsername: 'alice' });
     visitGatedModelDetails();
 
-    modelDetailsPage.findGatedAccessRequiredState().should('be.visible');
-    modelDetailsPage
-      .findGatedAccessRequiredState()
-      .should('contain.text', 'To request access, contact your administrator.');
-    modelDetailsPage.findWhosMyAdministratorLink().should('be.visible');
-    modelDetailsPage.findGatedAccessRequestLink().should('not.exist');
-    modelDetailsPage
-      .findGatedAccessRequiredState()
-      .should('not.contain.text', 'Log in to the Hugging Face account');
-    modelDetailsPage.findGatedAccessRequiredState().should('not.contain.text', 'alice');
-    modelDetailsPage.findModelCardMarkdown().should('not.exist');
-    modelDetailsPage.findAccessLabelGatedDenied().should('be.visible');
-    modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
-    modelDetailsPage.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
+    modelDetailsPage.findGatedAccessRequiredState().should('not.exist');
+    modelDetailsPage.findAccessLabelGated().should('be.visible').and('contain.text', 'Gated');
+    modelDetailsPage.findOverviewTab().should('be.visible');
+    modelDetailsPage.findLongDescription().should('contain.text', 'Gated model details');
   });
 
-  it('admin sees Hugging Face username guidance with disabled deploy and register actions', () => {
+  it('admin sees the same standard details UI with Gated label', () => {
     asClusterAdminUser();
     setupGatedAccessIntercepts({ hfUsername: 'alice' });
     visitGatedModelDetails();
 
-    modelDetailsPage.findGatedAccessRequiredState().should('be.visible');
-    modelDetailsPage
-      .findGatedAccessRequiredState()
-      .should('contain.text', 'Log in to the Hugging Face account');
-    modelDetailsPage.findGatedAccessRequiredState().should('contain.text', 'alice');
-    modelDetailsPage.findGatedAccessRequestLink().should('be.visible');
-    modelDetailsPage.findWhosMyAdministratorLink().should('not.exist');
-    modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
-    modelDetailsPage.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
-  });
-
-  it('admin sees generic Hugging Face guidance when hfUsername is unavailable', () => {
-    asClusterAdminUser();
-    setupGatedAccessIntercepts();
-    visitGatedModelDetails();
-
-    modelDetailsPage.findGatedAccessRequiredState().should('be.visible');
-    modelDetailsPage
-      .findGatedAccessRequiredState()
-      .should(
-        'contain.text',
-        'This model is gated on Hugging Face. Request access on Hugging Face.',
-      );
-    modelDetailsPage
-      .findGatedAccessRequiredState()
-      .should('not.contain.text', 'Log in to the Hugging Face account');
-    modelDetailsPage.findGatedAccessRequestLink().should('be.visible');
-    modelDetailsPage.findWhosMyAdministratorLink().should('not.exist');
+    modelDetailsPage.findGatedAccessRequiredState().should('not.exist');
+    modelDetailsPage.findGatedAccessRequestLink().should('not.exist');
+    modelDetailsPage.findAccessLabelGated().should('be.visible').and('contain.text', 'Gated');
+    modelDetailsPage.findOverviewTab().should('be.visible');
+    modelDetailsPage.findLongDescription().should('contain.text', 'Gated model details');
   });
 });
