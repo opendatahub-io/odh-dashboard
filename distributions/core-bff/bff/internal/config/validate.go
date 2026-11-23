@@ -171,23 +171,21 @@ func (c EnvConfig) validateAuth(add func(string, ...any)) {
 			AuthMethodDisabled, AuthMethodUser)
 	}
 
-	if c.AuthMethod == AuthMethodUser && len(c.AuthTokenHeaders) == 0 {
-		switch header := strings.TrimSpace(c.AuthTokenHeader); {
-		case header == "":
-			add("AUTH_TOKEN_HEADER/--auth-token-header is empty while AUTH_METHOD=%s; a token header is required",
-				AuthMethodUser)
-		case !isHTTPFieldName(c.AuthTokenHeader):
-			add("AUTH_TOKEN_HEADER/--auth-token-header (value omitted) is not a valid HTTP field name; a gateway could never send it")
-		case unusableTokenHeaders[strings.ToLower(header)]:
-			// Hop-by-hop headers are consumed by the first proxy, Host is the
-			// request target, and Cookie carries the browser's whole jar.
-			add("AUTH_TOKEN_HEADER/--auth-token-header (value omitted) names a hop-by-hop, Host or Cookie header, which cannot carry the caller's token")
-		case strings.EqualFold(header, "Authorization") && c.AuthTokenPrefix == "":
-			add("AUTH_TOKEN_HEADER=Authorization needs AUTH_TOKEN_PREFIX/--auth-token-prefix (for example \"Bearer \"); without it the scheme becomes part of the token")
-		}
+	if c.AuthMethod == AuthMethodUser && len(c.AuthTokenHeaders) == 0 && strings.TrimSpace(c.AuthTokenHeader) == "" {
+		add("AUTH_TOKEN_HEADER/--auth-token-header is empty while AUTH_METHOD=%s; a token header is required",
+			AuthMethodUser)
 	}
 
+	// Name and forbidden-header checks for both settings live in one place.
 	c.validateAuthTokenHeaders(add)
+
+	// Single-header mode: Authorization carries a scheme, so without a prefix
+	// the scheme would become part of the token. List mode parses the Bearer
+	// scheme itself and forbids a prefix.
+	if c.AuthMethod == AuthMethodUser && len(c.AuthTokenHeaders) == 0 &&
+		strings.EqualFold(strings.TrimSpace(c.AuthTokenHeader), "Authorization") && c.AuthTokenPrefix == "" {
+		add("AUTH_TOKEN_HEADER=Authorization needs AUTH_TOKEN_PREFIX/--auth-token-prefix (for example \"Bearer \"); without it the scheme becomes part of the token")
+	}
 }
 
 // credentialHeaderForbidden lists headers that must never be read as the caller
@@ -249,8 +247,14 @@ func (c EnvConfig) validateAuthTokenHeaders(add func(string, ...any)) {
 // under setting, and returns whether the name is a usable header name.
 func validateCredentialHeaderName(add func(string, ...any), setting, raw string) bool {
 	name := strings.TrimSpace(raw)
-	if !isHTTPToken(name) {
-		add("%s is not a valid HTTP header name (value omitted)", setting)
+	if !isHTTPFieldName(name) {
+		add("%s (value omitted) is not a valid HTTP field name; a gateway could never send it", setting)
+		return false
+	}
+	if unusableTokenHeaders[strings.ToLower(name)] {
+		// Hop-by-hop headers are consumed by the first proxy, Host is the
+		// request target, and Cookie carries the browser's whole jar.
+		add("%s (value omitted) names a hop-by-hop, Host or Cookie header, which cannot carry the caller's token", setting)
 		return false
 	}
 	if f, ok := forbiddenCredentialHeader(strings.ToLower(name)); ok {
@@ -273,19 +277,6 @@ func forbiddenCredentialHeader(lower string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-// isHTTPToken reports whether s is an RFC 9110 token, the grammar of a header name.
-func isHTTPToken(s string) bool {
-	for _, r := range s {
-		switch {
-		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9':
-		case strings.ContainsRune("!#$%&'*+-.^_`|~", r):
-		default:
-			return false
-		}
-	}
-	return s != ""
 }
 
 // isHTTPFieldName reports whether name is an RFC 9110 field name: one or more
