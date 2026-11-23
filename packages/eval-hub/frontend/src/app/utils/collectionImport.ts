@@ -129,12 +129,35 @@ export const readFileAsUTF8Text = (file: File): Promise<string> =>
     reader.readAsText(file, 'utf-8');
   });
 
+type DocumentsParseResult = { documents: unknown[] } | { error: string; errorLine?: number };
+
+const parseYamlDocuments = (text: string, trimmed: string): DocumentsParseResult => {
+  try {
+    return { documents: yaml.loadAll(trimmed) };
+  } catch (e) {
+    if (e instanceof yaml.YAMLException) {
+      // js-yaml reports positions relative to the trimmed input; rebase
+      // onto the editor's absolute line numbers using the leading blank
+      // block only (trailing blanks do not shift content lines).
+      const leadingBlankLines =
+        text.slice(0, text.length - text.trimStart().length).split('\n').length - 1;
+      const errorLine = e.mark.line + 1 + leadingBlankLines;
+      return { error: `Invalid YAML at line ${errorLine}: ${e.reason}`, errorLine };
+    }
+    return { error: `Invalid YAML: ${toErrorMessage(e)}` };
+  }
+};
+
 /**
  * Parses raw collection-definition content (YAML or JSON, detected by a
- * leading '{' or '[') into a document. js-yaml's loadAll uses safe-load
- * semantics, so custom tags are rejected. YAML syntax errors surface the
- * line number. Only the first document of a multi-document file is
- * imported; the document count lets the caller inform the user.
+ * leading '{' or '[') into a document. Content that leads with a brace but
+ * fails strict JSON parsing falls back to the YAML parser, so YAML flow
+ * mappings with unquoted keys ({name: x}) are recovered; valid JSON never
+ * falls through, keeping the strict JSON path's exact large-integer
+ * handling. js-yaml's loadAll uses safe-load semantics, so custom tags are
+ * rejected. YAML syntax errors surface the line number. Only the first
+ * document of a multi-document file is imported; the document count lets
+ * the caller inform the user.
  */
 export const parseImportContent = (text: string): ParsedImportContent => {
   if (text.length > IMPORT_FILE_SIZE_LIMIT) {
@@ -145,34 +168,27 @@ export const parseImportContent = (text: string): ParsedImportContent => {
     return { doc: null, documentCount: 0, error: 'No collection definition found in file' };
   }
 
-  let documents: unknown[];
-  if (detectImportLanguage(text) === 'json') {
-    try {
-      documents = [JSON.parse(trimmed)];
-    } catch (e) {
-      return { doc: null, documentCount: 0, error: `Invalid JSON: ${toErrorMessage(e)}` };
-    }
-  } else {
-    try {
-      documents = yaml.loadAll(trimmed);
-    } catch (e) {
-      if (e instanceof yaml.YAMLException) {
-        // js-yaml reports positions relative to the trimmed input; rebase
-        // onto the editor's absolute line numbers using the leading blank
-        // block only (trailing blanks do not shift content lines).
-        const leadingBlankLines =
-          text.slice(0, text.length - text.trimStart().length).split('\n').length - 1;
-        const errorLine = e.mark.line + 1 + leadingBlankLines;
-        return {
-          doc: null,
-          documentCount: 0,
-          errorLine,
-          error: `Invalid YAML at line ${errorLine}: ${e.reason}`,
-        };
+  const parseDocuments = (): DocumentsParseResult => {
+    if (detectImportLanguage(text) === 'json') {
+      try {
+        return { documents: [JSON.parse(trimmed)] };
+      } catch (e) {
+        const recovered = parseYamlDocuments(text, trimmed);
+        if ('documents' in recovered) {
+          return recovered;
+        }
+        // Neither parser accepted the content; the JSON error is the more
+        // familiar message for brace-leading input.
+        return { error: `Invalid JSON: ${toErrorMessage(e)}` };
       }
-      return { doc: null, documentCount: 0, error: `Invalid YAML: ${toErrorMessage(e)}` };
     }
+    return parseYamlDocuments(text, trimmed);
+  };
+  const parsed = parseDocuments();
+  if (!('documents' in parsed)) {
+    return { doc: null, documentCount: 0, errorLine: parsed.errorLine, error: parsed.error };
   }
+  const { documents } = parsed;
 
   // The BFF imports the literal first document, so the preview must validate
   // documents[0] (not the first non-null document) and count the raw stream.
@@ -350,27 +366,204 @@ const serializeYamlScalar = (value: string): string =>
   yaml.dump(value, { lineWidth: -1 }).trimEnd();
 
 /**
+ * End of the value that starts at start within a brace-delimited mapping.
+ * Unlike strict JSON, YAML flow scalars may contain spaces, so the value
+ * ends at the next ',' or closing bracket at the value's own nesting depth
+ * (quoted strings and nested collections are skipped), not at whitespace.
+ * A zero-width result means the value slot is empty (YAML null).
+ */
+const findFlowValueEnd = (text: string, start: number): number => {
+  const len = text.length;
+  let depth = 0;
+  let i = start;
+  while (i < len) {
+    const ch = text[i];
+    if (ch === '"' || ch === "'") {
+      i++;
+      while (i < len) {
+        if (ch === '"' && text[i] === '\\') {
+          i += 2;
+          continue;
+        }
+        if (text[i] === ch) {
+          break;
+        }
+        i++;
+      }
+      if (i >= len) {
+        return -1;
+      }
+      i++;
+      continue;
+    }
+    if (ch === '{' || ch === '[') {
+      depth++;
+    } else if (ch === '}' || ch === ']') {
+      if (depth === 0) {
+        return i;
+      }
+      depth--;
+    } else if (ch === ',' && depth === 0) {
+      return i;
+    }
+    i++;
+  }
+  return -1;
+};
+
+/**
+ * Replaces (or inserts) the top-level "name" value directly in the raw text
+ * of a leading brace-delimited mapping — strict JSON or YAML flow style —
+ * rather than re-serializing the document, so values that do not survive a
+ * parse/stringify round-trip — integers beyond the safe range, number
+ * formatting, key order — are preserved verbatim. Quoted (JSON) and
+ * unquoted (YAML flow) top-level name keys are both recognized. Returns
+ * null when the text is not a brace-delimited mapping, so the caller can
+ * fall back to the YAML block path.
+ */
+const replaceTopLevelJsonName = (text: string, newName: string): string | null => {
+  const len = text.length;
+  let i = 0;
+  while (i < len && /\s/.test(text[i])) {
+    i++;
+  }
+  if (text[i] !== '{') {
+    return null;
+  }
+  const objectStart = i;
+  const serialized = JSON.stringify(newName);
+
+  // Replaces the value between valueStart (inclusive) and valueEnd
+  // (exclusive); a zero-width span inserts into an empty value slot.
+  const replaceValue = (valueStart: number, valueEnd: number): string =>
+    text.slice(0, valueStart) + serialized + text.slice(valueEnd);
+
+  const replaceNameValue = (colonIndex: number): string | null => {
+    let valueStart = colonIndex + 1;
+    while (valueStart < len && /\s/.test(text[valueStart])) {
+      valueStart++;
+    }
+    const valueEnd = findFlowValueEnd(text, valueStart);
+    if (valueEnd === -1) {
+      return null;
+    }
+    return replaceValue(valueStart, valueEnd);
+  };
+
+  let depth = 1;
+  i++;
+  while (i < len) {
+    const ch = text[i];
+    if (ch === '"' || ch === "'") {
+      // Quoted key or string value: scan to its close first.
+      let end = i + 1;
+      while (end < len) {
+        if (ch === '"' && text[end] === '\\') {
+          end += 2;
+          continue;
+        }
+        if (text[end] === ch) {
+          break;
+        }
+        end++;
+      }
+      if (end >= len) {
+        return null;
+      }
+      const isNameKey = depth === 1 && text.slice(i + 1, end) === 'name';
+      end++;
+      let after = end;
+      while (after < len && /\s/.test(text[after])) {
+        after++;
+      }
+      if (isNameKey && text[after] === ':') {
+        return replaceNameValue(after);
+      }
+      i = end;
+      continue;
+    }
+    if (ch === '{' || ch === '[') {
+      depth++;
+    } else if (ch === '}' || ch === ']') {
+      depth--;
+    } else if (depth === 1 && !/[\s:,]/.test(ch)) {
+      // Unquoted (YAML flow) key token.
+      let end = i;
+      while (end < len && !/[\s:,[\]{}]/.test(text[end])) {
+        end++;
+      }
+      if (text.slice(i, end) === 'name') {
+        let after = end;
+        while (after < len && /\s/.test(text[after])) {
+          after++;
+        }
+        if (text[after] === ':') {
+          return replaceNameValue(after);
+        }
+      }
+      i = end;
+      continue;
+    }
+    i++;
+  }
+
+  // No top-level name key: insert one directly after the opening brace.
+  const rest = text.slice(objectStart + 1);
+  const body = rest.trim();
+  const separator = body === '' || body.startsWith('}') ? '' : ',';
+  return `${text.slice(0, objectStart + 1)}"name": ${serialized}${separator}${rest}`;
+};
+
+/**
  * Replaces the top-level name in the raw content so the editor text stays
- * the single source of truth. JSON content is re-serialized; YAML replaces
- * the unindented `name:` line, or inserts one after any leading comment or
- * blank block when the definition has no name yet.
+ * the single source of truth. JSON content has only the name value replaced
+ * in place; YAML replaces the complete `name:` entry (its line plus any
+ * indented continuation lines of a multi-line value), or inserts one after
+ * any leading comment, blank block, or document marker (---) when the
+ * definition has no name yet — inserting before the marker would create a
+ * name-only first document and hide the rest of the definition from the
+ * import, which reads only documents[0].
  */
 export const applyImportName = (text: string, newName: string): string => {
   const trimmed = text.trimStart();
   if (trimmed.startsWith('{')) {
-    try {
-      const parsed: unknown = JSON.parse(trimmed);
-      if (isRecord(parsed)) {
-        parsed.name = newName;
-        return JSON.stringify(parsed, null, 2);
-      }
-    } catch {
-      // Fall through to the line replacement below.
+    const replaced = replaceTopLevelJsonName(trimmed, newName);
+    if (replaced !== null) {
+      return replaced;
     }
   }
   const serialized = serializeYamlScalar(newName);
-  if (/^name:[ \t]*.*$/m.test(text)) {
-    return text.replace(/^name:[ \t]*.*$/m, `name: ${serialized}`);
+  // Matches plain, quoted, and space-padded-colon forms of a top-level name
+  // key ("name", 'name', name :); the backreference pairs the quote.
+  const nameMatch = /^(["']?)name\1[ \t]*:.*$/m.exec(text);
+  if (nameMatch !== null) {
+    // Replace the whole entry: the name line plus any indented continuation
+    // lines of a multi-line YAML value, and blank lines between them.
+    const lines = text.split('\n');
+    const nameIndex = text.slice(0, nameMatch.index).split('\n').length - 1;
+    let end = nameIndex + 1;
+    while (end < lines.length) {
+      const line = lines[end];
+      if (/^[ \t]+\S/.test(line)) {
+        end += 1;
+        continue;
+      }
+      // A blank line only continues the entry when a further indented line
+      // follows; otherwise it separates the name from the remaining fields.
+      if (line.trim() === '') {
+        let next = end + 1;
+        while (next < lines.length && lines[next].trim() === '') {
+          next += 1;
+        }
+        if (next < lines.length && /^[ \t]+\S/.test(lines[next])) {
+          end = next;
+          continue;
+        }
+      }
+      break;
+    }
+    lines.splice(nameIndex, end - nameIndex, `name: ${serialized}`);
+    return lines.join('\n');
   }
   if (newName.trim() === '') {
     return text;
@@ -382,7 +575,7 @@ export const applyImportName = (text: string, newName: string): string => {
   let insertIndex = 0;
   while (insertIndex < lines.length) {
     const line = lines[insertIndex];
-    if (/^\s*$/.test(line) || /^#/.test(line)) {
+    if (/^\s*$/.test(line) || /^#/.test(line) || /^---\s*$/.test(line)) {
       insertIndex += 1;
       continue;
     }

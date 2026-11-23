@@ -51,9 +51,10 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
   const heading = 'Recent benchmark collections';
   const [isImportOpen, setIsImportOpen] = React.useState(false);
   const canImportQuery = useCanImportCollections(namespace);
-  // Fall back to enabled when the access check is loading or failed; the
-  // server still enforces RBAC on submission.
-  const canImport = canImportQuery.data ?? true;
+  // Import is enabled only on an explicit allowed result: it stays disabled
+  // while the check is pending or has failed, so limited-access users are
+  // never offered a creation flow the upstream authorization rejects.
+  const canImport = canImportQuery.data === true;
 
   return (
     <>

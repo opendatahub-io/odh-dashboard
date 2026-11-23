@@ -54,6 +54,15 @@ describe('parseImportContent', () => {
     expect(result.doc?.name).toBe('json-collection');
   });
 
+  it('should recover a YAML flow mapping that is not strict JSON', () => {
+    const result = parseImportContent(
+      '{name: flow-suite, domains: [software], benchmarks: [{id: a, provider_id: b}]}',
+    );
+    expect(result.error).toBeUndefined();
+    expect(result.doc?.name).toBe('flow-suite');
+    expect(result.documentCount).toBe(1);
+  });
+
   it('should reject empty or whitespace-only content', () => {
     expect(parseImportContent('   \n\t ').error).toBe('No collection definition found in file');
   });
@@ -291,14 +300,97 @@ describe('applyImportName', () => {
     expect(result).toContain('name: nested');
   });
 
-  it('should re-serialize JSON content', () => {
+  it('should replace a double-quoted name key without creating a duplicate', () => {
+    const text = '"name": old\ndomains: [software]\n';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('name: renamed\ndomains: [software]\n');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should replace a single-quoted name key without creating a duplicate', () => {
+    const text = "'name': old\ndomains: [software]\n";
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('name: renamed\ndomains: [software]\n');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should replace a quoted name key with a multi-line value', () => {
+    const text = '"name": >\n  original\ndomains: [software]\n';
+    expect(applyImportName(text, 'renamed')).toBe('name: renamed\ndomains: [software]\n');
+  });
+
+  it('should replace a name key with a space before the colon', () => {
+    const text = 'name : old\ndomains: [software]\n';
+    expect(applyImportName(text, 'renamed')).toBe('name: renamed\ndomains: [software]\n');
+  });
+
+  it('should replace a multi-line YAML name entry including its continuation lines', () => {
+    const text = 'name: >\n  folded-name\ndescription: kept\n';
+    expect(applyImportName(text, 'renamed')).toBe('name: renamed\ndescription: kept\n');
+  });
+
+  it('should remove blank lines inside a multi-line name entry', () => {
+    const text = 'name: >\n\n  folded-name\n\ndomains:\n  - x\n';
+    expect(applyImportName(text, 'renamed')).toBe('name: renamed\n\ndomains:\n  - x\n');
+  });
+
+  it('should preserve blank lines separating the name entry from other fields', () => {
+    const text = 'name: old\n\ndescription: kept\n';
+    expect(applyImportName(text, 'renamed')).toBe('name: renamed\n\ndescription: kept\n');
+  });
+
+  it('should replace only the top-level name value in JSON content', () => {
     const result = applyImportName('{"name": "old", "domains": ["x"]}', 'renamed');
+    expect(result).toBe('{"name": "renamed", "domains": ["x"]}');
+  });
+
+  it('should preserve JSON values that do not survive a numeric round-trip', () => {
+    const text = '{"name": "old", "parameters": {"id": 9007199254740993}}';
+    expect(applyImportName(text, 'renamed')).toBe(
+      '{"name": "renamed", "parameters": {"id": 9007199254740993}}',
+    );
+  });
+
+  it('should not replace nested JSON name keys or name-like string values', () => {
+    const text = '{"name": "old", "benchmarks": [{"name": "nested"}], "note": "name: decoy"}';
+    const result = applyImportName(text, 'renamed');
+    expect(JSON.parse(result)).toEqual({
+      name: 'renamed',
+      benchmarks: [{ name: 'nested' }],
+      note: 'name: decoy',
+    });
+  });
+
+  it('should replace a non-string JSON name value', () => {
+    const result = applyImportName('{"name": 123, "domains": ["x"]}', 'renamed');
     expect(JSON.parse(result)).toEqual({ name: 'renamed', domains: ['x'] });
   });
 
   it('should add a name property to JSON content that has none', () => {
     const result = applyImportName('{"domains": ["x"]}', 'renamed');
     expect(JSON.parse(result)).toEqual({ domains: ['x'], name: 'renamed' });
+  });
+
+  it('should add a name property to an empty JSON object', () => {
+    expect(applyImportName('{}', 'renamed')).toBe('{"name": "renamed"}');
+  });
+
+  it('should replace the name in a YAML flow mapping', () => {
+    const result = applyImportName('{name: old, domains: [software]}', 'renamed');
+    expect(result).toBe('{name: "renamed", domains: [software]}');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should replace a flow-mapping name value that contains spaces', () => {
+    const result = applyImportName('{name: old suite, domains: [software]}', 'renamed suite');
+    expect(result).toBe('{name: "renamed suite", domains: [software]}');
+    expect(parseImportContent(result).doc?.name).toBe('renamed suite');
+  });
+
+  it('should add a name to a YAML flow mapping that has none', () => {
+    const result = applyImportName('{domains: [software]}', 'renamed');
+    expect(result).toBe('{"name": "renamed",domains: [software]}');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
   });
 
   it('should preserve leading comments when replacing the name', () => {
@@ -319,9 +411,35 @@ describe('applyImportName', () => {
     expect(applyImportName('', 'inserted')).toBe('name: inserted\n');
   });
 
+  it('should insert a name inside the first document when content begins with a marker', () => {
+    const text = '---\ndescription: kept\nbenchmarks:\n  - id: arc_easy\n';
+    expect(applyImportName(text, 'inserted')).toBe(
+      '---\nname: inserted\ndescription: kept\nbenchmarks:\n  - id: arc_easy\n',
+    );
+  });
+
+  it('should round-trip a marker-led definition, preserving benchmarks and description', () => {
+    const text = '---\ndescription: kept\nbenchmarks:\n  - id: arc_easy\n';
+    const { doc, documentCount, error } = parseImportContent(applyImportName(text, 'inserted'));
+    expect(error).toBeUndefined();
+    expect(documentCount).toBe(1);
+    expect(doc).toEqual({
+      name: 'inserted',
+      description: 'kept',
+      benchmarks: [{ id: 'arc_easy' }],
+    });
+  });
+
   it('should not insert an empty name when the definition has none', () => {
     const text = 'description: kept\n';
     expect(applyImportName(text, '   ')).toBe(text);
+  });
+
+  it('should insert a name containing dollar sequences literally', () => {
+    const text = 'name: old\ndescription: kept\n';
+    expect(applyImportName(text, 'my-$&-collection')).toBe(
+      'name: my-$&-collection\ndescription: kept\n',
+    );
   });
 
   it('should quote names that would otherwise break the YAML', () => {

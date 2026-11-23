@@ -267,6 +267,27 @@ func TestImportCollectionHandlerPreservesLargeIntegers(t *testing.T) {
 	assert.Equal(t, "9007199254740993", revision.String())
 }
 
+func TestImportCollectionHandlerFlowMappingFallback(t *testing.T) {
+	// YAML flow mappings with unquoted keys lead with '{' but are not strict
+	// JSON; they must be recovered through the bounded YAML parser.
+	content := `{name: flow-suite, domains: [d], benchmarks: [{id: quality, provider_id: garak}]}`
+	doc, _, err := parseImportContent(content)
+	require.NoError(t, err)
+	assert.Equal(t, "flow-suite", doc["name"])
+
+	// Valid JSON still takes the strict path, preserving large integers.
+	jsonDoc, _, err := parseImportContent(`{"name": "big-int", "custom": {"dataset_revision": 9007199254740993}}`)
+	require.NoError(t, err)
+	revision, ok := jsonDoc["custom"].(map[string]any)["dataset_revision"].(json.Number)
+	require.True(t, ok)
+	assert.Equal(t, "9007199254740993", revision.String())
+
+	// Content that is neither valid JSON nor valid YAML reports the JSON error.
+	_, _, err = parseImportContent(`{"name": "x",`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid JSON")
+}
+
 func TestImportCollectionHandlerDepthLimit(t *testing.T) {
 	deep := &strings.Builder{}
 	deep.WriteString("name: deep\nbenchmarks: []\nextra:\n")
@@ -451,6 +472,12 @@ func TestTranslateImportError(t *testing.T) {
 			want:       "a referenced provider or benchmark is not found or not accessible",
 		},
 		{
+			name:       "provider forbidden upstream maps to 404",
+			err:        evalhub.NewEvalHubError("FORBIDDEN", "provider 'w' is forbidden", http.StatusForbidden),
+			wantRepeat: true,
+			want:       "a referenced provider or benchmark is not found or not accessible",
+		},
+		{
 			name:       "unrelated not-found",
 			err:        evalhub.NewEvalHubError("NOT_FOUND", "collection 'z' not found", http.StatusNotFound),
 			wantRepeat: false,
@@ -476,6 +503,8 @@ func TestTranslateImportError(t *testing.T) {
 			var ehErr *evalhub.EvalHubError
 			require.ErrorAs(t, translated, &ehErr)
 			assert.Equal(t, tt.want, ehErr.Message)
+			assert.Equal(t, http.StatusNotFound, ehErr.StatusCode)
+			assert.Equal(t, evalhub.ErrCodeNotFound, ehErr.Code)
 		})
 	}
 }

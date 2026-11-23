@@ -134,7 +134,10 @@ func translateImportError(err error) error {
 		strings.Contains(message, "forbidden") || strings.Contains(message, "permission") ||
 		strings.Contains(message, "access") || strings.Contains(message, "unauthorized")
 	if references && status {
-		return evalhub.NewEvalHubError(ehErr.Code, "a referenced provider or benchmark is not found or not accessible", ehErr.StatusCode)
+		// Always 404 with a uniform code so the response does not reveal
+		// whether the resource exists but is inaccessible (documented in the
+		// OpenAPI spec).
+		return evalhub.NewEvalHubError(evalhub.ErrCodeNotFound, "a referenced provider or benchmark is not found or not accessible", http.StatusNotFound)
 	}
 	return err
 }

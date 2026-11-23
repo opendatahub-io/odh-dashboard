@@ -104,9 +104,9 @@ func (app *App) ImportAccessHandler(w http.ResponseWriter, r *http.Request, _ ht
 		return
 	}
 
-	allowed, err := k8sClient.CanCreateEvalHubResources(ctx, requestIdentity, namespace)
+	allowed, err := app.repositories.Access.CanCreateEvalHubResources(k8sClient, ctx, requestIdentity, namespace)
 	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to check collection creation permissions: %w", err))
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 

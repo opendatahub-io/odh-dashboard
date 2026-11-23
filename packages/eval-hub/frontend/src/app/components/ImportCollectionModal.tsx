@@ -187,11 +187,18 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
       if (isSubmitting) {
         return;
       }
+      // Editing while a file read is pending invalidates that read;
+      // otherwise it would land and overwrite the manual edits.
+      if (isReadingFile) {
+        fileReadToken.current++;
+        setIsReadingFile(false);
+        setFilename('');
+      }
       cancelPendingNameSync();
       setText(value);
       resetNameField();
     },
-    [cancelPendingNameSync, isSubmitting, resetNameField],
+    [cancelPendingNameSync, isReadingFile, isSubmitting, resetNameField],
   );
 
   const handleFile = React.useCallback(
@@ -421,7 +428,7 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
                 <div
                   className={
                     isDragActive
-                      ? 'evalhub-import-collection-modal__editor evalhub-import-collection-modal__editor--drag-hover'
+                      ? 'evalhub-import-collection-modal__editor evalhub-m-drag-hover'
                       : 'evalhub-import-collection-modal__editor'
                   }
                   data-testid="import-collection-editor"

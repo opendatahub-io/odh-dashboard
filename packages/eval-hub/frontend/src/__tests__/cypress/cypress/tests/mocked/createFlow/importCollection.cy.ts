@@ -203,18 +203,21 @@ describe('Import collection', () => {
         }),
       },
     ).as('importCollection');
-    // After the POST succeeds, the invalidated collections query refetches
+
+    evaluationsPage.visitBenchmarkSuites(NAMESPACE);
+    // The imported collection is not present before the import runs.
+    evaluationsPage.findBenchmarkSuiteCard('imported-suite').should('not.exist');
+    evaluationsPage.findImportCollectionButton().click();
+
+    importCollectionModal.setValue(validContent);
+    // Only now does the collections response include the imported collection:
+    // after the POST succeeds, the invalidated collections query refetches
     // and the gallery must show the imported collection without a reload.
     cy.interceptApi(
       'GET /api/:apiVersion/evaluations/collections',
       { path: API_VERSION },
       mockCollectionsListResponse([existingCollection, importedCollection]),
     );
-
-    evaluationsPage.visitBenchmarkSuites(NAMESPACE);
-    evaluationsPage.findImportCollectionButton().click();
-
-    importCollectionModal.setValue(validContent);
     importCollectionModal.findSubmitButton().click();
 
     cy.wait('@importCollection').then((interception) => {

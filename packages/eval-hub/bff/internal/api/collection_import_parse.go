@@ -53,9 +53,13 @@ var serverManagedBenchmarkFields = map[string]struct{}{
 
 // parseImportContent parses raw collection-definition file content, which may
 // be YAML or JSON, into a generic document. JSON is detected by a leading '{'
-// or '['. YAML is parsed with safe-load semantics: custom tags are rejected,
-// nesting depth is bounded, and alias expansion is capped. Only the first
-// document of a multi-document YAML file is imported, with a warning.
+// or '['. Content that leads with a brace but fails strict JSON parsing falls
+// back to the YAML parser, so YAML flow mappings with unquoted keys
+// ({name: x}) are recovered; valid JSON never falls through, keeping the
+// strict JSON path's exact large-integer handling. YAML is parsed with
+// safe-load semantics: custom tags are rejected, nesting depth is bounded,
+// and alias expansion is capped. Only the first document of a multi-document
+// YAML file is imported, with a warning.
 func parseImportContent(content string) (doc map[string]any, warnings []string, err error) {
 	if len(content) > maxImportContentSize {
 		return nil, nil, errors.New("file exceeds the 1 MiB size limit")
@@ -67,7 +71,16 @@ func parseImportContent(content string) (doc map[string]any, warnings []string, 
 	trimmed := strings.TrimLeft(content, " \t\r\n")
 	if strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") {
 		doc, err = parseImportJSON(content)
-		return doc, nil, err
+		if err == nil {
+			return doc, nil, nil
+		}
+		flowDoc, flowWarnings, flowErr := parseImportYAML(content)
+		if flowErr == nil {
+			return flowDoc, flowWarnings, nil
+		}
+		// Neither parser accepted the content; the JSON error is the more
+		// familiar message for brace-leading input.
+		return nil, nil, err
 	}
 
 	doc, warnings, err = parseImportYAML(content)

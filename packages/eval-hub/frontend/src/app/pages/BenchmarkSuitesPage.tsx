@@ -52,9 +52,15 @@ const BenchmarkSuitesPage: React.FC = () => {
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
   const [isImportOpen, setIsImportOpen] = React.useState(false);
   const canImportQuery = useCanImportCollections(namespace ?? '');
-  // Fall back to enabled when the access check is loading or failed; the
-  // server still enforces RBAC on submission.
-  const canImport = canImportQuery.data ?? true;
+  // Import is enabled only on an explicit allowed result: it stays disabled
+  // while the check is pending or has failed, so limited-access users are
+  // never offered a creation flow the upstream authorization rejects.
+  const canImport = canImportQuery.data === true;
+  const importDisabledTooltip = canImportQuery.isPending
+    ? 'Checking permission to create collections in this project...'
+    : canImportQuery.isError
+      ? 'Unable to verify permission to create collections in this project'
+      : 'You do not have permission to create collections in this project';
   const {
     selectedCollection,
     benchmarkDetailsMap,
@@ -168,9 +174,11 @@ const BenchmarkSuitesPage: React.FC = () => {
                       Import
                     </Button>
                   ) : (
-                    <Tooltip content="You do not have permission to create collections in this project">
-                      {/* Span wrapper: hover events do not fire on a disabled button. */}
-                      <span>
+                    <Tooltip content={importDisabledTooltip}>
+                      {/* Span wrapper: hover events do not fire on a disabled button;
+                          tabIndex keeps the tooltip reachable by keyboard. */}
+                      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focus proxy for the disabled button so keyboard users can reach the tooltip */}
+                      <span tabIndex={0}>
                         <Button
                           variant="secondary"
                           isDisabled

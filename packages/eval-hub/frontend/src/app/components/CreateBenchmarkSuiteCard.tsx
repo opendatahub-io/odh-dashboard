@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Card, CardBody, Content, Title, Tooltip } from '@patternfly/react-core';
+import { Button, Card, CardBody, Content, Flex, Title, Tooltip } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
@@ -43,10 +43,13 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
           Build a reusable collection by selecting benchmarks, setting thresholds, and configuring
           pass criteria.
         </Content>
-        <div className="evalhub-create-suite-card__actions">
+        <Flex
+          className="pf-v6-u-mt-auto"
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+        >
           {createSuiteRoute ? (
             <Button
-              className="evalhub-create-suite-card__button"
               variant="secondary"
               component={(props) => (
                 <Link {...props} to={createSuiteRoute} state={createSuiteRouteState} />
@@ -62,7 +65,6 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
             </Button>
           ) : (
             <Button
-              className="evalhub-create-suite-card__button"
               variant="secondary"
               onClick={() => {
                 trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
@@ -85,28 +87,18 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
                     tabIndex keeps the tooltip reachable by keyboard. */}
                 {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focus proxy for the disabled button so keyboard users can reach the tooltip */}
                 <span tabIndex={0}>
-                  <Button
-                    className="evalhub-create-suite-card__button"
-                    variant="tertiary"
-                    isDisabled
-                    data-testid="import-collection-button"
-                  >
+                  <Button variant="tertiary" isDisabled data-testid="import-collection-button">
                     Import
                   </Button>
                 </span>
               </Tooltip>
             ) : (
-              <Button
-                className="evalhub-create-suite-card__button"
-                variant="tertiary"
-                onClick={onImport}
-                data-testid="import-collection-button"
-              >
+              <Button variant="tertiary" onClick={onImport} data-testid="import-collection-button">
                 Import
               </Button>
             )
           ) : null}
-        </div>
+        </Flex>
       </CardBody>
     </Card>
   );

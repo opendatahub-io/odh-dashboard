@@ -29,9 +29,15 @@ Cypress.Keyboard.defaults({
 // editor inside the debounce window — e.g. closing the import-collection
 // modal right after submit — rejects it with an uncaught CancellationError
 // ("Canceled"). That is a library-internal cancellation, not a product error.
-Cypress.on('uncaught:exception', (err) => {
+Cypress.on('uncaught:exception', (err, _runnable, promise) => {
   // Cypress wraps unhandled-rejection reasons, so match on the name only.
-  if (err.name === 'Canceled') {
+  // The dropped Delayer promise surfaces as an unhandled rejection (Cypress
+  // passes the promise), and only the import spec mounts Monaco.
+  if (
+    err.name === 'Canceled' &&
+    promise !== undefined &&
+    Cypress.spec.name === 'importCollection.cy.ts'
+  ) {
     return false;
   }
   return undefined;

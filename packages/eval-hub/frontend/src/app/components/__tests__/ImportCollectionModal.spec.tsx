@@ -403,6 +403,43 @@ describe('ImportCollectionModal', () => {
     expect(screen.getByTestId('import-collection-filename').textContent).toContain('b.yaml');
   });
 
+  it('should not let a pending file read overwrite edits made after the file was selected', async () => {
+    mockReadFile.mockReset();
+    renderModal();
+
+    const fileContent =
+      'name: from-file\ncategory: safety\nbenchmarks:\n  - id: a\n    provider_id: b\n';
+    let resolveRead!: (content: string) => void;
+    mockReadFile.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveRead = resolve;
+        }),
+    );
+    const file = new File([fileContent], 'pending.yaml', { type: 'text/yaml' });
+    const input = screen.getByTestId('import-collection-file-input') as HTMLInputElement;
+    Object.defineProperty(input, 'files', {
+      value: { 0: file, length: 1, item: () => file },
+      configurable: true,
+    });
+    fireEvent.change(input);
+    expect(screen.getByTestId('import-collection-filename').textContent).toContain('pending.yaml');
+    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+
+    // Edit the definition while the read is still in flight.
+    await typeContent(validContent);
+    // The pending read is invalidated: the stale filename clears and the
+    // edited definition becomes submittable again.
+    expect(screen.queryByTestId('import-collection-filename')).not.toBeInTheDocument();
+    expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
+
+    // The read resolving late must not overwrite the edits.
+    resolveRead(fileContent);
+    await waitFor(() => expect(mockReadFile).toHaveBeenCalledTimes(1));
+    expect(findEditor().value).toContain('name: importable');
+    expect(findEditor().value).not.toContain('name: from-file');
+  });
+
   it('should disable the submit button while the definition matches the sample template without an alert', async () => {
     renderModal();
     expect(screen.queryByTestId('import-collection-template')).not.toBeInTheDocument();
