@@ -534,6 +534,6 @@ describe('Start Notebook modal', () => {
     expect(screen.getByTestId('expand-progress')).toBeInTheDocument();
     expect(screen.getByTestId('expand-logs')).toBeInTheDocument();
     expect(screen.queryByTestId('expand-resources')).not.toBeInTheDocument();
-    expect(mockUseClusterQueue).not.toHaveBeenCalled();
+    expect(mockUseClusterQueue).toHaveBeenCalledWith(undefined);
   });
 });
