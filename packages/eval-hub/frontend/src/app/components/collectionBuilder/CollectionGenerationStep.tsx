@@ -23,6 +23,7 @@ import {
   GridItem,
   Label,
   Popover,
+  Skeleton,
   Title,
   useWizardContext,
 } from '@patternfly/react-core';
@@ -48,6 +49,7 @@ import type {
 import './CollectionGenerationStep.scss';
 
 const MAX_RECOMMENDED_BENCHMARKS = 20;
+const BENCHMARK_LOADING_SKELETON_COUNT = 6;
 
 type CollectionGenerationStepProps = {
   resource?: CollectionGenerationResource;
@@ -563,6 +565,46 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
             </Button>
           </div>
         </div>
+        <Grid
+          hasGutter
+          aria-hidden="true"
+          className="evalhub-collection-generation-loading-grid"
+          data-testid="collection-generation-loading-benchmarks"
+        >
+          {Array.from({ length: BENCHMARK_LOADING_SKELETON_COUNT }, (_, index) => (
+            <GridItem key={index} sm={12} md={6} lg={4}>
+              <Card className="evalhub-collection-generation-card" isFullHeight>
+                <CardHeader>
+                  <Skeleton width="7rem" height="1.5rem" />
+                </CardHeader>
+                <CardTitle>
+                  <Skeleton width="75%" height="1.5rem" />
+                  <Content component="p" className="evalhub-collection-generation-card__provider">
+                    <Skeleton width="45%" height="1rem" />
+                  </Content>
+                </CardTitle>
+                <CardBody>
+                  <div className="evalhub-collection-generation-loading-card__description">
+                    <Skeleton width="100%" />
+                    <Skeleton width="92%" />
+                    <Skeleton width="72%" />
+                  </div>
+                  <Content
+                    component="p"
+                    className="evalhub-collection-generation-card__setting pf-v6-u-mb-xs"
+                  >
+                    <Skeleton width="8rem" />
+                    <Skeleton width="4rem" />
+                  </Content>
+                  <Content component="p" className="evalhub-collection-generation-card__setting">
+                    <Skeleton width="9rem" />
+                    <Skeleton width="5rem" />
+                  </Content>
+                </CardBody>
+              </Card>
+            </GridItem>
+          ))}
+        </Grid>
       </div>
     );
   }

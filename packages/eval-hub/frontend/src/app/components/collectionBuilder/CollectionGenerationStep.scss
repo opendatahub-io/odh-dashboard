@@ -38,6 +38,13 @@
   }
 }
 
+.evalhub-collection-generation-loading-card__description {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
+  margin-block-end: var(--pf-t--global--spacer--md);
+}
+
 .evalhub-collection-generation-drawer__reason-heading {
   --pf-v6-c-content--h4--FontSize: var(--pf-t--global--font--size--body--default);
   --pf-v6-c-content--h4--FontWeight: var(--pf-t--global--font--weight--body--bold);
