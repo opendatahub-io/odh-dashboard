@@ -524,4 +524,16 @@ describe('Start Notebook modal', () => {
       }
     },
   );
+
+  it('should hide Resources when user cannot view ClusterQueues', () => {
+    mockUseKueueConfiguration.mockReturnValue(kueueEnabledConfig);
+    mockUseAccessReview.mockReturnValue([false, false]);
+
+    renderResourcesModal({ clusterQueueName: 'test-cluster-queue' });
+
+    expect(screen.getByTestId('expand-progress')).toBeInTheDocument();
+    expect(screen.getByTestId('expand-logs')).toBeInTheDocument();
+    expect(screen.queryByTestId('expand-resources')).not.toBeInTheDocument();
+    expect(mockUseClusterQueue).not.toHaveBeenCalled();
+  });
 });

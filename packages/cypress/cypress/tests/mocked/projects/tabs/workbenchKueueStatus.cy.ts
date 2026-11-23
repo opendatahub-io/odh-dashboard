@@ -22,18 +22,32 @@ import { EventModel, ProjectModel, SelfSubjectAccessReviewModel } from '../../..
 import { workbenchPage, workbenchStatusModal } from '../../../../pages/workbench';
 
 const mockCanViewClusterQueue = (allowed = true) =>
-  cy
-    .interceptK8s(
-      'POST',
-      SelfSubjectAccessReviewModel,
+  cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+    const { resourceAttributes } = req.body.spec;
+
+    if (!resourceAttributes) {
+      req.reply(mockSelfSubjectAccessReview({ allowed: true }));
+      return;
+    }
+
+    const isClusterQueueAccessReview =
+      resourceAttributes.group === ClusterQueueModel.apiGroup &&
+      resourceAttributes.resource === ClusterQueueModel.plural &&
+      resourceAttributes.verb === 'get';
+
+    if (isClusterQueueAccessReview) {
+      // Cypress supports request-scoped aliases through this property.
+      // eslint-disable-next-line no-param-reassign
+      req.alias = 'clusterQueueAccessReview';
+    }
+
+    req.reply(
       mockSelfSubjectAccessReview({
-        group: ClusterQueueModel.apiGroup,
-        resource: ClusterQueueModel.plural,
-        verb: 'get',
-        allowed,
+        ...resourceAttributes,
+        allowed: isClusterQueueAccessReview ? allowed : true,
       }),
-    )
-    .as(allowed ? 'allowClusterQueueAccess' : 'denyClusterQueueAccess');
+    );
+  });
 
 const notebookWithKueueQueue = mockNotebookK8sResource({
   lastImageSelection: 'test-imagestream:1.2',
@@ -215,7 +229,13 @@ describe('Workbench page — Kueue & Status', () => {
     workbenchStatusModal.find().should('be.visible');
     workbenchStatusModal.findProgressTab().should('be.visible');
     workbenchStatusModal.findEventlogTab().should('be.visible');
-    cy.wait('@denyClusterQueueAccess');
+    cy.wait('@clusterQueueAccessReview')
+      .its('request.body.spec.resourceAttributes')
+      .should('deep.include', {
+        group: ClusterQueueModel.apiGroup,
+        resource: ClusterQueueModel.plural,
+        verb: 'get',
+      });
     workbenchStatusModal.findResourcesTab().should('not.exist');
   });
 
