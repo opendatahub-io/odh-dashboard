@@ -77,6 +77,7 @@ func TestIntegration_WebhookMatchConditionsUseRealAPIServer(t *testing.T) {
 	cli, err := client.New(cfg, client.Options{Scheme: scheme})
 	require.NoError(t, err)
 	require.NoError(t, cli.Create(context.Background(), &configuration))
+	require.NoError(t, cli.Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "system"}}))
 
 	// Webhook registration propagates asynchronously inside the API server.
 	// Prove activation with a matching request, then reset counters before the
@@ -100,6 +101,13 @@ func TestIntegration_WebhookMatchConditionsUseRealAPIServer(t *testing.T) {
 	require.NoError(t, cli.Create(context.Background(), dashboard), "Dashboard CREATE must evaluate oldObject == null without a CEL error")
 	require.Zero(t, webhookCalls(t, &mu, calls, "namespaces"))
 	require.Equal(t, 1, webhookCalls(t, &mu, calls, "dashboards"))
+	state := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: v1alpha1.NamespacedRBACStateConfigMapName, Namespace: "system",
+	}}
+	require.NoError(t, cli.Create(context.Background(), state))
+	require.Eventually(t, func() bool {
+		return webhookCalls(t, &mu, calls, "configmaps") == 1
+	}, 5*time.Second, 100*time.Millisecond, "state ConfigMap CREATE must invoke the webhook")
 
 	namespace.Labels = map[string]string{"unrelated": "changed"}
 	require.NoError(t, cli.Update(context.Background(), namespace))
@@ -136,6 +144,9 @@ func TestIntegration_WebhookMatchConditionsUseRealAPIServer(t *testing.T) {
 	dashboard.Annotations[v1alpha1.NamespacedRBACInventoryAnnotation] = "[]"
 	require.NoError(t, cli.Update(context.Background(), dashboard))
 	require.Equal(t, 3, webhookCalls(t, &mu, calls, "dashboards"), "controller-owned annotation changes must invoke the webhook")
+	state.Data = map[string]string{"unrelated": "changed"}
+	require.NoError(t, cli.Update(context.Background(), state))
+	require.Equal(t, 2, webhookCalls(t, &mu, calls, "configmaps"), "controller-owned state changes must invoke the webhook")
 }
 
 func webhookCalls(t *testing.T, mu *sync.Mutex, calls map[string]int, resource string) int {

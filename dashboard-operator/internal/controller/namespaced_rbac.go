@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -312,18 +311,33 @@ func (r *DashboardReconciler) namespacedRBACStateNamespace() string {
 }
 
 func (r *DashboardReconciler) setNamespacedRBACStateValue(ctx context.Context, key, value string) error {
-	state := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
-		Namespace: r.namespacedRBACStateNamespace(),
-		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
-	}}
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, state, func() error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		state := &corev1.ConfigMap{}
+		err := r.apiReader().Get(ctx, client.ObjectKey{
+			Namespace: r.namespacedRBACStateNamespace(),
+			Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+		}, state)
+		if k8serrors.IsNotFound(err) {
+			return client.IgnoreAlreadyExists(r.Create(ctx, &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: r.namespacedRBACStateNamespace(),
+					Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+				},
+				Data: map[string]string{key: value},
+			}))
+		}
+		if err != nil {
+			return err
+		}
 		if state.Data == nil {
 			state.Data = map[string]string{}
 		}
+		if state.Data[key] == value {
+			return nil
+		}
 		state.Data[key] = value
-		return nil
+		return r.Update(ctx, state)
 	})
-	return err
 }
 
 func (r *DashboardReconciler) namespacedRBACConsentEnforced(dashboard *v1alpha1.Dashboard) bool {
@@ -336,8 +350,11 @@ func (r *DashboardReconciler) namespacedRBACConsentEnforced(dashboard *v1alpha1.
 // JSON array is the migration marker, so steady-state reconciles never sweep
 // Roles or RoleBindings cluster-wide.
 func (r *DashboardReconciler) ensureNamespacedRBACGrantInventory(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
-	inventory, recorded, parseErr := r.loadNamespacedRBACGrantInventory(ctx, dashboard)
-	if recorded && parseErr == nil {
+	inventory, recorded, loadErr := r.loadNamespacedRBACGrantInventory(ctx, dashboard)
+	if loadErr != nil && !recorded {
+		return loadErr
+	}
+	if recorded && loadErr == nil {
 		// A direct lookup of current targets repairs valid-but-truncated state only
 		// when the resources still carry independent operator ownership evidence.
 		changed, err := r.addOwnedCurrentNamespacedRBACTargets(ctx, dashboard, inventory)

@@ -649,6 +649,38 @@ func TestReconcile_RemovedNamespacedRBACFailureUpdatesStatus(t *testing.T) {
 	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
 }
 
+func TestReconcile_RemovedPersistsNamespacedRBACConsentState(t *testing.T) {
+	s := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: common.Removed}},
+	}
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(dashboard).WithStatusSubresource(dashboard).Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                         cli,
+		APIReader:                      cli,
+		Scheme:                         s,
+		ManifestsBasePath:              t.TempDir(),
+		Platform:                       cluster.OpenDataHub,
+		Namespace:                      testNamespace,
+		ApplicationsNamespace:          testNamespace,
+		NamespacedRBACAdmissionEnabled: true,
+		NamespacedRBACWebhookEnabled:   true,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.NoError(t, err)
+	state := &corev1.ConfigMap{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKey{
+		Namespace: testNamespace,
+		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+	}, state))
+	assert.Equal(t, "true", state.Data[v1alpha1.NamespacedRBACConsentEnforcedKey])
+}
+
 func TestReconcile_Deletion(t *testing.T) {
 	s := testScheme(t)
 

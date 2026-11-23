@@ -188,6 +188,13 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	logger.Info("Reconciling Dashboard", "name", dashboard.Name)
 
+	// Persist the monotonic consent-enforcement latch before branching into
+	// managed, Removed, or deletion handling. A rollout must remain fail-closed
+	// even when enforcement is enabled while the Dashboard is not Managed.
+	if _, err := r.ensureNamespacedRBACConsentEnforced(ctx, dashboard); err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to persist namespaced RBAC consent state: %w", err)
+	}
+
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
 			// Revoke cross-namespace grants before any unrelated cleanup can fail or

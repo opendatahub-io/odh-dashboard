@@ -311,6 +311,27 @@ func TestReconcileNamespacedRBAC_InventoryPersistenceFailurePreventsGrant(t *tes
 	assert.NotContains(t, dashboard.Annotations, "dashboard.opendatahub.io/namespaced-rbac-grants")
 }
 
+func TestReconcileNamespacedRBAC_StateReadFailureDoesNotTriggerMigration(t *testing.T) {
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	r, cli := newReconciler(t, cluster.OpenDataHub, dashboard)
+	watchClient, ok := cli.(client.WithWatch)
+	require.True(t, ok)
+	stateErr := errors.New("state ConfigMap read timed out")
+	r.APIReader = interceptor.NewClient(watchClient, interceptor.Funcs{
+		Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if _, isConfigMap := obj.(*corev1.ConfigMap); isConfigMap {
+				return stateErr
+			}
+			return delegate.Get(ctx, key, obj, opts...)
+		},
+	})
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorIs(t, err, stateErr)
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
 func TestReconcileNamespacedRBAC_EnforcementDisabledPreservesLegacyGrant(t *testing.T) {
 	unlabelled := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "legacy-notebooks"}}
 	r, cli := newReconciler(t, cluster.SelfManagedRhoai, unlabelled)

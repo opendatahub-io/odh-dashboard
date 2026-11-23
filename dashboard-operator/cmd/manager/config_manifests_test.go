@@ -231,7 +231,7 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 	require.Len(t, dashboardVWCs, 1)
 	vwc := dashboardVWCs[0]
 	require.Len(t, vwc.Webhooks, 1)
-	require.Len(t, vwc.Webhooks[0].Rules, 2)
+	require.Len(t, vwc.Webhooks[0].Rules, 3)
 	dashboardRule := vwc.Webhooks[0].Rules[0]
 	assert.ElementsMatch(t, []admissionregistrationv1.OperationType{
 		admissionregistrationv1.Create,
@@ -239,14 +239,22 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 	}, dashboardRule.Operations)
 	assert.Equal(t, []string{"components.platform.opendatahub.io"}, dashboardRule.APIGroups)
 	assert.Equal(t, []string{"dashboards"}, dashboardRule.Resources)
-	namespaceRule := vwc.Webhooks[0].Rules[1]
+	stateRule := vwc.Webhooks[0].Rules[1]
+	assert.ElementsMatch(t, []admissionregistrationv1.OperationType{
+		admissionregistrationv1.Create,
+		admissionregistrationv1.Update,
+		admissionregistrationv1.Delete,
+	}, stateRule.Operations)
+	assert.Equal(t, []string{""}, stateRule.APIGroups)
+	assert.Equal(t, []string{"configmaps"}, stateRule.Resources)
+	namespaceRule := vwc.Webhooks[0].Rules[2]
 	assert.ElementsMatch(t, []admissionregistrationv1.OperationType{
 		admissionregistrationv1.Create,
 		admissionregistrationv1.Update,
 	}, namespaceRule.Operations)
 	assert.Equal(t, []string{""}, namespaceRule.APIGroups)
 	assert.ElementsMatch(t, []string{"namespaces", "namespaces/status", "namespaces/finalize"}, namespaceRule.Resources)
-	require.Len(t, vwc.Webhooks[0].MatchConditions, 2)
+	require.Len(t, vwc.Webhooks[0].MatchConditions, 3)
 	assert.Equal(t, "namespaced-rbac-target-fields-changed", vwc.Webhooks[0].MatchConditions[0].Name)
 	assert.Contains(t, vwc.Webhooks[0].MatchConditions[0].Expression, "oldObject == null")
 	assert.Contains(t, vwc.Webhooks[0].MatchConditions[0].Expression, "object.?spec.notebooksNamespace.orValue('')")
@@ -255,6 +263,8 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 	assert.Contains(t, vwc.Webhooks[0].MatchConditions[1].Expression, "== 'true'")
 	assert.Contains(t, vwc.Webhooks[0].MatchConditions[1].Expression,
 		"object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('')")
+	assert.Equal(t, "namespaced-rbac-state-changed", vwc.Webhooks[0].MatchConditions[2].Name)
+	assert.Contains(t, vwc.Webhooks[0].MatchConditions[2].Expression, "dashboard-namespaced-rbac-state")
 
 	var serviceAccountEnv *corev1.EnvVar
 	for i := range mgr.Env {

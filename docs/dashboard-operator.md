@@ -428,9 +428,10 @@ are true:
 - the orchestrator sets `spec.notebooksNamespace` or
   `spec.modelRegistryNamespace` on the singleton Dashboard CR.
 
-The webhook protects target fields, consent grants, and the controller-owned
-grant inventory and enforcement-state annotations. Only the dashboard operator
-service account may change those annotations. Only the exact
+The webhook protects target fields, consent grants, the controller-owned grant
+inventory and enforcement-state annotations, and the operator-namespace state
+ConfigMap that survives Dashboard replacement. Only the dashboard operator
+service account may change those controller-owned objects. Only the exact
 usernames in `webhook.namespacedRBACWriters` may set the namespace label to
 `true`; anyone already authorized by Kubernetes to update the namespace may
 remove it and revoke consent. API-server match conditions skip the webhook for

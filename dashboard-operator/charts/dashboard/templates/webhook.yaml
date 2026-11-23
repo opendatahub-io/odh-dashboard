@@ -58,6 +58,16 @@ webhooks:
         operations:
           - CREATE
           - UPDATE
+          - DELETE
+        resources:
+          - configmaps
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
         resources:
           - namespaces
           - namespaces/status
@@ -80,6 +90,13 @@ webhooks:
             ? object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('') == 'true'
             : object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('') !=
               oldObject.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue(''))
+      - name: namespaced-rbac-state-changed
+        expression: >-
+          request.resource.resource != 'configmaps' ||
+          request.namespace != '{{ include "dashboard.namespace" . }}' ||
+          (request.operation == 'DELETE'
+            ? request.name == 'dashboard-namespaced-rbac-state'
+            : object.?metadata.name.orValue('') == 'dashboard-namespaced-rbac-state')
     sideEffects: None
     timeoutSeconds: 5
 {{- if .Values.webhook.certManager.enabled }}

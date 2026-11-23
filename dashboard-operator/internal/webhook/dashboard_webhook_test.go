@@ -314,6 +314,46 @@ func TestDashboardHandler_ProtectsControllerOwnedAnnotations(t *testing.T) {
 	}
 }
 
+func TestDashboardHandler_ProtectsControllerOwnedStateConfigMap(t *testing.T) {
+	const controllerWriter = "system:serviceaccount:opendatahub:dashboard-operator"
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		nil,
+		false,
+		controllerWriter,
+		"opendatahub",
+	)
+	configMapRaw := func(t *testing.T) []byte {
+		t.Helper()
+		raw, err := json.Marshal(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+				Namespace: "opendatahub",
+			},
+			Data: map[string]string{v1alpha1.NamespacedRBACConsentEnforcedKey: "true"},
+		})
+		require.NoError(t, err)
+		return raw
+	}
+	for _, operation := range []admissionv1.Operation{admissionv1.Create, admissionv1.Update, admissionv1.Delete} {
+		t.Run(string(operation), func(t *testing.T) {
+			request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+				Operation: operation,
+				Resource:  metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"},
+				Namespace: "opendatahub",
+				Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+				Object:    runtime.RawExtension{Raw: configMapRaw(t)},
+				OldObject: runtime.RawExtension{Raw: configMapRaw(t)},
+			}}
+			request.UserInfo = authenticationv1.UserInfo{Username: "alice"}
+			denied := handler.Handle(context.Background(), request)
+			assert.False(t, denied.Allowed)
+			request.UserInfo = authenticationv1.UserInfo{Username: controllerWriter}
+			assert.True(t, handler.Handle(context.Background(), request).Allowed)
+		})
+	}
+}
+
 func TestDashboardHandler_DurableEnforcementSurvivesMissingFlag(t *testing.T) {
 	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
 	persisted := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{

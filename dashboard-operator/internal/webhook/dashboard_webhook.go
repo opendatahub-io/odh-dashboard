@@ -59,6 +59,17 @@ func NewDashboardHandler(
 			if err != nil {
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
+			if req.Resource == (metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}) {
+				if req.Namespace != operatorNamespace || req.Name != v1alpha1.NamespacedRBACStateConfigMapName {
+					return admission.Allowed("")
+				}
+				if req.UserInfo.Username != controllerWriter {
+					return admission.Denied(fmt.Sprintf(
+						"user %q may not change controller-owned namespaced RBAC state", req.UserInfo.Username,
+					))
+				}
+				return admission.Allowed("")
+			}
 			if req.Resource == (metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}) {
 				if !enforceConsent {
 					return admission.Allowed("")
