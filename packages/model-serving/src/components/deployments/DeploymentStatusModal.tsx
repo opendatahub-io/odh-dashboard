@@ -39,6 +39,7 @@ import {
 } from '@patternfly/react-tokens';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
@@ -52,6 +53,8 @@ import {
 } from '@odh-dashboard/model-serving/shared/components';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import DeploymentResourcesTab from './DeploymentResourcesTab';
+import DeploymentEventsScope from './events/DeploymentEventsScope';
+import { isModelServingEventsDiscovery } from '../../../extension-points';
 import {
   DeploymentTrackingEvent,
   fireDeploymentStatusEvent,
@@ -214,6 +217,7 @@ const ConditionsProgressStepper: React.FC<{
 
 const PROGRESS_TAB = 'progress';
 const RESOURCES_TAB = 'resources';
+const EVENTS_TAB = 'events';
 
 const DeploymentProgressDisclaimer: React.FC = () => (
   <HelperText data-testid="deployment-status-progress-disclaimer">
@@ -269,6 +273,12 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
   );
 
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
+  const eventDiscovery = useExtensions(isModelServingEventsDiscovery).find(
+    ({ properties }) => properties.platform === deployment.modelServingPlatformId,
+  )?.properties;
+  const eventsPanelId = React.useId();
+  const eventsTabId = `${eventsPanelId}-tab`;
+  const eventsVisible = activeTab === EVENTS_TAB && Boolean(eventDiscovery);
 
   const trackModalAction = React.useCallback(
     (action: 'edit' | 'stop' | 'close') => {
@@ -344,8 +354,6 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            {/* Tab strip is always shown, even when Resources is the only conditional tab, so
-                the modal shape stays consistent as more tabs (e.g. Events) are added later. */}
             <Tabs
               activeKey={activeTab}
               onSelect={handleTabSelect}
@@ -366,9 +374,18 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
                   data-testid="deployment-status-resources-tab"
                 />
               )}
+              {eventDiscovery && (
+                <Tab
+                  id={eventsTabId}
+                  tabContentId={eventsPanelId}
+                  eventKey={EVENTS_TAB}
+                  title={<TabTitleText>Events log</TabTitleText>}
+                  data-testid="deployment-status-events-tab"
+                />
+              )}
             </Tabs>
           </StackItem>
-          <StackItem>
+          <StackItem hidden={eventsVisible}>
             {showResourcesTab && activeTab === RESOURCES_TAB && namespace ? (
               <DeploymentResourcesTab
                 localQueueName={localQueueName}
@@ -379,6 +396,20 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
               <DeploymentProgressTab conditions={conditions} deploymentStatus={deployment.status} />
             )}
           </StackItem>
+          {eventDiscovery && (
+            <DeploymentEventsScope
+              key={JSON.stringify([
+                deployment.modelServingPlatformId,
+                namespace,
+                deployment.model.metadata.uid,
+              ])}
+              deployment={deployment}
+              discovery={eventDiscovery}
+              visible={eventsVisible}
+              panelId={eventsPanelId}
+              tabId={`pf-tab-${EVENTS_TAB}-${eventsTabId}`}
+            />
+          )}
         </Stack>
       </ModalBody>
       <ModalFooter>

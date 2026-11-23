@@ -1,5 +1,3 @@
-import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
-
 export type DeploymentEventRow = {
   uid: string;
   severity: string;
@@ -21,7 +19,7 @@ const text = (value: unknown, fallback: string): string =>
 
 export const toDeploymentEventRows = (
   sourceUid: string,
-  items: readonly K8sResourceCommon[],
+  items: readonly unknown[],
 ): DeploymentEventRow[] =>
   items.flatMap((item) => {
     const metadata = field(item, 'metadata');

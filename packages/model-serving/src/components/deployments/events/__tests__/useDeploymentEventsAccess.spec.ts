@@ -49,9 +49,10 @@ describe('useDeploymentEventsAccess', () => {
         }),
       )
       .mockResolvedValue(false);
+    const initialProps: { namespace?: string } = {};
     const { result, rerender } = renderHook(
       ({ namespace }: { namespace?: string }) => useDeploymentEventsAccess(namespace),
-      { initialProps: { namespace: undefined } },
+      { initialProps },
     );
     expect(mockCheckAccess).not.toHaveBeenCalled();
     rerender({ namespace: 'old' });

@@ -2,6 +2,8 @@ import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { resolveDeploymentEventSources } from '../resolveDeploymentEventSources';
 
 const resource = (uid: string, owner: string): K8sResourceCommon => ({
+  apiVersion: 'v1',
+  kind: 'TestKind',
   metadata: {
     uid,
     ownerReferences: [{ uid: owner, kind: 'TestKind', apiVersion: 'v1', name: 'test' }],
