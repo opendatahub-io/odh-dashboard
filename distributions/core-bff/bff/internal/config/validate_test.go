@@ -105,6 +105,69 @@ func TestSkipsTLSVerification_OnlyInADevelopmentProfile(t *testing.T) {
 	assert.False(t, cfg.SkipsTLSVerification())
 }
 
+// MOCK_K8S_CLIENT leaves the connection probes, Prometheus and the service
+// proxies real, so it must neither skip verification nor accept the flag.
+func TestInsecureSkipVerify_RequiresDevModeWhenOnlyKubernetesIsMocked(t *testing.T) {
+	cfg := productionConfig()
+	cfg.MockK8Client = true
+	cfg.InsecureSkipVerify = true
+
+	assert.False(t, cfg.IsProductionProfile())
+	assert.False(t, cfg.SkipsTLSVerification(), "real outbound clients must keep verifying certificates")
+
+	err := cfg.Validate(TLSFiles{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "INSECURE_SKIP_VERIFY=true requires DEV_MODE=true")
+
+	cfg.DevMode = true
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+	assert.True(t, cfg.SkipsTLSVerification())
+}
+
+func TestValidate_ServiceTargetPorts(t *testing.T) {
+	cfg := productionConfig()
+	cfg.ModelServingServiceHost = "https://model-serving.internal:65536"
+	cfg.PrometheusPort = "metrics"
+
+	err := cfg.Validate(TLSFiles{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "MODEL_SERVING_HOST/--model-serving-host (value omitted) has a port outside 1-65535")
+	assert.Contains(t, err.Error(), "PROMETHEUS_PORT/--prometheus-port (value omitted) must be a port number")
+	assert.NotContains(t, err.Error(), "metrics")
+
+	for _, port := range []string{"0", "65536", "+9092", "09092", "-1"} {
+		cfg := productionConfig()
+		cfg.PrometheusPort = port
+		assert.Error(t, cfg.Validate(TLSFiles{}), port)
+	}
+
+	// PROMETHEUS_PORT only feeds the derived target, so an explicit host wins.
+	cfg = productionConfig()
+	cfg.PrometheusHost = "https://thanos.internal:9091"
+	cfg.PrometheusPort = "metrics"
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+
+	cfg = productionConfig()
+	cfg.ModelServingServiceHost = "https://model-serving.internal:8443"
+	cfg.PrometheusPort = "9092"
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+}
+
+func TestValidate_AuthTokenHeaderMustBeAnHTTPFieldName(t *testing.T) {
+	for _, header := range []string{"X Dashboard Token", "x-token:", "x-token\r\n", "(token)", "x-tök"} {
+		cfg := productionConfig()
+		cfg.AuthTokenHeader = header
+		err := cfg.Validate(TLSFiles{})
+		require.Error(t, err, header)
+		assert.Contains(t, err.Error(), "AUTH_TOKEN_HEADER/--auth-token-header (value omitted) is not a valid HTTP field name")
+	}
+	for _, header := range []string{"x-forwarded-access-token", "Authorization", "X_Token.v2"} {
+		cfg := productionConfig()
+		cfg.AuthTokenHeader = header
+		assert.NoError(t, cfg.Validate(TLSFiles{}), header)
+	}
+}
+
 func TestValidate_ServiceTargets(t *testing.T) {
 	settings := map[string]struct {
 		set  func(*EnvConfig, string)

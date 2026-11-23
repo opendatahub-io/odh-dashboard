@@ -33,7 +33,7 @@ func isolateEnv(t *testing.T) {
 		"PORT", "CERT_FILE", "KEY_FILE", "MOCK_K8S_CLIENT", "MOCK_HTTP_CLIENT", "MOCK_BFF_CLIENTS",
 		"DEV_MODE", "DEV_MODE_CLIENT_PORT", "DEPLOYMENT_MODE", "STATIC_ASSETS_DIR", "LOG_LEVEL",
 		"ALLOWED_ORIGINS", "BUNDLE_PATHS", "AUTH_METHOD", "AUTH_TOKEN_HEADER", "AUTH_TOKEN_PREFIX",
-		"INSECURE_SKIP_VERIFY", "ODH_PLATFORM_TYPE", "ADMISSION_MODE", "NAMESPACE", "OC_PROJECT",
+		"INSECURE_SKIP_VERIFY", "ODH_PLATFORM_TYPE", "ADMISSION_MODE", "NAMESPACE", "POD_NAMESPACE", "OC_PROJECT",
 		"OPERATOR_NAMESPACE", "WORKBENCH_NAMESPACE", "DASHBOARD_CONFIG_NAME", "ENABLED_APPS_CM",
 		"MF_REMOTES_CONFIG", "DEV_USER", "DEV_GROUPS", "MODEL_SERVING_HOST",
 		"PROMETHEUS_HOST", "PROMETHEUS_NAMESPACE", "PROMETHEUS_INSTANCE", "PROMETHEUS_PORT",
@@ -70,6 +70,32 @@ func TestParseStartupConfig_Defaults(t *testing.T) {
 	assert.Empty(t, sc.Env.AllowedOrigins, "CORS is closed by default")
 	assert.Equal(t, splitList(defaultCABundlePaths), sc.Env.BundlePaths)
 	assert.False(t, sc.Env.BundlePathsRequired, "the default bundle set is best-effort")
+	assert.NotContains(t, sc.Env.BundlePaths, "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+		"the Kubernetes API CA must not reach the shared outbound pool by default")
+}
+
+// The RHOAI and ODH overlays set only POD_NAMESPACE on the Core BFF container,
+// so it must select the dashboard namespace when NAMESPACE is absent.
+func TestParseStartupConfig_NamespaceFallbacks(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		env  map[string]string
+		want string
+	}{
+		{"NAMESPACE wins", map[string]string{"NAMESPACE": "a", "POD_NAMESPACE": "b", "OC_PROJECT": "c"}, "a"},
+		{"POD_NAMESPACE next", map[string]string{"POD_NAMESPACE": "redhat-ods-applications", "OC_PROJECT": "c"}, "redhat-ods-applications"},
+		{"OC_PROJECT last", map[string]string{"OC_PROJECT": "c"}, "c"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			isolateEnv(t)
+			for k, v := range tc.env {
+				t.Setenv(k, v)
+			}
+			sc, err := parse(t)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, sc.Env.Namespace)
+		})
+	}
 }
 
 // Regression: ALLOWED_ORIGINS, BUNDLE_PATHS and STATIC_ASSETS_DIR used to be
@@ -277,6 +303,10 @@ func TestParseStartupConfig_RejectsInsecureProductionCombinations(t *testing.T) 
 	}{
 		{"disabled auth", map[string]string{"AUTH_METHOD": "disabled"}, "AUTH_METHOD=disabled is not supported in a production profile"},
 		{"insecure skip verify", map[string]string{"INSECURE_SKIP_VERIFY": "true"}, "INSECURE_SKIP_VERIFY=true is not supported in a production profile"},
+		{"insecure skip verify with only k8s mocked", map[string]string{"INSECURE_SKIP_VERIFY": "true", "MOCK_K8S_CLIENT": "true"}, "INSECURE_SKIP_VERIFY=true requires DEV_MODE=true"},
+		{"prometheus port name", map[string]string{"PROMETHEUS_PORT": "metrics"}, "PROMETHEUS_PORT/--prometheus-port (value omitted) must be a port number"},
+		{"model serving port out of range", map[string]string{"MODEL_SERVING_HOST": "https://model-serving:65536"}, "MODEL_SERVING_HOST/--model-serving-host (value omitted) has a port outside 1-65535"},
+		{"token header with spaces", map[string]string{"AUTH_TOKEN_HEADER": "X Dashboard Token"}, "AUTH_TOKEN_HEADER/--auth-token-header (value omitted) is not a valid HTTP field name"}, //nolint:gosec // G101: a header name, not a credential
 		{"wildcard CORS", map[string]string{"ALLOWED_ORIGINS": "*"}, "ALLOWED_ORIGINS entry 1 (1-based, value omitted) is not an exact origin"},
 		{"embedded https wildcard", map[string]string{"ALLOWED_ORIGINS": "https://*"}, "ALLOWED_ORIGINS entry 1 (1-based, value omitted) is not an exact origin"},
 		{"embedded http wildcard", map[string]string{"ALLOWED_ORIGINS": "http://*"}, "ALLOWED_ORIGINS entry 1 (1-based, value omitted) is not an exact origin"},

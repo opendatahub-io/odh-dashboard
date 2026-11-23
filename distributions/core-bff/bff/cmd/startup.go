@@ -16,8 +16,12 @@ import (
 // defaultCABundlePaths is the implicit trust bundle set. Because it is a
 // default rather than an operator choice, missing files are tolerated: see
 // EnvConfig.BundlePathsRequired for the explicit case.
+//
+// The service-account ca.crt is deliberately absent. It is the Kubernetes API
+// CA, which only the Kubernetes proxies and clients trust (they read it from
+// the in-cluster config); listing it here would extend that trust to the
+// model-serving, module, inter-BFF and Prometheus transports.
 const defaultCABundlePaths = "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem," +
-	"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt," +
 	"/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt," +
 	"/etc/pki/tls/certs/odh-ca-bundle.crt," +
 	"/etc/pki/tls/certs/odh-trusted-ca-bundle.crt"
@@ -116,8 +120,8 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 		"Dashboard admission contract: auth-resource, authenticated, or empty to resolve from the platform")
 
 	fs.StringVar(&cfg.Namespace, "namespace",
-		getEnvAsString("NAMESPACE", getEnvAsString("OC_PROJECT", "opendatahub")),
-		"Kubernetes namespace where the dashboard is deployed (falls back to OC_PROJECT env var)")
+		getEnvAsString("NAMESPACE", getEnvAsString("POD_NAMESPACE", getEnvAsString("OC_PROJECT", "opendatahub"))),
+		"Kubernetes namespace where the dashboard is deployed (falls back to POD_NAMESPACE, then OC_PROJECT)")
 	fs.StringVar(&cfg.OperatorNamespace, "operator-namespace", getEnvAsString("OPERATOR_NAMESPACE", ""), "Preferred namespace of the installed data science operator subscription")
 	fs.StringVar(&cfg.WorkbenchNamespace, "workbench-namespace",
 		getEnvAsString("WORKBENCH_NAMESPACE", ""),

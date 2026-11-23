@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -50,10 +51,12 @@ func (c EnvConfig) IsProductionProfile() bool {
 
 // SkipsTLSVerification reports whether outbound transports may skip upstream
 // certificate verification. It is the single gate every real client uses, so
-// a production profile can never skip verification even if Validate is
-// bypassed.
+// only an explicit development profile can skip verification, even if
+// Validate is bypassed. MOCK_K8S_CLIENT alone is not enough: it replaces the
+// Kubernetes clients only, and the connection probes, Prometheus and the
+// service proxies can still reach real endpoints.
 func (c EnvConfig) SkipsTLSVerification() bool {
-	return c.InsecureSkipVerify && !c.IsProductionProfile()
+	return c.InsecureSkipVerify && c.DevMode
 }
 
 // Validate checks the resolved configuration and returns a *ValidationError
@@ -124,16 +127,49 @@ func (c EnvConfig) validateAuth(add func(string, ...any)) {
 			AuthMethodDisabled, AuthMethodUser)
 	}
 
-	if c.AuthMethod == AuthMethodUser && strings.TrimSpace(c.AuthTokenHeader) == "" {
-		add("AUTH_TOKEN_HEADER/--auth-token-header is empty while AUTH_METHOD=%s; a token header is required",
-			AuthMethodUser)
+	if c.AuthMethod == AuthMethodUser {
+		switch header := strings.TrimSpace(c.AuthTokenHeader); {
+		case header == "":
+			add("AUTH_TOKEN_HEADER/--auth-token-header is empty while AUTH_METHOD=%s; a token header is required",
+				AuthMethodUser)
+		case !isHTTPFieldName(c.AuthTokenHeader):
+			add("AUTH_TOKEN_HEADER/--auth-token-header (value omitted) is not a valid HTTP field name; a gateway could never send it")
+		}
 	}
+}
+
+// isHTTPFieldName reports whether name is an RFC 9110 field name: one or more
+// token characters, so no spaces, separators or control characters.
+func isHTTPFieldName(name string) bool {
+	if name == "" {
+		return false
+	}
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9':
+		case strings.IndexByte("!#$%&'*+-.^_`|~", c) >= 0:
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // validateProductionProfile rejects development, mock, disabled-authentication
 // and insecure-transport settings on a deployment that is not opted into a
 // development profile. Each message names the setting and the way out.
 func (c EnvConfig) validateProductionProfile(add func(string, ...any)) {
+	// Checked outside the production gate: SkipsTLSVerification honours the
+	// flag in DEV_MODE only, so accepting it elsewhere would be a silent no-op.
+	if c.InsecureSkipVerify && !c.DevMode {
+		if c.IsProductionProfile() {
+			add("INSECURE_SKIP_VERIFY=true is not supported in a production profile; supply the upstream CA through BUNDLE_PATHS instead")
+		} else {
+			add("INSECURE_SKIP_VERIFY=true requires DEV_MODE=true; MOCK_K8S_CLIENT mocks the Kubernetes clients only, and the other outbound clients stay real")
+		}
+	}
+
 	if !c.IsProductionProfile() {
 		return
 	}
@@ -141,10 +177,6 @@ func (c EnvConfig) validateProductionProfile(add func(string, ...any)) {
 	if c.AuthMethod == AuthMethodDisabled {
 		add("AUTH_METHOD=%s is not supported in a production profile; use %s, or set DEV_MODE=true for local development",
 			AuthMethodDisabled, AuthMethodUser)
-	}
-
-	if c.InsecureSkipVerify {
-		add("INSECURE_SKIP_VERIFY=true is not supported in a production profile; supply the upstream CA through BUNDLE_PATHS instead")
 	}
 
 	for i, origin := range c.AllowedOrigins {
@@ -177,6 +209,19 @@ func (c EnvConfig) validateServiceTargets(add func(string, ...any)) {
 			add("%s (value omitted) %s", target.setting, reason)
 		}
 	}
+
+	// Without PROMETHEUS_HOST the target is derived as
+	// https://<instance>.<namespace>.svc.cluster.local:<port>, so the port is
+	// the part an operator can get wrong.
+	if strings.TrimSpace(c.PrometheusHost) == "" && c.PrometheusPort != "" && !isPort(c.PrometheusPort) {
+		add("PROMETHEUS_PORT/--prometheus-port (value omitted) must be a port number between 1 and 65535")
+	}
+}
+
+// isPort reports whether s is a decimal TCP port between 1 and 65535.
+func isPort(s string) bool {
+	n, err := strconv.Atoi(s)
+	return err == nil && n >= 1 && n <= 65535 && strconv.Itoa(n) == s
 }
 
 // serviceTargetProblem reports why target is not a usable absolute service
@@ -190,6 +235,8 @@ func serviceTargetProblem(target string, production bool) string {
 		return "must be an absolute http(s) URL such as https://host:port"
 	case u.Hostname() == "":
 		return "has no host"
+	case u.Port() != "" && !isPort(u.Port()):
+		return "has a port outside 1-65535"
 	case production && u.Scheme != "https":
 		return "must use https in a production profile, because the caller's bearer token is sent to it; set DEV_MODE=true for a local plaintext target"
 	}
