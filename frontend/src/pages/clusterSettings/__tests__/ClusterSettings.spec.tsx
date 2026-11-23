@@ -81,7 +81,6 @@ describe('ClusterSettings', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: jest.fn(),
     } as ReturnType<typeof useIsAreaAvailable>);
 
     mockFetchClusterSettings.mockResolvedValue(DEFAULT_CONFIG);

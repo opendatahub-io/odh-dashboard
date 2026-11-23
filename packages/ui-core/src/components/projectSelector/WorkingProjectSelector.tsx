@@ -276,8 +276,13 @@ const AddProjectModal: React.FC<{
 const WorkingProjectSelector: React.FC<Props> = (props) => {
   const { status, projects, activeProject, discoverProject, rememberProject } = useWorkingProject();
   const manualFallback = props.manualProjectMode && status === 'listing-unavailable';
-  const [addedProject, setAddedProject] = React.useState<ProjectIdentity | null>(null);
-  const [updatedProject, setUpdatedProject] = React.useState<ProjectIdentity | null>(null);
+  const notificationSequence = React.useRef(0);
+  const [addedProject, setAddedProject] = React.useState<
+    (ProjectIdentity & { notificationId: number }) | null
+  >(null);
+  const [updatedProject, setUpdatedProject] = React.useState<
+    (ProjectIdentity & { notificationId: number }) | null
+  >(null);
   const [open, setOpen] = React.useState(false);
   const [adding, setAdding] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
@@ -339,10 +344,10 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
             onClose={manualFallback ? close : () => setAdding(false)}
             onAdded={(project, isFirstProject) => {
               if (manualFallback) {
-                setAddedProject(project);
+                setAddedProject({ ...project, notificationId: ++notificationSequence.current });
               }
               if (manualFallback && isFirstProject) {
-                setUpdatedProject(project);
+                setUpdatedProject({ ...project, notificationId: ++notificationSequence.current });
                 props.onProjectSelected?.(project);
                 close();
               } else {
@@ -355,7 +360,7 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
             {...props}
             onProjectSelected={(project) => {
               if (manualFallback && project.name !== activeProject?.name) {
-                setUpdatedProject(project);
+                setUpdatedProject({ ...project, notificationId: ++notificationSequence.current });
               }
               props.onProjectSelected?.(project);
             }}
@@ -367,9 +372,12 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
         <AlertGroup isToast aria-live="polite">
           {updatedProject && (
             <Alert
+              key={`updated-${updatedProject.notificationId}`}
               data-testid="working-project-updated-notification"
               variant="info"
               title="Working project updated"
+              timeout={8000}
+              onTimeout={() => setUpdatedProject(null)}
               actionClose={<AlertActionCloseButton onClose={() => setUpdatedProject(null)} />}
             >
               You&apos;re now working in{' '}
@@ -378,9 +386,12 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
           )}
           {addedProject && (
             <Alert
+              key={`added-${addedProject.notificationId}`}
               data-testid="project-added-notification"
               variant="success"
               title="Project added"
+              timeout={8000}
+              onTimeout={() => setAddedProject(null)}
               actionClose={<AlertActionCloseButton onClose={() => setAddedProject(null)} />}
             >
               “{addedProject.displayName || addedProject.name}” is now available in the project
@@ -418,7 +429,10 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void; onAddProject?
   };
   const [selectedName, setSelectedName] = React.useState(activeProject?.name ?? '');
   const [search, setSearch] = React.useState('');
-  const [filter, setFilter] = React.useState(isAiProject ? 'ai' : 'all');
+  const [selectedFilter, setFilter] = React.useState<string>();
+  const filter =
+    selectedFilter ??
+    (isAiProject && (!activeProject || isAiProject(activeProject.name)) ? 'ai' : 'all');
   const changeSelectedProject = (_event: React.SyntheticEvent, name: string) => {
     if (selecting) {
       return;

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ThemeProvider } from '@mui/material';
+import { GlobalStyles, ThemeProvider } from '@mui/material';
 import { ChartsProvider, SnackbarProvider } from '@perses-dev/components';
 import type { DashboardResource, DurationString, TimeRangeValue } from '@perses-dev/core';
 import {
@@ -22,6 +22,9 @@ import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6';
 import { createPluginLoader } from '../persesPluginsLoader';
 import { OdhDatasourceApi, CachedDatasourceAPI, PERSES_PROXY_BASE_PATH } from '../perses-client';
 import { usePatternFlyTheme } from '../theme';
+
+export { PersesDashboardGate } from './PersesDashboardGate';
+export type { PersesDashboardGateProps } from './PersesDashboardGate';
 
 const DEFAULT_DURATION: DurationString = '30m';
 const DEFAULT_REFRESH_INTERVAL: DurationString = '60s';
@@ -87,6 +90,26 @@ const PersesProviderCore: React.FC<PersesProviderCoreProps> = ({
 
   return (
     <ThemeProvider theme={muiTheme}>
+      {/* Third-party Perses surfaces that need theme corrections the MUI theme
+          slots cannot express. Selectors are element-qualified so they out-
+          specify the emotion classes the sx props generate, without !important.
+          Panel group headers are inline content and must not paint a surface
+          (the paper token is translucent under glass); the variable toolbar's
+          negative bottom margin pulls the panel groups up against the row. */}
+      <GlobalStyles
+        styles={{
+          'div[data-testid="panel-group-header"]': {
+            backgroundColor: 'transparent',
+          },
+          'div[data-testid="variable-list"]': {
+            marginBottom: 0,
+            paddingBottom: 'var(--pf-t--global--spacer--md)',
+            '& .MuiAppBar-root > .MuiBox-root > .MuiBox-root': {
+              paddingTop: 0,
+            },
+          },
+        }}
+      />
       <ChartsProvider chartsTheme={chartsTheme}>
         <SnackbarProvider
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}

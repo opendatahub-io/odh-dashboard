@@ -1462,7 +1462,7 @@ components:
           properties:
             preset:
               type: string
-              enum: [speed, balanced]
+              enum: [speed, balanced, quality]
               description: Training quality tier for time-series pipelines. When omitted, the pipeline defaults to "speed".
               example: "speed"
             task_type:
