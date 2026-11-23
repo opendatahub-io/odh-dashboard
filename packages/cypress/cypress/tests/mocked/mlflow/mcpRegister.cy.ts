@@ -9,7 +9,7 @@ import { toastNotifications } from '../../../pages/components/ToastNotifications
 import { mcpRegisterModal, mcpRegisterPage } from '../../../pages/mcpRegister';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
-import { shouldLoadMonacoLanguageWorker } from '../../../utils/monacoUtils';
+import { shouldRunMonacoLanguageWorker } from '../../../utils/monacoUtils';
 import { ProjectModel } from '../../../utils/models';
 
 const BFF_PREFIX = '/model-registry/api/v1';
@@ -202,8 +202,8 @@ describe('MCP Register from Catalog', () => {
     mcpRegisterModal.findTagKey().should('have.value', 'catalog.source.id');
     mcpRegisterModal.findTagValue().should('have.value', 'sample');
     mcpRegisterModal.findSubmitButton().should('be.disabled');
-    // The server.json editor uses the host's bundled Monaco, which must ship the JSON worker.
-    shouldLoadMonacoLanguageWorker('json');
+    // The server.json editor uses the host's bundled Monaco, which must ship and run the JSON worker.
+    shouldRunMonacoLanguageWorker('json');
   });
 
   it('should register the server, toast success, and navigate to the registry details page', () => {
