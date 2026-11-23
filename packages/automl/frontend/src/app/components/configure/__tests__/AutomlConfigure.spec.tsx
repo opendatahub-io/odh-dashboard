@@ -1038,8 +1038,93 @@ describe('AutomlConfigure', () => {
 
       expect(screen.queryByTestId('training-data-load-success')).not.toBeInTheDocument();
       if (queryState.error) {
-        expect(screen.getByText('Unable to count rows. Count failed')).toBeInTheDocument();
+        expect(screen.getByText(/Unable to count rows\. Count failed/)).toBeInTheDocument();
       }
+    });
+
+    it('should retry the row count for the selected file and disable retry while pending', () => {
+      const refetch = jest.fn();
+      const failedQuery = {
+        data: undefined,
+        error: new Error('Count failed'),
+        isFetching: false,
+        refetch,
+      };
+      jest
+        .mocked(useS3GetFileRowCountQuery)
+        .mockReturnValue(failedQuery as unknown as ReturnType<typeof useS3GetFileRowCountQuery>);
+      const { rerender } = renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry row count' }));
+      expect(refetch).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('grid', { name: 'Selected training data file' })).toHaveTextContent(
+        'data.csv',
+      );
+
+      jest.mocked(useS3GetFileRowCountQuery).mockReturnValue({
+        ...failedQuery,
+        isFetching: true,
+      } as unknown as ReturnType<typeof useS3GetFileRowCountQuery>);
+      rerender(<AutomlConfigure />);
+      expect(screen.getByRole('button', { name: 'Retry row count' })).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: 'Retry row count' }));
+      expect(refetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should preserve a saved connection on mount and clear it on namespace navigation', () => {
+      const { rerender } = renderWithInitialValues({
+        initialInputDataSecret: {
+          uuid: 'secret-1',
+          name: 'Test Secret 1',
+          data: { AWS_S3_BUCKET: 'test-bucket-1' },
+          type: 's3',
+          invalid: false,
+        },
+        train_data_secret_name: 'Test Secret 1',
+        train_data_bucket_name: 'test-bucket-1',
+        train_data_file_key: 'train.csv',
+        test_data_bucket_name: 'test-bucket-1',
+        test_data_file_key: 'test.csv',
+      });
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+      expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
+        'test-namespace',
+        'Test Secret 1',
+        'test-bucket-1',
+        'train.csv',
+      );
+
+      mockUseParams.mockReturnValue({ namespace: 'other-namespace' });
+      rerender(<AutomlConfigure />);
+      expect(screen.queryByTestId('aws-secret-selector-value')).not.toBeInTheDocument();
+      expect(mockuseS3GetFileSchemaQuery).toHaveBeenLastCalledWith(
+        'other-namespace',
+        '',
+        '',
+        undefined,
+      );
+      expect(jest.mocked(useS3GetFileRowCountQuery)).toHaveBeenLastCalledWith(
+        'other-namespace',
+        '',
+        '',
+        '',
+        true,
+      );
+      expect(screen.queryByText('train.csv')).not.toBeInTheDocument();
+      expect(screen.queryByText('test.csv')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-2'));
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 2');
+      expect(jest.mocked(useS3GetFileRowCountQuery)).toHaveBeenLastCalledWith(
+        'other-namespace',
+        'Test Secret 2',
+        'test-bucket-2',
+        '',
+        true,
+      );
     });
 
     it('should remove the selected file when the remove button is clicked', () => {

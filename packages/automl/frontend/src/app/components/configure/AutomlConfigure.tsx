@@ -107,6 +107,7 @@ import DatasetFileDetailsPreview from './DatasetFileDetailsPreview';
 import DatasetFilePreview from './DatasetFilePreview';
 import DatasetSamplingError from './DatasetSamplingError';
 import DatasetFilePicker, { type DatasetFileSourceMode } from './DatasetFilePicker';
+import '@patternfly/react-styles/css/utilities/Sizing/sizing.css';
 import '@patternfly/react-styles/css/utilities/Text/text.css';
 import './AutomlConfigure.scss';
 
@@ -421,6 +422,7 @@ function AutomlConfigure({
     data: trainingDataRowCount,
     isFetching: isFetchingRowCount,
     error: rowCountError,
+    refetch: refetchRowCount,
   } = useS3GetFileRowCountQuery(
     namespace ?? '',
     trainDataSecretName,
@@ -494,6 +496,13 @@ function AutomlConfigure({
       shouldValidate: true,
     });
   }, [selectedSecret, setValue]);
+
+  // Clear namespace-scoped connection state on navigation, preserving saved values on mount.
+  useReconfigureSafeEffect(() => {
+    setSelectedSecret(undefined);
+    setValue('train_data_secret_name', '', { shouldValidate: true });
+    setValue('train_data_bucket_name', '', { shouldValidate: true });
+  }, [namespace, setValue]);
 
   // reset selected file values if namespace, secret or bucket changes (skips mount to preserve reconfigure)
   useReconfigureSafeEffect(() => {
@@ -957,7 +966,17 @@ function AutomlConfigure({
                             <StackItem>
                               <HelperText aria-live="polite">
                                 <HelperTextItem variant="warning">
-                                  Unable to count rows. {rowCountError.message}
+                                  Unable to count rows. {rowCountError.message}{' '}
+                                  <Button
+                                    variant="link"
+                                    isInline
+                                    isDisabled={isFetchingRowCount}
+                                    onClick={() => {
+                                      void refetchRowCount();
+                                    }}
+                                  >
+                                    Retry row count
+                                  </Button>
                                 </HelperTextItem>
                               </HelperText>
                             </StackItem>
@@ -993,7 +1012,7 @@ function AutomlConfigure({
                                     </SplitItem>
                                     <SplitItem
                                       isFilled
-                                      className="automl-configure__dataset-status pf-v6-u-font-weight-normal"
+                                      className="pf-v6-u-min-width pf-v6-u-font-weight-normal"
                                     >
                                       <Flex
                                         flexWrap={{ default: 'nowrap' }}
@@ -1012,7 +1031,7 @@ function AutomlConfigure({
                                         </FlexItem>
                                         <FlexItem
                                           id="training-data-filename"
-                                          className="automl-configure__dataset-status pf-v6-u-text-truncate"
+                                          className="pf-v6-u-min-width pf-v6-u-text-truncate"
                                         >
                                           {selectedTrainingDataFile?.name ??
                                             (trainDataFileKey || 'Incomplete')}
@@ -1140,7 +1159,7 @@ function AutomlConfigure({
                                     </SplitItem>
                                     <SplitItem
                                       isFilled
-                                      className="automl-configure__dataset-status pf-v6-u-font-weight-normal"
+                                      className="pf-v6-u-min-width pf-v6-u-font-weight-normal"
                                     >
                                       <Flex
                                         flexWrap={{ default: 'nowrap' }}
@@ -1160,7 +1179,7 @@ function AutomlConfigure({
                                         </FlexItem>
                                         <FlexItem
                                           id="test-data-filename"
-                                          className="automl-configure__dataset-status pf-v6-u-text-truncate"
+                                          className="pf-v6-u-min-width pf-v6-u-text-truncate"
                                         >
                                           {selectedTestDataFile?.name ??
                                             (testDataFileKey || 'Incomplete')}
