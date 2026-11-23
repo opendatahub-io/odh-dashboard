@@ -1,8 +1,5 @@
-# Early-gate launcher for odh-dashboard — downstream-pointing version (RHAI-50780).
-# Rewrites the fork-inherited upstream launchers (which resolve odh-konflux-central in
-# open-data-hub-tenant) to resolve the gate from red-hat-data-services/konflux-central
-# in rhoai-tenant. Same shape as the installed upstream launchers (label gate, PR #8318).
-# Items marked "REVIEW:" need AIPCC confirmation.
+# Early-gate launcher for odh-dashboard (RHAI-50780).
+# /early-gate-build comment on a PR labeled early-gate -> gate build pipeline (operator + bundle + FBC).
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
@@ -16,11 +13,6 @@ metadata:
       && body.comment.body.matches("^/early-gate(-build)?$")
       && body.issue.labels.exists(l, l.name == "early-gate")
   labels:
-    # REVIEW: application/component names in rhoai-tenant to confirm with AIPCC.
-    # The gate's three block components live in application "rhoai-early-gate"
-    # (early-gate/docs/operations.md). Upstream's launcher uses application
-    # "early-gate" + component "early-gate-ci" in open-data-hub-tenant; the
-    # downstream equivalent of that launcher component is what we're confirming.
     appstudio.openshift.io/application: rhoai-early-gate
     appstudio.openshift.io/component: early-gate-ci
     pipelines.appstudio.openshift.io/type: build
@@ -42,9 +34,6 @@ spec:
     - name: pathInRepo
       value: early-gate/early-gate-component-pipeline.yaml
   taskRunTemplate:
-    # REVIEW: service account to confirm with AIPCC — upstream uses
-    # build-pipeline-early-gate-ci; downstream naming convention is
-    # build-pipeline-<component>.
     serviceAccountName: build-pipeline-early-gate-ci
   workspaces:
   - name: git-auth

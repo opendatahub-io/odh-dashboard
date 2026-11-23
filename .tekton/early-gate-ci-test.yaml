@@ -1,8 +1,5 @@
-# Early-gate launcher for odh-dashboard — downstream-pointing version (RHAI-50780).
-# Rewrites the fork-inherited upstream launchers (which resolve odh-konflux-central in
-# open-data-hub-tenant) to resolve the gate from red-hat-data-services/konflux-central
-# in rhoai-tenant. Same shape as the installed upstream launchers (label gate, PR #8318).
-# Items marked "REVIEW:" need AIPCC confirmation.
+# Early-gate test launcher for odh-dashboard (RHAI-50780).
+# /early-gate-test comment on a PR labeled early-gate -> gate test pipeline (Jenkins install + smoke tests).
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
@@ -16,7 +13,6 @@ metadata:
       && body.comment.body.matches("^/early-gate-test$")
       && body.issue.labels.exists(l, l.name == "early-gate")
   labels:
-    # REVIEW: same confirmation as the build launcher.
     appstudio.openshift.io/application: rhoai-early-gate
     appstudio.openshift.io/component: early-gate-ci
     pipelines.appstudio.openshift.io/type: test
@@ -41,7 +37,6 @@ spec:
     - name: pathInRepo
       value: early-gate/early-gate-test-pipeline.yaml
   taskRunTemplate:
-    # REVIEW: same SA confirmation as the build launcher.
     serviceAccountName: build-pipeline-early-gate-ci
   workspaces:
   - name: git-auth
