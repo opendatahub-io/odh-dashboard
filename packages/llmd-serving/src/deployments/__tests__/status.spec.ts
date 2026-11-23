@@ -68,11 +68,28 @@ describe('LLM inference service lifecycle state', () => {
     expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.PENDING);
   });
 
-  it('should use the failing child condition when Ready has no actionable message', () => {
+  it('should keep a progressing rollout pending while it still carries an older child error', () => {
+    const service = mockLLMInferenceServiceK8sResource({
+      conditions: [
+        {
+          type: 'RouterReady',
+          status: 'False',
+          severity: 'Error',
+          reason: 'PreviousGatewayError',
+          message: 'The previous gateway failed.',
+        },
+        { type: 'Ready', status: 'False', reason: 'Progressing', message: 'Deploying the model.' },
+      ],
+    });
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.PENDING);
+    expect(getLLMInferenceServiceStatusMessage(service)).toBe('Deploying the model.');
+  });
+
+  it('should use the failing child condition when Ready is unknown', () => {
     const service = mockLLMInferenceServiceK8sResource({});
     service.status = {
       conditions: [
-        { type: 'Ready', status: 'False', reason: 'Progressing' },
+        { type: 'Ready', status: 'Unknown' },
         {
           type: 'RouterReady',
           status: 'False',

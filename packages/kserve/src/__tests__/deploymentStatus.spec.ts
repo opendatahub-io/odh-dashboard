@@ -4,6 +4,16 @@ import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { getKServeDeploymentConditions, getKServeDeploymentStatus } from '../deploymentStatus';
 
+describe('getKServeDeploymentStatus', () => {
+  it('should show deletion even while the controller still reports a loaded model', () => {
+    const isvc = mockInferenceServiceK8sResource({ deleted: true });
+    const status = getKServeDeploymentStatus(isvc, []);
+
+    expect(status.state).toBe(ModelDeploymentState.DELETING);
+    expect(status.message).toContain('finish deleting');
+  });
+});
+
 describe('getKServeDeploymentConditions', () => {
   it('should include deployment requested from creationTimestamp', () => {
     const isvc = mockInferenceServiceK8sResource({

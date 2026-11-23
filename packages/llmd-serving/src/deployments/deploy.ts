@@ -331,8 +331,15 @@ export const deployLLMdDeployment = async (
   }
 
   // YAML input has only generic Kubernetes validation at this point.
-  const location: { spec?: { model?: { uri?: unknown } } } = modelResource;
-  const uri = location.spec?.model?.uri;
+  const location: {
+    spec?: { model?: { uri?: unknown }; baseRefs?: ({ name?: unknown } | null)[] };
+  } = modelResource;
+  const { model, baseRefs } = location.spec ?? {};
+  const uri = model?.uri;
+  // KServe can inherit the model URI from a named config. Let it resolve the refs in order.
+  const hasBaseRef =
+    Array.isArray(baseRefs) &&
+    baseRefs.some((ref) => typeof ref?.name === 'string' && ref.name.trim());
   // Legacy connection-backed deployments may be resolved by the existing
   // connection webhook. Dry runs omit its annotation until the Secret exists.
   const connectionName =
@@ -344,9 +351,12 @@ export const deployLLMdDeployment = async (
       : undefined);
   if (
     !(typeof uri === 'string' && uri.trim()) &&
-    !(typeof connectionName === 'string' && connectionName.trim())
+    !(typeof connectionName === 'string' && connectionName.trim()) &&
+    !hasBaseRef
   ) {
-    throw new Error('A model URI or a connection that resolves the model location is required.');
+    throw new Error(
+      'Provide a model URI, a connection, or a configuration reference that supplies the model location.',
+    );
   }
 
   const deploymentK8sName =

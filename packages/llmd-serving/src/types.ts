@@ -91,8 +91,8 @@ type LLMInferenceServiceSpec = {
   baseRefs?: {
     name?: string;
   }[];
-  model: {
-    uri: string;
+  model?: {
+    uri?: string;
     name?: string;
   };
   replicas?: number;

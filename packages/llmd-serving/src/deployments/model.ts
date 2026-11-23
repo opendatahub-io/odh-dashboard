@@ -66,7 +66,7 @@ export const applyModelLocation = (
         ModelServingCompatibleTypes.URI,
       ))
   ) {
-    result.spec.model.uri = uri.trim();
+    result.spec.model = { ...result.spec.model, uri: uri.trim() };
   }
   if (modelLocationData.type === ModelLocationType.PVC) {
     delete result.metadata.annotations[MetadataAnnotation.ConnectionName];
@@ -191,21 +191,21 @@ export const extractEnvironmentVariables = (
 };
 
 export const getModelLocationUri = (deployment: LLMInferenceServiceKind): string | undefined => {
-  return deployment.spec.model.uri;
+  return deployment.spec.model?.uri;
 };
 
 const extractAdditionalFields = (deployment: LLMInferenceServiceKind): Record<string, string> => {
   const additionalFields: Record<string, string> = {};
-  const { model } = deployment.spec;
+  const uri = getModelLocationUri(deployment) ?? '';
 
-  const connectionType = getConnectionTypeFromUri(model.uri);
+  const connectionType = getConnectionTypeFromUri(uri);
   if (connectionType === ModelServingCompatibleTypes.S3ObjectStorage) {
     additionalFields.modelPath =
       deployment.metadata.annotations?.['opendatahub.io/connection-path'] || '';
   }
 
   if (connectionType === ModelServingCompatibleTypes.OCI) {
-    additionalFields.modelUri = model.uri || '';
+    additionalFields.modelUri = uri;
   }
 
   return additionalFields;
@@ -278,8 +278,9 @@ export const applyK8sNameAndNamespace = (
   result.metadata.name = k8sName ?? llmInferenceService.metadata.name;
   result.metadata.namespace = namespace ?? llmInferenceService.metadata.namespace;
   // The served model name defaults to the resource name; follow a rename unless it was set apart (e.g. in YAML)
-  if (result.spec.model.name === llmInferenceService.metadata.name) {
-    result.spec.model.name = result.metadata.name;
+  const { model } = result.spec;
+  if (model && model.name === llmInferenceService.metadata.name) {
+    model.name = result.metadata.name;
   }
   return result;
 };

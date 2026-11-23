@@ -51,7 +51,7 @@ describe('LLM inference service preview and submission', () => {
     async (uri) => {
       const wizard = form(uri);
       const preview = assembleLLMdDeployment(wizard).model;
-      expect(preview.spec.model.uri).toBe(uri);
+      expect(preview.spec.model?.uri).toBe(uri);
       const snapshot = structuredClone(preview);
       const deployment = await deployLLMdDeployment(
         wizard.state,
@@ -61,7 +61,7 @@ describe('LLM inference service preview and submission', () => {
         preview,
       );
       expect(createResource).toHaveBeenCalledWith(expect.objectContaining({ resource: snapshot }));
-      expect(deployment.model.spec.model.uri).toBe(uri);
+      expect(deployment.model.spec.model?.uri).toBe(uri);
       expect(deployment.model.metadata.namespace).toBe(preview.metadata.namespace);
       expect(preview).toEqual(snapshot);
     },
@@ -114,6 +114,43 @@ describe('LLM inference service preview and submission', () => {
     expect(createResource).toHaveBeenCalledWith(
       expect.objectContaining({ queryOptions: { queryParams: { dryRun: 'All' } } }),
     );
+  });
+
+  it.each([true, false])(
+    'should submit an inherited model location without rewriting the YAML (dryRun=%s)',
+    async (dryRun) => {
+      const wizard = form('');
+      const resource = assembleLLMdDeployment(wizard).model;
+      delete resource.spec.model;
+      resource.spec.baseRefs = [{ name: 'model-location-preset' }];
+      const snapshot = structuredClone(resource);
+
+      await expect(
+        deployLLMdDeployment(
+          wizard.state,
+          {},
+          'test-project',
+          undefined,
+          resource,
+          undefined,
+          undefined,
+          dryRun,
+        ),
+      ).resolves.toMatchObject({ model: snapshot });
+
+      expect(createResource).toHaveBeenCalledWith(expect.objectContaining({ resource: snapshot }));
+    },
+  );
+
+  it('should reject a missing model location when the base reference has no name', async () => {
+    const wizard = form('');
+    const resource = assembleLLMdDeployment(wizard).model;
+    resource.spec.baseRefs = [{ name: ' ' }];
+
+    await expect(
+      deployLLMdDeployment(wizard.state, {}, 'test-project', undefined, resource),
+    ).rejects.toThrow('model URI');
+    expect(createResource).not.toHaveBeenCalled();
   });
 
   it.each(['model', 'spec'])(

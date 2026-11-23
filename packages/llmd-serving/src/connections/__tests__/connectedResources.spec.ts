@@ -22,6 +22,14 @@ describe('getConnectedResourceLabels', () => {
         [MetadataAnnotation.ConnectionName]: 'test-connection',
       },
     });
+    const connectedServiceWithoutModel = mockLLMInferenceServiceK8sResource({
+      name: 'llmd-without-model',
+      displayName: 'LLM-D service without a model spec',
+      additionalAnnotations: {
+        [MetadataAnnotation.ConnectionName]: 'test-connection',
+      },
+    });
+    delete connectedServiceWithoutModel.spec.model;
     const unconnectedService = mockLLMInferenceServiceK8sResource({
       name: 'other-llmd-model',
       displayName: 'Other LLM-D model',
@@ -32,8 +40,15 @@ describe('getConnectedResourceLabels', () => {
 
     expect(
       getConnectedResourceLabels(connection, {
-        llmInferenceServices: [connectedService, unconnectedService],
+        llmInferenceServices: [connectedService, connectedServiceWithoutModel, unconnectedService],
       }),
-    ).toEqual([{ key: 'llmd:llmd-model', title: 'LLM-D model', kind: 'connected-models' }]);
+    ).toEqual([
+      { key: 'llmd:llmd-model', title: 'LLM-D model', kind: 'connected-models' },
+      {
+        key: 'llmd:llmd-without-model',
+        title: 'LLM-D service without a model spec',
+        kind: 'connected-models',
+      },
+    ]);
   });
 });

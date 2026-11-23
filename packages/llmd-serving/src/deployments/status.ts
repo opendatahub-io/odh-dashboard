@@ -253,10 +253,11 @@ const PENDING_CONDITION_REASONS = new Set<string>([
 const getFailedCondition = (service: LLMInferenceServiceKind) => {
   const conditions = service.status?.conditions ?? [];
   const ready = conditions.find((condition) => condition.type === 'Ready');
-  // Ready is authoritative over stale child errors; a stopped workload is not a failure.
+  // Child conditions can retain errors from a previous rollout while Ready reports progress.
   if (
     ready?.status === 'True' ||
-    ready?.reason === LLMInferenceServiceReadyConditionReason.STOPPED
+    ready?.reason === LLMInferenceServiceReadyConditionReason.STOPPED ||
+    (ready?.status === 'False' && PENDING_CONDITION_REASONS.has(ready.reason ?? ''))
   ) {
     return undefined;
   }

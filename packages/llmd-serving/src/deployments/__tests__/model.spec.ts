@@ -7,7 +7,26 @@ import {
 } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 
 import { mockLLMInferenceServiceK8sResource } from '../../__mocks__/mockLLMInferenceServiceK8sResource';
-import { applyDefaultScheduler, applyK8sNameAndNamespace, applyModelLocation } from '../model';
+import {
+  applyDefaultScheduler,
+  applyK8sNameAndNamespace,
+  applyModelLocation,
+  extractModelLocationData,
+} from '../model';
+import { validateExtraction } from '../validateExtraction';
+
+describe('extractModelLocationData', () => {
+  it('should leave a model location inherited from a config in YAML', () => {
+    const model = mockLLMInferenceServiceK8sResource({});
+    delete model.spec.model;
+    model.spec.baseRefs = [{ name: 'model-location-preset' }];
+
+    expect(extractModelLocationData({ model }).fieldValues.URI).toBeUndefined();
+    expect(validateExtraction({ model, modelServingPlatformId: 'llmd-serving' })).toContain(
+      'No connection could be resolved for this deployment.',
+    );
+  });
+});
 
 describe('applyDefaultScheduler', () => {
   it('should preserve a configured scheduler when llm-d is selected', () => {
@@ -72,7 +91,7 @@ describe('applyK8sNameAndNamespace', () => {
 
     expect(result.metadata.name).toBe('existing');
     expect(result.metadata.namespace).toBe('test-project');
-    expect(result.spec.model.name).toBe('existing');
+    expect(result.spec.model?.name).toBe('existing');
   });
 
   it('should apply the name and namespace to a resource that does not exist yet', () => {
@@ -87,7 +106,7 @@ describe('applyK8sNameAndNamespace', () => {
     expect(result.metadata.name).toBe('renamed');
     expect(result.metadata.namespace).toBe('other-project');
     // The served model name followed the resource name, so it follows the rename
-    expect(result.spec.model.name).toBe('renamed');
+    expect(result.spec.model?.name).toBe('renamed');
   });
 
   it('should keep a served model name that was set apart from the resource name', () => {
@@ -100,7 +119,21 @@ describe('applyK8sNameAndNamespace', () => {
     const result = applyK8sNameAndNamespace(service, 'renamed', 'test-project');
 
     expect(result.metadata.name).toBe('renamed');
-    expect(result.spec.model.name).toBe('facebook/opt-125m');
+    expect(result.spec.model?.name).toBe('facebook/opt-125m');
+  });
+
+  it('should rename a resource whose model is inherited from a config', () => {
+    const service = mockLLMInferenceServiceK8sResource({
+      name: 'from-yaml',
+      isExistingResource: false,
+    });
+    service.spec = { baseRefs: [{ name: 'model-location-preset' }] };
+
+    const result = applyK8sNameAndNamespace(service, 'renamed', 'other-project');
+
+    expect(result.metadata.name).toBe('renamed');
+    expect(result.metadata.namespace).toBe('other-project');
+    expect(result.spec).toEqual({ baseRefs: [{ name: 'model-location-preset' }] });
   });
 });
 
@@ -114,8 +147,8 @@ describe('applyModelLocation', () => {
         fieldValues: { URI: uri },
         additionalFields: {},
       });
-      expect(result.spec.model.uri).toBe(uri);
-      expect(service.spec.model.uri).toBe('');
+      expect(result.spec.model?.uri).toBe(uri);
+      expect(service.spec.model?.uri).toBe('');
     },
   );
 
@@ -126,7 +159,7 @@ describe('applyModelLocation', () => {
       fieldValues: { URI: '' },
       additionalFields: {},
     });
-    expect(result.spec.model.uri).toBe('');
+    expect(result.spec.model?.uri).toBe('');
   });
 
   it('should retain connection-based resolution when selecting an existing connection', () => {
@@ -144,7 +177,7 @@ describe('applyModelLocation', () => {
     expect(result.metadata.annotations?.[MetadataAnnotation.ConnectionName]).toBe(
       'existing-connection',
     );
-    expect(result.spec.model.uri).toBe('');
+    expect(result.spec.model?.uri).toBe('');
   });
 
   it.each([false, true])('should apply a URI-compatible connection field (dryRun=%s)', (dryRun) => {
@@ -162,7 +195,7 @@ describe('applyModelLocation', () => {
       undefined,
       dryRun,
     );
-    expect(result.spec.model.uri).toBe('hf://org/model');
+    expect(result.spec.model?.uri).toBe('hf://org/model');
     expect(result.metadata.annotations?.[MetadataAnnotation.ConnectionName]).toBe(
       dryRun ? undefined : 'new-connection',
     );
@@ -178,7 +211,7 @@ describe('applyModelLocation', () => {
       },
       'old-connection',
     );
-    expect(result.spec.model.uri).toBe('pvc://models/weights');
+    expect(result.spec.model?.uri).toBe('pvc://models/weights');
     expect(result.metadata.annotations?.[MetadataAnnotation.ConnectionName]).toBeUndefined();
   });
 
@@ -193,7 +226,7 @@ describe('applyModelLocation', () => {
       },
       's3-connection',
     );
-    expect(result.spec.model.uri).toBe('');
+    expect(result.spec.model?.uri).toBe('');
     expect(result.metadata.annotations).toEqual(
       expect.objectContaining({
         [MetadataAnnotation.ConnectionName]: 's3-connection',
@@ -209,6 +242,6 @@ describe('applyModelLocation', () => {
       fieldValues: {},
       additionalFields: { modelUri: 'oci://registry.example.com/model:v1' },
     });
-    expect(result.spec.model.uri).toBe('oci://registry.example.com/model:v1');
+    expect(result.spec.model?.uri).toBe('oci://registry.example.com/model:v1');
   });
 });

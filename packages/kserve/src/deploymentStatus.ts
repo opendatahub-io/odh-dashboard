@@ -145,8 +145,13 @@ export const getKServeDeploymentStatus = (
   );
   const modelPodStatus = deploymentPod ? checkModelPodStatus(deploymentPod) : null;
 
-  const state = getInferenceServiceModelState(inferenceService, modelPodStatus);
-  const message = getInferenceServiceStatusMessage(inferenceService, modelPodStatus);
+  const isDeleting = Boolean(inferenceService.metadata.deletionTimestamp);
+  const state = isDeleting
+    ? ModelDeploymentState.DELETING
+    : getInferenceServiceModelState(inferenceService, modelPodStatus);
+  const message = isDeleting
+    ? 'Waiting for Kubernetes and serving controllers to finish deleting this deployment.'
+    : getInferenceServiceStatusMessage(inferenceService, modelPodStatus);
 
   const stoppedStates = getModelDeploymentStoppedStates(
     state,
