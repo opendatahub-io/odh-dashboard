@@ -1,5 +1,4 @@
 const DCH_BACKEND_SERVICE = 'dch-rest-service';
-const DCH_UI_SERVICE = 'odh-dashboard-data-connect-hub-ui';
 
 const hasReadyServiceEndpoints = (serviceName: string): Cypress.Chainable<boolean> =>
   cy
@@ -19,11 +18,5 @@ const hasReadyServiceEndpoints = (serviceName: string): Cypress.Chainable<boolea
 export const isDataConnectHubBackendAvailable = (): Cypress.Chainable<boolean> =>
   hasReadyServiceEndpoints(DCH_BACKEND_SERVICE).then((ready) => {
     cy.log(`Data Connect Hub backend ${DCH_BACKEND_SERVICE} ready: ${ready}`);
-    return cy.wrap(ready);
-  });
-
-export const isDataConnectHubUiAvailable = (): Cypress.Chainable<boolean> =>
-  hasReadyServiceEndpoints(DCH_UI_SERVICE).then((ready) => {
-    cy.log(`Data Connect Hub module service ${DCH_UI_SERVICE} ready: ${ready}`);
     return cy.wrap(ready);
   });
