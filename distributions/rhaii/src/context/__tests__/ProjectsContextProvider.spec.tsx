@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { KnownLabels, type ProjectKind } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import RhaiiProjectSelector from '../../components/RhaiiProjectSelector';
@@ -93,7 +93,7 @@ describe('RHAII working project provider integration', () => {
         <Consumer />
       </ProjectsContextProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId('source-status')).toHaveTextContent('listed'));
+    await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed'));
     fireEvent.click(screen.getByText('Select allowed'));
     expect(screen.getByTestId('working-project')).toHaveTextContent('allowed');
     expect(screen.getByTestId('route-project')).toHaveTextContent('allowed');
@@ -107,11 +107,13 @@ describe('RHAII working project provider integration', () => {
         <Consumer />
       </ProjectsContextProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId('source-status')).toHaveTextContent('listed'));
+    await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('another'));
     fireEvent.click(screen.getByTestId('working-project-selector'));
     expect(screen.getByRole('dialog', { name: 'Working project' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add project' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('manual-project-name')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
+    fireEvent.click(screen.getByRole('option', { name: 'All projects' }));
     fireEvent.click(screen.getByTestId('working-project-option-another'));
     fireEvent.click(screen.getByRole('button', { name: 'Select' }));
     await waitFor(() =>
@@ -126,6 +128,70 @@ describe('RHAII working project provider integration', () => {
     expect(localStorage.getItem('rhaii-recent-namespaces')).toBeNull();
     expect(screen.queryByTestId('project-added-notification')).not.toBeInTheDocument();
     expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
+  });
+
+  it('should default to AI projects, show AI badges and allow switching to all projects', async () => {
+    const aiProject = project('ai-project');
+    aiProject.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
+    mockFetchNamespaces.mockResolvedValue([aiProject, project('standard-project')]);
+    render(
+      <ProjectsContextProvider>
+        <RhaiiProjectSelector />
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('known-projects')).toHaveTextContent('ai-project'),
+    );
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+      'AI projects only',
+    );
+    expect(
+      within(screen.getByTestId('working-project-option-ai-project')).getByTestId(
+        'ai-project-label',
+      ),
+    ).toHaveTextContent('AI');
+    expect(screen.queryByTestId('working-project-option-standard-project')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
+    fireEvent.click(screen.getByRole('option', { name: 'All projects' }));
+    expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('working-project-option-standard-project')).queryByTestId(
+        'ai-project-label',
+      ),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('working-project-option-ai-project'));
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(
+      within(screen.getByTestId('working-project-selector')).getByTestId('ai-project-label'),
+    ).toBeInTheDocument();
+  });
+
+  it('should allow selecting non-AI projects when the AI filter has no matches', async () => {
+    mockFetchNamespaces.mockResolvedValue([project('standard-project')]);
+    render(
+      <ProjectsContextProvider>
+        <RhaiiProjectSelector />
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('known-projects')).toHaveTextContent('standard-project'),
+    );
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByTestId('working-project-no-results')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
+    fireEvent.click(screen.getByRole('option', { name: 'All projects' }));
+    fireEvent.click(screen.getByTestId('working-project-option-standard-project'));
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('working-project-selector')).toHaveTextContent('standard-project'),
+    );
   });
 
   it('should distinguish forbidden listing from empty listing and allow only validated additions', async () => {
@@ -262,6 +328,70 @@ describe('RHAII working project provider integration', () => {
     );
   });
 
+  it.each([
+    { source: 'stored', ai: true },
+    { source: 'stored', ai: false },
+    { source: 'storage', ai: true },
+    { source: 'storage', ai: false },
+  ])(
+    'should use validated AI classification ($ai) for a $source selection',
+    async ({ source, ai }) => {
+      const aiProject = project('allowed');
+      aiProject.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
+      mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
+      const validatedProject = ai ? aiProject : project('allowed');
+      mockFetchNamespaceByName.mockResolvedValue(validatedProject);
+      if (source === 'stored') {
+        localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify('allowed'));
+      }
+      render(
+        <ProjectsContextProvider>
+          <RhaiiProjectSelector />
+          <Consumer />
+        </ProjectsContextProvider>,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('source-status')).toHaveTextContent('listing-unavailable'),
+      );
+      if (source === 'storage') {
+        // First publish the full resource, then ensure cross-tab validation does not strip it.
+        mockFetchNamespaceByName.mockResolvedValueOnce(aiProject);
+        fireEvent.click(screen.getByText('Add allowed'));
+        await waitFor(() =>
+          expect(screen.getByTestId('working-project')).toHaveTextContent('allowed'),
+        );
+        localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify('allowed'));
+        await act(async () => {
+          fireEvent(
+            window,
+            new StorageEvent('storage', {
+              key: PREFERRED_NAMESPACE_STORAGE_KEY,
+              newValue: JSON.stringify('allowed'),
+              storageArea: localStorage,
+            }),
+          );
+        });
+        await waitFor(() => expect(mockFetchNamespaceByName).toHaveBeenCalledTimes(2));
+      }
+      await waitFor(() =>
+        expect(screen.getByTestId('working-project')).toHaveTextContent('allowed'),
+      );
+      const badge = within(screen.getByTestId('working-project-selector')).queryByTestId(
+        'ai-project-label',
+      );
+      if (ai) {
+        expect(badge).toBeInTheDocument();
+      } else {
+        expect(badge).not.toBeInTheDocument();
+      }
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+        ai ? 'AI projects only' : 'All projects',
+      );
+      expect(screen.getByTestId('working-project-option-allowed')).toBeInTheDocument();
+    },
+  );
+
   it('should not activate a stored project when access has been revoked', async () => {
     localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify('allowed'));
     localStorage.setItem('rhaii-recent-namespaces', JSON.stringify(['allowed']));
@@ -315,6 +445,8 @@ describe('RHAII working project provider integration', () => {
       new Error('No access to that project, or it does not exist.'),
     );
     fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent('All projects');
+    expect(screen.getByRole('radio', { name: /allowed/ })).toBeChecked();
     fireEvent.click(screen.getByTestId('working-project-option-another'));
     fireEvent.click(screen.getByRole('button', { name: 'Select' }));
     expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();

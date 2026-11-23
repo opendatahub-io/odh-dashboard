@@ -7,11 +7,13 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
 import { ProjectDeploymentsTable } from './ProjectDeploymentsTable';
+import EmptyModelServingPlatform from './EmptyModelServingPlatform';
 import { MODEL_SERVER_SECTION_ID } from '../global/const';
 import {
   useProjectServingPlatform,
   type ModelServingPlatform,
 } from '../../concepts/useProjectServingPlatform';
+import { useModelServingDeployMethods } from '../../concepts/useModelServingDeployMethods';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
@@ -27,6 +29,8 @@ const ModelsProjectDetailsView: React.FC<{
     errors: deploymentsErrors,
   } = React.useContext(ModelDeploymentsContext);
 
+  const { hasDeployMethods } = useModelServingDeployMethods();
+
   const {
     activePlatform,
     projectPlatform,
@@ -39,6 +43,8 @@ const ModelsProjectDetailsView: React.FC<{
 
   const isLoading = !project.metadata.name || !deploymentsLoaded;
   const hasModels = !!deployments && deployments.length > 0;
+  const showNoDeployMethods = !hasDeployMethods;
+  const showPlatformSelection = hasDeployMethods && !activePlatform;
 
   return (
     <DetailsSection
@@ -85,9 +91,12 @@ const ModelsProjectDetailsView: React.FC<{
             ],
           }
         : {})}
-      isEmpty={!activePlatform}
+      isEmpty={showNoDeployMethods || showPlatformSelection}
       emptyState={
-        !isLoading && (
+        !isLoading &&
+        (showNoDeployMethods ? (
+          <EmptyModelServingPlatform />
+        ) : (
           <SelectPlatformView
             platforms={platforms}
             setModelServingPlatform={setProjectPlatform}
@@ -95,7 +104,7 @@ const ModelsProjectDetailsView: React.FC<{
             errorSelectingPlatform={projectPlatformError ?? undefined}
             clearErrorSelectingPlatform={clearProjectPlatformError}
           />
-        )
+        ))
       }
     >
       {activePlatform &&

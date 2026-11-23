@@ -9,6 +9,7 @@ const EmptyModelServingPlatform: React.FC = () => (
     icon={GearsIcon}
     titleText="No model serving platform selected"
     variant="xs"
+    data-testid="empty-state-no-platforms-message"
   >
     <EmptyStateBody>
       To enable model serving, an administrator must first select a model serving platform in the

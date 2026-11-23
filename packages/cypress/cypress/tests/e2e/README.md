@@ -109,6 +109,55 @@ unconfigured or its connection-list lookup to hit a fallback-eligible failure.
 A successful DCH list response, including an empty one, keeps RHOAI connections
 as display metadata only and does not satisfy this test.
 
+### AutoRAG E2E cluster prerequisites
+
+All AutoRAG E2E suites that proceed beyond prerequisite gating, including simulator-backed
+lifecycle coverage, run against a live cluster and require a ready Data Science Pipelines
+installation with the managed
+pipelines `documents-rag-optimization-pipeline` and `documents-indexing-pipeline`,
+and each pipeline must have at least one usable version.
+
+Those suites also require exactly one dashboard operator deployment to be discoverable
+across the cluster and to expose a non-empty `RELATED_IMAGE_POSTGRESQL_16_IMAGE` value on
+its manager container.
+The temporary project-scoped PGVector database uses that operator-provided image;
+a suite that reaches provisioning fails fast when the related image is unavailable.
+Focused unit coverage for this OpenShift discovery helper is out of scope because the Cypress
+package has no established unit-test pattern for `oc_commands` utilities; the live E2E path
+provides the regression coverage.
+
+Completion/results coverage additionally requires all four live MaaS variables
+in the Cypress test configuration: `MAAS_URL`, `MAAS_API_KEY`,
+`MAAS_GENERATION_MODEL_ID`, and `MAAS_EMBEDDING_MODEL_ID`. `MAAS_URL` must be an
+HTTPS service root, and both configured models must be present and ready. When
+these values are absent, lifecycle coverage uses the simulator and the completion/results test
+is skipped before project and PGVector provisioning. If MaaS is configured but its URL or models
+are invalid or unready, setup fails fast instead of falling back to the simulator.
+
+The AutoRAG fixture uses the configured S3 credentials and `BUCKET_2` from
+`test-variables.yml`. The preflight checks that the bucket, region, credentials, and S3
+connection/secret name are present. It resolves the effective endpoint from
+`CYPRESS_DSPA_S3_ENDPOINT` when set, otherwise from the selected bucket endpoint, and requires
+that endpoint to have a supported root-path URL shape; it does not authenticate to the bucket or
+verify its permissions. For disconnected clusters, set `CYPRESS_DSPA_S3_ENDPOINT` to the
+cluster-internal S3 endpoint. With usable MaaS but missing or structurally invalid S3
+configuration, lifecycle coverage may still run, but completion/results coverage is skipped.
+Operational S3 access failures with structurally valid configuration may fail during project or
+run setup instead of being skipped.
+
+The default AutoRAG completion timeout is 60 minutes and the cancellation timeout is 2 minutes.
+Values are positive milliseconds. Override them with Cypress environment variables or the
+`--env` option when the test environment requires different limits:
+
+```bash
+CYPRESS_AUTORAG_COMPLETION_TIMEOUT_MS=3600000 \
+  CYPRESS_AUTORAG_CANCELLATION_TIMEOUT_MS=120000 \
+  pnpm --filter odh-dashboard-frontend cypress:run -- --env grepTags="@AutoRAG"
+
+pnpm --filter odh-dashboard-frontend cypress:run -- \
+  --env AUTORAG_COMPLETION_TIMEOUT_MS=3600000,AUTORAG_CANCELLATION_TIMEOUT_MS=120000
+```
+
 ### Run Tests in Interactive Mode
 
 Use the Cypress Test Runner for an interactive GUI:
@@ -268,18 +317,20 @@ it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@
 ### CI Test Selection
 
 The GitHub Actions E2E workflow always schedules added, modified, and renamed
-Cypress specs in addition to the selected tag suites. Changes to page objects,
-fixtures, utilities, commands, support hooks, and other Cypress support code run
-their executable reverse-impact specs. Path impact is defined by the ordered,
-versioned mappings in `scripts/cypress/e2e-path-impact.json`; the first matching
-mapping wins. Patterns support exact paths plus `**`, `*`, and `?`. Package paths
+Cypress specs explicitly in addition to the selected tag suites, regardless of
+whether they have CI tags, functional tags only, or no tags. Changed-spec jobs
+apply quarantine exclusions without requiring a match against the selected tags.
+Changes to page objects, fixtures, utilities, commands, support hooks, and other
+Cypress support code run their executable reverse-impact specs. Path impact is
+defined by the ordered, versioned mappings in `scripts/cypress/e2e-path-impact.json`;
+the first matching mapping wins. Patterns support exact paths plus `**`, `*`, and `?`. Package paths
 derive `e2eCiTags`, module network policies derive tags from their owning module,
 and frontend areas derive tags from `.github/frontend-ci-tags.json`. Turbo is not
 used as the E2E selector. New packages are discovered from the pnpm workspace; their
-`e2eCiTags` and matching tagged tests determine selection. Package-owned specs need a
-`cypress.e2e` pattern. No per-package workflow entry or central tag allowlist is
-needed. A declared tag must resolve to executable tests; packages without CI tags
-use the regression fallback.
+`e2eCiTags` and matching tagged tests determine package-source selection.
+Package-owned specs need a `cypress.e2e` pattern. No per-package workflow entry or
+central tag allowlist is needed. A declared tag must resolve to executable tests;
+packages without CI tags use the regression fallback.
 
 Dashboard base and RHOAI network-policy changes run the Pipelines, Workbenches, and
 Feature Store suites because those flows exercise dashboard egress to the pipeline
@@ -287,15 +338,19 @@ server, Thanos, and Feast. Small impact sets run as explicit specs; larger sets 
 the narrowest available package CI tags. Deleting Cypress support code, or
 encountering a broad impact set that cannot be mapped to package CI tags, falls back
 to the canonical `@SmokeSet1`–`@SmokeSet5` and `@SanitySet1`–`@SanitySet5` tag
-groups.
+groups. Tag jobs pass the planner-resolved spec list to Cypress, so unrelated specs
+are not loaded; the support-file registration filter still selects individual tests
+inside those specs by tag.
 
 Every selected tag must resolve to at least one executable test before the
 workflow starts. A selection fails when a required spec cannot be scheduled or a
 tag resolves to zero executable tests, including when its tests are statically
 skipped. Result validation rejects a job if every reported test is skipped at
-runtime. Added, modified,
-and renamed specs must carry a CI-selectable tag or be listed in
-`non-ci-specs.json` with an owner and reason. Deleting or renaming a spec cannot
+runtime. Added, modified, and renamed specs do not need a CI-selectable tag or
+non-CI registration to run. The `@Bug`, `@Maintain`, and `@NonConcurrent`
+exclusions still apply; a changed spec containing only quarantined tests must be
+listed in `non-ci-specs.json` with an owner and reason. Empty or statically skipped
+required specs still fail selection. Deleting or renaming a spec cannot
 remove the only remaining executable coverage for one of its CI tags.
 
 Reverse-impact selection recognizes workspace CI tags, the frontend CI tag map,

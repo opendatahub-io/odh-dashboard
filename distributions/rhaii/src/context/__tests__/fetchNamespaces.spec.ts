@@ -1,3 +1,4 @@
+import { isAiProject, KnownLabels } from '@odh-dashboard/k8s-core';
 import fetchNamespaces, {
   NamespaceListUnavailableError,
   fetchNamespaceByName,
@@ -19,6 +20,32 @@ describe('fetchNamespaces', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
   });
+
+  it.each([true, false, undefined, 'true', null])(
+    'should classify listed projects only for boolean true (%s)',
+    async (classification) => {
+      mockFetch({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              name: 'my-project',
+              displayName: 'My project',
+              phase: 'Active',
+              isAiProject: classification,
+            },
+          ],
+        }),
+      });
+
+      const [result] = await fetchNamespaces();
+      expect(isAiProject(result)).toBe(classification === true);
+      expect(result.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]).toBe(
+        classification === true ? 'true' : undefined,
+      );
+      expect(result.metadata.annotations?.['openshift.io/display-name']).toBe('My project');
+    },
+  );
 
   it('maps namespace items to ProjectKind objects', async () => {
     mockFetch({
@@ -128,6 +155,20 @@ describe('fetchNamespaces', () => {
 });
 
 describe('fetchNamespaceByName', () => {
+  it.each([true, false, undefined, 'true', null])(
+    'should classify looked-up projects only for boolean true (%s)',
+    async (classification) => {
+      mockFetch({
+        ok: true,
+        json: async () => ({
+          data: { name: 'my-project', phase: 'Active', isAiProject: classification },
+        }),
+      });
+
+      expect(isAiProject(await fetchNamespaceByName('my-project'))).toBe(classification === true);
+    },
+  );
+
   it('should return the exact authorized identity with its display name', async () => {
     mockFetch({
       ok: true,

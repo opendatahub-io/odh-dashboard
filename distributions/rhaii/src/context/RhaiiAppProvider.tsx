@@ -33,7 +33,6 @@ const availableAreaStatus: IsAreaAvailableStatus = {
   reliantAreas: null,
   requiredCapabilities: null,
   requiredComponents: null,
-  customCondition: () => true,
 };
 
 const getAreasStatus = (unifiedProjectSelectorEnabled: boolean) => ({
