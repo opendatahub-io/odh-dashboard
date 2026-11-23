@@ -1,0 +1,13 @@
+# OWNERS
+
+approvers:
+  - distributions-approvers
+
+reviewers:
+  - distributions-reviewers
+
+labels:
+  - area/distributions
+
+options:
+  no_parent_owners: true

@@ -29,7 +29,12 @@ import { IconSize } from '@odh-dashboard/internal/types';
 import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import SupportIcon from '~/app/icons/SupportIcon';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
-import { getLatestEvaluationJob } from '~/app/utilities/evaluationUtils';
+import {
+  getLatestEvaluationJob,
+  getQueueNameByProfileName,
+  mergeListEvaluationJobMetadata,
+  resolveEvaluationJobQueues,
+} from '~/app/utilities/evaluationUtils';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteChooserRoute,
@@ -40,6 +45,7 @@ import {
 } from '~/app/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
+import { useHardwareProfiles } from '~/app/hooks/useHardwareProfiles';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import useUser from '~/app/hooks/useUser';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
@@ -93,6 +99,19 @@ const EvaluationsPage: React.FC = () => {
     isPollingEnabled,
   );
   const evaluations = evaluationsResult.jobs;
+  // Queue-backed scheduling for profile-mode jobs is derived from /info, not guaranteed by
+  // the job response contract. Never gate the runs list on this fetch — an unloaded or
+  // failed /info just leaves profile-mode pending jobs showing as Pending. Shares the
+  // ['evalHubInfo', namespace] query with the run form, so no extra request.
+  const { profiles } = useHardwareProfiles(namespace);
+  const queueNameByProfileName = React.useMemo(
+    () => getQueueNameByProfileName(profiles),
+    [profiles],
+  );
+  const enrichedEvaluations = React.useMemo(
+    () => resolveEvaluationJobQueues(evaluations, queueNameByProfileName),
+    [evaluations, queueNameByProfileName],
+  );
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
   const [selectedJob, setSelectedJob] = React.useState<
     { job: EvaluationJob; namespace: string } | undefined
@@ -225,17 +244,38 @@ const EvaluationsPage: React.FC = () => {
     if (!selectedJob) {
       return undefined;
     }
-    return getLatestEvaluationJob(
-      selectedJob.job,
-      evaluations.find((e) => e.resource.id === selectedJob.job.resource.id),
-    );
-  }, [evaluations, selectedJob]);
+    // Pick the latest lifecycle snapshot from the raw list — queue enrichment is metadata-only
+    // and does not advance updated_at, so comparing against enriched jobs would discard the
+    // queue an already-open modal should pick up when /info resolves.
+    const listJob = evaluations.find((e) => e.resource.id === selectedJob.job.resource.id);
+    const latestJob = getLatestEvaluationJob(selectedJob.job, listJob);
+    // The selected snapshot may come from detail polling, which can omit hardware_config
+    // metadata the list response carries. Recover the profile name and any explicit queue
+    // from the raw list job regardless of updated_at — an explicit server queue assignment
+    // must survive, and a queue is only inferred from /info after both snapshots are checked.
+    const jobForResolution = mergeListEvaluationJobMetadata(latestJob, listJob);
+    return resolveEvaluationJobQueues([jobForResolution], queueNameByProfileName)[0];
+  }, [evaluations, queueNameByProfileName, selectedJob]);
 
   const onShowStatus = React.useCallback(
     (job: EvaluationJob) => {
-      setSelectedJob(namespace ? { job, namespace } : undefined);
+      // Table rows bake the enriched list queue into the job they pass here, and that queue
+      // may be display-only metadata derived from /info. The modal must only retain
+      // explicitly server-assigned queues: when the raw list job has none, drop the baked
+      // queue — polledJobData re-derives it from /info on every refresh so it tracks tenant
+      // profile mapping changes instead of being frozen into the selected snapshot.
+      const listJob = evaluations.find((e) => e.resource.id === job.resource.id);
+      const modalJob =
+        listJob && !listJob.hardware_config?.queue?.name && job.hardware_config?.queue
+          ? {
+              ...job,
+              // eslint-disable-next-line camelcase -- API field name.
+              hardware_config: { ...job.hardware_config, queue: undefined },
+            }
+          : job;
+      setSelectedJob(namespace ? { job: modalJob, namespace } : undefined);
     },
-    [namespace],
+    [evaluations, namespace],
   );
 
   const onSelectTab = React.useCallback(
@@ -475,7 +515,7 @@ const EvaluationsPage: React.FC = () => {
                           <EvalHubEmptyState />
                         ) : (
                           <EvaluationsTable
-                            evaluations={evaluations}
+                            evaluations={enrichedEvaluations}
                             loaded={loaded}
                             namespace={namespace}
                             collectionNameMap={collectionNameMap}

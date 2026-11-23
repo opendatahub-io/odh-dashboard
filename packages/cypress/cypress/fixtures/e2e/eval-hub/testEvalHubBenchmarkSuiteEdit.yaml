@@ -1,0 +1,30 @@
+# Eval Hub E2E — edit a saved collection, run it, then verify it can no longer be edited.
+projectNamePrefix: eval-hub-suite-edit-e2e
+evalHubCrName: evalhub
+evalHubInstanceResourceYamlPath: resources/eval-hub/evalhub-instance.yaml
+mlflowInstanceResourceYamlPath: resources/mlflow/mlflow-instance-minimal.yaml
+modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct
+inferenceServiceName: evalhub-suite-llm
+servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml
+hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
+suiteName: EvalHub Cypress edit source
+suiteDomains:
+  - knowledge_and_reasoning
+  - trustworthiness
+benchmarkProviderId: lm_evaluation_harness
+benchmarks:
+  - id: arc_easy
+    name: Basic science Q&A
+    numExamples: 2
+  - id: toxigen
+    name: Toxigen
+    numExamples: 2
+expectedBenchmarkIds:
+  - arc_easy
+  - toxigen
+inferenceModelName: evalhub-suite-llm
+mlflowExperimentName: Cy-Evalhub
+additionalBenchmarkParams: |
+  {
+    "tokenizer": "google/flan-t5-small"
+  }

@@ -2414,6 +2414,14 @@ components:
           type: boolean
           description: Whether the caller has MaaS administrator access.
           example: true
+        orgId:
+          type: string
+          description: The caller's organization id (the token's org_id claim); only for an organization-scoped identity.
+          example: 42c3e46f-2477-44d7-a85b-d3b43f6b31fa
+        orgName:
+          type: string
+          description: The caller's organization name (the token's org_name claim); only for an organization-scoped identity.
+          example: Grid Tenant 1
 
     Namespace:
       type: object

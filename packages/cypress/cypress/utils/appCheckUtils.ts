@@ -3,6 +3,7 @@ import {
   type DashboardConfigKind,
   type DataScienceClusterKindStatus,
 } from '@odh-dashboard/k8s-core';
+import { isFeatureFlagEnabled as isSharedFeatureFlagEnabled } from '@odh-dashboard/ui-core/utilities/featureFlagUtils';
 
 const NVIDIA_NIM_APPLICATION = 'nvidia-nim';
 
@@ -52,7 +53,7 @@ export function filterHiddenApps(
 
 /**
  * Checks if a specific feature flag is enabled in the dashboard configuration.
- * Handles both regular flags (truthy = enabled) and "disable" flags (truthy = disabled).
+ * Handles both regular flags (truthy = enabled) and inverted flags (truthy = disabled).
  * @param flagPath - The path to the flag in the dashboard config (e.g., 'dashboardConfig.mlflow')
  * @returns Cypress chainable boolean indicating whether the feature is enabled.
  */
@@ -61,11 +62,7 @@ export function isFeatureFlagEnabled(flagPath: string): Cypress.Chainable<boolea
     // Extract the flag name from the path
     const flagName = flagPath.split('.').pop() || '';
 
-    // Check if this is a "disable" flag (inverted logic)
-    const isDisableFlag = flagName.startsWith('disable');
-
-    // Handle inverted logic for "disable" flags
-    const isEnabled = isDisableFlag ? flagValue !== true : flagValue === true;
+    const isEnabled = isSharedFeatureFlagEnabled(flagName, flagValue === true);
 
     cy.log(`Feature flag ${flagPath}: ${isEnabled ? 'enabled' : 'disabled'}`);
     return cy.wrap(isEnabled);
@@ -134,9 +131,7 @@ export function filterFeatureFlaggedApps(apps: string[]): Cypress.Chainable<stri
           return true;
         }
 
-        // Check if flag is enabled
-        const isDisableFlag = appName.startsWith('disable');
-        const isEnabled = isDisableFlag ? featureFlagValue !== true : featureFlagValue === true;
+        const isEnabled = isSharedFeatureFlagEnabled(appName, featureFlagValue === true);
 
         if (!isEnabled) {
           cy.log(`Filtering out ${appName} (feature flag disabled)`);
