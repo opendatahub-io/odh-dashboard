@@ -1,3 +1,4 @@
+import * as yaml from 'js-yaml';
 import { createCleanProject, cleanupTestProject } from '../../../utils/projectChecker';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { dataConnectHubConnectionsPage } from '../../../pages/dataConnectHub/connectionsPage';
@@ -7,8 +8,14 @@ import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 describe('Data Connect Hub Pages Load E2E', () => {
   const projectName = `dch-e2e-${generateTestUUID()}`;
   let dataConnectHubBackendAvailable = false;
+  let testData: Record<string, string>;
 
   before(() => {
+    cy.fixture('e2e/dataConnectHub/testDataConnectHubPagesLoad.yaml', 'utf8').then(
+      (yamlContent: string) => {
+        testData = yaml.load(yamlContent) as Record<string, string>;
+      },
+    );
     ensureAdminOcSession();
     isDataConnectHubBackendAvailable().then((backendAvailable) => {
       dataConnectHubBackendAvailable = backendAvailable;
@@ -33,15 +40,17 @@ describe('Data Connect Hub Pages Load E2E', () => {
     () => {
       cy.step('Load the connection types page');
       dataConnectHubConnectionsPage.visitConnectionTypes(projectName);
-      dataConnectHubConnectionsPage.findPageTitle().should('have.text', 'Connections');
+      dataConnectHubConnectionsPage.findPageTitle().should('have.text', testData.pageTitle);
       dataConnectHubConnectionsPage.shouldBeOnRoute('connection-types');
 
       cy.step('Verify the Data Connect Hub navigation item');
-      dataConnectHubConnectionsPage.findNavItem().should('be.visible');
+      dataConnectHubConnectionsPage
+        .findNavItem(testData.navItem, testData.navSection)
+        .should('be.visible');
 
       cy.step('Load the connections page');
       dataConnectHubConnectionsPage.visitConnections(projectName);
-      dataConnectHubConnectionsPage.findPageTitle().should('have.text', 'Connections');
+      dataConnectHubConnectionsPage.findPageTitle().should('have.text', testData.pageTitle);
       dataConnectHubConnectionsPage.shouldBeOnRoute('connections');
     },
   );

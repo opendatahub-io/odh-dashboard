@@ -33,8 +33,8 @@ class DataConnectHubConnectionsPage {
     return cy.findByTestId('connections-empty-state');
   }
 
-  findNavItem() {
-    return appChrome.findNavItem({ name: 'Connections', rootSection: 'AI hub' });
+  findNavItem(name: string, rootSection: string) {
+    return appChrome.findNavItem({ name, rootSection });
   }
 
   shouldBeOnRoute(route: 'connection-types' | 'connections') {
