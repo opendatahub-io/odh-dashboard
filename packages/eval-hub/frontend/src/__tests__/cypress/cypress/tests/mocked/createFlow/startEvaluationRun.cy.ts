@@ -1043,13 +1043,17 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
 
     startEvaluationRunPage.findTestDataRefSourceToggle().click();
     startEvaluationRunPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
-    startEvaluationRunPage.findTestDataRefField('claimName').type('eval-datasets-pvc').clear();
+    startEvaluationRunPage.findTestDataRefField('claimName').type('eval-datasets-pvc');
+
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().should('be.enabled');
+
+    startEvaluationRunPage.findTestDataRefField('claimName').clear();
 
     startEvaluationRunPage
       .findTestDataRefFieldError('claimName')
       .should('contain.text', 'Claim name is required.');
 
-    fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 });
