@@ -486,7 +486,7 @@
   }
 
   /* Columns AutoGluon dropped — muted so used inputs stand out */
-  .automl-model-schema-row--unused td {
+  tr.m-unused td {
     color: var(--pf-t--global--text--color--disabled);
   }
 }
@@ -506,12 +506,9 @@
 }
 
 /* Model schema view toolbar — toggle group (table/JSON views) with the column
-   search beside it in the same row. Bottom spacing separates the row from the
-   table or JSON code block below it. */
+   search beside it in the same row. Spacing (above/below the row) comes from
+   PF utility classes on the Toolbar element. */
 .automl-model-schema-toolbar {
-  margin-block-start: var(--pf-t--global--spacer--md);
-  margin-block-end: var(--pf-t--global--spacer--sm);
-
   /* Widen the search so the full "Search by column name" placeholder plus a
      couple of characters stays visible instead of truncating. */
   .pf-v6-c-text-input-group__text-input {

@@ -39,6 +39,9 @@ export type TabContentProps = {
   isArtifactsLoading?: boolean;
   backtestSelectedMetrics?: string[];
   onBacktestMetricsChange?: (metrics: string[]) => void;
+  // Print (PDF) support: called by a tab rendered in print mode once its data fetches have
+  // settled, so the modal can wait before opening the print dialog (cold-cache safety).
+  onPrintDataReady?: () => void;
 };
 
 export type TabDefinition = {

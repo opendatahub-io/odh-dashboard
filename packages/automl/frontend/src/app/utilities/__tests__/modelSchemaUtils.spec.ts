@@ -216,10 +216,13 @@ describe('buildModelSchema', () => {
         inputFields,
       );
 
-      // col2 is the label column (target) — excluded even though the input schema lists it.
+      // The input schema is the authoritative serving contract — every field is preserved,
+      // including col2 (the label column): if the model's serving contract lists it, it is
+      // an input to send.
       expect(rows).toEqual([
         { name: 'col1', dtype: 'string', role: 'Feature', isUsed: true, position: 1 },
-        { name: 'col3', dtype: 'integer', role: 'Feature', isUsed: true, position: 2 },
+        { name: 'col2', dtype: 'double', role: 'Feature', isUsed: true, position: 2 },
+        { name: 'col3', dtype: 'integer', role: 'Feature', isUsed: true, position: 3 },
       ]);
     });
 
@@ -236,6 +239,7 @@ describe('buildModelSchema', () => {
 
       expect(rows.map((row) => [row.name, row.isUsed])).toEqual([
         ['col1', true],
+        ['col2', false],
         ['col3', true],
       ]);
     });
@@ -254,8 +258,8 @@ describe('buildModelSchema', () => {
       );
 
       // The input schema is the authoritative serving contract — importance-only
-      // features are not appended on this path. col2 is the target and is excluded.
-      expect(rows.map((row) => row.name)).toEqual(['col1', 'col3']);
+      // features are not appended on this path.
+      expect(rows.map((row) => row.name)).toEqual(['col1', 'col2', 'col3']);
     });
 
     it('should still derive timeseries roles by column name', () => {
@@ -269,7 +273,24 @@ describe('buildModelSchema', () => {
       expect(rows.map((row) => [row.name, row.dtype, row.role])).toEqual([
         ['store_id', 'string', 'ID column'],
         ['date', 'timestamp', 'Timestamp column'],
+        ['sales', 'double', 'Target history'],
         ['promotion', 'bool', 'Known covariate'],
+      ]);
+    });
+
+    it('should preserve a required target field from the input schema for timeseries', () => {
+      // Time-series forecasting requires the target's historical values as prediction
+      // inputs — the serving schema lists them, so they must not be filtered out.
+      const rows = buildModelSchema([], 'timeseries', timeseriesParameters, undefined, undefined, [
+        { name: 'store_id', datatype: 'string', role: 'feature', required: true },
+        { name: 'date', datatype: 'timestamp', role: 'feature', required: true },
+        { name: 'sales', datatype: 'number', role: 'feature', required: true },
+      ]);
+
+      expect(rows.map((row) => [row.name, row.role, row.isUsed])).toEqual([
+        ['store_id', 'ID column', true],
+        ['date', 'Timestamp column', true],
+        ['sales', 'Target history', true],
       ]);
     });
   });
@@ -330,6 +351,18 @@ describe('buildSamplePayload', () => {
 
   it('should return an empty instance list for no rows', () => {
     expect(buildSamplePayload([])).toEqual({ instances: [{}] });
+  });
+
+  it('should include a column named __proto__ as an own property', () => {
+    // A plain object would invoke the inherited prototype setter and silently drop
+    // the column from the copyable prediction template.
+    const protoRows: ModelSchemaRow[] = [
+      { name: '__proto__', dtype: 'string', role: 'Feature', isUsed: true, position: 1 },
+      { name: 'col1', dtype: 'integer', role: 'Feature', isUsed: true, position: 2 },
+    ];
+    const payload = buildSamplePayload(protoRows);
+    expect(Object.keys(payload.instances[0])).toEqual(['__proto__', 'col1']);
+    expect(formatSamplePayloadJson(payload)).toContain('"__proto__": ["<string>"]');
   });
 });
 

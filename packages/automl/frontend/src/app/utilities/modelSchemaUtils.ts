@@ -6,7 +6,12 @@ import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 
 /** Role a column plays when scoring the model. */
 export type ModelSchemaRole =
-  'Feature' | 'Known covariate' | 'Past covariate' | 'ID column' | 'Timestamp column';
+  | 'Feature'
+  | 'Known covariate'
+  | 'Past covariate'
+  | 'ID column'
+  | 'Timestamp column'
+  | 'Target history';
 
 export type ModelSchemaRow = {
   name: string;
@@ -77,6 +82,11 @@ export const normalizeInferenceDatatype = (
  *   fallback path only, importance keys not in the CSV (engineered/renamed features) are
  *   appended with an unknown dtype — the input schema, when present, already reflects the
  *   serving contract so nothing is appended.
+ * - Target column: on the CSV fallback path the target is excluded — it is the value being
+ *   predicted, not an input to send. On the input-schema path every field is preserved as
+ *   listed, including the target: the schema is the model's serving contract, and for
+ *   timeseries forecasting the target's historical values are required prediction inputs
+ *   (shown with the `Target history` role).
  * - Timeseries: the ID and timestamp columns are required inputs alongside covariates.
  *   Known covariates (user-designated at configure time) are distinguished from past
  *   covariates. Dropped-column detection is not available for timeseries models.
@@ -105,13 +115,17 @@ export const buildModelSchema = (
   const knownCovariates = isTimeseries ? (parameters?.known_covariates_names ?? []) : [];
 
   // Base entries: column name, dtype, and order — from the input schema when present,
-  // otherwise from the training CSV schema.
+  // otherwise from the training CSV schema. The input schema is the authoritative serving
+  // contract, so all of its fields are preserved (including the target — its historical
+  // values are prediction inputs for timeseries). The CSV fallback excludes the target:
+  // it is the value being predicted, not an input to send.
   const fields = inputSchema ?? [];
   const useInputSchema = fields.length > 0;
   const entries: { name: string; dtype: ModelSchemaRow['dtype'] }[] = useInputSchema
-    ? fields
-        .filter((field) => field.name !== target)
-        .map((field) => ({ name: field.name, dtype: normalizeInferenceDatatype(field.datatype) }))
+    ? fields.map((field) => ({
+        name: field.name,
+        dtype: normalizeInferenceDatatype(field.datatype),
+      }))
     : columns
         .filter((column) => column.name !== target)
         .map((column) => ({ name: column.name, dtype: column.type }));
@@ -124,6 +138,8 @@ export const buildModelSchema = (
         role = 'ID column';
       } else if (name === timestampColumn) {
         role = 'Timestamp column';
+      } else if (name === target) {
+        role = 'Target history';
       } else if (knownCovariates.includes(name)) {
         role = 'Known covariate';
       }
@@ -173,7 +189,9 @@ export const buildModelSchema = (
 export const buildSamplePayload = (
   rows: ModelSchemaRow[],
 ): { instances: Record<string, string[]>[] } => {
-  const instance: Record<string, string[]> = {};
+  // Null prototype: a column named `__proto__` would otherwise invoke the inherited
+  // prototype setter instead of creating an own property, dropping it from the template.
+  const instance: Record<string, string[]> = Object.create(null);
   for (const row of rows) {
     instance[row.name] = [`<${row.dtype ?? 'unknown'}>`];
   }

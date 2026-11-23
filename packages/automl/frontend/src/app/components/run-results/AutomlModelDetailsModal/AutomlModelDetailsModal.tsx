@@ -104,6 +104,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [visibleTabs]);
 
   const [isPrinting, setIsPrinting] = React.useState(false);
+  // Print readiness: tabs rendered in the print container call onPrintDataReady once their
+  // data fetches settle. The print dialog opens only then — a cold-cache schema fetch
+  // would otherwise be captured as an empty or incomplete table in the PDF.
+  const [isPrintDataReady, setIsPrintDataReady] = React.useState(true);
+  const handlePrintDataReady = React.useCallback(() => setIsPrintDataReady(true), []);
   const backtestMetricsRef = React.useRef<string[]>();
 
   React.useEffect(() => {
@@ -111,7 +116,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [selectedModelName]);
 
   React.useEffect(() => {
-    if (!isPrinting) {
+    if (!isPrinting || !isPrintDataReady) {
       return;
     }
     // `afterprint` fires whether the user prints, saves as PDF, or cancels the dialog — it
@@ -126,7 +131,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
     };
-  }, [isPrinting]);
+  }, [isPrinting, isPrintDataReady]);
 
   const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
   const ActiveComponent = activeTab?.component;
@@ -161,6 +166,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     isArtifactsLoading,
     backtestSelectedMetrics: backtestMetricsRef.current,
     onBacktestMetricsChange: handleBacktestMetricsChange,
+    onPrintDataReady: handlePrintDataReady,
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
@@ -188,6 +194,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             onSelectModel={(name) => setSelectedModelName(name)}
             onDownload={() => {
               fireAutomlModelDetailsDownloadInitiated(trackEvent);
+              setIsPrintDataReady(false);
               setIsPrinting(true);
             }}
             onSaveNotebook={
@@ -301,20 +308,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                     isDownloadDisabled
                   />
                   <Title headingLevel="h2">{tab.label}</Title>
-                  <TabComponent
-                    print
-                    model={model}
-                    namespace={namespace}
-                    taskType={taskType}
-                    parameters={parameters}
-                    createdAt={createdAt}
-                    featureImportance={featureImportance}
-                    confusionMatrix={confusionMatrix}
-                    curves={curves}
-                    backTesting={backTesting}
-                    isArtifactsLoading={isArtifactsLoading}
-                    backtestSelectedMetrics={backtestMetricsRef.current}
-                  />
+                  <TabComponent {...tabContentProps} print />
                 </div>
               );
             })}

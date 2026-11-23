@@ -54,6 +54,7 @@ const ModelSchemaTab: React.FC<TabContentProps> = ({
   backTesting,
   isArtifactsLoading,
   print,
+  onPrintDataReady,
 }) => {
   const [searchValue, setSearchValue] = React.useState('');
   // Default sort is by position ascending, which is training-data column order — the order
@@ -83,7 +84,25 @@ const ModelSchemaTab: React.FC<TabContentProps> = ({
 
   // Feature importance (tabular) resolves which columns AutoGluon actually used;
   // back-testing data (timeseries) carries the authoritative target/id/timestamp columns.
-  const isLoading = schemaQuery.isLoading || Boolean(isArtifactsLoading);
+  // The query uses placeholderData: [] (empty schema while the first fetch is in flight),
+  // which reports isLoading=false — treat an active fetch of placeholder data as loading so
+  // the skeleton shows instead of a premature "no schema data" empty state. A disabled
+  // query (input schema present) never fetches, and a successful empty schema is not
+  // placeholder data, so neither is treated as loading.
+  const isSchemaLoading =
+    schemaQuery.isLoading || (schemaQuery.isPlaceholderData === true && schemaQuery.isFetching);
+  const isLoading = isSchemaLoading || Boolean(isArtifactsLoading);
+
+  // In print (PDF) mode this tab mounts fresh with the print container; the schema query
+  // starts here. Report readiness once the query has settled (fetched, errored, or never
+  // started) so the modal can wait before opening the print dialog — otherwise a cold
+  // cache captures an empty or incomplete schema in the PDF.
+  const isSchemaSettled = !isSchemaLoading;
+  React.useEffect(() => {
+    if (print && isSchemaSettled) {
+      onPrintDataReady?.();
+    }
+  }, [print, isSchemaSettled, onPrintDataReady]);
   const columns: ColumnSchema[] = React.useMemo(() => schemaQuery.data ?? [], [schemaQuery.data]);
 
   const rows = React.useMemo(
@@ -249,7 +268,7 @@ const ModelSchemaTab: React.FC<TabContentProps> = ({
               <Tr
                 key={row.name}
                 data-testid={`model-schema-row-${row.name}`}
-                className={row.isUsed ? undefined : 'automl-model-schema-row--unused'}
+                className={row.isUsed ? undefined : 'm-unused'}
               >
                 <Td dataLabel="Order">{row.position}</Td>
                 <Td dataLabel="Column name">{row.name}</Td>
@@ -317,7 +336,10 @@ const ModelSchemaTab: React.FC<TabContentProps> = ({
           {/* Toggle group switches between the table and JSON views; the column
               search sits in the same row beside the JSON toggle and only applies
               to the table view. */}
-          <Toolbar className="automl-model-schema-toolbar" data-testid="model-schema-view-toolbar">
+          <Toolbar
+            className="automl-model-schema-toolbar pf-v6-u-mt-md pf-v6-u-mb-sm"
+            data-testid="model-schema-view-toolbar"
+          >
             <ToolbarContent>
               <ToolbarItem>
                 <ToggleGroup aria-label="Model schema view" data-testid="model-schema-view-toggle">

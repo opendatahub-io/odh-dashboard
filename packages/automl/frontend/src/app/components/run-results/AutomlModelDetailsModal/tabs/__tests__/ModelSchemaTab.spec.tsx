@@ -41,6 +41,8 @@ const tabularColumns = [
 const queryResult = (data: ColumnSchema[], overrides: Record<string, unknown> = {}) => ({
   data,
   isLoading: false,
+  isFetching: false,
+  isPlaceholderData: false,
   isError: false,
   error: null,
   resetSchemaCache: jest.fn(),
@@ -57,6 +59,28 @@ describe('ModelSchemaTab', () => {
     const { container } = render(<ModelSchemaTab {...tabularProps} />);
     const skeletons = container.querySelectorAll('.pf-v6-c-skeleton');
     expect(skeletons.length).toBeGreaterThan(0);
+  });
+
+  it('should render skeleton loading state while placeholder data is being fetched', () => {
+    // placeholderData: [] makes isLoading false on the first fetch — the tab must still
+    // show the skeleton instead of a premature "no schema data" empty state.
+    useS3GetFileSchemaQueryMock.mockReturnValue(
+      queryResult([], { isPlaceholderData: true, isFetching: true }) as never,
+    );
+    const { container } = render(<ModelSchemaTab {...tabularProps} />);
+    const skeletons = container.querySelectorAll('.pf-v6-c-skeleton');
+    expect(skeletons.length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('model-schema-no-data-empty-state')).not.toBeInTheDocument();
+  });
+
+  it('should not treat an empty fetched schema as loading', () => {
+    // A successful fetch that returned an empty schema is real data — show the empty
+    // state, not the skeleton.
+    useS3GetFileSchemaQueryMock.mockReturnValue(
+      queryResult([], { isPlaceholderData: false, isFetching: false }) as never,
+    );
+    render(<ModelSchemaTab {...tabularProps} />);
+    expect(screen.getByTestId('model-schema-no-data-empty-state')).toBeInTheDocument();
   });
 
   it('should render skeleton loading state while artifacts are loading', () => {
@@ -329,10 +353,11 @@ describe('ModelSchemaTab', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'JSON' }));
       const code = screen.getByTestId('model-schema-json-code');
-      // col2 is the target — excluded; 'number' is normalized to 'double'.
+      // Every input-schema field is preserved — the schema is the serving contract.
+      // 'number' is normalized to 'double'.
       expect(code).toHaveTextContent('<integer>');
       expect(code).toHaveTextContent('<double>');
-      expect(code).not.toHaveTextContent('col2');
+      expect(code).toHaveTextContent('col2');
     });
   });
 
@@ -366,10 +391,11 @@ describe('ModelSchemaTab', () => {
         undefined,
       );
 
-      // col2 is the label column — excluded; 'number' is normalized to Double.
+      // Every input-schema field is preserved (the schema is the serving contract);
+      // 'number' is normalized to Double.
       expect(screen.getByTestId('model-schema-row-col1')).toHaveTextContent('String');
       expect(screen.getByTestId('model-schema-row-col3')).toHaveTextContent('Integer');
-      expect(screen.queryByTestId('model-schema-row-col2')).not.toBeInTheDocument();
+      expect(screen.getByTestId('model-schema-row-col2')).toBeInTheDocument();
     });
 
     it('should keep the loading state while artifacts are loading', () => {
@@ -407,6 +433,83 @@ describe('ModelSchemaTab', () => {
         'data.csv',
       );
       expect(screen.getByTestId('model-schema-row-col1')).toBeInTheDocument();
+    });
+  });
+
+  describe('print readiness', () => {
+    it('should call onPrintDataReady once the schema query settles', () => {
+      const onPrintDataReady = jest.fn();
+      useS3GetFileSchemaQueryMock.mockReturnValue(queryResult(tabularColumns) as never);
+      render(<ModelSchemaTab {...tabularProps} print onPrintDataReady={onPrintDataReady} />);
+
+      expect(onPrintDataReady).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onPrintDataReady while placeholder data is still fetching', () => {
+      const onPrintDataReady = jest.fn();
+      useS3GetFileSchemaQueryMock.mockReturnValue(
+        queryResult([], { isPlaceholderData: true, isFetching: true }) as never,
+      );
+      const { rerender } = render(
+        <ModelSchemaTab {...tabularProps} print onPrintDataReady={onPrintDataReady} />,
+      );
+
+      expect(onPrintDataReady).not.toHaveBeenCalled();
+
+      // The fetch settles — readiness is reported so the print dialog can open.
+      useS3GetFileSchemaQueryMock.mockReturnValue(queryResult(tabularColumns) as never);
+      rerender(<ModelSchemaTab {...tabularProps} print onPrintDataReady={onPrintDataReady} />);
+      expect(onPrintDataReady).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call onPrintDataReady immediately when the query is disabled', () => {
+      // Input schema present — the CSV query never starts, so the tab is ready at once.
+      const onPrintDataReady = jest.fn();
+      useS3GetFileSchemaQueryMock.mockReturnValue(queryResult([]) as never);
+      render(
+        <ModelSchemaTab
+          {...tabularProps}
+          model={{
+            ...baseModel,
+            inference: {
+              input_data_schema: {
+                protocol: 'v1_json',
+                instances: {
+                  required: true,
+                  fields: [{ name: 'col1', datatype: 'string', role: 'feature', required: true }],
+                },
+              },
+            },
+          }}
+          print
+          onPrintDataReady={onPrintDataReady}
+        />,
+      );
+
+      expect(onPrintDataReady).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call onPrintDataReady when the schema query errors', () => {
+      const onPrintDataReady = jest.fn();
+      useS3GetFileSchemaQueryMock.mockReturnValue(
+        queryResult([], {
+          isError: true,
+          error: new Error('boom'),
+          isFetching: false,
+          isPlaceholderData: false,
+        }) as never,
+      );
+      render(<ModelSchemaTab {...tabularProps} print onPrintDataReady={onPrintDataReady} />);
+
+      expect(onPrintDataReady).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onPrintDataReady outside print mode', () => {
+      const onPrintDataReady = jest.fn();
+      useS3GetFileSchemaQueryMock.mockReturnValue(queryResult(tabularColumns) as never);
+      render(<ModelSchemaTab {...tabularProps} onPrintDataReady={onPrintDataReady} />);
+
+      expect(onPrintDataReady).not.toHaveBeenCalled();
     });
   });
 });
