@@ -86,7 +86,7 @@ func TestClusterSettings_PlanUpdate_ReviewsEveryPlannedWrite(t *testing.T) {
 }
 
 func TestClusterSettings_PlanUpdate_DisabledCullerReviewsDelete(t *testing.T) {
-	caller := newClientPair()
+	caller := newClientPair(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cullerConfigName, Namespace: credNS}})
 	seen := allowAllBut(caller, nil)
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
@@ -159,4 +159,85 @@ func TestClusterSettings_UpdateConfigMaps_ExecutesPlannedUpdateOnly(t *testing.T
 func TestClusterSettings_UpdateConfigMaps_RequiresPlan(t *testing.T) {
 	repo := NewClusterSettingsRepository(newClientPair().typed)
 	require.Error(t, repo.UpdateConfigMaps(context.Background(), credNS, nil))
+}
+
+// Review (RHOAIENG-96081): with culling already off and its ConfigMap absent,
+// there is nothing to delete, so a caller without delete may still save.
+func TestClusterSettings_PlanUpdate_DisabledCullerAbsent_NoDeleteReview(t *testing.T) {
+	caller := newClientPair()
+	seen := allowAllBut(caller, map[string]bool{"delete configmaps": true})
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	settings := &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout}
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", settings, nil)
+	require.NoError(t, err)
+	for _, a := range *seen {
+		assert.NotEqual(t, "delete", a.Verb, "no delete is reviewed for an absent ConfigMap")
+	}
+	require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
+	assert.Empty(t, writes(caller))
+}
+
+// Review (RHOAIENG-96081): a ConfigMap the plan left alone because it was
+// absent, but which appears before the writes, is a conflict, not a success.
+func TestClusterSettings_UpdateConfigMaps_AbsentMapAppearsAfterPlan_Conflict(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		settings *models.ClusterSettings
+		cm       string
+	}{
+		{"segment key", &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: 3600}, segmentKeyConfigName},
+		{"culler already off", &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout}, cullerConfigName},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			caller := newClientPair()
+			allowAllBut(caller, nil)
+			repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+			plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", tc.settings, nil)
+			require.NoError(t, err)
+			require.NoError(t, caller.typed.Tracker().Add(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: tc.cm, Namespace: credNS}}))
+
+			err = repo.UpdateConfigMaps(context.Background(), credNS, plan)
+			require.Error(t, err)
+			assert.True(t, k8serrors.IsConflict(err), "%v", err)
+		})
+	}
+}
+
+func TestClusterSettings_UpdateConfigMaps_SegmentKeyDeletedAfterPlan_Conflict(t *testing.T) {
+	caller := newClientPair(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: segmentKeyConfigName, Namespace: credNS}})
+	allowAllBut(caller, nil)
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)
+	require.NoError(t, err)
+	require.NoError(t, caller.typed.Tracker().Delete(corev1.SchemeGroupVersion.WithResource("configmaps"), credNS, segmentKeyConfigName))
+
+	err = repo.UpdateConfigMaps(context.Background(), credNS, plan)
+	require.Error(t, err)
+	assert.True(t, k8serrors.IsConflict(err), "%v", err)
+}
+
+// Review (RHOAIENG-96081): a denied culler read is an error, never a detected
+// change, so it cannot trigger a notebook-controller restart.
+func TestClusterSettings_DeniedCullerRead_NoRollout(t *testing.T) {
+	caller := newClientPair(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cullerConfigName, Namespace: credNS}})
+	allowAllBut(caller, nil)
+	caller.typed.PrependReactor("get", "configmaps", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		if a.(k8stesting.GetAction).GetName() != cullerConfigName {
+			return false, nil, nil
+		}
+		return true, nil, k8serrors.NewForbidden(corev1.Resource("configmaps"), cullerConfigName, nil)
+	})
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	changed, err := repo.detectChanges(context.Background(), caller.typed, credNS,
+		&models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout}, nil)
+	require.Error(t, err)
+	assert.False(t, changed)
+
+	_, err = repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)
+	require.True(t, k8serrors.IsForbidden(err), "%v", err)
+	assert.Empty(t, writes(caller), "nothing is written, the rollout included")
 }

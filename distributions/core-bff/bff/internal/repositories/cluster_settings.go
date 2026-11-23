@@ -131,9 +131,10 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 // UpdateConfigMaps executes the ConfigMap writes and the notebook-controller
 // rollout fixed by PlanUpdate, using the clients selected by the credential
 // policy. It does not re-decide an operation: if the cluster changed since the
-// plan (for example the culler ConfigMap appeared), the planned write fails and
-// the error is returned, instead of switching to a write the preflight did not
-// check.
+// plan (for example the culler ConfigMap appeared), the planned write fails, or
+// a conflict is returned for a ConfigMap the plan left alone, instead of
+// switching to a write the preflight did not check or reporting success for a
+// setting that was not stored.
 func (r *ClusterSettingsRepository) UpdateConfigMaps(ctx context.Context, namespace string, plan *ClusterSettingsPlan) error {
 	if plan == nil {
 		return fmt.Errorf("cluster settings update has no plan")
@@ -150,6 +151,8 @@ func (r *ClusterSettingsRepository) UpdateConfigMaps(ctx context.Context, namesp
 		if err := r.updateSegmentKeyConfig(ctx, cs, namespace, plan.settings.UserTrackingEnabled); err != nil {
 			return fmt.Errorf("failed to update segment key config: %w", err)
 		}
+	} else if err := requireStillAbsent(ctx, cs, namespace, segmentKeyConfigName); err != nil {
+		return fmt.Errorf("failed to update segment key config: %w", err)
 	}
 
 	if plan.rollout {

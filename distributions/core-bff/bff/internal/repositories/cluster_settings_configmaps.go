@@ -53,15 +53,17 @@ func readUserTrackingEnabled(ctx context.Context, saClientset kubernetes.Interfa
 
 func (r *ClusterSettingsRepository) detectChanges(ctx context.Context, cs kubernetes.Interface,
 	namespace string, settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
-) bool {
+) (bool, error) {
 	if settings.PVCSize != currentPVCSize(currentConfig) {
-		return true
+		return true, nil
 	}
+	// A failed read (for example a caller denied the culler ConfigMap) is an
+	// error, not a change: it must not trigger a notebook-controller restart.
 	currentTimeout, err := readCullerTimeout(ctx, cs, namespace)
 	if err != nil {
-		return true
+		return false, err
 	}
-	return settings.CullerTimeout != currentTimeout
+	return settings.CullerTimeout != currentTimeout, nil
 }
 
 // applyCullerConfig performs the planned culler ConfigMap operation and only
@@ -74,6 +76,8 @@ func (r *ClusterSettingsRepository) applyCullerConfig(
 	cullerMinutes := cullerTimeout / 60
 
 	switch op {
+	case cullerOpNone:
+		return requireStillAbsent(ctx, cs, namespace, cullerConfigName)
 	case cullerOpDelete:
 		err := cmClient.Delete(ctx, cullerConfigName, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
@@ -118,12 +122,15 @@ func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, c
 	return err
 }
 
+// updateSegmentKeyConfig performs the planned segment-key ConfigMap update. A
+// ConfigMap removed since the plan is a conflict, so the request does not report
+// success for a setting it did not store.
 func (r *ClusterSettingsRepository) updateSegmentKeyConfig(ctx context.Context, cs kubernetes.Interface, namespace string, enabled bool) error {
 	cmClient := cs.CoreV1().ConfigMaps(namespace)
 	cm, err := cmClient.Get(ctx, segmentKeyConfigName, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			return nil
+			return planConflict(segmentKeyConfigName, "was deleted")
 		}
 		return err
 	}
@@ -133,6 +140,26 @@ func (r *ClusterSettingsRepository) updateSegmentKeyConfig(ctx context.Context, 
 	cm.Data[keySegmentKeyEnabled] = strconv.FormatBool(enabled)
 	_, err = cmClient.Update(ctx, cm, metav1.UpdateOptions{})
 	return err
+}
+
+// requireStillAbsent checks that a ConfigMap the plan found absent, and so
+// left alone, is still absent. One created since the plan would hold a value
+// this request did not write, so it is reported as a conflict instead of
+// success.
+func requireStillAbsent(ctx context.Context, cs kubernetes.Interface, namespace, name string) error {
+	exists, err := configMapExists(ctx, cs, namespace, name)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return planConflict(name, "was created")
+	}
+	return nil
+}
+
+func planConflict(name, what string) error {
+	return k8serrors.NewConflict(corev1.Resource("configmaps"), name,
+		fmt.Errorf("it %s after the update was planned; reload the settings and save again", what))
 }
 
 // --- Deployment rollout ---

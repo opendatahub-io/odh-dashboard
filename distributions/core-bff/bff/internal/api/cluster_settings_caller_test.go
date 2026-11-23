@@ -198,7 +198,7 @@ func TestUpdateClusterSettings_CallerCannotReadConfig_403BeforeAnyWrite(t *testi
 func TestGetClusterSettings_CallerDeniedSegmentKey_Is403(t *testing.T) {
 	f := newCallerSettingsFixture(t)
 	// Tracking is disabled by default; the segment key is read only when it is on.
-	_, err := f.saDyn.Resource(models.DashboardConfigGVR).Namespace("dash-ns").Patch(context.Background(),
+	_, err := f.dyn.Resource(models.DashboardConfigGVR).Namespace("dash-ns").Patch(context.Background(),
 		"odh-dashboard-config", types.MergePatchType, []byte(`{"spec":{"dashboardConfig":{"disableTracking":false}}}`), metav1.PatchOptions{})
 	require.NoError(t, err)
 	f.typed.PrependReactor("get", "configmaps", func(a k8stesting.Action) (bool, runtime.Object, error) {
@@ -234,4 +234,49 @@ func TestPatchConfig_Caller_ResponseReflectsPatch(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
 	dc := body["spec"].(map[string]any)["dashboardConfig"].(map[string]any)
 	assert.Equal(t, true, dc["disableKServe"])
+}
+
+// Review (RHOAIENG-96081): GET uses the same caller-scoped read as PUT, so the
+// form shows the stored settings even when the service account cannot read
+// them, and saving it does not write the defaults back.
+func TestGetClusterSettings_CallerReadsConfig_NotServiceAccountDefaults(t *testing.T) {
+	f := newCallerSettingsFixture(t)
+	f.saDyn.PrependReactor("get", "odhdashboardconfigs", forbidden("odh-dashboard-config"))
+	_, err := f.dyn.Resource(models.DashboardConfigGVR).Namespace("dash-ns").Patch(context.Background(),
+		"odh-dashboard-config", types.MergePatchType, []byte(`{"spec":{"notebookController":{"enabled":true,"pvcSize":"75Gi"}}}`), metav1.PatchOptions{})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/cluster-settings", nil)
+	req = reqWithIdentity(req, &k8s.RequestIdentity{UserID: "caller", Token: k8s.NewBearerToken("caller-token")})
+	rr := httptest.NewRecorder()
+	f.app.GetClusterSettingsHandler(rr, req, nil)
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	var settings models.ClusterSettings
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &settings))
+	assert.Equal(t, 75, settings.PVCSize, "the stored value, not the 20Gi default")
+}
+
+func TestGetClusterSettings_CallerCannotReadConfig_Is403(t *testing.T) {
+	f := newCallerSettingsFixture(t)
+	f.dyn.PrependReactor("get", "odhdashboardconfigs", forbidden("odh-dashboard-config"))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/cluster-settings", nil)
+	req = reqWithIdentity(req, &k8s.RequestIdentity{UserID: "caller", Token: k8s.NewBearerToken("caller-token")})
+	rr := httptest.NewRecorder()
+	f.app.GetClusterSettingsHandler(rr, req, nil)
+	assert.Equal(t, http.StatusForbidden, rr.Code, "no defaults are shown to a caller who cannot read the settings")
+}
+
+func TestGetClusterSettings_CallerNoInstance_ShowsDefaults(t *testing.T) {
+	f := newCallerSettingsFixture(t)
+	require.NoError(t, f.dyn.Resource(models.DashboardConfigGVR).Namespace("dash-ns").Delete(context.Background(), "odh-dashboard-config", metav1.DeleteOptions{}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/cluster-settings", nil)
+	req = reqWithIdentity(req, &k8s.RequestIdentity{UserID: "caller", Token: k8s.NewBearerToken("caller-token")})
+	rr := httptest.NewRecorder()
+	f.app.GetClusterSettingsHandler(rr, req, nil)
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	var settings models.ClusterSettings
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &settings))
+	assert.Equal(t, 20, settings.PVCSize)
 }

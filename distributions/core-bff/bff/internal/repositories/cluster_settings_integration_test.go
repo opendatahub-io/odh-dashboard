@@ -154,7 +154,7 @@ func TestDetectChanges_PVCChanged(t *testing.T) {
 	}
 	settings := &models.ClusterSettings{PVCSize: 50}
 
-	assert.True(t, repo.detectChanges(context.Background(), cs, testNS, settings, config))
+	assert.True(t, mustDetect(t, repo, cs, settings, config))
 }
 
 func TestDetectChanges_CullerChanged(t *testing.T) {
@@ -163,7 +163,7 @@ func TestDetectChanges_CullerChanged(t *testing.T) {
 
 	settings := &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: 7200}
 
-	assert.True(t, repo.detectChanges(context.Background(), cs, testNS, settings, defaultDashConfig()))
+	assert.True(t, mustDetect(t, repo, cs, settings, defaultDashConfig()))
 }
 
 func TestDetectChanges_NoChanges(t *testing.T) {
@@ -172,7 +172,7 @@ func TestDetectChanges_NoChanges(t *testing.T) {
 
 	settings := &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout}
 
-	assert.False(t, repo.detectChanges(context.Background(), cs, testNS, settings, defaultDashConfig()))
+	assert.False(t, mustDetect(t, repo, cs, settings, defaultDashConfig()))
 }
 
 func TestApplyDashboardConfigToSettings(t *testing.T) {
@@ -204,4 +204,11 @@ func TestApplyDashboardConfigToSettings(t *testing.T) {
 	assert.Equal(t, "rolling", settings.DefaultDeploymentStrategy)
 	assert.Equal(t, true, *settings.IsDistributedInferencingDefault)
 	assert.Equal(t, 50, settings.PVCSize)
+}
+
+func mustDetect(t *testing.T, repo *ClusterSettingsRepository, cs *fake.Clientset, settings *models.ClusterSettings, cfg *models.DashboardConfig) bool {
+	t.Helper()
+	changed, err := repo.detectChanges(context.Background(), cs, testNS, settings, cfg)
+	require.NoError(t, err)
+	return changed
 }

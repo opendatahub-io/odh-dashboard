@@ -19,6 +19,7 @@ type clusterSettingsWrite struct {
 
 // Culler ConfigMap operations a plan can choose.
 const (
+	cullerOpNone   = "none" // culling disabled and the ConfigMap already absent
 	cullerOpDelete = "delete"
 	cullerOpCreate = "create"
 	cullerOpUpdate = "update"
@@ -103,15 +104,19 @@ func (r *ClusterSettingsRepository) buildPlan(
 		group: models.DashboardConfigGVR.Group, resource: models.DashboardConfigGVR.Resource, verb: "patch", name: dashboardConfigName,
 	}}
 
-	if settings.CullerTimeout == defaultCullerTimeout {
+	cullerExists, err := configMapExists(ctx, cs, namespace, cullerConfigName)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case settings.CullerTimeout == defaultCullerTimeout && !cullerExists:
+		// Culling is already off: nothing to delete, so nothing to authorize.
+		plan.cullerOp = cullerOpNone
+	case settings.CullerTimeout == defaultCullerTimeout:
 		plan.cullerOp = cullerOpDelete
 		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "delete", name: cullerConfigName})
-	} else {
-		exists, err := configMapExists(ctx, cs, namespace, cullerConfigName)
-		if err != nil {
-			return nil, err
-		}
-		if exists {
+	default:
+		if cullerExists {
 			plan.cullerOp = cullerOpUpdate
 			plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: cullerConfigName})
 		} else {
@@ -121,16 +126,20 @@ func (r *ClusterSettingsRepository) buildPlan(
 		}
 	}
 
-	exists, err := configMapExists(ctx, cs, namespace, segmentKeyConfigName)
+	segmentKeyExists, err := configMapExists(ctx, cs, namespace, segmentKeyConfigName)
 	if err != nil {
 		return nil, err
 	}
-	if exists {
+	if segmentKeyExists {
 		plan.updateSegmentKey = true
 		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: segmentKeyConfigName})
 	}
 
-	if r.detectChanges(ctx, cs, namespace, settings, currentConfig) {
+	needsRollout, err := r.detectChanges(ctx, cs, namespace, settings, currentConfig)
+	if err != nil {
+		return nil, err
+	}
+	if needsRollout {
 		plan.rollout = true
 		plan.writes = append(plan.writes, clusterSettingsWrite{group: "apps", resource: "deployments", verb: "patch", name: notebookControllerDeploy})
 	}

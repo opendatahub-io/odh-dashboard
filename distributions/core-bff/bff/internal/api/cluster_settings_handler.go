@@ -7,6 +7,8 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -14,9 +16,19 @@ import (
 func (app *App) GetClusterSettingsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	dashConfig, err := app.repositories.DashboardConfig.GetDashboardConfig(
-		ctx, app.config.Namespace, app.config.DashboardConfigName, nil,
+	// The same caller-scoped read PUT uses: on xKS the caller's own view of the
+	// stored settings, so a denied read is the caller's 403, never the defaults
+	// the bootstrap read falls back to. Only when no instance exists at all are
+	// the defaults shown, as before; saving then fails, because PUT refuses to
+	// write against a configuration it could not read.
+	dashConfig, err := app.repositories.DashboardConfig.GetAdminDashboardConfig(
+		ctx, app.config.Namespace, app.config.DashboardConfigName,
 	)
+	if k8serrors.IsNotFound(err) || meta.IsNoMatchError(err) {
+		dashConfig, err = app.repositories.DashboardConfig.GetDashboardConfig(
+			ctx, app.config.Namespace, app.config.DashboardConfigName, nil,
+		)
+	}
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -50,7 +62,7 @@ func (app *App) UpdateClusterSettingsHandler(w http.ResponseWriter, r *http.Requ
 
 	// On xKS the write is computed from the caller's own read, so a caller who
 	// cannot read the configuration is refused before anything is written.
-	currentConfig, err := app.repositories.DashboardConfig.GetDashboardConfigForUpdate(
+	currentConfig, err := app.repositories.DashboardConfig.GetAdminDashboardConfig(
 		ctx, app.config.Namespace, app.config.DashboardConfigName,
 	)
 	if err != nil {

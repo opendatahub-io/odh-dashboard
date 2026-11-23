@@ -61,12 +61,14 @@ func (r *DashboardConfigRepository) GetDashboardConfig(
 	return r.mergeDashboardConfig(raw, featureFlagOverrides)
 }
 
-// GetDashboardConfigForUpdate reads the configuration an admin write is
-// computed from. Under the service-account policy it is the bootstrap read.
+// GetAdminDashboardConfig reads the configuration the admin cluster-settings
+// endpoints show and compute their writes from. Under the service-account
+// policy it is the bootstrap read.
 // Under the caller policy it is the caller's own read of the instance, with no
-// fallback: a denied, missing or absent configuration aborts the write instead
-// of diffing against defaults the caller never saw.
-func (r *DashboardConfigRepository) GetDashboardConfigForUpdate(
+// fallback: a denied, missing or absent configuration fails the request instead
+// of showing, or diffing against, defaults the caller never saw. GET and PUT use
+// the same read, so a save never writes back defaults the form was shown.
+func (r *DashboardConfigRepository) GetAdminDashboardConfig(
 	ctx context.Context,
 	namespace, name string,
 ) (*models.DashboardConfig, error) {
