@@ -614,7 +614,7 @@ describe('Deployment wizard YAML view', () => {
     });
   });
 
-  it('uses the accelerator picked in the form after a YAML round-trip', () => {
+  it('uses the accelerator and resource name picked in the form after a YAML round-trip', () => {
     // Enable the accelerator field (needs vLLM-on-MaaS) without the MaaS side effects
     cy.interceptOdh(
       'GET /api/config',
@@ -657,6 +657,7 @@ describe('Deployment wizard YAML view', () => {
       },
     ).as('createLLMInferenceServiceConfig');
 
+    const RENAMED = 'renamed-after-yaml';
     setupWizardWithFormData();
 
     // Pick accelerator A
@@ -675,6 +676,10 @@ describe('Deployment wizard YAML view', () => {
     );
     modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
 
+    // The YAML edit remounted the form from the YAML; the new deployment's name stays editable
+    modelServingWizard.findResourceNameButton().click();
+    modelServingWizard.findResourceNameInput().should('be.enabled').clear().type(RENAMED);
+
     // Switch accelerator A -> B
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.selectGlobalScopedTemplateOption('vLLM CUDA');
@@ -686,10 +691,14 @@ describe('Deployment wizard YAML view', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
-    const rocmRef = `${MODEL_NAME}-vllm-rocm`;
-    const cudaRef = `${MODEL_NAME}-vllm-cuda`;
+    // Config copies are named after the resource, so they follow the rename
+    const rocmRef = `${RENAMED}-vllm-rocm`;
+    const cudaRef = `${RENAMED}-vllm-cuda`;
 
     cy.wait('@createLLMInferenceService').then((interception) => {
+      expect(interception.request.body.metadata.name).to.equal(RENAMED);
+      // The served model name followed the resource name, so it follows the rename too
+      expect(interception.request.body.spec.model.name).to.equal(RENAMED);
       expect(interception.request.body.metadata.annotations).to.containSubset({
         'opendatahub.io/accelerator-config-ref': cudaRef,
       });
@@ -701,6 +710,7 @@ describe('Deployment wizard YAML view', () => {
       const names = interceptions.map((i) => i.request.body.metadata.name);
       expect(names).to.include(cudaRef);
       expect(names).not.to.include(rocmRef);
+      expect(names).not.to.include(`${MODEL_NAME}-vllm-cuda`);
     });
   });
 

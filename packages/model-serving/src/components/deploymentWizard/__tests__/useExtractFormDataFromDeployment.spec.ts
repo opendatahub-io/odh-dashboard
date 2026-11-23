@@ -142,4 +142,23 @@ describe('useExtractFormDataFromDeployment', () => {
       requiresHuggingFaceApiKey: true,
     });
   });
+
+  it.each([
+    { resourceVersion: undefined, immutable: false, isEditing: false },
+    { resourceVersion: '1', immutable: true, isEditing: true },
+  ])(
+    'should only lock the resource name of a resource that exists: %j',
+    ({ resourceVersion, immutable, isEditing }) => {
+      // A deployment without a resource version comes from YAML for a resource not created yet
+      const deployment = structuredClone(mockDeployment);
+      deployment.model.metadata.resourceVersion = resourceVersion;
+
+      const renderResult = testHook(useExtractFormDataFromDeployment)(deployment);
+      expect(renderResult.result.current.formData?.k8sNameDesc?.k8sName).toMatchObject({
+        value: 'test-model',
+        state: { immutable },
+      });
+      expect(renderResult.result.current.formData?.isEditing).toBe(isEditing);
+    },
+  );
 });
