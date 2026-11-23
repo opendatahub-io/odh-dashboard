@@ -12,7 +12,7 @@ describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () 
         '@Dashboard',
         '@NonConcurrent',
         '@SettingsCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

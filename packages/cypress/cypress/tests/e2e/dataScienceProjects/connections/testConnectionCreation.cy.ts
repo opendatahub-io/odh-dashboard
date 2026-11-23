@@ -61,7 +61,7 @@ describe('Verify Connections - Creation and Deletion', () => {
         '@ODS-1826',
         '@Dashboard',
         '@ci-dashboard-regression-tags',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

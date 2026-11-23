@@ -93,7 +93,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
         '@SmokeSet1',
         '@Tier1',
         '@HardwareProfilesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

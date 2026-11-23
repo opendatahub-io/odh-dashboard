@@ -85,7 +85,7 @@ describe('Verify Connection Type Creation', () => {
         '@Dashboard',
         '@ConnectionTypes',
         '@ConnectionTypesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

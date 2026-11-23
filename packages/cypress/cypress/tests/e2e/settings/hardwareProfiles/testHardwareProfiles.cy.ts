@@ -37,7 +37,7 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
         '@Smoke',
         '@SmokeSet1',
         '@HardwareProfilesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

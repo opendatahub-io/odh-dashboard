@@ -11,7 +11,7 @@ describe('Verify that logged in users display on the Dashboard', () => {
         '@ODS-354',
         '@Dashboard',
         '@ci-dashboard-regression-tags',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

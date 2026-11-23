@@ -24,7 +24,7 @@ describe('Verify OOTB Connection Types', () => {
         '@Dashboard',
         '@ConnectionTypes',
         '@ConnectionTypesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

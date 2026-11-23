@@ -78,7 +78,7 @@ describe('Workbenches - tolerations tests', () => {
         '@Sanity',
         '@SanitySet2',
         '@HardwareProfilesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {
@@ -133,7 +133,7 @@ describe('Workbenches - tolerations tests', () => {
         '@Sanity',
         '@SanitySet2',
         '@HardwareProfilesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {
@@ -175,7 +175,7 @@ describe('Workbenches - tolerations tests', () => {
         '@Sanity',
         '@SanitySet2',
         '@HardwareProfilesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

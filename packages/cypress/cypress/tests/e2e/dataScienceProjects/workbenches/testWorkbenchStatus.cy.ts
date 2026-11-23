@@ -63,7 +63,7 @@ describe('Workbenches - status tests', () => {
         '@Dashboard',
         '@Workbenches',
         '@WorkbenchesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

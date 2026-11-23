@@ -171,7 +171,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
         '@Dashboard',
         '@ci-dashboard-regression-tags',
         '@SettingsCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

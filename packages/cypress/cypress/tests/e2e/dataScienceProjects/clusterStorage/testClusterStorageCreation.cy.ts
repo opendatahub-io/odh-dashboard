@@ -77,7 +77,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
         '@ODS-1824',
         '@Dashboard',
         '@ci-dashboard-regression-tags',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

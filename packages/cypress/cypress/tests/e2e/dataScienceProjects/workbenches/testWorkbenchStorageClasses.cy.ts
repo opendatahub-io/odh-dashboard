@@ -144,7 +144,7 @@ describe('Workbench Storage Classes Tests', () => {
         '@ODS-1931',
         '@Dashboard',
         '@Workbenches',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

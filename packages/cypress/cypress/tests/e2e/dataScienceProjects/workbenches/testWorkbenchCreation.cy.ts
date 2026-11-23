@@ -91,7 +91,7 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
         '@ODS-2218',
         '@Dashboard',
         '@Workbenches',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

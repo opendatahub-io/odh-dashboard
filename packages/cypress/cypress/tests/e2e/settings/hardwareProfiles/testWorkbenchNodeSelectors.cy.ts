@@ -95,7 +95,7 @@ describe('Workbenches - node selector tests', () => {
         '@Sanity',
         '@SanitySet2',
         '@HardwareProfilesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {
@@ -145,7 +145,7 @@ describe('Workbenches - node selector tests', () => {
         '@Sanity',
         '@SanitySet2',
         '@HardwareProfilesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

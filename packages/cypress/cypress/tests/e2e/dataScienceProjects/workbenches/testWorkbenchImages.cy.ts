@@ -48,7 +48,7 @@ describe('Workbenches - image/version tests', () => {
         '@Dashboard',
         '@Workbenches',
         '@WorkbenchesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

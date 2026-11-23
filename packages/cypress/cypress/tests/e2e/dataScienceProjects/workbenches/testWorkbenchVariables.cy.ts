@@ -98,7 +98,7 @@ describe('Workbenches - variable tests', () => {
         '@ODS-1864',
         '@Dashboard',
         '@Workbenches',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

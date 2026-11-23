@@ -4,7 +4,7 @@ import { notebookController, administration } from '../../../../pages/administra
 describe('Verify Notebook Server Administration', () => {
   it(
     'Verify Admin User Can Access Notebook Administration',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@NotebookAdministration', '@s390X'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@NotebookAdministration', '@S390X'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

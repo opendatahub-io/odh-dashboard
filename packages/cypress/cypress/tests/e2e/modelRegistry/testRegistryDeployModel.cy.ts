@@ -210,7 +210,7 @@ describe('Verify models can be deployed from model registry', () => {
         '@TestRegistryDeployModel',
         '@Sanity',
         '@SanitySet4',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {

@@ -70,7 +70,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         '@Dashboard',
         '@Workbenches',
         '@WorkbenchesCI',
-        '@s390X',
+        '@S390X',
       ],
     },
     () => {
