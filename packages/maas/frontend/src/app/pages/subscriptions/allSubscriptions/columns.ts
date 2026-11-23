@@ -30,13 +30,6 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       a.modelRefs.length - b.modelRefs.length,
   },
-  {
-    label: 'Priority',
-    field: 'inferencePriority',
-    width: 10,
-    sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
-      (a.inferencePriority ?? 0) - (b.inferencePriority ?? 0),
-  },
 ];
 
 export const GROUP_COLUMN_FIELD = 'owner.groups';
@@ -45,26 +38,14 @@ export const MODEL_COLUMN_FIELD = 'modelRefs';
 type SubscriptionsColumnsOptions = {
   /** Read-only viewers hide the Status column. Defaults to true. */
   showStatus?: boolean;
-  /** Viewers without the inference priority feature flag hide the Priority column. Defaults to false. */
-  showPriority?: boolean;
 };
 
 /**
  * Subscriptions columns for the governance table.
  *
  * Read-only consumers (e.g. the MaaS Portal model access page) omit the Status column.
- * The Priority column is omitted when the inference priority feature flag is off.
  */
 export const getSubscriptionsColumns = ({
   showStatus = true,
-  showPriority = false,
-}: SubscriptionsColumnsOptions = {}): SortableData<MaaSSubscription>[] => {
-  let columns = subscriptionsColumns;
-  if (!showStatus) {
-    columns = columns.filter((col) => col.field !== 'phase');
-  }
-  if (!showPriority) {
-    columns = columns.filter((col) => col.field !== 'inferencePriority');
-  }
-  return columns;
-};
+}: SubscriptionsColumnsOptions = {}): SortableData<MaaSSubscription>[] =>
+  showStatus ? subscriptionsColumns : subscriptionsColumns.filter((col) => col.field !== 'phase');

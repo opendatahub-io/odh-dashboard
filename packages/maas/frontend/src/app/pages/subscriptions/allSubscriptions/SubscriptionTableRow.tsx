@@ -51,8 +51,6 @@ type SubscriptionTableRowProps = {
   showStatus?: boolean;
   /** Read-only viewers omit the kebab (row actions) column. Defaults to true. */
   showActions?: boolean;
-  /** Viewers without the inference priority feature flag omit the Priority column. Defaults to false. */
-  showPriority?: boolean;
   /** Overrides the subscription name link target. Defaults to the governance view page. */
   getSubscriptionDetailUrl?: (name: string) => string;
 };
@@ -64,10 +62,9 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   returnTo,
   showStatus = true,
   showActions = true,
-  showPriority = false,
   getSubscriptionDetailUrl = getSubscriptionViewUrl,
 }) => {
-  const columns = getSubscriptionsColumns({ showStatus, showPriority });
+  const columns = getSubscriptionsColumns({ showStatus });
   const groupsColumnIndex = columns.findIndex((col) => col.field === GROUP_COLUMN_FIELD);
   const modelsColumnIndex = columns.findIndex((col) => col.field === MODEL_COLUMN_FIELD);
   const columnSpan = columns.length + (showActions ? 1 : 0);
@@ -259,7 +256,6 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         >
           <CompoundExpandCountCell count={modelsCount} />
         </Td>
-        {showPriority && <Td dataLabel="Priority">{subscription.inferencePriority ?? '—'}</Td>}
         {showActions && actionsCell}
       </ResourceTr>
       <Tr isExpanded={expandedPanel === 'groups'}>
