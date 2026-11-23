@@ -182,6 +182,30 @@ export type HfAccessLabelVariant = 'private' | 'gated';
 
 export const isGatedAccessType = (accessType: string): boolean => accessType.startsWith('gated');
 
+/** Midstream tracking helper: upstream #3309 removed UI gated-denied, but engagement tracking still needs grant state. */
+export const getHfGatedAccessGranted = (model: CatalogModel): boolean => {
+  if (!model.customProperties) {
+    return false;
+  }
+
+  const gatedAccessKey = CatalogModelCustomPropertyKey.HF_GATED_ACCESS_GRANTED;
+  if (!(gatedAccessKey in model.customProperties)) {
+    return false;
+  }
+
+  const prop = model.customProperties[gatedAccessKey];
+
+  if (prop.metadataType === ModelRegistryMetadataType.BOOL) {
+    return prop.bool_value === true;
+  }
+
+  if (prop.metadataType === ModelRegistryMetadataType.STRING) {
+    return prop.string_value === 'true';
+  }
+
+  return false;
+};
+
 export const getHfAccessType = (model: CatalogModel): string | null => {
   if (!model.customProperties) {
     return null;
