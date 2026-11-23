@@ -45,6 +45,7 @@ export enum SupportedArea {
   USER_MANAGEMENT = 'user-management',
   STORAGE_CLASSES = 'storage-classes',
   ADMIN_CONNECTION_TYPES = 'connection-types',
+  COMMUNITY_PLUGINS_SETTINGS = 'community-plugins-settings',
   FINE_TUNING = 'fine-tuning',
 
   /* DS Projects specific areas */
