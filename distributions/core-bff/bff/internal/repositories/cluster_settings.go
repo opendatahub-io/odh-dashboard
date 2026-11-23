@@ -128,27 +128,31 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 	return json.Marshal(patch)
 }
 
-// UpdateConfigMaps updates culler and segment-key ConfigMaps, and rolls out
-// notebook-controller-deployment when culler or PVC settings changed.
-// Every operation uses the clients selected by the credential policy.
-func (r *ClusterSettingsRepository) UpdateConfigMaps(
-	ctx context.Context,
-	namespace string, settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
-) error {
+// UpdateConfigMaps executes the ConfigMap writes and the notebook-controller
+// rollout fixed by PlanUpdate, using the clients selected by the credential
+// policy. It does not re-decide an operation: if the cluster changed since the
+// plan (for example the culler ConfigMap appeared), the planned write fails and
+// the error is returned, instead of switching to a write the preflight did not
+// check.
+func (r *ClusterSettingsRepository) UpdateConfigMaps(ctx context.Context, namespace string, plan *ClusterSettingsPlan) error {
+	if plan == nil {
+		return fmt.Errorf("cluster settings update has no plan")
+	}
 	cs, err := r.clients.typed(ctx)
 	if err != nil {
 		return err
 	}
-	needsRollout := r.detectChanges(ctx, cs, namespace, settings, currentConfig)
 
-	if err := r.updateCullerConfig(ctx, cs, namespace, settings.CullerTimeout); err != nil {
+	if err := r.applyCullerConfig(ctx, cs, namespace, plan.cullerOp, plan.settings.CullerTimeout); err != nil {
 		return fmt.Errorf("failed to update culler config: %w", err)
 	}
-	if err := r.updateSegmentKeyConfig(ctx, cs, namespace, settings.UserTrackingEnabled); err != nil {
-		return fmt.Errorf("failed to update segment key config: %w", err)
+	if plan.updateSegmentKey {
+		if err := r.updateSegmentKeyConfig(ctx, cs, namespace, plan.settings.UserTrackingEnabled); err != nil {
+			return fmt.Errorf("failed to update segment key config: %w", err)
+		}
 	}
 
-	if needsRollout {
+	if plan.rollout {
 		// TODO: Gate this notebook-controller restart on a platform capability; XKS
 		// must not expose the notebook (workbench) feature or its settings.
 		if err := r.rolloutDeployment(ctx, cs, namespace, notebookControllerDeploy); err != nil {

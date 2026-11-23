@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	authv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -126,6 +127,38 @@ func TestUpdateClusterSettings_CallerAllowed_Succeeds(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &result))
 	assert.True(t, result.Success, result.Error)
 	assert.True(t, f.dashboardConfigPatched())
+}
+
+// Review (RHOAIENG-96081): a caller allowed to create the culler ConfigMap but
+// not to update it is checked for create. If the ConfigMap appears after the
+// preflight, the handler must not switch to an unchecked update: the planned
+// create fails (a conflict, not a 403) and no ConfigMap update is attempted.
+func TestUpdateClusterSettings_CullerAppearsAfterPreflight_NoUncheckedUpdate(t *testing.T) {
+	f := newCallerSettingsFixture(t)
+	f.typed.PrependReactor("create", "selfsubjectaccessreviews", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		review := a.(k8stesting.CreateAction).GetObject().(*authv1.SelfSubjectAccessReview)
+		attrs := review.Spec.ResourceAttributes
+		review.Status.Allowed = attrs.Resource != "configmaps" || attrs.Verb != "update"
+		return true, review, nil
+	})
+	// The culler ConfigMap is created by someone else once the preflight passed.
+	f.dyn.PrependReactor("patch", "odhdashboardconfigs", func(k8stesting.Action) (bool, runtime.Object, error) {
+		cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "notebook-controller-culler-config", Namespace: "dash-ns"}}
+		require.NoError(t, f.typed.Tracker().Add(cm))
+		return false, nil, nil
+	})
+
+	rr := f.put(t)
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	var result models.MutationResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &result))
+	assert.False(t, result.Success)
+	assert.Contains(t, result.Error, "already exists")
+	for _, a := range f.typed.Actions() {
+		if a.GetResource().Resource == "configmaps" {
+			assert.NotEqual(t, "update", a.GetVerb(), "the update the preflight did not check must not run")
+		}
+	}
 }
 
 func forbidden(resource string) k8stesting.ReactionFunc {

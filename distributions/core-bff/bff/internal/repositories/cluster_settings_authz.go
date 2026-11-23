@@ -17,37 +17,56 @@ type clusterSettingsWrite struct {
 	group, resource, verb, name string
 }
 
-// AuthorizeUpdate checks, before anything is written, that the caller may
-// perform every write PUT /api/cluster-settings will make: the OdhDashboardConfig
-// patch, the culler and segment-key ConfigMap writes, and the
-// notebook-controller rollout when one is needed.
+// Culler ConfigMap operations a plan can choose.
+const (
+	cullerOpDelete = "delete"
+	cullerOpCreate = "create"
+	cullerOpUpdate = "update"
+)
+
+// ClusterSettingsPlan is the fixed set of writes one PUT /api/cluster-settings
+// makes. PlanUpdate builds it once, from one read of the cluster, and
+// UpdateConfigMaps executes exactly those writes, so the operations that run
+// are the ones the preflight checked.
+type ClusterSettingsPlan struct {
+	settings         models.ClusterSettings
+	cullerOp         string
+	updateSegmentKey bool
+	rollout          bool
+	writes           []clusterSettingsWrite
+}
+
+// PlanUpdate decides every write PUT /api/cluster-settings will make: the
+// OdhDashboardConfig patch, the culler and segment-key ConfigMap writes, and
+// the notebook-controller rollout when one is needed.
 //
-// The update is several independent API calls with no transaction. Without this
-// check, a caller allowed the first write but denied a later one would commit a
-// partial change before the denial. Under the caller policy (xKS) a denial is
-// returned as a Kubernetes Forbidden error, which the handler surfaces as 403.
-// Under the service-account policy the service account performs the writes, so
-// there is nothing to check here and it returns nil.
+// The update is several independent API calls with no transaction. Under the
+// caller policy (xKS), PlanUpdate also checks, before anything is written, that
+// the caller may perform every planned write. Without this check, a caller
+// allowed the first write but denied a later one would commit a partial change
+// before the denial. A denial is returned as a Kubernetes Forbidden error, which
+// the handler surfaces as 403. Under the service-account policy the service
+// account performs the writes, so no access review is made.
 //
-// A read the plan depends on (whether a ConfigMap exists) is made with the
-// caller's credentials too, so a caller who may not read it gets that read's
+// The reads the plan depends on (whether a ConfigMap exists) use the clients the
+// credential policy selects, so a caller who may not read one gets that read's
 // own 403.
-func (r *ClusterSettingsRepository) AuthorizeUpdate(
+func (r *ClusterSettingsRepository) PlanUpdate(
 	ctx context.Context,
 	namespace, dashboardConfigName string, settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
-) error {
-	if r.clients.policy != CredentialPolicyCaller {
-		return nil
-	}
+) (*ClusterSettingsPlan, error) {
 	cs, err := r.clients.typed(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	writes, err := r.plannedWrites(ctx, cs, namespace, dashboardConfigName, settings, currentConfig)
+	plan, err := r.buildPlan(ctx, cs, namespace, dashboardConfigName, settings, currentConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, w := range writes {
+	if r.clients.policy != CredentialPolicyCaller {
+		return plan, nil
+	}
+	for _, w := range plan.writes {
 		review := &authv1.SelfSubjectAccessReview{
 			Spec: authv1.SelfSubjectAccessReviewSpec{
 				ResourceAttributes: &authv1.ResourceAttributes{
@@ -61,41 +80,44 @@ func (r *ClusterSettingsRepository) AuthorizeUpdate(
 		}
 		resp, err := cs.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, review, metav1.CreateOptions{})
 		if err != nil {
-			return fmt.Errorf("access review for %s %s: %w", w.verb, w.resource, err)
+			return nil, fmt.Errorf("access review for %s %s: %w", w.verb, w.resource, err)
 		}
 		if !resp.Status.Allowed {
-			return k8serrors.NewForbidden(
+			return nil, k8serrors.NewForbidden(
 				schema.GroupResource{Group: w.group, Resource: w.resource}, w.name,
 				fmt.Errorf("the caller may not %s it, so no cluster setting was changed", w.verb),
 			)
 		}
 	}
-	return nil
+	return plan, nil
 }
 
-// plannedWrites mirrors the writes UpdateConfigMaps and the dashboard-config
-// patch make for these settings. Keep it in step with updateCullerConfig,
-// updateSegmentKeyConfig and the rollout in UpdateConfigMaps.
-func (r *ClusterSettingsRepository) plannedWrites(
+// buildPlan reads the cluster once and fixes the writes for these settings.
+// UpdateConfigMaps executes the plan and never re-decides an operation.
+func (r *ClusterSettingsRepository) buildPlan(
 	ctx context.Context, cs kubernetes.Interface,
 	namespace, dashboardConfigName string, settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
-) ([]clusterSettingsWrite, error) {
-	writes := []clusterSettingsWrite{{
+) (*ClusterSettingsPlan, error) {
+	plan := &ClusterSettingsPlan{settings: *settings}
+	plan.writes = []clusterSettingsWrite{{
 		group: models.DashboardConfigGVR.Group, resource: models.DashboardConfigGVR.Resource, verb: "patch", name: dashboardConfigName,
 	}}
 
 	if settings.CullerTimeout == defaultCullerTimeout {
-		writes = append(writes, clusterSettingsWrite{resource: "configmaps", verb: "delete", name: cullerConfigName})
+		plan.cullerOp = cullerOpDelete
+		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "delete", name: cullerConfigName})
 	} else {
 		exists, err := configMapExists(ctx, cs, namespace, cullerConfigName)
 		if err != nil {
 			return nil, err
 		}
 		if exists {
-			writes = append(writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: cullerConfigName})
+			plan.cullerOp = cullerOpUpdate
+			plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: cullerConfigName})
 		} else {
+			plan.cullerOp = cullerOpCreate
 			// RBAC cannot scope create by name, so the review is for any ConfigMap.
-			writes = append(writes, clusterSettingsWrite{resource: "configmaps", verb: "create"})
+			plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "create"})
 		}
 	}
 
@@ -104,13 +126,15 @@ func (r *ClusterSettingsRepository) plannedWrites(
 		return nil, err
 	}
 	if exists {
-		writes = append(writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: segmentKeyConfigName})
+		plan.updateSegmentKey = true
+		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: segmentKeyConfigName})
 	}
 
 	if r.detectChanges(ctx, cs, namespace, settings, currentConfig) {
-		writes = append(writes, clusterSettingsWrite{group: "apps", resource: "deployments", verb: "patch", name: notebookControllerDeploy})
+		plan.rollout = true
+		plan.writes = append(plan.writes, clusterSettingsWrite{group: "apps", resource: "deployments", verb: "patch", name: notebookControllerDeploy})
 	}
-	return writes, nil
+	return plan, nil
 }
 
 func configMapExists(ctx context.Context, cs kubernetes.Interface, namespace, name string) (bool, error) {

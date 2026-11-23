@@ -93,7 +93,7 @@ func TestUpdateCullerConfig_EnablesCulling(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.updateCullerConfig(ctx, cs, testNS, 1800) // 30 minutes
+	err := repo.applyCullerConfig(ctx, cs, testNS, cullerOpCreate, 1800) // 30 minutes
 	require.NoError(t, err)
 
 	cm, err := cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})
@@ -108,7 +108,7 @@ func TestUpdateCullerConfig_DisablesCulling(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.updateCullerConfig(ctx, cs, testNS, defaultCullerTimeout)
+	err := repo.applyCullerConfig(ctx, cs, testNS, cullerOpDelete, defaultCullerTimeout)
 	require.NoError(t, err)
 
 	_, err = cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})
@@ -120,7 +120,7 @@ func TestUpdateCullerConfig_UpdatesExisting(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.updateCullerConfig(ctx, cs, testNS, 3600) // 60 minutes
+	err := repo.applyCullerConfig(ctx, cs, testNS, cullerOpUpdate, 3600) // 60 minutes
 	require.NoError(t, err)
 
 	cm, err := cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})

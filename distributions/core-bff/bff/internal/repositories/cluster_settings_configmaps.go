@@ -64,34 +64,39 @@ func (r *ClusterSettingsRepository) detectChanges(ctx context.Context, cs kubern
 	return settings.CullerTimeout != currentTimeout
 }
 
-func (r *ClusterSettingsRepository) updateCullerConfig(ctx context.Context, cs kubernetes.Interface, namespace string, cullerTimeout int) error {
+// applyCullerConfig performs the planned culler ConfigMap operation and only
+// that one: a planned create fails if the ConfigMap now exists, and a planned
+// update fails if it no longer does.
+func (r *ClusterSettingsRepository) applyCullerConfig(
+	ctx context.Context, cs kubernetes.Interface, namespace, op string, cullerTimeout int,
+) error {
 	cmClient := cs.CoreV1().ConfigMaps(namespace)
 	cullerMinutes := cullerTimeout / 60
-	isEnabled := cullerTimeout != defaultCullerTimeout
 
-	if !isEnabled {
+	switch op {
+	case cullerOpDelete:
 		err := cmClient.Delete(ctx, cullerConfigName, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete culler config: %w", err)
 		}
 		return nil
-	}
-
-	cm, err := cmClient.Get(ctx, cullerConfigName, metav1.GetOptions{})
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
+	case cullerOpCreate:
+		return r.createCullerConfigMap(ctx, cs, namespace, true, cullerMinutes)
+	case cullerOpUpdate:
+		cm, err := cmClient.Get(ctx, cullerConfigName, metav1.GetOptions{})
+		if err != nil {
 			return err
 		}
-		return r.createCullerConfigMap(ctx, cs, namespace, isEnabled, cullerMinutes)
+		if cm.Data == nil {
+			cm.Data = map[string]string{}
+		}
+		cm.Data[keyCullingEnabled] = strconv.FormatBool(true)
+		cm.Data[keyCullIdleTime] = strconv.Itoa(cullerMinutes)
+		_, err = cmClient.Update(ctx, cm, metav1.UpdateOptions{})
+		return err
+	default:
+		return fmt.Errorf("unknown culler config operation %q", op)
 	}
-
-	if cm.Data == nil {
-		cm.Data = map[string]string{}
-	}
-	cm.Data[keyCullingEnabled] = strconv.FormatBool(isEnabled)
-	cm.Data[keyCullIdleTime] = strconv.Itoa(cullerMinutes)
-	_, err = cmClient.Update(ctx, cm, metav1.UpdateOptions{})
-	return err
 }
 
 func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, cs kubernetes.Interface, namespace string, isEnabled bool, cullerMinutes int) error {

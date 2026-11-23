@@ -136,7 +136,17 @@ var userInitiated = []struct {
 	}},
 	{"cluster settings update", func(ctx context.Context, r *Repositories) error {
 		s := models.DefaultClusterSettings
-		return r.ClusterSettings.UpdateConfigMaps(ctx, credNS, &s, nil)
+		// The access review is covered by the PlanUpdate tests; here the plan's
+		// reads and the writes must use the policy's clients.
+		cs, err := r.ClusterSettings.clients.typed(ctx)
+		if err != nil {
+			return err
+		}
+		plan, err := r.ClusterSettings.buildPlan(ctx, cs, credNS, "odh-dashboard-config", &s, nil)
+		if err != nil {
+			return err
+		}
+		return r.ClusterSettings.UpdateConfigMaps(ctx, credNS, plan)
 	}},
 	{"dashboard config admin read", func(ctx context.Context, r *Repositories) error {
 		_, err := r.DashboardConfig.GetRawDashboardConfig(ctx, credNS, "odh-dashboard-config")

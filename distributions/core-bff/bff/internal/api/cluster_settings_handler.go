@@ -64,11 +64,13 @@ func (app *App) UpdateClusterSettingsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// The update is several separate writes. On xKS, check the caller may make
-	// all of them before the first one, so a denial cannot leave a partial change.
-	if err := app.repositories.ClusterSettings.AuthorizeUpdate(
+	// The update is several separate writes. Plan them once; on xKS the plan
+	// also checks the caller may make all of them before the first one, so a
+	// denial cannot leave a partial change. Only the planned writes are executed.
+	plan, err := app.repositories.ClusterSettings.PlanUpdate(
 		ctx, app.config.Namespace, app.config.DashboardConfigName, &settings, currentConfig,
-	); err != nil {
+	)
+	if err != nil {
 		app.clusterSettingsFailure(w, r, "unable to update cluster settings", err)
 		return
 	}
@@ -80,7 +82,7 @@ func (app *App) UpdateClusterSettingsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := app.repositories.ClusterSettings.UpdateConfigMaps(ctx, app.config.Namespace, &settings, currentConfig); err != nil {
+	if err := app.repositories.ClusterSettings.UpdateConfigMaps(ctx, app.config.Namespace, plan); err != nil {
 		app.clusterSettingsFailure(w, r, "unable to update cluster settings", err)
 		return
 	}
