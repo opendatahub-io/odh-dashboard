@@ -5,7 +5,7 @@ import { MaaSSubscription } from '~/app/types/subscriptions';
 import { useDeleteSubscription } from '~/app/hooks/useDeleteSubscription';
 
 type DeleteSubscriptionModalProps = {
-  subscription: Pick<MaaSSubscription, 'name' | 'displayName'>;
+  subscription: MaaSSubscription;
   onClose: (deleted?: boolean) => void;
 };
 

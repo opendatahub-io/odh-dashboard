@@ -5,7 +5,7 @@ import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { useDeleteAuthPolicy } from '~/app/hooks/useDeleteAuthPolicy';
 
 type DeleteAuthPolicyModalProps = {
-  authPolicy: Pick<MaaSAuthPolicy, 'name' | 'displayName'>;
+  authPolicy: MaaSAuthPolicy;
   onClose: (deleted?: boolean) => void;
 };
 

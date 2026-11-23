@@ -219,15 +219,15 @@ describe('MaaS Governance Page / Overview Tab', () => {
       .should('not.have.class', 'pf-m-expanded');
     overviewTabPage
       .findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models')
-      .should('have.attr', 'aria-expanded', 'false');
+      .should('contain.text', 'Expand all');
     overviewTabPage.findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models').click();
     overviewTabPage
       .findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models')
-      .should('have.attr', 'aria-expanded', 'true');
+      .should('contain.text', 'Collapse all');
     overviewTabPage.findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models').click();
     overviewTabPage
       .findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models')
-      .should('have.attr', 'aria-expanded', 'false');
+      .should('contain.text', 'Expand all');
 
     // Same model ID in different namespaces expand independently
     overviewTabPage.expandModelRow('granite-3-8b-instruct', 'team-sandbox');
