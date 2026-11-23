@@ -47,13 +47,13 @@ make run LOG_LEVEL=DEBUG
 | `-auth-method` | `AUTH_METHOD` | `user_token` (default) or `disabled` (skips auth; rejected at startup in a production profile) |
 | `-admission-mode` | `ADMISSION_MODE` | `auth-resource`, `authenticated`, or empty to resolve from the platform. See [bootstrap-contract.md](../docs/bootstrap-contract.md) |
 | `-bundle-paths` | `BUNDLE_PATHS` | Comma separated PEM CA bundles for outbound TLS. Setting it explicitly makes it required: startup fails if none load |
-| `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read token from (default `x-forwarded-access-token`) |
+| `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read token from (default `x-forwarded-access-token`); must be a valid HTTP field name |
 | `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default empty) |
 | `-cert-file` | `CERT_FILE` | TLS serving certificate path (enables TLS; both halves required) |
 | `-key-file` | `KEY_FILE` | TLS serving key path (enables TLS; both halves required) |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (development profiles only; rejected at startup in a production profile) |
+| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (requires `DEV_MODE=true`; rejected at startup otherwise) |
 | `-mock-bff-clients` | `MOCK_BFF_CLIENTS` | Use mock BFF clients (no real HTTP calls to other BFFs) |
-| `-namespace` | `NAMESPACE` / `OC_PROJECT` | K8s namespace for dashboard resources (default `opendatahub`, falls back to `OC_PROJECT`) |
+| `-namespace` | `NAMESPACE` / `POD_NAMESPACE` / `OC_PROJECT` | K8s namespace for dashboard resources (default `opendatahub`, falls back to `POD_NAMESPACE`, then `OC_PROJECT`) |
 | `-operator-namespace` | `OPERATOR_NAMESPACE` | Preferred namespace for the data science operator Subscription (default empty); probes the configured namespace when set, then the platform default and, for ODH, `openshift-operators` |
 | `-workbench-namespace` | `WORKBENCH_NAMESPACE` | K8s namespace for workbenches (defaults to dashboard namespace) |
 | `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME` | Name of the OdhDashboardConfig CR (default `odh-dashboard-config`) |
@@ -63,7 +63,7 @@ make run LOG_LEVEL=DEBUG
 | `-prometheus-host` | `PROMETHEUS_HOST` | Full Prometheus/Thanos host URL override. Must be an absolute URL; `https` in a production profile |
 | `-prometheus-namespace` | `PROMETHEUS_NAMESPACE` | Prometheus/Thanos namespace (default `openshift-monitoring`) |
 | `-prometheus-instance` | `PROMETHEUS_INSTANCE` | Prometheus/Thanos instance name (default `thanos-querier`) |
-| `-prometheus-port` | `PROMETHEUS_PORT` | Prometheus/Thanos RBAC port (default `9092`) |
+| `-prometheus-port` | `PROMETHEUS_PORT` | Prometheus/Thanos RBAC port (default `9092`); must be 1-65535 |
 
 ### TLS
 
@@ -204,9 +204,9 @@ make run ALLOWED_ORIGINS="*"   # allow all (not for production)
 ### Disabling TLS verification (development only)
 
 ```shell
-./bin/bff --insecure-skip-verify
+./bin/bff --dev-mode --insecure-skip-verify
 # or
-export INSECURE_SKIP_VERIFY=true
+export DEV_MODE=true INSECURE_SKIP_VERIFY=true
 ```
 
 > **Warning:** Only use in development. Keep TLS verification enabled in production.

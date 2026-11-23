@@ -121,6 +121,7 @@ by the installation owner or supplied through the agreed xKS configuration sourc
 | `OdhDashboardConfig` read forbidden           | Defaults (`CONFIG_FORBIDDEN`)                       | Error — the misconfiguration is visible   |
 | `OdhApplication` CRD or instances absent      | Empty list                                          | Empty list                                |
 | `OdhApplication` list forbidden               | Error                                               | Error                                     |
+| Either read rejected with 405                 | Error: a rejected method is not evidence of absence | Error                                     |
 
 On an **unconfirmed** platform (the last two rows of the platform table) neither column is known to
 apply, so bootstrap never writes: a missing `OdhDashboardConfig` instance serves defaults with a
