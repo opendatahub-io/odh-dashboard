@@ -8,6 +8,7 @@ import type {
   FeatureFlag,
   SupportedAreaType,
 } from '@odh-dashboard/plugin-core/areas';
+import { isFeatureFlagEnabled } from '@odh-dashboard/ui-core/utilities';
 import { definedFeatureFlags, devFlagDefaults, SupportedAreasStateMap } from './const';
 
 export const isDefinedFeatureFlag = (key: string): key is FeatureFlag =>
@@ -30,7 +31,7 @@ const isFlagOn = (flag: string, flagState: FlagState, fallback?: boolean): 'on' 
   if (value === undefined) {
     return 'off';
   }
-  const enabled = flag.startsWith('disable') ? !value : value;
+  const enabled = isFeatureFlagEnabled(flag, value);
   return enabled ? 'on' : 'off';
 };
 

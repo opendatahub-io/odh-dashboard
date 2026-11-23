@@ -25,7 +25,7 @@ import {
   SupportedArea,
   useIsAreaAvailable,
 } from '@odh-dashboard/plugin-core/areas';
-import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import { isInvertedFeatureFlag, useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { useAppContext } from '#~/app/AppContext';
 import { useUser } from '#~/redux/selectors';
 import {
@@ -739,7 +739,7 @@ const WhatsNewModalContent: React.FC = () => {
                       )}
                       {unavailableFlags.map((flagName) => (
                         <ListItem key={flagName}>
-                          {flagName.startsWith('disable') ? (
+                          {isInvertedFeatureFlag(flagName) ? (
                             <>
                               Set <code>{flagName}</code> to <code>false</code>
                             </>

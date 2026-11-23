@@ -36,6 +36,123 @@ describe('WorkingProjectSelector', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  describe.each([false, true])('initial project filter (manual fallback: %s)', (manualFallback) => {
+    it.each([
+      { activeName: 'standard-project', expectedFilter: 'All projects' },
+      { activeName: 'ai-project', expectedFilter: 'AI projects only' },
+      { activeName: undefined, expectedFilter: 'AI projects only' },
+    ])(
+      'should open with $expectedFilter when the active project is $activeName',
+      ({ activeName, expectedFilter }) => {
+        const projects = [{ name: 'ai-project' }, { name: 'standard-project' }];
+        render(
+          <WorkingProjectProvider
+            status={manualFallback ? 'listing-unavailable' : 'listed'}
+            projects={projects}
+            activeProject={projects.find(({ name }) => name === activeName) ?? null}
+            onProjectChange={jest.fn()}
+          >
+            <WorkingProjectSelector
+              manualProjectMode={manualFallback}
+              isAiProject={(name) => name === 'ai-project'}
+              emptyListContent="No projects"
+            />
+          </WorkingProjectProvider>,
+        );
+
+        fireEvent.click(screen.getByTestId('working-project-selector'));
+        expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+          expectedFilter,
+        );
+        expect(screen.getByTestId('working-project-option-ai-project')).toBeInTheDocument();
+        if (activeName === 'standard-project') {
+          expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument();
+          expect(screen.getByRole('radio', { name: /standard-project/ })).toBeChecked();
+        } else {
+          expect(
+            screen.queryByTestId('working-project-option-standard-project'),
+          ).not.toBeInTheDocument();
+        }
+      },
+    );
+
+    it.each([undefined, 'ai', 'all'])(
+      'should follow restored selection unless the user chose filter %s',
+      (explicitFilter) => {
+        const projects = [{ name: 'ai-project' }, { name: 'standard-project' }];
+        const tree = (activeProject: ProjectIdentity | null) => (
+          <WorkingProjectProvider
+            status={manualFallback ? 'listing-unavailable' : 'listed'}
+            projects={projects}
+            activeProject={activeProject}
+            onProjectChange={jest.fn()}
+          >
+            <WorkingProjectSelector
+              manualProjectMode={manualFallback}
+              isAiProject={(name) => name === 'ai-project'}
+              emptyListContent="No projects"
+            />
+          </WorkingProjectProvider>
+        );
+        const { rerender } = render(tree(null));
+        fireEvent.click(screen.getByTestId('working-project-selector'));
+        if (explicitFilter) {
+          fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
+          fireEvent.click(
+            screen.getByRole('option', {
+              name: explicitFilter === 'ai' ? 'AI projects only' : 'All projects',
+            }),
+          );
+        }
+        rerender(tree(projects[1]));
+        expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+          explicitFilter === 'ai' ? 'AI projects only' : 'All projects',
+        );
+        if (explicitFilter !== 'ai') {
+          expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument();
+        }
+        rerender(tree(projects[0]));
+        expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+          explicitFilter === 'all' ? 'All projects' : 'AI projects only',
+        );
+      },
+    );
+
+    it('should open on All projects after selecting a non-AI project', async () => {
+      const projects = [{ name: 'ai-project' }, { name: 'standard-project' }];
+      const Wrapper: React.FC = () => {
+        const [activeProject, setActiveProject] = React.useState<ProjectIdentity>(projects[0]);
+        return (
+          <WorkingProjectProvider
+            status={manualFallback ? 'listing-unavailable' : 'listed'}
+            projects={projects}
+            activeProject={activeProject}
+            onProjectChange={setActiveProject}
+          >
+            <WorkingProjectSelector
+              manualProjectMode={manualFallback}
+              isAiProject={(name) => name === 'ai-project'}
+              emptyListContent="No projects"
+            />
+          </WorkingProjectProvider>
+        );
+      };
+      render(<Wrapper />);
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
+      fireEvent.click(screen.getByRole('option', { name: 'All projects' }));
+      fireEvent.click(screen.getByTestId('working-project-option-standard-project'));
+      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+        'All projects',
+      );
+      expect(screen.getByRole('radio', { name: /standard-project/ })).toBeChecked();
+    });
+  });
+
   it('should show the search empty state when the filter matches no projects', () => {
     render(
       <WorkingProjectProvider
@@ -580,6 +697,163 @@ describe('WorkingProjectSelector', () => {
     expect(screen.queryByTestId('project-added-notification')).not.toBeInTheDocument();
     fireEvent.click(within(notification).getByRole('button'));
     expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
+  });
+
+  describe('xKS notification timeout', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('should dismiss both first-project notifications after eight seconds', async () => {
+      render(
+        <WorkingProjectProvider
+          status="listing-unavailable"
+          projects={[]}
+          activeProject={null}
+          onProjectChange={jest.fn()}
+          discoverProject={jest.fn(async (name: string) => ({ name }))}
+          rememberProject={jest.fn().mockResolvedValue(undefined)}
+        >
+          <WorkingProjectSelector manualProjectMode emptyListContent="No projects" />
+        </WorkingProjectProvider>,
+      );
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      fireEvent.click(screen.getByRole('button', { name: 'Add project' }));
+      fireEvent.change(screen.getByTestId('manual-project-name'), {
+        target: { value: 'first' },
+      });
+      await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Search' })));
+      await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
+
+      act(() => jest.advanceTimersByTime(7999));
+      expect(screen.getByTestId('project-added-notification')).toBeInTheDocument();
+      expect(screen.getByTestId('working-project-updated-notification')).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(1));
+      expect(screen.queryByTestId('project-added-notification')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
+    });
+
+    it('should give a replacement working-project notification a fresh eight seconds', async () => {
+      render(
+        <WorkingProjectProvider
+          status="listing-unavailable"
+          projects={[project, { name: 'another' }, { name: 'third' }]}
+          activeProject={project}
+          onProjectChange={jest.fn()}
+        >
+          <WorkingProjectSelector manualProjectMode emptyListContent="No projects" />
+        </WorkingProjectProvider>,
+      );
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      fireEvent.click(screen.getByTestId('working-project-option-another'));
+      await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
+      act(() => jest.advanceTimersByTime(4000));
+
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      fireEvent.click(screen.getByTestId('working-project-option-third'));
+      await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
+      act(() => jest.advanceTimersByTime(7999));
+      expect(screen.getByTestId('working-project-updated-notification')).toHaveTextContent('third');
+      act(() => jest.advanceTimersByTime(1));
+      expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
+    });
+
+    it('should restart the timer when selecting the same project after an external change', async () => {
+      const projects = [project, { name: 'another' }];
+      const tree = (activeProject: ProjectIdentity) => (
+        <WorkingProjectProvider
+          status="listing-unavailable"
+          projects={projects}
+          activeProject={activeProject}
+          onProjectChange={jest.fn()}
+        >
+          <WorkingProjectSelector manualProjectMode emptyListContent="No projects" />
+        </WorkingProjectProvider>
+      );
+      const { rerender } = render(tree(project));
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      fireEvent.click(screen.getByTestId('working-project-option-another'));
+      await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
+      act(() => jest.advanceTimersByTime(4000));
+      rerender(tree(projects[1]));
+      rerender(tree(project));
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      fireEvent.click(screen.getByTestId('working-project-option-another'));
+      await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
+      act(() => jest.advanceTimersByTime(7999));
+      expect(screen.getByTestId('working-project-updated-notification')).toHaveTextContent(
+        'another',
+      );
+      act(() => jest.advanceTimersByTime(1));
+      expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
+    });
+
+    it.each(['third', 'another'])(
+      'should give a replacement project-added notification for %s a fresh eight seconds',
+      async (replacementName) => {
+        render(
+          <WorkingProjectProvider
+            status="listing-unavailable"
+            projects={[project]}
+            activeProject={project}
+            onProjectChange={jest.fn()}
+            discoverProject={jest.fn(async (name: string) => ({ name }))}
+            rememberProject={jest.fn().mockResolvedValue(undefined)}
+          >
+            <WorkingProjectSelector manualProjectMode emptyListContent="No projects" />
+          </WorkingProjectProvider>,
+        );
+        fireEvent.click(screen.getByTestId('working-project-selector'));
+        for (const [index, name] of ['another', replacementName].entries()) {
+          fireEvent.click(screen.getByRole('button', { name: 'Add project' }));
+          fireEvent.change(screen.getByTestId('manual-project-name'), { target: { value: name } });
+          await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Search' })));
+          await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
+          if (index === 0) {
+            act(() => jest.advanceTimersByTime(4000));
+          }
+        }
+        act(() => jest.advanceTimersByTime(7999));
+        expect(screen.getByTestId('project-added-notification')).toHaveTextContent(replacementName);
+        act(() => jest.advanceTimersByTime(1));
+        expect(screen.queryByTestId('project-added-notification')).not.toBeInTheDocument();
+      },
+    );
+
+    it.each(['hovered', 'focused'])(
+      'should keep a %s notification visible until interaction ends',
+      async (interaction) => {
+        render(
+          <WorkingProjectProvider
+            status="listing-unavailable"
+            projects={[project, { name: 'another' }]}
+            activeProject={project}
+            onProjectChange={jest.fn()}
+          >
+            <WorkingProjectSelector manualProjectMode emptyListContent="No projects" />
+          </WorkingProjectProvider>,
+        );
+        fireEvent.click(screen.getByTestId('working-project-selector'));
+        fireEvent.click(screen.getByTestId('working-project-option-another'));
+        await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
+        const notification = screen.getByTestId('working-project-updated-notification');
+        if (interaction === 'hovered') {
+          fireEvent.mouseEnter(notification);
+        } else {
+          act(() => within(notification).getByRole('button').focus());
+        }
+        act(() => jest.advanceTimersByTime(8000));
+        expect(notification).toBeInTheDocument();
+        if (interaction === 'hovered') {
+          fireEvent.mouseLeave(notification);
+        } else {
+          act(() => screen.getByTestId('working-project-selector').focus());
+        }
+        act(() => jest.advanceTimersByTime(3000));
+        expect(
+          screen.queryByTestId('working-project-updated-notification'),
+        ).not.toBeInTheDocument();
+      },
+    );
   });
 
   it('should show the populated xKS selector with help, project count, descriptions, and ordered actions', async () => {

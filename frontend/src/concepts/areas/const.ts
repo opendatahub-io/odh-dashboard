@@ -85,6 +85,7 @@ export const projectManagementFlags = {
   disableClusterManager: false,
   disableBYONImageStream: false,
   disableAdminConnectionTypes: false,
+  hideCommunityPluginsSettingsPage: false,
   disableStorageClasses: false,
   projectRBAC: true,
   roleManagement: true,
@@ -254,6 +255,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.ADMIN_CONNECTION_TYPES]: {
     featureFlags: ['disableAdminConnectionTypes'],
+  },
+  [SupportedArea.COMMUNITY_PLUGINS_SETTINGS]: {
+    featureFlags: ['hideCommunityPluginsSettingsPage'],
   },
   [SupportedArea.FINE_TUNING]: {
     featureFlags: ['disableFineTuning'],
