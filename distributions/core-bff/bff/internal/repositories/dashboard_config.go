@@ -176,6 +176,12 @@ func (r *DashboardConfigRepository) fetchOrCreateDashboardCR(
 // defaults rather than failing a bootstrap the caller cannot fix. Any other
 // failure is a real upstream problem and surfaces as an error.
 func (r *DashboardConfigRepository) handleFetchError(err error, namespace, name string) (map[string]any, error) {
+	if k8serrors.IsMethodNotSupported(err) {
+		// Checked before IsDiscoveryError, which counts 405 as absence. A
+		// rejected GET does not establish that the CRD is missing, so serving
+		// defaults would hide a real upstream failure.
+		return nil, fmt.Errorf("dashboard config read returned method not supported: %w", err)
+	}
 	if k8sutil.IsDiscoveryError(err) {
 		slog.Debug("OdhDashboardConfig CRD not installed, using defaults",
 			slog.String("namespace", namespace), slog.String("name", name),
