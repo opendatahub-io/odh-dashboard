@@ -1,7 +1,12 @@
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { isValidK8sName, NamespacePhase } from '@odh-dashboard/k8s-core';
+import { isValidK8sName, KnownLabels, NamespacePhase } from '@odh-dashboard/k8s-core';
 
-type K8sNamespaceItem = { name?: string; displayName?: string; phase?: string };
+type K8sNamespaceItem = {
+  name?: string;
+  displayName?: string;
+  phase?: string;
+  isAiProject?: unknown;
+};
 
 type K8sNamespaceList = {
   items?: K8sNamespaceItem[];
@@ -23,10 +28,23 @@ const parseNamespaceList = (value: unknown): K8sNamespaceList => {
   };
 };
 
-const namespaceToProject = (name: string, phase?: string): ProjectKind => ({
+const namespaceToProject = (
+  name: string,
+  phase?: string,
+  displayName?: unknown,
+  isAiProject?: unknown,
+): ProjectKind => ({
   apiVersion: 'v1',
   kind: 'Namespace',
-  metadata: { name },
+  metadata: {
+    name,
+    ...(typeof displayName === 'string' && {
+      annotations: { 'openshift.io/display-name': displayName },
+    }),
+    ...(isAiProject === true && {
+      labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+    }),
+  },
   status: {
     // Unknown phases must never become selectable by default.
     phase: phase === NamespacePhase.Active ? NamespacePhase.Active : NamespacePhase.Terminating,
@@ -38,7 +56,7 @@ export const FETCH_TIMEOUT_MS = 30_000;
 export class NamespaceListUnavailableError extends Error {}
 
 type NamespaceResponse = {
-  data?: { name?: unknown; displayName?: unknown; phase?: unknown };
+  data?: { name?: unknown; displayName?: unknown; phase?: unknown; isAiProject?: unknown };
 };
 
 export const fetchNamespaceByName = async (
@@ -62,15 +80,7 @@ export const fetchNamespaceByName = async (
   if (body.data?.name !== name || body.data.phase !== NamespacePhase.Active) {
     throw new Error('No access to that project, or it does not exist.');
   }
-  return {
-    ...namespaceToProject(name, typeof body.data.phase === 'string' ? body.data.phase : undefined),
-    metadata: {
-      name,
-      ...(typeof body.data.displayName === 'string' && {
-        annotations: { 'openshift.io/display-name': body.data.displayName },
-      }),
-    },
-  };
+  return namespaceToProject(name, body.data.phase, body.data.displayName, body.data.isAiProject);
 };
 
 const fetchNamespaces = async (signal?: AbortSignal): Promise<ProjectKind[]> => {
@@ -88,15 +98,7 @@ const fetchNamespaces = async (signal?: AbortSignal): Promise<ProjectKind[]> => 
       if (typeof name !== 'string' || name.length === 0) {
         return null;
       }
-      return {
-        ...namespaceToProject(name, item.phase),
-        metadata: {
-          name,
-          ...(typeof item.displayName === 'string' && {
-            annotations: { 'openshift.io/display-name': item.displayName },
-          }),
-        },
-      };
+      return namespaceToProject(name, item.phase, item.displayName, item.isAiProject);
     })
     .filter((project): project is ProjectKind => project !== null);
 };
