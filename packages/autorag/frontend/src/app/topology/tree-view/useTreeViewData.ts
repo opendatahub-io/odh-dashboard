@@ -11,15 +11,14 @@ import type { PipelineVisualizationData } from './types';
 export const useTreeViewData = (
   patterns?: Record<string, AutoragPattern> | null,
   stageMapNodes?: PipelineNodeModelExpanded[],
-  bestPatternKey?: string,
-  stageMapBestPattern?: string,
+  rankOnePatternKey?: string,
   optimizationMetric?: ObjectiveReference,
+  providedPatternRanks?: Record<string, number>,
 ): PipelineVisualizationData =>
   React.useMemo(() => {
     const safePatterns = patterns ?? {};
     const selectedPattern =
-      (bestPatternKey && resolvePatternRecordKey(safePatterns, bestPatternKey)) ||
-      (stageMapBestPattern && resolvePatternRecordKey(safePatterns, stageMapBestPattern));
+      rankOnePatternKey && resolvePatternRecordKey(safePatterns, rankOnePatternKey);
     const selectedRecord = selectedPattern ? safePatterns[selectedPattern] : undefined;
     const winnerPatternLabel =
       selectedRecord != null && typeof selectedRecord.name === 'string'
@@ -41,6 +40,7 @@ export const useTreeViewData = (
       selectedPattern,
       winnerPatternLabel,
       stageMapNodes,
-      patternRanks: computePatternRankMap(rankablePatterns, optimizationMetric),
+      patternRanks:
+        providedPatternRanks ?? computePatternRankMap(rankablePatterns, optimizationMetric),
     };
-  }, [patterns, stageMapNodes, bestPatternKey, stageMapBestPattern, optimizationMetric]);
+  }, [patterns, stageMapNodes, rankOnePatternKey, optimizationMetric, providedPatternRanks]);

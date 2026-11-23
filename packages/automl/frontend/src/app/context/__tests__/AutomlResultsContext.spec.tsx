@@ -81,8 +81,9 @@ describe('getAutomlContext', () => {
           prediction_length: 1,
           known_covariates_names: [],
         },
-        stageMapBestModel: undefined,
-        bestModelKey: undefined,
+        modelRankMap: { 'model-1': 1, 'model-2': 2 },
+        rankOneModelKey: 'model-1',
+        modelRanksAuthoritative: false,
       });
     });
 
@@ -116,8 +117,9 @@ describe('getAutomlContext', () => {
           prediction_length: 1,
           known_covariates_names: [],
         },
-        stageMapBestModel: undefined,
-        bestModelKey: undefined,
+        modelRankMap: { 'model-1': 1, 'model-2': 2 },
+        rankOneModelKey: 'model-1',
+        modelRanksAuthoritative: false,
       });
     });
 
@@ -187,18 +189,30 @@ describe('getAutomlContext', () => {
       ],
     };
 
-    it('should expose stageMapBestModel and bestModelKey from the component stage map', () => {
+    it('should expose the raw stage-map winner without overriding the rank map', () => {
       const context = getAutomlContext({
         pipelineRun: createMockPipelineRun({ task_type: 'binary' }),
         models: mockModels,
-        componentStageMap: stageMapWithBestModel,
+        componentStageMap: {
+          ...stageMapWithBestModel,
+          components: [
+            {
+              ...stageMapWithBestModel.components[0],
+              stages: [
+                {
+                  ...stageMapWithBestModel.components[0].stages[0],
+                  best_model: 'model-1',
+                },
+              ],
+            },
+          ],
+        },
       });
 
-      expect(context.stageMapBestModel).toBe('model-2');
-      expect(context.bestModelKey).toBe('model-2');
+      expect(context.rankOneModelKey).toBe('model-1');
     });
 
-    it('should leave bestModelKey undefined when stage map best_model is not in models', () => {
+    it('should keep the rank-one model when stage map best_model is not in models', () => {
       const context = getAutomlContext({
         pipelineRun: createMockPipelineRun({ task_type: 'binary' }),
         models: mockModels,
@@ -218,8 +232,26 @@ describe('getAutomlContext', () => {
         },
       });
 
-      expect(context.stageMapBestModel).toBe('UnknownModel');
-      expect(context.bestModelKey).toBeUndefined();
+      expect(context.rankOneModelKey).toBe('model-1');
+    });
+
+    it('should prefer backend rank one over a higher client-side metric', () => {
+      const context = getAutomlContext({
+        pipelineRun: createMockPipelineRun({ task_type: 'binary' }),
+        models: {
+          'model-1': { ...mockModels['model-1'], rank: 2 },
+          'model-2': {
+            ...mockModels['model-2'],
+            rank: 1,
+            metrics: { test_data: { accuracy: 0.1 } },
+          },
+        },
+        componentStageMap: stageMapWithBestModel,
+      });
+
+      expect(context.rankOneModelKey).toBe('model-2');
+      expect(context.modelRankMap).toEqual({ 'model-1': 2, 'model-2': 1 });
+      expect(context.modelRanksAuthoritative).toBe(true);
     });
   });
 

@@ -36,6 +36,7 @@ import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 import { getStepMetadata, type StepDetail } from '~/app/topology/tree-view/stepMetadata';
 import { parseStageMapNodeId } from '~/app/topology/tree-view/stageMapStepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
+import { formatPatternName } from '~/app/utilities/utils';
 import {
   getPipelineDetailsEmptyContent,
   getPipelineStatusFilterLabel,
@@ -53,7 +54,7 @@ import './StepDetailsPanel.scss';
 type StepDetailsPanelProps = {
   selectedNodeId?: string;
   nodeData?: TreeNodeData;
-  /** Validated patterns-record key for the pipeline winning pattern. */
+  /** Validated patterns-record key for the rank-one pattern. */
   selectedPattern?: string;
   statusFilter?: PipelineStatusFilter;
   treeLoadingMode?: PipelineTreeLoadingMode;
@@ -173,17 +174,31 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   namespace,
   onClose,
 }) => {
-  const { patterns, bestPatternKey, optimizationMetric } = useAutoragResultsContext();
+  const {
+    patterns,
+    rankOnePatternKey,
+    patternRankMap,
+    patternRanksAuthoritative,
+    optimizationMetric,
+  } = useAutoragResultsContext();
   const pipelineSummaryDetails = React.useMemo(
     () =>
       getPipelineSummaryDetails(
         pipelineRun,
         componentStageMap,
         patterns,
-        bestPatternKey,
+        rankOnePatternKey,
         optimizationMetric,
+        patternRankMap,
       ),
-    [pipelineRun, componentStageMap, patterns, bestPatternKey, optimizationMetric],
+    [
+      pipelineRun,
+      componentStageMap,
+      patterns,
+      rankOnePatternKey,
+      optimizationMetric,
+      patternRankMap,
+    ],
   );
 
   // Hooks must run unconditionally, above the early return below.
@@ -272,6 +287,22 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     componentStageMap,
     pipelineRun,
   });
+  const displayDetails = metadata.details.map((detail) => {
+    if (
+      patternRanksAuthoritative &&
+      rankOnePatternKey &&
+      parsedNodeId?.type === 'stage' &&
+      parsedNodeId.stageId === 'build_leaderboard' &&
+      detail.label === 'Best pattern'
+    ) {
+      const rankOnePattern = patterns[rankOnePatternKey];
+      return {
+        ...detail,
+        value: formatPatternName(rankOnePattern.name),
+      };
+    }
+    return detail;
+  });
   const isBestPattern =
     statusFilter === 'completed' &&
     selectedPattern != null &&
@@ -358,7 +389,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
           ) : (
             <StackItem>
               <DescriptionList isCompact>
-                {metadata.details.map((detail, index) => (
+                {displayDetails.map((detail, index) => (
                   <DescriptionListGroup key={`${detail.label}-${index}`}>
                     <StepDetailTerm detail={detail} />
                     <DescriptionListDescription>{detail.value}</DescriptionListDescription>

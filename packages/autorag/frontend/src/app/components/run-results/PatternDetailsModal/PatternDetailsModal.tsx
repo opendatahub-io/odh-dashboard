@@ -56,6 +56,7 @@ export type PatternDetailsModalProps = {
   patternKeys?: string[];
   selectedIndex: number;
   rank?: number;
+  patternRankMap?: Partial<Record<string, number>>;
   optimizationMetric?: MetricReference;
   onPatternChange: (index: number) => void;
   namespace?: string;
@@ -86,6 +87,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   patternKeys = patterns.map((_, index) => String(index)),
   selectedIndex,
   rank,
+  patternRankMap,
   optimizationMetric,
   onPatternChange,
   namespace,
@@ -108,11 +110,12 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   const data = patterns[selectedIndex];
   const rankMap = React.useMemo<Partial<Record<string, number>>>(
     () =>
+      patternRankMap ??
       computePatternRankMap(
         Object.fromEntries(patterns.map((pattern, index) => [patternKeys[index], pattern])),
         optimizationMetric ?? DEFAULT_OPTIMIZATION_METRIC,
       ),
-    [patterns, patternKeys, optimizationMetric],
+    [patterns, patternKeys, optimizationMetric, patternRankMap],
   );
 
   // Primary pattern evaluation results

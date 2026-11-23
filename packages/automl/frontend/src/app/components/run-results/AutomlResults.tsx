@@ -11,7 +11,12 @@ import { transformPipelineData } from '~/app/topology/tree-view/transformPipelin
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import { downloadBlob, normalizePipelineRunState } from '~/app/utilities/utils';
+import {
+  computeRankMap,
+  downloadBlob,
+  getRankFallbackReason,
+  normalizePipelineRunState,
+} from '~/app/utilities/utils';
 import {
   fireAutomlModelDetailsViewed,
   fireAutomlNotebookDownloaded,
@@ -54,13 +59,44 @@ function AutomlResults(): React.JSX.Element {
     componentStageMapLoading,
     componentStageMapError,
     parameters,
-    stageMapBestModel,
-    bestModelKey,
+    rankOneModelKey,
+    modelRankMap,
+    modelRanksAuthoritative,
   } = useAutomlResultsContext();
   const { namespace } = useParams<{ namespace: string }>();
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
+  const effectiveModelRankMap =
+    modelRankMap ?? computeRankMap(models, parameters?.task_type ?? '', parameters?.eval_metric);
+  const effectiveRankOneModelKey =
+    rankOneModelKey ??
+    Object.keys(effectiveModelRankMap).find((key) => effectiveModelRankMap[key] === 1);
+  const rankFallbackWarningRef = React.useRef<string>();
+
+  React.useEffect(() => {
+    const hasInvalidArtifactRanks = getRankFallbackReason(models) === 'invalid';
+    const conventions = new Set(
+      Object.values(models).map((model) => model.metrics_convention ?? 'legacy'),
+    );
+    const hasUnsupportedMetricConvention = [...conventions].some(
+      (convention) => convention !== 'legacy' && convention !== 'natural_v1',
+    );
+    const hasMixedMetricConventions = conventions.size > 1;
+    const runKey = pipelineRun?.run_id ?? 'unknown-run';
+    if (
+      !modelsLoading &&
+      !modelRanksAuthoritative &&
+      (hasInvalidArtifactRanks || hasUnsupportedMetricConvention || hasMixedMetricConventions) &&
+      rankFallbackWarningRef.current !== runKey
+    ) {
+      rankFallbackWarningRef.current = runKey;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[AutoML ranks] Artifact ranking metadata is incomplete or inconsistent for ${runKey}; using legacy metric fallback.`,
+      );
+    }
+  }, [modelRanksAuthoritative, models, modelsLoading, pipelineRun?.run_id]);
 
   const runState = React.useMemo(
     () => normalizePipelineRunState(pipelineRun?.state),
@@ -102,10 +138,10 @@ function AutomlResults(): React.JSX.Element {
   const treeViewData = useTreeViewData(
     models,
     treeSourceNodes,
-    bestModelKey,
-    stageMapBestModel,
+    effectiveRankOneModelKey,
     parameters?.task_type,
     parameters?.eval_metric,
+    effectiveModelRankMap,
   );
 
   const runIsTerminal = isRunInTerminalState(runState);

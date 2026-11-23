@@ -39,7 +39,7 @@ import {
   type ParsedStageMapNode,
 } from '~/app/topology/tree-view/stageMapStepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
-import { resolveBestModelKey } from '~/app/utilities/utils';
+import { resolveBestModelKey, resolveModelDisplayName } from '~/app/utilities/utils';
 import {
   getPipelineDetailsEmptyContent,
   getPipelineStatusFilterLabel,
@@ -57,8 +57,6 @@ import './StepDetailsPanel.scss';
 type StepDetailsPanelProps = {
   selectedNodeId?: string;
   nodeData?: TreeNodeData;
-  /** Validated models-record key for the pipeline best model. */
-  selectedModel?: string;
   statusFilter?: PipelineStatusFilter;
   treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
@@ -192,7 +190,6 @@ const StepDetailsLoadingBody: React.FC<StepDetailsLoadingBodyProps> = ({
 const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   selectedNodeId,
   nodeData,
-  selectedModel,
   statusFilter,
   treeLoadingMode,
   componentStageMap,
@@ -201,10 +198,12 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   namespace,
   onClose,
 }) => {
-  const { models, parameters } = useAutomlResultsContext();
+  const { models, parameters, modelRankMap, rankOneModelKey, modelRanksAuthoritative } =
+    useAutomlResultsContext();
   const pipelineSummaryDetails = React.useMemo(
-    () => getPipelineSummaryDetails(pipelineRun, componentStageMap, models, parameters),
-    [pipelineRun, componentStageMap, models, parameters],
+    () =>
+      getPipelineSummaryDetails(pipelineRun, componentStageMap, models, parameters, modelRankMap),
+    [pipelineRun, componentStageMap, models, parameters, modelRankMap],
   );
 
   // Hooks must run unconditionally, above the early return below.
@@ -290,6 +289,21 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     componentStageMap,
     pipelineRun,
   });
+  const displayDetails = metadata.details.map((detail) => {
+    if (
+      modelRanksAuthoritative &&
+      rankOneModelKey &&
+      parsedNodeId?.type === 'stage' &&
+      parsedNodeId.stageId === 'build_leaderboard' &&
+      detail.label === 'Best model'
+    ) {
+      return {
+        ...detail,
+        value: resolveModelDisplayName(models, rankOneModelKey) ?? detail.value,
+      };
+    }
+    return detail;
+  });
   const branchModelKey = resolveBranchModelKey(
     parsedNodeId,
     componentStageMap,
@@ -298,8 +312,8 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   );
   const isBestModel =
     statusFilter === 'completed' &&
-    selectedModel != null &&
-    branchModelKey === selectedModel &&
+    rankOneModelKey != null &&
+    branchModelKey === rankOneModelKey &&
     parsedNodeId?.type === 'branch_model' &&
     nodeData.stepState === 'completed';
   const panelTitle = isBestModel ? 'Best model' : (nodeData.label ?? 'Step details');
@@ -382,7 +396,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
           ) : (
             <StackItem>
               <DescriptionList isCompact>
-                {metadata.details.map((detail, index) => (
+                {displayDetails.map((detail, index) => (
                   <DescriptionListGroup key={`${detail.label}-${index}`}>
                     <StepDetailTerm detail={detail} />
                     <DescriptionListDescription>{detail.value}</DescriptionListDescription>

@@ -469,6 +469,24 @@ describe('AutomlModelSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('should preserve optional rank and natural metric metadata', () => {
+    const result = AutomlModelSchema.safeParse({
+      ...validUnifiedModel,
+      rank: 2,
+      metrics_convention: 'natural_v1',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.rank).toBe(2);
+      expect(result.data.metrics_convention).toBe('natural_v1');
+    }
+  });
+
+  it('should accept a null rank for legacy fallback handling', () => {
+    expect(AutomlModelSchema.safeParse({ ...validUnifiedModel, rank: null }).success).toBe(true);
+  });
+
   it('should validate a legacy tabular 3.4 model', () => {
     const result = AutomlModelSchema.safeParse(validTabularModelV34);
     expect(result.success).toBe(true);

@@ -210,8 +210,14 @@ export function useAutomlResults(
               ? `${artifactDirectory}${validated.location.metrics}`
               : undefined;
 
+          const metricsConvention = validated.metrics_convention; // eslint-disable-line camelcase
           const model: AutomlModel = {
             name: validated.name,
+            ...(validated.rank != null && { rank: validated.rank }),
+            ...(metricsConvention !== undefined && {
+              // eslint-disable-next-line camelcase
+              metrics_convention: metricsConvention,
+            }),
             location: {
               // eslint-disable-next-line camelcase
               model_directory: directory,

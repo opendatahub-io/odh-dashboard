@@ -4,13 +4,15 @@ import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import { DEFAULT_EVAL_METRIC_BY_TASK } from '~/app/utilities/const';
-import { getBestModelFromStageMap, getTaskType, resolveBestModelKey } from '~/app/utilities/utils';
+import { computeRankMap, getCompleteRankMap, getTaskType } from '~/app/utilities/utils';
 
 const configureSchema = createConfigureSchema();
 
 /* eslint-disable camelcase */
 export type AutomlModel = {
   name: string;
+  rank?: number;
+  metrics_convention?: string;
   location: {
     model_directory: string;
     predictor: string;
@@ -36,10 +38,12 @@ export type AutomlResultsContextProps = {
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
-  /** Raw best_model from the build_leaderboard stage in the component stage map. */
-  stageMapBestModel?: string;
-  /** Resolved key in `models` for `stageMapBestModel`, when available. */
-  bestModelKey?: string;
+  /** Rank map keyed by the loaded model record key. */
+  modelRankMap?: Record<string, number>;
+  /** Record key with rank 1, when a rank exists. */
+  rankOneModelKey?: string;
+  /** Whether the rank map came from a complete backend artifact rank set. */
+  modelRanksAuthoritative?: boolean;
 };
 
 export const AutomlResultsContext = React.createContext<AutomlResultsContextProps | undefined>(
@@ -105,8 +109,9 @@ export function getAutomlContext({
     parameters.eval_metric = DEFAULT_EVAL_METRIC_BY_TASK[parameters.task_type];
   }
 
-  const stageMapBestModel = getBestModelFromStageMap(componentStageMap);
-  const bestModelKey = resolveBestModelKey(models, stageMapBestModel);
+  const modelRankMap = computeRankMap(models, parameters.task_type ?? '', parameters.eval_metric);
+  const rankOneModelKey = Object.keys(modelRankMap).find((key) => modelRankMap[key] === 1);
+  const modelRanksAuthoritative = getCompleteRankMap(models) !== undefined;
 
   return {
     pipelineRun,
@@ -121,7 +126,8 @@ export function getAutomlContext({
     componentStageMap,
     componentStageMapLoading,
     componentStageMapError,
-    stageMapBestModel,
-    bestModelKey,
+    modelRankMap,
+    rankOneModelKey,
+    modelRanksAuthoritative,
   };
 }

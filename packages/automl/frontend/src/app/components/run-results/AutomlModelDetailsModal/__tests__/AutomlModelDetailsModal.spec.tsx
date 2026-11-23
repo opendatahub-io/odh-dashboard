@@ -626,18 +626,26 @@ describe('AutomlModelDetailsModal', () => {
     });
   });
 
-  it('should use recomputed rank for the opened model when bestModelKey changes', () => {
-    const contextWithoutBest = {
+  it('should use the shared rank map for the opened model', () => {
+    const contextWithoutRankMap = {
       ...mockTabularContext,
-      bestModelKey: undefined,
+      modelRankMap: {
+        CatBoost_BAG_L2_FULL: 1,
+        RandomForest_BAG_L1_FULL: 2,
+        NeuralNet_BAG_L1_FULL: 3,
+      },
     };
-    const contextWithBest = {
+    const contextWithRankMap = {
       ...mockTabularContext,
-      bestModelKey: 'RandomForest_BAG_L1_FULL',
+      modelRankMap: {
+        CatBoost_BAG_L2_FULL: 2,
+        RandomForest_BAG_L1_FULL: 1,
+        NeuralNet_BAG_L1_FULL: 3,
+      },
     };
 
     const { rerender } = render(
-      <AutomlResultsContext.Provider value={contextWithoutBest}>
+      <AutomlResultsContext.Provider value={contextWithoutRankMap}>
         <AutomlModelDetailsModal {...defaultProps} modelName="RandomForest_BAG_L1_FULL" rank={2} />
       </AutomlResultsContext.Provider>,
     );
@@ -650,7 +658,7 @@ describe('AutomlModelDetailsModal', () => {
     expect(getRankValue()).toHaveTextContent('2');
 
     rerender(
-      <AutomlResultsContext.Provider value={contextWithBest}>
+      <AutomlResultsContext.Provider value={contextWithRankMap}>
         <AutomlModelDetailsModal {...defaultProps} modelName="RandomForest_BAG_L1_FULL" rank={2} />
       </AutomlResultsContext.Provider>,
     );

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase -- test data matches AutoML artifact field names */
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
@@ -6,6 +7,7 @@ import StepDetailsPanel from '~/app/components/run-results/StepDetailsPanel';
 import { STAGE_MAP_UNAVAILABLE_NOTICE } from '~/app/components/run-results/pipelineStatusLabels';
 import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { getStepMetadata } from '~/app/topology/tree-view/stepMetadata';
+import { parseStageMapNodeId } from '~/app/topology/tree-view/stageMapStepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 
@@ -32,6 +34,7 @@ jest.mock('~/app/components/run-results/pipelineSummaryMetadata', () => ({
 }));
 
 const mockUseTaskExecutorError = jest.mocked(useTaskExecutorError);
+const mockParseStageMapNodeId = jest.mocked(parseStageMapNodeId);
 
 const renderEmptyPanel = (showStageMapUnavailableNotice = false): void => {
   render(
@@ -59,6 +62,7 @@ const renderStep = (nodeData: TreeNodeData, statusFilter: PipelineStatusFilter =
 describe('StepDetailsPanel', () => {
   beforeEach(() => {
     mockUseTaskExecutorError.mockReturnValue({ isLoading: false, isError: false });
+    mockParseStageMapNodeId.mockReturnValue(undefined);
     jest.mocked(getStepMetadata).mockReturnValue({
       description: 'Trains candidate models on the prepared data.',
       details: [],
@@ -79,6 +83,49 @@ describe('StepDetailsPanel', () => {
 
     expect(screen.queryByTestId('stage-map-unavailable-alert')).not.toBeInTheDocument();
     expect(screen.getByText('Select a step to view its details.')).toBeInTheDocument();
+  });
+
+  it('should use the rank-one model record when backend ranks are authoritative', () => {
+    jest.mocked(getStepMetadata).mockReturnValue({
+      description: 'Leaderboard details',
+      details: [{ label: 'Best model', value: 'Legacy winner' }],
+    });
+    mockParseStageMapNodeId.mockReturnValue({
+      type: 'stage',
+      componentId: 'leaderboard',
+      stageId: 'build_leaderboard',
+    });
+
+    render(
+      <AutomlResultsContext.Provider
+        value={{
+          models: {
+            'record-key': {
+              name: 'Display Model',
+              location: {
+                model_directory: '/models',
+                predictor: '/models/predictor',
+                notebook: '/models/notebook',
+              },
+              metrics: { test_data: { accuracy: 0.9 } },
+            },
+          },
+          modelRankMap: { 'record-key': 1 },
+          rankOneModelKey: 'record-key',
+          modelRanksAuthoritative: true,
+        }}
+      >
+        <StepDetailsPanel
+          selectedNodeId="leaderboard__build_leaderboard"
+          nodeData={{ label: 'Build leaderboard', stepState: 'completed' }}
+          statusFilter="completed"
+          componentStageMap={{ components: [] } as never}
+        />
+      </AutomlResultsContext.Provider>,
+    );
+
+    expect(screen.getByText('Display Model')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy winner')).not.toBeInTheDocument();
   });
 
   it('should keep the generic failure sentence when no executor error is available', () => {

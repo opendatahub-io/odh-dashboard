@@ -6,6 +6,7 @@ import StepDetailsPanel from '~/app/components/run-results/StepDetailsPanel';
 import { STAGE_MAP_UNAVAILABLE_NOTICE } from '~/app/components/run-results/pipelineStatusLabels';
 import { AutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { getStepMetadata } from '~/app/topology/tree-view/stepMetadata';
+import { parseStageMapNodeId } from '~/app/topology/tree-view/stageMapStepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 
@@ -27,6 +28,7 @@ jest.mock('~/app/components/run-results/pipelineSummaryMetadata', () => ({
 }));
 
 const mockUseTaskExecutorError = jest.mocked(useTaskExecutorError);
+const mockParseStageMapNodeId = jest.mocked(parseStageMapNodeId);
 
 const resultsContextValue = {
   patterns: {},
@@ -57,13 +59,10 @@ const renderStep = (nodeData: TreeNodeData, statusFilter: PipelineStatusFilter =
 };
 
 const renderBranchPanel = (): void => {
-  const { parseStageMapNodeId } = jest.requireMock(
-    '~/app/topology/tree-view/stageMapStepMetadata',
-  ) as { parseStageMapNodeId: jest.Mock };
   const { getStepMetadata: getStepMetadataMock } = jest.requireMock(
     '~/app/topology/tree-view/stepMetadata',
   ) as { getStepMetadata: jest.Mock };
-  parseStageMapNodeId.mockReturnValue({
+  mockParseStageMapNodeId.mockReturnValue({
     type: 'branch_pattern',
     componentId: 'rag_optimization',
     branchIndex: 0,
@@ -75,7 +74,9 @@ const renderBranchPanel = (): void => {
       value={{
         patterns: { generatedKey: { name: 'Pattern One' } } as never,
         optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
-        bestPatternKey: 'generatedKey',
+        patternRankMap: { generatedKey: 1 },
+        rankOnePatternKey: 'generatedKey',
+        patternRanksAuthoritative: false,
       }}
     >
       <StepDetailsPanel
@@ -102,6 +103,7 @@ const renderBranchPanel = (): void => {
 describe('StepDetailsPanel', () => {
   beforeEach(() => {
     mockUseTaskExecutorError.mockReturnValue({ isLoading: false, isError: false });
+    mockParseStageMapNodeId.mockReturnValue(undefined);
     jest.mocked(getStepMetadata).mockReturnValue({
       description: 'Discovers documents in the connected storage.',
       details: [],
@@ -115,6 +117,45 @@ describe('StepDetailsPanel', () => {
     expect(screen.getByText(STAGE_MAP_UNAVAILABLE_NOTICE.title)).toBeInTheDocument();
     expect(screen.getByText(STAGE_MAP_UNAVAILABLE_NOTICE.description)).toBeInTheDocument();
     expect(screen.getByText('Select a step to view its details.')).toBeInTheDocument();
+  });
+
+  it('should use the rank-one pattern record when backend ranks are authoritative', () => {
+    jest.mocked(getStepMetadata).mockReturnValue({
+      description: 'Leaderboard details',
+      details: [{ label: 'Best pattern', value: 'Legacy winner' }],
+    });
+    mockParseStageMapNodeId.mockReturnValue({
+      type: 'stage',
+      componentId: 'leaderboard',
+      stageId: 'build_leaderboard',
+    });
+
+    render(
+      <AutoragResultsContext.Provider
+        value={{
+          patterns: {
+            'record-key': {
+              name: 'Display Pattern',
+              evaluation: { metrics: [] },
+            },
+          } as never,
+          optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
+          patternRankMap: { 'record-key': 1 },
+          rankOnePatternKey: 'record-key',
+          patternRanksAuthoritative: true,
+        }}
+      >
+        <StepDetailsPanel
+          selectedNodeId="leaderboard__build_leaderboard"
+          nodeData={{ label: 'Build leaderboard', stepState: 'completed' }}
+          statusFilter="completed"
+          componentStageMap={{ components: [] } as never}
+        />
+      </AutoragResultsContext.Provider>,
+    );
+
+    expect(screen.getByText('Display Pattern')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy winner')).not.toBeInTheDocument();
   });
 
   it('should not show a stage map unavailable notice when the flag is false', () => {

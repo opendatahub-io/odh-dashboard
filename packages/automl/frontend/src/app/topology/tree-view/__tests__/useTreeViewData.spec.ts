@@ -14,7 +14,7 @@ const createModel = (name: string): AutomlModel => ({
 });
 
 describe('useTreeViewData', () => {
-  it('should select the best model key when models are available', () => {
+  it('should select the rank-one model key when provided', () => {
     const models = {
       model_a: createModel('Model A'),
       model_b: createModel('Model B'),
@@ -27,7 +27,7 @@ describe('useTreeViewData', () => {
     expect(result.current.stageMapNodes).toEqual([]);
   });
 
-  it('should leave selectedModel undefined when best-model metadata is unavailable', () => {
+  it('should leave selectedModel undefined when rank-one metadata is unavailable', () => {
     const models = {
       model_a: createModel('Model A'),
       model_b: createModel('Model B'),
@@ -51,39 +51,37 @@ describe('useTreeViewData', () => {
     expect(result.current.selectedModel).toBeUndefined();
   });
 
-  it('should prefer stage map best model over the first loaded model while resolving keys', () => {
+  it('should not use stage-map best model metadata to resolve the topology winner', () => {
     const models = {
       model_a: createModel('Model A'),
       model_b: createModel('Model B'),
     };
 
-    const { result } = renderHook(() => useTreeViewData(models, [], undefined, 'model_b'));
-
-    expect(result.current.selectedModel).toBe('model_b');
-  });
-
-  it('should not select an invalid stage map best model when it is not a models key', () => {
-    const models = {
-      model_a: createModel('Model A'),
-      model_b: createModel('Model B'),
-    };
-
-    const { result } = renderHook(() =>
-      useTreeViewData(models, [], undefined, 'missing_best_model'),
-    );
+    const { result } = renderHook(() => useTreeViewData(models, [], undefined));
 
     expect(result.current.selectedModel).toBeUndefined();
   });
 
-  it('should ignore a stale bestModelKey and fall back to a valid stage map best model', () => {
+  it('should not select an invalid stage-map best model', () => {
     const models = {
       model_a: createModel('Model A'),
       model_b: createModel('Model B'),
     };
 
-    const { result } = renderHook(() => useTreeViewData(models, [], 'stale_best_model', 'model_b'));
+    const { result } = renderHook(() => useTreeViewData(models, [], undefined));
 
-    expect(result.current.selectedModel).toBe('model_b');
+    expect(result.current.selectedModel).toBeUndefined();
+  });
+
+  it('should not fall back to stage-map metadata when rank-one metadata is stale', () => {
+    const models = {
+      model_a: createModel('Model A'),
+      model_b: createModel('Model B'),
+    };
+
+    const { result } = renderHook(() => useTreeViewData(models, [], 'stale_best_model'));
+
+    expect(result.current.selectedModel).toBeUndefined();
   });
 
   it('should preserve the models-record key when display names collide', () => {

@@ -13,6 +13,8 @@ import * as z from 'zod';
 
 const AutomlModelBaseSchema = z.object({
   name: z.string(),
+  rank: z.number().int().nullable().optional(),
+  metrics_convention: z.string().optional(),
   location: z.object({
     model_directory: z.string().optional(),
     predictor: z.string(),

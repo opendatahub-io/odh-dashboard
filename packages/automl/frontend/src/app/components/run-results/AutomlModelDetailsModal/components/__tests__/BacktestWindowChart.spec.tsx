@@ -173,6 +173,22 @@ describe('BacktestWindowChart', () => {
         expect(point.y).not.toBe(0);
       });
     });
+
+    it('should preserve signed holdout values for natural-sign artifacts', () => {
+      render(
+        <BacktestWindowChart
+          perWindowMetrics={mockPerWindowMetrics}
+          evalMetric="MASE"
+          holdoutMetrics={{ MASE: -0.85 }}
+          metricsConvention="natural_v1"
+        />,
+      );
+
+      const holdoutSeries = lastRenderedSeries!.find(
+        (s) => s.type === 'scatter' && s.data.length === 1,
+      );
+      expect(holdoutSeries?.data[0].y).toBe(-0.85);
+    });
   });
 
   describe('dropdown formatting', () => {

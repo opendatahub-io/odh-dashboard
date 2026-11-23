@@ -19,6 +19,8 @@ const ScoreMetricSchema = z
 const PatternBaseSchema = z
   .object({
     name: z.string(),
+    rank: FiniteNumberSchema.int().nullable().optional(),
+    metrics_convention: z.string().optional(),
     iteration: FiniteNumberSchema,
     max_combinations: FiniteNumberSchema,
     duration_seconds: FiniteNumberSchema,

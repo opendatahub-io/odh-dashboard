@@ -169,6 +169,24 @@ This application uses Module Federation for:
 
 ---
 
+## Results Artifact Compatibility
+
+AutoML `model.json` artifacts may include an integer `rank`, where `1` is the
+backend-selected top model. The UI uses artifact ranks only when every loaded
+model has a unique, contiguous rank set. Older or malformed artifacts use a
+stable optimized-metric fallback without applying `best_model` to leaderboard
+ordering. Missing, null, or incomplete rank metadata is recoverable; artifacts
+that fail schema validation may be skipped by the artifact loader.
+
+Time-series artifacts may include `metrics_convention: natural_v1`. Natural-sign
+metrics are displayed as exported; unsupported convention strings are preserved
+but do not alter fallback direction, and a diagnostic warning is emitted.
+Older artifacts retain their legacy backtest display behavior. Winner-only legacy
+summaries may use a resolvable stage-map `best_model`, while contextual surfaces
+continue to use the deterministic fallback rank.
+
+---
+
 ## License
 
 Apache-2.0 - See the [LICENSE](../../../LICENSE) file for details.

@@ -25,7 +25,7 @@ const createPattern = (name: string): AutoragPattern => ({
 });
 
 describe('useTreeViewData', () => {
-  it('should select the best pattern key when patterns are available', () => {
+  it('should select the rank-one pattern key when provided', () => {
     const patterns = {
       pattern_a: createPattern('Pattern A'),
       pattern_b: createPattern('Pattern B'),
@@ -38,7 +38,7 @@ describe('useTreeViewData', () => {
     expect(result.current.stageMapNodes).toEqual([]);
   });
 
-  it('should leave selectedPattern undefined when best-pattern metadata is unavailable', () => {
+  it('should leave selectedPattern undefined when rank-one metadata is unavailable', () => {
     const patterns = {
       pattern_a: createPattern('Pattern A'),
       pattern_b: createPattern('Pattern B'),
@@ -62,26 +62,26 @@ describe('useTreeViewData', () => {
     expect(result.current.selectedPattern).toBeUndefined();
   });
 
-  it('should prefer stage map best pattern over the first loaded pattern while resolving keys', () => {
+  it('should not use stage-map best pattern metadata to resolve the topology winner', () => {
     const patterns = {
       pattern_a: createPattern('Pattern A'),
       pattern_b: createPattern('Pattern B'),
     };
 
-    const { result } = renderHook(() => useTreeViewData(patterns, [], undefined, 'pattern_b'));
+    const { result } = renderHook(() => useTreeViewData(patterns, [], undefined));
 
-    expect(result.current.selectedPattern).toBe('pattern_b');
+    expect(result.current.selectedPattern).toBeUndefined();
   });
 
-  it('should normalize stage-map winner identifiers when selecting a pattern', () => {
+  it('should ignore normalized stage-map winner identifiers', () => {
     const patterns = {
       pattern_one: createPattern('Pattern One'),
     };
 
-    const { result } = renderHook(() => useTreeViewData(patterns, [], undefined, 'PatternOne'));
+    const { result } = renderHook(() => useTreeViewData(patterns, [], undefined));
 
-    expect(result.current.selectedPattern).toBe('pattern_one');
-    expect(result.current.winnerPatternLabel).toBe('Pattern One');
+    expect(result.current.selectedPattern).toBeUndefined();
+    expect(result.current.winnerPatternLabel).toBeUndefined();
   });
 
   it('should not select an invalid stage map best pattern when it is not a patterns key', () => {
@@ -90,24 +90,20 @@ describe('useTreeViewData', () => {
       pattern_b: createPattern('Pattern B'),
     };
 
-    const { result } = renderHook(() =>
-      useTreeViewData(patterns, [], undefined, 'missing_best_pattern'),
-    );
+    const { result } = renderHook(() => useTreeViewData(patterns, [], undefined));
 
     expect(result.current.selectedPattern).toBeUndefined();
   });
 
-  it('should ignore a stale bestPatternKey and fall back to a valid stage map best pattern', () => {
+  it('should not fall back to stage-map metadata when rank-one metadata is stale', () => {
     const patterns = {
       pattern_a: createPattern('Pattern A'),
       pattern_b: createPattern('Pattern B'),
     };
 
-    const { result } = renderHook(() =>
-      useTreeViewData(patterns, [], 'stale_best_pattern', 'pattern_b'),
-    );
+    const { result } = renderHook(() => useTreeViewData(patterns, [], 'stale_best_pattern'));
 
-    expect(result.current.selectedPattern).toBe('pattern_b');
+    expect(result.current.selectedPattern).toBeUndefined();
   });
 
   it('should preserve the patterns-record key when display names collide', () => {

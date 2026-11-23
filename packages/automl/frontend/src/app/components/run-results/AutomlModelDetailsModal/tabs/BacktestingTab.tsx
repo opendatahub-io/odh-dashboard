@@ -140,6 +140,7 @@ const BacktestingTab: React.FC<TabContentProps> = ({
           perWindowMetrics={backTesting.per_window_metrics}
           evalMetric={backTesting.eval_metric}
           holdoutMetrics={testData}
+          metricsConvention={model.metrics_convention}
           print={print}
           initialSelectedMetrics={backtestSelectedMetrics}
           onSelectedMetricsChange={onBacktestMetricsChange}

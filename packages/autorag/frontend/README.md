@@ -169,6 +169,23 @@ This application uses Module Federation for:
 
 ---
 
+## Results Artifact Compatibility
+
+AutoRAG `pattern.json` artifacts may include an integer `rank`, where `1` is
+the backend-selected top pattern. The UI uses artifact ranks only when every
+loaded pattern has a unique, contiguous rank set. Older or malformed artifacts
+use a stable objective-metric fallback without applying `best_pattern` to
+leaderboard ordering, topology state, or comparisons. Missing, null, or
+incomplete rank metadata is recoverable; artifacts that fail schema validation
+may be skipped by the artifact loader.
+
+Winner-only legacy summaries may use a resolvable stage-map `best_pattern`;
+contextual result surfaces always use the deterministic rank map.
+`metrics_convention` is preserved for compatibility but is not interpreted by
+AutoRAG ranking logic; unsupported values produce a diagnostic warning.
+
+---
+
 ## License
 
 Apache-2.0 - See the [LICENSE](../../../LICENSE) file for details.

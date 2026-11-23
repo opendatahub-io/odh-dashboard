@@ -192,6 +192,8 @@ export type AutoragPatternSettings = {
 
 export type AutoragPattern = {
   name: string;
+  rank?: number;
+  metrics_convention?: string;
   iteration: number;
   max_combinations: number;
   duration_seconds: number;

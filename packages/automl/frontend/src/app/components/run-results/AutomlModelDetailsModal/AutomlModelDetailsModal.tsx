@@ -60,8 +60,9 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   onRegisterModel,
 }) => {
   const trackEvent = useTrackEvent();
-  const { models: modelsRecord, parameters, pipelineRun, bestModelKey } = useAutomlResultsContext();
+  const { models: modelsRecord, parameters, pipelineRun, modelRankMap } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
+  const modelKeys = Object.keys(modelsRecord);
   const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
   const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
   const createdAt = pipelineRun?.created_at;
@@ -72,10 +73,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     setSelectedModelName(modelName);
   }, [modelName]);
 
-  const rankMap = React.useMemo(
-    () => computeRankMap(modelsRecord, taskType, parameters?.eval_metric, bestModelKey),
-    [modelsRecord, taskType, parameters?.eval_metric, bestModelKey],
-  );
+  const rankMap = modelRankMap ?? computeRankMap(modelsRecord, taskType, parameters?.eval_metric);
   const model = modelsRecord[selectedModelName];
   const rank =
     rankMap[selectedModelName] ?? (selectedModelName === modelName ? initialRank : undefined);
@@ -179,6 +177,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
         <ModalBody>
           <AutomlModelDetailsModalHeader
             models={models}
+            modelKeys={modelKeys}
             currentModelName={selectedModelName}
             rank={rank}
             rankMap={rankMap}
@@ -292,6 +291,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   <AutomlModelDetailsModalHeader
                     print
                     models={models}
+                    modelKeys={modelKeys}
                     currentModelName={selectedModelName}
                     rank={rank}
                     rankMap={rankMap}

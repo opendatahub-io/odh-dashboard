@@ -26,6 +26,10 @@ export function normalizePattern(
 
   return {
     name: raw.name,
+    ...(raw.rank != null && { rank: raw.rank }),
+    ...(raw.metrics_convention !== undefined && {
+      metrics_convention: raw.metrics_convention,
+    }),
     iteration: raw.iteration,
     max_combinations: raw.max_combinations,
     duration_seconds: raw.duration_seconds,

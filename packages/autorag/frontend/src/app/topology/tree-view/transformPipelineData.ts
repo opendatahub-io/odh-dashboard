@@ -11,7 +11,7 @@ export type TransformPipelineResult =
 
 export type TransformPipelineOptions = {
   patternsExpanded?: boolean;
-  /** Succeeded run with a known best pattern. */
+  /** Succeeded run with a resolved rank-one pattern. */
   winnerResolved?: boolean;
 };
 

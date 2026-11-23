@@ -6,10 +6,10 @@ const BRANCHING_STAGE_ID = 'optimize_templates';
 export type PatternRankMap = Record<string, number>;
 
 export type BranchExpandOptions = {
-  /** When false (default), show shared spine + winner branch only. */
+  /** When false (default), show shared spine + rank-one branch only. */
   patternsExpanded: boolean;
   /**
-   * Succeeded run with a known best pattern — show pattern name + "winner" subtitle + star.
+   * Succeeded run with a resolved rank-one pattern — show pattern name + "winner" subtitle + star.
    * Otherwise pattern terminus uses "Pattern" + winner badge (no star).
    */
   winnerResolved: boolean;

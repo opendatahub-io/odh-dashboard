@@ -53,7 +53,7 @@ import {
   formatMetricName,
   formatMetricValue,
   isRunInProgress,
-  orderModelsByLeaderboardRank,
+  computeRankMap,
   resolveEvalMetric,
 } from '~/app/utilities/utils';
 import { fireAutomlLeaderboardSorted, type ModelActionSource } from '~/app/utilities/tracking';
@@ -439,7 +439,7 @@ function AutomlLeaderboard({
     onRetryModels,
     pipelineRun,
     pipelineRunLoading,
-    bestModelKey,
+    modelRankMap,
     componentStageMap,
   } = useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
@@ -482,6 +482,8 @@ function AutomlLeaderboard({
 
   // Determine the optimized metric (prefer the user's choice, fall back to task-type default)
   const optimizedMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
+  const effectiveModelRankMap =
+    modelRankMap ?? computeRankMap(models, taskType, parameters?.eval_metric);
 
   // Extract all unique metric keys across all models
   const metricKeys = React.useMemo(() => {
@@ -661,7 +663,7 @@ function AutomlLeaderboard({
       const optimizedMetricValue = getMetricValue(optimizedMetric);
 
       return {
-        rank: 0, // Will be assigned after sorting by optimized metric initially
+        rank: effectiveModelRankMap[modelName] ?? 0,
         modelKey: modelName,
         displayName: model.name || modelName,
         metrics,
@@ -669,17 +671,16 @@ function AutomlLeaderboard({
       };
     });
 
-    // Rank by optimized metric, reserving rank 1 for the pipeline best_model when available.
+    // Rank by the shared rank map. The map is backend-authoritative when complete
+    // and otherwise comes from the documented deterministic legacy fallback.
     const entryByKey = Object.fromEntries(entries.map((entry) => [entry.modelKey, entry]));
-    const orderedModelKeys = orderModelsByLeaderboardRank(
-      entries.map((entry) => entry.modelKey),
-      (modelKey) => entryByKey[modelKey].optimizedMetricValue,
-      bestModelKey,
-    );
+    const orderedModelKeys = entries
+      .map((entry) => entry.modelKey)
+      .toSorted((a, b) => (entryByKey[a].rank || 0) - (entryByKey[b].rank || 0));
 
     const rankedEntries = orderedModelKeys.map((modelKey, index) => ({
       ...entryByKey[modelKey],
-      rank: index + 1,
+      rank: entryByKey[modelKey].rank || index + 1,
     }));
 
     // Apply user-selected sorting
@@ -722,7 +723,7 @@ function AutomlLeaderboard({
     }
 
     return rankedEntries;
-  }, [models, metricKeys, optimizedMetric, activeSort, bestModelKey]);
+  }, [models, metricKeys, optimizedMetric, activeSort, effectiveModelRankMap]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(

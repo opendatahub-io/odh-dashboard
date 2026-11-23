@@ -14,6 +14,7 @@ import {
   resolveEvalMetric,
   compareOptimizedMetricValues,
   computeRankMap,
+  getRankFallbackReason,
   findEquivalentMetric,
   findTrainingTaskPrefix,
   resolveTrainingTaskPrefix,
@@ -430,6 +431,64 @@ describe('computeRankMap', () => {
       ModelB: 1,
       ModelC: 2,
       ModelA: 3,
+    });
+  });
+
+  it('should use complete backend ranks even when metric order differs', () => {
+    const models = {
+      ModelA: { ...buildModel(0.95), rank: 2 },
+      ModelB: { ...buildModel(0.9), rank: 1 },
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelA: 2, ModelB: 1 });
+  });
+
+  it('should fall back to metric order when backend ranks are incomplete', () => {
+    const models = {
+      ModelA: { ...buildModel(0.9), rank: 2 },
+      ModelB: buildModel(0.95),
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelB: 1, ModelA: 2 });
+    expect(getRankFallbackReason(models)).toBe('invalid');
+  });
+
+  it('should identify rankless legacy artifacts separately from invalid rank metadata', () => {
+    expect(getRankFallbackReason({ ModelA: buildModel(0.9) })).toBe('legacy');
+    expect(
+      getRankFallbackReason({
+        ModelA: { ...buildModel(0.9), rank: null },
+      }),
+    ).toBe('invalid');
+  });
+
+  it('should rank natural-sign time-series errors from lower to higher', () => {
+    const models = {
+      ModelA: {
+        ...buildModel(0.4, 'mean_absolute_scaled_error'),
+        metrics_convention: 'natural_v1' as const,
+      },
+      ModelB: {
+        ...buildModel(0.2, 'mean_absolute_scaled_error'),
+        metrics_convention: 'natural_v1' as const,
+      },
+    };
+
+    expect(computeRankMap(models, 'timeseries')).toEqual({ ModelB: 1, ModelA: 2 });
+  });
+
+  it('should avoid applying natural-sign direction to mixed conventions', () => {
+    const models = {
+      NaturalModel: {
+        ...buildModel(0.2, 'mean_absolute_scaled_error'),
+        metrics_convention: 'natural_v1' as const,
+      },
+      LegacyModel: buildModel(0.1, 'mean_absolute_scaled_error'),
+    };
+
+    expect(computeRankMap(models, 'timeseries')).toEqual({
+      NaturalModel: 1,
+      LegacyModel: 2,
     });
   });
 
@@ -1010,43 +1069,37 @@ describe('resolveModelDisplayName', () => {
 });
 
 describe('orderModelsByLeaderboardRank', () => {
-  it('pins best_model first when metric values tie', () => {
+  it('keeps stable input order when metric values tie', () => {
     const keys = ['ModelA', 'ModelB'];
     const getValue = () => 0.9;
 
-    expect(orderModelsByLeaderboardRank(keys, getValue, 'ModelB')).toEqual(['ModelB', 'ModelA']);
+    expect(orderModelsByLeaderboardRank(keys, getValue)).toEqual(['ModelA', 'ModelB']);
     expect(orderModelsByLeaderboardRank(keys, getValue)).toEqual(['ModelA', 'ModelB']);
   });
 });
 
-describe('computeRankMap with best_model', () => {
+describe('computeRankMap with legacy winner metadata', () => {
   const buildModel = (metricValue: number, metricName = 'accuracy') => ({
     metrics: { test_data: { [metricName]: metricValue } },
   });
 
-  it('assigns rank 1 to best_model when optimized metrics tie', () => {
+  it('does not let best_model override deterministic metric order', () => {
     const models = {
       ModelA: buildModel(0.9),
       ModelB: buildModel(0.9),
     };
 
     expect(computeRankMap(models, 'binary')).toEqual({ ModelA: 1, ModelB: 2 });
-    expect(computeRankMap(models, 'binary', undefined, 'ModelB')).toEqual({
-      ModelB: 1,
-      ModelA: 2,
-    });
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelA: 1, ModelB: 2 });
   });
 
-  it('pins best_model at rank 1 even when another model has a higher optimized metric', () => {
+  it('keeps the higher metric first when best_model disagrees', () => {
     const models = {
       ModelA: buildModel(0.95),
       ModelB: buildModel(0.9),
     };
 
-    expect(computeRankMap(models, 'binary', undefined, 'ModelB')).toEqual({
-      ModelB: 1,
-      ModelA: 2,
-    });
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelA: 1, ModelB: 2 });
   });
 });
 

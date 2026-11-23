@@ -72,6 +72,28 @@ describe('CanonicalPatternSchema', () => {
     }
   });
 
+  it('should preserve optional backend rank metadata', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      rank: 1,
+      metrics_convention: 'natural_v1',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.rank).toBe(1);
+      expect(result.data.metrics_convention).toBe('natural_v1');
+    }
+    expect(LegacyPatternSchema.safeParse({ ...legacyPattern, rank: 2 }).success).toBe(true);
+  });
+
+  it('should accept a null rank for legacy fallback handling', () => {
+    expect(CanonicalPatternSchema.safeParse({ ...canonicalPattern, rank: null }).success).toBe(
+      true,
+    );
+    expect(LegacyPatternSchema.safeParse({ ...legacyPattern, rank: null }).success).toBe(true);
+  });
+
   it('should parse the delivered canonical binding shape', () => {
     const result = CanonicalPatternSchema.safeParse({
       ...canonicalPattern,

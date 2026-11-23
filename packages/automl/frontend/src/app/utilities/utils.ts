@@ -484,6 +484,91 @@ export function resolveBestModelKey(
   return resolveModelRecordKey(models, bestModel);
 }
 
+type RankedAutomlRecord = {
+  rank?: unknown;
+  metrics_convention?: unknown;
+};
+
+const NATURAL_LOWER_IS_BETTER_METRICS = new Set([
+  'mean_absolute_error',
+  'mean_absolute_percentage_error',
+  'mean_absolute_scaled_error',
+  'mean_squared_error',
+  'median_absolute_error',
+  'root_mean_squared_error',
+  'root_mean_squared_logarithmic_error',
+  'root_mean_squared_scaled_error',
+  'scaled_quantile_loss',
+  'symmetric_mean_absolute_percentage_error',
+  'weighted_absolute_percentage_error',
+  'weighted_quantile_loss',
+]);
+
+const resolveMetricDirection = (
+  models: Record<string, RankedAutomlRecord | null | undefined>,
+  metric: string,
+): 'lower_is_better' | undefined => {
+  const records = Object.values(models);
+  const conventions = new Set(
+    records.map((model) =>
+      model?.metrics_convention === undefined ? 'legacy' : model.metrics_convention,
+    ),
+  );
+  if (conventions.size !== 1) {
+    return undefined;
+  }
+  const convention = conventions.values().next().value;
+  if (convention !== 'legacy' && convention !== 'natural_v1') {
+    return undefined;
+  }
+
+  const naturalMetric = normalizeMetricKey(metric).toLowerCase();
+  return convention === 'natural_v1' && NATURAL_LOWER_IS_BETTER_METRICS.has(naturalMetric)
+    ? 'lower_is_better'
+    : undefined;
+};
+
+/** Returns the complete backend rank map, or undefined when a legacy fallback is required. */
+export function getCompleteRankMap(
+  records: Record<string, RankedAutomlRecord | null | undefined>,
+): Record<string, number> | undefined {
+  const entries = Object.entries(records);
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  const rankMap: Record<string, number> = {};
+  const uniqueRanks = new Set<number>();
+  for (const [key, record] of entries) {
+    const rank = record?.rank;
+    if (typeof rank !== 'number' || !Number.isSafeInteger(rank) || rank <= 0) {
+      return undefined;
+    }
+    if (uniqueRanks.has(rank)) {
+      return undefined;
+    }
+    uniqueRanks.add(rank);
+    rankMap[key] = rank;
+  }
+
+  for (let expectedRank = 1; expectedRank <= entries.length; expectedRank++) {
+    if (!uniqueRanks.has(expectedRank)) {
+      return undefined;
+    }
+  }
+
+  return rankMap;
+}
+
+export type RankFallbackReason = 'legacy' | 'invalid';
+
+export function getRankFallbackReason(
+  records: Record<string, RankedAutomlRecord | null | undefined>,
+): RankFallbackReason {
+  const hasRankMetadata = Object.values(records).some((record) => record?.rank !== undefined);
+  return hasRankMetadata && getCompleteRankMap(records) === undefined ? 'invalid' : 'legacy';
+}
+
 /** Resolves a models-record key to the display name shown on pipeline tree nodes. */
 export function resolveModelDisplayName(
   models: Record<string, { name?: string } | null | undefined>,
@@ -524,52 +609,55 @@ export function compareOptimizedMetricValues(aVal: number | string, bVal: number
   return bNum > aNum ? 1 : -1;
 }
 
-/** Orders model keys by optimized metric, pinning best_model first when provided. */
+/** Orders model keys by the legacy optimized-metric fallback. */
 export function orderModelsByLeaderboardRank(
   modelKeys: string[],
   getOptimizedValue: (modelKey: string) => number | string,
-  bestModelKey?: string,
 ): string[] {
-  const sorted = modelKeys.toSorted((a, b) =>
+  return modelKeys.toSorted((a, b) =>
     compareOptimizedMetricValues(getOptimizedValue(a), getOptimizedValue(b)),
   );
-
-  if (!bestModelKey || !modelKeys.includes(bestModelKey)) {
-    return sorted;
-  }
-
-  return [bestModelKey, ...sorted.filter((key) => key !== bestModelKey)];
 }
 
 /**
- * Build a mapping from model name → leaderboard rank (1-based).
- * Ranks by optimized metric descending, with rank 1 reserved for best_model
- * from the build_leaderboard stage when available.
+ * Build a mapping from model record key → leaderboard rank (1-based).
+ *
+ * Complete backend artifact ranks are authoritative. Older artifacts use a stable
+ * optimized-metric ordering and never pin the stage-map best_model.
  */
 export function computeRankMap(
   models: Record<
     string,
-    { metrics?: { test_data?: Record<string, unknown> } | null; name?: string } | null | undefined
+    | {
+        metrics?: { test_data?: Record<string, unknown> } | null;
+        name?: string;
+        rank?: unknown;
+        metrics_convention?: unknown;
+      }
+    | null
+    | undefined
   >,
   taskType: string,
   evalMetric?: string,
-  bestModel?: string,
 ): Record<string, number> {
   const optimizedMetric = resolveEvalMetric(evalMetric, taskType);
-  const bestModelKey = resolveBestModelKey(models, bestModel);
+  const backendRankMap = getCompleteRankMap(models);
+  if (backendRankMap !== undefined) {
+    return backendRankMap;
+  }
+  const direction = resolveMetricDirection(models, optimizedMetric);
 
-  const ordered = orderModelsByLeaderboardRank(
-    Object.keys(models),
-    (modelKey) => {
-      const model = models[modelKey];
-      if (model == null || model.metrics == null) {
-        return Number.NEGATIVE_INFINITY;
-      }
-      const metric = findTestDataMetric(model.metrics.test_data, optimizedMetric);
-      return metric != null ? toRankableMetric(metric) : Number.NEGATIVE_INFINITY;
-    },
-    bestModelKey,
-  );
+  const ordered = orderModelsByLeaderboardRank(Object.keys(models), (modelKey) => {
+    const model = models[modelKey];
+    if (model == null || model.metrics == null) {
+      return Number.NEGATIVE_INFINITY;
+    }
+    const metric = findTestDataMetric(model.metrics.test_data, optimizedMetric);
+    const rankableMetric = metric != null ? toRankableMetric(metric) : Number.NEGATIVE_INFINITY;
+    return direction === 'lower_is_better' && rankableMetric !== Number.NEGATIVE_INFINITY
+      ? -rankableMetric
+      : rankableMetric;
+  });
 
   return Object.fromEntries(ordered.map((name, index) => [name, index + 1]));
 }

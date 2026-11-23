@@ -6,10 +6,10 @@ const BRANCHING_STAGE_ID = 'model_selection';
 export type ModelRankMap = Record<string, number>;
 
 export type BranchExpandOptions = {
-  /** When false (default), show shared spine + winner branch only. */
+  /** When false (default), show shared spine + rank-one branch only. */
   modelsExpanded: boolean;
   /**
-   * Succeeded run with a known best model — show model name + "winner" subtitle + star.
+   * Succeeded run with a resolved rank-one model — show model name + "winner" subtitle + star.
    * Otherwise model terminus uses "Model N" + winner badge (no star).
    */
   winnerResolved: boolean;

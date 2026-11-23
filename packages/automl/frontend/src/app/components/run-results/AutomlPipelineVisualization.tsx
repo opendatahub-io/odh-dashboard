@@ -205,7 +205,6 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                 <StepDetailsPanel
                   selectedNodeId={selectedNodeId}
                   nodeData={selectedNodeData}
-                  selectedModel={treeViewData.selectedModel}
                   statusFilter={statusFilter}
                   treeLoadingMode={treeLoadingMode}
                   componentStageMap={componentStageMap}

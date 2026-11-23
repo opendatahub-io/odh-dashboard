@@ -8,6 +8,7 @@ import {
   formatDurationBetween,
   formatMetricName,
   computeRankMap,
+  getCompleteRankMap,
   getBestModelFromStageMap,
   resolveBestModelKey,
   resolveEvalMetric,
@@ -109,13 +110,21 @@ function resolveTotalRunTime(pipelineRun?: PipelineRun): string | undefined {
 function resolveWinningModelFromModels(
   models: Record<string, AutomlModel>,
   parameters?: Partial<ConfigureSchema>,
+  modelRankMap?: Record<string, number>,
 ): string | undefined {
-  const modelKeys = Object.keys(models);
-  if (modelKeys.length === 0 || !parameters?.task_type) {
+  if (Object.keys(models).length === 0) {
     return undefined;
   }
 
-  const rankMap = computeRankMap(models, parameters.task_type, parameters.eval_metric);
+  const rankMap =
+    modelRankMap ??
+    (parameters?.task_type
+      ? computeRankMap(models, parameters.task_type, parameters.eval_metric)
+      : undefined);
+  if (!rankMap) {
+    return undefined;
+  }
+  const modelKeys = Object.keys(models);
   const rankOneKey = modelKeys.find((key) => rankMap[key] === 1);
   return resolveModelDisplayName(models, rankOneKey);
 }
@@ -124,14 +133,21 @@ function resolveWinningModelDisplay(
   models: Record<string, AutomlModel>,
   componentStageMap: ComponentStageMap | undefined,
   parameters?: Partial<ConfigureSchema>,
+  modelRankMap?: Record<string, number>,
 ): string | undefined {
   const bestModel = getBestModelFromStageMap(componentStageMap);
-  if (bestModel) {
+  const backendRanks = getCompleteRankMap(models);
+  if (backendRanks === undefined && bestModel) {
+    // Legacy summaries are winner-only surfaces, so preserve a resolvable
+    // pipeline-selected winner without changing contextual rank ordering.
     const bestModelKey = resolveBestModelKey(models, bestModel);
-    return resolveModelDisplayName(models, bestModelKey) ?? bestModel;
+    const resolvedBestModel = resolveModelDisplayName(models, bestModelKey);
+    if (resolvedBestModel) {
+      return resolvedBestModel;
+    }
   }
 
-  return resolveWinningModelFromModels(models, parameters);
+  return resolveWinningModelFromModels(models, parameters, modelRankMap ?? backendRanks);
 }
 
 /** Pipeline-level summary shown in the step drawer when no node is selected. */
@@ -140,6 +156,7 @@ export function getPipelineSummaryDetails(
   componentStageMap: ComponentStageMap | undefined,
   models: Record<string, AutomlModel>,
   parameters?: Partial<ConfigureSchema>,
+  modelRankMap?: Record<string, number>,
 ): StepDetail[] {
   return [
     { label: 'Total run time', value: resolveTotalRunTime(pipelineRun) ?? '—' },
@@ -149,7 +166,7 @@ export function getPipelineSummaryDetails(
     },
     {
       label: 'Winning model',
-      value: resolveWinningModelDisplay(models, componentStageMap, parameters) ?? '—',
+      value: resolveWinningModelDisplay(models, componentStageMap, parameters, modelRankMap) ?? '—',
       help: {
         header: 'Winning model',
         body: 'The model that achieved the highest evaluation score during training.',

@@ -11,7 +11,7 @@ export type TransformPipelineResult =
 
 export type TransformPipelineOptions = {
   modelsExpanded?: boolean;
-  /** Succeeded run with a known best model. */
+  /** Succeeded run with a resolved rank-one model. */
   winnerResolved?: boolean;
 };
 

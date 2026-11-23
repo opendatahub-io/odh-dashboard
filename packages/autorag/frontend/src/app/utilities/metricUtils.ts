@@ -4,6 +4,7 @@ import type {
   MetricReference,
   NormalizedMetricReference,
 } from '~/app/types/autoragPattern';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { DEFAULT_OPTIMIZATION_METRIC, QUALIFIED_METRIC_LABELS } from './const';
 
 /** Opaque key for UI maps, React keys, and table column keys. Never parse this outside this file. */
@@ -234,6 +235,49 @@ export function isPatternRankable(
   return typeof mean === 'number' && Number.isFinite(mean);
 }
 
+/** Returns the complete backend rank map, or undefined when legacy ranking is required. */
+export function getCompletePatternRankMap(
+  patterns: Record<string, AutoragPattern>,
+): Record<string, number> | undefined {
+  const entries = Object.entries(patterns);
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  const rankMap: Record<string, number> = {};
+  const uniqueRanks = new Set<number>();
+  for (const [key, pattern] of entries) {
+    const { rank } = pattern;
+    if (typeof rank !== 'number' || !Number.isSafeInteger(rank) || rank <= 0) {
+      return undefined;
+    }
+    if (uniqueRanks.has(rank)) {
+      return undefined;
+    }
+    uniqueRanks.add(rank);
+    rankMap[key] = rank;
+  }
+
+  for (let expectedRank = 1; expectedRank <= entries.length; expectedRank++) {
+    if (!uniqueRanks.has(expectedRank)) {
+      return undefined;
+    }
+  }
+
+  return rankMap;
+}
+
+export type PatternRankFallbackReason = 'legacy' | 'invalid';
+
+export function getPatternRankFallbackReason(
+  patterns: Record<string, AutoragPattern>,
+): PatternRankFallbackReason {
+  const hasRankMetadata = Object.values(patterns).some((pattern) => pattern.rank !== undefined);
+  return hasRankMetadata && getCompletePatternRankMap(patterns) === undefined
+    ? 'invalid'
+    : 'legacy';
+}
+
 /** Returns the mean score of the flagged objective metric, or zero for legacy fallback callers. */
 export function getOptimizedScore(pattern: AutoragPattern): number {
   const mean = getObjectiveMetric(pattern)?.scores.mean;
@@ -244,6 +288,11 @@ export function computePatternRankMap(
   patterns: Record<string, AutoragPattern>,
   objectiveReference: ObjectiveReference = parseMetricReference(DEFAULT_OPTIMIZATION_METRIC),
 ): Record<string, number> {
+  const backendRankMap = getCompletePatternRankMap(patterns);
+  if (backendRankMap !== undefined) {
+    return backendRankMap;
+  }
+
   const sorted = Object.entries(patterns)
     .filter(([, pattern]) => isPatternRankable(pattern, objectiveReference))
     .toSorted(
@@ -262,17 +311,8 @@ export function resolveBestPatternKey(
   patterns: Record<string, AutoragPattern>,
   objectiveReference: ObjectiveReference = parseMetricReference(DEFAULT_OPTIMIZATION_METRIC),
 ): string | undefined {
-  const patternKeys = Object.keys(patterns).filter((key) =>
-    isPatternRankable(patterns[key], objectiveReference),
-  );
-  if (patternKeys.length === 0) {
-    return undefined;
-  }
-  return patternKeys.toSorted(
-    (a, b) =>
-      getObjectiveMetric(patterns[b], objectiveReference)!.scores.mean! -
-      getObjectiveMetric(patterns[a], objectiveReference)!.scores.mean!,
-  )[0];
+  const rankMap = computePatternRankMap(patterns, objectiveReference);
+  return Object.keys(rankMap).find((key) => rankMap[key] === 1);
 }
 
 export function compareOptimizedMetricValues(aVal: number | string, bVal: number | string): number {
@@ -302,15 +342,46 @@ export function compareOptimizedMetricValues(aVal: number | string, bVal: number
 export function orderPatternsByLeaderboardRank(
   patternKeys: string[],
   getOptimizedValue: (patternKey: string) => number | string,
-  bestPatternKey?: string,
 ): string[] {
-  const sorted = patternKeys.toSorted((a, b) =>
+  return patternKeys.toSorted((a, b) =>
     compareOptimizedMetricValues(getOptimizedValue(a), getOptimizedValue(b)),
   );
+}
 
-  if (!bestPatternKey || !patternKeys.includes(bestPatternKey)) {
-    return sorted;
+/** Reads the pipeline-selected fallback winner from AutoRAG stage-map metadata. */
+export function getBestPatternFromStageMap(
+  componentStageMap?: ComponentStageMap,
+): string | undefined {
+  if (!componentStageMap) {
+    return undefined;
   }
 
-  return [bestPatternKey, ...sorted.filter((key) => key !== bestPatternKey)];
+  const parseValue = (value: unknown): string | undefined =>
+    typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+  const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+  const getRecordValue = (record: Record<string, unknown>): string | undefined =>
+    parseValue(record.best_pattern) ||
+    (isRecord(record.metadata) ? parseValue(record.metadata.best_pattern) : undefined);
+
+  const components = Array.isArray(componentStageMap.components)
+    ? componentStageMap.components.filter(isRecord)
+    : [];
+  for (const component of components) {
+    const stages = Array.isArray(component.stages) ? component.stages.filter(isRecord) : [];
+    const stage = stages.find((entry) => entry.id === 'build_leaderboard');
+    const stageWinner = stage ? getRecordValue(stage) : undefined;
+    if (stageWinner) {
+      return stageWinner;
+    }
+  }
+
+  for (const component of components) {
+    const componentWinner = getRecordValue(component);
+    if (componentWinner) {
+      return componentWinner;
+    }
+  }
+
+  return getRecordValue(componentStageMap);
 }

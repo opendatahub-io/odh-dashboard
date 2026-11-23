@@ -19,8 +19,8 @@ import {
   normalizePipelineRunState,
   sanitizeFilename,
 } from '~/app/utilities/utils';
-import { computePatternRankMap } from '~/app/utilities/metricUtils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
+import { computePatternRankMap, getPatternRankFallbackReason } from '~/app/utilities/metricUtils';
 import { resolveDatabaseSecretName, resolveMaaSSecretName } from '~/app/utilities/responses';
 import {
   fireAutoragNotebookDownloaded,
@@ -61,7 +61,8 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     componentStageMapLoading,
     componentStageMapError,
     parameters,
-    bestPatternKey,
+    rankOnePatternKey,
+    patternRankMap,
     optimizationMetric,
   } = useAutoragResultsContext();
   const [selectedPatternKey, setSelectedPatternKey] = React.useState<string | null>(null);
@@ -93,6 +94,35 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
+  const effectivePatternRankMap =
+    patternRankMap ?? computePatternRankMap(patterns, optimizationMetric);
+  const effectiveRankOnePatternKey =
+    rankOnePatternKey ??
+    Object.keys(effectivePatternRankMap).find((key) => effectivePatternRankMap[key] === 1);
+  const rankFallbackWarningRef = React.useRef<string>();
+
+  React.useEffect(() => {
+    const hasInvalidArtifactRanks = getPatternRankFallbackReason(patterns) === 'invalid';
+    const conventions = new Set(
+      Object.values(patterns).map((pattern) => pattern.metrics_convention ?? 'legacy'),
+    );
+    const hasUnsupportedMetricConvention = [...conventions].some(
+      (convention) => convention !== 'legacy' && convention !== 'natural_v1',
+    );
+    const hasMixedMetricConventions = conventions.size > 1;
+    const runKey = pipelineRun?.run_id ?? 'unknown-run';
+    if (
+      !patternsLoading &&
+      (hasInvalidArtifactRanks || hasUnsupportedMetricConvention || hasMixedMetricConventions) &&
+      rankFallbackWarningRef.current !== runKey
+    ) {
+      rankFallbackWarningRef.current = runKey;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[AutoRAG ranks] Artifact ranking metadata is incomplete or inconsistent for ${runKey}; using legacy metric fallback.`,
+      );
+    }
+  }, [patterns, patternsLoading, pipelineRun?.run_id]);
 
   const runState = React.useMemo(
     () => normalizePipelineRunState(pipelineRun?.state),
@@ -138,7 +168,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     inferredFailureWarningRef.current = warningKey;
     // eslint-disable-next-line no-console
     console.warn(
-      `[AutoRAG topology] Inferred failed node ${inferredNode.id}${pipelineRun?.run_id ? ` for run ${pipelineRun.run_id}` : ''}; no exact component failure was available.`,
+      `[AutoRAG topology] Inferred failed node ${inferredNode.id}${
+        pipelineRun?.run_id ? ` for run ${pipelineRun.run_id}` : ''
+      }; no exact component failure was available.`,
     );
   }, [pipelineRun?.run_id, stageMapNodes]);
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
@@ -158,9 +190,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
   const treeViewData = useTreeViewData(
     patterns,
     treeSourceNodes,
-    bestPatternKey,
-    undefined,
+    effectiveRankOnePatternKey,
     optimizationMetric,
+    effectivePatternRankMap,
   );
 
   const runIsTerminal = isRunInTerminalState(runState);
@@ -219,10 +251,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     runId,
   ]);
 
-  const rankMap = React.useMemo(
-    () => computePatternRankMap(patterns, optimizationMetric),
-    [patterns, optimizationMetric],
-  );
+  const rankMap = effectivePatternRankMap;
 
   const patternKeys = React.useMemo(() => Object.keys(patterns), [patterns]);
   const patternsArray = React.useMemo(
@@ -445,6 +474,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             patternKeys={patternKeys}
             selectedIndex={selectedIndex}
             rank={rankMap[patternKeys[selectedIndex]]}
+            patternRankMap={rankMap}
             optimizationMetric={optimizationMetric}
             onPatternChange={(index) => setSelectedPatternKey(patternKeys[index] ?? null)}
             namespace={namespace}

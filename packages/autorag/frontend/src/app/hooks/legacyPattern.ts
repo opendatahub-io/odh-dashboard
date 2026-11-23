@@ -76,6 +76,8 @@ const LegacySettingsSchema = z
 export const LegacyPatternSchema = z
   .object({
     name: z.string(),
+    rank: z.number().int().nullable().optional(),
+    metrics_convention: z.string().optional(),
     iteration: z.number(),
     max_combinations: z.number(),
     duration_seconds: z.number(),
@@ -164,6 +166,10 @@ export function normalizeLegacyPattern(
 
   return {
     name: raw.name,
+    ...(raw.rank != null && { rank: raw.rank }),
+    ...(raw.metrics_convention !== undefined && {
+      metrics_convention: raw.metrics_convention,
+    }),
     iteration: raw.iteration,
     max_combinations: raw.max_combinations,
     duration_seconds: raw.duration_seconds,

@@ -178,9 +178,9 @@ describe('AutomlResults', () => {
       {},
       fallbackNodes,
       undefined,
-      undefined,
       'timeseries',
       undefined,
+      {},
     );
   });
 
@@ -548,9 +548,9 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
-        undefined,
         'timeseries',
         undefined,
+        {},
       );
     });
 
@@ -604,9 +604,9 @@ describe('AutomlResults', () => {
         {},
         buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
-        undefined,
         'timeseries',
         undefined,
+        {},
       );
     });
 
@@ -639,9 +639,9 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
-        undefined,
         'timeseries',
         undefined,
+        {},
       );
     });
 
@@ -655,9 +655,9 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
-        undefined,
         'timeseries',
         undefined,
+        {},
       );
     });
 
@@ -672,9 +672,9 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
-        undefined,
         'timeseries',
         undefined,
+        {},
       );
     });
 

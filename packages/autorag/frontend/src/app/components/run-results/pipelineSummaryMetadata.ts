@@ -5,7 +5,12 @@ import { dedupePreservingOrder } from '~/app/topology/stageMapConstants';
 import type { StepDetail } from '~/app/topology/tree-view/stepMetadata';
 import { formatDurationBetween, formatPatternName } from '~/app/utilities/utils';
 import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
-import { metricLabel } from '~/app/utilities/metricUtils';
+import {
+  computePatternRankMap,
+  getBestPatternFromStageMap,
+  getCompletePatternRankMap,
+  metricLabel,
+} from '~/app/utilities/metricUtils';
 
 /**
  * Matches `BRANCHING_STAGE_ID` in `~/app/topology/stageMapStatus`. Duplicated as a local
@@ -88,19 +93,44 @@ function resolveTotalRunTime(pipelineRun?: PipelineRun): string | undefined {
   return formatDurationBetween(pipelineRun.created_at, pipelineRun.finished_at);
 }
 
-/**
- * Resolves the display name for the winning pattern. Per decision 1A, the winner is always
- * the client-side rank-1 pattern (`bestPatternKey`, derived from `computePatternRankMap`) —
- * there is no backend `best_model`-equivalent field for AutoRAG patterns.
- */
-function resolveWinningPatternDisplay(
+const resolvePatternKey = (
   patterns: Record<string, AutoragPattern>,
-  bestPatternKey?: string,
-): string | undefined {
-  if (!bestPatternKey || !Object.hasOwn(patterns, bestPatternKey)) {
+  identifier?: string,
+): string | undefined => {
+  if (!identifier) {
     return undefined;
   }
-  return formatPatternName(patterns[bestPatternKey].name || bestPatternKey);
+  if (Object.hasOwn(patterns, identifier)) {
+    return identifier;
+  }
+  const matches = Object.entries(patterns)
+    .filter(([, pattern]) => pattern.name === identifier)
+    .map(([key]) => key);
+  return matches.length === 1 ? matches[0] : undefined;
+};
+
+function resolveWinningPatternDisplay(
+  patterns: Record<string, AutoragPattern>,
+  componentStageMap?: ComponentStageMap,
+  rankOnePatternKey?: string,
+  optimizationMetric: MetricReference = { name: DEFAULT_OPTIMIZATION_METRIC },
+  patternRankMap?: Record<string, number>,
+): string | undefined {
+  const backendRanks = getCompletePatternRankMap(patterns);
+  const fallbackWinner =
+    backendRanks === undefined
+      ? // Legacy summaries are winner-only surfaces; contextual surfaces use the
+        // deterministic rank map below.
+        resolvePatternKey(patterns, getBestPatternFromStageMap(componentStageMap))
+      : undefined;
+  const rankMap =
+    patternRankMap ?? backendRanks ?? computePatternRankMap(patterns, optimizationMetric);
+  const selectedKey =
+    fallbackWinner ?? rankOnePatternKey ?? Object.keys(rankMap).find((key) => rankMap[key] === 1);
+  if (!selectedKey || !Object.hasOwn(patterns, selectedKey)) {
+    return undefined;
+  }
+  return formatPatternName(patterns[selectedKey].name || selectedKey);
 }
 
 /** Pipeline-level summary shown in the step drawer when no node is selected. */
@@ -108,8 +138,9 @@ export function getPipelineSummaryDetails(
   pipelineRun: PipelineRun | undefined,
   componentStageMap: ComponentStageMap | undefined,
   patterns: Record<string, AutoragPattern>,
-  bestPatternKey?: string,
+  rankOnePatternKey?: string,
   optimizationMetric: MetricReference = { name: DEFAULT_OPTIMIZATION_METRIC },
+  patternRankMap?: Record<string, number>,
 ): StepDetail[] {
   return [
     { label: 'Total run time', value: resolveTotalRunTime(pipelineRun) ?? '—' },
@@ -123,7 +154,14 @@ export function getPipelineSummaryDetails(
     },
     {
       label: 'Winning pattern',
-      value: resolveWinningPatternDisplay(patterns, bestPatternKey) ?? '—',
+      value:
+        resolveWinningPatternDisplay(
+          patterns,
+          componentStageMap,
+          rankOnePatternKey,
+          optimizationMetric,
+          patternRankMap,
+        ) ?? '—',
       help: {
         header: 'Winning pattern',
         body: 'The configuration that achieved the highest evaluation score during optimization.',

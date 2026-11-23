@@ -3,6 +3,7 @@ import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern
 import {
   compareOptimizedMetricValues,
   computePatternRankMap,
+  getPatternRankFallbackReason,
   findMetric,
   formatMetricValue,
   getOptimizedScore,
@@ -297,6 +298,30 @@ describe('metricUtils', () => {
         }),
       ).toEqual({ second: 1, first: 2 });
     });
+
+    it('should use complete backend ranks even when objective scores disagree', () => {
+      expect(
+        computePatternRankMap({
+          first: { ...makeRankPattern('first', 0.9), rank: 2 },
+          second: { ...makeRankPattern('second', 0.1), rank: 1 },
+        }),
+      ).toEqual({ first: 2, second: 1 });
+    });
+
+    it('should fall back to objective ordering when backend ranks are incomplete', () => {
+      expect(
+        computePatternRankMap({
+          first: { ...makeRankPattern('first', 0.9), rank: 2 },
+          second: makeRankPattern('second', 0.1),
+        }),
+      ).toEqual({ first: 1, second: 2 });
+      expect(
+        getPatternRankFallbackReason({
+          first: { ...makeRankPattern('first', 0.9), rank: 2 },
+          second: makeRankPattern('second', 0.1),
+        }),
+      ).toBe('invalid');
+    });
   });
 
   describe('resolveBestPatternKey', () => {
@@ -326,12 +351,12 @@ describe('metricUtils', () => {
   });
 
   describe('orderPatternsByLeaderboardRank', () => {
-    it('should order by metric descending and pin the best pattern first', () => {
+    it('should order by metric descending without pinning a separate winner', () => {
       const values: Record<string, number | string> = { a: 0.5, b: 0.9, c: 0.7 };
-      expect(orderPatternsByLeaderboardRank(['a', 'b', 'c'], (key) => values[key], 'a')).toEqual([
-        'a',
+      expect(orderPatternsByLeaderboardRank(['a', 'b', 'c'], (key) => values[key])).toEqual([
         'b',
         'c',
+        'a',
       ]);
     });
   });

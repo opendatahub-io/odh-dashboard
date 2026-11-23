@@ -44,6 +44,7 @@ function getOptimizedMetric(
 type AutomlModelDetailsModalHeaderProps = {
   print?: boolean;
   models: AutomlModel[];
+  modelKeys?: string[];
   currentModelName: string;
   rank: number;
   rankMap: Record<string, number>;
@@ -57,6 +58,7 @@ type AutomlModelDetailsModalHeaderProps = {
 const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps> = ({
   print,
   models,
+  modelKeys,
   currentModelName,
   rank,
   rankMap,
@@ -69,17 +71,28 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = React.useState(false);
-  const model = models.find((m) => m.name === currentModelName);
-  const sortedModels = React.useMemo(
-    () => models.toSorted((a, b) => (rankMap[a.name] ?? 0) - (rankMap[b.name] ?? 0)),
-    [models, rankMap],
+  const resolvedModelKeys = modelKeys ?? models.map((modelEntry) => modelEntry.name);
+  const modelIndex = resolvedModelKeys.indexOf(currentModelName);
+  const model =
+    modelIndex >= 0 ? models[modelIndex] : models.find((m) => m.name === currentModelName);
+  const sortedModelIndices = React.useMemo(
+    () =>
+      models
+        .map((_, index) => index)
+        .toSorted(
+          (a, b) =>
+            (rankMap[resolvedModelKeys[a]] ?? Number.MAX_SAFE_INTEGER) -
+            (rankMap[resolvedModelKeys[b]] ?? Number.MAX_SAFE_INTEGER),
+        ),
+    [models, rankMap, resolvedModelKeys],
   );
+  const currentModelDisplayName = model ? model.name : currentModelName;
   const optimizedMetric = model ? getOptimizedMetric(model, evalMetric) : undefined;
 
   if (print) {
     return (
       <div className="automl-print-header">
-        <h1>{currentModelName}</h1>
+        <h1>{currentModelDisplayName}</h1>
         <p>
           Rank: {rank} | {formatMetricName(evalMetric)} (Optimized):{' '}
           {optimizedMetric ? formatMetricValue(optimizedMetric.value) : 'N/A'}
@@ -107,20 +120,20 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
                 isExpanded={isDropdownOpen}
                 data-testid="model-selector-dropdown"
               >
-                {currentModelName}
+                {currentModelDisplayName}
               </MenuToggle>
             )}
           >
             <DropdownList data-testid="model-selector-menu">
-              {sortedModels.map((m) => (
-                <DropdownItem key={m.name} value={m.name}>
-                  {m.name}
+              {sortedModelIndices.map((index) => (
+                <DropdownItem key={resolvedModelKeys[index]} value={resolvedModelKeys[index]}>
+                  {models[index].name}
                 </DropdownItem>
               ))}
             </DropdownList>
           </Dropdown>
         ) : (
-          <span className="automl-model-details-header-value">{currentModelName}</span>
+          <span className="automl-model-details-header-value">{currentModelDisplayName}</span>
         )}
       </div>
       <div className="automl-model-details-header-metrics">

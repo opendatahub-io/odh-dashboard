@@ -50,6 +50,7 @@ import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { formatPatternName, isRunInProgress } from '~/app/utilities/utils';
 import {
   findMetric,
+  computePatternRankMap,
   formatMetricValue,
   getObjectiveMetric,
   isPatternRankable,
@@ -57,7 +58,6 @@ import {
   metricKey,
   metricLabel,
   normalizeMetricReference,
-  orderPatternsByLeaderboardRank,
 } from '~/app/utilities/metricUtils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
@@ -448,12 +448,14 @@ function AutoragLeaderboard({
     onRetryPatterns,
     pipelineRun,
     pipelineRunLoading,
-    bestPatternKey,
+    patternRankMap,
     optimizationMetric,
     componentStageMap,
   } = useAutoragResultsContext();
   const optimizationMetricKey = metricKey(optimizationMetric);
   const optimizationMetricLabel = metricLabel(optimizationMetric);
+  const effectivePatternRankMap: Partial<Record<string, number>> =
+    patternRankMap ?? computePatternRankMap(patterns, optimizationMetric);
 
   // Sorting state
   const [activeSort, setActiveSort] = React.useState<{
@@ -690,7 +692,9 @@ function AutoragLeaderboard({
             : 'N/A';
 
         return {
-          rank: undefined, // Assigned only to patterns with a valid objective metric
+          rank: Object.hasOwn(effectivePatternRankMap, patternName)
+            ? effectivePatternRankMap[patternName]
+            : undefined,
           patternKey: patternName,
           pattern: pattern.name || patternName,
           metrics,
@@ -717,25 +721,22 @@ function AutoragLeaderboard({
       },
     );
 
-    // Initial ranking by optimized metric value, pinning the client-side winning pattern
-    // (bestPatternKey, from computePatternRankMap) to rank 1 when it's present.
+    // Use the shared rank map. It contains backend ranks when complete and the
+    // deterministic metric fallback for legacy artifacts.
     const entryByKey = Object.fromEntries(entries.map((entry) => [entry.patternKey, entry]));
-    const orderedPatternKeys = orderPatternsByLeaderboardRank(
-      entries.map((entry) => entry.patternKey),
-      (patternKey) => entryByKey[patternKey].optimizedMetricValue,
-      bestPatternKey,
-    );
+    const orderedPatternKeys = entries
+      .map((entry) => entry.patternKey)
+      .toSorted(
+        (a, b) =>
+          (entryByKey[a].rank ?? Number.MAX_SAFE_INTEGER) -
+          (entryByKey[b].rank ?? Number.MAX_SAFE_INTEGER),
+      );
 
-    let nextRank = 1;
     const rankedEntries = orderedPatternKeys.map((patternKey) => {
       const entry = entryByKey[patternKey];
       return {
         ...entry,
-        rank:
-          typeof entry.optimizedMetricValue === 'number' &&
-          Number.isFinite(entry.optimizedMetricValue)
-            ? nextRank++
-            : undefined,
+        rank: entry.rank,
       };
     });
 
@@ -840,7 +841,7 @@ function AutoragLeaderboard({
     }
 
     return rankedEntries;
-  }, [patterns, metricKeys, optimizationMetric, activeSort, bestPatternKey]);
+  }, [patterns, metricKeys, optimizationMetric, activeSort, effectivePatternRankMap]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(
@@ -1240,8 +1241,10 @@ function AutoragLeaderboard({
             </Flex>
           </FlexItem>
         </Flex>
-        {Object.values(patterns).some(
-          (pattern) => !isPatternRankable(pattern, optimizationMetric),
+        {Object.entries(patterns).some(
+          ([patternKey, pattern]) =>
+            !Object.hasOwn(effectivePatternRankMap, patternKey) &&
+            !isPatternRankable(pattern, optimizationMetric),
         ) && (
           <Alert
             variant="warning"

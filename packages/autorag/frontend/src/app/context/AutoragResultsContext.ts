@@ -3,7 +3,11 @@ import type { AutoragRuntimeParameters, LegacyRunCredentials, PipelineRun } from
 import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern';
-import { resolveBestPatternKey, resolveObjectiveReference } from '~/app/utilities/metricUtils';
+import {
+  computePatternRankMap,
+  getCompletePatternRankMap,
+  resolveObjectiveReference,
+} from '~/app/utilities/metricUtils';
 
 export type AutoragResultsContextProps = {
   pipelineRun?: PipelineRun;
@@ -20,12 +24,12 @@ export type AutoragResultsContextProps = {
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
   optimizationMetric: MetricReference;
-  /**
-   * Client-side winning pattern: the record key of the highest valid objective score.
-   * AutoRAG has no backend `best_model`-equivalent field, so this is always derived from
-   * loaded `patterns` (by record key, not display name) rather than the component stage map.
-   */
-  bestPatternKey?: string;
+  /** Rank map keyed by the loaded pattern record key. */
+  patternRankMap?: Record<string, number>;
+  /** Record key with rank 1, when a rank exists. */
+  rankOnePatternKey?: string;
+  /** Whether the rank map came from a complete backend artifact rank set. */
+  patternRanksAuthoritative?: boolean;
 };
 
 export const AutoragResultsContext = React.createContext<AutoragResultsContextProps | undefined>(
@@ -75,7 +79,9 @@ export function getAutoragContext({
     typeof runtimeObjective === 'string' ? runtimeObjective : DEFAULT_OPTIMIZATION_METRIC;
   const optimizationMetric = resolveObjectiveReference(patterns, objectiveName);
 
-  const bestPatternKey = resolveBestPatternKey(patterns, optimizationMetric);
+  const patternRankMap = computePatternRankMap(patterns, optimizationMetric);
+  const rankOnePatternKey = Object.keys(patternRankMap).find((key) => patternRankMap[key] === 1);
+  const patternRanksAuthoritative = getCompletePatternRankMap(patterns) !== undefined;
 
   return {
     pipelineRun,
@@ -91,7 +97,9 @@ export function getAutoragContext({
     componentStageMap,
     componentStageMapLoading,
     componentStageMapError,
-    bestPatternKey,
+    patternRankMap,
+    rankOnePatternKey,
+    patternRanksAuthoritative,
     optimizationMetric,
   };
 }

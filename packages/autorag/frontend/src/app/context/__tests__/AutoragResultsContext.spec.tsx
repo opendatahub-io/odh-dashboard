@@ -108,7 +108,7 @@ describe('getAutoragContext', () => {
           patternsLoading: false,
           parameters: { optimization_metric: 'unitxt:faithfulness' },
           ragPatternsBasePath: undefined,
-          bestPatternKey: 'pattern-1',
+          rankOnePatternKey: 'pattern-1',
           optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
         }),
       );
@@ -128,7 +128,7 @@ describe('getAutoragContext', () => {
           patternsLoading: undefined,
           parameters: undefined,
           ragPatternsBasePath: undefined,
-          bestPatternKey: 'pattern-1',
+          rankOnePatternKey: 'pattern-1',
           optimizationMetric: { name: 'overall_score', evaluator: 'custom' },
         }),
       );
@@ -289,7 +289,7 @@ describe('getAutoragContext', () => {
       });
 
       expect(context.optimizationMetric).toEqual({ name: 'faithfulness', evaluator });
-      expect(context.bestPatternKey).toBe('pattern-1');
+      expect(context.rankOnePatternKey).toBe('pattern-1');
     });
 
     it('should preserve optimization_metric when provided', () => {
@@ -346,17 +346,17 @@ describe('getAutoragContext', () => {
     });
   });
 
-  describe('bestPatternKey (client-side rank-1)', () => {
-    it('should expose bestPatternKey as the rank-1 pattern by final_score', () => {
+  describe('rankOnePatternKey', () => {
+    it('should expose rankOnePatternKey as the rank-1 pattern by objective score', () => {
       const context = getAutoragContext({
         pipelineRun: createMockPipelineRun(),
         patterns: mockPatterns,
       });
 
-      expect(context.bestPatternKey).toBe('pattern-1');
+      expect(context.rankOnePatternKey).toBe('pattern-1');
     });
 
-    it('should update bestPatternKey when the higher-scoring pattern changes', () => {
+    it('should update rankOnePatternKey when the higher-scoring pattern changes', () => {
       const patternsWithDifferentWinner: Record<string, AutoragPattern> = {
         'pattern-1': createMockPattern('Pattern 1', { faithfulness: 0.7 }),
         'pattern-2': createMockPattern('Pattern 2', { faithfulness: 0.99 }),
@@ -367,10 +367,10 @@ describe('getAutoragContext', () => {
         patterns: patternsWithDifferentWinner,
       });
 
-      expect(context.bestPatternKey).toBe('pattern-2');
+      expect(context.rankOnePatternKey).toBe('pattern-2');
     });
 
-    it('should expose bestPatternKey as the higher-scoring record key when names collide', () => {
+    it('should expose rankOnePatternKey as the higher-scoring record key when names collide', () => {
       const patternsWithDuplicateNames: Record<string, AutoragPattern> = {
         'pattern-a': createMockPattern('Shared Name', { faithfulness: 0.55 }),
         'pattern-b': createMockPattern('Shared Name', { faithfulness: 0.97 }),
@@ -382,24 +382,38 @@ describe('getAutoragContext', () => {
         patterns: patternsWithDuplicateNames,
       });
 
-      expect(context.bestPatternKey).toBe('pattern-b');
+      expect(context.rankOnePatternKey).toBe('pattern-b');
     });
 
-    it('should leave bestPatternKey undefined when patterns is empty', () => {
+    it('should prefer backend rank one over a higher client-side objective score', () => {
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: {
+          'pattern-a': { ...createMockPattern('Pattern A', { faithfulness: 0.99 }), rank: 2 },
+          'pattern-b': { ...createMockPattern('Pattern B', { faithfulness: 0.1 }), rank: 1 },
+        },
+      });
+
+      expect(context.rankOnePatternKey).toBe('pattern-b');
+      expect(context.patternRankMap).toEqual({ 'pattern-a': 2, 'pattern-b': 1 });
+      expect(context.patternRanksAuthoritative).toBe(true);
+    });
+
+    it('should leave rankOnePatternKey undefined when patterns is empty', () => {
       const context = getAutoragContext({
         pipelineRun: createMockPipelineRun(),
         patterns: {},
       });
 
-      expect(context.bestPatternKey).toBeUndefined();
+      expect(context.rankOnePatternKey).toBeUndefined();
     });
 
-    it('should leave bestPatternKey undefined when patterns is not provided', () => {
+    it('should leave rankOnePatternKey undefined when patterns is not provided', () => {
       const context = getAutoragContext({
         pipelineRun: createMockPipelineRun(),
       });
 
-      expect(context.bestPatternKey).toBeUndefined();
+      expect(context.rankOnePatternKey).toBeUndefined();
     });
   });
 

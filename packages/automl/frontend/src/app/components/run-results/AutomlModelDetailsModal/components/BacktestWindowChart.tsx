@@ -30,6 +30,7 @@ type BacktestWindowChartProps = {
   perWindowMetrics: BackTestingPerWindowMetric[];
   evalMetric: string;
   holdoutMetrics: Record<string, number>;
+  metricsConvention?: string;
   print?: boolean;
   initialSelectedMetrics?: string[];
   onSelectedMetricsChange?: (metrics: string[]) => void;
@@ -165,6 +166,7 @@ type BacktestMetricChartProps = {
   metric: string;
   perWindowMetrics: BackTestingPerWindowMetric[];
   holdoutMetrics: Record<string, number>;
+  metricsConvention?: string;
   chartWidth: number;
 };
 
@@ -172,6 +174,7 @@ const BacktestMetricChart: React.FC<BacktestMetricChartProps> = ({
   metric,
   perWindowMetrics,
   holdoutMetrics,
+  metricsConvention,
   chartWidth,
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
@@ -188,15 +191,15 @@ const BacktestMetricChart: React.FC<BacktestMetricChartProps> = ({
     if (entry === undefined) {
       return undefined;
     }
-    // AutoGluon negates all timeseries metrics so "higher is better".
-    // Invert to show the raw positive error value, consistent with per-window metrics.
-    const rawValue = Math.abs(entry.value);
+    // Legacy AutoGluon artifacts contain higher-is-better scores for error metrics.
+    // Natural-sign artifacts must be displayed exactly as exported, including signed values.
+    const rawValue = metricsConvention === 'natural_v1' ? entry.value : Math.abs(entry.value);
     return {
       x: perWindowMetrics.length,
       y: rawValue,
       name: `Holdout: ${rawValue.toFixed(4)}`,
     };
-  }, [holdoutMetrics, metric, perWindowMetrics.length]);
+  }, [holdoutMetrics, metric, metricsConvention, perWindowMetrics.length]);
 
   const holdoutIdx = holdoutPoint ? perWindowMetrics.length : -1;
   const xAxisStyle = React.useMemo(
@@ -330,6 +333,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
   perWindowMetrics,
   evalMetric,
   holdoutMetrics,
+  metricsConvention,
   print,
   initialSelectedMetrics,
   onSelectedMetricsChange,
@@ -518,6 +522,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
             metric={selectedMetrics[0]}
             perWindowMetrics={perWindowMetrics}
             holdoutMetrics={holdoutMetrics}
+            metricsConvention={metricsConvention}
             chartWidth={CHART_W}
           />
         </div>
@@ -542,6 +547,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
                   metric={metric}
                   perWindowMetrics={perWindowMetrics}
                   holdoutMetrics={holdoutMetrics}
+                  metricsConvention={metricsConvention}
                   chartWidth={CHART_W_GRID}
                 />
               </div>

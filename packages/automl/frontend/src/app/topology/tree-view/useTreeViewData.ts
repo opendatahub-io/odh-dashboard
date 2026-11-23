@@ -10,23 +10,23 @@ import type { PipelineVisualizationData } from './types';
 export const useTreeViewData = (
   models?: Record<string, AutomlModel> | null,
   stageMapNodes?: PipelineNodeModelExpanded[],
-  bestModelKey?: string,
-  stageMapBestModel?: string,
+  rankOneModelKey?: string,
   taskType?: string,
   evalMetric?: string,
+  providedModelRanks?: Record<string, number>,
 ): PipelineVisualizationData =>
   React.useMemo(() => {
     const safeModels: Record<string, AutomlModel | null | undefined> = models ?? {};
-    const selectedModel =
-      (bestModelKey && resolveModelRecordKey(safeModels, bestModelKey)) ||
-      (stageMapBestModel && resolveModelRecordKey(safeModels, stageMapBestModel));
+    const selectedModel = rankOneModelKey && resolveModelRecordKey(safeModels, rankOneModelKey);
 
     const selectedRecord = selectedModel ? safeModels[selectedModel] : undefined;
     const winnerModelLabel =
       selectedRecord != null && typeof selectedRecord.name === 'string'
         ? selectedRecord.name
         : undefined;
-    const modelRanks = computeRankMap(safeModels, taskType ?? '', evalMetric, selectedModel);
+    const modelRanks = {
+      ...(providedModelRanks ?? computeRankMap(safeModels, taskType ?? '', evalMetric)),
+    };
     const modelKeysByName = new Map<string, string[]>();
     for (const [modelKey, model] of Object.entries(safeModels)) {
       if (model == null) {
@@ -49,4 +49,4 @@ export const useTreeViewData = (
       stageMapNodes,
       modelRanks,
     };
-  }, [models, stageMapNodes, bestModelKey, stageMapBestModel, taskType, evalMetric]);
+  }, [models, stageMapNodes, rankOneModelKey, taskType, evalMetric, providedModelRanks]);

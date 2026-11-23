@@ -48,7 +48,7 @@ export type TreeNodeData = {
   labelSubtitle?: string;
   stepState: 'completed' | 'active' | 'pending' | 'failed' | 'unreached';
   activeIconVariant?: 'sync' | 'pulse';
-  /** Pattern is the resolved winner for this run, independent of its leaderboard rank. */
+  /** Pattern is the resolved rank-one winner for this run. */
   isResolvedWinner?: boolean;
   /** Pattern record key for branch-result nodes; shared with the results leaderboard. */
   patternKey?: string;
