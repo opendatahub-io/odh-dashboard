@@ -171,7 +171,7 @@ describe('MaaS Portal API keys with OpenShift authentication', () => {
       cy.step('Verify the generated model appears in Model endpoints');
       maasPortalPage.findNavLink('Model endpoints').should('be.visible').click();
       maasPortalPage.ensureModelEndpointsLoaded();
-      maasPortalPage.findModelEndpointRow(modelName).should('be.visible');
+      maasPortalPage.findModelEndpointRow(selectedModel).should('be.visible');
 
       cy.step('Create an API key for the generated subscription');
       maasPortalPage.findNavLink('API keys').should('be.visible').click();
