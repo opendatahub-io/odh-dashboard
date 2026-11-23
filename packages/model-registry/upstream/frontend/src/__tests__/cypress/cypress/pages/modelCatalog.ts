@@ -170,7 +170,6 @@ class ModelCatalog {
     );
   }
 
-
   findAccessLabelPrivate() {
     return cy.findByTestId('model-catalog-access-label-private');
   }
@@ -178,7 +177,6 @@ class ModelCatalog {
   findAccessLabelGated() {
     return cy.findByTestId('model-catalog-access-label-gated');
   }
-
 
   openPrivateAccessLabelPopover() {
     this.findAccessLabelPrivate().click();
@@ -189,7 +187,6 @@ class ModelCatalog {
     this.findAccessLabelGated().click();
     return this;
   }
-
 
   openAccessLabelPopover(labelTestId: string) {
     cy.findByTestId(labelTestId).click();
@@ -243,9 +240,6 @@ class ModelCatalog {
   findDetailsDescription() {
     return cy.findByTestId('model-long-description');
   }
-
-
-
 
   visitModelDetails(sourceId: string, modelName: string) {
     cy.visit(catalogModelDetailsUrl(modelName, sourceId));

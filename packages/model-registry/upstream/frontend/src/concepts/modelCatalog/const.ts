@@ -260,7 +260,6 @@ export enum ModelCatalogTensorType {
   MXFP4 = 'MXFP4',
 }
 
-
 export const HUGGING_FACE_BASE_URL = 'https://huggingface.co';
 
 export const MODEL_CATALOG_POPOVER_MESSAGES = {
