@@ -629,12 +629,16 @@ const findFirstDocumentEnd = (lines: string[]): number => {
  * rewritten, and an insertion lands inside the first document. JSON and
  * flow-mapping content (including a flow mapping preceded by comments or a
  * --- marker) has only the name value replaced in place; YAML replaces the
- * complete `name:` entry (its line plus any indented continuation lines of
- * a multi-line value), or inserts one after any leading comment, blank
- * block, or document marker (---) when the definition has no name yet —
- * inserting before the marker would create a name-only first document and
- * hide the rest of the definition from the import, which reads only
- * documents[0].
+ * complete `name:` entry (its line plus any continuation lines of a
+ * multi-line value indented deeper than the name key), or inserts one
+ * after any leading comment, blank block, or document marker (---) when
+ * the definition has no name yet — inserting before the marker would
+ * create a name-only first document and hide the rest of the definition
+ * from the import, which reads only documents[0]. A block mapping's
+ * top-level keys all sit at the first content line's indentation —
+ * including an intentionally indented root — so the name is matched,
+ * rewritten, and inserted at that indentation; a column-zero name under
+ * an indented root would corrupt the document.
  */
 export const applyImportName = (text: string, newName: string): string => {
   const flowStart = findRootFlowMappingStart(text);
@@ -647,9 +651,23 @@ export const applyImportName = (text: string, newName: string): string => {
   const serialized = serializeYamlScalar(newName);
   const lines = text.split('\n');
   const firstDocumentEnd = findFirstDocumentEnd(lines);
+  // The root mapping's indentation: the first content line's leading
+  // whitespace, also where a missing name is inserted.
+  let insertIndex = 0;
+  let rootIndent = '';
+  while (insertIndex < lines.length) {
+    const line = lines[insertIndex];
+    if (/^\s*$/.test(line) || /^#/.test(line) || /^---\s*$/.test(line)) {
+      insertIndex += 1;
+      continue;
+    }
+    rootIndent = line.slice(0, line.length - line.trimStart().length);
+    break;
+  }
   // Matches plain, quoted, and space-padded-colon forms of a top-level name
-  // key ("name", 'name', name :); the backreference pairs the quote.
-  const namePattern = /^(["']?)name\1[ \t]*:/;
+  // key ("name", 'name', name :) at the root mapping's indentation; the
+  // backreference pairs the quote.
+  const namePattern = new RegExp(`^${escapeRegExp(rootIndent)}(["']?)name\\1[ \\t]*:`);
   let nameIndex = -1;
   for (let index = 0; index < firstDocumentEnd; index++) {
     if (namePattern.test(lines[index])) {
@@ -658,12 +676,18 @@ export const applyImportName = (text: string, newName: string): string => {
     }
   }
   if (nameIndex !== -1) {
-    // Replace the whole entry: the name line plus any indented continuation
-    // lines of a multi-line YAML value, and blank lines between them.
+    // Replace the whole entry: the name line plus any continuation lines of
+    // a multi-line YAML value, and blank lines between them. A continuation
+    // is indented deeper than the name key; sibling fields sit at the name's
+    // own indentation and are never swallowed.
+    const isContinuation = (line: string): boolean => {
+      const trimmed = line.trimStart();
+      return trimmed !== '' && line.length - trimmed.length > rootIndent.length;
+    };
     let end = nameIndex + 1;
     while (end < lines.length) {
       const line = lines[end];
-      if (/^[ \t]+\S/.test(line)) {
+      if (isContinuation(line)) {
         end += 1;
         continue;
       }
@@ -674,14 +698,14 @@ export const applyImportName = (text: string, newName: string): string => {
         while (next < lines.length && lines[next].trim() === '') {
           next += 1;
         }
-        if (next < lines.length && /^[ \t]+\S/.test(lines[next])) {
+        if (next < lines.length && isContinuation(lines[next])) {
           end = next;
           continue;
         }
       }
       break;
     }
-    lines.splice(nameIndex, end - nameIndex, `name: ${serialized}`);
+    lines.splice(nameIndex, end - nameIndex, `${rootIndent}name: ${serialized}`);
     return lines.join('\n');
   }
   if (newName.trim() === '') {
@@ -690,16 +714,7 @@ export const applyImportName = (text: string, newName: string): string => {
   if (text.trim() === '') {
     return `name: ${serialized}\n`;
   }
-  let insertIndex = 0;
-  while (insertIndex < lines.length) {
-    const line = lines[insertIndex];
-    if (/^\s*$/.test(line) || /^#/.test(line) || /^---\s*$/.test(line)) {
-      insertIndex += 1;
-      continue;
-    }
-    break;
-  }
-  lines.splice(insertIndex, 0, `name: ${serialized}`);
+  lines.splice(insertIndex, 0, `${rootIndent}name: ${serialized}`);
   return lines.join('\n');
 };
 

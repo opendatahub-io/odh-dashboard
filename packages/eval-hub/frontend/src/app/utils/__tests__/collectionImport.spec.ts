@@ -324,6 +324,27 @@ describe('applyImportName', () => {
     expect(result).toContain('name: nested');
   });
 
+  it('should rename an indented root mapping without corrupting the document', () => {
+    const text = '  name: old\n  domains: [software]\n';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('  name: renamed\n  domains: [software]\n');
+    expect(parseImportContent(result).doc).toEqual({ name: 'renamed', domains: ['software'] });
+  });
+
+  it('should insert a name at an indented root mapping without corrupting the document', () => {
+    const text = '  domains: [software]\n';
+    const result = applyImportName(text, 'inserted');
+    expect(result).toBe('  name: inserted\n  domains: [software]\n');
+    expect(parseImportContent(result).doc).toEqual({ name: 'inserted', domains: ['software'] });
+  });
+
+  it('should replace a multi-line name entry in an indented root without swallowing siblings', () => {
+    const text = '  name: >\n    folded\n  domains: [software]\n';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('  name: renamed\n  domains: [software]\n');
+    expect(parseImportContent(result).doc).toEqual({ name: 'renamed', domains: ['software'] });
+  });
+
   it('should not rewrite a name that only exists in a later document', () => {
     const text = 'description: first\n---\nname: second-doc\n';
     const result = applyImportName(text, 'renamed');
