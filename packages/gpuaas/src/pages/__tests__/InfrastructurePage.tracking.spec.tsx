@@ -139,7 +139,6 @@ describe('InfrastructurePage - Tracking Events', () => {
       reliantAreas: null,
       requiredComponents: null,
       requiredCapabilities: null,
-      customCondition: () => false,
     });
     mockUseAccessAllowed.mockReturnValue([true, true]);
   });

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
@@ -178,6 +179,7 @@ describe('Choose Collection Page - curated run modal', () => {
         items: [],
       },
     );
+    cy.interceptApi('GET /api/:apiVersion/info', { path: API_VERSION }, { hardware_profiles: [] });
     cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
       body: { data: { experiments: [] } },
     });

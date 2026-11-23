@@ -610,9 +610,11 @@ const TreeNodeInner: React.FC<{
                   isRowLabel && 'automl-tree-node__label--row-label',
                 )}
               >
-                {isColumnHeader
-                  ? displayLabel.split(/\s+/).map((word) => <div key={word}>{word}</div>)
-                  : displayLabel}
+                {isColumnHeader ? (
+                  displayLabel.split(/\s+/).map((word) => <div key={word}>{word}</div>)
+                ) : (
+                  <div data-testid={`tree-node-label-${node.getId()}`}>{displayLabel}</div>
+                )}
               </div>
             ) : null}
           </div>
@@ -720,7 +722,7 @@ const TreeNodeInner: React.FC<{
                       labelSubtitle && 'automl-tree-node__label--with-subtitle',
                     )}
                   >
-                    <div>{displayLabel}</div>
+                    <div data-testid={`tree-node-label-${node.getId()}`}>{displayLabel}</div>
                     {labelSubtitle ? (
                       <div className="automl-tree-node__winner-subtitle">{labelSubtitle}</div>
                     ) : null}

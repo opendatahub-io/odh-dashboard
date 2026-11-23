@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./utilities": "./src/utilities/index.ts",
     "./utilities/const": "./src/utilities/const.ts",
+    "./utilities/featureFlagUtils": "./src/utilities/featureFlagUtils.ts",
     "./utilities/string": "./src/utilities/string.ts",
     "./utilities/trimInput": "./src/utilities/trimInput.ts",
     "./utilities/valueUnits": "./src/utilities/valueUnits.ts",

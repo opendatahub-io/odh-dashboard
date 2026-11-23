@@ -62,9 +62,9 @@ describe('resolveDeploymentMethodSuggestion', () => {
 
   it('3 options, isLLMdDefault OFF: vLLM wins over legacy', () => {
     const overrides = [
-      makeOverride(vllmOption, (cs) => (!cs?.isLLMdDefault ? vllmOption : undefined)),
-      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault ? llmdOption : undefined)),
-      makeOverride(legacyOption, (cs) => (!cs?.isLLMdDefault ? legacyOption : undefined)),
+      makeOverride(vllmOption, (cs) => (cs?.isLLMdDefault === false ? vllmOption : undefined)),
+      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault !== false ? llmdOption : undefined)),
+      makeOverride(legacyOption, (cs) => (cs?.isLLMdDefault === false ? legacyOption : undefined)),
     ];
     expect(resolveDeploymentMethodSuggestion(overrides, { isLLMdDefault: false })?.key).toBe(
       'vllm',
@@ -73,17 +73,26 @@ describe('resolveDeploymentMethodSuggestion', () => {
 
   it('3 options, isLLMdDefault ON: llm-d wins', () => {
     const overrides = [
-      makeOverride(vllmOption, (cs) => (!cs?.isLLMdDefault ? vllmOption : undefined)),
-      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault ? llmdOption : undefined)),
-      makeOverride(legacyOption, (cs) => (!cs?.isLLMdDefault ? legacyOption : undefined)),
+      makeOverride(vllmOption, (cs) => (cs?.isLLMdDefault === false ? vllmOption : undefined)),
+      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault !== false ? llmdOption : undefined)),
+      makeOverride(legacyOption, (cs) => (cs?.isLLMdDefault === false ? legacyOption : undefined)),
     ];
     expect(resolveDeploymentMethodSuggestion(overrides, { isLLMdDefault: true })?.key).toBe('llmd');
   });
 
+  it('3 options, isLLMdDefault unset: llm-d wins', () => {
+    const overrides = [
+      makeOverride(vllmOption, (cs) => (cs?.isLLMdDefault === false ? vllmOption : undefined)),
+      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault !== false ? llmdOption : undefined)),
+      makeOverride(legacyOption, (cs) => (cs?.isLLMdDefault === false ? legacyOption : undefined)),
+    ];
+    expect(resolveDeploymentMethodSuggestion(overrides, {})?.key).toBe('llmd');
+  });
+
   it('2 options (no vLLM), isLLMdDefault OFF: legacy wins', () => {
     const overrides = [
-      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault ? llmdOption : undefined)),
-      makeOverride(legacyOption, (cs) => (!cs?.isLLMdDefault ? legacyOption : undefined)),
+      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault !== false ? llmdOption : undefined)),
+      makeOverride(legacyOption, (cs) => (cs?.isLLMdDefault === false ? legacyOption : undefined)),
     ];
     expect(resolveDeploymentMethodSuggestion(overrides, { isLLMdDefault: false })?.key).toBe(
       'legacy',
@@ -92,10 +101,18 @@ describe('resolveDeploymentMethodSuggestion', () => {
 
   it('2 options (no vLLM), isLLMdDefault ON: llm-d wins', () => {
     const overrides = [
-      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault ? llmdOption : undefined)),
-      makeOverride(legacyOption, (cs) => (!cs?.isLLMdDefault ? legacyOption : undefined)),
+      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault !== false ? llmdOption : undefined)),
+      makeOverride(legacyOption, (cs) => (cs?.isLLMdDefault === false ? legacyOption : undefined)),
     ];
     expect(resolveDeploymentMethodSuggestion(overrides, { isLLMdDefault: true })?.key).toBe('llmd');
+  });
+
+  it('2 options (no vLLM), isLLMdDefault unset: llm-d wins', () => {
+    const overrides = [
+      makeOverride(llmdOption, (cs) => (cs?.isLLMdDefault !== false ? llmdOption : undefined)),
+      makeOverride(legacyOption, (cs) => (cs?.isLLMdDefault === false ? legacyOption : undefined)),
+    ];
+    expect(resolveDeploymentMethodSuggestion(overrides, {})?.key).toBe('llmd');
   });
 });
 
