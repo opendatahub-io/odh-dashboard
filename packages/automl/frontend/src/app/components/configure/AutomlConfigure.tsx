@@ -836,7 +836,7 @@ function AutomlConfigure({
                       <SplitItem isFilled />
                       {datasetSplitMode === DATASET_SPLIT_SEPARATE && (
                         <SplitItem>
-                          <Content component="small">
+                          <Content component="small" data-testid="dataset-selection-count">
                             {selectedDatasetCount} of 2 datasets selected
                           </Content>
                         </SplitItem>

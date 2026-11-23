@@ -668,6 +668,31 @@ describe('AutomlConfigure', () => {
     });
 
     describe('MultipleFileUpload drag-and-drop', () => {
+      it.each(['connection', 'namespace'])(
+        'should not start an upload if the %s changes while extracting dropped files',
+        async (change) => {
+          const { rerender } = renderComponent();
+          fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+          fireEvent.click(screen.getByRole('button', { name: 'Upload new file' }));
+
+          dropFilesOnTrainingDataUploadZone([
+            new File(['training rows'], 'stale.csv', { type: 'text/csv' }),
+          ]);
+          if (change === 'connection') {
+            fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-2'));
+          } else {
+            mockUseParams.mockReturnValue({ namespace: 'other-namespace' });
+            rerender(<AutomlConfigure />);
+          }
+          // Flush Dropzone's asynchronous file extraction after the connection reset.
+          await act(async () => undefined);
+
+          expect(mockS3MutateAsync).not.toHaveBeenCalled();
+          expect(screen.queryByText('stale.csv')).not.toBeInTheDocument();
+          expect(mockNotificationError).not.toHaveBeenCalled();
+        },
+      );
+
       it('should show a notification when a disallowed file type is dropped', async () => {
         renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));

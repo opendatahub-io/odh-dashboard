@@ -117,7 +117,12 @@ function DatasetCompatibilityCheck({
           <>
             {title}
             {needsReview ? ' ' : ' · '}
-            <Button variant="link" isInline onClick={() => setIsOpen(true)}>
+            <Button
+              variant="link"
+              isInline
+              data-testid="dataset-compatibility-view-details"
+              onClick={() => setIsOpen(true)}
+            >
               View details
             </Button>
           </>

@@ -37,8 +37,16 @@ class AutomlConfigurePage {
     return cy.findByTestId('test-data-accordion-toggle');
   }
 
-  findIncompleteSteps() {
-    return cy.findAllByText('Incomplete');
+  findCompatibilityDetailsButton() {
+    return cy.findByTestId('dataset-compatibility-view-details');
+  }
+
+  findDatasetSelectionCount() {
+    return cy.findByTestId('dataset-selection-count');
+  }
+
+  findTrainingDataSourceToggle() {
+    return cy.findByTestId('training-data-source-select-toggle');
   }
 
   findCreateRunButton() {
@@ -47,11 +55,11 @@ class AutomlConfigurePage {
 
   selectStorageSecret(secretName: string, selectorTestId = 'aws-secret-selector') {
     cy.findByTestId(selectorTestId).click();
-    cy.findByTestId(selectorTestId).find('input').type(secretName);
+    cy.findByTestId(`${selectorTestId}-input`).type(secretName);
     cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
       .should('be.visible')
       .click();
-    cy.findByTestId(selectorTestId).find('input').should('have.value', secretName);
+    cy.findByTestId(`${selectorTestId}-input`).should('have.value', secretName);
   }
 }
 

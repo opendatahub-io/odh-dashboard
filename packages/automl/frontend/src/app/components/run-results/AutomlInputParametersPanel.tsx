@@ -142,10 +142,14 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
     const valueByKey = new Map(allEntries);
     const hasTestData = Boolean(parameters.test_data_file_key?.trim());
     // Infer the saved split choice rather than relying on the configure form's UI-only mode.
-    valueByKey.set(
-      'dataset_split_mode',
-      hasTestData ? 'Use separate datasets' : 'Automatically split data',
-    );
+    if (hasTestData || parameters.train_data_file_key?.trim()) {
+      valueByKey.set(
+        'dataset_split_mode',
+        hasTestData ? 'Use separate datasets' : 'Automatically split data',
+      );
+    } else {
+      valueByKey.delete('dataset_split_mode');
+    }
     const knownKeySet = new Set([...ORDERED_KEYS, ...EXCLUDED_KEYS]);
 
     // Determine which keys to hide based on the current task type

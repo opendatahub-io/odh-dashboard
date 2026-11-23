@@ -180,12 +180,18 @@ function AutomlReconfigureLoader(): React.JSX.Element {
   }
 
   const parsed = parsedParams?.success ? parsedParams.data : {};
+  const savedTrainingParams = configureBasePartial
+    // eslint-disable-next-line camelcase -- API parameter names
+    .pick({ train_data_secret_name: true, train_data_bucket_name: true, train_data_file_key: true })
+    .safeParse(params ?? {});
+  const trainingParams = savedTrainingParams.success ? savedTrainingParams.data : {};
   const savedTestBucket = params?.test_data_bucket_name;
   const savedTestKey = params?.test_data_file_key;
   const hasSavedTestData =
     typeof savedTestBucket === 'string' &&
     Boolean(savedTestBucket.trim()) &&
-    savedTestBucket === params?.train_data_bucket_name &&
+    savedTestBucket === trainingParams.train_data_bucket_name &&
+    Boolean(trainingParams.train_data_file_key?.trim()) &&
     typeof savedTestKey === 'string' &&
     Boolean(savedTestKey.trim());
 
@@ -199,6 +205,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     : DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType ?? ''];
   const initialValues: Partial<ConfigureSchema> = {
     ...parsed,
+    ...trainingParams,
     ...(hasSavedTestData && {
       test_data_bucket_name: savedTestBucket,
       test_data_file_key: savedTestKey,

@@ -163,6 +163,39 @@ describe('AutomlInputParametersPanel', () => {
     ]);
   });
 
+  it('should preserve the saved split when an unrelated runtime parameter is invalid', () => {
+    const pipelineRun = createMockPipelineRun({
+      runtime_config: {
+        parameters: {
+          display_name: 'My Run',
+          task_type: 'binary',
+          train_data_secret_name: 's3-connection',
+          train_data_bucket_name: 'my-bucket',
+          train_data_file_key: 'train.csv',
+          preset: 'speed',
+          top_n: -1,
+          test_data_bucket_name: 'my-bucket',
+          test_data_file_key: 'test.csv',
+        },
+      },
+    });
+    const { parameters } = getAutomlContext({ pipelineRun });
+    renderPanel({ parameters }, { pipelineRun });
+
+    expect(screen.getByTestId('parameter-dataset_split_mode')).toHaveTextContent(
+      'Use separate datasets',
+    );
+    expect(screen.getByTestId('parameter-train_data_file_key')).toHaveTextContent('train.csv');
+    expect(screen.getByTestId('parameter-test_data_file_key')).toHaveTextContent('test.csv');
+    expect(screen.queryByTestId('parameter-top_n')).not.toBeInTheDocument();
+  });
+
+  it('should omit data splitting when no saved dataset selection can be recovered', () => {
+    renderPanel({ parameters: { task_type: 'binary', dataset_split_mode: 'auto' } });
+
+    expect(screen.queryByTestId('parameter-dataset_split_mode')).not.toBeInTheDocument();
+  });
+
   it('should exclude display_name from the drawer', () => {
     renderPanel();
     expect(screen.queryByText('Display name')).not.toBeInTheDocument();
@@ -277,12 +310,7 @@ describe('AutomlInputParametersPanel', () => {
         el.textContent !== 'Pipeline Server output directory',
     );
     const labels = parameterTerms.map((el) => el.textContent);
-    expect(labels).toEqual([
-      'Description',
-      'S3 connection',
-      'Data splitting',
-      'Top models to consider',
-    ]);
+    expect(labels).toEqual(['Description', 'S3 connection', 'Top models to consider']);
   });
 
   it('should format boolean values as strings', () => {

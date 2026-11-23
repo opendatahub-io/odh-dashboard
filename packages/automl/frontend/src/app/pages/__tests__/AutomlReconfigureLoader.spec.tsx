@@ -459,12 +459,14 @@ describe('AutomlReconfigureLoader', () => {
       expect(request).not.toHaveProperty('dataset_split_mode');
     });
 
-    it('should recover a valid test-data pair when an unrelated parameter is invalid', async () => {
+    it('should recover both dataset pairs when an unrelated parameter is invalid', async () => {
       const run = createMockPipelineRun(
         {},
         {
           top_n: -1,
+          train_data_secret_name: 'saved-secret',
           train_data_bucket_name: 'saved-bucket',
+          train_data_file_key: 'saved-train.csv',
           test_data_bucket_name: 'saved-bucket',
           test_data_file_key: 'saved-test.csv',
         },
@@ -480,6 +482,9 @@ describe('AutomlReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
       expect(capturedProps.initialValues).toMatchObject({
         dataset_split_mode: 'separate',
+        train_data_secret_name: 'saved-secret',
+        train_data_bucket_name: 'saved-bucket',
+        train_data_file_key: 'saved-train.csv',
         test_data_bucket_name: 'saved-bucket',
         test_data_file_key: 'saved-test.csv',
       });
@@ -488,6 +493,12 @@ describe('AutomlReconfigureLoader', () => {
 
     it.each([
       {},
+      {
+        top_n: -1,
+        train_data_bucket_name: 'my-bucket',
+        test_data_bucket_name: 'my-bucket',
+        test_data_file_key: 'test.csv',
+      },
       { test_data_bucket_name: 'my-bucket' },
       { test_data_file_key: 'test.csv' },
       { test_data_bucket_name: 'my-bucket', test_data_file_key: ' ' },

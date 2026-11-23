@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { FileRejection } from 'react-dropzone';
 import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
@@ -34,11 +34,23 @@ export default function useDatasetUpload({
   processDrop: (acceptedFiles: File[], fileRejections: FileRejection[]) => void;
 } {
   const sequence = requestSequenceRef;
+  const connection = useMemo(
+    () => ({ namespace, secretName, bucket }),
+    [namespace, secretName, bucket],
+  );
+  const activeConnectionRef = useRef<typeof connection>();
+  useLayoutEffect(() => {
+    activeConnectionRef.current = connection;
+    return () => {
+      activeConnectionRef.current = undefined;
+    };
+  }, [connection]);
   const notification = useNotification();
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
   const uploadFile = useCallback(
     async (file?: File) => {
-      if (!file || !namespace) {
+      // Dropzone may finish extracting files after the connection has changed.
+      if (!file || !namespace || activeConnectionRef.current !== connection) {
         return;
       }
       if (file.size > AUTOML_TRAINING_UPLOAD_MAX_BYTES) {
@@ -50,6 +62,8 @@ export default function useDatasetUpload({
         return;
       }
       const requestId = ++sequence.current;
+      const isCurrentRequest = () =>
+        requestId === sequence.current && activeConnectionRef.current === connection;
       onStart();
       onUploadingChange(true);
       try {
@@ -60,11 +74,11 @@ export default function useDatasetUpload({
           key: file.name,
           file,
         });
-        if (requestId === sequence.current) {
+        if (isCurrentRequest()) {
           onSuccess(result.key);
         }
       } catch (error) {
-        if (requestId === sequence.current) {
+        if (isCurrentRequest()) {
           const message = error instanceof Error ? error.message : String(error);
           notification.error(
             'Failed to upload file',
@@ -74,7 +88,7 @@ export default function useDatasetUpload({
           );
         }
       } finally {
-        if (requestId === sequence.current) {
+        if (isCurrentRequest()) {
           onUploadingChange(false);
         }
       }
@@ -83,6 +97,7 @@ export default function useDatasetUpload({
       namespace,
       secretName,
       bucket,
+      connection,
       sequence,
       onStart,
       onSuccess,

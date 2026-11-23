@@ -564,6 +564,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
               icon={inputIcon}
               {...(activeItemId && { 'aria-activedescendant': activeItemId })}
               inputProps={{
+                'data-testid': dataTestId ? `${dataTestId}-input` : undefined,
                 ...(toggleProps?.['aria-describedby'] && {
                   'aria-describedby': toggleProps['aria-describedby'],
                 }),
