@@ -53,11 +53,14 @@ import {
 } from '#~/concepts/pipelines/topology/__tests__/mockParallelForPipelineSpec';
 import { PipelineNodeModelExpanded } from '#~/concepts/topology/types';
 import {
+  ArtifactType,
   PipelineSpecVariable,
   PipelineTaskKF,
+  RuntimeStateKF,
   TaskStateKF,
   TaskTypeKF,
 } from '#~/concepts/pipelines/kfTypes';
+import { Artifact, Event, Execution, Value } from '#~/third_party/mlmd';
 
 const DEFAULT_TASK_NODE_TYPE = 'DEFAULT_TASK_NODE';
 const EXECUTION_TASK_NODE_TYPE = 'EXECUTION_TASK_NODE';
@@ -510,5 +513,232 @@ describe('usePipelineTaskTopology', () => {
       'Complete',
     );
     expect(nodes.find((n) => n.id === 'train-b')?.data?.pipelineTask.status?.state).toBe('Failed');
+  });
+
+  it('should keep run details status when a group task state is unspecified', () => {
+    const spec = {
+      components: {
+        'comp-outer': {
+          dag: {
+            tasks: {
+              leaf: { componentRef: { name: 'comp-leaf' }, taskInfo: { name: 'leaf' } },
+            },
+          },
+        },
+        'comp-leaf': { executorLabel: 'exec-leaf' },
+      },
+      deploymentSpec: { executors: { 'exec-leaf': { container: { image: 'leaf' } } } },
+      pipelineInfo: { name: 'unspecified-group' },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.15.2',
+      root: {
+        dag: {
+          tasks: {
+            outer: { componentRef: { name: 'comp-outer' }, taskInfo: { name: 'outer' } },
+          },
+        },
+      },
+    } as PipelineSpecVariable;
+
+    const renderResult = testHook(usePipelineTaskTopology)(
+      spec,
+      {
+        task_details: [
+          {
+            run_id: 'run-1',
+            task_id: 'detail-1',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-01T00:00:00Z',
+            end_time: '2024-01-01T01:00:00Z',
+            display_name: 'outer',
+            state: RuntimeStateKF.SUCCEEDED,
+          },
+        ],
+      },
+      [
+        createMockTask('outer-1', TaskStateKF.RUNTIME_STATE_UNSPECIFIED, 'outer', {
+          type: TaskTypeKF.DAG,
+        }),
+      ],
+    );
+    const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+
+    expect(nodes.find((n) => n.id === 'outer')?.data?.pipelineTask.status?.state).toBe(
+      RuntimeStateKF.SUCCEEDED,
+    );
+    expect(nodes.find((n) => n.id === 'outer')?.data?.pipelineTask.status?.startTime).toBe(
+      '2024-01-01T00:00:00Z',
+    );
+  });
+
+  it('should attach each nested iteration its own artifact', () => {
+    const spec = {
+      components: {
+        'comp-outer': {
+          dag: {
+            tasks: {
+              inner: { componentRef: { name: 'comp-inner' }, taskInfo: { name: 'inner' } },
+            },
+          },
+        },
+        'comp-inner': {
+          dag: {
+            tasks: {
+              train: { componentRef: { name: 'comp-train' }, taskInfo: { name: 'train' } },
+            },
+          },
+        },
+        'comp-train': {
+          executorLabel: 'exec-train',
+          outputDefinitions: {
+            artifacts: {
+              dataset: {
+                artifactType: { schemaTitle: ArtifactType.DATASET, schemaVersion: '0.0.1' },
+              },
+            },
+          },
+        },
+      },
+      deploymentSpec: { executors: { 'exec-train': { container: { image: 'train' } } } },
+      pipelineInfo: { name: 'nested-loops' },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.15.2',
+      root: {
+        dag: {
+          tasks: {
+            outer: { componentRef: { name: 'comp-outer' }, taskInfo: { name: 'outer' } },
+          },
+        },
+      },
+    } as PipelineSpecVariable;
+
+    const mlmdExecution = (
+      id: number,
+      props: Record<string, { string?: string; int?: number }>,
+    ): Execution => {
+      const item = new Execution();
+      item.setId(id);
+      Object.entries(props).forEach(([key, value]) => {
+        const property = new Value();
+        if (value.string != null) {
+          property.setStringValue(value.string);
+        }
+        if (value.int != null) {
+          property.setIntValue(value.int);
+        }
+        item.getCustomPropertiesMap().set(key, property);
+      });
+      return item;
+    };
+    const outputEvent = (executionId: number, artifactId: number): Event => {
+      const step = new Event.Path.Step();
+      step.setKey('dataset');
+      const path = new Event.Path();
+      path.setStepsList([step]);
+      return new Event()
+        .setType(Event.Type.OUTPUT)
+        .setExecutionId(executionId)
+        .setArtifactId(artifactId)
+        .setPath(path);
+    };
+
+    const executions = [
+      mlmdExecution(1, { task_name: { string: 'outer' }, iteration_count: { int: 2 } }),
+      mlmdExecution(10, { parent_dag_id: { int: 1 }, iteration_index: { int: 0 } }),
+      mlmdExecution(11, { parent_dag_id: { int: 1 }, iteration_index: { int: 1 } }),
+      mlmdExecution(20, {
+        task_name: { string: 'inner' },
+        iteration_count: { int: 1 },
+        parent_dag_id: { int: 10 },
+      }),
+      mlmdExecution(21, {
+        task_name: { string: 'inner' },
+        iteration_count: { int: 1 },
+        parent_dag_id: { int: 11 },
+      }),
+      mlmdExecution(30, { parent_dag_id: { int: 20 }, iteration_index: { int: 0 } }),
+      mlmdExecution(31, { parent_dag_id: { int: 21 }, iteration_index: { int: 0 } }),
+      mlmdExecution(40, { task_name: { string: 'train' }, parent_dag_id: { int: 30 } }),
+      mlmdExecution(41, { task_name: { string: 'train' }, parent_dag_id: { int: 31 } }),
+    ];
+    const artifacts = [
+      new Artifact().setId(100).setType(ArtifactType.DATASET),
+      new Artifact().setId(101).setType(ArtifactType.DATASET),
+    ];
+    const events = [outputEvent(40, 100), outputEvent(41, 101)];
+
+    const renderResult = testHook(usePipelineTaskTopology)(
+      spec,
+      undefined,
+      [
+        createMockTask('outer-1', TaskStateKF.RUNNING, 'outer', {
+          type: TaskTypeKF.LOOP,
+          iterationCount: '2',
+          childTasks: [
+            { task_id: 'iter-0', name: 'outer' },
+            { task_id: 'iter-1', name: 'outer' },
+          ],
+        }),
+        createMockTask('iter-0', TaskStateKF.RUNNING, 'outer', {
+          parentTaskId: 'outer-1',
+          iterationIndex: '0',
+          childTasks: [{ task_id: 'inner-0', name: 'inner' }],
+        }),
+        createMockTask('iter-1', TaskStateKF.RUNNING, 'outer', {
+          parentTaskId: 'outer-1',
+          iterationIndex: '1',
+          childTasks: [{ task_id: 'inner-1', name: 'inner' }],
+        }),
+        createMockTask('inner-0', TaskStateKF.RUNNING, 'inner', {
+          type: TaskTypeKF.LOOP,
+          parentTaskId: 'iter-0',
+          iterationCount: '1',
+          childTasks: [{ task_id: 'inner-iter-0', name: 'inner' }],
+        }),
+        createMockTask('inner-1', TaskStateKF.RUNNING, 'inner', {
+          type: TaskTypeKF.LOOP,
+          parentTaskId: 'iter-1',
+          iterationCount: '1',
+          childTasks: [{ task_id: 'inner-iter-1', name: 'inner' }],
+        }),
+        createMockTask('inner-iter-0', TaskStateKF.RUNNING, 'inner', {
+          parentTaskId: 'inner-0',
+          iterationIndex: '0',
+          childTasks: [{ task_id: 'train-0', name: 'train' }],
+        }),
+        createMockTask('inner-iter-1', TaskStateKF.RUNNING, 'inner', {
+          parentTaskId: 'inner-1',
+          iterationIndex: '0',
+          childTasks: [{ task_id: 'train-1', name: 'train' }],
+        }),
+        createMockTask('train-0', TaskStateKF.SUCCEEDED, 'train', { parentTaskId: 'inner-iter-0' }),
+        createMockTask('train-1', TaskStateKF.FAILED, 'train', { parentTaskId: 'inner-iter-1' }),
+      ],
+      executions,
+      events,
+      artifacts,
+    );
+    const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+    const artifactId = (nodeId: string) =>
+      nodes.find((node) => node.id === nodeId)?.data?.pipelineTask.metadata?.getId();
+
+    expect(
+      nodes.find((node) => node.id === 'outer-iteration-0~inner-iteration-0')?.data?.pipelineTask
+        .iterationExecutionId,
+    ).toBe(30);
+    expect(
+      nodes.find((node) => node.id === 'outer-iteration-1~inner-iteration-0')?.data?.pipelineTask
+        .iterationExecutionId,
+    ).toBe(31);
+    expect(
+      artifactId(
+        'GROUP.outer-iteration-0~inner-iteration-0.ARTIFACT.outer-iteration-0~inner-iteration-0~train.dataset',
+      ),
+    ).toBe(100);
+    expect(
+      artifactId(
+        'GROUP.outer-iteration-1~inner-iteration-0.ARTIFACT.outer-iteration-1~inner-iteration-0~train.dataset',
+      ),
+    ).toBe(101);
   });
 });

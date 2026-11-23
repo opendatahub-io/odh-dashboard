@@ -4,7 +4,10 @@ import {
   EmptyState,
   EmptyStateVariant,
   EmptyStateBody,
+  EmptyStateActions,
+  EmptyStateFooter,
   Bullseye,
+  Button,
   Spinner,
   Truncate,
 } from '@patternfly/react-core';
@@ -59,7 +62,7 @@ const PipelineRunDetails: React.FC<
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
 
   const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(run);
-  const [tasks] = useTasksForPipelineRun(run);
+  const [tasks, tasksLoaded, tasksError, refreshTasks] = useTasksForPipelineRun(run);
   const [artifacts] = usePipelineRunArtifacts(run);
   const executionIds = React.useMemo(
     () => executions.map((execution) => execution.getId()),
@@ -92,22 +95,34 @@ const PipelineRunDetails: React.FC<
 
   const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec || !!versionError);
   const error = runError;
+  const tasksPending = Boolean(run?.run_id) && !tasksLoaded && !tasksError;
 
-  if (error) {
+  if (error || tasksError) {
     return (
       <EmptyState
         headingLevel="h4"
         icon={ExclamationCircleIcon}
-        titleText="Error loading pipeline run details"
+        titleText={
+          error ? 'Error loading pipeline run details' : 'Error loading pipeline run tasks'
+        }
         variant={EmptyStateVariant.lg}
         data-id="error-empty-state"
       >
-        <EmptyStateBody>{error.message}</EmptyStateBody>
+        <EmptyStateBody>{(error ?? tasksError)?.message}</EmptyStateBody>
+        {tasksError && !error && (
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="primary" onClick={() => refreshTasks()}>
+                Retry
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        )}
       </EmptyState>
     );
   }
 
-  if (!loaded || (!executionsLoaded && !executionsError)) {
+  if (!loaded || (!executionsLoaded && !executionsError) || tasksPending) {
     return (
       <Bullseye>
         <Spinner />

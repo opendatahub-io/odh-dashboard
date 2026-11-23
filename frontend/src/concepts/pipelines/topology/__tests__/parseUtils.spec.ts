@@ -16,6 +16,7 @@ import {
   findIterationTask,
   getIterationCount,
   parseInt64Decimal,
+  tasksInScope,
 } from '#~/concepts/pipelines/topology/parseUtils';
 import {
   ArtifactStateKF,
@@ -860,5 +861,29 @@ describe('getExecutionLinkedArtifactMap', () => {
         { event: events[3], artifact: artifacts[0] },
       ],
     });
+  });
+});
+
+describe('tasksInScope', () => {
+  const task = (taskId: string, overrides: Partial<PipelineTaskKF> = {}): PipelineTaskKF => ({
+    task_id: taskId,
+    run_id: 'run-1',
+    name: taskId,
+    type: TaskTypeKF.RUNTIME,
+    ...overrides,
+  });
+
+  it('should exclude tasks that are only referenced by child_tasks when there is no ROOT', () => {
+    const parent = task('loop', {
+      type: TaskTypeKF.LOOP,
+      child_tasks: [{ task_id: 'child', name: 'child' }],
+    });
+    const child = task('child');
+    const sibling = task('sibling');
+
+    expect(tasksInScope([parent, child, sibling]).map((item) => item.task_id)).toEqual([
+      'loop',
+      'sibling',
+    ]);
   });
 });

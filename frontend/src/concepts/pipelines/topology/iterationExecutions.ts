@@ -1,14 +1,17 @@
 import { Execution } from '#~/third_party/mlmd';
 
-/** Spec name and 0-based index of a ParallelFor iteration group. */
+/** Spec name, 0-based index, and the MLMD execution that is this iteration. */
 export type IterationScope = {
   iterationTaskName: string;
   iterationIndex: number;
+  /** MLMD id of this iteration execution. Set while the graph is built. */
+  iterationExecutionId?: number;
 };
 
 type IterationTaskFields = {
   iterationIndex?: number;
   iterationTaskName?: string;
+  iterationExecutionId?: number;
 };
 
 type IterationNode = {
@@ -27,20 +30,24 @@ const scopeFromTask = (task?: IterationTaskFields): IterationScope | undefined =
   return {
     iterationTaskName: task.iterationTaskName,
     iterationIndex: task.iterationIndex,
+    iterationExecutionId: task.iterationExecutionId,
   };
 };
 
 /**
- * Iteration that owns the selected node. The group itself carries the scope;
- * a child resolves it from the iteration group that lists it.
+ * Iteration that owns the selected node.
+ * A nested group walks up to the nearest iteration, so an inner loop is not
+ * confused with an outer loop of the same name.
  */
 export const iterationScopeForNode = (
   selectedNode: IterationNode | null | undefined,
   nodes: IterationNode[],
+  seen: Set<string> = new Set(),
 ): IterationScope | undefined => {
-  if (!selectedNode) {
+  if (!selectedNode || seen.has(selectedNode.id)) {
     return undefined;
   }
+  seen.add(selectedNode.id);
 
   const direct = scopeFromTask(selectedNode.data?.pipelineTask);
   if (direct) {
@@ -48,31 +55,31 @@ export const iterationScopeForNode = (
   }
 
   const parent = nodes.find(
-    (node) =>
-      node.group &&
-      node.children?.includes(selectedNode.id) &&
-      node.data?.pipelineTask?.iterationIndex != null,
+    (node) => node.group && node.id !== selectedNode.id && node.children?.includes(selectedNode.id),
   );
-  return scopeFromTask(parent?.data?.pipelineTask);
+  return parent ? iterationScopeForNode(parent, nodes, seen) : undefined;
 };
 
-/**
- * MLMD executions that belong to one ParallelFor iteration.
- *
- * The loop execution is the one with `iteration_count` and the spec task name.
- * Its child with `iteration_index` is the iteration execution. The drawer and
- * artifact nodes use that iteration's children (`parent_dag_id`).
- * An unresolved scope returns no executions so another iteration is not shown.
- */
-export const executionsForIterationScope = (
-  executions: Execution[],
-  scope: IterationScope | undefined,
-): Execution[] => {
-  if (!scope) {
-    return executions;
-  }
+const childrenOf = (executions: Execution[], parentId: number): Execution[] =>
+  executions.filter(
+    (execution) =>
+      execution.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue() === parentId,
+  );
 
-  const loopExecution = executions.find((execution) => {
+/**
+ * MLMD id of one loop iteration.
+ *
+ * The loop execution is taken from the current graph scope, so an inner loop
+ * inside one outer iteration is not the same-named loop in another iteration.
+ * The iteration execution itself is read from the full list: it is a grandchild
+ * and is not in the current scope.
+ */
+export const resolveIterationExecutionId = (
+  scopeExecutions: Execution[],
+  allExecutions: Execution[],
+  scope: Pick<IterationScope, 'iterationTaskName' | 'iterationIndex'>,
+): number | undefined => {
+  const loopExecution = scopeExecutions.find((execution) => {
     const props = execution.getCustomPropertiesMap();
     return (
       props.get('task_name')?.getStringValue() === scope.iterationTaskName &&
@@ -80,23 +87,51 @@ export const executionsForIterationScope = (
     );
   });
   if (!loopExecution) {
+    return undefined;
+  }
+
+  return allExecutions
+    .find((execution) => {
+      const props = execution.getCustomPropertiesMap();
+      return (
+        props.get('parent_dag_id')?.getIntValue() === loopExecution.getId() &&
+        props.get('iteration_index')?.getIntValue() === scope.iterationIndex
+      );
+    })
+    ?.getId();
+};
+
+/** Executions whose parent is this iteration. An unknown iteration returns none. */
+export const executionsUnderIteration = (
+  executions: Execution[],
+  iterationExecutionId: number | undefined,
+): Execution[] =>
+  iterationExecutionId == null ? [] : childrenOf(executions, iterationExecutionId);
+
+/**
+ * Executions that belong to one ParallelFor iteration.
+ * A stored iteration id is authoritative. Otherwise the loop is resolved in
+ * `executions` and its descendants are taken from `allExecutions`.
+ */
+export const executionsForIterationScope = (
+  executions: Execution[],
+  scope: IterationScope | undefined,
+  allExecutions?: Execution[],
+): Execution[] => {
+  if (!scope) {
+    return executions;
+  }
+
+  const index = allExecutions ?? executions;
+  if (scope.iterationExecutionId != null) {
+    return childrenOf(index, scope.iterationExecutionId);
+  }
+  if (!allExecutions) {
     return [];
   }
 
-  const iterationExecution = executions.find((execution) => {
-    const props = execution.getCustomPropertiesMap();
-    return (
-      props.get('parent_dag_id')?.getIntValue() === loopExecution.getId() &&
-      props.get('iteration_index')?.getIntValue() === scope.iterationIndex
-    );
-  });
-  if (!iterationExecution) {
-    return [];
-  }
-
-  const iterationId = iterationExecution.getId();
-  return executions.filter(
-    (execution) =>
-      execution.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue() === iterationId,
+  return executionsUnderIteration(
+    allExecutions,
+    resolveIterationExecutionId(executions, allExecutions, scope),
   );
 };

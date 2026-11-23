@@ -39,7 +39,7 @@ import {
   tasksInScope,
   translateStatusForNode,
 } from './parseUtils';
-import { executionsForIterationScope } from './iterationExecutions';
+import { executionsForIterationScope, resolveIterationExecutionId } from './iterationExecutions';
 import { PipelineTask } from './pipelineTaskTypes';
 
 /**
@@ -52,6 +52,8 @@ type MlmdArtifactContext = {
   artifacts?: Artifact[];
   /** Executions visible at this graph scope. Iteration recursion narrows the list. */
   executions?: Execution[] | null;
+  /** Every execution for the run. Nested loops resolve grandchildren from this list. */
+  allExecutions?: Execution[] | null;
 };
 
 /**
@@ -334,21 +336,25 @@ const getNodesForTasks = (
         );
       if (groupTask) {
         const effectiveState = getEffectiveTaskState(groupTask, resolvedChildIndex);
-        const isTerminal =
-          effectiveState === TaskStateKF.SUCCEEDED ||
-          effectiveState === TaskStateKF.FAILED ||
-          effectiveState === TaskStateKF.CACHED ||
-          effectiveState === TaskStateKF.SKIPPED;
+        const effectiveNodeState = taskStateToNodeState(effectiveState);
+        // Unspecified runtime state has nothing to add. Keep run_details when it supplied status.
+        if (effectiveNodeState) {
+          const isTerminal =
+            effectiveState === TaskStateKF.SUCCEEDED ||
+            effectiveState === TaskStateKF.FAILED ||
+            effectiveState === TaskStateKF.CACHED ||
+            effectiveState === TaskStateKF.SKIPPED;
 
-        pipelineTask.status = {
-          startTime: groupTask.create_time ?? '',
-          completeTime: isTerminal ? groupTask.end_time : undefined,
-          state: taskStateToNodeState(effectiveState),
-          taskId: `task.${taskId}`,
-          podName:
-            groupTask.pods?.find((pod) => pod.type === TaskPodTypeKF.EXECUTOR)?.name ??
-            groupTask.pods?.[0]?.name,
-        };
+          pipelineTask.status = {
+            startTime: groupTask.create_time ?? '',
+            completeTime: isTerminal ? groupTask.end_time : undefined,
+            state: effectiveNodeState,
+            taskId: `task.${taskId}`,
+            podName:
+              groupTask.pods?.find((pod) => pod.type === TaskPodTypeKF.EXECUTOR)?.name ??
+              groupTask.pods?.[0]?.name,
+          };
+        }
       }
 
       if (iterCount != null && iterCount > 0) {
@@ -390,13 +396,29 @@ const getNodesForTasks = (
           }
 
           const scopedTasks = iterTask ? tasksInScope(fullTasks, iterTask.task_id) : [];
-          const iterationMlmd = mlmd?.executions
-            ? {
-                ...mlmd,
-                executions: executionsForIterationScope(mlmd.executions, {
+          const executionIndex = mlmd?.allExecutions ?? mlmd?.executions;
+          const iterationExecutionId =
+            mlmd?.executions && executionIndex
+              ? resolveIterationExecutionId(mlmd.executions, executionIndex, {
                   iterationTaskName: taskName,
                   iterationIndex: i,
-                }),
+                })
+              : undefined;
+          const iterationMlmd = mlmd
+            ? {
+                ...mlmd,
+                allExecutions: executionIndex,
+                executions: executionIndex
+                  ? executionsForIterationScope(
+                      mlmd.executions ?? [],
+                      {
+                        iterationTaskName: taskName,
+                        iterationIndex: i,
+                        iterationExecutionId,
+                      },
+                      executionIndex,
+                    )
+                  : [],
               }
             : mlmd;
 
@@ -409,6 +431,7 @@ const getNodesForTasks = (
             iterationParentTaskId: iterTask?.task_id,
             iterationIndex: i,
             iterationTaskName: taskName,
+            iterationExecutionId,
           };
 
           // Create prefixed task entries so child node IDs are unique per iteration.
@@ -496,7 +519,7 @@ const getNodesForTasks = (
         // recurse into template tasks directly
         const subTasksArtifactMap = parseTasksForArtifactRelationship(taskId, subTasks);
 
-        const nestedTasks = groupTask ? tasksInScope(fullTasks, groupTask.task_id) : tasks;
+        const nestedTasks = groupTask ? tasksInScope(fullTasks, groupTask.task_id) : [];
         const [nestedNodes, taskChildren] = getNodesForTasks(
           taskId,
           spec,
@@ -577,6 +600,7 @@ export const usePipelineTaskTopology = (
             events: parseEventsByType(events ?? [])[Event.Type.OUTPUT],
             artifacts,
             executions: executions ?? undefined,
+            allExecutions: executions ?? undefined,
           }
         : undefined;
 

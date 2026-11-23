@@ -428,7 +428,15 @@ export const tasksInScope = (tasks: PipelineTaskKF[], parentTaskId?: string): Pi
   if (!parentTaskId) {
     const root = tasks.find((task) => task.type === TaskTypeKF.ROOT);
     if (!root) {
-      return tasks.filter((task) => !task.parent_task_id && task.type !== TaskTypeKF.ROOT);
+      const referencedChildIds = new Set(
+        tasks.flatMap((task) => task.child_tasks?.map((child) => child.task_id) ?? []),
+      );
+      return tasks.filter(
+        (task) =>
+          task.type !== TaskTypeKF.ROOT &&
+          !task.parent_task_id &&
+          !referencedChildIds.has(task.task_id),
+      );
     }
     const childIds = new Set(root.child_tasks?.map((child) => child.task_id));
     return tasks.filter(

@@ -64,4 +64,6 @@ export type PipelineTask = {
   iterationIndex?: number;
   /** Spec task name of the loop. MLMD stores it on the loop execution as task_name. */
   iterationTaskName?: string;
+  /** MLMD execution id of this iteration. Distinguishes nested loops that share a name. */
+  iterationExecutionId?: number;
 };
