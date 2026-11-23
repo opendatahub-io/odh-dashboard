@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- BFF API uses snake_case */
 import '@testing-library/jest-dom';
 import React from 'react';
-import { act, render, screen, fireEvent } from '@testing-library/react';
+import { act, render as rtlRender, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   QueryClient,
@@ -20,22 +20,21 @@ import RegisterModelModal, {
   REGISTRIES_LOAD_FAILURE_MESSAGE,
 } from '~/app/components/run-results/RegisterModelModal';
 import { useNotification } from '~/app/hooks/useNotification';
-import {
-  AUTOML_FAILURE_CATEGORY,
-  fireAutomlModelRegistered,
-  TrackingOutcome,
-} from '~/app/utilities/tracking';
+import { AUTOML_FAILURE_CATEGORY, TrackingOutcome } from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactNode) => rtlRender(ui, { wrapper: TrackingWrapper });
+
+const trackEvent = jest.fn();
 
 jest.mock('~/app/api/modelRegistry');
 jest.mock('~/app/hooks/useModelRegistriesQuery');
 
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(),
-}));
-
-jest.mock('~/app/utilities/tracking', () => ({
-  ...jest.requireActual('~/app/utilities/tracking'),
-  fireAutomlModelRegistered: jest.fn(),
 }));
 
 // `useMutation` is spied on (delegating to the real implementation) purely to capture the
@@ -51,7 +50,6 @@ const mockRegisterModel = jest.mocked(modelRegistryApi.registerModel);
 const mockUseModelRegistriesQuery = jest.mocked(
   useModelRegistriesQueryModule.useModelRegistriesQuery,
 );
-const fireAutomlModelRegisteredMock = jest.mocked(fireAutomlModelRegistered);
 const useNotificationMock = jest.mocked(useNotification);
 const notificationError = jest.fn();
 const notificationSuccess = jest.fn();
@@ -498,10 +496,11 @@ describe('RegisterModelModal', () => {
 
       // Analytics must only ever see the fixed, allowlisted failure category — never the raw
       // Error.message, which may originate from the backend/proxy and embed sensitive details.
-      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+      expect(trackEvent).toHaveBeenCalledWith(
+        'AutoML Model Registered',
         expect.objectContaining({ success: false, error: AUTOML_FAILURE_CATEGORY }),
       );
-      const allTrackingCalls = JSON.stringify(fireAutomlModelRegisteredMock.mock.calls);
+      const allTrackingCalls = JSON.stringify(trackEvent.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-corp');
       expect(allTrackingCalls).not.toContain('AKIAabc123');
     });
@@ -535,7 +534,8 @@ describe('RegisterModelModal', () => {
           }),
         ]),
       );
-      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+      expect(trackEvent).toHaveBeenCalledWith(
+        'AutoML Model Registered',
         expect.objectContaining({ registryTarget: 'default-registry', success: true }),
       );
     });
@@ -596,7 +596,8 @@ describe('RegisterModelModal', () => {
           }),
         ]),
       );
-      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+      expect(trackEvent).toHaveBeenCalledWith(
+        'AutoML Model Registered',
         expect.objectContaining({ registryTarget: 'default-registry', success: true }),
       );
       const successActions = notificationSuccess.mock.calls[0]?.[2];
@@ -652,7 +653,7 @@ describe('RegisterModelModal', () => {
             isError: true,
             error: new Error(sensitiveMessage),
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, prettier/prettier
-          } as any),
+          }) as any,
       );
 
       renderModal();
@@ -691,7 +692,8 @@ describe('RegisterModelModal', () => {
       await user.keyboard('{Escape}');
 
       expect(onClose).toHaveBeenCalledTimes(1);
-      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+      expect(trackEvent).toHaveBeenCalledWith(
+        'AutoML Model Registered',
         expect.objectContaining({ outcome: TrackingOutcome.cancel }),
       );
     });
@@ -704,7 +706,8 @@ describe('RegisterModelModal', () => {
       await user.click(screen.getByRole('button', { name: 'Close' }));
 
       expect(onClose).toHaveBeenCalledTimes(1);
-      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+      expect(trackEvent).toHaveBeenCalledWith(
+        'AutoML Model Registered',
         expect.objectContaining({ outcome: TrackingOutcome.cancel }),
       );
     });
@@ -721,7 +724,7 @@ describe('RegisterModelModal', () => {
             ...actualUseMutation(options),
             isPending: true,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, prettier/prettier
-          } as any),
+          }) as any,
       );
       renderModal({ onClose });
 
@@ -731,7 +734,7 @@ describe('RegisterModelModal', () => {
       // button — closing here would let a stray "cancel" event race with the submit
       // success/failure event that the mutation fires once the in-flight request resolves.
       expect(onClose).not.toHaveBeenCalled();
-      expect(fireAutomlModelRegisteredMock).not.toHaveBeenCalled();
+      expect(trackEvent).not.toHaveBeenCalled();
     });
 
     it('should not close or fire a cancel event via the close control while a registration request is pending', async () => {
@@ -743,14 +746,14 @@ describe('RegisterModelModal', () => {
             ...actualUseMutation(options),
             isPending: true,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, prettier/prettier
-          } as any),
+          }) as any,
       );
       renderModal({ onClose });
 
       await user.click(screen.getByRole('button', { name: 'Close' }));
 
       expect(onClose).not.toHaveBeenCalled();
-      expect(fireAutomlModelRegisteredMock).not.toHaveBeenCalled();
+      expect(trackEvent).not.toHaveBeenCalled();
     });
   });
 });

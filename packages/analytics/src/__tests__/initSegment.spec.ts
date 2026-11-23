@@ -8,22 +8,26 @@ jest.mock('@segment/analytics-next', () => ({
 }));
 
 describe('initSegment', () => {
+  const connection = {
+    cdnURL: 'https://cdn.example.test',
+    apiHost: 'events.example.test/v1',
+  };
   beforeEach(() => {
     jest.clearAllMocks();
     delete window.analytics;
   });
 
   it('should initialize analytics when enabled with a key', async () => {
-    await initSegment({ segmentKey: 'test-key', enabled: true });
+    await initSegment({ ...connection, segmentKey: 'test-key', enabled: true });
     expect(AnalyticsBrowser.load).toHaveBeenCalledWith(
       {
         writeKey: 'test-key',
-        cdnURL: 'https://console.redhat.com/connections/cdn',
+        cdnURL: 'https://cdn.example.test',
       },
       {
         integrations: {
           'Segment.io': {
-            apiHost: 'console.redhat.com/connections/api/v1',
+            apiHost: 'events.example.test/v1',
             protocol: 'https',
           },
         },
@@ -33,13 +37,13 @@ describe('initSegment', () => {
   });
 
   it('should not initialize when disabled', async () => {
-    await initSegment({ segmentKey: 'test-key', enabled: false });
+    await initSegment({ ...connection, segmentKey: 'test-key', enabled: false });
     expect(AnalyticsBrowser.load).not.toHaveBeenCalled();
     expect(window.analytics).toBeUndefined();
   });
 
   it('should not initialize when segment key is empty', async () => {
-    await initSegment({ segmentKey: '', enabled: true });
+    await initSegment({ ...connection, segmentKey: '', enabled: true });
     expect(AnalyticsBrowser.load).not.toHaveBeenCalled();
     expect(window.analytics).toBeUndefined();
   });

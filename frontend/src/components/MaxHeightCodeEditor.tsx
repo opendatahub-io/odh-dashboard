@@ -1,10 +1,9 @@
 import React from 'react';
 import { CodeEditor } from '@patternfly/react-code-editor';
-import * as monaco from 'monaco-editor';
-import { loader } from '@monaco-editor/react';
 import { useThemeContext } from '#~/app/ThemeContext';
+import { ensureMonacoEnvironment } from '#~/concepts/dashboard/codeEditor/ensureMonacoEnvironment';
 
-loader.config({ monaco });
+ensureMonacoEnvironment();
 
 export const MaxHeightCodeEditor: React.FC<
   Partial<Omit<React.ComponentProps<typeof CodeEditor>, 'ref'>> & { maxHeight: number }

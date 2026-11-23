@@ -12,7 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 
-import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/const';
 import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import { getDashboardMainContainer } from '@odh-dashboard/internal/utilities/utils';
@@ -39,6 +39,7 @@ export type MlflowSkillRegistryWrapperProps = {
 };
 
 const MlflowSkillRegistryPage: React.FC = () => {
+  const trackEvent = useTrackEvent();
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
   const [reportedBreadcrumbs, setReportedBreadcrumbs] = React.useState<{
@@ -104,7 +105,7 @@ const MlflowSkillRegistryPage: React.FC = () => {
                     queryParamNamespace={WORKSPACE_QUERY_PARAM}
                     appendTo={getDashboardMainContainer}
                     onProjectChange={(projectName) =>
-                      fireLinkTrackingEvent(MlflowTrackingEvents.PROJECT_SWITCHED, {
+                      trackEvent(MlflowTrackingEvents.PROJECT_SWITCHED, {
                         projectName,
                       })
                     }

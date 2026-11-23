@@ -12,8 +12,8 @@ import {
 } from '../../api/LLMInferenceServiceConfigs';
 import { mockLLMInferenceServiceConfigK8sResource } from '../../__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { TopologyType } from '../../types';
-import LlmAcceleratorConfigContextProvider from '../llmAcceleratorConfigs/LlmAcceleratorConfigContext';
-import LlmAcceleratorConfigFormBody from '../llmAcceleratorConfigs/LlmAcceleratorConfigFormBody';
+import LlmInferenceServiceConfigContextProvider from '../llmInferenceServiceConfigs/LlmInferenceServiceConfigContext';
+import LlmInferenceServiceConfigFormBody from '../llmInferenceServiceConfigs/LlmInferenceServiceConfigFormBody';
 import RoutingConfigContextProvider, {
   RoutingConfigContext,
 } from '../routingConfigs/RoutingConfigContext';
@@ -51,7 +51,7 @@ beforeEach(() => {
 
 describe('settings host namespace', () => {
   it.each([
-    ['accelerator', LlmAcceleratorConfigContextProvider, useWatchLLMInferenceServiceConfigs],
+    ['accelerator', LlmInferenceServiceConfigContextProvider, useWatchLLMInferenceServiceConfigs],
     ['routing', RoutingConfigContextProvider, useWatchRouterConfigs],
     ['topology', TopologyConfigContextProvider, useWatchTopologyConfigs],
   ] as const)(
@@ -135,7 +135,7 @@ describe('settings form host services', () => {
     });
     const form =
       kind === 'accelerator' ? (
-        <LlmAcceleratorConfigFormBody mode="duplicate" sourceConfig={source} />
+        <LlmInferenceServiceConfigFormBody mode="duplicate" sourceConfig={source} />
       ) : kind === 'topology' ? (
         <TopologyConfigurationCreateEdit isDuplicate />
       ) : (

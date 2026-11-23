@@ -27,8 +27,8 @@ export type MockDashboardConfigType = {
   disableModelRegistry?: boolean;
   disableModelRegistrySecureDB?: boolean;
   disableServingRuntimeParams?: boolean;
-  disableConnectionTypes?: boolean;
   disableAdminConnectionTypes?: boolean;
+  hideCommunityPluginsSettingsPage?: boolean;
   disableStorageClasses?: boolean;
   disableNotebookController?: boolean;
   notebookSizes?: NotebookSize[]; // deprecated
@@ -66,6 +66,7 @@ export type MockDashboardConfigType = {
   disableLLMd?: boolean;
   llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  bidirectionalYamlWizardGa?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
@@ -133,6 +134,7 @@ export const mockDashboardConfig = ({
   disableModelRegistrySecureDB = false,
   disableServingRuntimeParams = false,
   disableStorageClasses = false,
+  hideCommunityPluginsSettingsPage = false,
   disableNotebookController = false,
   disableNIMModelServing = false,
   disableLMEval = true,
@@ -145,6 +147,7 @@ export const mockDashboardConfig = ({
   disableLLMd = false,
   llmdTemplates = false,
   deploymentWizardYAMLViewer = false,
+  bidirectionalYamlWizardGa = false,
   externalVectorStores = false,
   agentConfigManagement = false,
   genAiAgentDeployment = false,
@@ -339,6 +342,7 @@ export const mockDashboardConfig = ({
       disableStorageClasses,
       disableNIMModelServing,
       disableAdminConnectionTypes: false,
+      hideCommunityPluginsSettingsPage,
       disableFineTuning,
       disableLMEval,
       disableKueue,
@@ -350,6 +354,7 @@ export const mockDashboardConfig = ({
       disableLLMd,
       llmdTemplates,
       deploymentWizardYAMLViewer,
+      bidirectionalYamlWizardGa,
       externalVectorStores,
       agentConfigManagement,
       genAiAgentDeployment,

@@ -1,22 +1,14 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import { ConnectionApiError } from '~/app/api/dch';
-import * as trackingUtilities from '~/app/utilities/tracking';
+import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import ConnectionTypesTab from '~/app/pages/ConnectionTypesTab';
 
 jest.mock('~/app/hooks/useConnectionTypes');
-jest.mock('~/app/utilities/tracking', () => ({
-  DATA_CONNECT_HUB_EVENT_NAMES: {
-    typeSelected: 'Connections Type Selected',
-  },
-  isGlobalConnectionType: (connectionType: { metadata: { tenant_id?: string } }) =>
-    !connectionType.metadata.tenant_id,
-  fireDataConnectHubTrackEvent: jest.fn(),
-}));
 jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
   __esModule: true,
   default: ({ content }: { content?: string | null }) => <>{content}</>,
@@ -24,6 +16,10 @@ jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
 
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockTrackEvent = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={mockTrackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: TrackingWrapper });
 const connectionTypes = [
   mockConnectionType(),
   mockConnectionType({
@@ -61,8 +57,43 @@ const renderTab = () =>
 describe('ConnectionTypesTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
+  });
+
+  it('should use a replacement host callback without emitting during renders', async () => {
+    const firstTrackEvent = jest.fn();
+    const replacementTrackEvent = jest.fn();
+    const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([
+      [mockConnectionType({ resource: { name: 'Provider type' } })],
+      true,
+      undefined,
+    ]);
+    const tab = (
+      <MemoryRouter initialEntries={['/connection-types?project=test-project']}>
+        <ConnectionTypesTab namespace="test-project" />
+      </MemoryRouter>
+    );
+    const { rerender } = rtlRender(
+      <TrackingProvider trackEvent={firstTrackEvent}>{tab}</TrackingProvider>,
+    );
+    rerender(<TrackingProvider trackEvent={replacementTrackEvent}>{tab}</TrackingProvider>);
+
+    expect(firstTrackEvent).not.toHaveBeenCalled();
+    expect(replacementTrackEvent).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Provider type' }));
+
+    expect(firstTrackEvent).not.toHaveBeenCalled();
+    expect(replacementTrackEvent.mock.calls).toEqual([
+      [
+        'Connections Type Selected',
+        {
+          connectionTypeProvider: 'postgresql',
+          isGlobalType: false,
+          project: 'test-project',
+        },
+      ],
+    ]);
   });
 
   it('should load connection types and show ingestion capability badges', () => {
@@ -95,13 +126,10 @@ describe('ConnectionTypesTab', () => {
     expect(screen.getByTestId('location').textContent).toBe(
       '/connection-types/550e8400-e29b-41d4-a716-446655440007?project=test-project',
     );
-    expect(mockTrackEvent).toHaveBeenCalledWith({
-      eventName: 'Connections Type Selected',
-      properties: {
-        connectionTypeProvider: 'postgresql',
-        isGlobalType: false,
-        project: 'test-project',
-      },
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Type Selected', {
+      connectionTypeProvider: 'postgresql',
+      isGlobalType: false,
+      project: 'test-project',
     });
   });
 

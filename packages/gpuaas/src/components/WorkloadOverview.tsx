@@ -22,7 +22,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   t_chart_color_blue_300 as chartBlue,
   t_chart_color_green_300 as chartGreen,
@@ -471,6 +471,7 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   onViewInTableClicked,
   onPopoverClosed,
 }) => {
+  const trackEvent = useTrackEvent();
   const [expanded, setExpanded] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState<string | number>(WorkloadOverviewTab.Status);
   const [timeWindow, setTimeWindow] = React.useState('24h');
@@ -499,7 +500,7 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
             isExpanded={expanded}
             onToggle={(nextExpanded) => {
               setExpanded(nextExpanded);
-              fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
+              trackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
                 sectionName: 'workload-overview',
                 action: nextExpanded ? 'expand' : 'collapse',
               });
@@ -520,7 +521,7 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
               value={timeWindow}
               onChange={(timeRange) => {
                 setTimeWindow(timeRange);
-                fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_ADMISSION_TIME_RANGE_CHANGED, {
+                trackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_ADMISSION_TIME_RANGE_CHANGED, {
                   timeRange,
                 });
               }}
@@ -572,7 +573,7 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                             ? WorkloadOverviewTab.Admissions
                             : WorkloadOverviewTab.Status;
                         setActiveTab(tab);
-                        fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_OVERVIEW_TAB_SELECTED, {
+                        trackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_OVERVIEW_TAB_SELECTED, {
                           tabName: tab === WorkloadOverviewTab.Admissions ? 'admission' : 'status',
                         });
                       }}

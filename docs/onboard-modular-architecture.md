@@ -91,6 +91,9 @@ To enable your module in the main dashboard, register a `SupportedArea` and a fe
    ```
 
 4. `manifests/base/crd/odhdashboardconfigs.opendatahub.io.crd.yaml` — add the flag as a `boolean` property under `dashboardConfig` so it can be set on a cluster.
+5. `backend/src/utils/constants.ts` (`blankDashboardCR`, typed by `backend/src/types.ts`) and `distributions/core-bff/bff/internal/models/dashboard_config.go` (`DashboardFeatureFlags` and `BlankDashboardCR`) — add the flag with the same default value. The backend and core BFF merge these defaults under the cluster's OdhDashboardConfig.
+
+Run `pnpm run validate:flags` to confirm every copy has the flag; CI runs the same check.
 
 The scaffolded `frontend/src/odh/extensions.ts` already references `SupportedArea.PLUGIN_<YOUR_MODULE>` and the `yourModuleName` flag.
 
@@ -211,7 +214,7 @@ When creating manifests for a new module, reference an existing module (e.g., `m
 These steps happen after scaffolding, through `/konflux-onboarding`, but a module must not ship without them:
 
 - **Downstream base images**: `Dockerfile.konflux.<name>` in `red-hat-data-services/odh-dashboard` is copied from a module that already ships on the target branch, so it starts with the base-image digests MintMaker keeps current (including security rebuilds such as the eMudhra CA remediation, RHSB-2026-012). The runtime is `registry.redhat.io/ubi9/ubi-minimal-pqc`. Review and merge the digest-update PRs MintMaker opens.
-- **ProdSec registration**: the image (`rhoai/odh-mod-arch-<name>-rhel9`) must be registered as a ProdSec `pscomponent` before its first release. Request it in `#forum-aipcc` and get ProdSec's confirmation before release. CVE tracking tickets are only generated for registered images; once a CVE affecting the image has been processed, its tickets show up under the Jira query `labels = "pscomponent:rhoai/odh-mod-arch-<name>-rhel9"`.
+- **ProdSec registration**: the image (`rhoai/odh-mod-arch-<name>-rhel9`) must be registered as a ProdSec `pscomponent` before its first release. Open a merge request against [`prodsec/product-definitions`](https://gitlab.cee.redhat.com/prodsec/product-definitions) that adds the image to `data/openshift/ps_modules.json` (a CC-list entry and an `AI Core Dashboard` component mapping, copied from a shipped module; example: [MR !5548](https://gitlab.cee.redhat.com/prodsec/product-definitions/-/merge_requests/5548)), and get ProdSec to merge it before release. Ask in `#forum-aipcc` if it needs a reviewer. CVE tracking tickets are only generated for registered images; once a CVE affecting the image has been processed, its tickets show up under the Jira query `labels = "pscomponent:rhoai/odh-mod-arch-<name>-rhel9"`.
 
 ## Related Documentation
 

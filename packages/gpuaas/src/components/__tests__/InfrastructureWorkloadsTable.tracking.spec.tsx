@@ -1,14 +1,11 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '../../__tests__/unit/testUtils/TrackingProvider';
 import InfrastructureWorkloadsTable from '../InfrastructureWorkloadsTable';
 import { GPUAAS_EVENTS } from '../../tracking/gpuaasTrackingConstants';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
 jest.mock('@odh-dashboard/model-training/components/TrainingJobStatusModal', () => () => null);
 jest.mock('@odh-dashboard/model-training/components/RayJobStatusModal', () => () => null);
 jest.mock('@odh-dashboard/model-serving/components/DeploymentStatusModal', () => () => null);
@@ -35,7 +32,11 @@ jest.mock('../../utils/infrastructureWorkloads', () => ({
   getInfrastructureWorkloadFilterValues: () => ['Running'],
 }));
 
-const mockTracking = jest.mocked(fireMiscTrackingEvent);
+const mockTrackEvent = jest.fn();
+const mockTrackPageEvent = jest.fn();
+const TrackingWrapper = createTrackingWrapper(mockTrackEvent, mockTrackPageEvent);
+const renderTracked = (element: React.ReactElement) =>
+  render(element, { wrapper: TrackingWrapper });
 
 const TableWithFilters: React.FC<{ initialFilters?: string[] }> = ({ initialFilters = [] }) => {
   const [statusFilters, setStatusFilters] = React.useState<string[]>(initialFilters);
@@ -66,16 +67,16 @@ describe('InfrastructureWorkloadsTable filter tracking', () => {
     'should report $remainingCount remaining filters after $removal with $initialFilters',
     async ({ removal, initialFilters, remainingCount }) => {
       const user = userEvent.setup();
-      render(<TableWithFilters initialFilters={initialFilters} />);
+      renderTracked(<TableWithFilters initialFilters={initialFilters} />);
       await user.click(screen.getByTestId('infrastructure-workloads-type-filter'));
       await user.click(screen.getByRole('option', { name: 'Running' }));
 
-      expect(mockTracking).toHaveBeenCalledTimes(1);
-      expect(mockTracking).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         GPUAAS_EVENTS.WORKLOADS_TAB_ATTRIBUTE_FILTER_APPLIED,
         { filterType: 'type', filterValue: 'Running' },
       );
-      mockTracking.mockClear();
+      mockTrackEvent.mockClear();
 
       if (removal === 'dropdown') {
         await user.click(screen.getByTestId('infrastructure-workloads-type-filter'));
@@ -86,8 +87,8 @@ describe('InfrastructureWorkloadsTable filter tracking', () => {
         await user.click(screen.getByRole('button', { name: 'Clear filters' }));
       }
 
-      expect(mockTracking).toHaveBeenCalledTimes(1);
-      expect(mockTracking).toHaveBeenCalledWith(GPUAAS_EVENTS.WORKLOADS_TAB_FILTERS_CLEARED, {
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledWith(GPUAAS_EVENTS.WORKLOADS_TAB_FILTERS_CLEARED, {
         hadActiveFilters: true,
         filterCount: remainingCount,
       });
@@ -96,4 +97,64 @@ describe('InfrastructureWorkloadsTable filter tracking', () => {
       ).not.toBeInTheDocument();
     },
   );
+});
+
+describe('InfrastructureWorkloadsTable search debounce', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  it('should debounce the real search and send only its length', () => {
+    const { rerender } = renderTracked(<TableWithFilters />);
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+    const input = screen.getByRole('textbox', { name: 'Find by name' });
+    fireEvent.change(input, { target: { value: 'private' } });
+    act(() => jest.advanceTimersByTime(250));
+    fireEvent.change(input, { target: { value: 'private-model' } });
+    rerender(<TableWithFilters />);
+    act(() => jest.advanceTimersByTime(499));
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+    act(() => jest.advanceTimersByTime(1));
+    expect(mockTrackEvent.mock.calls).toEqual([
+      ['Workloads Tab Workload Search Used', { queryLength: 13 }],
+    ]);
+    expect(mockTrackPageEvent).not.toHaveBeenCalled();
+  });
+
+  it('should cancel a pending search when all filters are reset', () => {
+    renderTracked(<TableWithFilters />);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Find by name' }), {
+      target: { value: 'private-model' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
+    act(() => jest.advanceTimersByTime(500));
+    expect(mockTrackEvent.mock.calls).toEqual([
+      ['Workloads Tab Filters Cleared', { hadActiveFilters: false, filterCount: 0 }],
+    ]);
+  });
+
+  it.each(['', '   '])('should cancel pending telemetry for blank search %j', (value) => {
+    renderTracked(<TableWithFilters />);
+    const input = screen.getByRole('textbox', { name: 'Find by name' });
+    fireEvent.change(input, { target: { value: 'model' } });
+    fireEvent.change(input, { target: { value } });
+    act(() => jest.advanceTimersByTime(500));
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+  });
+
+  it('should cancel pending search telemetry on unmount', () => {
+    const { unmount } = renderTracked(<TableWithFilters />);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Find by name' }), {
+      target: { value: 'model' },
+    });
+    unmount();
+    act(() => jest.advanceTimersByTime(500));
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+  });
 });

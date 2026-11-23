@@ -1,5 +1,4 @@
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { type FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
+import { type TrackEvent, type FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
 import type { ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared';
 
 export enum ServingRuntimeTemplateTrackingEvent {
@@ -31,10 +30,11 @@ export type ServingRuntimeTemplateEnablementChangedProperties = FormTrackingEven
 };
 
 export const fireServingRuntimeTemplateCreated = (
+  trackEvent: TrackEvent,
   properties: ServingRuntimeTemplateCreatedProperties,
 ): void => {
   const { mode, ...outcomeProperties } = properties;
-  fireFormTrackingEvent(ServingRuntimeTemplateTrackingEvent.CREATED, {
+  trackEvent(ServingRuntimeTemplateTrackingEvent.CREATED, {
     ...outcomeProperties,
     mode: mode === 'duplicate' ? 'duplicate' : 'create',
     ...(mode === 'install' && { source: 'install' }),
@@ -42,19 +42,22 @@ export const fireServingRuntimeTemplateCreated = (
 };
 
 export const fireServingRuntimeTemplateUpdated = (
+  trackEvent: TrackEvent,
   properties: ServingRuntimeTemplateUpdatedProperties,
 ): void => {
-  fireFormTrackingEvent(ServingRuntimeTemplateTrackingEvent.UPDATED, properties);
+  trackEvent(ServingRuntimeTemplateTrackingEvent.UPDATED, properties);
 };
 
 export const fireServingRuntimeTemplateDeleted = (
+  trackEvent: TrackEvent,
   properties: ServingRuntimeTemplateDeletedProperties,
 ): void => {
-  fireFormTrackingEvent(ServingRuntimeTemplateTrackingEvent.DELETED, properties);
+  trackEvent(ServingRuntimeTemplateTrackingEvent.DELETED, properties);
 };
 
 export const fireServingRuntimeTemplateEnablementChanged = (
+  trackEvent: TrackEvent,
   properties: ServingRuntimeTemplateEnablementChangedProperties,
 ): void => {
-  fireFormTrackingEvent(ServingRuntimeTemplateTrackingEvent.ENABLEMENT_CHANGED, properties);
+  trackEvent(ServingRuntimeTemplateTrackingEvent.ENABLEMENT_CHANGED, properties);
 };

@@ -3,7 +3,7 @@ import { NIM_PVC_ANNOTATION } from '../../../clusterStorage/clusterStorage';
 import { PVCCategory, categorizePVCs } from '../nimPVCUtils';
 
 const makePVC = (name: string, annotations: Record<string, string> = {}) =>
-  mockPVCK8sResource({ name, annotations });
+  mockPVCK8sResource({ name, displayName: name, annotations });
 
 describe('categorizePVCs', () => {
   it('categorizes PVCs into NIM, general purpose, and model serving groups in order', () => {
@@ -14,10 +14,21 @@ describe('categorizePVCs', () => {
     ];
 
     expect(categorizePVCs(pvcs)).toEqual([
-      { name: 'nim-pvc', subPath: undefined, category: PVCCategory.NIM },
-      { name: 'general-pvc', subPath: undefined, category: PVCCategory.GENERAL },
+      {
+        name: 'nim-pvc',
+        displayName: 'nim-pvc',
+        subPath: undefined,
+        category: PVCCategory.NIM,
+      },
+      {
+        name: 'general-pvc',
+        displayName: 'general-pvc',
+        subPath: undefined,
+        category: PVCCategory.GENERAL,
+      },
       {
         name: 'model-serving-pvc',
+        displayName: 'model-serving-pvc',
         subPath: undefined,
         category: PVCCategory.MODEL_SERVING,
       },
@@ -42,7 +53,12 @@ describe('categorizePVCs', () => {
     ];
 
     expect(categorizePVCs(pvcs)).toEqual([
-      { name: 'valid-pvc', subPath: undefined, category: PVCCategory.GENERAL },
+      {
+        name: 'valid-pvc',
+        displayName: 'valid-pvc',
+        subPath: undefined,
+        category: PVCCategory.GENERAL,
+      },
     ]);
   });
 

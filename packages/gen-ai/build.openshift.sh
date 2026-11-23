@@ -44,7 +44,12 @@ echo "--------------------------------"
 
 # Create the application with context-dir (required for dry-run to work properly)
 echo "🚀 Creating OpenShift application..."
-oc new-app ${REPO_URL}#${BRANCH}  --strategy=docker --name=${APP_NAME} --allow-missing-images --context-dir=packages/gen-ai
+oc new-app ${REPO_URL}#${BRANCH} \
+  --strategy=docker \
+  --name=${APP_NAME} \
+  --allow-missing-images \
+  --context-dir=packages/gen-ai \
+  --labels=app.kubernetes.io/name=gen-ai
 
 # Wait for BuildConfig to be created
 echo "⏳ Waiting for BuildConfig to be created..."

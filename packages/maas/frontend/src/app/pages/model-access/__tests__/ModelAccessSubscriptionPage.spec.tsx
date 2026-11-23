@@ -6,6 +6,7 @@ import { restGET } from 'mod-arch-core';
 import '@testing-library/jest-dom';
 import ModelAccessSubscriptionPage from '~/app/pages/model-access/ModelAccessSubscriptionPage';
 import type { UserSubscription } from '~/app/types/subscriptions';
+import type { MaaSWhoAmI } from '~/app/types/whoami';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
@@ -57,6 +58,21 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 
 const mockRestGET = jest.mocked(restGET);
 
+// whoami for a caller without an organization: groups show as they are. The organization's
+// tests pass organizationWhoAmI instead.
+const whoAmI: MaaSWhoAmI = { sub: 'carol', isAdmin: true };
+const organizationWhoAmI: MaaSWhoAmI = {
+  ...whoAmI,
+  orgId: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa',
+  orgName: 'Grid Tenant 1',
+};
+
+/** Answers whoami with the caller and every other request with the subscription data. */
+const mockAPI = (data: UserSubscription, caller: MaaSWhoAmI = whoAmI) =>
+  mockRestGET.mockImplementation((_host: string, path: string) =>
+    Promise.resolve({ data: path.endsWith('/whoami') ? caller : data }),
+  );
+
 // Mirrors the maas-api passthrough response from GET /api/v1/subscriptions/{id}.
 const subscription = (): UserSubscription => ({
   subscription_id_header: 'premium-team-sub',
@@ -100,7 +116,7 @@ const renderPage = (name = 'premium-team-sub') =>
 describe('ModelAccessSubscriptionPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRestGET.mockResolvedValue({ data: subscription() });
+    mockAPI(subscription());
   });
 
   it('should render subscription details from the passthrough endpoint', async () => {
@@ -108,8 +124,20 @@ describe('ModelAccessSubscriptionPage', () => {
     expect(await screen.findByText('Premium Team Subscription')).toBeInTheDocument();
     expect(screen.getAllByText('Premium Team').length).toBeGreaterThan(0);
     expect(screen.getByText('premium-team-sub')).toBeInTheDocument();
-    expect(mockRestGET).toHaveBeenCalledTimes(1);
-    expect(mockRestGET.mock.calls[0][1]).toBe('/maas/api/v1/subscriptions/premium-team-sub');
+    // The page also reads whoami for the caller's organization (GroupName).
+    expect(mockRestGET.mock.calls.map((call) => call[1]).toSorted()).toEqual(
+      ['/maas/api/v1/whoami', '/maas/api/v1/subscriptions/premium-team-sub'].toSorted(),
+    );
+  });
+
+  it("should show the caller's organization groups by the organization's name", async () => {
+    mockAPI(subscription(), organizationWhoAmI);
+    renderPage();
+    const groups = await screen.findByTestId('subscription-groups-table');
+    expect(await screen.findAllByTestId('group-name')).toHaveLength(2);
+    expect(groups).toHaveTextContent('Grid Tenant 1/ai-grid-users');
+    expect(groups).toHaveTextContent('Grid Tenant 1/data-science');
+    expect(groups).not.toHaveTextContent('42c3e46f-2477-44d7-a85b-d3b43f6b31fa');
   });
 
   it('should omit the subscription status field', async () => {
@@ -135,10 +163,10 @@ describe('ModelAccessSubscriptionPage', () => {
     expect(screen.queryByRole('columnheader', { name: 'Project' })).not.toBeInTheDocument();
   });
 
-  it('should link back to the Model Access page', async () => {
+  it('should link back to the Model access page', async () => {
     renderPage();
     const backLink = await screen.findByTestId('breadcrumb-model-access-link');
-    expect(backLink).toHaveTextContent('Model Access');
+    expect(backLink).toHaveTextContent('Model access');
     expect(backLink).toHaveAttribute('href', '/maas/model-access');
   });
 

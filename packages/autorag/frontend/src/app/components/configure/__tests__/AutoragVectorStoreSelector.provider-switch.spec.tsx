@@ -7,6 +7,13 @@ import { useCreateSecretMutation } from '@odh-dashboard/autox-core/ui/hooks';
 import type { SecretListItem } from '~/app/types';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   useCreateSecretMutation: jest.fn(),
@@ -64,7 +71,7 @@ describe('AutoragVectorStoreSelector provider switching', () => {
   });
 
   it('should select a Secret for the provider chosen in the modal', async () => {
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,

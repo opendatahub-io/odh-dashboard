@@ -5,4 +5,8 @@ reviewers:
   - data-connect-hub-reviewers
 
 labels:
-  - 'area/data-connect-hub'
+  - area/data-connect-hub
+  - area/components
+
+options:
+  no_parent_owners: true

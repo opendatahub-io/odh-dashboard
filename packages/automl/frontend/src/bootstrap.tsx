@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck - Overlay file copied into the starter repo where path aliases are configured.
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
+import { createStandaloneAnalytics } from '@odh-dashboard/analytics/standalone';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
@@ -12,7 +12,9 @@ import {
 } from 'mod-arch-core';
 import {
   BFF_API_VERSION,
+  APP_VERSION,
   DEPLOYMENT_MODE,
+  DEV_MODE,
   MANDATORY_NAMESPACE,
   URL_PREFIX,
 } from '~/app/utilities/const';
@@ -22,6 +24,7 @@ import ToastNotifications from '~/app/components/ToastNotifications';
 import { PluginStoreContextProvider } from '~/odh/PluginStoreContextProvider';
 import { ProductProvider } from '~/odh/ProductProvider';
 
+const standaloneAnalytics = createStandaloneAnalytics({ devMode: DEV_MODE, version: APP_VERSION });
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
 const queryClient = new QueryClient({
@@ -43,27 +46,29 @@ const modularArchConfig: ModularArchConfig = {
 
 root.render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <PluginStoreContextProvider>
-          <ModularArchContextProvider config={modularArchConfig}>
-            <BrowserStorageContextProvider>
-              <NotificationContextProvider>
-                <ProductProvider>
-                  <ToastNotifications />
-                  {/* Mirrors the "/develop-train/automl/*" mount point used in federated mode
+    <AnalyticsTrackingProvider value={standaloneAnalytics}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <PluginStoreContextProvider>
+            <ModularArchContextProvider config={modularArchConfig}>
+              <BrowserStorageContextProvider>
+                <NotificationContextProvider>
+                  <ProductProvider>
+                    <ToastNotifications />
+                    {/* Mirrors the "/develop-train/automl/*" mount point used in federated mode
                     (see frontend/src/odh/extensions.ts) so standalone/mock mode resolves the
                     same URLs — AppRoutes and its Link/navigate calls assume this prefix. */}
-                  <Routes>
-                    <Route path={`${rootPathname}/*`} element={<App />} />
-                    <Route path="*" element={<Navigate to={rootPathname} replace />} />
-                  </Routes>
-                </ProductProvider>
-              </NotificationContextProvider>
-            </BrowserStorageContextProvider>
-          </ModularArchContextProvider>
-        </PluginStoreContextProvider>
-      </Router>
-    </QueryClientProvider>
+                    <Routes>
+                      <Route path={`${rootPathname}/*`} element={<App />} />
+                      <Route path="*" element={<Navigate to={rootPathname} replace />} />
+                    </Routes>
+                  </ProductProvider>
+                </NotificationContextProvider>
+              </BrowserStorageContextProvider>
+            </ModularArchContextProvider>
+          </PluginStoreContextProvider>
+        </Router>
+      </QueryClientProvider>
+    </AnalyticsTrackingProvider>
   </React.StrictMode>,
 );

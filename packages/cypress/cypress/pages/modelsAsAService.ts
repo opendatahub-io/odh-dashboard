@@ -54,12 +54,12 @@ class APIKeysPage {
 
   getRow(name: string): APIKeyTableRow {
     return new APIKeyTableRow(() =>
-      this.findTable().find('tbody tr').contains('td', name).parents('tr'),
+      this.findTable().find('tr:has(td)').contains('td', name).parents('tr'),
     );
   }
 
   findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().find('tbody tr');
+    return this.findTable().find('tr:has(td)');
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -126,8 +126,27 @@ class APIKeysPage {
     return cy.findByTestId('username-filter-input');
   }
 
+  findUsernameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('textbox', { name: 'Filter by username' });
+  }
+
+  findOptionalFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('body').find('[data-testid="username-filter-input"]');
+  }
+
   findFilterSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findFilterInput().find('button[type="submit"]');
+    return cy.findByRole('button', { name: 'Search' });
+  }
+
+  filterByUsername(username: string): void {
+    this.findUsernameInput()
+      .should('be.visible')
+      .click()
+      .clear()
+      .type(username)
+      .should('have.value', username);
+    this.findFilterSearchButton().click();
+    this.findRows().should('be.visible').and('contain.text', username);
   }
 
   findUsernameFilterTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -537,6 +556,10 @@ class CopyApiKeyModal extends Modal {
     return this.find().findByTestId('api-key-usage-example');
   }
 
+  findUsageExampleCopyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-usage-example-copy-button');
+  }
+
   findEndpointCompatibilityAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-endpoint-compatibility-alert');
   }
@@ -666,7 +689,7 @@ class SubscriptionsPage {
   }
 
   findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscriptions-filter-input');
+    return cy.findByTestId('subscriptions-subscription-filter-input');
   }
 
   findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {

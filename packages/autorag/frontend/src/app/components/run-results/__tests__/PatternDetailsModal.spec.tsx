@@ -3,22 +3,22 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import type { AutoRAGEvaluationResult, AutoragPattern } from '~/app/types/autoragPattern';
 import PatternDetailsModal from '~/app/components/run-results/PatternDetailsModal/PatternDetailsModal';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 const mockUsePatternEvaluationResults = jest.fn();
 jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
   usePatternEvaluationResults: (...args: unknown[]) => mockUsePatternEvaluationResults(...args),
 }));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockPattern: AutoragPattern = {
   name: 'pattern0',
@@ -129,19 +129,19 @@ describe('PatternDetailsModal', () => {
   });
 
   it('should render the modal with the header', () => {
-    render(<PatternDetailsModal {...defaultProps} />);
+    renderWithTracking(<PatternDetailsModal {...defaultProps} />);
     expect(screen.getByTestId('pattern-details-modal')).toBeInTheDocument();
     expect(screen.getByTestId('pattern-details-header')).toBeInTheDocument();
     expect(screen.getByText('Pattern Details')).toBeInTheDocument();
   });
 
   it('should not render modal content when isOpen is false', () => {
-    render(<PatternDetailsModal {...defaultProps} isOpen={false} />);
+    renderWithTracking(<PatternDetailsModal {...defaultProps} isOpen={false} />);
     expect(screen.queryByTestId('pattern-details-header')).not.toBeInTheDocument();
   });
 
   it('should display rank in the header', () => {
-    render(<PatternDetailsModal {...defaultProps} rank={3} />);
+    renderWithTracking(<PatternDetailsModal {...defaultProps} rank={3} />);
     expect(screen.getByTestId('pattern-rank')).toHaveTextContent('3');
   });
 
@@ -153,7 +153,7 @@ describe('PatternDetailsModal', () => {
       },
     };
 
-    render(
+    renderWithTracking(
       <PatternDetailsModal
         {...defaultProps}
         patterns={[invalidPattern]}
@@ -168,7 +168,7 @@ describe('PatternDetailsModal', () => {
   });
 
   it('should display final score in the header', () => {
-    render(<PatternDetailsModal {...defaultProps} />);
+    renderWithTracking(<PatternDetailsModal {...defaultProps} />);
     expect(screen.getByTestId('pattern-final-score')).toHaveTextContent('0.660');
   });
 
@@ -182,7 +182,7 @@ describe('PatternDetailsModal', () => {
       },
     };
 
-    render(
+    renderWithTracking(
       <PatternDetailsModal
         {...defaultProps}
         patterns={[nonWinningCanonicalPattern]}
@@ -195,13 +195,13 @@ describe('PatternDetailsModal', () => {
   });
 
   it('should show plain text when only one pattern exists', () => {
-    render(<PatternDetailsModal {...defaultProps} />);
+    renderWithTracking(<PatternDetailsModal {...defaultProps} />);
     expect(screen.queryByTestId('pattern-selector-dropdown')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /^pattern\s+0$/ })).toBeInTheDocument();
   });
 
   it('should display all settings tabs plus Pattern information', () => {
-    render(<PatternDetailsModal {...defaultProps} />);
+    renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
     expect(screen.getByTestId('tab-pattern_information')).toBeInTheDocument();
     expect(screen.getByTestId('tab-store_binding')).toBeInTheDocument();
@@ -212,7 +212,7 @@ describe('PatternDetailsModal', () => {
   });
 
   it('should not display Sample Q&A tab when evaluationResults are not provided', () => {
-    render(<PatternDetailsModal {...defaultProps} />);
+    renderWithTracking(<PatternDetailsModal {...defaultProps} />);
     expect(screen.queryByText('Sample Q&A')).not.toBeInTheDocument();
   });
 
@@ -222,13 +222,13 @@ describe('PatternDetailsModal', () => {
       isLoading: false,
       isError: false,
     });
-    render(<PatternDetailsModal {...defaultProps} />);
+    renderWithTracking(<PatternDetailsModal {...defaultProps} />);
     expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
   });
 
   describe('Pattern information tab (default)', () => {
     it('should show top-level fields', () => {
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getAllByText('pattern 0').length).toBeGreaterThanOrEqual(1);
@@ -242,7 +242,7 @@ describe('PatternDetailsModal', () => {
     });
 
     it('should render CI scores section with title and description', () => {
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       expect(screen.getByText('Confidence interval (CI) scores')).toBeInTheDocument();
       expect(
@@ -251,7 +251,7 @@ describe('PatternDetailsModal', () => {
     });
 
     it('should render a track for each score metric', () => {
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       expect(screen.getByTestId('ci-track-answer_correctness-unitxt')).toBeInTheDocument();
       expect(screen.getByTestId('ci-track-faithfulness-unitxt')).toBeInTheDocument();
@@ -259,7 +259,7 @@ describe('PatternDetailsModal', () => {
     });
 
     it('should render x-axis labels', () => {
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       const axis = screen.getByTestId('ci-axis');
       expect(axis).toHaveTextContent('0');
@@ -270,7 +270,7 @@ describe('PatternDetailsModal', () => {
     });
 
     it('should render legend with CI low, CI high, and Mean items', () => {
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       const legend = screen.getByTestId('ci-legend');
       expect(legend).toHaveTextContent('95% confidence interval');
@@ -283,7 +283,7 @@ describe('PatternDetailsModal', () => {
   describe('Settings tabs', () => {
     it('should show chunking settings when Chunking tab is clicked', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('tab-chunking'));
 
@@ -297,7 +297,7 @@ describe('PatternDetailsModal', () => {
 
     it('should show vector store settings when Vector Store Binding tab is clicked', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('tab-store_binding'));
 
@@ -309,7 +309,7 @@ describe('PatternDetailsModal', () => {
 
     it('should show generation settings when Generation tab is clicked', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('tab-generation'));
 
@@ -329,7 +329,7 @@ describe('PatternDetailsModal', () => {
 
     it('should display evaluation results when Sample Q&A tab is clicked', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('tab-sample_qa'));
 
@@ -341,7 +341,7 @@ describe('PatternDetailsModal', () => {
 
     it('should display Q&A entries with testids', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('tab-sample_qa'));
 
@@ -351,7 +351,7 @@ describe('PatternDetailsModal', () => {
 
     it('should show expected answer count in expandable toggle', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('tab-sample_qa'));
 
@@ -361,7 +361,7 @@ describe('PatternDetailsModal', () => {
 
     it('should expand expected answers when toggle is clicked', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('tab-sample_qa'));
       await user.click(screen.getByText('View expected answer (2)'));
@@ -373,7 +373,7 @@ describe('PatternDetailsModal', () => {
 
     it('should collapse expected answers when toggle is clicked again', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('tab-sample_qa'));
       await user.click(screen.getByText('View expected answer (2)'));
@@ -391,7 +391,7 @@ describe('PatternDetailsModal', () => {
         isLoading: true,
         isError: false,
       });
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
       expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
     });
 
@@ -411,7 +411,9 @@ describe('PatternDetailsModal', () => {
 
       const user = userEvent.setup();
       const onClose = jest.fn();
-      const { rerender } = render(<PatternDetailsModal {...twoPatternProps} onClose={onClose} />);
+      const { rerender } = renderWithTracking(
+        <PatternDetailsModal {...twoPatternProps} onClose={onClose} />,
+      );
 
       expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
       await user.click(screen.getByTestId('tab-sample_qa'));
@@ -453,7 +455,7 @@ describe('PatternDetailsModal', () => {
         patterns: [mockPattern, secondPattern],
       };
 
-      const { rerender } = render(<PatternDetailsModal {...props} />);
+      const { rerender } = renderWithTracking(<PatternDetailsModal {...props} />);
 
       await user.click(screen.getByTestId('tab-chunking'));
 
@@ -463,7 +465,7 @@ describe('PatternDetailsModal', () => {
     });
 
     it('should reset to Pattern information tab when modal reopens', () => {
-      const { rerender } = render(<PatternDetailsModal {...defaultProps} />);
+      const { rerender } = renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       rerender(<PatternDetailsModal {...defaultProps} isOpen={false} />);
       rerender(<PatternDetailsModal {...defaultProps} isOpen />);
@@ -472,7 +474,7 @@ describe('PatternDetailsModal', () => {
     });
 
     it('should show CI scores chart when modal reopens', () => {
-      const { rerender } = render(<PatternDetailsModal {...defaultProps} />);
+      const { rerender } = renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       rerender(<PatternDetailsModal {...defaultProps} isOpen={false} />);
       rerender(<PatternDetailsModal {...defaultProps} isOpen />);
@@ -493,7 +495,7 @@ describe('PatternDetailsModal', () => {
     };
 
     it('should display the current pattern name in the dropdown toggle', () => {
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
       const toggle = screen.getByTestId('pattern-selector-dropdown');
       expect(toggle).toHaveTextContent('pattern 0');
     });
@@ -501,7 +503,9 @@ describe('PatternDetailsModal', () => {
     it('should call onPatternChange when a different pattern is selected', async () => {
       const user = userEvent.setup();
       const onPatternChange = jest.fn();
-      render(<PatternDetailsModal {...twoPatternProps} onPatternChange={onPatternChange} />);
+      renderWithTracking(
+        <PatternDetailsModal {...twoPatternProps} onPatternChange={onPatternChange} />,
+      );
 
       await user.click(screen.getByTestId('pattern-selector-dropdown'));
       await user.click(screen.getByText('Pattern A'));
@@ -512,7 +516,7 @@ describe('PatternDetailsModal', () => {
 
   describe('onClose callback', () => {
     it('should render Close as a link-style footer button', () => {
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
       const closeButton = screen.getByTestId('pattern-details-close');
       expect(closeButton).toHaveClass('pf-m-link');
     });
@@ -520,7 +524,7 @@ describe('PatternDetailsModal', () => {
     it('should call onClose when the modal close button is clicked', async () => {
       const user = userEvent.setup();
       const onClose = jest.fn();
-      render(<PatternDetailsModal {...defaultProps} onClose={onClose} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} onClose={onClose} />);
 
       const closeButton = screen.getByLabelText('Close');
       await user.click(closeButton);
@@ -531,7 +535,7 @@ describe('PatternDetailsModal', () => {
 
   describe('download button', () => {
     it('should render a Download button', () => {
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
       expect(screen.getByTestId('pattern-details-download')).toBeInTheDocument();
       expect(screen.getByText('Download')).toBeInTheDocument();
     });
@@ -540,7 +544,7 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
       try {
-        render(<PatternDetailsModal {...defaultProps} />);
+        renderWithTracking(<PatternDetailsModal {...defaultProps} />);
         await user.click(screen.getByTestId('pattern-details-download'));
         expect(printSpy).toHaveBeenCalledTimes(1);
       } finally {
@@ -552,10 +556,10 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
       try {
-        render(<PatternDetailsModal {...defaultProps} />);
+        renderWithTracking(<PatternDetailsModal {...defaultProps} />);
         await user.click(screen.getByTestId('pattern-details-download'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        expect(trackEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED,
           { downloadType: 'patternDetails' },
         );
@@ -568,7 +572,7 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
       try {
-        render(
+        renderWithTracking(
           <PatternDetailsModal
             {...defaultProps}
             optimizationMetric={{ name: 'faithfulness', evaluator: 'unitxt' }}
@@ -603,7 +607,7 @@ describe('PatternDetailsModal', () => {
         ...mockPattern,
         evaluation: { ...mockPattern.evaluation, metrics: [] },
       };
-      render(<PatternDetailsModal {...defaultProps} patterns={[patternNoScores]} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} patterns={[patternNoScores]} />);
 
       expect(screen.queryByTestId('ci-scores-chart')).not.toBeInTheDocument();
     });
@@ -623,7 +627,9 @@ describe('PatternDetailsModal', () => {
       };
 
       try {
-        render(<PatternDetailsModal {...defaultProps} patterns={[patternWithoutChartData]} />);
+        renderWithTracking(
+          <PatternDetailsModal {...defaultProps} patterns={[patternWithoutChartData]} />,
+        );
         await user.click(screen.getByTestId('pattern-details-download'));
 
         expect(
@@ -640,7 +646,7 @@ describe('PatternDetailsModal', () => {
         isLoading: false,
         isError: false,
       });
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
       expect(screen.queryByText('Sample Q&A')).not.toBeInTheDocument();
     });
   });
@@ -659,7 +665,7 @@ describe('PatternDetailsModal', () => {
       });
 
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       // Navigate to Sample Q&A tab (stays visible because isEvaluationError keeps it shown)
       await user.click(screen.getByTestId('tab-sample_qa'));
@@ -673,7 +679,7 @@ describe('PatternDetailsModal', () => {
         isLoading: false,
         isError: true,
       });
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
       // Default tab is pattern_information — toggle should not be disabled
       expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
     });
@@ -685,7 +691,7 @@ describe('PatternDetailsModal', () => {
         isError: false,
       });
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
       await user.click(screen.getByTestId('tab-sample_qa'));
       expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
     });
@@ -699,7 +705,7 @@ describe('PatternDetailsModal', () => {
       });
 
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       // Navigate to Sample Q&A tab — visible because primary data exists
       await user.click(screen.getByTestId('tab-sample_qa'));
@@ -754,13 +760,13 @@ describe('PatternDetailsModal', () => {
     };
 
     it('should render Compare Patterns toggle', () => {
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
       expect(screen.getByTestId('compare-patterns-toggle')).toBeInTheDocument();
     });
 
     it('should open comparison select modal when toggle is clicked', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       await user.click(screen.getByTestId('compare-patterns-toggle'));
 
@@ -770,7 +776,7 @@ describe('PatternDetailsModal', () => {
 
     it('should exclude the selected pattern from comparison list', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       await user.click(screen.getByTestId('compare-patterns-toggle'));
 
@@ -781,7 +787,7 @@ describe('PatternDetailsModal', () => {
 
     it('should show comparison column headers after selecting a comparison pattern', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       await user.click(screen.getByTestId('compare-patterns-toggle'));
       await user.click(screen.getByTestId('comparison-pattern-row-1'));
@@ -793,7 +799,7 @@ describe('PatternDetailsModal', () => {
 
     it('should show "Pattern" row header in comparison mode', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       await user.click(screen.getByTestId('compare-patterns-toggle'));
       await user.click(screen.getByTestId('comparison-pattern-row-1'));
@@ -806,7 +812,7 @@ describe('PatternDetailsModal', () => {
 
     it('should display both patterns values side by side', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       await user.click(screen.getByTestId('compare-patterns-toggle'));
       await user.click(screen.getByTestId('comparison-pattern-row-1'));
@@ -820,7 +826,7 @@ describe('PatternDetailsModal', () => {
 
     it('should show CI scores chart in comparison mode', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       await user.click(screen.getByTestId('compare-patterns-toggle'));
       await user.click(screen.getByTestId('comparison-pattern-row-1'));
@@ -833,7 +839,7 @@ describe('PatternDetailsModal', () => {
 
     it('should disable comparison when toggle is turned off', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       // Enable comparison
       await user.click(screen.getByTestId('compare-patterns-toggle'));
@@ -850,7 +856,7 @@ describe('PatternDetailsModal', () => {
 
     it('should show comparison on settings tabs too', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       // Enable comparison
       await user.click(screen.getByTestId('compare-patterns-toggle'));
@@ -871,7 +877,7 @@ describe('PatternDetailsModal', () => {
         evaluation: { metrics: [] },
       };
 
-      render(
+      renderWithTracking(
         <PatternDetailsModal
           {...defaultProps}
           patterns={[mockPattern, invalidComparisonPattern]}
@@ -901,7 +907,7 @@ describe('PatternDetailsModal', () => {
         patterns: [mockPattern, comparisonPattern, thirdPattern],
       };
 
-      render(<PatternDetailsModal {...threePatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...threePatternProps} />);
 
       // Enable comparison with pattern1
       await user.click(screen.getByTestId('compare-patterns-toggle'));
@@ -921,7 +927,7 @@ describe('PatternDetailsModal', () => {
 
     it('should cancel comparison select modal without enabling comparison', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...twoPatternProps} />);
+      renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       await user.click(screen.getByTestId('compare-patterns-toggle'));
       await user.click(screen.getByTestId('comparison-modal-cancel'));
@@ -935,14 +941,14 @@ describe('PatternDetailsModal', () => {
         // rankDifference = 2 - 1 = 1, scoreDifference = 0.45 - 0.66 = -0.21 (comparison scores
         // lower).
         const user = userEvent.setup();
-        render(<PatternDetailsModal {...twoPatternProps} />);
-        fireMiscTrackingEventMock.mockClear();
+        renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
+        trackEventMock.mockClear();
 
         await user.click(screen.getByTestId('compare-patterns-toggle'));
         await user.click(screen.getByTestId('comparison-pattern-row-1'));
         await user.click(screen.getByTestId('compare-pattern-confirm'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
           interactionType: 'initial',
           rankDifference: 1,
           scoreDifference: -0.21,
@@ -963,19 +969,19 @@ describe('PatternDetailsModal', () => {
           ...defaultProps,
           patterns: [mockPattern, comparisonPattern, thirdPattern],
         };
-        render(<PatternDetailsModal {...threePatternProps} />);
+        renderWithTracking(<PatternDetailsModal {...threePatternProps} />);
 
         await user.click(screen.getByTestId('compare-patterns-toggle'));
         await user.click(screen.getByTestId('comparison-pattern-row-1'));
         await user.click(screen.getByTestId('compare-pattern-confirm'));
-        fireMiscTrackingEventMock.mockClear();
+        trackEventMock.mockClear();
 
         await user.click(screen.getByTestId('change-comparison-pattern'));
         await user.click(screen.getByTestId('comparison-pattern-row-2'));
         await user.click(screen.getByTestId('compare-pattern-confirm'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+        expect(trackEventMock).toHaveBeenCalledTimes(1);
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
           interactionType: 'changed',
           rankDifference: 1,
           scoreDifference: 0,
@@ -1004,14 +1010,14 @@ describe('PatternDetailsModal', () => {
           patterns: [mockPattern, higherA, higherB, topPattern],
         };
         const user = userEvent.setup();
-        render(<PatternDetailsModal {...fourPatternProps} />);
-        fireMiscTrackingEventMock.mockClear();
+        renderWithTracking(<PatternDetailsModal {...fourPatternProps} />);
+        trackEventMock.mockClear();
 
         await user.click(screen.getByTestId('compare-patterns-toggle'));
         await user.click(screen.getByTestId('comparison-pattern-row-3'));
         await user.click(screen.getByTestId('compare-pattern-confirm'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
           interactionType: 'initial',
           rankDifference: -3,
           scoreDifference: 0.29,
@@ -1024,20 +1030,20 @@ describe('PatternDetailsModal', () => {
           ...comparisonPattern,
           evaluation: { metrics: [] },
         };
-        render(
+        renderWithTracking(
           <PatternDetailsModal
             {...defaultProps}
             patterns={[mockPattern, unrankedPattern]}
             optimizationMetric={{ name: 'overall_score' }}
           />,
         );
-        fireMiscTrackingEventMock.mockClear();
+        trackEventMock.mockClear();
 
         await user.click(screen.getByTestId('compare-patterns-toggle'));
         await user.click(screen.getByTestId('comparison-pattern-row-1'));
         await user.click(screen.getByTestId('compare-pattern-confirm'));
 
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        expect(trackEventMock).not.toHaveBeenCalledWith(
           AUTORAG_EVENTS.PATTERNS_COMPARED,
           expect.anything(),
         );
@@ -1049,7 +1055,7 @@ describe('PatternDetailsModal', () => {
           ...mockPattern,
           evaluation: { metrics: [] },
         };
-        render(
+        renderWithTracking(
           <PatternDetailsModal
             {...defaultProps}
             patterns={[unrankedPattern, comparisonPattern]}
@@ -1058,13 +1064,13 @@ describe('PatternDetailsModal', () => {
             optimizationMetric={{ name: 'overall_score' }}
           />,
         );
-        fireMiscTrackingEventMock.mockClear();
+        trackEventMock.mockClear();
 
         await user.click(screen.getByTestId('compare-patterns-toggle'));
         await user.click(screen.getByTestId('comparison-pattern-row-1'));
         await user.click(screen.getByTestId('compare-pattern-confirm'));
 
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        expect(trackEventMock).not.toHaveBeenCalledWith(
           AUTORAG_EVENTS.PATTERNS_COMPARED,
           expect.anything(),
         );
@@ -1072,13 +1078,13 @@ describe('PatternDetailsModal', () => {
 
       it('should not fire when the comparison select modal is cancelled', async () => {
         const user = userEvent.setup();
-        render(<PatternDetailsModal {...twoPatternProps} />);
-        fireMiscTrackingEventMock.mockClear();
+        renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
+        trackEventMock.mockClear();
 
         await user.click(screen.getByTestId('compare-patterns-toggle'));
         await user.click(screen.getByTestId('comparison-modal-cancel'));
 
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        expect(trackEventMock).not.toHaveBeenCalledWith(
           AUTORAG_EVENTS.PATTERNS_COMPARED,
           expect.anything(),
         );
@@ -1086,17 +1092,17 @@ describe('PatternDetailsModal', () => {
 
       it('should not fire when comparison mode is turned off', async () => {
         const user = userEvent.setup();
-        render(<PatternDetailsModal {...twoPatternProps} />);
+        renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
         await user.click(screen.getByTestId('compare-patterns-toggle'));
         await user.click(screen.getByTestId('comparison-pattern-row-1'));
         await user.click(screen.getByTestId('compare-pattern-confirm'));
-        fireMiscTrackingEventMock.mockClear();
+        trackEventMock.mockClear();
 
         // Disable comparison
         await user.click(screen.getByTestId('compare-patterns-toggle'));
 
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        expect(trackEventMock).not.toHaveBeenCalledWith(
           AUTORAG_EVENTS.PATTERNS_COMPARED,
           expect.anything(),
         );
@@ -1105,7 +1111,7 @@ describe('PatternDetailsModal', () => {
 
     it('should reset comparison state when modal reopens', async () => {
       const user = userEvent.setup();
-      const { rerender } = render(<PatternDetailsModal {...twoPatternProps} />);
+      const { rerender } = renderWithTracking(<PatternDetailsModal {...twoPatternProps} />);
 
       // Enable comparison
       await user.click(screen.getByTestId('compare-patterns-toggle'));
@@ -1124,13 +1130,13 @@ describe('PatternDetailsModal', () => {
 
   describe('actions dropdown', () => {
     it('should render the Actions dropdown toggle', () => {
-      render(<PatternDetailsModal {...defaultProps} onSaveNotebook={jest.fn()} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} onSaveNotebook={jest.fn()} />);
       expect(screen.getByTestId('pattern-details-actions-toggle')).toBeInTheDocument();
     });
 
     it('should show save notebook options when dropdown is opened', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} onSaveNotebook={jest.fn()} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} onSaveNotebook={jest.fn()} />);
 
       await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       expect(screen.getByTestId('pattern-details-save-indexing-notebook')).toBeInTheDocument();
@@ -1140,7 +1146,7 @@ describe('PatternDetailsModal', () => {
     it('should call onSaveNotebook with indexing type when indexing option is clicked', async () => {
       const user = userEvent.setup();
       const onSaveNotebook = jest.fn();
-      render(<PatternDetailsModal {...defaultProps} onSaveNotebook={onSaveNotebook} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} onSaveNotebook={onSaveNotebook} />);
 
       await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       await user.click(screen.getByText('Save as indexing notebook'));
@@ -1150,7 +1156,7 @@ describe('PatternDetailsModal', () => {
     it('should call onSaveNotebook with inference type when inference option is clicked', async () => {
       const user = userEvent.setup();
       const onSaveNotebook = jest.fn();
-      render(<PatternDetailsModal {...defaultProps} onSaveNotebook={onSaveNotebook} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} onSaveNotebook={onSaveNotebook} />);
 
       await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       await user.click(screen.getByText('Save as inference notebook'));
@@ -1159,7 +1165,7 @@ describe('PatternDetailsModal', () => {
 
     it('should not show OGX actions', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} />);
 
       await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
@@ -1199,7 +1205,7 @@ describe('PatternDetailsModal', () => {
         },
       };
 
-      render(
+      renderWithTracking(
         <PatternDetailsModal
           {...defaultProps}
           patterns={[neo4jPattern]}
@@ -1214,7 +1220,7 @@ describe('PatternDetailsModal', () => {
 
     it('should not expose View code when the database secret is missing', async () => {
       const user = userEvent.setup();
-      render(<PatternDetailsModal {...defaultProps} onViewCode={jest.fn()} />);
+      renderWithTracking(<PatternDetailsModal {...defaultProps} onViewCode={jest.fn()} />);
 
       await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       expect(screen.queryByTestId('pattern-details-view-code')).not.toBeInTheDocument();
@@ -1230,7 +1236,7 @@ describe('PatternDetailsModal', () => {
         },
       };
 
-      render(
+      renderWithTracking(
         <PatternDetailsModal
           {...defaultProps}
           patterns={[patternWithoutEmbeddingModel]}
@@ -1274,7 +1280,7 @@ describe('PatternDetailsModal', () => {
         },
       };
 
-      render(
+      renderWithTracking(
         <PatternDetailsModal
           {...defaultProps}
           patterns={[supportedPattern]}
@@ -1290,7 +1296,7 @@ describe('PatternDetailsModal', () => {
 
     it('should not expose View code when the MaaS secret is missing', async () => {
       const user = userEvent.setup();
-      render(
+      renderWithTracking(
         <PatternDetailsModal
           {...defaultProps}
           databaseSecretName="milvus"

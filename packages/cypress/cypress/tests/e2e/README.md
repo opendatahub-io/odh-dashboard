@@ -267,6 +267,23 @@ Test Data should be referenced from fixture files and loaded into the test in th
 
 `retryableBefore` skips its callback when `IS_NON_ADMIN_RUN` is set, because it is meant for admin-only setup. If a test that runs in non-admin mode needs fixture data, load the fixture in a plain `before()` hook and keep only admin setup in `retryableBefore`.
 
+#### Architecture-Specific Fixture Remapping (`FILEMAPPING`)
+
+When running tests on non-x86 architectures (such as `s390x`), test fixtures and resource YAMLs can be automatically remapped using the `FILEMAPPING` configuration in `test-variables.yml`.
+
+`loadYamlFixture` and helper loaders resolve paths through `FILEMAPPING` when running on an `s390x` cluster:
+
+```yaml
+FILEMAPPING:
+  e2e/dataScienceProjects/testModelTokenAuth.yaml: e2e/dataScienceProjects/testModelTokenAuth.s390x.yaml
+  e2e/dataScienceProjects/testDeployOCIModel.yaml: e2e/dataScienceProjects/testDeployOCIModel.s390x.yaml
+  e2e/dataScienceProjects/testModelPvcDeployment.yaml: e2e/dataScienceProjects/testModelPvcDeployment.s390x.yaml
+  resources/yaml/pvc-loader-pod.yaml: resources/yaml/pvc-loader-pod.s390x.yaml
+  e2e/dataScienceProjects/testSingleModelAdminCreation.yaml: e2e/dataScienceProjects/testSingleModelAdminCreation.s390x.yaml
+  e2e/hardwareProfiles/testModelServingTolerations.yaml: e2e/hardwareProfiles/testModelServingTolerations.s390x.yaml
+  e2e/dataScienceProjects/testWorkbenchStorageClasses.yaml: e2e/dataScienceProjects/testWorkbenchStorageClasses.s390x.yaml
+```
+
 ### Test IDs
 
 It's recommended to use `testIDs` when referencing page objects. If an element does not have a `testID`, please add one:
@@ -300,18 +317,20 @@ it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@
 ### CI Test Selection
 
 The GitHub Actions E2E workflow always schedules added, modified, and renamed
-Cypress specs in addition to the selected tag suites. Changes to page objects,
-fixtures, utilities, commands, support hooks, and other Cypress support code run
-their executable reverse-impact specs. Path impact is defined by the ordered,
-versioned mappings in `scripts/cypress/e2e-path-impact.json`; the first matching
-mapping wins. Patterns support exact paths plus `**`, `*`, and `?`. Package paths
+Cypress specs explicitly in addition to the selected tag suites, regardless of
+whether they have CI tags, functional tags only, or no tags. Changed-spec jobs
+apply quarantine exclusions without requiring a match against the selected tags.
+Changes to page objects, fixtures, utilities, commands, support hooks, and other
+Cypress support code run their executable reverse-impact specs. Path impact is
+defined by the ordered, versioned mappings in `scripts/cypress/e2e-path-impact.json`;
+the first matching mapping wins. Patterns support exact paths plus `**`, `*`, and `?`. Package paths
 derive `e2eCiTags`, module network policies derive tags from their owning module,
 and frontend areas derive tags from `.github/frontend-ci-tags.json`. Turbo is not
 used as the E2E selector. New packages are discovered from the pnpm workspace; their
-`e2eCiTags` and matching tagged tests determine selection. Package-owned specs need a
-`cypress.e2e` pattern. No per-package workflow entry or central tag allowlist is
-needed. A declared tag must resolve to executable tests; packages without CI tags
-use the regression fallback.
+`e2eCiTags` and matching tagged tests determine package-source selection.
+Package-owned specs need a `cypress.e2e` pattern. No per-package workflow entry or
+central tag allowlist is needed. A declared tag must resolve to executable tests;
+packages without CI tags use the regression fallback.
 
 Dashboard base and RHOAI network-policy changes run the Pipelines, Workbenches, and
 Feature Store suites because those flows exercise dashboard egress to the pipeline
@@ -319,15 +338,19 @@ server, Thanos, and Feast. Small impact sets run as explicit specs; larger sets 
 the narrowest available package CI tags. Deleting Cypress support code, or
 encountering a broad impact set that cannot be mapped to package CI tags, falls back
 to the canonical `@SmokeSet1`–`@SmokeSet5` and `@SanitySet1`–`@SanitySet5` tag
-groups.
+groups. Tag jobs pass the planner-resolved spec list to Cypress, so unrelated specs
+are not loaded; the support-file registration filter still selects individual tests
+inside those specs by tag.
 
 Every selected tag must resolve to at least one executable test before the
 workflow starts. A selection fails when a required spec cannot be scheduled or a
 tag resolves to zero executable tests, including when its tests are statically
 skipped. Result validation rejects a job if every reported test is skipped at
-runtime. Added, modified,
-and renamed specs must carry a CI-selectable tag or be listed in
-`non-ci-specs.json` with an owner and reason. Deleting or renaming a spec cannot
+runtime. Added, modified, and renamed specs do not need a CI-selectable tag or
+non-CI registration to run. The `@Bug`, `@Maintain`, and `@NonConcurrent`
+exclusions still apply; a changed spec containing only quarantined tests must be
+listed in `non-ci-specs.json` with an owner and reason. Empty or statically skipped
+required specs still fail selection. Deleting or renaming a spec cannot
 remove the only remaining executable coverage for one of its CI tags.
 
 Reverse-impact selection recognizes workspace CI tags, the frontend CI tag map,

@@ -11,11 +11,18 @@ export type {
   ValueOf,
 } from './typeHelpers';
 export { genRandomChars, genUID } from './utils';
-export { orderWorkingProjects, resolveWorkingProject } from './workingProject';
+export {
+  orderWorkingProjects,
+  resolveWorkingProject,
+  RouteProjectKindValue,
+  WorkingProjectListStatusValue,
+} from './workingProject';
 export type {
   ResolveWorkingProjectInput,
   RouteProjectInput,
   WorkingProjectIdentity,
+  RouteProjectKind,
   WorkingProjectList,
+  WorkingProjectListStatus,
   WorkingProjectResolution,
 } from './workingProject';

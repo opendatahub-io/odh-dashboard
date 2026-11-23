@@ -188,6 +188,9 @@ Add the area to `packages/plugin-core/src/areas/types.ts` (under `/* Plugins */`
 - the type in `DashboardCommonConfig` (`packages/k8s-core/src/k8sTypes.ts`)
 - a default in `techPreviewFlags` (or `devTemporaryFeatureFlags` for dev-only switches) in `const.ts`
 - a property in `manifests/base/crd/odhdashboardconfigs.opendatahub.io.crd.yaml`
+- the same default in `backend/src/utils/constants.ts` (`blankDashboardCR`, typed by `backend/src/types.ts`) and `distributions/core-bff/bff/internal/models/dashboard_config.go` (`DashboardFeatureFlags` and `BlankDashboardCR`)
+
+`pnpm run validate:flags` (run in CI) fails when these copies disagree on the flag list or the backend and core BFF defaults differ.
 
 Any package that declares an `app.area` extension for the area, whether a federated remote or a static plugin, must repeat the applicable gates there (`featureFlags`, `requiredComponents`, `reliantAreas`). `AreaContext.tsx` replaces the host's entry with the extension's properties for the same area id instead of merging them, so gates set only in `const.ts` are lost once the extension loads. `packages/autorag/frontend/src/odh/extensions.ts` is the example. Areas with no `app.area` extension only need the host config.
 
@@ -266,7 +269,7 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - [ ] `cypress:mock:*` scripts and `pnpm run validate:cypress-mock` passes (if federated and participating in dashboard Cypress mock tests — the installer scaffolds them opted in)
 - [ ] `extensions.ts` with area, nav, and route extensions
 - [ ] `SupportedArea` enum entry + area config + flag type/default/CRD property
-- [ ] `OWNERS` / `OWNERS_ALIASES` entries and dependabot `gomod` directory (if BFF)
+- [ ] `OWNERS_ALIASES` alias entries; `packages/<name>/OWNERS` with `area/<name>`, `area/components`, and `options.no_parent_owners: true`; `manifests/modules/<name>/OWNERS` with `area/<name>`, `area/manifests`, and `options.no_parent_owners: true` (if manifests added); dependabot `gomod` directory (if BFF)
 - [ ] Rspack config with `OdhFederationPlugin` from `@odh-dashboard/app-config/rspack` (if federated)
 - [ ] BFF with `/healthcheck` and OpenAPI spec (if applicable)
 - [ ] Unit tests in `__tests__/`
@@ -275,4 +278,4 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - [ ] `Dockerfile.workspace` for container builds
 - [ ] `pnpm install` from repo root succeeds
 - [ ] Downstream `Dockerfile.konflux.<name>` copied from a shipped module on the target branch (current digests, `ubi-minimal-pqc` runtime, `odh-mod-arch-<name>` labels) — `/konflux-onboarding`
-- [ ] Image `rhoai/odh-mod-arch-<name>-rhel9` registered as a ProdSec `pscomponent` and confirmed by ProdSec before the first release (later CVE tickets carry `pscomponent:rhoai/odh-mod-arch-<name>-rhel9`) — `/konflux-onboarding` Phase 6
+- [ ] Image `rhoai/odh-mod-arch-<name>-rhel9` registered as a ProdSec `pscomponent` (MR to `prodsec/product-definitions` adding it to `ps_modules.json`, merged by ProdSec) before the first release (later CVE tickets carry `pscomponent:rhoai/odh-mod-arch-<name>-rhel9`) — `/konflux-onboarding` Phase 6
