@@ -40,7 +40,7 @@ func (app *App) initModelServingProxy() error {
 	}
 
 	allowHTTP := app.config.DevMode || app.config.MockK8Client
-	insecureSkipVerify := app.config.InsecureSkipVerify && (app.config.DevMode || app.config.MockK8Client)
+	insecureSkipVerify := app.config.SkipsTLSVerification()
 
 	rp, err := proxy.NewReverseProxy(proxy.ProxyConfig{
 		TargetURL:          targetURL,

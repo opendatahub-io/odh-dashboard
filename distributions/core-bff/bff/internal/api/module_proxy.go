@@ -378,7 +378,7 @@ func (app *App) buildModuleProxyHandlers(entries []normalizedProxyEntry) ([]modu
 		}
 
 		allowHTTP := !entry.service.TLS || app.config.DevMode || app.config.MockK8Client
-		insecureSkipVerify := app.config.InsecureSkipVerify && (app.config.DevMode || app.config.MockK8Client)
+		insecureSkipVerify := app.config.SkipsTLSVerification()
 
 		cfg := app.buildModuleProxyConfig(entry, targetURL, allowHTTP, insecureSkipVerify, true)
 

@@ -57,15 +57,103 @@ func TestIsProductionProfile(t *testing.T) {
 	assert.True(t, productionConfig().IsProductionProfile())
 
 	for name, mutate := range map[string]func(*EnvConfig){
-		"dev mode":         func(c *EnvConfig) { c.DevMode = true },
-		"mock k8s client":  func(c *EnvConfig) { c.MockK8Client = true },
+		"dev mode":        func(c *EnvConfig) { c.DevMode = true },
+		"mock k8s client": func(c *EnvConfig) { c.MockK8Client = true },
+	} {
+		t.Run(name, func(t *testing.T) {
+			cfg := productionConfig()
+			mutate(&cfg)
+			assert.False(t, cfg.IsProductionProfile())
+		})
+	}
+}
+
+// MOCK_HTTP_CLIENT and MOCK_BFF_CLIENTS replace one client each; every other
+// client is still real, so on their own they must not relax the production
+// rules for the whole process.
+func TestValidate_SingleClientMocksKeepProductionRules(t *testing.T) {
+	for name, mutate := range map[string]func(*EnvConfig){
 		"mock http client": func(c *EnvConfig) { c.MockHTTPClient = true },
 		"mock BFF clients": func(c *EnvConfig) { c.MockBFFClients = true },
 	} {
 		t.Run(name, func(t *testing.T) {
 			cfg := productionConfig()
 			mutate(&cfg)
-			assert.False(t, cfg.IsProductionProfile())
+			cfg.InsecureSkipVerify = true
+			cfg.AllowedOrigins = []string{"*"}
+
+			assert.True(t, cfg.IsProductionProfile())
+			assert.False(t, cfg.SkipsTLSVerification(), "real clients must keep verifying certificates")
+
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "INSECURE_SKIP_VERIFY=true is not supported in a production profile")
+			assert.Contains(t, err.Error(), "ALLOWED_ORIGINS entry 1")
+		})
+	}
+}
+
+func TestSkipsTLSVerification_OnlyInADevelopmentProfile(t *testing.T) {
+	cfg := productionConfig()
+	cfg.InsecureSkipVerify = true
+	assert.False(t, cfg.SkipsTLSVerification())
+
+	cfg.DevMode = true
+	assert.True(t, cfg.SkipsTLSVerification())
+
+	cfg.InsecureSkipVerify = false
+	assert.False(t, cfg.SkipsTLSVerification())
+}
+
+func TestValidate_ServiceTargets(t *testing.T) {
+	settings := map[string]struct {
+		set  func(*EnvConfig, string)
+		name string
+	}{
+		"model serving": {func(c *EnvConfig, v string) { c.ModelServingServiceHost = v }, "MODEL_SERVING_HOST/--model-serving-host"},
+		"prometheus":    {func(c *EnvConfig, v string) { c.PrometheusHost = v }, "PROMETHEUS_HOST/--prometheus-host"},
+	}
+
+	for name, setting := range settings {
+		t.Run(name, func(t *testing.T) {
+			for _, tc := range []struct {
+				value  string
+				dev    bool
+				reason string
+			}{
+				// The caller's bearer token is sent to both targets.
+				{"http://metrics.internal:9090", false, "must use https in a production profile"},
+				{"metrics.internal", false, "must be an absolute http(s) URL"},
+				{"metrics.internal:9090", false, "must be an absolute http(s) URL"},
+				{"ftp://metrics.internal", false, "must be an absolute http(s) URL"},
+				{"https://", false, "has no host"},
+				{"metrics.internal", true, "must be an absolute http(s) URL"},
+			} {
+				cfg := productionConfig()
+				cfg.DevMode = tc.dev
+				setting.set(&cfg, tc.value)
+
+				err := cfg.Validate(TLSFiles{})
+
+				require.Error(t, err, tc.value)
+				assert.Contains(t, err.Error(), setting.name+" (value omitted) "+tc.reason, tc.value)
+				assert.NotContains(t, err.Error(), "metrics.internal", "the rejected value must not be echoed")
+			}
+
+			for _, tc := range []struct {
+				value string
+				dev   bool
+			}{
+				{"https://metrics.internal:9091", false},
+				{"http://localhost:9090", true},
+				{"", false},
+			} {
+				cfg := productionConfig()
+				cfg.DevMode = tc.dev
+				setting.set(&cfg, tc.value)
+
+				assert.NoError(t, cfg.Validate(TLSFiles{}), tc.value)
+			}
 		})
 	}
 }

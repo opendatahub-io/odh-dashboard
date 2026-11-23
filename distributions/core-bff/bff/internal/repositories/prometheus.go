@@ -47,7 +47,7 @@ func NewPrometheusRepository(cfg PrometheusConfig) *PrometheusRepository {
 	tlsConfig := &tls.Config{
 		RootCAs:            cfg.RootCAs,
 		MinVersion:         tls.VersionTLS12,
-		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // gated to dev/mock mode at call site (app.go)
+		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // gated by EnvConfig.SkipsTLSVerification at the call site (app.go)
 	}
 
 	return &PrometheusRepository{

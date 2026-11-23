@@ -59,8 +59,8 @@ make run LOG_LEVEL=DEBUG
 | `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME` | Name of the OdhDashboardConfig CR (default `odh-dashboard-config`) |
 | `-enabled-apps-cm` | `ENABLED_APPS_CM` | Name of the ConfigMap tracking enabled applications |
 | `-mf-remotes-config` | `MF_REMOTES_CONFIG` | Path to module federation remotes config file |
-| `-model-serving-host` | `MODEL_SERVING_HOST` | Override URL for model-serving proxy target (default: auto-constructed from namespace) |
-| `-prometheus-host` | `PROMETHEUS_HOST` | Full Prometheus/Thanos host URL override |
+| `-model-serving-host` | `MODEL_SERVING_HOST` | Override URL for model-serving proxy target (default: auto-constructed from namespace). Must be an absolute URL; `https` in a production profile |
+| `-prometheus-host` | `PROMETHEUS_HOST` | Full Prometheus/Thanos host URL override. Must be an absolute URL; `https` in a production profile |
 | `-prometheus-namespace` | `PROMETHEUS_NAMESPACE` | Prometheus/Thanos namespace (default `openshift-monitoring`) |
 | `-prometheus-instance` | `PROMETHEUS_INSTANCE` | Prometheus/Thanos instance name (default `thanos-querier`) |
 | `-prometheus-port` | `PROMETHEUS_PORT` | Prometheus/Thanos RBAC port (default `9092`) |

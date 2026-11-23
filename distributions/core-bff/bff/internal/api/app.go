@@ -122,7 +122,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 				Instance:           cfg.PrometheusInstance,
 				Port:               cfg.PrometheusPort,
 				RootCAs:            rootCAs,
-				InsecureSkipVerify: cfg.InsecureSkipVerify && (cfg.DevMode || cfg.MockK8Client),
+				InsecureSkipVerify: cfg.SkipsTLSVerification(),
 			},
 		}),
 		testEnv:           k8sResult.testEnv,
@@ -192,7 +192,7 @@ func initKubernetesClients(cfg config.EnvConfig, logger *slog.Logger) (k8sSetupR
 func initBFFClientFactory(cfg config.EnvConfig, rootCAs *x509.CertPool, logger *slog.Logger) bffclient.BFFClientFactory {
 	bffConfig := bffclient.NewDefaultBFFClientConfig()
 	bffConfig.MockBFFClients = cfg.MockBFFClients
-	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
+	bffConfig.InsecureSkipVerify = cfg.SkipsTLSVerification()
 
 	if cfg.MockBFFClients {
 		logger.Info("Using mock BFF client factory")
@@ -200,7 +200,7 @@ func initBFFClientFactory(cfg config.EnvConfig, rootCAs *x509.CertPool, logger *
 	}
 
 	logger.Info("Using real BFF client factory")
-	return bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
+	return bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.SkipsTLSVerification(), logger)
 }
 
 // PlatformType returns the platform resolved at startup (configured value if

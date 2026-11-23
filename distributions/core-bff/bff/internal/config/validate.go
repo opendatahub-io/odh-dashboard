@@ -39,10 +39,21 @@ func (t TLSFiles) Enabled() bool {
 }
 
 // IsProductionProfile reports whether the resolved configuration claims to be a
-// production deployment. Any development or mock affordance opts out, which is
-// what makes the production-only rejections below safe to apply.
+// production deployment. Only DEV_MODE and MOCK_K8S_CLIENT opt out: both mean
+// there is no real cluster behind the process, which is what makes relaxing
+// the production-only rejections below safe. MOCK_HTTP_CLIENT and
+// MOCK_BFF_CLIENTS replace one client each while every other client stays
+// real, so on their own they keep the production rules in force.
 func (c EnvConfig) IsProductionProfile() bool {
-	return !c.DevMode && !c.MockK8Client && !c.MockHTTPClient && !c.MockBFFClients
+	return !c.DevMode && !c.MockK8Client
+}
+
+// SkipsTLSVerification reports whether outbound transports may skip upstream
+// certificate verification. It is the single gate every real client uses, so
+// a production profile can never skip verification even if Validate is
+// bypassed.
+func (c EnvConfig) SkipsTLSVerification() bool {
+	return c.InsecureSkipVerify && !c.IsProductionProfile()
 }
 
 // Validate checks the resolved configuration and returns a *ValidationError
@@ -60,6 +71,7 @@ func (c EnvConfig) Validate(tlsFiles TLSFiles) error {
 	c.validateCore(add)
 	c.validateAuth(add)
 	c.validateProductionProfile(add)
+	c.validateServiceTargets(add)
 	validateServingTLS(tlsFiles, add)
 	c.validateTrustBundles(add)
 
@@ -147,6 +159,41 @@ func (c EnvConfig) validateProductionProfile(add func(string, ...any)) {
 				i+1, reason)
 		}
 	}
+}
+
+// validateServiceTargets checks the upstream service URL overrides. Both carry
+// the caller's bearer token, so a production profile must reach them over
+// HTTPS; a bare host name would otherwise pass startup and fail on the first
+// request. Problems name the setting only: either value may carry user info.
+func (c EnvConfig) validateServiceTargets(add func(string, ...any)) {
+	for _, target := range []struct{ setting, value string }{
+		{"MODEL_SERVING_HOST/--model-serving-host", c.ModelServingServiceHost},
+		{"PROMETHEUS_HOST/--prometheus-host", c.PrometheusHost},
+	} {
+		if strings.TrimSpace(target.value) == "" {
+			continue
+		}
+		if reason := serviceTargetProblem(target.value, c.IsProductionProfile()); reason != "" {
+			add("%s (value omitted) %s", target.setting, reason)
+		}
+	}
+}
+
+// serviceTargetProblem reports why target is not a usable absolute service
+// URL, or "" when it is.
+func serviceTargetProblem(target string, production bool) string {
+	u, err := url.Parse(target)
+	switch {
+	case err != nil:
+		return "does not parse as a URL"
+	case u.Scheme != "http" && u.Scheme != "https":
+		return "must be an absolute http(s) URL such as https://host:port"
+	case u.Hostname() == "":
+		return "has no host"
+	case production && u.Scheme != "https":
+		return "must use https in a production profile, because the caller's bearer token is sent to it; set DEV_MODE=true for a local plaintext target"
+	}
+	return ""
 }
 
 // exactOriginProblem reports why origin is not a single exact HTTP(S) origin,

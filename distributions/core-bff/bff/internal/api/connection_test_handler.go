@@ -138,7 +138,7 @@ func (app *App) TestConnectionHandler(w http.ResponseWriter, r *http.Request, _ 
 		Ctx:                ctx,
 		FieldValues:        req.FieldValues,
 		RootCAs:            app.rootCAs,
-		InsecureSkipVerify: app.config.InsecureSkipVerify,
+		InsecureSkipVerify: app.config.SkipsTLSVerification(),
 	}
 
 	result := probe(pc)
