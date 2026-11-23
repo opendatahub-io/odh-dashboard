@@ -353,11 +353,10 @@ describe('ModelSchemaTab', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'JSON' }));
       const code = screen.getByTestId('model-schema-json-code');
-      // Every input-schema field is preserved — the schema is the serving contract.
-      // 'number' is normalized to 'double'.
+      // col2 is the target — excluded; 'number' is normalized to 'double'.
       expect(code).toHaveTextContent('<integer>');
       expect(code).toHaveTextContent('<double>');
-      expect(code).toHaveTextContent('col2');
+      expect(code).not.toHaveTextContent('col2');
     });
   });
 
@@ -391,11 +390,10 @@ describe('ModelSchemaTab', () => {
         undefined,
       );
 
-      // Every input-schema field is preserved (the schema is the serving contract);
-      // 'number' is normalized to Double.
+      // col2 is the label column (target) — excluded; 'number' is normalized to Double.
       expect(screen.getByTestId('model-schema-row-col1')).toHaveTextContent('String');
       expect(screen.getByTestId('model-schema-row-col3')).toHaveTextContent('Integer');
-      expect(screen.getByTestId('model-schema-row-col2')).toBeInTheDocument();
+      expect(screen.queryByTestId('model-schema-row-col2')).not.toBeInTheDocument();
     });
 
     it('should keep the loading state while artifacts are loading', () => {

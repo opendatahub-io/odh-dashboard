@@ -128,8 +128,10 @@ describe('buildModelSchema', () => {
     ]);
   });
 
-  it('should ignore feature importance for timeseries task types', () => {
-    const featureImportance: FeatureImportanceData = { importance: { col1: 0.6 } };
+  it('should flag timeseries columns AutoGluon did not use as not used, still listing them', () => {
+    const featureImportance: FeatureImportanceData = {
+      importance: { store_id: 0.6, temperature: 0.4 },
+    };
     const rows = buildModelSchema(
       csvColumns([
         ['store_id', 'string'],
@@ -143,11 +145,12 @@ describe('buildModelSchema', () => {
       featureImportance,
     );
 
-    // All columns are inputs for timeseries scoring; importance data is not used to drop them.
+    // All input columns are listed for timeseries scoring; importance data only flags
+    // which ones AutoGluon actually used. The target (sales) is excluded.
     expect(rows.map((row) => [row.name, row.role, row.isUsed])).toEqual([
       ['store_id', 'ID column', true],
-      ['date', 'Timestamp column', true],
-      ['promotion', 'Known covariate', true],
+      ['date', 'Timestamp column', false],
+      ['promotion', 'Known covariate', false],
       ['temperature', 'Past covariate', true],
     ]);
     expect(rows.map((row) => row.position)).toEqual([1, 2, 3, 4]);
@@ -216,13 +219,11 @@ describe('buildModelSchema', () => {
         inputFields,
       );
 
-      // The input schema is the authoritative serving contract — every field is preserved,
-      // including col2 (the label column): if the model's serving contract lists it, it is
-      // an input to send.
+      // col2 is the label column (target) — excluded even though the input schema lists it:
+      // the caller does not send in the value being predicted.
       expect(rows).toEqual([
         { name: 'col1', dtype: 'string', role: 'Feature', isUsed: true, position: 1 },
-        { name: 'col2', dtype: 'double', role: 'Feature', isUsed: true, position: 2 },
-        { name: 'col3', dtype: 'integer', role: 'Feature', isUsed: true, position: 3 },
+        { name: 'col3', dtype: 'integer', role: 'Feature', isUsed: true, position: 2 },
       ]);
     });
 
@@ -239,7 +240,6 @@ describe('buildModelSchema', () => {
 
       expect(rows.map((row) => [row.name, row.isUsed])).toEqual([
         ['col1', true],
-        ['col2', false],
         ['col3', true],
       ]);
     });
@@ -258,8 +258,8 @@ describe('buildModelSchema', () => {
       );
 
       // The input schema is the authoritative serving contract — importance-only
-      // features are not appended on this path.
-      expect(rows.map((row) => row.name)).toEqual(['col1', 'col2', 'col3']);
+      // features are not appended on this path. col2 is the target and is excluded.
+      expect(rows.map((row) => row.name)).toEqual(['col1', 'col3']);
     });
 
     it('should still derive timeseries roles by column name', () => {
@@ -270,27 +270,11 @@ describe('buildModelSchema', () => {
         { name: 'promotion', datatype: 'boolean' },
       ]);
 
+      // sales is the target — excluded even when the input schema lists it.
       expect(rows.map((row) => [row.name, row.dtype, row.role])).toEqual([
         ['store_id', 'string', 'ID column'],
         ['date', 'timestamp', 'Timestamp column'],
-        ['sales', 'double', 'Target history'],
         ['promotion', 'bool', 'Known covariate'],
-      ]);
-    });
-
-    it('should preserve a required target field from the input schema for timeseries', () => {
-      // Time-series forecasting requires the target's historical values as prediction
-      // inputs — the serving schema lists them, so they must not be filtered out.
-      const rows = buildModelSchema([], 'timeseries', timeseriesParameters, undefined, undefined, [
-        { name: 'store_id', datatype: 'string', role: 'feature', required: true },
-        { name: 'date', datatype: 'timestamp', role: 'feature', required: true },
-        { name: 'sales', datatype: 'number', role: 'feature', required: true },
-      ]);
-
-      expect(rows.map((row) => [row.name, row.role, row.isUsed])).toEqual([
-        ['store_id', 'ID column', true],
-        ['date', 'Timestamp column', true],
-        ['sales', 'Target history', true],
       ]);
     });
   });

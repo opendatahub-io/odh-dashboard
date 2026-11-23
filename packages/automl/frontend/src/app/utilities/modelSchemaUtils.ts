@@ -6,19 +6,14 @@ import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 
 /** Role a column plays when scoring the model. */
 export type ModelSchemaRole =
-  | 'Feature'
-  | 'Known covariate'
-  | 'Past covariate'
-  | 'ID column'
-  | 'Timestamp column'
-  | 'Target history';
+  'Feature' | 'Known covariate' | 'Past covariate' | 'ID column' | 'Timestamp column';
 
 export type ModelSchemaRow = {
   name: string;
   /** Inferred data type from the training CSV; undefined when the column is not in the CSV. */
   dtype: ColumnSchema['type'] | undefined;
   role: ModelSchemaRole;
-  /** False when AutoGluon did not use the column (tabular only, detected via feature importance). */
+  /** False when AutoGluon did not use the column (detected via feature importance when available). */
   isUsed: boolean;
   /**
    * 1-based position in training-data column order (the order to use for positional scoring
@@ -77,19 +72,18 @@ export const normalizeInferenceDatatype = (
  * contract. Otherwise they are derived from the training CSV schema and the experiment
  * configuration (legacy model.json files without the inference block).
  *
- * - Tabular: when feature importance is available, its keys are the authoritative feature
- *   set: columns not present were dropped by AutoGluon (marked `isUsed: false`). On the CSV
- *   fallback path only, importance keys not in the CSV (engineered/renamed features) are
- *   appended with an unknown dtype — the input schema, when present, already reflects the
- *   serving contract so nothing is appended.
- * - Target column: on the CSV fallback path the target is excluded — it is the value being
- *   predicted, not an input to send. On the input-schema path every field is preserved as
- *   listed, including the target: the schema is the model's serving contract, and for
- *   timeseries forecasting the target's historical values are required prediction inputs
- *   (shown with the `Target history` role).
+ * - Target column: excluded on both paths — it is the value being predicted, not a column
+ *   the caller sends in for a prediction.
+ * - Feature importance: when available, its keys are the set of columns AutoGluon actually
+ *   used; columns absent from it are still listed but marked `isUsed: false` ("Not used by
+ *   this model"). This applies to timeseries as well — every input column is shown so the
+ *   caller knows the full schema, with unused ones flagged. On the CSV fallback path only,
+ *   importance keys not in the CSV (engineered/renamed features) are appended with an
+ *   unknown dtype — the input schema, when present, already reflects the serving contract
+ *   so nothing is appended.
  * - Timeseries: the ID and timestamp columns are required inputs alongside covariates.
  *   Known covariates (user-designated at configure time) are distinguished from past
- *   covariates. Dropped-column detection is not available for timeseries models.
+ *   covariates.
  */
 export const buildModelSchema = (
   columns: ColumnSchema[],
@@ -102,11 +96,11 @@ export const buildModelSchema = (
   const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
   const target = getTargetColumn(taskType, parameters, backTesting);
 
-  // Feature importance keys are the post-AutoGluon feature set (tabular only).
-  const usedFeatures =
-    !isTimeseries && featureImportance
-      ? new Set(Object.keys(featureImportance.importance))
-      : undefined;
+  // Feature importance keys are the post-AutoGluon feature set — used to flag columns
+  // AutoGluon dropped as "not used" (all input columns remain listed).
+  const usedFeatures = featureImportance
+    ? new Set(Object.keys(featureImportance.importance))
+    : undefined;
 
   const idColumn = isTimeseries ? (backTesting?.id_column ?? parameters?.id_column) : undefined;
   const timestampColumn = isTimeseries
@@ -115,20 +109,33 @@ export const buildModelSchema = (
   const knownCovariates = isTimeseries ? (parameters?.known_covariates_names ?? []) : [];
 
   // Base entries: column name, dtype, and order — from the input schema when present,
-  // otherwise from the training CSV schema. The input schema is the authoritative serving
-  // contract, so all of its fields are preserved (including the target — its historical
-  // values are prediction inputs for timeseries). The CSV fallback excludes the target:
-  // it is the value being predicted, not an input to send.
+  // otherwise from the training CSV schema. The target is excluded on both paths: it is
+  // the value being predicted, not a column to send in.
   const fields = inputSchema ?? [];
   const useInputSchema = fields.length > 0;
   const entries: { name: string; dtype: ModelSchemaRow['dtype'] }[] = useInputSchema
-    ? fields.map((field) => ({
-        name: field.name,
-        dtype: normalizeInferenceDatatype(field.datatype),
-      }))
+    ? fields
+        .filter((field) => field.name !== target)
+        .map((field) => ({
+          name: field.name,
+          dtype: normalizeInferenceDatatype(field.datatype),
+        }))
     : columns
         .filter((column) => column.name !== target)
         .map((column) => ({ name: column.name, dtype: column.type }));
+
+  // CSV-fallback only: features present in the importance data but absent from the
+  // CSV schema (e.g. engineered features) still need to be sent — with an unknown dtype.
+  // Skipped on the input-schema path, where the schema is the authoritative serving
+  // contract and already lists everything to send.
+  if (usedFeatures && !useInputSchema) {
+    const csvNames = new Set(columns.map((column) => column.name));
+    for (const name of usedFeatures) {
+      if (!csvNames.has(name) && name !== target) {
+        entries.push({ name, dtype: undefined });
+      }
+    }
+  }
 
   const rows: ModelSchemaRow[] = entries.map(({ name, dtype }) => {
     let role: ModelSchemaRole = 'Feature';
@@ -138,8 +145,6 @@ export const buildModelSchema = (
         role = 'ID column';
       } else if (name === timestampColumn) {
         role = 'Timestamp column';
-      } else if (name === target) {
-        role = 'Target history';
       } else if (knownCovariates.includes(name)) {
         role = 'Known covariate';
       }
@@ -152,25 +157,6 @@ export const buildModelSchema = (
       position: 0,
     };
   });
-
-  // Tabular CSV-fallback only: features present in the importance data but absent from the
-  // CSV schema (e.g. engineered features) still need to be sent — with an unknown dtype.
-  // Skipped on the input-schema path, where the schema is the authoritative serving
-  // contract and already lists everything to send.
-  if (usedFeatures && !useInputSchema) {
-    const csvNames = new Set(columns.map((column) => column.name));
-    for (const name of usedFeatures) {
-      if (!csvNames.has(name) && name !== target) {
-        rows.push({
-          name,
-          dtype: undefined,
-          role: 'Feature',
-          isUsed: true,
-          position: 0,
-        });
-      }
-    }
-  }
 
   // Assign 1-based positions in input order (rows above use a placeholder;
   // every row gets its final position here).
