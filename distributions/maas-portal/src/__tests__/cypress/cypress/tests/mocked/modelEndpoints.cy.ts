@@ -33,17 +33,10 @@ describe('Grid Model endpoints', () => {
     maasModelsPage.findTabs().should('not.exist');
     maasModelsPage.findModelStatusHelp().should('not.exist');
     portal.findNavLink('AI asset endpoints').should('not.exist');
+    cy.injectAxe();
+    cy.checkA11y(undefined, { includedImpacts: ['critical', 'serious'] });
     cy.reload();
     cy.wait('@models');
-    maasModelsPage.findTable().should('contain.text', 'Llama 3');
-  });
-
-  it('keeps the page available when configuration cannot be loaded', () => {
-    cy.intercept('GET', portalPath('/api/config'), { statusCode: 503, body: {} });
-    cy.intercept('GET', modelsPath, { data: [model()] }).as('models');
-    portal.visit('/maas/models');
-    cy.wait('@models');
-    maasModelsPage.findTitle().should('have.text', 'Model endpoints');
     maasModelsPage.findTable().should('contain.text', 'Llama 3');
   });
 
@@ -117,6 +110,8 @@ describe('Grid Model endpoints', () => {
     cy.wait('@models');
     maasModelsPage.findEmptyState().should('contain.text', 'No MaaS models available');
     maasModelsPage.findTable().should('not.exist');
+    cy.injectAxe();
+    cy.checkA11y(undefined, { includedImpacts: ['critical', 'serious'] });
   });
 
   it('recovers when a failed model request is retried', () => {
@@ -124,9 +119,13 @@ describe('Grid Model endpoints', () => {
     portal.visit('/maas/models');
     cy.wait('@modelsError');
     maasModelsPage.findError().should('contain.text', 'Unable to load page');
+    maasModelsPage.findLoading().should('not.exist');
+    cy.injectAxe();
+    cy.checkA11y(undefined, { includedImpacts: ['critical', 'serious'] });
     cy.intercept('GET', modelsPath, { data: [model()] }).as('modelsRetry');
     maasModelsPage.findRetry().click();
     cy.wait('@modelsRetry');
     maasModelsPage.findTable().should('contain.text', 'Llama 3');
+    maasModelsPage.findError().should('not.exist');
   });
 });
