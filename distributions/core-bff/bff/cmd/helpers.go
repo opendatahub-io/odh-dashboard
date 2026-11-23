@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strconv"
@@ -32,10 +33,12 @@ func getEnvAsBool(name string, defaultVal bool) bool {
 	return defaultVal
 }
 
-func parseLevel(s string) slog.Level {
+// parseLevel parses a LOG_LEVEL value. An invalid value falls back to INFO
+// with a warning on warnOut that does not echo the value.
+func parseLevel(s string, warnOut io.Writer) slog.Level {
 	var level slog.Level
 	if err := level.UnmarshalText([]byte(s)); err != nil {
-		fmt.Fprintf(os.Stderr, "invalid log level %q (valid: error, warn, info, debug), defaulting to INFO\n", s)
+		fmt.Fprintln(warnOut, "invalid LOG_LEVEL (value omitted; valid: error, warn, info, debug), defaulting to INFO")
 		return slog.LevelInfo
 	}
 	return level

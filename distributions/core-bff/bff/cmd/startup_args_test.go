@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"flag"
+	"log/slog"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -197,4 +198,39 @@ func TestParseStartupConfig_EnumEnvironmentErrorsDoNotEchoValues(t *testing.T) {
 			require.NoError(t, err, "a valid CLI value wins over the invalid environment value")
 		})
 	}
+}
+
+// An invalid LOG_LEVEL is never echoed, and it is not parsed at all when a
+// valid -log-level overrides it.
+func TestParseStartupConfig_LogLevelEnvironment(t *testing.T) {
+	const rejected = "sekret-looking-level"
+
+	t.Run("invalid LOG_LEVEL warns without the value and defaults to INFO", func(t *testing.T) {
+		isolateEnv(t)
+		t.Setenv("LOG_LEVEL", rejected)
+		var out strings.Builder
+		sc, err := parseStartupConfig(nil, &out)
+		require.NoError(t, err)
+		assert.Equal(t, slog.LevelInfo, sc.Env.LogLevel)
+		assert.Contains(t, out.String(), "invalid LOG_LEVEL (value omitted")
+		assert.NotContains(t, out.String(), rejected)
+	})
+
+	t.Run("a valid -log-level overrides an invalid LOG_LEVEL silently", func(t *testing.T) {
+		isolateEnv(t)
+		t.Setenv("LOG_LEVEL", rejected)
+		var out strings.Builder
+		sc, err := parseStartupConfig([]string{"-log-level=debug"}, &out)
+		require.NoError(t, err)
+		assert.Equal(t, slog.LevelDebug, sc.Env.LogLevel)
+		assert.Empty(t, out.String())
+	})
+
+	t.Run("valid LOG_LEVEL applies", func(t *testing.T) {
+		isolateEnv(t)
+		t.Setenv("LOG_LEVEL", "warn")
+		sc, err := parse(t)
+		require.NoError(t, err)
+		assert.Equal(t, slog.LevelWarn, sc.Env.LogLevel)
+	})
 }

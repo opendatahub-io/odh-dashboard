@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -70,7 +71,9 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	fs.StringVar(&cfg.StaticAssetsDir, "static-assets-dir",
 		getEnvAsString("STATIC_ASSETS_DIR", "./static"),
 		"Configure frontend static assets root directory")
-	fs.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "INFO")),
+	// LOG_LEVEL is applied after parsing, and only when -log-level is not set,
+	// so an overridden environment value is never parsed or reported.
+	fs.TextVar(&cfg.LogLevel, "log-level", slog.LevelInfo,
 		"Sets server log level, possible values: error, warn, info, debug")
 
 	// List-valued settings resolve their environment default eagerly, because
@@ -175,6 +178,10 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 
 	if envPortErr != nil && !setOnCLI["port"] {
 		return sc, envPortErr
+	}
+
+	if value, ok := lookupEnv("LOG_LEVEL"); ok && !setOnCLI["log-level"] {
+		cfg.LogLevel = parseLevel(value, errOut)
 	}
 
 	for _, e := range []struct {

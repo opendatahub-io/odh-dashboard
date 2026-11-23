@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log/slog"
 	"testing"
 )
@@ -128,7 +129,7 @@ func TestParseLevel(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := parseLevel(tc.input); got != tc.expected {
+			if got := parseLevel(tc.input, io.Discard); got != tc.expected {
 				t.Fatalf("parseLevel(%q) = %v, want %v", tc.input, got, tc.expected)
 			}
 		})

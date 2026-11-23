@@ -221,6 +221,25 @@ func TestCertReloaderRecoversAfterAnInvalidRotation(t *testing.T) {
 	}
 }
 
+// The initial load applies the rotation validity check. Startup validation
+// reads the files earlier, and the mounted Secret can change in between, so
+// the listener must not start on an expired or not-yet-valid pair it loaded
+// itself.
+func TestNewCertReloaderRejectsAPairOutsideItsValidityWindow(t *testing.T) {
+	now := time.Now()
+	for name, window := range map[string][2]time.Time{
+		"expired":       {now.Add(-2 * time.Hour), now.Add(-time.Hour)},
+		"not yet valid": {now.Add(time.Hour), now.Add(2 * time.Hour)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			certFile, keyFile := writeCertPairWithValidity(t, t.TempDir(), 1, window[0], window[1])
+			if _, err := NewCertReloader(certFile, keyFile, testLogger()); err == nil {
+				t.Fatalf("expected NewCertReloader to refuse a %s pair", name)
+			}
+		})
+	}
+}
+
 // Startup is fail-closed: a pair that does not load must not produce a server.
 func TestNewCertReloaderFailsClosedOnAnUnusablePair(t *testing.T) {
 	dir := t.TempDir()

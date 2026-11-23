@@ -173,6 +173,10 @@ func exactOriginProblem(origin string) string {
 		// CORS allowlist compares the configured string as written, so
 		// "https://dashboard.example/" would never match.
 		return "path (including a trailing slash), query and fragment are not allowed"
+	case (u.Scheme == "https" && u.Port() == "443") || (u.Scheme == "http" && u.Port() == "80"):
+		// Browsers omit the scheme's default port from Origin, and the
+		// allowlist compares strings as written, so this could never match.
+		return "the scheme's default port (:443 for https, :80 for http) must be omitted"
 	}
 	return ""
 }

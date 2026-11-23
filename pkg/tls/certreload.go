@@ -56,7 +56,10 @@ func NewCertReloader(certFile, keyFile string, logger *slog.Logger) (*CertReload
 	// harmlessly. The reverse order could pair the old certificate with the new
 	// times and keep serving it until the following rotation.
 	certMod, keyMod := modTime(certFile), modTime(keyFile)
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	// The same usability check as a rotation: the files may have changed since
+	// any earlier startup validation read them, so the pair the listener
+	// actually serves is the one whose validity window is checked.
+	cert, err := loadUsableKeyPair(certFile, keyFile, time.Now())
 	if err != nil {
 		return nil, fmt.Errorf("failed to load serving certificate (cert=%s key=%s): %w", certFile, keyFile, err)
 	}
@@ -119,8 +122,8 @@ func (r *CertReloader) reloadLocked(certMod, keyMod time.Time) (current *tls.Cer
 	return r.current, true, nil
 }
 
-// loadUsableKeyPair loads a rotated pair and rejects a leaf outside its
-// validity window at now. A pair that parses and matches is not necessarily a
+// loadUsableKeyPair loads a pair, at startup or on rotation, and rejects a
+// leaf outside its validity window at now. A pair that parses and matches is not necessarily a
 // usable replacement: promoting an expired or not-yet-valid certificate would
 // displace a working one and make verifying clients reject new connections.
 // Trust is not checked; a private or service CA is legitimate.
@@ -132,14 +135,14 @@ func loadUsableKeyPair(certFile, keyFile string, now time.Time) (tls.Certificate
 	leaf := cert.Leaf
 	if leaf == nil {
 		if leaf, err = x509.ParseCertificate(cert.Certificate[0]); err != nil {
-			return tls.Certificate{}, fmt.Errorf("parse rotated leaf certificate: %w", err)
+			return tls.Certificate{}, fmt.Errorf("parse leaf certificate: %w", err)
 		}
 	}
 	switch {
 	case now.Before(leaf.NotBefore):
-		return tls.Certificate{}, fmt.Errorf("rotated certificate is not valid until %s", leaf.NotBefore.UTC().Format(time.RFC3339))
+		return tls.Certificate{}, fmt.Errorf("certificate is not valid until %s", leaf.NotBefore.UTC().Format(time.RFC3339))
 	case now.After(leaf.NotAfter):
-		return tls.Certificate{}, fmt.Errorf("rotated certificate expired at %s", leaf.NotAfter.UTC().Format(time.RFC3339))
+		return tls.Certificate{}, fmt.Errorf("certificate expired at %s", leaf.NotAfter.UTC().Format(time.RFC3339))
 	}
 	return cert, nil
 }

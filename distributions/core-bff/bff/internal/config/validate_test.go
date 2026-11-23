@@ -113,6 +113,9 @@ func TestValidate_ProductionRejectsWildcardAndInexactOrigins(t *testing.T) {
 		"https://",
 		// Browsers send Origin without a trailing slash, so this could never match.
 		"https://dashboard.example.com/",
+		// Browsers omit the default port from Origin, so these could never match either.
+		"https://dashboard.example.com:443",
+		"http://dashboard.example.com:80",
 	} {
 		t.Run(origin, func(t *testing.T) {
 			cfg := productionConfig()
@@ -134,6 +137,8 @@ func TestValidate_ProductionAcceptsExactOrigins(t *testing.T) {
 	cfg.AllowedOrigins = []string{
 		"https://dashboard.example.com",
 		" http://localhost:9000 ",
+		"https://dashboard.example.com:8443",
+		"http://dashboard.example.com:443",
 		"",
 	}
 
