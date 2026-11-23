@@ -110,3 +110,17 @@ func TestReportedServerURL_MatchesProxyTarget(t *testing.T) {
 	assert.Equal(t, host, reportedServerURL(kc))
 	assert.Equal(t, "api.cluster.example/extra", reportedServerURL(&rest.Config{Host: "api.cluster.example/extra"}), "unresolvable hosts are reported as configured")
 }
+
+// Review (RHOAIENG-96081): in the default mock dev profile (disabled auth,
+// DEV_MODE) the identity is a DevFallback. The REST clients run it as the
+// envtest admin, so the proxy must not impersonate the dev user either.
+func TestImpersonateFromIdentity_DevFallbackNotImpersonated(t *testing.T) {
+	identity := &k8s.RequestIdentity{UserID: "developer", Groups: []string{"system:authenticated"}, DevFallback: true}
+	req := reqWithIdentity(httptest.NewRequest(http.MethodGet, "/", nil), identity)
+	out := http.Header{}
+
+	impersonateFromIdentity(req, out)
+
+	assert.Empty(t, out.Get("Impersonate-User"))
+	assert.Empty(t, out.Values("Impersonate-Group"))
+}
