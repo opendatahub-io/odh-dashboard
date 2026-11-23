@@ -1,5 +1,5 @@
 import React from 'react';
-import { Label, Skeleton } from '@patternfly/react-core';
+import { Label, LabelProps, Skeleton } from '@patternfly/react-core';
 import { getRayJobStatusSync, getStatusInfo } from '../utils';
 import { RayJobKind } from '../../../k8sTypes';
 import { JobDisplayState } from '../../../types';
@@ -9,6 +9,7 @@ type RayJobStatusProps = {
   jobStatus?: JobDisplayState;
   isLoading?: boolean;
   onClick?: () => void;
+  variant?: LabelProps['variant'];
 };
 
 const RayJobStatus = ({
@@ -16,6 +17,7 @@ const RayJobStatus = ({
   jobStatus,
   isLoading = false,
   onClick,
+  variant,
 }: RayJobStatusProps): React.ReactElement => {
   const status = jobStatus ?? getRayJobStatusSync(job);
   const isLoadingStatus = isLoading && jobStatus === undefined;
@@ -28,7 +30,7 @@ const RayJobStatus = ({
 
   return (
     <Label
-      variant={onClick ? 'filled' : 'outline'}
+      variant={variant ?? (onClick ? 'filled' : 'outline')}
       isCompact
       status={statusInfo.status}
       color={statusInfo.color}
