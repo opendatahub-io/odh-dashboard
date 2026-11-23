@@ -24,11 +24,17 @@ class MockNamespaceListUnavailableError extends Error {
     super('Namespace listing is partial');
   }
 }
+class MockProjectAccessDeniedError extends Error {
+  constructor() {
+    super('No access to that project, or it does not exist.');
+  }
+}
 jest.mock('../fetchNamespaces', () => ({
   __esModule: true,
   default: (...args: [AbortSignal?]) => mockFetchNamespaces(...args),
   fetchNamespaceByName: (...args: [string, AbortSignal?]) => mockFetchNamespaceByName(...args),
   NamespaceListUnavailableError: MockNamespaceListUnavailableError,
+  ProjectAccessDeniedError: MockProjectAccessDeniedError,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -64,8 +70,13 @@ const project = (name: string): ProjectKind => ({
 });
 
 const Consumer: React.FC = () => {
-  const { projects, modelServingProjects, deploymentTargetProjects, preferredProject } =
-    React.useContext(ProjectsContext);
+  const {
+    projects,
+    modelServingProjects,
+    deploymentTargetProjects,
+    preferredProject,
+    getProjectDeploymentActions,
+  } = React.useContext(ProjectsContext);
   const working = useWorkingProject();
   return (
     <>
@@ -80,8 +91,18 @@ const Consumer: React.FC = () => {
         {(deploymentTargetProjects ?? []).map(({ metadata }) => metadata.name).join(',')}
       </div>
       <div data-testid="working-project">{working.activeProject?.name ?? 'none'}</div>
+      <div data-testid="allowed-actions">
+        {JSON.stringify(getProjectDeploymentActions?.('allowed') ?? null)}
+      </div>
       <div data-testid="route-project">{preferredProject?.metadata.name ?? 'none'}</div>
       <button onClick={() => working.selectProject({ name: 'allowed' })}>Select allowed</button>
+      <button
+        onClick={() =>
+          void Promise.resolve(working.selectProject({ name: 'allowed' })).catch(() => undefined)
+        }
+      >
+        Try allowed
+      </button>
       <button onClick={() => working.selectProject({ name: 'denied' })}>Select denied</button>
       <button
         onClick={() => {
@@ -556,6 +577,79 @@ describe('RHAII working project provider integration', () => {
     expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed,legacy');
     // View-only projects stay available for browsing deployments.
     expect(screen.getByTestId('serving-projects')).toHaveTextContent('allowed,another,legacy');
+  });
+
+  it('should watch only viewable projects and keep a create-only project as a target', async () => {
+    mockFetchNamespaces.mockResolvedValue([
+      { ...project('allowed'), canView: true, canDeploy: true, canEdit: false, canDelete: true },
+      { ...project('create-only'), canView: false, canDeploy: true },
+      project('legacy'),
+    ] as ProjectKind[]);
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed,legacy'),
+    );
+    expect(screen.getByTestId('serving-projects')).toHaveTextContent('allowed,legacy');
+    expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed,create-only,legacy');
+    expect(screen.getByTestId('allowed-actions')).toHaveTextContent(
+      JSON.stringify({ canEdit: false, canDelete: true }),
+    );
+  });
+
+  it('should report no deployment actions for a project without discovery data', async () => {
+    mockFetchNamespaces.mockResolvedValue([project('allowed')]);
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed'));
+    expect(screen.getByTestId('allowed-actions')).toHaveTextContent('null');
+  });
+
+  it('should stop offering a cached project once a lookup denies it', async () => {
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([
+        Object.assign(project('allowed'), { canDeploy: true }),
+        Object.assign(project('another'), { canDeploy: true }),
+      ]),
+    );
+    mockFetchNamespaceByName.mockRejectedValue(new MockProjectAccessDeniedError());
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed,another'),
+    );
+    fireEvent.click(screen.getByText('Try allowed'));
+    await waitFor(() => expect(screen.getByTestId('deploy-targets')).toHaveTextContent('another'));
+    expect(screen.getByTestId('known-projects')).toHaveTextContent('another');
+    expect(screen.getByTestId('known-projects')).not.toHaveTextContent('allowed');
+    expect(screen.getByTestId('working-project')).toHaveTextContent('none');
+  });
+
+  it('should keep a cached project when a lookup fails without a decision', async () => {
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([
+        Object.assign(project('allowed'), { canDeploy: true }),
+      ]),
+    );
+    mockFetchNamespaceByName.mockRejectedValue(new Error('Unable to search for projects.'));
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed'));
+    fireEvent.click(screen.getByText('Try allowed'));
+    await waitFor(() => expect(mockFetchNamespaceByName).toHaveBeenCalled());
+    expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed');
   });
 
   it('should preserve the legacy project context when UPS is disabled', async () => {

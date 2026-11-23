@@ -16,6 +16,7 @@ import { useWorkingProjectSynchronization } from '@odh-dashboard/ui-core/hooks/u
 import fetchNamespaces, {
   FETCH_TIMEOUT_MS,
   NamespaceListUnavailableError,
+  ProjectAccessDeniedError,
   fetchNamespaceByName,
   type RhaiiProject,
 } from './fetchNamespaces';
@@ -150,12 +151,15 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         }
       }
       const sorted = active.toSorted((a, b) => a.metadata.name.localeCompare(b.metadata.name));
+      // Only projects where the caller may list deployments are browsed and
+      // watched: listing models in a create-only project would fail with 403
+      // and put the deployments page into its error state.
+      const viewable = sorted.filter((project) => project.canView !== false);
       return {
-        projects: sorted,
-        // On xKS every available namespace can hold model deployments to view.
-        modelServingProjects: sorted,
-        // Namespace discovery marks where the caller may deploy; a project it
-        // reports without deploy access is browsable but never a deployment target.
+        projects: viewable,
+        modelServingProjects: viewable,
+        // Namespace discovery marks where the caller may deploy. A create-only
+        // project is still a deployment target; a view-only one never is.
         deploymentTargetProjects: sorted.filter((project) => project.canDeploy !== false),
         nonActiveProjects: terminating.toSorted((a, b) =>
           a.metadata.name.localeCompare(b.metadata.name),
@@ -296,9 +300,21 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [dashboardNamespace],
   );
 
+  const forgetProject = React.useCallback((name: string) => {
+    setProjectData((previous) => previous.filter((p) => p.metadata.name !== name));
+  }, []);
+
   const validateProject = React.useCallback(
     async (name: string, signal?: AbortSignal) => {
-      const project = await fetchNamespaceByName(name, signal);
+      const project = await fetchNamespaceByName(name, signal).catch((err: unknown) => {
+        // A definitive denial revokes what this session cached for the
+        // project, so it stops being offered as a target. A lookup that could
+        // not be completed keeps it.
+        if (err instanceof ProjectAccessDeniedError) {
+          forgetProject(name);
+        }
+        throw err;
+      });
       if (signal?.aborted) {
         throw new DOMException('The operation was aborted.', 'AbortError');
       }
@@ -307,7 +323,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       }
       return project;
     },
-    [dashboardNamespace],
+    [dashboardNamespace, forgetProject],
   );
 
   const discoverProject = React.useCallback(
@@ -423,11 +439,25 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     return () => controller.abort();
   }, [status, unifiedProjectSelectorEnabled, addProject]);
 
+  const getProjectDeploymentActions = React.useCallback<
+    NonNullable<ProjectsContextType['getProjectDeploymentActions']>
+  >(
+    (name) => {
+      const project = projectData.find(byName(name));
+      if (!project || (project.canEdit === undefined && project.canDelete === undefined)) {
+        return undefined;
+      }
+      return { canEdit: project.canEdit !== false, canDelete: project.canDelete !== false };
+    },
+    [projectData],
+  );
+
   const contextValue = React.useMemo<ProjectsContextType>(
     () => ({
       projects,
       modelServingProjects,
       deploymentTargetProjects,
+      getProjectDeploymentActions,
       nonActiveProjects,
       preferredProject:
         loaded && !loadError
@@ -442,6 +472,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       projects,
       modelServingProjects,
       deploymentTargetProjects,
+      getProjectDeploymentActions,
       nonActiveProjects,
       preferredProject,
       updatePreferredProject,

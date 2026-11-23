@@ -1,6 +1,7 @@
 import { isAiProject, KnownLabels } from '@odh-dashboard/k8s-core';
 import fetchNamespaces, {
   NamespaceListUnavailableError,
+  ProjectAccessDeniedError,
   fetchNamespaceByName,
 } from '../fetchNamespaces';
 import { isAiClassificationUnknown } from '../aiClassification';
@@ -37,7 +38,10 @@ const accessEntry = (
   overrides: {
     phase?: string;
     displayName?: string;
+    view?: boolean;
     deploy?: boolean;
+    edit?: boolean;
+    delete?: boolean;
     unclassified?: boolean;
   } = {},
 ) => ({
@@ -47,10 +51,10 @@ const accessEntry = (
   // The BFF omits the classification when it could not read the namespace.
   ...(!overrides.unclassified && { isAiProject: false }),
   actions: {
-    view: true,
+    view: overrides.view ?? true,
     deploy: overrides.deploy ?? true,
-    edit: false,
-    delete: false,
+    edit: overrides.edit ?? false,
+    delete: overrides.delete ?? false,
     manageTokenAuth: false,
   },
   permissions: {},
@@ -107,14 +111,20 @@ describe('fetchNamespaces', () => {
           kind: 'Namespace',
           metadata: { name: 'deployer', annotations: { 'openshift.io/display-name': 'Deployer' } },
           status: { phase: 'Active' },
+          canView: true,
           canDeploy: true,
+          canEdit: false,
+          canDelete: false,
         },
         {
           apiVersion: 'v1',
           kind: 'Namespace',
           metadata: { name: 'reader' },
           status: { phase: 'Active' },
+          canView: true,
           canDeploy: false,
+          canEdit: false,
+          canDelete: false,
         },
       ]);
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -187,15 +197,58 @@ describe('fetchNamespaces', () => {
       ).toEqual(['team-a']);
     });
 
-    it('should keep manual entry available when discovery is unavailable', async () => {
-      const fetchMock = mockRoutes({ access: { ok: false, status: 503 } as Response });
+    it('should map each discovered action', async () => {
+      mockRoutes({
+        access: ok(
+          accessList('cluster-list', [
+            accessEntry('create-only', { view: false, deploy: true }),
+            accessEntry('editor', { edit: true, delete: true }),
+          ]),
+        ),
+      });
 
-      const error = await fetchNamespaces().catch((e: unknown) => e);
+      const result = await fetchNamespaces();
 
-      expect(error).toBeInstanceOf(NamespaceListUnavailableError);
-      expect((error as NamespaceListUnavailableError).projects).toEqual([]);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(
+        result.map(({ canView, canDeploy, canEdit, canDelete }) => [
+          canView,
+          canDeploy,
+          canEdit,
+          canDelete,
+        ]),
+      ).toEqual([
+        [false, true, false, false],
+        [true, true, true, true],
+      ]);
     });
+
+    it('should keep the namespace list a lister had when discovery is unavailable', async () => {
+      const fetchMock = mockRoutes({
+        access: { ok: false, status: 503 } as Response,
+        legacy: ok(mockNamespaceList(['team-a', 'team-b'])),
+      });
+
+      const result = await fetchNamespaces();
+
+      expect(result.map((p) => p.metadata.name)).toEqual(['team-a', 'team-b']);
+      expect(result[0].canDeploy).toBeUndefined();
+      expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/namespaces', { signal: undefined });
+    });
+
+    it.each([403, 500])(
+      'should keep manual entry available when discovery and the list are unavailable (%s)',
+      async (status) => {
+        mockRoutes({
+          access: { ok: false, status: 503 } as Response,
+          legacy: { ok: false, status } as Response,
+        });
+
+        const error = await fetchNamespaces().catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(NamespaceListUnavailableError);
+        expect((error as NamespaceListUnavailableError).projects).toEqual([]);
+      },
+    );
 
     it('should surface other discovery failures instead of an empty list', async () => {
       mockRoutes({ access: { ok: false, status: 500 } as Response });
@@ -371,7 +424,7 @@ describe('fetchNamespaceByName', () => {
 
   it('should reject a namespace discovery denies without falling back', async () => {
     const fetchMock = mockRoutes({ access: { ok: false, status: 403 } as Response });
-    await expect(fetchNamespaceByName('denied')).rejects.toThrow('No access to that project');
+    await expect(fetchNamespaceByName('denied')).rejects.toBeInstanceOf(ProjectAccessDeniedError);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -407,6 +460,11 @@ describe('fetchNamespaceByName', () => {
     mockRoutes({ access: { ok: false, status: 401 } as Response });
     await expect(fetchNamespaceByName('waiting')).rejects.toThrow('Sign in again');
     mockRoutes({ access: { ok: false, status: 503 } as Response });
-    await expect(fetchNamespaceByName('waiting')).rejects.toThrow('Unable to search for projects');
+    const unavailable = await fetchNamespaceByName('waiting').catch((e: unknown) => e);
+    expect(unavailable).toHaveProperty(
+      'message',
+      'Unable to search for projects. Try again later.',
+    );
+    expect(unavailable).not.toBeInstanceOf(ProjectAccessDeniedError);
   });
 });

@@ -2,6 +2,11 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import {
+  ProjectsContext,
+  type ProjectsContextType,
+  type ProjectDeploymentActions,
+} from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
 import { useAssignHardwareProfile } from '@odh-dashboard/hardware-profiles/shared/useAssignHardwareProfile';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
@@ -365,6 +370,64 @@ describe('DeploymentsTableRow', () => {
       expect(screen.getByText('https://internal-endpoint.com')).toBeInTheDocument();
       expect(screen.getByTestId('api-protocol-label')).toBeInTheDocument();
       expect(screen.getByTestId('api-protocol-label')).toHaveTextContent('REST');
+    });
+  });
+
+  describe("with the caller's project actions", () => {
+    const renderWithActions = (actions: ProjectDeploymentActions | undefined) => {
+      const context = {
+        projects: [],
+        modelServingProjects: [],
+        nonActiveProjects: [],
+        preferredProject: null,
+        updatePreferredProject: jest.fn(),
+        waitForProject: jest.fn(),
+        loaded: true,
+        loadError: undefined,
+        getProjectDeploymentActions: (name: string) =>
+          name === 'test-project' ? actions : undefined,
+      } satisfies ProjectsContextType;
+      renderWithRouter(
+        <ProjectsContext.Provider value={context}>
+          <table>
+            <tbody>
+              <DeploymentRow
+                deployment={mockDeployment({})}
+                platformColumns={[]}
+                onDelete={onDelete}
+                rowIndex={0}
+              />
+            </tbody>
+          </table>
+        </ProjectsContext.Provider>,
+      );
+    };
+
+    it('should not offer Edit or Delete to a read-only caller', () => {
+      renderWithActions({ canEdit: false, canDelete: false });
+      expect(screen.queryByRole('button', { name: 'Kebab toggle' })).not.toBeInTheDocument();
+    });
+
+    it('should gate Edit and Delete independently', () => {
+      renderWithActions({ canEdit: false, canDelete: true });
+      fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+      expect(onDelete).toHaveBeenCalled();
+    });
+
+    it('should offer Edit without Delete', () => {
+      renderWithActions({ canEdit: true, canDelete: false });
+      fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
+    });
+
+    it('should offer every action when the project has none reported', () => {
+      renderWithActions(undefined);
+      fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
     });
   });
 });

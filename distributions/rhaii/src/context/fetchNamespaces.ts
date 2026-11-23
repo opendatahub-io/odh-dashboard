@@ -3,11 +3,16 @@ import { isValidK8sName, KnownLabels, NamespacePhase } from '@odh-dashboard/k8s-
 import type { AiClassificationUnknown } from './aiClassification';
 
 /**
- * A project as the RHAII UI knows it. `canDeploy` comes from the Core BFF's
- * namespace discovery on xKS (`actions.deploy`); it is absent on platforms
+ * A project as the RHAII UI knows it. The `can*` fields come from the Core
+ * BFF's namespace discovery on xKS (`actions`); they are absent on platforms
  * without that endpoint, where every listed project keeps today's behaviour.
  */
-export type RhaiiProject = ProjectKind & { canDeploy?: boolean } & AiClassificationUnknown;
+export type RhaiiProject = ProjectKind & {
+  canView?: boolean;
+  canDeploy?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+} & AiClassificationUnknown;
 
 type K8sNamespaceItem = {
   name?: string;
@@ -43,6 +48,16 @@ const NAMESPACES_PATH = '/api/v1/namespaces';
 const PHASE_UNKNOWN = 'Unknown';
 
 const NO_ACCESS_MESSAGE = 'No access to that project, or it does not exist.';
+
+/**
+ * The BFF decided the caller has no access to the project (or it does not
+ * exist), as opposed to a lookup that could not be completed.
+ */
+export class ProjectAccessDeniedError extends Error {
+  constructor() {
+    super(NO_ACCESS_MESSAGE);
+  }
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -108,6 +123,7 @@ const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
     return null;
   }
   const usable = phase === NamespacePhase.Active || phase === PHASE_UNKNOWN;
+  const allowed = (action: string) => isRecord(actions) && actions[action] === true;
   return {
     ...namespaceToProject(
       name,
@@ -115,7 +131,10 @@ const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
       item.displayName,
       item.isAiProject,
     ),
-    canDeploy: isRecord(actions) && actions.deploy === true,
+    canView: allowed('view'),
+    canDeploy: allowed('deploy'),
+    canEdit: allowed('edit'),
+    canDelete: allowed('delete'),
     ...(typeof item.isAiProject !== 'boolean' && { aiClassificationUnknown: true }),
   };
 };
@@ -148,7 +167,7 @@ type NamespaceResponse = {
 
 const lookupError = (status: number): Error => {
   if (status === 403 || status === 404) {
-    return new Error(NO_ACCESS_MESSAGE);
+    return new ProjectAccessDeniedError();
   }
   if (status === 401) {
     return new Error('Sign in again to search for projects.');
@@ -166,7 +185,7 @@ const fetchLegacyNamespaceByName = async (
   }
   const body: NamespaceResponse = await response.json();
   if (body.data?.name !== name || body.data.phase !== NamespacePhase.Active) {
-    throw new Error(NO_ACCESS_MESSAGE);
+    throw new ProjectAccessDeniedError();
   }
   return namespaceToProject(name, body.data.phase, body.data.displayName, body.data.isAiProject);
 };
@@ -192,7 +211,7 @@ export const fetchNamespaceByName = async (
   const body: NamespaceResponse = await response.json();
   const project = body.data && body.data.name === name ? accessToProject(body.data) : null;
   if (!project || project.status?.phase !== NamespacePhase.Active) {
-    throw new Error(NO_ACCESS_MESSAGE);
+    throw new ProjectAccessDeniedError();
   }
   return project;
 };
@@ -223,9 +242,18 @@ const fetchNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject[]> =>
     return fetchLegacyNamespaces(signal);
   }
   if (resp.status === 503) {
-    // Discovery found nothing because its sources or reviews failed. Looking a
-    // namespace up by name can still work, so keep manual entry available.
-    throw new NamespaceListUnavailableError('Namespace discovery is unavailable', []);
+    // Discovery found nothing because its sources or reviews failed. A caller
+    // who may list namespaces keeps the list they had before discovery; for
+    // anyone else, looking a namespace up by name can still work, so keep
+    // manual entry available.
+    try {
+      return await fetchLegacyNamespaces(signal);
+    } catch (err) {
+      if (signal?.aborted) {
+        throw err;
+      }
+      throw new NamespaceListUnavailableError('Namespace discovery is unavailable', []);
+    }
   }
   if (!resp.ok) {
     throw new Error(`Failed to list namespaces (HTTP ${resp.status})`);

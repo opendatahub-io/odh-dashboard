@@ -106,6 +106,7 @@ const DeploymentWizardForm: React.FC<DeploymentWizardFormProps> = ({
     wizardFormData.state,
     wizardFormData.fields,
     shouldShowPreconfigureStep,
+    !!existingDeployment,
   );
   const currentProjectName = wizardFormData.state.project.projectName ?? undefined;
 

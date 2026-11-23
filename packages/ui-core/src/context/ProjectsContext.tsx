@@ -1,6 +1,15 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 
+/**
+ * What the caller may do to the deployments in one project, when the host
+ * knows it (RHAII on xKS).
+ */
+export type ProjectDeploymentActions = {
+  canEdit: boolean;
+  canDelete: boolean;
+};
+
 export type ProjectsContextType = {
   projects: ProjectKind[];
   modelServingProjects: ProjectKind[];
@@ -12,6 +21,11 @@ export type ProjectsContextType = {
    * `projects` stays the full collection for browsing.
    */
   deploymentTargetProjects?: ProjectKind[];
+  /**
+   * The caller's deployment actions in a project, when the host knows them.
+   * Unset, or undefined for a project, means every action is offered.
+   */
+  getProjectDeploymentActions?: (projectName: string) => ProjectDeploymentActions | undefined;
 
   /** Some component set this value, you should use this instead of projects[0] */
   preferredProject: ProjectKind | null;

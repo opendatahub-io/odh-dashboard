@@ -86,8 +86,11 @@ export const DeploymentRow: React.FC<{
 
   const { watchDeployment } = useModelDeploymentNotification(deployment);
 
-  const { projects } = React.useContext(ProjectsContext);
+  const { projects, getProjectDeploymentActions } = React.useContext(ProjectsContext);
   const { namespace } = deployment.model.metadata;
+  const projectActions = namespace ? getProjectDeploymentActions?.(namespace) : undefined;
+  const canEdit = projectActions?.canEdit !== false;
+  const canDelete = projectActions?.canDelete !== false;
   const project = projects.find((p) => p.metadata.name === namespace);
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
   const trackEvent = useTrackEvent();
@@ -274,24 +277,34 @@ export const DeploymentRow: React.FC<{
           )}
         </Td>
         <Td isActionCell>
-          <ResourceActionsColumn
-            resource={deployment.model}
-            items={[
-              {
-                title: <span data-testid="edit-inference-service-action">Edit</span>,
-                onClick: () => {
-                  navigateToDeploymentWizard(deployment.model.metadata.namespace);
-                },
-              },
-              { isSeparator: true },
-              {
-                title: <span data-testid="delete-inference-service-action">Delete</span>,
-                onClick: () => {
-                  onDelete(deployment);
-                },
-              },
-            ]}
-          />
+          {canEdit || canDelete ? (
+            <ResourceActionsColumn
+              resource={deployment.model}
+              items={[
+                ...(canEdit
+                  ? [
+                      {
+                        title: <span data-testid="edit-inference-service-action">Edit</span>,
+                        onClick: () => {
+                          navigateToDeploymentWizard(deployment.model.metadata.namespace);
+                        },
+                      },
+                    ]
+                  : []),
+                ...(canEdit && canDelete ? [{ isSeparator: true }] : []),
+                ...(canDelete
+                  ? [
+                      {
+                        title: <span data-testid="delete-inference-service-action">Delete</span>,
+                        onClick: () => {
+                          onDelete(deployment);
+                        },
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          ) : null}
         </Td>
       </ResourceTr>
       {showExpandedToggle && pathsLoaded && (
@@ -331,10 +344,14 @@ export const DeploymentRow: React.FC<{
                 }
               : undefined
           }
-          onEditDeployment={() => {
-            setEditLoading(true);
-            navigateToDeploymentWizard(deployment.model.metadata.namespace);
-          }}
+          onEditDeployment={
+            canEdit
+              ? () => {
+                  setEditLoading(true);
+                  navigateToDeploymentWizard(deployment.model.metadata.namespace);
+                }
+              : undefined
+          }
           isEditLoading={isEditLoading}
         />
       )}
