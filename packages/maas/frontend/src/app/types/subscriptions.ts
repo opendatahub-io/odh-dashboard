@@ -191,6 +191,7 @@ export type RateLimit = {
 
 export type ModelOverviewSubscription = {
   name: string;
+  namespace: string;
   displayName?: string;
   phase?: string;
   statusMessage?: string;
@@ -205,6 +206,7 @@ export type ModelOverviewSubscription = {
 
 export type ModelOverviewPolicy = {
   name: string;
+  namespace: string;
   displayName?: string;
   phase?: string;
   statusMessage?: string;

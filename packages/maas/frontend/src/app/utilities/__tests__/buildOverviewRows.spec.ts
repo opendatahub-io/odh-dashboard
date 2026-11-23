@@ -95,6 +95,7 @@ describe('buildOverviewRows', () => {
     expect(granite?.subscriptions).toEqual([
       {
         name: 'premium-team-sub',
+        namespace: 'maas-system',
         displayName: 'Premium Team',
         phase: 'Active',
         statusMessage: 'Active subscription',
@@ -109,6 +110,7 @@ describe('buildOverviewRows', () => {
     expect(granite?.authPolicies).toEqual([
       {
         name: 'premium-team-sub-policy',
+        namespace: 'maas-system',
         displayName: 'Premium Team Policy',
         phase: 'Active',
         statusMessage: 'Active policy',

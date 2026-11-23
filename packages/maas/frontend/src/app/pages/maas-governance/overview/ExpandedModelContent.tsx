@@ -13,6 +13,7 @@ import {
 import { RhMicronsCaretDownIcon, RhMicronsCaretUpIcon } from '@patternfly/react-icons';
 import { ActionsColumn, ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
@@ -198,6 +199,9 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
 
 type EntryActionsProps = {
   testId: string;
+  resource: 'maassubscriptions' | 'maasauthpolicies';
+  name: string;
+  namespace: string;
   isDisabled?: boolean;
   onViewDetails: () => void;
   onEdit: () => void;
@@ -206,21 +210,47 @@ type EntryActionsProps = {
 
 const EntryActions: React.FC<EntryActionsProps> = ({
   testId,
+  resource,
+  name,
+  namespace,
   isDisabled,
   onViewDetails,
   onEdit,
   onDelete,
-}) => (
-  <ActionsColumn
-    data-testid={testId}
-    items={[
-      { title: 'View details', onClick: onViewDetails },
-      { title: 'Edit', onClick: onEdit, isDisabled },
-      { isSeparator: true },
-      { title: 'Delete', onClick: onDelete, isDisabled },
-    ]}
-  />
-);
+}) => {
+  // Route-level admin access does not establish update/delete access to these
+  // resources, so each mutation action is gated by its own access review.
+  const [updateAllowed] = useAccessReview({
+    group: 'maas.opendatahub.io',
+    resource,
+    name,
+    namespace,
+    verb: 'update',
+  });
+  const [deleteAllowed] = useAccessReview({
+    group: 'maas.opendatahub.io',
+    resource,
+    name,
+    namespace,
+    verb: 'delete',
+  });
+
+  const items = [
+    { title: 'View details', onClick: onViewDetails },
+    ...(updateAllowed ? [{ title: 'Edit', onClick: onEdit, isDisabled }] : []),
+    ...(deleteAllowed
+      ? [{ isSeparator: true }, { title: 'Delete', onClick: onDelete, isDisabled }]
+      : []),
+  ];
+
+  // ActionsColumn does not forward data-testid to the DOM, so the wrapper span
+  // carries it for test selectors.
+  return (
+    <span data-testid={testId}>
+      <ActionsColumn items={items} />
+    </span>
+  );
+};
 
 type SectionHeaderProps = {
   title: string;
@@ -368,6 +398,9 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                 actions={
                   <EntryActions
                     testId={`overview-subscription-actions-${sub.name}`}
+                    resource="maassubscriptions"
+                    name={sub.name}
+                    namespace={sub.namespace}
                     isDisabled={!!sub.deletionTimestamp}
                     onViewDetails={() =>
                       navigate(getSubscriptionViewUrl(sub.name), { state: OVERVIEW_LINK_STATE })
@@ -487,6 +520,9 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
                 actions={
                   <EntryActions
                     testId={`overview-policy-actions-${policy.name}`}
+                    resource="maasauthpolicies"
+                    name={policy.name}
+                    namespace={policy.namespace}
                     isDisabled={!!policy.deletionTimestamp}
                     onViewDetails={() =>
                       navigate(getAuthPolicyViewUrl(policy.name), { state: OVERVIEW_LINK_STATE })

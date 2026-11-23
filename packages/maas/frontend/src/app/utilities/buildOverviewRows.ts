@@ -35,6 +35,7 @@ export const buildOverviewRows = (
       const key = modelKey(ref.namespace, ref.name);
       const entry: ModelOverviewSubscription = {
         name: sub.name,
+        namespace: sub.namespace,
         displayName: sub.displayName,
         phase: sub.phase,
         statusMessage: sub.statusMessage,
@@ -62,6 +63,7 @@ export const buildOverviewRows = (
       const key = modelKey(ref.namespace, ref.name);
       const entry: ModelOverviewPolicy = {
         name: policy.name,
+        namespace: policy.namespace,
         displayName: policy.displayName,
         phase: policy.phase,
         statusMessage: policy.statusMessage,
