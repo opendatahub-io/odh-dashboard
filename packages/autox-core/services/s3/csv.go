@@ -26,7 +26,6 @@ func CountCSVRows(ctx context.Context, r io.Reader) (int64, error) {
 	bufferedInput := bufio.NewReader(recordInput)
 	reader := csv.NewReader(bufferedInput)
 	reader.TrimLeadingSpace = true
-	reader.LazyQuotes = true
 	reader.FieldsPerRecord = -1
 	reader.ReuseRecord = true
 	var records int64

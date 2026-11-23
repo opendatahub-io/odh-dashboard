@@ -20,6 +20,7 @@ func TestCountCSVRows(t *testing.T) {
 		{name: "no trailing newline", csv: "name,value\na,1", want: 1},
 		{name: "beyond schema sample", csv: "name,value\n" + strings.Repeat("a,1\n", 144), want: 144},
 		{name: "quoted multiline and commas", csv: "name,value\n\"a,b\",1\n\"two\nlines\",2\n", want: 2},
+		{name: "quoted multiline at EOF", csv: "name,value\n\"two\nlines\",\"a\"\"b\"", want: 1},
 		{name: "blank lines and CRLF", csv: "name,value\r\n\r\na,1\r\n\r\nb,2\r\n", want: 2},
 		{name: "many blank lines", csv: strings.Repeat("\n", int(maxCSVRecordBytes)+1)},
 		{name: "different field counts", csv: "name,value\na\nb,1,2\n", want: 2},
@@ -28,6 +29,17 @@ func TestCountCSVRows(t *testing.T) {
 			got, err := CountCSVRows(context.Background(), strings.NewReader(tc.csv))
 			if err != nil || got != tc.want {
 				t.Fatalf("CountCSVRows() = %d, %v; want %d, nil", got, err, tc.want)
+			}
+		})
+	}
+}
+
+func TestCountCSVRows_InvalidQuotes(t *testing.T) {
+	for _, record := range []string{"\"unterminated", "\"two\nlines\n", "bare\"quote,2\n"} {
+		t.Run(record, func(t *testing.T) {
+			count, err := CountCSVRows(context.Background(), strings.NewReader("name,value\nvalid,1\n"+record))
+			if count != 0 || !errors.Is(err, ErrInvalidCSV) {
+				t.Fatalf("expected invalid CSV without a partial count, got %d, %v", count, err)
 			}
 		})
 	}

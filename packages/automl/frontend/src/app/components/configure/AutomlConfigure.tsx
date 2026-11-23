@@ -185,6 +185,7 @@ function AutomlConfigure({
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);
   const [isTrainingDataUploadDropdownOpen, setIsTrainingDataUploadDropdownOpen] = useState(false);
   const trainingDataUploadSeqRef = useRef(0);
+  const pendingTrainingDataCollapseRef = useRef<string>();
   const trainingDataNativeInputRef = useRef<HTMLInputElement>(null);
   const [selectedTestDataFile, setSelectedTestDataFile] = useState<ExplorerFile | undefined>(() =>
     explorerFileFromKey(initialTestFileKey),
@@ -350,6 +351,32 @@ function AutomlConfigure({
 
   // Collapse after a new file loads, while preserving manual reopening across refetches.
   useEffect(() => {
+    if (!trainDataFileKey || datasetSplitMode !== DATASET_SPLIT_SEPARATE) {
+      pendingTrainingDataCollapseRef.current = undefined;
+    } else if (
+      areDatasetFilesDistinct &&
+      pendingTrainingDataCollapseRef.current === trainDataFileKey &&
+      !isTrainingDataFileUploading &&
+      !isLoadingColumns &&
+      !isFetchingColumns &&
+      !columnsError &&
+      schemaColumns.length > 0
+    ) {
+      pendingTrainingDataCollapseRef.current = undefined;
+      setIsTrainingAccordionExpanded(false);
+    }
+  }, [
+    datasetSplitMode,
+    trainDataFileKey,
+    areDatasetFilesDistinct,
+    isTrainingDataFileUploading,
+    isLoadingColumns,
+    isFetchingColumns,
+    columnsError,
+    schemaColumns.length,
+  ]);
+
+  useEffect(() => {
     if (!testDataFileKey || datasetSplitMode !== DATASET_SPLIT_SEPARATE) {
       pendingTestDataCollapseRef.current = undefined;
     } else if (
@@ -456,7 +483,7 @@ function AutomlConfigure({
     });
   }, [selectedSecret, setValue]);
 
-  // reset selected file values if secret or bucket changes (skips mount to preserve reconfigure)
+  // reset selected file values if namespace, secret or bucket changes (skips mount to preserve reconfigure)
   useReconfigureSafeEffect(() => {
     trainingDataUploadSeqRef.current += 1;
     testDataUploadSeqRef.current += 1;
@@ -467,7 +494,7 @@ function AutomlConfigure({
     setValue('test_data_file_key', '', { shouldValidate: true });
     setValue('test_data_bucket_name', '', { shouldValidate: true });
     setSelectedTestDataFile(undefined);
-  }, [trainDataSecretName, trainDataBucketName, setValue]);
+  }, [namespace, trainDataSecretName, trainDataBucketName, setValue]);
 
   // reset training data key when select vs upload mode changes (skips mount to preserve reconfigure)
   useReconfigureSafeEffect(() => {
@@ -558,12 +585,14 @@ function AutomlConfigure({
   }, [setValue]);
 
   const startTrainingDataUpload = useCallback(() => {
+    pendingTrainingDataCollapseRef.current = undefined;
     setValue('train_data_file_key', '', { shouldValidate: true });
     setIsTrainingDataUploadDropdownOpen(false);
   }, [setValue]);
 
   const completeTrainingDataUpload = useCallback(
     (key: string) => {
+      pendingTrainingDataCollapseRef.current = key;
       setValue('train_data_file_key', key, { shouldValidate: true });
       fireTrainingDataMilestoneOnce('upload');
     },
@@ -595,6 +624,7 @@ function AutomlConfigure({
   }, [setValue]);
 
   const startTestDataUpload = useCallback(() => {
+    pendingTestDataCollapseRef.current = undefined;
     setIsTestDataUploadDropdownOpen(false);
   }, []);
 
@@ -847,6 +877,8 @@ function AutomlConfigure({
                             !isFetchingRowCount &&
                             !rowCountError &&
                             trainingDataRowCount !== undefined &&
+                            trainingSample &&
+                            trainingSample.sampleSize > 0 &&
                             schemaColumns.length > 0 && (
                               <StackItem>
                                 <HelperText aria-live="polite">
@@ -855,10 +887,43 @@ function AutomlConfigure({
                                     icon={<CheckCircleIcon />}
                                     data-testid="training-data-load-success"
                                   >
-                                    Successfully loaded {trainingDataRowCount}{' '}
-                                    {trainingDataRowCount === 1 ? 'row' : 'rows'} with{' '}
-                                    {schemaColumns.length}{' '}
-                                    {schemaColumns.length === 1 ? 'column' : 'columns'}
+                                    {trainingSample.parseWarnings > 0 ? (
+                                      <>
+                                        File contains {trainingDataRowCount} data{' '}
+                                        {trainingDataRowCount === 1 ? 'record' : 'records'}. Schema
+                                        inferred from {trainingSample.sampleSize} sampled{' '}
+                                        {trainingSample.sampleSize === 1 ? 'row' : 'rows'} with{' '}
+                                        {schemaColumns.length}{' '}
+                                        {schemaColumns.length === 1 ? 'column' : 'columns'}.
+                                      </>
+                                    ) : (
+                                      <>
+                                        Successfully loaded {trainingDataRowCount}{' '}
+                                        {trainingDataRowCount === 1 ? 'row' : 'rows'} with{' '}
+                                        {schemaColumns.length}{' '}
+                                        {schemaColumns.length === 1 ? 'column' : 'columns'}
+                                      </>
+                                    )}
+                                  </HelperTextItem>
+                                </HelperText>
+                              </StackItem>
+                            )}
+                          {isFileSelected &&
+                            !isTrainingDataFileUploading &&
+                            !isFetchingColumns &&
+                            !columnsError &&
+                            trainingSample &&
+                            trainingSample.parseWarnings > 0 && (
+                              <StackItem>
+                                <HelperText aria-live="polite">
+                                  <HelperTextItem
+                                    variant="warning"
+                                    data-testid="training-data-sampling-warning"
+                                  >
+                                    Skipped {trainingSample.parseWarnings} malformed{' '}
+                                    {trainingSample.parseWarnings === 1 ? 'record' : 'records'}{' '}
+                                    while sampling the schema. The whole-file record count may
+                                    include these records. Review the file before continuing.
                                   </HelperTextItem>
                                 </HelperText>
                               </StackItem>
@@ -1585,6 +1650,7 @@ function AutomlConfigure({
               setValue('test_data_file_key', filePath, { shouldValidate: true });
               setSelectedTestDataFile(file);
             } else {
+              pendingTrainingDataCollapseRef.current = filePath;
               setValue('train_data_file_key', filePath, { shouldValidate: true });
               setSelectedTrainingDataFile(file);
               fireTrainingDataMilestoneOnce('select');
