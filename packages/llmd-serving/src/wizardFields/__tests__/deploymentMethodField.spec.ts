@@ -30,22 +30,19 @@ describe('vllmDeploymentMethodOverride', () => {
       expect(result?.key).toBe(SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY);
     });
 
-    it('should suggest simple vLLM when isLLMdDefault is undefined', () => {
+    it('should not suggest simple vLLM when isLLMdDefault is undefined', () => {
       const result = vllmDeploymentMethodOverride.suggestion?.({});
-      expect(result).toBeDefined();
-      expect(result?.key).toBe(SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY);
+      expect(result).toBeUndefined();
     });
 
-    it('should suggest simple vLLM when clusterSettings is null', () => {
+    it('should not suggest simple vLLM when clusterSettings is null', () => {
       const result = vllmDeploymentMethodOverride.suggestion?.(null);
-      expect(result).toBeDefined();
-      expect(result?.key).toBe(SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY);
+      expect(result).toBeUndefined();
     });
 
-    it('should suggest simple vLLM when clusterSettings is undefined', () => {
+    it('should not suggest simple vLLM when clusterSettings is undefined', () => {
       const result = vllmDeploymentMethodOverride.suggestion?.(undefined);
-      expect(result).toBeDefined();
-      expect(result?.key).toBe(SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY);
+      expect(result).toBeUndefined();
     });
 
     it('should not suggest simple vLLM when isLLMdDefault is true', () => {
@@ -76,18 +73,26 @@ describe('llmdDeploymentMethodOverride', () => {
       expect(result?.key).toBe(LLMD_DEPLOYMENT_METHOD_KEY);
     });
 
+    it('should suggest llm-d when isLLMdDefault is undefined', () => {
+      const result = llmdDeploymentMethodOverride.suggestion?.({});
+      expect(result).toBeDefined();
+      expect(result?.key).toBe(LLMD_DEPLOYMENT_METHOD_KEY);
+    });
+
+    it('should suggest llm-d when clusterSettings is null', () => {
+      const result = llmdDeploymentMethodOverride.suggestion?.(null);
+      expect(result).toBeDefined();
+      expect(result?.key).toBe(LLMD_DEPLOYMENT_METHOD_KEY);
+    });
+
+    it('should suggest llm-d when clusterSettings is undefined', () => {
+      const result = llmdDeploymentMethodOverride.suggestion?.(undefined);
+      expect(result).toBeDefined();
+      expect(result?.key).toBe(LLMD_DEPLOYMENT_METHOD_KEY);
+    });
+
     it('should not suggest llm-d when isLLMdDefault is false', () => {
       const result = llmdDeploymentMethodOverride.suggestion?.({ isLLMdDefault: false });
-      expect(result).toBeUndefined();
-    });
-
-    it('should not suggest llm-d when clusterSettings is null', () => {
-      const result = llmdDeploymentMethodOverride.suggestion?.(null);
-      expect(result).toBeUndefined();
-    });
-
-    it('should not suggest llm-d when clusterSettings is undefined', () => {
-      const result = llmdDeploymentMethodOverride.suggestion?.(undefined);
       expect(result).toBeUndefined();
     });
   });

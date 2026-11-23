@@ -28,6 +28,7 @@ export type MockDashboardConfigType = {
   disableModelRegistrySecureDB?: boolean;
   disableServingRuntimeParams?: boolean;
   disableAdminConnectionTypes?: boolean;
+  hideCommunityPluginsSettingsPage?: boolean;
   disableStorageClasses?: boolean;
   disableNotebookController?: boolean;
   notebookSizes?: NotebookSize[]; // deprecated
@@ -133,6 +134,7 @@ export const mockDashboardConfig = ({
   disableModelRegistrySecureDB = false,
   disableServingRuntimeParams = false,
   disableStorageClasses = false,
+  hideCommunityPluginsSettingsPage = false,
   disableNotebookController = false,
   disableNIMModelServing = false,
   disableLMEval = true,
@@ -340,6 +342,7 @@ export const mockDashboardConfig = ({
       disableStorageClasses,
       disableNIMModelServing,
       disableAdminConnectionTypes: false,
+      hideCommunityPluginsSettingsPage,
       disableFineTuning,
       disableLMEval,
       disableKueue,

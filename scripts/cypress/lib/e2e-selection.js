@@ -816,21 +816,27 @@ const sanitizeTagDir = (value) => {
 const tagDirKey = 'tag_dir';
 const runModeKey = 'run_mode';
 
-const buildTagJobs = (selectedTags, autoTags = []) =>
+const specsForTags = (tags, inventory) =>
+  Object.values(inventory)
+    .filter((entry) => entry.executableTags.some((tag) => tags.includes(tag)))
+    .map((entry) => entry.path)
+    .toSorted();
+
+const buildTagJobs = (selectedTags, autoTags = [], inventory = {}) =>
   groupTagsForJobs(selectedTags, autoTags).map((tags) => ({
     tag: tags.join(' '),
     [tagDirKey]: sanitizeTagDir(tags.join('__')),
-    specs: [],
+    specs: specsForTags(tags, inventory),
     [runModeKey]: 'tag',
     // Tag count does not bound cluster setup, training, or model-serving duration.
     timeout: 360,
   }));
 
-const buildNamedTagJobs = (tagGroups, prefix) =>
+const buildNamedTagJobs = (tagGroups, prefix, inventory = {}) =>
   tagGroups.map((tags, index) => ({
     tag: tags.join(' '),
     [tagDirKey]: `${sanitizeTagDir(prefix)}-${String(index + 1).padStart(2, '0')}`,
-    specs: [],
+    specs: specsForTags(tags, inventory),
     [runModeKey]: 'tag',
     // Tag count does not bound cluster setup, training, or model-serving duration.
     timeout: 360,
@@ -1124,10 +1130,6 @@ const buildSelectionPlan = ({
     if (entry.executableTestCount === 0 && !(intentionallyExcluded && nonCiSpecs[spec])) {
       errors.push(`Changed Cypress spec has no executable tests: ${spec}`);
     }
-    const hasCiTag = entry.executableTags.some((tag) => ciTags.includes(tag));
-    if (!hasCiTag && !nonCiSpecs[spec]) {
-      errors.push(`New or modified Cypress spec has no CI-selectable tag or non-CI owner: ${spec}`);
-    }
   }
 
   for (const spec of deletedSpecs) {
@@ -1140,13 +1142,6 @@ const buildSelectionPlan = ({
     }
 
     const oldCiTags = oldEntry.executableTags.filter((tag) => ciTags.includes(tag));
-    if (oldCiTags.length === 0) {
-      if (!nonCiSpecs[spec]) {
-        errors.push(`Deleted non-CI Cypress spec has no recorded owner: ${spec}`);
-      }
-      continue;
-    }
-
     for (const tag of oldCiTags) {
       const survivingSpecs = Object.values(inventory).filter(
         (entry) => entry.path !== spec && entry.executableTags.includes(tag),
@@ -1161,9 +1156,7 @@ const buildSelectionPlan = ({
   errors.push(...tagResolution.errors);
 
   const changedSpecList = [...changedSpecs].toSorted();
-  const explicitChangedSpecs = changedSpecList.filter((spec) =>
-    isCiRunnableSpec(spec, inventory, ciTags),
-  );
+  const explicitChangedSpecs = changedSpecList.filter((spec) => isExecutableSpec(spec, inventory));
   const explicitImpactedSpecs = [...impactedSpecs]
     .filter((spec) => !changedSpecs.has(spec))
     .toSorted();
@@ -1193,6 +1186,7 @@ const buildSelectionPlan = ({
       impactedTagJobs = buildNamedTagJobs(
         groupTagsForJobs(fullCoverageTags, fullCoverageTags),
         'full-coverage',
+        inventory,
       );
       if (explicitImpactSpecs.length > 0) {
         details.push(
@@ -1220,6 +1214,7 @@ const buildSelectionPlan = ({
         impactedTagJobs = buildNamedTagJobs(
           groupTagsForJobs(fullCoverageTags, fullCoverageTags),
           'full-coverage',
+          inventory,
         );
         if (explicitImpactSpecs.length > 0) {
           details.push(
@@ -1232,6 +1227,7 @@ const buildSelectionPlan = ({
       impactedTagJobs = buildNamedTagJobs(
         groupTagsForJobs(impactTags.tags, impactTags.tags),
         'impacted-tag',
+        inventory,
       );
       explicitImpactSpecs = impactTags.uncoveredSpecs;
     }
@@ -1267,7 +1263,7 @@ const buildSelectionPlan = ({
   const plannedTestCountKey = 'planned_test_count';
 
   const matrix = [
-    ...buildTagJobs(effectiveSelectedTags, effectiveAutoTags),
+    ...buildTagJobs(effectiveSelectedTags, effectiveAutoTags, inventory),
     ...createSpecJobs(explicitChangedSpecs, 'ChangedSpec'),
     ...impactedTagJobs,
     ...createSpecJobs(explicitImpactSpecs, 'ImpactedSpec'),

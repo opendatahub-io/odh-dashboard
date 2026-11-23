@@ -7,7 +7,7 @@ spec:
     display:
       name: Cluster
     duration: 1h
-    # Namespace variable - queries the cluster-scoped Prometheus datasource, can be overridden by NamespaceVariablesProvider
+    # Namespace variable - queries the namespace-scoped Data Science datasource, and can be overridden by NamespaceVariablesProvider.
     variables:
       - kind: ListVariable
         spec:
@@ -17,17 +17,17 @@ spec:
             description: Filter by project
           allowMultiple: true
           allowAllValue: true
-          customAllValue: ".*"
+          # No customAllValue: Project=All expands to concrete namespace= query parameters.
           defaultValue: "$__all"
           plugin:
             kind: PrometheusLabelValuesVariable
             spec:
               datasource:
                 kind: PrometheusDatasource
-                name: cluster-prometheus-datasource
+                name: data-science-prometheus-datasource
               labelName: namespace
               matchers:
-                - kserve_vllm:num_requests_running
+                - vllm:num_requests_running
       # Cluster details variables - set by ClusterDetailsVariablesProvider
       - kind: TextVariable
         spec:
@@ -102,9 +102,10 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-datasource
-                    # Count unique models by model_name and namespace from vLLM metrics
-                    query: count(group(kserve_vllm:num_requests_running) by (model_name, namespace))
+                      name: data-science-prometheus-datasource
+                    # Count unique models by model_name and namespace from vllm metrics.
+                    # Namespace scoping is enforced by the datasource query parameter.
+                    query: count(group(vllm:num_requests_running) by (model_name, namespace))
                     seriesNameFormat: Deployed models
       gpuUtilizationStat:
         kind: Panel
@@ -148,9 +149,10 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-datasource
-                    # Request success rate using kserve_vllm metrics
-                    query: (sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace", finished_reason=~"length|stop"}[$__range])) / sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace"}[$__range]))) and (sum(increase(kserve_vllm:request_success_total{namespace=~"$namespace"}[$__range])) > 0)
+                      name: data-science-prometheus-datasource
+                    # Request success rate using vllm metrics.
+                    # Namespace scoping is enforced by the datasource query parameter.
+                    query: (sum(increase(vllm:request_success_total{finished_reason=~"length|stop"}[$__range])) / sum(increase(vllm:request_success_total[$__range]))) and (sum(increase(vllm:request_success_total[$__range])) > 0)
                     seriesNameFormat: Request success rate
       # Cluster-wide usage - Area charts
       gpuUtilizationArea:
