@@ -503,6 +503,8 @@ describe('AutomlReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       expect(capturedProps.initialValues?.dataset_split_mode).toBe('auto');
+      expect(capturedProps.initialValues).not.toHaveProperty('test_data_bucket_name');
+      expect(capturedProps.initialValues).not.toHaveProperty('test_data_file_key');
     });
 
     it('should pass timeseries parameters as initialValues', async () => {

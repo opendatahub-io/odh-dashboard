@@ -1478,7 +1478,9 @@ describe('AutomlConfigurePage', () => {
         if (!form) {
           throw new Error('Submit button must belong to the configure form');
         }
-        fireEvent.submit(form);
+        await act(async () => {
+          fireEvent.submit(form);
+        });
         expect(mockMutateAsync).not.toHaveBeenCalled();
         await act(async () => rejectUpload(new Error('Upload failed')));
         await waitFor(() => expect(submit).toBeEnabled());
@@ -1488,6 +1490,7 @@ describe('AutomlConfigurePage', () => {
             expect.objectContaining({ test_data_file_key: 'test.csv' }),
           ),
         );
+        expect(mockMutateAsync).toHaveBeenCalledTimes(1);
       });
 
       it.each(['training', 'test'] as const)(

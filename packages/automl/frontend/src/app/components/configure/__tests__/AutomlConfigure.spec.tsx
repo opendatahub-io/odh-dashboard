@@ -441,11 +441,12 @@ describe('AutomlConfigure', () => {
   });
 
   const renderSamplingFailure = (file: string, accordion: RegExp) => {
-    const refetch = jest.fn();
+    const trainingRefetch = jest.fn();
+    const testRefetch = jest.fn();
     mockuseS3GetFileSchemaQuery.mockImplementation(
       (_namespace, _secret, _bucket, key) =>
         ({
-          refetch,
+          refetch: key === 'train.csv' ? trainingRefetch : testRefetch,
           data: key === file ? [] : MOCK_COLUMNS,
           error: key === file ? new Error('Sample failed') : null,
           isLoading: false,
@@ -468,21 +469,22 @@ describe('AutomlConfigure', () => {
       test_data_file_key: 'test.csv',
     });
     fireEvent.click(screen.getByRole('button', { name: accordion }));
-    return refetch;
+    return { trainingRefetch, testRefetch };
   };
 
   it.each([
     { file: 'train.csv', accordion: /1\. Training data/ },
     { file: 'test.csv', accordion: /2\. Test data/ },
   ])('should retry sampling $file while preserving its selection', ({ file, accordion }) => {
-    const refetch = renderSamplingFailure(file, accordion);
+    const { trainingRefetch, testRefetch } = renderSamplingFailure(file, accordion);
     expect(screen.getByText('Unable to sample document data')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'View details' })).not.toBeInTheDocument();
     expect(screen.getByTestId('dataset-sampling-error')).toHaveTextContent(
       'An error occurred while sampling data from this document. Try again, or upload a different document.',
     );
     fireEvent.click(screen.getByTestId('dataset-sampling-retry'));
-    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(file === 'train.csv' ? trainingRefetch : testRefetch).toHaveBeenCalledTimes(1);
+    expect(file === 'train.csv' ? testRefetch : trainingRefetch).not.toHaveBeenCalled();
     expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
       'test-namespace',
       'Test Secret 1',

@@ -270,7 +270,26 @@ func (r *S3Repository) ObjectExists(ctx context.Context, req S3RequestContext, k
 // csvSchemaRange is the HTTP Range header used when fetching CSV data for schema inference.
 // The streaming parser stops after 100 rows, so only the bytes actually read are transferred;
 // this ceiling prevents runaway transfers for extremely wide rows.
-const csvSchemaRange = "bytes=0-1048575" // 1 MB
+// Fetch one extra byte to distinguish the sample boundary from the object's real EOF.
+const csvSchemaMaxBytes = 1 << 20
+const csvSchemaRange = "bytes=0-1048576"
+
+type csvSchemaReader struct {
+	io.LimitedReader
+}
+
+func (r *csvSchemaReader) Read(p []byte) (int, error) {
+	if r.N > 0 {
+		return r.LimitedReader.Read(p)
+	}
+
+	var extra [1]byte
+	n, err := r.R.Read(extra[:])
+	if n > 0 {
+		return 0, fmt.Errorf("%w: could not sample 100 complete data rows within 1 MiB", helper.ErrCSVValidation)
+	}
+	return 0, err
+}
 
 // GetCSVRowCount counts the entire CSV independently of the bounded schema sample.
 // The range includes one byte beyond the row-count limit to detect oversized files.
@@ -320,7 +339,7 @@ func (r *S3Repository) GetCSVSchema(ctx context.Context, req S3RequestContext, k
 	}
 	defer body.Close()
 
-	return helper.InferCSVSchema(body)
+	return helper.InferCSVSchema(&csvSchemaReader{io.LimitedReader{R: body, N: csvSchemaMaxBytes}})
 }
 
 // extractAWSS3ConnectionOptions extracts S3 connection options from a Kubernetes secret's

@@ -439,7 +439,7 @@ describe('AutoML API Contract Tests', () => {
       const result = await apiClient.get(
         `/api/v1/s3/files/${encodeURIComponent(
           key,
-        )}?view=row-count&namespace=${NS}&secretName=${SECRET}`,
+        )}?view=row-count&namespace=${NS}&secretName=${SECRET}&bucket=${BUCKET}`,
       );
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/schemas/S3FileRowCountResponse',
@@ -459,7 +459,7 @@ describe('AutoML API Contract Tests', () => {
       const result = await apiClient.get(
         `/api/v1/s3/files/${encodeURIComponent(
           key,
-        )}?view=row-count&namespace=${NS}&secretName=${SECRET}`,
+        )}?view=row-count&namespace=${NS}&secretName=${SECRET}&bucket=${BUCKET}`,
       );
       expect(result.error).toMatchContract(apiSchema, {
         ref: '#/components/responses/BadRequest/content/application~1json/schema',

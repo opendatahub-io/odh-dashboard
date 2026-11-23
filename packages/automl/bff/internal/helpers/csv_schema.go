@@ -82,6 +82,10 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 			break
 		}
 		if err != nil {
+			var parseError *csv.ParseError
+			if !errors.As(err, &parseError) {
+				return CSVSchemaResult{}, fmt.Errorf("error reading CSV record: %w", err)
+			}
 			// Validate the header row for UTF-8 on first parse error, as the error
 			// may indicate binary/non-text content rather than a malformed row.
 			if parseWarnings == 0 {

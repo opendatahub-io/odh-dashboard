@@ -281,7 +281,7 @@ const TableBase = <T,>({
 
   const table = (
     <Table {...props} {...(hasStickyColumns && { gridBreakPoint: '' })} ref={tableRef}>
-      {caption && <Caption>{caption}</Caption>}
+      {caption != null && typeof caption !== 'boolean' && <Caption>{caption}</Caption>}
       <Thead noWrap hasNestedHeader={hasNestedHeader}>
         {/* Note from PF: following custom style can be removed when we can resolve misalignment issue natively */}
         <Tr>{columns.map((col, i) => renderColumnHeader(col, i))}</Tr>

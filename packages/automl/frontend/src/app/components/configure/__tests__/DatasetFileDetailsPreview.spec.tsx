@@ -11,7 +11,7 @@ jest.mock('~/app/hooks/useS3GetFileSchemaQuery');
 describe('DatasetFileDetailsPreview', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('should preview the first three rows and open the full file', () => {
+  it('should preview three sampled rows and open the full file', () => {
     jest.mocked(useS3GetFileSchemaQuery).mockReturnValue({
       sample: {
         columns: [{ name: 'value', type: 'string', task_type: 'multiclass' }],
@@ -30,7 +30,7 @@ describe('DatasetFileDetailsPreview', () => {
         onViewFile={onViewFile}
       />,
     );
-    expect(screen.getByText('Previewing the first 3 rows.')).toBeInTheDocument();
+    expect(screen.getByText('Previewing 3 sampled rows.')).toBeInTheDocument();
     expect(screen.getByRole('grid', { name: 'Sample of data.csv' })).toHaveTextContent('third');
     expect(screen.queryByText('fourth')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'View file' }));

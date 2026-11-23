@@ -891,6 +891,54 @@ func TestS3Repository_UploadObjectPassesConfiguredChecksum(t *testing.T) {
 }
 
 func TestS3Repository_GetCSVSchema(t *testing.T) {
+	prefix := "value\n" + strings.Repeat("a\n", 99)
+	for _, tt := range []struct {
+		name    string
+		lastRow string
+		wantErr bool
+	}{
+		{name: "rejects a truncated unquoted record", lastRow: strings.Repeat("b", csvSchemaMaxBytes-len(prefix)+100) + "\n", wantErr: true},
+		{name: "rejects a truncated quoted multiline record", lastRow: "\"first line\n" + strings.Repeat("b", csvSchemaMaxBytes) + "\"\n", wantErr: true},
+		{name: "accepts real EOF without a newline", lastRow: "last"},
+		{name: "accepts real EOF exactly at the byte limit", lastRow: strings.Repeat("b", csvSchemaMaxBytes-len(prefix))},
+		{name: "accepts a complete record at the byte limit with more data", lastRow: strings.Repeat("b", csvSchemaMaxBytes-len(prefix)-1) + "\nmore\n"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			csv := prefix + tt.lastRow
+			k8s := &mockK8sService{
+				getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+					return makeK8sSecret("s", "ns", standardSecretData()), nil
+				},
+			}
+			s3svc := &mockS3Service{
+				getObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error) {
+					var end int
+					if _, err := fmt.Sscanf(input.Range, "bytes=0-%d", &end); err != nil {
+						t.Fatal(err)
+					}
+					return io.NopCloser(strings.NewReader(csv[:min(len(csv), end+1)])), "text/csv", nil
+				},
+			}
+			repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+			result, err := repo.GetCSVSchema(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "wide.csv")
+			if tt.wantErr {
+				if !errors.Is(err, helper.ErrCSVValidation) {
+					t.Fatalf("expected CSV validation error, got %v (sample size %d)", err, result.SampleSize)
+				}
+				if len(result.SampleRows) != 0 {
+					t.Fatal("must not return a truncated sample")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.SampleSize != 100 || result.SampleRows[99][0] != strings.Split(tt.lastRow, "\n")[0] {
+				t.Fatalf("expected 100 complete sample rows, got sample size %d", result.SampleSize)
+			}
+		})
+	}
+
 	t.Run("rejects non-csv key", func(t *testing.T) {
 		repo := NewS3Repository(slog.Default(), nil, nil, nil)
 		_, err := repo.GetCSVSchema(context.Background(), S3RequestContext{}, "data.parquet")

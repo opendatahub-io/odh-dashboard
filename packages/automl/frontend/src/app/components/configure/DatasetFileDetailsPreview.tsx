@@ -36,7 +36,7 @@ export default function DatasetFileDetailsPreview({
           </FlexItem>
         </Flex>
         {previewRows > 0 && !query.isFetching && !query.error && (
-          <Content component="small">Previewing the first {previewRows} rows.</Content>
+          <Content component="small">Previewing {previewRows} sampled rows.</Content>
         )}
       </StackItem>
       <StackItem>

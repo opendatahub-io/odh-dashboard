@@ -22,7 +22,10 @@ import { DATASET_SPLIT_AUTO, DATASET_SPLIT_SEPARATE } from '~/app/utilities/data
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
-const configureBasePartial = createConfigureSchema().base.partial();
+const configureBasePartial = createConfigureSchema()
+  // eslint-disable-next-line camelcase -- API parameter names
+  .base.omit({ test_data_bucket_name: true, test_data_file_key: true })
+  .partial();
 
 /**
  * Intermediate loader that fetches the previous pipeline run, resolves connection
