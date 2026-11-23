@@ -60,4 +60,8 @@ export type PipelineTask = {
   iterationCount?: number;
   /** PipelineTask id of this iteration. Hierarchy is parent_task_id / child_tasks. */
   iterationParentTaskId?: string;
+  /** 0-based ParallelFor index. Combined with iterationTaskName to find the MLMD iteration. */
+  iterationIndex?: number;
+  /** Spec task name of the loop. MLMD stores it on the loop execution as task_name. */
+  iterationTaskName?: string;
 };

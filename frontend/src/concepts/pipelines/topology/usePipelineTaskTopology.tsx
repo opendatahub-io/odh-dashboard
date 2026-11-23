@@ -15,12 +15,17 @@ import {
 import { createNode } from '#~/concepts/topology';
 import { PipelineNodeModelExpanded } from '#~/concepts/topology/types';
 import { createArtifactNode, createGroupNode } from '#~/concepts/topology/utils';
+import { Artifact, Event, Execution } from '#~/third_party/mlmd';
+import { LinkedArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { parseEventsByType } from '#~/pages/pipelines/global/experiments/executions/utils';
 import {
   ComponentArtifactMap,
   composeArtifactType,
-  descendantTasks,
+  filterEventWithInputArtifact,
+  filterEventWithOutputArtifact,
   findIterationTask,
   findParallelForTask,
+  getExecutionLinkedArtifactMap,
   getIterationCount,
   idForTaskArtifact,
   parseComponentsForArtifactRelationship,
@@ -34,7 +39,20 @@ import {
   tasksInScope,
   translateStatusForNode,
 } from './parseUtils';
+import { executionsForIterationScope } from './iterationExecutions';
 import { PipelineTask } from './pipelineTaskTypes';
+
+/**
+ * MLMD records still supply artifact instances. Node status comes from PipelineTask.
+ * The artifact drawer reads `metadata` until it moves to Artifact resources.
+ */
+type MlmdArtifactContext = {
+  executionLinkedArtifactMap: Record<number, LinkedArtifact[]>;
+  events?: Event[] | null;
+  artifacts?: Artifact[];
+  /** Executions visible at this graph scope. Iteration recursion narrows the list. */
+  executions?: Execution[] | null;
+};
 
 /**
  * Effective state of a task. A non-terminal parent whose children are all terminal
@@ -50,36 +68,42 @@ const isTerminalTaskState = (state: TaskStateKF): boolean =>
   state === TaskStateKF.CACHED ||
   state === TaskStateKF.SKIPPED;
 
+type TaskChild = PipelineTaskKF | { missing: true; taskId: string };
+
+const isLoadedTask = (child: TaskChild): child is PipelineTaskKF => !('missing' in child);
+
 /**
  * Children keyed by parent task id. A link counts when `parent_task_id` is set
- * or the parent lists the child in `child_tasks`.
+ * or the parent lists the child in `child_tasks`. A declared child that was not
+ * loaded stays in the index so a parent is not marked finished without it.
  */
-export const buildTaskChildrenIndex = (
-  allTasks: PipelineTaskKF[],
-): Map<string, PipelineTaskKF[]> => {
+export const buildTaskChildrenIndex = (allTasks: PipelineTaskKF[]): Map<string, TaskChild[]> => {
   const byId = new Map(allTasks.map((task) => [task.task_id, task]));
-  const index = new Map<string, PipelineTaskKF[]>();
+  const index = new Map<string, TaskChild[]>();
+  const seen = new Map<string, Set<string>>();
 
-  const add = (parentId: string, child: PipelineTaskKF) => {
-    const list = index.get(parentId);
-    if (!list) {
-      index.set(parentId, [child]);
+  const add = (parentId: string, childId: string, child: TaskChild) => {
+    const ids = seen.get(parentId) ?? new Set<string>();
+    if (ids.has(childId)) {
       return;
     }
-    if (!list.some((item) => item.task_id === child.task_id)) {
+    ids.add(childId);
+    seen.set(parentId, ids);
+    const list = index.get(parentId);
+    if (list) {
       list.push(child);
+    } else {
+      index.set(parentId, [child]);
     }
   };
 
   allTasks.forEach((task) => {
     if (task.parent_task_id) {
-      add(task.parent_task_id, task);
+      add(task.parent_task_id, task.task_id, task);
     }
     task.child_tasks?.forEach((childRef) => {
       const child = byId.get(childRef.task_id);
-      if (child) {
-        add(task.task_id, child);
-      }
+      add(task.task_id, childRef.task_id, child ?? { missing: true, taskId: childRef.task_id });
     });
   });
 
@@ -88,7 +112,7 @@ export const buildTaskChildrenIndex = (
 
 export const getEffectiveTaskState = (
   task: PipelineTaskKF,
-  childrenIndex: Map<string, PipelineTaskKF[]>,
+  childrenIndex: Map<string, TaskChild[]>,
   visited: Set<string> = new Set(),
   depth = 0,
 ): TaskStateKF => {
@@ -104,13 +128,13 @@ export const getEffectiveTaskState = (
   }
 
   const children = childrenIndex.get(task.task_id) ?? [];
-  if (children.length === 0) {
+  if (children.length === 0 || children.some((child) => !isLoadedTask(child))) {
     return ownState;
   }
 
-  const childStates = children.map((child) =>
-    getEffectiveTaskState(child, childrenIndex, visited, depth + 1),
-  );
+  const childStates = children
+    .filter(isLoadedTask)
+    .map((child) => getEffectiveTaskState(child, childrenIndex, visited, depth + 1));
 
   if (!childStates.every(isTerminalTaskState)) {
     return ownState;
@@ -127,9 +151,11 @@ export const getEffectiveTaskState = (
 const getArtifactPipelineTask = (
   name: string,
   artifactType: InputOutputArtifactType,
+  artifactData?: Artifact,
 ): PipelineTask => ({
   type: 'artifact',
   name,
+  metadata: artifactData,
   inputs: {
     artifacts: [{ label: name, type: composeArtifactType(artifactType) }],
   },
@@ -160,8 +186,10 @@ const getInputArtifacts = (
 const getTaskArtifacts = (
   groupId: string | undefined,
   taskId: string,
+  taskName: string,
   componentRef: string,
   componentArtifactMap: ComponentArtifactMap,
+  mlmd?: MlmdArtifactContext,
 ): PipelineNodeModelExpanded[] => {
   const artifactsInComponent = componentArtifactMap[componentRef];
 
@@ -169,15 +197,30 @@ const getTaskArtifacts = (
     return [];
   }
 
-  return Object.entries(artifactsInComponent).map(([artifactKey, data]) =>
-    createArtifactNode(
+  const execution = mlmd?.executions?.find(
+    (item) =>
+      item.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
+  );
+  const executionEvents = mlmd?.events?.filter(
+    (event) => event.getExecutionId() === execution?.getId(),
+  );
+
+  return Object.entries(artifactsInComponent).map(([artifactKey, data]) => {
+    const artifactData = mlmd?.artifacts?.find((artifact) => {
+      const artifactEvent = executionEvents?.find(
+        (event) => event.getArtifactId() === artifact.getId(),
+      );
+      return artifactEvent && artifact.getType() === data.schemaTitle;
+    });
+
+    return createArtifactNode(
       idForTaskArtifact(groupId, taskId, artifactKey),
       artifactKey,
-      getArtifactPipelineTask(artifactKey, data),
+      getArtifactPipelineTask(artifactKey, data, artifactData),
       data.schemaTitle,
       [taskId],
-    ),
-  );
+    );
+  });
 };
 
 const getNodesForTasks = (
@@ -192,7 +235,8 @@ const getNodesForTasks = (
   tasks?: PipelineTaskKF[] | null,
   inputArtifacts?: InputOutputDefinitionArtifacts,
   allTasks?: PipelineTaskKF[] | null,
-  childIndex?: Map<string, PipelineTaskKF[]>,
+  childIndex?: Map<string, TaskChild[]>,
+  mlmd?: MlmdArtifactContext,
 ): [nestedNodes: PipelineNodeModelExpanded[], children: string[]] => {
   const nodes: PipelineNodeModelExpanded[] = [];
   const children: string[] = [];
@@ -217,22 +261,46 @@ const getNodesForTasks = (
     const executorLabel = component?.executorLabel;
     const executor = executorLabel ? executors[executorLabel] : undefined;
 
+    let linkedArtifacts: LinkedArtifact[] = [];
+    if (mlmd?.executions) {
+      const execution = mlmd.executions.find(
+        (item) =>
+          item.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
+      );
+      if (execution) {
+        linkedArtifacts = mlmd.executionLinkedArtifactMap[execution.getId()] ?? [];
+      }
+    }
+
     const pipelineTask: PipelineTask = {
       type: 'groupTask',
       name: taskName,
       steps: executor?.container ? [executor.container] : undefined,
       inputs: component?.inputDefinitions
-        ? parseInputOutput(component.inputDefinitions, [])
+        ? parseInputOutput(
+            component.inputDefinitions,
+            filterEventWithInputArtifact(linkedArtifacts),
+          )
         : undefined,
       outputs: component?.outputDefinitions
-        ? parseInputOutput(component.outputDefinitions, [])
+        ? parseInputOutput(
+            component.outputDefinitions,
+            filterEventWithOutputArtifact(linkedArtifacts),
+          )
         : undefined,
       status,
       volumeMounts: parseVolumeMounts(spec.platform_spec, executorLabel),
     };
 
     // Build artifact nodes with inputs from task nodes
-    const artifactNodes = getTaskArtifacts(groupId, taskId, componentRef, componentArtifactMap);
+    const artifactNodes = getTaskArtifacts(
+      groupId,
+      taskId,
+      taskName,
+      componentRef,
+      componentArtifactMap,
+      mlmd,
+    );
     if (artifactNodes.length) {
       nodes.push(...artifactNodes);
       children.push(...artifactNodes.map((n) => n.id));
@@ -321,7 +389,16 @@ const getNodesForTasks = (
             iterRunStatus = translateStatusForNode(effectiveStateKF);
           }
 
-          const scopedTasks = iterTask ? descendantTasks(iterTask.task_id, resolvedChildIndex) : [];
+          const scopedTasks = iterTask ? tasksInScope(fullTasks, iterTask.task_id) : [];
+          const iterationMlmd = mlmd?.executions
+            ? {
+                ...mlmd,
+                executions: executionsForIterationScope(mlmd.executions, {
+                  iterationTaskName: taskName,
+                  iterationIndex: i,
+                }),
+              }
+            : mlmd;
 
           const iterLabel = `${taskName} #${i + 1}`;
           const iterPipelineTask: PipelineTask = {
@@ -330,6 +407,8 @@ const getNodesForTasks = (
             status: iterStatus,
             isSubDag: false,
             iterationParentTaskId: iterTask?.task_id,
+            iterationIndex: i,
+            iterationTaskName: taskName,
           };
 
           // Create prefixed task entries so child node IDs are unique per iteration.
@@ -385,6 +464,7 @@ const getNodesForTasks = (
             component?.inputDefinitions?.artifacts,
             fullTasks,
             resolvedChildIndex,
+            iterationMlmd,
           );
 
           const iterGroupNode = createGroupNode(
@@ -416,9 +496,7 @@ const getNodesForTasks = (
         // recurse into template tasks directly
         const subTasksArtifactMap = parseTasksForArtifactRelationship(taskId, subTasks);
 
-        const nestedTasks = groupTask
-          ? descendantTasks(groupTask.task_id, resolvedChildIndex)
-          : tasks;
+        const nestedTasks = groupTask ? tasksInScope(fullTasks, groupTask.task_id) : tasks;
         const [nestedNodes, taskChildren] = getNodesForTasks(
           taskId,
           spec,
@@ -432,6 +510,7 @@ const getNodesForTasks = (
           component?.inputDefinitions?.artifacts,
           fullTasks,
           resolvedChildIndex,
+          mlmd,
         );
 
         // Recompute runStatus from the (possibly aggregated) pipelineTask.status
@@ -460,6 +539,9 @@ export const usePipelineTaskTopology = (
   spec?: PipelineSpecVariable,
   runDetails?: RunDetailsKF,
   runtimeTasks?: PipelineTaskKF[] | null,
+  executions?: Execution[] | null,
+  events?: Event[] | null,
+  artifacts?: Artifact[],
 ): PipelineNodeModelExpanded[] =>
   React.useMemo(() => {
     if (!spec) {
@@ -488,6 +570,15 @@ export const usePipelineTaskTopology = (
     const taskArtifactMap = parseTasksForArtifactRelationship('root', tasks);
     const scopedTasks = runtimeTasks ? tasksInScope(runtimeTasks) : undefined;
     const topLevelChildIndex = runtimeTasks ? buildTaskChildrenIndex(runtimeTasks) : undefined;
+    const mlmd: MlmdArtifactContext | undefined =
+      executions || events || artifacts
+        ? {
+            executionLinkedArtifactMap: getExecutionLinkedArtifactMap(artifacts, events),
+            events: parseEventsByType(events ?? [])[Event.Type.OUTPUT],
+            artifacts,
+            executions: executions ?? undefined,
+          }
+        : undefined;
 
     return _.uniqBy(
       getNodesForTasks(
@@ -503,7 +594,8 @@ export const usePipelineTaskTopology = (
         inputDefinitions?.artifacts,
         runtimeTasks,
         topLevelChildIndex,
+        mlmd,
       )[0],
       (node) => node.id,
     );
-  }, [runDetails, runtimeTasks, spec]);
+  }, [artifacts, events, executions, runDetails, runtimeTasks, spec]);

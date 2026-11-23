@@ -232,6 +232,14 @@ describe('pipeline topology parseUtils', () => {
       expect(result?.completeTime).toBeUndefined();
       expect(result?.state).toBe('Running');
     });
+
+    it('should return undefined when the matching task state is unspecified', () => {
+      expect(
+        parseRuntimeInfoFromTasks(testTaskId, testTaskId, [
+          runtimeTask({ state: TaskStateKF.RUNTIME_STATE_UNSPECIFIED }),
+        ]),
+      ).toBeUndefined();
+    });
   });
 
   describe('getResourceStateText', () => {

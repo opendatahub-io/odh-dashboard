@@ -27,6 +27,11 @@ import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import PipelineRecurringRunReferenceName from '#~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
 import useExecutionsForPipelineRun from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import useTasksForPipelineRun from '#~/concepts/pipelines/apiHooks/useTasksForPipelineRun';
+import { useGetEventsByExecutionIds } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
+import {
+  executionsForIterationScope,
+  iterationScopeForNode,
+} from '#~/concepts/pipelines/topology/iterationExecutions';
 import { PipelineTopology } from '#~/concepts/topology';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
@@ -56,7 +61,19 @@ const PipelineRunDetails: React.FC<
   const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(run);
   const [tasks] = useTasksForPipelineRun(run);
   const [artifacts] = usePipelineRunArtifacts(run);
-  const nodes = usePipelineTaskTopology(pipelineSpec, run?.run_details, tasks);
+  const executionIds = React.useMemo(
+    () => executions.map((execution) => execution.getId()),
+    [executions],
+  );
+  const [events] = useGetEventsByExecutionIds(executionIds);
+  const nodes = usePipelineTaskTopology(
+    pipelineSpec,
+    run?.run_details,
+    tasks,
+    executions,
+    events,
+    artifacts,
+  );
   const isInvalidPipelineVersion = isArgoWorkflow(version?.pipeline_spec);
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
   const isRegistered = modelRegistryAvailable ? isPipelineRunRegistered(artifacts) : false;
@@ -67,6 +84,11 @@ const PipelineRunDetails: React.FC<
     }
     return selectedIds ? nodes.find((n) => n.id === selectedIds[0]) : undefined;
   }, [isInvalidPipelineVersion, selectedIds, nodes]);
+
+  const drawerExecutions = React.useMemo(
+    () => executionsForIterationScope(executions, iterationScopeForNode(selectedNode, nodes)),
+    [executions, nodes, selectedNode],
+  );
 
   const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec || !!versionError);
   const error = runError;
@@ -98,7 +120,7 @@ const PipelineRunDetails: React.FC<
       task={selectedNode.data.pipelineTask}
       upstreamTaskName={selectedNode.runAfterTasks?.[0]}
       onClose={() => setSelectedIds(undefined)}
-      executions={executions}
+      executions={drawerExecutions}
       run={run}
     />
   ) : null;

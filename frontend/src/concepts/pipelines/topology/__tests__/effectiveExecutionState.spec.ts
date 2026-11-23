@@ -125,6 +125,21 @@ describe('getEffectiveTaskState', () => {
         TaskStateKF.SUCCEEDED,
       );
     });
+
+    it('should keep the parent state when a declared child is not loaded', () => {
+      const parent: PipelineTaskKF = {
+        ...createTask('1', TaskStateKF.RUNNING),
+        child_tasks: [
+          { task_id: '2', name: '2' },
+          { task_id: '3', name: 'missing' },
+        ],
+      };
+      const child = createTask('2', TaskStateKF.SUCCEEDED);
+
+      expect(getEffectiveTaskState(parent, buildTaskChildrenIndex([parent, child]))).toBe(
+        TaskStateKF.RUNNING,
+      );
+    });
   });
 
   describe('nested recursion', () => {

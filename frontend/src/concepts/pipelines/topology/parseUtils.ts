@@ -272,10 +272,16 @@ export const parseRuntimeInfoFromTasks = (
     return undefined;
   }
 
+  const state = taskStateToNodeState(task.state);
+  // An unspecified task has no status yet. Callers can still use run_details.
+  if (!state) {
+    return undefined;
+  }
+
   return {
     startTime: task.create_time ?? '',
     completeTime: terminalTaskState(task.state) ? task.end_time : undefined,
-    state: taskStateToNodeState(task.state),
+    state,
     taskId: `task.${taskId}`,
     podName: executorPodName(task),
   };
@@ -433,22 +439,6 @@ export const tasksInScope = (tasks: PipelineTaskKF[], parentTaskId?: string): Pi
   const parent = tasks.find((task) => task.task_id === parentTaskId);
   const childIds = new Set(parent?.child_tasks?.map((child) => child.task_id));
   return tasks.filter((task) => task.parent_task_id === parentTaskId || childIds.has(task.task_id));
-};
-
-/** Every task under a parent, following `parent_task_id` and `child_tasks`. */
-export const descendantTasks = (
-  parentTaskId: string,
-  childrenIndex: Map<string, PipelineTaskKF[]>,
-): PipelineTaskKF[] => {
-  const result: PipelineTaskKF[] = [];
-  const walk = (id: string) => {
-    (childrenIndex.get(id) ?? []).forEach((child) => {
-      result.push(child);
-      walk(child.task_id);
-    });
-  };
-  walk(parentTaskId);
-  return result;
 };
 
 export const parseVolumeMounts = (

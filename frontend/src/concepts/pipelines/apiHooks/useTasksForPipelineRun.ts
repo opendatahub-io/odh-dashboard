@@ -31,14 +31,17 @@ export const listAllTasks = async (
     });
     tasks.push(...(response.tasks ?? []));
     const nextToken = response.next_page_token;
-    if (!nextToken || seenTokens.has(nextToken)) {
-      break;
+    if (!nextToken) {
+      return tasks;
+    }
+    if (seenTokens.has(nextToken)) {
+      throw new Error(`ListTasks page token repeated for run ${runId}`);
     }
     seenTokens.add(nextToken);
     pageToken = nextToken;
   }
 
-  return tasks;
+  throw new Error(`ListTasks for run ${runId} exceeded ${MAX_TASK_PAGES} pages`);
 };
 
 const useTasksForPipelineRun = (run: PipelineRunKF | null): FetchState<PipelineTaskKF[]> => {
@@ -57,6 +60,8 @@ const useTasksForPipelineRun = (run: PipelineRunKF | null): FetchState<PipelineT
 
   return useFetchState(call, [], {
     refreshRate: !run || isFinished ? 0 : FAST_POLL_INTERVAL,
+    // Drop the previous run's tasks as soon as run_id changes.
+    initialPromisePurity: true,
   });
 };
 

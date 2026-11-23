@@ -228,6 +228,33 @@ describe('usePipelineTaskTopology', () => {
 
       expect(iterGroup0?.data?.pipelineTask.iterationParentTaskId).toBe('iter-0');
       expect(iterGroup1?.data?.pipelineTask.iterationParentTaskId).toBe('iter-1');
+      expect(iterGroup0?.data?.pipelineTask.iterationIndex).toBe(0);
+      expect(iterGroup1?.data?.pipelineTask.iterationIndex).toBe(1);
+      expect(iterGroup0?.data?.pipelineTask.iterationTaskName).toBe('for-loop-2');
+    });
+
+    it('should give each iteration its own child status', () => {
+      const renderResult = testHook(usePipelineTaskTopology)(
+        mockParallelForPipelineSpec,
+        undefined,
+        [
+          ...parallelForTasks('2'),
+          createMockTask('leaf-0', TaskStateKF.SUCCEEDED, 'simple-task', {
+            parentTaskId: 'iter-0',
+          }),
+          createMockTask('leaf-1', TaskStateKF.FAILED, 'simple-task', { parentTaskId: 'iter-1' }),
+        ],
+      );
+      const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+
+      expect(
+        nodes.find((n) => n.id === 'for-loop-2-iteration-0~simple-task')?.data?.pipelineTask.status
+          ?.state,
+      ).toBe('Complete');
+      expect(
+        nodes.find((n) => n.id === 'for-loop-2-iteration-1~simple-task')?.data?.pipelineTask.status
+          ?.state,
+      ).toBe('Failed');
     });
 
     it('should handle ParallelFor without any executions gracefully', () => {
@@ -426,5 +453,62 @@ describe('usePipelineTaskTopology', () => {
     expect(nodes.find((n) => n.id === 'outer')?.data?.pipelineTask.status?.state).toBe('Complete');
     expect(nodes.find((n) => n.id === 'mid')?.data?.pipelineTask.status?.state).toBe('Complete');
     expect(nodes.find((n) => n.id === 'leaf')?.data?.pipelineTask.status?.state).toBe('Complete');
+  });
+
+  it('should match a repeated task name to the direct child', () => {
+    const spec = {
+      components: {
+        'comp-outer': {
+          dag: {
+            tasks: {
+              'train-a': { componentRef: { name: 'comp-leaf' }, taskInfo: { name: 'train' } },
+              inner: { componentRef: { name: 'comp-inner' }, taskInfo: { name: 'inner' } },
+            },
+          },
+        },
+        'comp-inner': {
+          dag: {
+            tasks: {
+              'train-b': { componentRef: { name: 'comp-leaf' }, taskInfo: { name: 'train' } },
+            },
+          },
+        },
+        'comp-leaf': { executorLabel: 'exec-leaf' },
+      },
+      deploymentSpec: { executors: { 'exec-leaf': { container: { image: 'leaf' } } } },
+      pipelineInfo: { name: 'shadow' },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.15.2',
+      root: {
+        dag: {
+          tasks: {
+            outer: { componentRef: { name: 'comp-outer' }, taskInfo: { name: 'outer' } },
+          },
+        },
+      },
+    } as PipelineSpecVariable;
+
+    const renderResult = testHook(usePipelineTaskTopology)(spec, undefined, [
+      createMockTask('outer-1', TaskStateKF.RUNNING, 'outer', {
+        type: TaskTypeKF.DAG,
+        childTasks: [
+          { task_id: 'inner-1', name: 'inner' },
+          { task_id: 'train-outer', name: 'train' },
+        ],
+      }),
+      createMockTask('inner-1', TaskStateKF.RUNNING, 'inner', {
+        parentTaskId: 'outer-1',
+        type: TaskTypeKF.DAG,
+        childTasks: [{ task_id: 'train-inner', name: 'train' }],
+      }),
+      createMockTask('train-inner', TaskStateKF.FAILED, 'train', { parentTaskId: 'inner-1' }),
+      createMockTask('train-outer', TaskStateKF.SUCCEEDED, 'train', { parentTaskId: 'outer-1' }),
+    ]);
+    const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+
+    expect(nodes.find((n) => n.id === 'train-a')?.data?.pipelineTask.status?.state).toBe(
+      'Complete',
+    );
+    expect(nodes.find((n) => n.id === 'train-b')?.data?.pipelineTask.status?.state).toBe('Failed');
   });
 });
