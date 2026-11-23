@@ -181,6 +181,14 @@ describe('Subscriptions Page', () => {
     premiumRow.findExpandedModelName().should('exist');
     premiumRow.findExpandedModelName().should('have.length', 2);
     premiumRow.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
+    premiumRow.findExpandedModelDescription().should('have.length', 2);
+    premiumRow
+      .findExpandedModelDescription()
+      .eq(0)
+      .should(
+        'contain.text',
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      );
     premiumRow.findExpandedModelResourceName().should('have.length', 2);
     premiumRow
       .findExpandedModelResourceName()

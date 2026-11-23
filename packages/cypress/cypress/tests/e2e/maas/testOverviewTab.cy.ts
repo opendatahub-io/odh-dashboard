@@ -128,6 +128,7 @@ describe('MaaS Governance Overview tab', () => {
       const overviewRow = overviewTabPage.getRow(modelName, projectName);
       overviewRow.findModelName().should('contain.text', modelName);
       overviewRow.findModelId().should('contain.text', modelName);
+      overviewRow.findModelDescription().should('contain.text', testData.singleModelDescription);
       overviewRow.findModelProject().should('contain.text', projectName);
       overviewRow.findModelPhase().should('contain.text', PhaseStatus.PENDING);
       // Verify the phase modal is displayed
