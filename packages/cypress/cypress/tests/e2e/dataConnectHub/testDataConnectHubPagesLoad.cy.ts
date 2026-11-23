@@ -1,23 +1,30 @@
 import { createCleanProject, cleanupTestProject } from '../../../utils/projectChecker';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { dataConnectHubConnectionsPage } from '../../../pages/dataConnectHub/connectionsPage';
-import { isDataConnectHubAvailable } from '../../../utils/oc_commands/dataConnectHub';
+import {
+  isDataConnectHubBackendAvailable,
+  isDataConnectHubUiAvailable,
+} from '../../../utils/oc_commands/dataConnectHub';
 
 describe('Data Connect Hub Pages Load E2E', () => {
   const projectName = `dch-e2e-${generateTestUUID()}`;
-  let dataConnectHubAvailable = false;
+  let dataConnectHubBackendAvailable = false;
+  let dataConnectHubUiAvailable = false;
 
   before(() =>
-    isDataConnectHubAvailable().then((available) => {
-      dataConnectHubAvailable = available;
-      if (available) {
-        createCleanProject(projectName);
-      }
+    isDataConnectHubUiAvailable().then((uiAvailable) => {
+      dataConnectHubUiAvailable = uiAvailable;
+      return isDataConnectHubBackendAvailable().then((backendAvailable) => {
+        dataConnectHubBackendAvailable = backendAvailable;
+        if (uiAvailable && backendAvailable) {
+          createCleanProject(projectName);
+        }
+      });
     }),
   );
 
   after(() => {
-    if (dataConnectHubAvailable) {
+    if (dataConnectHubUiAvailable && dataConnectHubBackendAvailable) {
       cleanupTestProject(projectName);
     }
   });
@@ -28,7 +35,15 @@ describe('Data Connect Hub Pages Load E2E', () => {
       tags: ['@DataConnectHub', '@DataConnectHubCI', '@Featureflagged'],
       retries: { runMode: 0, openMode: 0 },
     },
-    () => {
+    function verifyDataConnectHubPages() {
+      if (!dataConnectHubUiAvailable) {
+        Cypress.log({
+          name: 'skip',
+          message: 'Data Connect Hub UI is unavailable',
+        });
+        this.skip();
+      }
+
       cy.step('Load the connection types page');
       dataConnectHubConnectionsPage.visitConnectionTypes(projectName);
       dataConnectHubConnectionsPage.findPageTitle().should('have.text', 'Connections');
@@ -51,7 +66,7 @@ describe('Data Connect Hub Pages Load E2E', () => {
       retries: { runMode: 0, openMode: 0 },
     },
     function verifyDataConnectHubContent() {
-      if (!dataConnectHubAvailable) {
+      if (!dataConnectHubUiAvailable || !dataConnectHubBackendAvailable) {
         Cypress.log({
           name: 'skip',
           message: 'Data Connect Hub backend or UI is unavailable',

@@ -27,11 +27,3 @@ export const isDataConnectHubUiAvailable = (): Cypress.Chainable<boolean> =>
     cy.log(`Data Connect Hub module service ${DCH_UI_SERVICE} ready: ${ready}`);
     return cy.wrap(ready);
   });
-
-export const isDataConnectHubAvailable = (): Cypress.Chainable<boolean> =>
-  isDataConnectHubBackendAvailable().then((backendReady) => {
-    if (!backendReady) {
-      return cy.wrap(false);
-    }
-    return isDataConnectHubUiAvailable();
-  });
