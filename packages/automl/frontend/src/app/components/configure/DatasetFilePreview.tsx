@@ -40,6 +40,7 @@ export default function DatasetFilePreview({
               sample={query.sample}
               label={`Preview of ${fileKey}`}
               showRowRange={false}
+              initialPerPage={20}
               onRetry={() => {
                 void query.refetch();
               }}

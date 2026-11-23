@@ -12,6 +12,7 @@ export default function DatasetSampleTable({
   highlightedColumns = new Set<string>(),
   compact = false,
   showRowRange = true,
+  initialPerPage = 10,
   onRetry,
 }: {
   sample: DatasetSample;
@@ -20,11 +21,12 @@ export default function DatasetSampleTable({
   highlightedColumns?: Set<string>;
   compact?: boolean;
   showRowRange?: boolean;
+  initialPerPage?: number;
   onRetry?: () => void;
 }): React.JSX.Element {
   const paginationId = React.useId();
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(10);
+  const [perPage, setPerPage] = React.useState(initialPerPage);
   if (sample.sampleRows.length === 0) {
     return (
       <Stack hasGutter>

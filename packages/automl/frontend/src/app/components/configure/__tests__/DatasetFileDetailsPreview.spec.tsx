@@ -37,6 +37,28 @@ describe('DatasetFileDetailsPreview', () => {
     expect(onViewFile).toHaveBeenCalledTimes(1);
   });
 
+  it('should show twenty rows in View file and paginate the remaining rows', () => {
+    jest.mocked(useS3GetFileSchemaQuery).mockReturnValue({
+      sample: {
+        columns: [{ name: 'value', type: 'string', task_type: 'multiclass' }],
+        sampleRows: Array.from({ length: 25 }, (_, index) => [`row-${index + 1}`]),
+        sampleSize: 25,
+        parseWarnings: 0,
+      },
+      isFetching: false,
+    } as ReturnType<typeof useS3GetFileSchemaQuery>);
+    render(
+      <DatasetFilePreview namespace="ns" secretName="s3" fileKey="data.csv" onClose={jest.fn()} />,
+    );
+    expect(screen.getByText('row-1')).toBeInTheDocument();
+    expect(screen.getByText('row-20')).toBeInTheDocument();
+    expect(screen.queryByText('row-21')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
+    expect(screen.getByText('row-21')).toBeInTheDocument();
+    expect(screen.getByText('row-25')).toBeInTheDocument();
+    expect(screen.queryByText('row-20')).not.toBeInTheDocument();
+  });
+
   it.each([DatasetFileDetailsPreview, DatasetFilePreview])(
     'should retry a failed sample without changing the file',
     (Preview) => {
