@@ -192,12 +192,15 @@ func (c EnvConfig) validateAuth(add func(string, ...any)) {
 
 // credentialHeaderForbidden lists headers that must never be read as the caller
 // credential: they carry other identity or session material that the edge, not
-// the caller, is supposed to control. Prefix entries end in "-".
+// the caller, is supposed to control, or they are removed before
+// authentication (the correlation middleware strips X-Request-ID and Audit-ID),
+// so a credential in them would never arrive. Prefix entries end in "-".
 var credentialHeaderForbidden = []string{
 	"cookie", "set-cookie", "proxy-authorization", "host",
 	"impersonate-user", "impersonate-group", "impersonate-uid", "impersonate-extra-",
 	"x-remote-",
 	"x-forwarded-user", "x-forwarded-groups", "x-forwarded-email", "x-forwarded-preferred-username",
+	"x-request-id", "audit-id",
 }
 
 // validateAuthTokenHeaders checks the caller-credential header settings.
@@ -252,9 +255,9 @@ func validateCredentialHeaderName(add func(string, ...any), setting, raw string)
 	}
 	if f, ok := forbiddenCredentialHeader(strings.ToLower(name)); ok {
 		if strings.HasSuffix(f, "-") {
-			add("%s is an %s* header (rest of the value omitted), an identity or session header that cannot carry the caller token", setting, f)
+			add("%s is an %s* header (rest of the value omitted), a reserved identity, session or correlation header that cannot carry the caller token", setting, f)
 		} else {
-			add("%s is %s, an identity or session header that cannot carry the caller token", setting, f)
+			add("%s is %s, a reserved identity, session or correlation header that cannot carry the caller token", setting, f)
 		}
 	}
 	return true
