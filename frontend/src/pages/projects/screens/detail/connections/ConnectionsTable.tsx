@@ -3,7 +3,6 @@ import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { Table } from '@odh-dashboard/ui-core';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
-import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -30,9 +29,7 @@ type ConnectionsTableProps = {
   connectionTypes?: ConnectionTypeConfigMapObj[];
   refreshConnections: () => void;
   setManageConnectionModal: (connection: Connection) => void;
-  getConnectedResourceLabels: (
-    resource: Connection | PersistentVolumeClaimKind,
-  ) => ConnectedResourceLabel[];
+  getConnectedResourceLabels: (resource: Connection) => ConnectedResourceLabel[];
   connectedResourcesLoaded: boolean;
 };
 

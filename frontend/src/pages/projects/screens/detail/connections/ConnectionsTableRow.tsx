@@ -7,7 +7,6 @@ import {
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
 import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
-import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   Connection,
   ConnectionTestStatus,
@@ -32,9 +31,7 @@ type ConnectionsTableRowProps = {
   showWarningIcon?: boolean;
   onEditConnection?: (connection: Connection) => void;
   isTesting?: boolean;
-  getConnectedResourceLabels?: (
-    resource: Connection | PersistentVolumeClaimKind,
-  ) => ConnectedResourceLabel[];
+  getConnectedResourceLabels?: (resource: Connection) => ConnectedResourceLabel[];
   connectedResourcesLoaded?: boolean;
 };
 

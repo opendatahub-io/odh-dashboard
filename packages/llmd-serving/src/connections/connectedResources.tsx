@@ -1,11 +1,14 @@
 import * as React from 'react';
 import type { Connection, PersistentVolumeClaimKind, ProjectKind } from '@odh-dashboard/k8s-core';
-import { MetadataAnnotation, getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { getPVCNameFromURI } from '@odh-dashboard/model-serving/shared';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type {
   ConnectedResourceLabel,
   ConnectionsConnectedResources,
 } from '@odh-dashboard/plugin-core/extension-points';
+import {
+  modelServingResourceUsesResource,
+  type ConnectedResourceKind,
+} from '@odh-dashboard/model-serving/shared/utils/connectedResources';
 import { LLMInferenceServiceKind } from '../types';
 import { useWatchLLMInferenceService } from '../api/LLMInferenceService';
 
@@ -32,15 +35,17 @@ export const useConnectedResources = (
 const llmInferenceServiceUsesResource = (
   llmInferenceService: LLMInferenceServiceKind,
   resourceName: string,
-  resourceKind: 'connection' | 'pvc',
+  resourceKind: ConnectedResourceKind,
 ): boolean =>
-  resourceKind === 'connection'
-    ? llmInferenceService.metadata.annotations?.[MetadataAnnotation.ConnectionName] ===
-        resourceName ||
-      !!llmInferenceService.spec.template?.imagePullSecrets?.some(
-        (secret) => secret.name === resourceName,
-      )
-    : getPVCNameFromURI(llmInferenceService.spec.model.uri) === resourceName;
+  modelServingResourceUsesResource(
+    {
+      annotations: llmInferenceService.metadata.annotations,
+      imagePullSecrets: llmInferenceService.spec.template?.imagePullSecrets,
+      storageUri: llmInferenceService.spec.model.uri,
+    },
+    resourceName,
+    resourceKind,
+  );
 /**
  * Returns a label for each LLMd LLMInferenceService that references the given connection or PVC.
  */
@@ -52,7 +57,7 @@ export const getConnectedResourceLabels = (
   if (!resourceName) {
     return [];
   }
-  const resourceKind = resource.spec?.accessModes ? 'pvc' : 'connection';
+  const resourceKind = resource.kind === 'PersistentVolumeClaim' ? 'pvc' : 'connection';
 
   return llmInferenceServices
     .filter((llmInferenceService) =>

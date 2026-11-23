@@ -1,8 +1,11 @@
 import * as React from 'react';
 import type { Connection, PersistentVolumeClaimKind, ProjectKind } from '@odh-dashboard/k8s-core';
-import { MetadataAnnotation, getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import { getPVCNameFromURI } from '@odh-dashboard/model-serving/shared';
+import {
+  modelServingResourceUsesResource,
+  type ConnectedResourceKind,
+} from '@odh-dashboard/model-serving/shared/utils/connectedResources';
 import type {
   ConnectedResourceLabel,
   ConnectionsConnectedResources,
@@ -32,15 +35,18 @@ export const useConnectedKServeResources = (
 const inferenceServiceUsesResource = (
   inferenceService: InferenceServiceKind,
   resourceName: string,
-  resourceKind: 'connection' | 'pvc',
+  resourceKind: ConnectedResourceKind,
 ): boolean =>
-  resourceKind === 'connection'
-    ? inferenceService.metadata.annotations?.[MetadataAnnotation.ConnectionName] === resourceName ||
-      inferenceService.spec.predictor.model?.storage?.key === resourceName ||
-      !!inferenceService.spec.predictor.imagePullSecrets?.some(
-        (secret) => secret.name === resourceName,
-      )
-    : getPVCNameFromURI(inferenceService.spec.predictor.model?.storageUri ?? '') === resourceName;
+  modelServingResourceUsesResource(
+    {
+      annotations: inferenceService.metadata.annotations,
+      storageKey: inferenceService.spec.predictor.model?.storage?.key,
+      imagePullSecrets: inferenceService.spec.predictor.imagePullSecrets,
+      storageUri: inferenceService.spec.predictor.model?.storageUri,
+    },
+    resourceName,
+    resourceKind,
+  );
 
 /**
  * Returns a label for each KServe InferenceService that references the given connection or PVC.

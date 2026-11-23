@@ -6,16 +6,14 @@ import type {
   ConnectionsConnectedResourcesExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { isConnectionsConnectedResourcesExtension } from '@odh-dashboard/plugin-core/extension-points';
-import type { Connection, PersistentVolumeClaimKind, ProjectKind } from '@odh-dashboard/k8s-core';
+import type { Connection, ProjectKind } from '@odh-dashboard/k8s-core';
 
 export const useGetConnectedResources = (
   project: ProjectKind,
 ): {
   hasExtensions: boolean;
   loaded: boolean;
-  getConnectedResourceLabels: (
-    resource: Connection | PersistentVolumeClaimKind,
-  ) => ConnectedResourceLabel[];
+  getConnectedResourceLabels: (resource: Connection) => ConnectedResourceLabel[];
   hookNotifications: React.ReactNode;
 } => {
   const extensions = useExtensions(isConnectionsConnectedResourcesExtension);
@@ -36,7 +34,7 @@ export const useGetConnectedResources = (
       resolvedExtensions.every((extension) => connectedResourceData[extension.uid]?.loaded));
 
   const getConnectedResourceLabels = React.useCallback(
-    (resource: Connection | PersistentVolumeClaimKind): ConnectedResourceLabel[] =>
+    (resource: Connection): ConnectedResourceLabel[] =>
       resolvedExtensions.flatMap((extension) => {
         const entry = connectedResourceData[extension.uid];
         return entry ? extension.properties.getConnectedResources(resource, entry.data) : [];
