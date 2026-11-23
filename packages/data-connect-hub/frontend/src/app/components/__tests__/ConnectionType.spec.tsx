@@ -132,21 +132,21 @@ describe('ConnectionType', () => {
     ).toBeTruthy();
     expect(screen.getByText('Provider type')).toBeTruthy();
     expect(screen.getByText('Provider description')).toBeTruthy();
-    expect(screen.getByText('Full integration')).toBeTruthy();
+    expect(screen.getByText('Ingestion supported')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Provider type' }));
 
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('should render the credentials-only capability label', () => {
-    render(
+  it('should omit the capability label for connection types without ingestion', () => {
+    const { container } = render(
       <ConnectionTypeLabel
         connectionType={mockConnectionType({ status: { flight_ready: false } })}
       />,
     );
 
-    expect(screen.getByText('Credentials only')).toBeTruthy();
+    expect(container.firstChild).toBeNull();
   });
 
   it('should render tags on the connection type card', () => {
@@ -212,7 +212,7 @@ describe('ConnectionType', () => {
     expect(screen.getByText('Provider')).toBeTruthy();
     expect(screen.getByText('postgresql')).toBeTruthy();
     expect(screen.getByText('Capability')).toBeTruthy();
-    expect(screen.getByText('Full integration')).toBeTruthy();
+    expect(screen.getByText('Ingestion supported')).toBeTruthy();
     expect(screen.getByText('Created')).toBeTruthy();
     expect(screen.getByText('2 days ago')).toBeTruthy();
     expect(screen.getByText('Last modified')).toBeTruthy();

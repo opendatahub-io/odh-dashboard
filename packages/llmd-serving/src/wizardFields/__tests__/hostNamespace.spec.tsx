@@ -49,7 +49,7 @@ describe('LLM-d wizard host namespace', () => {
       let coreApi = {
         dashboardNamespace: 'custom-dashboard',
         checkAccess: jest.fn(),
-        trackEvent: jest.fn(),
+
         fetchDashboardConfig: jest.fn(),
         fetchClusterSettings: jest.fn(),
         updateClusterSettings: jest.fn(),

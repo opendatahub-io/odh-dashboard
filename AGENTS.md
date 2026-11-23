@@ -146,7 +146,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
 | **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
 | **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
-| **Jira PR Review**                 | `skills/jira-pr-review/`               | Reviewing a PR against its Jira product ask and explicit acceptance criteria — used by `/preflight` |
+| **Jira PR Review**                 | `skills/jira-pr-review/`               | Reviewing a PR against its Jira product ask and explicit acceptance criteria |
 | **Product Ask Review**             | `skills/product-ask-review/`           | Evaluating whether a PR's stated work fulfills the current Jira product ask |
 | **Test Impact Review**             | `skills/test-impact-review/`           | Assurance-grade test impact: Automation, Efficiency, and Evidence depth |
 | **PR Description Review**          | `skills/pr-description-review/`        | Scoring a PR body for substance readiness: Problem, Solution, and Evidence |
@@ -156,7 +156,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Konflux Onboarding**             | `skills/konflux-onboarding/`           | Onboarding a component to Konflux CI/CD — Dockerfiles, standalone manifests, OpenShift CI, operator registration, DevOps coordination, RHOAI downstream setup |
 | **Prototype Spec**                 | `skills/prototype-spec/`               | Extracting PF component details from a UX prototype fork, scoped to a Jira ticket or epic |
 | **Prototype Tickets**              | `skills/prototype-tickets/`            | Drafting Jira tickets from a UX prototype fork — splits by feature area, generates ACs from prototype scenarios |
-| **CI Flake Classifier**            | `skills/ci-flake-classifier/`          | Classifying PR CI failures as flaky or genuine — cross-PR recurrence, rerun detection, symptom matching (also used by preflight) |
+| **CI Flake Classifier**            | `skills/ci-flake-classifier/`          | Classifying PR CI failures as flaky or genuine — cross-PR recurrence, rerun detection, symptom matching |
 | **Coverage Boost**                 | `skills/coverage-boost/`               | Parsing coverage reports to find uncovered lines, then generating targeted unit tests to boost coverage for a package or file |
 | **envtest Debug**                  | `skills/envtest-debug/`                | Debugging envtest integration test failures — analyzes output, identifies failure patterns, suggests fixes |
 | **Upstream Test Recommender**      | `skills/upstream-test-recommender/`    | Analyzing a `cypress_found_bug` Jira issue — identifies upstream repo, audits test infra, classifies bug, recommends test using repo's own tools. `--implement` generates test code. `--parity` runs backend/frontend test parity analysis |

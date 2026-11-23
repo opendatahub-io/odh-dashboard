@@ -13,10 +13,8 @@ export const parseStoredWorkingProjectName = (raw: string | null): string | null
   } catch {
     name = raw;
   }
-  if (typeof name === 'string') {
-    return name.length > 0 ? name : null;
-  }
-  return isValidK8sName(raw) ? raw : null;
+  const candidate = typeof name === 'string' ? name : raw;
+  return candidate.length <= 63 && isValidK8sName(candidate) ? candidate : null;
 };
 
 export const readStoredWorkingProjectName = (storage: Pick<Storage, 'getItem'>): string | null => {

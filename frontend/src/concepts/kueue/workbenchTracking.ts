@@ -1,4 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
 import { getKueueAnalyticsSubState } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import {

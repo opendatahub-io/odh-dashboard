@@ -2,6 +2,8 @@ import { portalPath } from '../support/portal';
 
 export const portal = {
   visit: (pathname = '/'): Cypress.Chainable<Cypress.AUTWindow> => cy.visit(portalPath(pathname)),
+  findMastheadLogo: (): Cypress.Chainable<JQuery<HTMLElement>> =>
+    cy.findByRole('banner').findByRole('link', { name: /^Red Hat AI/ }),
   findNavigation: (): Cypress.Chainable<JQuery<HTMLElement>> =>
     cy.findByRole('navigation', { name: 'Navigation' }),
   findNavLink: (name: string): Cypress.Chainable<JQuery<HTMLElement>> =>

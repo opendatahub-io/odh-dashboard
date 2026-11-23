@@ -1,5 +1,8 @@
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
-import { CrPathConfig, HardwareProfileBindingConfig } from './types';
+import type { CrPathConfig, HardwareProfileBindingConfig } from './types';
+
+export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
+  'Omitting CPU or Memory resources is not recommended.';
 
 export enum HardwareProfileBindingState {
   DISABLED = 'Disabled',

@@ -1,23 +1,17 @@
-import {
-  ContractApiClient,
-  ApiTestResultError,
-  loadOpenAPISchema,
-} from '@odh-dashboard/contract-tests';
+import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
 export type ApiResult = Awaited<ReturnType<ContractApiClient['get']>>;
-export type SuccessResult = Exclude<ApiResult, { success: false }>;
+export type SuccessResult = Extract<ApiResult, { success: true }>;
+type ErrorResult = Extract<ApiResult, { success: false }>;
 
 export const expectSuccess = (result: ApiResult): SuccessResult => {
   expect(result.success).toBe(true);
-  return result;
+  return result as SuccessResult;
 };
 
-export const expectError = (
-  result: ApiResult,
-  expectedStatus: number,
-): ApiTestResultError['error'] => {
+export const expectError = (result: ApiResult, expectedStatus: number): ErrorResult['error'] => {
   expect(result.success).toBe(false);
-  const { status, data, headers } = (result as ApiTestResultError).error;
+  const { status, data, headers } = (result as ErrorResult).error;
   expect(status).toBe(expectedStatus);
   return { status, data, headers };
 };

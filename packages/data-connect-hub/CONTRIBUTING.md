@@ -41,7 +41,7 @@ make dev-start
 Use `make dev-start-federated` when you need to test against a real ODH/RHOAI cluster. This mode:
 
 - Connects to a real Kubernetes cluster (requires port-forwarding)
-- Uses `user_token` authentication with `x-forwarded-access-token` header
+- Uses `user_token` authentication with the `Authorization: Bearer` token header
 - Is required for testing real cluster integrations
 
 ```bash

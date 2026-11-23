@@ -1,6 +1,7 @@
 {
-  "blocking_finding_severities": ["critical", "high", "medium"],
+  "blocking_finding_severities": ["critical", "high"],
   "exclude_blocking_categories": ["protected-path"],
+  "human_judgment_finding_severities": ["medium"],
   "risk_refuse_approve": ["high", "critical"],
   "confidence_refuse_approve": ["low"],
   "product_ask": {

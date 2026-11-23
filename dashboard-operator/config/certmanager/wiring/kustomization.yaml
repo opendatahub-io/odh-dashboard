@@ -1,0 +1,14 @@
+# Transformer kustomization that copies the final metrics Service name and
+# namespace into the metrics serving Certificate's dnsNames, which kustomize
+# does not rewrite on its own.
+#
+# Reference it from the `transformers:` field of the overlay that sets the
+# final namespace / namePrefix. `transformers:` runs after namespace and
+# namePrefix, so the copied values are the final ones. config/default and
+# config/webhook-enabled do this. A parent overlay that wraps either one and
+# changes namespace or namePrefix must reference it again (plus
+# config/webhook/wiring when the webhook is enabled).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - replacements.yaml

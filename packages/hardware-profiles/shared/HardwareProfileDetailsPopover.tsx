@@ -20,15 +20,13 @@ import {
   sortIdentifiers,
   getLocalQueueLabel,
   getDRAHardwareProfileDetails,
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
 } from './utils';
 import DRAHardwareProfileDetailsSection from './DRAHardwareProfileDetailsSection';
 import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
 import type { ResourceType } from './types';
-import {
-  getClusterQueueNameFromLocalQueues,
-  getHardwareProfileDescription,
-  getHardwareProfileDisplayName,
-} from '../src/pages/utils';
+import { getClusterQueueNameFromLocalQueues } from '../src/pages/utils';
 
 type HardwareProfileDetailsPopoverProps = {
   localQueueName?: string;

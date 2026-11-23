@@ -12,7 +12,7 @@ This trimmed service exposes ONLY:
 
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
-- GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
+- GET `/api/v1/namespaces` – list namespaces available to the authenticated user, using core Namespaces when cluster-wide listing succeeds and OpenShift Projects when that listing is forbidden
 
 All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
 
@@ -49,7 +49,7 @@ make run LOG_LEVEL=DEBUG
 |------|---------|-------------|
 | `-port` | `PORT` | Listen port (default 4000) |
 | `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
+| `-dev-mode` | `DEV_MODE` | Enables development-only behaviors, including local cluster access |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
@@ -102,7 +102,7 @@ Only three JSON endpoints are available plus static asset serving (index.html fa
 ```text
 GET /healthcheck
 GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
+GET /api/v1/namespaces
 ```
 
 ### Sample local calls
@@ -112,7 +112,7 @@ When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user 
 ```shell
 curl -i localhost:4000/healthcheck
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
+curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces
 ```
 
 ### Inter-BFF Communication

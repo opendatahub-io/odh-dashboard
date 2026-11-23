@@ -2,7 +2,6 @@ import * as _ from 'lodash-es';
 import {
   k8sCreateResource,
   k8sDeleteResource,
-  k8sGetResource,
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
@@ -18,7 +17,7 @@ import type {
   CreatingServingRuntimeObject,
   SupportedModelFormatsInfo,
 } from '@odh-dashboard/model-serving/shared';
-import { ServingRuntimeModel } from '#~/api/models';
+import { ServingRuntimeModel } from '@odh-dashboard/model-serving/shared/api/models';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { getModelServingRuntimeName } from '#~/pages/modelServing/utils';
 import { getModelServingProjects } from '#~/api/k8s/projects';
@@ -189,21 +188,6 @@ export const getServingRuntimeContext = (
   }
   return listScopedServingRuntimes(labelSelector, opts);
 };
-
-export const getServingRuntime = (
-  name: string,
-  namespace: string,
-  opts?: K8sAPIOptions,
-): Promise<ServingRuntimeKind> =>
-  k8sGetResource<ServingRuntimeKind>(
-    applyK8sAPIOptions(
-      {
-        model: ServingRuntimeModel,
-        queryOptions: { name, ns: namespace },
-      },
-      opts,
-    ),
-  );
 
 export const updateServingRuntime = (options: {
   data: CreatingServingRuntimeObject;

@@ -430,6 +430,62 @@ export const getServiceNamespace = (serviceName: string): Cypress.Chainable<stri
 };
 
 /**
+ * Poll until a uniquely named Service exists in any namespace, then return
+ * its namespace. Unlike waitForResource, the namespace is not known in advance
+ * (e.g. the gen-ai trace collector Service is created by the dashboard BFF in
+ * the platform collector's namespace during playground installation).
+ *
+ * @param serviceName The name of the Service to wait for.
+ * @param options Polling options (maxAttempts, pollIntervalMs).
+ * @returns A Cypress chainable that resolves with the Service's namespace.
+ */
+export const waitForServiceAnyNamespace = (
+  serviceName: string,
+  { maxAttempts = 30, pollIntervalMs = 2000 }: PollOptions = {},
+): Cypress.Chainable<string> => {
+  if (!/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(serviceName) || serviceName.length > 63) {
+    throw new Error(`Invalid Service name: ${serviceName}`);
+  }
+
+  const command = `oc get services --all-namespaces --field-selector metadata.name=${serviceName} -o jsonpath='{.items[*].metadata.namespace}'`;
+
+  const check = (attemptNumber = 1): Cypress.Chainable<string> => {
+    return cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to query Service ${serviceName}: ${maskSensitiveInfo(
+            result.stderr || result.stdout,
+          )}`,
+        );
+      }
+      const namespaces = result.stdout.trim().split(/\s+/).filter(Boolean);
+      if (namespaces.length === 1) {
+        return cy.wrap(namespaces[0]);
+      }
+      if (namespaces.length > 1) {
+        throw new Error(
+          `Expected Service ${serviceName} in exactly one namespace; found: ${namespaces.join(
+            ', ',
+          )}`,
+        );
+      }
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(
+          `Service ${serviceName} not found in any namespace after ${maxAttempts} attempts`,
+        );
+      }
+      cy.log(
+        `⏳ Waiting for Service ${serviceName} to be created (attempt ${attemptNumber}/${maxAttempts})`,
+      );
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+    });
+  };
+
+  return check();
+};
+
+/**
  * Handle for a port-forward process started by `startPortForward`, used to stop it via `stopPortForward`.
  */
 export type PortForwardHandle = {

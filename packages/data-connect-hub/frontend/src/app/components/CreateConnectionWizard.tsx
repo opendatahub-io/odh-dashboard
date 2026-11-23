@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { Link } from 'react-router-dom';
 import {
   ActionList,
@@ -29,6 +30,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalVariant,
+  Popover,
   Select,
   SelectList,
   SelectOption,
@@ -45,13 +47,15 @@ import {
 import { EyeIcon, EyeSlashIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Tearsheet } from '@patternfly/react-component-groups';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { testCredentials } from '~/app/api/dch';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
+import { ConnectionTypeInstance } from '~/app/components/ConnectionType';
 import PasswordInput from '~/app/components/PasswordInput';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useNotification } from '~/app/hooks/useNotification';
+import { useCreateConnectionNamespaces } from '~/app/hooks/useCreateConnectionNamespaces';
 import { connectionDetailsRoute, projectHomeRoute } from '~/app/routes';
 import { SENSITIVE_CREDENTIAL_MASK, isSensitiveCredentialField } from '~/app/utilities/credentials';
 import type {
@@ -88,7 +92,7 @@ export type CreateConnectionWizardProps = {
 const INITIAL_FORM_DATA: CreateConnectionFormData = {
   name: '',
   data_connection_type_id: '',
-  format: 'tabular',
+  format: 'tabular', // TODO [ Gustavo + Matthew ] Needs to support binary. We will need to get this from the API that informs the UI on the input fields
   credentials: {
     secret: '',
     properties: {},
@@ -121,7 +125,7 @@ const isValidConnectionName = (name: string): boolean =>
 const hasCredentialValue = (value?: string): boolean => Boolean(value?.trim());
 
 type ConnectionTypeStepProps = {
-  connectionTypes: ConnectionType[];
+  connectionTypes: ConnectionTypeInstance[];
   selectedConnectionTypeId: string;
   connectionTypesLoaded: boolean;
   connectionTypesError?: Error;
@@ -226,37 +230,55 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
             </Alert>
           ) : null}
           <FormGroup label="Project" isRequired fieldId="connection-project">
-            <Select
-              isOpen={isNamespaceSelectOpen}
-              maxMenuHeight="12.5rem"
-              isScrollable
-              selected={selectedNamespace}
-              onSelect={(_event, selection) => {
-                onNamespaceChange(String(selection));
-                setIsNamespaceSelectOpen(false);
-              }}
-              onOpenChange={setIsNamespaceSelectOpen}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsNamespaceSelectOpen((open) => !open)}
-                  isExpanded={isNamespaceSelectOpen}
-                  isFullWidth
-                  data-testid="connection-project-select"
+            <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem grow={{ default: 'grow' }}>
+                <Select
+                  isOpen={isNamespaceSelectOpen}
+                  maxMenuHeight="12.5rem"
+                  isScrollable
+                  selected={selectedNamespace}
+                  onSelect={(_event, selection) => {
+                    onNamespaceChange(String(selection));
+                    setIsNamespaceSelectOpen(false);
+                  }}
+                  onOpenChange={setIsNamespaceSelectOpen}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsNamespaceSelectOpen((open) => !open)}
+                      isExpanded={isNamespaceSelectOpen}
+                      isFullWidth
+                      data-testid="connection-project-select"
+                    >
+                      {namespaces.find((item) => item.name === selectedNamespace)?.displayName ??
+                        selectedNamespace}
+                    </MenuToggle>
+                  )}
                 >
-                  {namespaces.find((item) => item.name === selectedNamespace)?.displayName ??
-                    selectedNamespace}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                {namespaces.map((project) => (
-                  <SelectOption key={project.name} value={project.name}>
-                    {project.displayName ?? project.name}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </Select>
+                  <SelectList>
+                    {namespaces.map((project) => (
+                      <SelectOption key={project.name} value={project.name}>
+                        {project.displayName ?? project.name}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
+              </FlexItem>
+              <FlexItem>
+                <Popover
+                  aria-label="Project list permissions"
+                  bodyContent="This list includes only projects in which you have permission to create connections. To request changes to your permissions, contact your administrator."
+                >
+                  <Button
+                    variant="link"
+                    isInline
+                    data-testid="connection-project-access-popover-link"
+                  >
+                    Not seeing what you're looking for?
+                  </Button>
+                </Popover>
+              </FlexItem>
+            </Flex>
           </FormGroup>
           <FormGroup label="Connection name" isRequired fieldId="connection-name">
             <TextInput
@@ -815,6 +837,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   onCreate,
   initialFormData: propInitialFormData,
 }) => {
+  const trackEvent = useTrackEvent();
   let initialFormData = INITIAL_FORM_DATA;
   if (propInitialFormData) {
     initialFormData = { ...initialFormData, ...propInitialFormData };
@@ -851,10 +874,16 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     isOpen,
   );
   const [namespaces, namespacesLoaded, namespacesError] = useNamespaces(isOpen);
+  const namespacesForAccess = React.useMemo(
+    () =>
+      namespaces.some((item) => item.name === namespace)
+        ? namespaces
+        : [{ name: namespace }, ...namespaces],
+    [namespace, namespaces],
+  );
+  const [availableNamespaces, availableNamespacesLoaded, availableNamespacesError] =
+    useCreateConnectionNamespaces(namespacesForAccess, isOpen);
   const notification = useNotification();
-  const availableNamespaces = namespaces.some((item) => item.name === namespace)
-    ? namespaces
-    : [{ name: namespace }, ...namespaces];
   const selectedNamespaceDisplayName = availableNamespaces.find(
     (item) => item.name === selectedNamespace,
   )?.displayName;
@@ -905,7 +934,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const hasMissingCredentialDefaults = Object.keys(defaultCredentials).some(
     (name) => !(name in formData.credentials.properties),
   );
-  const hasNamespacesReady = namespacesLoaded && !namespacesError;
+  const projectLoadError = namespacesError ?? availableNamespacesError;
+  const hasNamespacesReady = namespacesLoaded && availableNamespacesLoaded && !projectLoadError;
   const hasValidDetails =
     hasSelectedConnectionType &&
     hasNamespacesReady &&
@@ -930,7 +960,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     isOpenSessionReady &&
     (!hasSelectedConnectionType || !hasMissingCredentialDefaults) &&
     (!hasConnectionType || connectionTypesLoaded || Boolean(connectionTypesError)) &&
-    (!needsInitialValidationData || namespacesLoaded || Boolean(namespacesError));
+    (!needsInitialValidationData || hasNamespacesReady || Boolean(projectLoadError));
   const calculatedStartIndex = hasValidConfiguration
     ? 4
     : hasValidDetailsWithProperties
@@ -1029,7 +1059,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     );
     if (selectedType && lastTrackedConnectionTypeIdRef.current !== connectionTypeId) {
       lastTrackedConnectionTypeIdRef.current = connectionTypeId;
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.typeSelected,
         properties: {
           connectionTypeProvider: getConnectionTypeProvider(selectedType) ?? connectionTypeId,
@@ -1168,7 +1198,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     (cancelMethod: DataConnectHubCancelMethod) => {
       if (!isCreating) {
         const tagCount = Object.keys(formData.properties).length;
-        fireDataConnectHubTrackEvent({
+        fireDataConnectHubTrackEvent(trackEvent, {
           eventName: DATA_CONNECT_HUB_EVENT_NAMES.createCanceled,
           properties: {
             cancelMethod,
@@ -1179,7 +1209,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
               : undefined,
           },
         });
-        fireDataConnectHubTrackEvent({
+        fireDataConnectHubTrackEvent(trackEvent, {
           eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
           properties: {
             outcome: TrackingOutcome.cancel,
@@ -1203,6 +1233,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       resetForm,
       selectedConnectionType,
       selectedNamespace,
+      trackEvent,
     ],
   );
   const requestClose = React.useCallback(
@@ -1228,13 +1259,13 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     handleClose(discardModalCancelMethod);
   }, [handleClose, discardModalCancelMethod]);
 
-  const handleCreate = async () => {
+  const handleCreate = React.useCallback(async () => {
     if (!hasValidConfiguration) {
       return;
     }
 
     if (!onCreate) {
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
         properties: {
           outcome: TrackingOutcome.submit,
@@ -1259,7 +1290,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       const projectName = selectedNamespaceDisplayName ?? selectedNamespace;
       const projectHomePath = projectHomeRoute(selectedNamespace);
       const tagCount = Object.keys(formData.properties).length;
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
         properties: {
           outcome: TrackingOutcome.submit,
@@ -1301,7 +1332,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       const creationError =
         error instanceof Error ? error : new Error('Unable to create connection');
       const tagCount = Object.keys(formData.properties).length;
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
         properties: {
           outcome: TrackingOutcome.submit,
@@ -1319,7 +1350,18 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     } finally {
       setIsCreating(false);
     }
-  };
+  }, [
+    formData,
+    hasValidConfiguration,
+    notification,
+    onClose,
+    onCreate,
+    resetForm,
+    selectedConnectionType,
+    selectedNamespace,
+    selectedNamespaceDisplayName,
+    trackEvent,
+  ]);
 
   return isOpen ? (
     <>
@@ -1379,8 +1421,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
               properties={propertyRows}
               propertyErrors={propertyErrors}
               touchedProperties={touchedProperties}
-              namespacesLoaded={namespacesLoaded}
-              namespacesError={namespacesError}
+              namespacesLoaded={hasNamespacesReady}
+              namespacesError={projectLoadError}
               connectionTypeWarning={connectionTypeWarning}
               onNamespaceChange={handleNamespaceChange}
               onConnectionNameChange={handleConnectionNameChange}

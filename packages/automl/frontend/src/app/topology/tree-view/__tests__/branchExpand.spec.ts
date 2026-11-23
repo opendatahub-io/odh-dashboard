@@ -56,24 +56,24 @@ describe('branchExpand', () => {
     ).toBe(true);
   });
 
-  it('should match winner labels ignoring spacing', () => {
+  it('should match winner labels exactly', () => {
     const node = makeNode('training__model__branch-0', 'XG Boost');
     expect(
       matchesWinnerModel(node, {
         winnerModelLabel: 'XGBoost',
         winnerModelKey: 'xgboost',
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it('should match topology labels to longer leaderboard keys/names', () => {
+  it('should not match topology labels to a different leaderboard name', () => {
     const node = makeNode('training__model__branch-2', 'ExtraTreesMSE_BAG_L1');
     expect(
       matchesWinnerModel(node, {
         winnerModelLabel: 'ExtraTreesMSE_B AG_L1_FULL',
         winnerModelKey: 'ExtraTreesMSE_BAG_L1_FULL',
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('should not match a short shared prefix across different models', () => {

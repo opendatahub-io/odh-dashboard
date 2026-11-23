@@ -19,11 +19,13 @@ import {
 } from '@odh-dashboard/hardware-profiles/shared/useResourceClaimTemplateNames';
 import { useIsDRAHardwareProfileEnabled } from '@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
@@ -108,7 +110,7 @@ const mockProfiles = [
   nodeHardwareProfile2,
 ];
 
-const renderComponent = (
+const buildComponent = (
   hardwareProfiles: HardwareProfileKind[],
   currentProject: ProjectKind,
   kueueFilteringState: KueueFilteringState,
@@ -157,7 +159,7 @@ const renderComponent = (
     waitForProject: () => Promise.resolve(),
   };
 
-  return render(
+  return (
     <CurrentProjectContext.Provider value={{ currentProject }}>
       <ProjectsContext.Provider
         value={{
@@ -186,13 +188,78 @@ const renderComponent = (
           />
         </LocalQueuesContext.Provider>
       </ProjectsContext.Provider>
-    </CurrentProjectContext.Provider>,
+    </CurrentProjectContext.Provider>
   );
 };
+
+const renderComponent = (...args: Parameters<typeof buildComponent>) =>
+  render(buildComponent(...args));
 
 describe('HardwareProfileSelect', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('Ordering', () => {
+    const buildOrderingComponent = () =>
+      buildComponent(
+        ['b', 'c', 'a'].map((suffix) =>
+          mockHardwareProfile({ name: `profile-${suffix}`, displayName: `Profile ${suffix}` }),
+        ),
+        mockProjectK8sResource({}),
+        KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      );
+
+    const expectProfileOrder = (names: string[]) => {
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(names.length);
+      names.forEach((name, index) => expect(options[index]).toHaveTextContent(name));
+    };
+
+    it('should sort profiles alphabetically without a dashboard configuration provider', async () => {
+      render(buildOrderingComponent());
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      expectProfileOrder(['Profile a', 'Profile b', 'Profile c']);
+    });
+
+    it('should apply configuration updates and restore alphabetical order when the order is removed', async () => {
+      const component = buildOrderingComponent();
+      const { rerender } = render(
+        <DashboardConfigContext.Provider
+          value={mockDashboardConfig({ hardwareProfileOrder: ['profile-b', 'missing'] }).spec}
+        >
+          {component}
+        </DashboardConfigContext.Provider>,
+      );
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+      expectProfileOrder(['Profile b', 'Profile a', 'Profile c']);
+
+      rerender(
+        <DashboardConfigContext.Provider
+          value={mockDashboardConfig({ hardwareProfileOrder: ['profile-c', 'profile-b'] }).spec}
+        >
+          {component}
+        </DashboardConfigContext.Provider>,
+      );
+      expectProfileOrder(['Profile c', 'Profile b', 'Profile a']);
+
+      rerender(
+        <DashboardConfigContext.Provider
+          value={{ ...mockDashboardConfig({}).spec, hardwareProfileOrder: undefined }}
+        >
+          {component}
+        </DashboardConfigContext.Provider>,
+      );
+      expectProfileOrder(['Profile a', 'Profile b', 'Profile c']);
+
+      rerender(
+        <DashboardConfigContext.Provider value={null}>{component}</DashboardConfigContext.Provider>,
+      );
+      expectProfileOrder(['Profile a', 'Profile b', 'Profile c']);
+    });
   });
 
   describe('Filtering', () => {

@@ -24,7 +24,6 @@ const mockPipelinesAreaAvailable = (status: boolean) => {
     reliantAreas: null,
     requiredComponents: null,
     requiredCapabilities: null,
-    customCondition: () => false,
   });
 };
 

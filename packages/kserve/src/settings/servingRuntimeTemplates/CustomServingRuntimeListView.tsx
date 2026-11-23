@@ -2,13 +2,12 @@ import * as React from 'react';
 import { Button, ToolbarItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { Table } from '@odh-dashboard/ui-core';
+import { Table, useNotification } from '@odh-dashboard/ui-core';
 import {
   getServingRuntimeNameFromTemplate,
   getSortedTemplates,
 } from '@odh-dashboard/model-serving/shared';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import useNotification from '@odh-dashboard/internal/utilities/useNotification';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import useDraggableTable from '@odh-dashboard/internal/utilities/useDraggableTable';
 import { patchDashboardConfigTemplateOrderBackend } from '@odh-dashboard/internal/services/dashboardService';
 import DeleteCustomServingRuntimeModal from './DeleteCustomServingRuntimeModal';

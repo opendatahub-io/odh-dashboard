@@ -1,4 +1,17 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+# Validating webhook component. It turns the webhook config and the webhook
+# server on together, so the two cannot drift apart:
+#   - ValidatingWebhookConfiguration (failurePolicy: Fail), webhook Service and
+#     cert-manager serving Certificate
+#   - --enable-webhook / --webhook-port on the manager, plus the serving-cert
+#     volume and the webhook container port
+# Include it from an overlay that sets namespace and namePrefix (see
+# config/webhook-enabled). Do not add it to config/default.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
 resources:
-  - manifests.yaml
+  - webhook.yaml
+patches:
+  - path: manager_webhook_patch.yaml
+    target:
+      kind: Deployment
+      name: dashboard-operator

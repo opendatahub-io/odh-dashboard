@@ -8,10 +8,8 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
-import {
-  InferenceServiceModel,
-  ServingRuntimeModel,
-} from '@odh-dashboard/internal/api/models/kserve';
+import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
+import { ServingRuntimeModel } from '@odh-dashboard/model-serving/shared/api/models';
 import { useWatchInferenceServices, useWatchServingRuntimes } from '../api/watch';
 
 export type KServeConnectedResourcesData = {

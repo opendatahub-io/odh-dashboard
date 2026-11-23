@@ -26,7 +26,7 @@ You can find the OpenAPI specification for the Data Connect Hub UI in the [opena
 
 There are two main deployment modes that the Data Connect Hub UI supports:
 
-1. **Standalone**: This is the default environment for local development. The UI is served by the BFF and the BFF is responsible for serving the API requests. The BFF exposes a `/namespace` endpoint that returns all the namespaces in the cluster.
+1. **Standalone**: This is the default environment for local development. The UI is served by the BFF and the BFF is responsible for serving the API requests. The BFF exposes a `/namespaces` endpoint that returns the namespaces available to the authenticated user; if cluster-wide Namespace listing is forbidden, it falls back to the user's accessible OpenShift Projects.
 
 2. **Federated**: This is the environment where the UI is served as a micro-frontend and integrated with a host application.
 

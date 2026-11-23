@@ -49,9 +49,11 @@ export type GroupReference = {
   name: string;
 };
 
+// All fields are optional per the BFF OpenAPI TokenMetadata schema; e.g. an
+// auth policy may carry only labels for metering.
 export type TokenMetadata = {
-  organizationId: string;
-  costCenter: string;
+  organizationId?: string;
+  costCenter?: string;
   labels?: Record<string, string>;
 };
 
@@ -171,7 +173,6 @@ export type UserSubscription = {
   subscription_description: string;
   display_name?: string;
   priority?: number;
-  /** @deprecated Legacy fixture compatibility; new BFF responses use priority. */
   inference_priority?: number;
   key_count?: number;
   model_refs: ModelRefInfo[];

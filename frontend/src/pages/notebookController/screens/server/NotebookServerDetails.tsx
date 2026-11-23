@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import type { PodContainer } from '@odh-dashboard/k8s-core';
 import { formatMemory } from '@odh-dashboard/ui-core/utilities/valueUnits';
+import { getHardwareProfileDisplayName } from '@odh-dashboard/hardware-profiles/shared/utils';
 import { Notebook } from '#~/types';
 import {
   getDescriptionForTag,
@@ -22,7 +23,6 @@ import { NotebookControllerContext } from '#~/pages/notebookController/NotebookC
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
-import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 

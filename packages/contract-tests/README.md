@@ -84,6 +84,38 @@ pnpm exec turbo run test:contract --filter=@odh-dashboard/model-registry -- --op
 
 ```
 
+## Controlled Upstream Fixtures
+
+When rare failures cannot be produced reliably by the normal mock BFF, use the shared
+`startGoTestFixture` helper in a contract test's `beforeAll` hook and call its `stop` method in
+`afterAll`. Existing package scripts and the command-line runner stay unchanged.
+
+```typescript
+import { startGoTestFixture, type GoTestFixture } from '@odh-dashboard/contract-tests';
+
+let fixture: GoTestFixture;
+beforeAll(async () => {
+  fixture = await startGoTestFixture({
+    bffDir: absoluteBffDirectory,
+    packagePath: './internal/proxy',
+    testName: 'TestContractFixtureServer',
+  });
+}, 180000);
+afterAll(async () => fixture?.stop());
+```
+
+The helper compiles the package with `go test -c -tags=contract` (plus any `BFF_GO_BUILD_TAGS`),
+runs the selected test with `CONTRACT_FIXTURE_SERVER=true`, waits for `/healthcheck`, and returns
+its URL for `ContractApiClient`. It removes the temporary binary and stops the process on teardown
+or failed startup. Startup failures include bounded stderr diagnostics.
+
+The fixture test must live in a build-tagged `_test.go` file, skip unless the environment flag is
+set, bind to an available loopback port, print its base URL as the first stdout line, send diagnostics
+to stderr, and exit on SIGTERM. It should exercise production handlers against controlled failures.
+
+Run the shared fixture helper's unit tests with `pnpm --dir packages/contract-tests run test-unit`
+from the repository root. The workspace unit-test and coverage tasks also run these tests.
+
 ## What You Get
 
 - ✅ **Zero configuration** - Works out of the box

@@ -20,41 +20,28 @@ cleanup_temp_remote() {
 ensure_base_blobs_in_index() {
   local patch_file="$1"
   local target_dir="$2"
-  local current_file=""
+  local current_file old_hash mode
+  local base_records="$TMP_DIR/base-records"
+  node "$SCRIPT_DIR/package-subtree-files.cjs" bases "$PACKAGE_JSON" "$patch_file" > "$base_records" || return 1
 
-  while IFS= read -r line; do
-    if [[ "$line" =~ ^diff\ --git\ a/(.*)\ b/(.*) ]]; then
-      current_file="${BASH_REMATCH[2]}"
+  while IFS= read -r -d '' current_file && IFS= read -r -d '' old_hash && IFS= read -r -d '' mode; do
+    local full_path="$target_dir/$current_file"
+
+    if git ls-files --error-unmatch "$full_path" >/dev/null 2>&1; then
       continue
     fi
 
-    if [ -z "$current_file" ]; then
+    if [[ "$old_hash" =~ ^0+$ ]]; then
       continue
     fi
 
-    if [[ "$line" =~ ^index\ ([0-9a-f]+)\.\.([0-9a-f]+)(\ ([0-9]+))? ]]; then
-      local old_hash="${BASH_REMATCH[1]}"
-      local mode="${BASH_REMATCH[4]:-100644}"
-      local full_path="$target_dir/$current_file"
+    local full_old_hash
+    full_old_hash=$(git rev-parse "$old_hash" 2>/dev/null || echo "")
 
-      current_file=""
-
-      if git ls-files --error-unmatch "$full_path" >/dev/null 2>&1; then
-        continue
-      fi
-
-      if [ "$old_hash" = "0000000" ] || [ "$old_hash" = "00000000" ]; then
-        continue
-      fi
-
-      local full_old_hash
-      full_old_hash=$(git rev-parse "$old_hash" 2>/dev/null || echo "")
-
-      if [ -n "$full_old_hash" ] && git cat-file -e "$full_old_hash" 2>/dev/null; then
-        git update-index --add --cacheinfo "$mode,$full_old_hash,$full_path" 2>/dev/null || true
-      fi
+    if [ -n "$full_old_hash" ] && git cat-file -e "$full_old_hash" 2>/dev/null; then
+      git update-index --add --cacheinfo "$mode,$full_old_hash,$full_path" 2>/dev/null || true
     fi
-  done < "$patch_file"
+  done < "$base_records"
 }
 
 show_do_not_merge_warning() {
@@ -242,6 +229,9 @@ if [ -z "$WORKSPACE_LOCATION" ] || [ "$WORKSPACE_LOCATION" = "null" ]; then
 fi
 
 PACKAGE_JSON="$MONOREPO_ROOT/$WORKSPACE_LOCATION/package.json"
+if ! node "$SCRIPT_DIR/package-subtree-files.cjs" validate "$PACKAGE_JSON"; then
+  clean_exit 1 "Invalid subtree exclusions in $PACKAGE_JSON"
+fi
 
 cd "$MONOREPO_ROOT"
 
@@ -454,7 +444,7 @@ if [ ! -d "$TARGET_DIR" ] && { [ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" =
           --arg branch "$LOCAL_BRANCH" \
           --arg commit "$TARGET_COMMIT" \
           '.subtree = (
-            { DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
+            .subtree + { DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
                 { branch: $branch }
                 + if $origin_url != "" then { origin_url: $origin_url } else { source: "local repository" } end
               ) }
@@ -505,7 +495,7 @@ if [ "$needs_sync_work" = true ]; then
   temp_file="$PACKAGE_JSON.tmp"
   if ! jq --arg origin_url "$LOCAL_REPO_ORIGIN" \
           --arg branch "$LOCAL_BRANCH" \
-          '.subtree = {
+          '.subtree = (.subtree + {
             DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
               { branch: $branch }
               + if $origin_url != "" then { origin_url: $origin_url } else { source: "local repository" } end
@@ -515,7 +505,7 @@ if [ "$needs_sync_work" = true ]; then
             src: .subtree.src,
             target: .subtree.target,
             commit: .subtree.commit
-          } |
+          }) |
           if .subtree.src == null then del(.subtree.src) else . end |
           if .subtree.repo == null then del(.subtree.repo) else . end' \
           "$PACKAGE_JSON" > "$temp_file"; then

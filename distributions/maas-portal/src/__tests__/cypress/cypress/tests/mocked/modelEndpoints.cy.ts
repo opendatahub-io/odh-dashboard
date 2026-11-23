@@ -31,10 +31,21 @@ describe('Grid Model endpoints', () => {
     maasModelsPage.findModelIds().should('have.length', 2);
     maasModelsPage.findPlaygroundActions().should('not.exist');
     maasModelsPage.findTabs().should('not.exist');
+    maasModelsPage.findModelStatusHelp().should('not.exist');
     portal.findNavLink('AI asset endpoints').should('not.exist');
+    cy.injectAxe();
+    cy.checkA11y(undefined, { includedImpacts: ['critical', 'serious'] });
     cy.reload();
     cy.wait('@models');
     maasModelsPage.findTable().should('contain.text', 'Llama 3');
+  });
+
+  it('redirects /maas to Model endpoints', () => {
+    cy.intercept('GET', modelsPath, { data: [model()] }).as('models');
+    portal.visit('/maas');
+    cy.wait('@models');
+    cy.location('pathname').should('eq', portalPath('/maas/models'));
+    maasModelsPage.findTitle().should('have.text', 'Model endpoints');
   });
 
   it('shows row values and opens a subscription from the endpoint details modal', () => {
@@ -99,16 +110,22 @@ describe('Grid Model endpoints', () => {
     cy.wait('@models');
     maasModelsPage.findEmptyState().should('contain.text', 'No MaaS models available');
     maasModelsPage.findTable().should('not.exist');
+    cy.injectAxe();
+    cy.checkA11y(undefined, { includedImpacts: ['critical', 'serious'] });
   });
 
   it('recovers when a failed model request is retried', () => {
     cy.intercept('GET', modelsPath, { statusCode: 503, body: {} }).as('modelsError');
     portal.visit('/maas/models');
     cy.wait('@modelsError');
-    maasModelsPage.findError().should('contain.text', 'Unable to load MaaS models');
+    maasModelsPage.findError().should('contain.text', 'Unable to load page');
+    maasModelsPage.findLoading().should('not.exist');
+    cy.injectAxe();
+    cy.checkA11y(undefined, { includedImpacts: ['critical', 'serious'] });
     cy.intercept('GET', modelsPath, { data: [model()] }).as('modelsRetry');
     maasModelsPage.findRetry().click();
     cy.wait('@modelsRetry');
     maasModelsPage.findTable().should('contain.text', 'Llama 3');
+    maasModelsPage.findError().should('not.exist');
   });
 });

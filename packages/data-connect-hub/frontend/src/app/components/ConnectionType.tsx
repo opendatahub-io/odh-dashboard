@@ -115,15 +115,15 @@ const ConnectionTypeCapabilities: Record<
 > = {
   full_integration: {
     id: 'full_integration',
-    label: 'Full integration',
-    description: 'Connection types with credential management and data ingestion support.',
+    label: 'Ingestion supported',
+    description: 'Connection types that support data ingestion.',
     color: LabelColor.teal,
   },
   credentials: {
     id: 'credentials',
-    label: 'Credentials only',
+    label: 'No ingestion',
     description:
-      'Connection types that store credentials for authentication without built-in ingestion.',
+      'Connection types that store metadata and credentials for authentication without built-in ingestion.',
     color: LabelColor.yellow,
   },
 };
@@ -260,13 +260,19 @@ const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType,
   );
 };
 
-type ConnectionTypeLabelProps = BaseConnectionTypeProps;
-const ConnectionTypeLabel: React.FC<ConnectionTypeLabelProps> = ({ connectionType }) => {
-  let capability = ConnectionTypeCapabilities.full_integration;
+type ConnectionTypeLabelProps = BaseConnectionTypeProps & {
+  className?: string;
+};
+const ConnectionTypeLabel: React.FC<ConnectionTypeLabelProps> = ({ connectionType, className }) => {
   if (connectionType.isCredentialsOnly()) {
-    capability = ConnectionTypeCapabilities.credentials;
+    return null;
   }
-  return <Label color={capability.color}>{capability.label}</Label>;
+  const capability = ConnectionTypeCapabilities.full_integration;
+  return (
+    <Label className={className} color={capability.color}>
+      {capability.label}
+    </Label>
+  );
 };
 
 const ConnectionTypeCardIdentifier = (id: string) => `${id}--ConnectionTypeCard`;

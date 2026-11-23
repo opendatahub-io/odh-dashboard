@@ -1,9 +1,8 @@
 import React from 'react';
 import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
+import { useKueueStatusWithQueuePositions } from '@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { useKueueStatusWithQueuePositions } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { buildModelDeploymentKey } from '@odh-dashboard/internal/api/k8s/workloads';
+import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
 import { getLLMdDeploymentEndpoints } from './endpoints';
 import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import { useWatchLLMInferenceService } from '../api/LLMInferenceService';
@@ -44,18 +43,22 @@ export const useWatchDeployments = (
     hasLLMInferenceServices,
   );
 
-  const {
-    kueueStatusByDeploymentKey,
-    isLoading: kueueLoading,
-    error: kueueError,
-  } = useKueueStatusWithQueuePositions([], project, filteredLLMInferenceServices);
+  const { kueueStatusByDeploymentKey, isLoading: kueueLoading } = useKueueStatusWithQueuePositions(
+    [],
+    project,
+    filteredLLMInferenceServices,
+    opts,
+  );
 
   const deployments = React.useMemo(() => {
     return filteredLLMInferenceServices.map((llmInferenceService) => {
-      const pods = deploymentPods.filter(
+      const modelPods = deploymentPods.filter(
         (pod) =>
-          pod.metadata.labels?.['app.kubernetes.io/name'] === llmInferenceService.metadata.name &&
-          pod.metadata.labels['app.kubernetes.io/component'] === 'llminferenceservice-workload',
+          pod.metadata.labels?.['app.kubernetes.io/name'] === llmInferenceService.metadata.name,
+      );
+      const statusPods = modelPods.filter(
+        (pod) =>
+          pod.metadata.labels?.['app.kubernetes.io/component'] === 'llminferenceservice-workload',
       );
 
       const matchingBaseRefConfig = llmInferenceService.spec.baseRefs?.find(
@@ -77,12 +80,17 @@ export const useWatchDeployments = (
           : undefined,
         apiProtocol: 'REST', // vLLM uses REST so I assume it's the same for LLMd
         endpoints: getLLMdDeploymentEndpoints(llmInferenceService),
-        status: getLLMdDeploymentStatus(llmInferenceService, pods, kueueStatus),
+        // getLLMdDeploymentStatus uses the first matching Pod, so pass it only llminferenceservice-workload pods
+        // so that leader, worker, prefill, and scheduler Pods are available for diagnostics but not used for status.
+        status: getLLMdDeploymentStatus(llmInferenceService, statusPods, kueueStatus),
+        podDiscovery: { pods: modelPods, loaded: deploymentPodsLoaded, error: deploymentPodsError },
       };
     });
   }, [
     filteredLLMInferenceServices,
     deploymentPods,
+    deploymentPodsLoaded,
+    deploymentPodsError,
     llmInferenceServiceConfigs,
     kueueStatusByDeploymentKey,
   ]);
@@ -91,17 +99,14 @@ export const useWatchDeployments = (
     (llmInferenceServiceLoaded || llmInferenceServiceError) &&
       (llmInferenceServiceConfigsLoaded || llmInferenceServiceConfigsError) &&
       (deploymentPodsLoaded || deploymentPodsError) &&
-      (!kueueLoading || kueueError),
+      !kueueLoading,
   );
 
   const errors = React.useMemo(() => {
-    return [
-      llmInferenceServiceError,
-      llmInferenceServiceConfigsError,
-      deploymentPodsError,
-      kueueError ? new Error(kueueError) : undefined,
-    ].filter((error): error is Error => Boolean(error));
-  }, [llmInferenceServiceError, llmInferenceServiceConfigsError, deploymentPodsError, kueueError]);
+    return [llmInferenceServiceError, llmInferenceServiceConfigsError, deploymentPodsError].filter(
+      (error): error is Error => Boolean(error),
+    );
+  }, [llmInferenceServiceError, llmInferenceServiceConfigsError, deploymentPodsError]);
 
   return React.useMemo(
     () => [deployments, effectivelyLoaded, errors],

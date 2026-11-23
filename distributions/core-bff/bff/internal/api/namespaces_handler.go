@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,7 +10,6 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
@@ -19,22 +17,11 @@ type NamespacesEnvelope Envelope[[]models.NamespaceModel, None]
 type NamespaceEnvelope Envelope[models.NamespaceModel, None]
 
 func (app *App) namespaceErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
-	switch {
-	case errors.Is(err, repositories.ErrNamespaceAccessDenied) || k8serrors.IsForbidden(err):
-		app.forbiddenResponse(w, r, fmt.Errorf("insufficient permissions for this operation"))
-	case k8serrors.IsUnauthorized(err):
-		app.unauthorizedResponse(w, r, err)
-	case k8serrors.IsNotFound(err):
-		app.notFoundResponse(w, r)
-	case errors.Is(err, context.DeadlineExceeded) || k8serrors.IsTimeout(err) || k8serrors.IsServerTimeout(err) || isKubernetesTransportTimeout(err):
-		app.LogError(r, err)
-		app.errorResponse(w, r, &HTTPError{StatusCode: http.StatusGatewayTimeout, Error: ErrorPayload{Code: "GATEWAY_TIMEOUT", Message: "the Kubernetes request timed out"}})
-	case k8serrors.IsServiceUnavailable(err) || isKubernetesTransportError(err):
-		app.LogError(r, err)
-		app.errorResponse(w, r, &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: "SERVICE_UNAVAILABLE", Message: "the Kubernetes API is temporarily unavailable"}})
-	default:
-		app.serverErrorResponse(w, r, err)
+	if errors.Is(err, repositories.ErrNamespaceAccessDenied) {
+		app.forbiddenResponse(w, r, err)
+		return
 	}
+	app.serverErrorResponse(w, r, err)
 }
 
 func (app *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

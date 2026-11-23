@@ -59,7 +59,13 @@ func resolveMaaSWhoAmI(app *App, r *http.Request) (*models.MaaSWhoAmI, error) {
 	if upstream == nil {
 		return nil, fmt.Errorf("MaaS /v1/me returned no user")
 	}
-	whoAmI := &models.MaaSWhoAmI{Sub: upstream.Sub, Email: upstream.Email, Name: upstream.Name}
+	whoAmI := &models.MaaSWhoAmI{
+		Sub:     upstream.Sub,
+		Email:   upstream.Email,
+		Name:    upstream.Name,
+		OrgID:   upstream.OrgID,
+		OrgName: upstream.OrgName,
+	}
 	whoAmI.IsAdmin, err = getMaaSAdminStatusFromWhoAmI(app, r, upstream)
 	return whoAmI, err
 }
@@ -69,27 +75,21 @@ func getMaaSAdminStatusFromWhoAmI(
 	r *http.Request,
 	whoAmI *models.MaaSWhoAmIUpstream,
 ) (bool, error) {
-	isAdmin := false
-	if whoAmI.Orgs != nil && len(*whoAmI.Orgs) > 0 {
-		for _, org := range *whoAmI.Orgs {
-			if hasRole(org.Roles, "admins") {
-				isAdmin = true
-				break
-			}
-		}
-	} else {
-		subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
-		if err != nil {
-			return false, err
-		}
-		for _, subscription := range subscriptions {
-			if hasRole(subscription.Roles, "admin") {
-				isAdmin = true
-				break
-			}
+	// An organization-scoped identity carries org_id. Its roles decide admin
+	// access, and the subscription fallback is not used.
+	if whoAmI.OrgID != "" {
+		return hasRole(whoAmI.Roles, "admins"), nil
+	}
+	subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
+	if err != nil {
+		return false, err
+	}
+	for _, subscription := range subscriptions {
+		if hasRole(subscription.Roles, "admin") {
+			return true, nil
 		}
 	}
-	return isAdmin, nil
+	return false, nil
 }
 
 func hasRole(roles []string, expected string) bool {

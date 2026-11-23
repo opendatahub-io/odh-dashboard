@@ -2,21 +2,13 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { LimitedSupportEvent } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import { patchDashboardConfigTemplateDisablementBackend } from '@odh-dashboard/internal/services/dashboardService';
+import { patchTemplateAcceptedAnnotationBackend } from '@odh-dashboard/internal/services/templateService';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 import CustomServingRuntimeEnabledToggle from '../CustomServingRuntimeEnabledToggle';
 import { CustomServingRuntimeContext } from '../CustomServingRuntimeContext';
-
-jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
-  __esModule: true,
-  default: () => ({ error: jest.fn(), success: jest.fn(), info: jest.fn() }),
-}));
-
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
-}));
 
 jest.mock('@odh-dashboard/internal/services/dashboardService', () => ({
   patchDashboardConfigTemplateDisablementBackend: jest.fn().mockResolvedValue(undefined),
@@ -24,11 +16,6 @@ jest.mock('@odh-dashboard/internal/services/dashboardService', () => ({
 
 jest.mock('@odh-dashboard/internal/services/templateService', () => ({
   patchTemplateAcceptedAnnotationBackend: jest.fn().mockResolvedValue(undefined),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireFormTrackingEvent: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking', () => ({
@@ -39,7 +26,7 @@ jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking',
   })),
 }));
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+let trackEvent: ReturnType<typeof createTestProviders>['tracking']['trackEvent'];
 
 const mockContextValue = {
   refreshData: jest.fn(),
@@ -58,16 +45,88 @@ const mockContextValue = {
   },
 };
 
-const renderWithContext = (template: ReturnType<typeof mockServingRuntimeTemplateK8sResource>) =>
+const renderWithContext = (template: ReturnType<typeof mockServingRuntimeTemplateK8sResource>) => {
+  const providers = createTestProviders({ dashboardNamespace: 'custom-dashboard' });
+  trackEvent = providers.tracking.trackEvent;
   render(
     <CustomServingRuntimeContext.Provider value={mockContextValue}>
       <CustomServingRuntimeEnabledToggle template={template} />
     </CustomServingRuntimeContext.Provider>,
+    { wrapper: providers.wrapper },
   );
+  return providers;
+};
 
 describe('CustomServingRuntimeEnabledToggle', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should use the host namespace and notify the host when enablement fails', async () => {
+    jest
+      .mocked(patchDashboardConfigTemplateDisablementBackend)
+      .mockRejectedValueOnce(new Error('Update denied'));
+    const { notification } = renderWithContext(
+      mockServingRuntimeTemplateK8sResource({ name: 'my-runtime' }),
+    );
+
+    fireEvent.click(screen.getByRole('switch'));
+
+    await waitFor(() => {
+      expect(notification.error).toHaveBeenCalledWith(
+        'Error disabling the serving runtime',
+        'Update denied',
+      );
+    });
+    expect(patchDashboardConfigTemplateDisablementBackend).toHaveBeenCalledWith(
+      ['my-runtime'],
+      'custom-dashboard',
+    );
+    expect(trackEvent.mock.calls).toEqual([
+      [
+        'Model Serving Serving Runtime Template Enablement Changed',
+        { outcome: 'submit', success: false, enabled: true },
+      ],
+    ]);
+    expect(screen.getByRole('switch')).toBeChecked();
+    expect(screen.getByRole('switch')).toBeEnabled();
+  });
+
+  it('should notify the host when unsupported-runtime acceptance fails', async () => {
+    jest
+      .mocked(patchTemplateAcceptedAnnotationBackend)
+      .mockRejectedValueOnce(new Error('Acceptance denied'));
+    const { notification } = renderWithContext(
+      mockServingRuntimeTemplateK8sResource({
+        annotations: { 'opendatahub.io/support-status': 'unsupported' },
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('switch'));
+    fireEvent.click(screen.getByTestId('unsupported-status-acceptance-checkbox'));
+    fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
+
+    await waitFor(() => {
+      expect(notification.error).toHaveBeenCalledWith(
+        'Error accepting the unsupported serving runtime',
+        'Acceptance denied',
+      );
+    });
+    expect(trackEvent).not.toHaveBeenCalled();
+    expect(screen.getByRole('switch')).toBeEnabled();
+  });
+
+  it('should emit one enablement event after a successful toggle', async () => {
+    renderWithContext(mockServingRuntimeTemplateK8sResource({}));
+    expect(trackEvent).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('switch'));
+    await waitFor(() => expect(screen.getByRole('switch')).toBeEnabled());
+    expect(trackEvent.mock.calls).toEqual([
+      [
+        'Model Serving Serving Runtime Template Enablement Changed',
+        { outcome: 'submit', success: true, enabled: false },
+      ],
+    ]);
   });
 
   it('should fire risk accepted event when modal accept is clicked', async () => {
@@ -88,7 +147,7 @@ describe('CustomServingRuntimeEnabledToggle', () => {
     fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
 
     await waitFor(() => {
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_ACCEPTED, {
+      expect(trackEvent).toHaveBeenCalledWith('Model Serving Unsupported Runtime Risk Accepted', {
         runtimeResourceType: 'serving-runtime-template',
         resourceId: 'fast-vllm-template',
         resourceName: 'Fast vLLM Runtime',
@@ -98,6 +157,12 @@ describe('CustomServingRuntimeEnabledToggle', () => {
         success: true,
       });
     });
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledTimes(2));
+    expect(trackEvent).toHaveBeenNthCalledWith(
+      2,
+      'Model Serving Serving Runtime Template Enablement Changed',
+      { outcome: 'submit', success: true, enabled: true },
+    );
   });
 
   it('should fire risk dismissed event with cancel action when modal cancel is clicked', () => {
@@ -116,8 +181,9 @@ describe('CustomServingRuntimeEnabledToggle', () => {
 
     fireEvent.click(screen.getByTestId('unsupported-status-cancel-button'));
 
+    expect(trackEvent).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Unsupported Runtime Risk Dismissed', {
       runtimeResourceType: 'serving-runtime-template',
       resourceId: 'fast-vllm-template',
       resourceName: 'Fast vLLM Runtime',
@@ -144,8 +210,9 @@ describe('CustomServingRuntimeEnabledToggle', () => {
 
     fireEvent.click(screen.getByLabelText('Close'));
 
+    expect(trackEvent).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Unsupported Runtime Risk Dismissed', {
       runtimeResourceType: 'serving-runtime-template',
       resourceId: 'fast-vllm-template',
       resourceName: 'Fast vLLM Runtime',

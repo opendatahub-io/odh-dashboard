@@ -53,12 +53,6 @@ export type HostApiCoreServices = {
   /** Perform a SelfSubjectAccessReview to check whether the current user has a specific permission. */
   checkAccess: (attrs: Required<AccessReviewResourceAttributes>) => Promise<boolean>;
 
-  /** Fire a tracking event with arbitrary properties. */
-  trackEvent: (
-    eventName: string,
-    properties: Record<string, string | number | boolean | string[] | undefined>,
-  ) => void;
-
   /** Fetch (or refresh) the DashboardConfig CR that controls feature flags and platform settings. */
   fetchDashboardConfig: (forceRefresh?: boolean) => Promise<DashboardConfigKind>;
 

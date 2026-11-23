@@ -1,0 +1,14 @@
+# Code agent for the RHAI and RHOAIENG Jira pilot (fullsend-poll-jira.yaml),
+# from agents v0.54.0. The base trigger runs it on an added ready-to-code label or a
+# /fs-code comment; only the Jira poller reaches it, because fullsend.yaml routes
+# no GitHub issue events. Who may trigger it: authorization: in config.yaml.
+base: https://raw.githubusercontent.com/fullsend-ai/agents/87a43fcb849546b267a619434ca19dedde8df476/harness/code.yaml#sha256=8973a15fe53798c632d86c6d2e595a476bfb7cd2f9392961b63533e30d4f1e15
+
+env:
+  runner:
+    CODE_ALLOWED_TARGET_BRANCHES: "main"
+
+overlays:
+  - when: 'has(event.source) && event.source.system == "jira"'
+    skills:
+      - skills/rhoaieng-jira-code

@@ -35,6 +35,7 @@ export type {
 
 export {
   KnownLabels,
+  NamespacePhase,
   MetadataAnnotation,
   HardwareProfileFeatureVisibility,
   DataScienceStackComponent,
@@ -109,6 +110,9 @@ export {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
   getDescriptionFromK8sResource,
+  PreInstalledName,
+  isOOTB,
+  getCreatorFromK8sResource,
   translateDisplayNameForK8sAndReport,
   translateDisplayNameForK8s,
   isValidK8sName,

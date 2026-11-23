@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
-import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalProvider } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';

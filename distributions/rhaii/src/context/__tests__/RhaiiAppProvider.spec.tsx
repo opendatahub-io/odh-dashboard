@@ -1,10 +1,14 @@
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, renderHook, screen, waitFor } from '@testing-library/react';
 import { useK8sWatchResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
+import { PluginStore } from '@odh-dashboard/plugin-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent, useTrackPageEvent } from '@odh-dashboard/analytics/react';
 import { HardwareProfilesContext } from '@odh-dashboard/ui-core/context/HardwareProfilesContext';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import RhaiiAppProvider from '../RhaiiAppProvider';
+import RhaiiAppProviderComponent from '../RhaiiAppProvider';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   ...jest.requireActual('@openshift/dynamic-plugin-sdk-utils'),
@@ -19,6 +23,13 @@ jest.mock('../ProjectsContextProvider', () => ({
 }));
 
 const ORIGINAL_TILT_FIXTURES = process.env.RHAII_TILT_FIXTURES;
+let pluginStore: PluginStore;
+
+const RhaiiAppProvider: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <PluginStoreProvider store={pluginStore}>
+    <RhaiiAppProviderComponent>{children}</RhaiiAppProviderComponent>
+  </PluginStoreProvider>
+);
 
 const ConnectionTypesConsumer: React.FC = () => {
   const [connectionTypes] = useWatchConnectionTypes();
@@ -39,6 +50,7 @@ const ConnectionTypesConsumer: React.FC = () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  pluginStore = new PluginStore({});
   const profiles: HardwareProfileKind[] = [
     {
       apiVersion: 'infrastructure.opendatahub.io/v1',
@@ -64,6 +76,28 @@ afterEach(() => {
   }
   jest.restoreAllMocks();
   delete (globalThis as { fetch?: typeof fetch }).fetch;
+});
+
+describe('RhaiiAppProvider unified selector gate', () => {
+  it.each([
+    [undefined, false],
+    [false, false],
+    [true, true],
+  ])('should expose %s through the area contract', (flag, expected) => {
+    if (flag !== undefined) {
+      pluginStore.setFeatureFlags({ 'unified-project-selector': flag });
+    }
+    const Status: React.FC = () => {
+      const { status } = useIsAreaAvailable(SupportedArea.UNIFIED_PROJECT_SELECTOR);
+      return <span data-testid="ups-status">{String(status)}</span>;
+    };
+    render(
+      <RhaiiAppProvider>
+        <Status />
+      </RhaiiAppProvider>,
+    );
+    expect(screen.getByTestId('ups-status').textContent).toBe(String(expected));
+  });
 });
 
 describe('RhaiiAppProvider Tilt fixture composition', () => {
@@ -110,5 +144,50 @@ describe('RhaiiAppProvider Tilt fixture composition', () => {
         undefined,
       ),
     );
+  });
+});
+
+describe('RhaiiAppProvider tracking', () => {
+  it('should mount a tracking no-op without accessing or initializing the global SDK', () => {
+    const originalAnalytics = Object.getOwnPropertyDescriptor(window, 'analytics');
+    const sdk = { track: jest.fn(), page: jest.fn() };
+    const analyticsRead = jest.fn(() => sdk);
+    const analyticsWrite = jest.fn();
+
+    try {
+      Object.defineProperty(window, 'analytics', {
+        configurable: true,
+        get: analyticsRead,
+        set: analyticsWrite,
+      });
+      const { result, rerender } = renderHook(
+        () => ({ track: useTrackEvent(), page: useTrackPageEvent() }),
+        { wrapper: RhaiiAppProvider },
+      );
+
+      const initial = result.current;
+      rerender();
+      expect(result.current.track).toBe(initial.track);
+      expect(result.current.page).toBe(initial.page);
+      expect(
+        result.current.track('custom-event', { outcome: 'submit', success: false }),
+      ).toBeUndefined();
+      expect(result.current.page()).toBeUndefined();
+      expect(analyticsRead).not.toHaveBeenCalled();
+      expect(analyticsWrite).not.toHaveBeenCalled();
+      expect(sdk.track).not.toHaveBeenCalled();
+      expect(sdk.page).not.toHaveBeenCalled();
+
+      Reflect.deleteProperty(window, 'analytics');
+      expect(() => result.current.track('custom-event', {})).not.toThrow();
+      expect(() => result.current.page()).not.toThrow();
+      expect(Object.getOwnPropertyDescriptor(window, 'analytics')).toBeUndefined();
+    } finally {
+      if (originalAnalytics) {
+        Object.defineProperty(window, 'analytics', originalAnalytics);
+      } else {
+        Reflect.deleteProperty(window, 'analytics');
+      }
+    }
   });
 });

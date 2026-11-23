@@ -6,9 +6,8 @@ import {
   NavExtension,
   TabRoutePageExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { useExtensions } from '@odh-dashboard/plugin-core';
+import { getTopLevelExtensions, useExtensions } from '@odh-dashboard/plugin-core';
 import { NavItem } from './NavItem';
-import { getTopLevelExtensions } from './utils';
 
 type Props = {
   label: string;

@@ -41,6 +41,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Prototype Reading Skills](docs/prototype-reading.md) | `/prototype-tickets` and `/prototype-spec` — extracting PF component details from UX prototype forks |
 | [Upstream Sync](docs/upstream-sync.md) | How to sync upstream changes into monorepo packages |
 | [Konflux Build Simulation](docs/KONFLUX_BUILD_SIMULATION.md) | PR build validation, hermetic pnpm install checks, Docker builds, and runtime checks |
+| [Security and CVE Handling](docs/security-cve.md) | CVE signal sources, Dependabot/Renovate automation, PR gates, fixing CVEs on `main` and release branches |
 | [Workspace Dockerfiles](docs/workspace-dockerfiles.md) | Workspace-aware module builds with prefetched pnpm and offline dependencies |
 
 ---
@@ -120,6 +121,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Core BFF BFF Docs](distributions/core-bff/bff/README.md) | Go BFF documentation |
 | [Core BFF OpenAPI Spec](distributions/core-bff/bff/openapi/src/core-bff.yaml) | OpenAPI specification (contract-first source of truth) |
 | [Base Distribution README](distributions/base/README.md) | App shell setup, dev environment, environment variables |
+| [RHAII Runtime Audit](distributions/rhaii/docs/runtime-audit.md) | Production bundle inventory, strict dependency boundary check, and remaining runtime qualification |
 
 ---
 

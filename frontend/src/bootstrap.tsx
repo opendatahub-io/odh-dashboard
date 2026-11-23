@@ -6,7 +6,6 @@ import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks';
 import { sdkStore, store } from './redux/store/store';
 import App from './app/App';
 import { ThemeProvider } from './app/ThemeContext';
-import { AnalyticsProvider } from './concepts/analyticsTracking/AnalyticsProvider';
 import { NotificationProvider } from './utilities/NotificationProvider';
 import SDKInitialize from './SDKInitialize';
 import ErrorBoundary from './components/error/ErrorBoundary';
@@ -22,9 +21,7 @@ const router = createBrowserRouter([
         <BrowserStorageContextProvider>
           <ThemeProvider>
             <NotificationProvider>
-              <AnalyticsProvider>
-                <App />
-              </AnalyticsProvider>
+              <App />
             </NotificationProvider>
           </ThemeProvider>
         </BrowserStorageContextProvider>

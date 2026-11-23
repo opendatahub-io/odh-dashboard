@@ -2,9 +2,9 @@ import * as React from 'react';
 import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { isOOTB } from '@odh-dashboard/k8s-core';
 import { useConnectionType } from '#~/concepts/connectionTypes/useConnectionType';
 import { updateConnectionType } from '#~/services/connectionTypesService';
-import { isOOTB } from '#~/concepts/k8s/utils';
 import ManageConnectionTypePage from './ManageConnectionTypePage';
 
 const EditConnectionTypePage: React.FC = () => {

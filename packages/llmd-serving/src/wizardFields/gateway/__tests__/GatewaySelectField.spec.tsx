@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { GatewayOption } from '../../../api/services/gatewayDiscovery';
+import { GatewayOption } from '@odh-dashboard/model-serving/shared/api/gatewayDiscovery';
 import {
   GATEWAY_API_FAILURE_MESSAGE,
   GATEWAY_FIELD_DESCRIPTION,

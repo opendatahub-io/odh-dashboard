@@ -10,10 +10,9 @@ import {
   type AdvancedRoutingExternalData,
   type AdvancedRoutingFieldData,
 } from '../AdvancedRoutingField';
-import { createHostApiWrapper } from '../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
+const { trackEvent: mockTrackEvent, wrapper } = createTestProviders();
 
 const { getInitialFieldData, validationSchema } = AdvancedRoutingFieldWizardField.reducerFunctions;
 const AdvancedRoutingFieldComponent = AdvancedRoutingFieldWizardField.component;
@@ -198,7 +197,6 @@ describe('AdvancedRoutingField tracking', () => {
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
-      routingConfigurationId: '__default-optimized-routing__',
       isDefaultRouting: true,
     });
   });
@@ -217,7 +215,6 @@ describe('AdvancedRoutingField tracking', () => {
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
-      routingConfigurationId: 'router-config-1',
       isDefaultRouting: false,
     });
   });
@@ -238,7 +235,6 @@ describe('AdvancedRoutingField tracking', () => {
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
-      routingConfigurationId: 'router-config-2',
       isDefaultRouting: false,
     });
   });
@@ -281,7 +277,6 @@ describe('AdvancedRoutingField component — incompatible config handling', () =
         externalData={buildExternalData(allConfigs)}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
       />,
-      { wrapper },
     );
 
     await waitFor(() => {
@@ -376,7 +371,6 @@ describe('AdvancedRoutingField component — incompatible config handling', () =
         externalData={buildExternalData([mockCompatibleConfig, mockIncompatibleConfig])}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
       />,
-      { wrapper },
     );
 
     await waitFor(() => {
@@ -399,7 +393,6 @@ describe('AdvancedRoutingField component — incompatible config handling', () =
         externalData={buildExternalData([mockCompatibleConfig])}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
       />,
-      { wrapper },
     );
 
     await waitFor(() => {

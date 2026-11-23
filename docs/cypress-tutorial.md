@@ -443,10 +443,10 @@ Organize tests into groups using tags for parallel execution:
 
 ```typescript
 // Group 1
-it('test 1', { tags: ['@SmokeSet1'] }, () => { ... });
+it('test 1', { tags: ['@SmokeSet1'] }, () => undefined);
 
 // Group 2
-it('test 2', { tags: ['@SmokeSet2'] }, () => { ... });
+it('test 2', { tags: ['@SmokeSet2'] }, () => undefined);
 ```
 
 Define parallel stages from Test Tags list (e.g., "SmokeSet1,SmokeSet2")
@@ -521,7 +521,7 @@ The `packages/cypress/cypress/support/e2e.ts` file is automatically loaded befor
 
 - **Global Setup**: Configures plugins (`@cypress/grep`, `@cypress/code-coverage`, `cypress-mochawesome-reporter`, `cypress-plugin-steps`), custom commands, and global test behavior
 - **Test Tagging**: Extends `it()` to support tags: `it('test name', { tags: ['@Smoke'] }, () => { ... })`
-- **Test Filtering**: Filters tests based on `grepTags` and `skipTags`, skips entire suites when all tests are filtered
+- **Test Filtering**: Filters test registration based on inherited suite tags, `grepTags`, and `skipTags`
 - **Global Hooks**:
   - `before()`: Sets up intercepts and timeouts
   - `beforeEach()`: Applies filtering, sets up mocks (`CY_MOCK=1`), configures module federation, logs test info
@@ -532,13 +532,13 @@ The `packages/cypress/cypress/support/e2e.ts` file is automatically loaded befor
 
 #### Skipped Tests in JUnit Results
 
-Tests filtered by tags use Mocha's `this.skip()` in `beforeEach()`, marking them as **pending** (skipped) rather than failed. The `mocha-junit-reporter` converts these to JUnit XML with `skipped="true"`, allowing CI/CD systems to distinguish:
+Tag-filtered tests and static `it.skip()` / `describe.skip()` tests are omitted before registration. They do not appear in JUnit reports and are excluded from the planner's expected counts.
 
-- ✅ **Passed**: Test executed and passed
-- ❌ **Failed**: Test executed and failed
-- ⏸️ **Skipped**: Test was intentionally skipped (not executed)
+A selected test that calls `this.skip()` at runtime is registered and appears as a pending (skipped) JUnit testcase. Runtime skips count toward the planned total but not the executed total. CI rejects an all-skipped run, missing reports, and totals that differ from the plan; assertion failures are also reported.
 
-**Benefits**: Skipped tests don't count as failures, remain visible in reports, and CI/CD can distinguish skipped vs failed tests.
+### Deprecated E2E workflow dispatch input
+
+`skip_auto_detect` remains accepted for existing REST and `gh workflow run` callers, but is deprecated and ignored. Path-impact selection always runs in addition to requested tags. Remove `skip_auto_detect` from dispatch payloads; `additional_tags` adds coverage and `skip_default` controls only the default regression tag.
 
 ---
 
@@ -792,9 +792,11 @@ pnpm run cypress:open
 
 ```tsx
 // Change this:
-<Button data-testid="create-project" ...>
-// To this:
-<Button data-testid="create-new-project" ...>
+<>
+  <Button data-testid="create-project">Save</Button>
+  {/* To this: */}
+  <Button data-testid="create-new-project">Save</Button>
+</>
 ```
 
 2. Dev server hot reloads → rerun test in Cypress → **test fails** (can't find element)

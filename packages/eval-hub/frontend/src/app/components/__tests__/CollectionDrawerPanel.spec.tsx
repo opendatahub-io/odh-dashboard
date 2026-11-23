@@ -1,19 +1,16 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { Drawer, DrawerContent } from '@patternfly/react-core';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
 import { Collection } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
-}));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
+const { mockTrackEvent, render } = setupTrackingTest();
 
 jest.mock('~/app/components/benchmarkUtils', () => ({
   getCategoryColor: () => 'blue',
@@ -22,10 +19,6 @@ jest.mock('~/app/components/benchmarkUtils', () => ({
   getMetricDisplayName: (m: string) => m,
   toSafeExternalUrl: (url?: string) => url,
   VISIBLE_METRICS_COUNT: 3,
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('~/app/utilities/benchmarkDatasetUrls', () => ({
@@ -112,22 +105,22 @@ describe('CollectionDrawerPanel', () => {
 
     expect(onRunCollection).toHaveBeenCalledWith(collection, true);
     expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
       {
+        event_source: 'evalhub_ui',
+        collection_type: 'custom',
+        provider_type: 'unknown',
         runType: 'collection',
-        collectionName: 'Test Collection',
+
         benchmarkTypes: '[]',
         countOfBenchmarks: 0,
       },
-      {
-        collectionType: 'custom',
-        providerType: undefined,
-      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
-  it('should show prerequisites, metadata sections, and customize only for mapped collections', () => {
+  it('should show prerequisites, metadata sections, and run and customize actions for run-prerequisite collections', () => {
     const collection = makeCollection({
       resource: { id: 'tool-use-v1' },
       modalities: ['vision', 'text'],
@@ -175,7 +168,7 @@ describe('CollectionDrawerPanel', () => {
     );
     expect(screen.getByTestId('collection-drawer-prerequisite')).toHaveClass('pf-m-info');
     expect(screen.getByTestId('collection-drawer-prerequisite')).not.toHaveClass('pf-m-warning');
-    expect(screen.queryByTestId('use-benchmark-suite-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('use-benchmark-suite-button')).toBeInTheDocument();
     expect(screen.getByTestId('customize-benchmark-suite-button')).toBeInTheDocument();
     expect(screen.getByTestId('collection-drawer-metrics-section')).toBeInTheDocument();
     expect(screen.getByTestId('collection-drawer-modalities-section')).toBeInTheDocument();
@@ -216,6 +209,43 @@ describe('CollectionDrawerPanel', () => {
       'aria-expanded',
       'false',
     );
+
+    fireEvent.click(screen.getByTestId('customize-benchmark-suite-button'));
+    expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
+    expect(onRunCollection).not.toHaveBeenCalled();
+  });
+
+  it('should show customize only for collections that require a judge model', () => {
+    const collection = makeCollection({
+      resource: { id: 'judge-model-suite' },
+      benchmarks: [{ id: 'bench-j', provider_id: 'prov', parameters: { judge_model: '' } }],
+    });
+    const onRunCollection = jest.fn();
+    const onCustomizeCollection = jest.fn();
+
+    render(
+      <Drawer isExpanded>
+        <DrawerContent
+          panelContent={
+            <CollectionDrawerPanel
+              collection={collection}
+              benchmarkDetailsMap={new Map()}
+              onClose={jest.fn()}
+              onRunCollection={onRunCollection}
+              onCustomizeCollection={onCustomizeCollection}
+            />
+          }
+        >
+          <div />
+        </DrawerContent>
+      </Drawer>,
+    );
+
+    expect(screen.getByTestId('collection-drawer-prerequisite')).toHaveTextContent(
+      'Requires a judge model in addition to the model you are evaluating.',
+    );
+    expect(screen.queryByTestId('use-benchmark-suite-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('customize-benchmark-suite-button')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('customize-benchmark-suite-button'));
     expect(onCustomizeCollection).toHaveBeenCalledWith(collection);

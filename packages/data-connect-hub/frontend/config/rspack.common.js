@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 const path = require('path');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { rspack } = require('@rspack/core');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
@@ -58,6 +59,7 @@ module.exports = (env) => ({
         // only process modules with this loader
         // if they live under a 'fonts' or 'pficon' directory
         include: [
+          path.dirname(require.resolve('monaco-editor/package.json')),
           path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly/dist/fonts'),
           path.resolve(
             RELATIVE_DIRNAME,
@@ -187,6 +189,7 @@ module.exports = (env) => ({
     uniqueName: name,
   },
   plugins: [
+    new MonacoWebpackPlugin({ languages: ['python', 'shell'] }),
     ...moduleFederationPlugins,
     ...setupWebpackDotenvFilesForEnv({
       directory: RELATIVE_DIRNAME,

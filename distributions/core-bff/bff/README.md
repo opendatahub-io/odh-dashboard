@@ -103,7 +103,7 @@ Informational `1xx` writes are forwarded without committing the response so a la
 
 ### WebSocket 101 upgrade responses
 
-`SetSecurityHeaders` does **not** cover WebSocket upgrades — `gorilla/websocket`'s `Upgrade` writes the `101 Switching Protocols` response directly. `X-Content-Type-Options: nosniff` is passed via the upgrader's `responseHeader` (see `clientUpgradeResponseHeader` in `ws_proxy.go`), along with the negotiated `Sec-WebSocket-Protocol` when present. Unrelated queued headers are not copied onto the 101.
+`SetSecurityHeaders` does **not** cover WebSocket upgrades — `gorilla/websocket`'s `Upgrade` writes the `101 Switching Protocols` response directly. `X-Content-Type-Options: nosniff` is passed via the upgrader's `responseHeader` (see `clientUpgradeResponseHeader` in `ws_handshake.go`), along with the negotiated `Sec-WebSocket-Protocol` when present. Unrelated queued headers are not copied onto the 101.
 
 ## Endpoints
 
@@ -131,7 +131,7 @@ curl -i -X POST -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" -H "Cont
 
 ### Route Security
 
-Authenticated endpoints use `secureRoute()` (token validation + audit logging) and admin endpoints use `secureAdminRoute()` (token validation + SSAR admin check + audit logging). Admin detection checks SSAR for `patch` on `auths/default-auth`. Non-admin users receive 403. Namespace validation is handled separately by `isAllowedNamespace`.
+Authenticated endpoints use `secureRoute()` (token validation + audit logging) and admin endpoints use `secureAdminRoute()` (token validation + SSAR admin check + audit logging). Admin detection checks SSAR for `patch` on `auths/auth`. Non-admin users receive 403. Namespace validation is handled separately by `isAllowedNamespace`.
 
 ### Privilege Model
 

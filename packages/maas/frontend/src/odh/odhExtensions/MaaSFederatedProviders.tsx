@@ -9,8 +9,8 @@ import {
   type ConfigSettings,
   type UserSettings,
 } from 'mod-arch-core';
-import { Bullseye, Spinner } from '@patternfly/react-core';
-import { API_URL_PREFIX } from '~/app/utilities/const';
+import { Alert, Bullseye, Button, PageSection, Spinner } from '@patternfly/react-core';
+import { API_URL_PREFIX, MAAS_MANDATORY_NAMESPACE } from '~/app/utilities/const';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { AppContext } from '~/app/context/AppContext';
 import { useMaaSSettings } from '~/app/hooks/useMaaSSettings';
@@ -33,6 +33,23 @@ type SettingsContentProps = MaaSFederatedProvidersProps & {
   loadError: Error | undefined;
 };
 
+// The settings hooks load once and can't refetch, so Refresh reloads the page, as the message says.
+// Same pattern as the Model endpoints page's load error.
+const SettingsLoadError: React.FC = () => (
+  <PageSection>
+    <Alert isInline variant="danger" title="Unable to load page" data-testid="maas-settings-error">
+      <p>Refresh the page, or try again later.</p>
+      <Button
+        variant="link"
+        onClick={() => window.location.reload()}
+        data-testid="maas-settings-refresh"
+      >
+        Refresh
+      </Button>
+    </Alert>
+  </PageSection>
+);
+
 const MaaSFederatedProvidersContent: React.FC<SettingsContentProps> = ({
   children,
   configSettings,
@@ -46,7 +63,7 @@ const MaaSFederatedProvidersContent: React.FC<SettingsContentProps> = ({
   );
 
   if (loadError) {
-    return <div>Unable to load settings. Please reload the page.</div>;
+    return <SettingsLoadError />;
   }
   if (!loaded) {
     return (
@@ -56,7 +73,7 @@ const MaaSFederatedProvidersContent: React.FC<SettingsContentProps> = ({
     );
   }
   if (!contextValue) {
-    return <div>Unable to load settings. Please reload the page.</div>;
+    return <SettingsLoadError />;
   }
 
   return (
@@ -82,10 +99,15 @@ const LegacySettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children 
 };
 
 const MaaSFederatedProviders: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const SettingsLoader = isMaaSPortalHost() ? MaaSSettingsLoader : LegacySettingsLoader;
+  const isPortalHost = isMaaSPortalHost();
+  const SettingsLoader = isPortalHost ? MaaSSettingsLoader : LegacySettingsLoader;
+  // TODO: Remove this portal-specific namespace workaround once the mandatory namespace hack is no longer needed.
+  const config = isPortalHost
+    ? { ...modularArchConfig, mandatoryNamespace: MAAS_MANDATORY_NAMESPACE }
+    : modularArchConfig;
 
   return (
-    <ModularArchContextProvider config={modularArchConfig}>
+    <ModularArchContextProvider config={config}>
       <SettingsLoader>{children}</SettingsLoader>
     </ModularArchContextProvider>
   );

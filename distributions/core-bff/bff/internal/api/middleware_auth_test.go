@@ -361,7 +361,7 @@ func TestSecureAdminRoute_GetClientFailureReturns500(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
-func TestSecureRoute_GetUserFailureReturns401(t *testing.T) {
+func TestSecureRoute_GetUserUnexpectedFailureReturns500(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.kubernetesClientFactory = &failingGetUserFactory{}
 	})
@@ -379,10 +379,10 @@ func TestSecureRoute_GetUserFailureReturns401(t *testing.T) {
 	handler(rr, req, nil)
 
 	assert.False(t, *called, "handler must not be invoked when GetUser fails")
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
-func TestSecureAdminRoute_GetUserFailureReturns401(t *testing.T) {
+func TestSecureAdminRoute_GetUserUnexpectedFailureReturns500(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.kubernetesClientFactory = &failingGetUserFactory{}
 	})
@@ -400,7 +400,7 @@ func TestSecureAdminRoute_GetUserFailureReturns401(t *testing.T) {
 	handler(rr, req, nil)
 
 	assert.False(t, *called, "handler must not be invoked when GetUser fails")
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
 func TestSecureRoutes_KubernetesTransportFailureReturns503(t *testing.T) {

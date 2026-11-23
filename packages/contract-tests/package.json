@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "description": "Zero-config contract testing for ODH Dashboard packages",
   "scripts": {
+    "test-unit": "jest --config jest.preset.js --roots src --reporters default",
+    "test-unit-coverage": "pnpm run test-unit --coverage --coverageDirectory=jest-coverage",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"

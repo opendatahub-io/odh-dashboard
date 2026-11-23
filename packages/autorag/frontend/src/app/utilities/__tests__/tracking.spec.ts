@@ -1,10 +1,5 @@
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import {
-  AUTORAG_EVENTS,
   AUTORAG_FAILURE_CATEGORY,
   buildRunReconfiguredChangedFields,
   fireAutoragEvaluationSourceConfigured,
@@ -38,112 +33,124 @@ import {
   toVectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const trackEventMock = jest.fn();
 
 describe('fireAutoragProjectDropdownOptionSelected', () => {
   it('should fire AutoRAG Project Dropdown Option Selected with the selected project', () => {
-    fireAutoragProjectDropdownOptionSelected('test-namespace');
+    fireAutoragProjectDropdownOptionSelected(trackEventMock, 'test-namespace');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.PROJECT_DROPDOWN_OPTION_SELECTED,
-      { selectedProject: 'test-namespace' },
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      ['AutoRAG Project Dropdown Option Selected', { selectedProject: 'test-namespace' }],
+    ]);
   });
 });
 
 describe('fireAutoragExperimentCreated', () => {
   it('should fire AutoRAG Experiment Created with outcome: submit and hasDescription: true', () => {
-    fireAutoragExperimentCreated({
+    fireAutoragExperimentCreated(trackEventMock, {
       outcome: TrackingOutcome.submit,
       hasDescription: true,
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
-      outcome: TrackingOutcome.submit,
-      hasDescription: true,
-      success: true,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Experiment Created',
+        {
+          outcome: TrackingOutcome.submit,
+          hasDescription: true,
+          success: true,
+        },
+      ],
+    ]);
   });
 
   it('should fire AutoRAG Experiment Created with outcome: cancel and hasDescription: false', () => {
-    fireAutoragExperimentCreated({
+    fireAutoragExperimentCreated(trackEventMock, {
       outcome: TrackingOutcome.cancel,
       hasDescription: false,
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
-      outcome: TrackingOutcome.cancel,
-      hasDescription: false,
-      success: true,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Experiment Created',
+        {
+          outcome: TrackingOutcome.cancel,
+          hasDescription: false,
+          success: true,
+        },
+      ],
+    ]);
   });
 
   it('should pass through success: false and an allowlisted failure category when provided', () => {
-    fireAutoragExperimentCreated({
+    fireAutoragExperimentCreated(trackEventMock, {
       outcome: TrackingOutcome.submit,
       hasDescription: false,
       success: false,
       error: AUTORAG_FAILURE_CATEGORY,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
-      outcome: TrackingOutcome.submit,
-      hasDescription: false,
-      success: false,
-      error: AUTORAG_FAILURE_CATEGORY,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Experiment Created',
+        {
+          outcome: TrackingOutcome.submit,
+          hasDescription: false,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+        },
+      ],
+    ]);
   });
 });
 
 describe('fireAutoragKnowledgeSourceConfigured', () => {
   it('should fire with knowledgeSourceType: s3 and outcome: submit', () => {
-    fireAutoragKnowledgeSourceConfigured({
+    fireAutoragKnowledgeSourceConfigured(trackEventMock, {
       knowledgeSourceType: 's3',
       countOfDocuments: 3,
       outcome: TrackingOutcome.submit,
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-      {
-        knowledgeSourceType: 's3',
-        countOfDocuments: 3,
-        outcome: TrackingOutcome.submit,
-        success: true,
-      },
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Knowledge Source Configured',
+        {
+          knowledgeSourceType: 's3',
+          countOfDocuments: 3,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      ],
+    ]);
   });
 
   it('should fire with outcome: cancel and success: false, since nothing was configured', () => {
-    fireAutoragKnowledgeSourceConfigured({
+    fireAutoragKnowledgeSourceConfigured(trackEventMock, {
       knowledgeSourceType: 's3',
       countOfDocuments: 0,
       outcome: TrackingOutcome.cancel,
       success: false,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-      {
-        knowledgeSourceType: 's3',
-        countOfDocuments: 0,
-        outcome: TrackingOutcome.cancel,
-        success: false,
-      },
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Knowledge Source Configured',
+        {
+          knowledgeSourceType: 's3',
+          countOfDocuments: 0,
+          outcome: TrackingOutcome.cancel,
+          success: false,
+        },
+      ],
+    ]);
   });
 
   it('should fire with knowledgeSourceType: upload, success: false and an allowlisted failure category', () => {
-    fireAutoragKnowledgeSourceConfigured({
+    fireAutoragKnowledgeSourceConfigured(trackEventMock, {
       knowledgeSourceType: 'upload',
       countOfDocuments: 0,
       outcome: TrackingOutcome.submit,
@@ -151,60 +158,66 @@ describe('fireAutoragKnowledgeSourceConfigured', () => {
       error: AUTORAG_FAILURE_CATEGORY,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-      {
-        knowledgeSourceType: 'upload',
-        countOfDocuments: 0,
-        outcome: TrackingOutcome.submit,
-        success: false,
-        error: AUTORAG_FAILURE_CATEGORY,
-      },
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Knowledge Source Configured',
+        {
+          knowledgeSourceType: 'upload',
+          countOfDocuments: 0,
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+        },
+      ],
+    ]);
   });
 });
 
 describe('fireAutoragEvaluationSourceConfigured', () => {
   it('should fire with evaluationSourceType: s3 and outcome: submit', () => {
-    fireAutoragEvaluationSourceConfigured({
+    fireAutoragEvaluationSourceConfigured(trackEventMock, {
       evaluationSourceType: 's3',
       countOfDocuments: 1,
       outcome: TrackingOutcome.submit,
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-      {
-        evaluationSourceType: 's3',
-        countOfDocuments: 1,
-        outcome: TrackingOutcome.submit,
-        success: true,
-      },
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Evaluation Source Configured',
+        {
+          evaluationSourceType: 's3',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      ],
+    ]);
   });
 
   it('should fire with outcome: cancel and success: false, since nothing was configured', () => {
-    fireAutoragEvaluationSourceConfigured({
+    fireAutoragEvaluationSourceConfigured(trackEventMock, {
       evaluationSourceType: 's3',
       countOfDocuments: 0,
       outcome: TrackingOutcome.cancel,
       success: false,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-      {
-        evaluationSourceType: 's3',
-        countOfDocuments: 0,
-        outcome: TrackingOutcome.cancel,
-        success: false,
-      },
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Evaluation Source Configured',
+        {
+          evaluationSourceType: 's3',
+          countOfDocuments: 0,
+          outcome: TrackingOutcome.cancel,
+          success: false,
+        },
+      ],
+    ]);
   });
 
   it('should fire with evaluationSourceType: upload, success: false and an allowlisted failure category', () => {
-    fireAutoragEvaluationSourceConfigured({
+    fireAutoragEvaluationSourceConfigured(trackEventMock, {
       evaluationSourceType: 'upload',
       countOfDocuments: 0,
       outcome: TrackingOutcome.submit,
@@ -212,50 +225,62 @@ describe('fireAutoragEvaluationSourceConfigured', () => {
       error: AUTORAG_FAILURE_CATEGORY,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-      {
-        evaluationSourceType: 'upload',
-        countOfDocuments: 0,
-        outcome: TrackingOutcome.submit,
-        success: false,
-        error: AUTORAG_FAILURE_CATEGORY,
-      },
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Evaluation Source Configured',
+        {
+          evaluationSourceType: 'upload',
+          countOfDocuments: 0,
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+        },
+      ],
+    ]);
   });
 });
 
 describe('fireAutoragModelsSelected', () => {
   it('should fire with outcome: submit and the selected model counts', () => {
-    fireAutoragModelsSelected({
+    fireAutoragModelsSelected(trackEventMock, {
       countOfFoundationModels: 1,
       countOfEmbeddingModels: 2,
       outcome: TrackingOutcome.submit,
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.MODELS_SELECTED, {
-      countOfFoundationModels: 1,
-      countOfEmbeddingModels: 2,
-      outcome: TrackingOutcome.submit,
-      success: true,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Models Selected',
+        {
+          countOfFoundationModels: 1,
+          countOfEmbeddingModels: 2,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      ],
+    ]);
   });
 
   it('should fire with outcome: cancel and zero counts when nothing is selected', () => {
-    fireAutoragModelsSelected({
+    fireAutoragModelsSelected(trackEventMock, {
       countOfFoundationModels: 0,
       countOfEmbeddingModels: 0,
       outcome: TrackingOutcome.cancel,
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.MODELS_SELECTED, {
-      countOfFoundationModels: 0,
-      countOfEmbeddingModels: 0,
-      outcome: TrackingOutcome.cancel,
-      success: true,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Models Selected',
+        {
+          countOfFoundationModels: 0,
+          countOfEmbeddingModels: 0,
+          outcome: TrackingOutcome.cancel,
+          success: true,
+        },
+      ],
+    ]);
   });
 });
 
@@ -308,21 +333,25 @@ describe('getVectorStoreProviderTypeFromDatabaseProviders', () => {
 
 describe('fireAutoragVectorStoreConfigured', () => {
   it('should fire with the categorized provider type and compatible provider count', () => {
-    fireAutoragVectorStoreConfigured({
+    fireAutoragVectorStoreConfigured(trackEventMock, {
       providerType: 'milvus',
       countOfCompatibleProviders: 2,
       outcome: TrackingOutcome.submit,
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.VECTOR_STORE_CONFIGURED, {
-      providerType: 'milvus',
-      countOfCompatibleProviders: 2,
-      outcome: TrackingOutcome.submit,
-      success: true,
-    });
-    const payload =
-      fireFormTrackingEventMock.mock.calls[fireFormTrackingEventMock.mock.calls.length - 1][1];
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Vector Store Configured',
+        {
+          providerType: 'milvus',
+          countOfCompatibleProviders: 2,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      ],
+    ]);
+    const payload = trackEventMock.mock.calls[trackEventMock.mock.calls.length - 1][1];
     expect(payload).not.toHaveProperty('secretName');
     expect(payload).not.toHaveProperty('MILVUS_URI');
   });
@@ -358,7 +387,7 @@ describe('mapOptimizationMetricEvaluator', () => {
 
 describe('fireAutoragRunTriggered', () => {
   it('should fire with success: true and the full derived run configuration', () => {
-    fireAutoragRunTriggered({
+    fireAutoragRunTriggered(trackEventMock, {
       knowledgeSourceType: 's3',
       evaluationSourceType: 'upload',
       optimizationMetric: 'overallScore',
@@ -374,25 +403,30 @@ describe('fireAutoragRunTriggered', () => {
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_TRIGGERED, {
-      knowledgeSourceType: 's3',
-      evaluationSourceType: 'upload',
-      optimizationMetric: 'overallScore',
-      optimizationMetricEvaluator: 'custom',
-      vectorDatabase: 'milvus',
-      countOfModels: 3,
-      countOfKnowledgeDocuments: 1,
-      countOfEvaluationDocuments: 1,
-      countOfFoundationModels: 2,
-      countOfEmbeddingModels: 1,
-      hasS3Connection: true,
-      outcome: TrackingOutcome.submit,
-      success: true,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Triggered',
+        {
+          knowledgeSourceType: 's3',
+          evaluationSourceType: 'upload',
+          optimizationMetric: 'overallScore',
+          optimizationMetricEvaluator: 'custom',
+          vectorDatabase: 'milvus',
+          countOfModels: 3,
+          countOfKnowledgeDocuments: 1,
+          countOfEvaluationDocuments: 1,
+          countOfFoundationModels: 2,
+          countOfEmbeddingModels: 1,
+          hasS3Connection: true,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      ],
+    ]);
   });
 
   it('should pass through undefined source/vector properties and an allowlisted failure category on failure', () => {
-    fireAutoragRunTriggered({
+    fireAutoragRunTriggered(trackEventMock, {
       knowledgeSourceType: undefined,
       evaluationSourceType: undefined,
       optimizationMetric: undefined,
@@ -408,21 +442,26 @@ describe('fireAutoragRunTriggered', () => {
       error: AUTORAG_FAILURE_CATEGORY,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_TRIGGERED, {
-      knowledgeSourceType: undefined,
-      evaluationSourceType: undefined,
-      optimizationMetric: undefined,
-      vectorDatabase: undefined,
-      countOfModels: 0,
-      countOfKnowledgeDocuments: 0,
-      countOfEvaluationDocuments: 0,
-      countOfFoundationModels: 0,
-      countOfEmbeddingModels: 0,
-      hasS3Connection: false,
-      outcome: TrackingOutcome.submit,
-      success: false,
-      error: AUTORAG_FAILURE_CATEGORY,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Triggered',
+        {
+          knowledgeSourceType: undefined,
+          evaluationSourceType: undefined,
+          optimizationMetric: undefined,
+          vectorDatabase: undefined,
+          countOfModels: 0,
+          countOfKnowledgeDocuments: 0,
+          countOfEvaluationDocuments: 0,
+          countOfFoundationModels: 0,
+          countOfEmbeddingModels: 0,
+          hasS3Connection: false,
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+        },
+      ],
+    ]);
   });
 });
 
@@ -472,7 +511,7 @@ describe('buildRunReconfiguredChangedFields', () => {
 
 describe('fireAutoragRunReconfigured', () => {
   it('should join changedFields with a comma and fire with success: true on submit', () => {
-    fireAutoragRunReconfigured({
+    fireAutoragRunReconfigured(trackEventMock, {
       knowledgeSourceType: 's3',
       evaluationSourceType: undefined,
       optimizationMetric: 'answerFaithfulness',
@@ -484,21 +523,26 @@ describe('fireAutoragRunReconfigured', () => {
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RECONFIGURED, {
-      knowledgeSourceType: 's3',
-      evaluationSourceType: undefined,
-      optimizationMetric: 'answerFaithfulness',
-      vectorDatabase: 'milvus',
-      countOfFoundationModels: 2,
-      countOfEmbeddingModels: 1,
-      changedFields: 'knowledgeSourceType,optimizationMetric',
-      outcome: TrackingOutcome.submit,
-      success: true,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Reconfigured',
+        {
+          knowledgeSourceType: 's3',
+          evaluationSourceType: undefined,
+          optimizationMetric: 'answerFaithfulness',
+          vectorDatabase: 'milvus',
+          countOfFoundationModels: 2,
+          countOfEmbeddingModels: 1,
+          changedFields: 'knowledgeSourceType,optimizationMetric',
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      ],
+    ]);
   });
 
   it('should fire an empty string for changedFields when nothing changed', () => {
-    fireAutoragRunReconfigured({
+    fireAutoragRunReconfigured(trackEventMock, {
       countOfFoundationModels: 1,
       countOfEmbeddingModels: 1,
       changedFields: [],
@@ -506,14 +550,13 @@ describe('fireAutoragRunReconfigured', () => {
       success: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.RUN_RECONFIGURED,
-      expect.objectContaining({ changedFields: '' }),
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      ['AutoRAG Run Reconfigured', expect.objectContaining({ changedFields: '' })],
+    ]);
   });
 
   it('should fire with success: false and the allowlisted error category on failure', () => {
-    fireAutoragRunReconfigured({
+    fireAutoragRunReconfigured(trackEventMock, {
       countOfFoundationModels: 1,
       countOfEmbeddingModels: 0,
       changedFields: ['models'],
@@ -522,222 +565,317 @@ describe('fireAutoragRunReconfigured', () => {
       error: AUTORAG_FAILURE_CATEGORY,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.RUN_RECONFIGURED,
-      expect.objectContaining({
-        outcome: TrackingOutcome.submit,
-        success: false,
-        error: 'actionFailed',
-      }),
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Reconfigured',
+        expect.objectContaining({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: 'actionFailed',
+        }),
+      ],
+    ]);
   });
 
   it('should fire with outcome: cancel and no success field', () => {
-    fireAutoragRunReconfigured({
+    fireAutoragRunReconfigured(trackEventMock, {
       countOfFoundationModels: 1,
       countOfEmbeddingModels: 0,
       changedFields: [],
       outcome: TrackingOutcome.cancel,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RECONFIGURED, {
-      countOfFoundationModels: 1,
-      countOfEmbeddingModels: 0,
-      changedFields: '',
-      outcome: TrackingOutcome.cancel,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Reconfigured',
+        {
+          countOfFoundationModels: 1,
+          countOfEmbeddingModels: 0,
+          changedFields: '',
+          outcome: TrackingOutcome.cancel,
+        },
+      ],
+    ]);
   });
 });
 
 describe('fireAutoragRunStopped', () => {
   it('should fire with outcome: submit and success: true, given a source', () => {
-    fireAutoragRunStopped({ outcome: TrackingOutcome.submit, success: true, source: 'runsList' });
-
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_STOPPED, {
+    fireAutoragRunStopped(trackEventMock, {
       outcome: TrackingOutcome.submit,
       success: true,
       source: 'runsList',
     });
+
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Stopped',
+        {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          source: 'runsList',
+        },
+      ],
+    ]);
   });
 
   it('should fire with success: false and the allowlisted failure category on failure', () => {
-    fireAutoragRunStopped({
+    fireAutoragRunStopped(trackEventMock, {
       outcome: TrackingOutcome.submit,
       success: false,
       error: AUTORAG_FAILURE_CATEGORY,
       source: 'resultsPage',
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_STOPPED, {
-      outcome: TrackingOutcome.submit,
-      success: false,
-      error: AUTORAG_FAILURE_CATEGORY,
-      source: 'resultsPage',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Stopped',
+        {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+          source: 'resultsPage',
+        },
+      ],
+    ]);
   });
 
   it('should fire with outcome: cancel and no success/error', () => {
-    fireAutoragRunStopped({ outcome: TrackingOutcome.cancel, source: 'runsList' });
+    fireAutoragRunStopped(trackEventMock, { outcome: TrackingOutcome.cancel, source: 'runsList' });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_STOPPED, {
-      outcome: TrackingOutcome.cancel,
-      source: 'runsList',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Stopped',
+        {
+          outcome: TrackingOutcome.cancel,
+          source: 'runsList',
+        },
+      ],
+    ]);
   });
 });
 
 describe('fireAutoragRunRetried', () => {
   it('should fire with outcome: submit and success: true, given a source', () => {
-    fireAutoragRunRetried({ outcome: TrackingOutcome.submit, success: true, source: 'runsList' });
-
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RETRIED, {
+    fireAutoragRunRetried(trackEventMock, {
       outcome: TrackingOutcome.submit,
       success: true,
       source: 'runsList',
     });
+
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Retried',
+        {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          source: 'runsList',
+        },
+      ],
+    ]);
   });
 
   it('should fire with success: false and the allowlisted failure category on failure', () => {
-    fireAutoragRunRetried({
+    fireAutoragRunRetried(trackEventMock, {
       outcome: TrackingOutcome.submit,
       success: false,
       error: AUTORAG_FAILURE_CATEGORY,
       source: 'resultsPage',
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RETRIED, {
-      outcome: TrackingOutcome.submit,
-      success: false,
-      error: AUTORAG_FAILURE_CATEGORY,
-      source: 'resultsPage',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Run Retried',
+        {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+          source: 'resultsPage',
+        },
+      ],
+    ]);
   });
 });
 
 describe('fireAutoragExperimentDeleted', () => {
   it('should fire with outcome: submit and success: true, given a source', () => {
-    fireAutoragExperimentDeleted({
+    fireAutoragExperimentDeleted(trackEventMock, {
       outcome: TrackingOutcome.submit,
       success: true,
       source: 'runsList',
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
-      outcome: TrackingOutcome.submit,
-      success: true,
-      source: 'runsList',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Experiment Deleted',
+        {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          source: 'runsList',
+        },
+      ],
+    ]);
   });
 
   it('should fire with success: false and the allowlisted failure category on failure', () => {
-    fireAutoragExperimentDeleted({
+    fireAutoragExperimentDeleted(trackEventMock, {
       outcome: TrackingOutcome.submit,
       success: false,
       error: AUTORAG_FAILURE_CATEGORY,
       source: 'runsList',
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
-      outcome: TrackingOutcome.submit,
-      success: false,
-      error: AUTORAG_FAILURE_CATEGORY,
-      source: 'runsList',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Experiment Deleted',
+        {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+          source: 'runsList',
+        },
+      ],
+    ]);
   });
 
   it('should fire with outcome: cancel when the delete confirmation modal is dismissed', () => {
-    fireAutoragExperimentDeleted({ outcome: TrackingOutcome.cancel, source: 'runsList' });
-
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
+    fireAutoragExperimentDeleted(trackEventMock, {
       outcome: TrackingOutcome.cancel,
       source: 'runsList',
     });
+
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Experiment Deleted',
+        {
+          outcome: TrackingOutcome.cancel,
+          source: 'runsList',
+        },
+      ],
+    ]);
   });
 });
 
 describe('fireAutoragFlowExited', () => {
   it('should fire AutoRAG Flow Exited with exitType, lastFunnelStep, and exitDestination', () => {
-    fireAutoragFlowExited('navigate', 'defineDetails', 'experimentsList');
+    fireAutoragFlowExited(trackEventMock, 'navigate', 'defineDetails', 'experimentsList');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
-      exitType: 'navigate',
-      lastFunnelStep: 'defineDetails',
-      exitDestination: 'experimentsList',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Flow Exited',
+        {
+          exitType: 'navigate',
+          lastFunnelStep: 'defineDetails',
+          exitDestination: 'experimentsList',
+        },
+      ],
+    ]);
   });
 
   it('should fire with exitType: abandon and exitDestination: none', () => {
-    fireAutoragFlowExited('abandon', 'knowledge', 'none');
+    fireAutoragFlowExited(trackEventMock, 'abandon', 'knowledge', 'none');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
-      exitType: 'abandon',
-      lastFunnelStep: 'knowledge',
-      exitDestination: 'none',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Flow Exited',
+        {
+          exitType: 'abandon',
+          lastFunnelStep: 'knowledge',
+          exitDestination: 'none',
+        },
+      ],
+    ]);
   });
 
   it('should fire with lastFunnelStep: run and exitDestination: otherGenAi', () => {
-    fireAutoragFlowExited('navigate', 'run', 'otherGenAi');
+    fireAutoragFlowExited(trackEventMock, 'navigate', 'run', 'otherGenAi');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
-      exitType: 'navigate',
-      lastFunnelStep: 'run',
-      exitDestination: 'otherGenAi',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Flow Exited',
+        {
+          exitType: 'navigate',
+          lastFunnelStep: 'run',
+          exitDestination: 'otherGenAi',
+        },
+      ],
+    ]);
   });
 });
 
 describe('fireAutoragS3ConnectionCreated', () => {
   it('should fire with outcome: submit and success: true', () => {
-    fireAutoragS3ConnectionCreated({ outcome: TrackingOutcome.submit, success: true });
-
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.S3_CONNECTION_CREATED, {
+    fireAutoragS3ConnectionCreated(trackEventMock, {
       outcome: TrackingOutcome.submit,
       success: true,
     });
+
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG S3 Connection Created',
+        {
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      ],
+    ]);
   });
 
   it('should fire with outcome: submit, success: false, and the allowlisted failure category', () => {
-    fireAutoragS3ConnectionCreated({
+    fireAutoragS3ConnectionCreated(trackEventMock, {
       outcome: TrackingOutcome.submit,
       success: false,
       error: AUTORAG_FAILURE_CATEGORY,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.S3_CONNECTION_CREATED, {
-      outcome: TrackingOutcome.submit,
-      success: false,
-      error: AUTORAG_FAILURE_CATEGORY,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG S3 Connection Created',
+        {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+        },
+      ],
+    ]);
   });
 
   it('should fire with outcome: cancel and no success/error', () => {
-    fireAutoragS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
+    fireAutoragS3ConnectionCreated(trackEventMock, { outcome: TrackingOutcome.cancel });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.S3_CONNECTION_CREATED, {
-      outcome: TrackingOutcome.cancel,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG S3 Connection Created',
+        {
+          outcome: TrackingOutcome.cancel,
+        },
+      ],
+    ]);
   });
 });
 
 describe('fireAutoragEvaluationTemplateDownloaded', () => {
   it('should fire with downloadType: evaluationTemplate', () => {
-    fireAutoragEvaluationTemplateDownloaded();
+    fireAutoragEvaluationTemplateDownloaded(trackEventMock);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.EVALUATION_TEMPLATE_DOWNLOADED,
-      { downloadType: 'evaluationTemplate' },
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      ['AutoRAG Evaluation Template Downloaded', { downloadType: 'evaluationTemplate' }],
+    ]);
   });
 });
 
 describe('fireAutoragResultsViewed', () => {
   it('should fire AutoRAG Results Viewed with the given entrySource', () => {
-    fireAutoragResultsViewed('experimentsList');
+    fireAutoragResultsViewed(trackEventMock, 'experimentsList');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
-      entrySource: 'experimentsList',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Results Viewed',
+        {
+          entrySource: 'experimentsList',
+        },
+      ],
+    ]);
   });
 });
 
@@ -768,11 +906,16 @@ describe('fireAutoragPlaygroundOpened', () => {
   it.each(['resultsTable', 'patternDetails', 'other'] as const)(
     'should fire AutoRAG Playground Opened with source: %s',
     (source) => {
-      fireAutoragPlaygroundOpened(source);
+      fireAutoragPlaygroundOpened(trackEventMock, source);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PLAYGROUND_OPENED, {
-        source,
-      });
+      expect(trackEventMock.mock.calls).toEqual([
+        [
+          'AutoRAG Playground Opened',
+          {
+            source,
+          },
+        ],
+      ]);
     },
   );
 });
@@ -781,22 +924,32 @@ describe('fireAutoragNotebookDownloaded', () => {
   it.each(['indexing', 'inference', 'other'] as const)(
     'should fire AutoRAG Notebook Downloaded with notebookType: %s',
     (notebookType) => {
-      fireAutoragNotebookDownloaded(notebookType);
+      fireAutoragNotebookDownloaded(trackEventMock, notebookType);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
-        notebookType,
-      });
+      expect(trackEventMock.mock.calls).toEqual([
+        [
+          'AutoRAG Notebook Downloaded',
+          {
+            notebookType,
+          },
+        ],
+      ]);
     },
   );
 });
 
 describe('fireAutoragStarterKitDownloaded', () => {
   it('should fire AutoRAG Starter Kit Downloaded with the starter kit type', () => {
-    fireAutoragStarterKitDownloaded();
+    fireAutoragStarterKitDownloaded(trackEventMock);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, {
-      downloadType: 'starterKit',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Starter Kit Downloaded',
+        {
+          downloadType: 'starterKit',
+        },
+      ],
+    ]);
   });
 });
 
@@ -812,12 +965,11 @@ describe('fireAutoragResultsColumnToggled', () => {
   ] as const)(
     'should fire AutoRAG Results Column Toggled with columnName: %s, isVisible: %s',
     (columnName, isVisible) => {
-      fireAutoragResultsColumnToggled(columnName, isVisible);
+      fireAutoragResultsColumnToggled(trackEventMock, columnName, isVisible);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
-        { columnName, isVisible },
-      );
+      expect(trackEventMock.mock.calls).toEqual([
+        ['AutoRAG Results Column Toggled', { columnName, isVisible }],
+      ]);
     },
   );
 });
@@ -826,24 +978,20 @@ describe('fireAutoragPatternDetailsViewed', () => {
   it.each(['resultsTable', 'pipelineVis', 'other'] as const)(
     'should fire AutoRAG Pattern Details Viewed with source: %s',
     (source) => {
-      fireAutoragPatternDetailsViewed(source);
+      fireAutoragPatternDetailsViewed(trackEventMock, source);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
-        { source },
-      );
+      expect(trackEventMock.mock.calls).toEqual([['AutoRAG Pattern Details Viewed', { source }]]);
     },
   );
 });
 
 describe('fireAutoragPatternDetailsDownloadInitiated', () => {
   it('should fire AutoRAG Pattern Details Download Initiated with downloadType: patternDetails', () => {
-    fireAutoragPatternDetailsDownloadInitiated();
+    fireAutoragPatternDetailsDownloadInitiated(trackEventMock);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-      AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED,
-      { downloadType: 'patternDetails' },
-    );
+    expect(trackEventMock.mock.calls).toEqual([
+      ['AutoRAG Pattern Details Download Initiated', { downloadType: 'patternDetails' }],
+    ]);
   });
 });
 
@@ -851,21 +999,25 @@ describe('fireAutoragCodeSnippetsExported', () => {
   it.each(['resultsTable', 'patternDetails', 'other'] as const)(
     'should fire AutoRAG Code Snippets Exported with action: viewed and entrySource: %s',
     (entrySource) => {
-      fireAutoragCodeSnippetsExported('viewed', entrySource);
+      fireAutoragCodeSnippetsExported(trackEventMock, 'viewed', entrySource);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED,
-        { action: 'viewed', entrySource },
-      );
+      expect(trackEventMock.mock.calls).toEqual([
+        ['AutoRAG Code Snippets Exported', { action: 'viewed', entrySource }],
+      ]);
     },
   );
 
   it('should fire AutoRAG Code Snippets Exported with action: copied and no entrySource', () => {
-    fireAutoragCodeSnippetsExported('copied');
+    fireAutoragCodeSnippetsExported(trackEventMock, 'copied');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED, {
-      action: 'copied',
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Code Snippets Exported',
+        {
+          action: 'copied',
+        },
+      ],
+    ]);
   });
 });
 
@@ -878,44 +1030,58 @@ describe('fireAutoragLeaderboardPresetApplied', () => {
   ] as const)(
     'should fire AutoRAG Leaderboard Preset Applied with presetType: %s',
     (presetType) => {
-      fireAutoragLeaderboardPresetApplied(presetType);
+      fireAutoragLeaderboardPresetApplied(trackEventMock, presetType);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
-        { presetType },
-      );
+      expect(trackEventMock.mock.calls).toEqual([
+        ['AutoRAG Leaderboard Preset Applied', { presetType }],
+      ]);
     },
   );
 });
 
 describe('fireAutoragPatternsCompared', () => {
   it('should fire AutoRAG Patterns Compared with the given interactionType, rankDifference, and scoreDifference', () => {
-    fireAutoragPatternsCompared('initial', 1, 0.4);
+    fireAutoragPatternsCompared(trackEventMock, 'initial', 1, 0.4);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
-      interactionType: 'initial',
-      rankDifference: 1,
-      scoreDifference: 0.4,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Patterns Compared',
+        {
+          interactionType: 'initial',
+          rankDifference: 1,
+          scoreDifference: 0.4,
+        },
+      ],
+    ]);
   });
 
   it('should fire with interactionType: changed and negative rankDifference/scoreDifference', () => {
-    fireAutoragPatternsCompared('changed', -5, -0.15);
+    fireAutoragPatternsCompared(trackEventMock, 'changed', -5, -0.15);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
-      interactionType: 'changed',
-      rankDifference: -5,
-      scoreDifference: -0.15,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Patterns Compared',
+        {
+          interactionType: 'changed',
+          rankDifference: -5,
+          scoreDifference: -0.15,
+        },
+      ],
+    ]);
   });
 
   it('should round scoreDifference to 4 decimal places to avoid floating-point noise', () => {
-    fireAutoragPatternsCompared('initial', 1, 0.45 - 0.66);
+    fireAutoragPatternsCompared(trackEventMock, 'initial', 1, 0.45 - 0.66);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
-      interactionType: 'initial',
-      rankDifference: 1,
-      scoreDifference: -0.21,
-    });
+    expect(trackEventMock.mock.calls).toEqual([
+      [
+        'AutoRAG Patterns Compared',
+        {
+          interactionType: 'initial',
+          rankDifference: 1,
+          scoreDifference: -0.21,
+        },
+      ],
+    ]);
   });
 });

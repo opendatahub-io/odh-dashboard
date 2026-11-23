@@ -39,7 +39,7 @@ describe('MaaS failure tracking', () => {
       }),
     );
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
+      'POST /maas/api/v1/api-keys/search',
       mockSearchResponse(
         mockAPIKeys().filter((key) => key.status === 'active'),
         mockSubscriptionDetails,

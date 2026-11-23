@@ -22,7 +22,7 @@ import { PlusIcon, TagIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { EMPTY_STATE_MESSAGES } from './const';
 import {
   FEATURE_STORE_EVENTS,
@@ -40,6 +40,7 @@ type PopularTagsProps = {
 };
 
 const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
+  const trackEvent = useTrackEvent();
   return (
     <Card
       isFullHeight
@@ -74,7 +75,7 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
                 to={featureViewRoute(featureView.name, featureView.project)}
                 aria-label={`Go to ${featureView.name} feature view in ${featureView.project} project`}
                 onClick={() => {
-                  fireMiscTrackingEvent(FEATURE_STORE_EVENTS.POPULAR_TAG_CLICKED, {
+                  trackEvent(FEATURE_STORE_EVENTS.POPULAR_TAG_CLICKED, {
                     clickTarget: 'featureViewLink',
                   } satisfies PopularTagClickedProperties);
                 }}
@@ -90,7 +91,7 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
           to={featureStoreRoute(FeatureStoreObject.FEATURE_VIEWS)}
           aria-label={`View all ${tag.total_feature_views} feature views for ${tag.tag_key}: ${tag.tag_value}`}
           onClick={() => {
-            fireMiscTrackingEvent(FEATURE_STORE_EVENTS.POPULAR_TAG_CLICKED, {
+            trackEvent(FEATURE_STORE_EVENTS.POPULAR_TAG_CLICKED, {
               clickTarget: 'viewAllButton',
             } satisfies PopularTagClickedProperties);
           }}

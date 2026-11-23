@@ -4,219 +4,23 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
-	"slices"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ssrf"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	// WssProxyPrefix is the URL path prefix for Kubernetes WebSocket proxy requests.
-	WssProxyPrefix = "/wss/k8s/"
-
-	wsConnectionTimeout = 10 * time.Second
-	wsHeartbeatInterval = 15 * time.Second
-)
-
-func newUpgrader(allowedOrigins []string) websocket.Upgrader {
-	return websocket.Upgrader{
-		CheckOrigin: originChecker(allowedOrigins),
-	}
-}
-
-func originChecker(allowedOrigins []string) func(*http.Request) bool {
-	if len(allowedOrigins) == 0 {
-		return sameOriginCheck
-	}
-	if slices.Contains(allowedOrigins, "*") {
-		return func(r *http.Request) bool { return true }
-	}
-	allowed := make(map[string]bool, len(allowedOrigins))
-	for _, o := range allowedOrigins {
-		allowed[strings.TrimRight(o, "/")] = true
-	}
-	return func(r *http.Request) bool {
-		origin := r.Header.Get(constants.HeaderOrigin)
-		if origin == "" {
-			return false
-		}
-		return allowed[strings.TrimRight(origin, "/")]
-	}
-}
-
-// sameOriginCheck allows WebSocket upgrades only when the Origin header
-// matches the request's Host. This is the default when ALLOWED_ORIGINS is
-// unset, so WebSockets work out of the box without opening cross-origin access.
-func sameOriginCheck(r *http.Request) bool {
-	origin := r.Header.Get(constants.HeaderOrigin)
-	if origin == "" {
-		return false
-	}
-	u, err := url.Parse(origin)
-	if err != nil {
-		return false
-	}
-	return strings.EqualFold(u.Host, r.Host)
-}
-
-func buildTargetWSURL(wsScheme, host string, r *http.Request) string {
-	kubeURI := strings.TrimPrefix(r.URL.Path, strings.TrimSuffix(WssProxyPrefix, "/"))
-	targetWSURL := fmt.Sprintf("%s://%s%s", wsScheme, host, kubeURI)
-	if r.URL.RawQuery != "" {
-		targetWSURL += "?" + r.URL.RawQuery
-	}
-	return targetWSURL
-}
-
-func closeCodeFromError(err error) int {
-	var ce *websocket.CloseError
-	if errors.As(err, &ce) {
-		return sanitizeCloseCode(ce.Code)
-	}
-	return sanitizeCloseCode(websocket.CloseInternalServerErr)
-}
-
-const writeControlTimeout = 5 * time.Second
-
-func sendCloseMessage(conn *websocket.Conn, err error) {
-	_ = conn.WriteControl(websocket.CloseMessage,
-		websocket.FormatCloseMessage(closeCodeFromError(err), ""),
-		time.Now().Add(writeControlTimeout))
-}
-
-func forwardTargetToClient(tracker *ConnectionTracker, connID string, target, client *websocket.Conn, cleanup func()) {
-	defer cleanup()
-	for {
-		msgType, msg, err := target.ReadMessage()
-		if err != nil {
-			sendCloseMessage(client, err)
-			return
-		}
-		tracker.updateMetricsReceived(connID)
-		trackBookmark(tracker, connID, msg)
-		if writeErr := client.WriteMessage(msgType, msg); writeErr != nil {
-			return
-		}
-		tracker.updateMetricsSent(connID)
-	}
-}
-
-func forwardClientToTarget(tracker *ConnectionTracker, connID string, client, target *websocket.Conn, cleanup func()) {
-	defer cleanup()
-	for {
-		msgType, msg, err := client.ReadMessage()
-		if err != nil {
-			sendCloseMessage(target, err)
-			return
-		}
-		tracker.updateMetricsReceived(connID)
-		if writeErr := target.WriteMessage(msgType, msg); writeErr != nil {
-			return
-		}
-		tracker.updateMetricsSent(connID)
-	}
-}
-
-func runHeartbeat(tracker *ConnectionTracker, connID string, target *websocket.Conn, heartbeat *time.Ticker, done <-chan struct{}, cleanup func()) {
-	for {
-		select {
-		case <-done:
-			return
-		case <-heartbeat.C:
-			if err := target.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeControlTimeout)); err != nil {
-				cleanup()
-				return
-			}
-			tracker.updatePingSuccess(connID)
-		}
-	}
-}
-
-func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, targetURL *url.URL, netDialContext func(ctx context.Context, network, addr string) (net.Conn, error), clientSubprotocols []string) (*websocket.Conn, *http.Response, error) {
-	subprotocols := make([]string, 0, len(clientSubprotocols)+1)
-	subprotocols = append(subprotocols, bearerSubprotocol(token))
-	subprotocols = append(subprotocols, clientSubprotocols...)
-
-	dialer := websocket.Dialer{
-		TLSClientConfig:  tlsConfig,
-		HandshakeTimeout: wsConnectionTimeout,
-		NetDialContext:   netDialContext,
-		Subprotocols:     subprotocols,
-	}
-
-	dialHeaders := http.Header{}
-	dialHeaders.Set(constants.HeaderHost, targetURL.Host)
-	dialHeaders.Set(constants.HeaderOrigin, targetURL.Scheme+"://"+targetURL.Host)
-	dialHeaders.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
-
-	return dialer.Dial(targetWSURL, dialHeaders)
-}
-
-func bearerSubprotocol(token string) string {
-	return "base64url.bearer.authorization.k8s.io." + base64.RawURLEncoding.EncodeToString([]byte(token))
-}
-
-// clientUpgradeResponseHeader builds the response header map for the browser-facing
-// WebSocket 101 response. The gorilla upgrader writes the 101 directly and does not
-// include headers already queued on the ResponseWriter, so security-relevant headers
-// must be supplied here explicitly. Unrelated queued headers (CSP, Set-Cookie, etc.)
-// are deliberately excluded — matching OpenShift Console's approach (console#17376).
-func clientUpgradeResponseHeader(targetConn *websocket.Conn, clientSubprotocols []string) http.Header {
-	h := http.Header{}
-	h.Set(constants.HeaderXContentTypeOptions, constants.XContentTypeOptionsNoSniff)
-
-	sp := targetConn.Subprotocol()
-	if sp != "" {
-		for _, csp := range clientSubprotocols {
-			if csp == sp {
-				h.Set(constants.HeaderSecWebSocketProto, sp)
-				break
-			}
-		}
-	}
-	return h
-}
-
-func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *websocket.Conn) {
-	connID := tracker.Track(clientConn, targetConn)
-	heartbeat := time.NewTicker(wsHeartbeatInterval)
-	done := make(chan struct{})
-	var closeOnce sync.Once
-	cleanup := func() {
-		closeOnce.Do(func() {
-			close(done)
-			heartbeat.Stop()
-			tracker.Untrack(connID)
-			clientConn.Close()
-			targetConn.Close()
-		})
-	}
-
-	go forwardTargetToClient(tracker, connID, targetConn, clientConn, cleanup)
-	go forwardClientToTarget(tracker, connID, clientConn, targetConn, cleanup)
-	go runHeartbeat(tracker, connID, targetConn, heartbeat, done, cleanup)
-}
-
-func sanitizeCloseCode(code int) int {
-	switch code {
-	case 1004, 1005, 1006:
-		return 1011
-	default:
-		return code
-	}
-}
+// WssProxyPrefix is the URL path prefix for Kubernetes WebSocket proxy requests.
+const WssProxyPrefix = constants.WssProxyPrefix
 
 // WsProxyConfig holds the configuration for creating a WebSocket proxy handler.
 type WsProxyConfig struct {
@@ -255,50 +59,73 @@ type wsProxy struct {
 }
 
 func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	httpcontract.EnsureID(w, r)
 	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 	if !ok || identity == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		httpcontract.WriteLocal(w, r, http.StatusUnauthorized)
 		return
 	}
 
 	if !websocket.IsWebSocketUpgrade(r) {
-		http.Error(w, "WebSocket upgrade required", http.StatusBadRequest)
+		httpcontract.WriteLocal(w, r, http.StatusBadRequest)
 		return
 	}
 
 	if !p.upgrader.CheckOrigin(r) {
-		http.Error(w, "origin not allowed", http.StatusForbidden)
+		httpcontract.WriteLocal(w, r, http.StatusForbidden)
 		return
 	}
 
 	token := identity.ResolveToken(p.devFallbackToken)
 
 	targetWSURL := buildTargetWSURL(p.wsScheme, p.targetURL.Host, r)
+	upstreamRequest := r.Clone(r.Context())
+	upstreamRequest.URL.Path = kubernetesWebSocketPath(r)
+	watch := httpcontract.IsWatchRequest(upstreamRequest)
 	clientSubprotocols := websocket.Subprotocols(r)
 
-	targetConn, resp, dialErr := dialK8sWebSocket(targetWSURL, p.tlsConfig, token, p.targetURL, p.netDialContext, clientSubprotocols)
+	targetConn, resp, dialErr := dialK8sWebSocket(targetWSURL, p.tlsConfig, token, p.targetURL, p.netDialContext, clientSubprotocols, httpcontract.RequestID(r.Context()))
 	if dialErr != nil {
-		p.logDialError(targetWSURL, dialErr, resp)
-		http.Error(w, "upstream connection failed", http.StatusBadGateway)
+		p.handleDialError(w, r, resp, dialErr)
 		return
 	}
 
-	clientConn, upgradeErr := p.upgrader.Upgrade(w, r, clientUpgradeResponseHeader(targetConn, clientSubprotocols))
+	httpcontract.CaptureAudit(r.Context(), resp.Header)
+	clientConn, upgradeErr := p.upgradeClient(w, r, targetConn, clientSubprotocols)
 	if upgradeErr != nil {
-		p.logger.Error("WebSocket upgrade failed", slog.Any("error", upgradeErr))
+		httpcontract.Log(p.logger, r).Warn("WebSocket upgrade rejected", "code", "BAD_REQUEST")
 		targetConn.Close()
 		return
 	}
 
-	bridgeConnections(p.tracker, clientConn, targetConn)
+	httpcontract.Log(p.logger, r).Info("WebSocket connected")
+	diagnosticRequest := upstreamRequest.Clone(upstreamRequest.Context())
+	diagnosticRequest.Header.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	bridgeConnections(p.tracker, clientConn, targetConn, httpcontract.RequestID(r.Context()), watch, diagnosticRequest)
 }
 
-func (p *wsProxy) logDialError(target string, err error, resp *http.Response) {
-	attrs := []any{slog.String("target", target), slog.Any("error", err)}
-	if resp != nil {
-		attrs = append(attrs, slog.Int("status", resp.StatusCode))
+func (p *wsProxy) handleDialError(w http.ResponseWriter, r *http.Request, resp *http.Response, err error) {
+	if resp != nil && resp.StatusCode >= http.StatusBadRequest {
+		httpcontract.CaptureAudit(r.Context(), resp.Header)
+		httpcontract.Log(p.logger, r).Warn("WebSocket handshake rejected", "status", resp.StatusCode)
+		httpcontract.CopyRetryAfter(w.Header(), resp.Header)
+		if resp.Body != nil {
+			defer resp.Body.Close()
+		}
+		resp.Request = r
+		// Idempotent normalization keeps this HTTP rejection boundary safe even
+		// when handed a response directly rather than through the dial adapter.
+		_ = httpcontract.KubernetesResponse(resp)
+		var status metav1.Status
+		_ = json.NewDecoder(resp.Body).Decode(&status)
+		httpcontract.WriteProxyStatus(w, r, resp.StatusCode, status)
+	} else {
+		httpcontract.Log(p.logger, r).Error("WebSocket dial failed", "code", httpcontract.Classify(err, http.StatusBadGateway).Error.Code)
+		if resp != nil && resp.Body != nil {
+			_ = resp.Body.Close()
+		}
+		httpcontract.WriteError(w, r, err, http.StatusBadGateway)
 	}
-	p.logger.Error("WebSocket dial failed", attrs...)
 }
 
 // NewWsProxyHandler creates an HTTP handler that relays WebSocket connections to the Kubernetes API server.
@@ -308,17 +135,17 @@ func NewWsProxyHandler(cfg WsProxyConfig) (http.Handler, error) {
 		return nil, fmt.Errorf("failed to parse K8s API server URL %q: %w", cfg.K8sHost, err)
 	}
 
-	if targetURL.Scheme == "http" && !cfg.AllowHTTP {
+	if targetURL.Scheme == constants.SchemeHTTP && !cfg.AllowHTTP {
 		return nil, fmt.Errorf("insecure HTTP target URLs are not allowed for WebSocket proxy")
 	}
 
-	wsScheme := "wss"
-	if targetURL.Scheme == "http" {
-		wsScheme = "ws"
+	wsScheme := constants.SchemeWSS
+	if targetURL.Scheme == constants.SchemeHTTP {
+		wsScheme = constants.SchemeWS
 	}
 
 	tlsConfig := NewTLSConfig(cfg.RootCAs, cfg.InsecureSkipVerify)
-	tlsConfig.NextProtos = []string{"http/1.1"}
+	tlsConfig.NextProtos = []string{constants.ALPNHTTP11}
 	if len(cfg.ClientCerts) > 0 {
 		tlsConfig.Certificates = cfg.ClientCerts
 	}

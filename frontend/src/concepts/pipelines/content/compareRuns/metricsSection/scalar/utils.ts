@@ -49,11 +49,6 @@ export const generateTableStructure = (scalarMetricsArtifacts: RunArtifact[]): S
       field: 'run-name',
       isStickyColumn: true,
       hasRightBorder: true,
-      // Utility class pf-v6-u-background-color-200 does not exist in v6 currently but a replacement may be added, replacing with secondary background color token for now
-      className: 'pf-v6-u-background-color-200',
-      style: {
-        backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-      },
       sortable: false,
     },
     ...columnLabels.map(
@@ -74,11 +69,6 @@ export const generateTableStructure = (scalarMetricsArtifacts: RunArtifact[]): S
       field: 'execution-name-artifact-name',
       isStickyColumn: true,
       hasRightBorder: true,
-      // Utility class pf-v6-u-background-color-200 does not exist in v6 currently but a replacement may be added, replacing with secondary background color token for now
-      className: 'pf-v6-u-background-color-200',
-      style: {
-        backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-      },
       sortable: false,
     },
     ...subColumnLabels.map(

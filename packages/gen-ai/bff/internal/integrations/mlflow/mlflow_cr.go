@@ -7,12 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/clusterdiscovery"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // MLflow CRD constants for Kubernetes CR auto-discovery.
@@ -33,29 +32,10 @@ var MLflowGVR = schema.GroupVersionResource{
 
 const crDiscoveryTimeout = 10 * time.Second
 
-// fetchMLflowCR retrieves the single cluster-scoped MLflow CR using the in-cluster
-// Kubernetes client, falling back to the local kubeconfig for local development.
-// Returns an error if zero or multiple CRs are found.
-func fetchMLflowCR() (*unstructured.Unstructured, error) {
-	restCfg, err := rest.InClusterConfig()
-	if err != nil {
-		// Not running in-cluster (local dev) — fall back to local kubeconfig
-		loadedCfg, loadErr := clientcmd.NewDefaultClientConfigLoadingRules().Load()
-		if loadErr != nil {
-			return nil, fmt.Errorf("failed to get cluster config (in-cluster and kubeconfig both failed): %w", loadErr)
-		}
-		restCfg, err = clientcmd.NewDefaultClientConfig(*loadedCfg, &clientcmd.ConfigOverrides{}).ClientConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to build kubeconfig client config: %w", err)
-		}
-	}
-
-	dynClient, err := dynamic.NewForConfig(restCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), crDiscoveryTimeout)
+// fetchMLflowCR retrieves the single cluster-scoped MLflow CR. Returns an
+// error if zero or multiple CRs are found. Callers own the client and lifecycle.
+func fetchMLflowCR(ctx context.Context, dynClient dynamic.Interface) (*unstructured.Unstructured, error) {
+	ctx, cancel := context.WithTimeout(ctx, crDiscoveryTimeout)
 	defer cancel()
 
 	list, err := dynClient.Resource(MLflowGVR).List(ctx, metav1.ListOptions{Limit: 2})
@@ -86,7 +66,18 @@ func fetchMLflowCR() (*unstructured.Unstructured, error) {
 // mlflows.mlflow.opendatahub.io at the cluster scope for auto-discovery
 // to succeed.
 func DiscoverMLflowURL() (string, error) {
-	cr, err := fetchMLflowCR()
+	dynClient, _, err := clusterdiscovery.NewClient()
+	if err != nil {
+		return "", err
+	}
+	return DiscoverMLflowURLWithClient(context.Background(), dynClient)
+}
+
+// DiscoverMLflowURLWithClient uses the caller's client and cancellation context.
+// This lets playground discovery share a client for collector and MLflow CRs
+// and cancel either request when its retry worker is stopped.
+func DiscoverMLflowURLWithClient(ctx context.Context, dynClient dynamic.Interface) (string, error) {
+	cr, err := fetchMLflowCR(ctx, dynClient)
 	if err != nil {
 		return "", err
 	}
@@ -97,7 +88,11 @@ func DiscoverMLflowURL() (string, error) {
 // status.url from the cluster-scoped MLflow CR. This is the public-facing URL
 // suitable for use in generated client code.
 func DiscoverMLflowExternalURL() (string, error) {
-	cr, err := fetchMLflowCR()
+	dynClient, _, err := clusterdiscovery.NewClient()
+	if err != nil {
+		return "", err
+	}
+	cr, err := fetchMLflowCR(context.Background(), dynClient)
 	if err != nil {
 		return "", err
 	}

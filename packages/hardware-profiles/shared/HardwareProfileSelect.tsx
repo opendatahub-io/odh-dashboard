@@ -31,7 +31,7 @@ import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/search
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { useApplicationSettings } from '@odh-dashboard/internal/app/useApplicationSettings';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import {
   computeLocalQueueNamesResult,
   filterProfilesByKueue,
@@ -41,6 +41,8 @@ import {
 import {
   formatResource,
   formatResourceValue,
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
   getClaimTemplateMissingText as getProfileClaimTemplateMissingText,
   isDRAHardwareProfile,
   isSameHardwareProfileBinding,
@@ -53,8 +55,6 @@ import {
 import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import {
-  getHardwareProfileDescription,
-  getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
   orderHardwareProfiles,
   prioritizeHardwareProfiles,
@@ -170,11 +170,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const { currentProject } = React.useContext(CurrentProjectContext);
   const { localQueues } = React.useContext(LocalQueuesContext);
   const { projects } = React.useContext(ProjectsContext);
-  const { dashboardConfig } = useApplicationSettings();
+  const dashboardConfig = React.useContext(DashboardConfigContext);
   const isDRAEnabled = useIsDRAHardwareProfileEnabled();
   const hardwareProfileOrder = React.useMemo(
-    () => dashboardConfig?.spec.hardwareProfileOrder || [],
-    [dashboardConfig?.spec.hardwareProfileOrder],
+    () => dashboardConfig?.hardwareProfileOrder || [],
+    [dashboardConfig?.hardwareProfileOrder],
   );
 
   const orderProfiles = React.useCallback(

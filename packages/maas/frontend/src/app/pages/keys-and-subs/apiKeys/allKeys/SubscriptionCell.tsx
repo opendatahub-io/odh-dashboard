@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { getModelAccessSubscriptionViewUrl } from '~/app/pages/model-access/utils';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { getSubscriptionViewUrl, isMaaSPortalHost } from '~/app/utilities/maasGovernanceNavigation';
 import { SubscriptionDetail } from '~/app/types/api-key';
@@ -38,7 +39,7 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
   const showGovernanceLink = isMaasAdmin && !!subscriptionDetail;
   const isPortalHost = isMaaSPortalHost();
   const governanceLink = isPortalHost
-    ? `${URL_PREFIX}/model-access`
+    ? getModelAccessSubscriptionViewUrl(subscriptionName)
     : getSubscriptionViewUrl(subscriptionName);
   const governanceLabel = isPortalHost ? 'View in Model access' : 'View in MaaS governance';
 

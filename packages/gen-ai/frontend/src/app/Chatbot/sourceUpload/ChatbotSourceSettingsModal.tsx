@@ -22,6 +22,8 @@ import {
 } from '@patternfly/react-core';
 
 import { ChatbotSourceSettings } from '~/app/types';
+import { findInlineVectorStore } from '~/app/Chatbot/findInlineVectorStore';
+import { useUserContext } from '~/app/context/UserContext';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { DEFAULT_SOURCE_SETTINGS } from './utils';
@@ -53,18 +55,38 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   const vectorDatabaseLabelHelpRef = React.useRef(null);
   const chunkOverlapLabelHelpRef = React.useRef(null);
   const delimiterLabelHelpRef = React.useRef(null);
+  const { username } = useUserContext();
   const [vectorStores, vectorStoresLoaded, vectorStoresError, refreshVectorStores] =
     useFetchVectorStores();
+  const inlineVectorStore = React.useMemo(
+    () => findInlineVectorStore(vectorStores, username),
+    [vectorStores, username],
+  );
 
-  // Auto-select the first vector database when vector stores are loaded
+  // Upload into the same auto-provisioned store the chat searches.
+  // isOpen is a dependency so Cancel, which clears the field, restores it on reopen.
   React.useEffect(() => {
-    if (vectorStoresLoaded && vectorStores.length > 0 && !fields.vectorStore) {
-      setFields((prev) => ({
-        ...prev,
-        vectorStore: vectorStores[0].id,
-      }));
+    if (!isOpen || !vectorStoresLoaded) {
+      return;
     }
-  }, [vectorStoresLoaded, vectorStores, fields.vectorStore]);
+    if (!inlineVectorStore) {
+      setFields((prev) => {
+        const selected = vectorStores.find((store) => store.id === prev.vectorStore);
+        return selected?.metadata.created_by === 'auto-provisioning'
+          ? { ...prev, vectorStore: '' }
+          : prev;
+      });
+      return;
+    }
+    setFields((prev) =>
+      prev.vectorStore === inlineVectorStore.id
+        ? prev
+        : {
+            ...prev,
+            vectorStore: inlineVectorStore.id,
+          },
+    );
+  }, [isOpen, vectorStoresLoaded, inlineVectorStore, vectorStores]);
 
   // Vector store creation state
   const [vectorStoreForm, setVectorStoreForm] = React.useState(DEFAULT_VECTOR_STORE_FORM);
@@ -324,7 +346,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         onChange={(e, value) =>
                           setFields((prev) => ({
                             ...prev,
-                            maxChunkLength: value ? Number(value) : undefined,
+                            maxChunkLength: value === '' ? undefined : Number(value),
                           }))
                         }
                       />
@@ -426,7 +448,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         onChange={(e, value) =>
                           setFields((prev) => ({
                             ...prev,
-                            chunkOverlap: value ? Number(value) : undefined,
+                            chunkOverlap: value === '' ? undefined : Number(value),
                           }))
                         }
                       />

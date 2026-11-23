@@ -1,12 +1,10 @@
-/* eslint-disable no-console */
-
 // Modules -------------------------------------------------------------------->
 
 import React from 'react';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  Button,
   Flex,
   PageSection,
   Skeleton,
@@ -15,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
+import CreateConnectionButton from '~/app/components/CreateConnectionButton';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import {
   ConnectionTypeIcon,
@@ -42,6 +41,7 @@ type ConnectionTypeDetailsContentProps = {
 const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> = ({
   namespace,
 }) => {
+  const trackEvent = useTrackEvent();
   const { connectionTypeId = '' } = useParams<'connectionTypeId'>();
   const { search } = useLocation();
   const [connectionType, loaded, loadError] = useConnectionType(namespace, connectionTypeId);
@@ -95,19 +95,17 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
         loaded && !loadError && connectionType ? (
           <Split hasGutter>
             <SplitItem>
-              <Button
-                variant="primary"
-                data-testid="connection-type-details-create-connection"
-                onClick={() => {
-                  fireDataConnectHubTrackEvent({
+              <CreateConnectionButton
+                namespace={namespace}
+                onCreate={() => {
+                  fireDataConnectHubTrackEvent(trackEvent, {
                     eventName: DATA_CONNECT_HUB_EVENT_NAMES.addStarted,
                     properties: { project: namespace, source: 'connection_type_catalog' },
                   });
                   setIsConnectionWizardOpen(true);
                 }}
-              >
-                Create connection
-              </Button>
+                testId="connection-type-details-create-connection"
+              />
             </SplitItem>
           </Split>
         ) : undefined
@@ -145,7 +143,7 @@ const ConnectionTypeDetails: React.FC = () => {
   const namespace = searchParams.get('project');
 
   if (namespace) {
-    return <ConnectionTypeDetailsContent namespace={namespace} />;
+    return <ConnectionTypeDetailsContent key={namespace} namespace={namespace} />;
   }
 
   return <Navigate to={{ pathname: '..', search }} relative="path" replace />;

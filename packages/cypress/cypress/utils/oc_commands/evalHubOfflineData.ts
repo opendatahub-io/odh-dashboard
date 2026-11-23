@@ -4,8 +4,13 @@ import { maskSensitiveInfo } from '../maskSensitiveInfo';
 const EVAL_HUB_OFFLINE_DATA_SECRET_NAME = 'evalhub-e2e-offline-data';
 const EVAL_HUB_OFFLINE_DATA_INTERCEPT_ALIAS = 'evalHubOfflineDataRequest';
 const EVAL_HUB_EVALUATION_JOBS_URL = '**/eval-hub/api/v1/evaluations/jobs*';
+// Each scoped benchmark bundle provides its tokenizer at this path under /test_data.
+const EVAL_HUB_OFFLINE_BUNDLE_TOKENIZER_PATH = '/test_data/tokenizer';
 
 type EvalHubRequestBenchmark = {
+  id?: string;
+  // eslint-disable-next-line camelcase
+  provider_id?: string;
   parameters?: Record<string, unknown>;
   test_data_ref?: unknown;
   [key: string]: unknown;
@@ -32,11 +37,10 @@ type OfflineDataConfig = {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
   S3_BUCKET: string;
-  /** S3 object prefix downloaded into /test_data with its relative directory structure preserved. */
-  S3_KEY: string;
+  /** Shared root prefix; each request adds its provider and benchmark bundle path. */
+  S3_KEY_PREFIX: string;
   S3_ENDPOINT: string;
   S3_REGION: string;
-  TOKENIZER_PATH: string;
 };
 
 const enabled = (value: unknown): boolean =>
@@ -51,19 +55,17 @@ const getOfflineDataConfig = (): OfflineDataConfig | undefined => {
     'AWS_ACCESS_KEY_ID',
     'AWS_SECRET_ACCESS_KEY',
     'S3_BUCKET',
-    'S3_KEY',
+    'S3_KEY_PREFIX',
     'S3_ENDPOINT',
     'S3_REGION',
-    'TOKENIZER_PATH',
   ];
   const config: Partial<OfflineDataConfig> = {
     AWS_ACCESS_KEY_ID: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_AWS_ACCESS_KEY_ID'),
     AWS_SECRET_ACCESS_KEY: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_AWS_SECRET_ACCESS_KEY'),
     S3_BUCKET: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_S3_BUCKET'),
-    S3_KEY: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_S3_KEY'),
+    S3_KEY_PREFIX: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_S3_KEY'),
     S3_ENDPOINT: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_S3_ENDPOINT'),
     S3_REGION: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_S3_REGION'),
-    TOKENIZER_PATH: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_TOKENIZER_PATH'),
   };
   const missing = requiredKeys.filter((key) => !config[key]?.trim());
   if (missing.length > 0) {
@@ -77,27 +79,63 @@ const getOfflineDataConfig = (): OfflineDataConfig | undefined => {
   return config as OfflineDataConfig;
 };
 
+const getOfflineBenchmarkS3Key = (
+  benchmark: EvalHubRequestBenchmark,
+  config: OfflineDataConfig,
+): string => {
+  // eslint-disable-next-line camelcase
+  const rawProviderId = benchmark.provider_id;
+  const rawBenchmarkId = benchmark.id;
+  const providerId = typeof rawProviderId === 'string' ? rawProviderId.trim() : '';
+  const benchmarkId = typeof rawBenchmarkId === 'string' ? rawBenchmarkId.trim() : '';
+  // The API permits a missing provider_id, but offline bundles are keyed by provider.
+  if (!providerId) {
+    throw new Error(
+      'Offline EvalHub benchmark data requires provider_id to select a staged bundle.',
+    );
+  }
+
+  const isSafeSegment = (segment: string): boolean =>
+    segment !== '' && segment !== '.' && segment !== '..' && !segment.includes('\\');
+  if (providerId.includes('/') || !isSafeSegment(providerId)) {
+    throw new Error('Offline EvalHub provider_id must be a single safe path segment.');
+  }
+  // IDs such as inspect/bfcl are nested in the staged bundle layout.
+  if (!benchmarkId || !benchmarkId.split('/').every(isSafeSegment)) {
+    throw new Error('Offline EvalHub benchmark id must be a safe relative path.');
+  }
+
+  const rootPrefix = config.S3_KEY_PREFIX.replace(/^\/+|\/+$/g, '');
+  if (!rootPrefix) {
+    throw new Error('Offline EvalHub S3 key must be a non-empty root prefix.');
+  }
+  return `${rootPrefix}/fvt/benchmarks/${providerId}/${benchmarkId}/`;
+};
+
 const withOfflineData = (
   benchmark: EvalHubRequestBenchmark,
   config: OfflineDataConfig,
-): EvalHubRequestBenchmark => ({
-  ...benchmark,
-  parameters: {
-    ...benchmark.parameters,
-    tokenizer: config.TOKENIZER_PATH,
-  },
-  // eslint-disable-next-line camelcase
-  test_data_ref: {
-    s3: {
-      bucket: config.S3_BUCKET,
-      // The EvalHub API calls this a key, but its init container downloads every object
-      // under the value as a prefix and preserves their relative paths under /test_data.
-      key: config.S3_KEY,
-      // eslint-disable-next-line camelcase
-      secret_ref: EVAL_HUB_OFFLINE_DATA_SECRET_NAME,
+): EvalHubRequestBenchmark => {
+  const s3Key = getOfflineBenchmarkS3Key(benchmark, config);
+  return {
+    ...benchmark,
+    parameters: {
+      ...benchmark.parameters,
+      tokenizer: EVAL_HUB_OFFLINE_BUNDLE_TOKENIZER_PATH,
     },
-  },
-});
+    // eslint-disable-next-line camelcase
+    test_data_ref: {
+      s3: {
+        bucket: config.S3_BUCKET,
+        // Each benchmark gets only its staged bundle; the init container downloads every object
+        // under this prefix and preserves paths relative to it under /test_data.
+        key: s3Key,
+        // eslint-disable-next-line camelcase
+        secret_ref: EVAL_HUB_OFFLINE_DATA_SECRET_NAME,
+      },
+    },
+  };
+};
 
 const withOfflineDataReferences = (
   request: EvalHubEvaluationRequest,
@@ -192,15 +230,20 @@ export const provisionEvalHubOfflineDataSecret = (tenantNamespace: string): Cypr
  * Registers a pass-through interceptor that adds offline test data to an EvalHub submission.
  * Connected-cluster runs never register it, so their requests remain unchanged.
  */
-export const interceptEvalHubOfflineDataRequest = (): boolean => {
+export const interceptEvalHubOfflineDataRequest = (
+  transformRequestBody?: (requestBody: unknown) => unknown,
+): boolean => {
   const config = getOfflineDataConfig();
   if (!config) {
     return false;
   }
 
   cy.intercept('POST', EVAL_HUB_EVALUATION_JOBS_URL, (request) => {
+    // Apply caller overrides before offline values so the offline tokenizer and dataset refs
+    // remain effective in disconnected runs.
+    const requestBody = transformRequestBody ? transformRequestBody(request.body) : request.body;
     Object.assign(request, {
-      body: withOfflineDataReferences(request.body as EvalHubEvaluationRequest, config),
+      body: withOfflineDataReferences(requestBody as EvalHubEvaluationRequest, config),
     });
     request.continue();
   }).as(EVAL_HUB_OFFLINE_DATA_INTERCEPT_ALIAS);
@@ -240,14 +283,17 @@ export const interceptEvalHubOfflineDataReadForReconfigure = (tenantNamespace: s
   return true;
 };
 
-/** Verifies the submitted request has offline data for every selected benchmark. */
-export const assertEvalHubOfflineDataRequest = (): void => {
+/** Verifies the transformed request's offline data and any related assertions from the same wait. */
+export const assertEvalHubOfflineDataRequest = (
+  assertRequestBody?: (requestBody: unknown) => void,
+): void => {
   const config = getOfflineDataConfig();
   if (!config) {
     return;
   }
 
   cy.wait(`@${EVAL_HUB_OFFLINE_DATA_INTERCEPT_ALIAS}`).then(({ request }) => {
+    assertRequestBody?.(request.body);
     const evaluationRequest = request.body as EvalHubEvaluationRequest;
     expect(evaluationRequest.model?.url, 'model endpoint URL')
       .to.be.a('string')
@@ -256,11 +302,12 @@ export const assertEvalHubOfflineDataRequest = (): void => {
     const benchmarks = getRequestBenchmarks(evaluationRequest);
     expect(benchmarks, 'offline EvalHub request benchmarks').to.have.length.greaterThan(0);
     benchmarks.forEach((benchmark) => {
-      expect(benchmark.parameters?.tokenizer).to.equal(config.TOKENIZER_PATH);
+      const s3Key = getOfflineBenchmarkS3Key(benchmark, config);
+      expect(benchmark.parameters?.tokenizer).to.equal(EVAL_HUB_OFFLINE_BUNDLE_TOKENIZER_PATH);
       expect(benchmark.test_data_ref).to.deep.equal({
         s3: {
           bucket: config.S3_BUCKET,
-          key: config.S3_KEY,
+          key: s3Key,
           // eslint-disable-next-line camelcase
           secret_ref: EVAL_HUB_OFFLINE_DATA_SECRET_NAME,
         },

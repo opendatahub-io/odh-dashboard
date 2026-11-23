@@ -305,17 +305,6 @@ rules:
       - get
       - list
       - watch
-  # Impersonation for BFF module proxy (modules-cluster-role.yaml).
-  # Unscoped: the BFF proxy forwards requests on behalf of any authenticated
-  # user, so the set of impersonatable identities is not known at deploy time.
-  - apiGroups:
-      - ""
-    resources:
-      - users
-      - groups
-      - serviceaccounts
-    verbs:
-      - impersonate
   # Batch resources for operand notebook management
   - apiGroups:
       - batch

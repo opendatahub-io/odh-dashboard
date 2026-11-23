@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { z } from 'zod';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   useModelServingClusterSettings,
@@ -77,7 +77,8 @@ export const useDeploymentMethodExternalData = (): {
 
     return {
       data: { options, suggestion },
-      loaded: clusterSettingsLoaded,
+      // Settle on error so the field inits; undefined settings → llm-d suggestion.
+      loaded: clusterSettingsLoaded || !!clusterSettingsError,
       loadError: clusterSettingsError,
     };
   }, [overrides, modelServingClusterSettings, clusterSettingsLoaded, clusterSettingsError]);

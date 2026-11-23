@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"runtime/debug"
+	"runtime"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/rs/cors"
 )
 
@@ -19,9 +19,15 @@ func (app *App) RecoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
+				if err == http.ErrAbortHandler {
+					panic(err)
+				}
+				httpcontract.Log(app.logger, r).Error("panic recovered", "code", "INTERNAL_SERVER_ERROR", "stack_trace", panicStackFrames())
+				if httpcontract.Committed(w) {
+					panic(http.ErrAbortHandler)
+				}
 				w.Header().Set(constants.HeaderConnection, constants.ConnectionClose)
-				app.serverErrorResponse(w, r, fmt.Errorf("%s", err))
-				app.logger.Error("Recovered from panic", slog.String("stack_trace", string(debug.Stack())))
+				httpcontract.WriteLocal(w, r, http.StatusInternalServerError)
 			}
 		}()
 
@@ -29,12 +35,29 @@ func (app *App) RecoverPanic(next http.Handler) http.Handler {
 	})
 }
 
+const maxPanicStackFrames = 32
+
+// Record bounded code locations without panic text, argument values, or locals.
+func panicStackFrames() []string {
+	pcs := make([]uintptr, maxPanicStackFrames)
+	n := runtime.Callers(2, pcs)
+	frames := runtime.CallersFrames(pcs[:n])
+	stack := make([]string, 0, n)
+	for {
+		frame, more := frames.Next()
+		stack = append(stack, fmt.Sprintf("%s %s:%d", frame.Function, frame.File, frame.Line))
+		if !more || len(stack) == maxPanicStackFrames {
+			return stack
+		}
+	}
+}
+
 func (app *App) EnableCORS(next http.Handler) http.Handler {
 	if len(app.config.AllowedOrigins) == 0 {
 		return next
 	}
 
-	allowedHeaders := []string{constants.HeaderContentType, constants.HeaderAuthorization, constants.HeaderForwardedToken, constants.HeaderFeatureFlags}
+	allowedHeaders := []string{httpcontract.RequestIDHeader, constants.HeaderContentType, constants.HeaderAuthorization, constants.HeaderForwardedToken, constants.HeaderFeatureFlags}
 	if h := app.config.AuthTokenHeader; h != "" && h != constants.HeaderAuthorization && h != constants.HeaderForwardedToken {
 		allowedHeaders = append(allowedHeaders, h)
 	}
@@ -44,7 +67,7 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 		AllowCredentials:   true,
 		AllowedMethods:     []string{"GET", "PUT", "POST", "PATCH", "DELETE"},
 		AllowedHeaders:     allowedHeaders,
-		Debug:              app.config.LogLevel == slog.LevelDebug,
+		ExposedHeaders:     []string{httpcontract.RequestIDHeader, httpcontract.AuditIDHeader},
 		OptionsPassthrough: false,
 	})
 
@@ -53,14 +76,15 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 
 func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		traceID := uuid.NewString()
+		httpcontract.EnsureID(w, r)
+		traceID := httpcontract.RequestID(r.Context())
 		ctx := context.WithValue(r.Context(), constants.TraceIDKey, traceID)
 
 		if app.logger != nil {
-			traceLogger := app.logger.With(slog.String("trace_id", traceID))
+			traceLogger := httpcontract.Log(app.logger, r)
 			ctx = context.WithValue(ctx, constants.TraceLoggerKey, traceLogger)
 
-			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helpers.RequestLogValuer{Request: r}))
+			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helpers.RequestLogValuer{Request: r, SensitiveHeaders: []string{app.config.AuthTokenHeader}}))
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

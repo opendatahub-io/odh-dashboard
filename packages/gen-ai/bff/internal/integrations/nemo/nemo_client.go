@@ -36,6 +36,9 @@ func NewNemoGuardrailsClient(baseURL, authToken string, insecureSkipVerify bool,
 		httpClient: &http.Client{
 			Transport: transport,
 			Timeout:   defaultTimeout,
+			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		},
 	}
 }

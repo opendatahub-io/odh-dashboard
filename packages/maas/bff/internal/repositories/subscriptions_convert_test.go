@@ -46,11 +46,12 @@ func TestFilterSubscriptionsForMyViewExcludesOwnerSubscriptions(t *testing.T) {
 	items := []models.SubscriptionListItem{
 		{SubscriptionIDHeader: "owned-sub", Owner: &models.OwnerSpec{}},
 		{SubscriptionIDHeader: "my-sub", Roles: []string{"admin"}},
+		{SubscriptionIDHeader: "my-sub-as-owner", Roles: []string{"admin", "owner"}},
 	}
 
 	filtered := FilterSubscriptionsForMyView(items)
-	if len(filtered) != 1 || filtered[0].SubscriptionIDHeader != "my-sub" {
-		t.Fatalf("filtered subscriptions = %+v, want only my-sub", filtered)
+	if len(filtered) != 2 || filtered[0].SubscriptionIDHeader != "my-sub" || filtered[1].SubscriptionIDHeader != "my-sub-as-owner" {
+		t.Fatalf("filtered subscriptions = %+v, want only my-sub and my-sub-as-owner", filtered)
 	}
 }
 

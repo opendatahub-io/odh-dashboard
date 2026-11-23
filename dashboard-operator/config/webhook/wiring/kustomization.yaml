@@ -1,0 +1,23 @@
+# Transformer kustomization that copies the final webhook Certificate and
+# Service names into the fields kustomize does not rewrite on its own:
+#   - cert-manager.io/inject-ca-from on the ValidatingWebhookConfiguration
+#   - the serving Certificate's dnsNames
+#
+# Reference it from the `transformers:` field of the overlay that sets the
+# final namespace / namePrefix. `transformers:` runs after namespace and
+# namePrefix, so the copied values are the final ones. config/webhook-enabled
+# does this. A parent overlay that wraps config/webhook-enabled and changes
+# namespace or namePrefix must reference it again:
+#
+#   resources:
+#     - <path>/config/webhook-enabled
+#   transformers:
+#     - <path>/config/certmanager/wiring
+#     - <path>/config/webhook/wiring
+#
+# The webhook clientConfig.service name and namespace need no replacement:
+# kustomize's built-in nameReference and namespace transformers update them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - replacements.yaml

@@ -243,7 +243,6 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useHostApi: jest.fn(() => ({
     ConnectionTypeFormFields: StubConnectionTypeFormFields,
   })),
-  useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
   useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
 }));
 
@@ -259,7 +258,6 @@ const mockAreaStatus = (status: boolean): IsAreaAvailableStatus => ({
   reliantAreas: null,
   requiredCapabilities: null,
   requiredComponents: null,
-  customCondition: () => false,
 });
 
 const mockConnections: Connection[] = [];

@@ -183,7 +183,7 @@ describe('Prompt Management page wrapper', () => {
 
     it('should keep the direct Prompts route available when Gen AI Studio is disabled', () => {
       initIntercepts({ genAiStudio: false });
-      promptManagement.visitWithoutGenAiStudio(PROJECT_A);
+      promptManagement.visit(PROJECT_A);
       promptManagement.findPageTitle().should('contain', 'Prompts');
       promptManagement.findNavItem().should('not.exist');
     });

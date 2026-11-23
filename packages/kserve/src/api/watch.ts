@@ -3,10 +3,8 @@ import type { K8sAPIOptions, PodKind, ProjectKind } from '@odh-dashboard/k8s-cor
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
-import {
-  InferenceServiceModel,
-  ServingRuntimeModel,
-} from '@odh-dashboard/internal/api/models/kserve';
+import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
+import { ServingRuntimeModel } from '@odh-dashboard/model-serving/shared/api/models';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 
 const EMPTY_SERVING_RUNTIMES_RESULT: CustomWatchK8sResult<ServingRuntimeKind[]> = [

@@ -1,16 +1,15 @@
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
+
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import type { EvaluationJob } from '~/app/types';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { mockTrackEvent, render } = setupTrackingTest();
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -25,21 +24,12 @@ jest.mock('~/app/api/k8s', () => ({
 
 const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockOnActionComplete = jest.fn();
 const mockOnShowStatus = jest.fn();
 const mockOnSelectionChange = jest.fn();
 
-const renderJob = (
-  job: EvaluationJob,
-  rowIndex = 0,
-  polledJobData?: EvaluationJob,
-  isKueueWorkloadStatusLoading = false,
-  // Enabled by default so the queued-display tests exercise the enabled path; the
-  // integration is disabled in production (RHOAIENG-99645).
-  isKueueEnabled = true,
-) =>
+const renderJob = (job: EvaluationJob, rowIndex = 0, polledJobData?: EvaluationJob) =>
   render(
     <MemoryRouter>
       <Table aria-label="test">
@@ -54,8 +44,6 @@ const renderJob = (
             onShowStatus={mockOnShowStatus}
             isSelected={false}
             onSelectionChange={mockOnSelectionChange}
-            isKueueWorkloadStatusLoading={isKueueWorkloadStatusLoading}
-            isKueueEnabled={isKueueEnabled}
           />
         </Tbody>
       </Table>
@@ -93,17 +81,20 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Running');
   });
 
-  it('should keep a pending job as Pending until Kueue reports a queued status', () => {
+  it('should render a pending job without a queue assignment as Pending', () => {
     renderRow({ state: 'pending' });
 
     expect(screen.getByTestId('evaluation-status')).toHaveTextContent('Pending');
   });
 
-  it('should show a neutral loading state while Kueue status is being checked', () => {
-    renderJob(mockEvaluationJob({ state: 'pending' }), 0, undefined, true);
+  it('should show Queued for a pending job assigned to a queue', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'default' } };
 
-    expect(screen.getByTestId('evaluation-status-loading')).toBeInTheDocument();
-    expect(screen.getByTestId('evaluation-status')).not.toHaveTextContent('Pending');
+    renderJob(job);
+
+    expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
   });
 
   it('should preserve Queued when detail polling omits the queue assignment', () => {
@@ -117,14 +108,22 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
   });
 
-  it('should show Pending for a queue-assigned job when the Kueue integration is disabled', () => {
+  it('should pass the fallback queue to onShowStatus when detail polling omits the queue', () => {
     const job = mockEvaluationJob({ state: 'pending' });
     // eslint-disable-next-line camelcase -- API field name.
     job.hardware_config = { queue: { name: 'default' } };
+    const polledJob = mockEvaluationJob({ state: 'pending' });
 
-    renderJob(job, 0, undefined, false, false);
+    renderJob(job, 0, polledJob);
 
-    expect(screen.getByTestId('evaluation-status')).toHaveTextContent('Pending');
+    fireEvent.click(within(screen.getByTestId('evaluation-status-button')).getByRole('button'));
+
+    expect(mockOnShowStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // eslint-disable-next-line camelcase -- API field name.
+        hardware_config: expect.objectContaining({ queue: { name: 'default' } }),
+      }),
+    );
   });
 
   it('should open status using the latest polled job data', () => {
@@ -197,7 +196,6 @@ describe('EvaluationsTableRow', () => {
               onShowStatus={mockOnShowStatus}
               isSelected={false}
               onSelectionChange={mockOnSelectionChange}
-              isKueueEnabled
             />
           </Tbody>
         </Table>
@@ -447,8 +445,6 @@ describe('EvaluationsTableRow', () => {
               onShowStatus={mockOnShowStatus}
               isSelected={false}
               onSelectionChange={mockOnSelectionChange}
-              isKueueWorkloadStatusLoading={false}
-              isKueueEnabled={false}
             />
           </Tbody>
         </Table>
@@ -465,11 +461,12 @@ describe('EvaluationsTableRow', () => {
       });
       rerender(renderTree(failedJob));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         'Evaluations Evaluation Completed',
         expect.objectContaining({ runOutcome: 'failed', error: 'evaluation_job_updated' }),
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
       );
-      const trackedCall = mockFireMiscTrackingEvent.mock.calls.find(
+      const trackedCall = mockTrackEvent.mock.calls.find(
         ([eventName]) => eventName === 'Evaluations Evaluation Completed',
       );
       expect(JSON.stringify(trackedCall)).not.toContain('user-provided-name');
@@ -484,9 +481,10 @@ describe('EvaluationsTableRow', () => {
       delete failedJob.status.message?.message_code;
       rerender(renderTree(failedJob));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         'Evaluations Evaluation Completed',
         expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
       );
     });
 
@@ -498,9 +496,10 @@ describe('EvaluationsTableRow', () => {
 
       rerender(renderTree(completedJob));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         'Evaluations Evaluation Completed',
         expect.objectContaining({ runOutcome: 'completed', error: undefined }),
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
       );
     });
 
@@ -516,11 +515,12 @@ describe('EvaluationsTableRow', () => {
 
       rerender(renderTree(failedJob));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         'Evaluations Evaluation Completed',
         expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
       );
-      expect(JSON.stringify(mockFireMiscTrackingEvent.mock.calls)).not.toContain(marker);
+      expect(JSON.stringify(mockTrackEvent.mock.calls)).not.toContain(marker);
     });
   });
 });

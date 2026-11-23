@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/clusterdiscovery"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -17,10 +18,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -181,53 +179,32 @@ func detectNamespace() string {
 // collector lives, so the OTel SDK exporter retries in the background until
 // the gen-ai collector is created by EnsureRoute.
 func discoverCollectorEndpoint(ctx context.Context, logger *slog.Logger) string {
-	restCfg, err := rest.InClusterConfig()
-	if err != nil {
-		loadedCfg, loadErr := clientcmd.NewDefaultClientConfigLoadingRules().Load()
-		if loadErr != nil {
-			return ""
-		}
-		restCfg, err = clientcmd.NewDefaultClientConfig(*loadedCfg, &clientcmd.ConfigOverrides{}).ClientConfig()
-		if err != nil {
-			return ""
-		}
-	}
-
-	dynClient, err := dynamic.NewForConfig(restCfg)
+	dynClient, _, err := clusterdiscovery.NewClient()
 	if err != nil {
 		return ""
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
+	return discoverCollectorEndpointWithClient(ctx, logger, dynClient)
+}
 
-	list, err := dynClient.Resource(constants.OTelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})
+func discoverCollectorEndpointWithClient(ctx context.Context, logger *slog.Logger, dynClient dynamic.Interface) string {
+	collectors, err := clusterdiscovery.DiscoverCollectors(ctx, dynClient)
 	if err != nil {
 		logger.Debug("collector auto-discovery failed", "error", err)
 		return ""
 	}
 
-	// Find the namespace from either the gen-ai collector or the platform
-	// collector, then always target the gen-ai collector endpoint.
-	for _, item := range list.Items {
-		name := item.GetName()
-		ns := item.GetNamespace()
-		if name == constants.GenAICollectorName {
-			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", constants.GenAICollectorName, ns)
-			logger.Info("auto-discovered gen-ai trace collector endpoint", "endpoint", endpoint)
-			return endpoint
-		}
+	// Prefer the existing gen-ai collector. Unlike playground provisioning,
+	// telemetry does not require the platform collector or MLflow to exist.
+	if collectors.GenAINamespace != "" {
+		endpoint := clusterdiscovery.GenAICollectorEndpoint(collectors.GenAINamespace)
+		logger.Info("auto-discovered gen-ai trace collector endpoint", "endpoint", endpoint)
+		return endpoint
 	}
-
-	// Gen-ai collector doesn't exist yet — derive its future endpoint from
-	// the platform collector's namespace (same namespace used by EnsureRoute).
-	for _, item := range list.Items {
-		if item.GetName() == constants.PlatformCollectorName {
-			ns := item.GetNamespace()
-			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", constants.GenAICollectorName, ns)
-			logger.Info("gen-ai collector not yet created, targeting future endpoint from platform collector namespace", "endpoint", endpoint)
-			return endpoint
-		}
+	if collectors.PlatformNamespace != "" {
+		endpoint := clusterdiscovery.GenAICollectorEndpoint(collectors.PlatformNamespace)
+		logger.Info("gen-ai collector not yet created, targeting future endpoint from platform collector namespace", "endpoint", endpoint)
+		return endpoint
 	}
 
 	return ""

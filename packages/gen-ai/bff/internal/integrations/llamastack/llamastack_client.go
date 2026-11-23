@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -363,10 +364,83 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 			return nil, wrapClientError(err, "UploadFile (add to vector store)")
 		}
 
-		result.VectorStoreFile = vectorStoreFile
+		// Llama Stack embeds asynchronously. Files.New often returns in_progress, and
+		// file_search returns no chunks until the vector-store file is completed.
+		readyFile, err := c.waitForVectorStoreFile(ctx, params.VectorStoreID, vectorStoreFile.ID)
+		if err != nil {
+			// A retry uploads a new file. Remove this one so a failed embed cannot
+			// leave a second attachment behind.
+			c.cleanupUploadedVectorStoreFile(ctx, params.VectorStoreID, vectorStoreFile.ID)
+			return nil, err
+		}
+
+		result.VectorStoreFile = readyFile
 	}
 
 	return result, nil
+}
+
+const vectorStoreFilePollInterval = 2 * time.Second
+
+// waitForVectorStoreFile polls until embedding finishes or the request context ends.
+// The upload job context already times this out (10 minutes).
+func (c *LlamaStackClient) waitForVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error) {
+	ticker := time.NewTicker(vectorStoreFilePollInterval)
+	defer ticker.Stop()
+
+	var lastRetryable error
+	for {
+		file, err := c.GetVectorStoreFile(ctx, vectorStoreID, fileID)
+		if err != nil {
+			if !isRetryableVectorStoreFileError(err) {
+				return nil, err
+			}
+			lastRetryable = err
+		} else {
+			switch file.Status {
+			case openai.VectorStoreFileStatusCompleted:
+				return file, nil
+			case openai.VectorStoreFileStatusFailed, openai.VectorStoreFileStatusCancelled:
+				message := file.LastError.Message
+				if message == "" {
+					message = fmt.Sprintf("vector store file %s ended with status %s", fileID, file.Status)
+				}
+				return nil, fmt.Errorf("%s", message)
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			if lastRetryable != nil {
+				return nil, fmt.Errorf("timed out waiting for vector store file %s to be embedded: %w", fileID, lastRetryable)
+			}
+			return nil, fmt.Errorf("timed out waiting for vector store file %s to be embedded: %w", fileID, ctx.Err())
+		case <-ticker.C:
+		}
+	}
+}
+
+func isRetryableVectorStoreFileError(err error) bool {
+	var lsErr *LlamaStackError
+	if errors.As(err, &lsErr) {
+		switch lsErr.StatusCode {
+		case http.StatusRequestTimeout, http.StatusTooManyRequests,
+			http.StatusInternalServerError, http.StatusBadGateway,
+			http.StatusServiceUnavailable, http.StatusGatewayTimeout,
+			0:
+			return true
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func (c *LlamaStackClient) cleanupUploadedVectorStoreFile(parent context.Context, vectorStoreID, fileID string) {
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(parent), 30*time.Second)
+	defer cancel()
+	_ = c.DeleteVectorStoreFile(cleanupCtx, vectorStoreID, fileID)
+	_ = c.DeleteFile(cleanupCtx, fileID)
 }
 
 // ChatContextMessage represents a message in chat context history.

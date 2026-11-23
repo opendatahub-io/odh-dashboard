@@ -13,6 +13,7 @@ import {
   getApiKeyConfig,
   revokeApiKey,
   searchApiKeys,
+  searchApiKeysForCurrentHost,
 } from '~/app/api/api-keys';
 
 jest.mock('mod-arch-core', () => ({
@@ -105,6 +106,48 @@ describe('searchApiKeys', () => {
     mockRestCREATE.mockResolvedValue(validListResponse);
 
     await expect(searchApiKeys()({} as never)).rejects.toThrow('Invalid response format');
+  });
+});
+
+describe('searchApiKeysForCurrentHost', () => {
+  const originalPathname = window.location.pathname;
+
+  afterEach(() => {
+    window.history.replaceState({}, '', originalPathname);
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((p: Promise<unknown>) => p);
+    mockRestCREATE.mockResolvedValue({ data: validListResponse });
+  });
+
+  it('should use tenant search on the MaaS Portal host', async () => {
+    window.history.replaceState({}, '', '/maas-portal/maas/keys-and-subs/api-keys');
+
+    await searchApiKeysForCurrentHost()({} as never);
+
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/maas/api/v1/api-keys/search/tenant',
+      expect.anything(),
+      {},
+      {},
+    );
+  });
+
+  it('should use role-aware search on the RHOAI Dashboard host', async () => {
+    window.history.replaceState({}, '', '/maas/keys-and-subs/api-keys');
+
+    await searchApiKeysForCurrentHost()({} as never);
+
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/maas/api/v1/api-keys/search',
+      expect.anything(),
+      {},
+      {},
+    );
   });
 });
 

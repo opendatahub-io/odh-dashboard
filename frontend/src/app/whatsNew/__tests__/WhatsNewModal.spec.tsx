@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import type { UserState } from '#~/redux/selectors/types';
 import { useUser } from '#~/redux/selectors';
@@ -58,7 +58,6 @@ const mockAreaStatus = (status: boolean): ReturnType<typeof useIsAreaAvailable> 
   reliantAreas: null,
   requiredComponents: null,
   requiredCapabilities: null,
-  customCondition: () => false,
 });
 
 const mockSetSeen = jest.fn();

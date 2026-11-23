@@ -37,6 +37,10 @@ class StartEvaluationRunPage {
     return cy.findByTestId('start-evaluation-run-description');
   }
 
+  findRunPrerequisite() {
+    return cy.findByTestId('start-evaluation-run-prerequisite');
+  }
+
   findEvaluationNameInput() {
     return cy.findByTestId('evaluation-name-input');
   }
@@ -127,6 +131,10 @@ class StartEvaluationRunPage {
 
   findHardwareProfileOption(profileName: string) {
     return cy.findByTestId(`hardware-profile-option-${profileName}`);
+  }
+
+  findHardwareProfileDefaultOption() {
+    return cy.findByTestId('hardware-profile-option-default');
   }
 
   findHardwareProfileHelperText() {

@@ -1,4 +1,10 @@
-import { orderWorkingProjects, resolveWorkingProject } from '../workingProject';
+/// <reference types="jest" />
+import {
+  orderWorkingProjects,
+  resolveWorkingProject,
+  RouteProjectKindValue,
+  WorkingProjectListStatusValue,
+} from '../workingProject';
 import type { WorkingProjectIdentity } from '../workingProject';
 
 const project = (name: string, displayName?: string): WorkingProjectIdentity => ({
@@ -11,7 +17,7 @@ const projects = [
   project('team-2', 'project 2'),
   project('alpha', 'Alpha'),
 ];
-const listed = { status: 'listed' as const, projects };
+const listed = { status: WorkingProjectListStatusValue.Listed, projects };
 const resolve = resolveWorkingProject;
 
 describe('orderWorkingProjects', () => {
@@ -40,6 +46,29 @@ describe('orderWorkingProjects', () => {
 });
 
 describe('resolveWorkingProject', () => {
+  it('should not invent a fallback when listing is unavailable', () => {
+    const list = { status: WorkingProjectListStatusValue.ListingUnavailable, projects };
+    for (const route of [null, { kind: 'project' as const, name: 'unvalidated' }]) {
+      const result = resolve({ list, route, storedName: 'unvalidated' });
+      expect(result.activeProject).toBeNull();
+      expect(result.orderedProjects).toHaveLength(projects.length);
+      expect(result.removedRouteFallback).toBeNull();
+    }
+  });
+
+  it('should resolve only validated route and stored candidates without listing', () => {
+    const list = { status: 'listing-unavailable' as const, projects };
+    expect(
+      resolve({ list, route: { kind: 'project', name: 'team-10' }, storedName: 'alpha' })
+        .activeProject,
+    ).toBe(projects[0]);
+    expect(resolve({ list, route: null, storedName: 'alpha' }).activeProject).toBe(projects[3]);
+    expect(
+      resolve({ list, route: { kind: 'project', name: 'unvalidated' }, currentName: 'alpha' })
+        .activeProject,
+    ).toBe(projects[3]);
+  });
+
   it('should use a valid route ahead of conflicting storage on entry and browser navigation', () => {
     for (const routeName of ['team-10', 'ai-2']) {
       const result = resolve({
@@ -57,11 +86,12 @@ describe('resolveWorkingProject', () => {
 
     const invalid = resolve({
       list: listed,
-      route: { kind: 'invalid' },
+      route: { kind: RouteProjectKindValue.Invalid },
       storedName: 'team-2',
     });
     expect(invalid.activeProject).toBeNull();
     expect(invalid.orderedProjects).toHaveLength(projects.length);
+    expect(RouteProjectKindValue.Invalid).toBe('invalid');
   });
 
   it('should select the first project from the ordered collection exposed for the selector', () => {

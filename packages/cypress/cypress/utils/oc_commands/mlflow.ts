@@ -554,13 +554,13 @@ export const disableMlflowFeatures = (force = false): void => {
  * configured by Jenkins before the test suite runs.
  */
 export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => {
-  const devFlagsUrl = '/?devFeatureFlags=genAiStudio=true';
+  const dashboardUrl = '/';
 
   cy.step('Enable MLflow backend (required for Prompts nav)');
   return enableMlflowBackend()
     .then(() => {
       cy.step('Establish browser session for remote entry check');
-      cy.visitWithLogin(devFlagsUrl);
+      cy.visitWithLogin(dashboardUrl);
       return waitForDashboardSession();
     })
     .then(() => {
@@ -576,7 +576,7 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
     })
     .then(() => {
       cy.step('Wait for Prompts nav item in sidebar');
-      return waitForNavItemInSidebar('Prompts', devFlagsUrl);
+      return waitForNavItemInSidebar('Prompts', dashboardUrl);
     });
 };
 

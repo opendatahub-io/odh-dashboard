@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"slices"
+
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
@@ -9,7 +11,7 @@ import (
 func FilterSubscriptionsForMyView(items []models.SubscriptionListItem) []models.SubscriptionListItem {
 	filtered := make([]models.SubscriptionListItem, 0, len(items))
 	for _, item := range items {
-		if item.Owner == nil {
+		if item.Owner == nil || slices.Contains(item.Roles, "owner") {
 			filtered = append(filtered, item)
 		}
 	}
