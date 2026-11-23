@@ -56,7 +56,12 @@ rails:
 func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 	ctx context.Context,
 	namespace string,
+	bffNamespace string,
 ) (string, error) {
+	if bffNamespace == "" {
+		return "", fmt.Errorf("missing Gen AI BFF namespace for NemoGuardrails ingress")
+	}
+
 	// Guard: fail fast if NemoGuardrails already exists in this namespace.
 	existing, err := kc.GetNemoGuardrailsCR(ctx, namespace)
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -94,6 +99,21 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 				},
 			},
 			"spec": map[string]interface{}{
+				// TrustyAI's NetworkPolicy otherwise only admits same-namespace callers.
+				// The Gen AI BFF runs in the dashboard namespace and calls the published
+				// NeMo Service from there, regardless of where TrustyAI places the workload.
+				"networkPolicy": map[string]interface{}{
+					"additionalIngress": []interface{}{
+						map[string]interface{}{
+							"namespaceSelector": map[string]interface{}{
+								"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": bffNamespace},
+							},
+							"podSelector": map[string]interface{}{
+								"matchLabels": map[string]interface{}{"app.kubernetes.io/name": "gen-ai"},
+							},
+						},
+					},
+				},
 				"nemoConfigs": []interface{}{
 					map[string]interface{}{
 						"name":       nemoGuardrailsPlaceholderName,
