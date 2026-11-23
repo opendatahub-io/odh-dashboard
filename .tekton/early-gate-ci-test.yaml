@@ -8,7 +8,7 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |-
-      konflux_cluster == "stone-prod-p01"
+      konflux_cluster == "stone-prod-p02"
       && event == "issue_comment"
       && body.comment.body.matches("^/early-gate-test$")
       && body.issue.labels.exists(l, l.name == "early-gate")
