@@ -174,10 +174,10 @@ when the namespace object could be read, and `Unknown` when the caller is author
 namespace but may not `get` the Namespace object. An `Unknown` namespace is usable: the UI offers
 it and labels it by its name, since `displayName` is then absent.
 
-`isAiProject` follows the rule of `/api/v1/namespaces`: true only when the namespace object could
-be read and its `opendatahub.io/dashboard` label is exactly `true`. An `Unknown` namespace is
-therefore never classified as an AI project; the RHAII selector still offers it under
-"All projects".
+`isAiProject` follows the rule of `/api/v1/namespaces`: true only when the `opendatahub.io/dashboard`
+label is exactly `true`. It is omitted when the namespace object could not be read (`phase:
+Unknown`): the classification is then unknown, not false. The RHAII selector keeps such a
+namespace in its default "AI projects only" filter, without the AI badge, so it stays reachable.
 
 ## UI consumption (RHAII)
 

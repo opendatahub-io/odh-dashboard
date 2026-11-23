@@ -421,7 +421,7 @@ func TestDiscover_LabelledNamespacesAreOnlyCandidates(t *testing.T) {
 	assert.Equal(t, []string{"labelled-mine"}, names(list), "a label never grants access, and unlabelled namespaces are not discovered")
 	assert.Empty(t, list.Namespaces[0].DisplayName)
 	assert.Equal(t, models.NamespacePhaseUnknown, list.Namespaces[0].Phase)
-	assert.False(t, list.Namespaces[0].IsAiProject, "the label is metadata too: unreadable means not classified")
+	assert.Nil(t, list.Namespaces[0].IsAiProject, "the label is metadata too: unreadable means the classification is unknown")
 	assert.Equal(t, models.AccessDenied, list.Namespaces[0].Permissions[PermissionKey("", "namespaces")]["get"])
 }
 
@@ -443,7 +443,8 @@ func TestDiscover_IsAiProjectFollowsTheReadableLabel(t *testing.T) {
 	require.NoError(t, err)
 	got := map[string]bool{}
 	for _, ns := range list.Namespaces {
-		got[ns.Name] = ns.IsAiProject
+		require.NotNil(t, ns.IsAiProject, ns.Name)
+		got[ns.Name] = *ns.IsAiProject
 	}
 	assert.Equal(t, map[string]bool{"ai": true, "not-exact": false, "plain": false}, got)
 }

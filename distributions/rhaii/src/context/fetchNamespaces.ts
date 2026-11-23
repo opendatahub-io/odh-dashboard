@@ -1,12 +1,13 @@
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { isValidK8sName, KnownLabels, NamespacePhase } from '@odh-dashboard/k8s-core';
+import type { AiClassificationUnknown } from './aiClassification';
 
 /**
  * A project as the RHAII UI knows it. `canDeploy` comes from the Core BFF's
  * namespace discovery on xKS (`actions.deploy`); it is absent on platforms
  * without that endpoint, where every listed project keeps today's behaviour.
  */
-export type RhaiiProject = ProjectKind & { canDeploy?: boolean };
+export type RhaiiProject = ProjectKind & { canDeploy?: boolean } & AiClassificationUnknown;
 
 type K8sNamespaceItem = {
   name?: string;
@@ -115,6 +116,7 @@ const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
       item.isAiProject,
     ),
     canDeploy: isRecord(actions) && actions.deploy === true,
+    ...(typeof item.isAiProject !== 'boolean' && { aiClassificationUnknown: true }),
   };
 };
 

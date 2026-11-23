@@ -3,6 +3,7 @@ import fetchNamespaces, {
   NamespaceListUnavailableError,
   fetchNamespaceByName,
 } from '../fetchNamespaces';
+import { isAiClassificationUnknown } from '../aiClassification';
 
 const NOT_FOUND = { ok: false, status: 404 } as Response;
 
@@ -33,11 +34,18 @@ const mockNamespaceList = (names: string[], phases?: Record<string, string>) => 
 
 const accessEntry = (
   name: string,
-  overrides: { phase?: string; displayName?: string; deploy?: boolean } = {},
+  overrides: {
+    phase?: string;
+    displayName?: string;
+    deploy?: boolean;
+    unclassified?: boolean;
+  } = {},
 ) => ({
   name,
   phase: overrides.phase ?? 'Active',
   ...(overrides.displayName && { displayName: overrides.displayName }),
+  // The BFF omits the classification when it could not read the namespace.
+  ...(!overrides.unclassified && { isAiProject: false }),
   actions: {
     view: true,
     deploy: overrides.deploy ?? true,
@@ -192,6 +200,27 @@ describe('fetchNamespaces', () => {
     it('should surface other discovery failures instead of an empty list', async () => {
       mockRoutes({ access: { ok: false, status: 500 } as Response });
       await expect(fetchNamespaces()).rejects.toThrow('Failed to list namespaces (HTTP 500)');
+    });
+
+    it('should mark a project whose classification discovery omits as unknown', async () => {
+      mockRoutes({
+        access: ok(
+          accessList('cluster-list', [
+            accessEntry('unread', { phase: 'Unknown', unclassified: true }),
+          ]),
+        ),
+      });
+
+      const [result] = await fetchNamespaces();
+      expect(isAiProject(result)).toBe(false);
+      expect(isAiClassificationUnknown(result)).toBe(true);
+    });
+
+    it('should not mark a classified project as unknown', async () => {
+      mockRoutes({ access: ok(accessList('cluster-list', [accessEntry('plain')])) });
+
+      const [result] = await fetchNamespaces();
+      expect(isAiClassificationUnknown(result)).toBe(false);
     });
   });
 

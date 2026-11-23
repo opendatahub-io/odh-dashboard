@@ -528,6 +528,38 @@ describe('WorkingProjectSelector', () => {
     },
   );
 
+  it('should keep projects the host puts in the AI filter without the AI badge', () => {
+    const projects = [
+      { name: 'ai-project' },
+      { name: 'unknown-project' },
+      { name: 'standard-project' },
+    ];
+    render(
+      <WorkingProjectProvider projects={projects} activeProject={null} onProjectChange={jest.fn()}>
+        <WorkingProjectSelector
+          isAiProject={(name) => name === 'ai-project'}
+          isInAiFilter={(name) => name !== 'standard-project'}
+          aiLabel={<span data-testid="ai-badge">AI</span>}
+          emptyListContent="No projects"
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+      'AI projects only',
+    );
+    expect(
+      within(screen.getByTestId('working-project-option-ai-project')).getByTestId('ai-badge'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('working-project-option-unknown-project')).queryByTestId(
+        'ai-badge',
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('working-project-option-standard-project')).not.toBeInTheDocument();
+  });
+
   it('should show the search empty state when the filter matches no projects', () => {
     render(
       <WorkingProjectProvider

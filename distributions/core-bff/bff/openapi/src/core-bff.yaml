@@ -2098,7 +2098,7 @@ components:
 
     NamespaceAccess:
       type: object
-      required: [name, phase, isAiProject, actions, permissions]
+      required: [name, phase, actions, permissions]
       properties:
         name:
           type: string
@@ -2115,8 +2115,9 @@ components:
         isAiProject:
           type: boolean
           description: >-
-            True only when the namespace object could be read and its opendatahub.io/dashboard
-            label is exactly true, as on /api/v1/namespaces. False when the object is unreadable.
+            As on /api/v1/namespaces: true only when the opendatahub.io/dashboard label is exactly
+            true. Omitted when the namespace object could not be read (phase Unknown), so the
+            classification is unknown; the UI keeps such a namespace in its AI-projects filter.
         actions:
           $ref: '#/components/schemas/NamespaceActions'
         permissions:
