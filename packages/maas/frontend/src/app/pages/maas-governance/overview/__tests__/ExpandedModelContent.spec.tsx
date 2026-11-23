@@ -14,12 +14,12 @@ jest.mock('~/app/shared/Phase/PhaseLabel', () => ({
   default: () => <span data-testid="mock-phase-label" />,
 }));
 
-const modelRef = (name: string, namespace: string, displayName?: string): ModelSubscriptionRef => ({
-  name,
-  namespace,
-  displayName,
-  tokenRateLimits: [{ limit: 100000, window: '24h' }],
-});
+const modelRef = (
+  name: string,
+  namespace: string,
+  displayName?: string,
+  tokenRateLimits: ModelSubscriptionRef['tokenRateLimits'] = [{ limit: 100000, window: '24h' }],
+): ModelSubscriptionRef => ({ name, namespace, displayName, tokenRateLimits });
 
 describe('ExpandedModelContent', () => {
   it('should disambiguate token-limit labels colliding on display name and namespace with the resource name', () => {
@@ -30,8 +30,12 @@ describe('ExpandedModelContent', () => {
             {
               name: 'team-sub',
               modelRefs: [
-                modelRef('granite-small', 'maas-models', 'Granite Shared'),
-                modelRef('granite-large', 'maas-models', 'Granite Shared'),
+                modelRef('granite-small', 'maas-models', 'Granite Shared', [
+                  { limit: 100000, window: '24h' },
+                ]),
+                modelRef('granite-large', 'maas-models', 'Granite Shared', [
+                  { limit: 250000, window: '1h' },
+                ]),
               ],
             },
           ]}
@@ -45,6 +49,9 @@ describe('ExpandedModelContent', () => {
     const tokenLimits = screen.getByTestId('expandable-item-token-limits');
     expect(tokenLimits).toHaveTextContent('Granite Shared (maas-models/granite-small)');
     expect(tokenLimits).toHaveTextContent('Granite Shared (maas-models/granite-large)');
+    // Each model ref renders its own limits, not a shared value
+    expect(tokenLimits).toHaveTextContent('Granite Shared (maas-models/granite-small): 100,000');
+    expect(tokenLimits).toHaveTextContent('Granite Shared (maas-models/granite-large): 250,000');
   });
 
   it('should disambiguate token-limit labels colliding across namespaces with the namespace only', () => {

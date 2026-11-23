@@ -11,6 +11,7 @@ import {
   createSubscriptionPage,
   policyPage,
   phaseModal,
+  viewSubscriptionPage,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptionFormData,
@@ -94,6 +95,30 @@ describe('MaaS Governance Page / Overview Tab', () => {
     overviewTabPage.filterByTypeahead('model', 'granite-3-8b-instruct', 'Granite 3 8B Instruct');
     overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
     overviewTabPage.clearAllFilters();
+    overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
+  });
+
+  it('should return to the groups view after visiting resource details from a group row', () => {
+    maasGovernancePage.visit('overview');
+    overviewTabPage.findGroupsViewButton().click();
+    cy.url().should('include', 'view=groups');
+    overviewTabPage.findGroupRow('premium-users').should('exist');
+
+    overviewTabPage.expandGroupRow('premium-users');
+    overviewTabPage.expandExpandableItemInGroupRow('premium-users', 'Premium Team Subscription');
+    overviewTabPage
+      .findExpandableItemNameInGroupRow('premium-users', 'Premium Team Subscription')
+      .click();
+    cy.url().should('include', '/maas-governance/subscriptions/view/premium-team-sub');
+    viewSubscriptionPage
+      .findBreadcrumbSubscriptionsLink()
+      .should('contain.text', 'MaaS governance');
+    viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
+
+    // The breadcrumb returns to the originating groups view, not the models view
+    cy.url().should('include', '/maas-governance/overview');
+    cy.url().should('include', 'view=groups');
+    overviewTabPage.findGroupsTable().should('exist');
     overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
   });
 

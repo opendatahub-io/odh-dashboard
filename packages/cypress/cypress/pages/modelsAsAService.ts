@@ -1841,6 +1841,36 @@ class OverviewTabPage {
     return this.findGroupsTable().find('[data-testid^="overview-group-row-"]');
   }
 
+  findGroupRow(group: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findGroupsTable().findByTestId(`overview-group-row-${group}`);
+  }
+
+  expandGroupRow(group: string): void {
+    this.findGroupRow(group).findByTestId('expand-group').find('button').click();
+  }
+
+  findExpandableItemInGroupRow(
+    group: string,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLTableSectionElement>> {
+    return this.findGroupRow(group).contains(name).closest('tbody');
+  }
+
+  expandExpandableItemInGroupRow(group: string, name: string): void {
+    this.findGroupRow(group)
+      .contains(name)
+      .closest('tr')
+      .find('button[aria-label="Details"]')
+      .click();
+  }
+
+  findExpandableItemNameInGroupRow(
+    group: string,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInGroupRow(group, name).findByTestId('expandable-item-name');
+  }
+
   expandModelRow(modelId: string, namespace: string): void {
     this.findModelRowRoot(modelId, namespace).findByTestId('expand-model').find('button').click();
   }
