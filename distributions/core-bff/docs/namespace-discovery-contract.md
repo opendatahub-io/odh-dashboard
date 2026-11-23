@@ -150,7 +150,7 @@ user gets `view` only and is offered no mutation.
 | Namespace does not exist, caller cannot read namespaces    | not listed                                              | 403 (same as denied) |
 | Namespace does not exist, caller holds cluster-wide grants on matrix resources but no `get namespaces` | listed with `phase: Unknown` | 200 with `phase: Unknown` |
 | Namespace does not exist, caller may read it               | not listed                                              | 404             |
-| Some reviews or a source failed, and at least one candidate was decided (authorized, denied or not found) | 200, `complete: false`, `issues` lists codes and counts, including failures in namespaces that are still returned; `namespaces` may be empty | 503 if no action could be decided |
+| Some reviews or a source failed, and at least one candidate was decided (authorized, denied or not found; a candidate is denied when no action is possible even if every failed review had been allowed) | 200, `complete: false`, `issues` lists codes and counts, including failures in namespaces that are still returned; `namespaces` may be empty | 503 if no action could be decided |
 | Nothing could be decided: every candidate's reviews failed, or there were no candidates and a source failed | 503 `SERVICE_UNAVAILABLE` | 503 |
 | More than 200 candidates                                   | 200, requested names first then the rest by name, `CANDIDATES_TRUNCATED` | n/a |
 | Request deadline (25 s) expired                            | pending reviews count as failed, `DISCOVERY_DEADLINE_EXCEEDED`; 200 or 503 by the rows above | 503, even if an action was already allowed |
@@ -160,7 +160,9 @@ reveal a namespace the caller is not authorized for. Counts can reflect the size
 operator-configured sources (for example how many candidates were truncated); they never carry
 names. Issue codes: `CLUSTER_LIST_REVIEW_FAILED`, `CLUSTER_LIST_FAILED`, `LABEL_DISCOVERY_FAILED`,
 `ACCESS_REVIEW_FAILED`, `CANDIDATES_TRUNCATED`, `SHARED_ACCESS_REVIEW_FAILED` (dashboard-namespace
-reads; never causes a 503 on its own), `DISCOVERY_DEADLINE_EXCEEDED`.
+reads; never causes a 503 on its own), `DISCOVERY_DEADLINE_EXCEEDED`, `NAMESPACE_READ_FAILED` (the
+caller may `get` a returned namespace but reading it failed, so its `phase` is `Unknown` for a
+transient reason; the single endpoint still returns it with `phase: Unknown`).
 
 If the cluster-list review or the list itself fails, discovery falls back to the configured
 candidates. That fallback is safe because candidates grant nothing.

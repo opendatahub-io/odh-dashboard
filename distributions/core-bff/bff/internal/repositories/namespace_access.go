@@ -224,6 +224,9 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 		if res.failed > 0 {
 			issues.add(models.IssueAccessReviewFailed, 1)
 		}
+		if res.readFailed {
+			issues.add(models.IssueNamespaceReadFailed, 1)
+		}
 	}
 	sort.Slice(namespaces, func(i, j int) bool { return namespaces[i].Name < namespaces[j].Name })
 
@@ -294,6 +297,8 @@ type evaluated struct {
 	access  models.NamespaceAccess
 	// failed counts the reviews that could not be decided.
 	failed int
+	// readFailed: the caller may read the namespace, but reading it failed.
+	readFailed bool
 }
 
 // knownNamespaces holds Namespace objects discovery already read. byCaller came
@@ -311,10 +316,13 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 	perms, failed := r.runMatrix(ctx, lim, client, identity, name, actionPermissionMatrix)
 	actions := DeriveNamespaceActions(perms)
 	if !actions.Any() {
-		if failed > 0 {
+		// The failed reviews matter only if one of them could have enabled an
+		// action. When no action is possible even with every failed review
+		// allowed, the denial is definitive and the failures are just reported.
+		if failed > 0 && optimisticActions(perms).Any() {
 			return evaluated{outcome: outcomeReviewFailed, failed: failed}
 		}
-		return evaluated{outcome: outcomeDenied}
+		return evaluated{outcome: outcomeDenied, failed: failed}
 	}
 	detail, detailFailed := r.runMatrix(ctx, lim, client, identity, name, detailPermissionMatrix)
 	failed += detailFailed
@@ -328,6 +336,7 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 	}
 
 	access := models.NamespaceAccess{Name: name, Actions: actions, Permissions: perms}
+	readFailed := false
 
 	ns := known.byCaller[name]
 	nsKey := PermissionKey("", "namespaces")
@@ -357,8 +366,13 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 		if k8serrors.IsNotFound(getErr) {
 			return evaluated{outcome: outcomeNotFound, failed: failed}
 		}
-		if getErr == nil && got != nil {
+		switch {
+		case getErr == nil && got != nil:
 			ns = got
+		case getErr != nil:
+			// The caller may read it, so an Unknown phase here is a failed read,
+			// not a missing permission; report it.
+			readFailed = true
 		}
 	default:
 		perms[nsKey] = models.ResourcePermissions{"get": models.AccessDenied}
@@ -372,7 +386,24 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 			access.Phase = m.Phase
 		}
 	}
-	return evaluated{outcome: outcomeAuthorized, access: access, failed: failed}
+	return evaluated{outcome: outcomeAuthorized, access: access, failed: failed, readFailed: readFailed}
+}
+
+// optimisticActions derives the actions as if every failed review had been
+// allowed: the most a retry could enable.
+func optimisticActions(perms map[string]models.ResourcePermissions) models.NamespaceActions {
+	optimistic := make(map[string]models.ResourcePermissions, len(perms))
+	for key, verbs := range perms {
+		p := make(models.ResourcePermissions, len(verbs))
+		for verb, d := range verbs {
+			if d == models.AccessError {
+				d = models.AccessAllowed
+			}
+			p[verb] = d
+		}
+		optimistic[key] = p
+	}
+	return DeriveNamespaceActions(optimistic)
 }
 
 // DeriveNamespaceActions maps the permission matrix to UI actions. An action is

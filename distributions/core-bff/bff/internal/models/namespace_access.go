@@ -32,7 +32,10 @@ const (
 	IssueClusterListFailed       = "CLUSTER_LIST_FAILED"
 	IssueLabelDiscoveryFailed    = "LABEL_DISCOVERY_FAILED"
 	IssueAccessReviewFailed      = "ACCESS_REVIEW_FAILED"
-	IssueCandidatesTruncated     = "CANDIDATES_TRUNCATED"
+	// IssueNamespaceReadFailed: the caller may get the namespace, but reading
+	// it failed, so its phase and metadata are missing (phase Unknown).
+	IssueNamespaceReadFailed = "NAMESPACE_READ_FAILED"
+	IssueCandidatesTruncated = "CANDIDATES_TRUNCATED"
 	// IssueSharedAccessReviewFailed counts failed dashboard-namespace reviews.
 	IssueSharedAccessReviewFailed = "SHARED_ACCESS_REVIEW_FAILED"
 	// IssueDiscoveryDeadlineExceeded: the request deadline expired; reviews

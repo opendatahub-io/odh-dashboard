@@ -37,6 +37,7 @@ type rbacClient struct {
 	listErr       error
 	reviewErr     error // every review errors
 	namespaces    map[string]*corev1.Namespace
+	getErr        error // every GetNamespace fails with it
 	reviews       atomic.Int32
 	reviewed      []k8s.AccessReviewAttributes
 	inFlight      atomic.Int32
@@ -84,6 +85,9 @@ func boolResult(allowed bool) k8s.AccessReviewResult {
 }
 
 func (c *rbacClient) GetNamespace(_ context.Context, _ *k8s.RequestIdentity, name string) (*corev1.Namespace, error) {
+	if c.getErr != nil {
+		return nil, c.getErr
+	}
 	if ns, ok := c.namespaces[name]; ok {
 		return ns, nil
 	}
@@ -597,6 +601,51 @@ func TestDiscover_NotFoundStillReportsItsFailedReviews(t *testing.T) {
 	assert.Empty(t, list.Namespaces)
 	assert.False(t, list.Complete)
 	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+}
+
+func TestDiscover_DefinitiveDenialWithAnUnrelatedFailureIsPartialEmpty(t *testing.T) {
+	// Paulo's repro: list errors, get and every other action review deny. No
+	// action is possible even if list were allowed (view needs get too).
+	client := &rbacClient{allow: map[string]bool{}, fail: map[string]bool{key("only", groupServing, "llminferenceservices", "list"): true}}
+	repo := NewNamespaceAccessRepository([]string{"only"}, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err, "a definitive denial is a decided answer, not 503")
+	assert.Empty(t, list.Namespaces)
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+
+	_, err = repo.Get(context.Background(), client, identity(), "only")
+	assert.ErrorIs(t, err, ErrNamespaceAccessDenied)
+}
+
+func TestDiscover_FailureThatCouldEnableAnActionStaysUndecided(t *testing.T) {
+	// get is allowed, so a list that errors could still enable view.
+	allow := map[string]bool{}
+	grant(allow, "only", groupServing, "llminferenceservices", "get")
+	client := &rbacClient{allow: allow, fail: map[string]bool{key("only", groupServing, "llminferenceservices", "list"): true}}
+	repo := NewNamespaceAccessRepository([]string{"only"}, "", nil, "opendatahub")
+
+	_, err := repo.Discover(context.Background(), client, identity(), nil)
+	assert.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable)
+
+	_, err = repo.Get(context.Background(), client, identity(), "only")
+	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
+}
+
+func TestDiscover_FailedNamespaceReadIsReported(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "mine")
+	client := &rbacClient{allow: allow, getErr: k8serrors.NewServiceUnavailable("etcd is down")}
+	repo := NewNamespaceAccessRepository([]string{"mine"}, "", nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	require.Equal(t, []string{"mine"}, names(list))
+	assert.Equal(t, models.NamespacePhaseUnknown, list.Namespaces[0].Phase)
+	assert.Equal(t, models.AccessAllowed, list.Namespaces[0].Permissions[PermissionKey("", "namespaces")]["get"])
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueNamespaceReadFailed, Count: 1}}, list.Issues)
 }
 
 // detailBlockingClient answers the action reviews but never the rest, so the

@@ -2136,6 +2136,7 @@ components:
             - CANDIDATES_TRUNCATED
             - SHARED_ACCESS_REVIEW_FAILED
             - DISCOVERY_DEADLINE_EXCEEDED
+            - NAMESPACE_READ_FAILED
         count:
           type: integer
           minimum: 1
