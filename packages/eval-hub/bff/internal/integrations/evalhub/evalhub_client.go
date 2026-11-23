@@ -525,10 +525,12 @@ type CollectionStatus struct {
 
 // CollectionBenchmark represents a BenchmarkConfig entry within a collection.
 type CollectionBenchmark struct {
-	ID           string                  `json:"id"`
-	URL          string                  `json:"url,omitempty"`
-	ProviderID   string                  `json:"provider_id,omitempty"`
-	Weight       float64                 `json:"weight,omitempty"`
+	ID         string `json:"id"`
+	URL        string `json:"url,omitempty"`
+	ProviderID string `json:"provider_id,omitempty"`
+	// Pointer weight distinguishes an omitted weight (server applies its
+	// default) from an explicit zero (benchmark excluded from aggregation).
+	Weight       *float64                `json:"weight,omitempty"`
 	PrimaryScore *CollectionPrimaryScore `json:"primary_score,omitempty"`
 	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
 	Parameters   map[string]any          `json:"parameters,omitempty"`

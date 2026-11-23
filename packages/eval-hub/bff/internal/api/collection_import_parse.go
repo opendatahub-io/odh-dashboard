@@ -12,13 +12,14 @@ import (
 
 // Import limits — the 1 MiB cap is the platform ceiling for ConfigMaps and
 // Secrets, which is where the EvalHub server materializes collections. The
-// YAML bounds (nesting depth, alias count, mapping width) protect the parser
-// from pathological constructs; the browser enforces the same limits
-// client-side.
+// parser bounds (nesting depth, alias count, expanded size, mapping width)
+// protect the parser from pathological constructs; the browser enforces the
+// same limits client-side.
 const (
 	maxImportContentSize    = 1 << 20 // 1 MiB
 	maxYAMLDepth            = 50
 	maxYAMLAliases          = 100
+	maxYAMLExpandedNodes    = 25000
 	maxImportMappingEntries = 1000
 	// The request envelope carries the definition as a JSON string, so JSON
 	// escaping and the {"content": ...} wrapper add overhead on top of the
@@ -100,10 +101,37 @@ func parseImportJSON(content string) (map[string]any, error) {
 	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
 		return nil, errors.New("invalid JSON: unexpected content after the document")
 	}
-	if jsonValueDepth(value, 0) > maxYAMLDepth {
-		return nil, fmt.Errorf("JSON nesting exceeds %d levels", maxYAMLDepth)
+	if err := validateImportJSONValue(value, 0); err != nil {
+		return nil, err
 	}
 	return asImportObject(value)
+}
+
+// validateImportJSONValue enforces on the JSON path the same nesting-depth
+// and mapping-width bounds that validateImportYAMLNode enforces on the YAML
+// path, so both formats reject the same pathological shapes.
+func validateImportJSONValue(value any, depth int) error {
+	if depth > maxYAMLDepth {
+		return fmt.Errorf("JSON nesting exceeds %d levels", maxYAMLDepth)
+	}
+	switch typed := value.(type) {
+	case map[string]any:
+		if len(typed) > maxImportMappingEntries {
+			return fmt.Errorf("JSON mapping exceeds the %d-entry limit", maxImportMappingEntries)
+		}
+		for _, child := range typed {
+			if err := validateImportJSONValue(child, depth+1); err != nil {
+				return err
+			}
+		}
+	case []any:
+		for _, child := range typed {
+			if err := validateImportJSONValue(child, depth+1); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func parseImportYAML(content string) (map[string]any, []string, error) {
@@ -134,7 +162,7 @@ func parseImportYAML(content string) (map[string]any, []string, error) {
 		warnings = append(warnings, fmt.Sprintf("file contains %d collection definitions; only the first was imported and the rest were ignored", documents))
 	}
 
-	if err := validateImportYAMLNode(&first, 0, new(int)); err != nil {
+	if err := validateImportYAMLNode(&first, 0, &importYAMLBudget{}, false); err != nil {
 		return nil, nil, err
 	}
 
@@ -172,13 +200,27 @@ var allowedYAMLTags = map[string]struct{}{
 	"!!bool": {}, "!!null": {}, "!!timestamp": {}, "!!binary": {}, "!!merge": {},
 }
 
+// importYAMLBudget tracks alias-expansion cost while the node tree is
+// validated: alias occurrences, nodes reached through alias expansion, and
+// scalar bytes counted with expansion multiplicity.
+type importYAMLBudget struct {
+	aliases  int
+	expanded int
+	bytes    int
+}
+
 // validateImportYAMLNode walks the node tree before decoding, rejecting
 // custom tags (safe-load semantics), nesting deeper than maxYAMLDepth levels,
-// more than maxYAMLAliases alias expansions, and mappings wider than
-// maxImportMappingEntries entries. Walking the node tree rather than the
-// decoded value catches these before alias expansion can allocate or before
-// yaml.v3's duplicate-key comparison (quadratic in mapping width) can run.
-func validateImportYAMLNode(node *yaml.Node, depth int, aliasCount *int) error {
+// more than maxYAMLAliases alias occurrences, mappings wider than
+// maxImportMappingEntries entries, and alias expansion that would produce
+// more than maxYAMLExpandedNodes nodes or more than maxImportContentSize
+// scalar bytes. Alias targets are followed so nested anchors cannot amplify
+// a small document into a large decoded value; yaml.v3's decoder only limits
+// the ratio of alias-driven decodes to total decodes, which padding nodes can
+// raise. Walking the node tree rather than the decoded value catches these
+// before alias expansion can allocate or before yaml.v3's duplicate-key
+// comparison (quadratic in mapping width) can run.
+func validateImportYAMLNode(node *yaml.Node, depth int, budget *importYAMLBudget, inAlias bool) error {
 	if node == nil {
 		return nil
 	}
@@ -188,11 +230,23 @@ func validateImportYAMLNode(node *yaml.Node, depth int, aliasCount *int) error {
 		}
 	}
 	if node.Kind == yaml.AliasNode {
-		*aliasCount++
-		if *aliasCount > maxYAMLAliases {
+		budget.aliases++
+		if budget.aliases > maxYAMLAliases {
 			return fmt.Errorf("YAML documents may not use more than %d aliases", maxYAMLAliases)
 		}
-		return nil
+		return validateImportYAMLNode(node.Alias, depth+1, budget, true)
+	}
+	if inAlias {
+		budget.expanded++
+		if budget.expanded > maxYAMLExpandedNodes {
+			return fmt.Errorf("YAML alias expansion exceeds %d nodes", maxYAMLExpandedNodes)
+		}
+	}
+	if node.Kind == yaml.ScalarNode {
+		budget.bytes += len(node.Value)
+		if budget.bytes > maxImportContentSize {
+			return errors.New("YAML alias expansion exceeds the 1 MiB size limit")
+		}
 	}
 	if depth > maxYAMLDepth {
 		return fmt.Errorf("YAML nesting exceeds %d levels", maxYAMLDepth)
@@ -201,33 +255,9 @@ func validateImportYAMLNode(node *yaml.Node, depth int, aliasCount *int) error {
 		return fmt.Errorf("YAML mapping at line %d exceeds the %d-entry limit", node.Line, maxImportMappingEntries)
 	}
 	for _, child := range node.Content {
-		if err := validateImportYAMLNode(child, depth+1, aliasCount); err != nil {
+		if err := validateImportYAMLNode(child, depth+1, budget, inAlias); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-// jsonValueDepth reports the maximum nesting depth of a decoded JSON value.
-func jsonValueDepth(value any, depth int) int {
-	switch typed := value.(type) {
-	case map[string]any:
-		max := depth
-		for _, child := range typed {
-			if childDepth := jsonValueDepth(child, depth+1); childDepth > max {
-				max = childDepth
-			}
-		}
-		return max
-	case []any:
-		max := depth
-		for _, child := range typed {
-			if childDepth := jsonValueDepth(child, depth+1); childDepth > max {
-				max = childDepth
-			}
-		}
-		return max
-	default:
-		return depth
-	}
 }

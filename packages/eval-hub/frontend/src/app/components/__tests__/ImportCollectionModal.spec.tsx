@@ -139,6 +139,15 @@ const typeContent = async (content: string) => {
   await userEvent.type(editor, content);
 };
 
+const setInputFiles = (file: File) => {
+  const input = screen.getByTestId('import-collection-file-input') as HTMLInputElement;
+  Object.defineProperty(input, 'files', {
+    value: { 0: file, length: 1, item: () => file },
+    configurable: true,
+  });
+  fireEvent.change(input);
+};
+
 const renameViaField = async (name: string) => {
   const input = findNameInput();
   await userEvent.clear(input);
@@ -193,6 +202,11 @@ describe('ImportCollectionModal', () => {
       target: { value: '{"name": "json-collection", "description": "json doc"}' },
     });
     expect(findEditor().dataset.language).toBe('json');
+    // Brace-leading content recovered through the YAML fallback is YAML.
+    fireEvent.change(findEditor(), {
+      target: { value: '{name: flow-suite, domains: [software]}' },
+    });
+    expect(findEditor().dataset.language).toBe('yaml');
     await typeContent(validContent);
     expect(findEditor().dataset.language).toBe('yaml');
   });
@@ -369,14 +383,6 @@ describe('ImportCollectionModal', () => {
           }),
       );
 
-    const setInputFiles = (file: File) => {
-      const input = screen.getByTestId('import-collection-file-input') as HTMLInputElement;
-      Object.defineProperty(input, 'files', {
-        value: { 0: file, length: 1, item: () => file },
-        configurable: true,
-      });
-      fireEvent.change(input);
-    };
     const fileA = new File([contentA], 'a.yaml', { type: 'text/yaml' });
     const fileB = new File([contentB], 'b.yaml', { type: 'text/yaml' });
 
@@ -401,6 +407,39 @@ describe('ImportCollectionModal', () => {
     expect(findEditor().value).toContain('name: file-b');
     expect(findEditor().value).not.toContain('name: file-a');
     expect(screen.getByTestId('import-collection-filename').textContent).toContain('b.yaml');
+  });
+
+  it('should cancel a pending read when the next selection fails validation', async () => {
+    mockReadFile.mockReset();
+    renderModal();
+    await typeContent(validContent);
+    expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
+
+    const contentA = 'name: file-a\ncategory: safety\nbenchmarks:\n  - id: a\n    provider_id: b\n';
+    let resolveFirst!: (content: string) => void;
+    mockReadFile.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+    setInputFiles(new File([contentA], 'a.yaml', { type: 'text/yaml' }));
+    expect(screen.getByTestId('import-collection-filename').textContent).toContain('a.yaml');
+    expect(screen.getByTestId('import-collection-submit')).toBeDisabled();
+
+    // A rejected follow-up selection invalidates the in-flight read...
+    setInputFiles(new File([contentA], 'b.txt', { type: 'text/plain' }));
+    expect(screen.getByTestId('import-collection-file-error').textContent).toContain(
+      'Unsupported file type',
+    );
+    expect(screen.queryByTestId('import-collection-filename')).not.toBeInTheDocument();
+    expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
+
+    // ...so the earlier read resolving late must not replace the edits.
+    resolveFirst(contentA);
+    await waitFor(() => expect(mockReadFile).toHaveBeenCalledTimes(1));
+    expect(findEditor().value).toContain('name: importable');
+    expect(findEditor().value).not.toContain('name: file-a');
   });
 
   it('should not let a pending file read overwrite edits made after the file was selected', async () => {

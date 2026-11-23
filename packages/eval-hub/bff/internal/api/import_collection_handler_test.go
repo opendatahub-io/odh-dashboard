@@ -47,6 +47,8 @@ func importRequest(content string) map[string]any {
 	return map[string]any{"content": content}
 }
 
+func weightPtr(f float64) *float64 { return &f }
+
 func postImport[T any](t *testing.T, content string, ehClient evalhub.EvalHubClientInterface) (T, *http.Response) {
 	t.Helper()
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
@@ -256,6 +258,21 @@ func TestImportCollectionHandlerMappingWidthLimit(t *testing.T) {
 	assert.Contains(t, err.Error(), "entry limit")
 }
 
+func TestImportCollectionHandlerJSONMappingWidthLimit(t *testing.T) {
+	var b strings.Builder
+	b.WriteString(`{"name": "wide", "benchmarks": [], "extra": {`)
+	for i := range maxImportMappingEntries + 1 {
+		if i > 0 {
+			b.WriteString(",")
+		}
+		fmt.Fprintf(&b, `"key%d": %d`, i, i)
+	}
+	b.WriteString("}}")
+	_, _, err := parseImportContent(b.String())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "entry limit")
+}
+
 func TestImportCollectionHandlerPreservesLargeIntegers(t *testing.T) {
 	content := `{"name": "big-int", "domains": ["d"], "custom": {"dataset_revision": 9007199254740993}, "benchmarks": [{"id": "quality", "provider_id": "garak"}]}`
 	doc, _, err := parseImportContent(content)
@@ -319,6 +336,53 @@ func TestImportCollectionHandlerAliasLimit(t *testing.T) {
 	_, _, err := parseImportContent(b.String())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "aliases")
+}
+
+func TestImportCollectionHandlerNestedAliasByteAmplification(t *testing.T) {
+	// Nested anchors: each level aliases the previous one four times, so the
+	// 64 KiB base string expands to 4^6 × 64 KiB = 256 MiB while the document
+	// stays under 1 MiB with only 25 alias nodes.
+	var b strings.Builder
+	b.WriteString("name: amp\nbase: &b \"" + strings.Repeat("x", 64<<10) + "\"\n")
+	for i := range 6 {
+		fmt.Fprintf(&b, "l%02d: &l%02d [*b, *b, *b, *b]\n", i+1, i+1)
+	}
+	b.WriteString("custom: *l06\n")
+	_, _, err := parseImportContent(b.String())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "alias expansion exceeds the 1 MiB size limit")
+}
+
+func TestImportCollectionHandlerAliasNodeBudget(t *testing.T) {
+	// A wide anchored sequence referenced by the maximum number of aliases:
+	// 100 × 301 expanded nodes exceeds the expanded-node budget on a document
+	// of a few kilobytes.
+	var b strings.Builder
+	b.WriteString("name: nodes\nbase: &b [")
+	for i := range 300 {
+		if i > 0 {
+			b.WriteString(",")
+		}
+		b.WriteString("0")
+	}
+	b.WriteString("]\n")
+	for i := range maxYAMLAliases {
+		fmt.Fprintf(&b, "k%03d: *b\n", i)
+	}
+	_, _, err := parseImportContent(b.String())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "alias expansion exceeds")
+}
+
+func TestImportCollectionHandlerSmallAliasesSupported(t *testing.T) {
+	content := "name: aliased\nbenchmarks:\n  - &a {id: quality, provider_id: garak}\n  - *a\n  - *a\n"
+	doc, _, err := parseImportContent(content)
+	require.NoError(t, err)
+	benchmarks, ok := doc["benchmarks"].([]any)
+	require.True(t, ok)
+	assert.Len(t, benchmarks, 3)
+	assert.Equal(t, "quality", benchmarks[0].(map[string]any)["id"])
+	assert.Equal(t, "quality", benchmarks[2].(map[string]any)["id"])
 }
 
 // verifyingEHClient records the create request the handler submits.
@@ -450,6 +514,36 @@ func TestBuildImportCreateRequestWarningOrder(t *testing.T) {
 	assert.Equal(t, `unrecognized field "alpha" will be ignored`, warnings[0])
 	assert.Equal(t, `unrecognized field "zebra" will be ignored`, warnings[1])
 	assert.Equal(t, "no description provided; consider adding one so the collection is easy to identify", warnings[2])
+}
+
+// An explicit weight of 0 must survive serialization to the EvalHub API
+// (a value float64 with omitempty would drop it), while an omitted weight
+// must stay absent so the server applies its own default.
+func TestBuildImportCreateRequestPreservesExplicitZeroWeight(t *testing.T) {
+	doc := map[string]any{
+		"name":     "zero-weight",
+		"category": "safety",
+		"benchmarks": []any{
+			map[string]any{"id": "quality", "provider_id": "garak", "weight": 0},
+			map[string]any{"id": "toxicity", "provider_id": "garak"},
+		},
+	}
+	request, _, err := buildImportCreateRequest(doc)
+	require.NoError(t, err)
+	require.NotNil(t, request.Benchmarks[0].Weight)
+	assert.Equal(t, float64(0), *request.Benchmarks[0].Weight)
+	assert.Nil(t, request.Benchmarks[1].Weight)
+
+	encoded, err := json.Marshal(request)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+		"name": "zero-weight",
+		"category": "safety",
+		"benchmarks": [
+			{"id": "quality", "provider_id": "garak", "weight": 0},
+			{"id": "toxicity", "provider_id": "garak"}
+		]
+	}`, string(encoded))
 }
 
 func TestTranslateImportError(t *testing.T) {

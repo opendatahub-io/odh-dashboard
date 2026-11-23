@@ -77,8 +77,10 @@ export type ImportLanguage = 'json' | 'yaml';
 
 /**
  * JSON is recognized by a leading object/array brace; everything else is
- * treated as YAML. Kept in sync with the parser's own branch so the editor
- * label matches how the content is interpreted.
+ * treated as YAML. Mirrors the parser's own branch in parseImportContent;
+ * the editor label follows the parser's reported language instead, so
+ * brace-leading content recovered through the YAML fallback is labeled
+ * YAML.
  */
 export const detectImportLanguage = (text: string): ImportLanguage => {
   const trimmed = text.trimStart();
@@ -91,6 +93,12 @@ export type ParsedImportContent = {
   /** 1-based source line of a YAML syntax error, for editor highlighting. */
   errorLine?: number;
   documentCount: number;
+  /**
+   * The parser that accepted the content — 'json' for strict JSON, 'yaml'
+   * otherwise. Undefined when parsing failed, so callers fall back to
+   * detectImportLanguage.
+   */
+  language?: ImportLanguage;
 };
 
 /** Returns an error message when the file fails the size or extension checks. */
@@ -106,42 +114,52 @@ export const validateImportFile = (file: File): string | null => {
 };
 
 /**
- * Reads the file as UTF-8 text. A file saved in another encoding (for
- * example UTF-16) decodes to replacement characters, which is reported as
- * an encoding error before any parsing happens.
+ * Reads the file as UTF-8 text, strictly: bytes that are not valid UTF-8 —
+ * including a UTF-16 file, recognized by its BOM — are reported as an
+ * encoding error before any parsing happens. A file that legitimately
+ * contains a literal replacement character is accepted.
  */
 export const readFileAsUTF8Text = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.onload = () => {
-      const text = typeof reader.result === 'string' ? reader.result : '';
-      if (text.includes('�')) {
+      if (!(reader.result instanceof ArrayBuffer)) {
+        reject(new Error('Failed to read file'));
+        return;
+      }
+      const bytes = new Uint8Array(reader.result);
+      // A UTF-16 BOM would otherwise decode to NUL-interleaved garbage.
+      if ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff)) {
+        reject(
+          new Error(
+            'File appears to be UTF-16 encoded. Please save the file as UTF-8 and try again.',
+          ),
+        );
+        return;
+      }
+      try {
+        resolve(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+      } catch {
         reject(
           new Error(
             'File does not appear to be UTF-8 encoded. Please save the file as UTF-8 and try again.',
           ),
         );
-        return;
       }
-      resolve(text);
     };
-    reader.readAsText(file, 'utf-8');
+    reader.readAsArrayBuffer(file);
   });
 
-type DocumentsParseResult = { documents: unknown[] } | { error: string; errorLine?: number };
+type DocumentsParseResult =
+  { documents: unknown[]; language: ImportLanguage } | { error: string; errorLine?: number };
 
-const parseYamlDocuments = (text: string, trimmed: string): DocumentsParseResult => {
+const parseYamlDocuments = (text: string): DocumentsParseResult => {
   try {
-    return { documents: yaml.loadAll(trimmed) };
+    return { documents: yaml.loadAll(text), language: 'yaml' };
   } catch (e) {
     if (e instanceof yaml.YAMLException) {
-      // js-yaml reports positions relative to the trimmed input; rebase
-      // onto the editor's absolute line numbers using the leading blank
-      // block only (trailing blanks do not shift content lines).
-      const leadingBlankLines =
-        text.slice(0, text.length - text.trimStart().length).split('\n').length - 1;
-      const errorLine = e.mark.line + 1 + leadingBlankLines;
+      const errorLine = e.mark.line + 1;
       return { error: `Invalid YAML at line ${errorLine}: ${e.reason}`, errorLine };
     }
     return { error: `Invalid YAML: ${toErrorMessage(e)}` };
@@ -149,31 +167,57 @@ const parseYamlDocuments = (text: string, trimmed: string): DocumentsParseResult
 };
 
 /**
+ * True when the content's UTF-8 byte length exceeds the import limit.
+ * text.length counts UTF-16 code units, which underestimates non-ASCII
+ * content; the BFF checks bytes, so the client must too. Exits early once
+ * the limit is passed.
+ */
+const exceedsUTF8ByteLimit = (text: string): boolean => {
+  let bytes = 0;
+  for (let offset = 0; offset < text.length; offset++) {
+    const code = text.charCodeAt(offset);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      // Surrogate pair (or lone surrogate): worst-case four bytes.
+      bytes += 4;
+      offset += 1;
+    } else {
+      bytes += code < 0x80 ? 1 : code < 0x800 ? 2 : 3;
+    }
+    if (bytes > IMPORT_FILE_SIZE_LIMIT) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
  * Parses raw collection-definition content (YAML or JSON, detected by a
- * leading '{' or '[') into a document. Content that leads with a brace but
- * fails strict JSON parsing falls back to the YAML parser, so YAML flow
- * mappings with unquoted keys ({name: x}) are recovered; valid JSON never
- * falls through, keeping the strict JSON path's exact large-integer
- * handling. js-yaml's loadAll uses safe-load semantics, so custom tags are
- * rejected. YAML syntax errors surface the line number. Only the first
- * document of a multi-document file is imported; the document count lets
- * the caller inform the user.
+ * leading '{' or '[') into a document. The original, untrimmed text is
+ * parsed so an intentionally indented document behaves exactly as it does
+ * in the BFF, which also parses the raw content. Content that leads with a
+ * brace but fails strict JSON parsing falls back to the YAML parser, so
+ * YAML flow mappings with unquoted keys ({name: x}) are recovered; valid
+ * JSON never falls through, keeping the strict JSON path's exact
+ * large-integer handling. js-yaml's loadAll uses safe-load semantics, so
+ * custom tags are rejected. YAML syntax errors surface the line number.
+ * Only the first document of a multi-document file is imported; the
+ * document count lets the caller inform the user. The returned language
+ * records which parser accepted the content.
  */
 export const parseImportContent = (text: string): ParsedImportContent => {
-  if (text.length > IMPORT_FILE_SIZE_LIMIT) {
+  if (exceedsUTF8ByteLimit(text)) {
     return { doc: null, documentCount: 0, error: 'Content exceeds the 1 MiB size limit' };
   }
-  const trimmed = text.trim();
-  if (!trimmed) {
+  if (text.trim() === '') {
     return { doc: null, documentCount: 0, error: 'No collection definition found in file' };
   }
 
   const parseDocuments = (): DocumentsParseResult => {
     if (detectImportLanguage(text) === 'json') {
       try {
-        return { documents: [JSON.parse(trimmed)] };
+        return { documents: [JSON.parse(text)], language: 'json' };
       } catch (e) {
-        const recovered = parseYamlDocuments(text, trimmed);
+        const recovered = parseYamlDocuments(text);
         if ('documents' in recovered) {
           return recovered;
         }
@@ -182,13 +226,13 @@ export const parseImportContent = (text: string): ParsedImportContent => {
         return { error: `Invalid JSON: ${toErrorMessage(e)}` };
       }
     }
-    return parseYamlDocuments(text, trimmed);
+    return parseYamlDocuments(text);
   };
   const parsed = parseDocuments();
   if (!('documents' in parsed)) {
     return { doc: null, documentCount: 0, errorLine: parsed.errorLine, error: parsed.error };
   }
-  const { documents } = parsed;
+  const { documents, language } = parsed;
 
   // The BFF imports the literal first document, so the preview must validate
   // documents[0] (not the first non-null document) and count the raw stream.
@@ -207,7 +251,7 @@ export const parseImportContent = (text: string): ParsedImportContent => {
       error: 'Collection definition must be an object',
     };
   }
-  return { doc: first, documentCount: documents.length };
+  return { doc: first, documentCount: documents.length, language };
 };
 
 const DEFAULT_TEMPLATE_DOC: Record<string, unknown> | null = parseImportContent(
@@ -288,13 +332,30 @@ export const getImportWarnings = (doc: Record<string, unknown>): ImportWarning[]
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * Resolves the 1-based line a warning anchors to in the raw content: the
- * warning field's own line when present, the field's line within its
- * benchmark entry for benchmark-scoped warnings, the benchmark's id line
- * when only the entry is known, and line 1 for file-level warnings.
+ * True when the quoted key spanning [start, end] (the opening and closing
+ * quote indices, inclusive) decodes to "name". Double-quoted JSON keys are
+ * decoded first so escaped spellings of the key are recognized;
+ * single-quoted YAML keys have no escape sequences and compare raw.
  */
-export const findImportWarningLine = (text: string, warning: ImportWarning): number => {
-  const lines = text.split('\n');
+const isNameKeyToken = (text: string, start: number, end: number): boolean => {
+  if (text[start] === "'") {
+    return text.slice(start + 1, end) === 'name';
+  }
+  try {
+    return JSON.parse(text.slice(start, end + 1)) === 'name';
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Resolves the 1-based line a warning anchors to in the raw content, given
+ * as pre-split lines so a caller resolving many warnings splits the text
+ * once: the warning field's own line when present, the field's line within
+ * its benchmark entry for benchmark-scoped warnings, the benchmark's id
+ * line when only the entry is known, and line 1 for file-level warnings.
+ */
+export const findImportWarningLine = (lines: string[], warning: ImportWarning): number => {
   if (warning.benchmarkId !== undefined) {
     const benchmarkPattern = new RegExp(
       `^\\s*-\\s*id:\\s*['"]?${escapeRegExp(warning.benchmarkId)}['"]?\\s*$`,
@@ -470,7 +531,7 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
       if (end >= len) {
         return null;
       }
-      const isNameKey = depth === 1 && text.slice(i + 1, end) === 'name';
+      const isNameKey = depth === 1 && isNameKeyToken(text, i, end);
       end++;
       let after = end;
       while (after < len && /\s/.test(text[after])) {
@@ -486,6 +547,11 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
       depth++;
     } else if (ch === '}' || ch === ']') {
       depth--;
+      if (depth === 0) {
+        // The first document's root mapping ended without a top-level
+        // name; a name in a later document must not be rewritten.
+        break;
+      }
     } else if (depth === 1 && !/[\s:,]/.test(ch)) {
       // Unquoted (YAML flow) key token.
       let end = i;
@@ -515,32 +581,85 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
 };
 
 /**
+ * Offset of the first document's root node when it is a brace-delimited
+ * (flow-style) mapping — the first content after any leading blank lines,
+ * comments, or --- document markers — or -1 when the root is not a flow
+ * mapping. A flow mapping preceded by a marker or comment otherwise misses
+ * the flow path and falls through to the block-name regex and insertion
+ * fallback, both of which corrupt flow-style documents.
+ */
+const findRootFlowMappingStart = (text: string): number => {
+  const lines = text.split('\n');
+  let offset = 0;
+  for (const line of lines) {
+    if (/^\s*$/.test(line) || /^#/.test(line) || /^---\s*$/.test(line)) {
+      offset += line.length + 1;
+      continue;
+    }
+    const indent = line.length - line.trimStart().length;
+    return line.startsWith('{', indent) ? offset + indent : -1;
+  }
+  return -1;
+};
+
+/**
+ * Index of the first line that begins a document after the first one: the
+ * first --- or ... marker at column 0 that follows content. Leading
+ * markers, comments, and blank lines belong to the first document's
+ * prefix, so they do not end it.
+ */
+const findFirstDocumentEnd = (lines: string[]): number => {
+  let seenContent = false;
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    if ((/^---\s*$/.test(line) || /^\.\.\.\s*$/.test(line)) && seenContent) {
+      return index;
+    }
+    if (line.trim() !== '' && !line.startsWith('#')) {
+      seenContent = true;
+    }
+  }
+  return lines.length;
+};
+
+/**
  * Replaces the top-level name in the raw content so the editor text stays
- * the single source of truth. JSON content has only the name value replaced
- * in place; YAML replaces the complete `name:` entry (its line plus any
- * indented continuation lines of a multi-line value), or inserts one after
- * any leading comment, blank block, or document marker (---) when the
- * definition has no name yet — inserting before the marker would create a
- * name-only first document and hide the rest of the definition from the
- * import, which reads only documents[0].
+ * the single source of truth. Only the first document — the only one the
+ * import reads — is considered: a name in a later document is never
+ * rewritten, and an insertion lands inside the first document. JSON and
+ * flow-mapping content (including a flow mapping preceded by comments or a
+ * --- marker) has only the name value replaced in place; YAML replaces the
+ * complete `name:` entry (its line plus any indented continuation lines of
+ * a multi-line value), or inserts one after any leading comment, blank
+ * block, or document marker (---) when the definition has no name yet —
+ * inserting before the marker would create a name-only first document and
+ * hide the rest of the definition from the import, which reads only
+ * documents[0].
  */
 export const applyImportName = (text: string, newName: string): string => {
-  const trimmed = text.trimStart();
-  if (trimmed.startsWith('{')) {
-    const replaced = replaceTopLevelJsonName(trimmed, newName);
+  const flowStart = findRootFlowMappingStart(text);
+  if (flowStart !== -1) {
+    const replaced = replaceTopLevelJsonName(text.slice(flowStart), newName);
     if (replaced !== null) {
-      return replaced;
+      return text.slice(0, flowStart) + replaced;
     }
   }
   const serialized = serializeYamlScalar(newName);
+  const lines = text.split('\n');
+  const firstDocumentEnd = findFirstDocumentEnd(lines);
   // Matches plain, quoted, and space-padded-colon forms of a top-level name
   // key ("name", 'name', name :); the backreference pairs the quote.
-  const nameMatch = /^(["']?)name\1[ \t]*:.*$/m.exec(text);
-  if (nameMatch !== null) {
+  const namePattern = /^(["']?)name\1[ \t]*:/;
+  let nameIndex = -1;
+  for (let index = 0; index < firstDocumentEnd; index++) {
+    if (namePattern.test(lines[index])) {
+      nameIndex = index;
+      break;
+    }
+  }
+  if (nameIndex !== -1) {
     // Replace the whole entry: the name line plus any indented continuation
     // lines of a multi-line YAML value, and blank lines between them.
-    const lines = text.split('\n');
-    const nameIndex = text.slice(0, nameMatch.index).split('\n').length - 1;
     let end = nameIndex + 1;
     while (end < lines.length) {
       const line = lines[end];
@@ -571,7 +690,6 @@ export const applyImportName = (text: string, newName: string): string => {
   if (text.trim() === '') {
     return `name: ${serialized}\n`;
   }
-  const lines = text.split('\n');
   let insertIndex = 0;
   while (insertIndex < lines.length) {
     const line = lines[insertIndex];

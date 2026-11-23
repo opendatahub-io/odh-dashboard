@@ -98,7 +98,7 @@ func buildImportCreateRequest(doc map[string]any) (evalhub.CreateCollectionReque
 	}
 
 	for _, benchmark := range request.Benchmarks {
-		if benchmark.Weight < 0 {
+		if benchmark.Weight != nil && *benchmark.Weight < 0 {
 			return request, nil, fmt.Errorf("benchmark %s: weight must be non-negative", benchmark.ID)
 		}
 		if err := benchmark.TestDataRef.Validate(); err != nil {

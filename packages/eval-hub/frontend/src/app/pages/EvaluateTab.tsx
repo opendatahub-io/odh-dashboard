@@ -54,7 +54,9 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
   // Import is enabled only on an explicit allowed result: it stays disabled
   // while the check is pending or has failed, so limited-access users are
   // never offered a creation flow the upstream authorization rejects.
-  const canImport = canImportQuery.data === true;
+  // isError also covers a failed refetch, where React Query keeps the last
+  // (possibly allowed) result.
+  const canImport = canImportQuery.data === true && !canImportQuery.isError;
 
   return (
     <>

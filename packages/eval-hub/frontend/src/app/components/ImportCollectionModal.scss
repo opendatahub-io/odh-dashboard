@@ -10,6 +10,10 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    // Several stacked inline alerts can otherwise crowd the editor out of
+    // the fixed dialog height; the editor keeps a floor (below) and the
+    // body scrolls instead of collapsing it.
+    overflow-y: auto;
   }
 
   .pf-v6-l-stack {
@@ -47,7 +51,11 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  // Without a floor, stacked alerts in a short viewport can shrink the
+  // editor to near zero; the modal body scrolls once the floor is reached.
+  // Monaco's percentage heights still resolve because the ancestors keep
+  // their definite heights from the dialog height.
+  min-height: 25vh;
 }
 
 .evalhub-m-drag-hover {
@@ -62,11 +70,6 @@
 }
 
 .evalhub-import-collection-modal__filename {
-  // PF aligns the toolbar controls to flex-start; center the label against
-  // the taller icon buttons.
-  align-self: center;
-  display: flex;
-  align-items: center;
   font-family: var(--pf-t--global--font--family--mono);
   font-size: var(--pf-t--global--font--size--xs);
   color: var(--pf-t--global--text--color--subtle);

@@ -12,6 +12,7 @@ import {
   detectImportLanguage,
   parseImportContent,
   proposeUniqueName,
+  readFileAsUTF8Text,
 } from '~/app/utils/collectionImport';
 
 const validYAML = `
@@ -63,6 +64,20 @@ describe('parseImportContent', () => {
     expect(result.documentCount).toBe(1);
   });
 
+  it('should report the language of the parser that accepted the content', () => {
+    expect(parseImportContent('{"name": "x"}').language).toBe('json');
+    // Brace-leading content recovered through the YAML fallback is YAML.
+    expect(parseImportContent('{name: x}').language).toBe('yaml');
+    expect(parseImportContent('name: x').language).toBe('yaml');
+    expect(parseImportContent('{"name": "x",').language).toBeUndefined();
+  });
+
+  it('should parse a document that is indented as a whole', () => {
+    const result = parseImportContent('  name: indented\n  domains:\n    - software\n');
+    expect(result.error).toBeUndefined();
+    expect(result.doc?.name).toBe('indented');
+  });
+
   it('should reject empty or whitespace-only content', () => {
     expect(parseImportContent('   \n\t ').error).toBe('No collection definition found in file');
   });
@@ -98,6 +113,14 @@ describe('parseImportContent', () => {
 
   it('should reject content over the size limit', () => {
     const result = parseImportContent(`name: ${'a'.repeat(IMPORT_FILE_SIZE_LIMIT)}`);
+    expect(result.error).toBe('Content exceeds the 1 MiB size limit');
+    expect(result.doc).toBeNull();
+  });
+
+  it('should reject content whose UTF-8 byte length exceeds the size limit', () => {
+    // 'é' encodes to two UTF-8 bytes, so the byte length passes the limit
+    // while the UTF-16 code-unit length stays under it.
+    const result = parseImportContent(`name: ${'é'.repeat(IMPORT_FILE_SIZE_LIMIT / 2 + 1)}`);
     expect(result.error).toBe('Content exceeds the 1 MiB size limit');
     expect(result.doc).toBeNull();
   });
@@ -202,14 +225,15 @@ describe('findImportWarningLine', () => {
     '    provider_id: garak',
     '    weight: 1',
   ].join('\n');
+  const lines = text.split('\n');
 
   it('should resolve a top-level field to its own line', () => {
-    expect(findImportWarningLine(text, { message: 'mystery', field: 'mystery' })).toBe(3);
+    expect(findImportWarningLine(lines, { message: 'mystery', field: 'mystery' })).toBe(3);
   });
 
   it('should resolve a benchmark field to its line within the benchmark entry', () => {
     expect(
-      findImportWarningLine(text, {
+      findImportWarningLine(lines, {
         message: 'url',
         benchmarkId: 'quality',
         benchmarkField: 'url',
@@ -221,7 +245,7 @@ describe('findImportWarningLine', () => {
     // "weight" only exists under the "other" entry; a warning scoped to
     // "quality" falls back to quality's id line instead.
     expect(
-      findImportWarningLine(text, {
+      findImportWarningLine(lines, {
         message: 'weight',
         benchmarkId: 'quality',
         benchmarkField: 'weight',
@@ -230,13 +254,13 @@ describe('findImportWarningLine', () => {
   });
 
   it('should resolve a benchmark-scoped warning without a field to the benchmark id line', () => {
-    expect(findImportWarningLine(text, { message: 'benchmark', benchmarkId: 'other' })).toBe(8);
+    expect(findImportWarningLine(lines, { message: 'benchmark', benchmarkId: 'other' })).toBe(8);
   });
 
   it('should fall back to line 1 for file-level warnings or unresolvable anchors', () => {
-    expect(findImportWarningLine(text, { message: 'no description' })).toBe(1);
-    expect(findImportWarningLine(text, { message: 'missing', field: 'absent-field' })).toBe(1);
-    expect(findImportWarningLine(text, { message: 'missing', benchmarkId: 'not-there' })).toBe(1);
+    expect(findImportWarningLine(lines, { message: 'no description' })).toBe(1);
+    expect(findImportWarningLine(lines, { message: 'missing', field: 'absent-field' })).toBe(1);
+    expect(findImportWarningLine(lines, { message: 'missing', benchmarkId: 'not-there' })).toBe(1);
   });
 });
 
@@ -298,6 +322,26 @@ describe('applyImportName', () => {
     const result = applyImportName(text, 'renamed');
     expect(result).toContain('name: renamed');
     expect(result).toContain('name: nested');
+  });
+
+  it('should not rewrite a name that only exists in a later document', () => {
+    const text = 'description: first\n---\nname: second-doc\n';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toContain('name: renamed');
+    expect(result).toContain('name: second-doc');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should not rewrite a flow-mapping name that only exists in a later document', () => {
+    const text = '{domains: [software]}\n---\n{name: second-doc}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toContain('name: second-doc');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should replace an escaped JSON name key without inserting a duplicate', () => {
+    const result = applyImportName('{"\\u006eame": "old", "domains": ["x"]}', 'renamed');
+    expect(JSON.parse(result)).toEqual({ name: 'renamed', domains: ['x'] });
   });
 
   it('should replace a double-quoted name key without creating a duplicate', () => {
@@ -393,6 +437,22 @@ describe('applyImportName', () => {
     expect(parseImportContent(result).doc?.name).toBe('renamed');
   });
 
+  it('should replace the name in a flow mapping preceded by a document marker', () => {
+    const text = '---\n{name: old, domains: [software], benchmarks: [{id: a, provider_id: b}]}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe(
+      '---\n{name: "renamed", domains: [software], benchmarks: [{id: a, provider_id: b}]}',
+    );
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should replace the name in a flow mapping preceded by a comment', () => {
+    const text = '# Example collection format\n{name: old, domains: [software]}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('# Example collection format\n{name: "renamed", domains: [software]}');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
   it('should preserve leading comments when replacing the name', () => {
     const text = '# Example collection format\n\nname: old\ndescription: kept\n';
     expect(applyImportName(text, 'new')).toBe(
@@ -445,6 +505,28 @@ describe('applyImportName', () => {
   it('should quote names that would otherwise break the YAML', () => {
     const result = applyImportName('name: old\ndescription: kept\n', 'a: b # c');
     expect(parseImportContent(result).doc?.name).toBe('a: b # c');
+  });
+});
+
+describe('readFileAsUTF8Text', () => {
+  it('should read a UTF-8 file as text', async () => {
+    const file = new File(['name: x\n'], 'a.yaml', { type: 'text/yaml' });
+    await expect(readFileAsUTF8Text(file)).resolves.toBe('name: x\n');
+  });
+
+  it('should accept a file containing a literal replacement character', async () => {
+    const file = new File(['name: �\n'], 'a.yaml', { type: 'text/yaml' });
+    await expect(readFileAsUTF8Text(file)).resolves.toBe('name: �\n');
+  });
+
+  it('should reject a file with invalid UTF-8 bytes', async () => {
+    const file = new File([new Uint8Array([0x6e, 0xff, 0xfe])], 'a.yaml');
+    await expect(readFileAsUTF8Text(file)).rejects.toThrow('does not appear to be UTF-8');
+  });
+
+  it('should reject a UTF-16 file by its BOM', async () => {
+    const file = new File([new Uint8Array([0xff, 0xfe, 0x6e, 0x00, 0x61, 0x00])], 'a.yaml');
+    await expect(readFileAsUTF8Text(file)).rejects.toThrow('UTF-16');
   });
 });
 

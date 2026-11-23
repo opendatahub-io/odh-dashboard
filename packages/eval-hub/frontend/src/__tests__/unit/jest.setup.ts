@@ -1,4 +1,4 @@
-import { TextEncoder } from 'util';
+import { TextDecoder, TextEncoder } from 'util';
 import { JestAssertionError } from 'expect';
 import '@testing-library/jest-dom';
 import 'core-js/actual/array/to-sorted';
@@ -9,6 +9,7 @@ import {
 } from '~/__tests__/unit/testUtils/hooks';
 
 global.TextEncoder = TextEncoder as typeof global.TextEncoder;
+global.TextDecoder = TextDecoder as unknown as typeof global.TextDecoder;
 
 const tryExpect = (expectFn: () => void) => {
   try {

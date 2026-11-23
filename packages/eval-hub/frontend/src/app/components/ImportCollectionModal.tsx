@@ -115,7 +115,10 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
   }, [isOpen]);
 
   const parsed = React.useMemo(() => parseImportContent(text), [text]);
-  const language = detectImportLanguage(text) === 'json' ? Language.json : Language.yaml;
+  // The label follows the parser that accepted the content, so brace-leading
+  // content recovered through the YAML fallback is edited as YAML.
+  const language =
+    (parsed.language ?? detectImportLanguage(text)) === 'json' ? Language.json : Language.yaml;
   // Line-addressable diagnostics render in the editor as Monaco markers
   // (squiggles with hover messages); only issues that have no line — file,
   // encoding, collision, and submission errors — use alerts.
@@ -125,11 +128,14 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
       result.push({ severity: 'error', message: parsed.error, line: parsed.errorLine ?? 1 });
     }
     if (parsed.doc !== null) {
+      // Split once for every warning; each lookup would otherwise re-split
+      // the full definition text.
+      const lines = text.split('\n');
       getImportWarnings(parsed.doc).forEach((warning) => {
         result.push({
           severity: 'warning',
           message: warning.message,
-          line: findImportWarningLine(text, warning),
+          line: findImportWarningLine(lines, warning),
         });
       });
     }
@@ -211,6 +217,14 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
       setSubmitError(null);
       const validationError = validateImportFile(file);
       if (validationError) {
+        // A read of an earlier selection may still be in flight; it must not
+        // land and replace the editor content after this selection was
+        // rejected.
+        if (isReadingFile) {
+          fileReadToken.current++;
+          setIsReadingFile(false);
+          setFilename('');
+        }
         setFileError(validationError);
         return;
       }
@@ -236,7 +250,7 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
           setFileError(e instanceof Error ? e.message : String(e));
         });
     },
-    [cancelPendingNameSync, isSubmitting, resetNameField],
+    [cancelPendingNameSync, isReadingFile, isSubmitting, resetNameField],
   );
 
   const resetToTemplate = React.useCallback(() => {
@@ -485,7 +499,10 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
                       <>
                         {filename ? (
                           <span
-                            className="evalhub-import-collection-modal__filename"
+                            // PF aligns the toolbar controls to flex-start;
+                            // the utilities center the label against the
+                            // taller icon buttons.
+                            className="evalhub-import-collection-modal__filename pf-v6-u-align-self-center pf-v6-u-display-flex pf-v6-u-align-items-center"
                             data-testid="import-collection-filename"
                           >
                             {filename}
