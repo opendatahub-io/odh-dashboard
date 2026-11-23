@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Bullseye, Content, Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { GroupReference } from '~/app/types/subscriptions';
+import { GroupName } from '~/app/shared/GroupName';
 
 type SubscriptionGroupsSectionProps = {
   groups: GroupReference[];
@@ -40,7 +41,9 @@ const SubscriptionGroupsSection: React.FC<SubscriptionGroupsSectionProps> = ({ g
           <Tbody>
             {groups.map((group) => (
               <Tr key={group.name}>
-                <Td dataLabel="Name">{group.name}</Td>
+                <Td dataLabel="Name">
+                  <GroupName name={group.name} />
+                </Td>
               </Tr>
             ))}
           </Tbody>

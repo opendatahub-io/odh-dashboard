@@ -115,7 +115,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
 
 Add `myModule: false` to `blankDashboardCR` (plus the `backend/src/types.ts` type) and `` MyModule bool `json:"myModule"` `` with a `false` default to `distributions/core-bff/bff/internal/models/dashboard_config.go`. `pnpm run validate:flags` checks all copies.
 
-Plus ownership (`OWNERS`, `OWNERS_ALIASES`, `packages/<name>/OWNERS`) and `.github/dependabot.yml` (`/packages/<name>/bff` in the `gomod` directories).
+Plus ownership (`OWNERS_ALIASES`, `packages/<name>/OWNERS` with `options.no_parent_owners: true`, and `manifests/modules/<name>/OWNERS` with `area/manifests`) and `.github/dependabot.yml` (`/packages/<name>/bff` in the `gomod` directories).
+
 
 ## Extension Types Reference
 
@@ -246,7 +247,7 @@ Pass `isHost: process.env.DEPLOYMENT_MODE === 'standalone'` so standalone builds
 | 10 | Flag in `DashboardCommonConfig` (`packages/k8s-core/src/k8sTypes.ts`) | Phase 3 |
 | 11 | Flag default + `SupportedAreasStateMap` entry in `const.ts` | Phase 3 |
 | 12 | Flag in the OdhDashboardConfig CRD | Phase 3 |
-| 13 | `OWNERS`, `OWNERS_ALIASES`, package `OWNERS`, dependabot `gomod` entry | Phase 3 |
+| 13 | `OWNERS_ALIASES`, package `OWNERS` and `manifests/modules/<name>/OWNERS` with `no_parent_owners`, dependabot `gomod` entry | Phase 3 |
 | 14 | `pnpm install`, `validate:ports`, `validate:cypress-mock` pass | Phase 4 |
 | 15 | Lint, type-check, frontend build, BFF build/test pass | Phase 4 |
 | 16 | Container image builds | Phase 4 (optional) |

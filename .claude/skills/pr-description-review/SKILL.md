@@ -26,7 +26,7 @@ gh pr diff <PR> --name-only
 gh pr diff <PR>
 ```
 
-The diff is for impact detection in the Solution aspect and for UI or user-flow impact detection in the Evidence aspect; Problem needs the body and changed paths alone.
+The diff is for impact detection in the Solution aspect and for recognizing UI changes in the Evidence aspect; Problem needs the body and changed paths alone.
 
 With no PR or supplied body, report ➖ not applicable; do not infer a PR description from commits or source files.
 
@@ -42,7 +42,7 @@ Score these three aspects:
 
 2. **Solution** — What changed and why this approach. The body explains what the PR does and the reasoning behind the chosen approach. Missing or placeholder-only → ❌. Present but vague, or a file list with no rationale → ⚠️. When the diff (or, absent diff content, the changed paths) shows security/RBAC, API/contract, migrations, or breaking changes and the body does not note the impact → ⚠️.
 
-3. **Evidence** — Proof the change works. Automated tests covering the change are presumed to run in required CI as a scoring rule, not a verified fact; do not enumerate or verify the required checks, and do not require the author to restate those runs, name the commands, or repeat their output — never score this aspect down for that absence alone. The one hard requirement is that Evidence is not blank: where required CI is the only applicable proof, a plain statement that automated coverage is the evidence satisfies the aspect, in any wording — do not prescribe a phrase. Author-supplied evidence is still required for what a CI run cannot show — visual proof for UI changes, and cluster or manual checks — so look for commands run, cluster checks, screenshots, or log snippets. For non-behavioral edits (localization strings, docs, formatting), a scope statement such as "localization only; no behavior change" is sufficient; do not ask for test runs or screenshots. When the available diff and path context show UI or user-flow changes — regardless of file extension — look for visual evidence (screenshot, GIF, or video/recording attachment, including `user-attachments` media links); missing visual evidence for those changes is a ⚠️ (folded into this aspect, not a separate row). A blank or placeholder-only Evidence section → ❌ even when required CI covers the change, because a reviewer needs something to check the change against. Missing or placeholder-only author-supplied proof for what required CI cannot show → ❌, except missing visual evidence for UI changes, which stays a ⚠️ as noted above. Present but thin (e.g., "tested locally" with no details) → ⚠️. Evidence that leaks tokens, passwords, or cluster credentials → ❌.
+3. **Evidence** — Whether the author supplied proof, not whether the proof is adequate. Automated tests covering the change are presumed to run in required CI as a scoring rule, not a verified fact; do not enumerate or verify the required checks, and do not require the author to restate those runs, name the commands, or repeat their output — never score this aspect down for that absence alone. The one hard requirement is that Evidence is not blank: where required CI is the only applicable proof, a plain statement that automated coverage is the evidence satisfies the aspect, in any wording — do not prescribe a phrase. Beyond that, judge only whether the author supplied something a reviewer can check the change against — commands run, cluster checks, screenshots or recordings, log snippets, or a scope statement for non-behavioral edits such as "localization only; no behavior change". Do not assess whether the supplied evidence is accurate, sufficient, or covers the change, and do not ask for proof of a specific kind; that validation is out of scope for this check. A screenshot is never required, including for UI changes: for a UI change, a screenshot, GIF, or recording lifts an otherwise thin Evidence aspect to ✅, and its absence is never a downgrade. A blank or placeholder-only Evidence section → ❌ even when required CI covers the change, because a reviewer needs something to check the change against. Present but thin (e.g., "tested locally" with no details) → ⚠️. Evidence that leaks tokens, passwords, or cluster credentials → ❌.
 
 One classic `## Description` may satisfy **both** Problem and Solution when both substances are clearly present. Do not require separate headings.
 
@@ -53,7 +53,7 @@ The overall status is the worst aspect status: any ❌ makes the review failed, 
 | Status | Meaning |
 | --- | --- |
 | ✅ passed | All three aspects present with substantive content |
-| ⚠️ warning | All aspects present but at least one is thin or vague, or UI evidence is missing for visual changes |
+| ⚠️ warning | All aspects present but at least one is thin or vague |
 | ❌ failed | At least one aspect is absent or placeholder-only |
 | ➖ not applicable | No PR body is available |
 

@@ -90,6 +90,12 @@ export type Deployment<
   endpoints?: DeploymentEndpoint[];
   apiProtocol?: string;
   resources?: ModelServingPodSpecOptionsState;
+  /** Model-scoped Pods and watch state, independent of the subset used for status. */
+  podDiscovery?: {
+    pods: readonly PodKind[];
+    loaded: boolean;
+    error?: Error;
+  };
 };
 ```
 

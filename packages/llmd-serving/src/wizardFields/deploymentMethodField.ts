@@ -20,7 +20,7 @@ export const vllmDeploymentMethodOverride: DeploymentMethodFieldOverride = {
   isActive: () => true,
   options: [SIMPLE_VLLM_OPTION],
   suggestion: (clusterSettings) =>
-    !clusterSettings?.isLLMdDefault ? SIMPLE_VLLM_OPTION : undefined,
+    clusterSettings?.isLLMdDefault === false ? SIMPLE_VLLM_OPTION : undefined,
 };
 
 // LLM-d
@@ -38,5 +38,6 @@ export const llmdDeploymentMethodOverride: DeploymentMethodFieldOverride = {
   type: 'modifier',
   isActive: () => true,
   options: [LLMD_OPTION],
-  suggestion: (clusterSettings) => (clusterSettings?.isLLMdDefault ? LLMD_OPTION : undefined),
+  suggestion: (clusterSettings) =>
+    clusterSettings?.isLLMdDefault !== false ? LLMD_OPTION : undefined,
 };

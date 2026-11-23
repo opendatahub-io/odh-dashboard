@@ -56,8 +56,10 @@ Data Registry uses DCH connections when the DCH BFF is configured and both its c
 and connection-type lookups succeed. An unconfigured or unavailable DCH integration falls back
 to the existing project Secret lookup; a 404 from either DCH collection endpoint is treated as
 unavailable so clusters can fall back while the DCH backend API is absent. An empty DCH list is a
-successful result. Authorization denials, other 4xx responses and malformed responses remain
-errors; unresolved connector types produce a warning and omit only the affected connections.
+successful result. DCH authorization denials also fall back because the DCH BFF can return 403
+when its backing API and RBAC resources are not installed. The Secret lookup independently checks
+the current user's project access. Other 4xx responses and malformed responses remain errors;
+unresolved connector types produce a warning and omit only the affected connections.
 
 Names and provider labels are temporary display information. Asset requests contain only
 the source and stable identifier. Existing references are preserved when unavailable,

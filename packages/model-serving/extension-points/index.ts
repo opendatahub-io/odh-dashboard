@@ -4,6 +4,7 @@ import type {
   DisplayNameAnnotations,
   K8sAPIOptions,
   NamespaceApplicationCase,
+  PodKind,
   ProjectKind,
 } from '@odh-dashboard/k8s-core';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/hardware-profiles/shared';
@@ -91,6 +92,12 @@ export type Deployment<
   endpoints?: DeploymentEndpoint[];
   apiProtocol?: string;
   resources?: ModelServingPodSpecOptionsState;
+  /** Model-scoped Pods and watch state, independent of the subset used for status. */
+  podDiscovery?: {
+    pods: readonly PodKind[];
+    loaded: boolean;
+    error?: Error;
+  };
 };
 
 /**

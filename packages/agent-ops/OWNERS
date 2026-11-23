@@ -8,3 +8,7 @@ reviewers:
 
 labels:
   - area/agent-ops
+  - area/components
+
+options:
+  no_parent_owners: true
