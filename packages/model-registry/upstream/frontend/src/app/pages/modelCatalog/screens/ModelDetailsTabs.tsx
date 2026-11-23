@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { PageSection } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-points';
@@ -12,7 +11,6 @@ import {
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { ModelDetailsTab } from '~/concepts/modelCatalog/const';
 import ModelDetailsView from './ModelDetailsView';
-import ModelGatedAccessRequiredView from './ModelGatedAccessRequiredView';
 import PerformanceInsightsView from './PerformanceInsightsView';
 
 export const MODEL_CATALOG_DETAILS_GROUP = 'model-catalog.details';
@@ -29,8 +27,6 @@ type ModelDetailsTabsProps = {
   artifacts: CatalogArtifactList;
   artifactLoaded: boolean;
   artifactsLoadError: Error | undefined;
-  gatedAccessDenied: boolean;
-  hfUsername?: string;
 };
 
 const ModelDetailsTabs = ({
@@ -40,8 +36,6 @@ const ModelDetailsTabs = ({
   artifacts,
   artifactLoaded,
   artifactsLoadError,
-  gatedAccessDenied,
-  hfUsername,
 }: ModelDetailsTabsProps): React.JSX.Element => {
   const navigate = useNavigate();
   const tabExtensions = useExtensions(isDetailTabExtension);
@@ -88,19 +82,6 @@ const ModelDetailsTabs = ({
 
     return tabs;
   }, [model, artifacts, artifactLoaded, artifactsLoadError, showValidatedInsights]);
-
-  if (gatedAccessDenied) {
-    return (
-      <PageSection
-        hasBodyWrapper={false}
-        isFilled
-        data-testid="model-overview-tab-content"
-        padding={{ default: 'noPadding' }}
-      >
-        <ModelGatedAccessRequiredView model={model} hfUsername={hfUsername} />
-      </PageSection>
-    );
-  }
 
   return (
     <ExtensibleDetailTabs

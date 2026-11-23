@@ -170,9 +170,6 @@ class ModelCatalog {
     );
   }
 
-  findModelCatalogCardDetailLinkByName(modelName: string) {
-    return this.findModelCatalogCardByName(modelName).findByTestId('model-catalog-detail-link');
-  }
 
   findAccessLabelPrivate() {
     return cy.findByTestId('model-catalog-access-label-private');
@@ -182,9 +179,6 @@ class ModelCatalog {
     return cy.findByTestId('model-catalog-access-label-gated');
   }
 
-  findAccessLabelGatedDenied() {
-    return cy.findByTestId('model-catalog-access-label-gated-denied');
-  }
 
   openPrivateAccessLabelPopover() {
     this.findAccessLabelPrivate().click();
@@ -196,10 +190,6 @@ class ModelCatalog {
     return this;
   }
 
-  openGatedDeniedAccessLabelPopover() {
-    this.findAccessLabelGatedDenied().click();
-    return this;
-  }
 
   openAccessLabelPopover(labelTestId: string) {
     cy.findByTestId(labelTestId).click();
@@ -254,17 +244,8 @@ class ModelCatalog {
     return cy.findByTestId('model-long-description');
   }
 
-  findGatedAccessRequiredState() {
-    return cy.findByTestId('model-gated-access-required');
-  }
 
-  findGatedAccessRequestLink() {
-    return cy.findByTestId('model-gated-access-request-link');
-  }
 
-  findWhosMyAdministratorLink() {
-    return cy.findByTestId('whos-my-admin-link');
-  }
 
   visitModelDetails(sourceId: string, modelName: string) {
     cy.visit(catalogModelDetailsUrl(modelName, sourceId));
