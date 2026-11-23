@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -52,7 +53,8 @@ func NewPrometheusRepository(cfg PrometheusConfig) *PrometheusRepository {
 
 	return &PrometheusRepository{
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:       30 * time.Second,
+			CheckRedirect: rejectDowngradingRedirect,
 			Transport: httpcontract.WrapTransport(&http.Transport{
 				TLSClientConfig: tlsConfig,
 			}),
@@ -60,6 +62,27 @@ func NewPrometheusRepository(cfg PrometheusConfig) *PrometheusRepository {
 		host: host,
 	}
 }
+
+// maxPrometheusRedirects matches net/http's own default limit.
+const maxPrometheusRedirects = 10
+
+// rejectDowngradingRedirect stops a redirect before it is sent when it would
+// change the scheme or the host of the original request. net/http keeps the
+// Authorization header on a same-host redirect even from https to http, which
+// would put the caller's bearer token on the wire in plaintext; a cross-host
+// redirect is not a Prometheus API behaviour either.
+func rejectDowngradingRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= maxPrometheusRedirects {
+		return fmt.Errorf("stopped after %d redirects", maxPrometheusRedirects)
+	}
+	original := via[0].URL
+	if req.URL.Scheme != original.Scheme || req.URL.Hostname() != original.Hostname() {
+		return errPrometheusRedirect
+	}
+	return nil
+}
+
+var errPrometheusRedirect = errors.New("refusing a Prometheus redirect that changes the scheme or host")
 
 // Query executes a Prometheus query and returns the response.
 // queryType should be "query" for instant or "query_range" for range queries.
