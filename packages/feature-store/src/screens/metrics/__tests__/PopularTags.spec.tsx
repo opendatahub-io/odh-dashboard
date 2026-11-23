@@ -59,11 +59,9 @@ describe('PopularTags', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('popular-tags-empty-state-title')).not.toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    // Verify the loading skeleton gallery is rendered via its data-testid.
-    const loadingGallery = screen.getByTestId('popular-tags-loading');
-    expect(loadingGallery).toBeInTheDocument();
     // The loading branch hardcodes 4 placeholder cards regardless of the limit prop.
-    expect(loadingGallery.children).toHaveLength(4);
+    // Each PopularTagsSkeleton owns the popular-tags-loading test id, so there are 4 matches.
+    expect(screen.getAllByTestId('popular-tags-loading')).toHaveLength(4);
   });
 
   it('renders the access denied state when the request fails', () => {
