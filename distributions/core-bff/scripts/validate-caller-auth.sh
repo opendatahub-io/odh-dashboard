@@ -134,7 +134,7 @@ code() { curl_or_exit -o /dev/null -w '%{http_code}' "$@"; }
 body() { curl_or_exit "$@"; }
 check() { # id description expected actual
   local verdict=PASS
-  if [[ "$4" == curl-exit-* ]]; then
+  if [[ "$4" == curl-exit-* || "$4" == kubectl-exit-* ]]; then
     verdict=FAIL; fails=$((fails + 1))
   elif [[ "$3" != "$4" ]]; then
     verdict=FAIL; fails=$((fails + 1))
@@ -142,7 +142,13 @@ check() { # id description expected actual
   printf '%-4s %-58s expect %-18s got %-18s %s\n' "$1" "$2" "$3" "$4" "$verdict"
 }
 skip() { printf '%-4s %-58s SKIP (%s)\n' "$1" "$2" "$3"; }
-ns_label() { kubectl get namespace "$NS" -o jsonpath='{.metadata.labels.modelmesh-enabled}'; }
+# ns_label prints the label value, or "kubectl-exit-N" when the lookup fails,
+# so an absent label (empty output) is never confused with a failed read.
+ns_label() {
+  local out rc=0
+  out=$(kubectl get namespace "$NS" -o jsonpath='{.metadata.labels.modelmesh-enabled}') || rc=$?
+  if ((rc != 0)); then printf 'kubectl-exit-%d' "$rc"; else printf '%s' "$out"; fi
+}
 
 if [[ "$PLATFORM" == "XKS" ]]; then
   H=Authorization; V="Bearer $SA"

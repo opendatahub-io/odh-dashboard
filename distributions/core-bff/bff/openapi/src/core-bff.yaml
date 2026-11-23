@@ -883,6 +883,20 @@ paths:
         - ClusterSettings
       operationId: updateClusterSettings
       summary: Update cluster settings (admin)
+      description: >-
+        Always sends the OdhDashboardConfig patch; the culler and segment-key ConfigMap writes
+        and the notebook-controller rollout happen only when they change the stored values.
+        Every write is bound to the version the request read. A configuration or ConfigMap changed by another save after that read is a
+        conflict, returned as 200 with success false and the reason in error; reload the settings
+        and save again. Such a change is detected before the configuration patch where possible;
+        a change in the short window after that check can leave the configuration patch applied
+        while a later ConfigMap write reports the conflict. Enabling user tracking without a provisioned segment-key ConfigMap is
+        also 200 with success false, before anything is written. Under the caller credential policy (xKS) every planned write is reviewed
+        first, and a write the caller may not make is 403 before anything is written. When a
+        conflict and an authorization failure both occur, the authorization failure decides the
+        status. Under the caller policy, when no OdhDashboardConfig instance exists GET shows
+        the defaults but PUT returns 404: it does not write against a configuration it could not
+        read.
       requestBody:
         content:
           application/json:
@@ -904,6 +918,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -1103,6 +1119,11 @@ paths:
         - ConnectionTypes
       operationId: updateConnectionType
       summary: Replace connection type (admin)
+      description: >-
+        The write is bound to the connection type as validated by this request (its
+        resourceVersion): if it changed in between, or the body carries a different
+        metadata.resourceVersion, the response is 200 with success false; reload it and try
+        again.
       requestBody:
         content:
           application/json:
@@ -1136,6 +1157,10 @@ paths:
         - ConnectionTypes
       operationId: patchConnectionType
       summary: Patch connection type (admin)
+      description: >-
+        The patch is applied only if the stored resourceVersion still matches the one this
+        request validated (a JSON Patch test operation is prepended); otherwise the response
+        is 200 with success false; reload it and try again.
       requestBody:
         content:
           application/json-patch+json:
@@ -1180,6 +1205,10 @@ paths:
         - ConnectionTypes
       operationId: deleteConnectionType
       summary: Delete connection type (admin)
+      description: >-
+        The delete carries a resourceVersion precondition for the connection type this request
+        validated; if it changed in between, the response is 200 with success false and
+        nothing is deleted.
       responses:
         '200':
           description: Delete result
@@ -1539,6 +1568,11 @@ paths:
         Context 3 (RESET) removes both.
         Context 0 (DSG_CREATION) is not supported and returns 400.
         Requires SSAR permission: create on serving.kserve.io/servingruntimes.
+        On OpenShift the dashboard service account then applies the mutation. Under the
+        caller credential policy (xKS) the caller's own credentials apply it, so the caller
+        also needs patch on the Namespace; without it the response is 200 with applied false
+        and nothing is written. A caller identity that cannot be resolved, or a token the API
+        server rejects, is 401.
       parameters:
         - name: name
           in: path
@@ -2368,8 +2402,9 @@ components:
     IdentityVary:
       description: >-
         The standard identity headers `Authorization`,
-        `X-Forwarded-Access-Token` and `Cookie`, plus the configured
-        `AUTH_TOKEN_HEADER` when it is a different header. Sent on every /api response alongside `Cache-Control:
+        `X-Forwarded-Access-Token` and `Cookie`, followed by every other
+        configured credential header (`AUTH_TOKEN_HEADERS`, or a custom
+        `AUTH_TOKEN_HEADER`), without duplicates. Sent on every /api response alongside `Cache-Control:
         no-cache, no-store, private, max-age=0, must-revalidate`. `no-store` is
         what forbids a compliant cache from storing the response; `Vary` keys
         any cache that honours it on these headers, and does not protect
