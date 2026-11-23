@@ -44,6 +44,7 @@ export const buildOverviewRows = (
         lastTransitionTime: sub.lastTransitionTime,
         groups,
         tokenRateLimits: rateLimits,
+        deletionTimestamp: sub.deletionTimestamp,
       };
       const existing = subsByModel.get(key);
       if (existing) {
@@ -69,6 +70,7 @@ export const buildOverviewRows = (
         conditionType: policy.conditionType,
         lastTransitionTime: policy.lastTransitionTime,
         groups,
+        deletionTimestamp: policy.deletionTimestamp,
       };
       const existing = policiesByModel.get(key);
       if (existing) {

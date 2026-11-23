@@ -200,6 +200,7 @@ export type ModelOverviewSubscription = {
   lastTransitionTime?: string;
   groups?: string[];
   tokenRateLimits?: TokenRateLimit[];
+  deletionTimestamp?: string;
 };
 
 export type ModelOverviewPolicy = {
@@ -212,6 +213,7 @@ export type ModelOverviewPolicy = {
   conditionType?: string;
   lastTransitionTime?: string;
   groups?: string[];
+  deletionTimestamp?: string;
 };
 
 export type ModelOverviewDetails = {

@@ -198,19 +198,26 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
 
 type EntryActionsProps = {
   testId: string;
+  isDisabled?: boolean;
   onViewDetails: () => void;
   onEdit: () => void;
   onDelete: () => void;
 };
 
-const EntryActions: React.FC<EntryActionsProps> = ({ testId, onViewDetails, onEdit, onDelete }) => (
+const EntryActions: React.FC<EntryActionsProps> = ({
+  testId,
+  isDisabled,
+  onViewDetails,
+  onEdit,
+  onDelete,
+}) => (
   <ActionsColumn
     data-testid={testId}
     items={[
       { title: 'View details', onClick: onViewDetails },
-      { title: 'Edit', onClick: onEdit },
+      { title: 'Edit', onClick: onEdit, isDisabled },
       { isSeparator: true },
-      { title: 'Delete', onClick: onDelete },
+      { title: 'Delete', onClick: onDelete, isDisabled },
     ]}
   />
 );
@@ -361,6 +368,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                 actions={
                   <EntryActions
                     testId={`overview-subscription-actions-${sub.name}`}
+                    isDisabled={!!sub.deletionTimestamp}
                     onViewDetails={() =>
                       navigate(getSubscriptionViewUrl(sub.name), { state: OVERVIEW_LINK_STATE })
                     }
@@ -479,6 +487,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
                 actions={
                   <EntryActions
                     testId={`overview-policy-actions-${policy.name}`}
+                    isDisabled={!!policy.deletionTimestamp}
                     onViewDetails={() =>
                       navigate(getAuthPolicyViewUrl(policy.name), { state: OVERVIEW_LINK_STATE })
                     }
