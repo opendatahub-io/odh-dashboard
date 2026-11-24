@@ -119,7 +119,15 @@ const DeploymentEventsTab: React.FC<DeploymentEventsTabProps> = ({
             {visibleRows.map((row) => (
               <ListItem key={row.uid} data-testid={`deployment-event-${row.uid}`}>
                 <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                  <Label color={row.severity === 'Warning' ? 'orange' : 'grey'}>
+                  <Label
+                    status={
+                      row.severity === 'Warning'
+                        ? 'warning'
+                        : row.severity === 'Normal'
+                        ? 'info'
+                        : undefined
+                    }
+                  >
                     {row.severity}
                   </Label>
                   <strong>{row.reason}</strong>
