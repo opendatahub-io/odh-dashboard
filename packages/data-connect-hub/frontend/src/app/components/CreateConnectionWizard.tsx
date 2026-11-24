@@ -1018,7 +1018,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     isOpenSessionReady &&
     (!hasSelectedConnectionType || !hasMissingCredentialDefaults) &&
     (connectionTypesLoaded || Boolean(connectionTypesError)) &&
-    (!hasSingleConnectionType || hasConnectionType) &&
+    (!hasSingleConnectionType || hasSelectedConnectionType) &&
     (!needsInitialValidationData || hasNamespacesReady || Boolean(projectLoadError));
   const calculatedStartIndex = hasValidConfiguration
     ? 4
@@ -1079,14 +1079,14 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     isOpenSessionReady,
   ]);
   React.useEffect(() => {
-    if (isOpen && hasSingleConnectionType && !hasConnectionType) {
+    if (isOpen && hasSingleConnectionType && !hasSelectedConnectionType) {
       setFormData((current) => ({
         ...current,
         data_connection_type_id: connectionTypes[0].metadata.id,
       }));
       setConnectionTypeWarning(undefined);
     }
-  }, [connectionTypes, hasConnectionType, hasSingleConnectionType, isOpen]);
+  }, [connectionTypes, hasSelectedConnectionType, hasSingleConnectionType, isOpen]);
   React.useEffect(() => {
     if (isOpen && !hasResolvedSessionStartIndex && canResolveStartIndex) {
       setSessionStartIndex(calculatedStartIndex);
@@ -1479,7 +1479,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
           <WizardStep
             name="Connection type"
             id="connection-type-step"
-            isHidden={hasSingleConnectionType}
+            isHidden={hasSingleConnectionType && hasSelectedConnectionType}
           >
             <ConnectionTypeStep
               connectionTypes={connectionTypes}

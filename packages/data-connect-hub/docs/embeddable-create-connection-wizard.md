@@ -83,19 +83,19 @@ The callback receives `{ status: 'checking' }` when the wizard opens, then eithe
 
 The loader accepts `EmbeddableConnectionWizardProps`. Import the type from `@odh-dashboard/data-connect-hub/types`.
 
-| Prop                           | Type                                                     | Default     | Description                                                                                                       |
-| ------------------------------ | -------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------- |
-| `isOpen`                       | `boolean`                                                | Required    | Controls wizard visibility and starts availability checks.                                                        |
-| `namespace`                    | `string`                                                 | Required    | Namespace in which the connection is created.                                                                     |
-| `initialConnectionTypeId`      | `string`                                                 | `undefined` | Preselects a connection type and starts at the details step when the type exists.                                 |
-| `connectionTypeProviders`      | `string[]`                                               | `undefined` | Restricts the connection-type gallery to these DCH providers, such as `s3`.                                       |
-| `onCreated`                    | `(connection: DchConnection, namespace: string) => void` | `undefined` | Event callback invoked after the BFF successfully creates a connection.                                           |
-| `onClose`                      | `() => void`                                             | `undefined` | Event callback invoked after a close, cancel, discard, or successful creation.                                    |
-| `isNamespaceSelectable`        | `boolean`                                                | `false`     | Allows the user to select a project instead of displaying the supplied namespace as text.                         |
-| `enableCredentialVerification` | `boolean`                                                | `true`      | Shows credential verification for flight-ready connection types.                                                  |
-| `tearsheetStackLevel`          | `number`                                                 | `0`         | Sets the PatternFly tearsheet stacking level. Use a higher level when the wizard renders above another tearsheet. |
-| `unavailableFallback`          | `ReactNode`                                              | Alert       | Rendered when the feature, remote, or backend is unavailable.                                                     |
-| `onAvailabilityChange`         | `(availability: ConnectionWizardAvailability) => void`   | `undefined` | Receives the current wizard availability state.                                                                   |
+| Prop                           | Type                                                     | Default     | Description                                                                                                                    |
+| ------------------------------ | -------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `isOpen`                       | `boolean`                                                | Required    | Controls wizard visibility and starts availability checks.                                                                     |
+| `namespace`                    | `string`                                                 | Required    | Namespace in which the connection is created.                                                                                  |
+| `initialConnectionTypeId`      | `string`                                                 | `undefined` | Preselects a connection type and starts at the details step when the type exists.                                              |
+| `connectionTypeProviders`      | `string[]`                                               | `undefined` | Restricts the connection-type gallery to these DCH providers, such as `s3`. Provider filtering supersedes the initial type ID. |
+| `onCreated`                    | `(connection: DchConnection, namespace: string) => void` | `undefined` | Event callback invoked after the BFF successfully creates a connection.                                                        |
+| `onClose`                      | `() => void`                                             | `undefined` | Event callback invoked after a close, cancel, discard, or successful creation.                                                 |
+| `isNamespaceSelectable`        | `boolean`                                                | `false`     | Allows the user to select a project instead of displaying the supplied namespace as text.                                      |
+| `enableCredentialVerification` | `boolean`                                                | `true`      | Shows credential verification for flight-ready connection types.                                                               |
+| `tearsheetStackLevel`          | `number`                                                 | `0`         | Sets the PatternFly tearsheet stacking level. Use a higher level when the wizard renders above another tearsheet.              |
+| `unavailableFallback`          | `ReactNode`                                              | Alert       | Rendered when the feature, remote, or backend is unavailable.                                                                  |
+| `onAvailabilityChange`         | `(availability: ConnectionWizardAvailability) => void`   | `undefined` | Receives the current wizard availability state.                                                                                |
 
 While availability is checked, the loader renders the connection tearsheet with a loading spinner. This preserves the wizard's presentation before the federated component is available.
 
@@ -119,6 +119,7 @@ While availability is checked, the loader renders the connection tearsheet with 
 - The wizard supplies its own notification provider and toast notifications.
 - When `isNamespaceSelectable` is `false`, the namespace renders as plain text rather than a disabled select.
 - `connectionTypeProviders` filters the DCH connection-type list before the wizard renders it.
+- `connectionTypeProviders` supersedes `initialConnectionTypeId`. If the initial type is filtered out, it is not selected. When exactly one compatible type remains, that type is selected automatically; when multiple compatible types remain, the user selects from the type step.
 - If filtering leaves exactly one compatible type, the wizard selects it automatically and starts at the connection details step.
 - Credential verification is hidden for connection types that are not flight-ready.
 - When enabled, verification is disabled unless the user has permission to create `data-connections` in the selected namespace.

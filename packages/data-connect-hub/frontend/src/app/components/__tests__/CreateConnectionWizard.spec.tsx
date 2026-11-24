@@ -155,6 +155,28 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByRole('heading', { name: 'Details' })).toBeTruthy();
   });
 
+  it('should auto-select the sole compatible type when the initial type is incompatible', async () => {
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{ data_connection_type_id: unknownConnectionTypeId }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Connection type' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+
+    fireEvent.change(screen.getByTestId('connection-name-input'), {
+      target: { value: 'warehouse' },
+    });
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', false);
+  });
+
   it('tracks connection type selection in the wizard', async () => {
     render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
 
