@@ -5,7 +5,10 @@ import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
-import { cleanupAutoragInfrastructure } from '../../../utils/oc_commands/autoragInfra';
+import {
+  cleanupAutoragInfrastructure,
+  provisionAutoragPgvector,
+} from '../../../utils/oc_commands/autoragInfra';
 import type { AutoragTestData } from '../../../types';
 import {
   configureAutoragRun,
@@ -46,10 +49,11 @@ describe('AutoRAG Optimization E2E', () => {
         projectName = `${testData.projectNamePrefix}-${uuid}`;
         cleanupReady = true;
       })
-      .then(() => checkAutoragMaaSReadiness())
+      .then(() => checkAutoragMaaSReadiness(testData))
       .then((fixture) => {
         maasFixture = fixture;
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        provisionAutoragPgvector(projectName);
       }),
   );
 
@@ -129,10 +133,15 @@ describe('AutoRAG Optimization completion results E2E', () => {
         projectName = `${testData.projectNamePrefix}-${completionUuid}`;
         cleanupReady = true;
       })
-      .then(() => checkAutoragMaaSReadiness())
+      .then(() => checkAutoragMaaSReadiness(testData))
       .then((fixture) => {
         maasFixture = fixture;
+        if (!fixture.supportsCompletionResults) {
+          cleanupReady = false;
+          return;
+        }
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        provisionAutoragPgvector(projectName);
       }),
   );
 
@@ -154,7 +163,7 @@ describe('AutoRAG Optimization completion results E2E', () => {
   it(
     'Verify optimization run completes and results are interactive',
     {
-      tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'],
+      tags: ['@AutoRAG', '@AutoRAGRegression', '@AutoRAGOptimization', '@Featureflagged'],
       retries: { runMode: 0, openMode: 0 },
     },
     function verifyCompletionResults() {
@@ -162,7 +171,8 @@ describe('AutoRAG Optimization completion results E2E', () => {
       if (!fixture.supportsCompletionResults) {
         Cypress.log({
           name: 'skip',
-          message: 'Results/leaderboard validation requires a real vector database.',
+          message:
+            'Results/leaderboard validation requires complete live MaaS and S3 configuration plus a ready PGVector database.',
         });
         this.skip();
       }
