@@ -306,6 +306,53 @@ describe('WorkingProjectSelector', () => {
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
   });
 
+  it('should scroll again when the reviewed project row remounts', async () => {
+    const reviewedProject = { name: 'reviewed-project' };
+    const { rerender } = render(
+      <WorkingProjectProvider
+        projects={[reviewedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    const scrollIntoView = jest.mocked(HTMLElement.prototype.scrollIntoView);
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={jest.fn()}>
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+    expect(
+      screen.queryByTestId(`working-project-option-${reviewedProject.name}`),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[reviewedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(2));
+  });
+
   it('should return to the disabled initial state after closing a creation review', () => {
     const { rerender } = render(
       <WorkingProjectProvider
@@ -358,7 +405,7 @@ describe('WorkingProjectSelector', () => {
 
     fireEvent.click(screen.getByTestId('working-project-selector'));
     fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
-    fireEvent.click(screen.getByTestId('modal-submit-button'));
+    await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
 
     expect(onProjectChange).toHaveBeenCalledWith(project);
     await waitFor(() => expect(onProjectSelected).toHaveBeenCalledWith(project));
@@ -507,7 +554,7 @@ describe('WorkingProjectSelector', () => {
   it.each([
     ['a route-invalid state', WorkingProjectStatusValue.RouteInvalid],
     ['no selected project', undefined],
-  ])('should allow selecting a project in %s', (_description, status) => {
+  ])('should allow selecting a project in %s', async (_description, status) => {
     const onProjectChange = jest.fn();
 
     render(
@@ -523,7 +570,7 @@ describe('WorkingProjectSelector', () => {
 
     fireEvent.click(screen.getByTestId('working-project-selector'));
     fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
-    fireEvent.click(screen.getByTestId('modal-submit-button'));
+    await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
 
     expect(onProjectChange).toHaveBeenCalledWith(project);
   });
@@ -686,7 +733,7 @@ describe('WorkingProjectSelector', () => {
       fireEvent.change(screen.getByTestId('manual-project-name'), { target: { value: 'first' } });
       fireEvent.click(screen.getByRole('button', { name: 'Search' }));
       await waitFor(() => expect(screen.getByTestId('modal-submit-button')).not.toBeDisabled());
-      fireEvent.click(screen.getByTestId('modal-submit-button'));
+      await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
       const signal = rememberProject.mock.calls[0][1] as AbortSignal;
       expect(screen.getByTestId('manual-project-name')).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
@@ -722,7 +769,7 @@ describe('WorkingProjectSelector', () => {
         });
         fireEvent.click(screen.getByRole('button', { name: 'Search' }));
         await waitFor(() => expect(screen.getByTestId('modal-submit-button')).not.toBeDisabled());
-        fireEvent.click(screen.getByTestId('modal-submit-button'));
+        await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
         expect(rememberProject).toHaveBeenLastCalledWith('second', expect.any(AbortSignal));
         expect(screen.getByTestId('project-added-notification')).toHaveTextContent('second');
@@ -1002,7 +1049,7 @@ describe('WorkingProjectSelector', () => {
     expect(screen.getByRole('button', { name: 'Select' })).toBeDisabled();
     expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('working-project-option-another'));
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
     const notification = await screen.findByTestId('working-project-updated-notification');
     expect(notification).toHaveClass('pf-m-info');
     expect(notification).toHaveTextContent("You're now working in another.");
@@ -1288,7 +1335,7 @@ describe('WorkingProjectSelector', () => {
     );
     fireEvent.click(screen.getByTestId('working-project-selector'));
     fireEvent.click(screen.getByTestId('working-project-option-another'));
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
     expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
@@ -1301,7 +1348,7 @@ describe('WorkingProjectSelector', () => {
     );
     expect(onProjectSelected).not.toHaveBeenCalled();
     expect(screen.getByTestId('working-project-selector')).toHaveTextContent('Project: Project X');
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(onProjectSelected).toHaveBeenCalledWith({ name: 'another' });
   });

@@ -464,7 +464,7 @@ const WorkingProjectModal: React.FC<
   }, [projectToReview]);
   const [search, setSearch] = React.useState('');
   const [selectedFilter, setFilter] = React.useState<string>();
-  const lastScrolledProjectRef = React.useRef<string>();
+  const scrolledRowRef = React.useRef<HTMLElement | null>(null);
   const scrollFrameRef = React.useRef<number>();
   const reviewProjectMatchesAiFilter = !projectToReview || Boolean(isAiProject?.(projectToReview));
   const activeProjectMatchesAiFilter = !activeProject || Boolean(isAiProject?.(activeProject.name));
@@ -528,9 +528,10 @@ const WorkingProjectModal: React.FC<
         ))
     );
   });
+  const reviewedProjectVisible = visibleProjects.some(({ name }) => name === projectToReview);
   React.useEffect(() => {
     if (!projectToReview) {
-      lastScrolledProjectRef.current = undefined;
+      scrolledRowRef.current = null;
       if (scrollFrameRef.current !== undefined) {
         cancelAnimationFrame(scrollFrameRef.current);
         scrollFrameRef.current = undefined;
@@ -538,17 +539,13 @@ const WorkingProjectModal: React.FC<
       return;
     }
 
-    if (projectToReview === lastScrolledProjectRef.current) {
-      return;
-    }
-
     scrollFrameRef.current = requestAnimationFrame(() => {
       const row = document.querySelector<HTMLElement>(
         `[data-testid="working-project-option-${projectToReview}"]`,
       );
-      if (row && projectToReview !== lastScrolledProjectRef.current) {
+      if (row && row !== scrolledRowRef.current) {
         row.scrollIntoView({ block: 'nearest' });
-        lastScrolledProjectRef.current = projectToReview;
+        scrolledRowRef.current = row;
       }
       scrollFrameRef.current = undefined;
     });
@@ -559,7 +556,7 @@ const WorkingProjectModal: React.FC<
         scrollFrameRef.current = undefined;
       }
     };
-  }, [projectToReview, visibleProjects]);
+  }, [projectToReview, reviewedProjectVisible]);
   const canSelectProject =
     status === WorkingProjectStatusValue.Listed ||
     status === WorkingProjectStatusValue.ListingUnavailable ||
