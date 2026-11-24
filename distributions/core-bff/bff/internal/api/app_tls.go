@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -146,11 +145,7 @@ func (app *App) loadEnvtestTLS(pool *x509.CertPool, testEnv *envtest.Environment
 // both, so presenting it could authorize the call as the certificate owner.
 // It is therefore returned only in DEV_MODE, where the developer's kubeconfig
 // identity is the documented fallback for requests without a token.
-func (app *App) loadKubeconfigTLS(pool *x509.CertPool, devMode bool) ([]tls.Certificate, error) {
-	kubeconfig, err := helpers.GetKubeconfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get kubeconfig for TLS: %w", err)
-	}
+func (app *App) loadKubeconfigTLS(pool *x509.CertPool, kubeconfig *rest.Config, devMode bool) ([]tls.Certificate, error) {
 	if err := app.appendCAFromTLSConfig(pool, kubeconfig.TLSClientConfig, "kubeconfig"); err != nil {
 		return nil, err
 	}

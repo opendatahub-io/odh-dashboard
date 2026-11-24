@@ -239,7 +239,7 @@ func initStartupClusterInfoWith(
 	if cfg.PlatformType.IsXKS() {
 		if cfg.MockK8Client {
 			ci.serverURL = k8sResult.testEnv.Config.Host
-		} else if kubeconfig, err := helpers.GetKubeconfig(); err == nil {
+		} else if kubeconfig, err := k8sResult.restConfig(); err == nil {
 			ci.serverURL = kubeconfig.Host
 		}
 		ci.currentContext = helpers.GetCurrentContext()
@@ -260,22 +260,16 @@ func initStartupClusterInfoWith(
 		return ci, platform, confirmed
 	}
 
-	kubeconfig, kcErr := helpers.GetKubeconfig()
-	if kcErr != nil {
-		logger.Warn("Failed to get kubeconfig for startup queries", slog.Any("error", kcErr))
-		platform, confirmed := resolveStartupPlatform(ci, kcErr, explicitPlatform, cfg.PlatformType, logger)
-		return ci, platform, confirmed
-	}
-
-	typedClient, tcErr := kubernetes.NewForConfig(kubeconfig)
-	dynClient, dcErr := dynamic.NewForConfig(kubeconfig)
-	if tcErr != nil || dcErr != nil {
-		logger.Warn("Failed to create clients for startup queries",
-			slog.Any("typedErr", tcErr), slog.Any("dynamicErr", dcErr))
-		clientErr := tcErr
+	// The probes run on the service-account clients initKubernetesClients built
+	// from the validated kubeconfig, never on a second read of the file.
+	typedClient, dynClient := k8sResult.saClientset, k8sResult.saDynClient
+	kubeconfig, kcErr := k8sResult.restConfig()
+	if kcErr != nil || typedClient == nil || dynClient == nil {
+		clientErr := kcErr
 		if clientErr == nil {
-			clientErr = dcErr
+			clientErr = errors.New("service-account clients are not initialized")
 		}
+		logger.Warn("Startup queries have no validated Kubernetes clients", slog.Any("error", clientErr))
 		platform, confirmed := resolveStartupPlatform(ci, clientErr, explicitPlatform, cfg.PlatformType, logger)
 		return ci, platform, confirmed
 	}

@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
+	"log/slog"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -15,8 +16,11 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -73,13 +77,15 @@ func TestLoadKubeconfigTLS_KeepsTheClientCertificateOffCallerScopedProxies(t *te
 	useKubeconfig(t, false)
 	app := &App{logger: testLogger()}
 
+	kubeconfig, err := helpers.GetKubeconfig()
+	require.NoError(t, err)
 	pool := x509.NewCertPool()
-	certs, err := app.loadKubeconfigTLS(pool, false)
+	certs, err := app.loadKubeconfigTLS(pool, kubeconfig, false)
 	require.NoError(t, err)
 	assert.Empty(t, certs, "a production proxy must authenticate with the caller's token only")
 	assert.False(t, pool.Equal(x509.NewCertPool()), "the cluster CA is still trusted")
 
-	certs, err = app.loadKubeconfigTLS(x509.NewCertPool(), true)
+	certs, err = app.loadKubeconfigTLS(x509.NewCertPool(), kubeconfig, true)
 	require.NoError(t, err)
 	assert.Len(t, certs, 1, "DEV_MODE keeps the developer's kubeconfig identity")
 }
@@ -109,4 +115,53 @@ func TestInitKubernetesClients_RejectsAnInsecureKubeconfigInProduction(t *testin
 	_, err := initKubernetesClients(cfg, testLogger())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "insecure-skip-tls-verify")
+}
+
+// Startup validates one kubeconfig. Discovery and the proxies must then use
+// that configuration and the clients built from it: if the mounted file is
+// swapped for an insecure one pointing elsewhere, nothing later picks it up.
+func TestStartupConsumers_UseTheValidatedKubeconfig(t *testing.T) {
+	useKubeconfig(t, false)
+	cfg := newTestApp().config
+	cfg.MockK8Client, cfg.DevMode = false, false
+
+	result, err := initKubernetesClients(cfg, testLogger())
+	require.NoError(t, err)
+	swapped := filepath.Join(t.TempDir(), "kubeconfig")
+	require.NoError(t, os.WriteFile(swapped, []byte("apiVersion: v1\nkind: Config\n"+
+		"clusters:\n- name: c\n  cluster:\n    server: https://swapped.example:6443\n    insecure-skip-tls-verify: true\n"+
+		"users:\n- name: u\n  user:\n    token: t\n"+
+		"contexts:\n- name: ctx\n  context:\n    cluster: c\n    user: u\n"+
+		"current-context: ctx\n"), 0600))
+	t.Setenv("KUBECONFIG", swapped)
+
+	var probedTyped kubernetes.Interface
+	var probedDyn dynamic.Interface
+	probe := func(tc kubernetes.Interface, dc dynamic.Interface, _ *slog.Logger) (clusterInfo, error) {
+		probedTyped, probedDyn = tc, dc
+		return clusterInfo{clusterID: "abc"}, nil
+	}
+	ci, _, _ := initStartupClusterInfoWith(cfg, result, testLogger(), probe)
+
+	assert.Same(t, result.saClientset, probedTyped, "discovery probes run on the validated service-account clients")
+	assert.Same(t, result.saDynClient, probedDyn)
+	assert.Equal(t, "https://api.cluster.example:6443", ci.serverURL)
+
+	host, err := resolveK8sHost(cfg, result)
+	require.NoError(t, err)
+	assert.Equal(t, "https://api.cluster.example:6443", host, "the proxies target the validated server")
+}
+
+// MOCK_K8S_CLIENT mocks the in-process envtest API server only. It must not
+// let the proxies reach a real API server over plaintext.
+func TestInitK8sProxy_MockFlagAloneDoesNotAllowPlaintext(t *testing.T) {
+	app := newTestApp()
+	cfg := app.config
+	cfg.MockK8Client, cfg.DevMode = true, false
+
+	err := app.initK8sProxy(cfg, k8sSetupResult{kubeconfig: &rest.Config{Host: "http://api.cluster.example"}})
+	require.Error(t, err)
+
+	cfg.DevMode = true
+	require.NoError(t, app.initK8sProxy(cfg, k8sSetupResult{kubeconfig: &rest.Config{Host: "http://api.cluster.example"}}))
 }

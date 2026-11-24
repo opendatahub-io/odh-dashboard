@@ -140,3 +140,33 @@ func getComponentsAs(t *testing.T, dyn dynamic.Interface, namespace string) *htt
 	app.GetComponentsHandler(rr, httptest.NewRequest(http.MethodGet, "/api/components", nil), nil)
 	return rr
 }
+
+// AC (RHOAIENG-96080), /api/config counterpart: on xKS the bootstrap read
+// runs with the shipped service-account Role and serves defaults whether the
+// Role grants the OdhDashboardConfig read (core-bff base) or not (RHAII).
+func TestGetConfig_WithTheShippedServiceAccountRole_XKS(t *testing.T) {
+	for name, path := range shippedRoles {
+		t.Run(name, func(t *testing.T) {
+			role := readRole(t, path)
+			dyn, namespace := serviceAccountDynamicClient(t, role.Rules)
+			app := newTestApp(func(a *App) {
+				a.config.Namespace = namespace
+				a.config.DashboardConfigName = "odh-dashboard-config"
+				a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+					Platform:          config.PlatformXKS,
+					PlatformConfirmed: true,
+					SADynClient:       dyn,
+					Namespace:         namespace,
+				})
+			})
+
+			rr := httptest.NewRecorder()
+			app.GetConfigHandler(rr, httptest.NewRequest(http.MethodGet, "/api/config", nil), nil)
+
+			require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+			var body map[string]any
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+			assert.NotEmpty(t, body, "defaults are served")
+		})
+	}
+}

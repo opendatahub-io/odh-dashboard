@@ -377,7 +377,7 @@ func (app *App) buildModuleProxyHandlers(entries []normalizedProxyEntry) ([]modu
 			return nil, fmt.Errorf("failed to parse target URL for entry %s: %w", entry.entryName, err)
 		}
 
-		allowHTTP := !entry.service.TLS || app.config.DevMode || app.config.MockK8Client
+		allowHTTP := !entry.service.TLS || app.config.DevMode
 		insecureSkipVerify := app.config.SkipsTLSVerification()
 
 		cfg := app.buildModuleProxyConfig(entry, targetURL, allowHTTP, insecureSkipVerify, true)

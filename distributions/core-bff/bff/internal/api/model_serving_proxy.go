@@ -39,7 +39,8 @@ func (app *App) initModelServingProxy() error {
 		return errors.New("MODEL_SERVING_HOST/--model-serving-host is not a valid URL (value omitted)")
 	}
 
-	allowHTTP := app.config.DevMode || app.config.MockK8Client
+	// MOCK_K8S_CLIENT returned the mock handler above; a real target needs DEV_MODE for plaintext.
+	allowHTTP := app.config.DevMode
 	insecureSkipVerify := app.config.SkipsTLSVerification()
 
 	rp, err := proxy.NewReverseProxy(proxy.ProxyConfig{

@@ -8,7 +8,6 @@ import (
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 )
@@ -28,7 +27,7 @@ func resolveK8sHost(cfg config.EnvConfig, k8sResult k8sSetupResult) (string, err
 	if cfg.MockK8Client && k8sResult.testEnv != nil {
 		return k8sResult.testEnv.Config.Host, nil
 	}
-	kubeconfig, err := helpers.GetKubeconfig()
+	kubeconfig, err := k8sResult.restConfig()
 	if err != nil {
 		return "", fmt.Errorf("failed to get kubeconfig for proxy: %w", err)
 	}
@@ -54,13 +53,19 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 			return err
 		}
 	} else {
-		fallbackCerts, err = app.loadKubeconfigTLS(k8sRootCAs, cfg.DevMode)
+		kubeconfig, kcErr := k8sResult.restConfig()
+		if kcErr != nil {
+			return fmt.Errorf("failed to get kubeconfig for TLS: %w", kcErr)
+		}
+		fallbackCerts, err = app.loadKubeconfigTLS(k8sRootCAs, kubeconfig, cfg.DevMode)
 		if err != nil {
 			return err
 		}
 	}
 
-	allowHTTP := cfg.DevMode || cfg.MockK8Client
+	// Plaintext only for local development or the in-process envtest server;
+	// MOCK_K8S_CLIENT alone never relaxes a real API server connection.
+	allowHTTP := cfg.DevMode || (cfg.MockK8Client && k8sResult.testEnv != nil)
 	insecureSkipVerify := cfg.SkipsTLSVerification()
 
 	var outboundHeadersFn func(*http.Request, http.Header)
@@ -70,7 +75,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 
 	var devFallbackToken string
 	if cfg.DevMode && !cfg.MockK8Client {
-		kc, kcErr := helpers.GetKubeconfig()
+		kc, kcErr := k8sResult.restConfig()
 		if kcErr != nil {
 			app.logger.Warn("Failed to get kubeconfig for dev fallback token", slog.Any("error", kcErr))
 		} else if kc != nil {

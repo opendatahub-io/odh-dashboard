@@ -71,6 +71,21 @@ type k8sSetupResult struct {
 	clientset   kubernetes.Interface
 	saDynClient dynamic.Interface
 	saClientset kubernetes.Interface
+	// kubeconfig is the configuration requireVerifiedKubeconfig accepted.
+	// Every later startup consumer (discovery, the proxies' host and TLS, the
+	// dev fallback token) reads this copy, so a kubeconfig changed after the
+	// check cannot select another server or TLS policy. Nil under envtest.
+	kubeconfig *rest.Config
+}
+
+// restConfig returns the validated kubeconfig, falling back to a fresh read
+// only when initKubernetesClients did not run (unit tests that stage a bare
+// k8sSetupResult).
+func (r k8sSetupResult) restConfig() (*rest.Config, error) {
+	if r.kubeconfig != nil {
+		return r.kubeconfig, nil
+	}
+	return helpers.GetKubeconfig()
 }
 
 // NewApp creates a new BFF application instance with all dependencies initialized.
@@ -179,6 +194,7 @@ func initKubernetesClients(cfg config.EnvConfig, logger *slog.Logger) (k8sSetupR
 		if err := requireVerifiedKubeconfig(cfg, kubeconfig); err != nil {
 			return result, err
 		}
+		result.kubeconfig = rest.CopyConfig(kubeconfig)
 		result.factory, err = k8s.NewKubernetesClientFactory(cfg, logger, kubeconfig)
 		if err != nil {
 			return result, err
