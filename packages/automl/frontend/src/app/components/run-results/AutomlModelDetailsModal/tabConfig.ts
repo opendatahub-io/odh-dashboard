@@ -96,7 +96,7 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     key: 'model-schema',
     label: 'Model schema',
     tooltip:
-      "Lists the input columns and the data types to send the model to get a prediction. Columns come from the model's input schema (model.json) when available, otherwise from the training data schema. The target column is excluded. Columns AutoGluon did not use are still listed, marked as not used.",
+      "Lists the input columns and the data types to send the model to get a prediction. Columns come from the model's input schema (model.json) when available, otherwise from the training data schema. The target column is excluded, except for time-series models where its historical values are required input. Columns AutoGluon did not use are still listed, marked as not used.",
     section: 'Model configuration',
     visibleFor: ALL_TASK_TYPES,
     component: ModelSchemaTab,

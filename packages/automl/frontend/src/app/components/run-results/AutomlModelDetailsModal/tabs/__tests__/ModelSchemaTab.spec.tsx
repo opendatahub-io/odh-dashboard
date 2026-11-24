@@ -185,7 +185,11 @@ describe('ModelSchemaTab', () => {
     expect(
       within(screen.getByTestId('model-schema-row-temperature')).getByText('Past covariate'),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId('model-schema-row-sales')).not.toBeInTheDocument();
+    // The target's historical values are required input for timeseries — listed with
+    // the Target history role.
+    expect(
+      within(screen.getByTestId('model-schema-row-sales')).getByText('Target history'),
+    ).toBeInTheDocument();
   });
 
   it('should list columns in training-data order by default, not alphabetically', () => {

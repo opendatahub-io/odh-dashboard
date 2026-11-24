@@ -6,7 +6,12 @@ import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 
 /** Role a column plays when scoring the model. */
 export type ModelSchemaRole =
-  'Feature' | 'Known covariate' | 'Past covariate' | 'ID column' | 'Timestamp column';
+  | 'Feature'
+  | 'Known covariate'
+  | 'Past covariate'
+  | 'ID column'
+  | 'Timestamp column'
+  | 'Target history';
 
 export type ModelSchemaRow = {
   name: string;
@@ -72,15 +77,18 @@ export const normalizeInferenceDatatype = (
  * contract. Otherwise they are derived from the training CSV schema and the experiment
  * configuration (legacy model.json files without the inference block).
  *
- * - Target column: excluded on both paths — it is the value being predicted, not a column
- *   the caller sends in for a prediction.
+ * - Target column: excluded for tabular models — it is the value being predicted, not a
+ *   column the caller sends in for a prediction. For timeseries models the target's
+ *   historical values are required input (the serving runtime validates their presence),
+ *   so the target is listed with the `Target history` role.
  * - Feature importance: when available, its keys are the set of columns AutoGluon actually
  *   used; columns absent from it are still listed but marked `isUsed: false` ("Not used by
  *   this model"). This applies to timeseries as well — every input column is shown so the
- *   caller knows the full schema, with unused ones flagged. On the CSV fallback path only,
- *   importance keys not in the CSV (engineered/renamed features) are appended with an
- *   unknown dtype — the input schema, when present, already reflects the serving contract
- *   so nothing is appended.
+ *   caller knows the full schema, with unused ones flagged. The timeseries id, timestamp,
+ *   and target columns are structurally required by the serving runtime and are never
+ *   flagged. On the CSV fallback path only, importance keys not in the CSV
+ *   (engineered/renamed features) are appended with an unknown dtype — the input schema,
+ *   when present, already reflects the serving contract so nothing is appended.
  * - Timeseries: the ID and timestamp columns are required inputs alongside covariates.
  *   Known covariates (user-designated at configure time) are distinguished from past
  *   covariates.
@@ -109,19 +117,22 @@ export const buildModelSchema = (
   const knownCovariates = isTimeseries ? (parameters?.known_covariates_names ?? []) : [];
 
   // Base entries: column name, dtype, and order — from the input schema when present,
-  // otherwise from the training CSV schema. The target is excluded on both paths: it is
-  // the value being predicted, not a column to send in.
+  // otherwise from the training CSV schema. The target is excluded for tabular models
+  // (it is the value being predicted, not a column to send in). For timeseries models the
+  // target's historical values ARE required input: the serving runtime
+  // (kserve-autogluon-server) rejects prediction requests whose instances are missing the
+  // target column — the forecast continues the target's history.
   const fields = inputSchema ?? [];
   const useInputSchema = fields.length > 0;
   const entries: { name: string; dtype: ModelSchemaRow['dtype'] }[] = useInputSchema
     ? fields
-        .filter((field) => field.name !== target)
+        .filter((field) => !target || isTimeseries || field.name !== target)
         .map((field) => ({
           name: field.name,
           dtype: normalizeInferenceDatatype(field.datatype),
         }))
     : columns
-        .filter((column) => column.name !== target)
+        .filter((column) => !target || isTimeseries || column.name !== target)
         .map((column) => ({ name: column.name, dtype: column.type }));
 
   // CSV-fallback only: features present in the importance data but absent from the
@@ -145,15 +156,22 @@ export const buildModelSchema = (
         role = 'ID column';
       } else if (name === timestampColumn) {
         role = 'Timestamp column';
+      } else if (name === target) {
+        role = 'Target history';
       } else if (knownCovariates.includes(name)) {
         role = 'Known covariate';
       }
     }
+    // The id, timestamp, and target columns are structurally required by the timeseries
+    // serving runtime regardless of which features AutoGluon used — never flag them as
+    // "not used".
+    const isStructurallyRequired =
+      isTimeseries && (name === target || name === idColumn || name === timestampColumn);
     return {
       name,
       dtype,
       role,
-      isUsed: usedFeatures ? usedFeatures.has(name) : true,
+      isUsed: usedFeatures ? isStructurallyRequired || usedFeatures.has(name) : true,
       position: 0,
     };
   });
@@ -164,24 +182,56 @@ export const buildModelSchema = (
 };
 
 /**
- * Build a scoring sample payload from the model schema rows: a single `instances` entry
- * keyed by column name, in input order (Order 1, 2, 3…), with each value a type
- * placeholder (e.g. `["<integer>"]`) — the same shape as model.json's
- * `inference.sample_payload`.
+ * Build a scoring sample payload from the model schema rows, in input order
+ * (Order 1, 2, 3…). Placeholders use the row's normalized dtype so the vocabulary
+ * matches the Model schema tab exactly (e.g. `double`, never model.json's `number`).
  *
- * Placeholders use the row's normalized dtype so the vocabulary matches the Model schema
- * tab exactly (e.g. `double`, never model.json's raw `number`).
+ * - Tabular: a single `instances` entry keyed by column name with array-valued type
+ *   placeholders (e.g. `["<integer>"]`) — the same shape as model.json's
+ *   `inference.sample_payload`.
+ * - Timeseries: the serving runtime (kserve-autogluon-server) expects `instances` to be
+ *   history rows with scalar values — one row per timestamp carrying the id, timestamp,
+ *   and target columns plus past covariates — and, when the model uses known covariates,
+ *   a separate top-level `known_covariates` array of future rows carrying the id,
+ *   timestamp, and known covariate columns.
  */
 export const buildSamplePayload = (
   rows: ModelSchemaRow[],
-): { instances: Record<string, string[]>[] } => {
+  isTimeseries = false,
+): {
+  instances: Record<string, string | string[]>[];
+  known_covariates?: Record<string, string>[];
+} => {
   // Null prototype: a column named `__proto__` would otherwise invoke the inherited
   // prototype setter instead of creating an own property, dropping it from the template.
-  const instance: Record<string, string[]> = Object.create(null);
-  for (const row of rows) {
-    instance[row.name] = [`<${row.dtype ?? 'unknown'}>`];
+  const placeholder = (row: ModelSchemaRow): string => `<${row.dtype ?? 'unknown'}>`;
+  if (!isTimeseries) {
+    const instance: Record<string, string[]> = Object.create(null);
+    for (const row of rows) {
+      instance[row.name] = [placeholder(row)];
+    }
+    return { instances: [instance] };
   }
-  return { instances: [instance] };
+
+  // Timeseries history row: id, timestamp, target, past covariates — scalar values.
+  const historyRow: Record<string, string> = Object.create(null);
+  // Known-covariates row: id, timestamp, and the known covariate columns — scalar values.
+  const knownRow: Record<string, string> = Object.create(null);
+  for (const row of rows) {
+    if (row.role === 'ID column' || row.role === 'Timestamp column') {
+      historyRow[row.name] = placeholder(row);
+      knownRow[row.name] = placeholder(row);
+    } else if (row.role === 'Known covariate') {
+      knownRow[row.name] = placeholder(row);
+    } else {
+      historyRow[row.name] = placeholder(row);
+    }
+  }
+  const hasKnownCovariates = rows.some((row) => row.role === 'Known covariate');
+  return hasKnownCovariates
+    ? // eslint-disable-next-line camelcase -- key matches the serving request body
+      { instances: [historyRow], known_covariates: [knownRow] }
+    : { instances: [historyRow] };
 };
 
 /**
@@ -190,14 +240,23 @@ export const buildSamplePayload = (
  * lines per column and becomes very tall for wide schemas.
  */
 export const formatSamplePayloadJson = (payload: ReturnType<typeof buildSamplePayload>): string => {
-  const entries = Object.entries(payload.instances[0] ?? {});
-  if (entries.length === 0) {
+  const formatRow = (row: Record<string, unknown>): string => {
+    const entries = Object.entries(row);
+    if (entries.length === 0) {
+      return '{}';
+    }
+    return `{\n${entries
+      .map(([key, value]) => `      ${JSON.stringify(key)}: ${JSON.stringify(value)}`)
+      .join(',\n')}\n    }`;
+  };
+  if (payload.instances.length === 0 || Object.keys(payload.instances[0]).length === 0) {
     return '{\n  "instances": [\n    {}\n  ]\n}';
   }
-  const body = entries
-    .map(([key, value]) => `      ${JSON.stringify(key)}: ${JSON.stringify(value)}`)
-    .join(',\n');
-  return `{\n  "instances": [\n    {\n${body}\n    }\n  ]\n}`;
+  let json = `{\n  "instances": [\n    ${formatRow(payload.instances[0])}\n  ]`;
+  if (payload.known_covariates) {
+    json += `,\n  "known_covariates": [\n    ${formatRow(payload.known_covariates[0])}\n  ]`;
+  }
+  return `${json}\n}`;
 };
 
 /** Human-readable label for a CSV-inferred data type. */

@@ -146,14 +146,17 @@ describe('buildModelSchema', () => {
     );
 
     // All input columns are listed for timeseries scoring; importance data only flags
-    // which ones AutoGluon actually used. The target (sales) is excluded.
+    // which ones AutoGluon actually used. The target (sales) is included — its history is
+    // required input — and the id/timestamp/target columns are structurally required by
+    // the serving runtime, so they are never flagged as unused.
     expect(rows.map((row) => [row.name, row.role, row.isUsed])).toEqual([
       ['store_id', 'ID column', true],
-      ['date', 'Timestamp column', false],
+      ['date', 'Timestamp column', true],
+      ['sales', 'Target history', true],
       ['promotion', 'Known covariate', false],
       ['temperature', 'Past covariate', true],
     ]);
-    expect(rows.map((row) => row.position)).toEqual([1, 2, 3, 4]);
+    expect(rows.map((row) => row.position)).toEqual([1, 2, 3, 4, 5]);
   });
 
   it('should prefer back_testing id/timestamp columns over parameters (timeseries)', () => {
@@ -179,6 +182,7 @@ describe('buildModelSchema', () => {
       ['store_id', 'Past covariate'],
       ['item', 'ID column'],
       ['ts', 'Timestamp column'],
+      ['sales', 'Target history'],
     ]);
   });
 
@@ -270,10 +274,12 @@ describe('buildModelSchema', () => {
         { name: 'promotion', datatype: 'boolean' },
       ]);
 
-      // sales is the target — excluded even when the input schema lists it.
+      // sales is the target — for timeseries its historical values are required input,
+      // so it is listed with the Target history role.
       expect(rows.map((row) => [row.name, row.dtype, row.role])).toEqual([
         ['store_id', 'string', 'ID column'],
         ['date', 'timestamp', 'Timestamp column'],
+        ['sales', 'double', 'Target history'],
         ['promotion', 'bool', 'Known covariate'],
       ]);
     });
@@ -348,6 +354,46 @@ describe('buildSamplePayload', () => {
     expect(Object.keys(payload.instances[0])).toEqual(['__proto__', 'col1']);
     expect(formatSamplePayloadJson(payload)).toContain('"__proto__": ["<string>"]');
   });
+
+  describe('timeseries', () => {
+    const tsRows: ModelSchemaRow[] = [
+      { name: 'store_id', dtype: 'string', role: 'ID column', isUsed: true, position: 1 },
+      { name: 'date', dtype: 'timestamp', role: 'Timestamp column', isUsed: true, position: 2 },
+      { name: 'sales', dtype: 'double', role: 'Target history', isUsed: true, position: 3 },
+      { name: 'temperature', dtype: 'double', role: 'Past covariate', isUsed: true, position: 4 },
+      { name: 'promotion', dtype: 'bool', role: 'Known covariate', isUsed: true, position: 5 },
+    ];
+
+    it('should build scalar-valued history rows and a separate known_covariates array', () => {
+      // The serving runtime expects instances as history rows with scalar values, and
+      // known covariates as a separate top-level array of future rows.
+      expect(buildSamplePayload(tsRows, true)).toEqual({
+        instances: [
+          {
+            store_id: '<string>',
+            date: '<timestamp>',
+            sales: '<double>',
+            temperature: '<double>',
+          },
+        ],
+        known_covariates: [{ store_id: '<string>', date: '<timestamp>', promotion: '<bool>' }],
+      });
+    });
+
+    it('should omit known_covariates when the model has no known covariates', () => {
+      const noKnown = tsRows.filter((row) => row.role !== 'Known covariate');
+      expect(buildSamplePayload(noKnown, true)).toEqual({
+        instances: [
+          {
+            store_id: '<string>',
+            date: '<timestamp>',
+            sales: '<double>',
+            temperature: '<double>',
+          },
+        ],
+      });
+    });
+  });
 });
 
 describe('formatSamplePayloadJson', () => {
@@ -379,6 +425,25 @@ describe('formatSamplePayloadJson', () => {
   it('should JSON-escape column names', () => {
     const json = formatSamplePayloadJson({ instances: [{ 'quo"te': ['<string>'] }] });
     expect(json).toContain('"quo\\"te": ["<string>"]');
+  });
+
+  it('should render the known_covariates section for timeseries payloads', () => {
+    const json = formatSamplePayloadJson({
+      instances: [{ store_id: '<string>', date: '<timestamp>', sales: '<double>' }],
+      known_covariates: [{ store_id: '<string>', date: '<timestamp>', promotion: '<bool>' }],
+    });
+    expect(json).toBe(
+      '{\n  "instances": [\n    {\n' +
+        '      "store_id": "<string>",\n' +
+        '      "date": "<timestamp>",\n' +
+        '      "sales": "<double>"\n' +
+        '    }\n  ],\n' +
+        '  "known_covariates": [\n    {\n' +
+        '      "store_id": "<string>",\n' +
+        '      "date": "<timestamp>",\n' +
+        '      "promotion": "<bool>"\n' +
+        '    }\n  ]\n}',
+    );
   });
 });
 

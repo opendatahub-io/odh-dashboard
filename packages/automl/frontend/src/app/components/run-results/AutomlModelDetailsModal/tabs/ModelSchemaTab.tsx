@@ -20,6 +20,7 @@ import {
 import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td, type ThProps } from '@patternfly/react-table';
 import { useS3GetFileSchemaQuery, type ColumnSchema } from '~/app/hooks/useS3GetFileSchemaQuery';
+import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import {
   buildModelSchema,
@@ -112,8 +113,8 @@ const ModelSchemaTab: React.FC<TabContentProps> = ({
   );
 
   const payloadJson = React.useMemo(
-    () => formatSamplePayloadJson(buildSamplePayload(rows)),
-    [rows],
+    () => formatSamplePayloadJson(buildSamplePayload(rows, taskType === TASK_TYPE_TIMESERIES)),
+    [rows, taskType],
   );
 
   const targetColumn = getTargetColumn(taskType, parameters, backTesting);
