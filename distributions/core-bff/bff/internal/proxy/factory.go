@@ -62,9 +62,12 @@ func (cfg ProxyConfig) rewriteFunc() func(*httputil.ProxyRequest) {
 
 		if cfg.PathRewriteFn != nil {
 			// The rewrite yields the upstream route; the target's own path is a
-			// base it is mounted under, so it is kept in front.
-			pr.Out.URL.Path = JoinBasePath(target.Path, cfg.PathRewriteFn(pr.In))
-			pr.Out.URL.RawPath = ""
+			// base it is mounted under, so it is kept in front. Both the decoded
+			// and the escaped form are built, so an escaped base such as
+			// /tenant%2Fblue stays one segment.
+			route := cfg.PathRewriteFn(pr.In)
+			pr.Out.URL.Path = JoinBasePath(target.Path, route)
+			pr.Out.URL.RawPath = JoinBasePath(target.EscapedPath(), escapedRoute(cfg.PathRewriteFn, pr.In, route))
 		}
 
 		stripImpersonationHeaders(pr.Out.Header)
@@ -96,6 +99,24 @@ func JoinBasePath(base, route string) string {
 		route = "/" + route
 	}
 	return base + route
+}
+
+// escapedRoute is the escaped form of route. The rewrite functions trim or
+// prepend constant ASCII prefixes, so applying one to the request's escaped
+// path yields the escaped route; that is used only when it decodes back to
+// route, and otherwise route is escaped afresh.
+func escapedRoute(rewrite func(*http.Request) string, in *http.Request, route string) string {
+	clone := *in
+	u := *in.URL
+	u.Path = in.URL.EscapedPath()
+	u.RawPath = ""
+	clone.URL = &u
+	if raw := rewrite(&clone); raw != "" {
+		if decoded, err := url.PathUnescape(raw); err == nil && decoded == route {
+			return raw
+		}
+	}
+	return (&url.URL{Path: route}).EscapedPath()
 }
 
 func rewriteAuthHeader(pr *httputil.ProxyRequest, authHeaderFn func(*http.Request) string) {

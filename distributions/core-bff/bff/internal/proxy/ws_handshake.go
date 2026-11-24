@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -41,16 +40,19 @@ func originChecker(allowedOrigins []string) func(*http.Request) bool {
 	if slices.Contains(allowedOrigins, "*") {
 		return func(r *http.Request) bool { return true }
 	}
+	// Origins compare case-insensitively, as the CORS middleware compares
+	// them: scheme and host are case-insensitive, and browsers send them
+	// lower-cased, so https://Dashboard.Example.com must match here too.
 	allowed := make(map[string]bool, len(allowedOrigins))
 	for _, o := range allowedOrigins {
-		allowed[strings.TrimRight(o, "/")] = true
+		allowed[strings.ToLower(strings.TrimRight(o, "/"))] = true
 	}
 	return func(r *http.Request) bool {
 		origin := r.Header.Get(constants.HeaderOrigin)
 		if origin == "" {
 			return false
 		}
-		return allowed[strings.TrimRight(origin, "/")]
+		return allowed[strings.ToLower(strings.TrimRight(origin, "/"))]
 	}
 }
 
@@ -73,15 +75,28 @@ func kubernetesWebSocketPath(r *http.Request) string {
 	return strings.TrimPrefix(r.URL.Path, strings.TrimSuffix(WssProxyPrefix, "/"))
 }
 
-// buildTargetWSURL keeps basePath, the path of the configured API server URL,
-// in front of the Kubernetes route.
-func buildTargetWSURL(wsScheme, host, basePath string, r *http.Request) string {
-	kubeURI := JoinBasePath(basePath, kubernetesWebSocketPath(r))
-	targetWSURL := fmt.Sprintf("%s://%s%s", wsScheme, host, kubeURI)
-	if r.URL.RawQuery != "" {
-		targetWSURL += "?" + r.URL.RawQuery
+// buildTargetWSURL keeps base, the configured API server URL's path, in front
+// of the Kubernetes route. The URL is assembled from its parts rather than by
+// string concatenation, so an escaped base such as /tenant%23blue is not
+// mistaken for a fragment and an escaped segment stays one segment.
+func buildTargetWSURL(wsScheme, host string, base *url.URL, r *http.Request) string {
+	route := kubernetesWebSocketPath(r)
+	rawRoute := strings.TrimPrefix(r.URL.EscapedPath(), strings.TrimSuffix(WssProxyPrefix, "/"))
+	if decoded, err := url.PathUnescape(rawRoute); err != nil || decoded != route {
+		rawRoute = (&url.URL{Path: route}).EscapedPath()
 	}
-	return targetWSURL
+	basePath, baseRaw := "", ""
+	if base != nil {
+		basePath, baseRaw = base.Path, base.EscapedPath()
+	}
+	target := url.URL{
+		Scheme:   wsScheme,
+		Host:     host,
+		Path:     JoinBasePath(basePath, route),
+		RawPath:  JoinBasePath(baseRaw, rawRoute),
+		RawQuery: r.URL.RawQuery,
+	}
+	return target.String()
 }
 
 func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, targetURL *url.URL, netDialContext func(ctx context.Context, network, addr string) (net.Conn, error), clientSubprotocols []string, requestID string) (*websocket.Conn, *http.Response, error) {
