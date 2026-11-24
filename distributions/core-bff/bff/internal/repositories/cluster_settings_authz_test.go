@@ -506,3 +506,20 @@ func TestClusterSettings_SegmentKeyReadError_GetAndPlanAgree(t *testing.T) {
 	require.Error(t, getErr)
 	require.Error(t, planErr)
 }
+
+// Review pass 4: under the service-account policy too, GET fails on a
+// segment-key read error, as the save plan does.
+func TestClusterSettings_SegmentKeyReadError_ServiceAccountGetFails(t *testing.T) {
+	sa := newClientPair(versioned(segmentCM(true), "1"))
+	sa.typed.PrependReactor("get", "configmaps", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		if a.(k8stesting.GetAction).GetName() != segmentKeyConfigName {
+			return false, nil, nil
+		}
+		return true, nil, k8serrors.NewInternalError(errors.New("etcd timeout"))
+	})
+	repo := NewClusterSettingsRepository(sa.typed)
+	_, err := repo.GetClusterSettings(context.Background(), credNS, defaultDashConfig())
+	require.Error(t, err)
+	_, err = repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
+	require.Error(t, err)
+}

@@ -392,3 +392,30 @@ func TestUpdateClusterSettings_CallerNoInstance_404NothingWritten(t *testing.T) 
 		assert.NotContains(t, []string{"create", "update", "patch", "delete"}, a.GetVerb(), "nothing is written")
 	}
 }
+
+// Review pass 4: a culler ConfigMap another save created after the read is reported
+// before the OdhDashboardConfig patch, so the patch is not applied alongside
+// the conflict.
+func TestUpdateClusterSettings_ConfigMapChangedAfterRead_NoConfigPatch(t *testing.T) {
+	f := newCallerSettingsFixture(t)
+	added := false
+	f.typed.PrependReactor("create", "selfsubjectaccessreviews", func(k8stesting.Action) (bool, runtime.Object, error) {
+		if !added {
+			added = true
+			require.NoError(t, f.typed.Tracker().Add(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+				Name: "notebook-controller-culler-config", Namespace: "dash-ns", ResourceVersion: "1",
+			}}))
+		}
+		return false, nil, nil
+	})
+
+	rr := f.put(t)
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	var result models.MutationResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &result))
+	assert.False(t, result.Success)
+	assert.False(t, f.dashboardConfigPatched(), "nothing is written when the plan no longer holds")
+	for _, a := range f.typed.Actions() {
+		assert.NotContains(t, []string{"create configmaps", "patch deployments"}, a.GetVerb()+" "+a.GetResource().Resource)
+	}
+}

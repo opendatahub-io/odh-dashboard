@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"log/slog"
 	"strconv"
 	"strings"
 
@@ -63,17 +62,13 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 
 	if dashConfig != nil && !dashConfig.Spec.DashboardConfig.DisableTracking {
 		tracking, err := readUserTrackingEnabled(ctx, cs, namespace)
-		if err != nil && r.clients.policy == CredentialPolicyCaller {
-			// Under the caller policy a failed read is the caller's answer, as
-			// for every other read here and as the save plan treats it: GET
-			// never shows a tracking value that was not read.
+		if err != nil {
+			// A failed read fails GET, as the culler read does and as the save
+			// plan treats it: GET never shows a tracking value it did not read,
+			// so saving what GET showed cannot fail on a read GET hid.
 			return nil, err
 		}
-		if err != nil {
-			slog.Warn("failed to read segment key config, defaulting to tracking disabled", slog.Any("error", err))
-		} else {
-			settings.UserTrackingEnabled = tracking
-		}
+		settings.UserTrackingEnabled = tracking
 	}
 
 	return &settings, nil
@@ -136,6 +131,29 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 	}
 
 	return json.Marshal(patch)
+}
+
+// VerifyPlanStillHolds re-checks, before anything is written, that the
+// ConfigMaps the plan read are as it read them: a planned create still has no
+// ConfigMap, and every other one is at the version read (or still absent). The
+// handler runs it before the OdhDashboardConfig patch, so a change made by
+// another save since the read is reported before the first write. A change in
+// the short window after this check is still caught by the bound writes.
+func (r *ClusterSettingsRepository) VerifyPlanStillHolds(ctx context.Context, namespace string, plan *ClusterSettingsPlan) error {
+	if plan == nil {
+		return fmt.Errorf("cluster settings update has no plan")
+	}
+	cs, err := r.clients.typed(ctx)
+	if err != nil {
+		return err
+	}
+	if err := requireUnchanged(ctx, cs, namespace, cullerConfigName, plan.culler); err != nil {
+		return err
+	}
+	if plan.trackingManaged {
+		return requireUnchanged(ctx, cs, namespace, segmentKeyConfigName, plan.segmentKey)
+	}
+	return nil
 }
 
 // UpdateConfigMaps executes the ConfigMap writes and the notebook-controller

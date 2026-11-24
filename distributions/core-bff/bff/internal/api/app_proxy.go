@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
+
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
@@ -26,6 +28,23 @@ func impersonateFromIdentity(in *http.Request, out http.Header) {
 	for _, g := range identity.Groups {
 		out.Add(constants.HeaderImpersonateGroup, g)
 	}
+}
+
+// requireMockUser guards the envtest proxies. They present the envtest admin
+// certificate and carry identity only through impersonation, so a token that
+// maps to no mocked test user would otherwise run as that admin. Such a request
+// is refused like any other unauthenticated one; the DevFallback identity runs
+// as the envtest admin by design.
+func requireMockUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+		if !ok || identity == nil || (!identity.DevFallback && identity.UserID == "") {
+			httpcontract.EnsureID(w, r)
+			httpcontract.WriteLocal(w, r, http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func resolveK8sHost(cfg config.EnvConfig, k8sResult k8sSetupResult) (string, error) {
@@ -126,6 +145,12 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		return fmt.Errorf("failed to create K8s proxy: %w", err)
 	}
 	app.k8sProxy = k8sProxyHandler
+	// With caller tokens read (user_token), a token that maps to no mocked
+	// user is refused; disabled auth has no caller token to map.
+	guardMockUsers := outboundHeadersFn != nil && cfg.AuthMethod == config.AuthMethodUser
+	if guardMockUsers {
+		app.k8sProxy = requireMockUser(k8sProxyHandler)
+	}
 
 	app.wsTracker = proxy.NewConnectionTracker(app.logger)
 
@@ -146,6 +171,9 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		return fmt.Errorf("failed to create WebSocket proxy: %w", err)
 	}
 	app.wsProxy = wsHandler
+	if guardMockUsers {
+		app.wsProxy = requireMockUser(wsHandler)
+	}
 
 	return nil
 }

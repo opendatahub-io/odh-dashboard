@@ -87,6 +87,13 @@ func (app *App) UpdateClusterSettingsHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Report a ConfigMap another save changed since the read before the first
+	// write, so the configuration patch is not applied alongside a conflict.
+	if err := app.repositories.ClusterSettings.VerifyPlanStillHolds(ctx, app.config.Namespace, plan); err != nil {
+		app.clusterSettingsFailure(w, r, "unable to update cluster settings", err)
+		return
+	}
+
 	if _, err := app.repositories.DashboardConfig.PatchRawDashboardConfig(
 		ctx, app.config.Namespace, app.config.DashboardConfigName, patchBytes, types.MergePatchType,
 	); err != nil {
