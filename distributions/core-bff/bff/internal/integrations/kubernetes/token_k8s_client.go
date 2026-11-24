@@ -66,7 +66,13 @@ func NewKubeconfigKubernetesClient(ctx context.Context, logger *slog.Logger) (Ku
 		httpcontract.LogContext(logger, ctx).Error("failed to get kubeconfig", "code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
+	return newKubeconfigKubernetesClientFromBase(ctx, cfg, logger)
+}
 
+// newKubeconfigKubernetesClientFromBase builds the DEV_MODE fallback client,
+// which runs on the kubeconfig's own credentials, from a copy of base.
+func newKubeconfigKubernetesClientFromBase(ctx context.Context, base *rest.Config, logger *slog.Logger) (KubernetesClientInterface, error) {
+	cfg := rest.CopyConfig(base)
 	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {

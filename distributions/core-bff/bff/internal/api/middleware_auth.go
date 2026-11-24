@@ -31,7 +31,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			// Only an absent credential selects the developer's kubeconfig
 			// identity. A credential that was sent but is malformed is the
 			// caller's and must fail, never be swapped for a stronger one.
-			if app.config.DevMode && errors.Is(err, httpcontract.ErrCredentialsMissing) {
+			if app.config.DevMode && errors.Is(err, httpcontract.ErrCredentialsMissing) && !carriesOtherCredential(r.Header, app.config.AuthTokenHeader) {
 				// DevUser/DevGroups are used for audit log fallback labeling (see auditUser).
 				// The resolved identity for k8s operations comes from the kubeconfig's native auth,
 				// not from these values - GetUser() does a SelfSubjectReview against the kubeconfig client.
@@ -51,6 +51,18 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// carriesOtherCredential reports whether a request without the configured
+// token header still carries a credential, in Authorization. Such a request
+// is not credential-less: falling back would replace the caller's identity
+// with the developer's, so it gets 401 instead.
+func carriesOtherCredential(h http.Header, tokenHeader string) bool {
+	if strings.EqualFold(tokenHeader, constants.HeaderAuthorization) {
+		return false
+	}
+	_, present := h[constants.HeaderAuthorization]
+	return present
 }
 
 // auditUser returns the best available user identifier for audit logging.

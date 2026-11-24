@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/textproto"
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
@@ -40,6 +41,9 @@ func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger, base 
 			k8sFactory.NewTokenKubernetesClientFn = func(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
 				return newTokenKubernetesClientFromBase(ctx, validated, token, logger)
 			}
+			k8sFactory.newDevFallbackClientFn = func(ctx context.Context, logger *slog.Logger) (KubernetesClientInterface, error) {
+				return newKubeconfigKubernetesClientFromBase(ctx, validated, logger)
+			}
 		}
 		return k8sFactory, nil
 	default:
@@ -60,6 +64,10 @@ type TokenClientFactory struct {
 	// Pass the request context and base logger; resolve audit correlation when logging.
 	// This can be overridden by downstream code to provide custom client creation logic.
 	NewTokenKubernetesClientFn func(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error)
+	// newDevFallbackClientFn builds the DEV_MODE fallback client. It is set to
+	// use the validated startup kubeconfig; nil means a fresh read, which only
+	// factories built without one (tests) use.
+	newDevFallbackClientFn func(ctx context.Context, logger *slog.Logger) (KubernetesClientInterface, error)
 }
 
 // NewTokenClientFactory creates a new token-based Kubernetes client factory.
@@ -73,9 +81,20 @@ func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) Kubernetes
 }
 
 func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error) {
-	raw := httpHeader.Get(f.Header)
-	if raw == "" {
+	// Header.Get cannot tell an absent header from an empty one, and the HTTP
+	// parser trims a whitespace-only value to "". Only an absent header is a
+	// missing credential (which DEV_MODE may replace with the developer's
+	// identity); a header that was sent but is empty is an invalid one.
+	values, present := httpHeader[textproto.CanonicalMIMEHeaderKey(f.Header)]
+	if !present {
 		return nil, fmt.Errorf("missing required header: %s: %w", f.Header, httpcontract.ErrCredentialsMissing)
+	}
+	raw := ""
+	if len(values) > 0 {
+		raw = values[0]
+	}
+	if strings.TrimSpace(raw) == "" {
+		return nil, fmt.Errorf("empty credential header: %w", httpcontract.ErrCredentialsInvalid)
 	}
 
 	token := raw
@@ -119,6 +138,9 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 	}
 
 	if identity.DevFallback {
+		if f.newDevFallbackClientFn != nil {
+			return f.newDevFallbackClientFn(ctx, f.Logger)
+		}
 		return NewKubeconfigKubernetesClient(ctx, f.Logger)
 	}
 

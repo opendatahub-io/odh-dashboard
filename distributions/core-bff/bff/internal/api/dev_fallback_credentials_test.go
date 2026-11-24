@@ -1,6 +1,9 @@
 package api
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,3 +67,54 @@ func TestDevModeFallback_OnlyForMissingCredentials(t *testing.T) {
 }
 
 func ptrTo(s string) *string { return &s }
+
+// Through a real connection the HTTP parser trims header values, so an empty
+// and a whitespace-only header both arrive as "". Only an absent header may
+// fall back; a sent-but-empty one is an invalid credential.
+func TestDevModeFallback_EmptyHeaderOnTheWireIsNotMissing(t *testing.T) {
+	cfg := config.EnvConfig{
+		DevMode:         true,
+		AuthMethod:      config.AuthMethodUser,
+		AuthTokenHeader: "X-Forwarded-Access-Token",
+		DevUser:         "dev-user",
+	}
+	app := newTestApp(func(a *App) {
+		a.config = cfg
+		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), cfg)
+	})
+	srv := httptest.NewServer(app.InjectRequestIdentity(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, _ := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+		if identity != nil && identity.DevFallback {
+			w.Header().Set("X-Test-Fallback", "true")
+		}
+	})))
+	defer srv.Close()
+
+	for _, tc := range []struct {
+		name, header string
+		status       int
+		fallback     bool
+	}{
+		{"absent", "", http.StatusOK, true},
+		{"empty", "X-Forwarded-Access-Token:\r\n", http.StatusUnauthorized, false},
+		{"whitespace only", "X-Forwarded-Access-Token:    \r\n", http.StatusUnauthorized, false},
+		{"lower-case name, empty", "x-forwarded-access-token: \r\n", http.StatusUnauthorized, false},
+		// A credential in Authorization is still a credential: it must not
+		// be swapped for the developer's identity.
+		{"credential in Authorization instead", "Authorization: Bearer low-privilege-caller\r\n", http.StatusUnauthorized, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			conn, err := net.Dial("tcp", srv.Listener.Addr().String())
+			require.NoError(t, err)
+			defer conn.Close()
+			_, err = fmt.Fprintf(conn, "GET /api/config HTTP/1.1\r\nHost: x\r\n%sConnection: close\r\n\r\n", tc.header)
+			require.NoError(t, err)
+			resp, err := http.ReadResponse(bufio.NewReader(conn), nil)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tc.status, resp.StatusCode)
+			assert.Equal(t, tc.fallback, resp.Header.Get("X-Test-Fallback") == "true")
+		})
+	}
+}
