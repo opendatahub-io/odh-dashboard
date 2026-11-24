@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,9 +12,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/deploy"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
+	platformresources "github.com/opendatahub-io/odh-platform-utilities/pkg/resources"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
@@ -275,4 +278,28 @@ func TestApplyKustomizeParamsOverridesWinOverComputedValues(t *testing.T) {
 			assert.Equal(t, "override.example.com", params["gateway-domain"])
 		})
 	}
+}
+
+// The rendered RHAII bundle must apply its NetworkPolicy before the Deployment, so a failure later in
+// the apply (for example a missing Certificate CRD) never leaves dashboard pods without ingress policy.
+func TestRHAIIApplyOrderPutsNetworkPolicyBeforeDeployment(t *testing.T) {
+	source := filepath.Join("..", "..", "..", "manifests", "distributions", "rhaii")
+	bundle := filepath.Join(t.TempDir(), "rhaii")
+	require.NoError(t, os.MkdirAll(bundle, 0755))
+	require.NoError(t, os.CopyFS(bundle, os.DirFS(source)))
+	rendered, err := kustomize.NewEngine().Render(bundle, kustomize.WithNamespace("applications"))
+	require.NoError(t, err)
+
+	sorted, err := deploy.SortFn(platformresources.SortByApplyOrder).Then(networkPoliciesBeforeWorkloads)(context.Background(), rendered)
+	require.NoError(t, err)
+	require.Len(t, sorted, len(rendered))
+	index := map[string]int{}
+	for i := range sorted {
+		index[sorted[i].GetKind()+"/"+sorted[i].GetName()] = i
+	}
+	policy, okPolicy := index["NetworkPolicy/rhaii-dashboard"]
+	workload, okWorkload := index["Deployment/rhaii-dashboard"]
+	require.True(t, okPolicy && okWorkload)
+	assert.Less(t, policy, workload)
+	assert.Less(t, index["ServiceAccount/rhaii-dashboard"], workload, "foundational kinds keep their order")
 }

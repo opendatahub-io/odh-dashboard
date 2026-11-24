@@ -12,6 +12,7 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
+	platformresources "github.com/opendatahub-io/odh-platform-utilities/pkg/resources"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,6 +35,38 @@ func (xksDashboardLifecycle) availabilityTarget() dashboardAvailabilityTarget {
 
 func (l xksDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig) (ctrl.Result, error) {
 	return l.reconcileRHAIIDashboard(ctx, dashboard, cm, cfg)
+}
+
+// networkPoliciesBeforeWorkloads moves NetworkPolicies ahead of the first
+// workload in an apply-ordered list. The shared apply order lists Deployment
+// explicitly and sorts NetworkPolicy among the unlisted kinds after it, so a
+// failure between the two (for example a missing Certificate CRD) would leave
+// the dashboard pods without their ingress policy until a later pass.
+func networkPoliciesBeforeWorkloads(_ context.Context, objects []unstructured.Unstructured) ([]unstructured.Unstructured, error) {
+	ordered := make([]unstructured.Unstructured, 0, len(objects))
+	var policies []unstructured.Unstructured
+	for i := range objects {
+		if objects[i].GetKind() == "NetworkPolicy" {
+			policies = append(policies, objects[i])
+		}
+	}
+	inserted := false
+	for i := range objects {
+		switch objects[i].GetKind() {
+		case "NetworkPolicy":
+			continue
+		case "Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "Pod", "Job", "CronJob":
+			if !inserted {
+				ordered = append(ordered, policies...)
+				inserted = true
+			}
+		}
+		ordered = append(ordered, objects[i])
+	}
+	if !inserted {
+		ordered = append(ordered, policies...)
+	}
+	return ordered, nil
 }
 
 // xksRequiredAPIRetryInterval bounds the retry while cert-manager or Gateway API
@@ -118,7 +151,7 @@ func (l xksDashboardLifecycle) reconcileRHAIIDashboard(
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner(dashboardFieldOwner),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
-		deploy.WithApplyOrder(),
+		deploy.WithSortFn(deploy.SortFn(platformresources.SortByApplyOrder).Then(networkPoliciesBeforeWorkloads)),
 		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 	)
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
