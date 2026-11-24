@@ -3,6 +3,8 @@ package k8sutil
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -13,13 +15,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
+	"k8s.io/client-go/rest"
 	k8stesting "k8s.io/client-go/testing"
 )
 
 var clusterVersions = schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "clusterversions"}
 
+// coreGroup is what every real API server lists; without it a discovery
+// answer is not trusted.
+var coreGroup = &metav1.APIResourceList{GroupVersion: "v1", APIResources: []metav1.APIResource{{Name: "pods"}}}
+
 func fakeDiscovery(resources ...*metav1.APIResourceList) *fakediscovery.FakeDiscovery {
-	return &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{Resources: resources}}
+	return &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{Resources: append([]*metav1.APIResourceList{coreGroup}, resources...)}}
 }
 
 // blockingDiscovery never answers, like a hung discovery request.
@@ -52,6 +59,8 @@ func TestConfirmAPIAbsent(t *testing.T) {
 		{"resource served", fakeDiscovery(&metav1.APIResourceList{GroupVersion: "config.openshift.io/v1",
 			APIResources: []metav1.APIResource{{Name: "clusterversions"}}}), false},
 		{"group list fails", failingGroups, false},
+		// A stub from an intermediary decodes to a list without the core group.
+		{"answer without the core group", &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{}}, false},
 		{"no discovery client", nil, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -77,4 +86,25 @@ func TestConfirmAPIAbsent_HonoursTheContextDeadline(t *testing.T) {
 	assert.False(t, absent)
 	assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
 	assert.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
+// The reviewer's reproduction through the real discovery client: a proxy that
+// answers /api with 404 and /apis with a JSON stub decodes to an empty group
+// list, which must not confirm absence.
+func TestConfirmAPIAbsent_StubDiscoveryOverHTTP(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/apis" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"message":"ok"}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+
+	disc, err := discovery.NewDiscoveryClientForConfig(&rest.Config{Host: srv.URL})
+	require.NoError(t, err)
+	absent, err := ConfirmAPIAbsent(context.Background(), disc, clusterVersions)
+	assert.False(t, absent)
+	assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
 }

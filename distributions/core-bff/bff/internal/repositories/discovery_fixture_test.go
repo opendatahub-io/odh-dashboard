@@ -8,14 +8,19 @@ import (
 	k8stesting "k8s.io/client-go/testing"
 )
 
-// emptyDiscovery serves no API groups, so it confirms any API is absent.
+// emptyDiscovery serves only the core group, so it confirms any other API is absent.
 func emptyDiscovery() discovery.DiscoveryInterface {
-	return &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{}}
+	return &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{Resources: []*metav1.APIResourceList{coreGroup()}}}
+}
+
+// coreGroup is listed by every real API server; discovery is not trusted without it.
+func coreGroup() *metav1.APIResourceList {
+	return &metav1.APIResourceList{GroupVersion: "v1", APIResources: []metav1.APIResource{{Name: "pods"}}}
 }
 
 // servesAuth lists the Auth resource, as discovery does wherever the CRD is installed.
 func servesAuth() discovery.DiscoveryInterface {
-	return &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{Resources: []*metav1.APIResourceList{{
+	return &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{Resources: []*metav1.APIResourceList{coreGroup(), {
 		GroupVersion: models.AuthGVR.GroupVersion().String(),
 		APIResources: []metav1.APIResource{{Name: models.AuthGVR.Resource}},
 	}}}}

@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
+	fakediscovery "k8s.io/client-go/discovery/fake"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	k8stesting "k8s.io/client-go/testing"
 )
@@ -199,4 +201,31 @@ func TestLookup_BareNotFoundNeedsDiscoveryToConfirmAbsence(t *testing.T) {
 			assert.Equal(t, 1, client.calls)
 		})
 	}
+}
+
+// A confirmed absence is reused briefly, so admission does not run discovery
+// on every request; a CRD installed later is seen once the window passes.
+func TestLookup_ConfirmedAbsenceIsCachedBriefly(t *testing.T) {
+	bare404 := &k8serrors.StatusError{ErrStatus: metav1.Status{
+		Status: metav1.StatusFailure, Code: 404, Reason: metav1.StatusReasonNotFound,
+	}}
+	disc := &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{Resources: []*metav1.APIResourceList{coreGroup()}}}
+	repo := NewAuthRepository(newFakeDynClientFailingWith(bare404), disc)
+	now := time.Unix(1000, 0)
+	repo.now = func() time.Time { return now }
+
+	assert.Equal(t, AuthCRDAbsent, repo.Lookup(context.Background()).Availability)
+	calls := len(disc.Actions())
+	require.NotZero(t, calls)
+	assert.Equal(t, AuthCRDAbsent, repo.Lookup(context.Background()).Availability)
+	assert.Len(t, disc.Actions(), calls, "a recent confirmation is reused")
+
+	// The CRD is installed afterwards: once the window passes, discovery is
+	// asked again and the bare 404 is no longer accepted as absence.
+	disc.Resources = []*metav1.APIResourceList{coreGroup(), {
+		GroupVersion: models.AuthGVR.GroupVersion().String(),
+		APIResources: []metav1.APIResource{{Name: models.AuthGVR.Resource}},
+	}}
+	now = now.Add(absenceCacheTTL + time.Second)
+	assert.Equal(t, AuthUnavailable, repo.Lookup(context.Background()).Availability)
 }

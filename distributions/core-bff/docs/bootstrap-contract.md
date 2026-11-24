@@ -70,7 +70,10 @@ Only positive evidence that the OpenShift configuration API is absent confirms X
 a resource name on the read is only a hint, because a proxy or gateway in front of the API server
 can return the same response on OpenShift. The probe then asks discovery (`/apis`, readable by
 every authenticated identity through the default `system:discovery` role), and only a successful
-answer that does not list `config.openshift.io/v1` `clusterversions` confirms absence. A discovery
+answer that lists the core `v1` group but not `config.openshift.io/v1` `clusterversions` confirms
+absence. An answer without the core group is a stub, not a discovery document. Discovery goes
+through the same network path as the read, so this catches an intermediary that rejects resource
+paths, not one that forges discovery; set `ODH_PLATFORM_TYPE` where neither can be trusted. A discovery
 failure, or a discovery answer that serves the resource, is inconclusive. A missing
 singleton, a malformed object or a 405 on the read is not that evidence either, and a successful read is
 OpenShift even when the cluster ID cannot be parsed. The same confirmation also decides whether
@@ -102,7 +105,9 @@ For everyone else:
 | Admin                                           | **Admitted**     | `ADMISSION_ADMIN`                 | The admin review already succeeded.                                                                                        |
 
 The codes are logged on every decision, so an operator can tell the four Auth failure modes apart
-without reading the source. `bff/internal/repositories/bootstrap.go` is the single place this is
+without reading the source. A CRD absence confirmed by discovery is reused for 30 seconds, so
+admission does not run discovery on every request; a CRD installed later takes effect within that
+window. `bff/internal/repositories/bootstrap.go` is the single place this is
 decided; `status_integration_test.go` asserts each row.
 
 The two rules this table exists to enforce:

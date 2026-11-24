@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 )
@@ -17,8 +18,9 @@ var ErrAbsenceUnconfirmed = errors.New("API absence not confirmed by discovery")
 // resource name on a GET looks like a missing API, but an intermediary (a
 // proxy or gateway in front of the API server) can return the same response,
 // so it is not proof on its own. Absence is confirmed only by a successful
-// discovery answer: the group list does not include the group version, or the
-// group version's resource list does not include the resource.
+// discovery answer that includes the core group (so it is a real discovery
+// document) and either does not list the group version or lists it without
+// the resource.
 //
 // It returns (true, nil) only on confirmed absence. Any discovery failure, a
 // served resource, or a nil client returns (false, err) wrapping
@@ -56,18 +58,13 @@ func confirmAPIAbsent(disc discovery.DiscoveryInterface, gvr schema.GroupVersion
 	if groups == nil {
 		return false, fmt.Errorf("%w: empty group list", ErrAbsenceUnconfirmed)
 	}
-	served := false
-	for _, g := range groups.Groups {
-		if g.Name != gvr.Group {
-			continue
-		}
-		for _, v := range g.Versions {
-			if v.GroupVersion == gv {
-				served = true
-			}
-		}
+	// Every real API server serves the core group. An answer without it is
+	// not a discovery document (a stub or an error page from an
+	// intermediary), so its silence about gvr proves nothing.
+	if !listsGroupVersion(groups, "", "v1") {
+		return false, fmt.Errorf("%w: the group list does not include the core group", ErrAbsenceUnconfirmed)
 	}
-	if !served {
+	if !listsGroupVersion(groups, gvr.Group, gv) {
 		return true, nil
 	}
 
@@ -86,4 +83,18 @@ func confirmAPIAbsent(disc discovery.DiscoveryInterface, gvr schema.GroupVersion
 		}
 	}
 	return true, nil
+}
+
+func listsGroupVersion(groups *metav1.APIGroupList, group, groupVersion string) bool {
+	for _, g := range groups.Groups {
+		if g.Name != group {
+			continue
+		}
+		for _, v := range g.Versions {
+			if v.GroupVersion == groupVersion {
+				return true
+			}
+		}
+	}
+	return false
 }

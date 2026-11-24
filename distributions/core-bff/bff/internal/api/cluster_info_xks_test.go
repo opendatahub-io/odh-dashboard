@@ -164,11 +164,13 @@ func TestAmbiguousPlatformProbeDoesNotRelaxAdmission(t *testing.T) {
 }
 
 func servesClusterVersion(d *fakediscovery.FakeDiscovery) {
-	d.Resources = []*metav1.APIResourceList{{
+	d.Resources = []*metav1.APIResourceList{coreGroup(), {
 		GroupVersion: models.ClusterVersionGVR.GroupVersion().String(),
 		APIResources: []metav1.APIResource{{Name: models.ClusterVersionGVR.Resource}},
 	}}
 }
+
+func stubDiscovery(d *fakediscovery.FakeDiscovery) { d.Resources = nil }
 
 func discoveryFails(d *fakediscovery.FakeDiscovery) {
 	d.PrependReactor("get", "group", func(k8stesting.Action) (bool, runtime.Object, error) {
@@ -223,6 +225,12 @@ func TestClusterVersionProbeOutcomesDriveAdmissionAndTLS(t *testing.T) {
 			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
 		},
 		{
+			// The same intermediary answers discovery with a stub.
+			name:  "bare 404 and a stub discovery answer: inconclusive",
+			react: notServed, discovery: stubDiscovery, wantPlatform: config.PlatformXKS, wantConfirmed: false,
+			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
+		},
+		{
 			name:  "bare 404 and discovery fails: inconclusive",
 			react: notServed, discovery: discoveryFails, wantPlatform: config.PlatformXKS, wantConfirmed: false,
 			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
@@ -269,6 +277,7 @@ func TestClusterVersionProbeOutcomesDriveAdmissionAndTLS(t *testing.T) {
 			}
 
 			clientset := k8sfake.NewSimpleClientset()
+			clientset.Discovery().(*fakediscovery.FakeDiscovery).Resources = []*metav1.APIResourceList{coreGroup()}
 			if tc.discovery != nil {
 				tc.discovery(clientset.Discovery().(*fakediscovery.FakeDiscovery))
 			}

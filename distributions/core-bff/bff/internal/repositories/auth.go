@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -17,13 +19,42 @@ import (
 type AuthRepository struct {
 	saDynClient dynamic.Interface
 	discovery   discovery.DiscoveryInterface
+
+	// absenceMu guards absentUntil: a confirmed CRD absence is reused for
+	// absenceCacheTTL so admission does not run discovery on every request
+	// where the Auth API is not installed. Only confirmed absence is cached.
+	absenceMu   sync.Mutex
+	absentUntil time.Time
+	now         func() time.Time
 }
+
+// absenceCacheTTL bounds how long a confirmed Auth CRD absence is reused. A
+// CRD installed later is picked up within this window.
+const absenceCacheTTL = 30 * time.Second
 
 // NewAuthRepository reads the Auth CR with the service-account client. disc
 // confirms CRD absence; without it a missing Auth API is never treated as
 // absent, so admission falls back to the access review.
 func NewAuthRepository(saDynClient dynamic.Interface, disc discovery.DiscoveryInterface) *AuthRepository {
-	return &AuthRepository{saDynClient: saDynClient, discovery: disc}
+	return &AuthRepository{saDynClient: saDynClient, discovery: disc, now: time.Now}
+}
+
+// confirmAbsent reports whether discovery confirms the Auth API is not served,
+// reusing a recent confirmation.
+func (r *AuthRepository) confirmAbsent(ctx context.Context) (bool, error) {
+	r.absenceMu.Lock()
+	cached := r.now().Before(r.absentUntil)
+	r.absenceMu.Unlock()
+	if cached {
+		return true, nil
+	}
+	absent, err := k8sutil.ConfirmAPIAbsent(ctx, r.discovery, models.AuthGVR)
+	if absent {
+		r.absenceMu.Lock()
+		r.absentUntil = r.now().Add(absenceCacheTTL)
+		r.absenceMu.Unlock()
+	}
+	return absent, err
 }
 
 // AuthConfig holds admin and allowed group lists from the Auth CRD.
@@ -87,7 +118,7 @@ func (r *AuthRepository) Lookup(ctx context.Context) AuthLookup {
 			// CRD absence admits without a review, and an intermediary can
 			// return the same bare 404 while the CRD is installed, so only
 			// discovery can confirm it.
-			if absent, confirmErr := k8sutil.ConfirmAPIAbsent(ctx, r.discovery, models.AuthGVR); !absent {
+			if absent, confirmErr := r.confirmAbsent(ctx); !absent {
 				return AuthLookup{Availability: AuthUnavailable, Err: fmt.Errorf("auth read inconclusive: %w", confirmErr)}
 			}
 			return AuthLookup{Availability: AuthCRDAbsent}
