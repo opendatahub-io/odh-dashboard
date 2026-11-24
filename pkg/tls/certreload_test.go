@@ -9,11 +9,13 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"log/slog"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -216,8 +218,64 @@ func TestCertReloaderRecoversAfterAnInvalidRotation(t *testing.T) {
 			t.Fatalf("chtimes: %v", err)
 		}
 	}
+	// Same modification times as the failed attempt: the retry waits out the
+	// back-off, then picks the repair up.
+	clock := time.Now()
+	r.now = func() time.Time { return clock }
+	r.failedAt = clock
+	if got := servedSerial(t, r); got != 1 {
+		t.Fatalf("serial during back-off = %d, want the previous 1", got)
+	}
+	clock = clock.Add(failedRetryInterval)
 	if got := servedSerial(t, r); got != 3 {
 		t.Fatalf("serial after recovery = %d, want 3", got)
+	}
+}
+
+// A rotation that keeps failing is reported once and retried at most every
+// failedRetryInterval, not re-read, re-parsed and logged on every handshake.
+func TestCertReloaderBacksOffAPersistentBadRotation(t *testing.T) {
+	dir := t.TempDir()
+	certFile, keyFile := writeCertPairWithSerial(t, dir, 1)
+	var logs strings.Builder
+	r, err := NewCertReloader(certFile, keyFile, slog.New(slog.NewTextHandler(&logs, nil)))
+	if err != nil {
+		t.Fatalf("NewCertReloader: %v", err)
+	}
+	clock := time.Now()
+	r.now = func() time.Time { return clock }
+
+	if err := os.WriteFile(certFile, []byte("garbage"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	bumpModTime(t, certFile)
+	for i := 0; i < 50; i++ {
+		if got := servedSerial(t, r); got != 1 {
+			t.Fatalf("serial = %d, want the previous 1", got)
+		}
+	}
+	clock = clock.Add(failedRetryInterval)
+	servedSerial(t, r)
+
+	if n := strings.Count(logs.String(), "failed to load rotated serving certificate"); n != 1 {
+		t.Fatalf("logged the failure %d times, want once per failing pair", n)
+	}
+}
+
+// The startup error names neither path: a value that is not a path at all
+// (a PEM block pasted into a key-file setting) must not reach the log.
+func TestNewCertReloaderErrorOmitsThePaths(t *testing.T) {
+	dir := t.TempDir()
+	certFile, _ := writeCertPairWithSerial(t, dir, 1)
+	pasted := "-----BEGIN PRIVATE KEY-----\nCANARYKEY\n-----END PRIVATE KEY-----"
+	_, err := NewCertReloader(certFile, pasted, testLogger())
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	for _, leak := range []string{"CANARYKEY", certFile} {
+		if strings.Contains(err.Error(), leak) {
+			t.Fatalf("error %q leaks %q", err, leak)
+		}
 	}
 }
 
