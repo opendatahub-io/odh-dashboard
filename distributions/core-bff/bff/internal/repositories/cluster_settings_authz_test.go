@@ -448,3 +448,26 @@ func TestClusterSettings_ConflictThenDeniedRollout_DenialWins(t *testing.T) {
 	assert.True(t, repo.SurfacesAuthFailure(err))
 	assert.Contains(t, err.Error(), "after the update was planned", "the conflict is kept too")
 }
+
+// Review pass 1: with disableTracking, GET never reads the segment-key
+// ConfigMap, so a save must not need access to it either.
+func TestClusterSettings_TrackingDisabled_SegmentKeyNotRead(t *testing.T) {
+	caller := newClientPair(versioned(segmentCM(true), "1"))
+	allowAllBut(caller, nil)
+	caller.typed.PrependReactor("get", "configmaps", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		if a.(k8stesting.GetAction).GetName() != segmentKeyConfigName {
+			return false, nil, nil
+		}
+		return true, nil, k8serrors.NewForbidden(corev1.Resource("configmaps"), segmentKeyConfigName, nil)
+	})
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+	cfg := defaultDashConfig()
+	cfg.Spec.DashboardConfig.DisableTracking = true
+
+	shown, err := repo.GetClusterSettings(context.Background(), credNS, cfg)
+	require.NoError(t, err, "GET does not read the segment key")
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", shown, cfg)
+	require.NoError(t, err, "nor does the save plan")
+	require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
+	assert.Empty(t, writes(caller))
+}

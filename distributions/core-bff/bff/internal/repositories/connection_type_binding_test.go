@@ -68,3 +68,21 @@ func TestBoundJSONPatch_LeavesNonArrayBodiesAlone(t *testing.T) {
 	}
 	assert.Equal(t, `[{"op":"add"}]`, string(boundJSONPatch([]byte(`[{"op":"add"}]`), "")))
 }
+
+// Review pass 1: a client-supplied resourceVersion other than the validated one
+// is refused, so a body cannot point the write at an object never validated.
+func TestConnectionType_UpdateRejectsForeignResourceVersion(t *testing.T) {
+	cs := fake.NewSimpleClientset(boundCT("7"))
+	repo := NewConnectionTypeRepository(cs)
+
+	resp, err := repo.Update(context.Background(), testNS, "ct", boundCT("99"))
+	require.NoError(t, err)
+	assert.False(t, resp.Success)
+	for _, a := range cs.Actions() {
+		assert.NotEqual(t, "update", a.GetVerb(), "nothing is written")
+	}
+
+	resp, err = repo.Update(context.Background(), testNS, "ct", boundCT("7"))
+	require.NoError(t, err)
+	assert.True(t, resp.Success, "the validated version itself is accepted")
+}

@@ -108,10 +108,15 @@ func (r *ConnectionTypeRepository) Update(ctx context.Context, namespace, name s
 
 	// Bind the write to the ConfigMap that was validated: if it changed since,
 	// the API server rejects the update as a conflict instead of writing over
-	// an object that was not checked. A version the client sent is kept.
-	if cm.ResourceVersion == "" {
-		cm.ResourceVersion = existing.ResourceVersion
+	// an object that was not checked. A version the client sent must be that
+	// same one; any other could name an object that was never validated.
+	if cm.ResourceVersion != "" && cm.ResourceVersion != existing.ResourceVersion {
+		return &models.MutationResponse{
+			Success: false,
+			Error:   fmt.Sprintf("connection type %q changed since it was loaded; reload it and save again", name),
+		}, nil
 	}
+	cm.ResourceVersion = existing.ResourceVersion
 	_, updateErr := cs.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if updateErr != nil {
 		if r.clients.surfacesAuthFailure(updateErr) {

@@ -141,17 +141,20 @@ func (r *ClusterSettingsRepository) buildPlan(
 		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: cullerConfigName})
 	}
 
-	segmentKey, err := getConfigMap(ctx, cs, namespace, segmentKeyConfigName)
-	if err != nil {
-		return nil, err
-	}
-	plan.segmentKey = segmentKey
-	// With tracking disabled in the dashboard config, GET does not show the
-	// setting and the form cannot change it, so the ConfigMap is left alone.
+	// With tracking disabled in the dashboard config, GET neither reads nor
+	// shows the setting and the form cannot change it, so the plan neither reads
+	// nor writes the segment-key ConfigMap: a save then needs no access to it.
 	plan.trackingManaged = currentConfig == nil || !currentConfig.Spec.DashboardConfig.DisableTracking
-	if plan.trackingManaged && segmentKey != nil && trackingEnabledOf(segmentKey) != settings.UserTrackingEnabled {
-		plan.updateSegmentKey = true
-		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: segmentKeyConfigName})
+	if plan.trackingManaged {
+		segmentKey, err := getConfigMap(ctx, cs, namespace, segmentKeyConfigName)
+		if err != nil {
+			return nil, err
+		}
+		plan.segmentKey = segmentKey
+		if segmentKey != nil && trackingEnabledOf(segmentKey) != settings.UserTrackingEnabled {
+			plan.updateSegmentKey = true
+			plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: segmentKeyConfigName})
+		}
 	}
 
 	// The rollout decision uses the same read the writes are bound to.
