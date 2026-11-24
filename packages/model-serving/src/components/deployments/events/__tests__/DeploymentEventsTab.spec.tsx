@@ -44,7 +44,9 @@ it('should preserve readable Events and report incomplete coverage once per kind
 
 it('should intersect severity with case-insensitive search and distinguish filter-empty from no Events', () => {
   const { rerender } = render(<DeploymentEventsTab {...initial} />);
-  expect(screen.getByText('No Events found')).toBeVisible();
+  expect(
+    screen.getByText('No Events found yet. Events may appear as more resources are discovered.'),
+  ).toBeVisible();
   rerender(<DeploymentEventsTab {...initial} rows={[normal, warning]} />);
   fireEvent.change(screen.getByRole('combobox', { name: 'Event severity' }), {
     target: { value: 'Warning' },
@@ -57,7 +59,7 @@ it('should intersect severity with case-insensitive search and distinguish filte
   }
   fireEvent.change(search, { target: { value: 'Creating Pod' } });
   expect(screen.getByText('No matching Events')).toBeVisible();
-  expect(screen.queryByText('No Events found')).not.toBeInTheDocument();
+  expect(screen.queryByText(/^No Events found yet\./)).not.toBeInTheDocument();
 });
 
 it.each([
@@ -68,5 +70,5 @@ it.each([
 ] as const)('should distinguish %s from an empty result', (state, text) => {
   render(<DeploymentEventsTab {...initial} state={state} />);
   expect(screen.getByLabelText(text)).toBeInTheDocument();
-  expect(screen.queryByText('No Events found')).not.toBeInTheDocument();
+  expect(screen.queryByText(/^No Events found yet\./)).not.toBeInTheDocument();
 });

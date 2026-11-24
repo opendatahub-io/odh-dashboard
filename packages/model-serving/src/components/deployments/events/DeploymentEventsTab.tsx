@@ -134,7 +134,9 @@ const DeploymentEventsTab: React.FC<DeploymentEventsTabProps> = ({
         (rows.length > 0 || (!failedKinds.length && !hasPartialEventError)) && (
           <StackItem>
             <Content component="p">
-              {rows.length ? 'No matching Events' : 'No Events found'}
+              {rows.length
+                ? 'No matching Events'
+                : 'No Events found yet. Events may appear as more resources are discovered.'}
             </Content>
           </StackItem>
         )}

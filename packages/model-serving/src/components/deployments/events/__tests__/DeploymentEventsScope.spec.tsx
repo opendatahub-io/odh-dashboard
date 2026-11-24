@@ -227,7 +227,7 @@ it('should distinguish a failed Event watch from an empty list', async () => {
   results.set(watchKey('root'), [[], false, new Error('Event watch failed')]);
   render(scope());
   expect(await screen.findByLabelText('Unable to load Events')).toBeVisible();
-  expect(screen.queryByText('No Events found')).not.toBeInTheDocument();
+  expect(screen.queryByText(/^No Events found yet\./)).not.toBeInTheDocument();
 });
 
 it('should show an access problem when the Event request is denied after an allowed review', async () => {
@@ -245,5 +245,5 @@ it('should show an access problem when the Event request is denied after an allo
   ]);
   render(scope());
   expect(await screen.findByLabelText('Insufficient permissions to view Events')).toBeVisible();
-  expect(screen.queryByText('No Events found')).not.toBeInTheDocument();
+  expect(screen.queryByText(/^No Events found yet\./)).not.toBeInTheDocument();
 });
