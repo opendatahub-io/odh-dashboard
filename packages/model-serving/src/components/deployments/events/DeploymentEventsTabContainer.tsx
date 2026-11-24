@@ -2,11 +2,13 @@ import * as React from 'react';
 import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import type { K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import DeploymentEventsTab, { type DeploymentEventsTabProps } from './DeploymentEventsTab';
+import DeploymentEventsTabBody, {
+  type DeploymentEventsTabBodyProps,
+} from './DeploymentEventsTabBody';
 import DeploymentEventsWatch, { type DeploymentWatchSnapshot } from './DeploymentEventsWatch';
 import { toDeploymentEventRows, type DeploymentEventRow } from './deploymentEventRows';
-import { resolveDeploymentEventSources } from './resolveDeploymentEventSources';
 import useDeploymentEventsAccess from './useDeploymentEventsAccess';
+import useDeploymentEventSources from './useDeploymentEventSources';
 import type { Deployment, ModelServingEventsDiscovery } from '../../../../extension-points';
 
 const eventModel: K8sModelCommon = { apiVersion: 'v1', kind: 'Event', plural: 'events' };
@@ -19,11 +21,12 @@ const useWatchSnapshots = () => {
   const publish = React.useCallback((id: string, snapshot: DeploymentWatchSnapshot) => {
     setSnapshots((current) => {
       const previous = current.get(id);
+      // Returning the same map avoids a parent update when the watch values haven't changed.
       if (
         previous &&
-        previous[0] === snapshot[0] &&
-        previous[1] === snapshot[1] &&
-        previous[2] === snapshot[2]
+        previous.data === snapshot.data &&
+        previous.loaded === snapshot.loaded &&
+        previous.error === snapshot.error
       ) {
         return current;
       }
@@ -43,7 +46,7 @@ const useWatchSnapshots = () => {
   return { snapshots, publish, remove };
 };
 
-type ScopeProps = {
+type ContainerProps = {
   deployment: Deployment;
   discovery: ModelServingEventsDiscovery['properties'];
   visible: boolean;
@@ -51,7 +54,7 @@ type ScopeProps = {
   tabId: string;
 };
 
-const DeploymentEventsScope: React.FC<ScopeProps> = ({
+const DeploymentEventsTabContainer: React.FC<ContainerProps> = ({
   deployment,
   discovery,
   visible,
@@ -67,55 +70,29 @@ const DeploymentEventsScope: React.FC<ScopeProps> = ({
   const [autoRefresh, setAutoRefresh] = React.useState(true);
   const [pausedRows, setPausedRows] = React.useState<readonly DeploymentEventRow[]>();
 
-  const controllerInputs = React.useMemo(
-    () =>
-      discovery.resources.map(({ scope, apiGroup, ...descriptor }) => {
-        const model: K8sModelCommon = { ...descriptor, apiGroup: apiGroup || undefined };
-        return {
-          id: `${apiGroup}/${model.apiVersion}/${model.plural}`,
-          model,
-          resource: {
-            namespace,
-            isList: true,
-            groupVersionKind: groupVersionKind(model),
-            selector:
-              scope === 'model' ? { matchLabels: discovery.modelLabelSelector(name) } : undefined,
-          },
-        };
-      }),
-    [discovery, name, namespace],
+  const { controllerInputs, sourceUids, failedKinds, discoveryPending } = useDeploymentEventSources(
+    {
+      deployment,
+      discovery,
+      controllerSnapshots: controllers.snapshots,
+      enabled,
+    },
   );
 
-  const { podDiscovery } = deployment;
-  const sourceUids = React.useMemo(() => {
-    if (!enabled || !uid) {
-      return [];
-    }
-    return resolveDeploymentEventSources(uid, [
-      ...controllerInputs.flatMap(({ id }) => controllers.snapshots.get(id)?.[0] ?? []),
-      ...(podDiscovery?.pods ?? []),
-    ]);
-  }, [enabled, uid, controllerInputs, controllers.snapshots, podDiscovery?.pods]);
-  const failedKinds = controllerInputs.flatMap(({ id, model }) =>
-    controllers.snapshots.get(id)?.[2] ? [model.kind] : [],
-  );
-  if (podDiscovery?.error) {
-    failedKinds.push('Pod');
-  }
-
+  // Read only currently reachable sources, even before removed watchers finish cleaning up.
   const eventSnapshots = sourceUids.map((sourceUid) => events.snapshots.get(sourceUid));
-  const failures = eventSnapshots.flatMap((snapshot) => (snapshot?.[2] ? [snapshot[2]] : []));
-  const liveRows = sourceUids.flatMap((sourceUid, index) =>
-    toDeploymentEventRows(sourceUid, eventSnapshots[index]?.[0] ?? []),
+  const failures = eventSnapshots.flatMap((snapshot) => (snapshot?.error ? [snapshot.error] : []));
+  const liveRows = sourceUids.flatMap((sourceUid) =>
+    toDeploymentEventRows(sourceUid, events.snapshots.get(sourceUid)?.data ?? []),
   );
-  const hasReadableEvents = eventSnapshots.some((snapshot) => snapshot?.[1] && !snapshot[2]);
+  const hasReadableEvents = eventSnapshots.some((snapshot) => snapshot?.loaded && !snapshot.error);
   const hasPartialEventError = failures.length > 0 && (hasReadableEvents || liveRows.length > 0);
-  const eventsPending = eventSnapshots.some((snapshot) => !snapshot?.[1] && !snapshot?.[2]);
-  // Keep the paused snapshot while the resumed watches start returning data.
-  const rows =
-    enabled && pausedRows && (!autoRefresh || (eventsPending && liveRows.length === 0))
-      ? pausedRows
-      : liveRows;
+  const eventsPending = eventSnapshots.some((snapshot) => !snapshot?.loaded && !snapshot?.error);
+  // Pausing unmounts the Event watchers, which remove their live snapshots.
+  // Keep the frozen rows until fresh rows arrive or the resumed requests settle.
+  const waitingForFreshRows = eventsPending && liveRows.length === 0;
+  const showPausedRows = enabled && (!autoRefresh || waitingForFreshRows);
+  const rows = showPausedRows ? pausedRows ?? liveRows : liveRows;
   React.useEffect(() => {
     if (autoRefresh && !eventsPending) {
       setPausedRows(undefined);
@@ -128,15 +105,10 @@ const DeploymentEventsScope: React.FC<ScopeProps> = ({
     }
     setAutoRefresh(next);
   };
-  const isLoading =
-    eventsPending ||
-    controllerInputs.some(({ id }) => {
-      const snapshot = controllers.snapshots.get(id);
-      return !snapshot?.[1] && !snapshot?.[2];
-    }) ||
-    Boolean(podDiscovery && !podDiscovery.loaded && !podDiscovery.error);
+  const isLoading = eventsPending || discoveryPending;
 
-  let state: DeploymentEventsTabProps['state'] = 'loading';
+  const allEventSourcesFailed = failures.length > 0 && failures.length === sourceUids.length;
+  let state: DeploymentEventsTabBodyProps['state'] = 'loading';
   if (access === 'denied') {
     state = 'denied';
   } else if (access === 'error') {
@@ -145,12 +117,7 @@ const DeploymentEventsScope: React.FC<ScopeProps> = ({
     state = 'fetch-error';
   } else if (enabled && !autoRefresh) {
     state = 'ready';
-  } else if (
-    enabled &&
-    !hasPartialEventError &&
-    failures.length > 0 &&
-    failures.length === sourceUids.length
-  ) {
+  } else if (enabled && allEventSourcesFailed && !hasPartialEventError) {
     state = failures.some((error) => getGenericErrorCode(error) === 403) ? 'denied' : 'fetch-error';
   } else if (enabled && !isLoading) {
     state = 'ready';
@@ -186,7 +153,7 @@ const DeploymentEventsScope: React.FC<ScopeProps> = ({
           />
         ))}
       <div role="tabpanel" id={panelId} aria-labelledby={tabId} hidden={!visible}>
-        <DeploymentEventsTab
+        <DeploymentEventsTabBody
           rows={rows}
           state={state}
           failedKinds={enabled ? failedKinds : []}
@@ -198,4 +165,4 @@ const DeploymentEventsScope: React.FC<ScopeProps> = ({
   );
 };
 
-export default DeploymentEventsScope;
+export default DeploymentEventsTabContainer;

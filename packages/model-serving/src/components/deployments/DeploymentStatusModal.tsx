@@ -53,7 +53,7 @@ import {
 } from '@odh-dashboard/model-serving/shared/components';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import DeploymentResourcesTab from './DeploymentResourcesTab';
-import DeploymentEventsScope from './events/DeploymentEventsScope';
+import DeploymentEventsTabContainer from './events/DeploymentEventsTabContainer';
 import { isModelServingEventsDiscovery } from '../../../extension-points';
 import {
   DeploymentTrackingEvent,
@@ -277,6 +277,7 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
     ({ properties }) => properties.platform === deployment.modelServingPlatformId,
   )?.properties;
   const eventsPanelId = React.useId();
+  // PatternFly prefixes the supplied Tab id when it renders the tab button.
   const eventsTabId = `${eventsPanelId}-tab`;
   const eventsVisible = activeTab === EVENTS_TAB && Boolean(eventDiscovery);
 
@@ -396,8 +397,9 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
               <DeploymentProgressTab conditions={conditions} deploymentStatus={deployment.status} />
             )}
           </StackItem>
+          {/* Mount with the modal so fetching starts early and survives tab switches. */}
           {eventDiscovery && (
-            <DeploymentEventsScope
+            <DeploymentEventsTabContainer
               key={JSON.stringify([
                 deployment.modelServingPlatformId,
                 namespace,

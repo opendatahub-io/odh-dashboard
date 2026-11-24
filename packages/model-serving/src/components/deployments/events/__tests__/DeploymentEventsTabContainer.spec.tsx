@@ -7,7 +7,7 @@ import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchRes
 import { checkAccess } from '@odh-dashboard/k8s-core/api/accessReview';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import type { Deployment, ModelServingEventsDiscovery } from '../../../../../extension-points';
-import DeploymentEventsScope from '../DeploymentEventsScope';
+import DeploymentEventsTabContainer from '../DeploymentEventsTabContainer';
 
 jest.mock('@odh-dashboard/ui-core/hooks/useK8sWatchResourceList');
 jest.mock('@odh-dashboard/k8s-core/api/accessReview');
@@ -90,7 +90,7 @@ const event = (uid: string, source: string, message: string) => ({
 });
 
 const scope = (visible = true, current = deployment) => (
-  <DeploymentEventsScope
+  <DeploymentEventsTabContainer
     key={current.model.metadata.uid}
     discovery={discovery}
     deployment={current}

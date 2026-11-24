@@ -23,7 +23,7 @@ import {
   type EventSeverityFilter,
 } from './deploymentEventRows';
 
-export type DeploymentEventsTabProps = {
+export type DeploymentEventsTabBodyProps = {
   rows: readonly DeploymentEventRow[];
   state: 'loading' | 'denied' | 'review-error' | 'fetch-error' | 'ready';
   failedKinds: readonly string[];
@@ -39,7 +39,7 @@ const errorMessages = {
   'fetch-error': 'Unable to load Events',
 };
 
-const DeploymentEventsTab: React.FC<DeploymentEventsTabProps> = ({
+const DeploymentEventsTabBody: React.FC<DeploymentEventsTabBodyProps> = ({
   rows,
   state,
   failedKinds,
@@ -172,4 +172,4 @@ const DeploymentEventsTab: React.FC<DeploymentEventsTabProps> = ({
   );
 };
 
-export default DeploymentEventsTab;
+export default DeploymentEventsTabBody;

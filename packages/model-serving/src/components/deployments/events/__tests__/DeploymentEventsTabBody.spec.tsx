@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import DeploymentEventsTab from '../DeploymentEventsTab';
+import DeploymentEventsTabBody from '../DeploymentEventsTabBody';
 
 const warning = {
   uid: 'warning',
@@ -22,7 +22,7 @@ const initial = { rows: [], failedKinds: [], hasPartialEventError: false, state:
 
 it('should preserve readable Events and report incomplete coverage once per kind', () => {
   render(
-    <DeploymentEventsTab
+    <DeploymentEventsTabBody
       {...initial}
       rows={[normal, warning]}
       failedKinds={['Deployment', 'Pod', 'Deployment']}
@@ -43,11 +43,11 @@ it('should preserve readable Events and report incomplete coverage once per kind
 });
 
 it('should intersect severity with case-insensitive search and distinguish filter-empty from no Events', () => {
-  const { rerender } = render(<DeploymentEventsTab {...initial} />);
+  const { rerender } = render(<DeploymentEventsTabBody {...initial} />);
   expect(
     screen.getByText('No Events found yet. Events may appear as more resources are discovered.'),
   ).toBeVisible();
-  rerender(<DeploymentEventsTab {...initial} rows={[normal, warning]} />);
+  rerender(<DeploymentEventsTabBody {...initial} rows={[normal, warning]} />);
   const search = screen.getByRole('textbox', { name: 'Search Events' });
   expect(search).toHaveAttribute('placeholder', 'Filter events...');
   const severity = screen.getByRole('button', { name: 'Severity: All' });
@@ -74,7 +74,7 @@ it.each([
   ['review-error', 'Unable to check Event permissions'],
   ['fetch-error', 'Unable to load Events'],
 ] as const)('should distinguish %s from an empty result', (state, text) => {
-  render(<DeploymentEventsTab {...initial} state={state} />);
+  render(<DeploymentEventsTabBody {...initial} state={state} />);
   expect(screen.getByLabelText(text)).toBeInTheDocument();
   expect(screen.queryByText(/^No Events found yet\./)).not.toBeInTheDocument();
 });

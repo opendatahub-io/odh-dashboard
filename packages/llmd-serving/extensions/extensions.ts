@@ -464,6 +464,7 @@ const extensions: (
           apiVersion: 'v1',
           kind: 'StatefulSet',
           plural: 'statefulsets',
+          // These carry LeaderWorkerSet labels, not the model labels used for the other lists.
           scope: 'namespace',
         },
       ],

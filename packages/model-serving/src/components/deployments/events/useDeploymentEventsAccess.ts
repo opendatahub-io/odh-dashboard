@@ -35,6 +35,7 @@ const useDeploymentEventsAccess = (namespace?: string): AccessState => {
     };
   }, [request]);
 
+  // Do not reuse an allowed result for a different request while the new checks are pending.
   return result?.request === request ? result.state : 'checking';
 };
 
