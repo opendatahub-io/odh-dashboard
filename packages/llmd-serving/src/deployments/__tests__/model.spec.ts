@@ -16,6 +16,28 @@ import {
 import { validateExtraction } from '../validateExtraction';
 
 describe('extractModelLocationData', () => {
+  it.each([undefined, [], [{ name: ' ' }]])(
+    'should reject a spec with no model location to extract (baseRefs=%j)',
+    (baseRefs) => {
+      const model = mockLLMInferenceServiceK8sResource({});
+      model.spec = baseRefs === undefined ? {} : { baseRefs };
+
+      expect(() => extractModelLocationData({ model })).toThrow(
+        'No model location could be read from this deployment.',
+      );
+    },
+  );
+
+  it('should extract a named connection when the model section is absent', () => {
+    const model = mockLLMInferenceServiceK8sResource({ secretName: 'test-connection' });
+    model.spec = {};
+
+    expect(extractModelLocationData({ model })).toMatchObject({
+      type: ModelLocationType.EXISTING,
+      connection: 'test-connection',
+    });
+  });
+
   it('should leave a model location inherited from a config in YAML', () => {
     const model = mockLLMInferenceServiceK8sResource({});
     delete model.spec.model;

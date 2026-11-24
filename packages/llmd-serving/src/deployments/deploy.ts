@@ -29,6 +29,7 @@ import {
   applyTokenAuthentication,
   applyDefaultScheduler,
   applyK8sNameAndNamespace,
+  hasNamedModelConfigReference,
 } from './model';
 import { applyConfigBaseRef } from './server';
 import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
@@ -337,9 +338,7 @@ export const deployLLMdDeployment = async (
   const { model, baseRefs } = location.spec ?? {};
   const uri = model?.uri;
   // KServe can inherit the model URI from a named config. Let it resolve the refs in order.
-  const hasBaseRef =
-    Array.isArray(baseRefs) &&
-    baseRefs.some((ref) => typeof ref?.name === 'string' && ref.name.trim());
+  const hasBaseRef = hasNamedModelConfigReference(baseRefs);
   // Legacy connection-backed deployments may be resolved by the existing
   // connection webhook. Dry runs omit its annotation until the Secret exists.
   const connectionName =

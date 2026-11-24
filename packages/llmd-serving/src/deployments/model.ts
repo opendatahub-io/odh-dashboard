@@ -194,6 +194,10 @@ export const getModelLocationUri = (deployment: LLMInferenceServiceKind): string
   return deployment.spec.model?.uri;
 };
 
+export const hasNamedModelConfigReference = (baseRefs?: ({ name?: unknown } | null)[]): boolean =>
+  Array.isArray(baseRefs) &&
+  baseRefs.some((ref) => typeof ref?.name === 'string' && ref.name.trim());
+
 const extractAdditionalFields = (deployment: LLMInferenceServiceKind): Record<string, string> => {
   const additionalFields: Record<string, string> = {};
   const uri = getModelLocationUri(deployment) ?? '';
@@ -234,6 +238,14 @@ export const extractModelLocationData = (deployment: {
   const connectionName =
     deployment.model.metadata.annotations?.[MetadataAnnotation.ConnectionName] ||
     imagePullSecrets?.name;
+
+  if (
+    !deployment.model.spec.model &&
+    !connectionName?.trim() &&
+    !hasNamedModelConfigReference(deployment.model.spec.baseRefs)
+  ) {
+    throw new Error('No model location could be read from this deployment.');
+  }
 
   const additionalFields = extractAdditionalFields(deployment.model);
 
