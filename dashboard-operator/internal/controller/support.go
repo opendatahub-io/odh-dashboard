@@ -19,8 +19,11 @@ var sectionTitle = map[cluster.Platform]string{
 	cluster.OpenDataHub:      "OpenShift Open Data Hub",
 }
 
+// ManagedRhoai has no dashboard overlay: "/not-supported" makes rendering fail
+// closed instead of falling back to the ODH overlay, as on main.
 var platformPaths = map[cluster.Platform]string{
 	cluster.SelfManagedRhoai: "/rhoai",
+	cluster.ManagedRhoai:     "/not-supported",
 	cluster.OpenDataHub:      "/odh",
 }
 

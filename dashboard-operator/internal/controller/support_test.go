@@ -442,3 +442,11 @@ spec:
 			"%s/%s must have namespace %q after WithNamespace injection", kind, name, targetNS)
 	}
 }
+
+// ManagedRhoai has no dashboard overlay. Rendering must fail closed (as on main) rather than fall back
+// to the ODH overlay and deploy the ODH core dashboard, RBAC and HTTPRoute on a managed cluster.
+func TestOpenShiftSourcePathFailsClosedForManagedRhoai(t *testing.T) {
+	assert.Equal(t, "/not-supported", openShiftSourcePath(cluster.ManagedRhoai))
+	assert.Equal(t, "/odh", openShiftSourcePath(cluster.OpenDataHub))
+	assert.Equal(t, "/rhoai", openShiftSourcePath(cluster.SelfManagedRhoai))
+}
