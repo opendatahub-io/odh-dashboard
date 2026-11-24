@@ -7,6 +7,6 @@
   {
     "path": "packages/cypress/cypress/tests/e2e/maasPortal/testMaaSPortalOpenShift.cy.ts",
     "owner": "quality-e2e-testing-reviewers",
-    "reason": "Requires a pre-enabled MaaS Portal, an OpenShift test user in rhods-users, and MaaS/model-serving resources that standard Cypress CI does not provision."
+    "reason": "Requires a pre-enabled MaaS Portal, an OpenShift test user in rhods-users, and MaaS/model-serving resources that standard Cypress CI does not provision; restore it when RHAI-50075 keeps the Portal enabled in dash-e2e-int."
   }
 ]

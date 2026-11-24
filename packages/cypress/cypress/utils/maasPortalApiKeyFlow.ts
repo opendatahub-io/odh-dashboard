@@ -1,4 +1,5 @@
 import { getClipboardContent, stubClipboard } from './clipboardUtils';
+import { executeMaaSUsageExample, parseMaaSUsageExample } from './maasApiKeyRevocation';
 import { buildMaaSInferenceUrl } from './oc_commands/maas';
 import { apiKeysPage, copyApiKeyModal, createApiKeyModal } from '../pages/modelsAsAService';
 
@@ -77,62 +78,43 @@ export const createPortalApiKeyAndVerifyInference = (
 
   stubClipboard('copiedPortalApiKey', { log: false });
   copyApiKeyModal.findApiKeyTokenCopyButton().click();
+  getClipboardContent('copiedPortalApiKey', { log: false }).then(([apiKey]) => {
+    expect(typeof apiKey, 'copied API key type').to.equal('string');
+    expect(apiKey.length, 'copied API key length').to.be.greaterThan(0);
+    cy.wrap(apiKey, { log: false }).as('storedApiKey');
+  });
 
-  cy.step('Run inference with the copied API key and verify HTTP 200');
-  copyApiKeyModal
-    .findUsageExample()
-    .invoke('text')
-    .then((example) => {
-      const endpointMatch = example.match(/curl\s+-X\s+POST\s+(\S+)/);
-      const bodyMatch = example.match(/-d\s+'([^']+)'/);
-      if (!endpointMatch || !bodyMatch) {
-        throw new Error('Could not parse the Portal API key usage example');
-      }
-      const usageEndpoint = new URL(endpointMatch[1]);
-      expect(usageEndpoint.protocol, 'usage example protocol').to.equal('https:');
-      expect(usageEndpoint.pathname, 'usage example endpoint').to.match(/\/v1\/chat\/completions$/);
-      const requestBody = JSON.parse(bodyMatch[1]) as {
-        model: string;
-        messages: Array<{ role: string; content: string }>;
-      };
-      const usageModelId = requestBody.model;
+  cy.step('Run the copied usage example and verify HTTP 200');
+  copyApiKeyModal.findUsageExampleCopyButton().click();
+  getClipboardContent('copiedPortalApiKey', { log: false })
+    .should('have.length.at.least', 2)
+    .then((copiedValues) => {
+      const usageExample = copiedValues[1];
+      const { endpoint: usageEndpoint, requestBody } = parseMaaSUsageExample(usageExample);
       const endpoint = modelRoute
-        ? buildMaaSInferenceUrl(usageEndpoint.host, modelRoute.projectName, modelRoute.modelName)
-        : usageEndpoint.toString();
+        ? buildMaaSInferenceUrl(
+            new URL(usageEndpoint).host,
+            modelRoute.projectName,
+            modelRoute.modelName,
+          )
+        : usageEndpoint;
+      const portalModelId = requestBody.model;
       if (modelRoute) {
         requestBody.model = modelRoute.modelName;
       }
       cy.wrap(endpoint).as('createdEndpoint');
       cy.wrap(requestBody).as('createdRequestBody');
+      cy.wrap(portalModelId).as('createdModelId');
       copyApiKeyModal
         .findModelID()
         .invoke('val')
-        .then((modelId) => {
-          expect(usageModelId, 'usage example model').to.equal(String(modelId));
-          cy.wrap(String(modelId)).as('createdModelId');
-        });
-      getClipboardContent('copiedPortalApiKey', { log: false }).then(([apiKey]) => {
-        expect(apiKey, 'copied API key').to.be.a('string');
-        expect(apiKey.length, 'copied API key length').to.be.greaterThan(0);
-        cy.wrap(apiKey, { log: false }).as('storedApiKey');
-        cy.request({
-          method: 'POST',
-          url: endpoint,
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: requestBody,
-          failOnStatusCode: false,
-          timeout: 180000,
-          log: false,
-        }).then((response) => {
-          expect(response.status, `MaaS inference response from ${endpoint}`).to.equal(200);
-          expect(response.headers['content-type'], 'MaaS inference content type').to.include(
-            'application/json',
-          );
-          expect(response.body, 'MaaS chat completion').to.have.property('choices');
-        });
+        .then((modelId) => expect(portalModelId, 'usage example model').to.equal(String(modelId)));
+      executeMaaSUsageExample(
+        usageExample,
+        modelRoute ? endpoint : undefined,
+        modelRoute ? requestBody : undefined,
+      ).then(({ status }) => {
+        expect(status, 'MaaS inference response').to.equal(200);
       });
     });
 
