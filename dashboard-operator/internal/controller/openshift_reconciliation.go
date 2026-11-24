@@ -191,7 +191,7 @@ func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, da
 		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
-	url := r.reconcileURL(ctx, dashboard, cm)
+	url, urlRetryAfter := r.reconcileURL(ctx, dashboard, cm)
 	availabilityRetryAfter, err := r.reconcileDashboardAvailability(ctx, dashboard, cm, availabilityTarget)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -207,7 +207,7 @@ func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, da
 		// resource changes.
 		rbacRetryAfter = observabilityRetryInterval
 	}
-	requeueAfter := minNonZeroDuration(cfg.ReconcileInterval, availabilityRetryAfter, extraRetryAfter, state.observabilityRetryAfter, rbacRetryAfter)
+	requeueAfter := minNonZeroDuration(cfg.ReconcileInterval, availabilityRetryAfter, urlRetryAfter, extraRetryAfter, state.observabilityRetryAfter, rbacRetryAfter)
 	if dashboard.Spec.Observability == nil && requeueAfter == 0 {
 		requeueAfter = observabilityRetryInterval
 	}

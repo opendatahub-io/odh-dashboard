@@ -39,7 +39,9 @@ const (
 	dashboardFinalizer    = "components.platform.opendatahub.io/cleanup"
 	dashboardFieldOwner   = "dashboard-operator"
 	teardownRetryInterval = 10 * time.Second
-	rhaiiDashboardTLSName = "rhaii-dashboard-tls"
+	// dashboardURLRetryInterval re-checks the legacy Route after a read failure.
+	dashboardURLRetryInterval = 10 * time.Second
+	rhaiiDashboardTLSName     = "rhaii-dashboard-tls"
 )
 
 const conditionObservabilityAvailable = "ObservabilityAvailable"
@@ -462,11 +464,17 @@ func (r *DashboardReconciler) reconcileObservability(
 	return 0
 }
 
+// reconcileURL publishes the legacy Route URL. Availability is reported through
+// the Deployment and HTTPRoute, so a Route problem is Info-severity Degraded
+// rather than a Ready failure. status.url is last-known-good (see
+// DashboardStatus.URL): a transient Route read failure or loss of admission
+// keeps the previously published value. Only a read failure returns a retry
+// interval, because the Route watch does not fire when the Route is unchanged.
 func (r *DashboardReconciler) reconcileURL(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
-) string {
+) (string, time.Duration) {
 	logger := log.FromContext(ctx)
 
 	url, err := extractDashboardURL(ctx, r.apiReader(), dashboard, r.ApplicationsNamespace, r.Platform)
@@ -477,24 +485,24 @@ func (r *DashboardReconciler) reconcileURL(
 			conditions.WithReason("RouteNotReady"),
 			conditions.WithMessage("Legacy Dashboard Route is not admitted"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		dashboard.Status.URL = ""
-		logger.Info("Legacy Dashboard Route is not available; Dashboard availability is reported through Deployment and HTTPRoute")
-		return ""
+		// The owned Route watch fires when the Route is created or admitted, so
+		// no requeue is needed; a gateway-only install may never have a Route.
+		logger.Info("Legacy Dashboard Route is not available; keeping last-known-good URL", "url", dashboard.Status.URL)
+		return dashboard.Status.URL, 0
 	case err != nil:
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
 			conditions.WithReason("URLExtractionFailed"),
 			conditions.WithError(err),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		dashboard.Status.URL = ""
-		logger.Error(err, "Failed to extract legacy Dashboard Route URL; Dashboard availability is reported through Deployment and HTTPRoute")
-		return ""
+		logger.Error(err, "Failed to extract legacy Dashboard Route URL; keeping last-known-good URL and requeuing", "url", dashboard.Status.URL)
+		return dashboard.Status.URL, dashboardURLRetryInterval
 	default:
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
 			conditions.WithReason("NoDegradation"),
 			conditions.WithMessage("All sub-modules healthy"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		dashboard.Status.URL = url
-		return url
+		return url, 0
 	}
 }
 
