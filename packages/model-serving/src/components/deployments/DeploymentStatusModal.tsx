@@ -400,6 +400,7 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
           {/* Mount with the modal so fetching starts early and survives tab switches. */}
           {eventDiscovery && (
             <DeploymentEventsTabContainer
+              // Reset watches, filters, and paused rows when the deployment changes, even if its name doesn't.
               key={JSON.stringify([
                 deployment.modelServingPlatformId,
                 namespace,

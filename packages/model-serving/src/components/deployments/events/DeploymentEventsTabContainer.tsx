@@ -86,6 +86,8 @@ const DeploymentEventsTabContainer: React.FC<ContainerProps> = ({
     toDeploymentEventRows(sourceUid, events.snapshots.get(sourceUid)?.data ?? []),
   );
   const hasReadableEvents = eventSnapshots.some((snapshot) => snapshot?.loaded && !snapshot.error);
+  // A successful watch can return no rows, and a failed watch can retain earlier rows.
+  // In either case, show a warning rather than blocking the tab.
   const hasPartialEventError = failures.length > 0 && (hasReadableEvents || liveRows.length > 0);
   const eventsPending = eventSnapshots.some((snapshot) => !snapshot?.loaded && !snapshot?.error);
   // Pausing unmounts the Event watchers, which remove their live snapshots.
@@ -136,6 +138,7 @@ const DeploymentEventsTabContainer: React.FC<ContainerProps> = ({
             remove={controllers.remove}
           />
         ))}
+      {/* Keep controller discovery running while paused so Events resume for the current graph. */}
       {autoRefresh &&
         sourceUids.map((sourceUid) => (
           <DeploymentEventsWatch
