@@ -64,6 +64,7 @@ paths:
         - DataOperation
       parameters:
         - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/resolve_connection_types'
       responses:
         '200':
           $ref: '#/components/responses/ConnectionsResponse'
@@ -81,7 +82,11 @@ paths:
           $ref: '#/components/responses/UpstreamErrorResponse'
       operationId: getConnections
       summary: Get data connections
-      description: Returns the data connections belonging to the selected project.
+      description: >-
+        Returns the data connections belonging to the selected project. Set
+        resolve_connection_types=true to include each associated type and read its
+        provider at resource.data_connection_type.resource.provider in one request.
+        Types are resolved with one batch lookup, not one request per connection.
     post:
       tags:
         - DataOperation
@@ -202,6 +207,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/id'
         - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/resolve_connection_types'
       responses:
         '200':
           $ref: '#/components/responses/ConnectionResponse'
@@ -219,7 +225,10 @@ paths:
           $ref: '#/components/responses/UpstreamErrorResponse'
       operationId: getConnection
       summary: Get a data connection
-      description: Returns a data connection belonging to the selected project.
+      description: >-
+        Returns a data connection belonging to the selected project. Set
+        resolve_connection_types=true to include its associated type and read its
+        provider at resource.data_connection_type.resource.provider.
     delete:
       tags:
         - DataOperation
@@ -372,6 +381,10 @@ components:
               type: string
               example: 550e8400-e29b-41d4-a716-446655440003
               pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+            data_connection_type:
+              allOf:
+                - $ref: '#/components/schemas/ConnectionType'
+              description: Included only when resolve_connection_types=true; the original type ID is retained.
             format:
               type: string
               enum: [tabular, binary]
@@ -801,6 +814,63 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/Connection'
+          examples:
+            resolvedConnectionTypes:
+              summary: GET with resolve_connection_types=true
+              value:
+                data:
+                  - metadata:
+                      id: 550e8400-e29b-41d4-a716-446655440001
+                      tenant_id: example-project
+                      created_at: '2026-09-07T16:00:00Z'
+                      updated_at: '2026-09-08T16:00:00Z'
+                    resource:
+                      name: warehouse
+                      data_connection_type_id: 550e8400-e29b-41d4-a716-446655440003
+                      data_connection_type:
+                        metadata:
+                          id: 550e8400-e29b-41d4-a716-446655440003
+                          tenant_id: example-project
+                          created_at: '2026-09-07T16:00:00Z'
+                          updated_at: '2026-09-08T16:00:00Z'
+                        resource:
+                          name: PostgreSQL
+                          provider: postgres
+                          credentials_fields: []
+                        status:
+                          flight_ready: true
+                      format: tabular
+                      credentials_ref:
+                        secret: warehouse
+                      properties: {}
+                    status:
+                      state: ready
+                  - metadata:
+                      id: 550e8400-e29b-41d4-a716-446655440002
+                      tenant_id: example-project
+                      created_at: '2026-09-07T16:00:00Z'
+                      updated_at: '2026-09-08T16:00:00Z'
+                    resource:
+                      name: object-store
+                      data_connection_type_id: 550e8400-e29b-41d4-a716-446655440004
+                      data_connection_type:
+                        metadata:
+                          id: 550e8400-e29b-41d4-a716-446655440004
+                          tenant_id: example-project
+                          created_at: '2026-09-07T16:00:00Z'
+                          updated_at: '2026-09-08T16:00:00Z'
+                        resource:
+                          name: S3
+                          provider: s3
+                          credentials_fields: []
+                        status:
+                          flight_ready: true
+                      format: binary
+                      credentials_ref:
+                        secret: object-store
+                      properties: {}
+                    status:
+                      state: ready
       description: List of data connections for a project.
     ConnectionResponse:
       content:
@@ -814,7 +884,38 @@ components:
                 type: object
               data:
                 $ref: '#/components/schemas/Connection'
-      description: Created data connection.
+          examples:
+            resolvedConnectionTypes:
+              summary: GET with resolve_connection_types=true
+              value:
+                data:
+                  metadata:
+                    id: 550e8400-e29b-41d4-a716-446655440001
+                    tenant_id: example-project
+                    created_at: '2026-09-07T16:00:00Z'
+                    updated_at: '2026-09-08T16:00:00Z'
+                  resource:
+                    name: warehouse
+                    data_connection_type_id: 550e8400-e29b-41d4-a716-446655440003
+                    data_connection_type:
+                      metadata:
+                        id: 550e8400-e29b-41d4-a716-446655440003
+                        tenant_id: example-project
+                        created_at: '2026-09-07T16:00:00Z'
+                        updated_at: '2026-09-08T16:00:00Z'
+                      resource:
+                        name: PostgreSQL
+                        provider: postgres
+                        credentials_fields: []
+                      status:
+                        flight_ready: true
+                    format: tabular
+                    credentials_ref:
+                      secret: warehouse
+                    properties: {}
+                  status:
+                    state: ready
+      description: Retrieved or created data connection.
     ConnectionTypesResponse:
       content:
         application/json:
@@ -930,6 +1031,19 @@ components:
         $ref: '#/components/schemas/SortOrder'
       in: query
       required: false
+    resolve_connection_types:
+      name: resolve_connection_types
+      in: query
+      required: false
+      description: >-
+        Include the referenced connection type in each connection's resource.data_connection_type.
+        Requires get access to data-connection-types in the selected namespace.
+        An unresolved type or invalid upstream response fails the request with 500;
+        upstream HTTP errors are forwarded. No partial response is returned.
+      schema:
+        type: boolean
+        default: false
+      example: true
     namespace:
       name: namespace
       description: The namespace to filter resources by.

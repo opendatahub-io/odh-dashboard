@@ -10,6 +10,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/constants"
 	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/data-connect-hub/bff/internal/models"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
@@ -144,11 +145,5 @@ func validateCreateConnectionRequest(request CreateConnectionRequest) error {
 }
 
 func validateConnection(connection Connection) error {
-	if connection.Metadata.ID == "" || connection.Resource.Name == "" ||
-		connection.Resource.DataConnectionTypeID == "" ||
-		(connection.Resource.Format != "tabular" && connection.Resource.Format != "binary") ||
-		connection.Status.State == "" {
-		return fmt.Errorf("connection response is missing required fields")
-	}
-	return nil
+	return models.ValidateConnection(connection)
 }
