@@ -7,6 +7,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -152,8 +153,8 @@ func TestClusterSettings_UpdateConfigMaps_ExecutesPlannedUpdateOnly(t *testing.T
 
 	err = repo.UpdateConfigMaps(context.Background(), credNS, plan)
 	require.Error(t, err)
-	assert.True(t, k8serrors.IsNotFound(err), "the planned update fails; it is not turned into a create: %v", err)
-	assert.Empty(t, writes(caller), "no unplanned write runs")
+	assert.True(t, k8serrors.IsConflict(err), "the planned update fails; it is not turned into a create: %v", err)
+	assert.Equal(t, []string{"update configmaps"}, writes(caller), "no unplanned write runs")
 }
 
 func TestClusterSettings_UpdateConfigMaps_RequiresPlan(t *testing.T) {
@@ -232,12 +233,160 @@ func TestClusterSettings_DeniedCullerRead_NoRollout(t *testing.T) {
 	})
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
-	changed, err := repo.detectChanges(context.Background(), caller.typed, credNS,
+	plan, err := repo.buildPlan(context.Background(), caller.typed, credNS, "odh-dashboard-config",
 		&models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout}, nil)
 	require.Error(t, err)
-	assert.False(t, changed)
+	assert.Nil(t, plan)
 
 	_, err = repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)
 	require.True(t, k8serrors.IsForbidden(err), "%v", err)
 	assert.Empty(t, writes(caller), "nothing is written, the rollout included")
+}
+
+// enforceResourceVersion makes the fake API server reject a ConfigMap update or
+// delete whose resourceVersion is not the stored one, as a real one does.
+func enforceResourceVersion(p clientPair) {
+	gvr := corev1.SchemeGroupVersion.WithResource("configmaps")
+	stored := func(ns, name string) string {
+		obj, err := p.typed.Tracker().Get(gvr, ns, name)
+		if err != nil {
+			return ""
+		}
+		return obj.(*corev1.ConfigMap).ResourceVersion
+	}
+	p.typed.PrependReactor("update", "configmaps", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		cm := a.(k8stesting.UpdateAction).GetObject().(*corev1.ConfigMap)
+		if rv := stored(a.GetNamespace(), cm.Name); rv != "" && rv != cm.ResourceVersion {
+			return true, nil, k8serrors.NewConflict(corev1.Resource("configmaps"), cm.Name, nil)
+		}
+		return false, nil, nil
+	})
+	p.typed.PrependReactor("delete", "configmaps", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		d := a.(k8stesting.DeleteActionImpl)
+		pre := d.DeleteOptions.Preconditions
+		if pre != nil && pre.ResourceVersion != nil {
+			if rv := stored(d.Namespace, d.Name); rv != "" && rv != *pre.ResourceVersion {
+				return true, nil, k8serrors.NewConflict(corev1.Resource("configmaps"), d.Name, nil)
+			}
+		}
+		return false, nil, nil
+	})
+}
+
+func versioned(cm *corev1.ConfigMap, rv string) *corev1.ConfigMap {
+	cm = cm.DeepCopy()
+	cm.Namespace = credNS
+	cm.ResourceVersion = rv
+	return cm
+}
+
+func setConfigMap(t *testing.T, p clientPair, cm *corev1.ConfigMap) {
+	t.Helper()
+	require.NoError(t, p.typed.Tracker().Update(corev1.SchemeGroupVersion.WithResource("configmaps"), cm, credNS))
+}
+
+func rolledOut(p clientPair) bool {
+	for _, a := range p.typed.Actions() {
+		if a.GetVerb() == "patch" && a.GetResource().Resource == "deployments" {
+			return true
+		}
+	}
+	return false
+}
+
+// Review 6037661521 item 3: a change to another setting needs no write access
+// to a ConfigMap whose stored value already matches the request.
+func TestClusterSettings_PlanUpdate_UnchangedConfigMapsNeedNoWrite(t *testing.T) {
+	caller := newClientPair(versioned(cullerCM(true, "60"), "1"), versioned(segmentCM(true), "1"))
+	seen := allowAllBut(caller, map[string]bool{"update configmaps": true, "delete configmaps": true, "create configmaps": true})
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	settings := &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: 3600, UserTrackingEnabled: true}
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", settings, defaultDashConfig())
+	require.NoError(t, err, "only the OdhDashboardConfig patch is needed")
+	require.Len(t, *seen, 1)
+	assert.Equal(t, "odhdashboardconfigs", (*seen)[0].Resource)
+
+	require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
+	assert.Empty(t, writes(caller), "no ConfigMap write and no rollout")
+}
+
+// Review 6037661521 item 2: a save planned from an older culler value must not
+// overwrite a newer one and skip the restart; the write is bound to the read.
+func TestClusterSettings_UpdateConfigMaps_CullerChangedAfterPlan_Conflict(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		timeout int
+	}{
+		{"planned update", 7200},
+		{"planned delete", defaultCullerTimeout},
+		{"left alone", 3600},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			caller := newClientPair(versioned(cullerCM(true, "60"), "1"))
+			enforceResourceVersion(caller)
+			allowAllBut(caller, nil)
+			repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+			plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config",
+				&models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: tc.timeout}, defaultDashConfig())
+			require.NoError(t, err)
+
+			// Another save stores a different timeout between the plan and the write.
+			setConfigMap(t, caller, versioned(cullerCM(true, "120"), "2"))
+			caller.typed.ClearActions()
+
+			err = repo.UpdateConfigMaps(context.Background(), credNS, plan)
+			require.Error(t, err)
+			assert.True(t, k8serrors.IsConflict(err), "%v", err)
+			assert.False(t, rolledOut(caller), "no rollout from a stale decision")
+			cm, getErr := caller.typed.CoreV1().ConfigMaps(credNS).Get(context.Background(), cullerConfigName, metav1.GetOptions{})
+			require.NoError(t, getErr)
+			assert.Equal(t, "120", cm.Data[keyCullIdleTime], "the newer value is kept")
+		})
+	}
+}
+
+// Review 6037661521 item 1: a conflict on the segment-key ConfigMap stops the
+// update before the culler ConfigMap is written, so the retry still sees the
+// culler change and restarts the controller.
+func TestClusterSettings_SegmentKeyConflict_RetryStillRollsOut(t *testing.T) {
+	caller := newClientPair(&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: notebookControllerDeploy, Namespace: credNS}})
+	allowAllBut(caller, nil)
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+	settings := &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: 3600}
+
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", settings, defaultDashConfig())
+	require.NoError(t, err)
+	require.NoError(t, caller.typed.Tracker().Add(versioned(segmentCM(false), "1")))
+
+	err = repo.UpdateConfigMaps(context.Background(), credNS, plan)
+	require.True(t, k8serrors.IsConflict(err), "%v", err)
+	_, getErr := caller.typed.CoreV1().ConfigMaps(credNS).Get(context.Background(), cullerConfigName, metav1.GetOptions{})
+	assert.True(t, k8serrors.IsNotFound(getErr), "the culler ConfigMap is not written before the conflict")
+
+	caller.typed.ClearActions()
+	plan, err = repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", settings, defaultDashConfig())
+	require.NoError(t, err)
+	require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
+	assert.True(t, rolledOut(caller), "the retry restarts the controller")
+}
+
+// Review 6037661521 item 1: the OdhDashboardConfig patch has already stored a
+// new PVC size when a ConfigMap conflict is found, so the planned rollout still
+// runs; a retry would see the PVC size as stored.
+func TestClusterSettings_ConflictAfterPVCChange_StillRollsOut(t *testing.T) {
+	caller := newClientPair(&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: notebookControllerDeploy, Namespace: credNS}})
+	allowAllBut(caller, nil)
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config",
+		&models.ClusterSettings{PVCSize: 75, CullerTimeout: defaultCullerTimeout}, defaultDashConfig())
+	require.NoError(t, err)
+	require.NoError(t, caller.typed.Tracker().Add(versioned(segmentCM(false), "1")))
+	caller.typed.ClearActions()
+
+	err = repo.UpdateConfigMaps(context.Background(), credNS, plan)
+	require.True(t, k8serrors.IsConflict(err), "the conflict is still reported: %v", err)
+	assert.True(t, rolledOut(caller))
 }

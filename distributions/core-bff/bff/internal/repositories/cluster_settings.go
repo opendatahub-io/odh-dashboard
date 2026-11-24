@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -131,10 +132,15 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 // UpdateConfigMaps executes the ConfigMap writes and the notebook-controller
 // rollout fixed by PlanUpdate, using the clients selected by the credential
 // policy. It does not re-decide an operation: if the cluster changed since the
-// plan (for example the culler ConfigMap appeared), the planned write fails, or
-// a conflict is returned for a ConfigMap the plan left alone, instead of
-// switching to a write the preflight did not check or reporting success for a
-// setting that was not stored.
+// plan, the planned write fails, or a conflict is returned for a ConfigMap the
+// plan left alone, instead of switching to a write the preflight did not check
+// or reporting success for a setting that was not stored.
+//
+// The segment-key ConfigMap, which needs no rollout, is handled first, so a
+// conflict on it stops the update before the culler ConfigMap is written. The
+// caller has already patched the OdhDashboardConfig, so when the PVC size
+// changed the planned rollout still runs after a later failure: a retry sees
+// the PVC size as stored and would not restart the controller.
 func (r *ClusterSettingsRepository) UpdateConfigMaps(ctx context.Context, namespace string, plan *ClusterSettingsPlan) error {
 	if plan == nil {
 		return fmt.Errorf("cluster settings update has no plan")
@@ -144,26 +150,25 @@ func (r *ClusterSettingsRepository) UpdateConfigMaps(ctx context.Context, namesp
 		return err
 	}
 
-	if err := r.applyCullerConfig(ctx, cs, namespace, plan.cullerOp, plan.settings.CullerTimeout); err != nil {
-		return fmt.Errorf("failed to update culler config: %w", err)
+	writeErr := r.applySegmentKeyConfig(ctx, cs, namespace, plan)
+	if writeErr != nil {
+		writeErr = fmt.Errorf("failed to update segment key config: %w", writeErr)
+	} else if err := r.applyCullerConfig(ctx, cs, namespace, plan); err != nil {
+		writeErr = fmt.Errorf("failed to update culler config: %w", err)
 	}
-	if plan.updateSegmentKey {
-		if err := r.updateSegmentKeyConfig(ctx, cs, namespace, plan.settings.UserTrackingEnabled); err != nil {
-			return fmt.Errorf("failed to update segment key config: %w", err)
-		}
-	} else if err := requireStillAbsent(ctx, cs, namespace, segmentKeyConfigName); err != nil {
-		return fmt.Errorf("failed to update segment key config: %w", err)
+	if writeErr != nil && !plan.pvcChanged {
+		return writeErr
 	}
 
 	if plan.rollout {
 		// TODO: Gate this notebook-controller restart on a platform capability; XKS
 		// must not expose the notebook (workbench) feature or its settings.
 		if err := r.rolloutDeployment(ctx, cs, namespace, notebookControllerDeploy); err != nil {
-			return fmt.Errorf("failed to rollout %s: %w", notebookControllerDeploy, err)
+			return errors.Join(writeErr, fmt.Errorf("failed to rollout %s: %w", notebookControllerDeploy, err))
 		}
 	}
 
-	return nil
+	return writeErr
 }
 
 // --- Pure helpers ---

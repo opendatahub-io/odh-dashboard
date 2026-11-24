@@ -3,9 +3,11 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	authv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,7 +21,7 @@ type clusterSettingsWrite struct {
 
 // Culler ConfigMap operations a plan can choose.
 const (
-	cullerOpNone   = "none" // culling disabled and the ConfigMap already absent
+	cullerOpNone   = "none" // the stored value already matches, or culling is off and the ConfigMap absent
 	cullerOpDelete = "delete"
 	cullerOpCreate = "create"
 	cullerOpUpdate = "update"
@@ -29,10 +31,18 @@ const (
 // makes. PlanUpdate builds it once, from one read of the cluster, and
 // UpdateConfigMaps executes exactly those writes, so the operations that run
 // are the ones the preflight checked.
+//
+// The plan keeps the ConfigMaps it read (nil when absent). Every write and
+// every left-alone check is bound to that read's resourceVersion: a ConfigMap
+// that changed since the plan is a conflict, so the rollout decision, which
+// was made from that read, always matches what was stored.
 type ClusterSettingsPlan struct {
 	settings         models.ClusterSettings
+	culler           *corev1.ConfigMap
+	segmentKey       *corev1.ConfigMap
 	cullerOp         string
 	updateSegmentKey bool
+	pvcChanged       bool
 	rollout          bool
 	writes           []clusterSettingsWrite
 }
@@ -94,6 +104,8 @@ func (r *ClusterSettingsRepository) PlanUpdate(
 }
 
 // buildPlan reads the cluster once and fixes the writes for these settings.
+// A ConfigMap write is planned only when it would change the stored value, so a
+// change to another setting does not need write access to an unchanged map.
 // UpdateConfigMaps executes the plan and never re-decides an operation.
 func (r *ClusterSettingsRepository) buildPlan(
 	ctx context.Context, cs kubernetes.Interface,
@@ -104,57 +116,60 @@ func (r *ClusterSettingsRepository) buildPlan(
 		group: models.DashboardConfigGVR.Group, resource: models.DashboardConfigGVR.Resource, verb: "patch", name: dashboardConfigName,
 	}}
 
-	cullerExists, err := configMapExists(ctx, cs, namespace, cullerConfigName)
+	culler, err := getConfigMap(ctx, cs, namespace, cullerConfigName)
 	if err != nil {
 		return nil, err
 	}
+	plan.culler = culler
+	currentTimeout := cullerTimeoutOf(culler)
 	switch {
-	case settings.CullerTimeout == defaultCullerTimeout && !cullerExists:
+	case settings.CullerTimeout == defaultCullerTimeout && culler == nil:
 		// Culling is already off: nothing to delete, so nothing to authorize.
 		plan.cullerOp = cullerOpNone
 	case settings.CullerTimeout == defaultCullerTimeout:
 		plan.cullerOp = cullerOpDelete
 		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "delete", name: cullerConfigName})
+	case culler == nil:
+		plan.cullerOp = cullerOpCreate
+		// RBAC cannot scope create by name, so the review is for any ConfigMap.
+		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "create"})
+	case currentTimeout == settings.CullerTimeout:
+		plan.cullerOp = cullerOpNone
 	default:
-		if cullerExists {
-			plan.cullerOp = cullerOpUpdate
-			plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: cullerConfigName})
-		} else {
-			plan.cullerOp = cullerOpCreate
-			// RBAC cannot scope create by name, so the review is for any ConfigMap.
-			plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "create"})
-		}
+		plan.cullerOp = cullerOpUpdate
+		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: cullerConfigName})
 	}
 
-	segmentKeyExists, err := configMapExists(ctx, cs, namespace, segmentKeyConfigName)
+	segmentKey, err := getConfigMap(ctx, cs, namespace, segmentKeyConfigName)
 	if err != nil {
 		return nil, err
 	}
-	if segmentKeyExists {
+	plan.segmentKey = segmentKey
+	if segmentKey != nil && segmentKey.Data[keySegmentKeyEnabled] != strconv.FormatBool(settings.UserTrackingEnabled) {
 		plan.updateSegmentKey = true
 		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: segmentKeyConfigName})
 	}
 
-	needsRollout, err := r.detectChanges(ctx, cs, namespace, settings, currentConfig)
-	if err != nil {
-		return nil, err
-	}
-	if needsRollout {
+	// The rollout decision uses the same read the writes are bound to.
+	plan.pvcChanged = settings.PVCSize != currentPVCSize(currentConfig)
+	if plan.pvcChanged || settings.CullerTimeout != currentTimeout {
 		plan.rollout = true
 		plan.writes = append(plan.writes, clusterSettingsWrite{group: "apps", resource: "deployments", verb: "patch", name: notebookControllerDeploy})
 	}
 	return plan, nil
 }
 
-func configMapExists(ctx context.Context, cs kubernetes.Interface, namespace, name string) (bool, error) {
-	_, err := cs.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+// getConfigMap returns the named ConfigMap, nil when it does not exist, or the
+// read's error.
+func getConfigMap(ctx context.Context, cs kubernetes.Interface, namespace, name string) (*corev1.ConfigMap, error) {
+	cm, err := cs.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 	switch {
 	case err == nil:
-		return true, nil
+		return cm, nil
 	case k8serrors.IsNotFound(err):
-		return false, nil
+		return nil, nil
 	default:
-		return false, err
+		return nil, err
 	}
 }
 

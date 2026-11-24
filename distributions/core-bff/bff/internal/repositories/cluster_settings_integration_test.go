@@ -7,6 +7,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,7 +94,7 @@ func TestUpdateCullerConfig_EnablesCulling(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.applyCullerConfig(ctx, cs, testNS, cullerOpCreate, 1800) // 30 minutes
+	err := mustApply(t, repo, cs, &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: 1800}) // 30 minutes
 	require.NoError(t, err)
 
 	cm, err := cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})
@@ -108,7 +109,7 @@ func TestUpdateCullerConfig_DisablesCulling(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.applyCullerConfig(ctx, cs, testNS, cullerOpDelete, defaultCullerTimeout)
+	err := mustApply(t, repo, cs, &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout})
 	require.NoError(t, err)
 
 	_, err = cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})
@@ -120,7 +121,7 @@ func TestUpdateCullerConfig_UpdatesExisting(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.applyCullerConfig(ctx, cs, testNS, cullerOpUpdate, 3600) // 60 minutes
+	err := mustApply(t, repo, cs, &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: 3600}) // 60 minutes
 	require.NoError(t, err)
 
 	cm, err := cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})
@@ -134,7 +135,7 @@ func TestUpdateSegmentKeyConfig(t *testing.T) {
 	repo := NewClusterSettingsRepository(cs)
 	ctx := context.Background()
 
-	err := repo.updateSegmentKeyConfig(ctx, cs, testNS, true)
+	err := mustApply(t, repo, cs, &models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout, UserTrackingEnabled: true})
 	require.NoError(t, err)
 
 	cm, err := cs.CoreV1().ConfigMaps(testNS).Get(ctx, segmentKeyConfigName, metav1.GetOptions{})
@@ -206,9 +207,21 @@ func TestApplyDashboardConfigToSettings(t *testing.T) {
 	assert.Equal(t, 50, settings.PVCSize)
 }
 
+// mustDetect reports whether the plan for these settings restarts the
+// notebook controller.
 func mustDetect(t *testing.T, repo *ClusterSettingsRepository, cs *fake.Clientset, settings *models.ClusterSettings, cfg *models.DashboardConfig) bool {
 	t.Helper()
-	changed, err := repo.detectChanges(context.Background(), cs, testNS, settings, cfg)
+	plan, err := repo.buildPlan(context.Background(), cs, testNS, "odh-dashboard-config", settings, cfg)
 	require.NoError(t, err)
-	return changed
+	return plan.rollout
+}
+
+// mustApply plans the settings against the default dashboard config and
+// executes the plan.
+func mustApply(t *testing.T, repo *ClusterSettingsRepository, cs *fake.Clientset, settings *models.ClusterSettings) error {
+	t.Helper()
+	plan, err := repo.buildPlan(context.Background(), cs, testNS, "odh-dashboard-config", settings, defaultDashConfig())
+	require.NoError(t, err)
+	_ = cs.Tracker().Add(&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: notebookControllerDeploy, Namespace: testNS}})
+	return repo.UpdateConfigMaps(context.Background(), testNS, plan)
 }
