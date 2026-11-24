@@ -17,3 +17,19 @@ rules:
       - cluster
     verbs:
       - get
+  # Platform auto-detection. Without ODH_PLATFORM_TYPE the BFF reads the
+  # ClusterVersion singleton once at startup. The API server authorizes a
+  # request before it resolves the resource, so without this rule the probe is
+  # a 403 on every cluster: an xKS cluster could never be confirmed (it keeps
+  # the restrictive admission contract and the profile-aware listener), and an
+  # OpenShift cluster would be guessed as xKS. With it, xKS answers "API not
+  # served" and OpenShift returns the object. Inert when ODH_PLATFORM_TYPE is
+  # set. See distributions/core-bff/docs/bootstrap-contract.md.
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - clusterversions
+    resourceNames:
+      - version
+    verbs:
+      - get

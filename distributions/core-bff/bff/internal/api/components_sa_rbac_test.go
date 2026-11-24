@@ -170,3 +170,52 @@ func TestGetConfig_WithTheShippedServiceAccountRole_XKS(t *testing.T) {
 		})
 	}
 }
+
+// The auto-detect profile (core-bff base, no ODH_PLATFORM_TYPE) must be able
+// to confirm xKS with the RBAC it ships. The API server authorizes before it
+// resolves the resource, so without `get clusterversions` the probe is a 403
+// and the platform stays unconfirmed: restrictive admission and a 403 from
+// /api/config on xKS. envtest does not serve the ClusterVersion API.
+func TestStartupPlatform_WithTheShippedBaseRBAC_ConfirmsXKS(t *testing.T) {
+	ctx := context.Background()
+	admin, err := kubernetes.NewForConfig(testEnvInstance.Config)
+	require.NoError(t, err)
+
+	role := readRole(t, shippedRoles["core-bff base"])
+	_, namespace := serviceAccountDynamicClient(t, role.Rules)
+	const sa = "rhaii-dashboard"
+
+	raw, err := os.ReadFile(filepath.Clean("../../../manifests/base/cluster-role.yaml"))
+	require.NoError(t, err)
+	var cr rbacv1.ClusterRole
+	require.NoError(t, yaml.NewYAMLOrJSONDecoder(bytes.NewReader(raw), 4096).Decode(&cr))
+	cr.ObjectMeta = metav1.ObjectMeta{Name: "base-probe-" + namespace}
+	_, err = admin.RbacV1().ClusterRoles().Create(ctx, &cr, metav1.CreateOptions{})
+	require.NoError(t, err)
+	_, err = admin.RbacV1().ClusterRoleBindings().Create(ctx, &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: cr.Name},
+		RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: cr.Name},
+		Subjects:   []rbacv1.Subject{{Kind: rbacv1.ServiceAccountKind, Name: sa, Namespace: namespace}},
+	}, metav1.CreateOptions{})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = admin.RbacV1().ClusterRoleBindings().Delete(context.Background(), cr.Name, metav1.DeleteOptions{})
+		_ = admin.RbacV1().ClusterRoles().Delete(context.Background(), cr.Name, metav1.DeleteOptions{})
+	})
+
+	cfg := rest.CopyConfig(testEnvInstance.Config)
+	cfg.Impersonate = rest.ImpersonationConfig{
+		UserName: "system:serviceaccount:" + namespace + ":" + sa,
+		Groups:   []string{"system:serviceaccounts", "system:serviceaccounts:" + namespace, "system:authenticated"},
+	}
+	typed, err := kubernetes.NewForConfig(cfg)
+	require.NoError(t, err)
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	_, platform, confirmed := initStartupClusterInfo(config.EnvConfig{AuthMethod: config.AuthMethodUser},
+		k8sSetupResult{saClientset: typed, saDynClient: dyn, kubeconfig: cfg}, discardLogger())
+
+	assert.Equal(t, config.PlatformXKS, platform)
+	assert.True(t, confirmed, "the shipped base RBAC must let the probe see that the ClusterVersion API is absent")
+}
