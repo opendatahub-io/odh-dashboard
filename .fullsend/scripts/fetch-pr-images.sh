@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Capture images attached to the PR body and issue comments for the review
+# Capture images attached to the PR body for the review
 # sandbox. Host-side only: REVIEW_TOKEN stays here, never in the sandbox.
 #
 # Fails open. See fetch_pr_images.py for the allowlist and limits.

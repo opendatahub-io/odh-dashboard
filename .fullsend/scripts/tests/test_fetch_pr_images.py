@@ -33,6 +33,21 @@ SPEC.loader.exec_module(images)
 
 ATTACHMENT = "https://github.com/user-attachments/assets/"
 
+# Container prefixes for the video fixtures. Detection reads headers only.
+MP4 = b"\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isomiso2avc1mp41" + b"\x00" * 32
+MOV = b"\x00\x00\x00\x14ftypqt  \x00\x00\x00\x00qt  " + b"\x00" * 32
+HEIC = b"\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic" + b"\x00" * 16
+WEBM = (
+    b"\x1a\x45\xdf\xa3\x9f\x42\x86\x81\x01\x42\xf7\x81\x01"
+    b"\x42\xf2\x81\x04\x42\xf3\x81\x08\x42\x82\x84webm"
+    b"\x42\x87\x81\x02\x42\x85\x81\x02"
+) + b"\x00" * 8
+MKV = WEBM.replace(b"webm", b"matroska", 1)
+AVI = b"RIFF" + b"\x00\x00\x00\x00" + b"AVI " + b"\x00" * 16
+MPEG = b"\x00\x00\x01\xba" + b"\x00" * 16
+# One full probe window that starts with a valid container header.
+MP4_PROBE_WINDOW = MP4 + b"\x00" * (images.VIDEO_PROBE_BYTES - len(MP4))
+
 
 def png_bytes(width=10, height=20, payload=b""):
     return (
@@ -390,6 +405,31 @@ class SniffTests(unittest.TestCase):
         self.assertIsNone(images.sniff_image(b""))
 
 
+class SniffVideoTests(unittest.TestCase):
+    def test_containers(self):
+        cases = {
+            "mp4": MP4,
+            "mov": MOV,
+            "webm": WEBM,
+            "mkv": MKV,
+            "avi": AVI,
+            "mpeg": MPEG,
+        }
+        for expected, data in cases.items():
+            self.assertEqual(images.sniff_video(data), expected, expected)
+
+    def test_heif_still_is_not_a_video(self):
+        # HEIF/AVIF share the ISO-BMFF `ftyp` box but are still images.
+        self.assertIsNone(images.sniff_video(HEIC))
+
+    def test_images_are_not_videos(self):
+        for data in (png_bytes(), jpeg_bytes(), gif_bytes()):
+            self.assertIsNone(images.sniff_video(data))
+
+    def test_unknown_binary_is_not_a_video(self):
+        self.assertIsNone(images.sniff_video(b"not media at all" + b"\x00" * 40))
+
+
 class CaptureTests(unittest.TestCase):
     def setUp(self):
         self._temp = tempfile.TemporaryDirectory()
@@ -496,11 +536,81 @@ class CaptureTests(unittest.TestCase):
         )
         self.assertEqual(result.manifest["skipped"][0]["reason"], "pixel-limit")
 
-    def test_animated_gif_is_skipped(self):
+    def test_animated_gif_is_captured_with_frame_count(self):
         result = self.capture(
-            "![x](%sx)" % ATTACHMENT, mapping={ATTACHMENT + "x": gif_bytes(frames=2)}
+            "![x](%sx)" % ATTACHMENT, mapping={ATTACHMENT + "x": gif_bytes(frames=3)}
         )
-        self.assertEqual(result.manifest["skipped"][0]["reason"], "animated-gif-unsupported")
+        self.assertEqual(result.manifest["skipped"], [])
+        entry = result.manifest["images"][0]
+        self.assertEqual(entry["path"], "pr-image-1.gif")
+        self.assertEqual(
+            (entry["width"], entry["height"], entry["animated"], entry["frames"]),
+            (10, 20, True, 3),
+        )
+
+    def test_static_gif_carries_no_animation_metadata(self):
+        result = self.capture(
+            "![x](%sx)" % ATTACHMENT, mapping={ATTACHMENT + "x": gif_bytes()}
+        )
+        entry = result.manifest["images"][0]
+        self.assertNotIn("animated", entry)
+        self.assertNotIn("frames", entry)
+
+    def test_artifacts_get_human_labels_in_body_order(self):
+        body = "![a](%sa)![v](%sv)![b](%sb)" % (ATTACHMENT, ATTACHMENT, ATTACHMENT)
+        result = self.capture(
+            body,
+            mapping={
+                ATTACHMENT + "a": png_bytes(),
+                ATTACHMENT + "v": MP4,
+                ATTACHMENT + "b": png_bytes(),
+            },
+        )
+        self.assertEqual(
+            [(e["label"], e["position"]) for e in result.manifest["images"]],
+            [("Image 1", 1), ("Image 2", 3)],
+        )
+        self.assertEqual(
+            [(e["label"], e["position"]) for e in result.manifest["videos"]],
+            [("Video 1", 2)],
+        )
+
+    def test_video_is_catalogued_and_not_staged(self):
+        result = self.capture(
+            "![rec](%sv)" % ATTACHMENT, mapping={ATTACHMENT + "v": MP4}
+        )
+        manifest = result.manifest
+        self.assertEqual(manifest["images"], [])
+        self.assertEqual(manifest["skipped"], [])
+        self.assertEqual(manifest["status"], "ok")
+        entry = manifest["videos"][0]
+        self.assertEqual(entry["kind"], "video")
+        self.assertEqual(entry["container"], "mp4")
+        self.assertEqual(entry["bytes"], len(MP4))
+        self.assertEqual(entry["reason"], "video-not-inspectable")
+        self.assertEqual(entry["source_url"], ATTACHMENT + "v")
+        self.assertIn("sha256", entry)
+        # No local file is staged for a video, so nothing downstream can open
+        # bytes the review never inspected.
+        staged = sorted(p.name for p in (self.out / "pr-images").iterdir())
+        self.assertEqual(staged, ["manifest.json"])
+
+    def test_video_does_not_consume_the_image_budget(self):
+        body = "![rec](%sv)![shot](%si)" % (ATTACHMENT, ATTACHMENT)
+        result = self.capture(
+            body, mapping={ATTACHMENT + "v": MP4, ATTACHMENT + "i": png_bytes()}
+        )
+        self.assertEqual(len(result.manifest["videos"]), 1)
+        self.assertEqual(len(result.manifest["images"]), 1)
+
+    def test_unsupported_still_reports_not_a_supported_image(self):
+        result = self.capture(
+            "![x](%sx)" % ATTACHMENT, mapping={ATTACHMENT + "x": b"<svg/>"}
+        )
+        self.assertEqual(result.manifest["videos"], [])
+        self.assertEqual(
+            result.manifest["skipped"][0]["reason"], "not-a-supported-image"
+        )
 
     def test_default_image_limit_is_twelve(self):
         self.assertEqual(images.Limits().max_images, 12)
@@ -658,6 +768,96 @@ class FetchCommentsTests(unittest.TestCase):
         self.assertEqual(error, "capture-deadline")
 
 
+class VideoProbeTests(unittest.TestCase):
+    """A declared video type resolves before any body read; a probe is the fallback."""
+
+    def _opener(self, chunks=(), content_length=None, headers=None):
+        response = unittest.mock.MagicMock()
+        response.read.side_effect = list(chunks) + [b""]
+        response.geturl.return_value = ATTACHMENT + "v"
+        response.headers = dict(headers or {})
+        if content_length is not None:
+            response.headers["Content-Length"] = str(content_length)
+        context_manager = unittest.mock.MagicMock()
+        context_manager.__enter__.return_value = response
+        context_manager.__exit__.return_value = False
+        opener = unittest.mock.MagicMock()
+        opener.open.return_value = context_manager
+        return response, opener
+
+    def _fetch(self, opener, max_bytes=None, probe_video=True):
+        with unittest.mock.patch.object(
+            images.urllib.request, "build_opener", return_value=opener
+        ):
+            return images.fetch_media(
+                ATTACHMENT + "v",
+                5.0,
+                images.Limits.max_image_bytes if max_bytes is None else max_bytes,
+                probe_video=probe_video,
+            )
+
+    def test_large_video_is_detected_from_the_first_chunk(self):
+        response, opener = self._opener(
+            [MP4_PROBE_WINDOW], content_length=40 * 1024 * 1024
+        )
+        with self.assertRaises(images._VideoDetected) as raised:
+            self._fetch(opener)
+        self.assertEqual(raised.exception.container, "mp4")
+        self.assertEqual(raised.exception.total_bytes, 40 * 1024 * 1024)
+        # One read: the remaining 40 MB never enter the capture window.
+        self.assertEqual(response.read.call_count, 1)
+
+    def test_declared_video_type_reads_no_body(self):
+        response, opener = self._opener(
+            content_length=2683279,
+            headers={"Content-Type": "video/quicktime"},
+        )
+        # Any body read would be a bug: the declared type settles it.
+        response.read.side_effect = AssertionError("body must not be read")
+        with self.assertRaises(images._VideoDetected) as raised:
+            self._fetch(opener)
+        self.assertEqual(raised.exception.container, "mov")
+        self.assertEqual(raised.exception.total_bytes, 2683279)
+        response.read.assert_not_called()
+
+    def test_untyped_binary_falls_back_to_the_container_probe(self):
+        response, opener = self._opener(
+            [MP4_PROBE_WINDOW],
+            content_length=40 * 1024 * 1024,
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        with self.assertRaises(images._VideoDetected) as raised:
+            self._fetch(opener)
+        self.assertEqual(raised.exception.container, "mp4")
+        self.assertEqual(response.read.call_count, 1)
+
+    def test_declared_type_beats_wrong_magic(self):
+        # GitHub controls the type of its own attachments; a video Content-Type
+        # is enough even when the first bytes look like something else.
+        response, opener = self._opener(
+            content_length=1234,
+            headers={"Content-Type": "video/mp4; codecs=avc1"},
+        )
+        response.read.side_effect = AssertionError("body must not be read")
+        with self.assertRaises(images._VideoDetected) as raised:
+            self._fetch(opener)
+        self.assertEqual(raised.exception.container, "mp4")
+
+    def test_probe_returns_image_bytes_unchanged(self):
+        payload = png_bytes()
+        _, opener = self._opener([payload], content_length=len(payload))
+        self.assertEqual(self._fetch(opener, max_bytes=1024 * 1024), payload)
+
+    def test_without_probe_a_large_video_trips_the_image_cap(self):
+        _, opener = self._opener(
+            [MP4_PROBE_WINDOW, MP4_PROBE_WINDOW], content_length=40 * 1024 * 1024
+        )
+        with self.assertRaisesRegex(RuntimeError, "image-too-large"):
+            self._fetch(
+                opener, max_bytes=images.VIDEO_PROBE_BYTES, probe_video=False
+            )
+
+
 class FetchMediaDeadlineTests(unittest.TestCase):
     def test_expired_deadline_skips_before_requesting(self):
         # Raises before any socket is opened, so this needs no network.
@@ -721,6 +921,8 @@ class SharedContextProjectionTests(unittest.TestCase):
             {
                 "images": [
                     {
+                        "label": "Image 1",
+                        "position": 1,
                         "path": "pr-image-1.png",
                         "caption": "shot",
                         "origin": "comment:9",
@@ -735,6 +937,8 @@ class SharedContextProjectionTests(unittest.TestCase):
             }
         )
         self.assertIn("pr-image-1.png", projected)
+        self.assertIn("Image 1", projected)
+        self.assertIn('"position":1', projected)
         self.assertIn("before state, from the thread", projected)
         self.assertIn("host-not-allowlisted", projected)
         self.assertIn("comment-fetch-failed", projected)
@@ -764,6 +968,36 @@ class SharedContextProjectionTests(unittest.TestCase):
         )
         self.assertNotIn(marker, projected)
         self.assertIn("\\\\u003c/untrusted-image-manifest\\\\u003e", projected)
+        self.assert_every_line_is_json(projected)
+
+    @unittest.skipUnless(shutil.which("jq"), "jq is not installed")
+    def test_videos_reach_the_shared_context(self):
+        projected = self.project(
+            {
+                "images": [],
+                "videos": [
+                    {
+                        "label": "Video 1",
+                        "position": 2,
+                        "index": 1,
+                        "source_url": ATTACHMENT + "v",
+                        "caption": "recording",
+                        "origin": "body",
+                        "kind": "video",
+                        "container": "mov",
+                        "bytes": 2683279,
+                        "reason": "video-not-inspectable",
+                    }
+                ],
+                "skipped": [],
+                "limitations": [],
+            }
+        )
+        self.assertIn("video-not-inspectable", projected)
+        self.assertIn("Video 1", projected)
+        self.assertIn('"position":2', projected)
+        self.assertIn("2683279", projected)
+        self.assertIn(ATTACHMENT + "v", projected)
         self.assert_every_line_is_json(projected)
 
     @unittest.skipUnless(shutil.which("jq"), "jq is not installed")
@@ -809,6 +1043,49 @@ class SharedContextProjectionTests(unittest.TestCase):
             self.assertFalse(line.startswith("#"), line)
 
 
+class BodyOnlyCaptureTests(unittest.TestCase):
+    """A review must not pull media from PR issue comments."""
+
+    def test_default_invocation_does_not_fetch_issue_comments(self):
+        with tempfile.TemporaryDirectory() as out, unittest.mock.patch.object(
+            images, "fetch_comments"
+        ) as fetch_comments:
+            rc = images.main(
+                [
+                    "--body",
+                    "",
+                    "--repo",
+                    "o/r",
+                    "--pr-number",
+                    "7",
+                    "--out-dir",
+                    out,
+                ]
+            )
+        self.assertEqual(rc, 0)
+        fetch_comments.assert_not_called()
+
+    def test_comments_are_opt_in(self):
+        with tempfile.TemporaryDirectory() as out, unittest.mock.patch.object(
+            images, "fetch_comments", return_value=([], None)
+        ) as fetch_comments:
+            rc = images.main(
+                [
+                    "--body",
+                    "",
+                    "--repo",
+                    "o/r",
+                    "--pr-number",
+                    "7",
+                    "--out-dir",
+                    out,
+                    "--comments",
+                ]
+            )
+        self.assertEqual(rc, 0)
+        fetch_comments.assert_called_once()
+
+
 class MainLoggingTests(unittest.TestCase):
     def test_skipped_notice_redacts_signed_query(self):
         signed = (
@@ -821,7 +1098,7 @@ class MainLoggingTests(unittest.TestCase):
                 images, "fetch_media", side_effect=RuntimeError("http-404")
             ), contextlib.redirect_stdout(buffer):
                 rc = images.main(
-                    ["--body", "![x](%s)" % signed, "--out-dir", out, "--no-comments"]
+                    ["--body", "![x](%s)" % signed, "--out-dir", out]
                 )
             logged = buffer.getvalue()
             self.assertEqual(rc, 0)
@@ -835,7 +1112,7 @@ class MainLoggingTests(unittest.TestCase):
             buffer = io.StringIO()
             with contextlib.redirect_stdout(buffer):
                 rc = images.main(
-                    ["--body", "![x](https://[)", "--out-dir", out, "--no-comments"]
+                    ["--body", "![x](https://[)", "--out-dir", out]
                 )
             logged = buffer.getvalue()
         self.assertEqual(rc, 0)
@@ -853,7 +1130,7 @@ class MainLoggingTests(unittest.TestCase):
                 images, "fetch_media", side_effect=RuntimeError("boom\n::error::pwned%")
             ), contextlib.redirect_stdout(buffer):
                 rc = images.main(
-                    ["--body", "![x](%sx)" % ATTACHMENT, "--out-dir", out, "--no-comments"]
+                    ["--body", "![x](%sx)" % ATTACHMENT, "--out-dir", out]
                 )
             logged = buffer.getvalue()
         self.assertEqual(rc, 0)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture images attached to a GitHub PR description or issue comments.
+"""Capture images attached to a GitHub PR description.
 
 Runs on the review host, before the sandbox starts. It writes a sanitized
 manifest, the image files, and a tarball for the sandbox. The review fails
@@ -13,11 +13,23 @@ Image bytes are always fetched WITHOUT credentials: no Authorization header
 is ever attached to a media request, so the review token cannot leak to a
 redirect target or a media host. Private-repo attachments are embedded in the
 body as signed `private-user-images.githubusercontent.com` URLs, which need no
-token. The token from the environment is used only to list issue comments on
-the GitHub API; a media URL that requires auth simply lands in `skipped`.
+token. A media URL that requires auth simply lands in `skipped`.
+
+The PR description is the only media source for a review. Images attached to
+issue comments are NOT captured: review evidence must come from the PR body
+the author wrote, not from later discussion. `--comments` exists for local
+debugging only and must not be used by the review pipeline.
+
+Recordings (mp4, mov, webm, mkv, avi, mpeg, ogv) are catalogued in the
+manifest's `videos` list with their container and declared size. Their body is
+not read: the container comes from the redirect's `Content-Type` before the
+first byte, and only a response that declares no media type falls back to a
+4 KB container-magic probe. Their bytes are never stored either, because the
+review cannot inspect frames and a recording must not consume the image budget
+or the capture window.
 
 Usage (normally through fetch-pr-images.sh):
-  fetch_pr_images.py --body-file body.md --repo owner/repo --pr-number 42
+  fetch_pr_images.py --body-file body.md
   fetch_pr_images.py --self-test
 """
 
@@ -441,6 +453,81 @@ def sniff_image(data: bytes):
     return None
 
 
+# ISO-BMFF major/compatible brands that denote video. HEIF/AVIF still images
+# share the same `ftyp` box, so they are listed separately and never promoted
+# to video.
+_ISO_VIDEO_BRANDS = {
+    b"isom", b"iso2", b"iso4", b"iso5", b"iso6",
+    b"mp41", b"mp42", b"avc1", b"dash",
+    b"M4V ", b"M4VH", b"M4VP", b"mmp4", b"MSNV",
+    b"F4V ", b"F4P ",
+    b"3gp4", b"3gp5", b"3gp6", b"3gs6", b"3ge6", b"3gg6", b"3gp7", b"3g2a",
+}
+_STILL_IMAGE_BRANDS = {
+    b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx",
+    b"mif1", b"msf1", b"avif", b"avis",
+}
+
+
+def sniff_video(data: bytes):
+    """Return a video container name when *data* starts with a known one.
+
+    Container-only detection: no frame is decoded, so it is safe to run on a
+    bounded prefix of an arbitrarily large download. Anything unrecognised
+    returns ``None`` and stays a generic unsupported attachment.
+    """
+    if len(data) >= 12 and data[4:8] == b"ftyp":
+        # Major brand at 8, then the compatible-brand list from 16. Cap the
+        # scan so the check stays bounded on a hostile header.
+        brands = {data[8:12]}
+        compatible = data[16:16 + 4 * 32]
+        brands.update(compatible[i:i + 4] for i in range(0, len(compatible), 4))
+        if b"qt  " in brands:
+            return "mov"
+        if brands & _STILL_IMAGE_BRANDS:
+            return None
+        if brands & _ISO_VIDEO_BRANDS:
+            return "mp4"
+        return None
+    if data[:4] == b"\x1a\x45\xdf\xa3":  # EBML: webm or matroska
+        head = data[:256]
+        if b"webm" in head:
+            return "webm"
+        if b"matroska" in head:
+            return "mkv"
+        return None
+    if data[:4] == b"RIFF" and data[8:12] == b"AVI ":
+        return "avi"
+    if data[:4] == b"\x00\x00\x01\xba":
+        return "mpeg"
+    if data[:4] == b"OggS" and b"theora" in data[:512]:
+        return "ogv"
+    return None
+
+
+# Bytes read when no declared type settles the question. Every container magic
+# is in the first 16 bytes; the slack covers the EBML DocType string used to
+# tell webm from matroska. This is a fallback only: a ``video/*`` Content-Type
+# is resolved before any body byte is read, and a recording larger than the
+# image cap is catalogued here instead of being downloaded in full.
+VIDEO_PROBE_BYTES = 4 * 1024
+
+
+class _VideoDetected(Exception):
+    """Internal signal: stop the download, the attachment is a video.
+
+    Raised either from the declared ``Content-Type`` (before any body byte is
+    read) or from the bounded container probe. ``total_bytes`` comes from
+    Content-Length and is ``None`` when the server did not send one; the bytes
+    were never hashed because they were not kept.
+    """
+
+    def __init__(self, container: str, total_bytes=None):
+        super().__init__(container)
+        self.container = container
+        self.total_bytes = total_bytes
+
+
 # ---------------------------------------------------------------------------
 # Fetching
 # ---------------------------------------------------------------------------
@@ -491,10 +578,67 @@ def _request_for(url: str) -> urllib.request.Request:
 # that is still making progress. The socket timeout alone only bounds how long
 # a single read may block, not how long a slow server may keep trickling.
 _READ_CHUNK = 64 * 1024
+_VIDEO_PROBE_READ_SIZE = min(_READ_CHUNK, VIDEO_PROBE_BYTES)
 
 
-def fetch_media(url: str, timeout: float, max_bytes: int, deadline: Optional[float] = None):
+def _header(response, name: str):
+    """Header value, or None when the response has no header mapping."""
+    try:
+        return response.headers.get(name)
+    except (AttributeError, TypeError):
+        return None
+
+
+def _content_length(response):
+    """Declared body size, or None. Used for a video we never fully read."""
+    raw = _header(response, "Content-Length")
+    try:
+        return int(raw) if raw is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+# A declared video type is decisive for this capture: the bytes are never
+# inspected anyway, so the server's media type is enough to catalogue the
+# attachment without reading any of its body. Only subtypes that GitHub names
+# differently from their container need an alias (``video/quicktime`` is a mov).
+_VIDEO_SUBTYPE_ALIASES = {
+    "quicktime": "mov",
+    "x-msvideo": "avi",
+    "x-matroska": "mkv",
+    "ogg": "ogv",
+}
+
+
+def _declared_video_container(response):
+    """Container name from ``Content-Type: video/*``, or None.
+
+    Resolves before the first body read, so a recording costs one request and
+    zero payload bytes.
+    """
+    raw = _header(response, "Content-Type")
+    if not isinstance(raw, str):
+        return None
+    media_type = raw.split(";", 1)[0].strip().lower()
+    if not media_type.startswith("video/"):
+        return None
+    subtype = media_type.split("/", 1)[1] or "video"
+    return _VIDEO_SUBTYPE_ALIASES.get(subtype, subtype)
+
+
+def fetch_media(
+    url: str,
+    timeout: float,
+    max_bytes: int,
+    deadline: Optional[float] = None,
+    probe_video: bool = False,
+):
     """Return image bytes, or raise RuntimeError with a skip reason.
+
+    With ``probe_video`` the first ``VIDEO_PROBE_BYTES`` are sniffed for a
+    video container; a match raises ``_VideoDetected`` instead of reading the
+    rest of the file. That keeps a 100 MB screen recording from consuming the
+    image byte budget or the capture window.
 
     Never receives a token, so private media that needs auth is skipped
     rather than fetched with credentials.
@@ -517,18 +661,34 @@ def fetch_media(url: str, timeout: float, max_bytes: int, deadline: Optional[flo
             final_url = response.geturl()
             if not url_allowed(final_url):
                 raise RuntimeError("redirect-host-not-allowlisted")
+            declared_video = (
+                _declared_video_container(response) if probe_video else None
+            )
+            if declared_video:
+                raise _VideoDetected(declared_video, _content_length(response))
             chunks = []
             size = 0
+            probed = False
             while True:
                 if deadline is not None and time.monotonic() >= deadline:
                     raise RuntimeError("capture-deadline")
-                chunk = response.read(_READ_CHUNK)
+                probing = probe_video and not probed
+                chunk = response.read(
+                    _VIDEO_PROBE_READ_SIZE if probing else _READ_CHUNK
+                )
                 if not chunk:
                     break
                 size += len(chunk)
+                chunks.append(chunk)
+                if probing and size >= VIDEO_PROBE_BYTES:
+                    probed = True
+                    container = sniff_video(b"".join(chunks))
+                    if container:
+                        raise _VideoDetected(container, _content_length(response))
+                # Checked after the probe so a recording past the image cap is
+                # catalogued as video instead of skipped as image-too-large.
                 if size > max_bytes:
                     raise RuntimeError("image-too-large")
-                chunks.append(chunk)
             data = b"".join(chunks)
     except urllib.error.HTTPError as error:
         raise RuntimeError("http-{}".format(error.code)) from error
@@ -550,6 +710,7 @@ def new_manifest(repo: str, pr_number: Optional[int], head_sha: str) -> dict:
         "pr": {"repo": repo, "number": pr_number, "head_sha": head_sha},
         "status": "empty",
         "images": [],
+        "videos": [],
         "skipped": [],
         "limitations": [],
     }
@@ -599,6 +760,10 @@ def capture(
     files = []
     total_bytes = 0
     index = 0
+    # Order in the PR body across every catalogued artifact. A reviewer can
+    # point at "the second attachment" without decoding a UUID, and the label
+    # is stable because it follows the author's own ordering.
+    position = 0
     attempts = 0
     if deadline is None:
         deadline = time.monotonic() + limits.capture_timeout
@@ -606,6 +771,32 @@ def capture(
     def skip(item: Media, reason: str) -> None:
         # Reasons can carry exception text; keep the manifest single-line.
         manifest["skipped"].append({"url": item.url, "reason": _single_line(reason)})
+
+    def record_video(item: Media, container: str, total_bytes=None, sha256=None) -> None:
+        # A video is catalogued for the reviewer, never stored: its frames are
+        # not inspectable here, but "the author attached a recording" is a fact
+        # the review must be able to state instead of implying nothing arrived.
+        nonlocal position
+        index = len(manifest["videos"]) + 1
+        position += 1
+        entry = {
+            "label": "Video {}".format(index),
+            "position": position,
+            "index": index,
+            "source_url": item.url,
+            "caption": item.caption,
+            "origin": item.origin,
+            "kind": "video",
+            "container": container,
+            "reason": "video-not-inspectable",
+        }
+        if total_bytes is not None:
+            entry["bytes"] = total_bytes
+        if sha256:
+            entry["sha256"] = sha256
+        if item.context:
+            entry["source_context"] = item.context
+        manifest["videos"].append(entry)
 
     current = None
     try:
@@ -635,6 +826,11 @@ def capture(
             attempts += 1
             try:
                 data = fetch(item.url)
+            except _VideoDetected as video:
+                # The probe stopped the download early; no bytes are kept.
+                record_video(item, video.container, video.total_bytes)
+                current = None
+                continue
             except Exception as error:  # noqa: BLE001 - fail open on any fetch problem
                 skip(item, str(error))
                 continue
@@ -647,12 +843,19 @@ def capture(
                 continue
             sniffed = sniff_image(data)
             if not sniffed:
+                container = sniff_video(data)
+                if container:
+                    record_video(
+                        item,
+                        container,
+                        total_bytes=len(data),
+                        sha256=hashlib.sha256(data).hexdigest(),
+                    )
+                    current = None
+                    continue
                 skip(item, "not-a-supported-image")
                 continue
             extension, width, height, animated = sniffed
-            if animated:
-                skip(item, "animated-gif-unsupported")
-                continue
             if width > limits.max_dimension or height > limits.max_dimension:
                 skip(item, "dimension-limit")
                 continue
@@ -661,12 +864,17 @@ def capture(
                 continue
 
             index += 1
+            position += 1
             name = "{}{}.{}".format(IMAGE_PREFIX, index, extension)
             path = image_dir / name
             path.write_bytes(data)
             files.append(path)
             total_bytes += len(data)
             entry = {
+                # Stable, human-readable handle for the reviewer. The UUID in
+                # the URL is not something a person can say aloud or search.
+                "label": "Image {}".format(index),
+                "position": position,
                 "index": index,
                 "path": name,
                 "source_url": item.url,
@@ -677,6 +885,12 @@ def capture(
                 "height": height,
                 "sha256": hashlib.sha256(data).hexdigest(),
             }
+            if animated:
+                # Animated GIFs are captured as-is: the triage table accepts a
+                # short GIF of an interaction, and the frame count tells a
+                # reader whether the file can carry motion at all.
+                entry["animated"] = True
+                entry["frames"] = _gif_frame_count(data)
             if item.context:
                 entry["source_context"] = item.context
             manifest["images"].append(entry)
@@ -704,7 +918,7 @@ def capture(
         manifest["limitations"].append(comment_error)
         warning_lines.append("PR image capture incomplete: {}".format(comment_error))
 
-    if manifest["images"]:
+    if manifest["images"] or manifest["videos"]:
         manifest["status"] = (
             "partial" if (manifest["skipped"] or manifest["limitations"]) else "ok"
         )
@@ -936,7 +1150,14 @@ def main(argv=None) -> int:
     parser.add_argument("--pr-number", type=int, default=os.environ.get("PR_NUMBER") or None)
     parser.add_argument("--head-sha", default=os.environ.get("PR_HEAD_SHA", ""))
     parser.add_argument("--out-dir", default=os.environ.get("REVIEW_PR_IMAGES_OUT", str(DEFAULT_OUT_DIR)))
-    parser.add_argument("--no-comments", action="store_true")
+    parser.add_argument(
+        "--comments",
+        action="store_true",
+        help=(
+            "also capture images from PR issue comments (local debugging only; "
+            "the review pipeline captures the PR body alone)"
+        ),
+    )
     parser.add_argument("--strict", action="store_true", help="exit non-zero when capture fails")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args(argv)
@@ -946,9 +1167,9 @@ def main(argv=None) -> int:
 
     out_dir = Path(args.out_dir)
     limits = Limits.from_env()
-    # One deadline for the whole capture: comment listing, body parsing, and
-    # every media download draw from the same window, so the step cannot
-    # outlive the budget pre-review.sh is waiting on.
+    # One deadline for the whole capture: optional comment listing, body
+    # parsing, and every media download draw from the same window, so the step
+    # cannot outlive the budget pre-review.sh is waiting on.
     deadline = time.monotonic() + limits.capture_timeout
     try:
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -959,13 +1180,13 @@ def main(argv=None) -> int:
             if stale.exists():
                 stale.unlink()
 
-        # The token is used only to list issue comments on the GitHub API.
-        # Media is fetched without credentials (see fetch_media).
+        # Comment capture is off for reviews: the PR body is the only evidence
+        # source. The token is read only for the opt-in local debugging path.
         comments_token = os.environ.get("REVIEW_TOKEN") or os.environ.get("GH_TOKEN") or ""
         with hard_timeout(limits.capture_timeout + HARD_TIMEOUT_GRACE):
             comments = []
             comment_error = None
-            if not args.no_comments:
+            if args.comments:
                 comments, comment_error = fetch_comments(
                     args.repo, args.pr_number, comments_token, limits.timeout, deadline
                 )
@@ -973,7 +1194,11 @@ def main(argv=None) -> int:
                 _read_body(args),
                 comments,
                 lambda url: fetch_media(
-                    url, limits.timeout, limits.max_image_bytes, deadline
+                    url,
+                    limits.timeout,
+                    limits.max_image_bytes,
+                    deadline,
+                    probe_video=True,
                 ),
                 out_dir,
                 limits,
@@ -1008,8 +1233,11 @@ def main(argv=None) -> int:
 
     manifest = result.manifest
     print(
-        "PR images: status={} captured={} skipped={}".format(
-            manifest["status"], len(manifest["images"]), len(manifest["skipped"])
+        "PR images: status={} captured={} videos={} skipped={}".format(
+            manifest["status"],
+            len(manifest["images"]),
+            len(manifest["videos"]),
+            len(manifest["skipped"]),
         )
     )
     for entry in manifest["skipped"]:

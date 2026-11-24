@@ -35,8 +35,8 @@ gh pr diff <PR>
 Do **not** pass Evidence depth from the test tree alone when the description omits testing proof — unless required-CI suites cover the change under the presumption above (see Evidence depth below).
 
 When the caller supplies a Review context file, read the attached-image entries
-it lists. Those paths are host-captured copies of images in the PR body and
-thread; do not fetch external URLs. Direct CLI invocation has no such copies,
+it lists. Those paths are host-captured copies of images in the PR body; do
+not fetch external URLs. Direct CLI invocation has no such copies,
 so visual proof cannot be inspected there — record that rather than assuming it.
 
 ## Review procedure
@@ -73,7 +73,7 @@ Dig into available testing evidence (author-supplied and required-CI suites, plu
 - **Committed automation counts as runtime proof.** A unit, component, or Cypress test that drives the changed scenario and asserts the outcome is evidence depth even before it executes: read its steps and judge whether it covers the change. Do not downgrade because the test “has not run” locally or CI has not reported — required-CI status checks and the merge gate own execution. When such automation covers the flow, an author-reported manual check is optional and neither stronger nor additionally required.
 - **Author-supplied proof is still required for what required CI cannot show:** cluster or manual checks, suites outside required CI, and test-quality judgments (see Automation and Efficiency). Missing proof for any of these stays ❌ as below.
 - **Visual proof is scoped by the [visual-evidence triage](#visual-evidence-triage).** Missing a required visual artifact is at most ⚠️ and never the sole ❌. An artifact that is claimed or attached but off-surface, wrong state, or otherwise does not show the change → ❌. `none` waives only the visual artifact; other Evidence depth proof may still be required.
-- **Inspect attached images before crediting them.** When the change produces UI or visual behavior and the PR body or thread carries screenshots, open the local copies listed in the context file and judge whether they depict the changed behavior. A media link, filename, or caption alone is not evidence. If a listed image is missing, unreadable, or unrelated to the claim, score that proof as absent and say so explicitly. Record the limitation in the check result as `Could not verify image evidence: <detail>` so the orchestrator can carry it into `inspected.could_not_verify`.
+- **Inspect attached images before crediting them.** When the change produces UI or visual behavior and the PR body carries screenshots, open the local copies listed in the context file and judge whether they depict the changed behavior. A media link, filename, or caption alone is not evidence. If a listed image is missing, unreadable, or unrelated to the claim, score that proof as absent and say so explicitly. Record the limitation in the check result as `Could not verify image evidence: <detail>` so the orchestrator can carry it into `inspected.could_not_verify`.
 - **Stills prove static state only.** A screenshot can show rendering, layout, and a selected state; it cannot demonstrate first paint, live OS or media-query transitions, interaction, or sequence. Do not let a still close a gap that needs a recording or an automated test.
 - Testing proof **not called out in the PR description** → ❌, even when the tree already has good automation. Silent “tests exist in the tree” is not enough. Exception: suites covered by required CI, per the first bullet.
 - Proof present but does not cover the changed behavior, or green tests would not protect integrity → ❌.

@@ -35,8 +35,8 @@
 #      and no apply_human_dismissals step, because post-review.sh writes no
 #      ids or dispositions and posts no inline threads to dismiss. Their forge
 #      helpers stay in the bundled library unused.
-#  10. Capture images attached to the PR body and issue comments for the
-#      sandbox (fetch-pr-images.sh), run alongside the host adapters. It
+#  10. Capture images attached to the PR body for the sandbox
+#      (fetch-pr-images.sh), run alongside the host adapters. It
 #      fails open and never exposes REVIEW_TOKEN to the sandbox.
 # The local main-flow steps call `gh` directly, so this copy only completes a
 # review on GitHub; the GitLab library is carried as bundled.
@@ -1601,9 +1601,11 @@ fi
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
-# Capture images attached to the PR body and issue comments while the host
-# adapters run. Only GitHub attachment hosts are fetched; the local manifest
-# and tarball are staged for the sandbox by host_files. The script fails open.
+# Capture images attached to the PR body while the host adapters run. Issue
+# comments are deliberately not captured: review evidence must come from the
+# PR body the author wrote, not from later discussion. Only GitHub attachment
+# hosts are fetched; the local manifest and tarball are staged for the sandbox
+# by host_files. The script fails open.
 PR_IMAGE_LOG=""
 PR_IMAGE_PID=""
 if [[ -f "${_SCRIPT_DIR}/../scripts/fetch-pr-images.sh" ]]; then
