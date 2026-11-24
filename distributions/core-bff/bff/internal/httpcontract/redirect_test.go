@@ -18,6 +18,8 @@ func TestSameOriginRedirects(t *testing.T) {
 		{"https://thanos.internal/api/v1/query", "https://thanos.internal:443/moved"},
 		{"https://thanos.internal:9091/api/v1/query", "https://thanos.internal:9091/moved"},
 		{"http://localhost/api", "http://localhost:80/moved"},
+		{"https://Metrics.example/api", "https://metrics.example/moved"},
+		{"https://metrics.example/api", "https://METRICS.EXAMPLE:443/moved"},
 	} {
 		assert.NoError(t, SameOriginRedirects(next(tc.to), via(tc.from)), tc)
 	}
@@ -26,6 +28,8 @@ func TestSameOriginRedirects(t *testing.T) {
 		{"https://thanos.internal/api", "https://thanos.internal:8443/x"},
 		{"https://thanos.internal/api", "http://thanos.internal/x"},
 		{"https://thanos.internal/api", "https://evil.example/x"},
+		{"https://Metrics.example/api", "http://metrics.example/x"},
+		{"https://Metrics.example/api", "https://metrics.example:8443/x"},
 	} {
 		assert.ErrorIs(t, SameOriginRedirects(next(tc.to), via(tc.from)), ErrCrossOriginRedirect, tc)
 	}

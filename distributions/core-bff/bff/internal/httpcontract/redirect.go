@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // maxRedirects matches net/http's own default limit.
@@ -15,7 +16,9 @@ var ErrCrossOriginRedirect = errors.New("refusing a redirect that changes the sc
 
 // SameOriginRedirects is an http.Client CheckRedirect policy for clients that
 // carry the caller's credential. It refuses, before the request is sent, any
-// redirect that changes the scheme, hostname or effective port. net/http keeps
+// redirect that changes the scheme, hostname or effective port. DNS names
+// compare case-insensitively, and the scheme check is exact because net/url
+// lower-cases it on parse. net/http keeps
 // Authorization on a same-hostname redirect whatever the scheme or port, and
 // forwards custom headers such as x-forwarded-access-token to any host, so a
 // redirect could otherwise put the token in plaintext or in another service.
@@ -25,7 +28,7 @@ func SameOriginRedirects(req *http.Request, via []*http.Request) error {
 	}
 	original := via[0].URL
 	if req.URL.Scheme != original.Scheme ||
-		req.URL.Hostname() != original.Hostname() ||
+		!strings.EqualFold(req.URL.Hostname(), original.Hostname()) ||
 		effectivePort(req.URL) != effectivePort(original) {
 		return ErrCrossOriginRedirect
 	}
