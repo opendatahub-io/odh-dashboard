@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -52,7 +51,7 @@ func NewPrometheusRepository(cfg PrometheusConfig) *PrometheusRepository {
 	return &PrometheusRepository{
 		httpClient: &http.Client{
 			Timeout:       30 * time.Second,
-			CheckRedirect: rejectDowngradingRedirect,
+			CheckRedirect: httpcontract.SameOriginRedirects,
 			Transport: httpcontract.WrapTransport(&http.Transport{
 				TLSClientConfig: tlsConfig,
 			}),
@@ -60,40 +59,6 @@ func NewPrometheusRepository(cfg PrometheusConfig) *PrometheusRepository {
 		host: host,
 	}
 }
-
-// maxPrometheusRedirects matches net/http's own default limit.
-const maxPrometheusRedirects = 10
-
-// rejectDowngradingRedirect stops a redirect before it is sent unless it keeps
-// the scheme, host and effective port of the original request. net/http keeps
-// the Authorization header on a redirect to the same hostname, whatever the
-// scheme or port, so either change could hand the caller's bearer token to
-// another service or put it on the wire in plaintext.
-func rejectDowngradingRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= maxPrometheusRedirects {
-		return fmt.Errorf("stopped after %d redirects", maxPrometheusRedirects)
-	}
-	original := via[0].URL
-	if req.URL.Scheme != original.Scheme ||
-		req.URL.Hostname() != original.Hostname() ||
-		effectivePort(req.URL) != effectivePort(original) {
-		return errPrometheusRedirect
-	}
-	return nil
-}
-
-// effectivePort is the URL's port, or the scheme's default when it has none.
-func effectivePort(u *url.URL) string {
-	if p := u.Port(); p != "" {
-		return p
-	}
-	if u.Scheme == "http" {
-		return "80"
-	}
-	return "443"
-}
-
-var errPrometheusRedirect = errors.New("refusing a Prometheus redirect that changes the scheme, host or port")
 
 // Query executes a Prometheus query and returns the response.
 // queryType should be "query" for instant or "query_range" for range queries.

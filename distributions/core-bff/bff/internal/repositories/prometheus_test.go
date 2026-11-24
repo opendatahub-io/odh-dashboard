@@ -173,7 +173,7 @@ func TestPrometheusQuery_RefusesARedirectToPlaintext(t *testing.T) {
 	require.Error(t, err)
 	var unavailable *models.PrometheusUnavailableError
 	require.ErrorAs(t, err, &unavailable)
-	assert.Contains(t, unavailable.Reason, "refusing a Prometheus redirect")
+	assert.Contains(t, unavailable.Reason, "refusing a redirect")
 	assert.Zero(t, plaintextHits.Load(), "the redirected request must never be sent")
 }
 
@@ -223,18 +223,6 @@ func TestPrometheusQuery_RefusesARedirectToAnotherPort(t *testing.T) {
 	require.Error(t, err)
 	var unavailable *models.PrometheusUnavailableError
 	require.ErrorAs(t, err, &unavailable)
-	assert.Contains(t, unavailable.Reason, "refusing a Prometheus redirect")
+	assert.Contains(t, unavailable.Reason, "refusing a redirect")
 	assert.Zero(t, otherHits.Load(), "the redirected request must never be sent")
-}
-
-func TestRejectDowngradingRedirect_ComparesTheEffectivePort(t *testing.T) {
-	via := func(raw string) []*http.Request {
-		return []*http.Request{httptest.NewRequest(http.MethodGet, raw, nil)}
-	}
-	next := func(raw string) *http.Request { return httptest.NewRequest(http.MethodGet, raw, nil) }
-
-	assert.NoError(t, rejectDowngradingRedirect(next("https://thanos.internal:443/moved"), via("https://thanos.internal/api/v1/query")))
-	assert.NoError(t, rejectDowngradingRedirect(next("https://thanos.internal:9091/moved"), via("https://thanos.internal:9091/api/v1/query")))
-	assert.ErrorIs(t, rejectDowngradingRedirect(next("https://thanos.internal:9092/x"), via("https://thanos.internal:9091/api/v1/query")), errPrometheusRedirect)
-	assert.ErrorIs(t, rejectDowngradingRedirect(next("https://thanos.internal:8443/x"), via("https://thanos.internal/api/v1/query")), errPrometheusRedirect)
 }
