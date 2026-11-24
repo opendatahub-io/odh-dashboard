@@ -9,6 +9,7 @@ import {
   getApiKeyCleanupResult,
   getApiKeyCleanupSkipReason,
 } from '../maasApiKeyCleanup';
+import { getOwnerGroupsReplacements } from '../maasOwnerGroups';
 
 export const modelsAsAServiceNamespace = 'models-as-a-service';
 
@@ -386,6 +387,11 @@ export const createMaaSSubscription = (
       SUBSCRIPTION_DESCRIPTION: subscriptionDescription,
       MODEL_NAME: model,
       PROJECT_NAME: project,
+      ...getOwnerGroupsReplacements(
+        yamlContent,
+        fixtureReplacements,
+        Cypress.env('MAAS_OWNER_GROUPS'),
+      ),
       ...fixtureReplacements,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
@@ -413,6 +419,11 @@ export const createMaaSAuthPolicy = (
       POLICY_NAME: name,
       MODEL_NAME: model,
       PROJECT_NAME: project,
+      ...getOwnerGroupsReplacements(
+        yamlContent,
+        fixtureReplacements,
+        Cypress.env('MAAS_OWNER_GROUPS'),
+      ),
       ...fixtureReplacements,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
