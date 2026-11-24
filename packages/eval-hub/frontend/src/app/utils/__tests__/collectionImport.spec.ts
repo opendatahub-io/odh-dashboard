@@ -2,6 +2,7 @@
 import { mockCollection } from '~/__mocks__/mockCollection';
 import {
   applyImportName,
+  createImportWarningLineResolver,
   findImportWarningLine,
   findNameCollision,
   getImportWarnings,
@@ -210,6 +211,22 @@ describe('getImportWarnings', () => {
     });
     expect(warnings).toEqual([]);
   });
+
+  it('should cap the warnings and summarize the hidden ones', () => {
+    const doc: Record<string, unknown> = {
+      name: 'x',
+      description: 'd',
+      category: 'safety',
+      benchmarks: [],
+    };
+    for (let i = 0; i < 150; i += 1) {
+      doc[`unknown${i}`] = i;
+    }
+    const warnings = getImportWarnings(doc);
+    expect(warnings).toHaveLength(101);
+    expect(warnings[100]).toEqual({ message: '50 more warnings are not shown.' });
+    expect(warnings.slice(0, 100).every((warning) => warning.field !== undefined)).toBe(true);
+  });
 });
 
 describe('findImportWarningLine', () => {
@@ -266,6 +283,9 @@ describe('findImportWarningLine', () => {
   const jsonLines = [
     '{',
     '  "name": "warn-me",',
+    '  "custom": {',
+    '    "id": "nested-id",',
+    '  },',
     '  "id": "top-level-id",',
     '  "mystery": 1,',
     '  "benchmarks": [',
@@ -279,22 +299,58 @@ describe('findImportWarningLine', () => {
   ];
 
   it('should resolve a top-level field in pretty-printed JSON to its own line', () => {
-    expect(findImportWarningLine(jsonLines, { message: 'mystery', field: 'mystery' })).toBe(4);
+    expect(findImportWarningLine(jsonLines, { message: 'mystery', field: 'mystery' })).toBe(7);
   });
 
   it('should prefer the shallowest quoted match when a field name repeats nested', () => {
-    expect(findImportWarningLine(jsonLines, { message: 'id', field: 'id' })).toBe(3);
+    expect(findImportWarningLine(jsonLines, { message: 'id', field: 'id' })).toBe(6);
   });
 
   it('should resolve a benchmark id and benchmark field in pretty-printed JSON', () => {
-    expect(findImportWarningLine(jsonLines, { message: 'b', benchmarkId: 'quality' })).toBe(7);
+    expect(findImportWarningLine(jsonLines, { message: 'b', benchmarkId: 'quality' })).toBe(10);
     expect(
       findImportWarningLine(jsonLines, {
         message: 'url',
         benchmarkId: 'quality',
         benchmarkField: 'url',
       }),
-    ).toBe(9);
+    ).toBe(12);
+  });
+});
+
+describe('createImportWarningLineResolver', () => {
+  it('should resolve each warning of a many-field definition from one index', () => {
+    // Regression test: a below-limit definition with thousands of unknown
+    // fields must resolve its (capped) warnings through a single index
+    // rather than a full-document scan per warning.
+    const fieldCount = 3000;
+    const doc: Record<string, unknown> = { name: 'many', description: 'd', category: 'safety' };
+    const lines = ['name: many', 'description: d', 'category: safety'];
+    for (let i = 0; i < fieldCount; i += 1) {
+      doc[`unknown${i}`] = i;
+      lines.push(`unknown${i}: ${i}`);
+    }
+    const warnings = getImportWarnings(doc);
+    expect(warnings).toHaveLength(101);
+    const resolve = createImportWarningLineResolver(lines);
+    warnings.slice(0, 100).forEach((warning) => {
+      expect(resolve(warning)).toBe(4 + Number(warning.field?.slice('unknown'.length)));
+    });
+    // The summary warning carries no anchor and falls back to line 1.
+    expect(resolve(warnings[100])).toBe(1);
+  });
+
+  it('should resolve a single-quoted benchmark id and its fields', () => {
+    const lines = ['benchmarks:', "  - id: 'my bench'", '    mystery: 1'];
+    const resolve = createImportWarningLineResolver(lines);
+    expect(resolve({ message: 'm', benchmarkId: 'my bench' })).toBe(2);
+    expect(resolve({ message: 'm', benchmarkId: 'my bench', benchmarkField: 'mystery' })).toBe(3);
+  });
+
+  it('should resolve a benchmark field whose line pads the colon with spaces', () => {
+    const lines = ['benchmarks:', '  - id: b', '    "weight" : 1'];
+    const resolve = createImportWarningLineResolver(lines);
+    expect(resolve({ message: 'm', benchmarkId: 'b', benchmarkField: 'weight' })).toBe(3);
   });
 });
 
@@ -525,6 +581,42 @@ describe('applyImportName', () => {
     const result = applyImportName("{benchmarks: [{note: it's broken}], name: old}", 'renamed');
     expect(result).toBe('{benchmarks: [{note: it\'s broken}], name: "renamed"}');
     expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should not rewrite a name token inside a plain flow scalar value', () => {
+    const text = '{name: old, description: name:foo, domains: [d], benchmarks: [{id: a}]}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe(
+      '{name: "renamed", description: name:foo, domains: [d], benchmarks: [{id: a}]}',
+    );
+    expect(parseImportContent(result).doc).toEqual({
+      name: 'renamed',
+      description: 'name:foo',
+      domains: ['d'],
+      benchmarks: [{ id: 'a' }],
+    });
+  });
+
+  it('should not rewrite a name token inside a multi-word flow key', () => {
+    const text = '{display name: x, domains: [d]}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('{"name": "renamed",display name: x, domains: [d]}');
+    expect(parseImportContent(result).doc).toEqual({
+      name: 'renamed',
+      'display name': 'x',
+      domains: ['d'],
+    });
+  });
+
+  it('should insert a name when a name-like token is part of a longer flow key', () => {
+    const text = '{name:foo, domains: [d]}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('{"name": "renamed",name:foo, domains: [d]}');
+    expect(parseImportContent(result).doc).toEqual({
+      name: 'renamed',
+      'name:foo': null,
+      domains: ['d'],
+    });
   });
 
   it('should leave a flow mapping unchanged when the name cannot be replaced in place', () => {

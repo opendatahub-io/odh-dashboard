@@ -49,6 +49,12 @@ const KNOWN_BENCHMARK_FIELDS = new Set([
 // Benchmark fields the server derives from the provider definition.
 const SERVER_MANAGED_BENCHMARK_FIELDS = new Set(['url']);
 
+// A definition below the 1 MiB limit can still carry tens of thousands of
+// unknown fields, each producing an advisory warning. The cap bounds the
+// warnings surfaced (and line-resolved) per edit; the rest are summarized
+// in one final warning so the diagnostic pass stays linear in input size.
+const MAX_IMPORT_WARNINGS = 100;
+
 export const IMPORT_COLLECTION_TEMPLATE = `# Example collection format
 
 name: my-collection
@@ -280,7 +286,10 @@ export type ImportWarning = {
  * Advisory warnings shown before the user confirms the import — a
  * client-side mirror of the BFF's pre-submission checks. The server's
  * validation on submission is authoritative. Each warning carries the
- * anchors needed to point an editor marker at its source line.
+ * anchors needed to point an editor marker at its source line. At most
+ * MAX_IMPORT_WARNINGS warnings are returned; the rest are summarized in
+ * one final anchor-less warning so the diagnostics rendered per edit stay
+ * bounded no matter how many unknown fields the definition carries.
  */
 export const getImportWarnings = (doc: Record<string, unknown>): ImportWarning[] => {
   const warnings: ImportWarning[] = [];
@@ -326,6 +335,11 @@ export const getImportWarnings = (doc: Record<string, unknown>): ImportWarning[]
         }
       });
   });
+  if (warnings.length > MAX_IMPORT_WARNINGS) {
+    const hidden = warnings.length - MAX_IMPORT_WARNINGS;
+    warnings.length = MAX_IMPORT_WARNINGS;
+    warnings.push({ message: `${hidden} more warnings are not shown.` });
+  }
   return warnings;
 };
 
@@ -349,69 +363,202 @@ const isNameKeyToken = (text: string, start: number, end: number): boolean => {
 };
 
 /**
- * Resolves the 1-based line a warning anchors to in the raw content, given
- * as pre-split lines so a caller resolving many warnings splits the text
- * once: the warning field's own line when present, the field's line within
- * its benchmark entry for benchmark-scoped warnings, the benchmark's id
- * line when only the entry is known, and line 1 for file-level warnings.
- * Block YAML matches its unquoted/dash forms; pretty-printed JSON matches
- * quoted keys, where a top-level field resolves to the shallowest-indented
- * match so a same-named nested key cannot win. Best-effort: an unmatched
- * anchor falls back to line 1.
+ * Spellings of a warning anchor as its key or id can appear in the source:
+ * bare, or wrapped in an optional leading and/or trailing quote character —
+ * independently, matching the optional quotes in the anchor lookup forms.
  */
-export const findImportWarningLine = (lines: string[], warning: ImportWarning): number => {
-  if (warning.benchmarkId !== undefined) {
-    const benchmarkPattern = new RegExp(
-      `^(?:\\s*-\\s*id:\\s*['"]?${escapeRegExp(warning.benchmarkId)}['"]?\\s*$` +
-        // Pretty-printed JSON benchmark entry: "id": "value", — the YAML
-        // alternative has no trailing comma.
-        `|\\s*"id"\\s*:\\s*"${escapeRegExp(warning.benchmarkId)}"\\s*,?\\s*$)`,
-    );
-    const benchmarkLine = lines.findIndex((line) => benchmarkPattern.test(line));
-    if (benchmarkLine === -1) {
-      return 1;
+const anchorQuoteVariants = (value: string): string[] => [
+  value,
+  `"${value}"`,
+  `'${value}'`,
+  `"${value}`,
+  `'${value}`,
+  `${value}"`,
+  `${value}'`,
+  `"${value}'`,
+  `'${value}"`,
+];
+
+/**
+ * Colon positions considered per line when indexing key prefixes. Real
+ * mapping keys hold at most a few colons; the cap keeps a minified
+ * single-line document — whose prefix candidates all start with the
+ * document's opening brace and can never equal a key — from producing
+ * unbounded prefix work.
+ */
+const MAX_LINE_KEY_COLONS = 64;
+
+/**
+ * Line kinds that end a benchmark entry: a column-zero character (a
+ * top-level key), a sequence item (the next benchmark entry), or the
+ * closing bracket of a pretty-printed JSON entry.
+ */
+const isBenchmarkEntryBoundary = (line: string): boolean =>
+  /^\S/.test(line) || /^\s*-\s/.test(line) || /^\s*[}\]],?\s*$/.test(line);
+
+type ImportWarningLineIndex = {
+  /** First line (0-based) whose text before a colon is exactly the key. */
+  plainKeyLines: Map<string, number>;
+  /** Line (0-based) of the shallowest-indented quoted occurrence per key. */
+  quotedKeyLines: Map<string, number>;
+  /** Indentation width of that occurrence, to compare shallowness. */
+  quotedKeyIndents: Map<string, number>;
+  /** First id line (0-based) per verbatim benchmark id text. */
+  benchmarkIdLines: Map<string, number>;
+  /** Field line (0-based) per verbatim field text, per entry id line. */
+  benchmarkEntryFields: Map<number, Map<string, number>>;
+};
+
+/**
+ * Indexes the anchor locations warnings resolve against — plain and quoted
+ * top-level keys, benchmark id lines, and each benchmark entry's field
+ * lines — in a single pass over the split lines. Resolving a warning
+ * through the index is a lookup; resolving it by scanning the lines is a
+ * full-document pass, which is quadratic when a definition carries many
+ * warnings.
+ */
+const buildImportWarningLineIndex = (lines: string[]): ImportWarningLineIndex => {
+  const index: ImportWarningLineIndex = {
+    plainKeyLines: new Map(),
+    quotedKeyLines: new Map(),
+    quotedKeyIndents: new Map(),
+    benchmarkIdLines: new Map(),
+    benchmarkEntryFields: new Map(),
+  };
+  // The benchmark entry whose fields subsequent lines belong to; null
+  // outside any entry.
+  let entryFields: Map<string, number> | null = null;
+  lines.forEach((line, lineIndex) => {
+    // Benchmark id lines: `- id: value` (value optionally quoted) in block
+    // YAML, `"id": "value",` in pretty-printed JSON. Both are keyed by the
+    // verbatim value text; lookups try the quote-wrapped spellings of the
+    // parsed id.
+    const yamlIdMatch = /^\s*-\s*id:\s*(.*?)\s*$/.exec(line);
+    const jsonIdMatch = yamlIdMatch === null ? /^\s*"id"\s*:\s*"(.*)"\s*,?\s*$/.exec(line) : null;
+    const idText = yamlIdMatch?.[1] ?? jsonIdMatch?.[1];
+    let isIdLine = false;
+    if (idText !== undefined) {
+      isIdLine = true;
+      if (!index.benchmarkIdLines.has(idText)) {
+        index.benchmarkIdLines.set(idText, lineIndex);
+      }
+      entryFields = new Map();
+      index.benchmarkEntryFields.set(lineIndex, entryFields);
+    } else if (entryFields !== null && isBenchmarkEntryBoundary(line)) {
+      entryFields = null;
     }
-    if (warning.benchmarkField !== undefined) {
-      const fieldPattern = new RegExp(
-        `^\\s+["']?${escapeRegExp(warning.benchmarkField)}["']?\\s*:`,
-      );
-      for (let index = benchmarkLine + 1; index < lines.length; index++) {
-        const line = lines[index];
-        // Stop at the next benchmark entry, a top-level key, or the closing
-        // bracket of a pretty-printed JSON entry.
-        if (/^\S/.test(line) || /^\s*-\s/.test(line) || /^\s*[}\]],?\s*$/.test(line)) {
-          break;
-        }
-        if (fieldPattern.test(line)) {
-          return index + 1;
+    // Top-level keys resolve against every line, including id and boundary
+    // lines, exactly as a whole-document scan would.
+    const indent = line.length - line.trimStart().length;
+    // Entry fields: an indented, non-boundary line inside an entry. The
+    // text between the line's indentation and a colon — trailing whitespace
+    // stripped — is the optionally quote-wrapped field name.
+    const activeEntryFields = !isIdLine && entryFields !== null && indent > 0 ? entryFields : null;
+    let colons = 0;
+    for (let colon = line.indexOf(':'); colon !== -1; colon = line.indexOf(':', colon + 1)) {
+      const plainCandidate = line.slice(0, colon);
+      if (!index.plainKeyLines.has(plainCandidate)) {
+        index.plainKeyLines.set(plainCandidate, lineIndex);
+      }
+      if (activeEntryFields !== null) {
+        const fieldCandidate = line.slice(indent, colon).trimEnd();
+        if (!activeEntryFields.has(fieldCandidate)) {
+          activeEntryFields.set(fieldCandidate, lineIndex);
         }
       }
-    }
-    return benchmarkLine + 1;
-  }
-  if (warning.field !== undefined) {
-    const fieldLine = lines.findIndex((line) => line.startsWith(`${warning.field}:`));
-    if (fieldLine !== -1) {
-      return fieldLine + 1;
+      colons += 1;
+      if (colons >= MAX_LINE_KEY_COLONS) {
+        break;
+      }
     }
     // Pretty-printed JSON (or quoted YAML) keys: "field"/'field' at some
     // indentation. Top-level keys sit at the shallowest indentation.
-    const quotedPattern = new RegExp(`^\\s*(["'])${escapeRegExp(warning.field)}\\1\\s*:`);
-    let quotedLine = -1;
-    let quotedIndent = Infinity;
-    lines.forEach((line, index) => {
-      const match = quotedPattern.exec(line);
-      if (match !== null && match[1].length < quotedIndent) {
-        quotedLine = index;
-        quotedIndent = match[1].length;
+    const quotedMatch = /^(\s*)'([^']*)'\s*:/.exec(line) ?? /^(\s*)"([^"]*)"\s*:/.exec(line);
+    if (quotedMatch !== null) {
+      const [, quotedIndentText, quotedKey] = quotedMatch;
+      const quotedIndent = quotedIndentText.length;
+      const knownIndent = index.quotedKeyIndents.get(quotedKey);
+      if (knownIndent === undefined || quotedIndent < knownIndent) {
+        index.quotedKeyLines.set(quotedKey, lineIndex);
+        index.quotedKeyIndents.set(quotedKey, quotedIndent);
       }
-    });
-    if (quotedLine !== -1) {
-      return quotedLine + 1;
     }
-  }
-  return 1;
+  });
+  return index;
 };
+
+/** Earliest line (0-based) recorded for any of the candidate anchor texts. */
+const firstIndexedLine = (lineMap: Map<string, number>, candidates: string[]): number => {
+  let first = -1;
+  candidates.forEach((candidate) => {
+    const found = lineMap.get(candidate);
+    if (found !== undefined && (first === -1 || found < first)) {
+      first = found;
+    }
+  });
+  return first;
+};
+
+export type ImportWarningLineResolver = (warning: ImportWarning) => number;
+
+/**
+ * Creates a resolver for the 1-based line a warning anchors to in the raw
+ * content, given as pre-split lines so a caller resolving many warnings
+ * splits the text once and indexes it once: the warning field's own line
+ * when present, the field's line within its benchmark entry for
+ * benchmark-scoped warnings, the benchmark's id line when only the entry
+ * is known, and line 1 for file-level warnings. Block YAML matches its
+ * unquoted/dash forms; pretty-printed JSON matches quoted keys, where a
+ * top-level field resolves to the shallowest-indented match so a
+ * same-named nested key cannot win. Best-effort: an unmatched anchor falls
+ * back to line 1. The index is built lazily, on the first resolved warning.
+ */
+export const createImportWarningLineResolver = (lines: string[]): ImportWarningLineResolver => {
+  let index: ImportWarningLineIndex | null = null;
+  const getIndex = (): ImportWarningLineIndex => (index ??= buildImportWarningLineIndex(lines));
+  return (warning) => {
+    if (warning.benchmarkId !== undefined) {
+      const benchmarkLine = firstIndexedLine(
+        getIndex().benchmarkIdLines,
+        anchorQuoteVariants(warning.benchmarkId),
+      );
+      if (benchmarkLine === -1) {
+        return 1;
+      }
+      const entryFields = getIndex().benchmarkEntryFields.get(benchmarkLine);
+      if (warning.benchmarkField !== undefined && entryFields !== undefined) {
+        const fieldLine = firstIndexedLine(
+          entryFields,
+          anchorQuoteVariants(warning.benchmarkField),
+        );
+        if (fieldLine !== -1) {
+          return fieldLine + 1;
+        }
+      }
+      return benchmarkLine + 1;
+    }
+    if (warning.field !== undefined) {
+      const plainLine = getIndex().plainKeyLines.get(warning.field);
+      if (plainLine !== undefined) {
+        return plainLine + 1;
+      }
+      const quotedLine = getIndex().quotedKeyLines.get(warning.field);
+      if (quotedLine !== undefined) {
+        return quotedLine + 1;
+      }
+    }
+    return 1;
+  };
+};
+
+/**
+ * Resolves a single warning's 1-based anchor line; see
+ * createImportWarningLineResolver for the matching rules. Callers resolving
+ * many warnings against the same lines should create the resolver once
+ * instead of paying the index build per warning.
+ */
+export const findImportWarningLine = (lines: string[], warning: ImportWarning): number =>
+  createImportWarningLineResolver(lines)(warning);
 
 /** Case-insensitive match against the collections visible to the user. */
 export const findNameCollision = (
@@ -458,6 +605,20 @@ const serializeYamlScalar = (value: string): string =>
  */
 const isFlowTokenBoundary = (ch: string): boolean =>
   ch === ',' || ch === ':' || ch === '{' || ch === '[' || /\s/.test(ch);
+
+/**
+ * True when the colon at colonIndex is a YAML flow key-value separator. In
+ * flow context a plain scalar may contain colons — the value name:foo and
+ * the key name:foo both parse as a single scalar — so only a colon followed
+ * by whitespace, a flow indicator, or the end of input separates a key from
+ * its value.
+ */
+const isFlowSeparatorColon = (text: string, colonIndex: number): boolean => {
+  if (colonIndex + 1 >= text.length) {
+    return true;
+  }
+  return /[\s,{}[\]]/.test(text[colonIndex + 1]);
+};
 
 /**
  * End of the value that starts at start within a brace-delimited mapping.
@@ -521,7 +682,11 @@ const findFlowValueEnd = (text: string, start: number): number => {
  * rather than re-serializing the document, so values that do not survive a
  * parse/stringify round-trip — integers beyond the safe range, number
  * formatting, key order — are preserved verbatim. Quoted (JSON) and
- * unquoted (YAML flow) top-level name keys are both recognized; when the
+ * unquoted (YAML flow) top-level name keys are both recognized — an
+ * unquoted name token only when it starts an entry and is followed by a
+ * separator colon, so plain values that embed colons (description:
+ * name:foo) and multi-word keys (display name) are never mistaken for it;
+ * when the
  * content repeats a top-level name key, the last occurrence is rewritten,
  * matching the key the JSON parser (and the BFF decoder) keeps. Comments
  * are skipped, so a key named inside a comment is never rewritten. Returns
@@ -563,6 +728,15 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
   };
 
   let depth = 1;
+  // Depth-1 entry state: whether the next depth-1 token can start a mapping
+  // key, and whether the current depth-1 key has already begun. A plain YAML
+  // flow key may span several whitespace-separated tokens (display name) and
+  // contain non-separator colons (a:b name), and a plain value may itself
+  // look like a key (description: name:foo) — so a name token is the
+  // collection's name key only when it is the first token of an entry and
+  // is followed by a separator colon.
+  let keyPosition = true;
+  let keyStarted = false;
   i++;
   while (i < len) {
     const ch = text[i];
@@ -594,7 +768,7 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
       if (end >= len) {
         return null;
       }
-      const isNameKey = depth === 1 && isNameKeyToken(text, i, end);
+      const isNameKey = depth === 1 && keyPosition && !keyStarted && isNameKeyToken(text, i, end);
       end++;
       let after = end;
       while (after < len && /\s/.test(text[after])) {
@@ -608,8 +782,18 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
           return null;
         }
         nameValueSpan = span;
+        // The colon after a quoted key is always a separator, even
+        // JSON-style without a following space.
+        keyPosition = false;
         i = after;
         continue;
+      }
+      if (depth === 1 && keyPosition) {
+        // A quoted scalar in key position is the entire key.
+        keyStarted = true;
+        if (text[after] === ':') {
+          keyPosition = false;
+        }
       }
       i = end;
       continue;
@@ -623,24 +807,36 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
         // name; a name in a later document must not be rewritten.
         break;
       }
+    } else if (ch === ',' && depth === 1) {
+      // A comma starts the next depth-1 entry.
+      keyPosition = true;
+      keyStarted = false;
+    } else if (ch === ':' && depth === 1 && isFlowSeparatorColon(text, i)) {
+      // Only a separator colon ends a key; a colon inside a plain scalar
+      // (name:foo) does not.
+      keyPosition = false;
     } else if (depth === 1 && !/[\s:,]/.test(ch)) {
-      // Unquoted (YAML flow) key token.
+      // Unquoted (YAML flow) token — a key candidate only when it is the
+      // first token of an entry.
       let end = i;
       while (end < len && !/[\s:,[\]{}]/.test(text[end])) {
         end++;
       }
-      if (text.slice(i, end) === 'name') {
+      if (keyPosition && !keyStarted && text.slice(i, end) === 'name') {
         let after = end;
         while (after < len && /\s/.test(text[after])) {
           after++;
         }
-        if (text[after] === ':') {
+        if (text[after] === ':' && isFlowSeparatorColon(text, after)) {
           const span = computeNameValueSpan(after);
           if (span === null) {
             return null;
           }
           nameValueSpan = span;
         }
+      }
+      if (keyPosition && !keyStarted) {
+        keyStarted = true;
       }
       i = end;
       continue;

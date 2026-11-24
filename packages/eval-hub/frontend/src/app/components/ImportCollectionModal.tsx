@@ -21,8 +21,8 @@ import { TimesIcon, UploadIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import {
   applyImportName,
+  createImportWarningLineResolver,
   detectImportLanguage,
-  findImportWarningLine,
   findNameCollision,
   getImportWarnings,
   IMPORT_COLLECTION_TEMPLATE,
@@ -128,14 +128,16 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
       result.push({ severity: 'error', message: parsed.error, line: parsed.errorLine ?? 1 });
     }
     if (parsed.doc !== null) {
-      // Split once for every warning; each lookup would otherwise re-split
-      // the full definition text.
+      // Split and index the source once; resolving each warning by
+      // rescanning the document is quadratic when a large definition
+      // carries many warnings.
       const lines = text.split('\n');
+      const resolveWarningLine = createImportWarningLineResolver(lines);
       getImportWarnings(parsed.doc).forEach((warning) => {
         result.push({
           severity: 'warning',
           message: warning.message,
-          line: findImportWarningLine(lines, warning),
+          line: resolveWarningLine(warning),
         });
       });
     }
