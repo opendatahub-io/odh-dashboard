@@ -4,9 +4,11 @@ metadata:
   name: rhaii-dashboard-tls
 spec:
   secretName: rhaii-dashboard-tls
+  # The namespace segment is replaced from rhaii-dashboard-namespace (see
+  # kustomization.yaml replacements).
   dnsNames:
-    - rhaii-dashboard.$(NAMESPACE).svc
-    - rhaii-dashboard.$(NAMESPACE).svc.cluster.local
+    - rhaii-dashboard.rhaii-dashboard-namespace.svc
+    - rhaii-dashboard.rhaii-dashboard-namespace.svc.cluster.local
   duration: 8760h
   renewBefore: 720h
   issuerRef:

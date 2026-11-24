@@ -166,15 +166,22 @@ replacements:
           name: rhaii-dashboard
         fieldPaths:
           - subjects.[name=rhaii-dashboard].namespace
-vars:
-  # Certificate DNS names incorporate the applications namespace. Keep this
-  # as one source value so the common name and SANs cannot drift.
-  - name: NAMESPACE
-    objref:
-      apiVersion: v1
+  # Certificate DNS names incorporate the applications namespace. Replace the
+  # namespace segment of each SAN from the same source value so they cannot
+  # drift from the RBAC subjects above.
+  - source:
       kind: ConfigMap
       name: rhaii-dashboard-params
-    fieldref:
-      fieldpath: data.rhaii-dashboard-namespace
-configurations:
-  - params.yaml
+      fieldPath: data.rhaii-dashboard-namespace
+    targets:
+      - select:
+          group: cert-manager.io
+          version: v1
+          kind: Certificate
+          name: rhaii-dashboard-tls
+        fieldPaths:
+          - spec.dnsNames.0
+          - spec.dnsNames.1
+        options:
+          delimiter: "."
+          index: 1
