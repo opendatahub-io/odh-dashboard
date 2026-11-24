@@ -30,6 +30,7 @@
     "src": "",
     "target": "upstream",
     "exclude": [
+      "workspaces/frontend/src/app/pages/Debug/",
       "workspaces/frontend/Dockerfile",
       "workspaces/frontend/Dockerfile.dev",
       "workspaces/frontend/src/shared/utilities/devAuth.ts",
