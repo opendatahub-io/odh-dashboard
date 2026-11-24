@@ -456,6 +456,8 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Summary
+    modelServingWizard.findReviewTokenSecrets().should('contain.text', 'Token Secrets');
+    modelServingWizard.findReviewTokenSecretsValue().should('have.text', 'new name');
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // dry run request

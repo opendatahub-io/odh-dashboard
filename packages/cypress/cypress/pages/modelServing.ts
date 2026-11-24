@@ -1750,6 +1750,14 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('review-item-huggingFaceApiKey-value');
   }
 
+  findReviewTokenSecrets() {
+    return cy.findByTestId('review-item-tokenAuthentication-serviceAccounts');
+  }
+
+  findReviewTokenSecretsValue() {
+    return cy.findByTestId('review-item-tokenAuthentication-serviceAccounts-value');
+  }
+
   findDeploymentMethodRadio(key: DeploymentMethodKey) {
     return cy.findByTestId(`deployment-method-${key}`);
   }
