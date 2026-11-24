@@ -107,6 +107,7 @@ jobs:
           RUN npm install -g pnpm@${PNPM_VERSION}
           WORKDIR /cache
           COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+          COPY patches ./patches
           COPY backend ./backend
           COPY frontend ./frontend
           COPY packages ./packages
@@ -120,6 +121,7 @@ jobs:
           COPY --from=cache-builder /root/.cache/pnpm /root/.cache/pnpm
           COPY --from=cache-builder /root/.cache/Cypress /root/.cache/Cypress
           COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+          COPY patches ./patches
           COPY backend ./backend
           COPY frontend ./frontend
           COPY packages ./packages

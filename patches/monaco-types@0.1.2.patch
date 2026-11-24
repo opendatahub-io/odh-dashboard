@@ -1,0 +1,12 @@
+diff --git a/monaco-editor.d.ts b/monaco-editor.d.ts
+index 17f48b80a2b79ab9d6a6a14656ffcc937d9cf9f9..d6abcd2b67fad76772a16838ee50ab9301029ee9 100644
+--- a/monaco-editor.d.ts
++++ b/monaco-editor.d.ts
+@@ -1,6 +1,6 @@
+ // One of these modules should exist, but not the other.
+ 
+ // @ts-ignore
+-export * from 'monaco-editor/esm/vs/editor/editor.api.js'
++export * from 'monaco-editor/editor/editor.api.js'
+ // @ts-ignore
+ export * from 'monaco-editor-core'

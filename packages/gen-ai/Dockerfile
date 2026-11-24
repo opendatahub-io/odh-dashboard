@@ -9,6 +9,7 @@ WORKDIR /usr/src/workspace
 
 # Copy pnpm workspace metadata and the packages required by the Gen AI frontend.
 COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=default:root patches ./patches/
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/analytics/ ./packages/analytics/
