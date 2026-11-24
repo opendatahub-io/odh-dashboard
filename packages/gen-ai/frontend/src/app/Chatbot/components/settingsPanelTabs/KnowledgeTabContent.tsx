@@ -7,6 +7,7 @@ import {
   Radio,
   Popover,
   Button,
+  Content,
   Spinner,
   EmptyState,
   EmptyStateBody,
@@ -73,7 +74,6 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
 
   const isExternalVectorStoresEnabled = useAiAssetVectorStoresEnabled();
 
-  // Always call the hook (rules of hooks), but the result is only used when flag is ON + external mode
   const [allVectorStores, vectorStoresLoaded] = useFetchVectorStores();
   const externalVectorStores = React.useMemo(
     () => allVectorStores.filter((vs) => vs.metadata.created_by !== 'auto-provisioning'),
@@ -81,6 +81,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
   );
 
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
+  const shouldNavigateToPromptRef = React.useRef(false);
 
   // Auto-enable RAG when a file is successfully uploaded via inline mode.
   // External vector store selection enables RAG directly in the onSelect handler below.
@@ -92,30 +93,47 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
     }
   }, [autoEnableRag, setAutoEnableRag, updateRagEnabled, configId]);
 
-  const selectedStoreName = React.useMemo(
-    () => externalVectorStores.find((s) => s.id === selectedVectorStoreId)?.name,
+  const selectedExternalStore = React.useMemo(
+    () => externalVectorStores.find((store) => store.id === selectedVectorStoreId),
     [selectedVectorStoreId, externalVectorStores],
   );
+  const hasUsableDocuments =
+    knowledgeMode === 'external'
+      ? vectorStoresLoaded && (selectedExternalStore?.file_counts.completed ?? 0) > 0
+      : fileManagement.files.length > 0;
 
-  const troubleshooting = isRagEnabled && fileManagement.files.length > 0 && (
+  const clearPendingPromptNavigation = () => {
+    shouldNavigateToPromptRef.current = false;
+  };
+
+  const troubleshooting = isRagEnabled && hasUsableDocuments && (
     <Popover
       position="bottom-start"
       aria-label="RAG troubleshooting"
       closeBtnAriaLabel="Close troubleshooting"
       maxWidth="28rem"
+      onMount={clearPendingPromptNavigation}
+      onShow={clearPendingPromptNavigation}
+      onHidden={() => {
+        if (shouldNavigateToPromptRef.current) {
+          clearPendingPromptNavigation();
+          onNavigateToPrompt?.();
+        }
+      }}
       bodyContent={(hide) => (
         <div>
-          <p style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}>
+          <Content component="p" className="pf-v6-u-mb-0">
             If RAG is enabled but the model is not using retrieved knowledge, add a clear rule in
-            your system prompt. For example, “Always use RAG”
-          </p>
+            your system prompt. For example, “Use the file_search tool to retrieve relevant
+            information from the uploaded files before answering.”
+          </Content>
           <div className="pf-v6-u-mt-sm">
             <Button
               variant="link"
               className="pf-v6-u-pl-xs"
               onClick={() => {
+                shouldNavigateToPromptRef.current = true;
                 hide();
-                onNavigateToPrompt?.();
               }}
               data-testid="go-to-prompt-tab"
             >
@@ -260,7 +278,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             isDisabled={false}
             data-testid="external-vector-store-toggle"
           >
-            {selectedStoreName ?? 'Select a vector store'}
+            {selectedExternalStore?.name ?? 'Select a vector store'}
           </MenuToggle>
         )}
         aria-label="Select a vector store"
