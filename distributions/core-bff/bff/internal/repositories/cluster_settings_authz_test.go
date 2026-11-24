@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -470,4 +471,38 @@ func TestClusterSettings_TrackingDisabled_SegmentKeyNotRead(t *testing.T) {
 	require.NoError(t, err, "nor does the save plan")
 	require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
 	assert.Empty(t, writes(caller))
+}
+
+// Review pass 2: enabling tracking without a provisioned segment-key ConfigMap
+// fails before any write instead of reporting success for nothing stored.
+func TestClusterSettings_EnableTrackingWithoutSegmentKey_FailsBeforeWrites(t *testing.T) {
+	caller := newClientPair()
+	allowAllBut(caller, nil)
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	_, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config",
+		&models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout, UserTrackingEnabled: true}, defaultDashConfig())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not provisioned")
+	assert.False(t, repo.SurfacesAuthFailure(err), "a 200 success=false, not 403")
+	assert.Empty(t, writes(caller))
+}
+
+// Review pass 2: under the caller policy GET and the save plan fail the same
+// way on a segment-key read error; GET never shows a value it did not read.
+func TestClusterSettings_SegmentKeyReadError_GetAndPlanAgree(t *testing.T) {
+	caller := newClientPair(versioned(segmentCM(true), "1"))
+	allowAllBut(caller, nil)
+	caller.typed.PrependReactor("get", "configmaps", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		if a.(k8stesting.GetAction).GetName() != segmentKeyConfigName {
+			return false, nil, nil
+		}
+		return true, nil, k8serrors.NewInternalError(errors.New("etcd timeout"))
+	})
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	_, getErr := repo.GetClusterSettings(context.Background(), credNS, defaultDashConfig())
+	_, planErr := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
+	require.Error(t, getErr)
+	require.Error(t, planErr)
 }

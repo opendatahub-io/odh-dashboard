@@ -63,9 +63,10 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 
 	if dashConfig != nil && !dashConfig.Spec.DashboardConfig.DisableTracking {
 		tracking, err := readUserTrackingEnabled(ctx, cs, namespace)
-		if err != nil && r.clients.surfacesAuthFailure(err) {
-			// A caller who may not read the segment-key ConfigMap gets the
-			// API server's answer, as for every other read here.
+		if err != nil && r.clients.policy == CredentialPolicyCaller {
+			// Under the caller policy a failed read is the caller's answer, as
+			// for every other read here and as the save plan treats it: GET
+			// never shows a tracking value that was not read.
 			return nil, err
 		}
 		if err != nil {

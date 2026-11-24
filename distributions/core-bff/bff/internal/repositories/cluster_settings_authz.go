@@ -151,6 +151,11 @@ func (r *ClusterSettingsRepository) buildPlan(
 			return nil, err
 		}
 		plan.segmentKey = segmentKey
+		if segmentKey == nil && settings.UserTrackingEnabled {
+			// Tracking can only be stored in a provisioned segment-key ConfigMap;
+			// reporting success would claim a setting that was not stored.
+			return nil, fmt.Errorf("user tracking cannot be enabled: the %s ConfigMap is not provisioned", segmentKeyConfigName)
+		}
 		if segmentKey != nil && trackingEnabledOf(segmentKey) != settings.UserTrackingEnabled {
 			plan.updateSegmentKey = true
 			plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: segmentKeyConfigName})
