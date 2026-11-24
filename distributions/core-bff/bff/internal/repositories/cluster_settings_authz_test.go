@@ -56,7 +56,7 @@ func TestClusterSettings_PlanUpdate_DeniesBeforeAnyWrite(t *testing.T) {
 	allowAllBut(caller, map[string]bool{"update configmaps": true})
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
-	_, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)
+	_, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
 	require.Error(t, err)
 	assert.True(t, k8serrors.IsForbidden(err), "a denied write is a Forbidden error the handler surfaces as 403")
 	assert.True(t, repo.SurfacesAuthFailure(err))
@@ -70,7 +70,7 @@ func TestClusterSettings_PlanUpdate_ReviewsEveryPlannedWrite(t *testing.T) {
 	seen := allowAllBut(caller, nil)
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
-	require.NoError(t, planErr(repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)))
+	require.NoError(t, planErr(repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())))
 
 	var got []string
 	for _, a := range *seen {
@@ -103,7 +103,7 @@ func TestClusterSettings_PlanUpdate_DisabledCullerReviewsDelete(t *testing.T) {
 func TestClusterSettings_PlanUpdate_ServiceAccountPolicyUnchanged(t *testing.T) {
 	sa := newClientPair()
 	repo := NewClusterSettingsRepository(sa.typed)
-	require.NoError(t, planErr(repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)))
+	require.NoError(t, planErr(repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())))
 	for _, a := range sa.typed.Actions() {
 		assert.NotEqual(t, "selfsubjectaccessreviews", a.GetResource().Resource,
 			"OpenShift keeps the service-account model: no caller review is made")
@@ -115,7 +115,7 @@ func TestClusterSettings_PlanUpdate_ServiceAccountPolicyUnchanged(t *testing.T) 
 func TestClusterSettings_PlanUpdate_NoCallerNoFallback(t *testing.T) {
 	sa := newClientPair()
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, saTyped: sa.typed, caller: failingCaller}}
-	_, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)
+	_, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
 	require.ErrorIs(t, err, ErrCallerClientsUnavailable)
 	assert.Zero(t, sa.actions())
 }
@@ -128,7 +128,7 @@ func TestClusterSettings_UpdateConfigMaps_ExecutesPlannedCreateOnly(t *testing.T
 	allowAllBut(caller, nil)
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
-	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
 	require.NoError(t, err)
 
 	// The ConfigMap appears between the preflight and the write.
@@ -145,7 +145,7 @@ func TestClusterSettings_UpdateConfigMaps_ExecutesPlannedUpdateOnly(t *testing.T
 	allowAllBut(caller, nil)
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
-	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
 	require.NoError(t, err)
 
 	// The ConfigMap is deleted between the preflight and the write.
@@ -195,7 +195,7 @@ func TestClusterSettings_UpdateConfigMaps_AbsentMapAppearsAfterPlan_Conflict(t *
 			allowAllBut(caller, nil)
 			repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
-			plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", tc.settings, nil)
+			plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", tc.settings, defaultDashConfig())
 			require.NoError(t, err)
 			require.NoError(t, caller.typed.Tracker().Add(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: tc.cm, Namespace: credNS}}))
 
@@ -211,7 +211,7 @@ func TestClusterSettings_UpdateConfigMaps_SegmentKeyDeletedAfterPlan_Conflict(t 
 	allowAllBut(caller, nil)
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
-	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
 	require.NoError(t, err)
 	require.NoError(t, caller.typed.Tracker().Delete(corev1.SchemeGroupVersion.WithResource("configmaps"), credNS, segmentKeyConfigName))
 
@@ -238,7 +238,7 @@ func TestClusterSettings_DeniedCullerRead_NoRollout(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, plan)
 
-	_, err = repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), nil)
+	_, err = repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
 	require.True(t, k8serrors.IsForbidden(err), "%v", err)
 	assert.Empty(t, writes(caller), "nothing is written, the rollout included")
 }

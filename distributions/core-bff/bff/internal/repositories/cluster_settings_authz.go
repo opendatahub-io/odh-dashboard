@@ -144,7 +144,7 @@ func (r *ClusterSettingsRepository) buildPlan(
 	// With tracking disabled in the dashboard config, GET neither reads nor
 	// shows the setting and the form cannot change it, so the plan neither reads
 	// nor writes the segment-key ConfigMap: a save then needs no access to it.
-	plan.trackingManaged = currentConfig == nil || !currentConfig.Spec.DashboardConfig.DisableTracking
+	plan.trackingManaged = currentConfig != nil && !currentConfig.Spec.DashboardConfig.DisableTracking
 	if plan.trackingManaged {
 		segmentKey, err := getConfigMap(ctx, cs, namespace, segmentKeyConfigName)
 		if err != nil {

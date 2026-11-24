@@ -19,7 +19,9 @@
 # Environment:
 #   PLATFORM     XKS (default) or OpenShift. Selects the expectations and, for a
 #                local BFF, the --platform-type and token-header settings.
-#   BFF_URL      Use a running BFF instead of starting one. It must be configured
+#   BFF_URL      Use a running BFF instead of starting one. It must be https://,
+#                or http:// on a loopback host (localhost, 127.0.0.1, [::1]) for a
+#                port-forward; tokens are never sent over remote plaintext. It must be configured
 #                for PLATFORM. A local BFF is started from ./bff otherwise, using
 #                the current kubeconfig context as its service account.
 #   ADMIN_TOKEN  Token of a caller who may patch namespaces. Defaults to
@@ -78,6 +80,13 @@ port_free() {
   curl -s -o /dev/null --connect-timeout 2 --max-time 5 "http://localhost:$1/" || rc=$?
   [[ $rc -eq 7 ]]
 }
+# Tokens are sent to BFF_URL, so a remote target must use TLS. Checked before
+# any namespace or token is created.
+loopback_http='^http://(localhost|127\.0\.0\.1|\[::1\])(:[0-9]+)?(/.*)?$'
+if [[ -n "${BFF_URL:-}" && ! "$BFF_URL" =~ ^https:// && ! "$BFF_URL" =~ $loopback_http ]]; then
+  echo >&2 "BFF_URL must be https://, or http:// on localhost, 127.0.0.1 or [::1]; refusing to send tokens over plaintext"
+  exit 1
+fi
 if [[ -z "${BFF_URL:-}" ]] && ! port_free "$PORT"; then
   echo >&2 "port $PORT is already in use; stop that process or set PORT to a free port"
   exit 1
@@ -198,14 +207,23 @@ check H8 "identity headers without a credential" 401 "$(code -H "X-Forwarded-Use
 echo "== Kubernetes HTTP proxy =="
 check P1 "caller lists pods in its namespace" 200 "$(code -H "@$CALLER" "$B/api/k8s/api/v1/namespaces/$NS/pods")"
 check P2 "caller lists all namespaces (not permitted)" 403 "$(code -H "@$CALLER" "$B/api/k8s/api/v1/namespaces")"
-# P3/P4 use the request P1 showed the caller may make. Had a spoofed header
-# reached the API server, the caller (who may not impersonate) would get 403.
+# P3 uses the request P1 showed the caller may make: had the Impersonate-*
+# headers reached the API server, the caller (who may not impersonate) would
+# get 403. P4 is only an effective-access check: the API server ignores
+# X-Remote-* on a bearer-token connection without a trusted front-proxy
+# certificate, so a 200 cannot prove they were stripped. That stripping is
+# shown by TestK8sProxy_StripsCallerSuppliedIdentityAndCredentialHeaders in
+# bff/internal/proxy/caller_auth_test.go, which inspects the upstream headers.
 check P3 "Impersonate-User/Group spoof is stripped" 200 "$(code -H "@$CALLER" -H "Impersonate-User: system:admin" -H "Impersonate-Group: system:masters" "$B/api/k8s/api/v1/namespaces/$NS/pods")"
-check P4 "X-Remote-User spoof is stripped" 200 "$(code -H "@$CALLER" -H "X-Remote-User: system:admin" -H "X-Remote-Group: system:masters" "$B/api/k8s/api/v1/namespaces/$NS/pods")"
+check P4 "X-Remote-* spoof: caller keeps its own access" 200 "$(code -H "@$CALLER" -H "X-Remote-User: system:admin" -H "X-Remote-Group: system:masters" "$B/api/k8s/api/v1/namespaces/$NS/pods")"
 check P5 "no credential: the BFF identity must not act" 401 "$(code "$B/api/k8s/api/v1/namespaces")"
 sr='{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"probe"},"spec":{"containers":[{"name":"kserve-container","image":"quay.io/example/probe:1"}],"supportedModelFormats":[{"name":"onnx"}]}}'
-check P6 "caller dry-run creates a ServingRuntime where allowed" 201 "$(code -X POST -H "@$CALLER" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/$NS/servingruntimes?dryRun=All")"
-check P7 "caller dry-run create where not allowed" 403 "$(code -X POST -H "@$CALLER" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/default/servingruntimes?dryRun=All")"
+if "${KUBECTL[@]}" get crd servingruntimes.serving.kserve.io >/dev/null 2>&1; then
+  check P6 "caller dry-run creates a ServingRuntime where allowed" 201 "$(code -X POST -H "@$CALLER" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/$NS/servingruntimes?dryRun=All")"
+  check P7 "caller dry-run create where not allowed" 403 "$(code -X POST -H "@$CALLER" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/default/servingruntimes?dryRun=All")"
+else
+  skip P6-7 "ServingRuntime dry-run creates" "the ServingRuntime CRD is not installed"
+fi
 
 echo "== Kubernetes WebSocket proxy =="
 ws_module=$(cd "$here" && node -e 'try{console.log(require.resolve("ws"))}catch{}' 2>/dev/null || true)
