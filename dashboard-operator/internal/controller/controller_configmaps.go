@@ -58,7 +58,7 @@ type distributionConfig struct {
 	PlatformVersion string
 }
 
-// certManagerConfig is the xKS certificate issuer contract published by the
+// certManagerConfig is the XKS certificate issuer contract published by the
 // platform in the Dashboard module ConfigMap. Name and kind are platform-owned;
 // group defaults to native cert-manager when the platform does not publish it.
 type certManagerConfig struct {
@@ -72,7 +72,7 @@ func readCertManagerConfig(ctx context.Context, reader client.Reader, namespace 
 	configMapName := resolveDistributionConfigMapName()
 	key := types.NamespacedName{Name: configMapName, Namespace: namespace}
 	if err := reader.Get(ctx, key, cm); err != nil {
-		return certManagerConfig{}, fmt.Errorf("reading xKS platform ConfigMap %s/%s: %w", namespace, configMapName, err)
+		return certManagerConfig{}, fmt.Errorf("reading XKS platform ConfigMap %s/%s: %w", namespace, configMapName, err)
 	}
 
 	config := certManagerConfig{
@@ -82,19 +82,19 @@ func readCertManagerConfig(ctx context.Context, reader client.Reader, namespace 
 	}
 	if config.IssuerRefName == "" || config.IssuerRefKind == "" {
 		return certManagerConfig{}, fmt.Errorf(
-			"xKS platform ConfigMap %s/%s is missing %s or %s",
+			"XKS platform ConfigMap %s/%s is missing %s or %s",
 			namespace, configMapName, certManagerIssuerRefNameKey, certManagerIssuerRefKindKey,
 		)
 	}
 	if errs := k8svalidation.IsDNS1123Subdomain(config.IssuerRefName); len(errs) > 0 {
 		return certManagerConfig{}, fmt.Errorf(
-			"xKS platform ConfigMap %s/%s has invalid %s: %s",
+			"XKS platform ConfigMap %s/%s has invalid %s: %s",
 			namespace, configMapName, certManagerIssuerRefNameKey, strings.Join(errs, "; "),
 		)
 	}
 	if errs := contentvalidation.IsCIdentifier(config.IssuerRefKind); len(errs) > 0 {
 		return certManagerConfig{}, fmt.Errorf(
-			"xKS platform ConfigMap %s/%s has invalid %s: %s",
+			"XKS platform ConfigMap %s/%s has invalid %s: %s",
 			namespace, configMapName, certManagerIssuerRefKindKey, strings.Join(errs, "; "),
 		)
 	}
@@ -103,7 +103,7 @@ func readCertManagerConfig(ctx context.Context, reader client.Reader, namespace 
 	}
 	if errs := k8svalidation.IsDNS1123Subdomain(config.IssuerRefGroup); len(errs) > 0 {
 		return certManagerConfig{}, fmt.Errorf(
-			"xKS platform ConfigMap %s/%s has invalid %s: %s",
+			"XKS platform ConfigMap %s/%s has invalid %s: %s",
 			namespace, configMapName, certManagerIssuerRefGroupKey, strings.Join(errs, "; "),
 		)
 	}

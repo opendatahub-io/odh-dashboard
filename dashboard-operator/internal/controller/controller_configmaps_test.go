@@ -117,7 +117,7 @@ func TestReadCertManagerConfig(t *testing.T) {
 		},
 		{
 			name:    "configmap missing",
-			wantErr: "reading xKS platform ConfigMap",
+			wantErr: "reading XKS platform ConfigMap",
 		},
 		{
 			name: "issuer keys missing",

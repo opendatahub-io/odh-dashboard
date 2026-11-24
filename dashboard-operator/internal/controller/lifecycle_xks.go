@@ -69,7 +69,7 @@ func (l xksDashboardLifecycle) reconcileRHAIIDashboard(
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("CertManagerConfigUnavailable"),
 			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("reading xKS cert-manager configuration: %w", err)
+		return ctrl.Result{}, fmt.Errorf("reading XKS cert-manager configuration: %w", err)
 	}
 	if err := applyKustomizeParamsWithOverrides(dashboard, manifests, r.Platform, map[string]string{
 		"certificate-issuer-name":   certManagerConfig.IssuerRefName,

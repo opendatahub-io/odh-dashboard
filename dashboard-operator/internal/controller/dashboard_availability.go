@@ -78,7 +78,7 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 	if httpRouteNotCached(err) {
 		// The HTTPRoute informer is registered only when Gateway API is present at
 		// operator startup, and the cache fails closed for unregistered kinds. When
-		// Gateway API is installed later (Helm-ordered xKS installs), read the route
+		// Gateway API is installed later (Helm-ordered XKS installs), read the route
 		// directly so availability can still converge without a pod restart.
 		log.FromContext(ctx).V(1).Info("HTTPRoute is not cached; reading it directly", "httpRoute", routeKey.String())
 		err = r.apiReader().Get(ctx, routeKey, route)
