@@ -9,12 +9,14 @@ import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useCreateConnectionNamespaces } from '~/app/hooks/useCreateConnectionNamespaces';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import { testCredentials } from '~/app/api/dch';
 import type { Connection, CreateConnectionRequest, NamespaceKind } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
 jest.mock('~/app/hooks/useCreateConnectionNamespaces');
+jest.mock('~/app/hooks/useConnectionAccess');
 const mockNotificationSuccess = jest.fn();
 const mockNotificationError = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -27,6 +29,7 @@ jest.mock('~/app/api/dch', () => ({
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockUseCreateConnectionNamespaces = jest.mocked(useCreateConnectionNamespaces);
+const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
 const mockTestCredentials = jest.mocked(testCredentials);
 const mockTrackEvent = jest.fn();
 const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
@@ -73,6 +76,7 @@ describe('CreateConnectionWizard', () => {
       true,
       undefined,
     ]);
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
   });
 
   it('rejects duplicate normalized and whitespace-only property keys', () => {
@@ -110,6 +114,45 @@ describe('CreateConnectionWizard', () => {
     expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect(screen.getByTestId('connection-project-select').textContent).toContain('test-project');
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
+  });
+
+  it('should hide the connection type step when only one compatible type is available', async () => {
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Connection type' })).toBeNull();
+    expect(screen.queryByText('PostgreSQL')).toBeNull();
+  });
+
+  it('should not duplicate wizard steps when the connection type step becomes hidden', async () => {
+    mockUseConnectionTypes.mockReturnValue([[], false, undefined]);
+    const { rerender } = render(
+      <CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />,
+    );
+
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+    rerender(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Review/ })).toHaveLength(1);
+  });
+
+  it('should disable back on the first visible step and return from configuration', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Back' })).toHaveProperty('disabled', true);
+
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('heading', { name: 'Configuration' })).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('heading', { name: 'Details' })).toBeTruthy();
   });
 
   it('tracks connection type selection in the wizard', async () => {

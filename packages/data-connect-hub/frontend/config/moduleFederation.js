@@ -8,8 +8,10 @@ module.exports = {
       exposes: {
         './extensions': './src/odh/extensions',
         './extension-points': './src/odh/extension-points',
+        './EmbeddableCreateConnectionWizard':
+          './src/app/components/EmbeddableCreateConnectionWizard',
       },
-      dts: true,
+      dts: false,
     }),
   ],
 };

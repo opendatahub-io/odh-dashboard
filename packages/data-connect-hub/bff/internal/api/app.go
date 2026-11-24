@@ -28,12 +28,13 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/data-connect-hub"
-	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath        = ApiPathPrefix + "/user"
-	NamespacePath   = ApiPathPrefix + "/namespaces"
+	Version           = "1.0.0"
+	PathPrefix        = "/data-connect-hub"
+	ApiPathPrefix     = "/api/v1"
+	HealthCheckPath   = "/healthcheck"
+	UserPath          = ApiPathPrefix + "/user"
+	NamespacePath     = ApiPathPrefix + "/namespaces"
+	BackendHealthPath = ApiPathPrefix + "/backend-health"
 )
 
 type App struct {
@@ -213,6 +214,7 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(BackendHealthPath, app.BackendHealthHandler)
 	apiRouter.GET(ConnectionsPath, app.GetConnectionsHandler)
 	apiRouter.GET(ConnectionTypesPath, app.GetConnectionTypesHandler)
 	apiRouter.POST(ConnectionsPath, app.CreateConnectionHandler)

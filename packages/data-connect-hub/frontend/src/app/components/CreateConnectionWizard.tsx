@@ -38,6 +38,7 @@ import {
   Stack,
   StackItem,
   TextInput,
+  Tooltip,
   Wizard,
   WizardFooterWrapper,
   WizardHeader,
@@ -54,9 +55,12 @@ import { ConnectionTypeInstance } from '~/app/components/ConnectionType';
 import PasswordInput from '~/app/components/PasswordInput';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import { useEmbeddedConnectionWizard } from '~/app/context/EmbeddedConnectionWizardContext';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useCreateConnectionNamespaces } from '~/app/hooks/useCreateConnectionNamespaces';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import { connectionDetailsRoute, projectHomeRoute } from '~/app/routes';
+import { getConnectionAccessTooltip } from '~/app/utilities/connectionAccess';
 import { SENSITIVE_CREDENTIAL_MASK, isSensitiveCredentialField } from '~/app/utilities/credentials';
 import type {
   ConnectionType,
@@ -170,6 +174,7 @@ type ConnectionDetailsStepProps = {
   touchedProperties: Set<number>;
   namespacesLoaded: boolean;
   namespacesError?: Error;
+  isNamespaceSelectable: boolean;
   connectionTypeWarning?: { connectionTypeName: string; namespace: string };
   onNamespaceChange: (namespace: string) => void;
   onConnectionNameChange: (name: string) => void;
@@ -188,6 +193,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
   touchedProperties,
   namespacesLoaded,
   namespacesError,
+  isNamespaceSelectable,
   connectionTypeWarning,
   onNamespaceChange,
   onConnectionNameChange,
@@ -229,56 +235,67 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
               Select a different type or switch back to that project.
             </Alert>
           ) : null}
-          <FormGroup label="Project" isRequired fieldId="connection-project">
-            <Flex alignItems={{ default: 'alignItemsCenter' }}>
-              <FlexItem grow={{ default: 'grow' }}>
-                <Select
-                  isOpen={isNamespaceSelectOpen}
-                  maxMenuHeight="12.5rem"
-                  isScrollable
-                  selected={selectedNamespace}
-                  onSelect={(_event, selection) => {
-                    onNamespaceChange(String(selection));
-                    setIsNamespaceSelectOpen(false);
-                  }}
-                  onOpenChange={setIsNamespaceSelectOpen}
-                  toggle={(toggleRef) => (
-                    <MenuToggle
-                      ref={toggleRef}
-                      onClick={() => setIsNamespaceSelectOpen((open) => !open)}
-                      isExpanded={isNamespaceSelectOpen}
-                      isFullWidth
-                      data-testid="connection-project-select"
-                    >
-                      {namespaces.find((item) => item.name === selectedNamespace)?.displayName ??
-                        selectedNamespace}
-                    </MenuToggle>
-                  )}
-                >
-                  <SelectList>
-                    {namespaces.map((project) => (
-                      <SelectOption key={project.name} value={project.name}>
-                        {project.displayName ?? project.name}
-                      </SelectOption>
-                    ))}
-                  </SelectList>
-                </Select>
-              </FlexItem>
-              <FlexItem>
-                <Popover
-                  aria-label="Project list permissions"
-                  bodyContent="This list includes only projects in which you have permission to create connections. To request changes to your permissions, contact your administrator."
-                >
-                  <Button
-                    variant="link"
-                    isInline
-                    data-testid="connection-project-access-popover-link"
+          <FormGroup
+            label="Project"
+            isRequired={isNamespaceSelectable}
+            fieldId="connection-project"
+          >
+            {isNamespaceSelectable ? (
+              <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem grow={{ default: 'grow' }}>
+                  <Select
+                    isOpen={isNamespaceSelectOpen}
+                    maxMenuHeight="12.5rem"
+                    isScrollable
+                    selected={selectedNamespace}
+                    onSelect={(_event, selection) => {
+                      onNamespaceChange(String(selection));
+                      setIsNamespaceSelectOpen(false);
+                    }}
+                    onOpenChange={setIsNamespaceSelectOpen}
+                    toggle={(toggleRef) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsNamespaceSelectOpen((open) => !open)}
+                        isExpanded={isNamespaceSelectOpen}
+                        isFullWidth
+                        data-testid="connection-project-select"
+                      >
+                        {namespaces.find((item) => item.name === selectedNamespace)?.displayName ??
+                          selectedNamespace}
+                      </MenuToggle>
+                    )}
                   >
-                    Not seeing what you're looking for?
-                  </Button>
-                </Popover>
-              </FlexItem>
-            </Flex>
+                    <SelectList>
+                      {namespaces.map((project) => (
+                        <SelectOption key={project.name} value={project.name}>
+                          {project.displayName ?? project.name}
+                        </SelectOption>
+                      ))}
+                    </SelectList>
+                  </Select>
+                </FlexItem>
+                <FlexItem>
+                  <Popover
+                    aria-label="Project list permissions"
+                    bodyContent="This list includes only projects in which you have permission to create connections. To request changes to your permissions, contact your administrator."
+                  >
+                    <Button
+                      variant="link"
+                      isInline
+                      data-testid="connection-project-access-popover-link"
+                    >
+                      Not seeing what you're looking for?
+                    </Button>
+                  </Popover>
+                </FlexItem>
+              </Flex>
+            ) : (
+              <Content component={ContentVariants.p} data-testid="connection-project-value">
+                {namespaces.find((item) => item.name === selectedNamespace)?.displayName ??
+                  selectedNamespace}
+              </Content>
+            )}
           </FormGroup>
           <FormGroup label="Connection name" isRequired fieldId="connection-name">
             <TextInput
@@ -389,6 +406,8 @@ const CredentialField: React.FC<CredentialFieldProps> = ({ field, value, onChang
 
 type ConfigurationStepProps = {
   connectionType?: ConnectionType;
+  canVerifyConnection: boolean;
+  verifyAccessLoaded: boolean;
   credentials: Record<string, string>;
   onCredentialChange: (name: string, value: string) => void;
   onVerify: () => void;
@@ -401,17 +420,38 @@ type VerificationSectionProps = Omit<ConfigurationStepProps, 'onCredentialChange
 
 const VerifyConnectionSection: React.FC<VerificationSectionProps> = ({
   connectionType,
+  canVerifyConnection,
+  verifyAccessLoaded,
   credentials,
   onVerify,
   isVerifying,
   isVerified,
   verificationError,
 }) => {
-  if (!connectionType?.status?.flight_ready) {
+  const { enableCredentialVerification } = useEmbeddedConnectionWizard();
+
+  if (!enableCredentialVerification || !connectionType?.status?.flight_ready) {
     return null;
   }
 
   const fields = connectionType?.resource.credentials_fields ?? [];
+  const isVerifyAccessDisabled = !canVerifyConnection || !verifyAccessLoaded;
+  const verifyButton = (
+    <Button
+      variant="tertiary"
+      onClick={onVerify}
+      isLoading={isVerifying}
+      isDisabled={
+        isVerifyAccessDisabled ||
+        isVerifying ||
+        fields.some((field) => field.required && !hasCredentialValue(credentials[field.name]))
+      }
+      className="pf-v6-u-mb-md"
+      data-testid="verify-connection-button"
+    >
+      Verify
+    </Button>
+  );
 
   return (
     <div className="pf-v6-u-mt-xl">
@@ -419,19 +459,15 @@ const VerifyConnectionSection: React.FC<VerificationSectionProps> = ({
       <Content component={ContentVariants.p}>
         Verify that the credentials are accurate and the endpoint can be reached.
       </Content>
-      <Button
-        variant="tertiary"
-        onClick={onVerify}
-        isLoading={isVerifying}
-        isDisabled={
-          isVerifying ||
-          fields.some((field) => field.required && !hasCredentialValue(credentials[field.name]))
-        }
-        className="pf-v6-u-mb-md"
-        data-testid="verify-connection-button"
-      >
-        Verify
-      </Button>
+      {isVerifyAccessDisabled ? (
+        <Tooltip
+          content={verifyAccessLoaded ? getConnectionAccessTooltip('create') : 'Checking access...'}
+        >
+          {verifyButton}
+        </Tooltip>
+      ) : (
+        verifyButton
+      )}
       {isVerified ? <Alert variant="success" isInline title="Connection verified" /> : null}
       {verificationError ? (
         <Alert variant="danger" isInline title="Connection verification failed">
@@ -761,17 +797,18 @@ const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> 
   hasValidConfiguration,
 }) => {
   const { activeStep, steps, goToNextStep, goToPrevStep } = useWizardContext();
-  const isFirstStep = activeStep.index === 1;
+  const firstVisibleStep = steps.find((step) => !step.isHidden);
+  const isFirstStep = activeStep.index === firstVisibleStep?.index;
   const isLastStep = activeStep.index === steps.length;
   const isNextDisabled = (() => {
-    switch (activeStep.index) {
-      case 1:
+    switch (activeStep.id) {
+      case 'connection-type-step':
         return !hasSelectedConnectionType;
-      case 2:
+      case 'connection-details-step':
         return !hasValidDetails;
-      case 3:
+      case 'configuration-step':
         return !hasValidConfiguration;
-      case 4:
+      case 'review-step':
         return true;
       default:
         return true;
@@ -838,6 +875,13 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   initialFormData: propInitialFormData,
 }) => {
   const trackEvent = useTrackEvent();
+  const {
+    isEmbedded,
+    isNamespaceSelectable,
+    enableCredentialVerification,
+    tearsheetStackLevel,
+    connectionTypeProviders,
+  } = useEmbeddedConnectionWizard();
   let initialFormData = INITIAL_FORM_DATA;
   if (propInitialFormData) {
     initialFormData = { ...initialFormData, ...propInitialFormData };
@@ -869,11 +913,24 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const verificationAbortRef = React.useRef<AbortController>();
   const wasOpenRef = React.useRef(false);
   const lastTrackedConnectionTypeIdRef = React.useRef<string>();
-  const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
+  const [allConnectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
     selectedNamespace,
     isOpen,
   );
+  const connectionTypes = React.useMemo(
+    () =>
+      connectionTypeProviders?.length
+        ? allConnectionTypes.filter((connectionType) =>
+            connectionTypeProviders.includes(connectionType.resource.provider),
+          )
+        : allConnectionTypes,
+    [allConnectionTypes, connectionTypeProviders],
+  );
   const [namespaces, namespacesLoaded, namespacesError] = useNamespaces(isOpen);
+  const { isAllowed: canVerifyConnection, loaded: verifyAccessLoaded } = useConnectionAccess(
+    selectedNamespace,
+    'create',
+  );
   const namespacesForAccess = React.useMemo(
     () =>
       namespaces.some((item) => item.name === namespace)
@@ -895,6 +952,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   );
   const hasConnectionType = Boolean(formData.data_connection_type_id);
   const hasConnectionTypesReady = connectionTypesLoaded && !connectionTypesError;
+  const hasSingleConnectionType = hasConnectionTypesReady && connectionTypes.length === 1;
   const hasSelectedConnectionType = hasConnectionTypesReady && Boolean(selectedConnectionType);
   const defaultCredentials = React.useMemo(
     () =>
@@ -959,7 +1017,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const canResolveStartIndex =
     isOpenSessionReady &&
     (!hasSelectedConnectionType || !hasMissingCredentialDefaults) &&
-    (!hasConnectionType || connectionTypesLoaded || Boolean(connectionTypesError)) &&
+    (connectionTypesLoaded || Boolean(connectionTypesError)) &&
+    (!hasSingleConnectionType || hasConnectionType) &&
     (!needsInitialValidationData || hasNamespacesReady || Boolean(projectLoadError));
   const calculatedStartIndex = hasValidConfiguration
     ? 4
@@ -1019,6 +1078,15 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     isOpen,
     isOpenSessionReady,
   ]);
+  React.useEffect(() => {
+    if (isOpen && hasSingleConnectionType && !hasConnectionType) {
+      setFormData((current) => ({
+        ...current,
+        data_connection_type_id: connectionTypes[0].metadata.id,
+      }));
+      setConnectionTypeWarning(undefined);
+    }
+  }, [connectionTypes, hasConnectionType, hasSingleConnectionType, isOpen]);
   React.useEffect(() => {
     if (isOpen && !hasResolvedSessionStartIndex && canResolveStartIndex) {
       setSessionStartIndex(calculatedStartIndex);
@@ -1145,7 +1213,13 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     });
   };
   const handleVerify = async () => {
-    if (!selectedConnectionType || !hasValidConfiguration) {
+    if (
+      !enableCredentialVerification ||
+      !canVerifyConnection ||
+      !verifyAccessLoaded ||
+      !selectedConnectionType ||
+      !hasValidConfiguration
+    ) {
       return;
     }
     verificationAbortRef.current?.abort();
@@ -1288,7 +1362,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       const createdConnection = await onCreate(formData, selectedNamespace);
       const connectionName = createdConnection?.resource.name ?? formData.name;
       const projectName = selectedNamespaceDisplayName ?? selectedNamespace;
-      const projectHomePath = projectHomeRoute(selectedNamespace);
+      const projectHomePath = isEmbedded ? undefined : projectHomeRoute(selectedNamespace);
       const tagCount = Object.keys(formData.properties).length;
       fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
@@ -1307,7 +1381,9 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
         'Connection created',
         <>
           "{connectionName}" was created in{' '}
-          {projectHomePath ? (
+          {isEmbedded ? (
+            projectName
+          ) : projectHomePath ? (
             <Button
               component={(props) => <Link {...props} to={projectHomePath} />}
               variant="link"
@@ -1319,12 +1395,12 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
             projectName
           )}
         </>,
-        createdConnection
-          ? {
+        isEmbedded || !createdConnection
+          ? undefined
+          : {
               linkLabel: 'View connection details',
               linkUrl: connectionDetailsRoute(createdConnection.metadata.id, selectedNamespace),
-            }
-          : undefined,
+            },
       );
       resetForm();
       onClose();
@@ -1353,6 +1429,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   }, [
     formData,
     hasValidConfiguration,
+    isEmbedded,
     notification,
     onClose,
     onCreate,
@@ -1366,6 +1443,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   return isOpen ? (
     <>
       <Tearsheet
+        stackLevel={tearsheetStackLevel}
         isOpen
         onEscapePress={handleTearsheetEscape}
         id="create-connection-tearsheet-modal"
@@ -1398,7 +1476,11 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
             />
           }
         >
-          <WizardStep name="Connection type" id="connection-type-step">
+          <WizardStep
+            name="Connection type"
+            id="connection-type-step"
+            isHidden={hasSingleConnectionType}
+          >
             <ConnectionTypeStep
               connectionTypes={connectionTypes}
               connectionTypesLoaded={connectionTypesLoaded}
@@ -1423,6 +1505,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
               touchedProperties={touchedProperties}
               namespacesLoaded={hasNamespacesReady}
               namespacesError={projectLoadError}
+              isNamespaceSelectable={isNamespaceSelectable}
               connectionTypeWarning={connectionTypeWarning}
               onNamespaceChange={handleNamespaceChange}
               onConnectionNameChange={handleConnectionNameChange}
@@ -1439,6 +1522,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
           >
             <ConfigurationStep
               connectionType={selectedConnectionType}
+              canVerifyConnection={canVerifyConnection}
+              verifyAccessLoaded={verifyAccessLoaded}
               credentials={formData.credentials.properties}
               onCredentialChange={handleCredentialChange}
               onVerify={() => void handleVerify()}
