@@ -25,6 +25,11 @@ import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 const WAIT_FOR_PROJECT_TIMEOUT_MS = 30_000;
 const WAIT_FOR_PROJECT_POLL_MS = 2_000;
 const RECENT_NAMESPACES_KEY = 'rhaii-recent-namespaces';
+// Without the unified selector, names listed while discovery was unavailable
+// are looked up by name before they are offered: at most this many, this many
+// at a time.
+const VERIFY_LISTED_LIMIT = 50;
+const VERIFY_LISTED_CONCURRENCY = 4;
 
 const readRecentNames = (): string[] => {
   try {
@@ -69,6 +74,9 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
   const [listingUnavailable, setListingUnavailable] = React.useState(false);
+  const [listedLookupsSettled, setListedLookupsSettled] = React.useState(false);
+  // Recent projects as of mount: looked up after a discovery failure.
+  const [recentNamesAtMount] = React.useState(readRecentNames);
   const [storedPreferredName, setStoredPreferredName] = useBrowserStorage<string>(
     PREFERRED_NAMESPACE_STORAGE_KEY,
     '',
@@ -167,9 +175,35 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       };
     }, [dashboardNamespace, projectData]);
 
+  // Names listed while discovery was unavailable are offered for selection
+  // too. Selecting one while the listing is partial looks it up by name first,
+  // so it is watched only once the lookup confirms what the caller may do.
+  const unverifiedProjects = React.useMemo(
+    () =>
+      projectData.filter(
+        (project) =>
+          project.actionsUnverified &&
+          project.status?.phase === NamespacePhase.Active &&
+          isAvailableProject(project.metadata.name, dashboardNamespace),
+      ),
+    [projectData, dashboardNamespace],
+  );
+  // Without the unified selector, names listed while discovery was
+  // unavailable are looked up before the page reports itself loaded (see the
+  // lookups below). Derived during render, so no commit reports the page
+  // loaded with none of them yet.
+  const awaitingListedLookups =
+    !unifiedProjectSelectorEnabled &&
+    loaded &&
+    !loadError &&
+    listingUnavailable &&
+    (unverifiedProjects.length > 0 || !!storedPreferredName || recentNamesAtMount.length > 0) &&
+    !listedLookupsSettled;
+
   React.useEffect(() => {
     if (
       !loaded ||
+      awaitingListedLookups ||
       (listingUnavailable && unifiedProjectSelectorEnabled) ||
       loadError ||
       projects.length === 0 ||
@@ -186,6 +220,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     }
   }, [
     loaded,
+    awaitingListedLookups,
     listingUnavailable,
     unifiedProjectSelectorEnabled,
     loadError,
@@ -391,19 +426,6 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     : listingUnavailable
     ? 'listing-unavailable'
     : 'listed';
-  // Names listed while discovery was unavailable are offered for selection
-  // too. Selecting one while the listing is partial looks it up by name first,
-  // so it is watched only once the lookup confirms what the caller may do.
-  const unverifiedProjects = React.useMemo(
-    () =>
-      projectData.filter(
-        (project) =>
-          project.actionsUnverified &&
-          project.status?.phase === NamespacePhase.Active &&
-          isAvailableProject(project.metadata.name, dashboardNamespace),
-      ),
-    [projectData, dashboardNamespace],
-  );
   const identities = React.useMemo(
     () =>
       [...projects, ...unverifiedProjects]
@@ -488,6 +510,96 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     return () => controller.abort();
   }, [status, unifiedProjectSelectorEnabled, addProject, validateProject]);
 
+  // Without the unified selector the page's own selector offers only verified
+  // projects and has no manual entry, so after a discovery failure it would
+  // show none. The names the fallback listed are looked up by name instead,
+  // the stored preference first, and each one the lookup verifies is added
+  // with its actions. The page waits for these lookups rather than reporting
+  // no projects meanwhile.
+  // Read when a discovery failure starts the lookups, not as dependencies:
+  // each verified project changes them, and must not restart the lookups.
+  const listedInputsRef = React.useRef({
+    unverifiedProjects,
+    storedPreferredName,
+    addProject,
+    projectData,
+  });
+  React.useEffect(() => {
+    listedInputsRef.current = { unverifiedProjects, storedPreferredName, addProject, projectData };
+  }, [unverifiedProjects, storedPreferredName, addProject, projectData]);
+  React.useEffect(() => {
+    if (unifiedProjectSelectorEnabled || status !== 'listing-unavailable') {
+      return undefined;
+    }
+    const {
+      unverifiedProjects: listed,
+      storedPreferredName: preferred,
+      projectData: known,
+    } = listedInputsRef.current;
+    // The stored preference and recent projects too: where the caller cannot
+    // list namespaces, nothing is listed, but an exact lookup still works.
+    const verified = new Set(
+      known.filter((project) => !project.actionsUnverified).map(({ metadata }) => metadata.name),
+    );
+    const names = [
+      ...new Set([
+        ...(preferred ? [preferred] : []),
+        ...recentNamesAtMount,
+        ...listed.map((project) => project.metadata.name),
+      ]),
+    ]
+      .filter((name) => !verified.has(name) && isAvailableProject(name, dashboardNamespace))
+      .slice(0, VERIFY_LISTED_LIMIT);
+    if (names.length === 0) {
+      setListedLookupsSettled(true);
+      return undefined;
+    }
+    const controller = new AbortController();
+    setListedLookupsSettled(false);
+    // The page waits at most this long; later lookups still add projects.
+    const deadline = setTimeout(() => setListedLookupsSettled(true), FETCH_TIMEOUT_MS);
+    let next = 0;
+    const worker = async (): Promise<void> => {
+      while (!controller.signal.aborted && next < names.length) {
+        const name = names[next];
+        next += 1;
+        try {
+          // Through validateProject, so a newer lookup's decision wins; it
+          // rejects once the lookups are cancelled.
+          // eslint-disable-next-line no-await-in-loop
+          const project = await validateProjectRef.current(name, controller.signal);
+          listedInputsRef.current.addProject(project, false);
+        } catch {
+          // A denial forgets the name; a lookup that failed leaves it unverified.
+        }
+      }
+    };
+    void Promise.all(Array.from({ length: VERIFY_LISTED_CONCURRENCY }, worker)).then(() => {
+      if (!controller.signal.aborted) {
+        clearTimeout(deadline);
+        setListedLookupsSettled(true);
+      }
+    });
+    return () => {
+      controller.abort();
+      clearTimeout(deadline);
+    };
+  }, [unifiedProjectSelectorEnabled, status, recentNamesAtMount, dashboardNamespace]);
+
+  // The deployments page's empty state looks a project up by name while the
+  // listing is incomplete and the unified selector, which offers manual entry,
+  // is off.
+  const findProject = React.useCallback(
+    async (name: string) => {
+      const project = await validateProject(name);
+      addProject(project);
+      updatePreferredProject(project);
+      return project;
+    },
+    [validateProject, addProject, updatePreferredProject],
+  );
+  const offerFindProject = !unifiedProjectSelectorEnabled && status === 'listing-unavailable';
+
   const getProjectDeploymentActions = React.useCallback<
     NonNullable<ProjectsContextType['getProjectDeploymentActions']>
   >(
@@ -530,17 +642,21 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       modelServingProjects,
       deploymentTargetProjects,
       getProjectDeploymentActions,
+      ...(offerFindProject && { findProject }),
       nonActiveProjects,
       preferredProject:
         loaded && !loadError
           ? projects.find(byName(preferredProject?.metadata.name)) ?? null
           : null,
       updatePreferredProject,
-      loaded,
+      loaded: loaded && !awaitingListedLookups,
       loadError,
       waitForProject,
     }),
     [
+      awaitingListedLookups,
+      offerFindProject,
+      findProject,
       projects,
       modelServingProjects,
       deploymentTargetProjects,

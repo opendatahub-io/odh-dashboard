@@ -34,6 +34,13 @@ export type ProjectsContextType = {
    * Unset, or undefined for a project, means every action is offered.
    */
   getProjectDeploymentActions?: (projectName: string) => ProjectDeploymentActions | undefined;
+  /**
+   * Set while the host cannot list every project the caller may use and
+   * offers no other way to enter one (RHAII when namespace discovery is
+   * unavailable): looks a project up by name and, when the caller may use it,
+   * adds it and makes it preferred. Rejects, with a message to show, otherwise.
+   */
+  findProject?: (projectName: string) => Promise<ProjectKind>;
 
   /** Some component set this value, you should use this instead of projects[0] */
   preferredProject: ProjectKind | null;
