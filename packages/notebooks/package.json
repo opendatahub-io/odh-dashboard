@@ -44,7 +44,17 @@
       "releasing/",
       "workspaces/backend/manifests/",
       "workspaces/frontend/manifests/",
-      "workspaces/frontend/.vscode/"
+      "workspaces/frontend/.vscode/",
+      "workspaces/controller/internal/",
+      "workspaces/controller/test/",
+      "workspaces/controller/hack/",
+      "workspaces/controller/manifests/kustomize/components/",
+      "workspaces/controller/manifests/kustomize/overlays/",
+      "workspaces/controller/manifests/kustomize/samples/",
+      "workspaces/controller/manifests/kustomize/base/manager/",
+      "workspaces/controller/manifests/kustomize/base/webhook/",
+      "workspaces/controller/manifests/kustomize/base/namespace/",
+      "workspaces/controller/manifests/kustomize/base/kustomization.yaml"
     ],
     "commit": "118240a70c81c7727a2462ad5732f61c2e737bbc"
   },
