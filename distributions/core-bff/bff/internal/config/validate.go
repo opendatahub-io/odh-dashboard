@@ -156,6 +156,13 @@ func (c EnvConfig) validateKubernetesNames(add func(string, ...any)) {
 	}
 }
 
+// unusableTokenHeaders cannot carry a caller token through a proxy chain.
+var unusableTokenHeaders = map[string]bool{
+	"connection": true, "keep-alive": true, "proxy-connection": true, "te": true,
+	"trailer": true, "transfer-encoding": true, "upgrade": true,
+	"proxy-authorization": true, "host": true, "cookie": true,
+}
+
 func (c EnvConfig) validateAuth(add func(string, ...any)) {
 	switch c.AuthMethod {
 	case AuthMethodDisabled, AuthMethodUser:
@@ -171,6 +178,12 @@ func (c EnvConfig) validateAuth(add func(string, ...any)) {
 				AuthMethodUser)
 		case !isHTTPFieldName(c.AuthTokenHeader):
 			add("AUTH_TOKEN_HEADER/--auth-token-header (value omitted) is not a valid HTTP field name; a gateway could never send it")
+		case unusableTokenHeaders[strings.ToLower(header)]:
+			// Hop-by-hop headers are consumed by the first proxy, Host is the
+			// request target, and Cookie carries the browser's whole jar.
+			add("AUTH_TOKEN_HEADER/--auth-token-header (value omitted) names a hop-by-hop, Host or Cookie header, which cannot carry the caller's token")
+		case strings.EqualFold(header, "Authorization") && c.AuthTokenPrefix == "":
+			add("AUTH_TOKEN_HEADER=Authorization needs AUTH_TOKEN_PREFIX/--auth-token-prefix (for example \"Bearer \"); without it the scheme becomes part of the token")
 		}
 	}
 }

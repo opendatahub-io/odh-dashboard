@@ -85,7 +85,9 @@ func (r *PrometheusRepository) Query(ctx context.Context, token, query, queryTyp
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Prometheus request: %w", err)
 	}
-	req.Header.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	if token != "" {
+		req.Header.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	}
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {

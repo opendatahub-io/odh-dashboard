@@ -77,11 +77,11 @@ core-bff refusing to start: invalid configuration (2 problems):
 
 ### Authentication
 
-| Flag                  | Environment         | Default                    | Notes                                                                       |
-| --------------------- | ------------------- | -------------------------- | --------------------------------------------------------------------------- |
-| `--auth-method`       | `AUTH_METHOD`       | `user_token`               | `user_token` or `disabled`. `disabled` is rejected in a production profile. |
-| `--auth-token-header` | `AUTH_TOKEN_HEADER` | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token`; must be a valid HTTP field name.    |
-| `--auth-token-prefix` | `AUTH_TOKEN_PREFIX` | _(empty)_                  | Set to `Bearer ` when the header is `Authorization`.                        |
+| Flag                  | Environment         | Default                    | Notes                                                                                                                                                  |
+| --------------------- | ------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--auth-method`       | `AUTH_METHOD`       | `user_token`               | `user_token` or `disabled`. `disabled` is rejected in a production profile.                                                                            |
+| `--auth-token-header` | `AUTH_TOKEN_HEADER` | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token`; a valid HTTP field name that is not hop-by-hop, `Host` or `Cookie`. `Authorization` needs `AUTH_TOKEN_PREFIX`. |
+| `--auth-token-prefix` | `AUTH_TOKEN_PREFIX` | _(empty)_                  | Set to `Bearer ` when the header is `Authorization`.                                                                                                   |
 
 The header the gateway populates on xKS is settled by
 [RHOAIENG-96081](https://redhat.atlassian.net/browse/RHOAIENG-96081); this contract only states
@@ -221,7 +221,9 @@ configured one) is the caller's credential too: it is used as the request identi
 by the fallback, and is 401 when malformed. A WebSocket bearer subprotocol (`base64url.bearer.authorization.k8s.io.<token>`, a browser's
 only way to send a token on a WebSocket) counts the same way. When several are present they are tried
 in a fixed order (bearer subprotocol, then `Authorization`, then `X-Forwarded-Access-Token`), and
-every `Sec-WebSocket-Protocol` line is read. In every profile the WebSocket proxy and the
+every `Sec-WebSocket-Protocol` line is read. A fallback request on a certificate-only kubeconfig carries no bearer token at
+all (no `Authorization` header, no bearer subprotocol), so it authenticates with the certificate
+alone; no placeholder token is ever sent upstream. In every profile the WebSocket proxy and the
 reverse proxies drop client-supplied bearer subprotocols and send only the resolved token, and every proxy strips
 both inbound identity headers (`Authorization` and `X-Forwarded-Access-Token`) whichever is
 configured; an `authorize` module receives the resolved token in both. The host dashboard's module proxy sends

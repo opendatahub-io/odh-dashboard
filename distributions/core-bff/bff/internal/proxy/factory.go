@@ -134,6 +134,7 @@ func rewriteAuthHeader(pr *httputil.ProxyRequest, authHeaderFn func(*http.Reques
 func stripImpersonationHeaders(h http.Header) {
 	h.Del(constants.HeaderImpersonateUser)
 	h.Del(constants.HeaderImpersonateGroup)
+	h.Del("Impersonate-Uid")
 	for key := range h {
 		if strings.HasPrefix(strings.ToLower(key), "impersonate-extra-") {
 			h.Del(key)

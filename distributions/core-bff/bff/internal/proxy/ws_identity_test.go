@@ -98,3 +98,48 @@ func TestReverseProxy_StripsBearerSubprotocols(t *testing.T) {
 
 	assert.Equal(t, []string{"base64.binary.k8s.io"}, <-got)
 }
+
+// The WebSocket counterpart: a token-less fallback sends neither an
+// Authorization header nor a bearer subprotocol.
+func TestWsProxy_TokenlessFallbackSendsNoBearer(t *testing.T) {
+	type seen struct {
+		auth string
+		sp   []string
+	}
+	got := make(chan seen, 1)
+	k8sWS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got <- seen{r.Header.Get("Authorization"), websocket.Subprotocols(r)}
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer k8sWS.Close()
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+	handler, err := NewWsProxyHandler(testWsConfig(k8sWS.URL, tracker))
+	require.NoError(t, err)
+	front := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler.ServeHTTP(w, r.WithContext(newDevFallbackIdentityContext("FAKE_CLUSTER_ADMIN_TOKEN")))
+	}))
+	defer front.Close()
+
+	_, _, _ = websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(front.URL, "http")+"/wss/k8s/api/v1/pods", nil)
+	s := <-got
+	assert.Empty(t, s.auth)
+	for _, p := range s.sp {
+		assert.False(t, strings.HasPrefix(p, bearerSubprotocolPrefix), "no bearer subprotocol: %s", p)
+	}
+}
+
+// Impersonate-Uid is stripped with the other impersonation headers.
+func TestReverseProxy_StripsImpersonateUid(t *testing.T) {
+	got := make(chan string, 1)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got <- r.Header.Get("Impersonate-Uid")
+	}))
+	defer upstream.Close()
+	rp, err := NewReverseProxy(ProxyConfig{TargetURL: mustURL(t, upstream.URL), AllowHTTP: true, Logger: testLogger()})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodGet, "/x", nil).WithContext(newIdentityContext("caller"))
+	req.Header.Set("Impersonate-Uid", "1234")
+	rp.ServeHTTP(httptest.NewRecorder(), req)
+	assert.Empty(t, <-got)
+}

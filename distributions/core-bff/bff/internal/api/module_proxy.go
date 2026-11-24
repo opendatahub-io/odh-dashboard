@@ -300,7 +300,7 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 			if !ok || identity == nil {
 				return ""
 			}
-			return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
+			return k8s.BearerHeader(identity.ResolveToken(app.devFallbackToken))
 		}
 
 		// Re-inject the validated user token in the ingress auth header

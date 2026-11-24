@@ -419,7 +419,10 @@ func TestK8sProxy_DevFallbackToken_NotUsedForNormalIdentity(t *testing.T) {
 	}
 }
 
-func TestK8sProxy_DevFallbackToken_EmptyFallsBackToIdentityToken(t *testing.T) {
+// A DEV_MODE fallback on a certificate-only kubeconfig has no token. The
+// placeholder identity token must not be sent next to the kubeconfig client
+// certificate: the request carries no Authorization header at all.
+func TestK8sProxy_DevFallbackToken_EmptySendsNoAuthorization(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Got-Auth", r.Header.Get("Authorization"))
 		w.WriteHeader(http.StatusOK)
@@ -437,7 +440,7 @@ func TestK8sProxy_DevFallbackToken_EmptyFallsBackToIdentityToken(t *testing.T) {
 
 	handler.ServeHTTP(rec, req)
 
-	if got := rec.Header().Get("X-Got-Auth"); got != "Bearer FAKE_CLUSTER_ADMIN_TOKEN" {
-		t.Errorf("auth = %q, want %q (fallback to identity token when DevFallbackToken empty)", got, "Bearer FAKE_CLUSTER_ADMIN_TOKEN")
+	if got := rec.Header().Get("X-Got-Auth"); got != "" {
+		t.Errorf("auth = %q, want no Authorization header on a token-less fallback", got)
 	}
 }

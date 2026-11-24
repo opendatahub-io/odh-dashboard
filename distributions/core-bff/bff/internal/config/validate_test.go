@@ -169,6 +169,9 @@ func TestValidate_AuthTokenHeaderMustBeAnHTTPFieldName(t *testing.T) {
 	for _, header := range []string{"x-forwarded-access-token", "Authorization", "X_Token.v2"} {
 		cfg := productionConfig()
 		cfg.AuthTokenHeader = header
+		if header == "Authorization" {
+			cfg.AuthTokenPrefix = "Bearer "
+		}
 		assert.NoError(t, cfg.Validate(TLSFiles{}), header)
 	}
 }
@@ -506,4 +509,24 @@ func TestValidate_ServiceTargetsRejectUserInfoAndAnEmptyPort(t *testing.T) {
 	cfg := productionConfig()
 	cfg.PrometheusHost = "https://thanos-querier.openshift-monitoring.svc.cluster.local.:9091"
 	assert.NoError(t, cfg.Validate(TLSFiles{}), "a fully qualified name with a trailing dot is a valid service target")
+}
+
+// Headers that a proxy consumes, or that are not a single credential, cannot
+// be the token header; Authorization needs its scheme prefix stripped.
+func TestValidate_AuthTokenHeaderMustBeAbleToCarryAToken(t *testing.T) {
+	for _, h := range []string{"Connection", "cookie", "Upgrade", "Host", "Transfer-Encoding"} {
+		cfg := productionConfig()
+		cfg.AuthTokenHeader = h
+		err := cfg.Validate(TLSFiles{})
+		require.Error(t, err, h)
+		assert.Contains(t, err.Error(), "names a hop-by-hop, Host or Cookie header")
+	}
+	cfg := productionConfig()
+	cfg.AuthTokenHeader, cfg.AuthTokenPrefix = "Authorization", ""
+	err := cfg.Validate(TLSFiles{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "AUTH_TOKEN_HEADER=Authorization needs AUTH_TOKEN_PREFIX")
+
+	cfg.AuthTokenPrefix = "Bearer "
+	require.NoError(t, cfg.Validate(TLSFiles{}))
 }

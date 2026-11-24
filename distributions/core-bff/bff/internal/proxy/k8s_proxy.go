@@ -124,7 +124,7 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			if !ok || identity == nil {
 				return ""
 			}
-			return k8s.BearerTokenPrefix + identity.ResolveToken(cfg.DevFallbackToken)
+			return k8s.BearerHeader(identity.ResolveToken(cfg.DevFallbackToken))
 		},
 		ModifyResponse: func(resp *http.Response) error {
 			if resp.StatusCode == http.StatusSwitchingProtocols {

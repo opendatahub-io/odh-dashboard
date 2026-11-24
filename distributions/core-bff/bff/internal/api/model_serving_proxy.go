@@ -58,7 +58,7 @@ func (app *App) initModelServingProxy() error {
 				// before requests reach this handler. Defensive fallback omits the header.
 				return ""
 			}
-			return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
+			return k8s.BearerHeader(identity.ResolveToken(app.devFallbackToken))
 		},
 		StripHeaders:       proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
 		ModifyResponse:     ssrf.NewRedirectValidator(app.logger),

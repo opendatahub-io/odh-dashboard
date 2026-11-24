@@ -101,7 +101,11 @@ func buildTargetWSURL(wsScheme, host string, base *url.URL, r *http.Request) str
 
 func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, targetURL *url.URL, netDialContext func(ctx context.Context, network, addr string) (net.Conn, error), clientSubprotocols []string, requestID string) (*websocket.Conn, *http.Response, error) {
 	subprotocols := make([]string, 0, len(clientSubprotocols)+1)
-	subprotocols = append(subprotocols, bearerSubprotocol(token))
+	// A DEV_MODE fallback on a certificate-only kubeconfig has no token: the
+	// handshake then authenticates with the client certificate alone.
+	if token != "" {
+		subprotocols = append(subprotocols, bearerSubprotocol(token))
+	}
 	subprotocols = append(subprotocols, clientSubprotocols...)
 
 	dialer := websocket.Dialer{
@@ -113,7 +117,9 @@ func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, t
 	dialHeaders := http.Header{}
 	dialHeaders.Set(constants.HeaderHost, targetURL.Host)
 	dialHeaders.Set(constants.HeaderOrigin, targetURL.Scheme+"://"+targetURL.Host)
-	dialHeaders.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	if token != "" {
+		dialHeaders.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	}
 
 	dialHeaders.Set(httpcontract.RequestIDHeader, requestID)
 	return dialWithHandshakeResponse(&dialer, targetWSURL, dialHeaders, targetURL.Hostname(), netDialContext)
