@@ -99,8 +99,34 @@ const captureMlflowHttpResponse = (
   `printf '%s\\n${MLFLOW_HTTP_STATUS_MARKER}:%s' "$curl_body" "$curl_status"`,
 ];
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isOptionalString = (value: unknown): value is string | undefined =>
+  value === undefined || typeof value === 'string';
+
+const isMlflowExperimentLookupResponse = (
+  value: unknown,
+): value is MlflowExperimentLookupResponse => {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const { error, experiment } = value;
+  return (
+    isOptionalString(value.error_code) &&
+    isOptionalString(value.message) &&
+    (error === undefined ||
+      (isRecord(error) && isOptionalString(error.code) && isOptionalString(error.message))) &&
+    (experiment === undefined ||
+      (isRecord(experiment) &&
+        isOptionalString(experiment.experiment_id) &&
+        isOptionalString(experiment.lifecycle_stage)))
+  );
+};
+
 const parseMlflowHttpResponse = (output: string): MlflowHttpResponse => {
-  const statusMatch = new RegExp(`\\n${MLFLOW_HTTP_STATUS_MARKER}:(\\d{3})$`).exec(output);
+  const statusMatch = new RegExp(`(?:^|\\n)${MLFLOW_HTTP_STATUS_MARKER}:(\\d{3})$`).exec(output);
   if (!statusMatch) {
     throw new Error('MLflow response did not include an HTTP status');
   }
@@ -474,14 +500,20 @@ const getEvalHubMlflowExperiment = (
           )}`,
         );
       }
-      let response: MlflowExperimentLookupResponse;
+      let parsedResponse: unknown;
       try {
-        response = JSON.parse(httpResponse.body) as MlflowExperimentLookupResponse;
+        parsedResponse = JSON.parse(httpResponse.body) as unknown;
       } catch {
         return failLookup(
           `MLflow returned an invalid experiment lookup response for ${experimentName}`,
         );
       }
+      if (!isMlflowExperimentLookupResponse(parsedResponse)) {
+        return failLookup(
+          `MLflow returned an invalid experiment lookup response for ${experimentName}`,
+        );
+      }
+      const response = parsedResponse;
 
       const errorCode = response.error_code ?? response.error?.code;
       if (errorCode === 'RESOURCE_DOES_NOT_EXIST') {
@@ -564,12 +596,16 @@ const getMlflowDeleteError = (experimentName: string, responseText: string): str
     return undefined;
   }
 
-  let response: MlflowExperimentLookupResponse;
+  let parsedResponse: unknown;
   try {
-    response = JSON.parse(responseText) as MlflowExperimentLookupResponse;
+    parsedResponse = JSON.parse(responseText) as unknown;
   } catch {
     return `MLflow returned an invalid delete response for ${experimentName}`;
   }
+  if (!isMlflowExperimentLookupResponse(parsedResponse)) {
+    return `MLflow returned an invalid delete response for ${experimentName}`;
+  }
+  const response = parsedResponse;
 
   const errorCode = response.error_code ?? response.error?.code;
   if (errorCode) {

@@ -68,6 +68,11 @@ const renderHardwareProfileYaml = (
     .replace(/\$\{localQueueName\}/g, localQueueName ?? '');
 };
 
+const EVALHUB_HARDWARE_PROFILE_DELETE_REQUEST_TIMEOUT_SECONDS = 15;
+const EVALHUB_HARDWARE_PROFILE_DELETE_WAIT_TIMEOUT_SECONDS = 60;
+// Covers the request and wait budgets, plus 10 seconds for process startup and exit.
+const EVALHUB_HARDWARE_PROFILE_DELETE_CYPRESS_TIMEOUT_MS = 85000;
+
 export const cleanupEvalHubHardwareProfile = (
   profileName: string,
   reportFailure?: (message: string) => void,
@@ -76,23 +81,29 @@ export const cleanupEvalHubHardwareProfile = (
   assertEvalHubResourceName(profileName, 'EvalHub HardwareProfile name');
 
   const deleteCommand =
-    `oc --request-timeout=60s delete hardwareprofiles "${profileName}" -n "${namespace}" ` +
-    '--ignore-not-found --wait=true --timeout=60s';
+    `oc --request-timeout=${EVALHUB_HARDWARE_PROFILE_DELETE_REQUEST_TIMEOUT_SECONDS}s ` +
+    `delete hardwareprofiles "${profileName}" -n "${namespace}" ` +
+    `--ignore-not-found --wait=true --timeout=${EVALHUB_HARDWARE_PROFILE_DELETE_WAIT_TIMEOUT_SECONDS}s`;
   cy.log(`Deleting EvalHub HardwareProfile ${profileName} from ${namespace}`);
 
-  return cy.exec(deleteCommand, { failOnNonZeroExit: false, timeout: 70000 }).then((result) => {
-    if (result.exitCode !== 0) {
-      const message =
-        `Failed to delete EvalHub HardwareProfile ${profileName} in ${namespace}: ` +
-        `${result.stderr || result.stdout}`;
-      if (reportFailure) {
-        reportFailure(message);
-        return result;
+  return cy
+    .exec(deleteCommand, {
+      failOnNonZeroExit: false,
+      timeout: EVALHUB_HARDWARE_PROFILE_DELETE_CYPRESS_TIMEOUT_MS,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        const message =
+          `Failed to delete EvalHub HardwareProfile ${profileName} in ${namespace}: ` +
+          `${result.stderr || result.stdout}`;
+        if (reportFailure) {
+          reportFailure(message);
+          return result;
+        }
+        throw new Error(message);
       }
-      throw new Error(message);
-    }
-    return result;
-  });
+      return result;
+    });
 };
 
 export const createEvalHubHardwareProfile = (

@@ -1,10 +1,11 @@
 import { LDAP_ADMIN_USER } from './e2eUsers';
 import { ensureAdminOcSession } from './oc_commands/baseCommands';
-import { assertNamespace, doesMlflowExperimentNameExist } from './oc_commands/mlflow';
+import { doesMlflowExperimentNameExist } from './oc_commands/mlflow';
 import {
   cleanupEvalHubMlflowExperiment,
   waitForEvaluationJobComplete,
 } from './oc_commands/evalHubInstance';
+import { deleteEvalHubTenantProject } from './oc_commands/evalHubProject';
 import { removeEvalHubTenantLabel } from './oc_commands/evalHubModelDeploy';
 import { cleanupEvalHubHardwareProfile } from './oc_commands/evalHubHardwareProfile';
 import {
@@ -1686,21 +1687,9 @@ export const createEvalHubCleanupSteps = ({
       description: `Delete tenant project ${evaluationTenantProject}`,
       run: (context) => {
         cy.step(`Delete tenant project: ${evaluationTenantProject}`);
-        const namespace = assertNamespace(evaluationTenantProject);
-        return cy
-          .exec(
-            `oc --request-timeout=180s delete project ${namespace} --wait=true ` +
-              `--ignore-not-found --timeout=180s`,
-            { failOnNonZeroExit: false, timeout: 190000, log: false },
-          )
-          .then((result) => {
-            if (result.exitCode !== 0) {
-              context.reportFailure(
-                `Failed to delete tenant project ${namespace}: ${result.stderr || result.stdout}`,
-              );
-            }
-            return cy.wrap(undefined as void, { log: false });
-          });
+        return deleteEvalHubTenantProject(evaluationTenantProject, context.reportFailure).then(() =>
+          cy.wrap(undefined as void, { log: false }),
+        );
       },
     });
   }
