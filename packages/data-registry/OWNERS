@@ -1,5 +1,12 @@
 # OWNERS
 
-approvers: []
-reviewers: []
-labels: ['area/mod-arch']
+approvers:
+  - data-registry-approvers
+reviewers:
+  - data-registry-reviewers
+labels:
+  - area/data-registry
+  - area/components
+
+options:
+  no_parent_owners: true

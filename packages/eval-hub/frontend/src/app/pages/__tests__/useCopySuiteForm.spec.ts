@@ -498,7 +498,7 @@ describe('useCopySuiteForm', () => {
       (operation) => operation.path === '/benchmarks',
     );
     expect(benchmarkOperation).toEqual({
-      op: 'add',
+      op: 'replace',
       path: '/benchmarks',
       value: [
         expect.objectContaining({

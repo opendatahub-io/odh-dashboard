@@ -35,6 +35,9 @@
 #      and no apply_human_dismissals step, because post-review.sh writes no
 #      ids or dispositions and posts no inline threads to dismiss. Their forge
 #      helpers stay in the bundled library unused.
+#  10. Capture images attached to the PR body and issue comments for the
+#      sandbox (fetch-pr-images.sh), run alongside the host adapters. It
+#      fails open and never exposes REVIEW_TOKEN to the sandbox.
 # The local main-flow steps call `gh` directly, so this copy only completes a
 # review on GitHub; the GitLab library is carried as bundled.
 #
@@ -486,7 +489,7 @@ run_self_test() {
   fi
   if ! (
     unset GITHUB_PR_URL PR_URL PR_NUMBER
-    FULLSEND_WORK_ITEM_URL='https://github.com/Gkrumbach07/odh-dashboard/pull/61'
+    FULLSEND_WORK_ITEM_URL='https://github.com/example-owner/example-repo/pull/61'
     ISSUE_NUMBER=61
     normalize_dispatch_context
     [[ "${GITHUB_PR_URL}" == "${FULLSEND_WORK_ITEM_URL}" && "${PR_URL}" == "${FULLSEND_WORK_ITEM_URL}" && "${PR_NUMBER}" == "61" ]]
@@ -658,6 +661,15 @@ run_self_test() {
     echo "PASS prior-review projection validation"
   fi
   rm -rf "${prior_dir}"
+  if [[ -f "${_SCRIPT_DIR}/../scripts/fetch-pr-images.sh" ]]; then
+    if image_test_output="$(bash "${_SCRIPT_DIR}/../scripts/fetch-pr-images.sh" --self-test 2>&1)"; then
+      echo "PASS PR image capture self-test"
+    else
+      echo "FAIL PR image capture self-test" >&2
+      printf '%s\n' "${image_test_output}" >&2
+      fail=1
+    fi
+  fi
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
@@ -1589,10 +1601,34 @@ fi
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
+# Capture images attached to the PR body and issue comments while the host
+# adapters run. Only GitHub attachment hosts are fetched; the local manifest
+# and tarball are staged for the sandbox by host_files. The script fails open.
+PR_IMAGE_LOG=""
+PR_IMAGE_PID=""
+if [[ -f "${_SCRIPT_DIR}/../scripts/fetch-pr-images.sh" ]]; then
+  PR_IMAGE_LOG="$(mktemp)"
+  (
+    # REVIEW_TOKEN and REVIEW_PR_BODY are already exported above; the rest are
+    # set for this child only.
+    export REPO="${REPO:-}" PR_NUMBER="${PR_NUMBER:-}" PR_HEAD_SHA="${PR_HEAD_SHA:-}"
+    bash "${_SCRIPT_DIR}/../scripts/fetch-pr-images.sh"
+  ) >"${PR_IMAGE_LOG}" 2>&1 &
+  PR_IMAGE_PID="$!"
+fi
+
 # Run the registered host adapters and collect every envelope generically.
 # This runs only after the state and author checks above, so a skipped review
 # buys no CodeRabbit run, and inside the review job, so a newer push cancels
 # it with the review. Adapter credentials never enter the sandbox.
 prepare_cli_adapters
+
+if [[ -n "${PR_IMAGE_PID}" ]]; then
+  if ! wait "${PR_IMAGE_PID}"; then
+    echo "::warning::PR image capture failed; continuing without images"
+  fi
+  cat "${PR_IMAGE_LOG}" 2>/dev/null || true
+  rm -f "${PR_IMAGE_LOG}"
+fi
 
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"

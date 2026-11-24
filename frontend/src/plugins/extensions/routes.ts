@@ -403,6 +403,16 @@ const extensions: RouteExtension[] = [
       }),
     },
   },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.COMMUNITY_PLUGINS_SETTINGS, ADMIN_USER, 'RHOAI'],
+    },
+    properties: {
+      path: '/settings/community-plugins',
+      component: () => import('#~/pages/communityPlugins/CommunityPlugins'),
+    },
+  },
 ];
 
 export default extensions;

@@ -103,18 +103,31 @@ it('replays #9911, includes legacy Smoke-tagged specs, and rejects an all-skippe
   assert.ok(selected(result, `${e2e}modelCatalog/testPerformanceFiltersAvailable.cy.ts`));
 });
 
-it('replays #9945 and rejects the untagged new EvalHub Kueue spec', () => {
+it('replays #9945 and runs the new EvalHub Kueue spec without a CI tag', () => {
   const result = replay(9945);
-  assert.equal(result.valid, false);
+  assert.equal(result.valid, true, result.errors.join('\n'));
   assert.ok(result.summary.pathImpactTags.includes('@EvalHubCI'));
-  assert.ok(result.errors.some((error) => error.includes('testEvalHubKueue.cy.ts')));
+  assert.ok(
+    result.matrix.some(
+      (job) =>
+        job.run_mode === 'spec' && job.specs.includes(`${e2e}eval-hub/testEvalHubKueue.cy.ts`),
+    ),
+  );
 });
 
-it('replays #9783 and rejects the untagged changed AutoRAG metric-variation spec', () => {
+it('replays #9783 and selects the CI-tagged AutoRAG metric-variation spec', () => {
   const result = replay(9783);
-  assert.equal(result.valid, false);
+  const metricSpec = `${e2e}autorag/testAutoragMetricVariations.cy.ts`;
+  assert.equal(result.valid, true, result.errors.join('\n'));
   assert.ok(result.summary.pathImpactTags.includes('@AutoRAGCI'));
-  assert.ok(result.errors.some((error) => error.includes('testAutoragMetricVariations.cy.ts')));
+  assert.ok(result.summary.selectedTags.includes('@AutoRAGCI'));
+  assert.ok(
+    result.matrix.some(
+      (job) => job.run_mode === 'tag' && job.tag.split(' ').includes('@AutoRAGCI'),
+    ),
+  );
+  assert.ok(inventory[metricSpec].executableTestTags.some((tags) => tags.includes('@AutoRAGCI')));
+  assert.ok(selected(result, metricSpec));
 });
 
 it('replays #9776 with explicit regression fallback when no DataConnectHub E2E suite exists', () => {

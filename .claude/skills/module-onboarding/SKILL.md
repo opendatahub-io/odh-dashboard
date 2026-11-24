@@ -221,12 +221,13 @@ Add the flag under `spec.dashboardConfig.properties` (after `dataConnectHub`), o
 
 **Runtime defaults:** add `<camelCase>: false,` to `blankDashboardCR` in `backend/src/utils/constants.ts` (and `<camelCase>: boolean;` to `DashboardConfig` in `backend/src/types.ts`), and the matching field plus `false` default to `DashboardFeatureFlags` / `BlankDashboardCR` in `distributions/core-bff/bff/internal/models/dashboard_config.go`. Then run `pnpm run validate:flags`.
 
-### 6. Ownership — `OWNERS`, `OWNERS_ALIASES`, `packages/<name>/OWNERS`
+### 6. Ownership — `OWNERS_ALIASES`, `packages/<name>/OWNERS`
+
 
 Mirror the `data-connect-hub` entries:
-- `OWNERS` `filters`: `'(packages/<name>|manifests/modules/<name>)/.*'` → `<name>-approvers` / `<name>-reviewers`, label `area/<name>`
 - `OWNERS_ALIASES`: `<name>-approvers` and `<name>-reviewers` with the handles from Phase 0
-- `packages/<name>/OWNERS`: the same aliases and label
+- `packages/<name>/OWNERS`: the same aliases, `area/<name>` plus `area/components`, and `options.no_parent_owners: true` (without it Prow inherits the root catch-all and `general-approvers` can approve the package)
+- When `/konflux-onboarding` adds `manifests/modules/<name>/`, it must also add `manifests/modules/<name>/OWNERS` with the same aliases, `area/<name>`, `area/manifests`, and `options.no_parent_owners: true`
 
 ### 7. Dependabot — `.github/dependabot.yml`
 
@@ -290,7 +291,7 @@ If `podman` is not available, try `docker build`. This step is slow — ask befo
 Summarize the completed onboarding:
 
 1. **Files created**: the top-level layout of `packages/<name>/`
-2. **Host files modified**: `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `packages/plugin-core/src/areas/types.ts`, `packages/k8s-core/src/k8sTypes.ts`, `frontend/src/concepts/areas/const.ts`, the CRD, `OWNERS`, `OWNERS_ALIASES`, `.github/dependabot.yml`
+2. **Host files modified**: `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `packages/plugin-core/src/areas/types.ts`, `packages/k8s-core/src/k8sTypes.ts`, `frontend/src/concepts/areas/const.ts`, the CRD, `OWNERS_ALIASES`, `packages/<name>/OWNERS`, `.github/dependabot.yml`
 3. **Port assignments**: frontend, BFF, production service port
 4. **Verification results**: pass/fail for each Phase 4 step
 5. **Next steps** for the team:
@@ -301,4 +302,4 @@ Summarize the completed onboarding:
    - Run locally: `pnpm run dev:backend` and `pnpm run dev:frontend` from the root, then `cd packages/<name> && make dev-start-federated`
    - Enable the feature locally: set `<camelCase>: true` in the dashboard config
    - **Run `/konflux-onboarding`** for CI/CD: Dockerfiles, Konflux component, OpenShift CI, standalone manifests (`manifests/modules/<name>/`), dashboard-operator registration, and the `RELATED_IMAGE` entry in the opendatahub-operator
-   - **Before the first release**, get the image `rhoai/odh-mod-arch-<name>-rhel9` registered as a ProdSec `pscomponent` (requested in `#forum-aipcc`; confirmed by ProdSec before release; `/konflux-onboarding` Phase 6 has the steps and the follow-up Jira query). Without it the image gets no CVE tracking tickets, which is how `data-connect-hub` and `data-registry` were missed during the eMudhra remediation.
+   - **Before the first release**, get the image `rhoai/odh-mod-arch-<name>-rhel9` registered as a ProdSec `pscomponent` (an MR to ProdSec's `product-definitions` that adds it to `ps_modules.json`, merged by ProdSec before release; `/konflux-onboarding` Phase 6 has the steps and the follow-up Jira query). Without it the image gets no CVE tracking tickets, which is how `data-connect-hub` and `data-registry` were missed during the eMudhra remediation.

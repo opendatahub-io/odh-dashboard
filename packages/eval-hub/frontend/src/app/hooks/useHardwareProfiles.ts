@@ -1,15 +1,19 @@
+import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getHardwareProfiles, validateHardwareProfiles } from '~/app/api/k8s';
-import { KUEUE_INTEGRATION_ENABLED } from '~/app/utilities/const';
-import type { HardwareProfile } from '~/app/types';
+import { getInfo, validateHardwareProfiles } from '~/app/api/k8s';
+import type { HardwareProfileInfo } from '~/app/types';
 
 type UseHardwareProfilesResult = {
-  profiles: HardwareProfile[];
+  profiles: HardwareProfileInfo[];
   loaded: boolean;
   error: Error | undefined;
   compatibilityError: Error | undefined;
 };
 
+// Profiles come from the EvalHub service info API, which already filters them to
+// the tenant: queue-backed profiles only appear while their LocalQueue exists.
+// Only queue-scheduled profiles are offered — node-scheduled profiles are a
+// follow-up (the create API supports them, but the UX has not been designed).
 export const useHardwareProfiles = (
   namespace: string | undefined,
   providerIds: string[] = [],
@@ -18,22 +22,36 @@ export const useHardwareProfiles = (
     new Set(providerIds.map((providerId) => providerId.trim()).filter(Boolean)),
   ).toSorted();
 
-  const hardwareProfilesQuery = useQuery<HardwareProfile[], Error>({
-    queryKey: ['hardwareProfiles', namespace],
-    enabled: KUEUE_INTEGRATION_ENABLED && Boolean(namespace),
+  // Shares the query key with useKueueAvailability so both hooks resolve from a
+  // single /info fetch.
+  const infoQuery = useQuery({
+    queryKey: ['evalHubInfo', namespace],
+    enabled: Boolean(namespace),
     queryFn: ({ signal }) => {
       if (!namespace) {
         throw new Error('Namespace is required to load HardwareProfiles');
       }
-      return getHardwareProfiles('', namespace)({ signal });
+      return getInfo('', namespace)({ signal });
     },
   });
 
-  const hardwareProfileNames = (hardwareProfilesQuery.data ?? []).map((profile) => profile.name);
+  // Memoized so consumers can depend on the profiles reference staying stable between
+  // renders — rebuilding it per render would invalidate their derived memos.
+  const profiles = React.useMemo(
+    () =>
+      (infoQuery.data?.hardware_profiles ?? []).filter(
+        (profile) => profile.scheduling_type === 'queue',
+      ),
+    [infoQuery.data],
+  );
+  const hardwareProfileNames = React.useMemo(
+    () => profiles.map((profile) => profile.name),
+    [profiles],
+  );
   const shouldValidateHardwareProfiles =
     Boolean(namespace) &&
     normalizedProviderIds.length > 0 &&
-    hardwareProfilesQuery.isSuccess &&
+    infoQuery.isSuccess &&
     hardwareProfileNames.length > 0;
 
   const hardwareProfileValidationQuery = useQuery({
@@ -52,29 +70,35 @@ export const useHardwareProfiles = (
     },
   });
 
-  const hardwareProfilesLoaded = hardwareProfilesQuery.isSuccess || hardwareProfilesQuery.isError;
+  const hardwareProfilesLoaded = infoQuery.isSuccess || infoQuery.isError;
 
-  // RHOAIENG-99645: the Kueue integration is disabled — report the off state without
-  // fetching. `loaded: true` is load-bearing: the start-evaluation form gates submit
-  // validity on it, so a permanently-pending query would block every submission.
-  if (!KUEUE_INTEGRATION_ENABLED) {
-    return { profiles: [], loaded: true, error: undefined, compatibilityError: undefined };
-  }
-
-  const compatibilityByProfile = new Map(
-    (hardwareProfileValidationQuery.data?.items ?? []).map((compatibility) => [
-      compatibility.hardware_profile,
-      compatibility,
-    ]),
+  const compatibilityByProfile = React.useMemo(
+    () =>
+      new Map(
+        (hardwareProfileValidationQuery.data?.items ?? []).map((compatibility) => [
+          compatibility.hardware_profile,
+          compatibility,
+        ]),
+      ),
+    [hardwareProfileValidationQuery.data],
   );
 
-  return {
-    profiles: (hardwareProfilesQuery.data ?? []).map((profile) => {
-      const compatibility = compatibilityByProfile.get(profile.name);
-      return compatibility ? { ...profile, compatibility } : profile;
+  return React.useMemo(
+    () => ({
+      profiles: profiles.map((profile) => {
+        const compatibility = compatibilityByProfile.get(profile.name);
+        return compatibility ? { ...profile, compatibility } : profile;
+      }),
+      loaded: hardwareProfilesLoaded,
+      error: infoQuery.error ?? undefined,
+      compatibilityError: hardwareProfileValidationQuery.error ?? undefined,
     }),
-    loaded: hardwareProfilesLoaded,
-    error: hardwareProfilesQuery.error ?? undefined,
-    compatibilityError: hardwareProfileValidationQuery.error ?? undefined,
-  };
+    [
+      profiles,
+      compatibilityByProfile,
+      hardwareProfilesLoaded,
+      infoQuery.error,
+      hardwareProfileValidationQuery.error,
+    ],
+  );
 };

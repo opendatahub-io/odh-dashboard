@@ -18,6 +18,8 @@ type MockEvaluationJobOptions = {
   benchmarkStatuses?: EvaluationJob['status']['benchmarks'];
   /** Override results.benchmarks directly for testing result shapes (e.g. bare failed entries) */
   resultBenchmarks?: EvaluationJob['results']['benchmarks'];
+  /** Override hardware_config directly for testing queue/profile-backed scheduling */
+  hardwareConfig?: EvaluationJob['hardware_config'];
 };
 
 const DEFAULT_BENCHMARK_ID = 'default-benchmark';
@@ -71,5 +73,6 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
         },
       ],
   ...(options.collectionId ? { collection: { id: options.collectionId } } : {}),
+  ...(options.hardwareConfig !== undefined ? { hardware_config: options.hardwareConfig } : {}),
 });
 /* eslint-enable camelcase */

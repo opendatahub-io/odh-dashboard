@@ -138,6 +138,7 @@ export {
   WorkingProjectSelectorLabelValue,
   WorkingProjectStatusLabelValue,
   WorkingProjectStatusValue,
+  requiresWorkingProjectSelection,
 } from './context/WorkingProjectContext';
 export type { WorkingProjectStatus } from './context/WorkingProjectContext';
 
