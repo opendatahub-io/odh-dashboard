@@ -75,7 +75,7 @@ func TestDevModeFallback_EmptyHeaderOnTheWireIsNotMissing(t *testing.T) {
 	cfg := config.EnvConfig{
 		DevMode:         true,
 		AuthMethod:      config.AuthMethodUser,
-		AuthTokenHeader: "X-Forwarded-Access-Token",
+		AuthTokenHeader: constants.HeaderForwardedToken,
 		DevUser:         "dev-user",
 	}
 	app := newTestApp(func(a *App) {
@@ -117,4 +117,29 @@ func TestDevModeFallback_EmptyHeaderOnTheWireIsNotMissing(t *testing.T) {
 			assert.Equal(t, tc.fallback, resp.Header.Get("X-Test-Fallback") == "true")
 		})
 	}
+}
+
+// The reverse of the Authorization case: with AUTH_TOKEN_HEADER=Authorization,
+// a caller token in X-Forwarded-Access-Token is still a credential.
+func TestDevModeFallback_ForwardedTokenIsACredentialWhenAuthorizationIsConfigured(t *testing.T) {
+	cfg := config.EnvConfig{
+		DevMode:         true,
+		AuthMethod:      config.AuthMethodUser,
+		AuthTokenHeader: constants.HeaderAuthorization,
+		AuthTokenPrefix: k8s.BearerTokenPrefix,
+		DevUser:         "dev-user",
+	}
+	app := newTestApp(func(a *App) {
+		a.config = cfg
+		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), cfg)
+	})
+	var reached bool
+	handler := app.InjectRequestIdentity(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { reached = true }))
+	req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	req.Header.Set(constants.HeaderForwardedToken, "caller-token")
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.False(t, reached)
 }

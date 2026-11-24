@@ -54,15 +54,20 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 }
 
 // carriesOtherCredential reports whether a request without the configured
-// token header still carries a credential, in Authorization. Such a request
-// is not credential-less: falling back would replace the caller's identity
-// with the developer's, so it gets 401 instead.
+// token header still carries a caller credential in another identity header
+// (Authorization or X-Forwarded-Access-Token). Such a request is not
+// credential-less: falling back would replace the caller's identity with the
+// developer's, so it gets 401 instead.
 func carriesOtherCredential(h http.Header, tokenHeader string) bool {
-	if strings.EqualFold(tokenHeader, constants.HeaderAuthorization) {
-		return false
+	for _, name := range []string{constants.HeaderAuthorization, constants.HeaderForwardedToken} {
+		if strings.EqualFold(name, tokenHeader) {
+			continue
+		}
+		if _, present := h[http.CanonicalHeaderKey(name)]; present {
+			return true
+		}
 	}
-	_, present := h[constants.HeaderAuthorization]
-	return present
+	return false
 }
 
 // auditUser returns the best available user identifier for audit logging.

@@ -100,7 +100,7 @@ func TestRequireVerifiedKubeconfig(t *testing.T) {
 	assert.Contains(t, err.Error(), "not supported in a production profile")
 
 	assert.NoError(t, requireVerifiedKubeconfig(dev, insecure))
-	assert.NoError(t, requireVerifiedKubeconfig(production, &rest.Config{}))
+	assert.NoError(t, requireVerifiedKubeconfig(production, &rest.Config{Host: "https://api.cluster.example:6443"}))
 }
 
 // INSECURE_SKIP_VERIFY=false must not be undone by the kubeconfig: client-go
@@ -164,4 +164,23 @@ func TestInitK8sProxy_MockFlagAloneDoesNotAllowPlaintext(t *testing.T) {
 
 	cfg.DevMode = true
 	require.NoError(t, app.initK8sProxy(cfg, k8sSetupResult{kubeconfig: &rest.Config{Host: "http://api.cluster.example"}}))
+}
+
+// A production profile refuses a kubeconfig whose API server client-go would
+// reach over plaintext, before any client (or the discovery probe) sends the
+// service-account token to it.
+func TestRequireVerifiedKubeconfig_RejectsAPlaintextServerInProduction(t *testing.T) {
+	production := config.EnvConfig{}
+	for _, host := range []string{"http://api.cluster.example:6443", "HTTP://api.cluster.example", "api.cluster.example:6443"} {
+		err := requireVerifiedKubeconfig(production, &rest.Config{Host: host})
+		require.Error(t, err, host)
+		assert.Contains(t, err.Error(), "does not resolve to an https:// URL")
+		assert.NotContains(t, err.Error(), "api.cluster.example")
+	}
+	// A scheme-less host with a CA resolves to https, as client-go does.
+	require.NoError(t, requireVerifiedKubeconfig(production, &rest.Config{
+		Host: "api.cluster.example:6443", TLSClientConfig: rest.TLSClientConfig{CAData: []byte("ca")},
+	}))
+	require.NoError(t, requireVerifiedKubeconfig(production, &rest.Config{Host: "https://api.cluster.example:6443"}))
+	require.NoError(t, requireVerifiedKubeconfig(config.EnvConfig{DevMode: true}, &rest.Config{Host: "http://localhost:8080"}))
 }

@@ -171,5 +171,14 @@ func requireVerifiedKubeconfig(cfg config.EnvConfig, kubeconfig *rest.Config) er
 	if kubeconfig != nil && kubeconfig.Insecure && cfg.IsProductionProfile() {
 		return errors.New("the kubeconfig disables Kubernetes API certificate verification (insecure-skip-tls-verify), which is not supported in a production profile; supply the cluster CA instead, or set DEV_MODE=true for local development")
 	}
+	// A plaintext API server would receive the service-account token (and,
+	// through the discovery probe, before any proxy refuses it) in the clear.
+	// client-go resolves a scheme-less Host to http unless TLS settings are
+	// present, so the scheme it would actually use is checked.
+	if kubeconfig != nil && cfg.IsProductionProfile() {
+		if u, _, err := rest.DefaultServerUrlFor(kubeconfig); err != nil || u.Scheme != "https" {
+			return errors.New("the kubeconfig API server does not resolve to an https:// URL, which is not supported in a production profile; set DEV_MODE=true for a local plaintext API server")
+		}
+	}
 	return nil
 }
