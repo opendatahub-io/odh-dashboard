@@ -60,7 +60,7 @@ func TestBuildTargetWSURL(t *testing.T) {
 			if tt.query == "" {
 				req = httptest.NewRequest(http.MethodGet, tt.path, nil)
 			}
-			got := buildTargetWSURL(tt.wsScheme, tt.host, req)
+			got := buildTargetWSURL(tt.wsScheme, tt.host, "", req)
 			if got != tt.want {
 				t.Errorf("buildTargetWSURL() = %q, want %q", got, tt.want)
 			}

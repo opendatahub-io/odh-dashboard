@@ -73,8 +73,10 @@ func kubernetesWebSocketPath(r *http.Request) string {
 	return strings.TrimPrefix(r.URL.Path, strings.TrimSuffix(WssProxyPrefix, "/"))
 }
 
-func buildTargetWSURL(wsScheme, host string, r *http.Request) string {
-	kubeURI := kubernetesWebSocketPath(r)
+// buildTargetWSURL keeps basePath, the path of the configured API server URL,
+// in front of the Kubernetes route.
+func buildTargetWSURL(wsScheme, host, basePath string, r *http.Request) string {
+	kubeURI := JoinBasePath(basePath, kubernetesWebSocketPath(r))
 	targetWSURL := fmt.Sprintf("%s://%s%s", wsScheme, host, kubeURI)
 	if r.URL.RawQuery != "" {
 		targetWSURL += "?" + r.URL.RawQuery

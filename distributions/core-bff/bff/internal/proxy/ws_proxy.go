@@ -82,7 +82,7 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	token := identity.ResolveToken(p.devFallbackToken)
 
-	targetWSURL := buildTargetWSURL(p.wsScheme, p.targetURL.Host, r)
+	targetWSURL := buildTargetWSURL(p.wsScheme, p.targetURL.Host, p.targetURL.Path, r)
 	upstreamRequest := r.Clone(r.Context())
 	upstreamRequest.URL.Path = kubernetesWebSocketPath(r)
 	watch := httpcontract.IsWatchRequest(upstreamRequest)

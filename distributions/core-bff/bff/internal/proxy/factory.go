@@ -61,7 +61,10 @@ func (cfg ProxyConfig) rewriteFunc() func(*httputil.ProxyRequest) {
 		pr.Out.Host = target.Host
 
 		if cfg.PathRewriteFn != nil {
-			pr.Out.URL.Path = cfg.PathRewriteFn(pr.In)
+			// The rewrite yields the upstream route; the target's own path is a
+			// base it is mounted under, so it is kept in front.
+			pr.Out.URL.Path = JoinBasePath(target.Path, cfg.PathRewriteFn(pr.In))
+			pr.Out.URL.RawPath = ""
 		}
 
 		stripImpersonationHeaders(pr.Out.Header)
@@ -76,6 +79,23 @@ func (cfg ProxyConfig) rewriteFunc() func(*httputil.ProxyRequest) {
 
 		pr.Out.URL.RawQuery = pr.In.URL.RawQuery
 	}
+}
+
+// JoinBasePath puts route under base, the path of a configured target URL such
+// as https://models.example/serving or a kubeconfig server behind a path
+// prefix. An empty or "/" base leaves route unchanged.
+func JoinBasePath(base, route string) string {
+	base = strings.TrimSuffix(base, "/")
+	if base == "" {
+		return route
+	}
+	if route == "" {
+		return base
+	}
+	if !strings.HasPrefix(route, "/") {
+		route = "/" + route
+	}
+	return base + route
 }
 
 func rewriteAuthHeader(pr *httputil.ProxyRequest, authHeaderFn func(*http.Request) string) {
