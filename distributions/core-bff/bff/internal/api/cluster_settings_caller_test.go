@@ -376,3 +376,19 @@ func TestUpdateClusterSettings_ConcurrentConfigChange_Conflict(t *testing.T) {
 	spec := f.storedConfig(t)["spec"].(map[string]any)["dashboardConfig"].(map[string]any)
 	assert.Equal(t, true, spec["disableKServe"], "the other admin's change is kept")
 }
+
+// Adversarial review: with no OdhDashboardConfig instance, GET shows the
+// defaults but PUT refuses with 404 (documented in the OpenAPI spec) and
+// writes nothing.
+func TestUpdateClusterSettings_CallerNoInstance_404NothingWritten(t *testing.T) {
+	f := newCallerSettingsFixture(t)
+	require.NoError(t, f.dyn.Resource(models.DashboardConfigGVR).Namespace("dash-ns").Delete(context.Background(), "odh-dashboard-config", metav1.DeleteOptions{}))
+	f.typed.ClearActions()
+
+	rr := f.put(t)
+	assert.Equal(t, http.StatusNotFound, rr.Code, rr.Body.String())
+	assert.False(t, f.dashboardConfigPatched())
+	for _, a := range f.typed.Actions() {
+		assert.NotContains(t, []string{"create", "update", "patch", "delete"}, a.GetVerb(), "nothing is written")
+	}
+}

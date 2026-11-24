@@ -29,7 +29,8 @@ type WsProxyConfig struct {
 	// RootCAs is the certificate pool for verifying the K8s API server's certificate.
 	RootCAs *x509.CertPool
 	// ClientCerts are client certificates presented on every upstream dial
-	// (envtest mock mode, where impersonation headers carry the identity).
+	// (envtest mock mode). The handshake carries no impersonation headers, so
+	// in that mode a WebSocket runs as the certificate's envtest identity.
 	ClientCerts []tls.Certificate
 	// FallbackClientCerts are presented only on handshakes whose identity has
 	// DevFallback set; see K8sProxyConfig.FallbackClientCerts.
