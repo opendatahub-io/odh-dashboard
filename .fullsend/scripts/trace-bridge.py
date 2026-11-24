@@ -1368,7 +1368,14 @@ def build(args):
         if (it, seq) not in charged:
             charged.add((it, seq))
             persona_cost[persona] += cost
-    risk, conf = result.get("risk") or {}, result.get("confidence") or {}
+    # The stock result carries neither: the rating persona writes them to a side file
+    # (.fullsend/personas/README.md), and which reviewers ran shows in the usage records.
+    rating = load_json(os.path.join(last, "output", "odh", "rating.json"), {})
+    rating = rating if isinstance(rating, dict) else {}
+    risk = result.get("risk") or rating.get("risk") or {}
+    conf = result.get("confidence") or rating.get("confidence") or {}
+    if not dispatched:
+        dispatched = sorted(p for p in persona_cost if p)
 
     def level(v):
         v = v.get("level") if isinstance(v, dict) else v

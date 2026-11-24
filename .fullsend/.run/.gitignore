@@ -1,10 +1,9 @@
-# POC host-script output for one review run on this fork. Not Fullsend
-# config and not an upstream layout.
+# Host-script output for one review run. Not Fullsend config.
 #
-# Our CLI adapters write `.fullsend/.run/<id>.json` (`producer_file` in
-# dimensions.json). Findings envelopes are also folded into
-# `.fullsend/.run/collected.json`. Fixtures, registry, and scripts stay
-# outside this directory.
+# pre-review.sh's CLI adapters write `.fullsend/.run/<id>.json`
+# (`producer_file` in dimensions.json) and fold findings envelopes into
+# `.fullsend/.run/collected.json`, which post-review.sh reads. PR image
+# capture writes `pr-images.tar.gz` and `pr-images.json` here.
 #
 # Generated JSON. Do not hand-edit or commit it.
 *

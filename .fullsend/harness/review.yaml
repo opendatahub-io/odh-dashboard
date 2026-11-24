@@ -1,83 +1,62 @@
-base: https://raw.githubusercontent.com/fullsend-ai/agents/2da538b8b62ad6d7b91c43d8cf139f4738cfbf51/harness/review.yaml#sha256=083fb43c4c1c5c75282410c4b8381f391eb760eb37b8bf49112a036b02269f4b
-
-agent: agents/review.md
-
-# Repeated on purpose: before Fullsend v0.56.0 `base:` composition did not
-# merge readonly_repo (fullsend#7360), so keep it explicit. The runbook loads
-# sub-agent definitions and meta-prompts from this checkout by path; nothing
-# in the review writes inside it.
-readonly_repo: true
-
-# Pin the multi-architecture Fullsend sandbox image (v0.48.1, Pi 1.3.0). It
-# moves with the harness base above; the reusable workflow pin in
-# .github/workflows/fullsend.yaml (v0.56.1) still runs this base and image.
-image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:7304e1f635eeebf1a3ebf60bfc9ac20a8db6f01b646d0ebb0ad4d53c2d7c30aa
-
-# The `openai` provider comes from the base, which now declares it.
+# Dashboard overlay on the stock Fullsend review harness (agents v0.57.1).
+# The stock pr-review skill, agent definition, result schema and validation
+# loop all come from `base:`. What is ours:
+#   - reviewer personas added to, or replacing files in, the stock skill
+#     (personas/, see personas/README.md)
+#   - a host pre-script that runs the stock pre-review and then the Jira,
+#     CodeRabbit and PR-image adapters
+#   - a host post-script that renders the sticky comment and computes the
+#     verdict from the stock result plus the personas' side files
+base: https://raw.githubusercontent.com/fullsend-ai/agents/ea29de9bb8b1729b04c0597b48a5c7aae62deb71/harness/review.yaml#sha256=c31ab2ff59b288ad1b8e3755751549c00c1606649cdb239bbbe5df58ba6f3112
 
 skills:
-  # This local skill replaces Fullsend's inherited pr-review with the
-  # registry-driven dimensions orchestrator. ODH-owned reviewer skills are
-  # packaged as nested sub-agent definitions inside this skill, rather than
-  # imported as peer skills into the agent's global skill namespace.
-  - skills/pr-review
-  # issue-labels comes from the base (forge.github.skills). Fullsend v0.48
-  # keys skills on their declared SKILL.md name, so the base's
-  # skills/issue-labels/github and skills/pr-review/github both load.
+  # File overrides on the stock skill. They apply to the base harness's
+  # pr-review because this repo has no skills/pr-review/SKILL.md. `null`
+  # removes a stock file; a path adds or replaces one. Every reviewer the
+  # roster ends up with needs a model in config.yaml `agents[].subagents`,
+  # and that list must not name a persona that is not staged.
+  - skills/pr-review:
+      # PatternFly conventions are covered by style-review.
+      sub-agents/user-experience.md: null
+      # Stock challenger plus PR Justifications and the audit side file.
+      sub-agents/challenger.md: personas/challenger.md
+      sub-agents/rating.md: personas/rating.md
+      sub-agents/style-review.md: personas/style-review.md
+      sub-agents/rbac-review.md: personas/rbac-review.md
+      sub-agents/product-ask-review.md: personas/product-ask-review.md
+      sub-agents/test-impact-review.md: personas/test-impact-review.md
+      sub-agents/pr-description-review.md: personas/pr-description-review.md
 
-# The runner owns /sandbox/workspace/.fullsend (output schema, iteration
-# state) and refuses host_files under it, so the registry and the host's
-# adapter output land in a directory of their own.
 host_files:
-  - src: dimensions.json
-    dest: /sandbox/workspace/odh-review/dimensions.json
-  # product-ask-review reads its trusted snapshot by path (registry context_file).
+  # Trusted Jira snapshot for product-ask-review, written by the host
+  # pre-script. Absent when the PR links no issue or the fetch failed.
   - src: .run/jira.json
     dest: /sandbox/workspace/odh-review/jira.json
     optional: true
-  - src: .run/collected.json
-    dest: /sandbox/workspace/odh-review/collected.json
-    optional: true
-  # Images captured from the PR body and issue comments by the host pre-script.
-  # The orchestrator extracts this in step 3d. Absent when the PR has none or
-  # capture failed; the review proceeds either way.
+  # Images captured from the PR body by the host pre-script, and the manifest
+  # that lets a reviewer report them as unavailable when the tarball is
+  # missing. test-impact-review reads these.
   - src: .run/pr-images.tar.gz
     dest: /sandbox/workspace/odh-review/pr-images.tar.gz
     optional: true
-  # Manifest fallback: lets the sandbox report images as unavailable when the
-  # tarball is missing or fails to extract, instead of silently reviewing with
-  # no visual evidence.
   - src: .run/pr-images.json
     dest: /sandbox/workspace/odh-review/pr-images.json
     optional: true
 
-model: sonnet
-
-# timeout_minutes is inherited from the base (45), which mirrors it into the
-# sandbox as TIMEOUT_SECONDS for the orchestrator's time-budget checkpoints.
-# Overriding one here means overriding both.
-
 env:
-  # REVIEW_PROTECTED_PATHS is inherited from the base, so it follows the
-  # Fullsend default list. Set it under both `runner` and `sandbox` to change
-  # it; the host and the orchestrator must see the same value.
+  # REVIEW_RISK_ASSESSMENT_ENABLED is off: risk and confidence come from the
+  # rating persona and .fullsend/rating-policy.json. The base sets it under
+  # forge.github.env, so it is repeated there below.
   #
-  # REVIEW_RISK_ASSESSMENT_ENABLED is off: the base turns on Fullsend's
-  # risk-assessment sub-agent, but here `risk` and `confidence` come from the
-  # registry's `signal:*` producer and .fullsend/rating-policy.json.
+  # REVIEW_GIT_FETCH_DEPTH "0" unshallows target-repo: the stock correctness
+  # reviewer runs `git log` on modified test files.
   #
-  # That flag is also what makes pre-review.sh unshallow target-repo, so the
-  # depth is requested explicitly: the stock correctness reviewer runs
-  # `git log` on modified test files and needs the base branch history.
-  #
-  # The host-adapter credentials come from FULLSEND_GITHUB_RUNNER_SECRETS,
-  # which the shim composes (ADR 0136). env.runner reaches every host-side
-  # script; pre-review.sh unsets these names before it starts any child and
-  # passes each adapter only the names its registry row declares. They must
-  # stay out of env.sandbox, host_files and validation_loop, which the runner
-  # enforces.
+  # The adapter credentials come from the FULLSEND_GITHUB_RUNNER_SECRETS
+  # repository secret (ADR 0136), one JSON object holding these four names.
+  # pre-review.sh unsets them before it starts any child and passes each
+  # adapter only the names its dimensions.json row declares. They must stay
+  # out of env.sandbox and host_files.
   runner:
-    REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
     REVIEW_RISK_ASSESSMENT_ENABLED: "false"
     REVIEW_GIT_FETCH_DEPTH: "0"
     CODERABBIT_API_KEY: "${CODERABBIT_API_KEY}"
@@ -86,20 +65,15 @@ env:
     JIRA_API_TOKEN: "${JIRA_API_TOKEN}"
     JIRA_BASE_URL: "https://redhat.atlassian.net"
   sandbox:
-    REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
     REVIEW_RISK_ASSESSMENT_ENABLED: "false"
 
-validation_loop:
-  script: scripts/validate-output-schema.sh
-  schema: schemas/review-result.schema.json
-  # One retry lets the runtime repair a missing or malformed result instead of
-  # turning an otherwise-complete review into a terminal workflow failure.
-  max_iterations: 2
-
-post_script: scripts/post-review.sh
 pre_script: scripts/pre-review.sh
+post_script: scripts/post-review.sh
 
 forge:
   github:
-    post_script: scripts/post-review.sh
-    pre_script: scripts/pre-review.sh
+    env:
+      runner:
+        REVIEW_RISK_ASSESSMENT_ENABLED: "false"
+      sandbox:
+        REVIEW_RISK_ASSESSMENT_ENABLED: "false"

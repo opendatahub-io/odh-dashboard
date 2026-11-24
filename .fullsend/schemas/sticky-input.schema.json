@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "review-result.schema.json",
-  "title": "Review Agent Result",
-  "description": "Agent fills findings, semantic sections, readiness checks, signal fields (risk, confidence), change_summary, optional todo, inspected, and producers. The host post-script sets action and body.",
+  "$id": "sticky-input.schema.json",
+  "title": "Sticky Review Input",
+  "description": "Host-internal shape. post-review.sh normalize_stock_result builds it from the stock agent result, the personas' side files (personas/README.md) and the host adapter output; transform_review_result reads it and adds action and body. The runner does not validate agent output against this file: the agent writes the stock review-result schema.",
   "type": "object",
   "additionalProperties": false,
   "required": ["pr_number", "repo", "head_sha"],
@@ -25,7 +25,7 @@
     },
     "todo": {
       "type": "array",
-      "description": "Review-derived action list rendered under sticky ## TODO. Prefer {category,text} objects (findings|checks|judgement|nits). Plain strings remain valid and are categorized by the host. Empty or omitted when nothing remains.",
+      "description": "Action list rendered under sticky ## TODO. The host adds its own items; {category,text} objects (findings|checks|judgement|nits) and plain strings (categorized by the host) are accepted.",
       "items": {
         "oneOf": [
           { "type": "string", "minLength": 1 },
@@ -103,7 +103,8 @@
       "properties": {
         "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "info"] },
         "category": { "type": "string", "minLength": 1 },
-        "dimension": { "type": "string", "minLength": 1, "description": "Registry id of the producer this finding came from. The orchestrator stamps it at collect; it is what lets a reader tell which reviewer found what." },
+        "dimension": { "type": "string", "minLength": 1, "description": "Persona or host adapter that raised the finding." },
+        "id": { "type": "string", "pattern": "^f_[A-Za-z0-9]+$", "description": "Stock finding id, carried into the prior-findings marker." },
         "file": { "type": "string", "minLength": 1 },
         "line": { "type": "integer", "minimum": 1 },
         "description": { "type": "string", "minLength": 1 },
@@ -111,22 +112,12 @@
         "why": { "type": "string", "minLength": 1 },
         "actionable": { "type": "boolean" }
       },
-      "additionalProperties": false,
-      "allOf": [
-        {
-          "if": { "properties": { "severity": { "enum": ["critical", "high", "medium"] } }, "required": ["severity"] },
-          "then": { "required": ["why"] }
-        },
-        {
-          "if": { "properties": { "severity": { "enum": ["critical", "high"] } }, "required": ["severity"] },
-          "then": { "required": ["remediation"] }
-        }
-      ]
+      "additionalProperties": false
     },
     "removed_finding": {
       "type": "object",
-      "description": "Audit-only copy of a finding the challenger removed, merged, or justified away. Items with challenger_action justified are rendered under Findings ### Justified; all others appear in the Challenger removed-audit UI.",
-      "required": ["severity", "category", "file", "description", "removal_reason"],
+      "description": "Audit-only copy of a finding the challenger removed or justified away. Items with challenger_action justified are rendered under Findings ### Justified; all others appear in the Challenger removed-audit UI.",
+      "required": ["severity", "category", "file", "description"],
       "properties": {
         "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "info"] },
         "category": { "type": "string", "minLength": 1 },
@@ -172,7 +163,7 @@
     },
     "producers": {
       "type": "object",
-      "description": "Self-contained dispatch ledger mirror plus as-raised findings and expanded challenger audit. Host sticky Ran/Result/audit read this object only.",
+      "description": "Who ran: reviewers with evidence of a run, host adapter statuses, reviewers that did not run or report, as-raised findings and the challenger audit. Sticky Ran/Result/audit read this object only.",
       "additionalProperties": false,
       "required": ["dispatched", "adapters", "skipped", "raised", "challenger"],
       "properties": {
