@@ -293,14 +293,27 @@ if [[ "$PLATFORM" == "XKS" ]]; then
   # skipped (and STRICT=true fails the run) rather than aborting it.
   "${KUBECTL[@]}" -n "$NS" create serviceaccount ns-patcher >/dev/null
   "${KUBECTL[@]}" -n "$NS" create rolebinding ns-patcher-serving --role=serving-editor --serviceaccount="$NS:ns-patcher" >/dev/null
-  if "${KUBECTL[@]}" create clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" >/dev/null 2>&1; then
-    cr_created=true
+  # created_by_us runs a create and reports whether this run may own the
+  # object: yes on success, and also on a failure other than AlreadyExists (a
+  # client timeout can follow a server-side create), so cleanup removes it.
+  # Only an AlreadyExists object is someone else's and is never touched.
+  created_by_us() {
+    local out rc=0
+    out=$("$@" 2>&1) || rc=$?
+    ((rc == 0)) && return 0
+    [[ "$out" == *AlreadyExists* ]] && return 1
+    return 2
+  }
+  cr_rc=0
+  created_by_us "${KUBECTL[@]}" create clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" || cr_rc=$?
+  ((cr_rc != 1)) && cr_created=true
+  crb_rc=1
+  if ((cr_rc == 0)); then
+    crb_rc=0
+    created_by_us "${KUBECTL[@]}" create clusterrolebinding "corebff-validate-$NS" --clusterrole="corebff-validate-$NS" --serviceaccount="$NS:ns-patcher" || crb_rc=$?
+    ((crb_rc != 1)) && crb_created=true
   fi
-  if [[ "$cr_created" == "true" ]] &&
-    "${KUBECTL[@]}" create clusterrolebinding "corebff-validate-$NS" --clusterrole="corebff-validate-$NS" --serviceaccount="$NS:ns-patcher" >/dev/null 2>&1; then
-    crb_created=true
-  fi
-  if [[ "$crb_created" == "true" ]]; then
+  if ((cr_rc == 0 && crb_rc == 0)); then
     PATCHER_TOKEN=$("${KUBECTL[@]}" -n "$NS" create token ns-patcher --duration=1h)
     printf '%s\n' "$PATCHER_TOKEN" >>"$work/needles"
     PATCHER=$(hdr patcher "$H" "$P$PATCHER_TOKEN")
