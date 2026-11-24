@@ -2,6 +2,7 @@ import type { MatcherOptions } from '@testing-library/cypress';
 import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
 import type { UserAuthConfig, DashboardConfig } from '../../types';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../utils/e2eUsers';
+import { isMaaSPortalUrl } from '../../utils/maasPortalUrl';
 import {
   getDashboardConfig,
   getNotebookControllerConfig,
@@ -341,7 +342,7 @@ const handleOAuthLogin = (credentials: UserAuthConfig, targetUrl: string): void 
 
   cy.url().should('not.include', '/login/');
   cy.url().should('not.include', '/oauth');
-  const isMaaSPortal = new URL(targetUrl).pathname.startsWith('/maas-portal/');
+  const isMaaSPortal = isMaaSPortalUrl(targetUrl);
   if (isMaaSPortal) {
     cy.findByRole('navigation', { name: 'Navigation' }).should('be.visible');
     cy.location('origin').should('eq', new URL(targetUrl).origin);
