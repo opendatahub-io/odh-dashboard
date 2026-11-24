@@ -13,6 +13,7 @@ export type RhaiiProject = ProjectKind & {
   canEdit?: boolean;
   canStartStop?: boolean;
   canDelete?: boolean;
+  canCreateTokenAuth?: boolean;
   canManageTokenAuth?: boolean;
   /**
    * Listed while discovery was unavailable: the caller may list the
@@ -38,6 +39,7 @@ type NamespaceAccessItem = {
   phase?: unknown;
   isAiProject?: unknown;
   actions?: unknown;
+  permissions?: unknown;
 };
 
 type NamespaceAccessList = {
@@ -124,6 +126,27 @@ const namespaceToProject = (
  * namespaces the caller is authorized in, so an `Unknown` phase (the caller
  * cannot read the Namespace object) is selectable and labelled by its name.
  */
+// The reviews each token action is derived from (see DeriveNamespaceActions).
+const CREATE_TOKEN_REVIEWS: [string, string][] = [
+  ['serving.kserve.io/llminferenceservices', 'get'],
+  ['core/secrets', 'create'],
+  ['core/serviceaccounts', 'get'],
+  ['core/serviceaccounts', 'create'],
+  ['rbac.authorization.k8s.io/roles', 'get'],
+  ['rbac.authorization.k8s.io/roles', 'create'],
+  ['rbac.authorization.k8s.io/rolebindings', 'get'],
+  ['rbac.authorization.k8s.io/rolebindings', 'create'],
+];
+const TOKEN_ACTION_REVIEWS: Record<string, [string, string][]> = {
+  createTokenAuth: CREATE_TOKEN_REVIEWS,
+  manageTokenAuth: [
+    ...CREATE_TOKEN_REVIEWS,
+    ['core/secrets', 'list'],
+    ['core/secrets', 'update'],
+    ['core/secrets', 'delete'],
+  ],
+};
+
 const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
   const { name, phase, actions } = item;
   if (typeof name !== 'string' || name.length === 0) {
@@ -131,6 +154,26 @@ const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
   }
   const usable = phase === NamespacePhase.Active || phase === PHASE_UNKNOWN;
   const allowed = (action: string) => isRecord(actions) && actions[action] === true;
+  // A token action that is off only because a review could not be decided is
+  // unknown, not denied: treating it as denied would disable token auth and
+  // deploy a new model without authentication. Unknown leaves it to
+  // Kubernetes, and the dry run, to decide.
+  const decision = (key: string, verb: string): unknown => {
+    const decisions = isRecord(item.permissions) ? item.permissions[key] : undefined;
+    return isRecord(decisions) ? decisions[verb] : undefined;
+  };
+  // Unknown only when no review the action needs was denied and one failed:
+  // the action is off only because of that failure.
+  const tokenAction = (action: string): boolean | undefined => {
+    if (allowed(action)) {
+      return true;
+    }
+    const reviews = TOKEN_ACTION_REVIEWS[action];
+    const decisions = reviews.map(([key, verb]) => decision(key, verb));
+    return decisions.includes('error') && decisions.every((d) => d === 'allowed' || d === 'error')
+      ? undefined
+      : false;
+  };
   return {
     ...namespaceToProject(
       name,
@@ -143,7 +186,8 @@ const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
     canEdit: allowed('edit'),
     canStartStop: allowed('startStop'),
     canDelete: allowed('delete'),
-    canManageTokenAuth: allowed('manageTokenAuth'),
+    canCreateTokenAuth: tokenAction('createTokenAuth'),
+    canManageTokenAuth: tokenAction('manageTokenAuth'),
     ...(typeof item.isAiProject !== 'boolean' && { aiClassificationUnknown: true }),
   };
 };
@@ -252,6 +296,7 @@ const withoutVerifiedActions = (project: RhaiiProject): RhaiiProject => ({
   canEdit: false,
   canStartStop: false,
   canDelete: false,
+  canCreateTokenAuth: false,
   canManageTokenAuth: false,
   actionsUnverified: true,
 });
@@ -267,13 +312,14 @@ const fetchNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject[]> =>
     // listed names are offered for selection only: nothing is watched or
     // offered there until a lookup by name decides it. The result stays
     // partial, so manual entry remains available.
+    // Any failure of that list, a timeout included (discovery may have used
+    // most of the request's time before answering 503), still leaves manual
+    // entry; a caller that cancelled ignores the result.
     let browsable: RhaiiProject[] = [];
     try {
       browsable = (await fetchLegacyNamespaces(signal)).map(withoutVerifiedActions);
-    } catch (err) {
-      if (signal?.aborted) {
-        throw err;
-      }
+    } catch {
+      browsable = [];
     }
     throw new NamespaceListUnavailableError('Namespace discovery is unavailable', browsable);
   }

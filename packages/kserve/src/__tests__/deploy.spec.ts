@@ -282,6 +282,19 @@ describe('deployKServeDeployment', () => {
       expect(setUpTokenAuth).not.toHaveBeenCalled();
     });
 
+    it('should keep an external route authenticated after a token-management refusal', async () => {
+      await deployKServeDeployment(
+        {
+          ...withTokens([], { canCreateRoleBindings: true, canManageTokenAuth: false }),
+          externalRoute: { data: true },
+        } as WizardFormData['state'],
+        {},
+        'test-project',
+      );
+      const deployed = mockDeployInferenceService.mock.calls[0][0];
+      expect(deployed.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
+    });
+
     it('should set tokens up for wizard state without canManageTokenAuth', async () => {
       await deployKServeDeployment(
         withTokens([{ uuid: 'n', displayName: 'new' }], { canCreateRoleBindings: true }),

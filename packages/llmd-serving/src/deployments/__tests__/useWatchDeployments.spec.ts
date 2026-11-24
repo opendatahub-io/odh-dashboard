@@ -1,4 +1,10 @@
+import React from 'react';
+import { renderHook } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import {
+  ProjectsContext,
+  type ProjectsContextType,
+} from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { K8sStatusError, type ProjectKind, type PodKind } from '@odh-dashboard/k8s-core';
 import { mock403Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
@@ -220,12 +226,43 @@ describe('useWatchDeployments', () => {
       Error | undefined,
     ]);
 
-    const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
-    const [deployments, loaded, errors] = renderResult.result.current as DeploymentHookResult;
+    // Only where the host has actions for the project (RHAII), and for the
+    // config only while Edit is not offered.
+    let actions: { canEdit: boolean } = { canEdit: false };
+    const context: ProjectsContextType = {
+      projects: [],
+      modelServingProjects: [],
+      nonActiveProjects: [],
+      preferredProject: null,
+      updatePreferredProject: jest.fn(),
+      waitForProject: jest.fn(),
+      loaded: true,
+      loadError: undefined,
+      getProjectDeploymentActions: () => actions,
+    };
+    const { result } = renderHook(() => useWatchDeployments(mockProject), {
+      wrapper: ({ children }) =>
+        React.createElement(ProjectsContext.Provider, { value: context }, children),
+    });
+    const [deployments, loaded, errors] = result.current as DeploymentHookResult;
 
     expect(deployments).toHaveLength(1);
     expect(loaded).toBe(true);
     expect(errors).toHaveLength(0);
+
+    // With Edit offered (e.g. config access revoked mid-session) it stays an error.
+    actions = { canEdit: true };
+    const editable = renderHook(() => useWatchDeployments(mockProject), {
+      wrapper: ({ children }) =>
+        React.createElement(ProjectsContext.Provider, { value: context }, children),
+    });
+    const [, , editableErrors] = editable.result.current as DeploymentHookResult;
+    expect(editableErrors).toEqual([forbidden]);
+
+    // Elsewhere a denied config read stays an error: an edit would drop the config.
+    const elsewhere = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+    const [, , odhErrors] = elsewhere.result.current as DeploymentHookResult;
+    expect(odhErrors).toEqual([forbidden, forbidden]);
   });
 
   it('should report other optional read failures and any model watch failure', () => {

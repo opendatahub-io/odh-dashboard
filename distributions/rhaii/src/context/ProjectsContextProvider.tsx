@@ -193,6 +193,10 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     storedPreferredName,
   ]);
 
+  // validateProject is defined below; the wait reads the latest one.
+  const validateProjectRef = React.useRef<
+    (name: string, signal?: AbortSignal) => Promise<RhaiiProject>
+  >(() => Promise.reject(new Error('Not ready')));
   const waitControllerRef = React.useRef<AbortController | null>(null);
   const waitTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const waitRejectRef = React.useRef<((reason: Error) => void) | null>(null);
@@ -243,13 +247,17 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
           if (controller.signal.aborted) {
             return;
           }
-          let found = listed?.find(byName(projectName));
+          // A name listed while discovery was unavailable is not usable yet.
+          let found = listed?.find(
+            (project) => project.metadata.name === projectName && !project.actionsUnverified,
+          );
           if (!found && partial) {
             // A partial listing is bounded to its candidates; look the project
-            // up by name. A failed or not-yet-ready lookup is retried.
-            found = await fetchNamespaceByName(projectName, controller.signal).catch(
-              () => undefined,
-            );
+            // up by name, through the revision-checked lookup so a newer
+            // decision wins. A failed or not-yet-ready lookup is retried.
+            found = await validateProjectRef
+              .current(projectName, controller.signal)
+              .catch(() => undefined);
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal may change during await
             if (controller.signal.aborted) {
               return;
@@ -304,8 +312,14 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   // undo what a newer one decided.
   const lookupRevisionsRef = React.useRef(new Map<string, number>());
 
+  // Projects a lookup denied this session. They get no action, rather than
+  // the "unknown, so allowed" an absent project gets, until a lookup allows
+  // them again.
+  const [deniedNames, setDeniedNames] = React.useState<ReadonlySet<string>>(() => new Set());
+
   const forgetProject = React.useCallback((name: string) => {
     setProjectData((previous) => previous.filter((p) => p.metadata.name !== name));
+    setDeniedNames((previous) => new Set(previous).add(name));
   }, []);
 
   const validateProject = React.useCallback(
@@ -328,10 +342,21 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
         throw new Error('No access to that project, or it does not exist.');
       }
+      setDeniedNames((previous) => {
+        if (!previous.has(name)) {
+          return previous;
+        }
+        const next = new Set(previous);
+        next.delete(name);
+        return next;
+      });
       return project;
     },
     [dashboardNamespace, forgetProject],
   );
+  React.useEffect(() => {
+    validateProjectRef.current = validateProject;
+  }, [validateProject]);
 
   const discoverProject = React.useCallback(
     async (name: string, signal: AbortSignal) => {
@@ -468,11 +493,22 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   >(
     (name) => {
       const project = projectData.find(byName(name));
+      // A project a lookup denied, and that no listing has brought back since.
+      if (!project && deniedNames.has(name)) {
+        return {
+          canEdit: false,
+          canStartStop: false,
+          canDelete: false,
+          canCreateTokenAuth: false,
+          canManageTokenAuth: false,
+        };
+      }
       if (
         !project ||
         (project.canEdit === undefined &&
           project.canStartStop === undefined &&
           project.canDelete === undefined &&
+          project.canCreateTokenAuth === undefined &&
           project.canManageTokenAuth === undefined)
       ) {
         return undefined;
@@ -481,10 +517,11 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         canEdit: project.canEdit !== false,
         canStartStop: project.canStartStop !== false,
         canDelete: project.canDelete !== false,
+        canCreateTokenAuth: project.canCreateTokenAuth !== false,
         canManageTokenAuth: project.canManageTokenAuth !== false,
       };
     },
-    [projectData],
+    [projectData, deniedNames],
   );
 
   const contextValue = React.useMemo<ProjectsContextType>(

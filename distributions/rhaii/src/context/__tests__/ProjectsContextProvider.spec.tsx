@@ -603,6 +603,7 @@ describe('RHAII working project provider integration', () => {
         canEdit: false,
         canStartStop: true,
         canDelete: true,
+        canCreateTokenAuth: true,
         canManageTokenAuth: true,
       }),
     );
@@ -616,6 +617,7 @@ describe('RHAII working project provider integration', () => {
       canEdit: false,
       canStartStop: false,
       canDelete: false,
+      canCreateTokenAuth: false,
       canManageTokenAuth: false,
       actionsUnverified: true,
     };
@@ -632,6 +634,7 @@ describe('RHAII working project provider integration', () => {
         canEdit: false,
         canStartStop: true,
         canDelete: false,
+        canCreateTokenAuth: false,
         canManageTokenAuth: false,
       }),
     );
@@ -651,6 +654,7 @@ describe('RHAII working project provider integration', () => {
         canEdit: false,
         canStartStop: false,
         canDelete: false,
+        canCreateTokenAuth: false,
         canManageTokenAuth: false,
       }),
     );
@@ -667,6 +671,7 @@ describe('RHAII working project provider integration', () => {
         canEdit: false,
         canStartStop: true,
         canDelete: false,
+        canCreateTokenAuth: false,
         canManageTokenAuth: false,
       }),
     );
@@ -704,6 +709,26 @@ describe('RHAII working project provider integration', () => {
     expect(screen.getByTestId('known-projects')).toHaveTextContent('another');
     expect(screen.getByTestId('known-projects')).not.toHaveTextContent('allowed');
     expect(screen.getByTestId('working-project')).toHaveTextContent('none');
+    // A denied project gets no action, not the "unknown, so allowed" default.
+    expect(screen.getByTestId('allowed-actions')).toHaveTextContent(
+      JSON.stringify({
+        canEdit: false,
+        canStartStop: false,
+        canDelete: false,
+        canCreateTokenAuth: false,
+        canManageTokenAuth: false,
+      }),
+    );
+
+    // Entering it again, once a lookup allows it, restores what that lookup reports.
+    mockFetchNamespaceByName.mockResolvedValue(
+      Object.assign(project('allowed'), { canDeploy: true, canEdit: true }),
+    );
+    fireEvent.click(screen.getByText('Add allowed'));
+    await waitFor(() =>
+      expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed,another'),
+    );
+    expect(screen.getByTestId('allowed-actions')).not.toHaveTextContent('"canEdit":false');
   });
 
   it('should not restore a project when an older lookup succeeds after a newer denial', async () => {
@@ -916,6 +941,25 @@ describe('ProjectsContextProvider — waitForProject settlement', () => {
     });
     expect(mockFetchNamespaceByName).toHaveBeenCalledWith('outside', expect.any(AbortSignal));
     expect(screen.getByTestId('known-projects')).toHaveTextContent('outside');
+  });
+
+  it('looks a name listed only while discovery was unavailable up before resolving', async () => {
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([
+        Object.assign(project('unverified'), { canView: false, actionsUnverified: true }),
+      ]),
+    );
+    const waitForProject = await renderWait();
+    mockFetchNamespaceByName.mockResolvedValue(
+      Object.assign(project('unverified'), { canView: true, canDeploy: true }),
+    );
+
+    await act(async () => {
+      await expect(waitForProject('unverified')).resolves.toBeUndefined();
+    });
+    expect(mockFetchNamespaceByName).toHaveBeenCalledWith('unverified', expect.any(AbortSignal));
+    expect(screen.getByTestId('known-projects')).toHaveTextContent('unverified');
+    expect(screen.getByTestId('deploy-targets')).toHaveTextContent('unverified');
   });
 
   it('resolves when the project appears in a partial listing', async () => {

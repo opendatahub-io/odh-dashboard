@@ -58,6 +58,8 @@ export type CreatingInferenceServiceObject = {
   modelFormat?: SupportedModelFormats;
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
+  /** Require authentication even without tokens (an external route without token permission). */
+  requireAuth?: boolean;
   numReplicas?: NumReplicasFieldData;
   runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
@@ -89,6 +91,7 @@ export const assembleInferenceService = (
     modelAvailability,
     externalRoute,
     tokenAuth,
+    requireAuth,
     runtimeArgs,
     environmentVariables,
     deploymentStrategy,
@@ -141,7 +144,7 @@ export const assembleInferenceService = (
 
   inferenceService = applyAuth(
     inferenceService,
-    (tokenAuth && tokenAuth.length > 0) ?? false,
+    ((tokenAuth && tokenAuth.length > 0) ?? false) || !!requireAuth,
     externalRoute ?? false,
   );
 

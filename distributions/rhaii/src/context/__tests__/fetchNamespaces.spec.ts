@@ -119,6 +119,7 @@ describe('fetchNamespaces', () => {
           canEdit: false,
           canStartStop: false,
           canDelete: false,
+          canCreateTokenAuth: false,
           canManageTokenAuth: false,
         },
         {
@@ -131,6 +132,7 @@ describe('fetchNamespaces', () => {
           canEdit: false,
           canStartStop: false,
           canDelete: false,
+          canCreateTokenAuth: false,
           canManageTokenAuth: false,
         },
       ]);
@@ -253,6 +255,7 @@ describe('fetchNamespaces', () => {
         canEdit: false,
         canStartStop: false,
         canDelete: false,
+        canCreateTokenAuth: false,
         canManageTokenAuth: false,
         actionsUnverified: true,
       });
@@ -273,6 +276,92 @@ describe('fetchNamespaces', () => {
         expect((error as NamespaceListUnavailableError).projects).toEqual([]);
       },
     );
+
+    it('should treat a token action as unknown only when it is off because its own review failed', async () => {
+      const tokenReviews = (overrides: Record<string, Record<string, string>>) => ({
+        'serving.kserve.io/llminferenceservices': { get: 'allowed', watch: 'error' },
+        'core/secrets': {
+          create: 'allowed',
+          list: 'allowed',
+          update: 'allowed',
+          delete: 'allowed',
+        },
+        'core/serviceaccounts': { get: 'allowed', create: 'allowed' },
+        'rbac.authorization.k8s.io/roles': { get: 'allowed', create: 'allowed' },
+        'rbac.authorization.k8s.io/rolebindings': { get: 'allowed', create: 'allowed' },
+        ...overrides,
+      });
+      mockRoutes({
+        access: ok(
+          accessList('cluster-list', [
+            {
+              ...accessEntry('undecided'),
+              permissions: tokenReviews({
+                'core/secrets': {
+                  create: 'error',
+                  list: 'allowed',
+                  update: 'allowed',
+                  delete: 'allowed',
+                },
+              }),
+            },
+            {
+              ...accessEntry('manage-undecided'),
+              actions: { view: true, deploy: true, createTokenAuth: true, manageTokenAuth: false },
+              permissions: tokenReviews({
+                'core/secrets': {
+                  create: 'allowed',
+                  list: 'allowed',
+                  update: 'allowed',
+                  delete: 'error',
+                },
+              }),
+            },
+            {
+              ...accessEntry('denied'),
+              // A denied review the action needs keeps it denied, whatever else failed.
+              permissions: tokenReviews({
+                'rbac.authorization.k8s.io/roles': { get: 'allowed', create: 'denied' },
+                'core/secrets': {
+                  create: 'allowed',
+                  list: 'allowed',
+                  update: 'allowed',
+                  delete: 'error',
+                },
+              }),
+            },
+          ]),
+        ),
+      });
+
+      const result = await fetchNamespaces();
+      const byNs = (name: string) => result.find((p) => p.metadata.name === name);
+      const undecided = byNs('undecided');
+      const manageUndecided = byNs('manage-undecided');
+      const denied = byNs('denied');
+
+      // Unknown leaves token authentication to Kubernetes rather than turning it off.
+      expect(undecided?.canCreateTokenAuth).toBeUndefined();
+      expect(undecided?.canManageTokenAuth).toBeUndefined();
+      expect(manageUndecided?.canCreateTokenAuth).toBe(true);
+      expect(manageUndecided?.canManageTokenAuth).toBeUndefined();
+      expect(denied?.canCreateTokenAuth).toBe(false);
+      expect(denied?.canManageTokenAuth).toBe(false);
+    });
+
+    it('should keep manual entry when the fallback list times out after a slow 503', async () => {
+      // Discovery can use most of the request's time before answering 503.
+      global.fetch = jest.fn((url: string) =>
+        url.startsWith('/api/v1/namespace-access')
+          ? Promise.resolve({ ok: false, status: 503 } as Response)
+          : Promise.reject(new DOMException('The operation was aborted.', 'AbortError')),
+      ) as jest.Mock;
+
+      const error = await fetchNamespaces().catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NamespaceListUnavailableError);
+      expect((error as NamespaceListUnavailableError).projects).toEqual([]);
+    });
 
     it('should surface other discovery failures instead of an empty list', async () => {
       mockRoutes({ access: { ok: false, status: 500 } as Response });

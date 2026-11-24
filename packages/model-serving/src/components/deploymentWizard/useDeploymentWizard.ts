@@ -8,7 +8,10 @@ import {
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import {
+  ProjectsContext,
+  type ProjectDeploymentActions,
+} from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
@@ -65,13 +68,17 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 
 export const NO_TOKEN_AUTH_PERMISSION_TEXT =
   'You do not have permission to manage token authentication in this project.';
+const WITHHELD_DRAFTS_TEXT =
+  'The new tokens you added elsewhere are not used here: remove them in that project before deploying here.';
 
 /**
  * The token authentication field after deploy-method overrides and the
  * caller's permission. An override that disables the field clears its tokens.
- * Without permission the field is disabled and holds only the existing
- * tokens, unchanged; new drafts stay in the field's own state, so they come
- * back if the permission does, and are never saved meanwhile.
+ * Where the host reports that the caller may not manage token authentication,
+ * the field is disabled and holds only the existing tokens, unchanged; new
+ * drafts stay in the field's own state, so they come back with the
+ * permission. Saving with withheld drafts is refused rather than deploying
+ * without the tokens the user added.
  */
 export const applyTokenAuthOverrides = (
   field: TokenAuthenticationFieldHook,
@@ -79,20 +86,38 @@ export const applyTokenAuthOverrides = (
   canManageTokenAuth: boolean,
 ): TokenAuthenticationFieldHook => {
   const overrideDisabled = overrides.isDisabled ?? false;
+  const withheldDrafts = field.data?.filter((token) => !token.k8sName).length ?? 0;
   return {
     ...field,
     ...overrides,
     isDisabled: overrideDisabled || !canManageTokenAuth,
     ...(!overrideDisabled && !canManageTokenAuth
-      ? { disabledHelperText: NO_TOKEN_AUTH_PERMISSION_TEXT }
+      ? {
+          disabledHelperText:
+            withheldDrafts > 0
+              ? `${NO_TOKEN_AUTH_PERMISSION_TEXT} ${WITHHELD_DRAFTS_TEXT}`
+              : NO_TOKEN_AUTH_PERMISSION_TEXT,
+        }
       : {}),
     ...(overrideDisabled
       ? { data: [] }
       : !canManageTokenAuth
-      ? { data: field.data?.filter((token) => !!token.k8sName) }
+      ? {
+          data: field.data?.filter((token) => !!token.k8sName),
+          withheldDraftCount: withheldDrafts,
+        }
       : {}),
   };
 };
+
+/**
+ * Whether the caller may use token authentication here: set it up on a new
+ * deployment, or manage an existing deployment's tokens. Unknown is allowed.
+ */
+export const canUseTokenAuth = (
+  actions: ProjectDeploymentActions | undefined,
+  isEdit: boolean,
+): boolean => (isEdit ? actions?.canManageTokenAuth : actions?.canCreateTokenAuth) !== false;
 
 /**
  * Field hooks seed from `initialFormData` once, on mount. To re-initialize the form from new
@@ -102,6 +127,9 @@ export const useModelDeploymentWizard = (
   initialFormData?: InitialWizardFormData,
   initialProjectName?: string | undefined,
   externalDataMap: ExternalDataMap = {},
+  isEdit = false,
+  /** False for an edit of a platform the host's actions do not describe (KServe). */
+  hostTokenPermissionApplies = true,
 ): UseModelDeploymentWizardState => {
   const vLLMDeploymentOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
 
@@ -128,11 +156,15 @@ export const useModelDeploymentWizard = (
     namespace: project.projectName ?? undefined,
   });
   // Token authentication also manages Secrets. Where the host knows the
-  // caller's actions (namespace discovery on xKS), it says whether they may.
+  // caller's actions (namespace discovery on xKS), it says whether they may:
+  // setting tokens up for a new deployment, or managing an existing one's.
   const { getProjectDeploymentActions } = React.useContext(ProjectsContext);
   const canManageTokenAuth =
-    !project.projectName ||
-    getProjectDeploymentActions?.(project.projectName)?.canManageTokenAuth !== false;
+    !hostTokenPermissionApplies ||
+    canUseTokenAuth(
+      project.projectName ? getProjectDeploymentActions?.(project.projectName) : undefined,
+      isEdit,
+    );
 
   const modelLocationData = useModelLocationData(
     project.projectName,

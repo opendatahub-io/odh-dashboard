@@ -199,9 +199,12 @@ export const UNPROVISIONABLE_TOKEN_MESSAGE =
   'You do not have permission to create authentication tokens in this project. Remove the new tokens or ask for access.';
 
 /**
- * Rejects new tokens (ones without a Secret yet) that cannot be provisioned,
- * before anything is written, so a model never requires a token that was not
- * created. Existing tokens are kept as they are.
+ * Rejects new tokens (ones without a Secret yet) where the host reported that
+ * the caller may not manage token authentication (pass
+ * `wizardData.canManageTokenAuth !== false`), before anything is written, so a
+ * model never requires a token that was refused. Existing tokens are kept as
+ * they are. Without RoleBinding create alone the wizard keeps its earlier
+ * behaviour: the field is disabled and token setup is skipped.
  */
 export const assertTokensProvisionable = (
   tokenAuth: TokenAuthEntry[] | undefined,

@@ -25,6 +25,9 @@ import { useModelDeployedTracking } from '../../../shared/tracking/useModelDeplo
  *
  * @returns The onSubmit function to create / update the deployment
  */
+export const WITHHELD_TOKENS_MESSAGE =
+  'Token authentication cannot be set up in this project, but new tokens were added. Select the project where you added them, remove them there, or ask for access.';
+
 export const useModelDeploymentSubmit = (
   formState: WizardFormState, // Need initial data for existing auth secrets
   deployMethodActivationInput: DeployMethodActivationInput,
@@ -46,7 +49,8 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
-  const { deploymentTargetProjects } = React.useContext(ProjectsContext);
+  const { deploymentTargetProjects, getProjectDeploymentActions } =
+    React.useContext(ProjectsContext);
   const { deployMethod, deployMethodLoaded } = useDeployMethod(
     deployMethodActivationInput,
     resources,
@@ -117,6 +121,30 @@ export const useModelDeploymentSubmit = (
           throw new Error(
             `The YAML namespace "${yamlNamespace}" must match the project "${expectedNamespace}".`,
           );
+        }
+        // An edit can be opened by URL, so the edit permission is checked
+        // again here, where the deployment is saved.
+        // The host's actions describe LLMInferenceService deployments, as in
+        // the deployments table.
+        if (
+          existingDeployment?.model.kind === 'LLMInferenceService' &&
+          expectedNamespace &&
+          getProjectDeploymentActions?.(expectedNamespace)?.canEdit === false
+        ) {
+          throw new Error(
+            `You do not have permission to edit deployments in the project "${expectedNamespace}".`,
+          );
+        }
+        // New tokens added in a project that allowed them are withheld here.
+        // Deploying without them would drop authentication the user set up.
+        if ((formState.tokenAuthentication.withheldDraftCount ?? 0) > 0) {
+          throw new Error(WITHHELD_TOKENS_MESSAGE);
+        }
+        // Where the host decides deploy targets, a new deployment needs its
+        // project selected in the form: that is where its permissions (token
+        // authentication included) were checked.
+        if (!existingDeployment && deploymentTargetProjects && !formState.project.projectName) {
+          throw new Error('Select a project before deploying.');
         }
         // Access to a project can be revoked while the wizard is open. A new
         // deployment, from the form or the YAML, must still target a project
@@ -195,6 +223,7 @@ export const useModelDeploymentSubmit = (
       secretOps,
       existingDeployment,
       deploymentTargetProjects,
+      getProjectDeploymentActions,
       initialWizardData,
       applyAllFieldDataFn,
       runPreDeploy,

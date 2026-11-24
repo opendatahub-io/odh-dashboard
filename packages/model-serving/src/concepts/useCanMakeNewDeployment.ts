@@ -39,8 +39,9 @@ export const useCanMakeNewDeployment = (
     isMissingTemplates || isKueueDisabled || isMissingDeployMethods || isNotDeployTarget;
   const disabledReason = isNotDeployTarget
     ? project
-      ? 'You do not have permission to deploy models in this project.'
-      : 'You do not have permission to deploy models in any project.'
+      ? 'You cannot deploy models in this project.'
+      : // Also when access could not be determined (discovery unavailable).
+        'No project is available for deploying models.'
     : isMissingTemplates
     ? 'At least one serving runtime must be enabled to deploy a model. Contact your administrator.'
     : isKueueDisabled

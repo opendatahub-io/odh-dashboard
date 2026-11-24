@@ -12,7 +12,7 @@ import { useDeployMethod } from '../useDeployMethod';
 import { useWizardFieldApply } from '../../useWizardFieldApply';
 import { useWizardFieldPreDeploy } from '../useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy } from '../useWizardFieldPostDeploy';
-import { useModelDeploymentSubmit } from '../useModelDeploymentSubmit';
+import { useModelDeploymentSubmit, WITHHELD_TOKENS_MESSAGE } from '../useModelDeploymentSubmit';
 
 jest.mock('@odh-dashboard/plugin-core');
 jest.mock('../useDeployMethod');
@@ -137,10 +137,12 @@ describe('useModelDeploymentSubmit deployment targets', () => {
       viewMode = 'yaml-edit',
       yamlNamespace = 'test-project',
       existingDeployment,
+      canEdit,
     }: {
       viewMode?: 'form' | 'yaml-edit';
       yamlNamespace?: string;
       existingDeployment?: Deployment;
+      canEdit?: boolean;
     } = {},
   ) => {
     const context: ProjectsContextType = {
@@ -153,6 +155,7 @@ describe('useModelDeploymentSubmit deployment targets', () => {
       waitForProject: jest.fn(),
       loaded: true,
       loadError: undefined,
+      getProjectDeploymentActions: () => (canEdit === undefined ? undefined : { canEdit }),
     };
     const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       React.createElement(ProjectsContext.Provider, { value: context }, children);
@@ -244,5 +247,109 @@ describe('useModelDeploymentSubmit deployment targets', () => {
     await act(async () => unknown.result.current.onSave());
     expect(unknown.result.current.submitError).toBeNull();
     expect(deployModel).toHaveBeenCalledTimes(2);
+  });
+
+  it('should not save an edit, even one opened by URL, without edit access', async () => {
+    const existingDeployment = {
+      modelServingPlatformId: 'llmd-serving',
+      model: {
+        kind: 'LLMInferenceService',
+        metadata: { name: 'test-model', namespace: 'test-project' },
+      },
+    } as Deployment;
+    const denied = renderWithTargets(undefined, { existingDeployment, canEdit: false });
+    await act(async () => denied.result.current.onSave());
+    expect(denied.result.current.submitError?.message).toBe(
+      'You do not have permission to edit deployments in the project "test-project".',
+    );
+    expect(deployModel).not.toHaveBeenCalled();
+
+    const allowed = renderWithTargets(undefined, { existingDeployment, canEdit: true });
+    await act(async () => allowed.result.current.onSave());
+    expect(allowed.result.current.submitError).toBeNull();
+    expect(deployModel).toHaveBeenCalledTimes(1);
+  });
+
+  it("should not apply LLMInferenceService edit permission to another platform's edit", async () => {
+    const { result } = renderWithTargets(undefined, {
+      canEdit: false,
+      existingDeployment: {
+        modelServingPlatformId: 'kserve',
+        model: {
+          kind: 'InferenceService',
+          metadata: { name: 'test-model', namespace: 'test-project' },
+        },
+      } as Deployment,
+    });
+    await act(async () => result.current.onSave());
+    expect(result.current.submitError).toBeNull();
+    expect(deployModel).toHaveBeenCalled();
+  });
+
+  it('should need a project selected in the form for a new deployment where targets are known', async () => {
+    const { state } = mockDeploymentWizardState();
+    const context: ProjectsContextType = {
+      projects: [],
+      modelServingProjects: [],
+      nonActiveProjects: [],
+      deploymentTargetProjects: [target('x')],
+      preferredProject: null,
+      updatePreferredProject: jest.fn(),
+      waitForProject: jest.fn(),
+      loaded: true,
+      loadError: undefined,
+    };
+    const { result } = renderHook(
+      () =>
+        useModelDeploymentSubmit(
+          { ...state, project: { ...state.project, projectName: undefined } },
+          { modelLocationData: { data: undefined } },
+          {
+            model: {
+              kind: 'LLMInferenceService',
+              apiVersion: 'serving.kserve.io/v1alpha2',
+              metadata: { name: 'test-model', namespace: 'x' },
+            },
+          },
+          { isAllValid: true } as Parameters<typeof useModelDeploymentSubmit>[3],
+          {},
+          jest.fn(),
+          'yaml-edit',
+        ),
+      {
+        wrapper: ({ children }) =>
+          React.createElement(ProjectsContext.Provider, { value: context }, children),
+      },
+    );
+    await act(async () => result.current.onSave());
+    expect(result.current.submitError?.message).toBe('Select a project before deploying.');
+    expect(deployModel).not.toHaveBeenCalled();
+  });
+
+  it('should refuse to deploy without new tokens withheld from this project', async () => {
+    const { state } = mockDeploymentWizardState();
+    const { result } = renderHook(() =>
+      useModelDeploymentSubmit(
+        {
+          ...state,
+          tokenAuthentication: { ...state.tokenAuthentication, data: [], withheldDraftCount: 1 },
+        },
+        { modelLocationData: { data: undefined } },
+        {
+          model: {
+            kind: 'LLMInferenceService',
+            apiVersion: 'serving.kserve.io/v1alpha2',
+            metadata: { name: 'test-model', namespace: 'test-project' },
+          },
+        },
+        { isAllValid: true } as Parameters<typeof useModelDeploymentSubmit>[3],
+        {},
+        jest.fn(),
+        'form',
+      ),
+    );
+    await act(async () => result.current.onSave());
+    expect(result.current.submitError?.message).toBe(WITHHELD_TOKENS_MESSAGE);
+    expect(deployModel).not.toHaveBeenCalled();
   });
 });

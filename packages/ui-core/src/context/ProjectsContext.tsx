@@ -3,16 +3,19 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 
 /**
  * What the caller may do to the deployments in one project, when the host
- * knows it (RHAII on xKS).
+ * knows it (RHAII on xKS). `false` denies an action; an unset field allows it,
+ * so a host that predates a field keeps today's behaviour.
  */
 export type ProjectDeploymentActions = {
   /** Update the project's deployments from the wizard. */
-  canEdit: boolean;
+  canEdit?: boolean;
   /** Start and stop the project's deployments. */
-  canStartStop: boolean;
-  canDelete: boolean;
-  /** Create and manage the Secrets behind token authentication. */
-  canManageTokenAuth: boolean;
+  canStartStop?: boolean;
+  canDelete?: boolean;
+  /** Set up token authentication on a new deployment. */
+  canCreateTokenAuth?: boolean;
+  /** Manage the tokens of an existing deployment. */
+  canManageTokenAuth?: boolean;
 };
 
 export type ProjectsContextType = {

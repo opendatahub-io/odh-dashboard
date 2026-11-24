@@ -387,9 +387,14 @@ describe('DeploymentsTableRow', () => {
       isStarting: false,
       isStopping: false,
     };
+    // The host's actions describe LLMInferenceService deployments.
+    const llmdDeployment = (partial: Parameters<typeof mockDeployment>[0] = {}) => {
+      const deployment = mockDeployment(partial);
+      return { ...deployment, model: { ...deployment.model, kind: 'LLMInferenceService' } };
+    };
     const renderWithActions = (
       actions: ProjectDeploymentActions | undefined,
-      deployment = mockDeployment({}),
+      deployment = llmdDeployment(),
     ) => {
       const context = {
         projects: [],
@@ -466,7 +471,7 @@ describe('DeploymentsTableRow', () => {
         mockUseDeploymentExtension.mockReturnValue({ properties: { platform: 'test-platform' } });
         renderWithActions(
           { canEdit, canStartStop, canDelete: false, canManageTokenAuth: false },
-          mockDeployment({
+          llmdDeployment({
             status: { state: ModelDeploymentState.LOADED, stoppedStates: runningStates },
           }),
         );
@@ -483,6 +488,17 @@ describe('DeploymentsTableRow', () => {
         );
       },
     );
+
+    it('should not apply LLMInferenceService permissions to other platforms', () => {
+      const deployment = mockDeployment({});
+      renderWithActions(
+        { canEdit: false, canStartStop: false, canDelete: false, canManageTokenAuth: false },
+        { ...deployment, model: { ...deployment.model, kind: 'InferenceService' } },
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+    });
 
     it('should offer every action when the project has none reported', () => {
       renderWithActions(undefined);

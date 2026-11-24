@@ -88,7 +88,13 @@ export const DeploymentRow: React.FC<{
 
   const { projects, getProjectDeploymentActions } = React.useContext(ProjectsContext);
   const { namespace } = deployment.model.metadata;
-  const projectActions = namespace ? getProjectDeploymentActions?.(namespace) : undefined;
+  // The host's actions describe LLMInferenceService deployments (namespace
+  // discovery reviews only those); other platforms keep every action and rely
+  // on Kubernetes to authorize them.
+  const projectActions =
+    namespace && deployment.model.kind === 'LLMInferenceService'
+      ? getProjectDeploymentActions?.(namespace)
+      : undefined;
   const canEdit = projectActions?.canEdit !== false;
   const canStartStop = projectActions?.canStartStop !== false;
   const canDelete = projectActions?.canDelete !== false;

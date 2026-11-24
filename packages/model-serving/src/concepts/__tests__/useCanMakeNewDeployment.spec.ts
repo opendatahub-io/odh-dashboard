@@ -210,14 +210,14 @@ describe('useCanMakeNewDeployment', () => {
     it('should not offer deploying in a project that is not a deployment target', () => {
       expect(renderWithTargets(namespace('view-only'), [namespace('other')])).toEqual({
         disabled: true,
-        disabledReason: 'You do not have permission to deploy models in this project.',
+        disabledReason: 'You cannot deploy models in this project.',
       });
     });
 
     it('should not offer deploying without a project when there is no target', () => {
       expect(renderWithTargets(null, [])).toEqual({
         disabled: true,
-        disabledReason: 'You do not have permission to deploy models in any project.',
+        disabledReason: 'No project is available for deploying models.',
       });
     });
 
