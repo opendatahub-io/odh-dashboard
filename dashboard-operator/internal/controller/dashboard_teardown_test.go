@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,6 +114,35 @@ func TestTeardownManagedResourcesDeletesOnlyXKSCertificateAndTLSSecret(t *testin
 	assertTeardownResourcePresent(t, cli, webhookCertificate)
 	assertTeardownResourcePresent(t, cli, otherCertificate)
 	assertTeardownResourceAbsent(t, cli, tlsSecret)
+}
+
+// The chart's XKS Certificate Role/RoleBinding carry part-of=dashboard (dashboard.labels) and live in
+// the applications namespace, so the label sweep selects them. Deleting them revokes the controller's
+// own Certificate permissions and wedges teardown on a 403, so they must survive every pass, while an
+// operand Role/RoleBinding with the same label is still removed.
+func TestTeardownManagedResourcesPreservesXKSCertificateRBAC(t *testing.T) {
+	managedLabels := map[string]string{labels.PlatformPartOf: "dashboard"}
+	chartRole := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: operatorDeploymentName + "-xks-certificate", Namespace: teardownTestNamespace, Labels: managedLabels}}
+	chartBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: operatorDeploymentName + "-xks-certificate", Namespace: teardownTestNamespace, Labels: managedLabels},
+		RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: chartRole.Name},
+	}
+	operandRole := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "rhaii-dashboard", Namespace: teardownTestNamespace, Labels: managedLabels}}
+	operandBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "rhaii-dashboard", Namespace: teardownTestNamespace, Labels: managedLabels},
+		RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: operandRole.Name},
+	}
+	cli := fake.NewClientBuilder().WithScheme(teardownTestScheme(t)).WithObjects(chartRole, chartBinding, operandRole, operandBinding).Build()
+	reconciler := &DashboardReconciler{Client: cli, ApplicationsNamespace: teardownTestNamespace, Platform: cluster.XKS}
+
+	for pass := 0; pass < 2; pass++ {
+		_, err := reconciler.teardownManagedResources(context.Background(), &v1alpha1.Dashboard{}, nil, false, false)
+		require.NoError(t, err)
+		assertTeardownResourcePresent(t, cli, chartRole)
+		assertTeardownResourcePresent(t, cli, chartBinding)
+	}
+	assertTeardownResourceAbsent(t, cli, operandRole)
+	assertTeardownResourceAbsent(t, cli, operandBinding)
 }
 
 func TestTeardownManagedResourcesContinuesAndJoinsDeleteFailures(t *testing.T) {

@@ -310,6 +310,15 @@ func TestDashboardChartXKSCertificateRBACIsNamespaceAndNameScoped(t *testing.T) 
 	}
 
 	role, binding := findXKSCertificateRBAC(t, output)
+	// Teardown preserves these by kind/name (operatorOwnedResources: "<deployment>-xks-certificate").
+	// They carry the part-of=dashboard label, so a rename here must be mirrored there or teardown
+	// deletes the controller's own Certificate permissions.
+	if role.Name != "dashboard-operator-xks-certificate" || binding.Name != role.Name {
+		t.Fatalf("XKS Certificate RBAC name drifted from operatorOwnedResources: Role=%q RoleBinding=%q", role.Name, binding.Name)
+	}
+	if role.Labels["platform.opendatahub.io/part-of"] != "dashboard" {
+		t.Fatalf("expected XKS Certificate Role to carry the dashboard part-of label, got %v", role.Labels)
+	}
 	if role.Namespace != "applications-namespace" {
 		t.Fatalf("expected Certificate Role in applications namespace, got %q", role.Namespace)
 	}

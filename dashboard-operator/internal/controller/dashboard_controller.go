@@ -97,6 +97,11 @@ func operatorOwnedResources() map[string]bool {
 		"ClusterRoleBinding/" + base + "-rolebinding":     true,
 		"NetworkPolicy/" + base + "-metrics":              true, // charts/.../networkpolicy.yaml (protects the running controller pod)
 		"Certificate/" + base + "-webhook-cert":           true, // charts/.../webhook-cert-manager.yaml
+		// The XKS serving-Certificate Role/RoleBinding (charts/.../rbac.yaml, xks.enabled) live in the
+		// applications namespace. Deleting them would revoke the controller's own Certificate access
+		// mid-teardown and wedge removal/finalization on a 403.
+		"Role/" + base + "-xks-certificate":        true,
+		"RoleBinding/" + base + "-xks-certificate": true,
 	}
 }
 
