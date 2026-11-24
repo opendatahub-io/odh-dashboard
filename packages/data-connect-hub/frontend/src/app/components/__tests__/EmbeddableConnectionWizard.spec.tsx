@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import { getInstance, init, loadRemote, registerRemotes } from '@module-federation/runtime';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import EmbeddableConnectionWizard from '~/app/components/EmbeddableConnectionWizard';
 import type { ConnectionWizardAvailability } from '~/types';
 
@@ -20,11 +21,16 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   useIsAreaAvailable: jest.fn(),
 }));
 
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useAccessReview: jest.fn(),
+}));
+
 const mockGetInstance = jest.mocked(getInstance);
 const mockInit = jest.mocked(init);
 const mockRegisterRemotes = jest.mocked(registerRemotes);
 const mockLoadRemote = jest.mocked(loadRemote);
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
+const mockUseAccessReview = jest.mocked(useAccessReview);
 
 const RemoteWizard = () => <div data-testid="remote-connection-wizard" />;
 
@@ -43,6 +49,7 @@ describe('EmbeddableConnectionWizard', () => {
       requiredCapabilities: null,
       requiredComponents: null,
     });
+    mockUseAccessReview.mockReturnValue([true, true]);
     global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 } as Response);
   });
 
@@ -90,6 +97,42 @@ describe('EmbeddableConnectionWizard', () => {
     );
 
     expect(screen.getByTestId('legacy-connection-modal')).toBeInTheDocument();
+    expect(mockLoadRemote).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('renders the fallback before loading the wizard when create permission is denied', async () => {
+    mockUseAccessReview.mockReturnValue([false, true]);
+    const onAvailabilityChange = jest.fn(
+      (_availability: ConnectionWizardAvailability) => undefined,
+    );
+
+    render(
+      <EmbeddableConnectionWizard
+        isOpen
+        namespace="test-project"
+        unavailableFallback={<div data-testid="legacy-connection-modal" />}
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+
+    expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
+    expect(mockLoadRemote).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(onAvailabilityChange).toHaveBeenCalledWith({
+        status: 'unavailable',
+        reason: 'permissions',
+      }),
+    );
+  });
+
+  it('waits for the create access check before loading the wizard', async () => {
+    mockUseAccessReview.mockReturnValue([false, false]);
+
+    render(<EmbeddableConnectionWizard isOpen namespace="test-project" />);
+
+    expect(await screen.findByTestId('connection-wizard-loading-tearsheet')).toBeInTheDocument();
     expect(mockLoadRemote).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
   });

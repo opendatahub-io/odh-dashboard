@@ -88,7 +88,7 @@ export type ConnectionWizardAvailability =
   | { status: 'available' }
   | {
       status: 'unavailable';
-      reason: 'feature-flag' | 'remote' | 'backend';
+      reason: 'feature-flag' | 'remote' | 'backend' | 'permissions';
     };
 
 export type EmbeddableConnectionWizardProps = EmbeddableCreateConnectionWizardProps & {

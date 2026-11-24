@@ -57,9 +57,10 @@ The consumer owns the button and open state. DCH owns the wizard steps, BFF call
 The loader checks availability only while `isOpen` is `true`. It:
 
 1. Checks the `plugin-data-connect-hub` area, including the `dataConnectHub` feature flag.
-2. Registers `dataConnectHub` with the consumer's Module Federation runtime and loads `EmbeddableCreateConnectionWizard`.
-3. Calls `GET /data-connect-hub/api/v1/backend-health`.
-4. Renders the federated wizard only when the feature is enabled and both the remote and BFF are available.
+2. Checks whether the user can create `data-connections` in the supplied namespace.
+3. Registers `dataConnectHub` with the consumer's Module Federation runtime and loads `EmbeddableCreateConnectionWizard`.
+4. Calls `GET /data-connect-hub/api/v1/backend-health`.
+5. Renders the federated wizard only when the feature is enabled, the user has create permission, and both the remote and BFF are available.
 
 The backend-health endpoint calls the upstream DCH REST service's `/health` endpoint. This is separate from `/data-connect-hub/healthcheck`, which is only the DCH BFF liveness endpoint.
 
@@ -73,7 +74,7 @@ type ConnectionWizardAvailability =
   | { status: 'available' }
   | {
       status: 'unavailable';
-      reason: 'feature-flag' | 'remote' | 'backend';
+      reason: 'feature-flag' | 'permissions' | 'remote' | 'backend';
     };
 ```
 
@@ -149,6 +150,7 @@ The DCH remote entry is served by the dashboard host at `/_mf/dataConnectHub/rem
 | Availability result            | Cause and response                                                                                      |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | `reason: 'feature-flag'`       | The `dataConnectHub` feature is disabled; render the consumer fallback.                                 |
+| `reason: 'permissions'`        | The user cannot create `data-connections` in the supplied namespace; render the consumer fallback.      |
 | `reason: 'remote'`             | The DCH remote entry or wizard export could not be loaded; verify both dashboard processes are running. |
 | `reason: 'backend'`            | The DCH BFF could not reach the upstream REST service; verify the DCH REST deployment and gateway.      |
 | Connection types do not load   | The DCH backend is unavailable, the feature is disabled, or `/data-connect-hub/api` is not reachable.   |

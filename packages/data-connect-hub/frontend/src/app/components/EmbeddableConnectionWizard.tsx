@@ -3,6 +3,7 @@ import { getInstance, init, loadRemote, registerRemotes } from '@module-federati
 import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
 import { Tearsheet, TearsheetBody, TearsheetHeader } from '@patternfly/react-component-groups';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import type {
   ConnectionWizardAvailability,
   EmbeddableConnectionWizardProps,
@@ -45,12 +46,22 @@ const checkBackendHealth = async (signal: AbortSignal): Promise<void> => {
 
 const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
   isOpen,
+  namespace,
   unavailableFallback,
   onAvailabilityChange,
   tearsheetStackLevel,
   ...wizardProps
 }) => {
   const areaAvailability = useIsAreaAvailable(SupportedArea.PLUGIN_DATA_CONNECT_HUB);
+  const [canCreateConnection, createAccessLoaded] = useAccessReview(
+    {
+      group: 'dataconnecthub.opendatahub.io',
+      resource: 'data-connections',
+      verb: 'create',
+      namespace,
+    },
+    Boolean(namespace),
+  );
   const [remoteComponent, setRemoteComponent] =
     React.useState<React.ComponentType<EmbeddableCreateConnectionWizardProps> | null>(null);
   const [availability, setAvailability] = React.useState<ConnectionWizardAvailability>({
@@ -74,6 +85,14 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
 
     if (!areaAvailability.status) {
       setAvailability({ status: 'unavailable', reason: 'feature-flag' });
+      return undefined;
+    }
+
+    if (!createAccessLoaded) {
+      return undefined;
+    }
+    if (!canCreateConnection) {
+      setAvailability({ status: 'unavailable', reason: 'permissions' });
       return undefined;
     }
 
@@ -126,7 +145,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
       cancelled = true;
       abortController.abort();
     };
-  }, [areaAvailability.status, isOpen]);
+  }, [areaAvailability.status, canCreateConnection, createAccessLoaded, isOpen, namespace]);
 
   if (!isOpen) {
     return null;
@@ -169,7 +188,14 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
   }
 
   const Wizard = remoteComponent;
-  return <Wizard isOpen tearsheetStackLevel={tearsheetStackLevel} {...wizardProps} />;
+  return (
+    <Wizard
+      isOpen
+      namespace={namespace}
+      tearsheetStackLevel={tearsheetStackLevel}
+      {...wizardProps}
+    />
+  );
 };
 
 export default EmbeddableConnectionWizard;
