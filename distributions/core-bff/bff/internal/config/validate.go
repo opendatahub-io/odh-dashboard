@@ -5,12 +5,14 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation"
+	"io/fs"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 // ValidationError collects every configuration problem found at startup so one
@@ -348,10 +350,26 @@ func validateServingTLS(tlsFiles TLSFiles, add func(string, ...any)) {
 		return
 	}
 
-	pair, err := tls.LoadX509KeyPair(tlsFiles.CertFile, tlsFiles.KeyFile)
+	// Problems name the setting, never its value: a PEM block pasted where a
+	// path belongs would otherwise land in the log. The files are read here
+	// rather than through tls.LoadX509KeyPair, whose errors quote the path.
+	certPEM, certErr := os.ReadFile(tlsFiles.CertFile)
+	keyPEM, keyErr := os.ReadFile(tlsFiles.KeyFile)
+	if certErr != nil || keyErr != nil {
+		for _, f := range []struct {
+			setting string
+			err     error
+		}{{"CERT_FILE/--cert-file", certErr}, {"KEY_FILE/--key-file", keyErr}} {
+			if f.err != nil {
+				add("%s (value omitted) could not be read: %s", f.setting, readProblem(f.err))
+			}
+		}
+		return
+	}
+	pair, err := tls.X509KeyPair(certPEM, keyPEM)
 	if err != nil {
-		add("the serving certificate and key could not be loaded (cert=%s key=%s): %s",
-			tlsFiles.CertFile, tlsFiles.KeyFile, sanitizeTLSError(err))
+		add("the serving pair from CERT_FILE/--cert-file and KEY_FILE/--key-file (values omitted) could not be loaded: %s",
+			sanitizeTLSError(err))
 		return
 	}
 
@@ -360,12 +378,28 @@ func validateServingTLS(tlsFiles TLSFiles, add func(string, ...any)) {
 	// here, not trust: a private or service CA is legitimate.
 	leaf, err := x509.ParseCertificate(pair.Certificate[0])
 	if err != nil {
-		add("the serving certificate (cert=%s) could not be parsed: %s", tlsFiles.CertFile, sanitizeTLSError(err))
+		add("the serving certificate from CERT_FILE/--cert-file (value omitted) could not be parsed: %s", sanitizeTLSError(err))
 		return
 	}
 	if problem := validityProblem(leaf, time.Now()); problem != "" {
-		add("the serving certificate (cert=%s) %s; rotate it before starting", tlsFiles.CertFile, problem)
+		add("the serving certificate from CERT_FILE/--cert-file (value omitted) %s; rotate it before starting", problem)
 	}
+}
+
+// readProblem describes a file read failure without the path, which
+// os.PathError would otherwise quote.
+func readProblem(err error) string {
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return "the file does not exist"
+	case errors.Is(err, fs.ErrPermission):
+		return "permission denied"
+	}
+	var pathErr *fs.PathError
+	if errors.As(err, &pathErr) {
+		return pathErr.Err.Error()
+	}
+	return "read failed"
 }
 
 // validityProblem reports why leaf is not usable at now, or "" when it is.

@@ -377,11 +377,13 @@ func TestParseStartupConfig_RejectsUnusableTLSInput(t *testing.T) {
 
 	t.Run("missing cert file", func(t *testing.T) {
 		isolateEnv(t)
-		t.Setenv("CERT_FILE", filepath.Join(dir, "absent.crt"))
+		absent := filepath.Join(dir, "absent.crt")
+		t.Setenv("CERT_FILE", absent)
 		t.Setenv("KEY_FILE", keyFile)
 		_, err := parse(t)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "serving certificate and key could not be loaded")
+		assert.Contains(t, err.Error(), "CERT_FILE/--cert-file (value omitted) could not be read: the file does not exist")
+		assert.NotContains(t, err.Error(), absent, "diagnostics name the setting, not its value")
 	})
 
 	t.Run("mismatched pair", func(t *testing.T) {
@@ -390,8 +392,24 @@ func TestParseStartupConfig_RejectsUnusableTLSInput(t *testing.T) {
 		t.Setenv("KEY_FILE", garbage)
 		_, err := parse(t)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "serving certificate and key could not be loaded")
+		assert.Contains(t, err.Error(), "serving pair from CERT_FILE/--cert-file and KEY_FILE/--key-file (values omitted) could not be loaded")
 		assert.NotContains(t, err.Error(), "-----BEGIN", "diagnostics must not echo PEM material")
+		assert.NotContains(t, err.Error(), garbage)
+	})
+
+	// An operator pasting the key itself where a path belongs must not find
+	// the private key in the startup log.
+	t.Run("PEM pasted into KEY_FILE", func(t *testing.T) {
+		isolateEnv(t)
+		pasted := "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjCANARYSECRET\n-----END PRIVATE KEY-----\n"
+		t.Setenv("CERT_FILE", certFile)
+		t.Setenv("KEY_FILE", pasted)
+		_, err := parse(t)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "KEY_FILE/--key-file (value omitted) could not be read")
+		assert.NotContains(t, err.Error(), "CANARYSECRET")
+		assert.NotContains(t, err.Error(), "-----BEGIN")
+		assert.NotContains(t, err.Error(), certFile, "the cert path is not echoed either")
 	})
 }
 
