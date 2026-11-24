@@ -119,6 +119,35 @@ func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, t
 	return dialWithHandshakeResponse(&dialer, targetWSURL, dialHeaders, targetURL.Hostname(), netDialContext)
 }
 
+// withoutBearerSubprotocols drops Kubernetes bearer-token subprotocols.
+func withoutBearerSubprotocols(protocols []string) []string {
+	out := make([]string, 0, len(protocols))
+	for _, p := range protocols {
+		if !strings.HasPrefix(strings.ToLower(p), bearerSubprotocolPrefix) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// BearerSubprotocolToken returns the token a client carries in a Kubernetes
+// bearer subprotocol (the only way a browser can send one on a WebSocket),
+// and whether such a subprotocol was present. A present but undecodable one
+// yields "" and true.
+func BearerSubprotocolToken(r *http.Request) (string, bool) {
+	for _, p := range websocket.Subprotocols(r) {
+		if !strings.HasPrefix(strings.ToLower(p), bearerSubprotocolPrefix) {
+			continue
+		}
+		raw, err := base64.RawURLEncoding.DecodeString(p[len(bearerSubprotocolPrefix):])
+		if err != nil {
+			return "", true
+		}
+		return strings.TrimSpace(string(raw)), true
+	}
+	return "", false
+}
+
 func bearerSubprotocol(token string) string {
 	return bearerSubprotocolPrefix + base64.RawURLEncoding.EncodeToString([]byte(token))
 }

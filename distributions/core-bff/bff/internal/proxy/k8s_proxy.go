@@ -37,7 +37,12 @@ func SensitiveIngressHeaders(authTokenHeader string) []string {
 		constants.HeaderXRealIP,
 		constants.HeaderForwarded,
 	}
-	if authTokenHeader != "" {
+	// Both identity headers are stripped whichever one is configured: an
+	// upstream that reads the other convention (mod-arch BFFs read
+	// x-forwarded-access-token) must never see a client-supplied value. The
+	// server-resolved token is re-injected where an upstream needs it.
+	headers = append(headers, constants.HeaderForwardedToken)
+	if authTokenHeader != "" && !strings.EqualFold(authTokenHeader, constants.HeaderForwardedToken) {
 		headers = append(headers, authTokenHeader)
 	}
 	return headers

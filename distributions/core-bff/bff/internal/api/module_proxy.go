@@ -331,6 +331,11 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 							} else {
 								outH.Set(authTokenHeader, token)
 							}
+							// The inbound x-forwarded-access-token is always
+							// stripped; set it to the resolved token so a module
+							// reading that convention authenticates as the same
+							// caller as Authorization.
+							outH.Set(constants.HeaderForwardedToken, token)
 						}
 					}
 				}

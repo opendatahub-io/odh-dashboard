@@ -86,7 +86,10 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	upstreamRequest := r.Clone(r.Context())
 	upstreamRequest.URL.Path = kubernetesWebSocketPath(r)
 	watch := httpcontract.IsWatchRequest(upstreamRequest)
-	clientSubprotocols := websocket.Subprotocols(r)
+	// A client-supplied bearer subprotocol is a credential, not a protocol to
+	// negotiate: only the BFF's resolved token (added by dialK8sWebSocket) may
+	// reach the API server, so the request never carries two identities.
+	clientSubprotocols := withoutBearerSubprotocols(websocket.Subprotocols(r))
 
 	tlsConfig := p.tlsConfig
 	if identity.DevFallback && p.fallbackTLS != nil {

@@ -13,6 +13,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 )
 
 func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
@@ -33,7 +34,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			// Authorization) is still the caller's credential: use it, never
 			// the developer's identity. Only a request with no credential at
 			// all falls back.
-			if alt, ok := alternateCredential(r.Header, app.config.AuthTokenHeader, app.config.AuthTokenPrefix); ok {
+			if alt, ok := alternateCredential(r, app.config.AuthTokenHeader, app.config.AuthTokenPrefix); ok {
 				identity, err = app.kubernetesClientFactory.ExtractRequestIdentity(alt)
 			} else {
 				// DevUser/DevGroups are used for audit log fallback labeling (see auditUser).
@@ -66,7 +67,13 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 // the configured prefix exactly like a normal request. Authorization must use
 // the Bearer scheme; anything else in it, or an empty value, is passed on as
 // an empty credential, which the factory rejects as invalid.
-func alternateCredential(h http.Header, tokenHeader, tokenPrefix string) (http.Header, bool) {
+func alternateCredential(r *http.Request, tokenHeader, tokenPrefix string) (http.Header, bool) {
+	h := r.Header
+	// A WebSocket client (a browser) can only send its token as a bearer
+	// subprotocol; that is a credential too.
+	if token, ok := proxy.BearerSubprotocolToken(r); ok {
+		return credentialIn(tokenHeader, tokenPrefix, token), true
+	}
 	for _, name := range []string{constants.HeaderAuthorization, constants.HeaderForwardedToken} {
 		if strings.EqualFold(name, tokenHeader) {
 			continue
@@ -87,15 +94,21 @@ func alternateCredential(h http.Header, tokenHeader, tokenPrefix string) (http.H
 				token = ""
 			}
 		}
-		alt := http.Header{}
-		if token == "" {
-			alt[http.CanonicalHeaderKey(tokenHeader)] = []string{""}
-		} else {
-			alt.Set(tokenHeader, tokenPrefix+token)
-		}
-		return alt, true
+		return credentialIn(tokenHeader, tokenPrefix, token), true
 	}
 	return nil, false
+}
+
+// credentialIn expresses token in the configured header, or an empty
+// credential (which the factory rejects as invalid) when token is "".
+func credentialIn(tokenHeader, tokenPrefix, token string) http.Header {
+	alt := http.Header{}
+	if token == "" {
+		alt[http.CanonicalHeaderKey(tokenHeader)] = []string{""}
+	} else {
+		alt.Set(tokenHeader, tokenPrefix+token)
+	}
+	return alt
 }
 
 // auditUser returns the best available user identifier for audit logging.

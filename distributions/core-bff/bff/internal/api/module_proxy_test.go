@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1310,4 +1311,39 @@ func writeTempConfig(t *testing.T, entries []moduleFederationEntry) string {
 	p := filepath.Join(dir, "federation-config.json")
 	require.NoError(t, os.WriteFile(p, data, 0600))
 	return p
+}
+
+// With AUTH_TOKEN_HEADER=Authorization the inbound x-forwarded-access-token
+// is still stripped; an authorize module that reads that convention gets the
+// resolved caller token, never a client-supplied second identity.
+func TestModuleProxy_StripsTheOtherIdentityHeader(t *testing.T) {
+	type seen struct{ auth, forwarded string }
+	got := make(chan seen, 2)
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got <- seen{r.Header.Get("Authorization"), r.Header.Get("X-Forwarded-Access-Token")}
+	}))
+	defer backend.Close()
+
+	app := newTestApp(func(a *App) {
+		a.config.AuthMethod = config.AuthMethodUser
+		a.config.AuthTokenHeader = "Authorization"
+		a.config.AuthTokenPrefix = "Bearer "
+	})
+	for _, authorize := range []bool{true, false} {
+		handler := createTestProxy(t, app, backend.URL, "/mod/api", "/api", authorize, false, nil)
+		req := reqWithIdentity(httptest.NewRequest(http.MethodGet, "/mod/api/x", nil),
+			&k8s.RequestIdentity{Token: k8s.NewBearerToken("caller-A")})
+		req.Header.Set("Authorization", "Bearer caller-A")
+		req.Header.Set("X-Forwarded-Access-Token", "spoofed-B") //nolint:gosec // G101: test value
+		handler.ServeHTTP(httptest.NewRecorder(), req)
+
+		s := <-got
+		assert.NotEqual(t, "spoofed-B", s.forwarded, "authorize=%v", authorize)
+		if authorize {
+			assert.Equal(t, "Bearer caller-A", s.auth)
+			assert.Equal(t, "caller-A", s.forwarded, "the module reading x-forwarded-access-token sees the same caller")
+		} else {
+			assert.Empty(t, s.forwarded)
+		}
+	}
 }

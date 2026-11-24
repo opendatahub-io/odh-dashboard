@@ -2,6 +2,7 @@ package api
 
 import (
 	"bufio"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"net/http"
@@ -177,4 +178,42 @@ func TestDevModeFallback_AuthorizationTokenIsUsedWhenAnotherHeaderIsConfigured(t
 	require.NotNil(t, identity)
 	assert.False(t, identity.DevFallback)
 	assert.Equal(t, "caller-token", identity.Token.Raw())
+}
+
+// A browser's only way to send a token on a WebSocket is the bearer
+// subprotocol. In DEV_MODE that is the caller's credential, not a request
+// without one, so it is used instead of the developer's identity.
+func TestDevModeFallback_WebSocketBearerSubprotocolIsACredential(t *testing.T) {
+	cfg := config.EnvConfig{
+		DevMode:         true,
+		AuthMethod:      config.AuthMethodUser,
+		AuthTokenHeader: config.DefaultAuthTokenHeader,
+		DevUser:         "dev-user",
+	}
+	app := newTestApp(func(a *App) {
+		a.config = cfg
+		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), cfg)
+	})
+	var identity *k8s.RequestIdentity
+	handler := app.InjectRequestIdentity(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, _ = r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/wss/k8s/api/v1/pods", nil)
+	req.Header.Set("Sec-WebSocket-Protocol", "base64url.bearer.authorization.k8s.io."+
+		base64.RawURLEncoding.EncodeToString([]byte("caller-token"))+", base64.binary.k8s.io")
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code)
+	require.NotNil(t, identity)
+	assert.False(t, identity.DevFallback)
+	assert.Equal(t, "caller-token", identity.Token.Raw())
+
+	req = httptest.NewRequest(http.MethodGet, "/wss/k8s/api/v1/pods", nil)
+	req.Header.Set("Sec-WebSocket-Protocol", "base64url.bearer.authorization.k8s.io.!!!")
+	identity = nil
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code, "an undecodable bearer subprotocol is an invalid credential")
+	assert.Nil(t, identity)
 }
