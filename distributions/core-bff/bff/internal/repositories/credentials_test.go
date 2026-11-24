@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
@@ -295,4 +296,21 @@ func TestCallerPolicy_DocumentedServiceAccountReadsStay(t *testing.T) {
 	_, err = repos.Components.ListComponents(context.Background(), credNS, false)
 	require.NoError(t, err)
 	assert.Positive(t, sa.actions())
+}
+
+// Review: a 401 from the API server is the caller's only under the caller
+// policy; under the service-account policy it is about the dashboard's own
+// credential and must not be reported as the caller's.
+func TestNamespaceMutation_IsCredentialFailure_ByPolicy(t *testing.T) {
+	unauth := k8serrors.NewUnauthorized("token rejected")
+	forbidden := k8serrors.NewForbidden(corev1.Resource("namespaces"), "p", nil)
+
+	sa := &NamespaceMutationRepository{clients: clientSource{policy: CredentialPolicyServiceAccount}}
+	assert.False(t, sa.IsCredentialFailure(unauth))
+	assert.False(t, sa.IsCredentialFailure(ErrCallerClientsUnavailable))
+
+	caller := &NamespaceMutationRepository{clients: clientSource{policy: CredentialPolicyCaller}}
+	assert.True(t, caller.IsCredentialFailure(unauth))
+	assert.True(t, caller.IsCredentialFailure(fmt.Errorf("wrapped: %w", ErrCallerClientsUnavailable)))
+	assert.False(t, caller.IsCredentialFailure(forbidden), "a denial stays applied:false")
 }

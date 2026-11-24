@@ -2,6 +2,10 @@
 # Live-cluster validation of Core BFF caller authentication and the caller
 # credential policy (RHOAIENG-96081, RHOAIENG-101218).
 #
+# The kubeconfig must be able to create a Namespace, ServiceAccounts, Roles and
+# RoleBindings, and on xKS a ClusterRole and ClusterRoleBinding scoped to that
+# Namespace (the M7-8 positive control, skipped without it).
+#
 # It creates a throwaway namespace with a ServiceAccount that may create
 # ServingRuntimes and list/watch pods there, but holds no cluster-scoped
 # permission (in particular no Namespace patch). It then drives a Core BFF with
@@ -285,17 +289,26 @@ if [[ "$PLATFORM" == "XKS" ]]; then
   # Positive control, so M1-M3 cannot pass on a BFF that never uses the
   # caller's credentials: a second ServiceAccount may patch only this
   # namespace, and its mutation must apply.
+  # It needs cluster-scoped RBAC create rights; without them the rows are
+  # skipped (and STRICT=true fails the run) rather than aborting it.
   "${KUBECTL[@]}" -n "$NS" create serviceaccount ns-patcher >/dev/null
   "${KUBECTL[@]}" -n "$NS" create rolebinding ns-patcher-serving --role=serving-editor --serviceaccount="$NS:ns-patcher" >/dev/null
-  "${KUBECTL[@]}" create clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" >/dev/null
-  cr_created=true
-  "${KUBECTL[@]}" create clusterrolebinding "corebff-validate-$NS" --clusterrole="corebff-validate-$NS" --serviceaccount="$NS:ns-patcher" >/dev/null
-  crb_created=true
-  PATCHER_TOKEN=$("${KUBECTL[@]}" -n "$NS" create token ns-patcher --duration=1h)
-  PATCHER=$(hdr patcher "$H" "$P$PATCHER_TOKEN")
-  check M7 "caller allowed to patch only this Namespace" '{"applied":true}' "$(body -H "@$PATCHER" "$B/api/namespaces/$NS/1")"
-  check M8 "  ...label written with the caller's credentials" "false" "$(ns_label)"
-  printf '%s\n' "$PATCHER_TOKEN" >>"$work/needles"
+  if "${KUBECTL[@]}" create clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" >/dev/null 2>&1; then
+    cr_created=true
+  fi
+  if [[ "$cr_created" == "true" ]] &&
+    "${KUBECTL[@]}" create clusterrolebinding "corebff-validate-$NS" --clusterrole="corebff-validate-$NS" --serviceaccount="$NS:ns-patcher" >/dev/null 2>&1; then
+    crb_created=true
+  fi
+  if [[ "$crb_created" == "true" ]]; then
+    PATCHER_TOKEN=$("${KUBECTL[@]}" -n "$NS" create token ns-patcher --duration=1h)
+    printf '%s\n' "$PATCHER_TOKEN" >>"$work/needles"
+    PATCHER=$(hdr patcher "$H" "$P$PATCHER_TOKEN")
+    check M7 "caller allowed to patch only this Namespace" '{"applied":true}' "$(body -H "@$PATCHER" "$B/api/namespaces/$NS/1")"
+    check M8 "  ...label written with the caller's credentials" "false" "$(ns_label)"
+  else
+    skip M7-8 "caller allowed to patch only this Namespace" "may not create ClusterRoles/ClusterRoleBindings"
+  fi
 else
   check M1 "service account applies after the caller's SSAR" '{"applied":true}' "$(body -H "@$CALLER" "$B/api/namespaces/$NS/1")"
   check M2 "  ...label written by the service account" "false" "$(ns_label)"

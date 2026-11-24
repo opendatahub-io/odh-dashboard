@@ -3,7 +3,10 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,4 +103,13 @@ func buildMutationPatch(appCase models.NamespaceApplicationCase) (*namespacePatc
 	default:
 		return nil, fmt.Errorf("unsupported namespace mutation context: %d", appCase)
 	}
+}
+
+// IsCredentialFailure reports whether err from ApplyMutation means the caller's
+// own credential could not be used (caller policy only), as opposed to a
+// mutation the credential may not perform. Under the service-account policy a
+// 401 concerns the dashboard's credential, never the caller's.
+func (r *NamespaceMutationRepository) IsCredentialFailure(err error) bool {
+	return r.clients.policy == CredentialPolicyCaller &&
+		(errors.Is(err, ErrCallerClientsUnavailable) || k8serrors.IsUnauthorized(err))
 }

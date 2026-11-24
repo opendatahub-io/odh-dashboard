@@ -1,14 +1,10 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
@@ -82,7 +78,7 @@ func (app *App) NamespaceMutationHandler(w http.ResponseWriter, r *http.Request,
 		// applied:false is the documented answer for a mutation the credential
 		// may not perform. A credential that could not be used at all is an
 		// authentication failure, not that answer.
-		if errors.Is(err, repositories.ErrCallerClientsUnavailable) || k8serrors.IsUnauthorized(err) {
+		if app.repositories.NamespaceMutation.IsCredentialFailure(err) {
 			app.unauthorizedResponse(w, r, err)
 			return
 		}
