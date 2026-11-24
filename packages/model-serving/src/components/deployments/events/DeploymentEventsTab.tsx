@@ -141,7 +141,9 @@ const DeploymentEventsTab: React.FC<DeploymentEventsTabProps> = ({
                     />
                   )}
                 </Flex>
-                <Content component="p">{row.message}</Content>
+                <Content component="p" className="pf-v6-u-mt-xs">
+                  {row.message}
+                </Content>
                 <Content component="small">{row.source}</Content>
               </ListItem>
             ))}
