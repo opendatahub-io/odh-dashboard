@@ -13,6 +13,7 @@ import {
   interceptEvalHubOfflineDataReadForReconfigure,
   interceptEvalHubOfflineDataRequest,
 } from './oc_commands/evalHubOfflineData';
+import { maskSensitiveInfo } from './maskSensitiveInfo';
 import { evaluationsPage } from '../pages/evalHub/evaluationsPage';
 import { createEvaluationPage } from '../pages/evalHub/createEvaluationPage';
 import { evaluationResultsPage } from '../pages/evalHub/evaluationResultsPage';
@@ -1539,7 +1540,7 @@ export const createEvalHubCleanupSteps = ({
   return cleanupSteps;
 };
 
-/** Runs every cleanup step and reports all failures after the final attempt. */
+/** Runs every cleanup step and logs warnings without failing the completed test. */
 export const runEvalHubCleanup = (steps: EvalHubCleanupStep[]): void => {
   const failures: string[] = [];
   let activeDescription = '';
@@ -1577,7 +1578,11 @@ export const runEvalHubCleanup = (steps: EvalHubCleanupStep[]): void => {
   cy.then(() => {
     Cypress.off('fail', handleCypressFailure);
     if (failures.length > 0) {
-      throw new Error(`EvalHub cleanup failed:\n${failures.join('\n')}`);
+      cy.log(
+        `⚠️ EvalHub cleanup completed with ${failures.length} warning(s): ${maskSensitiveInfo(
+          failures.join('; '),
+        )}`,
+      );
     }
   });
 };

@@ -1,5 +1,5 @@
 import { pollUntilSuccess } from './baseCommands';
-import { assertNamespace, deleteMlflowExperimentViaAPI } from './mlflow';
+import { assertNamespace } from './mlflow';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 export const EVALHUB_E2E_MANAGED_LABEL = 'opendatahub.io/dashboard-e2e-managed';
@@ -43,6 +43,7 @@ type MlflowExperimentLookupResponse = {
 type EvalHubMlflowExperiment = {
   experimentId: string;
   lifecycleStage: string;
+  podName: string;
 };
 
 const EVALHUB_PROVISION_IF_MISSING_ENV = 'CY_EVAL_HUB_PROVISION_IF_MISSING';
@@ -50,6 +51,37 @@ const EVALHUB_EXISTING_NAMESPACE_ENV = 'CY_EVAL_HUB_EXISTING_NAMESPACE';
 const DEFAULT_EXISTING_EVALHUB_NAMESPACE = 'evalhub';
 const EVALHUB_SERVICE_NAME_PREFIX = 'evalhub';
 const KUBERNETES_NAME_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
+const EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS = 3;
+const EVALHUB_MLFLOW_CLEANUP_EXEC_TIMEOUT_MS = 60000;
+
+const execEvalHubMlflowCleanupCommand = (command: string): Cypress.Chainable<Cypress.Exec> => {
+  const retryCommand = [
+    'output_file="$(mktemp)"',
+    'error_file="$(mktemp)"',
+    `trap 'rm -f "$output_file" "$error_file"' EXIT`,
+    'attempt=1',
+    `while [ "$attempt" -le ${EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS}; do`,
+    `  ( ${command} ) >"$output_file" 2>"$error_file"`,
+    '  exit_code=$?',
+    '  if [ "$exit_code" -eq 0 ]; then',
+    '    cat "$output_file"',
+    '    exit 0',
+    '  fi',
+    `  if [ "$attempt" -eq ${EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS} ]; then`,
+    '    cat "$error_file" >&2',
+    '    exit "$exit_code"',
+    '  fi',
+    '  sleep 1',
+    '  attempt=$((attempt + 1))',
+    'done',
+  ].join('\n');
+
+  return cy.exec(retryCommand, {
+    failOnNonZeroExit: false,
+    timeout: EVALHUB_MLFLOW_CLEANUP_EXEC_TIMEOUT_MS,
+    log: false,
+  });
+};
 
 const formatInstance = ({ name, namespace, managedByE2e }: EvalHubInstance): string =>
   `${namespace}/${name}${managedByE2e ? ' (E2E-provisioned)' : ''}`;
@@ -338,62 +370,108 @@ const getEvalHubMlflowExperiment = (
   const applicationsNamespace = assertNamespace(getApplicationsNamespace());
   const safeWorkspace = assertNamespace(workspace);
   const encodedExperimentName = encodeURIComponent(experimentName);
+  const podLookupCommand = [
+    `pod_name=$(oc --request-timeout=15s get pods -n ${applicationsNamespace} ` +
+      `-l app=mlflow -o jsonpath="{.items[0].metadata.name}" --field-selector=status.phase=Running)`,
+    'oc_exit_code=$?',
+    `pod_name=$(printf '%s' "$pod_name" | tr -d '"')`,
+    'if [ "$oc_exit_code" -ne 0 ]; then exit "$oc_exit_code"; fi',
+    'if [ -z "$pod_name" ]; then echo "No running MLflow pod found" >&2; exit 1; fi',
+    'printf "%s" "$pod_name"',
+  ].join('; ');
 
-  return cy
-    .exec(
-      `oc get pods -n ${applicationsNamespace} -l app=mlflow ` +
-        '-o jsonpath="{.items[0].metadata.name}" --field-selector=status.phase=Running',
-      { failOnNonZeroExit: false },
-    )
-    .then((result) => {
-      const podName = result.stdout.replace(/"/g, '').trim();
-      if (result.exitCode !== 0 || !podName) {
+  return execEvalHubMlflowCleanupCommand(podLookupCommand).then((podLookupResult) => {
+    const podName = podLookupResult.stdout.trim();
+    if (podLookupResult.exitCode !== 0 || !podName) {
+      throw new Error(
+        `Unable to find the running MLflow pod in ${applicationsNamespace}: ${maskSensitiveInfo(
+          podLookupResult.stderr || podLookupResult.stdout || 'no pod returned',
+        )}`,
+      );
+    }
+
+    const lookupCommand = [
+      `oc --request-timeout=15s exec -n ${applicationsNamespace} ${podName} -c mlflow --`,
+      `curl -sk --connect-timeout 5 --max-time 15 'https://localhost:8443/mlflow/api/2.0/mlflow/experiments/get-by-name?experiment_name=${encodedExperimentName}'`,
+      '-H "Authorization: Bearer $(oc whoami -t)"',
+      `-H 'X-MLFLOW-WORKSPACE: ${safeWorkspace}'`,
+    ].join(' ');
+
+    return execEvalHubMlflowCleanupCommand(lookupCommand).then((lookupResult) => {
+      if (lookupResult.exitCode !== 0) {
         throw new Error(
-          `Unable to find the running MLflow pod in ${applicationsNamespace}: ${
-            result.stderr || result.stdout
+          `MLflow experiment lookup command failed: ${maskSensitiveInfo(
+            lookupResult.stderr || lookupResult.stdout || `exit code ${lookupResult.exitCode}`,
+          )}`,
+        );
+      }
+
+      let response: MlflowExperimentLookupResponse;
+      try {
+        response = JSON.parse(lookupResult.stdout) as MlflowExperimentLookupResponse;
+      } catch {
+        throw new Error(
+          `MLflow returned an invalid experiment lookup response for ${experimentName}`,
+        );
+      }
+
+      const errorCode = response.error_code ?? response.error?.code;
+      if (errorCode === 'RESOURCE_DOES_NOT_EXIST') {
+        return cy.wrap<EvalHubMlflowExperiment>({
+          experimentId: '',
+          lifecycleStage: 'missing',
+          podName,
+        });
+      }
+      if (errorCode) {
+        throw new Error(
+          `MLflow experiment lookup failed for ${experimentName}: ${
+            response.message ?? response.error?.message ?? errorCode
           }`,
         );
       }
 
-      const cmd = [
-        `oc exec -n ${applicationsNamespace} -i ${podName} -c mlflow --`,
-        `curl -sk 'https://localhost:8443/mlflow/api/2.0/mlflow/experiments/get-by-name?experiment_name=${encodedExperimentName}'`,
-        '-H "Authorization: Bearer $(oc whoami -t)"',
-        `-H 'X-MLFLOW-WORKSPACE: ${safeWorkspace}'`,
-      ].join(' ');
-
-      return cy.exec(cmd, { timeout: 30000, log: false }).then((lookupResult) => {
-        let response: MlflowExperimentLookupResponse;
-        try {
-          response = JSON.parse(lookupResult.stdout) as MlflowExperimentLookupResponse;
-        } catch {
-          throw new Error(
-            `MLflow returned an invalid experiment lookup response for ${experimentName}`,
-          );
-        }
-
-        const errorCode = response.error_code ?? response.error?.code;
-        if (errorCode === 'RESOURCE_DOES_NOT_EXIST') {
-          return { experimentId: '', lifecycleStage: 'missing' };
-        }
-        if (errorCode) {
-          throw new Error(
-            `MLflow experiment lookup failed for ${experimentName}: ${
-              response.message ?? response.error?.message ?? errorCode
-            }`,
-          );
-        }
-
-        const experimentId = response.experiment?.experiment_id;
-        const lifecycleStage = response.experiment?.lifecycle_stage;
-        if (!experimentId || !lifecycleStage) {
-          throw new Error(
-            `MLflow lookup did not return complete experiment details for ${experimentName}`,
-          );
-        }
-        return { experimentId, lifecycleStage };
-      });
+      const experimentId = response.experiment?.experiment_id;
+      const lifecycleStage = response.experiment?.lifecycle_stage;
+      if (!experimentId || !lifecycleStage) {
+        throw new Error(
+          `MLflow lookup did not return complete experiment details for ${experimentName}`,
+        );
+      }
+      return cy.wrap<EvalHubMlflowExperiment>({ experimentId, lifecycleStage, podName });
     });
+  });
+};
+
+const deleteEvalHubMlflowExperiment = (
+  workspace: string,
+  experimentId: string,
+  podName: string,
+): Cypress.Chainable<string> => {
+  const applicationsNamespace = assertNamespace(getApplicationsNamespace());
+  const safeWorkspace = assertNamespace(workspace);
+  const escapedBody = JSON.stringify({ experiment_id: experimentId }).replace(/'/g, "'\\''"); // eslint-disable-line camelcase
+  const command = [
+    `printf '%s' '${escapedBody}'`,
+    '|',
+    `oc --request-timeout=15s exec -n ${applicationsNamespace} -i ${podName} -c mlflow --`,
+    "curl -sk --connect-timeout 5 --max-time 15 -X POST 'https://localhost:8443/mlflow/api/2.0/mlflow/experiments/delete'",
+    "-H 'Content-Type: application/json'",
+    '-H "Authorization: Bearer $(oc whoami -t)"',
+    `-H 'X-MLFLOW-WORKSPACE: ${safeWorkspace}'`,
+    '--data-binary @-',
+  ].join(' ');
+
+  return execEvalHubMlflowCleanupCommand(command).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `MLflow experiment deletion command failed: ${maskSensitiveInfo(
+          result.stderr || result.stdout || `oc exec exited with code ${result.exitCode}`,
+        )}`,
+      );
+    }
+    return cy.wrap(result.stdout.trim());
+  });
 };
 
 const assertMlflowDeleteSucceeded = (experimentName: string, responseText: string): void => {
@@ -423,30 +501,43 @@ export const cleanupEvalHubMlflowExperiment = (
   workspace: string,
   experimentName: string,
 ): Cypress.Chainable<boolean> =>
-  getEvalHubMlflowExperiment(workspace, experimentName).then(({ experimentId, lifecycleStage }) => {
-    if (!experimentId) {
-      cy.log(`MLflow experiment ${experimentName} not found in workspace ${workspace}`);
-      return cy.wrap(false);
-    }
-    if (lifecycleStage === 'deleted') {
-      cy.log(`MLflow experiment ${experimentName} is already deleted in workspace ${workspace}`);
-      return cy.wrap(false);
-    }
+  getEvalHubMlflowExperiment(workspace, experimentName).then<boolean>(
+    ({ experimentId, lifecycleStage, podName }) => {
+      if (!experimentId) {
+        cy.log(`MLflow experiment ${experimentName} not found in workspace ${workspace}`);
+        return cy.wrap<boolean>(false, { log: false });
+      }
+      if (lifecycleStage === 'deleted') {
+        cy.log(`MLflow experiment ${experimentName} is already deleted in workspace ${workspace}`);
+        return cy.wrap<boolean>(false, { log: false });
+      }
+      if (!podName) {
+        throw new Error('MLflow lookup did not return the tracking pod name');
+      }
 
-    cy.log(`Deleting MLflow experiment ${experimentName} from workspace ${workspace}`);
-    return deleteMlflowExperimentViaAPI(workspace, experimentId).then((response) => {
-      assertMlflowDeleteSucceeded(experimentName, response);
-      return getEvalHubMlflowExperiment(workspace, experimentName).then((deletedExperiment) => {
-        if (deletedExperiment.experimentId && deletedExperiment.lifecycleStage !== 'deleted') {
-          throw new Error(
-            `MLflow experiment ${experimentName} is still ${deletedExperiment.lifecycleStage} ` +
-              `after deletion (ID ${deletedExperiment.experimentId})`,
+      cy.log(`Deleting MLflow experiment ${experimentName} from workspace ${workspace}`);
+      return deleteEvalHubMlflowExperiment(workspace, experimentId, podName).then<boolean>(
+        (response) => {
+          assertMlflowDeleteSucceeded(experimentName, response);
+
+          return getEvalHubMlflowExperiment(workspace, experimentName).then<boolean>(
+            (deletedExperiment) => {
+              if (
+                deletedExperiment.experimentId &&
+                deletedExperiment.lifecycleStage !== 'deleted'
+              ) {
+                throw new Error(
+                  `MLflow experiment ${experimentName} is still ${deletedExperiment.lifecycleStage} ` +
+                    `after deletion (ID ${deletedExperiment.experimentId})`,
+                );
+              }
+              return cy.wrap<boolean>(true, { log: false });
+            },
           );
-        }
-        return true;
-      });
-    });
-  });
+        },
+      );
+    },
+  );
 
 const waitForEvaluationJobsCreated = (
   namespace: string,
