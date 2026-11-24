@@ -6,8 +6,11 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
  * knows it (RHAII on xKS).
  */
 export type ProjectDeploymentActions = {
+  /** Update, start and stop the project's deployments. */
   canEdit: boolean;
   canDelete: boolean;
+  /** Create and manage the Secrets behind token authentication. */
+  canManageTokenAuth: boolean;
 };
 
 export type ProjectsContextType = {

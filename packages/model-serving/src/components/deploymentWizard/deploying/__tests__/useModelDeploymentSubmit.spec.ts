@@ -1,4 +1,12 @@
+import React from 'react';
 import { act, renderHook } from '@testing-library/react';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import {
+  ProjectsContext,
+  type ProjectsContextType,
+} from '@odh-dashboard/ui-core/context/ProjectsContext';
+import type { Deployment } from '../../../../../extension-points';
+import { deployModel } from '../../utils';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import { useDeployMethod } from '../useDeployMethod';
 import { useWizardFieldApply } from '../../useWizardFieldApply';
@@ -11,6 +19,10 @@ jest.mock('../useDeployMethod');
 jest.mock('../../useWizardFieldApply');
 jest.mock('../useWizardFieldPreDeploy');
 jest.mock('../useWizardFieldPostDeploy');
+jest.mock('../../utils', () => ({
+  deployModel: jest.fn(() => Promise.resolve()),
+  getConnectionSecret: jest.fn(),
+}));
 jest.mock('../../../../shared/tracking/useModelDeployedTracking', () => ({
   useModelDeployedTracking: () => ({ fireModelDeployedTracking: jest.fn() }),
 }));
@@ -110,4 +122,108 @@ describe('useModelDeploymentSubmit readiness', () => {
       expect(result.current.isReady).toBe(true);
     },
   );
+});
+
+describe('useModelDeploymentSubmit deployment targets', () => {
+  const target = (name: string): ProjectKind => ({
+    apiVersion: 'v1',
+    kind: 'Namespace',
+    metadata: { name },
+  });
+
+  const renderWithTargets = (
+    deploymentTargetProjects: ProjectKind[] | undefined,
+    {
+      viewMode = 'yaml-edit',
+      yamlNamespace = 'test-project',
+      existingDeployment,
+    }: {
+      viewMode?: 'form' | 'yaml-edit';
+      yamlNamespace?: string;
+      existingDeployment?: Deployment;
+    } = {},
+  ) => {
+    const context: ProjectsContextType = {
+      projects: [],
+      modelServingProjects: [],
+      nonActiveProjects: [],
+      deploymentTargetProjects,
+      preferredProject: null,
+      updatePreferredProject: jest.fn(),
+      waitForProject: jest.fn(),
+      loaded: true,
+      loadError: undefined,
+    };
+    const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+      React.createElement(ProjectsContext.Provider, { value: context }, children);
+    return renderHook(
+      () =>
+        useModelDeploymentSubmit(
+          mockDeploymentWizardState().state,
+          { modelLocationData: { data: undefined } },
+          {
+            model: {
+              kind: 'LLMInferenceService',
+              apiVersion: 'serving.kserve.io/v1alpha2',
+              metadata: { name: 'test-model', namespace: yamlNamespace },
+            },
+          },
+          { isAllValid: true } as Parameters<typeof useModelDeploymentSubmit>[3],
+          {},
+          jest.fn(),
+          viewMode,
+          undefined,
+          existingDeployment,
+        ),
+      { wrapper },
+    );
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    configureReadiness();
+  });
+
+  it.each(['form', 'yaml-edit'] as const)(
+    'should not deploy to a project that is no longer a target (%s)',
+    async (viewMode) => {
+      const { result } = renderWithTargets([target('other')], { viewMode });
+      await act(async () => result.current.onSave());
+      expect(result.current.submitError?.message).toBe(
+        'You can no longer deploy models to the project "test-project".',
+      );
+      expect(deployModel).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should check the namespace the YAML names, not only the selected project', async () => {
+    const { result } = renderWithTargets([target('test-project')], {
+      yamlNamespace: 'elsewhere',
+    });
+    await act(async () => result.current.onSave());
+    expect(result.current.submitError?.message).toBe(
+      'You can no longer deploy models to the project "elsewhere".',
+    );
+    expect(deployModel).not.toHaveBeenCalled();
+  });
+
+  it('should deploy to a current target', async () => {
+    const { result } = renderWithTargets([target('test-project')]);
+    await act(async () => result.current.onSave());
+    expect(result.current.submitError).toBeNull();
+    expect(deployModel).toHaveBeenCalled();
+  });
+
+  it('should save an edit and deploy where the host reports no targets', async () => {
+    const edit = renderWithTargets([target('other')], {
+      existingDeployment: { modelServingPlatformId: 'llmd-serving' } as Deployment,
+    });
+    await act(async () => edit.result.current.onSave());
+    expect(edit.result.current.submitError).toBeNull();
+
+    const unknown = renderWithTargets(undefined);
+    await act(async () => unknown.result.current.onSave());
+    expect(unknown.result.current.submitError).toBeNull();
+    expect(deployModel).toHaveBeenCalledTimes(2);
+  });
 });

@@ -8,13 +8,17 @@ import {
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
 import { useModelLocationData } from './fields/ModelLocationInputFields';
 import { useExternalRouteField } from './fields/ExternalRouteField';
-import { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import {
+  type TokenAuthenticationFieldHook,
+  useTokenAuthenticationField,
+} from './fields/TokenAuthenticationField';
 import { useNumReplicasField } from './fields/NumReplicasField';
 import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
@@ -59,6 +63,31 @@ export type UseModelDeploymentWizardState = WizardFormData & {
   fields: WizardField<unknown>[];
 };
 
+export const NO_TOKEN_AUTH_PERMISSION_TEXT =
+  'You do not have permission to manage token authentication in this project.';
+
+/**
+ * The token authentication field after deploy-method overrides and the
+ * caller's permission. An override that disables the field clears its tokens;
+ * without permission the existing tokens are kept and shown, unchanged.
+ */
+export const applyTokenAuthOverrides = (
+  field: TokenAuthenticationFieldHook,
+  overrides: Partial<TokenAuthenticationFieldHook>,
+  canManageTokenAuth: boolean,
+): TokenAuthenticationFieldHook => {
+  const overrideDisabled = overrides.isDisabled ?? false;
+  return {
+    ...field,
+    ...overrides,
+    isDisabled: overrideDisabled || !canManageTokenAuth,
+    ...(!overrideDisabled && !canManageTokenAuth
+      ? { disabledHelperText: NO_TOKEN_AUTH_PERMISSION_TEXT }
+      : {}),
+    ...(overrideDisabled ? { data: [] } : {}),
+  };
+};
+
 /**
  * Field hooks seed from `initialFormData` once, on mount. To re-initialize the form from new
  * data (e.g. YAML edits), remount the component that calls this hook.
@@ -92,6 +121,12 @@ export const useModelDeploymentWizard = (
     ...accessReviewResource,
     namespace: project.projectName ?? undefined,
   });
+  // Token authentication also manages Secrets. Where the host knows the
+  // caller's actions (namespace discovery on xKS), it says whether they may.
+  const { getProjectDeploymentActions } = React.useContext(ProjectsContext);
+  const canManageTokenAuth =
+    !project.projectName ||
+    getProjectDeploymentActions?.(project.projectName)?.canManageTokenAuth !== false;
 
   const modelLocationData = useModelLocationData(
     project.projectName,
@@ -144,7 +179,7 @@ export const useModelDeploymentWizard = (
     modelType,
     formState.modelServer,
     formState.deploymentMethod,
-    canCreateRoleBindings,
+    canCreateRoleBindings && canManageTokenAuth,
   );
 
   const runtimeArgs = useRuntimeArgsField(
@@ -200,6 +235,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      canManageTokenAuth,
       validatedConfigurationSelection,
       huggingFaceApiKey,
       requiresHuggingFaceApiKey,
@@ -220,6 +256,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      canManageTokenAuth,
       validatedConfigurationSelection,
       huggingFaceApiKey,
       requiresHuggingFaceApiKey,
@@ -283,7 +320,6 @@ export const useModelDeploymentWizard = (
     () => computedOverrides.tokenAuthentication ?? {},
     [computedOverrides.tokenAuthentication],
   );
-  const tokenAuthDisabled = tokenAuthOverrides.isDisabled ?? false;
   const modelAvailabilityOverrides = React.useMemo(
     () => computedOverrides.modelAvailability ?? {},
     [computedOverrides.modelAvailability],
@@ -299,12 +335,11 @@ export const useModelDeploymentWizard = (
           ? { ...state.modelAvailability.data, saveAsAiAsset: true }
           : state.modelAvailability.data,
       },
-      tokenAuthentication: {
-        ...state.tokenAuthentication,
-        ...tokenAuthOverrides,
-        isDisabled: tokenAuthDisabled,
-        ...(tokenAuthDisabled ? { data: [] } : {}),
-      },
+      tokenAuthentication: applyTokenAuthOverrides(
+        state.tokenAuthentication,
+        tokenAuthOverrides,
+        state.canManageTokenAuth,
+      ),
       // Only once the field has initialized: an empty `{}` reads as initialized data without
       // `selections` (e.g. the review step rendering first after a remount from YAML)
       ...(state['llmd-serving/gateway']
@@ -316,7 +351,7 @@ export const useModelDeploymentWizard = (
           }
         : {}),
     }),
-    [state, tokenAuthDisabled, tokenAuthOverrides, modelAvailabilityOverrides, computedOverrides],
+    [state, tokenAuthOverrides, modelAvailabilityOverrides, computedOverrides],
   );
 
   return {

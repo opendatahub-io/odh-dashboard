@@ -596,7 +596,27 @@ describe('RHAII working project provider integration', () => {
     expect(screen.getByTestId('serving-projects')).toHaveTextContent('allowed,legacy');
     expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed,create-only,legacy');
     expect(screen.getByTestId('allowed-actions')).toHaveTextContent(
-      JSON.stringify({ canEdit: false, canDelete: true }),
+      JSON.stringify({ canEdit: false, canDelete: true, canManageTokenAuth: true }),
+    );
+  });
+
+  it('should offer no target or action for projects whose actions are unverified', async () => {
+    // What a lister browses when discovery is unavailable.
+    const unverified = { canDeploy: false, canEdit: false, canDelete: false };
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([
+        Object.assign(project('allowed'), unverified, { canManageTokenAuth: false }),
+      ]),
+    );
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed'));
+    expect(screen.getByTestId('deploy-targets')).toHaveTextContent(/^$/);
+    expect(screen.getByTestId('allowed-actions')).toHaveTextContent(
+      JSON.stringify({ canEdit: false, canDelete: false, canManageTokenAuth: false }),
     );
   });
 
@@ -631,6 +651,41 @@ describe('RHAII working project provider integration', () => {
     await waitFor(() => expect(screen.getByTestId('deploy-targets')).toHaveTextContent('another'));
     expect(screen.getByTestId('known-projects')).toHaveTextContent('another');
     expect(screen.getByTestId('known-projects')).not.toHaveTextContent('allowed');
+    expect(screen.getByTestId('working-project')).toHaveTextContent('none');
+  });
+
+  it('should not restore a project when an older lookup succeeds after a newer denial', async () => {
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([
+        Object.assign(project('allowed'), { canDeploy: true }),
+        Object.assign(project('another'), { canDeploy: true }),
+      ]),
+    );
+    let resolveOlder: (value: ProjectKind) => void = () => undefined;
+    mockFetchNamespaceByName
+      .mockImplementationOnce(
+        () =>
+          new Promise<ProjectKind>((resolve) => {
+            resolveOlder = resolve;
+          }),
+      )
+      .mockRejectedValueOnce(new MockProjectAccessDeniedError());
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed,another'),
+    );
+    fireEvent.click(screen.getByText('Try allowed'));
+    fireEvent.click(screen.getByText('Try allowed'));
+    await waitFor(() => expect(screen.getByTestId('deploy-targets')).toHaveTextContent('another'));
+    await act(async () => {
+      resolveOlder(Object.assign(project('allowed'), { canDeploy: true }));
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('deploy-targets')).not.toHaveTextContent('allowed');
     expect(screen.getByTestId('working-project')).toHaveTextContent('none');
   });
 

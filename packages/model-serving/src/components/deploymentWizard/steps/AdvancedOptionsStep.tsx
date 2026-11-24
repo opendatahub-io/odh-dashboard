@@ -131,7 +131,11 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     wizardState.state.externalRoute.setData(checked);
 
     // When external route is enabled, automatically enable token authentication for security
-    if (checked && (!tokenAuthData || tokenAuthData.length === 0)) {
+    if (
+      checked &&
+      !wizardState.state.tokenAuthentication.isDisabled &&
+      (!tokenAuthData || tokenAuthData.length === 0)
+    ) {
       const defaultToken = {
         uuid: `ml-${Date.now()}`,
         displayName: 'default-token',

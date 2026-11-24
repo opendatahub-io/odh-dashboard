@@ -300,22 +300,29 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [dashboardNamespace],
   );
 
+  // The latest lookup per project: an older one that resolves later must not
+  // undo what a newer one decided.
+  const lookupRevisionsRef = React.useRef(new Map<string, number>());
+
   const forgetProject = React.useCallback((name: string) => {
     setProjectData((previous) => previous.filter((p) => p.metadata.name !== name));
   }, []);
 
   const validateProject = React.useCallback(
     async (name: string, signal?: AbortSignal) => {
+      const revision = (lookupRevisionsRef.current.get(name) ?? 0) + 1;
+      lookupRevisionsRef.current.set(name, revision);
+      const isLatest = () => lookupRevisionsRef.current.get(name) === revision;
       const project = await fetchNamespaceByName(name, signal).catch((err: unknown) => {
         // A definitive denial revokes what this session cached for the
         // project, so it stops being offered as a target. A lookup that could
         // not be completed keeps it.
-        if (err instanceof ProjectAccessDeniedError) {
+        if (err instanceof ProjectAccessDeniedError && isLatest()) {
           forgetProject(name);
         }
         throw err;
       });
-      if (signal?.aborted) {
+      if (signal?.aborted || !isLatest()) {
         throw new DOMException('The operation was aborted.', 'AbortError');
       }
       if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
@@ -444,10 +451,19 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   >(
     (name) => {
       const project = projectData.find(byName(name));
-      if (!project || (project.canEdit === undefined && project.canDelete === undefined)) {
+      if (
+        !project ||
+        (project.canEdit === undefined &&
+          project.canDelete === undefined &&
+          project.canManageTokenAuth === undefined)
+      ) {
         return undefined;
       }
-      return { canEdit: project.canEdit !== false, canDelete: project.canDelete !== false };
+      return {
+        canEdit: project.canEdit !== false,
+        canDelete: project.canDelete !== false,
+        canManageTokenAuth: project.canManageTokenAuth !== false,
+      };
     },
     [projectData],
   );

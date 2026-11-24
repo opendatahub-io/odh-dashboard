@@ -196,18 +196,25 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
 - Only `source: cluster-list` with `complete: true` is a complete listing. Anything else
   (`source: candidates`, failed reviews, the candidate cap) is shown as a partial listing: the
   authorized namespaces appear and manual entry stays available.
-- A `503` falls back to `GET /api/v1/namespaces`, so a caller who may list namespaces keeps the
-  list they had before discovery (without deploy access, as on other platforms). For anyone else
-  it keeps manual entry available, since looking a namespace up by name can still work.
+- A `503` falls back to `GET /api/v1/namespaces`, so a caller who may list namespaces can still
+  browse them. Listing a namespace says nothing about the caller's actions in it, so these
+  namespaces get no action: they are not deployment targets and offer no Edit, Delete, Start, Stop
+  or token management. The listing counts as partial, so manual entry stays available and a lookup
+  by name decides the actions.
 - `projects` and `modelServingProjects` hold only namespaces with `actions.view`: listing
   deployments in a create-only namespace would fail. A create-only namespace is still a deployment
-  target.
-- `getProjectDeploymentActions` on `ProjectsContext` carries `actions.edit` and `actions.delete`;
-  the deployments table offers Edit and Delete only where each is allowed.
+  target, and a caller with only such namespaces gets the deployments page's **Deploy model**
+  empty state instead of **No projects**.
+- `getProjectDeploymentActions` on `ProjectsContext` carries `actions.edit`, `actions.delete` and
+  `actions.manageTokenAuth`. The deployments table offers Edit, Start and Stop only with `edit`,
+  and Delete only with `delete`. The deployment wizard selects, edits and saves token
+  authentication only with `manageTokenAuth` as well as RoleBinding create access; without it the
+  field is disabled and existing tokens are left as they are.
 - A lookup the BFF denies (`403`, or `404` for a missing namespace) drops the project this session
-  cached, so it is no longer offered as a target. A failed lookup keeps it. A new deployment is
-  valid only while its project is still a deployment target; editing an existing deployment is not
-  affected.
+  cached, so it is no longer offered as a target. A failed lookup keeps it, and an older lookup
+  that completes after a newer one is ignored. A new deployment, from the form or from YAML, is
+  saved only while its project, and the namespace its YAML names, are still deployment targets;
+  editing an existing deployment is not affected.
 - `Active` and `Unknown` namespaces are selectable; `Terminating` ones are not.
 - Only namespaces with `actions.deploy` are deployment targets. The provider sets
   `deploymentTargetProjects` on `ProjectsContext`; the model deployment wizard's project selector,

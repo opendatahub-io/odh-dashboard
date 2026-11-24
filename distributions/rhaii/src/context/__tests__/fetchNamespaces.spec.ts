@@ -43,6 +43,7 @@ const accessEntry = (
     edit?: boolean;
     delete?: boolean;
     unclassified?: boolean;
+    manageTokenAuth?: boolean;
   } = {},
 ) => ({
   name,
@@ -55,7 +56,7 @@ const accessEntry = (
     deploy: overrides.deploy ?? true,
     edit: overrides.edit ?? false,
     delete: overrides.delete ?? false,
-    manageTokenAuth: false,
+    manageTokenAuth: overrides.manageTokenAuth ?? false,
   },
   permissions: {},
 });
@@ -115,6 +116,7 @@ describe('fetchNamespaces', () => {
           canDeploy: true,
           canEdit: false,
           canDelete: false,
+          canManageTokenAuth: false,
         },
         {
           apiVersion: 'v1',
@@ -125,6 +127,7 @@ describe('fetchNamespaces', () => {
           canDeploy: false,
           canEdit: false,
           canDelete: false,
+          canManageTokenAuth: false,
         },
       ]);
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -202,7 +205,7 @@ describe('fetchNamespaces', () => {
         access: ok(
           accessList('cluster-list', [
             accessEntry('create-only', { view: false, deploy: true }),
-            accessEntry('editor', { edit: true, delete: true }),
+            accessEntry('editor', { edit: true, delete: true, manageTokenAuth: true }),
           ]),
         ),
       });
@@ -210,28 +213,38 @@ describe('fetchNamespaces', () => {
       const result = await fetchNamespaces();
 
       expect(
-        result.map(({ canView, canDeploy, canEdit, canDelete }) => [
+        result.map(({ canView, canDeploy, canEdit, canDelete, canManageTokenAuth }) => [
           canView,
           canDeploy,
           canEdit,
           canDelete,
+          canManageTokenAuth,
         ]),
       ).toEqual([
-        [false, true, false, false],
-        [true, true, true, true],
+        [false, true, false, false, false],
+        [true, true, true, true, true],
       ]);
     });
 
-    it('should keep the namespace list a lister had when discovery is unavailable', async () => {
+    it('should let a lister browse but offer no action when discovery is unavailable', async () => {
       const fetchMock = mockRoutes({
         access: { ok: false, status: 503 } as Response,
         legacy: ok(mockNamespaceList(['team-a', 'team-b'])),
       });
 
-      const result = await fetchNamespaces();
+      const error = await fetchNamespaces().catch((e: unknown) => e);
 
-      expect(result.map((p) => p.metadata.name)).toEqual(['team-a', 'team-b']);
-      expect(result[0].canDeploy).toBeUndefined();
+      // Partial, so manual entry stays available to decide actions by name.
+      expect(error).toBeInstanceOf(NamespaceListUnavailableError);
+      const { projects = [] } = error as NamespaceListUnavailableError;
+      expect(projects.map((p) => p.metadata.name)).toEqual(['team-a', 'team-b']);
+      expect(projects[0]).toMatchObject({
+        canDeploy: false,
+        canEdit: false,
+        canDelete: false,
+        canManageTokenAuth: false,
+      });
+      expect(projects[0].canView).toBeUndefined();
       expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/namespaces', { signal: undefined });
     });
 

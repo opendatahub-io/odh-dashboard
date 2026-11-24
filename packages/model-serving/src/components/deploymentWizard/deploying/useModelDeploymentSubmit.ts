@@ -1,5 +1,7 @@
 import React from 'react';
 import { useSecretOps } from '@odh-dashboard/plugin-core';
+import { byName } from '@odh-dashboard/k8s-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { getServingRuntimeFromTemplate, isTemplateKind } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
@@ -44,6 +46,7 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
+  const { deploymentTargetProjects } = React.useContext(ProjectsContext);
   const { deployMethod, deployMethodLoaded } = useDeployMethod(
     deployMethodActivationInput,
     resources,
@@ -102,6 +105,22 @@ export const useModelDeploymentSubmit = (
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
           );
+        }
+        // Access to a project can be revoked while the wizard is open. A new
+        // deployment, from the form or the YAML, must still target a project
+        // the caller may deploy to; an edit stays in the deployment's project.
+        if (!existingDeployment && deploymentTargetProjects) {
+          const targetNames = new Set(
+            [formState.project.projectName, resources.model?.metadata.namespace].filter(
+              (name): name is string => !!name,
+            ),
+          );
+          const deniedName = [...targetNames].find(
+            (name) => !deploymentTargetProjects.some(byName(name)),
+          );
+          if (deniedName) {
+            throw new Error(`You can no longer deploy models to the project "${deniedName}".`);
+          }
         }
 
         // Prefer the Template on the shared model-server selection (spokes attach it).
@@ -167,6 +186,7 @@ export const useModelDeploymentSubmit = (
       formState,
       secretOps,
       existingDeployment,
+      deploymentTargetProjects,
       initialWizardData,
       applyAllFieldDataFn,
       runPreDeploy,

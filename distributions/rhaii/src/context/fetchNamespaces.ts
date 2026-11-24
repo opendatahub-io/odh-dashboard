@@ -12,6 +12,7 @@ export type RhaiiProject = ProjectKind & {
   canDeploy?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  canManageTokenAuth?: boolean;
 } & AiClassificationUnknown;
 
 type K8sNamespaceItem = {
@@ -135,6 +136,7 @@ const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
     canDeploy: allowed('deploy'),
     canEdit: allowed('edit'),
     canDelete: allowed('delete'),
+    canManageTokenAuth: allowed('manageTokenAuth'),
     ...(typeof item.isAiProject !== 'boolean' && { aiClassificationUnknown: true }),
   };
 };
@@ -236,6 +238,14 @@ const fetchLegacyNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject
     .filter((project): project is RhaiiProject => project !== null);
 };
 
+const withoutVerifiedActions = (project: RhaiiProject): RhaiiProject => ({
+  ...project,
+  canDeploy: false,
+  canEdit: false,
+  canDelete: false,
+  canManageTokenAuth: false,
+});
+
 const fetchNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject[]> => {
   const resp = await fetch(NAMESPACE_ACCESS_PATH, { signal });
   if (resp.status === 404) {
@@ -243,17 +253,19 @@ const fetchNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject[]> =>
   }
   if (resp.status === 503) {
     // Discovery found nothing because its sources or reviews failed. A caller
-    // who may list namespaces keeps the list they had before discovery; for
-    // anyone else, looking a namespace up by name can still work, so keep
-    // manual entry available.
+    // who may list namespaces can still browse them, but listing a namespace
+    // says nothing about what the caller may do in it: no action is offered
+    // until a lookup by name decides it. The result stays partial, so manual
+    // entry remains available.
+    let browsable: RhaiiProject[] = [];
     try {
-      return await fetchLegacyNamespaces(signal);
+      browsable = (await fetchLegacyNamespaces(signal)).map(withoutVerifiedActions);
     } catch (err) {
       if (signal?.aborted) {
         throw err;
       }
-      throw new NamespaceListUnavailableError('Namespace discovery is unavailable', []);
     }
+    throw new NamespaceListUnavailableError('Namespace discovery is unavailable', browsable);
   }
   if (!resp.ok) {
     throw new Error(`Failed to list namespaces (HTTP ${resp.status})`);

@@ -369,7 +369,8 @@ export const deployLLMdDeployment = async (
     (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) ??
     false;
 
-  if (wizardData.canCreateRoleBindings) {
+  // Token auth manages RoleBindings and Secrets; skip it without both.
+  if (wizardData.canCreateRoleBindings && wizardData.canManageTokenAuth) {
     await setUpTokenAuth(
       wizardData.tokenAuthentication.data,
       llmInferenceService.metadata.name,

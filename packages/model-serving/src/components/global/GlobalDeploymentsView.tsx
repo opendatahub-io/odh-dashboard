@@ -28,7 +28,10 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   hidePageDescription = false,
   useSubTabPaths = false,
 }) => {
-  const { preferredProject } = React.useContext(ProjectsContext);
+  const { preferredProject, deploymentTargetProjects } = React.useContext(ProjectsContext);
+  // A caller who may only create deployments browses no project, but can
+  // still deploy to one.
+  const canOnlyDeploy = projects.length === 0 && (deploymentTargetProjects?.length ?? 0) > 0;
   const navigate = useNavigate();
 
   const { hasDeployMethods } = useModelServingDeployMethods();
@@ -93,7 +96,9 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
         }
         empty={isEmpty}
         emptyStatePage={
-          projects.length === 0 ? (
+          canOnlyDeploy ? (
+            <GlobalNoModelsView />
+          ) : projects.length === 0 ? (
             <NoProjectsPage />
           ) : !hasDeployMethods ? (
             <EmptyModelServingPlatform />

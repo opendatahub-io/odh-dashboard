@@ -271,6 +271,8 @@ export const DeploymentRow: React.FC<{
               currentState={deployment.status.stoppedStates}
               onStart={onStart}
               onStop={onStop}
+              // Starting and stopping patch the deployment.
+              isDisabled={!canEdit}
             />
           ) : (
             '-'
@@ -337,7 +339,7 @@ export const DeploymentRow: React.FC<{
             setEditLoading(false);
           }}
           onStopDeployment={
-            startStopActionExtension && !deployment.status?.stoppedStates?.isStopped
+            canEdit && startStopActionExtension && !deployment.status?.stoppedStates?.isStopped
               ? () => {
                   setStatusModalOpen(false);
                   onStop();

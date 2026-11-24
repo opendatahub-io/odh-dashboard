@@ -44,6 +44,7 @@ const WIZARD_DATA = {
   huggingFaceApiKey: { data: { token: '' } },
   requiresHuggingFaceApiKey: false,
   canCreateRoleBindings: false,
+  canManageTokenAuth: true,
 } as unknown as WizardFormData['state'];
 
 describe('deployKServeDeployment', () => {
