@@ -48,10 +48,16 @@ it('should intersect severity with case-insensitive search and distinguish filte
     screen.getByText('No Events found yet. Events may appear as more resources are discovered.'),
   ).toBeVisible();
   rerender(<DeploymentEventsTab {...initial} rows={[normal, warning]} />);
-  fireEvent.change(screen.getByRole('combobox', { name: 'Event severity' }), {
-    target: { value: 'Warning' },
-  });
   const search = screen.getByRole('textbox', { name: 'Search Events' });
+  expect(search).toHaveAttribute('placeholder', 'Filter events...');
+  const severity = screen.getByRole('button', { name: 'Severity: All' });
+  expect(severity).toHaveClass('pf-m-form');
+  fireEvent.click(severity);
+  fireEvent.click(screen.getByRole('option', { name: 'Warning' }));
+  expect(screen.getByRole('button', { name: 'Severity: Warning' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
   for (const value of ['FAILEDCREATE', 'quota', 'replicaset/predictor']) {
     fireEvent.change(search, { target: { value } });
     expect(screen.getByText('Quota exceeded')).toBeVisible();

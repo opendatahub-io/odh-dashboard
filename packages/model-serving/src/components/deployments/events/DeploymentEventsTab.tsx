@@ -5,8 +5,6 @@ import {
   Content,
   Flex,
   FlexItem,
-  FormSelect,
-  FormSelectOption,
   Label,
   List,
   ListItem,
@@ -16,6 +14,7 @@ import {
   StackItem,
   Timestamp,
 } from '@patternfly/react-core';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import {
   filterDeploymentEventRows,
   type DeploymentEventRow,
@@ -30,6 +29,7 @@ export type DeploymentEventsTabProps = {
 };
 
 const severities: readonly EventSeverityFilter[] = ['All', 'Warning', 'Normal'];
+const severityOptions = severities.map((key) => ({ key, label: key }));
 const errorMessages = {
   denied: 'Insufficient permissions to view Events',
   'review-error': 'Unable to check Event permissions',
@@ -69,28 +69,27 @@ const DeploymentEventsTab: React.FC<DeploymentEventsTabProps> = ({
       )}
       {rows.length > 0 && (
         <StackItem>
-          <Flex>
-            <FlexItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem flex={{ default: 'flex_1' }}>
               <SearchInput
                 aria-label="Search Events"
-                placeholder="Search Events"
+                placeholder="Filter events..."
                 value={search}
                 onChange={(_event, value) => setSearch(value)}
                 onClear={() => setSearch('')}
               />
             </FlexItem>
             <FlexItem>
-              <FormSelect
-                aria-label="Event severity"
+              <SimpleSelect
+                ariaLabel={`Severity: ${severity}`}
+                toggleLabel={`Severity: ${severity}`}
+                toggleProps={{ isInForm: true }}
                 value={severity}
-                onChange={(_event, value) =>
+                options={severityOptions}
+                onChange={(value) =>
                   setSeverity(severities.find((option) => option === value) ?? 'All')
                 }
-              >
-                {severities.map((option) => (
-                  <FormSelectOption key={option} label={option} value={option} />
-                ))}
-              </FormSelect>
+              />
             </FlexItem>
           </Flex>
         </StackItem>
