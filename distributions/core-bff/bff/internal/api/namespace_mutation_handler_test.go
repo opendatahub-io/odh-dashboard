@@ -8,13 +8,16 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	k8sclient "k8s.io/client-go/kubernetes"
 )
 
@@ -360,4 +363,30 @@ func (f *deniedAccessFactory) ValidateRequestIdentity(_ *k8s.RequestIdentity) er
 
 func (f *deniedAccessFactory) GetClient(_ context.Context) (k8s.KubernetesClientInterface, error) {
 	return &deniedAccessClient{}, nil
+}
+
+// Review pass 3: applied:false is the answer for a mutation the credential may
+// not perform. Caller credentials that cannot be used at all are a 401.
+func TestNamespaceMutation_CallerClientsUnavailable_Returns401(t *testing.T) {
+	const ns = "ns-caller-unavailable"
+	ensureNamespace(t, ns)
+
+	app := newTestApp(func(a *App) {
+		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:          config.PlatformXKS,
+			PlatformConfirmed: true,
+			SAClientset:       testSAClientset,
+			CallerClients: func(context.Context) (k8sclient.Interface, dynamic.Interface, error) {
+				return nil, nil, fmt.Errorf("token client could not be built")
+			},
+		})
+	})
+	admin := k8mocks.DefaultTestUsers[0]
+	req := httptest.NewRequest(http.MethodGet, "/api/namespaces/"+ns+"/1", nil)
+	req = reqWithIdentity(req, &k8s.RequestIdentity{UserID: admin.UserName, Groups: admin.Groups, Token: k8s.NewBearerToken(admin.Token)})
+	rr := httptest.NewRecorder()
+	app.NamespaceMutationHandler(rr, req, httprouter.Params{{Key: "name", Value: ns}, {Key: "context", Value: "1"}})
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code, rr.Body.String())
+	assert.NotContains(t, rr.Body.String(), `"applied"`)
 }

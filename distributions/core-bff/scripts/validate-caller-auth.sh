@@ -27,6 +27,8 @@
 #   ADMIN_TOKEN  Token of a caller who may patch namespaces. Defaults to
 #                `oc whoami -t` when oc is logged in; admin rows are skipped without one.
 #   KEEP_NAMESPACE=true  Do not delete the test namespace on exit.
+#   STRICT=true  Fail the run when any check is skipped (for example no node/ws,
+#                no ServingRuntime CRD or no ADMIN_TOKEN).
 set -euo pipefail
 umask 077
 
@@ -38,7 +40,10 @@ here=$(cd "$(dirname "$0")/.." && pwd)
 work=""
 bff_pid=""
 ns_created=false
+cr_created=false
+crb_created=false
 fails=0
+skips=0
 
 # The admin token is read once and removed from the environment, so the BFF,
 # kubectl, curl and node started below never inherit it.
@@ -62,6 +67,15 @@ cleanup() {
   fi
   # Only delete a namespace this run created: a name that already existed (for
   # example a TEST_NAMESPACE collision) is never touched.
+  # The cluster-scoped grant for the namespace-patch control is removed even
+  # with KEEP_NAMESPACE: it names only this run's namespace, but is not left behind.
+  # Each is deleted only if this run created it.
+  if [[ "$crb_created" == "true" ]]; then
+    "${KUBECTL[@]}" delete clusterrolebinding "corebff-validate-$NS" --ignore-not-found >/dev/null 2>&1 || true
+  fi
+  if [[ "$cr_created" == "true" ]]; then
+    "${KUBECTL[@]}" delete clusterrole "corebff-validate-$NS" --ignore-not-found >/dev/null 2>&1 || true
+  fi
   if [[ "$ns_created" == "true" && "${KEEP_NAMESPACE:-false}" != "true" ]]; then
     "${KUBECTL[@]}" delete namespace "$NS" --wait=false >/dev/null 2>&1 || true
   fi
@@ -167,7 +181,7 @@ check() { # id description expected actual
   fi
   printf '%-4s %-58s expect %-18s got %-18s %s\n' "$1" "$2" "$3" "$4" "$verdict"
 }
-skip() { printf '%-4s %-58s SKIP (%s)\n' "$1" "$2" "$3"; }
+skip() { skips=$((skips + 1)); printf '%-4s %-58s SKIP (%s)\n' "$1" "$2" "$3"; }
 # ns_label prints the label value, or "kubectl-exit-N" when the lookup fails,
 # so an absent label (empty output) is never confused with a failed read.
 ns_label() {
@@ -218,7 +232,13 @@ check P3 "Impersonate-User/Group spoof is stripped" 200 "$(code -H "@$CALLER" -H
 check P4 "X-Remote-* spoof: caller keeps its own access" 200 "$(code -H "@$CALLER" -H "X-Remote-User: system:admin" -H "X-Remote-Group: system:masters" "$B/api/k8s/api/v1/namespaces/$NS/pods")"
 check P5 "no credential: the BFF identity must not act" 401 "$(code "$B/api/k8s/api/v1/namespaces")"
 sr='{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"probe"},"spec":{"containers":[{"name":"kserve-container","image":"quay.io/example/probe:1"}],"supportedModelFormats":[{"name":"onnx"}]}}'
-if "${KUBECTL[@]}" get crd servingruntimes.serving.kserve.io >/dev/null 2>&1; then
+# Skip only when the CRD is really absent; a denied or failed lookup fails the
+# run rather than skipping silently.
+crd_rc=0
+crd_out=$("${KUBECTL[@]}" get crd servingruntimes.serving.kserve.io -o name 2>&1) || crd_rc=$?
+if ((crd_rc != 0)) && [[ "$crd_out" != *NotFound* ]]; then
+  check P6 "ServingRuntime CRD lookup" "found or NotFound" "kubectl-exit-$crd_rc"
+elif ((crd_rc == 0)); then
   check P6 "caller dry-run creates a ServingRuntime where allowed" 201 "$(code -X POST -H "@$CALLER" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/$NS/servingruntimes?dryRun=All")"
   check P7 "caller dry-run create where not allowed" 403 "$(code -X POST -H "@$CALLER" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/default/servingruntimes?dryRun=All")"
 else
@@ -262,6 +282,20 @@ if [[ "$PLATFORM" == "XKS" ]]; then
   check M1 "caller without Namespace patch, dry run" '{"applied":false}' "$(body -H "@$CALLER" "$B/api/namespaces/$NS/1?dryRun=All")"
   check M2 "caller without Namespace patch" '{"applied":false}' "$(body -H "@$CALLER" "$B/api/namespaces/$NS/1")"
   check M3 "  ...and nothing was written" "" "$(ns_label)"
+  # Positive control, so M1-M3 cannot pass on a BFF that never uses the
+  # caller's credentials: a second ServiceAccount may patch only this
+  # namespace, and its mutation must apply.
+  "${KUBECTL[@]}" -n "$NS" create serviceaccount ns-patcher >/dev/null
+  "${KUBECTL[@]}" -n "$NS" create rolebinding ns-patcher-serving --role=serving-editor --serviceaccount="$NS:ns-patcher" >/dev/null
+  "${KUBECTL[@]}" create clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" >/dev/null
+  cr_created=true
+  "${KUBECTL[@]}" create clusterrolebinding "corebff-validate-$NS" --clusterrole="corebff-validate-$NS" --serviceaccount="$NS:ns-patcher" >/dev/null
+  crb_created=true
+  PATCHER_TOKEN=$("${KUBECTL[@]}" -n "$NS" create token ns-patcher --duration=1h)
+  PATCHER=$(hdr patcher "$H" "$P$PATCHER_TOKEN")
+  check M7 "caller allowed to patch only this Namespace" '{"applied":true}' "$(body -H "@$PATCHER" "$B/api/namespaces/$NS/1")"
+  check M8 "  ...label written with the caller's credentials" "false" "$(ns_label)"
+  printf '%s\n' "$PATCHER_TOKEN" >>"$work/needles"
 else
   check M1 "service account applies after the caller's SSAR" '{"applied":true}' "$(body -H "@$CALLER" "$B/api/namespaces/$NS/1")"
   check M2 "  ...label written by the service account" "false" "$(ns_label)"
@@ -278,15 +312,20 @@ fi
 if [[ -n "$bff_pid" ]]; then
   echo "== Logs =="
   # The tokens are matched from a file (grep -f), never from an argument.
-  printf '%s\n' "$SA" >"$work/needles"
+  printf '%s\n' "$SA" >>"$work/needles"
   [[ -n "$AD" ]] && printf '%s\n' "$AD" >>"$work/needles"
   leaks=$(grep -cFf "$work/needles" "$work/bff.log" || true)
   check L1 "token values in the debug log" 0 "$leaks"
 fi
 
 echo
+((skips > 0)) && echo "$skips check group(s) skipped"
 if ((fails > 0)); then
   echo "$fails check(s) failed"
+  exit 1
+fi
+if ((skips > 0)) && [[ "${STRICT:-false}" == "true" ]]; then
+  echo "STRICT=true and checks were skipped"
   exit 1
 fi
 echo "all checks passed"
