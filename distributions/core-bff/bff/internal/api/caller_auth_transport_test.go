@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -396,7 +397,6 @@ func TestCallerAuth_DevModeBlankHeaderOnTheWire_NoFallback(t *testing.T) {
 		{"ordered, blank Authorization", []string{"Authorization", "x-forwarded-access-token"}, "Authorization:   "},
 		{"ordered, whitespace-only forwarded", []string{"Authorization", "x-forwarded-access-token"}, "X-Forwarded-Access-Token: \t "},
 		{"legacy header, blank", nil, "X-Forwarded-Access-Token:"},
-		{"list mode, token only in the legacy AUTH_TOKEN_HEADER", []string{"Authorization"}, "X-Forwarded-Access-Token: some-token"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			app := newTestApp(func(a *App) {
@@ -433,4 +433,37 @@ func TestCallerAuth_BlankHeadersOnTheWire_401(t *testing.T) {
 	inner, called := trackingHTTPHandler()
 	assert.Equal(t, http.StatusUnauthorized, rawStatus(t, app.InjectRequestIdentity(inner), "Authorization:   ", "X-Forwarded-Access-Token: "))
 	assert.False(t, *called)
+}
+
+// Restack onto #10753: under DEV_MODE a token the configured headers did not
+// carry, in the other identity header or a WebSocket bearer subprotocol, is the
+// caller's credential, re-expressed in the first configured header. It is
+// used, never replaced by the kubeconfig fallback.
+func TestCallerAuth_DevModeAlternateCredentialIsTheCaller(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		headers []string
+		in      http.Header
+	}{
+		{"list mode, token in X-Forwarded-Access-Token", []string{"Authorization"}, hdr("X-Forwarded-Access-Token", "some-token")},
+		{"list mode, bearer subprotocol", []string{"Authorization"}, hdr("Sec-WebSocket-Protocol", "base64url.bearer.authorization.k8s.io."+base64.RawURLEncoding.EncodeToString([]byte("some-token")))},
+		{"legacy mode, token in Authorization", nil, hdr("Authorization", "Bearer some-token")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := newTestApp(func(a *App) {
+				a.config.AuthMethod = config.AuthMethodUser
+				a.config.DevMode = true
+				a.config.AuthTokenHeaders = tc.headers
+				a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), a.config)
+			})
+			var got *k8s.RequestIdentity
+			inner := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+				got, _ = r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			})
+			serve(app.InjectRequestIdentity(inner), UserPath, tc.in)
+			require.NotNil(t, got)
+			assert.False(t, got.DevFallback, "the caller's token is used, not the kubeconfig")
+			assert.Equal(t, "some-token", got.ResolveToken(""))
+		})
+	}
 }

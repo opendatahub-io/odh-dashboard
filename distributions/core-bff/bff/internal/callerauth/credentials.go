@@ -99,13 +99,23 @@ func (e Extractor) Extract(h http.Header) (Credential, error) {
 	return e.extractOrdered(h)
 }
 
-// extractLegacy is the pre-existing single-header behaviour, kept byte-for-byte
-// compatible: first value only, empty means missing, prefix enforced when set.
+// extractLegacy is the single-header behaviour: first value only, prefix
+// enforced when set. Only an absent header is a missing credential (which
+// DEV_MODE may replace with the developer's identity); a header that was sent
+// but is empty, which is how net/http delivers a whitespace-only value, is an
+// invalid one.
 func (e Extractor) extractLegacy(h http.Header) (Credential, error) {
 	header := e.headers[0]
-	raw := h.Get(header)
-	if raw == "" {
+	values, present := h[header]
+	if !present {
 		return Credential{}, fmt.Errorf("missing required header: %s: %w", header, httpcontract.ErrCredentialsMissing)
+	}
+	raw := ""
+	if len(values) > 0 {
+		raw = values[0]
+	}
+	if strings.TrimSpace(raw) == "" {
+		return Credential{}, fmt.Errorf("empty credential header %s: %w", header, httpcontract.ErrCredentialsInvalid)
 	}
 
 	token := raw

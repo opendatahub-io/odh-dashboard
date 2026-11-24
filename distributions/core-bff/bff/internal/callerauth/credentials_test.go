@@ -129,7 +129,8 @@ func TestLegacy_UnchangedBehaviour(t *testing.T) {
 	}{
 		{"forwarded token", forwarded, headers("X-Forwarded-Access-Token", tokenA), tokenA, nil},
 		{"forwarded ignores authorization", forwarded, headers("Authorization", "Bearer "+tokenA), "", httpcontract.ErrCredentialsMissing},
-		{"forwarded empty", forwarded, headers("X-Forwarded-Access-Token", ""), "", httpcontract.ErrCredentialsMissing},
+		{"forwarded sent but empty is invalid, not missing", forwarded, headers("X-Forwarded-Access-Token", ""), "", httpcontract.ErrCredentialsInvalid},
+		{"forwarded absent is missing", forwarded, http.Header{}, "", httpcontract.ErrCredentialsMissing},
 		{"forwarded whitespace", forwarded, headers("X-Forwarded-Access-Token", "   "), "", httpcontract.ErrCredentialsInvalid},
 		{"forwarded first value wins", forwarded, headers("X-Forwarded-Access-Token", tokenA, "X-Forwarded-Access-Token", tokenB), tokenA, nil},
 		{"prefix stripped", withPrefix, headers("Authorization", "Bearer "+tokenA), tokenA, nil},

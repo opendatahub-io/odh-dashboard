@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
@@ -135,8 +136,16 @@ func TestWsProxy_RefusesIdentityWithoutToken(t *testing.T) {
 }
 
 func TestSensitiveIngressHeaders_IncludesEveryConfiguredHeader(t *testing.T) {
-	got := SensitiveIngressHeaders("x-forwarded-access-token", "", "Authorization")
-	assert.Contains(t, got, "x-forwarded-access-token")
+	got := SensitiveIngressHeaders("x-forwarded-access-token", "", "Authorization", "X-Entra-Token")
+	assert.Contains(t, got, "X-Forwarded-Access-Token", "always stripped, and listed once")
 	assert.Contains(t, got, "Authorization")
+	assert.Contains(t, got, "X-Entra-Token")
 	assert.NotContains(t, got, "")
+	n := 0
+	for _, h := range got {
+		if strings.EqualFold(h, "x-forwarded-access-token") {
+			n++
+		}
+	}
+	assert.Equal(t, 1, n)
 }
