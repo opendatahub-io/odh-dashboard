@@ -29,6 +29,8 @@ image:
 
 manager:
   replicas: 1
+  # Keep enabled. Without it, the old and new controller pods both reconcile
+  # while a rollout overlaps them and can rewrite Dashboard status repeatedly.
   leaderElection: true
   manifestsBasePath: /opt/manifests/dashboard
   resources:
