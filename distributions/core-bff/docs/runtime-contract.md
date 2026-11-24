@@ -330,9 +330,10 @@ legacy `AUTH_TOKEN_HEADER` when `AUTH_TOKEN_HEADERS` is set. A caller token in t
 identity header (`Authorization: Bearer`, or `X-Forwarded-Access-Token`, whichever is not among the
 configured ones) is the caller's credential too: it is used as the request identity, never replaced
 by the fallback, and is 401 when malformed. A WebSocket bearer subprotocol (`base64url.bearer.authorization.k8s.io.<token>`, a browser's
-only way to send a token on a WebSocket) counts the same way. When several are present they are tried
-in a fixed order (bearer subprotocol, then `Authorization`, then `X-Forwarded-Access-Token`), and
-every `Sec-WebSocket-Protocol` line is read. A fallback request on a certificate-only kubeconfig carries no bearer token at
+only way to send a token on a WebSocket) counts the same way and is taken first; every
+`Sec-WebSocket-Protocol` line is read. Otherwise the other identity headers are read with the list
+rules: `Authorization` must use Bearer, a repeated header or two different tokens are a 401, and one
+sent blank is an invalid credential. A fallback request on a certificate-only kubeconfig carries no bearer token at
 all (no `Authorization` header, no bearer subprotocol), so it authenticates with the certificate
 alone; no placeholder token is ever sent upstream. In every profile the WebSocket proxy and the
 reverse proxies drop client-supplied bearer subprotocols and send only the resolved token, and every proxy strips
