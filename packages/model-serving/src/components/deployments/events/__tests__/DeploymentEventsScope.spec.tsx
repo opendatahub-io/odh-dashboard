@@ -211,6 +211,48 @@ it('should preserve root Events on discovery and child Event failures and drop t
   expect(stopped).toHaveBeenCalledWith(watchKey('root'));
 });
 
+it('should freeze Events and stop only Event watches until auto-refresh resumes', async () => {
+  const firstKey = watchKey('first-rs');
+  const nextKey = watchKey('next-rs');
+  results.set('ReplicaSet', [[owned('first-rs', 'root')], true, undefined]);
+  results.set(firstKey, [[event('initial', 'first-rs', 'Initial quota warning')], true, undefined]);
+  const { rerender } = render(scope());
+  expect(await screen.findByText('Initial quota warning')).toBeVisible();
+
+  const toggle = screen.getByRole('switch', { name: 'Auto-refresh' });
+  expect(toggle).toBeChecked();
+  fireEvent.click(toggle);
+  expect(toggle).not.toBeChecked();
+  expect(stopped.mock.calls.map(([key]) => key)).toEqual(
+    expect.arrayContaining([watchKey('root'), firstKey]),
+  );
+  expect(stopped).toHaveBeenCalledTimes(2);
+  expect(screen.getByText('Initial quota warning')).toBeVisible();
+
+  results.set('ReplicaSet', [[owned('next-rs', 'root')], true, undefined]);
+  results.set(nextKey, [[], false, undefined]);
+  rerender(scope(false));
+  rerender(scope());
+  expect(toggle).not.toBeChecked();
+  expect(started).not.toHaveBeenCalledWith(nextKey);
+  expect(screen.getByText('Initial quota warning')).toBeVisible();
+  expect(screen.queryByLabelText('Loading Events')).not.toBeInTheDocument();
+
+  fireEvent.change(screen.getByRole('textbox', { name: 'Search Events' }), {
+    target: { value: 'quota' },
+  });
+  fireEvent.click(toggle);
+  expect(toggle).toBeChecked();
+  expect(started).toHaveBeenCalledWith(nextKey);
+  expect(started.mock.calls.filter(([key]) => key === firstKey)).toHaveLength(1);
+  expect(screen.getByText('Initial quota warning')).toBeVisible();
+  expect(screen.getByRole('textbox', { name: 'Search Events' })).toHaveValue('quota');
+  results.set(nextKey, [[event('next', 'next-rs', 'Next quota warning')], true, undefined]);
+  rerender(scope());
+  expect(await screen.findByText('Next quota warning')).toBeVisible();
+  expect(screen.queryByText('Initial quota warning')).not.toBeInTheDocument();
+});
+
 it('should not start diagnostics without a deployment UID', () => {
   render(
     scope(true, {

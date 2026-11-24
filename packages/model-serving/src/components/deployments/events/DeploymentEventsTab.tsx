@@ -12,8 +12,10 @@ import {
   Spinner,
   Stack,
   StackItem,
+  Switch,
   Timestamp,
 } from '@patternfly/react-core';
+import { SyncIcon } from '@patternfly/react-icons';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import {
   filterDeploymentEventRows,
@@ -26,6 +28,7 @@ export type DeploymentEventsTabProps = {
   state: 'loading' | 'denied' | 'review-error' | 'fetch-error' | 'ready';
   failedKinds: readonly string[];
   hasPartialEventError: boolean;
+  autoRefresh?: { enabled: boolean; onChange: (enabled: boolean) => void };
 };
 
 const severities: readonly EventSeverityFilter[] = ['All', 'Warning', 'Normal'];
@@ -41,7 +44,9 @@ const DeploymentEventsTab: React.FC<DeploymentEventsTabProps> = ({
   state,
   failedKinds,
   hasPartialEventError,
+  autoRefresh,
 }) => {
+  const autoRefreshId = React.useId();
   const [search, setSearch] = React.useState('');
   const [severity, setSeverity] = React.useState<EventSeverityFilter>('All');
   const visibleRows = filterDeploymentEventRows(rows, search, severity);
@@ -67,7 +72,7 @@ const DeploymentEventsTab: React.FC<DeploymentEventsTabProps> = ({
           <Alert isInline variant="danger" aria-label={error} title={error} />
         </StackItem>
       )}
-      {rows.length > 0 && (
+      {(rows.length > 0 || autoRefresh) && (
         <StackItem>
           <Flex alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem flex={{ default: 'flex_1' }}>
@@ -91,6 +96,20 @@ const DeploymentEventsTab: React.FC<DeploymentEventsTabProps> = ({
                 }
               />
             </FlexItem>
+            {autoRefresh && (
+              <FlexItem>
+                <Switch
+                  id={autoRefreshId}
+                  label={
+                    <>
+                      <SyncIcon aria-hidden="true" /> Auto-refresh
+                    </>
+                  }
+                  isChecked={autoRefresh.enabled}
+                  onChange={(_event, checked) => autoRefresh.onChange(checked)}
+                />
+              </FlexItem>
+            )}
           </Flex>
         </StackItem>
       )}

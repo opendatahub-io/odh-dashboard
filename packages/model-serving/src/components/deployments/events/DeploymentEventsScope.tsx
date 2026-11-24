@@ -4,7 +4,7 @@ import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import type { K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import DeploymentEventsTab, { type DeploymentEventsTabProps } from './DeploymentEventsTab';
 import DeploymentEventsWatch, { type DeploymentWatchSnapshot } from './DeploymentEventsWatch';
-import { toDeploymentEventRows } from './deploymentEventRows';
+import { toDeploymentEventRows, type DeploymentEventRow } from './deploymentEventRows';
 import { resolveDeploymentEventSources } from './resolveDeploymentEventSources';
 import useDeploymentEventsAccess from './useDeploymentEventsAccess';
 import type { Deployment, ModelServingEventsDiscovery } from '../../../../extension-points';
@@ -64,6 +64,8 @@ const DeploymentEventsScope: React.FC<ScopeProps> = ({
   const controllers = useWatchSnapshots();
   const events = useWatchSnapshots();
   const enabled = access === 'allowed' && identityKnown;
+  const [autoRefresh, setAutoRefresh] = React.useState(true);
+  const [pausedRows, setPausedRows] = React.useState<readonly DeploymentEventRow[]>();
 
   const controllerInputs = React.useMemo(
     () =>
@@ -103,13 +105,31 @@ const DeploymentEventsScope: React.FC<ScopeProps> = ({
 
   const eventSnapshots = sourceUids.map((sourceUid) => events.snapshots.get(sourceUid));
   const failures = eventSnapshots.flatMap((snapshot) => (snapshot?.[2] ? [snapshot[2]] : []));
-  const rows = sourceUids.flatMap((sourceUid, index) =>
+  const liveRows = sourceUids.flatMap((sourceUid, index) =>
     toDeploymentEventRows(sourceUid, eventSnapshots[index]?.[0] ?? []),
   );
   const hasReadableEvents = eventSnapshots.some((snapshot) => snapshot?.[1] && !snapshot[2]);
-  const hasPartialEventError = failures.length > 0 && (hasReadableEvents || rows.length > 0);
+  const hasPartialEventError = failures.length > 0 && (hasReadableEvents || liveRows.length > 0);
+  const eventsPending = eventSnapshots.some((snapshot) => !snapshot?.[1] && !snapshot?.[2]);
+  // Keep the paused snapshot while the resumed watches start returning data.
+  const rows =
+    enabled && pausedRows && (!autoRefresh || (eventsPending && liveRows.length === 0))
+      ? pausedRows
+      : liveRows;
+  React.useEffect(() => {
+    if (autoRefresh && !eventsPending) {
+      setPausedRows(undefined);
+    }
+  }, [autoRefresh, eventsPending]);
+
+  const changeAutoRefresh = (next: boolean) => {
+    if (!next) {
+      setPausedRows(rows);
+    }
+    setAutoRefresh(next);
+  };
   const isLoading =
-    eventSnapshots.some((snapshot) => !snapshot?.[1] && !snapshot?.[2]) ||
+    eventsPending ||
     controllerInputs.some(({ id }) => {
       const snapshot = controllers.snapshots.get(id);
       return !snapshot?.[1] && !snapshot?.[2];
@@ -123,6 +143,8 @@ const DeploymentEventsScope: React.FC<ScopeProps> = ({
     state = 'review-error';
   } else if (!identityKnown) {
     state = 'fetch-error';
+  } else if (enabled && !autoRefresh) {
+    state = 'ready';
   } else if (
     enabled &&
     !hasPartialEventError &&
@@ -147,27 +169,29 @@ const DeploymentEventsScope: React.FC<ScopeProps> = ({
             remove={controllers.remove}
           />
         ))}
-      {sourceUids.map((sourceUid) => (
-        <DeploymentEventsWatch
-          key={sourceUid}
-          id={sourceUid}
-          model={eventModel}
-          resource={{
-            namespace,
-            isList: true,
-            groupVersionKind: eventGroupVersionKind,
-            fieldSelector: `involvedObject.uid=${sourceUid}`,
-          }}
-          publish={events.publish}
-          remove={events.remove}
-        />
-      ))}
+      {autoRefresh &&
+        sourceUids.map((sourceUid) => (
+          <DeploymentEventsWatch
+            key={sourceUid}
+            id={sourceUid}
+            model={eventModel}
+            resource={{
+              namespace,
+              isList: true,
+              groupVersionKind: eventGroupVersionKind,
+              fieldSelector: `involvedObject.uid=${sourceUid}`,
+            }}
+            publish={events.publish}
+            remove={events.remove}
+          />
+        ))}
       <div role="tabpanel" id={panelId} aria-labelledby={tabId} hidden={!visible}>
         <DeploymentEventsTab
           rows={rows}
           state={state}
           failedKinds={enabled ? failedKinds : []}
           hasPartialEventError={hasPartialEventError}
+          autoRefresh={enabled ? { enabled: autoRefresh, onChange: changeAutoRefresh } : undefined}
         />
       </div>
     </>
