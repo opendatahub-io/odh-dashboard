@@ -2367,9 +2367,9 @@ components:
         maxLength: 36
     IdentityVary:
       description: >-
-        A fixed list of the standard identity headers: `Authorization`,
-        `X-Forwarded-Access-Token` and `Cookie`. A custom `AUTH_TOKEN_HEADER`
-        is not added. Sent on every /api response alongside `Cache-Control:
+        The standard identity headers `Authorization`,
+        `X-Forwarded-Access-Token` and `Cookie`, plus the configured
+        `AUTH_TOKEN_HEADER` when it is a different header. Sent on every /api response alongside `Cache-Control:
         no-cache, no-store, private, max-age=0, must-revalidate`. `no-store` is
         what forbids a compliant cache from storing the response; `Vary` keys
         any cache that honours it on these headers, and does not protect

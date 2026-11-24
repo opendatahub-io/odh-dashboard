@@ -397,7 +397,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "trailingSlash", service: moduleProxyServiceEntry{Path: "/gen-ai/api/", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
 			},
 			wantErr:   true,
-			errSubstr: "has trailing slash in proxy path /gen-ai/api/ (will be appended automatically)",
+			errSubstr: "has a trailing slash in its proxy path (value omitted; it is appended automatically)",
 		},
 		{
 			name: "ServeMux single-segment wildcard rejected",
@@ -470,7 +470,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 0}}},
 			},
 			wantErr:   true,
-			errSubstr: "invalid service port 0 (must be 1-65535)",
+			errSubstr: "has an invalid service port (value omitted; must be 1-65535)",
 		},
 		{
 			name: "negative service port rejected",
@@ -478,7 +478,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: -1}}},
 			},
 			wantErr:   true,
-			errSubstr: "invalid service port -1 (must be 1-65535)",
+			errSubstr: "has an invalid service port (value omitted; must be 1-65535)",
 		},
 		{
 			name: "service port above TCP range rejected",
@@ -486,7 +486,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 65536}}},
 			},
 			wantErr:   true,
-			errSubstr: "invalid service port 65536 (must be 1-65535)",
+			errSubstr: "has an invalid service port (value omitted; must be 1-65535)",
 		},
 		{
 			name: "invalid RFC 1123 service name rejected",
@@ -1011,7 +1011,7 @@ func TestInitModuleProxies_InvalidServiceFields(t *testing.T) {
 					},
 				},
 			},
-			errSubstr: "invalid service port 0 (must be 1-65535)",
+			errSubstr: "has an invalid service port (value omitted; must be 1-65535)",
 		},
 	}
 

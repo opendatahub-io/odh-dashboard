@@ -226,3 +226,27 @@ func TestPrometheusQuery_RefusesARedirectToAnotherPort(t *testing.T) {
 	assert.Contains(t, unavailable.Reason, "refusing a redirect")
 	assert.Zero(t, otherHits.Load(), "the redirected request must never be sent")
 }
+
+// The base URL may end in a slash or carry a path prefix; request paths are
+// joined under it without a double slash.
+func TestPrometheusQuery_JoinsTheBasePath(t *testing.T) {
+	for _, tc := range []struct{ suffix, want string }{
+		{"/", "/api/v1/query"},
+		{"/prom", "/prom/api/v1/query"},
+		{"/prom/", "/prom/api/v1/query"},
+		{"/tenant%2Fblue", "/tenant%2Fblue/api/v1/query"},
+	} {
+		got := make(chan string, 1)
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			got <- r.URL.EscapedPath()
+			_, _ = w.Write([]byte(`{"status":"success","data":{}}`))
+		}))
+		pool := x509.NewCertPool()
+		pool.AddCert(srv.Certificate())
+		repo := NewPrometheusRepository(PrometheusConfig{Host: srv.URL + tc.suffix, RootCAs: pool})
+		_, err := repo.Query(context.Background(), "caller-token", "query=up", "query")
+		require.NoError(t, err, tc.suffix)
+		assert.Equal(t, tc.want, <-got, tc.suffix)
+		srv.Close()
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -67,10 +68,13 @@ func (r *PrometheusRepository) Query(ctx context.Context, token, query, queryTyp
 		return nil, &models.PrometheusUnavailableError{Reason: "no Prometheus host configured"}
 	}
 
-	u, err := url.Parse(fmt.Sprintf("%s/api/v1/%s", r.host, queryType))
+	// JoinPath keeps the base path (and its escaping) and never doubles a
+	// slash, so https://thanos:9091/ and https://thanos:9091/prom both work.
+	base, err := url.Parse(r.host)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build Prometheus URL: %w", err)
+		return nil, errors.New("failed to build Prometheus URL")
 	}
+	u := base.JoinPath("api", "v1", queryType)
 	vals, err := url.ParseQuery(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse query parameters: %w", err)

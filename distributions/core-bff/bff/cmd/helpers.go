@@ -5,18 +5,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"strconv"
 	"strings"
 )
-
-func getEnvAsInt(name string, defaultVal int) int {
-	if value, exists := os.LookupEnv(name); exists {
-		if intValue, err := strconv.Atoi(value); err == nil {
-			return intValue
-		}
-	}
-	return defaultVal
-}
 
 func getEnvAsString(name string, defaultVal string) string {
 	if value, exists := os.LookupEnv(name); exists {

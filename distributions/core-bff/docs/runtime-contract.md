@@ -110,7 +110,8 @@ that the header name is configuration, not a constant.
 
 `MODEL_SERVING_HOST` and `PROMETHEUS_HOST`, when set, must be absolute `http(s)://host[:port]`
 URLs with a port, if any, between 1 and 65535 (not empty), no user info, no query string or
-fragment, and no surrounding whitespace; request paths and queries are appended to them, and a bad value fails startup instead
+fragment, and no surrounding whitespace; request paths are joined under the base path (a trailing
+`/` does not double) and queries are appended, and a bad value fails startup instead
 of failing the first request. Without `PROMETHEUS_HOST` the target is derived as
 `https://<instance>.<namespace>.svc.cluster.local:<port>`, so `PROMETHEUS_PORT` must be a port
 number and the assembled URL must pass the same checks. The three parts are all-or-nothing: all
@@ -149,6 +150,7 @@ these rejections safe:
 | `AUTH_METHOD=disabled`                                                                                                                                                                                                                                                                     | No caller identity is extracted at all.                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.          |
 | `INSECURE_SKIP_VERIFY=true` (also rejected with only `MOCK_K8S_CLIENT`, which leaves the other outbound clients real)                                                                                                                                                                      | Disables upstream certificate verification on every outbound call.                                                                                                                                                                                                                                                                                                                                                                                                                                  | Supply the upstream CA through `BUNDLE_PATHS`.                 |
 | A kubeconfig with `insecure-skip-tls-verify`                                                                                                                                                                                                                                               | client-go honours it for the service-account and caller-token clients regardless of `INSECURE_SKIP_VERIFY`.                                                                                                                                                                                                                                                                                                                                                                                         | Supply the cluster CA in the kubeconfig.                       |
+| A kubeconfig API server that resolves to `http://` (an explicit `http://` URL, or a scheme-less host without TLS settings, which client-go sends as plaintext)                                                                                                                             | The service-account token, and the caller tokens, would be sent to it in the clear; the discovery probe runs before any proxy would refuse it.                                                                                                                                                                                                                                                                                                                                                      | Use the `https://` API server URL.                             |
 | `MODEL_SERVING_HOST` or `PROMETHEUS_HOST` over `http` (outside `DEV_MODE`, mocked Kubernetes or not)                                                                                                                                                                                       | Both receive the caller's bearer token, which plaintext HTTP would expose.                                                                                                                                                                                                                                                                                                                                                                                                                          | Use an `https://` URL; plaintext targets need `DEV_MODE=true`. |
 | `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), an entry with a path (including a trailing `/`), query or user info, the scheme's default port (`:443`, `:80`), or a non-canonical port or host (empty or zero-padded port, trailing dot, non-ASCII host) | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. Browsers send `Origin` without a trailing slash, so `https://host/` could never match; they also omit the default port, so `https://host:443` could not either. The same holds for any port or host a browser would not serialize that way. Entries match case-insensitively, for CORS and WebSocket upgrades alike. Rejected entries are reported by position, never by value. | List each exact dashboard origin as `scheme://host[:port]`.    |
 
@@ -214,9 +216,10 @@ kubeconfig identity; a `DEV_MODE` request that carries its own token is authenti
 alone. Only a request with no credential falls back. In `DEV_MODE` a credential that was sent but
 is malformed (wrong prefix, an empty or whitespace-only header, which the HTTP parser trims to
 empty) is answered with 401, never with the fallback identity, and so is a request that carries
-`Authorization` when the configured token header is a different one.
-Outside `DEV_MODE` the certificate is used only by the service-account clients. Every startup
-consumer reads the one kubeconfig validated at startup rather than a later re-read: the caller
+another identity header (`Authorization` or `X-Forwarded-Access-Token`) than the configured one.
+Outside `DEV_MODE` the certificate is used only by the service-account clients. Every consumer of the
+kubeconfig's server, credentials or TLS settings uses the one copy validated at startup rather than a
+later re-read (only the context name reported by `/api/status` is read separately): the caller
 clients, the `DEV_MODE` fallback client, the platform discovery probes (which run on the
 service-account clients), and the proxies' API server host and TLS settings. With
 `MOCK_K8S_CLIENT` the proxies present the envtest certificate, because they act as that identity.
@@ -248,7 +251,9 @@ different:
 - **Rotation is fail-safe.** A rotated pair that does not load — truncated file, partial write,
   mismatched key, file removed — or whose leaf is expired or not yet valid is logged and the **last-known-good certificate keeps being
   served**. The listener is not torn down, the transport is not weakened, and the next readable
-  rotation is picked up automatically. The same policy applies to a failed cluster-TLS-profile
+  rotation is picked up automatically. A failing pair is logged once and retried at most every
+  10 seconds while its files stay unchanged (so a not-yet-valid leaf is still promoted once it
+  becomes valid), never re-read on every handshake. The startup error names neither file path. The same policy applies to a failed cluster-TLS-profile
   re-read: the running policy is retained rather than downgraded to Intermediate.
 
 If the serve loop itself fails terminally, the process exits non-zero rather than continuing in a

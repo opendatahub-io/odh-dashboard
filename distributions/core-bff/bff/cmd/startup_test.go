@@ -655,3 +655,28 @@ func TestParseStartupConfig_PortIsStrictDecimal(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 8943, sc.Env.Port)
 }
+
+// DEV_MODE_CLIENT_PORT follows the PORT rules instead of silently becoming 8080.
+func TestParseStartupConfig_DevModeClientPortIsStrict(t *testing.T) {
+	for _, v := range []string{"abc", "-5", "0", "65536", "010", " 3000"} {
+		isolateEnv(t)
+		t.Setenv("DEV_MODE_CLIENT_PORT", v)
+		_, err := parse(t)
+		require.Error(t, err, "%q", v)
+		assert.Contains(t, err.Error(), "invalid DEV_MODE_CLIENT_PORT (value omitted)")
+
+		isolateEnv(t)
+		_, err = parse(t, "-dev-mode-client-port="+v)
+		require.Error(t, err, "flag %q", v)
+	}
+	isolateEnv(t)
+	t.Setenv("DEV_MODE_CLIENT_PORT", "3000")
+	sc, err := parse(t)
+	require.NoError(t, err)
+	assert.Equal(t, 3000, sc.Env.DevModeClientPort)
+
+	isolateEnv(t)
+	sc, err = parse(t)
+	require.NoError(t, err)
+	assert.Equal(t, 8080, sc.Env.DevModeClientPort)
+}

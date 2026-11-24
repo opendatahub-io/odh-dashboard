@@ -85,7 +85,27 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	fs.BoolVar(&cfg.MockK8Client, "mock-k8s-client", envBool("mock-k8s-client", "MOCK_K8S_CLIENT"), "Use mock Kubernetes client")
 	fs.BoolVar(&cfg.MockHTTPClient, "mock-http-client", envBool("mock-http-client", "MOCK_HTTP_CLIENT"), "Use mock HTTP client")
 	fs.BoolVar(&cfg.DevMode, "dev-mode", envBool("dev-mode", "DEV_MODE"), "Use development mode for access to local K8s cluster")
-	fs.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
+	cfg.DevModeClientPort = 8080
+	devClientPortEnv, devClientPortSet := lookupEnv("DEV_MODE_CLIENT_PORT")
+	var devClientPortErr error
+	if devClientPortSet {
+		if n, err := parseDecimalPort(devClientPortEnv); err != nil || n < 1 || n > 65535 {
+			devClientPortErr = errors.New("invalid DEV_MODE_CLIENT_PORT (value omitted): it must be a decimal integer between 1 and 65535")
+		} else {
+			cfg.DevModeClientPort = n
+		}
+	}
+	fs.Func("dev-mode-client-port", "Use port when in development mode for client", func(v string) error {
+		n, err := parseDecimalPort(v)
+		if err != nil {
+			return err
+		}
+		if n < 1 || n > 65535 {
+			return errors.New("must be between 1 and 65535")
+		}
+		cfg.DevModeClientPort = n
+		return nil
+	})
 
 	// Enum settings are applied from the environment *after* parsing, and only
 	// when the matching flag was absent. Validating the environment value here
@@ -204,6 +224,9 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 
 	if envPortErr != nil && !setOnCLI["port"] {
 		return sc, envPortErr
+	}
+	if devClientPortErr != nil && !setOnCLI["dev-mode-client-port"] {
+		return sc, devClientPortErr
 	}
 	for _, name := range []string{"dev-mode", "mock-k8s-client", "mock-http-client", "mock-bff-clients", "insecure-skip-verify"} {
 		if err := envBoolErrs[name]; err != nil && !setOnCLI[name] {

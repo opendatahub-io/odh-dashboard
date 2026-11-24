@@ -191,13 +191,13 @@ func validateProxyPaths(entries []normalizedProxyEntry) error {
 			return fmt.Errorf("entry %s uses root path / which conflicts with the SPA catch-all", e.entryName)
 		}
 		if !strings.HasPrefix(e.service.Path, "/") {
-			return fmt.Errorf("entry %s has non-rooted proxy path %s (must start with /)", e.entryName, e.service.Path)
+			return fmt.Errorf("entry %s has a non-rooted proxy path (value omitted; must start with /)", e.entryName)
 		}
 		if strings.HasSuffix(e.service.Path, "/") {
-			return fmt.Errorf("entry %s has trailing slash in proxy path %s (will be appended automatically)", e.entryName, e.service.Path)
+			return fmt.Errorf("entry %s has a trailing slash in its proxy path (value omitted; it is appended automatically)", e.entryName)
 		}
 		if strings.ContainsAny(e.service.Path, "{}") {
-			return fmt.Errorf("entry %s has http.ServeMux wildcard syntax in proxy path %s", e.entryName, e.service.Path)
+			return fmt.Errorf("entry %s has http.ServeMux wildcard syntax in its proxy path (value omitted)", e.entryName)
 		}
 	}
 
@@ -233,22 +233,24 @@ func proxyPathsOverlap(a, b string) bool {
 	return a == b || strings.HasPrefix(a, b+"/") || strings.HasPrefix(b, a+"/")
 }
 
+// Entry errors name the entry and the field that failed, never the rejected
+// value: the federation config is free-form operator input.
 func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeader string) error {
 	for _, e := range entries {
 		if e.service.Service.Name == "" {
 			return fmt.Errorf("entry %s has empty service name", e.entryName)
 		}
 		if !rfc1123Label.MatchString(e.service.Service.Name) {
-			return fmt.Errorf("entry %s has invalid service name %q (must be a valid RFC 1123 label)", e.entryName, e.service.Service.Name)
+			return fmt.Errorf("entry %s has an invalid service name (value omitted; must be a valid RFC 1123 label)", e.entryName)
 		}
 		if e.service.Service.Namespace == "" {
 			return fmt.Errorf("entry %s has empty service namespace", e.entryName)
 		}
 		if !rfc1123Label.MatchString(e.service.Service.Namespace) {
-			return fmt.Errorf("entry %s has invalid service namespace %q (must be a valid RFC 1123 label)", e.entryName, e.service.Service.Namespace)
+			return fmt.Errorf("entry %s has an invalid service namespace (value omitted; must be a valid RFC 1123 label)", e.entryName)
 		}
 		if e.service.Service.Port <= 0 || e.service.Service.Port > 65535 {
-			return fmt.Errorf("entry %s has invalid service port %d (must be 1-65535)", e.entryName, e.service.Service.Port)
+			return fmt.Errorf("entry %s has an invalid service port (value omitted; must be 1-65535)", e.entryName)
 		}
 
 		if e.service.Authorize {

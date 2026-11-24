@@ -475,6 +475,8 @@ func TestValidate_ProductionRejectsNonCanonicalOrigins(t *testing.T) {
 		"https://dash.example:00080",
 		"https://dash.example.",
 		"https://dásh.example",
+		"https://dash.example#",
+		"https://dash.example:8443#",
 	} {
 		cfg := productionConfig()
 		cfg.AllowedOrigins = []string{origin}

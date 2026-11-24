@@ -39,28 +39,6 @@ func TestNewListParser(t *testing.T) {
 	}
 }
 
-func TestGetEnvAsInt(t *testing.T) {
-	t.Run("returns env value when set", func(t *testing.T) {
-		t.Setenv("TEST_INT", "8080")
-		if got := getEnvAsInt("TEST_INT", 4000); got != 8080 {
-			t.Fatalf("expected 8080, got %d", got)
-		}
-	})
-
-	t.Run("returns default when not set", func(t *testing.T) {
-		if got := getEnvAsInt("TEST_INT_MISSING", 4000); got != 4000 {
-			t.Fatalf("expected 4000, got %d", got)
-		}
-	})
-
-	t.Run("returns default when value is not a number", func(t *testing.T) {
-		t.Setenv("TEST_INT_BAD", "notanumber")
-		if got := getEnvAsInt("TEST_INT_BAD", 4000); got != 4000 {
-			t.Fatalf("expected 4000, got %d", got)
-		}
-	})
-}
-
 func TestGetEnvAsString(t *testing.T) {
 	t.Run("returns env value when set", func(t *testing.T) {
 		t.Setenv("TEST_STR", "hello")

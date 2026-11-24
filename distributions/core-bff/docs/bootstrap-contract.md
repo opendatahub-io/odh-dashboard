@@ -39,7 +39,14 @@ deployment with no Auth, no OdhDashboardConfig and no OdhApplication resources a
 
 An explicit value always wins over the platform default, in both directions.
 
-### The platform default requires a *confirmed* platform
+### The platform default requires a _confirmed_ platform
+
+The probe reads the `version` singleton with the service account, and the API server authorizes
+that request before it resolves the resource. The auto-detect manifests
+(`distributions/core-bff/manifests/base/cluster-role.yaml`) therefore grant `get` on
+`clusterversions/version`: without it the probe is a 403 on every cluster, so neither "API not
+served" nor a successful read could ever be observed. Deployments that set `ODH_PLATFORM_TYPE`
+(the RHAII bundle sets `--platform-type=XKS`) never probe and need no such rule.
 
 Startup falls back to `XKS` when the OpenShift `ClusterVersion` probe fails, because XKS is the
 least-privilege answer for deciding which API calls to make. That fallback is a **guess**, and a
@@ -144,7 +151,8 @@ Vary: Authorization, X-Forwarded-Access-Token, Cookie
 `no-store` is what forbids a compliant cache from storing these responses. `Vary` is a second
 signal for caches that honour it, so one that does store a response keys it on the caller's
 identity headers; it does not protect against an intermediary that ignores `Vary`. Both token headers are listed because either may
-carry the identity depending on the edge.
+carry the identity depending on the edge, and a custom `AUTH_TOKEN_HEADER` is added when it is a
+different header, so `Vary` always names the header that carries the caller's identity.
 
 The response body carries only what the frontend needs: identity, namespace, cluster metadata, and
 the two capability flags. There is no token, no group list and no raw Auth or configuration object.
@@ -153,9 +161,9 @@ the two capability flags. There is no token, no group list and no raw Auth or co
 
 For the xKS profile the dashboard **service account** needs:
 
-| Resource                                       | Verbs  | Needed for                                                                                               |
-| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
-| `odhdashboardconfigs` (`opendatahub.io`)       | `get`  | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                      |
+| Resource                                       | Verbs  | Needed for                                                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `odhdashboardconfigs` (`opendatahub.io`)       | `get`  | `/api/config`. Optional on confirmed xKS: absent or forbidden degrades to defaults.                                                                                                                                                                                                                                        |
 | `odhapplications` (`dashboard.opendatahub.io`) | `list` | `/api/components`. **Always required**, also when the OdhApplication API is not installed: the API server authorizes a request before it resolves the resource, so without this rule an absent API is a 403. A forbidden list is an error. With the rule granted, an absent API or no instances degrades to an empty list. |
 
 Both rules are namespaced and the BFF reads in its dashboard namespace (`NAMESPACE`), so the
@@ -172,9 +180,9 @@ admission dependency or a hidden fallback.
 Identity and review calls are made with the **caller's** token, not the service account's, so
 granting them to the dashboard service account does nothing. Each authenticated caller needs:
 
-| Resource                                            | Verbs    | Needed for                                                                                         |
-| --------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| `selfsubjectreviews` (`authentication.k8s.io`)      | `create` | Identity. **Required**: without it bootstrap cannot resolve who is calling and fails the request. |
+| Resource                                            | Verbs    | Needed for                                                                                                                                           |
+| --------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `selfsubjectreviews` (`authentication.k8s.io`)      | `create` | Identity. **Required**: without it bootstrap cannot resolve who is calling and fails the request.                                                    |
 | `selfsubjectaccessreviews` (`authorization.k8s.io`) | `create` | Capability and admission reviews. A failed review degrades `isAdmin` to false, and in `auth-resource` mode a failed admission review does not admit. |
 
 Kubernetes grants both to every authenticated user through the default `system:basic-user`

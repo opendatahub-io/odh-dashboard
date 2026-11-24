@@ -327,6 +327,10 @@ func exactOriginProblem(origin string) string {
 	if strings.Contains(origin, "*") {
 		return "wildcards are not allowed"
 	}
+	if strings.Contains(origin, "#") {
+		// url.Parse drops an empty fragment ("https://host#"), so check the text.
+		return "path (including a trailing slash), query and fragment are not allowed"
+	}
 	u, err := url.Parse(origin)
 	if err != nil {
 		return "it does not parse as a URL"
