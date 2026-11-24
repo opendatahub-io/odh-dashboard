@@ -226,8 +226,32 @@ func (r *DashboardReconciler) persistDashboardRemovalStatus(ctx context.Context,
 	dashboard.Status.ObservedGeneration = dashboard.Generation
 	dashboard.Status.URL = ""
 	dashboard.Status.Distribution = nil
+	if override := removalStatusOverrideFrom(ctx); override != nil {
+		override.apply(cm, dashboard)
+		override.applied = true
+	}
 	cm.Sort()
 	return r.updateStatusIfChanged(ctx, dashboard, previousStatus)
+}
+
+// removalStatusOverride lets Reconcile fold a failure detected outside the
+// lifecycle (legacy redirect cleanup) into the removal status the lifecycle
+// persists, so a pass writes status once with its final state rather than
+// writing the removal state and then overwriting it.
+type removalStatusOverride struct {
+	apply   func(cm *conditions.Manager, dashboard *v1alpha1.Dashboard)
+	applied bool
+}
+
+type removalStatusOverrideKey struct{}
+
+func withRemovalStatusOverride(ctx context.Context, override *removalStatusOverride) context.Context {
+	return context.WithValue(ctx, removalStatusOverrideKey{}, override)
+}
+
+func removalStatusOverrideFrom(ctx context.Context) *removalStatusOverride {
+	override, _ := ctx.Value(removalStatusOverrideKey{}).(*removalStatusOverride)
+	return override
 }
 
 // persistDashboardRemovalPendingStatus reports that ingress has been removed

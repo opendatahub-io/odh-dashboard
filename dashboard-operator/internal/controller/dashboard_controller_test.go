@@ -1610,7 +1610,7 @@ func TestReconcile_ODHRemovedLegacyRedirectFailureKeepsTeardownRequeue(t *testin
 	result, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
 	require.NoError(t, err, "the recorded legacy failure must not drop the teardown requeue")
 	assert.Positive(t, result.RequeueAfter)
-	assert.LessOrEqual(t, statusWrites, 2, "removal status plus the legacy failure delta, no wholesale rewrite")
+	assert.Equal(t, 1, statusWrites, "the removal status and the legacy failure are persisted together")
 
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
@@ -1618,11 +1618,11 @@ func TestReconcile_ODHRemovedLegacyRedirectFailureKeepsTeardownRequeue(t *testin
 	require.NotNil(t, provisioning)
 	assert.Equal(t, "LegacyRedirectCleanupFailed", provisioning.Reason)
 
-	// A second pass with nothing new to report writes nothing.
+	// A second pass with nothing new to report writes nothing; alternating writes would show up here.
 	statusWrites = 0
 	_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
 	require.NoError(t, err)
-	assert.LessOrEqual(t, statusWrites, 2)
+	assert.Zero(t, statusWrites, "an unchanged removal pass must not write status")
 }
 
 func TestReconcileDegradedCondition(t *testing.T) {

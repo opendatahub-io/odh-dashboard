@@ -245,19 +245,29 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if dashboard.Spec.ManagementState == common.Removed {
 		legacyRedirectErr := r.reconcileLegacyRedirectsForOpenShift(ctx, dashboard)
-		result, err := lifecycle.Remove(ctx, dashboard, previousStatus, cm)
+		removeCtx := ctx
+		var override *removalStatusOverride
+		if legacyRedirectErr != nil {
+			override = &removalStatusOverride{apply: func(cm *conditions.Manager, dashboard *v1alpha1.Dashboard) {
+				r.recordLegacyRedirectFailure(cm, legacyRedirectErr, "LegacyRedirectCleanupFailed")
+				dashboard.Status.Phase = common.PhaseNotReady
+			}}
+			removeCtx = withRemovalStatusOverride(ctx, override)
+		}
+		result, err := lifecycle.Remove(removeCtx, dashboard, previousStatus, cm)
 		if legacyRedirectErr == nil {
 			return result, err
 		}
-		// Remove has already persisted the removal status, so diff against what it
-		// wrote: only the legacy-redirect failure is new.
-		removalStatus := dashboard.Status.DeepCopy()
-		r.recordLegacyRedirectFailure(cm, legacyRedirectErr, "LegacyRedirectCleanupFailed")
-		dashboard.Status.Phase = common.PhaseNotReady
-		cm.Sort()
-		if statusErr := r.updateStatusIfChanged(ctx, dashboard, removalStatus); statusErr != nil {
-			logger.Error(statusErr, "Failed to update status after legacy redirect cleanup failure")
-			return ctrl.Result{}, fmt.Errorf("failed to update status after legacy redirect cleanup failure: %w", statusErr)
+		if !override.applied {
+			// Remove returned before persisting its removal status (a failure path
+			// with its own status write), so record the redirect failure on top.
+			removalStatus := dashboard.Status.DeepCopy()
+			override.apply(cm, dashboard)
+			cm.Sort()
+			if statusErr := r.updateStatusIfChanged(ctx, dashboard, removalStatus); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status after legacy redirect cleanup failure")
+				return ctrl.Result{}, fmt.Errorf("failed to update status after legacy redirect cleanup failure: %w", statusErr)
+			}
 		}
 		if err == nil && result.RequeueAfter > 0 {
 			// controller-runtime ignores the Result when an error is returned, which
