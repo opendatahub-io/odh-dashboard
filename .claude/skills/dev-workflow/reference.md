@@ -13,7 +13,7 @@ Backend runs on port `4000`, frontend dev server on port `4010`.
 
 | Command | What it does |
 |---|---|
-| `pnpm run dev` | `run-p dev:backend dev:frontend` — parallel backend + frontend |
+| `pnpm run dev` | `concurrently "pnpm:dev:*"` — runs every `dev:*` script (backend + frontend) in parallel; stops the others if one fails |
 | `pnpm run start:dev` | `turbo run start:dev` — all packages via Turbo |
 | `pnpm run start:dev:ext` | Dev server proxying to a real cluster (`EXT_CLUSTER=true`) |
 | `pnpm run build` | Build backend + frontend for production |
