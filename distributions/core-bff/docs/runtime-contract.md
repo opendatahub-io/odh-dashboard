@@ -22,6 +22,18 @@ overrides it, because the environment value is never applied. The same invalid v
 override does fail, since it is then the value in effect. This matters for deployments that
 inherit environment configuration they cannot edit and correct it with container arguments.
 
+Numbers and booleans are parsed strictly, from the environment and the command line alike. `PORT`
+and `-port` must be a canonical decimal (no sign, spaces, leading zeros or hex); `DEV_MODE`,
+`MOCK_K8S_CLIENT`, `MOCK_HTTP_CLIENT`, `MOCK_BFF_CLIENTS` and `INSECURE_SKIP_VERIFY` must be a
+`strconv.ParseBool` value (`true`, `false`, `1`, `0`, ...). A malformed value fails startup
+instead of silently becoming the default; the error names the variable, not the value. `LOG_LEVEL`
+is the one exception: an invalid value logs a warning and uses `INFO`.
+
+An explicitly empty variable overrides its default, so a required setting set to blank fails
+startup (`DASHBOARD_CONFIG_NAME`, `NAMESPACE`, `STATIC_ASSETS_DIR`, `AUTH_TOKEN_HEADER`). In the
+namespace fallback chain an empty `NAMESPACE` or `POD_NAMESPACE` counts as unset and falls
+through to the next one.
+
 The command line accepts only `-flag=value` settings. A positional argument is refused, because
 flag parsing stops at the first one and any flag after it (for example `-cert-file`) would be
 silently ignored. Parse errors name at most the flag, never the argument text. Enum settings
@@ -48,20 +60,20 @@ core-bff refusing to start: invalid configuration (2 problems):
 
 ### Core
 
-| Flag                      | Environment                                          | Default                | Notes                                                                               |
-| ------------------------- | ---------------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------- |
-| `--port`                  | `PORT`                                               | `4000`                 | Must be an integer 1–65535. A malformed explicit `PORT` is refused.                 |
-| `--deployment-mode`       | `DEPLOYMENT_MODE`                                    | `standalone`           | `standalone` or `federated`.                                                        |
-| `--platform-type`         | `ODH_PLATFORM_TYPE`                                  | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection.                  |
-| `--admission-mode`        | `ADMISSION_MODE`                                     | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.                     |
-| `--namespace`             | `NAMESPACE`, else `POD_NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required. The RHOAI and ODH overlays set `POD_NAMESPACE` only. |
-| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`                                | _(= namespace)_        | Namespace allowlist entry.                                                          |
-| `--operator-namespace`    | `OPERATOR_NAMESPACE`                                 | _(empty)_              | Preferred subscription namespace (OpenShift).                                       |
-| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`                              | `odh-dashboard-config` | OdhDashboardConfig CR name.                                                         |
-| `--enabled-apps-cm`       | `ENABLED_APPS_CM`                                    | _(empty)_              | ConfigMap tracking enabled applications.                                            |
-| `--static-assets-dir`     | `STATIC_ASSETS_DIR`                                  | `./static`             | SPA asset root. Required.                                                           |
-| `--log-level`             | `LOG_LEVEL`                                          | `INFO`                 | `error`, `warn`, `info`, `debug`.                                                   |
-| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`                                  | _(empty)_              | Module federation remotes file.                                                     |
+| Flag                      | Environment                                          | Default                | Notes                                                                                |
+| ------------------------- | ---------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| `--port`                  | `PORT`                                               | `4000`                 | Must be an integer 1–65535. A malformed explicit `PORT` is refused.                  |
+| `--deployment-mode`       | `DEPLOYMENT_MODE`                                    | `standalone`           | `standalone` or `federated`.                                                         |
+| `--platform-type`         | `ODH_PLATFORM_TYPE`                                  | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection.                   |
+| `--admission-mode`        | `ADMISSION_MODE`                                     | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.                      |
+| `--namespace`             | `NAMESPACE`, else `POD_NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required. The RHOAI and ODH overlays set `POD_NAMESPACE` only.  |
+| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`                                | _(= namespace)_        | Namespace allowlist entry.                                                           |
+| `--operator-namespace`    | `OPERATOR_NAMESPACE`                                 | _(empty)_              | Preferred subscription namespace (OpenShift).                                        |
+| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`                              | `odh-dashboard-config` | OdhDashboardConfig CR name.                                                          |
+| `--enabled-apps-cm`       | `ENABLED_APPS_CM`                                    | _(empty)_              | ConfigMap tracking enabled applications.                                             |
+| `--static-assets-dir`     | `STATIC_ASSETS_DIR`                                  | `./static`             | SPA asset root. Required.                                                            |
+| `--log-level`             | `LOG_LEVEL`                                          | `INFO`                 | `error`, `warn`, `info`, `debug`.                                                    |
+| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`                                  | _(empty)_              | Module federation remotes file. Errors name the setting, never the path or contents. |
 
 ### Authentication
 
@@ -97,16 +109,20 @@ that the header name is configuration, not a constant.
 `PROMETHEUS_INSTANCE` (`thanos-querier`), `PROMETHEUS_PORT` (`9092`).
 
 `MODEL_SERVING_HOST` and `PROMETHEUS_HOST`, when set, must be absolute `http(s)://host[:port]`
-URLs with a port, if any, between 1 and 65535, no query string or fragment, and no surrounding
-whitespace; request paths and queries are appended to them, and a bad value fails startup instead
+URLs with a port, if any, between 1 and 65535 (not empty), no user info, no query string or
+fragment, and no surrounding whitespace; request paths and queries are appended to them, and a bad value fails startup instead
 of failing the first request. Without `PROMETHEUS_HOST` the target is derived as
 `https://<instance>.<namespace>.svc.cluster.local:<port>`, so `PROMETHEUS_PORT` must be a port
-number and the assembled URL must pass the same checks. Both targets receive the caller's bearer
+number and the assembled URL must pass the same checks. The three parts are all-or-nothing: all
+set derives the target, all empty turns Prometheus off, and only some set fails startup. They are
+logged only when in use, that is without `PROMETHEUS_HOST`. Both targets receive the caller's bearer
 token, so they require `https` unless `DEV_MODE=true`, including when only `MOCK_K8S_CLIENT` is
 set; the loopback mock Prometheus started when no host is configured is not affected. A path in
 `MODEL_SERVING_HOST` is a base the upstream is mounted under: `https://models.example/serving`
 receives `/serving/<route>`. The same holds for a kubeconfig API server URL with a path, on both
-the HTTP and the WebSocket proxy. The Prometheus and inter-BFF clients refuse a redirect that
+the HTTP and the WebSocket proxy. Escaping is preserved on both sides of the join: a base of
+`/tenant%2Fblue` stays one segment, `%23` is never read as a fragment, and an escaped route keeps
+its escaping. The Prometheus and inter-BFF clients refuse a redirect that
 changes the scheme, host or effective port before sending it, since net/http would forward the
 caller's token on such a redirect. Problems name the setting, never the value.
 
@@ -116,8 +132,9 @@ caller's token on such a redirect. Problems name the setting, never the value.
 namespace names (DNS-1123 labels), `PROMETHEUS_INSTANCE` a valid Service name (DNS-1035 label), and
 `DASHBOARD_CONFIG_NAME` and `ENABLED_APPS_CM` valid object names (DNS-1123 subdomains), when set.
 These values end up in API paths and in-cluster DNS names, so a value such as
-`monitoring/thanos-querier` would otherwise change the request target. Problems name the setting,
-never the value.
+`monitoring/thanos-querier` would otherwise change the request target. An optional name may be
+empty, but whitespace is an invalid value. `DASHBOARD_CONFIG_NAME` is required. Problems name the
+setting, never the value.
 
 ## Profiles
 
@@ -127,21 +144,22 @@ one client each while every other client stays real, so on their own they keep t
 profile and its rejections. Opting into a development profile is explicit, which is what makes
 these rejections safe:
 
-| Rejected in a production profile                                                                                                                                                                   | Why                                                                                                                                                                                                                                                                                                                                            | Way out                                                        |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `AUTH_METHOD=disabled`                                                                                                                                                                             | No caller identity is extracted at all.                                                                                                                                                                                                                                                                                                        | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.          |
-| `INSECURE_SKIP_VERIFY=true` (also rejected with only `MOCK_K8S_CLIENT`, which leaves the other outbound clients real)                                                                              | Disables upstream certificate verification on every outbound call.                                                                                                                                                                                                                                                                             | Supply the upstream CA through `BUNDLE_PATHS`.                 |
-| A kubeconfig with `insecure-skip-tls-verify`                                                                                                                                                       | client-go honours it for the service-account and caller-token clients regardless of `INSECURE_SKIP_VERIFY`.                                                                                                                                                                                                                                    | Supply the cluster CA in the kubeconfig.                       |
-| `MODEL_SERVING_HOST` or `PROMETHEUS_HOST` over `http` (outside `DEV_MODE`, mocked Kubernetes or not)                                                                                               | Both receive the caller's bearer token, which plaintext HTTP would expose.                                                                                                                                                                                                                                                                     | Use an `https://` URL; plaintext targets need `DEV_MODE=true`. |
-| `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), an entry with a path (including a trailing `/`), query or user info, or the scheme's default port (`:443`, `:80`) | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. Browsers send `Origin` without a trailing slash, so `https://host/` could never match; they also omit the default port, so `https://host:443` could not either. Rejected entries are reported by position, never by value. | List each exact dashboard origin as `scheme://host[:port]`.    |
+| Rejected in a production profile                                                                                                                                                                                                                                                           | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Way out                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `AUTH_METHOD=disabled`                                                                                                                                                                                                                                                                     | No caller identity is extracted at all.                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.          |
+| `INSECURE_SKIP_VERIFY=true` (also rejected with only `MOCK_K8S_CLIENT`, which leaves the other outbound clients real)                                                                                                                                                                      | Disables upstream certificate verification on every outbound call.                                                                                                                                                                                                                                                                                                                                                                                                                                  | Supply the upstream CA through `BUNDLE_PATHS`.                 |
+| A kubeconfig with `insecure-skip-tls-verify`                                                                                                                                                                                                                                               | client-go honours it for the service-account and caller-token clients regardless of `INSECURE_SKIP_VERIFY`.                                                                                                                                                                                                                                                                                                                                                                                         | Supply the cluster CA in the kubeconfig.                       |
+| `MODEL_SERVING_HOST` or `PROMETHEUS_HOST` over `http` (outside `DEV_MODE`, mocked Kubernetes or not)                                                                                                                                                                                       | Both receive the caller's bearer token, which plaintext HTTP would expose.                                                                                                                                                                                                                                                                                                                                                                                                                          | Use an `https://` URL; plaintext targets need `DEV_MODE=true`. |
+| `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), an entry with a path (including a trailing `/`), query or user info, the scheme's default port (`:443`, `:80`), or a non-canonical port or host (empty or zero-padded port, trailing dot, non-ASCII host) | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. Browsers send `Origin` without a trailing slash, so `https://host/` could never match; they also omit the default port, so `https://host:443` could not either. The same holds for any port or host a browser would not serialize that way. Entries match case-insensitively, for CORS and WebSocket upgrades alike. Rejected entries are reported by position, never by value. | List each exact dashboard origin as `scheme://host[:port]`.    |
 
 ## TLS inputs
 
 **Serving certificate.** `CERT_FILE` and `KEY_FILE` are both-or-neither. A half-configured pair
 fails startup; it must never fall back to plaintext HTTP, because the failure mode is silent and
 the operator's intent was clearly TLS. A pair that is present but does not load — missing file,
-mismatched key, not PEM — also fails startup. The diagnostic names both paths and the reason, and
-strips any PEM material from the underlying error.
+mismatched key, not PEM — also fails startup. The diagnostic names the setting that failed
+(`CERT_FILE/--cert-file`, `KEY_FILE/--key-file`) and the reason, never the path or any PEM
+material, since a key pasted where a path belongs would otherwise reach the log.
 
 When no pair is supplied, the server listens on plain HTTP. That is the supported RHAII standalone
 topology, where a Gateway or Ingress terminates TLS at the edge.
@@ -193,12 +211,14 @@ kubeconfig client certificate is the BFF's own identity, and the API server does
 authenticator wins when a request carries both. The proxies therefore present it only on a
 `DEV_MODE` fallback request, one that arrived without a caller token and runs on the developer's
 kubeconfig identity; a `DEV_MODE` request that carries its own token is authenticated by that token
-alone. Only a request with no credential falls back: in `DEV_MODE` a credential that was sent but
-is malformed (wrong prefix, empty token) is answered with 401, never with the fallback identity.
+alone. Only a request with no credential falls back. In `DEV_MODE` a credential that was sent but
+is malformed (wrong prefix, an empty or whitespace-only header, which the HTTP parser trims to
+empty) is answered with 401, never with the fallback identity, and so is a request that carries
+`Authorization` when the configured token header is a different one.
 Outside `DEV_MODE` the certificate is used only by the service-account clients. Every startup
 consumer reads the one kubeconfig validated at startup rather than a later re-read: the caller
-clients, the platform discovery probes (which run on the service-account clients), and the
-proxies' API server host and TLS settings. With
+clients, the `DEV_MODE` fallback client, the platform discovery probes (which run on the
+service-account clients), and the proxies' API server host and TLS settings. With
 `MOCK_K8S_CLIENT` the proxies present the envtest certificate, because they act as that identity.
 The HTTP proxy adds impersonation headers for the caller; the WebSocket handshake builds its own
 headers and does not, so WebSocket requests against envtest run as the envtest identity.
@@ -246,8 +266,10 @@ a live listener and asserts the new certificate is presented on the next connect
 rather than by remembering to redact at each call site. The startup summary reports:
 
 - plain values for operational settings (port, namespaces, modes, log level);
-- **presence flags** rather than values for anything an installer may consider sensitive
-  (`auth.tokenPrefixSet`, `services.modelServingHostSet`, `services.prometheusHostSet`);
+- **presence flags** rather than values for anything an installer may consider sensitive or that
+  is free-form (`auth.tokenPrefixSet`, `staticAssetsDirSet`, `services.modelServingHostSet`,
+  `services.prometheusHostSet`, `services.mfRemotesConfigSet`), and the derived Prometheus parts
+  only when they are in use and so validated;
 - counts rather than contents for the trust bundle and CORS lists, plus
   `transport.allowedOriginsWildcard` so a wildcard is visible without printing the list;
 - `productionProfile` so the applied ruleset is unambiguous in the log.
