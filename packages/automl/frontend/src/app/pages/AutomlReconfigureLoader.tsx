@@ -194,7 +194,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     Boolean(trainingParams.train_data_file_key?.trim()) &&
     typeof savedTestKey === 'string' &&
     Boolean(savedTestKey.trim()) &&
-    savedTestKey.trim() !== trainingParams.train_data_file_key?.trim();
+    savedTestKey !== trainingParams.train_data_file_key;
 
   // Prefer the unified key, then legacy timeseries key, then legacy tabular key.
   const targetColumn = parsed.target_column || parsed.target || parsed.label_column || '';

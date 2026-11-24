@@ -60,6 +60,35 @@ describe('DatasetFileDetailsPreview', () => {
   });
 
   it.each([DatasetFileDetailsPreview, DatasetFilePreview])(
+    'should disclose skipped records in a direct preview',
+    (Preview) => {
+      jest.mocked(useS3GetFileSchemaQuery).mockReturnValue({
+        sample: {
+          columns: [{ name: 'value', type: 'string', task_type: 'multiclass' }],
+          sampleRows: [['valid row']],
+          sampleSize: 1,
+          parseWarnings: 2,
+        },
+        isFetching: false,
+      } as ReturnType<typeof useS3GetFileSchemaQuery>);
+      render(
+        <Preview
+          namespace="ns"
+          secretName="s3"
+          fileKey="data.csv"
+          onViewFile={jest.fn()}
+          onClose={jest.fn()}
+        />,
+      );
+      expect(screen.getByText('Some rows could not be sampled')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Skipped 2 rows because they could not be parsed/),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('cell', { name: 'valid row' })).toBeInTheDocument();
+    },
+  );
+
+  it.each([DatasetFileDetailsPreview, DatasetFilePreview])(
     'should retry a failed sample without changing the file',
     (Preview) => {
       const refetch = jest.fn();

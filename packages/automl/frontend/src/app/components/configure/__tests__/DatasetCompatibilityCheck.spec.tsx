@@ -118,6 +118,27 @@ describe('DatasetCompatibilityCheck', () => {
     expect(screen.getAllByLabelText('Go to next page')[0]).toBeDisabled();
   });
 
+  it('should preserve the open comparison, focus, and sample page during refresh', () => {
+    const input = props();
+    const { rerender } = render(<DatasetCompatibilityCheck {...input} />);
+    fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Data preview' }));
+    fireEvent.click(screen.getAllByLabelText('Go to next page')[0]);
+    const viewFile = screen.getAllByRole('button', { name: 'View file' })[0];
+    viewFile.focus();
+    const table = screen.getByRole('grid', { name: 'Training data preview' });
+    rerender(<DatasetCompatibilityCheck {...input} isChecking />);
+    expect(screen.getByRole('dialog', { name: 'Compatibility check' })).toBeVisible();
+    expect(screen.getByRole('status')).toHaveTextContent('Refreshing compatibility');
+    expect(viewFile).toHaveFocus();
+    expect(screen.getByRole('grid', { name: 'Training data preview' })).toBe(table);
+    expect(within(table).getByText('row-11')).toBeInTheDocument();
+    rerender(<DatasetCompatibilityCheck {...input} />);
+    expect(screen.queryByText('Refreshing compatibility…')).not.toBeInTheDocument();
+    expect(viewFile).toHaveFocus();
+    expect(within(table).getByText('row-11')).toBeInTheDocument();
+  });
+
   it('should preserve the comparison tab when returning from a file preview', () => {
     const input = props();
     const { rerender } = render(<DatasetCompatibilityCheck {...input} />);
@@ -146,5 +167,7 @@ describe('DatasetCompatibilityCheck', () => {
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'View details' }));
     expect(screen.getByText(/Skipped 0 training rows and 2 test rows/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Data preview' }));
+    expect(screen.getAllByText('Some rows could not be sampled')).toHaveLength(1);
   });
 });

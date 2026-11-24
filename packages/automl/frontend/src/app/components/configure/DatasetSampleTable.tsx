@@ -1,7 +1,7 @@
 import React from 'react';
 import { TableBase } from '@odh-dashboard/ui-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { Button, Content, Stack, StackItem } from '@patternfly/react-core';
+import { Alert, Button, Content, Stack, StackItem } from '@patternfly/react-core';
 import type { DatasetSample } from '~/app/hooks/useS3GetFileSchemaQuery';
 import './DatasetPreview.scss';
 
@@ -12,6 +12,7 @@ export default function DatasetSampleTable({
   highlightedColumns = new Set<string>(),
   compact = false,
   showRowRange = true,
+  showParseWarnings = true,
   initialPerPage = 10,
   onRetry,
 }: {
@@ -21,15 +22,23 @@ export default function DatasetSampleTable({
   highlightedColumns?: Set<string>;
   compact?: boolean;
   showRowRange?: boolean;
+  showParseWarnings?: boolean;
   initialPerPage?: number;
   onRetry?: () => void;
 }): React.JSX.Element {
   const paginationId = React.useId();
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(initialPerPage);
+  const skippedRowsNotice = showParseWarnings && sample.parseWarnings > 0 && (
+    <Alert isInline variant="warning" title="Some rows could not be sampled">
+      Skipped {sample.parseWarnings} {sample.parseWarnings === 1 ? 'row' : 'rows'} because they
+      could not be parsed. Review the source file before continuing.
+    </Alert>
+  );
   if (sample.sampleRows.length === 0) {
     return (
       <Stack hasGutter>
+        {skippedRowsNotice && <StackItem>{skippedRowsNotice}</StackItem>}
         <StackItem>
           <Content component="p">File preview is unavailable.</Content>
         </StackItem>
@@ -48,6 +57,7 @@ export default function DatasetSampleTable({
   const rows = sample.sampleRows.slice(rowStart, rowStart + (compact ? 3 : perPage));
   return (
     <div className="automl-dataset-preview">
+      {skippedRowsNotice}
       <TableBase
         aria-label={label}
         caption={

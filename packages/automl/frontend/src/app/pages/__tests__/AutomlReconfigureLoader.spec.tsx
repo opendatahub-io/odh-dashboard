@@ -491,19 +491,41 @@ describe('AutomlReconfigureLoader', () => {
       expect(capturedProps.initialValues?.top_n).toBeUndefined();
     });
 
+    it.each([undefined, -1])(
+      'should preserve distinct S3 keys with surrounding whitespace (top_n: %s)',
+      async (topN) => {
+        mockUsePipelineRunQuery.mockReturnValue({
+          data: createMockPipelineRun(
+            {},
+            {
+              train_data_bucket_name: 'my-bucket',
+              train_data_file_key: 'data.csv',
+              test_data_bucket_name: 'my-bucket',
+              test_data_file_key: ' data.csv',
+              ...(topN !== undefined && { top_n: topN }),
+            },
+          ),
+          isPending: false,
+          isError: false,
+          error: null,
+        });
+        renderPage();
+        await screen.findByTestId('configure-page');
+        expect(capturedProps.initialValues).toMatchObject({
+          dataset_split_mode: 'separate',
+          train_data_file_key: 'data.csv',
+          test_data_file_key: ' data.csv',
+          test_data_bucket_name: 'my-bucket',
+        });
+      },
+    );
+
     it.each([
       {
         train_data_bucket_name: 'my-bucket',
         train_data_file_key: 'train.csv',
         test_data_bucket_name: 'my-bucket',
         test_data_file_key: 'train.csv',
-      },
-      {
-        top_n: -1,
-        train_data_bucket_name: 'my-bucket',
-        train_data_file_key: 'train.csv',
-        test_data_bucket_name: 'my-bucket',
-        test_data_file_key: ' train.csv ',
       },
       {},
       {

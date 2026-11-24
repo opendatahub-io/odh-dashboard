@@ -63,7 +63,7 @@ function DatasetCompatibilityCheck({
   if (!trainingFile || !testFile || trainingFile === testFile) {
     return null;
   }
-  if (isChecking) {
+  if (isChecking && !isOpen) {
     return (
       <Flex alignItems={{ default: 'alignItemsCenter' }} role="status">
         <Spinner size="sm" aria-label="Checking compatibility" />
@@ -142,6 +142,14 @@ function DatasetCompatibilityCheck({
           />
           <TearsheetBody>
             <Stack hasGutter>
+              {isChecking && (
+                <StackItem>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} role="status">
+                    <Spinner size="sm" aria-label="Refreshing compatibility" />
+                    <span>Refreshing compatibility…</span>
+                  </Flex>
+                </StackItem>
+              )}
               {(training.parseWarnings > 0 || test.parseWarnings > 0) && (
                 <StackItem>
                   <Alert isInline variant="warning" title="Some rows could not be sampled">
@@ -231,6 +239,7 @@ function DatasetCompatibilityCheck({
                               <DatasetSampleTable
                                 key={file}
                                 sample={sample}
+                                showParseWarnings={false}
                                 label={`${label} preview`}
                                 heading={
                                   <Flex

@@ -1163,8 +1163,23 @@ describe('AutomlConfigure', () => {
         'train.csv',
       );
 
+      const schemaCallsBeforeNavigation = mockuseS3GetFileSchemaQuery.mock.calls.length;
+      const rowCountQuery = jest.mocked(useS3GetFileRowCountQuery);
+      const countCallsBeforeNavigation = rowCountQuery.mock.calls.length;
       mockUseParams.mockReturnValue({ namespace: 'other-namespace' });
       rerender(<AutomlConfigure />);
+      const callsAfterNavigation = [
+        ...mockuseS3GetFileSchemaQuery.mock.calls.slice(schemaCallsBeforeNavigation),
+        ...rowCountQuery.mock.calls.slice(countCallsBeforeNavigation),
+      ];
+      expect(callsAfterNavigation.length).toBeGreaterThan(0);
+      callsAfterNavigation.forEach(([project, secret, bucket, key]) => {
+        expect(project).toBe('other-namespace');
+        expect(secret).not.toBe('Test Secret 1');
+        expect(bucket).not.toBe('test-bucket-1');
+        expect(key).not.toBe('train.csv');
+        expect(key).not.toBe('test.csv');
+      });
       expect(screen.queryByTestId('aws-secret-selector-value')).not.toBeInTheDocument();
       expect(mockuseS3GetFileSchemaQuery).toHaveBeenLastCalledWith(
         'other-namespace',
@@ -1752,6 +1767,45 @@ describe('AutomlConfigure', () => {
           'aria-expanded',
           'true',
         );
+      },
+    );
+
+    it.each(['training', 'test'] as const)(
+      'should reject a delayed %s drop after switching to a browsed file',
+      async (dataset) => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        const prefix = `${dataset}-data`;
+        const toggle = screen.getByTestId(`${prefix}-accordion-toggle`);
+        if (toggle.getAttribute('aria-expanded') !== 'true') {
+          fireEvent.click(toggle);
+        }
+        fireEvent.click(
+          within(screen.getByTestId(`${prefix}-source-upload-toggle`)).getByRole('button'),
+        );
+        fireEvent.drop(screen.getByTestId(`${prefix}-upload-zone`), {
+          dataTransfer: mockDataTransferForDrop([
+            new File(['rows'], 'stale.csv', { type: 'text/csv' }),
+          ]),
+        });
+        fireEvent.click(
+          within(screen.getByTestId(`${prefix}-source-select-toggle`)).getByRole('button'),
+        );
+        fireEvent.click(
+          screen.getByTestId(
+            dataset === 'training' ? 'browse-bucket-button' : 'test-data-browse-bucket-button',
+          ),
+        );
+        fireEvent.click(
+          screen.getByTestId(
+            dataset === 'training' ? 'file-explorer-select-file' : 'file-explorer-select-test-file',
+          ),
+        );
+        await act(async () => undefined);
+        expect(mockS3MutateAsync).not.toHaveBeenCalled();
+        expect(toggle).toHaveTextContent(dataset === 'training' ? 'data.csv' : 'test.csv');
+        expect(screen.queryByText('stale.csv')).not.toBeInTheDocument();
       },
     );
 

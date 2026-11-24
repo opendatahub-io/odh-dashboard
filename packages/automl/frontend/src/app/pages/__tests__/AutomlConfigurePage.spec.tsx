@@ -1327,7 +1327,7 @@ describe('AutomlConfigurePage', () => {
         expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       });
 
-      it.each(['pending', 'failed'] as const)(
+      it.each(['pending', 'failed', 'paused', 'training-paused'] as const)(
         'should block separate-dataset submission while test sampling is %s and allow recovery',
         async (samplingState) => {
           const schemaQuery = jest.mocked(useS3GetFileSchemaQuery);
@@ -1336,6 +1336,10 @@ describe('AutomlConfigurePage', () => {
           schemaQuery.mockImplementation((...args) => ({
             ...originalImplementation(...args),
             isFetching: args[3] === 'my-data/test.csv' && blocked && samplingState === 'pending',
+            isPaused:
+              blocked &&
+              ((samplingState === 'paused' && args[3] === 'my-data/test.csv') ||
+                (samplingState === 'training-paused' && args[3] === 'my-data/train.csv')),
             error:
               args[3] === 'my-data/test.csv' && blocked && samplingState === 'failed'
                 ? new Error('CSV validation error: invalid test CSV')

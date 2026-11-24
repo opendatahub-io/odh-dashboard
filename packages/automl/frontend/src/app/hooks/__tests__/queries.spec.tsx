@@ -127,23 +127,31 @@ describe('useS3GetFileRowCountQuery', () => {
 
   it('should refresh a cached separate-mode schema before counting the file in automatic mode', async () => {
     let name = 'original';
+    let releaseRefresh: () => void = () => {
+      throw new Error('Refresh has not started');
+    };
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
     const columns = () => [{ name, type: 'string', task_type: 'binary' }];
-    jest.mocked(global.fetch).mockImplementation(
-      async (url) =>
-        ({
-          ok: true,
-          headers: { get: () => null },
-          blob: async () =>
-            new Blob([
-              JSON.stringify({
-                data:
-                  typeof url === 'string' && url.includes('view=row-count')
-                    ? { row_count: 250 }
-                    : { columns: columns() },
-              }),
-            ]),
-        }) as unknown as Response,
-    );
+    jest.mocked(global.fetch).mockImplementation(async (url) => {
+      if (typeof url === 'string' && !url.includes('view=row-count') && name === 'replacement') {
+        await refreshGate;
+      }
+      return {
+        ok: true,
+        headers: { get: () => null },
+        blob: async () =>
+          new Blob([
+            JSON.stringify({
+              data:
+                typeof url === 'string' && url.includes('view=row-count')
+                  ? { row_count: 250 }
+                  : { columns: columns() },
+            }),
+          ]),
+      } as unknown as Response;
+    });
     const { result, rerender } = renderHook(
       ({ automatic }) => ({
         schema: useS3GetFileSchemaQuery('ns', 'secret', 'bucket', 'data.csv'),
@@ -156,6 +164,14 @@ describe('useS3GetFileRowCountQuery', () => {
 
     name = 'replacement';
     rerender({ automatic: true });
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+    expect(result.current.schema.isFetching).toBe(true);
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('view=row-count'),
+      expect.anything(),
+    );
+    expect(result.current.count.data).toBeUndefined();
+    await act(async () => releaseRefresh());
     await waitFor(() => expect(result.current.count.data).toBe(250));
     expect(result.current.schema.data[0]?.name).toBe('replacement');
     expect(global.fetch).toHaveBeenCalledTimes(3);

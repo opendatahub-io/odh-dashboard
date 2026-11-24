@@ -160,6 +160,7 @@ function AutomlConfigure({
     formState: { isSubmitting: formIsSubmitting, errors },
   } = form;
   const { namespace } = useParams();
+  const [datasetNamespace, setDatasetNamespace] = useState(namespace);
   const currentNamespaceRef = useRef(namespace);
   useLayoutEffect(() => {
     currentNamespaceRef.current = namespace;
@@ -342,32 +343,45 @@ function AutomlConfigure({
   const canSelectLearningType = isFileSelected;
   // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
 
+  // Form values still belong to the previous project until the reset effect runs.
+  const isDatasetNamespaceCurrent = datasetNamespace === namespace;
+  const datasetSecretName = isDatasetNamespaceCurrent ? trainDataSecretName : '';
+  const datasetBucketName = isDatasetNamespaceCurrent ? trainDataBucketName : '';
+  const trainingQueryFileKey = isDatasetNamespaceCurrent ? trainDataFileKey : '';
+  const testQueryFileKey = isDatasetNamespaceCurrent ? testDataFileKey : undefined;
+
   const {
     data: schemaColumns = [],
     isLoading: isLoadingColumns,
     isFetching: isFetchingColumns,
+    isPaused: isTrainingSamplePaused,
     error: columnsError,
     resetSchemaCache,
     sample: trainingSample,
     refetch: refetchTrainingSample,
   } = useS3GetFileSchemaQuery(
     namespace ?? '',
-    trainDataSecretName,
-    trainDataBucketName,
-    trainDataFileKey,
+    datasetSecretName,
+    datasetBucketName,
+    trainingQueryFileKey,
   );
 
   const testSampleQuery = useS3GetFileSchemaQuery(
     namespace ?? '',
-    trainDataSecretName,
-    trainDataBucketName,
-    datasetSplitMode === DATASET_SPLIT_SEPARATE ? testDataFileKey : undefined,
+    datasetSecretName,
+    datasetBucketName,
+    datasetSplitMode === DATASET_SPLIT_SEPARATE ? testQueryFileKey : undefined,
   );
 
   const isDatasetSamplingBlocked =
     datasetSplitMode === DATASET_SPLIT_SEPARATE &&
     Boolean(
-      isFetchingColumns || columnsError || testSampleQuery.isFetching || testSampleQuery.error,
+      isFetchingColumns ||
+      isTrainingSamplePaused ||
+      columnsError ||
+      testSampleQuery.isFetching ||
+      testSampleQuery.isPaused ||
+      testSampleQuery.error,
     );
   useEffect(() => {
     onDatasetSamplingBlockedChange?.(isDatasetSamplingBlocked);
@@ -445,9 +459,9 @@ function AutomlConfigure({
     refetch: refetchRowCount,
   } = useS3GetFileRowCountQuery(
     namespace ?? '',
-    trainDataSecretName,
-    trainDataBucketName,
-    trainDataFileKey,
+    datasetSecretName,
+    datasetBucketName,
+    trainingQueryFileKey,
     datasetSplitMode !== DATASET_SPLIT_SEPARATE,
   );
 
@@ -519,6 +533,7 @@ function AutomlConfigure({
 
   // Clear namespace-scoped connection state on navigation, preserving saved values on mount.
   useReconfigureSafeEffect(() => {
+    setDatasetNamespace(namespace);
     setSelectedSecret(undefined);
     setValue('train_data_secret_name', '', { shouldValidate: true });
     setValue('train_data_bucket_name', '', { shouldValidate: true });
@@ -645,6 +660,7 @@ function AutomlConfigure({
       namespace,
       secretName: trainDataSecretName,
       bucket: trainDataBucketName,
+      isActive: trainingDataSourceMode === 'upload',
       requestSequenceRef: trainingDataUploadSeqRef,
       onStart: startTrainingDataUpload,
       onSuccess: completeTrainingDataUpload,
@@ -683,7 +699,7 @@ function AutomlConfigure({
       namespace,
       secretName: trainDataSecretName,
       bucket: trainDataBucketName,
-      isActive: datasetSplitMode === DATASET_SPLIT_SEPARATE,
+      isActive: datasetSplitMode === DATASET_SPLIT_SEPARATE && testDataSourceMode === 'upload',
       requestSequenceRef: testDataUploadSeqRef,
       onStart: startTestDataUpload,
       onSuccess: completeTestDataUpload,
