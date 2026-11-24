@@ -37,18 +37,19 @@ func TestGetUsageDashboardsHandler(t *testing.T) {
 		persesNS         string
 		wantStatus       int
 		wantNames        []string
+		wantOrganization bool
 	}{
 		{
 			name: "user receives only the user usage dashboard", identity: &kubernetes.RequestIdentity{Token: "user-token"},
 			upstreamBody: `{"sub":"user-1","org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","roles":[]}`,
 			persesNS:     "redhat-ods-monitoring", wantStatus: http.StatusOK,
-			wantNames: []string{"dashboard-5-maas-usage-logs"},
+			wantNames: []string{"dashboard-5-maas-usage-logs"}, wantOrganization: true,
 		},
 		{
 			name: "admin receives both usage dashboards", identity: &kubernetes.RequestIdentity{Token: "admin-token"},
 			upstreamBody: `{"sub":"admin-1","org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","roles":["admins"]}`,
 			persesNS:     "custom-monitoring", wantStatus: http.StatusOK,
-			wantNames: []string{"dashboard-5-maas-usage-logs", "dashboard-4-maas-usage-logs-admin"},
+			wantNames: []string{"dashboard-5-maas-usage-logs", "dashboard-4-maas-usage-logs-admin"}, wantOrganization: true,
 		},
 		{
 			name: "subscription fallback identifies an admin", identity: &kubernetes.RequestIdentity{Token: "admin-token"},
@@ -125,6 +126,7 @@ func TestGetUsageDashboardsHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 			var readNames []string
+			var gotOrganization bool
 			repos.UsageDashboards = &fakeUsageDashboardsRepository{list: func(_ context.Context, whoAmI *models.MaaSWhoAmI) ([]map[string]any, error) {
 				if whoAmI == nil || whoAmI.Sub == "" {
 					return nil, repositories.ErrInvalidMaaSUser
@@ -132,6 +134,7 @@ func TestGetUsageDashboardsHandler(t *testing.T) {
 				if tt.persesNS == "" {
 					return nil, repositories.ErrPersesNamespaceNotConfigured
 				}
+				gotOrganization = whoAmI.OrgID != ""
 				readNames = []string{"dashboard-5-maas-usage-logs"}
 				if whoAmI.IsAdmin {
 					readNames = append(readNames, "dashboard-4-maas-usage-logs-admin")
@@ -161,6 +164,9 @@ func TestGetUsageDashboardsHandler(t *testing.T) {
 			}
 			if !reflect.DeepEqual(readNames, tt.wantNames) {
 				t.Fatalf("dashboard reads = %v, want %v", readNames, tt.wantNames)
+			}
+			if gotOrganization != tt.wantOrganization {
+				t.Fatalf("repository saw a caller with an organization = %v, want %v", gotOrganization, tt.wantOrganization)
 			}
 			if rr.Code == http.StatusOK {
 				var body usageDashboardsEnvelope
