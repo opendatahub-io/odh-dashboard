@@ -267,9 +267,8 @@ func TestHTTPRouteAvailableWithConcreteReportedListener(t *testing.T) {
 	assert.True(t, httpRouteAvailable(route))
 }
 
-// Gateway API installed after operator startup leaves no HTTPRoute informer, so the cached read
-// fails with ErrResourceNotCached. Availability must fall back to a direct read and converge
-// instead of hard-erroring every cycle until the pod restarts.
+// The HTTPRoute is always read directly, so availability converges even when Gateway API was
+// installed after operator startup and the cache has no HTTPRoute informer (ErrResourceNotCached).
 func TestReconcileDashboardAvailabilityReadsUncachedHTTPRouteDirectly(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, clientgoscheme.AddToScheme(scheme))
@@ -336,4 +335,34 @@ func TestReconcileDashboardAvailabilityReadsUncachedHTTPRouteDirectly(t *testing
 			assert.Equal(t, tt.wantReady, cm.IsHappy())
 		})
 	}
+}
+
+// A cached route from before the apply must not make the Dashboard available: the direct read sees
+// the applied generation, whose conditions still refer to the previous one.
+func TestReconcileDashboardAvailabilityIgnoresStaleCachedHTTPRoute(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, gatewayv1.Install(scheme))
+	stale := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	applied := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	applied.Generation = 2
+	for i := range applied.Status.Parents {
+		for j := range applied.Status.Parents[i].Conditions {
+			applied.Status.Parents[i].Conditions[j].ObservedGeneration = 1
+		}
+	}
+	cached := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true), stale).Build()
+	reader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(applied).Build()
+	reconciler := &DashboardReconciler{Client: cached, APIReader: reader, ApplicationsNamespace: availabilityTestNamespace}
+	dashboard := &v1alpha1.Dashboard{}
+	cm := conditions.NewManager(dashboard, string(common.ConditionTypeReady), conditionDashboardAvailable)
+
+	retryAfter, err := reconciler.reconcileDashboardAvailability(context.Background(), dashboard, cm, dashboardAvailabilityTarget{
+		deploymentName: "dashboard",
+		httpRouteName:  stale.Name,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, dashboardAvailabilityRetryInterval, retryAfter)
+	assert.Equal(t, "HTTPRouteNotAccepted", cm.GetCondition(conditionDashboardAvailable).Reason)
+	assert.False(t, cm.IsHappy())
 }

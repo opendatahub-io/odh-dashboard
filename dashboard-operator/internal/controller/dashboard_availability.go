@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -11,9 +10,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
@@ -74,15 +71,11 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 
 	route := &gatewayv1.HTTPRoute{}
 	routeKey := client.ObjectKey{Name: target.httpRouteName, Namespace: r.ApplicationsNamespace}
-	err := r.Get(ctx, routeKey, route)
-	if httpRouteNotCached(err) {
-		// The HTTPRoute informer is registered only when Gateway API is present at
-		// operator startup, and the cache fails closed for unregistered kinds. When
-		// Gateway API is installed later (Helm-ordered XKS installs), read the route
-		// directly so availability can still converge without a pod restart.
-		log.FromContext(ctx).V(1).Info("HTTPRoute is not cached; reading it directly", "httpRoute", routeKey.String())
-		err = r.apiReader().Get(ctx, routeKey, route)
-	}
+	// Read the route directly. Its status is evaluated right after the apply, and
+	// a cached copy from before it could still pass the generation check against
+	// its own (old) conditions. The direct read also works when the HTTPRoute
+	// informer is missing because Gateway API was installed after startup.
+	err := r.apiReader().Get(ctx, routeKey, route)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			cm.MarkFalse(conditionDashboardAvailable,
@@ -120,17 +113,6 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 		conditions.WithReason("ResourcesAvailable"),
 		conditions.WithMessage("Dashboard Deployment and HTTPRoute are available"))
 	return 0, nil
-}
-
-// httpRouteNotCached reports whether a cached HTTPRoute read failed because the
-// kind has no informer (ErrResourceNotCached) or was unknown to the cache's
-// RESTMapper when it started.
-func httpRouteNotCached(err error) bool {
-	if err == nil {
-		return false
-	}
-	var notCached *ctrlcache.ErrResourceNotCached
-	return errors.As(err, &notCached) || meta.IsNoMatchError(err)
 }
 
 func deploymentAvailable(deployment *appsv1.Deployment) bool {
