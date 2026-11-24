@@ -23,22 +23,23 @@ const MastheadProjectSelector: React.FC = () => {
   const [allowCreate, permissionsLoaded] = useAccessReview(createProjectResource);
   const [creation, setCreation] = React.useState<'empty' | 'create' | null>(null);
   const [pendingProjectName, setPendingProjectName] = React.useState<string | null>(null);
-  const notifiedProjectName = React.useRef<string | null>(null);
+  const [pendingNotificationProjectName, setPendingNotificationProjectName] = React.useState<
+    string | null
+  >(null);
   const projectByName = React.useMemo(
     () => new Map(projects.map((project) => [project.metadata.name, project])),
     [projects],
   );
 
   React.useEffect(() => {
-    if (!pendingProjectName) {
+    if (!pendingNotificationProjectName) {
       return;
     }
-    if (notifiedProjectName.current === pendingProjectName) {
-      return;
-    }
-    const createdProject = workingProjects.find(({ name }) => name === pendingProjectName);
+    const createdProject = workingProjects.find(
+      ({ name }) => name === pendingNotificationProjectName,
+    );
     if (createdProject) {
-      notifiedProjectName.current = pendingProjectName;
+      setPendingNotificationProjectName(null);
       notification.success(
         'Project created',
         <>
@@ -47,7 +48,7 @@ const MastheadProjectSelector: React.FC = () => {
         </>,
       );
     }
-  }, [pendingProjectName, workingProjects, notification]);
+  }, [pendingNotificationProjectName, workingProjects, notification]);
 
   return (
     <>
@@ -62,12 +63,12 @@ const MastheadProjectSelector: React.FC = () => {
         }}
         aiLabel={<AILabel />}
         getProjectHref={(name) => `/projects/${encodeURIComponent(name)}`}
-        emptyListContent={(closeSelector) => (
+        emptyListContent={(onClose) => (
           <EmptyProjects
             allowCreate={Boolean(permissionsLoaded && allowCreate)}
-            onCancel={closeSelector}
+            onCancel={onClose}
             onCreateProject={() => {
-              closeSelector();
+              onClose();
               if (permissionsLoaded && allowCreate) {
                 setCreation('empty');
               }
@@ -77,6 +78,7 @@ const MastheadProjectSelector: React.FC = () => {
         projectToReview={pendingProjectName ?? undefined}
         onProjectReviewClosed={() => setPendingProjectName(null)}
         onProjectSelected={(project) => {
+          setPendingNotificationProjectName(null);
           setPendingProjectName(null);
           notification.info(
             'Working project updated',
@@ -98,6 +100,7 @@ const MastheadProjectSelector: React.FC = () => {
           onClose={(name) => {
             if (name) {
               setPendingProjectName(name);
+              setPendingNotificationProjectName(name);
             }
             setCreation(null);
           }}

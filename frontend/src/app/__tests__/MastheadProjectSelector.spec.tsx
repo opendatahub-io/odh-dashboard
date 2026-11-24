@@ -17,10 +17,12 @@ jest.mock('@odh-dashboard/ui-core/components/projectSelector/WorkingProjectSelec
     onProjectSelected,
     onCreateProject,
     projectToReview,
+    onProjectReviewClosed,
   }: {
     onProjectSelected: (project: { name: string; displayName?: string }) => void;
     onCreateProject?: () => void;
     projectToReview?: string;
+    onProjectReviewClosed?: () => void;
   }) => (
     <>
       <div data-testid="project-to-review">{projectToReview ?? ''}</div>
@@ -30,6 +32,11 @@ jest.mock('@odh-dashboard/ui-core/components/projectSelector/WorkingProjectSelec
       >
         Select project
       </button>
+      {projectToReview && onProjectReviewClosed && (
+        <button type="button" onClick={onProjectReviewClosed}>
+          Close project review
+        </button>
+      )}
       {onCreateProject && (
         <button type="button" onClick={onCreateProject}>
           Create project
@@ -133,5 +140,42 @@ describe('MastheadProjectSelector', () => {
 
     expect(selectProject).not.toHaveBeenCalled();
     expect(info).not.toHaveBeenCalled();
+  });
+
+  it('should notify when the review is closed before the created project appears', () => {
+    jest.mocked(useAccessReview).mockReturnValue([true, true]);
+    const { rerender } = render(<MastheadProjectSelector />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finish creating project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close project review' }));
+
+    setWorkingProjects([{ name: 'new-project', displayName: 'New Project' }]);
+    rerender(<MastheadProjectSelector />);
+
+    expect(success).toHaveBeenCalledTimes(1);
+    expect(success).toHaveBeenCalledWith('Project created', expect.anything());
+  });
+
+  it('should notify again when a project with the same name is created later', () => {
+    jest.mocked(useAccessReview).mockReturnValue([true, true]);
+    const { rerender } = render(<MastheadProjectSelector />);
+
+    const createProject = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Finish creating project' }));
+      setWorkingProjects([{ name: 'new-project', displayName: 'New Project' }]);
+      rerender(<MastheadProjectSelector />);
+    };
+
+    createProject();
+    expect(success).toHaveBeenCalledTimes(1);
+
+    setWorkingProjects([]);
+    rerender(<MastheadProjectSelector />);
+    createProject();
+
+    expect(success).toHaveBeenCalledTimes(2);
+    expect(success).toHaveBeenNthCalledWith(2, 'Project created', expect.anything());
   });
 });

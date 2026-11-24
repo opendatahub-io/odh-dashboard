@@ -1,9 +1,10 @@
 .odh-working-project-selector {
   --pf-v6-c-button--BackgroundColor: var(--pf-t--global--background--color--primary--default);
+  max-width: 18rem;
 
   &__name {
+    flex: 1 1 auto;
     min-width: 0;
-    max-width: var(--pf-t--global--breakpoint--sm);
   }
 
   &__empty-image {

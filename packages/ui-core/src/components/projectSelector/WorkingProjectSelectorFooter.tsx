@@ -1,6 +1,6 @@
 import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { Alert, Button, Flex, FlexItem, ModalFooter } from '@patternfly/react-core';
+import { Alert, Button, ModalFooter } from '@patternfly/react-core';
 import DashboardModalFooter from '../DashboardModalFooter';
 import {
   WorkingProjectStatusValue,
@@ -73,82 +73,59 @@ const WorkingProjectSelectorFooter: React.FC<Props> = ({
     );
   }
 
+  if (!canSelectProject) {
+    return (
+      <ModalFooter>
+        {selectionError && (
+          <Alert
+            data-testid="error-message-alert"
+            isInline
+            variant="danger"
+            title="Unable to change working project"
+          >
+            {selectionError.message}
+          </Alert>
+        )}
+        <Button variant="link" onClick={onClose}>
+          Close
+        </Button>
+      </ModalFooter>
+    );
+  }
+
+  const secondaryAction =
+    onCreateProject && status === WorkingProjectStatusValue.Listed ? (
+      <Button
+        variant="secondary"
+        isDisabled={selecting}
+        onClick={() => {
+          onClose();
+          onCreateProject();
+        }}
+      >
+        Create project
+      </Button>
+    ) : onAddProject &&
+      status === WorkingProjectStatusValue.ListingUnavailable &&
+      projects.length > 0 ? (
+      <Button variant="secondary" isDisabled={selecting} onClick={onAddProject}>
+        Add project
+      </Button>
+    ) : undefined;
+
   return (
     <ModalFooter>
-      {selectionError && (
-        <Alert
-          data-testid="error-message-alert"
-          isInline
-          variant="danger"
-          title="Unable to change working project"
-        >
-          {selectionError.message}
-        </Alert>
-      )}
-      <Flex className="pf-v6-u-w-100" gap={{ default: 'gapMd' }}>
-        {onCreateProject && status === WorkingProjectStatusValue.Listed && !canSelectProject && (
-          <FlexItem>
-            <Button
-              variant="secondary"
-              isDisabled={selecting}
-              onClick={() => {
-                onClose();
-                onCreateProject();
-              }}
-            >
-              Create project
-            </Button>
-          </FlexItem>
-        )}
-        {onAddProject &&
-          status === WorkingProjectStatusValue.ListingUnavailable &&
-          projects.length > 0 && (
-            <FlexItem>
-              <Button variant="secondary" isDisabled={selecting} onClick={onAddProject}>
-                Add project
-              </Button>
-            </FlexItem>
-          )}
-        <FlexItem>
-          {canSelectProject ? (
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-              <Button
-                variant="primary"
-                isDisabled={!selectedProject || selecting || !hasUserSelectedProject}
-                isLoading={selecting}
-                onClick={onSubmit}
-                data-testid="modal-submit-button"
-              >
-                Select
-              </Button>
-              {onCreateProject && status === WorkingProjectStatusValue.Listed && (
-                <Button
-                  variant="secondary"
-                  isDisabled={selecting}
-                  onClick={() => {
-                    onClose();
-                    onCreateProject();
-                  }}
-                >
-                  Create project
-                </Button>
-              )}
-              <Button
-                variant="link"
-                isDisabled={selecting}
-                onClick={onClose}
-                data-testid="modal-cancel-button"
-              >
-                Cancel
-              </Button>
-            </Flex>
-          ) : (
-            <Button variant="link" onClick={onClose}>
-              Close
-            </Button>
-          )}
-        </FlexItem>
-      </Flex>
+      <DashboardModalFooter
+        submitLabel="Select"
+        isSubmitDisabled={!selectedProject || selecting || !hasUserSelectedProject}
+        isSubmitLoading={selecting}
+        isCancelDisabled={selecting}
+        onSubmit={onSubmit}
+        error={selectionError}
+        alertTitle="Unable to change working project"
+        secondaryActions={secondaryAction}
+        onCancel={onClose}
+      />
     </ModalFooter>
   );
 };

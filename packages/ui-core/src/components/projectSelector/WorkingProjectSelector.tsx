@@ -344,7 +344,11 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
           setOpen(true);
         }}
       >
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          flexWrap={{ default: 'nowrap' }}
+          spaceItems={{ default: 'spaceItemsSm' }}
+        >
           <FlexItem className="odh-working-project-selector__name">
             <Truncate content={label} tooltipPosition="bottom" />
           </FlexItem>
@@ -436,7 +440,6 @@ const WorkingProjectModal: React.FC<
   onAddProject,
 }) => {
   const headingId = React.useId();
-  const descriptionId = React.useId();
   const { status, projects, activeProject, selectProject } = useWorkingProject();
   const isEmptyProjectList = status === WorkingProjectStatusValue.EmptyList;
   const isListingUnavailable = status === WorkingProjectStatusValue.ListingUnavailable;
@@ -461,9 +464,13 @@ const WorkingProjectModal: React.FC<
   }, [projectToReview]);
   const [search, setSearch] = React.useState('');
   const [selectedFilter, setFilter] = React.useState<string>();
+  const lastScrolledProjectRef = React.useRef<string>();
+  const scrollFrameRef = React.useRef<number>();
+  const reviewProjectMatchesAiFilter = !projectToReview || Boolean(isAiProject?.(projectToReview));
+  const activeProjectMatchesAiFilter = !activeProject || Boolean(isAiProject?.(activeProject.name));
   const filter =
     selectedFilter ??
-    (isAiProject && (!activeProject || isAiProject(activeProject.name)) ? 'ai' : 'all');
+    (isAiProject && reviewProjectMatchesAiFilter && activeProjectMatchesAiFilter ? 'ai' : 'all');
   const changeSelectedProject = (_event: React.SyntheticEvent, name: string) => {
     if (selecting) {
       return;
@@ -522,12 +529,37 @@ const WorkingProjectModal: React.FC<
     );
   });
   React.useEffect(() => {
-    if (projectToReview) {
-      document
-        .querySelector<HTMLElement>(`[data-testid="working-project-option-${projectToReview}"]`)
-        ?.scrollIntoView({ block: 'nearest' });
+    if (!projectToReview) {
+      lastScrolledProjectRef.current = undefined;
+      if (scrollFrameRef.current !== undefined) {
+        cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = undefined;
+      }
+      return;
     }
-  }, [projectToReview, visibleProjects]);
+
+    if (projectToReview === lastScrolledProjectRef.current) {
+      return;
+    }
+
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(
+        `[data-testid="working-project-option-${projectToReview}"]`,
+      );
+      if (row && projectToReview !== lastScrolledProjectRef.current) {
+        row.scrollIntoView({ block: 'nearest' });
+        lastScrolledProjectRef.current = projectToReview;
+      }
+      scrollFrameRef.current = undefined;
+    });
+
+    return () => {
+      if (scrollFrameRef.current !== undefined) {
+        cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = undefined;
+      }
+    };
+  }, [projectToReview]);
   const canSelectProject =
     status === WorkingProjectStatusValue.Listed ||
     status === WorkingProjectStatusValue.ListingUnavailable ||
@@ -563,12 +595,18 @@ const WorkingProjectModal: React.FC<
       isOpen
       onClose={close}
       aria-labelledby={headingId}
-      aria-describedby={!manualFallback && canSelectProject ? descriptionId : undefined}
     >
-      <ModalHeader title="Project selector" labelId={headingId} descriptorId={descriptionId} />
+      <ModalHeader title="Project selector" labelId={headingId} />
       <ModalBody>
         <Stack hasGutter>
-          {isEmptyProjectList || showManualEmptyContent ? (
+          {status === WorkingProjectStatusValue.Loading ? (
+            <Content>Loading projects…</Content>
+          ) : status === WorkingProjectStatusValue.ProjectSourceError ||
+            status === WorkingProjectStatusValue.ProviderAbsent ? (
+            <Alert isInline variant="danger" title="Projects unavailable">
+              Unable to load projects. Try again later.
+            </Alert>
+          ) : isEmptyProjectList || showManualEmptyContent ? (
             <ProjectSelectorEmptyState
               content={emptyProjectContent}
               showManualEmptyContent={showManualEmptyContent}
@@ -677,6 +715,7 @@ const WorkingProjectModal: React.FC<
                                 key: 'all',
                                 label: 'All projects',
                                 dropdownLabel: filterOptionLabel('All projects', projects.length),
+                                dataTestId: 'working-project-filter-all',
                               },
                               ...(isAiProject
                                 ? [
@@ -688,6 +727,7 @@ const WorkingProjectModal: React.FC<
                                         aiProjectCount,
                                         true,
                                       ),
+                                      dataTestId: 'working-project-filter-ai',
                                     },
                                   ]
                                 : []),
