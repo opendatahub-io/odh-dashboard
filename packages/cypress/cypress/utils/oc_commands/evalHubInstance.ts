@@ -60,7 +60,7 @@ const execEvalHubMlflowCleanupCommand = (command: string): Cypress.Chainable<Cyp
     'error_file="$(mktemp)"',
     `trap 'rm -f "$output_file" "$error_file"' EXIT`,
     'attempt=1',
-    `while [ "$attempt" -le ${EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS}; do`,
+    `while [ "$attempt" -le ${EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS} ]; do`,
     `  ( ${command} ) >"$output_file" 2>"$error_file"`,
     '  exit_code=$?',
     '  if [ "$exit_code" -eq 0 ]; then',
