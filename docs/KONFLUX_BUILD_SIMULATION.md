@@ -188,7 +188,7 @@ Runs BEFORE Docker build to catch issues in <1 minute:
 - ✅ **Operator reconciliation smoke test**
   - Deploys: A minimal operator Deployment (no cert-manager webhook/metrics TLS — Kind-friendly)
   - Creates: A minimal `Dashboard` CR and polls for reconciliation evidence
-  - Asserts: The finalizer (`components.platform.opendatahub.io/cleanup`) and `status.observedGeneration` are set, with **0 operator restarts**
+- Asserts: The finalizer (`components.platform.opendatahub.io/cleanup`) and a persisted `ProvisioningSucceeded` condition are set, with **0 operator restarts**
   - Catches: Controller panics on startup, scheme/registration errors, reconcile crashes that unit + envtest tests can miss on a real API server
   - Note: The operand cannot fully provision on Kind (no OpenShift Routes/Ingress), so the test validates that the controller *starts reconciling cleanly*, not that the operand reaches Ready
 
