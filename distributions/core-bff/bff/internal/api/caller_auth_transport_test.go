@@ -1,11 +1,13 @@
 package api
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -359,4 +361,75 @@ func TestCallerAuth_DevModeRejectsInvalidCredentials(t *testing.T) {
 	inner, called := trackingHTTPHandler()
 	serve(app.InjectRequestIdentity(inner), UserPath, nil)
 	assert.True(t, *called, "no credential at all still takes the DEV_MODE fallback")
+}
+
+// rawStatus sends one raw HTTP/1.1 request line with the given header lines to
+// h over a real listener, so header parsing is net/http's, not a test map's.
+func rawStatus(t *testing.T, h http.Handler, headerLines ...string) int {
+	t.Helper()
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+	conn, err := net.Dial("tcp", srv.Listener.Addr().String())
+	require.NoError(t, err)
+	defer conn.Close()
+	req := "GET " + UserPath + " HTTP/1.1\r\nHost: bff\r\nConnection: close\r\n"
+	for _, l := range headerLines {
+		req += l + "\r\n"
+	}
+	_, err = conn.Write([]byte(req + "\r\n"))
+	require.NoError(t, err)
+	resp, err := http.ReadResponse(bufio.NewReader(conn), nil)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	return resp.StatusCode
+}
+
+// Adversarial review: net/http trims header whitespace, so a blank or
+// whitespace-only credential header arrives with an empty value. DEV_MODE must
+// still treat it as a credential that was sent, never as "no credential".
+func TestCallerAuth_DevModeBlankHeaderOnTheWire_NoFallback(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		headers []string
+		line    string
+	}{
+		{"ordered, blank Authorization", []string{"Authorization", "x-forwarded-access-token"}, "Authorization:   "},
+		{"ordered, whitespace-only forwarded", []string{"Authorization", "x-forwarded-access-token"}, "X-Forwarded-Access-Token: \t "},
+		{"legacy header, blank", nil, "X-Forwarded-Access-Token:"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := newTestApp(func(a *App) {
+				a.config.AuthMethod = config.AuthMethodUser
+				a.config.DevMode = true
+				a.config.AuthTokenHeaders = tc.headers
+				a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), a.config)
+			})
+			inner, called := trackingHTTPHandler()
+			assert.Equal(t, http.StatusUnauthorized, rawStatus(t, app.InjectRequestIdentity(inner), tc.line))
+			assert.False(t, *called, "a sent credential header never takes the kubeconfig fallback")
+		})
+	}
+
+	app := newTestApp(func(a *App) {
+		a.config.AuthMethod = config.AuthMethodUser
+		a.config.DevMode = true
+		a.config.AuthTokenHeaders = []string{"Authorization", "x-forwarded-access-token"}
+		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), a.config)
+	})
+	inner, called := trackingHTTPHandler()
+	rawStatus(t, app.InjectRequestIdentity(inner), "X-Unrelated: 1")
+	assert.True(t, *called, "no credential header at all still takes the DEV_MODE fallback")
+}
+
+// Outside DEV_MODE a request whose only credential headers are blank on the
+// wire is a missing credential: 401, never the service account.
+func TestCallerAuth_BlankHeadersOnTheWire_401(t *testing.T) {
+	app := newTestApp(func(a *App) {
+		a.config.AuthMethod = config.AuthMethodUser
+		a.config.AuthTokenHeaders = []string{"Authorization", "x-forwarded-access-token"}
+		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), a.config)
+	})
+	inner, called := trackingHTTPHandler()
+	assert.Equal(t, http.StatusUnauthorized, rawStatus(t, app.InjectRequestIdentity(inner), "Authorization:   ", "X-Forwarded-Access-Token: "))
+	assert.False(t, *called)
 }
