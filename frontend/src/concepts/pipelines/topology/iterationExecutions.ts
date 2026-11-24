@@ -9,6 +9,7 @@ export type IterationScope = {
 };
 
 type IterationTaskFields = {
+  name?: string;
   iterationIndex?: number;
   iterationTaskName?: string;
   iterationExecutionId?: number;
@@ -134,4 +135,122 @@ export const executionsForIterationScope = (
     allExecutions,
     resolveIterationExecutionId(executions, allExecutions, scope),
   );
+};
+
+const taskNameOf = (execution: Execution): string | undefined =>
+  execution.getCustomPropertiesMap().get('task_name')?.getStringValue();
+
+const parentIdOf = (execution: Execution): number | undefined =>
+  execution.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+
+const depthUnderAncestor = (
+  executions: Execution[],
+  execution: Execution,
+  ancestorId: number,
+): number => {
+  const byId = new Map(executions.map((item) => [item.getId(), item]));
+  const seen = new Set<number>();
+  let parentId = parentIdOf(execution);
+  let depth = 0;
+  while (parentId != null && !seen.has(parentId)) {
+    depth += 1;
+    if (parentId === ancestorId) {
+      return depth;
+    }
+    seen.add(parentId);
+    const parent = byId.get(parentId);
+    if (!parent) {
+      return 0;
+    }
+    parentId = parentIdOf(parent);
+  }
+  return 0;
+};
+
+const isUnderAncestor = (
+  executions: Execution[],
+  execution: Execution,
+  ancestorId: number,
+): boolean => depthUnderAncestor(executions, execution, ancestorId) > 0;
+
+/** Executions that belong to one DAG inside a known iteration. Direct iteration children when there is no DAG. */
+const executionsForDagInIteration = (
+  executions: Execution[],
+  iterationExecutionId: number,
+  enclosingDagName?: string,
+): Execution[] => {
+  if (!enclosingDagName) {
+    return childrenOf(executions, iterationExecutionId);
+  }
+
+  const dagExecution = executions
+    .filter(
+      (execution) =>
+        taskNameOf(execution) === enclosingDagName &&
+        isUnderAncestor(executions, execution, iterationExecutionId) &&
+        executions.some((child) => parentIdOf(child) === execution.getId()),
+    )
+    .reduce<Execution | undefined>((nearest, execution) => {
+      if (!nearest) {
+        return execution;
+      }
+      return depthUnderAncestor(executions, execution, iterationExecutionId) >
+        depthUnderAncestor(executions, nearest, iterationExecutionId)
+        ? execution
+        : nearest;
+    }, undefined);
+  if (!dagExecution) {
+    return [];
+  }
+  return childrenOf(executions, dagExecution.getId());
+};
+
+/**
+ * Executions the task drawer should search.
+ * A task on the iteration uses that iteration's direct children.
+ * A task inside a regular DAG uses that DAG's children, still limited to this iteration.
+ * A node outside an iteration keeps the full list.
+ */
+export const executionsForSelectedNode = (
+  executions: Execution[],
+  selectedNode: IterationNode | null | undefined,
+  nodes: IterationNode[],
+): Execution[] => {
+  if (!selectedNode) {
+    return executions;
+  }
+
+  const direct = scopeFromTask(selectedNode.data?.pipelineTask);
+  if (direct?.iterationExecutionId != null) {
+    return childrenOf(executions, direct.iterationExecutionId);
+  }
+
+  let enclosingDagName: string | undefined;
+  let currentId = selectedNode.id;
+  const seen = new Set<string>([currentId]);
+
+  for (let hop = 0; hop < nodes.length; hop++) {
+    const parent = nodes.find(
+      (node) => node.group && !seen.has(node.id) && node.children?.includes(currentId),
+    );
+    if (!parent) {
+      return executions;
+    }
+    seen.add(parent.id);
+
+    const parentScope = scopeFromTask(parent.data?.pipelineTask);
+    if (parentScope?.iterationExecutionId != null) {
+      return executionsForDagInIteration(
+        executions,
+        parentScope.iterationExecutionId,
+        enclosingDagName,
+      );
+    }
+    if (!enclosingDagName && parent.data?.pipelineTask?.name) {
+      enclosingDagName = parent.data.pipelineTask.name;
+    }
+    currentId = parent.id;
+  }
+
+  return executions;
 };

@@ -31,10 +31,7 @@ import PipelineRecurringRunReferenceName from '#~/concepts/pipelines/content/Pip
 import useExecutionsForPipelineRun from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import useTasksForPipelineRun from '#~/concepts/pipelines/apiHooks/useTasksForPipelineRun';
 import { useGetEventsByExecutionIds } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
-import {
-  executionsForIterationScope,
-  iterationScopeForNode,
-} from '#~/concepts/pipelines/topology/iterationExecutions';
+import { executionsForSelectedNode } from '#~/concepts/pipelines/topology/iterationExecutions';
 import { PipelineTopology } from '#~/concepts/topology';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
@@ -89,7 +86,7 @@ const PipelineRunDetails: React.FC<
   }, [isInvalidPipelineVersion, selectedIds, nodes]);
 
   const drawerExecutions = React.useMemo(
-    () => executionsForIterationScope(executions, iterationScopeForNode(selectedNode, nodes)),
+    () => executionsForSelectedNode(executions, selectedNode, nodes),
     [executions, nodes, selectedNode],
   );
 

@@ -2,6 +2,7 @@
 import { Execution, Value } from '#~/third_party/mlmd';
 import {
   executionsForIterationScope,
+  executionsForSelectedNode,
   iterationScopeForNode,
   resolveIterationExecutionId,
 } from '#~/concepts/pipelines/topology/iterationExecutions';
@@ -184,5 +185,56 @@ describe('iterationScopeForNode', () => {
   it('should return undefined for a node outside an iteration', () => {
     expect(iterationScopeForNode({ id: 'step-a' }, nodes)).toBeUndefined();
     expect(iterationScopeForNode(null, nodes)).toBeUndefined();
+  });
+});
+
+describe('executionsForSelectedNode', () => {
+  const iteration0 = execution(10, { parent_dag_id: { int: 1 }, iteration_index: { int: 0 } });
+  const iteration1 = execution(11, { parent_dag_id: { int: 1 }, iteration_index: { int: 1 } });
+  const dag0 = execution(20, { task_name: { string: 'process' }, parent_dag_id: { int: 10 } });
+  const dag1 = execution(21, { task_name: { string: 'process' }, parent_dag_id: { int: 11 } });
+  const train0 = execution(30, { task_name: { string: 'train' }, parent_dag_id: { int: 20 } });
+  const train1 = execution(31, { task_name: { string: 'train' }, parent_dag_id: { int: 21 } });
+  const direct0 = execution(40, { task_name: { string: 'simple' }, parent_dag_id: { int: 10 } });
+  const direct1 = execution(41, { task_name: { string: 'simple' }, parent_dag_id: { int: 11 } });
+  const executions = [iteration0, iteration1, dag0, dag1, train0, train1, direct0, direct1];
+
+  const iterationGroup = {
+    id: 'loop-iteration-0',
+    group: true,
+    children: ['loop-iteration-0~process', 'loop-iteration-0~simple'],
+    data: {
+      pipelineTask: {
+        name: 'loop #1',
+        iterationTaskName: 'loop',
+        iterationIndex: 0,
+        iterationExecutionId: 10,
+      },
+    },
+  };
+  const dagGroup = {
+    id: 'loop-iteration-0~process',
+    group: true,
+    children: ['loop-iteration-0~process~train'],
+    data: { pipelineTask: { name: 'process' } },
+  };
+  const train = { id: 'loop-iteration-0~process~train' };
+  const simple = { id: 'loop-iteration-0~simple' };
+  const nodes = [iterationGroup, dagGroup, train, simple];
+
+  it('should return the nested DAG children for the selected iteration only', () => {
+    expect(executionsForSelectedNode(executions, train, nodes).map((item) => item.getId())).toEqual(
+      [30],
+    );
+  });
+
+  it('should return the iteration children for a task directly on the iteration', () => {
+    expect(
+      executionsForSelectedNode(executions, simple, nodes).map((item) => item.getId()),
+    ).toEqual([20, 40]);
+  });
+
+  it('should return every execution for a node outside an iteration', () => {
+    expect(executionsForSelectedNode(executions, { id: 'step-a' }, nodes)).toEqual(executions);
   });
 });
