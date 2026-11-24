@@ -144,7 +144,7 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	fs.StringVar(&cfg.AuthMethod, "auth-method", getEnvAsString("AUTH_METHOD", config.AuthMethodUser), "Authentication method (disabled or user_token)")
 	fs.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (default: x-forwarded-access-token)")
 	fs.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix to strip from the token header value (default: none)")
-	// A list that is set but names no header (",", " , ") is rejected below
+	// A list that is set but names no header (",", " , ", "   ") is rejected below
 	// rather than silently falling back to single-header mode.
 	authTokenHeadersRaw := getEnvAsString("AUTH_TOKEN_HEADERS", "")
 	cfg.AuthTokenHeaders = splitList(authTokenHeadersRaw)
@@ -268,7 +268,8 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	// value too: Header.Get, the proxy strip list, CORS and Vary all use it.
 	sc.Env.AuthTokenHeader = strings.TrimSpace(sc.Env.AuthTokenHeader)
 
-	if strings.TrimSpace(authTokenHeadersRaw) != "" && len(sc.Env.AuthTokenHeaders) == 0 {
+	// Any nonempty value is a list the operator set, including whitespace only.
+	if authTokenHeadersRaw != "" && len(sc.Env.AuthTokenHeaders) == 0 {
 		return sc, errors.New("AUTH_TOKEN_HEADERS/--auth-token-headers is set but names no header (value omitted); list at least one header or leave it unset")
 	}
 
