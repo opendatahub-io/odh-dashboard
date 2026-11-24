@@ -64,40 +64,35 @@ export const preDeployTopologyConfig = (
     dryRun,
   );
 
+// ─── PreDeploy: Routing Config ────────────────────────────────────────────────
+
+export const preDeployRoutingConfig = (
+  fieldData: AdvancedRoutingFieldData,
+  wizardState: WizardFormData['state'],
+  deployment: DeploymentHookPayloadFor<LLMdDeployment>,
+  existingDeployment?: LLMdDeployment,
+  dryRun?: boolean,
+): Promise<DeploymentHookPayloadFor<LLMdDeployment>> =>
+  preDeployConfigCopy(
+    {
+      annotationKey: ROUTING_CONFIG_REF_ANNOTATION,
+    },
+    fieldData,
+    deployment,
+    existingDeployment,
+    dryRun,
+  );
+
 // ─── Apply: Routing Config ─────────────────────────────────────────────────────
 
 export const applyRoutingConfig = (
   deployment: LLMdDeployment,
   fieldData?: AdvancedRoutingFieldData,
 ): LLMdDeployment => {
-  // If configRef is set but not yet resolved, leave deployment unchanged to avoid data loss
-  if (fieldData?.configRef && !fieldData.selectedConfig) {
-    return deployment;
-  }
-
-  const result = structuredClone(deployment);
-  const annotations = { ...result.model.metadata.annotations };
-
-  const prevRef = annotations[ROUTING_CONFIG_REF_ANNOTATION];
-  if (prevRef && result.model.spec.baseRefs) {
-    result.model.spec.baseRefs = result.model.spec.baseRefs.filter((r) => r.name !== prevRef);
-  }
-  delete annotations[ROUTING_CONFIG_REF_ANNOTATION];
-
-  const config = fieldData?.selectedConfig;
-  if (config) {
-    const configName = config.metadata.name;
-    annotations[ROUTING_CONFIG_REF_ANNOTATION] = configName;
-
-    if (!result.model.spec.baseRefs) {
-      result.model.spec.baseRefs = [];
-    }
-    if (!result.model.spec.baseRefs.some((r) => r.name === configName)) {
-      result.model.spec.baseRefs.push({ name: configName });
-    }
-  }
-
-  result.model.metadata.annotations = annotations;
+  const result = applyConfigRef(deployment, fieldData, {
+    annotationKey: ROUTING_CONFIG_REF_ANNOTATION,
+    configName: createLocalConfigName,
+  });
   return result;
 };
 

@@ -29,7 +29,10 @@ import {
   getConfigSupportedTopologies,
 } from '../types';
 import { isConfigEnabled } from '../utils';
-import { useFetchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
+import {
+  useFetchLLMInferenceServiceConfig,
+  useFetchRouterConfigs,
+} from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 import { fireRoutingSelected } from '../tracking/llmdTrackingConstants';
 import { DEFAULT_ROUTING_KEY, LLMD_ROUTING_FIELD_ID } from '../const';
@@ -40,7 +43,9 @@ export type AdvancedRoutingExternalData = {
   routerConfigs: LLMInferenceServiceConfigKind[];
 };
 
-export const useAdvancedRoutingData = (): {
+export const useAdvancedRoutingData = (
+  dependencies?: AdvancedRoutingDependencies,
+): {
   data: AdvancedRoutingExternalData;
   loaded: boolean;
   loadError?: Error;
@@ -48,22 +53,49 @@ export const useAdvancedRoutingData = (): {
   const { dashboardNamespace } = useDashboardNamespace();
   const { data: configs, loaded, error } = useFetchRouterConfigs(dashboardNamespace);
 
-  const enabledConfigs = React.useMemo(() => configs.filter(isConfigEnabled), [configs]);
+  const { configRef, project } = dependencies ?? {};
+  const projectName = project?.projectName;
+  const {
+    data: referencedConfig,
+    loaded: referencedLoaded,
+    error: referencedError,
+  } = useFetchLLMInferenceServiceConfig(configRef, projectName);
+
+  const routerConfigs = React.useMemo(() => {
+    const result = configs.filter(isConfigEnabled);
+    if (
+      referencedConfig &&
+      !result.some((config) => config.metadata.name === referencedConfig.metadata.name)
+    ) {
+      result.push(referencedConfig);
+    }
+    return result;
+  }, [configs, referencedConfig]);
 
   return React.useMemo(
     () => ({
-      data: { routerConfigs: enabledConfigs },
-      loaded,
-      loadError: error,
+      data: { routerConfigs },
+      loaded: loaded && (!configRef || !projectName || referencedLoaded || !!referencedError),
+      loadError: error ?? referencedError,
     }),
-    [enabledConfigs, loaded, error],
+    [routerConfigs, loaded, error, configRef, projectName, referencedLoaded, referencedError],
   );
 };
 
 // --- Dependencies ---
 
-type AdvancedRoutingDependencies = {
+export type AdvancedRoutingDependencies = {
+  project?: WizardFormData['state']['project'];
+  configRef?: string;
   topologyType?: TopologyTypeFieldData;
+};
+
+const isRecord = (data: unknown): data is Record<string, unknown> =>
+  typeof data === 'object' && data !== null;
+
+const readConfigRef = (data: unknown): string | undefined => {
+  const configRef = isRecord(data) ? data.configRef : undefined;
+  return typeof configRef === 'string' ? configRef : undefined;
 };
 
 // --- Field value ---
@@ -290,9 +322,11 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
   type: 'addition',
   isActive,
   reducerFunctions: {
-    resolveDependencies: (formData) => {
+    resolveDependencies: (formData, initialData) => {
       const rawTopologyData = formData['llmd-serving/topology-type'];
       return {
+        project: formData.project,
+        configRef: readConfigRef(initialData?.[LLMD_ROUTING_FIELD_ID]),
         topologyType: isTopologyTypeFieldData(rawTopologyData) ? rawTopologyData : undefined,
       };
     },
