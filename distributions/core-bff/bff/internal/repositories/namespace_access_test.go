@@ -122,13 +122,15 @@ func grant(allow map[string]bool, ns, group, resource string, verbs ...string) {
 
 func deployer(allow map[string]bool, ns string) {
 	grant(allow, ns, groupServing, "llminferenceservices", "get", "list", "watch", "create", "update", "patch", "delete")
+	grant(allow, ns, groupServing, "llminferenceserviceconfigs", "get", "list", "watch", "update", "patch")
 	tokenManager(allow, ns)
 	grant(allow, ns, "", "namespaces", "get")
 }
 
 // tokenManager grants what token authentication reads and writes.
 func tokenManager(allow map[string]bool, ns string) {
-	grant(allow, ns, "", "secrets", "create", "get", "list", "update", "patch", "delete")
+	grant(allow, ns, groupServing, "llminferenceservices", "get")
+	grant(allow, ns, "", "secrets", "create", "get", "list", "update", "delete")
 	grant(allow, ns, "", "serviceaccounts", "get", "create")
 	grant(allow, ns, groupRBAC, "roles", "get", "create")
 	grant(allow, ns, groupRBAC, "rolebindings", "get", "create")
@@ -164,9 +166,11 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 		return p
 	}
 	// tokenPerms is everything token authentication needs, with overrides.
+	cfg := PermissionKey(groupServing, "llminferenceserviceconfigs")
 	tokenPerms := func(override func(map[string]models.ResourcePermissions)) map[string]models.ResourcePermissions {
 		perms := map[string]models.ResourcePermissions{
-			sec:      all(A, "create", "get", "list", "update", "patch", "delete"),
+			llm:      all(A, "get"),
+			sec:      all(A, "create", "get", "list", "update", "delete"),
 			sa:       all(A, "get", "create"),
 			roles:    all(A, "get", "create"),
 			bindings: all(A, "get", "create"),
@@ -183,6 +187,21 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 	}
 	full := tokenPerms(nil)
 	full[llm] = all(A, "get", "list", "watch", "create", "update", "patch", "delete")
+	full[cfg] = all(A, "get", "list", "watch", "update", "patch")
+	// editor holds everything Edit needs: model patch and update, the
+	// deployment's config and its token Secrets.
+	editor := func(override func(map[string]models.ResourcePermissions)) map[string]models.ResourcePermissions {
+		perms := map[string]models.ResourcePermissions{
+			llm: with(with(viewVerbs(), "patch", A), "update", A),
+			cfg: all(A, "get", "list", "watch", "update", "patch"),
+			sec: all(A, "get", "list"),
+			sa:  all(A, "get"),
+		}
+		if override != nil {
+			override(perms)
+		}
+		return perms
+	}
 	for _, tc := range []struct {
 		name  string
 		perms map[string]models.ResourcePermissions
@@ -191,7 +210,7 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 		{
 			name:  "full deployer",
 			perms: full,
-			want:  models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, ManageTokenAuth: true},
+			want:  models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, CreateTokenAuth: true, ManageTokenAuth: true},
 		},
 		{
 			name:  "read-only is never offered mutations",
@@ -199,9 +218,9 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 			want:  models.NamespaceActions{View: true},
 		},
 		{
-			name:  "view needs watch: the deployments page watches models",
+			name:  "view does not need watch: the deployments page polls instead",
 			perms: map[string]models.ResourcePermissions{llm: with(viewVerbs(), "watch", D)},
-			want:  models.NamespaceActions{},
+			want:  models.NamespaceActions{View: true},
 		},
 		{
 			name:  "view needs both list and get",
@@ -219,13 +238,48 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 			want:  models.NamespaceActions{View: true, StartStop: true},
 		},
 		{
+			name:  "editor",
+			perms: editor(nil),
+			want:  models.NamespaceActions{View: true, Edit: true, StartStop: true},
+		},
+		{
 			name:  "edit needs update as well as patch",
-			perms: map[string]models.ResourcePermissions{llm: with(with(viewVerbs(), "patch", A), "update", D)},
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[llm]["update"] = D }),
 			want:  models.NamespaceActions{View: true, StartStop: true},
 		},
 		{
 			name:  "errored update fails edit closed",
-			perms: map[string]models.ResourcePermissions{llm: with(with(viewVerbs(), "patch", A), "update", E)},
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[llm]["update"] = E }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit needs to read the deployment's config, or saving drops its baseRefs",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[cfg]["list"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit needs to write the deployment's config copy back",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[cfg]["update"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit does not need watch on configs: the page polls instead",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[cfg]["watch"] = D }),
+			want:  models.NamespaceActions{View: true, Edit: true, StartStop: true},
+		},
+		{
+			name:  "edit needs the Hugging Face token ServiceAccount the wizard loads",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[sa]["get"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit needs to read the Hugging Face token Secret",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[sec]["get"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit needs to list the token Secrets, or the wizard cannot load the deployment",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[sec]["list"] = D }),
 			want:  models.NamespaceActions{View: true, StartStop: true},
 		},
 		{
@@ -241,17 +295,29 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 		{
 			name:  "Secret access alone does not grant model actions",
 			perms: tokenPerms(nil),
-			want:  models.NamespaceActions{ManageTokenAuth: true},
+			want:  models.NamespaceActions{CreateTokenAuth: true, ManageTokenAuth: true},
 		},
 		{
-			name:  "token auth needs the owner-reference patch on Secrets",
-			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sec]["patch"] = D }),
+			name:  "token auth needs get on the model, which the token Role grants",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[llm]["get"] = D }),
 			want:  models.NamespaceActions{},
 		},
 		{
-			name:  "token auth needs to list the existing token Secrets",
+			name:  "token auth needs to create Secrets",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sec]["create"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "managing existing tokens needs to list them; creating new ones does not",
 			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sec]["list"] = D }),
-			want:  models.NamespaceActions{},
+			want:  models.NamespaceActions{CreateTokenAuth: true},
+		},
+		{
+			name: "new tokens need only creation: no Secret list, update or delete",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) {
+				p[sec] = models.ResourcePermissions{"create": A, "get": D, "list": D, "update": D, "delete": D}
+			}),
+			want: models.NamespaceActions{CreateTokenAuth: true},
 		},
 		{
 			name:  "token auth needs to read the ServiceAccount",
@@ -301,12 +367,12 @@ func TestDiscover_NoNamespaceListPermission_MixedAccess(t *testing.T) {
 	assert.Equal(t, []string{"team-a", "team-b"}, names(list))
 
 	a, b := list.Namespaces[0], list.Namespaces[1]
-	assert.Equal(t, models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, ManageTokenAuth: true}, a.Actions)
+	assert.Equal(t, models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, CreateTokenAuth: true, ManageTokenAuth: true}, a.Actions)
 	assert.Equal(t, "Team A", a.DisplayName)
 	assert.Equal(t, "Active", a.Phase)
 	assert.Equal(t, models.NamespaceActions{View: true}, b.Actions)
 	assert.Equal(t, models.AccessDenied, b.Permissions[PermissionKey(groupServing, "llminferenceservices")]["create"])
-	assert.Equal(t, models.AccessDenied, b.Permissions[PermissionKey("", "secrets")]["get"])
+	assert.Equal(t, models.AccessDenied, b.Permissions[PermissionKey("", "secrets")]["list"])
 	assert.Equal(t, models.AccessAllowed, b.Permissions[PermissionKey("", "namespaces")]["get"])
 
 	// Every matrix entry is reported.
@@ -693,9 +759,9 @@ func TestDiscover_DefinitiveDenialWithAnUnrelatedFailureIsPartialEmpty(t *testin
 }
 
 func TestDiscover_FailureThatCouldEnableAnActionStaysUndecided(t *testing.T) {
-	// get and watch are allowed, so a list that errors could still enable view.
+	// get is allowed, so a list that errors could still enable view.
 	allow := map[string]bool{}
-	grant(allow, "only", groupServing, "llminferenceservices", "get", "watch")
+	grant(allow, "only", groupServing, "llminferenceservices", "get")
 	client := &rbacClient{allow: allow, fail: map[string]bool{key("only", groupServing, "llminferenceservices", "list"): true}}
 	repo := NewNamespaceAccessRepository([]string{"only"}, "", nil, "opendatahub")
 
@@ -813,7 +879,7 @@ func TestNamespacePermissionMatrix_CoversEveryActionReview(t *testing.T) {
 			verbs[PermissionKey(c.Group, c.Resource)+"|"+v]++
 		}
 	}
-	assert.Len(t, verbs, 23)
+	assert.Len(t, verbs, 25)
 	for k, n := range verbs {
 		assert.Equal(t, 1, n, k)
 	}

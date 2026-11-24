@@ -131,7 +131,8 @@ func newTokenKubernetesClientFromBase(ctx context.Context, baseConfig *rest.Conf
 	cfg.AuthProvider = nil
 
 	// client-go defaults to 5 QPS / burst 10 when unset. Namespace discovery
-	// reviews every candidate in its own namespace (up to 16 reviews each), so
+	// reviews every candidate in its own namespace (23 action reviews each, 26
+	// for a returned namespace), so
 	// that default would turn one page load into minutes. Load on the API
 	// server is bounded by discovery's in-flight limit; this rate only keeps a
 	// runaway client in check.

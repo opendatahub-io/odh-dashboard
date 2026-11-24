@@ -2081,29 +2081,38 @@ components:
 
     NamespaceActions:
       type: object
-      required: [view, deploy, edit, startStop, delete, manageTokenAuth]
+      required: [view, deploy, edit, startStop, delete, createTokenAuth, manageTokenAuth]
       properties:
         view:
           type: boolean
-          description: list, get and watch on llminferenceservices
+          description: list and get on llminferenceservices (watch is reported, not required)
         deploy:
           type: boolean
           description: create on llminferenceservices
         edit:
           type: boolean
-          description: patch and update on llminferenceservices
+          description: >-
+            patch and update on llminferenceservices; get, list, update and patch on
+            llminferenceserviceconfigs (the edit wizard loads the deployment's config copy and
+            saving writes it back; watch is reported, not required); get and list on secrets and get
+            on serviceaccounts, which the edit wizard reads
         startStop:
           type: boolean
           description: patch on llminferenceservices (starting and stopping patch an annotation)
         delete:
           type: boolean
           description: delete on llminferenceservices
+        createTokenAuth:
+          type: boolean
+          description: >-
+            create on secrets; get and create on serviceaccounts, roles and rolebindings; and get
+            on llminferenceservices, which the token Role grants: what setting up token
+            authentication on a new deployment needs
         manageTokenAuth:
           type: boolean
           description: >-
-            create, get, list, update, patch and delete on secrets, and get and create on
-            serviceaccounts, roles and rolebindings: everything token authentication reads and
-            writes
+            createTokenAuth plus list, update and delete on secrets: what managing the tokens of an
+            existing deployment needs
 
     NamespaceAccess:
       type: object
@@ -2161,7 +2170,9 @@ components:
           description: candidates means the caller cannot list namespaces; keep offering manual entry
         complete:
           type: boolean
-          description: False when any source or review failed, so namespaces may be missing
+          description: >-
+            False when any issue was recorded (a failed source or review, the candidate cap, or a
+            failed shared review), so namespaces or details may be missing
         issues:
           type: array
           items:
@@ -2723,11 +2734,11 @@ components:
                       displayName: Team A
                       phase: Active
                       isAiProject: true
-                      actions: { view: true, deploy: true, edit: true, startStop: true, delete: true, manageTokenAuth: true }
+                      actions: { view: true, deploy: true, edit: true, startStop: true, delete: true, createTokenAuth: true, manageTokenAuth: true }
                       permissions:
                         serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
-                        serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed }
-                        core/secrets: { create: allowed, get: allowed, list: allowed, update: allowed, patch: allowed, delete: allowed }
+                        serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed, watch: allowed, update: allowed, patch: allowed }
+                        core/secrets: { create: allowed, get: allowed, list: allowed, update: allowed, delete: allowed }
                         core/serviceaccounts: { get: allowed, create: allowed }
                         rbac.authorization.k8s.io/roles: { get: allowed, create: allowed }
                         rbac.authorization.k8s.io/rolebindings: { get: allowed, create: allowed }
@@ -2752,11 +2763,11 @@ components:
                   namespaces:
                     - name: team-b
                       phase: Unknown
-                      actions: { view: true, deploy: false, edit: false, startStop: false, delete: false, manageTokenAuth: false }
+                      actions: { view: true, deploy: false, edit: false, startStop: false, delete: false, createTokenAuth: false, manageTokenAuth: false }
                       permissions:
                         serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: denied, update: denied, patch: denied, delete: error }
-                        serving.kserve.io/llminferenceserviceconfigs: { get: denied, list: denied }
-                        core/secrets: { create: denied, get: denied, list: denied, update: denied, patch: denied, delete: denied }
+                        serving.kserve.io/llminferenceserviceconfigs: { get: denied, list: denied, watch: denied, update: denied, patch: denied }
+                        core/secrets: { create: denied, get: denied, list: denied, update: denied, delete: denied }
                         core/serviceaccounts: { get: denied, create: denied }
                         rbac.authorization.k8s.io/roles: { get: denied, create: denied }
                         rbac.authorization.k8s.io/rolebindings: { get: denied, create: denied }
@@ -2783,10 +2794,11 @@ components:
               displayName: Team A
               phase: Active
               isAiProject: true
-              actions: { view: true, deploy: true, edit: true, startStop: true, delete: true, manageTokenAuth: true }
+              actions: { view: true, deploy: true, edit: true, startStop: true, delete: true, createTokenAuth: true, manageTokenAuth: true }
               permissions:
                 serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
-                core/secrets: { create: allowed, get: allowed, list: allowed, update: allowed, patch: allowed, delete: allowed }
+                serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed, watch: allowed, update: allowed, patch: allowed }
+                core/secrets: { create: allowed, get: allowed, list: allowed, update: allowed, delete: allowed }
                 core/serviceaccounts: { get: allowed, create: allowed }
                 rbac.authorization.k8s.io/roles: { get: allowed, create: allowed }
                 rbac.authorization.k8s.io/rolebindings: { get: allowed, create: allowed }

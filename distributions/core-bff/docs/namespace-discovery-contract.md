@@ -54,7 +54,9 @@ available.
 With `cluster-list`, the caller's list is also authoritative for what exists: a `namespace` query
 parameter it does not contain is dropped, rather than reported as usable from cluster-wide grants.
 The candidate cap does not apply to it, so a caller who could already list every namespace keeps
-seeing every one they are authorized in (see [Cost](#cost)).
+seeing every one they are authorized in, within the request deadline (see [Cost](#cost)): on a
+cluster with more namespaces than one request can review, the rest are reported as failed reviews
+and the listing is partial.
 
 `NAMESPACE_DISCOVERY_LABEL_SELECTOR` is trimmed once at startup; a whitespace-only value disables
 label discovery, as validation treats it, instead of matching every namespace.
@@ -97,9 +99,9 @@ not returned, and its remaining reviews are skipped.
 | Key (`<group>/<resource>`)                         | Verbs                                                    | Why                                                                             |
 | -------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `serving.kserve.io/llminferenceservices`           | `get` `list` `watch` `create` `update` `patch` `delete`  | Model lifecycle: list/inspect/watch, deploy, edit, start/stop, delete (finalizers run server-side) |
-| `serving.kserve.io/llminferenceserviceconfigs`     | `get` `list`                                             | Namespace-local configs the wizard offers (optional detail)                     |
+| `serving.kserve.io/llminferenceserviceconfigs`     | `get` `list` `watch` `update` `patch`                    | Namespace-local configs: a deployment's own config copy (its `baseRefs`), which the deployments page watches, the edit wizard loads, and saving an edit writes back |
 | `core/pods`                                        | `get` `list`                                             | Deployment status and troubleshooting (optional detail)                         |
-| `core/secrets`                                     | `create` `get` `list` `update` `patch` `delete`          | Token-authentication Secrets; `list` reads a deployment's existing tokens, `update` replaces an existing token Secret, `patch` sets the owner reference to the LLMInferenceService, `delete` is explicit cleanup |
+| `core/secrets`                                     | `create` `get` `list` `update` `delete`                  | Token-authentication Secrets; `list` reads a deployment's existing tokens, `update` replaces an existing token Secret, `delete` removes a token, and `get` reads the Hugging Face token Secret when editing. The owner reference is set in the object itself |
 | `core/serviceaccounts`                             | `get` `create`                                           | The token ServiceAccount, created when missing                                  |
 | `rbac.authorization.k8s.io/roles`                  | `get` `create`                                           | The Role that lets the token read its model, created when missing               |
 | `rbac.authorization.k8s.io/rolebindings`           | `get` `create`                                           | The RoleBinding to that Role, created when missing                              |
@@ -132,31 +134,37 @@ Each review reports `allowed`, `denied` or `error`:
 
 This is specific to discovery, where an authorizer failure must not look like an empty result. The
 [error contract](./error-contract.md) rule that other access checks use `status.allowed` is
-unchanged. RBAC also reports an `evaluationError` when one of the caller's own bindings references a
-missing role; if nothing else decides, that review is reported as `error` as well.
+unchanged. A binding of the caller's to a missing role is not an authorizer error: RBAC reports it as the
+reason, so the review is `denied` unless something else allows it.
 
 ### Actions
 
 | Action            | Requires every one of                                        |
 | ----------------- | ------------------------------------------------------------ |
-| `view`            | `llminferenceservices` `list`, `get`, `watch`: the deployments page watches the models it lists |
+| `view`            | `llminferenceservices` `list`, `get`. `watch` is reported but not required: without it the deployments page polls the list instead of watching |
 | `deploy`          | `llminferenceservices` `create`                              |
-| `edit`            | `llminferenceservices` `patch` and `update`                  |
+| `edit`            | `llminferenceservices` `patch` and `update`; `llminferenceserviceconfigs` `get`, `list`, `update`, `patch`; `secrets` `get`, `list`; `serviceaccounts` `get`. The edit wizard first loads the deployment's config copy, its token Secrets and its Hugging Face token ServiceAccount and Secret; without them it cannot load the deployment, and saving would drop its config reference or its tokens. Saving writes the config copy back. As with `view`, the config `watch` is reported, not required |
 | `startStop`       | `llminferenceservices` `patch`: starting and stopping patch an annotation |
 | `delete`          | `llminferenceservices` `delete`                              |
-| `manageTokenAuth` | `secrets` `create`, `get`, `list`, `update`, `patch`, `delete`; `serviceaccounts`, `roles` and `rolebindings` `get`, `create` |
+| `createTokenAuth` | `secrets` `create`; `serviceaccounts`, `roles` and `rolebindings` `get`, `create`; `llminferenceservices` `get`. What token authentication on a new deployment needs |
+| `manageTokenAuth` | `createTokenAuth`, plus `secrets` `list`, `update`, `delete`. What managing the tokens of an existing deployment needs: they are listed, replaced on every save, and deleted when removed |
 
 An action is `true` only when every review it needs is `allowed`; a `denied` or `error` review
 hides it. A namespace is returned when at least one action is `true`. Admin flags, admission,
 dashboard labels and unrelated permissions (for example `pods` alone) never enable an action.
 
-A deploy that uses token authentication needs both `deploy` and `manageTokenAuth`; a read-only
-user gets `view` only and is offered no mutation. `configs` and `pods` are reported but enable no
-action: they are optional details, and the UI degrades without them.
+Actions are decided per namespace, not per deployment: `edit` requires the Hugging Face token
+ServiceAccount and Secret reads, and the config writes, even where no deployment uses a Hugging
+Face token or a config copy, because the edit wizard needs them for any that does.
+
+A deploy that uses token authentication needs both `deploy` and `createTokenAuth`, and an edit of
+its tokens `edit` and `manageTokenAuth`; a read-only
+user gets `view` only and is offered no mutation. `pods` are reported but enable no action: they
+only add status details, and the UI degrades without them.
 
 Creating the token Role and RoleBinding is also subject to Kubernetes' RBAC escalation check: the
-caller must hold the permissions the Role grants (`get` on the deployment's model). Any caller with
-`view` does, so discovery does not review `escalate` or `bind`.
+caller must hold the permissions the Role grants, `get` on the deployment's model. That is why
+both token actions require it; a create-only deployer gets `deploy` without token authentication.
 
 ## Outcomes
 
@@ -169,7 +177,7 @@ caller must hold the permissions the Role grants (`get` on the deployment's mode
 | Namespace does not exist, caller may read it               | not listed                                              | 404             |
 | Some reviews or a source failed, and at least one candidate was decided (authorized, denied or not found; a candidate is denied when no action is possible even if every failed review had been allowed) | 200, `complete: false`, `issues` lists codes and counts, including failures in namespaces that are still returned; `namespaces` may be empty | 503 if no action could be decided |
 | Nothing could be decided: every candidate's reviews failed, or there were no candidates and a source failed | 503 `SERVICE_UNAVAILABLE`, `error.issues` lists the codes and counts | 503 |
-| More than 200 candidates with `source: candidates`         | 200, requested names first then the rest by name, `CANDIDATES_TRUNCATED` | n/a |
+| More than 200 candidates with `source: candidates`         | 200, `complete: false`, requested names first then the rest by name, `CANDIDATES_TRUNCATED` | n/a |
 | Request deadline (25 s) expired                            | pending reviews count as failed, `DISCOVERY_DEADLINE_EXCEEDED`; 200 or 503 by the rows above | 503, even if an action was already allowed |
 
 `issues` never contains a namespace name, and error responses never echo one, so a failure cannot
@@ -202,7 +210,8 @@ namespace in its default "AI projects only" filter, without the AI badge, so it 
 `GET /api/v1/namespace-access/{name}`. A 404 means the endpoints are absent (not xKS), and the UI
 falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery:
 
-- Only `source: cluster-list` with `complete: true` is a complete listing. Anything else
+- Only `source: cluster-list` with `complete: true` is a complete listing. `complete` is `false`
+  whenever an issue was recorded, truncation and a failed shared review included. Anything else
   (`source: candidates`, failed reviews, the candidate cap) is shown as a partial listing: the
   authorized namespaces appear and manual entry stays available.
 - A `503` falls back to `GET /api/v1/namespaces`. Listing a namespace says nothing about the
@@ -215,24 +224,49 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
   target, and a caller with only such namespaces gets the deployments page's **Deploy model**
   empty state instead of **No projects**.
 - The deployments page needs only `view` to list a project's models. Pod and config reads only add
-  details, so a denied one is not reported as a page error; other failures still are.
+  details, so where the host reports actions for the project (RHAII with discovery) a denied Pod
+  read is not a page error, and a denied config read is not one while Edit is not offered. With
+  Edit offered (for example access revoked mid-session), and everywhere else, a denied config read
+  stays an error, since an edit without the config would drop it. Discovery reviews
+  LLMInferenceServices only: a denied KServe InferenceService read shows no KServe deployments
+  instead of an error (a denied ServingRuntime read stays one), and KServe rows keep every action (Edit included, also when saved), authorized by
+  Kubernetes. The wizard's deployment targets and token permission come from the same
+  LLMInferenceService reviews and also apply to a new KServe deployment.
+- Where token management was refused, saving never creates a deployment that requires tokens
+  nobody may create: a new LLM-d deployment that still requires authentication (as YAML can ask)
+  is rejected. An edit keeps the deployment's authentication setting, also from YAML. A KServe
+  external route still requires authentication then, rather than opening the model.
+- RHAII's Kubernetes transport rejects with k8s-core's `K8sStatusError`, as the ODH frontend does,
+  so the packages' status checks work: a `404` before creating a missing token ServiceAccount, Role
+  or RoleBinding, and a `403` on an optional read.
 - `getProjectDeploymentActions` on `ProjectsContext` carries `actions.edit`, `actions.startStop`,
-  `actions.delete` and `actions.manageTokenAuth`. The deployments table offers Edit only with
-  `edit`, Start and Stop (including Stop in the status modal) only with `startStop`, and Delete
-  only with `delete`.
-- The deployment wizard selects, edits and saves token authentication only with `manageTokenAuth`
-  as well as RoleBinding create access. Without it the field is disabled and holds only the
+  `actions.delete`, `actions.createTokenAuth` and `actions.manageTokenAuth`. The deployments table
+  offers Edit only with `edit`, Start and Stop (including Stop in the status modal) only with
+  `startStop`, and Delete only with `delete`.
+- The deployment wizard selects and saves token authentication only with `createTokenAuth` for a
+  new deployment, or `manageTokenAuth` for an edit, as well as RoleBinding create access. A token
+  action that is off only because one of its reviews failed (`error`) is treated as unknown, not
+  denied, so the wizard does not turn token authentication off; Kubernetes, and the dry run,
+  decide. Without it the field is disabled and holds only the
   existing tokens, which are left as they are; a draft token is kept, not saved, and comes back if
-  the permission does. Saving a new token that cannot be provisioned is rejected before anything
-  is written, in the LLM-d and KServe deploy paths alike. Wizard state without
-  `canManageTokenAuth` (older callers) keeps the RoleBinding check alone.
+  the permission does. Saving while such drafts are withheld is refused, with the reason shown in
+  the field, rather than deploying without the tokens the user added. Where the host refused token
+  management, the LLM-d and KServe deploy paths also reject a new token before anything is
+  written. A KServe edit is not gated by these LLMInferenceService-derived token actions. Without RoleBinding
+  create alone the wizard keeps its earlier behaviour: the field is disabled and token setup is
+  skipped. An LLM-d edit saved without the
+  permission keeps the deployment's existing authentication setting rather than deriving it from
+  the disabled field. Wizard state without `canManageTokenAuth` (older callers) keeps the
+  RoleBinding check alone.
 - A lookup the BFF denies (`403`, or `404` for a missing namespace) drops the project this session
-  cached, so it is no longer offered as a target. A failed lookup keeps it. An older lookup that
+  cached, so it is no longer offered as a target, and its actions read as denied (not unknown)
+  until a lookup allows it again. A failed lookup keeps it. An older lookup that
   completes after a newer one is ignored, including the background restoration of recent
   projects. A new deployment is saved only while its project is still a deployment target;
   editing an existing deployment is not affected.
 - Permissions are checked in one project, so YAML must deploy to it: the selected project for a
-  new deployment, the deployment's own for an edit. A YAML `metadata.namespace` that differs is
+  new deployment (which, where deploy targets are known, must be selected in the form), the
+  deployment's own for an edit. A YAML `metadata.namespace` that differs is
   rejected on save.
 - `Active` and `Unknown` namespaces are selectable; `Terminating` ones are not.
 - Only namespaces with `actions.deploy` are deployment targets. The provider sets
@@ -246,15 +280,18 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
 
 ## Cost
 
-For each candidate, the 19 action reviews; for a namespace that is returned, 4 more matrix reviews
-plus the named `get` (24 in all), and one namespace read when permitted. Reviews run concurrently
+For each candidate, the 23 action reviews; for a namespace that is returned, 2 more matrix reviews
+plus the named `get` (26 in all), and one namespace read when permitted. Reviews run concurrently
 with at most 16 in flight per request, which is what bounds the load on the API server, and at
 most 16 namespaces are evaluated at a time, which bounds the request's goroutines. Namespaces not
 started when the request is cancelled or its deadline passes count as failed reviews. The
 caller's per-request client allows 400 requests per second (burst 800) instead of client-go's 5/10
 default, which would otherwise throttle discovery to minutes. A request from configured
 candidates and label discovery evaluates at most 200 of them; a caller's own cluster list is not
-capped. Every request stops after 25 seconds, below the server's 60-second write timeout. Results are
+capped. Every request stops after 25 seconds, below the server's 60-second write timeout. At the client
+rate that bounds one request to roughly 10,000 reviews: about 390 namespaces the caller can use, or
+about 440 they cannot, fewer when authorizer webhooks are slow. Beyond that the listing is partial,
+and the remaining namespaces can still be entered by name. Results are
 not cached server-side; the response carries the per-identity no-store headers from the bootstrap
 contract.
 
@@ -272,12 +309,12 @@ contract.
         "phase": "Active",
         "displayName": "team-b",
         "isAiProject": false,
-        "actions": { "view": true, "deploy": false, "edit": false, "startStop": false, "delete": false, "manageTokenAuth": false },
+        "actions": { "view": true, "deploy": false, "edit": false, "startStop": false, "delete": false, "createTokenAuth": false, "manageTokenAuth": false },
         "permissions": {
           "serving.kserve.io/llminferenceservices": { "get": "allowed", "list": "allowed", "watch": "allowed", "create": "denied", "update": "denied", "patch": "denied", "delete": "denied" },
-          "serving.kserve.io/llminferenceserviceconfigs": { "get": "denied", "list": "denied" },
+          "serving.kserve.io/llminferenceserviceconfigs": { "get": "denied", "list": "denied", "watch": "denied", "update": "denied", "patch": "denied" },
           "core/pods": { "get": "denied", "list": "denied" },
-          "core/secrets": { "create": "denied", "get": "denied", "list": "denied", "update": "denied", "patch": "denied", "delete": "denied" },
+          "core/secrets": { "create": "denied", "get": "denied", "list": "denied", "update": "denied", "delete": "denied" },
           "core/serviceaccounts": { "get": "denied", "create": "denied" },
           "rbac.authorization.k8s.io/roles": { "get": "denied", "create": "denied" },
           "rbac.authorization.k8s.io/rolebindings": { "get": "denied", "create": "denied" },

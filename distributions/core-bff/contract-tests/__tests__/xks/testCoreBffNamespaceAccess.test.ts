@@ -57,6 +57,7 @@ describe('Core BFF namespace access - XKS Platform', () => {
       edit: false,
       startStop: false,
       delete: false,
+      createTokenAuth: false,
       manageTokenAuth: false,
     });
     expect(data.namespaces[0].permissions['serving.kserve.io/llminferenceservices'].create).toBe(
@@ -70,6 +71,7 @@ describe('Core BFF namespace access - XKS Platform', () => {
     expect(data.namespaces[0].actions.deploy).toBe(true);
     expect(data.namespaces[0].actions.startStop).toBe(true);
     expect(data.namespaces[0].actions.delete).toBe(true);
+    expect(data.namespaces[0].actions.createTokenAuth).toBe(true);
     expect(data.namespaces[0].actions.manageTokenAuth).toBe(true);
   });
 

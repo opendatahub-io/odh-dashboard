@@ -58,18 +58,23 @@ type accessCheck struct {
 // enables an action is not returned, so its remaining reviews are skipped.
 var actionPermissionMatrix = []accessCheck{
 	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"get", "list", "watch", "create", "update", "patch", "delete"}},
-	// Token authentication: the token Secrets, and the ServiceAccount, Role
-	// and RoleBinding the wizard gets and creates if missing.
-	{Group: "", Resource: "secrets", Verbs: []string{"create", "get", "list", "update", "patch", "delete"}},
+	// Editing reads the deployment's namespace-local config (its baseRefs),
+	// its token Secrets, and its Hugging Face token ServiceAccount and Secret;
+	// saving without them would drop them. Saving also writes that config copy
+	// back (update, or patch on overwrite).
+	{Group: groupServing, Resource: "llminferenceserviceconfigs", Verbs: []string{"get", "list", "watch", "update", "patch"}},
+	// Token authentication: the token Secrets (listed, created, replaced,
+	// deleted), and the ServiceAccount, Role and RoleBinding the wizard gets
+	// and creates if missing.
+	{Group: "", Resource: "secrets", Verbs: []string{"create", "get", "list", "update", "delete"}},
 	{Group: "", Resource: "serviceaccounts", Verbs: []string{"get", "create"}},
 	{Group: groupRBAC, Resource: "roles", Verbs: []string{"get", "create"}},
 	{Group: groupRBAC, Resource: "rolebindings", Verbs: []string{"get", "create"}},
 }
 
 // detailPermissionMatrix completes the matrix for namespaces that are
-// returned: the optional reads behind deployment details.
+// returned: the optional reads behind deployment status.
 var detailPermissionMatrix = []accessCheck{
-	{Group: groupServing, Resource: "llminferenceserviceconfigs", Verbs: []string{"get", "list"}},
 	{Group: "", Resource: "pods", Verbs: []string{"get", "list"}},
 }
 
@@ -443,22 +448,38 @@ func DeriveNamespaceActions(perms map[string]models.ResourcePermissions) models.
 		}
 		return true
 	}
-	// View needs watch: the deployments page watches the models it lists.
-	// Edit needs both patch and update: the wizard may save with either verb.
+	// View lists and gets the models; the page's watch falls back to polling
+	// the list when watch is denied, so watch is reported but not required.
+	// Edit saves with update, or patch when overwriting. The edit wizard first
+	// reads the deployment's config, its token Secrets and its Hugging Face
+	// token ServiceAccount and Secret: without them it cannot load the
+	// deployment, and saving would drop its config reference or its tokens.
+	// Saving writes the deployment's config copy too. As with the models, the
+	// page's config watch falls back to polling the list, so watch on configs
+	// is reported but not required.
 	// Start and Stop only patch an annotation.
-	// Token authentication lists the existing token Secrets, replaces them
-	// (update) and patches their owner reference, and gets or creates the
-	// ServiceAccount, Role and RoleBinding behind them.
+	// Token authentication on a new deployment gets or creates the
+	// ServiceAccount, Role and RoleBinding and creates the token Secrets, whose
+	// owner reference is set in the object itself. Creating that Role is
+	// subject to RBAC escalation prevention: it grants get on the model, which
+	// the caller must hold. Managing the tokens of an existing deployment also
+	// lists them, replaces them (update) and deletes removed ones.
+	createTokens := allowed(groupServing, "llminferenceservices", "get") &&
+		allowed("", "secrets", "create") &&
+		allowed("", "serviceaccounts", "get", "create") &&
+		allowed(groupRBAC, "roles", "get", "create") &&
+		allowed(groupRBAC, "rolebindings", "get", "create")
 	return models.NamespaceActions{
-		View:      allowed(groupServing, "llminferenceservices", "list", "get", "watch"),
-		Deploy:    allowed(groupServing, "llminferenceservices", "create"),
-		Edit:      allowed(groupServing, "llminferenceservices", "patch", "update"),
-		StartStop: allowed(groupServing, "llminferenceservices", "patch"),
-		Delete:    allowed(groupServing, "llminferenceservices", "delete"),
-		ManageTokenAuth: allowed("", "secrets", "create", "get", "list", "update", "patch", "delete") &&
-			allowed("", "serviceaccounts", "get", "create") &&
-			allowed(groupRBAC, "roles", "get", "create") &&
-			allowed(groupRBAC, "rolebindings", "get", "create"),
+		View:   allowed(groupServing, "llminferenceservices", "list", "get"),
+		Deploy: allowed(groupServing, "llminferenceservices", "create"),
+		Edit: allowed(groupServing, "llminferenceservices", "patch", "update") &&
+			allowed(groupServing, "llminferenceserviceconfigs", "get", "list", "update", "patch") &&
+			allowed("", "secrets", "get", "list") &&
+			allowed("", "serviceaccounts", "get"),
+		StartStop:       allowed(groupServing, "llminferenceservices", "patch"),
+		Delete:          allowed(groupServing, "llminferenceservices", "delete"),
+		CreateTokenAuth: createTokens,
+		ManageTokenAuth: createTokens && allowed("", "secrets", "list", "update", "delete"),
 	}
 }
 

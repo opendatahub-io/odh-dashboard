@@ -36,7 +36,8 @@ func TestNamespaceAccess_RoleShapes(t *testing.T) {
 	modelRule := func(verbs ...string) rbacv1.PolicyRule {
 		return rbacv1.PolicyRule{APIGroups: []string{"serving.kserve.io"}, Resources: []string{"llminferenceservices"}, Verbs: verbs}
 	}
-	secrets := rbacv1.PolicyRule{APIGroups: []string{""}, Resources: []string{"secrets"}, Verbs: []string{"create", "get", "list", "update", "patch", "delete"}}
+	secrets := rbacv1.PolicyRule{APIGroups: []string{""}, Resources: []string{"secrets"}, Verbs: []string{"create", "get", "list", "update", "delete"}}
+	configs := rbacv1.PolicyRule{APIGroups: []string{"serving.kserve.io"}, Resources: []string{"llminferenceserviceconfigs"}, Verbs: []string{"get", "list", "watch", "update", "patch"}}
 	serviceAccounts := rbacv1.PolicyRule{APIGroups: []string{""}, Resources: []string{"serviceaccounts"}, Verbs: []string{"get", "create"}}
 	roles := rbacv1.PolicyRule{APIGroups: []string{"rbac.authorization.k8s.io"}, Resources: []string{"roles"}, Verbs: []string{"get", "create"}}
 	roleBindings := rbacv1.PolicyRule{APIGroups: []string{"rbac.authorization.k8s.io"}, Resources: []string{"rolebindings"}, Verbs: []string{"get", "create"}}
@@ -52,14 +53,16 @@ func TestNamespaceAccess_RoleShapes(t *testing.T) {
 		{
 			name:  "full deployer",
 			ns:    "shape-full",
-			rules: []rbacv1.PolicyRule{allModelVerbs, secrets, serviceAccounts, roles, roleBindings},
-			want:  &models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, ManageTokenAuth: true},
+			rules: []rbacv1.PolicyRule{allModelVerbs, configs, secrets, serviceAccounts, roles, roleBindings},
+			want:  &models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, CreateTokenAuth: true, ManageTokenAuth: true},
 		},
 		{
 			name:  "token Secrets and RoleBindings without ServiceAccount and Role reads",
 			ns:    "shape-token-prereqs",
-			rules: []rbacv1.PolicyRule{allModelVerbs, secrets, roleBindings},
-			want:  &models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true},
+			rules: []rbacv1.PolicyRule{allModelVerbs, configs, secrets, roleBindings},
+			// Without ServiceAccount reads neither token auth nor Edit (which
+			// loads the Hugging Face token ServiceAccount) is offered.
+			want: &models.NamespaceActions{View: true, Deploy: true, StartStop: true, Delete: true},
 		},
 		{
 			name:  "patch-only starts and stops but does not edit",
@@ -74,16 +77,40 @@ func TestNamespaceAccess_RoleShapes(t *testing.T) {
 			want:  &models.NamespaceActions{Deploy: true},
 		},
 		{
+			name:  "model editor without config reads cannot edit",
+			ns:    "shape-edit-no-configs",
+			rules: []rbacv1.PolicyRule{modelRule("get", "list", "watch", "patch", "update"), secrets, serviceAccounts},
+			want:  &models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "model editor without ServiceAccount reads cannot load an HF-token deployment",
+			ns:    "shape-edit-no-sa",
+			rules: []rbacv1.PolicyRule{modelRule("get", "list", "watch", "patch", "update"), configs, secrets},
+			want:  &models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "create-only deployer with token permissions cannot grant the token Role",
+			ns:    "shape-create-token",
+			rules: []rbacv1.PolicyRule{modelRule("create"), secrets, serviceAccounts, roles, roleBindings},
+			want:  &models.NamespaceActions{Deploy: true},
+		},
+		{
+			name:  "token creation without managing existing tokens",
+			ns:    "shape-token-create-only",
+			rules: []rbacv1.PolicyRule{modelRule("get", "list", "watch", "create"), {APIGroups: []string{""}, Resources: []string{"secrets"}, Verbs: []string{"create"}}, serviceAccounts, roles, roleBindings},
+			want:  &models.NamespaceActions{View: true, Deploy: true, CreateTokenAuth: true},
+		},
+		{
 			name:  "read-only",
 			ns:    "shape-read-only",
 			rules: []rbacv1.PolicyRule{modelRule("get", "list", "watch")},
 			want:  &models.NamespaceActions{View: true},
 		},
 		{
-			name:  "list and get without watch cannot browse the deployments page",
+			name:  "list and get without watch browse by polling",
 			ns:    "shape-no-watch",
 			rules: []rbacv1.PolicyRule{modelRule("get", "list")},
-			want:  nil,
+			want:  &models.NamespaceActions{View: true},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

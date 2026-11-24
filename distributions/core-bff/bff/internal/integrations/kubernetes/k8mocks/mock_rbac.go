@@ -244,7 +244,7 @@ func createLLMInferenceServiceRBAC(ctx context.Context, client k8sclient.Interfa
 			rbacv1.PolicyRule{
 				APIGroups: []string{""},
 				Resources: []string{"secrets"},
-				Verbs:     []string{"create", "get", "list", "update", "patch", "delete"},
+				Verbs:     []string{"create", "get", "list", "update", "delete"},
 			},
 			rbacv1.PolicyRule{
 				APIGroups: []string{""},
@@ -255,6 +255,11 @@ func createLLMInferenceServiceRBAC(ctx context.Context, client k8sclient.Interfa
 				APIGroups: []string{"rbac.authorization.k8s.io"},
 				Resources: []string{"roles", "rolebindings"},
 				Verbs:     []string{"get", "create"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{"serving.kserve.io"},
+				Resources: []string{"llminferenceserviceconfigs"},
+				Verbs:     []string{"get", "list", "watch", "update", "patch"},
 			},
 		)
 	}
