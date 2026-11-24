@@ -196,7 +196,11 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme, currentYear: number): Th
       MuiAutocomplete: {
         styleOverrides: {
           option: {
+            padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
             paddingRight: 'var(--pf-t--global--spacer--lg) !important',
+          },
+          paper: {
+            backgroundColor: 'var(--pf-t--global--background--color--floating--default)',
           },
         },
       },
@@ -295,6 +299,24 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme, currentYear: number): Th
         styleOverrides: {
           root: {
             padding: 'var(--pf-t--global--spacer--lg)',
+          },
+        },
+      },
+      // Floating overlays must stay opaque in glass mode — the primary surface
+      // token they would inherit is translucent under glass, letting the page
+      // content behind a dropdown show through. PatternFly's own menus use the
+      // floating token for exactly this distinction.
+      MuiMenu: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: 'var(--pf-t--global--background--color--floating--default)',
+          },
+        },
+      },
+      MuiPopover: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: 'var(--pf-t--global--background--color--floating--default)',
           },
         },
       },

@@ -56,6 +56,7 @@ func applyXKSOverrides(config map[string]any) {
 	dc["disableISVBadges"] = true
 	dc["disableAppLauncher"] = true
 	dc["disablePipelines"] = true
+	dc["hideCommunityPluginsSettingsPage"] = true
 	dc["mlflow"] = false
 }
 
