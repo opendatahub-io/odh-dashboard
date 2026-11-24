@@ -57,30 +57,6 @@ class MaaSPortalPage {
     return cy.get<string>('@storedApiKey', { log: false });
   }
 
-  logout(): void {
-    cy.findByRole('button', { name: 'User menu' }).click();
-    cy.findByRole('menuitem', { name: 'Log out' }).click();
-    cy.url({ timeout: 30000 }).should('match', /logout_response|oauth2\/sign_out|maas-portal/);
-  }
-
-  logoutAndLogin(url: string, credentials: UserAuthConfig): void {
-    this.logout();
-    this.visitWithLogin(url, credentials);
-  }
-
-  reload(): void {
-    cy.reload();
-    this.findNavigation().should('be.visible');
-  }
-
-  openModelEndpointDetailsAt(index: number): void {
-    cy.findByTestId('ai-models-table')
-      .find('tr:has(td)')
-      .eq(index)
-      .findByTestId('endpoint-view-button')
-      .click();
-  }
-
   openModelEndpointDetailsFor(modelId: string): void {
     cy.findByTestId('ai-models-table')
       .find('tr:has(td)')
