@@ -4,7 +4,10 @@ import {
   EmptyState,
   EmptyStateVariant,
   EmptyStateBody,
+  EmptyStateActions,
+  EmptyStateFooter,
   Bullseye,
+  Button,
   Spinner,
   Truncate,
 } from '@patternfly/react-core';
@@ -26,7 +29,9 @@ import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
 import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import PipelineRecurringRunReferenceName from '#~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
 import useExecutionsForPipelineRun from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
+import useTasksForPipelineRun from '#~/concepts/pipelines/apiHooks/useTasksForPipelineRun';
 import { useGetEventsByExecutionIds } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
+import { executionsForSelectedNode } from '#~/concepts/pipelines/topology/iterationExecutions';
 import { PipelineTopology } from '#~/concepts/topology';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
@@ -54,13 +59,17 @@ const PipelineRunDetails: React.FC<
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
 
   const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(run);
+  const [tasks, tasksLoaded, tasksError, refreshTasks] = useTasksForPipelineRun(run);
   const [artifacts] = usePipelineRunArtifacts(run);
-  const [events] = useGetEventsByExecutionIds(
-    React.useMemo(() => executions.map((execution) => execution.getId()), [executions]),
+  const executionIds = React.useMemo(
+    () => executions.map((execution) => execution.getId()),
+    [executions],
   );
+  const [events] = useGetEventsByExecutionIds(executionIds);
   const nodes = usePipelineTaskTopology(
     pipelineSpec,
     run?.run_details,
+    tasks,
     executions,
     events,
     artifacts,
@@ -76,55 +85,41 @@ const PipelineRunDetails: React.FC<
     return selectedIds ? nodes.find((n) => n.id === selectedIds[0]) : undefined;
   }, [isInvalidPipelineVersion, selectedIds, nodes]);
 
-  // Scope executions for the drawer based on the selected node's iteration context
-  const drawerExecutions = React.useMemo(() => {
-    if (selectedNode) {
-      // Check the selected node itself for iterationParentDagId (iteration group)
-      const directDagId = selectedNode.data?.pipelineTask?.iterationParentDagId;
-      if (directDagId != null) {
-        return executions.filter((e) => {
-          const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
-          return parentId === directDagId;
-        });
-      }
-      // Otherwise, find the parent iteration group that contains this node as a child
-      const parentIterGroup = nodes.find(
-        (n) =>
-          n.group &&
-          n.children?.includes(selectedNode.id) &&
-          n.data?.pipelineTask?.iterationParentDagId != null,
-      );
-      if (parentIterGroup) {
-        const iterDagId = parentIterGroup.data?.pipelineTask?.iterationParentDagId;
-        if (iterDagId != null) {
-          return executions.filter((e) => {
-            const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
-            return parentId === iterDagId;
-          });
-        }
-      }
-    }
-    return executions;
-  }, [executions, nodes, selectedNode]);
+  const drawerExecutions = React.useMemo(
+    () => executionsForSelectedNode(executions, selectedNode, nodes),
+    [executions, nodes, selectedNode],
+  );
 
   const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec || !!versionError);
   const error = runError;
+  const tasksPending = Boolean(run?.run_id) && !tasksLoaded && !tasksError;
 
-  if (error) {
+  if (error || tasksError) {
     return (
       <EmptyState
         headingLevel="h4"
         icon={ExclamationCircleIcon}
-        titleText="Error loading pipeline run details"
+        titleText={
+          error ? 'Error loading pipeline run details' : 'Error loading pipeline run tasks'
+        }
         variant={EmptyStateVariant.lg}
         data-id="error-empty-state"
       >
-        <EmptyStateBody>{error.message}</EmptyStateBody>
+        <EmptyStateBody>{(error ?? tasksError)?.message}</EmptyStateBody>
+        {tasksError && !error && (
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="primary" onClick={() => refreshTasks()}>
+                Retry
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        )}
       </EmptyState>
     );
   }
 
-  if (!loaded || (!executionsLoaded && !executionsError)) {
+  if (!loaded || (!executionsLoaded && !executionsError) || tasksPending) {
     return (
       <Bullseye>
         <Spinner />

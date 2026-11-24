@@ -43,6 +43,7 @@ jest.mock('@patternfly/react-topology', () => ({
   WithSelectionProps: {},
 }));
 
+/* eslint-disable camelcase */
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
 import { mockLargePipelineSpec } from '#~/concepts/pipelines/topology/__tests__/mockPipelineSpec';
@@ -51,42 +52,48 @@ import {
   mockParallelForWithArtifactsPipelineSpec,
 } from '#~/concepts/pipelines/topology/__tests__/mockParallelForPipelineSpec';
 import { PipelineNodeModelExpanded } from '#~/concepts/topology/types';
-import { Execution, Value } from '#~/third_party/mlmd';
+import {
+  ArtifactType,
+  PipelineSpecVariable,
+  PipelineTaskKF,
+  RuntimeStateKF,
+  TaskStateKF,
+  TaskTypeKF,
+} from '#~/concepts/pipelines/kfTypes';
+import { Artifact, Event, Execution, Value } from '#~/third_party/mlmd';
 
 const DEFAULT_TASK_NODE_TYPE = 'DEFAULT_TASK_NODE';
 const EXECUTION_TASK_NODE_TYPE = 'EXECUTION_TASK_NODE';
 const ICON_TASK_NODE_TYPE = 'ICON_TASK_NODE';
 
-/** Helper: create a mock Execution with id, state, task_name, and optional MLMD properties. */
-const createMockExecution = (
-  id: number,
-  state: Execution.State,
+/** Helper: a v2beta1 task. Iteration fields are decimal strings. */
+const createMockTask = (
+  taskId: string,
+  state: TaskStateKF,
   taskName: string,
-  opts?: { parentDagId?: number; iterationCount?: number; iterationIndex?: number },
-): Execution => {
-  const exec = new Execution();
-  exec.setId(id);
-  exec.setLastKnownState(state);
-  exec.setCreateTimeSinceEpoch(Date.now());
-  exec.setLastUpdateTimeSinceEpoch(Date.now());
-
-  const nameVal = new Value();
-  exec.getCustomPropertiesMap().set('task_name', nameVal.setStringValue(taskName));
-
-  if (opts?.parentDagId != null) {
-    const val = new Value();
-    exec.getCustomPropertiesMap().set('parent_dag_id', val.setIntValue(opts.parentDagId));
-  }
-  if (opts?.iterationCount != null) {
-    const val = new Value();
-    exec.getCustomPropertiesMap().set('iteration_count', val.setIntValue(opts.iterationCount));
-  }
-  if (opts?.iterationIndex != null) {
-    const val = new Value();
-    exec.getCustomPropertiesMap().set('iteration_index', val.setIntValue(opts.iterationIndex));
-  }
-  return exec;
-};
+  opts?: {
+    parentTaskId?: string;
+    iterationCount?: string;
+    iterationIndex?: string;
+    type?: TaskTypeKF;
+    childTasks?: PipelineTaskKF['child_tasks'];
+  },
+): PipelineTaskKF => ({
+  task_id: taskId,
+  run_id: 'run-1',
+  name: taskName,
+  display_name: taskName,
+  state,
+  type: opts?.type ?? (opts?.iterationCount != null ? TaskTypeKF.LOOP : TaskTypeKF.RUNTIME),
+  parent_task_id: opts?.parentTaskId,
+  type_attributes:
+    opts?.iterationCount != null || opts?.iterationIndex != null
+      ? { iteration_count: opts.iterationCount, iteration_index: opts.iterationIndex }
+      : undefined,
+  child_tasks: opts?.childTasks,
+  create_time: '2024-04-16T16:34:56.322Z',
+  end_time: '2024-04-16T16:34:56.524Z',
+});
 
 describe('usePipelineTaskTopology', () => {
   beforeEach(() => {
@@ -110,42 +117,44 @@ describe('usePipelineTaskTopology', () => {
   });
 
   describe('ParallelFor inline expansion', () => {
-    it('should render for-loop-2 as a group node without executions', () => {
+    const parallelForTasks = (
+      count: string,
+      childState = TaskStateKF.SUCCEEDED,
+    ): PipelineTaskKF[] => {
+      const total = Number(count);
+      const childTasks = Array.from({ length: total }, (_, index) => ({
+        task_id: `iter-${index}`,
+        name: 'for-loop-2',
+      }));
+      return [
+        createMockTask('loop-1', TaskStateKF.RUNNING, 'for-loop-2', {
+          iterationCount: count,
+          type: TaskTypeKF.LOOP,
+          childTasks,
+        }),
+        ...childTasks.map((child, index) =>
+          createMockTask(child.task_id, childState, 'for-loop-2', {
+            parentTaskId: 'loop-1',
+            iterationIndex: String(index),
+          }),
+        ),
+      ];
+    };
+
+    it('should render for-loop-2 as a group node without tasks', () => {
       const renderResult = testHook(usePipelineTaskTopology)(mockParallelForPipelineSpec);
       const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
 
-      // Without executions, no iterations are synthesized — just the group node + its child task
       const forLoopNode = nodes.find((n) => n.id === 'for-loop-2');
       expect(forLoopNode).toBeDefined();
       expect(forLoopNode?.group).toBe(true);
     });
 
-    it('should synthesize iteration sub-groups when executions provide iteration_count', () => {
-      // DAG execution for for-loop-2 with 3 iterations
-      const dagExec = createMockExecution(100, Execution.State.RUNNING, 'for-loop-2', {
-        iterationCount: 3,
-      });
-
-      // Iteration executions
-      const iter0 = createMockExecution(101, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 0,
-      });
-      const iter1 = createMockExecution(102, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 1,
-      });
-      const iter2 = createMockExecution(103, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 2,
-      });
-
-      const executions = [dagExec, iter0, iter1, iter2];
-
+    it('should synthesize iteration sub-groups from decimal-string iteration fields', () => {
       const renderResult = testHook(usePipelineTaskTopology)(
         mockParallelForPipelineSpec,
         undefined,
-        executions,
+        parallelForTasks('3'),
       );
       const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
 
@@ -178,24 +187,10 @@ describe('usePipelineTaskTopology', () => {
     });
 
     it('should prefix child task IDs with iteration node ID', () => {
-      const dagExec = createMockExecution(100, Execution.State.RUNNING, 'for-loop-2', {
-        iterationCount: 2,
-      });
-      const iter0 = createMockExecution(101, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 0,
-      });
-      const iter1 = createMockExecution(102, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 1,
-      });
-
-      const executions = [dagExec, iter0, iter1];
-
       const renderResult = testHook(usePipelineTaskTopology)(
         mockParallelForPipelineSpec,
         undefined,
-        executions,
+        parallelForTasks('2'),
       );
       const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
 
@@ -211,24 +206,10 @@ describe('usePipelineTaskTopology', () => {
     });
 
     it('should aggregate recursive status for the parent group node', () => {
-      const dagExec = createMockExecution(100, Execution.State.RUNNING, 'for-loop-2', {
-        iterationCount: 2,
-      });
-      const iter0 = createMockExecution(101, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 0,
-      });
-      const iter1 = createMockExecution(102, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 1,
-      });
-
-      const executions = [dagExec, iter0, iter1];
-
       const renderResult = testHook(usePipelineTaskTopology)(
         mockParallelForPipelineSpec,
         undefined,
-        executions,
+        parallelForTasks('2'),
       );
       const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
 
@@ -237,33 +218,46 @@ describe('usePipelineTaskTopology', () => {
       expect(forLoopNode?.data?.pipelineTask.status?.state).toBe('Complete');
     });
 
-    it('should set iterationParentDagId on each iteration group node', () => {
-      const dagExec = createMockExecution(100, Execution.State.RUNNING, 'for-loop-2', {
-        iterationCount: 2,
-      });
-      const iter0 = createMockExecution(101, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 0,
-      });
-      const iter1 = createMockExecution(102, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 1,
-      });
-
-      const executions = [dagExec, iter0, iter1];
-
+    it('should set iterationParentTaskId from the iteration task id', () => {
       const renderResult = testHook(usePipelineTaskTopology)(
         mockParallelForPipelineSpec,
         undefined,
-        executions,
+        parallelForTasks('2'),
       );
       const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
 
       const iterGroup0 = nodes.find((n) => n.id === 'for-loop-2-iteration-0');
       const iterGroup1 = nodes.find((n) => n.id === 'for-loop-2-iteration-1');
 
-      expect(iterGroup0?.data?.pipelineTask.iterationParentDagId).toBe(101);
-      expect(iterGroup1?.data?.pipelineTask.iterationParentDagId).toBe(102);
+      expect(iterGroup0?.data?.pipelineTask.iterationParentTaskId).toBe('iter-0');
+      expect(iterGroup1?.data?.pipelineTask.iterationParentTaskId).toBe('iter-1');
+      expect(iterGroup0?.data?.pipelineTask.iterationIndex).toBe(0);
+      expect(iterGroup1?.data?.pipelineTask.iterationIndex).toBe(1);
+      expect(iterGroup0?.data?.pipelineTask.iterationTaskName).toBe('for-loop-2');
+    });
+
+    it('should give each iteration its own child status', () => {
+      const renderResult = testHook(usePipelineTaskTopology)(
+        mockParallelForPipelineSpec,
+        undefined,
+        [
+          ...parallelForTasks('2'),
+          createMockTask('leaf-0', TaskStateKF.SUCCEEDED, 'simple-task', {
+            parentTaskId: 'iter-0',
+          }),
+          createMockTask('leaf-1', TaskStateKF.FAILED, 'simple-task', { parentTaskId: 'iter-1' }),
+        ],
+      );
+      const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+
+      expect(
+        nodes.find((n) => n.id === 'for-loop-2-iteration-0~simple-task')?.data?.pipelineTask.status
+          ?.state,
+      ).toBe('Complete');
+      expect(
+        nodes.find((n) => n.id === 'for-loop-2-iteration-1~simple-task')?.data?.pipelineTask.status
+          ?.state,
+      ).toBe('Failed');
     });
 
     it('should handle ParallelFor without any executions gracefully', () => {
@@ -283,24 +277,10 @@ describe('usePipelineTaskTopology', () => {
     });
 
     it('should prefix artifact producerTask references for correct edge resolution', () => {
-      const dagExec = createMockExecution(100, Execution.State.RUNNING, 'for-loop-2', {
-        iterationCount: 2,
-      });
-      const iter0 = createMockExecution(101, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 0,
-      });
-      const iter1 = createMockExecution(102, Execution.State.COMPLETE, 'for-loop-2', {
-        parentDagId: 100,
-        iterationIndex: 1,
-      });
-
-      const executions = [dagExec, iter0, iter1];
-
       const renderResult = testHook(usePipelineTaskTopology)(
         mockParallelForWithArtifactsPipelineSpec,
         undefined,
-        executions,
+        parallelForTasks('2'),
       );
       const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
 
@@ -321,5 +301,574 @@ describe('usePipelineTaskTopology', () => {
       );
       expect(artifactNodes.length).toBeGreaterThan(0);
     });
+
+    it('should cap inline iterations for a large decimal iteration_count', () => {
+      const renderResult = testHook(usePipelineTaskTopology)(
+        mockParallelForPipelineSpec,
+        undefined,
+        [
+          createMockTask('loop-1', TaskStateKF.RUNNING, 'for-loop-2', {
+            iterationCount: '250',
+            type: TaskTypeKF.LOOP,
+          }),
+        ],
+      );
+      const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+      const iterationNodes = nodes.filter(
+        (n) => n.id.startsWith('for-loop-2-iteration-') && !n.id.includes('~'),
+      );
+      expect(iterationNodes).toHaveLength(100);
+      expect(nodes.find((n) => n.id === 'for-loop-2')?.data?.pipelineTask.iterationCount).toBe(250);
+    });
+
+    it('should find an iteration listed only in child_tasks', () => {
+      const renderResult = testHook(usePipelineTaskTopology)(
+        mockParallelForPipelineSpec,
+        undefined,
+        [
+          createMockTask('loop-1', TaskStateKF.RUNNING, 'for-loop-2', {
+            iterationCount: '1',
+            type: TaskTypeKF.LOOP,
+            childTasks: [{ task_id: 'iter-0', name: 'for-loop-2' }],
+          }),
+          createMockTask('iter-0', TaskStateKF.SUCCEEDED, 'for-loop-2', {
+            iterationIndex: '0',
+          }),
+        ],
+      );
+      const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+      expect(
+        nodes.find((n) => n.id === 'for-loop-2-iteration-0')?.data?.pipelineTask
+          .iterationParentTaskId,
+      ).toBe('iter-0');
+    });
+  });
+
+  it('should color a sequential task from its runtime task state', () => {
+    const spec = {
+      components: {
+        'comp-a': { executorLabel: 'exec-a' },
+        'comp-b': { executorLabel: 'exec-b' },
+      },
+      deploymentSpec: {
+        executors: {
+          'exec-a': { container: { image: 'a' } },
+          'exec-b': { container: { image: 'b' } },
+        },
+      },
+      pipelineInfo: { name: 'sequential' },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.15.2',
+      root: {
+        dag: {
+          tasks: {
+            a: { componentRef: { name: 'comp-a' }, taskInfo: { name: 'step-a' } },
+            b: {
+              componentRef: { name: 'comp-b' },
+              taskInfo: { name: 'step-b' },
+              dependentTasks: ['a'],
+            },
+          },
+        },
+      },
+    } as PipelineSpecVariable;
+
+    const renderResult = testHook(usePipelineTaskTopology)(spec, undefined, [
+      createMockTask('root-1', TaskStateKF.RUNNING, 'root', { type: TaskTypeKF.ROOT }),
+      createMockTask('a-1', TaskStateKF.SUCCEEDED, 'step-a', { parentTaskId: 'root-1' }),
+      createMockTask('b-1', TaskStateKF.FAILED, 'step-b', { parentTaskId: 'root-1' }),
+    ]);
+    const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+    expect(nodes.find((n) => n.id === 'a')?.data?.pipelineTask.status?.state).toBe('Complete');
+    expect(nodes.find((n) => n.id === 'b')?.data?.pipelineTask.status?.state).toBe('Failed');
+    expect(nodes.find((n) => n.id === 'b')?.runAfterTasks).toEqual(expect.arrayContaining(['a']));
+  });
+
+  it('should aggregate a condition branch and a nested DAG from parent_task_id', () => {
+    const spec = {
+      components: {
+        'comp-branch': {
+          dag: {
+            tasks: {
+              'when-true': {
+                componentRef: { name: 'comp-leaf' },
+                taskInfo: { name: 'when-true' },
+              },
+            },
+          },
+        },
+        'comp-outer': {
+          dag: {
+            tasks: {
+              mid: {
+                componentRef: { name: 'comp-mid' },
+                taskInfo: { name: 'mid' },
+              },
+            },
+          },
+        },
+        'comp-mid': {
+          dag: {
+            tasks: {
+              leaf: { componentRef: { name: 'comp-leaf' }, taskInfo: { name: 'leaf' } },
+            },
+          },
+        },
+        'comp-leaf': { executorLabel: 'exec-leaf' },
+      },
+      deploymentSpec: { executors: { 'exec-leaf': { container: { image: 'leaf' } } } },
+      pipelineInfo: { name: 'nested' },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.15.2',
+      root: {
+        dag: {
+          tasks: {
+            branch: { componentRef: { name: 'comp-branch' }, taskInfo: { name: 'branch' } },
+            outer: { componentRef: { name: 'comp-outer' }, taskInfo: { name: 'outer' } },
+          },
+        },
+      },
+    } as PipelineSpecVariable;
+
+    const renderResult = testHook(usePipelineTaskTopology)(spec, undefined, [
+      createMockTask('branch-1', TaskStateKF.RUNNING, 'branch', {
+        type: TaskTypeKF.CONDITION_BRANCH,
+        childTasks: [{ task_id: 'when-1', name: 'when-true' }],
+      }),
+      createMockTask('when-1', TaskStateKF.SUCCEEDED, 'when-true', {
+        parentTaskId: 'branch-1',
+        type: TaskTypeKF.CONDITION,
+      }),
+      createMockTask('outer-1', TaskStateKF.RUNNING, 'outer', {
+        type: TaskTypeKF.DAG,
+        childTasks: [{ task_id: 'mid-1', name: 'mid' }],
+      }),
+      createMockTask('mid-1', TaskStateKF.RUNNING, 'mid', {
+        parentTaskId: 'outer-1',
+        type: TaskTypeKF.DAG,
+        childTasks: [{ task_id: 'leaf-1', name: 'leaf' }],
+      }),
+      createMockTask('leaf-1', TaskStateKF.SUCCEEDED, 'leaf', { parentTaskId: 'mid-1' }),
+    ]);
+    const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+
+    expect(nodes.find((n) => n.id === 'branch')?.data?.pipelineTask.status?.state).toBe('Complete');
+    expect(nodes.find((n) => n.id === 'outer')?.data?.pipelineTask.status?.state).toBe('Complete');
+    expect(nodes.find((n) => n.id === 'mid')?.data?.pipelineTask.status?.state).toBe('Complete');
+    expect(nodes.find((n) => n.id === 'leaf')?.data?.pipelineTask.status?.state).toBe('Complete');
+  });
+
+  it('should match a repeated task name to the direct child', () => {
+    const spec = {
+      components: {
+        'comp-outer': {
+          dag: {
+            tasks: {
+              'train-a': { componentRef: { name: 'comp-leaf' }, taskInfo: { name: 'train' } },
+              inner: { componentRef: { name: 'comp-inner' }, taskInfo: { name: 'inner' } },
+            },
+          },
+        },
+        'comp-inner': {
+          dag: {
+            tasks: {
+              'train-b': { componentRef: { name: 'comp-leaf' }, taskInfo: { name: 'train' } },
+            },
+          },
+        },
+        'comp-leaf': { executorLabel: 'exec-leaf' },
+      },
+      deploymentSpec: { executors: { 'exec-leaf': { container: { image: 'leaf' } } } },
+      pipelineInfo: { name: 'shadow' },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.15.2',
+      root: {
+        dag: {
+          tasks: {
+            outer: { componentRef: { name: 'comp-outer' }, taskInfo: { name: 'outer' } },
+          },
+        },
+      },
+    } as PipelineSpecVariable;
+
+    const renderResult = testHook(usePipelineTaskTopology)(spec, undefined, [
+      createMockTask('outer-1', TaskStateKF.RUNNING, 'outer', {
+        type: TaskTypeKF.DAG,
+        childTasks: [
+          { task_id: 'inner-1', name: 'inner' },
+          { task_id: 'train-outer', name: 'train' },
+        ],
+      }),
+      createMockTask('inner-1', TaskStateKF.RUNNING, 'inner', {
+        parentTaskId: 'outer-1',
+        type: TaskTypeKF.DAG,
+        childTasks: [{ task_id: 'train-inner', name: 'train' }],
+      }),
+      createMockTask('train-inner', TaskStateKF.FAILED, 'train', { parentTaskId: 'inner-1' }),
+      createMockTask('train-outer', TaskStateKF.SUCCEEDED, 'train', { parentTaskId: 'outer-1' }),
+    ]);
+    const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+
+    expect(nodes.find((n) => n.id === 'train-a')?.data?.pipelineTask.status?.state).toBe(
+      'Complete',
+    );
+    expect(nodes.find((n) => n.id === 'train-b')?.data?.pipelineTask.status?.state).toBe('Failed');
+  });
+
+  it('should keep run details status when a group task state is unspecified', () => {
+    const spec = {
+      components: {
+        'comp-outer': {
+          dag: {
+            tasks: {
+              leaf: { componentRef: { name: 'comp-leaf' }, taskInfo: { name: 'leaf' } },
+            },
+          },
+        },
+        'comp-leaf': { executorLabel: 'exec-leaf' },
+      },
+      deploymentSpec: { executors: { 'exec-leaf': { container: { image: 'leaf' } } } },
+      pipelineInfo: { name: 'unspecified-group' },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.15.2',
+      root: {
+        dag: {
+          tasks: {
+            outer: { componentRef: { name: 'comp-outer' }, taskInfo: { name: 'outer' } },
+          },
+        },
+      },
+    } as PipelineSpecVariable;
+
+    const renderResult = testHook(usePipelineTaskTopology)(
+      spec,
+      {
+        task_details: [
+          {
+            run_id: 'run-1',
+            task_id: 'detail-1',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-01T00:00:00Z',
+            end_time: '2024-01-01T01:00:00Z',
+            display_name: 'outer',
+            state: RuntimeStateKF.SUCCEEDED,
+          },
+        ],
+      },
+      [
+        createMockTask('outer-1', TaskStateKF.RUNTIME_STATE_UNSPECIFIED, 'outer', {
+          type: TaskTypeKF.DAG,
+        }),
+      ],
+    );
+    const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+
+    expect(nodes.find((n) => n.id === 'outer')?.data?.pipelineTask.status?.state).toBe(
+      RuntimeStateKF.SUCCEEDED,
+    );
+    expect(nodes.find((n) => n.id === 'outer')?.data?.pipelineTask.status?.startTime).toBe(
+      '2024-01-01T00:00:00Z',
+    );
+  });
+
+  it('should attach each nested iteration its own artifact', () => {
+    const spec = {
+      components: {
+        'comp-outer': {
+          dag: {
+            tasks: {
+              inner: { componentRef: { name: 'comp-inner' }, taskInfo: { name: 'inner' } },
+            },
+          },
+        },
+        'comp-inner': {
+          dag: {
+            tasks: {
+              train: { componentRef: { name: 'comp-train' }, taskInfo: { name: 'train' } },
+            },
+          },
+        },
+        'comp-train': {
+          executorLabel: 'exec-train',
+          outputDefinitions: {
+            artifacts: {
+              dataset: {
+                artifactType: { schemaTitle: ArtifactType.DATASET, schemaVersion: '0.0.1' },
+              },
+            },
+          },
+        },
+      },
+      deploymentSpec: { executors: { 'exec-train': { container: { image: 'train' } } } },
+      pipelineInfo: { name: 'nested-loops' },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.15.2',
+      root: {
+        dag: {
+          tasks: {
+            outer: { componentRef: { name: 'comp-outer' }, taskInfo: { name: 'outer' } },
+          },
+        },
+      },
+    } as PipelineSpecVariable;
+
+    const mlmdExecution = (
+      id: number,
+      props: Record<string, { string?: string; int?: number }>,
+    ): Execution => {
+      const item = new Execution();
+      item.setId(id);
+      Object.entries(props).forEach(([key, value]) => {
+        const property = new Value();
+        if (value.string != null) {
+          property.setStringValue(value.string);
+        }
+        if (value.int != null) {
+          property.setIntValue(value.int);
+        }
+        item.getCustomPropertiesMap().set(key, property);
+      });
+      return item;
+    };
+    const outputEvent = (executionId: number, artifactId: number): Event => {
+      const step = new Event.Path.Step();
+      step.setKey('dataset');
+      const path = new Event.Path();
+      path.setStepsList([step]);
+      return new Event()
+        .setType(Event.Type.OUTPUT)
+        .setExecutionId(executionId)
+        .setArtifactId(artifactId)
+        .setPath(path);
+    };
+
+    const executions = [
+      mlmdExecution(0, {}),
+      mlmdExecution(1, {
+        task_name: { string: 'outer' },
+        iteration_count: { int: 2 },
+        parent_dag_id: { int: 0 },
+      }),
+      mlmdExecution(10, { parent_dag_id: { int: 1 }, iteration_index: { int: 0 } }),
+      mlmdExecution(11, { parent_dag_id: { int: 1 }, iteration_index: { int: 1 } }),
+      mlmdExecution(20, {
+        task_name: { string: 'inner' },
+        iteration_count: { int: 1 },
+        parent_dag_id: { int: 10 },
+      }),
+      mlmdExecution(21, {
+        task_name: { string: 'inner' },
+        iteration_count: { int: 1 },
+        parent_dag_id: { int: 11 },
+      }),
+      mlmdExecution(30, { parent_dag_id: { int: 20 }, iteration_index: { int: 0 } }),
+      mlmdExecution(31, { parent_dag_id: { int: 21 }, iteration_index: { int: 0 } }),
+      mlmdExecution(40, { task_name: { string: 'train' }, parent_dag_id: { int: 30 } }),
+      mlmdExecution(41, { task_name: { string: 'train' }, parent_dag_id: { int: 31 } }),
+    ];
+    const artifacts = [
+      new Artifact().setId(100).setType(ArtifactType.DATASET),
+      new Artifact().setId(101).setType(ArtifactType.DATASET),
+    ];
+    const events = [outputEvent(40, 100), outputEvent(41, 101)];
+
+    const renderResult = testHook(usePipelineTaskTopology)(
+      spec,
+      undefined,
+      [
+        createMockTask('outer-1', TaskStateKF.RUNNING, 'outer', {
+          type: TaskTypeKF.LOOP,
+          iterationCount: '2',
+          childTasks: [
+            { task_id: 'iter-0', name: 'outer' },
+            { task_id: 'iter-1', name: 'outer' },
+          ],
+        }),
+        createMockTask('iter-0', TaskStateKF.RUNNING, 'outer', {
+          parentTaskId: 'outer-1',
+          iterationIndex: '0',
+          childTasks: [{ task_id: 'inner-0', name: 'inner' }],
+        }),
+        createMockTask('iter-1', TaskStateKF.RUNNING, 'outer', {
+          parentTaskId: 'outer-1',
+          iterationIndex: '1',
+          childTasks: [{ task_id: 'inner-1', name: 'inner' }],
+        }),
+        createMockTask('inner-0', TaskStateKF.RUNNING, 'inner', {
+          type: TaskTypeKF.LOOP,
+          parentTaskId: 'iter-0',
+          iterationCount: '1',
+          childTasks: [{ task_id: 'inner-iter-0', name: 'inner' }],
+        }),
+        createMockTask('inner-1', TaskStateKF.RUNNING, 'inner', {
+          type: TaskTypeKF.LOOP,
+          parentTaskId: 'iter-1',
+          iterationCount: '1',
+          childTasks: [{ task_id: 'inner-iter-1', name: 'inner' }],
+        }),
+        createMockTask('inner-iter-0', TaskStateKF.RUNNING, 'inner', {
+          parentTaskId: 'inner-0',
+          iterationIndex: '0',
+          childTasks: [{ task_id: 'train-0', name: 'train' }],
+        }),
+        createMockTask('inner-iter-1', TaskStateKF.RUNNING, 'inner', {
+          parentTaskId: 'inner-1',
+          iterationIndex: '0',
+          childTasks: [{ task_id: 'train-1', name: 'train' }],
+        }),
+        createMockTask('train-0', TaskStateKF.SUCCEEDED, 'train', { parentTaskId: 'inner-iter-0' }),
+        createMockTask('train-1', TaskStateKF.FAILED, 'train', { parentTaskId: 'inner-iter-1' }),
+      ],
+      executions,
+      events,
+      artifacts,
+    );
+    const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+    const artifactId = (nodeId: string) =>
+      nodes.find((node) => node.id === nodeId)?.data?.pipelineTask.metadata?.getId();
+
+    expect(
+      nodes.find((node) => node.id === 'outer-iteration-0~inner-iteration-0')?.data?.pipelineTask
+        .iterationExecutionId,
+    ).toBe(30);
+    expect(
+      nodes.find((node) => node.id === 'outer-iteration-1~inner-iteration-0')?.data?.pipelineTask
+        .iterationExecutionId,
+    ).toBe(31);
+    expect(
+      artifactId(
+        'GROUP.outer-iteration-0~inner-iteration-0.ARTIFACT.outer-iteration-0~inner-iteration-0~train.dataset',
+      ),
+    ).toBe(100);
+    expect(
+      artifactId(
+        'GROUP.outer-iteration-1~inner-iteration-0.ARTIFACT.outer-iteration-1~inner-iteration-0~train.dataset',
+      ),
+    ).toBe(101);
+  });
+
+  it('should bind each same-named loop to the DAG that contains it', () => {
+    const spec = {
+      components: {
+        'comp-dag-a': {
+          dag: {
+            tasks: {
+              'loop-a': { componentRef: { name: 'comp-loop' }, taskInfo: { name: 'loop' } },
+            },
+          },
+        },
+        'comp-dag-b': {
+          dag: {
+            tasks: {
+              'loop-b': { componentRef: { name: 'comp-loop' }, taskInfo: { name: 'loop' } },
+            },
+          },
+        },
+        'comp-loop': {
+          dag: {
+            tasks: {
+              train: { componentRef: { name: 'comp-train' }, taskInfo: { name: 'train' } },
+            },
+          },
+        },
+        'comp-train': { executorLabel: 'exec-train' },
+      },
+      deploymentSpec: { executors: { 'exec-train': { container: { image: 'train' } } } },
+      pipelineInfo: { name: 'same-name-loops' },
+      schemaVersion: '2.1.0',
+      sdkVersion: 'kfp-2.15.2',
+      root: {
+        dag: {
+          tasks: {
+            'dag-a': { componentRef: { name: 'comp-dag-a' }, taskInfo: { name: 'dag-a' } },
+            'dag-b': { componentRef: { name: 'comp-dag-b' }, taskInfo: { name: 'dag-b' } },
+          },
+        },
+      },
+    } as PipelineSpecVariable;
+
+    const mlmdExecution = (
+      id: number,
+      props: Record<string, { string?: string; int?: number }>,
+    ): Execution => {
+      const item = new Execution();
+      item.setId(id);
+      Object.entries(props).forEach(([key, value]) => {
+        const property = new Value();
+        if (value.string != null) {
+          property.setStringValue(value.string);
+        }
+        if (value.int != null) {
+          property.setIntValue(value.int);
+        }
+        item.getCustomPropertiesMap().set(key, property);
+      });
+      return item;
+    };
+
+    // dag-b's loop is first, so a search of the full list would bind dag-a to it.
+    const executions = [
+      mlmdExecution(1, {}),
+      mlmdExecution(3, { task_name: { string: 'dag-b' }, parent_dag_id: { int: 1 } }),
+      mlmdExecution(5, {
+        task_name: { string: 'loop' },
+        iteration_count: { int: 1 },
+        parent_dag_id: { int: 3 },
+      }),
+      mlmdExecution(50, { parent_dag_id: { int: 5 }, iteration_index: { int: 0 } }),
+      mlmdExecution(2, { task_name: { string: 'dag-a' }, parent_dag_id: { int: 1 } }),
+      mlmdExecution(4, {
+        task_name: { string: 'loop' },
+        iteration_count: { int: 1 },
+        parent_dag_id: { int: 2 },
+      }),
+      mlmdExecution(40, { parent_dag_id: { int: 4 }, iteration_index: { int: 0 } }),
+    ];
+
+    const renderResult = testHook(usePipelineTaskTopology)(
+      spec,
+      undefined,
+      [
+        createMockTask('dag-a-rt', TaskStateKF.RUNNING, 'dag-a', {
+          type: TaskTypeKF.DAG,
+          childTasks: [{ task_id: 'loop-a-rt', name: 'loop' }],
+        }),
+        createMockTask('loop-a-rt', TaskStateKF.RUNNING, 'loop', {
+          type: TaskTypeKF.LOOP,
+          parentTaskId: 'dag-a-rt',
+          iterationCount: '1',
+          childTasks: [{ task_id: 'iter-a', name: 'loop' }],
+        }),
+        createMockTask('iter-a', TaskStateKF.RUNNING, 'loop', {
+          parentTaskId: 'loop-a-rt',
+          iterationIndex: '0',
+        }),
+        createMockTask('dag-b-rt', TaskStateKF.RUNNING, 'dag-b', {
+          type: TaskTypeKF.DAG,
+          childTasks: [{ task_id: 'loop-b-rt', name: 'loop' }],
+        }),
+        createMockTask('loop-b-rt', TaskStateKF.RUNNING, 'loop', {
+          type: TaskTypeKF.LOOP,
+          parentTaskId: 'dag-b-rt',
+          iterationCount: '1',
+          childTasks: [{ task_id: 'iter-b', name: 'loop' }],
+        }),
+        createMockTask('iter-b', TaskStateKF.RUNNING, 'loop', {
+          parentTaskId: 'loop-b-rt',
+          iterationIndex: '0',
+        }),
+      ],
+      executions,
+    );
+    const nodes = renderResult.result.current as PipelineNodeModelExpanded[];
+
+    expect(
+      nodes.find((node) => node.id === 'loop-a-iteration-0')?.data?.pipelineTask
+        .iterationExecutionId,
+    ).toBe(40);
+    expect(
+      nodes.find((node) => node.id === 'loop-b-iteration-0')?.data?.pipelineTask
+        .iterationExecutionId,
+    ).toBe(50);
   });
 });

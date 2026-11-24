@@ -10,7 +10,7 @@ import {
  *
  * Structure:
  *   root
- *     └── for-loop-2 (sub-DAG — detected as ParallelFor via MLMD iteration_count)
+ *     └── for-loop-2 (sub-DAG — detected as ParallelFor via iteration_count)
  *           └── simple-task (per iteration)
  *
  * Note: `parameterIterator` is not part of the TypeScript types — the frontend
