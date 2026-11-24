@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
@@ -40,10 +41,7 @@ type PrometheusRepository struct {
 }
 
 func NewPrometheusRepository(cfg PrometheusConfig) *PrometheusRepository {
-	host := cfg.Host
-	if host == "" && cfg.Instance != "" && cfg.Namespace != "" && cfg.Port != "" {
-		host = fmt.Sprintf("https://%s.%s.svc.cluster.local:%s", cfg.Instance, cfg.Namespace, cfg.Port)
-	}
+	host := config.PrometheusTarget(cfg.Host, cfg.Instance, cfg.Namespace, cfg.Port)
 
 	tlsConfig := &tls.Config{
 		RootCAs:            cfg.RootCAs,
@@ -66,23 +64,36 @@ func NewPrometheusRepository(cfg PrometheusConfig) *PrometheusRepository {
 // maxPrometheusRedirects matches net/http's own default limit.
 const maxPrometheusRedirects = 10
 
-// rejectDowngradingRedirect stops a redirect before it is sent when it would
-// change the scheme or the host of the original request. net/http keeps the
-// Authorization header on a same-host redirect even from https to http, which
-// would put the caller's bearer token on the wire in plaintext; a cross-host
-// redirect is not a Prometheus API behaviour either.
+// rejectDowngradingRedirect stops a redirect before it is sent unless it keeps
+// the scheme, host and effective port of the original request. net/http keeps
+// the Authorization header on a redirect to the same hostname, whatever the
+// scheme or port, so either change could hand the caller's bearer token to
+// another service or put it on the wire in plaintext.
 func rejectDowngradingRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= maxPrometheusRedirects {
 		return fmt.Errorf("stopped after %d redirects", maxPrometheusRedirects)
 	}
 	original := via[0].URL
-	if req.URL.Scheme != original.Scheme || req.URL.Hostname() != original.Hostname() {
+	if req.URL.Scheme != original.Scheme ||
+		req.URL.Hostname() != original.Hostname() ||
+		effectivePort(req.URL) != effectivePort(original) {
 		return errPrometheusRedirect
 	}
 	return nil
 }
 
-var errPrometheusRedirect = errors.New("refusing a Prometheus redirect that changes the scheme or host")
+// effectivePort is the URL's port, or the scheme's default when it has none.
+func effectivePort(u *url.URL) string {
+	if p := u.Port(); p != "" {
+		return p
+	}
+	if u.Scheme == "http" {
+		return "80"
+	}
+	return "443"
+}
+
+var errPrometheusRedirect = errors.New("refusing a Prometheus redirect that changes the scheme, host or port")
 
 // Query executes a Prometheus query and returns the response.
 // queryType should be "query" for instant or "query_range" for range queries.

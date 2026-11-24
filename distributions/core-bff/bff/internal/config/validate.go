@@ -194,28 +194,50 @@ func (c EnvConfig) validateProductionProfile(add func(string, ...any)) {
 }
 
 // validateServiceTargets checks the upstream service URL overrides. Both carry
-// the caller's bearer token, so a production profile must reach them over
-// HTTPS; a bare host name would otherwise pass startup and fail on the first
-// request. Problems name the setting only: either value may carry user info.
+// the caller's bearer token, so outside DEV_MODE they must be reached over
+// HTTPS, mocked Kubernetes or not; a bare host name would otherwise pass
+// startup and fail on the first request. Problems name the setting only:
+// either value may carry user info.
 func (c EnvConfig) validateServiceTargets(add func(string, ...any)) {
 	for _, target := range []struct{ setting, value string }{
 		{"MODEL_SERVING_HOST/--model-serving-host", c.ModelServingServiceHost},
 		{"PROMETHEUS_HOST/--prometheus-host", c.PrometheusHost},
 	} {
-		if strings.TrimSpace(target.value) == "" {
+		if target.value == "" {
 			continue
 		}
-		if reason := serviceTargetProblem(target.value, c.IsProductionProfile()); reason != "" {
+		if reason := serviceTargetProblem(target.value, c.DevMode); reason != "" {
 			add("%s (value omitted) %s", target.setting, reason)
 		}
 	}
 
-	// Without PROMETHEUS_HOST the target is derived as
-	// https://<instance>.<namespace>.svc.cluster.local:<port>, so the port is
-	// the part an operator can get wrong.
-	if strings.TrimSpace(c.PrometheusHost) == "" && c.PrometheusPort != "" && !isPort(c.PrometheusPort) {
-		add("PROMETHEUS_PORT/--prometheus-port (value omitted) must be a port number between 1 and 65535")
+	// Without PROMETHEUS_HOST the target is derived from the instance,
+	// namespace and port, so validate the URL the repository will call.
+	if c.PrometheusHost != "" {
+		return
 	}
+	if c.PrometheusPort != "" && !isPort(c.PrometheusPort) {
+		add("PROMETHEUS_PORT/--prometheus-port (value omitted) must be a port number between 1 and 65535")
+		return
+	}
+	if derived := PrometheusTarget("", c.PrometheusInstance, c.PrometheusNamespace, c.PrometheusPort); derived != "" {
+		if reason := serviceTargetProblem(derived, c.DevMode); reason != "" {
+			add("PROMETHEUS_INSTANCE, PROMETHEUS_NAMESPACE and PROMETHEUS_PORT (values omitted) derive a Prometheus URL that %s", reason)
+		}
+	}
+}
+
+// PrometheusTarget is the base URL the Prometheus repository calls: host when
+// set, otherwise the in-cluster Thanos service derived from instance,
+// namespace and port, or "" when there is not enough to derive it.
+func PrometheusTarget(host, instance, namespace, port string) string {
+	if host != "" {
+		return host
+	}
+	if instance == "" || namespace == "" || port == "" {
+		return ""
+	}
+	return fmt.Sprintf("https://%s.%s.svc.cluster.local:%s", instance, namespace, port)
 }
 
 // isPort reports whether s is a decimal TCP port between 1 and 65535.
@@ -225,10 +247,13 @@ func isPort(s string) bool {
 }
 
 // serviceTargetProblem reports why target is not a usable absolute service
-// URL, or "" when it is.
-func serviceTargetProblem(target string, production bool) string {
+// base URL, or "" when it is. Request paths and query strings are appended to
+// the base, so a query or fragment in it would silently replace or drop them.
+func serviceTargetProblem(target string, allowPlaintext bool) string {
 	u, err := url.Parse(target)
 	switch {
+	case strings.TrimSpace(target) != target:
+		return "has leading or trailing whitespace"
 	case err != nil:
 		return "does not parse as a URL"
 	case u.Scheme != "http" && u.Scheme != "https":
@@ -237,8 +262,10 @@ func serviceTargetProblem(target string, production bool) string {
 		return "has no host"
 	case u.Port() != "" && !isPort(u.Port()):
 		return "has a port outside 1-65535"
-	case production && u.Scheme != "https":
-		return "must use https in a production profile, because the caller's bearer token is sent to it; set DEV_MODE=true for a local plaintext target"
+	case u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || strings.Contains(target, "#"):
+		return "must not carry a query string or fragment; it is a base URL that request paths are appended to"
+	case !allowPlaintext && u.Scheme != "https":
+		return "must use https unless DEV_MODE=true, because the caller's bearer token is sent to it"
 	}
 	return ""
 }

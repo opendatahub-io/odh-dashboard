@@ -196,3 +196,45 @@ func TestPrometheusQuery_FollowsASameOriginRedirect(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.Code)
 }
+
+// net/http keeps the Authorization header on a redirect to the same hostname
+// even when the port changes, so a port-only redirect could hand the caller's
+// token to a different service on the same host.
+func TestPrometheusQuery_RefusesARedirectToAnotherPort(t *testing.T) {
+	var otherHits atomic.Int32
+	other := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		otherHits.Add(1)
+		_, _ = w.Write([]byte(`{"status":"success","data":{}}`))
+	}))
+	defer other.Close()
+
+	origin := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+"/api/v1/query", http.StatusFound)
+	}))
+	defer origin.Close()
+
+	pool := x509.NewCertPool()
+	pool.AddCert(origin.Certificate())
+	pool.AddCert(other.Certificate())
+	repo := NewPrometheusRepository(PrometheusConfig{Host: origin.URL, RootCAs: pool})
+
+	_, err := repo.Query(context.Background(), "caller-token", "query=up", "query")
+
+	require.Error(t, err)
+	var unavailable *models.PrometheusUnavailableError
+	require.ErrorAs(t, err, &unavailable)
+	assert.Contains(t, unavailable.Reason, "refusing a Prometheus redirect")
+	assert.Zero(t, otherHits.Load(), "the redirected request must never be sent")
+}
+
+func TestRejectDowngradingRedirect_ComparesTheEffectivePort(t *testing.T) {
+	via := func(raw string) []*http.Request {
+		return []*http.Request{httptest.NewRequest(http.MethodGet, raw, nil)}
+	}
+	next := func(raw string) *http.Request { return httptest.NewRequest(http.MethodGet, raw, nil) }
+
+	assert.NoError(t, rejectDowngradingRedirect(next("https://thanos.internal:443/moved"), via("https://thanos.internal/api/v1/query")))
+	assert.NoError(t, rejectDowngradingRedirect(next("https://thanos.internal:9091/moved"), via("https://thanos.internal:9091/api/v1/query")))
+	assert.ErrorIs(t, rejectDowngradingRedirect(next("https://thanos.internal:9092/x"), via("https://thanos.internal:9091/api/v1/query")), errPrometheusRedirect)
+	assert.ErrorIs(t, rejectDowngradingRedirect(next("https://thanos.internal:8443/x"), via("https://thanos.internal/api/v1/query")), errPrometheusRedirect)
+}

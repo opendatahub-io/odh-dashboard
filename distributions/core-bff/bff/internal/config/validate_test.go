@@ -185,7 +185,13 @@ func TestValidate_ServiceTargets(t *testing.T) {
 				reason string
 			}{
 				// The caller's bearer token is sent to both targets.
-				{"http://metrics.internal:9090", false, "must use https in a production profile"},
+				{"http://metrics.internal:9090", false, "must use https unless DEV_MODE=true"},
+				{"https://metrics.internal?tenant=a", false, "must not carry a query string or fragment"},
+				{"https://metrics.internal/prom?", false, "must not carry a query string or fragment"},
+				{"https://metrics.internal#frag", false, "must not carry a query string or fragment"},
+				{"https://metrics.internal?tenant=a", true, "must not carry a query string or fragment"},
+				{"   ", false, "has leading or trailing whitespace"},
+				{" https://metrics.internal", false, "has leading or trailing whitespace"},
 				{"metrics.internal", false, "must be an absolute http(s) URL"},
 				{"metrics.internal:9090", false, "must be an absolute http(s) URL"},
 				{"ftp://metrics.internal", false, "must be an absolute http(s) URL"},
@@ -208,6 +214,7 @@ func TestValidate_ServiceTargets(t *testing.T) {
 				dev   bool
 			}{
 				{"https://metrics.internal:9091", false},
+				{"https://metrics.internal/prometheus", false},
 				{"http://localhost:9090", true},
 				{"", false},
 			} {
@@ -219,6 +226,52 @@ func TestValidate_ServiceTargets(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Mocking only Kubernetes is not a dev profile for the upstream services: an
+// explicit target still receives the caller's real bearer token.
+func TestValidate_ServiceTargetsNeedHTTPSWhenOnlyKubernetesIsMocked(t *testing.T) {
+	cfg := productionConfig()
+	cfg.MockK8Client = true
+	cfg.PrometheusHost = "http://metrics.internal:9090"
+	cfg.ModelServingServiceHost = "http://model-serving.internal:8080"
+
+	err := cfg.Validate(TLSFiles{})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "PROMETHEUS_HOST/--prometheus-host (value omitted) must use https unless DEV_MODE=true")
+	assert.Contains(t, err.Error(), "MODEL_SERVING_HOST/--model-serving-host (value omitted) must use https unless DEV_MODE=true")
+
+	// The loopback mock Prometheus is started after validation, only when no
+	// host is configured, so it never meets this rule.
+	cfg.PrometheusHost = ""
+	cfg.ModelServingServiceHost = ""
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+}
+
+// Without PROMETHEUS_HOST the repository calls a URL assembled from the
+// instance, namespace and port; that URL is what startup must validate.
+func TestValidate_DerivedPrometheusTarget(t *testing.T) {
+	for _, tc := range []struct{ instance, namespace string }{
+		{"thanos querier", "openshift-monitoring"},
+		{"thanos-querier", "openshift-monitoring?tenant=a"},
+		{"thanos-querier#x", "openshift-monitoring"},
+	} {
+		cfg := productionConfig()
+		cfg.PrometheusInstance, cfg.PrometheusNamespace, cfg.PrometheusPort = tc.instance, tc.namespace, "9092"
+		err := cfg.Validate(TLSFiles{})
+		require.Error(t, err, tc)
+		assert.Contains(t, err.Error(), "PROMETHEUS_INSTANCE, PROMETHEUS_NAMESPACE and PROMETHEUS_PORT (values omitted) derive a Prometheus URL that")
+		assert.NotContains(t, err.Error(), "thanos")
+	}
+
+	cfg := productionConfig()
+	cfg.PrometheusInstance, cfg.PrometheusNamespace, cfg.PrometheusPort = "thanos-querier", "openshift-monitoring", "9092"
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+	assert.Equal(t, "https://thanos-querier.openshift-monitoring.svc.cluster.local:9092",
+		PrometheusTarget("", cfg.PrometheusInstance, cfg.PrometheusNamespace, cfg.PrometheusPort))
+	assert.Equal(t, "https://explicit", PrometheusTarget("https://explicit", "a", "b", "1"))
+	assert.Empty(t, PrometheusTarget("", "thanos-querier", "", "9092"))
 }
 
 func TestTLSFiles_EnabledNeedsBothHalves(t *testing.T) {
