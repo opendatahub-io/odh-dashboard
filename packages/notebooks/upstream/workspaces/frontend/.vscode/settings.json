@@ -1,5 +1,0 @@
-{
-  "eslint.options": {
-    "rulePaths": ["./eslint-local-rules"]
-  }
-}
