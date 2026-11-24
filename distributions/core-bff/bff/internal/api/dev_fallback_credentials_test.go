@@ -99,9 +99,11 @@ func TestDevModeFallback_EmptyHeaderOnTheWireIsNotMissing(t *testing.T) {
 		{"empty", "X-Forwarded-Access-Token:\r\n", http.StatusUnauthorized, false},
 		{"whitespace only", "X-Forwarded-Access-Token:    \r\n", http.StatusUnauthorized, false},
 		{"lower-case name, empty", "x-forwarded-access-token: \r\n", http.StatusUnauthorized, false},
-		// A credential in Authorization is still a credential: it must not
-		// be swapped for the developer's identity.
-		{"credential in Authorization instead", "Authorization: Bearer low-privilege-caller\r\n", http.StatusUnauthorized, false},
+		// A credential in Authorization is still the caller's: it is used,
+		// never swapped for the developer's identity; a malformed one is 401.
+		{"credential in Authorization instead", "Authorization: Bearer low-privilege-caller\r\n", http.StatusOK, false},
+		{"Basic credential in Authorization", "Authorization: Basic dXNlcjpwYXNz\r\n", http.StatusUnauthorized, false},
+		{"empty Authorization", "Authorization:\r\n", http.StatusUnauthorized, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			conn, err := net.Dial("tcp", srv.Listener.Addr().String())
@@ -133,13 +135,46 @@ func TestDevModeFallback_ForwardedTokenIsACredentialWhenAuthorizationIsConfigure
 		a.config = cfg
 		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), cfg)
 	})
-	var reached bool
-	handler := app.InjectRequestIdentity(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { reached = true }))
+	var identity *k8s.RequestIdentity
+	handler := app.InjectRequestIdentity(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, _ = r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	}))
 	req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
 	req.Header.Set(constants.HeaderForwardedToken, "caller-token")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	assert.False(t, reached)
+	require.Equal(t, http.StatusOK, rr.Code)
+	require.NotNil(t, identity)
+	assert.False(t, identity.DevFallback, "the caller's own token is used, not the developer's identity")
+	assert.Equal(t, "caller-token", identity.Token.Raw())
+}
+
+// The host dashboard's module proxy sends Authorization: Bearer while the
+// federated dev target reads x-forwarded-access-token. The caller's token is
+// what the request runs on.
+func TestDevModeFallback_AuthorizationTokenIsUsedWhenAnotherHeaderIsConfigured(t *testing.T) {
+	cfg := config.EnvConfig{
+		DevMode:         true,
+		AuthMethod:      config.AuthMethodUser,
+		AuthTokenHeader: config.DefaultAuthTokenHeader,
+		DevUser:         "dev-user",
+	}
+	app := newTestApp(func(a *App) {
+		a.config = cfg
+		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), cfg)
+	})
+	var identity *k8s.RequestIdentity
+	handler := app.InjectRequestIdentity(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, _ = r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	req.Header.Set(constants.HeaderAuthorization, "bearer  caller-token ")
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	require.NotNil(t, identity)
+	assert.False(t, identity.DevFallback)
+	assert.Equal(t, "caller-token", identity.Token.Raw())
 }

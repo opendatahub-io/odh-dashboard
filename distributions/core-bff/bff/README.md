@@ -191,7 +191,7 @@ cd .. && make docker-build
 
 Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 
-- **user_token** (default): extracts a bearer token from the configured header and performs SelfSubjectReview. With `DEV_MODE=true`, a request with no credential runs on the kubeconfig identity validated at startup; a malformed or empty token, or a credential sent in `Authorization` instead of the configured header, is rejected with 401.
+- **user_token** (default): extracts a bearer token from the configured header and performs SelfSubjectReview. With `DEV_MODE=true`, a request with no credential runs on the kubeconfig identity validated at startup; a caller token in the other identity header (`Authorization: Bearer` or `X-Forwarded-Access-Token`) is used as the caller's identity instead, and a malformed or empty token is rejected with 401.
 - **disabled**: skips identity extraction entirely. Useful for local development or testing.
 
 ### Enabling CORS

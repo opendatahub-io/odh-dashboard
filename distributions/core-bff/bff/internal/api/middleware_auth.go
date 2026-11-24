@@ -27,25 +27,32 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 		}
 
 		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
-		if err != nil {
-			// Only an absent credential selects the developer's kubeconfig
-			// identity. A credential that was sent but is malformed is the
-			// caller's and must fail, never be swapped for a stronger one.
-			if app.config.DevMode && errors.Is(err, httpcontract.ErrCredentialsMissing) && !carriesOtherCredential(r.Header, app.config.AuthTokenHeader) {
+		if err != nil && app.config.DevMode && errors.Is(err, httpcontract.ErrCredentialsMissing) {
+			// The configured header is absent. A caller token in the other
+			// identity header (the host dashboard's module proxy sends
+			// Authorization) is still the caller's credential: use it, never
+			// the developer's identity. Only a request with no credential at
+			// all falls back.
+			if alt, ok := alternateCredential(r.Header, app.config.AuthTokenHeader, app.config.AuthTokenPrefix); ok {
+				identity, err = app.kubernetesClientFactory.ExtractRequestIdentity(alt)
+			} else {
 				// DevUser/DevGroups are used for audit log fallback labeling (see auditUser).
 				// The resolved identity for k8s operations comes from the kubeconfig's native auth,
 				// not from these values - GetUser() does a SelfSubjectReview against the kubeconfig client.
-				identity = &k8s.RequestIdentity{
+				identity, err = &k8s.RequestIdentity{
 					UserID:      app.config.DevUser,
 					Groups:      parseDevGroups(app.config.DevGroups),
 					Token:       k8s.NewBearerToken(config.DefaultDisabledAuthToken),
 					DevFallback: true,
-				}
+				}, nil
 				app.logger.Warn("dev-mode identity fallback activated", slog.String("user", identity.UserID))
-			} else {
-				app.unauthorizedResponse(w, r, err)
-				return
 			}
+		}
+		if err != nil {
+			// A credential that was sent but is malformed is the caller's and
+			// fails; it is never swapped for a stronger one.
+			app.unauthorizedResponse(w, r, err)
+			return
 		}
 
 		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
@@ -53,21 +60,42 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	})
 }
 
-// carriesOtherCredential reports whether a request without the configured
-// token header still carries a caller credential in another identity header
-// (Authorization or X-Forwarded-Access-Token). Such a request is not
-// credential-less: falling back would replace the caller's identity with the
-// developer's, so it gets 401 instead.
-func carriesOtherCredential(h http.Header, tokenHeader string) bool {
+// alternateCredential looks for a caller credential in the identity header
+// that is not the configured one (Authorization or X-Forwarded-Access-Token)
+// and re-expresses it in the configured header, so the factory parses it with
+// the configured prefix exactly like a normal request. Authorization must use
+// the Bearer scheme; anything else in it, or an empty value, is passed on as
+// an empty credential, which the factory rejects as invalid.
+func alternateCredential(h http.Header, tokenHeader, tokenPrefix string) (http.Header, bool) {
 	for _, name := range []string{constants.HeaderAuthorization, constants.HeaderForwardedToken} {
 		if strings.EqualFold(name, tokenHeader) {
 			continue
 		}
-		if _, present := h[http.CanonicalHeaderKey(name)]; present {
-			return true
+		values, present := h[http.CanonicalHeaderKey(name)]
+		if !present {
+			continue
 		}
+		token := ""
+		if len(values) > 0 {
+			token = strings.TrimSpace(values[0])
+		}
+		if name == constants.HeaderAuthorization {
+			scheme, rest, found := strings.Cut(token, " ")
+			if found && strings.EqualFold(scheme, "Bearer") {
+				token = strings.TrimSpace(rest)
+			} else {
+				token = ""
+			}
+		}
+		alt := http.Header{}
+		if token == "" {
+			alt[http.CanonicalHeaderKey(tokenHeader)] = []string{""}
+		} else {
+			alt.Set(tokenHeader, tokenPrefix+token)
+		}
+		return alt, true
 	}
-	return false
+	return nil, false
 }
 
 // auditUser returns the best available user identifier for audit logging.

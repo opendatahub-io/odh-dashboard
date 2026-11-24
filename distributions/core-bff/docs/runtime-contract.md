@@ -215,8 +215,11 @@ authenticator wins when a request carries both. The proxies therefore present it
 kubeconfig identity; a `DEV_MODE` request that carries its own token is authenticated by that token
 alone. Only a request with no credential falls back. In `DEV_MODE` a credential that was sent but
 is malformed (wrong prefix, an empty or whitespace-only header, which the HTTP parser trims to
-empty) is answered with 401, never with the fallback identity, and so is a request that carries
-another identity header (`Authorization` or `X-Forwarded-Access-Token`) than the configured one.
+empty) is answered with 401, never with the fallback identity. A caller token in the other
+identity header (`Authorization: Bearer`, or `X-Forwarded-Access-Token`, whichever is not the
+configured one) is the caller's credential too: it is used as the request identity, never replaced
+by the fallback, and is 401 when malformed. The host dashboard's module proxy sends
+`Authorization`, so federated development keeps working.
 Outside `DEV_MODE` the certificate is used only by the service-account clients. Every consumer of the
 kubeconfig's server, credentials or TLS settings uses the one copy validated at startup rather than a
 later re-read (only the context name reported by `/api/status` is read separately): the caller
