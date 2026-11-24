@@ -11,6 +11,7 @@ import { parseCollectionDescription } from '~/app/utilities/collectionUtils';
 
 export type CollectionAsset = {
   name: string;
+  resourceName: string;
   assetType: 'table' | 'volume';
   format: string;
 };
@@ -27,13 +28,15 @@ export type CollectionDetail = {
 };
 
 const mapTableToAsset = (asset: AssetResponse): CollectionAsset => ({
-  name: asset.name,
+  name: asset.display_name || asset.name,
+  resourceName: asset.name,
   assetType: asset.asset_type,
   format: asset.format,
 });
 
 const mapVolumeToAsset = (volume: AssetResponse): CollectionAsset => ({
-  name: volume.name,
+  name: volume.display_name || volume.name,
+  resourceName: volume.name,
   assetType: volume.asset_type,
   format: volume.format,
 });

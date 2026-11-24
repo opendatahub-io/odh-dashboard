@@ -34,6 +34,7 @@ describe('useGenericTable', () => {
   it('should fetch table data when all params are provided', async () => {
     const mockTable: AssetResponse = {
       name: 'my-table',
+      display_name: 'My table',
       asset_type: 'table',
       uuid: 'table-uuid',
       format: 'parquet',

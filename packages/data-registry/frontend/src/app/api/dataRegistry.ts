@@ -41,6 +41,8 @@ const schemaFieldSchema = z.object({
 
 const assetResponseBaseSchema = {
   name: z.string(),
+  // eslint-disable-next-line camelcase
+  display_name: z.string().optional(),
   uuid: z.string(),
   // eslint-disable-next-line camelcase
   storage_location: z.string().nullable().optional(),
@@ -369,6 +371,7 @@ export const createGenericTable = (
 // Update assets
 
 export type UpdateGenericTableRequest = {
+  display_name?: string;
   description?: string;
   format?: StructuredFormat;
   storage_location?: string | null;
@@ -401,6 +404,7 @@ export const updateGenericTable = async (
   );
 
 export type UpdateVolumeRequest = {
+  display_name?: string;
   description?: string;
   format?: UnstructuredFormat;
   storage_location?: string | null;

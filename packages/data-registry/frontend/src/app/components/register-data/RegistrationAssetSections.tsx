@@ -43,69 +43,167 @@ type EditModeProps = {
   project?: string;
 };
 
-export const RegistrationIdentitySection: React.FC<EditModeProps> = ({ isEditMode = false }) => {
-  const {
-    control,
-    getValues,
-    formState: { errors },
-  } = useFormContext<AssetFormData>();
+export const toResourceName = (value: string): string => {
+  if (!value.trim()) {
+    return '';
+  }
+  const generated = value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 30)
+    .replace(/-+$/g, '');
+  return generated || 'data-asset';
+};
+
+export const RegistrationIdentitySection: React.FC<EditModeProps> = ({
+  isEditMode = false,
+  project,
+}) => {
+  const form = useFormContext<AssetFormData>();
+  const [isEditingResourceName, setIsEditingResourceName] = React.useState(false);
 
   return (
-    <>
-      <FormGroup label="Asset name" isRequired={!isEditMode} fieldId="data-name">
-        {isEditMode ? (
+    <FormSection title="Data asset details" titleElement="h2">
+      {!isEditMode ? (
+        <FormGroup label="Project" isRequired fieldId="data-project">
           <TextInput
-            id="data-name"
-            value={getValues('name')}
+            id="data-project"
+            value={project ?? ''}
             readOnlyVariant="default"
-            data-testid="data-name-input"
+            data-testid="data-project-input"
           />
-        ) : (
-          <Controller
-            name="name"
-            control={control}
-            render={({ field }) => (
-              <TextInput
-                id="data-name"
-                {...field}
-                isRequired
-                validated={errors.name ? 'error' : 'default'}
-                data-testid="data-name-input"
-              />
-            )}
-          />
-        )}
-        {errors.name && !isEditMode ? (
+        </FormGroup>
+      ) : null}
+
+      <FormGroup label="Data asset name" isRequired fieldId="data-name">
+        <Controller
+          name="displayName"
+          control={form.control}
+          render={({ field }) => (
+            <TextInput
+              id="data-name"
+              {...field}
+              isRequired
+              validated={form.formState.errors.displayName ? 'error' : 'default'}
+              data-testid="data-name-input"
+              onChange={(_event, value) => {
+                field.onChange(value);
+                if (!isEditMode && !isEditingResourceName) {
+                  form.setValue('name', toResourceName(value), { shouldValidate: true });
+                }
+              }}
+            />
+          )}
+        />
+        {form.formState.errors.displayName ? (
           <FormHelperText>
             <HelperText>
-              <HelperTextItem variant="error">{errors.name.message}</HelperTextItem>
+              <HelperTextItem variant="error">
+                {form.formState.errors.displayName.message}
+              </HelperTextItem>
             </HelperText>
           </FormHelperText>
         ) : null}
       </FormGroup>
 
+      {isEditMode ? (
+        <FormGroup label="Resource name" fieldId="data-resource-name">
+          <TextInput
+            id="data-resource-name"
+            value={form.getValues('name')}
+            readOnlyVariant="default"
+            data-testid="data-resource-name-input"
+          />
+        </FormGroup>
+      ) : null}
+
+      {!isEditMode ? (
+        isEditingResourceName ? (
+          <Controller
+            name="name"
+            control={form.control}
+            render={({ field }) => (
+              <FormGroup label="Resource name" isRequired fieldId="data-resource-name">
+                <TextInput
+                  id="data-resource-name"
+                  {...field}
+                  isRequired
+                  validated={form.formState.errors.name ? 'error' : 'default'}
+                  data-testid="data-resource-name-input"
+                />
+                <HelperText>
+                  <HelperTextItem>Cannot exceed 30 characters.</HelperTextItem>
+                  <HelperTextItem>
+                    Must start and end with a letter or number. Valid characters include lowercase
+                    letters, numbers, and hyphens (-).
+                  </HelperTextItem>
+                  {form.formState.errors.name ? (
+                    <HelperTextItem variant="error">
+                      {form.formState.errors.name.message}
+                    </HelperTextItem>
+                  ) : null}
+                  <HelperTextItem>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => {
+                        form.setValue('name', toResourceName(form.getValues('displayName')));
+                        setIsEditingResourceName(false);
+                      }}
+                    >
+                      Hide resource name
+                    </Button>
+                  </HelperTextItem>
+                </HelperText>
+              </FormGroup>
+            )}
+          />
+        ) : (
+          <HelperText>
+            <HelperTextItem>
+              The resource name will be <b>{form.watch('name')}</b>.
+            </HelperTextItem>
+            <HelperTextItem>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => setIsEditingResourceName(true)}
+                data-testid="data-edit-resource-name"
+              >
+                Edit resource name
+              </Button>
+            </HelperTextItem>
+          </HelperText>
+        )
+      ) : null}
+
       <Controller
         name="description"
-        control={control}
+        control={form.control}
         render={({ field }) => (
           <FormGroup label="Description" fieldId="data-description">
             <TextArea
               id="data-description"
               {...field}
-              validated={errors.description ? 'error' : 'default'}
+              validated={form.formState.errors.description ? 'error' : 'default'}
               data-testid="data-description-input"
             />
-            {errors.description ? (
+            {form.formState.errors.description ? (
               <FormHelperText>
                 <HelperText>
-                  <HelperTextItem variant="error">{errors.description.message}</HelperTextItem>
+                  <HelperTextItem variant="error">
+                    {form.formState.errors.description.message}
+                  </HelperTextItem>
                 </HelperText>
               </FormHelperText>
             ) : null}
           </FormGroup>
         )}
       />
-    </>
+    </FormSection>
   );
 };
 

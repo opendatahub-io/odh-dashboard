@@ -61,6 +61,8 @@ describe('RegisterDataModal', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
     expect(screen.getByText('Create data asset')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Data asset details' })).toBeTruthy();
+    expect(screen.getByTestId('data-project-input')).toHaveValue('test-project');
     expect(screen.getByTestId('data-name-input')).toBeTruthy();
     expect(screen.getByTestId('data-description-input')).toBeTruthy();
     expect(screen.getByTestId('asset-type-toggle')).toBeTruthy();
@@ -200,7 +202,7 @@ describe('RegisterDataModal', () => {
     await user.click(screen.getByTestId('register-data-submit'));
 
     await waitFor(() => {
-      expect(screen.getByText('Asset name is required')).toBeTruthy();
+      expect(screen.getByText('Data asset name is required')).toBeTruthy();
     });
 
     expect(mockCreateVolume).not.toHaveBeenCalled();
@@ -222,6 +224,33 @@ describe('RegisterDataModal', () => {
     expect(mockCreateVolume).not.toHaveBeenCalled();
   });
 
+  it('should derive and allow editing the resource name independently', async () => {
+    const user = userEvent.setup();
+    mockCreateGenericTable.mockResolvedValue(
+      mockAssetResponse({ name: 'claims-custom', display_name: 'Claims Déjà Vu' }),
+    );
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.type(screen.getByTestId('data-name-input'), 'Claims Déjà Vu');
+    expect(screen.getByText(/The resource name will be/)).toHaveTextContent('claims-deja-vu');
+
+    await user.click(screen.getByTestId('data-edit-resource-name'));
+    const resourceNameInput = screen.getByTestId('data-resource-name-input');
+    await user.clear(resourceNameInput);
+    await user.type(resourceNameInput, 'claims-custom');
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() => {
+      expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
+        name: 'claims-custom',
+        display_name: 'Claims Déjà Vu',
+        format: 'other',
+      });
+    });
+  });
+
   it('should submit as volume when asset type is unstructured', async () => {
     const user = userEvent.setup();
     mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'test-volume' }));
@@ -240,6 +269,7 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateVolume).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-volume',
+        display_name: 'test-volume',
         format: 'other',
       });
     });
@@ -277,6 +307,7 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-table',
+        display_name: 'test-table',
         format: 'other',
       });
     });
@@ -536,6 +567,7 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateVolume).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-volume',
+        display_name: 'test-volume',
         format: 'other',
         connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
       });
@@ -561,6 +593,7 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-table',
+        display_name: 'test-table',
         format: 'other',
         connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
       });
@@ -643,6 +676,7 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateVolume).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'minimal',
+        display_name: 'minimal',
         format: 'other',
       });
     });

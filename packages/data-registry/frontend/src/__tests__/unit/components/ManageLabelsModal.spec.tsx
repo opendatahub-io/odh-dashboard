@@ -16,6 +16,7 @@ const mockDeleteLabel = jest.mocked(deleteLabel);
 const mockAssets: RegistryAsset[] = [
   {
     name: 'claims-data',
+    resourceName: 'claims-data',
     description: 'Claims processing data',
     format: 'parquet',
     assetType: 'table',
@@ -27,6 +28,7 @@ const mockAssets: RegistryAsset[] = [
   },
   {
     name: 'raw-documents',
+    resourceName: 'raw-documents',
     description: 'PDF documents',
     format: 'application/pdf',
     assetType: 'volume',
@@ -38,6 +40,7 @@ const mockAssets: RegistryAsset[] = [
   },
   {
     name: 'embeddings',
+    resourceName: 'embeddings',
     description: 'Vector embeddings',
     format: 'milvus',
     assetType: 'table',

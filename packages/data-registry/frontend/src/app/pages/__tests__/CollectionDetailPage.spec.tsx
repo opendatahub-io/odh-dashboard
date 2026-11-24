@@ -29,7 +29,7 @@ const mockCollectionDetail: CollectionDetail = {
   createdBy: 'test-user',
   structuredCount: 2,
   unstructuredCount: 1,
-  assets: [{ name: 'table1', assetType: 'table', format: 'iceberg' }],
+  assets: [{ name: 'table1', resourceName: 'table1', assetType: 'table', format: 'iceberg' }],
 };
 
 describe('CollectionDetailPage', () => {

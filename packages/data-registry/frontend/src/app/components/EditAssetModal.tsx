@@ -59,6 +59,7 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
 
   return {
     assetType: assetKind === 'table' ? 'structured' : 'unstructured',
+    displayName: asset.display_name || asset.name,
     name: asset.name,
     description: asset.description ?? '',
     format: asset.format,
@@ -185,6 +186,9 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
             : {};
 
         const commonUpdate = {
+          ...(data.displayName !== defaults.displayName
+            ? { display_name: data.displayName.trim() }
+            : {}),
           description: data.description,
           storage_location: data.path || null,
           ...connectionUpdate,
@@ -257,7 +261,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
       variant="medium"
       data-testid="edit-asset-modal"
     >
-      <ModalHeader title={`Edit "${asset.name}"`} />
+      <ModalHeader title={`Edit "${asset.display_name || asset.name}"`} />
       <ModalBody>
         {error ? (
           <Alert
