@@ -113,9 +113,9 @@ describe('A model can be deployed with token auth', () => {
       cy.step('Enable Model access through an external route');
       modelServingWizard.findExternalRouteCheckbox().click();
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findSecretNameByIndex(0).clear().type(testData.serviceAccountName1);
+      modelServingWizard.findSecretNameByIndex(0).clear().type(testData.secretName1);
       modelServingWizard.findAddSecretButton().click();
-      modelServingWizard.findSecretNameByIndex(1).clear().type(testData.serviceAccountName2);
+      modelServingWizard.findSecretNameByIndex(1).clear().type(testData.secretName2);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 4: Review');
@@ -171,18 +171,14 @@ describe('A model can be deployed with token auth', () => {
       cy.step('Remove the token');
       modelServingSection.getKServeRow(testData.singleModelName).findKebab().click();
       inferenceServiceActions.findEditInferenceServiceAction().click();
-      // Check the service accounts are showing up in the UI
+      // Check the secrets are showing up in the UI
       // Go to the next step
       modelServingWizardEdit.findNextButton().click();
       // Go to the next step
       modelServingWizardEdit.findNextButton().click();
       //Step 3: Advanced Options
-      modelServingWizardEdit
-        .findSecretNameByIndex(0)
-        .should('have.value', testData.serviceAccountName1);
-      modelServingWizardEdit
-        .findSecretNameByIndex(1)
-        .should('have.value', testData.serviceAccountName2);
+      modelServingWizardEdit.findSecretNameByIndex(0).should('have.value', testData.secretName1);
+      modelServingWizardEdit.findSecretNameByIndex(1).should('have.value', testData.secretName2);
       modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
       modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
       modelServingWizardEdit.findNextButton().click();

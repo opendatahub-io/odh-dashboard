@@ -68,12 +68,7 @@ const mockModelVersionWithLabels = mockModelVersion({
 });
 
 const initIntercepts = () => {
-  // Disable model serving so its deployments context extension does not resolve after the page
-  // renders. That late provider swap remounts the details cards and drops any in-progress edit.
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({ disableModelRegistry: false, disableModelServing: true }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableModelRegistry: false }));
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
