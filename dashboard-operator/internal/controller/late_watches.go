@@ -124,23 +124,20 @@ func startLateWatch(ctx context.Context, mgr manager.Manager, dashboardControlle
 	return nil
 }
 
-// addLateOptionalWatches registers late watches for the optional APIs that were
-// missing when the controller was built: the owned HTTPRoute on every platform
-// and, on XKS, the dashboard serving Certificate.
-func addLateOptionalWatches(mgr manager.Manager, dashboardController ctrlcontroller.Controller, r *DashboardReconciler) error {
-	httpRouteGVK := gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute")
-	available, err := apiResourceAvailable(mgr.GetRESTMapper(), httpRouteGVK)
-	if err != nil {
-		return fmt.Errorf("discovering %s API: %w", httpRouteGVK, err)
-	}
-	if !available {
+// addLateOptionalWatches registers late watches for the optional watches that
+// SetupWithManager could not register at startup: the owned HTTPRoute on every
+// platform and, on XKS, the dashboard serving Certificate. It takes the startup
+// results instead of rediscovering, so an API that appears in between still
+// gets a watch (the late watch finds it available on its first poll).
+func addLateOptionalWatches(mgr manager.Manager, dashboardController ctrlcontroller.Controller, r *DashboardReconciler, httpRouteWatched, certificateWatched bool) error {
+	if !httpRouteWatched {
 		ownedSelector, err := ownedResourceSelector()
 		if err != nil {
 			return err
 		}
 		if err := addLateWatch(mgr, dashboardController, lateWatch{
 			name:      "owned HTTPRoute",
-			gvk:       httpRouteGVK,
+			gvk:       gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute"),
 			newObject: func() client.Object { return &gatewayv1.HTTPRoute{} },
 			scope: cache.ByObject{
 				Namespaces: map[string]cache.Config{r.ApplicationsNamespace: {}},
@@ -152,14 +149,7 @@ func addLateOptionalWatches(mgr manager.Manager, dashboardController ctrlcontrol
 		}
 	}
 
-	if r.Platform != cluster.XKS {
-		return nil
-	}
-	available, err = apiResourceAvailable(mgr.GetRESTMapper(), certificateGVK)
-	if err != nil {
-		return fmt.Errorf("discovering cert-manager Certificate API: %w", err)
-	}
-	if available {
+	if r.Platform != cluster.XKS || certificateWatched {
 		return nil
 	}
 	return addLateWatch(mgr, dashboardController, lateWatch{
