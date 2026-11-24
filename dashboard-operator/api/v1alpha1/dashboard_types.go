@@ -260,6 +260,8 @@ type DashboardStatus struct {
 	// URL is the externally-reachable dashboard URL (last known good).
 	// This value persists across transient route failures — consumers must
 	// check the Ready condition before relying on this endpoint.
+	// On XKS it is always empty: the externally provisioned Gateway owns the
+	// hostname, so the URL printer column is blank there.
 	// +optional
 	URL string `json:"url,omitempty"`
 

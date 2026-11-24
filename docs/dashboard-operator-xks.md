@@ -21,6 +21,23 @@ This lifecycle intentionally does not use the OpenShift core overlay,
 federated BFF modules, observability, MaaS Portal, or OpenShift
 cross-namespace RBAC.
 
+### Why a standalone bundle
+
+The OpenShift overlays (`manifests/base`, `odh`, `rhoai`) and the module
+operands under `manifests/modules` assume OpenShift services that plain
+Kubernetes does not have. Examples are serving certificates from the
+`service.beta.openshift.io/serving-cert-secret-name` annotation, Routes and
+ConsoleLinks, and the federated module pods that the OpenShift core pod loads.
+Parameterizing every one of those for xKS would spread platform conditionals
+across the shared overlays and every module. Instead, xKS ships one
+namespace-neutral bundle with only what RHAII needs on Kubernetes:
+cert-manager for TLS, Gateway API for ingress, and kube-rbac-proxy for access
+control. OpenShift-only behavior stays out of it by construction.
+
+As a result, federated modules are not an xKS target. A module onboarded
+through the module registry deploys on ODH and RHOAI only. Running it on xKS
+needs explicit work in this bundle and lifecycle.
+
 ## Gateway Prerequisites
 
 Gateway API must be installed. The Dashboard operator does not create the XKS
