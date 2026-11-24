@@ -386,3 +386,39 @@ func TestValidate_EnumErrorsDoNotEchoValues(t *testing.T) {
 		})
 	}
 }
+
+// Every setting that names a Kubernetes object ends up in an API path, a
+// selector or an in-cluster DNS name. PROMETHEUS_INSTANCE=monitoring/thanos-querier
+// used to turn the derived https://<instance>.<namespace>.svc... URL into host
+// "monitoring" on port 443 with the intended service in the path.
+func TestValidate_KubernetesNameSettings(t *testing.T) {
+	settings := []struct {
+		name string
+		set  func(*EnvConfig, string)
+	}{
+		{"NAMESPACE/--namespace", func(c *EnvConfig, v string) { c.Namespace = v }},
+		{"OPERATOR_NAMESPACE/--operator-namespace", func(c *EnvConfig, v string) { c.OperatorNamespace = v }},
+		{"WORKBENCH_NAMESPACE/--workbench-namespace", func(c *EnvConfig, v string) { c.WorkbenchNamespace = v }},
+		{"DASHBOARD_CONFIG_NAME/--dashboard-config-name", func(c *EnvConfig, v string) { c.DashboardConfigName = v }},
+		{"ENABLED_APPS_CM/--enabled-apps-cm", func(c *EnvConfig, v string) { c.EnabledAppsCM = v }},
+		{"PROMETHEUS_NAMESPACE/--prometheus-namespace", func(c *EnvConfig, v string) { c.PrometheusNamespace = v }},
+		{"PROMETHEUS_INSTANCE/--prometheus-instance", func(c *EnvConfig, v string) { c.PrometheusInstance = v }},
+	}
+	for _, s := range settings {
+		for _, bad := range []string{"monitoring/thanos-querier", "Upper", " padded", "a.b:9092", "x?y"} {
+			cfg := productionConfig()
+			cfg.PrometheusPort = "9092"
+			s.set(&cfg, bad)
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err, s.name+"="+bad)
+			assert.Contains(t, err.Error(), s.name+" (value omitted) is not a valid Kubernetes", bad)
+			assert.NotContains(t, err.Error(), "thanos-querier")
+		}
+	}
+
+	cfg := productionConfig()
+	cfg.Namespace, cfg.OperatorNamespace, cfg.WorkbenchNamespace = "redhat-ods-applications", "redhat-ods-operator", "rhods-notebooks"
+	cfg.DashboardConfigName, cfg.EnabledAppsCM = "odh-dashboard-config", "odh-enabled-applications-config"
+	cfg.PrometheusNamespace, cfg.PrometheusInstance, cfg.PrometheusPort = "openshift-monitoring", "thanos-querier", "9092"
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+}

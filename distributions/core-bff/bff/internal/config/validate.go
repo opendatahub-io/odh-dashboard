@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"net/url"
 	"os"
 	"strconv"
@@ -113,9 +114,36 @@ func (c EnvConfig) validateCore(add func(string, ...any)) {
 	if strings.TrimSpace(c.Namespace) == "" {
 		add("NAMESPACE/--namespace is empty; the dashboard namespace is required")
 	}
+	c.validateKubernetesNames(add)
 
 	if strings.TrimSpace(c.StaticAssetsDir) == "" {
 		add("STATIC_ASSETS_DIR/--static-assets-dir is empty; the SPA asset root is required")
+	}
+}
+
+// validateKubernetesNames checks every setting that names a Kubernetes object.
+// They are used in API paths, label selectors and in-cluster DNS names, so a
+// value such as "monitoring/thanos-querier" would otherwise silently change
+// the request target. Empty values are left to their own required-field rules.
+func (c EnvConfig) validateKubernetesNames(add func(string, ...any)) {
+	for _, n := range []struct {
+		setting, value, kind string
+		check                func(string) []string
+	}{
+		{"NAMESPACE/--namespace", c.Namespace, "namespace name", validation.IsDNS1123Label},
+		{"OPERATOR_NAMESPACE/--operator-namespace", c.OperatorNamespace, "namespace name", validation.IsDNS1123Label},
+		{"WORKBENCH_NAMESPACE/--workbench-namespace", c.WorkbenchNamespace, "namespace name", validation.IsDNS1123Label},
+		{"DASHBOARD_CONFIG_NAME/--dashboard-config-name", c.DashboardConfigName, "object name", validation.IsDNS1123Subdomain},
+		{"ENABLED_APPS_CM/--enabled-apps-cm", c.EnabledAppsCM, "ConfigMap name", validation.IsDNS1123Subdomain},
+		{"PROMETHEUS_NAMESPACE/--prometheus-namespace", c.PrometheusNamespace, "namespace name", validation.IsDNS1123Label},
+		{"PROMETHEUS_INSTANCE/--prometheus-instance", c.PrometheusInstance, "Service name", validation.IsDNS1035Label},
+	} {
+		if strings.TrimSpace(n.value) == "" {
+			continue
+		}
+		if len(n.check(n.value)) > 0 {
+			add("%s (value omitted) is not a valid Kubernetes %s", n.setting, n.kind)
+		}
 	}
 }
 
