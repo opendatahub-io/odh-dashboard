@@ -111,7 +111,10 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	httpcontract.Log(p.logger, r).Info("WebSocket connected")
 	diagnosticRequest := upstreamRequest.Clone(upstreamRequest.Context())
-	diagnosticRequest.Header.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	if token != "" {
+		// The redactor scrubs this token from relayed diagnostics.
+		diagnosticRequest.Header.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	}
 	bridgeConnections(p.tracker, clientConn, targetConn, httpcontract.RequestID(r.Context()), watch, diagnosticRequest)
 }
 
