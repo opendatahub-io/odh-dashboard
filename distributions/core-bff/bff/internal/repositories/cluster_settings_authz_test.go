@@ -507,10 +507,12 @@ func TestClusterSettings_SegmentKeyReadError_GetAndPlanAgree(t *testing.T) {
 	require.Error(t, planErr)
 }
 
-// Review pass 4: under the service-account policy too, GET fails on a
-// segment-key read error, as the save plan does.
-func TestClusterSettings_SegmentKeyReadError_ServiceAccountGetFails(t *testing.T) {
-	sa := newClientPair(versioned(segmentCM(true), "1"))
+// Review pass 5: under the service-account policy GET shows an unreadable
+// segment-key ConfigMap as tracking off (as before), and saving that value
+// leaves the ConfigMap alone instead of failing; enabling tracking still fails.
+func TestClusterSettings_SegmentKeyReadError_ServiceAccountGetAndSaveAgree(t *testing.T) {
+	sa := newClientPair(versioned(segmentCM(true), "1"),
+		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: notebookControllerDeploy, Namespace: credNS}})
 	sa.typed.PrependReactor("get", "configmaps", func(a k8stesting.Action) (bool, runtime.Object, error) {
 		if a.(k8stesting.GetAction).GetName() != segmentKeyConfigName {
 			return false, nil, nil
@@ -518,8 +520,21 @@ func TestClusterSettings_SegmentKeyReadError_ServiceAccountGetFails(t *testing.T
 		return true, nil, k8serrors.NewInternalError(errors.New("etcd timeout"))
 	})
 	repo := NewClusterSettingsRepository(sa.typed)
-	_, err := repo.GetClusterSettings(context.Background(), credNS, defaultDashConfig())
-	require.Error(t, err)
-	_, err = repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
+
+	shown, err := repo.GetClusterSettings(context.Background(), credNS, defaultDashConfig())
+	require.NoError(t, err)
+	assert.False(t, shown.UserTrackingEnabled)
+
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", shown, defaultDashConfig())
+	require.NoError(t, err, "saving what GET showed does not fail on the read GET tolerated")
+	require.NoError(t, repo.VerifyPlanStillHolds(context.Background(), credNS, plan))
+	require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
+	for _, w := range writes(sa) {
+		assert.NotEqual(t, "update configmaps", w, "the unreadable ConfigMap is left alone")
+	}
+
+	enable := *shown
+	enable.UserTrackingEnabled = true
+	_, err = repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", &enable, defaultDashConfig())
 	require.Error(t, err)
 }

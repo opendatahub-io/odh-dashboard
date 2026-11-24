@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -62,13 +63,18 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 
 	if dashConfig != nil && !dashConfig.Spec.DashboardConfig.DisableTracking {
 		tracking, err := readUserTrackingEnabled(ctx, cs, namespace)
-		if err != nil {
-			// A failed read fails GET, as the culler read does and as the save
-			// plan treats it: GET never shows a tracking value it did not read,
-			// so saving what GET showed cannot fail on a read GET hid.
+		switch {
+		case err != nil && r.clients.policy == CredentialPolicyCaller:
+			// Under the caller policy a failed read is the caller's answer, as
+			// for every other read here and as the save plan treats it.
 			return nil, err
+		case err != nil:
+			// The service-account policy keeps showing tracking off; the save
+			// plan treats the unreadable ConfigMap the same way (see buildPlan).
+			slog.Warn("failed to read segment key config, defaulting to tracking disabled", slog.Any("error", err))
+		default:
+			settings.UserTrackingEnabled = tracking
 		}
-		settings.UserTrackingEnabled = tracking
 	}
 
 	return &settings, nil

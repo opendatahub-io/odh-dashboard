@@ -147,16 +147,23 @@ func (r *ClusterSettingsRepository) buildPlan(
 	plan.trackingManaged = currentConfig != nil && !currentConfig.Spec.DashboardConfig.DisableTracking
 	if plan.trackingManaged {
 		segmentKey, err := getConfigMap(ctx, cs, namespace, segmentKeyConfigName)
-		if err != nil {
+		switch {
+		case err != nil && r.clients.policy != CredentialPolicyCaller && !settings.UserTrackingEnabled:
+			// Under the service-account policy GET shows an unreadable
+			// segment-key ConfigMap as tracking off. Saving that value leaves
+			// the ConfigMap alone, so it cannot fail on a read GET tolerated.
+			plan.trackingManaged = false
+			segmentKey = nil
+		case err != nil:
 			return nil, err
 		}
 		plan.segmentKey = segmentKey
-		if segmentKey == nil && settings.UserTrackingEnabled {
+		if plan.trackingManaged && segmentKey == nil && settings.UserTrackingEnabled {
 			// Tracking can only be stored in a provisioned segment-key ConfigMap;
 			// reporting success would claim a setting that was not stored.
 			return nil, fmt.Errorf("user tracking cannot be enabled: the %s ConfigMap is not provisioned", segmentKeyConfigName)
 		}
-		if segmentKey != nil && trackingEnabledOf(segmentKey) != settings.UserTrackingEnabled {
+		if plan.trackingManaged && segmentKey != nil && trackingEnabledOf(segmentKey) != settings.UserTrackingEnabled {
 			plan.updateSegmentKey = true
 			plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: segmentKeyConfigName})
 		}
