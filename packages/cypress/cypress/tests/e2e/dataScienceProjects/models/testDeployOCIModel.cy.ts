@@ -152,9 +152,9 @@ describe(
         // Enable Model access through an external route with token authentication
         modelServingWizard.findExternalRouteCheckbox().click();
         modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-        modelServingWizard.findServiceAccountByIndex(0).clear().type('oci-token-1');
-        modelServingWizard.findAddServiceAccountButton().click();
-        modelServingWizard.findServiceAccountByIndex(1).clear().type('oci-token-2');
+        modelServingWizard.findSecretNameByIndex(0).clear().type('oci-token-1');
+        modelServingWizard.findAddSecretButton().click();
+        modelServingWizard.findSecretNameByIndex(1).clear().type('oci-token-2');
         modelServingWizard.findNextButton().click();
 
         cy.step('Step 4: Review');
@@ -217,8 +217,8 @@ describe(
         modelServingWizardEdit.findNextButton().click(); // Step 2: Model deployment
 
         // Step 3: Advanced Options - verify service accounts and disable token auth
-        modelServingWizardEdit.findServiceAccountByIndex(0).should('have.value', 'oci-token-1');
-        modelServingWizardEdit.findServiceAccountByIndex(1).should('have.value', 'oci-token-2');
+        modelServingWizardEdit.findSecretNameByIndex(0).should('have.value', 'oci-token-1');
+        modelServingWizardEdit.findSecretNameByIndex(1).should('have.value', 'oci-token-2');
         modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
         modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
         modelServingWizardEdit.findNextButton().click();
