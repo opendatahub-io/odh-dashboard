@@ -6,7 +6,10 @@
 # ServingRuntimes and list/watch pods there, but holds no cluster-scoped
 # permission (in particular no Namespace patch). It then drives a Core BFF with
 # that ServiceAccount's token and with an admin token, and prints one PASS/FAIL
-# row per check. Token values are never printed. The namespace is deleted on exit.
+# row per check. Token values are never printed and never passed on a command
+# line: each credential header is written by the shell (a builtin, so no
+# process argument) to a file only this user can read, and curl and the
+# WebSocket client read it from there. The namespace is deleted on exit.
 #
 # Usage (from distributions/core-bff):
 #   scripts/validate-caller-auth.sh                 # xKS mode, starts a local BFF
@@ -23,6 +26,7 @@
 #                `oc whoami -t` when oc is logged in; admin rows are skipped without one.
 #   KEEP_NAMESPACE=true  Do not delete the test namespace on exit.
 set -euo pipefail
+umask 077
 
 PLATFORM=${PLATFORM:-XKS}
 NS=${TEST_NAMESPACE:-corebff-caller-auth-$RANDOM}
@@ -30,6 +34,7 @@ DASHBOARD_NS=${DASHBOARD_NAMESPACE:-opendatahub}
 PORT=${PORT:-4321}
 here=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)
+chmod 700 "$work"
 bff_pid=""
 ns_created=false
 fails=0
@@ -151,44 +156,61 @@ ns_label() {
 }
 
 if [[ "$PLATFORM" == "XKS" ]]; then
-  H=Authorization; V="Bearer $SA"
+  H=Authorization; P="Bearer "
 else
-  H=x-forwarded-access-token; V=$SA
+  H=x-forwarded-access-token; P=""
 fi
+
+# Credential header files. printf is a shell builtin, so the token never
+# appears in a process argument list; curl reads the header with -H @file.
+hdr() { printf '%s: %s\n' "$2" "$3" >"$work/$1.hdr"; printf '%s' "$work/$1.hdr"; }
+CALLER=$(hdr caller "$H" "$P$SA")
+SA_AUTH=$(hdr sa-auth Authorization "Bearer $SA")
+SA_XFAT=$(hdr sa-xfat x-forwarded-access-token "$SA")
 
 echo "== Caller credential headers =="
 if [[ "$PLATFORM" == "XKS" ]]; then
-  check H1 "Authorization: Bearer" 200 "$(code -H "Authorization: Bearer $SA" "$B/api/v1/user")"
-  check H2 "x-forwarded-access-token" 200 "$(code -H "x-forwarded-access-token: $SA" "$B/api/v1/user")"
-  check H3 "both headers, same token" 200 "$(code -H "Authorization: Bearer $SA" -H "x-forwarded-access-token: $SA" "$B/api/v1/user")"
-  check H4 "both headers, different tokens" 401 "$(code -H "Authorization: Bearer $SA" -H "x-forwarded-access-token: other-token" "$B/api/v1/user")"
-  check H5 "Basic scheme with a valid fallback (no fall-through)" 401 "$(code -H "Authorization: Basic dXNlcjpwYXNz" -H "x-forwarded-access-token: $SA" "$B/api/v1/user")"
+  check H1 "Authorization: Bearer" 200 "$(code -H "@$SA_AUTH" "$B/api/v1/user")"
+  check H2 "x-forwarded-access-token" 200 "$(code -H "@$SA_XFAT" "$B/api/v1/user")"
+  check H3 "both headers, same token" 200 "$(code -H "@$SA_AUTH" -H "@$SA_XFAT" "$B/api/v1/user")"
+  check H4 "both headers, different tokens" 401 "$(code -H "@$SA_AUTH" -H "x-forwarded-access-token: other-token" "$B/api/v1/user")"
+  check H5 "Basic scheme with a valid fallback (no fall-through)" 401 "$(code -H "Authorization: Basic dXNlcjpwYXNz" -H "@$SA_XFAT" "$B/api/v1/user")"
 else
-  check H1 "x-forwarded-access-token" 200 "$(code -H "x-forwarded-access-token: $SA" "$B/api/v1/user")"
-  check H2 "Authorization alone is not read (single-header mode)" 401 "$(code -H "Authorization: Bearer $SA" "$B/api/v1/user")"
+  check H1 "x-forwarded-access-token" 200 "$(code -H "@$SA_XFAT" "$B/api/v1/user")"
+  check H2 "Authorization alone is not read (single-header mode)" 401 "$(code -H "@$SA_AUTH" "$B/api/v1/user")"
 fi
 check H6 "no credential" 401 "$(code "$B/api/v1/user")"
-check H7 "token the API server rejects" 401 "$(code -H "$H: ${V%"$SA"}not-a-real-token" "$B/api/v1/user")"
+check H7 "token the API server rejects" 401 "$(code -H "$H: ${P}not-a-real-token" "$B/api/v1/user")"
 check H8 "identity headers without a credential" 401 "$(code -H "X-Forwarded-User: admin" -H "Impersonate-User: admin" "$B/api/v1/user")"
 
 echo "== Kubernetes HTTP proxy =="
-check P1 "caller lists pods in its namespace" 200 "$(code -H "$H: $V" "$B/api/k8s/api/v1/namespaces/$NS/pods")"
-check P2 "caller lists all namespaces (not permitted)" 403 "$(code -H "$H: $V" "$B/api/k8s/api/v1/namespaces")"
-check P3 "Impersonate-User/Group spoof is stripped" 403 "$(code -H "$H: $V" -H "Impersonate-User: system:admin" -H "Impersonate-Group: system:masters" "$B/api/k8s/api/v1/namespaces")"
-check P4 "X-Remote-User spoof is stripped" 403 "$(code -H "$H: $V" -H "X-Remote-User: system:admin" -H "X-Remote-Group: system:masters" "$B/api/k8s/api/v1/namespaces")"
+check P1 "caller lists pods in its namespace" 200 "$(code -H "@$CALLER" "$B/api/k8s/api/v1/namespaces/$NS/pods")"
+check P2 "caller lists all namespaces (not permitted)" 403 "$(code -H "@$CALLER" "$B/api/k8s/api/v1/namespaces")"
+# P3/P4 use the request P1 showed the caller may make. Had a spoofed header
+# reached the API server, the caller (who may not impersonate) would get 403.
+check P3 "Impersonate-User/Group spoof is stripped" 200 "$(code -H "@$CALLER" -H "Impersonate-User: system:admin" -H "Impersonate-Group: system:masters" "$B/api/k8s/api/v1/namespaces/$NS/pods")"
+check P4 "X-Remote-User spoof is stripped" 200 "$(code -H "@$CALLER" -H "X-Remote-User: system:admin" -H "X-Remote-Group: system:masters" "$B/api/k8s/api/v1/namespaces/$NS/pods")"
 check P5 "no credential: the BFF identity must not act" 401 "$(code "$B/api/k8s/api/v1/namespaces")"
 sr='{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"probe"},"spec":{"containers":[{"name":"kserve-container","image":"quay.io/example/probe:1"}],"supportedModelFormats":[{"name":"onnx"}]}}'
-check P6 "caller dry-run creates a ServingRuntime where allowed" 201 "$(code -X POST -H "$H: $V" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/$NS/servingruntimes?dryRun=All")"
-check P7 "caller dry-run create where not allowed" 403 "$(code -X POST -H "$H: $V" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/default/servingruntimes?dryRun=All")"
+check P6 "caller dry-run creates a ServingRuntime where allowed" 201 "$(code -X POST -H "@$CALLER" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/$NS/servingruntimes?dryRun=All")"
+check P7 "caller dry-run create where not allowed" 403 "$(code -X POST -H "@$CALLER" -H 'Content-Type: application/json' -d "$sr" "$B/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/default/servingruntimes?dryRun=All")"
 
 echo "== Kubernetes WebSocket proxy =="
 ws_module=$(cd "$here" && node -e 'try{console.log(require.resolve("ws"))}catch{}' 2>/dev/null || true)
 if [[ -n "$ws_module" ]]; then
   cat >"$work/ws.js" <<'EOF'
 const WebSocket = require(process.env.WS_MODULE);
-const [url, ...kv] = process.argv.slice(2);
+const fs = require('fs');
+// The optional second argument is a header file ("Name: value" lines), so the
+// credential is never a process argument.
+const [url, headerFile] = process.argv.slice(2);
 const headers = {};
-for (let i = 0; i + 1 < kv.length; i += 2) headers[kv[i]] = kv[i + 1];
+if (headerFile) {
+  for (const line of fs.readFileSync(headerFile, 'utf8').split('\n')) {
+    const i = line.indexOf(':');
+    if (i > 0) headers[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+  }
+}
 const ws = new WebSocket(url, [], { headers, origin: new URL(url).origin.replace(/^ws/, 'http') });
 const done = (s) => { console.log(s); try { ws.terminate(); } catch {} process.exit(0); };
 ws.on('upgrade', (res) => done(String(res.statusCode)));
@@ -198,8 +220,8 @@ setTimeout(() => done('timeout'), 8000);
 EOF
   wsb=${B/#http/ws}
   ws() { WS_MODULE=$ws_module node "$work/ws.js" "$@"; }
-  check W1 "caller watches pods in its namespace" 101 "$(ws "$wsb/wss/k8s/api/v1/namespaces/$NS/pods?watch=true" "$H" "$V")"
-  check W2 "caller watches all namespaces (not permitted)" 403 "$(ws "$wsb/wss/k8s/api/v1/namespaces?watch=true" "$H" "$V")"
+  check W1 "caller watches pods in its namespace" 101 "$(ws "$wsb/wss/k8s/api/v1/namespaces/$NS/pods?watch=true" "$CALLER")"
+  check W2 "caller watches all namespaces (not permitted)" 403 "$(ws "$wsb/wss/k8s/api/v1/namespaces?watch=true" "$CALLER")"
   check W3 "no credential" 401 "$(ws "$wsb/wss/k8s/api/v1/namespaces/$NS/pods?watch=true")"
 else
   skip W1-3 "WebSocket checks" "node with the ws package not found"
@@ -207,26 +229,28 @@ fi
 
 echo "== Namespace mutation (credential policy) =="
 if [[ "$PLATFORM" == "XKS" ]]; then
-  check M1 "caller without Namespace patch, dry run" '{"applied":false}' "$(body -H "$H: $V" "$B/api/namespaces/$NS/1?dryRun=All")"
-  check M2 "caller without Namespace patch" '{"applied":false}' "$(body -H "$H: $V" "$B/api/namespaces/$NS/1")"
+  check M1 "caller without Namespace patch, dry run" '{"applied":false}' "$(body -H "@$CALLER" "$B/api/namespaces/$NS/1?dryRun=All")"
+  check M2 "caller without Namespace patch" '{"applied":false}' "$(body -H "@$CALLER" "$B/api/namespaces/$NS/1")"
   check M3 "  ...and nothing was written" "" "$(ns_label)"
 else
-  check M1 "service account applies after the caller's SSAR" '{"applied":true}' "$(body -H "$H: $V" "$B/api/namespaces/$NS/1")"
+  check M1 "service account applies after the caller's SSAR" '{"applied":true}' "$(body -H "@$CALLER" "$B/api/namespaces/$NS/1")"
   check M2 "  ...label written by the service account" "false" "$(ns_label)"
 fi
-check M4 "caller who fails the access review" 403 "$(code -H "$H: $V" "$B/api/namespaces/default/1")"
+check M4 "caller who fails the access review" 403 "$(code -H "@$CALLER" "$B/api/namespaces/default/1")"
 if [[ -n "$AD" ]]; then
-  AH=$H; AV=${V%"$SA"}$AD
-  check M5 "admin applies the mutation" '{"applied":true}' "$(body -H "$AH: $AV" "$B/api/namespaces/$NS/1")"
-  check M6 "admin resets the platform" '{"applied":true}' "$(body -H "$AH: $AV" "$B/api/namespaces/$NS/3")"
+  ADMIN=$(hdr admin "$H" "$P$AD")
+  check M5 "admin applies the mutation" '{"applied":true}' "$(body -H "@$ADMIN" "$B/api/namespaces/$NS/1")"
+  check M6 "admin resets the platform" '{"applied":true}' "$(body -H "@$ADMIN" "$B/api/namespaces/$NS/3")"
 else
   skip M5-6 "admin mutation" "no ADMIN_TOKEN"
 fi
 
 if [[ -n "$bff_pid" ]]; then
   echo "== Logs =="
-  leaks=$(grep -cF "$SA" "$work/bff.log" || true)
-  [[ -n "$AD" ]] && leaks=$((leaks + $(grep -cF "$AD" "$work/bff.log" || true)))
+  # The tokens are matched from a file (grep -f), never from an argument.
+  printf '%s\n' "$SA" >"$work/needles"
+  [[ -n "$AD" ]] && printf '%s\n' "$AD" >>"$work/needles"
+  leaks=$(grep -cFf "$work/needles" "$work/bff.log" || true)
   check L1 "token values in the debug log" 0 "$leaks"
 fi
 
