@@ -313,7 +313,9 @@ The `config.openshift.io` rule in `manifests/base/cluster-role.yaml` is therefor
 **confirmed** xKS platform. Set `ODH_PLATFORM_TYPE=XKS` before dropping it from an xKS-only overlay:
 an auto-detected platform whose probe was inconclusive still reads the profile (below).
 
-Auto-detection confirms xKS only when discovery reports the `ClusterVersion` API absent. A
+Auto-detection confirms xKS only when discovery reports the `ClusterVersion` API absent: a bare
+404 on the read is confirmed through `/apis` before it counts (see
+[bootstrap-contract.md](./bootstrap-contract.md)). A
 successful read is OpenShift, with or without a usable cluster ID. When the probe is inconclusive
 (the `version` singleton is missing, or the read is forbidden or times out), the resolved
 platform is **XKS**, the least-privilege answer, but it is marked **unconfirmed**. An unconfirmed

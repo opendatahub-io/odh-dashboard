@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
@@ -11,8 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	k8stesting "k8s.io/client-go/testing"
 )
@@ -117,7 +120,7 @@ func TestAuthLookup_ClassifiesEachFailureMode(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			repo := NewAuthRepository(newFakeDynClientFailingWith(tc.err))
+			repo := NewAuthRepository(newFakeDynClientFailingWith(tc.err), emptyDiscovery())
 
 			lookup := repo.Lookup(context.Background())
 
@@ -135,7 +138,7 @@ func TestAuthLookup_ClassifiesEachFailureMode(t *testing.T) {
 }
 
 func TestAuthLookup_AvailableReturnsGroups(t *testing.T) {
-	repo := NewAuthRepository(newFakeDynClientWithAuth([]string{models.SystemAuthenticated, "allowed-group"}))
+	repo := NewAuthRepository(newFakeDynClientWithAuth([]string{models.SystemAuthenticated, "allowed-group"}), emptyDiscovery())
 
 	lookup := repo.Lookup(context.Background())
 
@@ -149,14 +152,14 @@ func TestAuthLookup_AvailableReturnsGroups(t *testing.T) {
 // GetAuth keeps its existing contract for callers that only need the config.
 func TestGetAuth_PreservesExistingContract(t *testing.T) {
 	t.Run("CRD absent returns nil without error", func(t *testing.T) {
-		cfg, err := NewAuthRepository(newFakeDynClientCRDAbsent()).GetAuth(context.Background())
+		cfg, err := NewAuthRepository(newFakeDynClientCRDAbsent(), emptyDiscovery()).GetAuth(context.Background())
 		assert.NoError(t, err)
 		assert.Nil(t, cfg)
 	})
 
 	t.Run("instance missing returns an error", func(t *testing.T) {
 		notFound := k8serrors.NewNotFound(schema.GroupResource{Group: "services.platform.opendatahub.io", Resource: "auths"}, "auth")
-		cfg, err := NewAuthRepository(newFakeDynClientFailingWith(notFound)).GetAuth(context.Background())
+		cfg, err := NewAuthRepository(newFakeDynClientFailingWith(notFound), emptyDiscovery()).GetAuth(context.Background())
 		assert.Error(t, err)
 		assert.Nil(t, cfg)
 	})
@@ -168,4 +171,32 @@ func newFakeDynClientFailingWith(err error) *dynamicfake.FakeDynamicClient {
 		return true, nil, err
 	})
 	return client
+}
+
+// A bare 404 on the Auth read looks like a missing CRD, but an intermediary can
+// return it while the CRD is installed. CRD absence admits without a review, so
+// it needs discovery's confirmation; otherwise admission takes the review path.
+func TestLookup_BareNotFoundNeedsDiscoveryToConfirmAbsence(t *testing.T) {
+	bare404 := &k8serrors.StatusError{ErrStatus: metav1.Status{
+		Status: metav1.StatusFailure, Code: 404, Reason: metav1.StatusReasonNotFound,
+	}}
+
+	lookup := NewAuthRepository(newFakeDynClientFailingWith(bare404), emptyDiscovery()).Lookup(context.Background())
+	assert.Equal(t, AuthCRDAbsent, lookup.Availability, "discovery confirms the CRD is not served")
+
+	for name, disc := range map[string]discovery.DiscoveryInterface{
+		"discovery serves the CRD": servesAuth(),
+		"no discovery client":      nil,
+	} {
+		t.Run(name, func(t *testing.T) {
+			lookup := NewAuthRepository(newFakeDynClientFailingWith(bare404), disc).Lookup(context.Background())
+			assert.Equal(t, AuthUnavailable, lookup.Availability)
+			assert.ErrorIs(t, lookup.Err, k8sutil.ErrAbsenceUnconfirmed)
+
+			client := &mockUserAllowedClient{allowed: false}
+			got := admit(client, NewAuthRepository(newFakeDynClientFailingWith(bare404), disc), config.AdmissionModeAuthResource, false)
+			assert.False(t, got.Admitted, "the caller's own review decides")
+			assert.Equal(t, 1, client.calls)
+		})
+	}
 }

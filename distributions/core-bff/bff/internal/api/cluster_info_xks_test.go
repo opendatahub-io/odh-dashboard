@@ -13,6 +13,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/dynamic"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
@@ -162,6 +163,19 @@ func TestAmbiguousPlatformProbeDoesNotRelaxAdmission(t *testing.T) {
 		"a guessed platform must keep the Auth-resource admission gate")
 }
 
+func servesClusterVersion(d *fakediscovery.FakeDiscovery) {
+	d.Resources = []*metav1.APIResourceList{{
+		GroupVersion: models.ClusterVersionGVR.GroupVersion().String(),
+		APIResources: []metav1.APIResource{{Name: models.ClusterVersionGVR.Resource}},
+	}}
+}
+
+func discoveryFails(d *fakediscovery.FakeDiscovery) {
+	d.PrependReactor("get", "group", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewServiceUnavailable("gateway")
+	})
+}
+
 // Each ClusterVersion probe outcome, driven through the real probe and the
 // platform resolver, to the two security decisions that depend on it: the
 // admission contract and whether the cluster TLS profile is bypassed. Only
@@ -190,6 +204,7 @@ func TestClusterVersionProbeOutcomesDriveAdmissionAndTLS(t *testing.T) {
 		name          string
 		objs          []runtime.Object
 		react         func(*dynamicfake.FakeDynamicClient)
+		discovery     func(*fakediscovery.FakeDiscovery)
 		wantPlatform  config.PlatformType
 		wantConfirmed bool
 		wantAdmission config.AdmissionMode
@@ -199,6 +214,18 @@ func TestClusterVersionProbeOutcomesDriveAdmissionAndTLS(t *testing.T) {
 			name:  "API absent: confirmed xKS",
 			react: notServed, wantPlatform: config.PlatformXKS, wantConfirmed: true,
 			wantAdmission: config.AdmissionModeAuthenticated, wantNoProfile: true,
+		},
+		{
+			// An intermediary in front of an OpenShift API server returns a
+			// bare 404, but discovery still serves ClusterVersion.
+			name:  "bare 404 while discovery serves the API: inconclusive",
+			react: notServed, discovery: servesClusterVersion, wantPlatform: config.PlatformXKS, wantConfirmed: false,
+			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
+		},
+		{
+			name:  "bare 404 and discovery fails: inconclusive",
+			react: notServed, discovery: discoveryFails, wantPlatform: config.PlatformXKS, wantConfirmed: false,
+			wantAdmission: config.AdmissionModeAuthResource, wantNoProfile: false,
 		},
 		{
 			name:         "instance absent: inconclusive",
@@ -241,7 +268,12 @@ func TestClusterVersionProbeOutcomesDriveAdmissionAndTLS(t *testing.T) {
 				tc.react(dynClient)
 			}
 
-			ci, probeErr := queryClusterInfo(k8sfake.NewSimpleClientset(), dynClient, discardLogger())
+			clientset := k8sfake.NewSimpleClientset()
+			if tc.discovery != nil {
+				tc.discovery(clientset.Discovery().(*fakediscovery.FakeDiscovery))
+			}
+
+			ci, probeErr := queryClusterInfo(clientset, dynClient, discardLogger())
 			platform, confirmed := resolveStartupPlatform(ci, probeErr, false, "", discardLogger())
 
 			assert.Equal(t, tc.wantPlatform, platform)

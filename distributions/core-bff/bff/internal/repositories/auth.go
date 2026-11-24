@@ -8,6 +8,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -15,10 +16,14 @@ import (
 // Uses a service-account-scoped dynamic client for reads, matching the privileged watcher model.
 type AuthRepository struct {
 	saDynClient dynamic.Interface
+	discovery   discovery.DiscoveryInterface
 }
 
-func NewAuthRepository(saDynClient dynamic.Interface) *AuthRepository {
-	return &AuthRepository{saDynClient: saDynClient}
+// NewAuthRepository reads the Auth CR with the service-account client. disc
+// confirms CRD absence; without it a missing Auth API is never treated as
+// absent, so admission falls back to the access review.
+func NewAuthRepository(saDynClient dynamic.Interface, disc discovery.DiscoveryInterface) *AuthRepository {
+	return &AuthRepository{saDynClient: saDynClient, discovery: disc}
 }
 
 // AuthConfig holds admin and allowed group lists from the Auth CRD.
@@ -79,6 +84,12 @@ func (r *AuthRepository) Lookup(ctx context.Context) AuthLookup {
 			// answer must take the unavailable path instead.
 			return AuthLookup{Availability: AuthUnavailable, Err: fmt.Errorf("auth read returned method not supported: %w", err)}
 		case k8sutil.IsDiscoveryError(err):
+			// CRD absence admits without a review, and an intermediary can
+			// return the same bare 404 while the CRD is installed, so only
+			// discovery can confirm it.
+			if absent, confirmErr := k8sutil.ConfirmAPIAbsent(ctx, r.discovery, models.AuthGVR); !absent {
+				return AuthLookup{Availability: AuthUnavailable, Err: fmt.Errorf("auth read inconclusive: %w", confirmErr)}
+			}
 			return AuthLookup{Availability: AuthCRDAbsent}
 		case k8serrors.IsNotFound(err):
 			return AuthLookup{Availability: AuthInstanceMissing, Err: fmt.Errorf("auth instance not found: %w", err)}

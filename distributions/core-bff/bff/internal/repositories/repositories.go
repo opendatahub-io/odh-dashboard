@@ -3,6 +3,7 @@ package repositories
 
 import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -47,7 +48,11 @@ type RepositoriesConfig struct {
 
 // NewRepositories creates a new Repositories instance with all repositories initialized.
 func NewRepositories(cfg RepositoriesConfig) *Repositories {
-	auth := NewAuthRepository(cfg.SADynClient)
+	var disc discovery.DiscoveryInterface
+	if cfg.SAClientset != nil {
+		disc = cfg.SAClientset.Discovery()
+	}
+	auth := NewAuthRepository(cfg.SADynClient, disc)
 	return &Repositories{
 		HealthCheck:                NewHealthCheckRepository(),
 		User:                       NewUserRepository(),

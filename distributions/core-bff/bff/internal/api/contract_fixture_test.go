@@ -83,7 +83,7 @@ func TestNativeContractFixtureServer(t *testing.T) {
 	// auth-resource mode: the fixture exercises the Auth-read failure path, so
 	// admission must still consult the caller's own access review.
 	app.repositories.Status = repositories.NewStatusRepository(
-		nil, "project", repositories.NewAuthRepository(dynamicClient), config.AdmissionModeAuthResource)
+		nil, "project", repositories.NewAuthRepository(dynamicClient, emptyDiscovery()), config.AdmissionModeAuthResource)
 	server := httptest.NewServer(app.Routes())
 	t.Cleanup(server.Close)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

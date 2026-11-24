@@ -63,10 +63,16 @@ unconfirmed platform keeps `auth-resource`, the restrictive contract.
 | `ClusterVersion` read, with or without a usable cluster ID          | OpenShift | yes       | `auth-resource` |
 | `ClusterVersion` API not served (discovery reports it absent)       | XKS       | yes       | `authenticated` |
 | `ClusterVersion` API served but the `version` singleton missing     | XKS       | **no**    | `auth-resource` |
+| Bare 404 on the read that discovery does not confirm                | XKS       | **no**    | `auth-resource` |
 | Probe failed (forbidden, 405, timeout, no client), fell back to XKS | XKS       | **no**    | `auth-resource` |
 
-Only positive evidence that the OpenShift configuration API is absent confirms XKS. A missing
-singleton, a malformed object or a 405 on the read is not that evidence, and a successful read is
+Only positive evidence that the OpenShift configuration API is absent confirms XKS. A 404 without
+a resource name on the read is only a hint, because a proxy or gateway in front of the API server
+can return the same response on OpenShift. The probe then asks discovery (`/apis`, readable by
+every authenticated identity through the default `system:discovery` role), and only a successful
+answer that does not list `config.openshift.io/v1` `clusterversions` confirms absence. A discovery
+failure, or a discovery answer that serves the resource, is inconclusive. A missing
+singleton, a malformed object or a 405 on the read is not that evidence either, and a successful read is
 OpenShift even when the cluster ID cannot be parsed. The same confirmation also decides whether
 the HTTPS listener may skip the cluster TLS profile (see [runtime-contract.md](./runtime-contract.md)).
 
@@ -84,7 +90,8 @@ For everyone else:
 
 | Auth read outcome                               | Admission        | Code                              | Why                                                                                                                        |
 | ----------------------------------------------- | ---------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| CRD not installed                               | **Admitted**     | `ADMISSION_AUTH_CRD_ABSENT`       | No Auth resource means no group restriction to enforce.                                                                    |
+| CRD not installed (confirmed by discovery)      | **Admitted**     | `ADMISSION_AUTH_CRD_ABSENT`       | No Auth resource means no group restriction to enforce.                                                                    |
+| Bare 404 that discovery does not confirm        | SSAR decides     | `ADMISSION_AUTH_UNAVAILABLE`      | An intermediary can return a bare 404 while the CRD is installed, so it is not evidence of absence.                        |
 | `allowedGroups` contains `system:authenticated` | **Admitted**     | `ADMISSION_SYSTEM_AUTHENTICATED`  | The cluster explicitly admits every authenticated user.                                                                    |
 | Readable, restricted groups                     | SSAR decides     | `ADMISSION_ACCESS_REVIEW`         | `get` on `auths/auth` as the caller.                                                                                       |
 | CRD installed, singleton not provisioned        | SSAR decides     | `ADMISSION_AUTH_INSTANCE_MISSING` | The installation owner provisions it; the dashboard never does. Deferring means a late provision does not lock anyone out. |

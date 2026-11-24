@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -45,7 +46,11 @@ func (ci clusterInfo) GetCurrentContext() string  { return ci.currentContext }
 
 func queryClusterInfo(client kubernetes.Interface, dynClient dynamic.Interface, logger *slog.Logger) (clusterInfo, error) {
 	info := clusterInfo{clusterBranding: defaultClusterBranding}
-	probe, err := queryClusterVersion(dynClient, logger)
+	var disc discovery.DiscoveryInterface
+	if client != nil {
+		disc = client.Discovery()
+	}
+	probe, err := queryClusterVersion(dynClient, disc, logger)
 	if err != nil {
 		return info, err
 	}
@@ -62,8 +67,9 @@ func queryClusterInfo(client kubernetes.Interface, dynClient dynamic.Interface, 
 type clusterVersionOutcome int
 
 const (
-	// clusterVersionAPIAbsent: discovery reports the ClusterVersion API is not
-	// served. This is the positive evidence for a non-OpenShift cluster.
+	// clusterVersionAPIAbsent: the GET found no ClusterVersion API and
+	// discovery confirms it is not served. This is the positive evidence for a
+	// non-OpenShift cluster.
 	clusterVersionAPIAbsent clusterVersionOutcome = iota + 1
 	// clusterVersionFound: the singleton was read, so this is OpenShift.
 	clusterVersionFound
@@ -78,7 +84,7 @@ type clusterVersionProbe struct {
 // ClusterVersion API is served but the "version" singleton is not there.
 var errClusterVersionInstanceMissing = errors.New("ClusterVersion API is served but the cluster version singleton is missing")
 
-func queryClusterVersion(dynClient dynamic.Interface, logger *slog.Logger) (clusterVersionProbe, error) {
+func queryClusterVersion(dynClient dynamic.Interface, disc discovery.DiscoveryInterface, logger *slog.Logger) (clusterVersionProbe, error) {
 	if dynClient == nil {
 		return clusterVersionProbe{}, errors.New("ClusterVersion probe failed: no client available")
 	}
@@ -95,8 +101,14 @@ func queryClusterVersion(dynClient dynamic.Interface, logger *slog.Logger) (clus
 		return clusterVersionProbe{}, fmt.Errorf("ClusterVersion probe inconclusive: method not supported: %w", err)
 	case k8sutil.IsDiscoveryError(err):
 		// Checked before IsNotFound: a discovery 404 carries no resource name,
-		// an instance 404 does.
-		logger.Debug("ClusterVersion API not available (non-OpenShift cluster)", slog.Any("error", err))
+		// an instance 404 does. An intermediary can return the same bare 404
+		// on OpenShift, and xKS relaxes admission, so the GET alone is not
+		// proof: discovery must confirm the API is not served.
+		absent, confirmErr := k8sutil.ConfirmAPIAbsent(ctx, disc, models.ClusterVersionGVR)
+		if !absent {
+			return clusterVersionProbe{}, fmt.Errorf("ClusterVersion probe inconclusive: %w", confirmErr)
+		}
+		logger.Debug("ClusterVersion API not served (non-OpenShift cluster)")
 		return clusterVersionProbe{outcome: clusterVersionAPIAbsent}, nil
 	case k8serrors.IsNotFound(err):
 		return clusterVersionProbe{}, fmt.Errorf("ClusterVersion probe inconclusive: %w", errClusterVersionInstanceMissing)

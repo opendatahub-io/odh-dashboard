@@ -100,7 +100,7 @@ func clusterVersionClient(objs ...runtime.Object) *dynamicfake.FakeDynamicClient
 func TestQueryClusterVersion_Success(t *testing.T) {
 	dynClient := clusterVersionClient(clusterVersionObject(map[string]any{"clusterID": "test-cluster-id-123"}))
 
-	probe, err := queryClusterVersion(dynClient, testLogger())
+	probe, err := queryClusterVersion(dynClient, emptyDiscovery(), testLogger())
 	require.NoError(t, err)
 	assert.Equal(t, clusterVersionFound, probe.outcome)
 	assert.Equal(t, "test-cluster-id-123", probe.clusterID)
@@ -121,7 +121,7 @@ func TestQueryClusterVersion_FoundWithoutUsableClusterID(t *testing.T) {
 			if name == "spec is not a map" {
 				obj.Object["spec"] = "malformed"
 			}
-			probe, err := queryClusterVersion(clusterVersionClient(obj), testLogger())
+			probe, err := queryClusterVersion(clusterVersionClient(obj), emptyDiscovery(), testLogger())
 			require.NoError(t, err)
 			assert.Equal(t, clusterVersionFound, probe.outcome)
 			assert.Empty(t, probe.clusterID)
@@ -139,7 +139,7 @@ func TestQueryClusterVersion_APIAbsent(t *testing.T) {
 		}}
 	})
 
-	probe, err := queryClusterVersion(dynClient, testLogger())
+	probe, err := queryClusterVersion(dynClient, emptyDiscovery(), testLogger())
 	require.NoError(t, err)
 	assert.Equal(t, clusterVersionAPIAbsent, probe.outcome)
 }
@@ -147,14 +147,14 @@ func TestQueryClusterVersion_APIAbsent(t *testing.T) {
 // The API is served but the singleton is missing: that does not show the
 // cluster is not OpenShift, so the probe is inconclusive.
 func TestQueryClusterVersion_InstanceMissingIsInconclusive(t *testing.T) {
-	probe, err := queryClusterVersion(clusterVersionClient(), testLogger())
+	probe, err := queryClusterVersion(clusterVersionClient(), emptyDiscovery(), testLogger())
 	require.Error(t, err)
 	assert.ErrorIs(t, err, errClusterVersionInstanceMissing)
 	assert.Zero(t, probe.outcome)
 }
 
 func TestQueryClusterVersion_NilClientIsInconclusive(t *testing.T) {
-	_, err := queryClusterVersion(nil, testLogger())
+	_, err := queryClusterVersion(nil, emptyDiscovery(), testLogger())
 	require.Error(t, err)
 }
 
@@ -167,7 +167,7 @@ func TestQueryClusterVersion_ForbiddenReturnsError(t *testing.T) {
 		)
 	})
 
-	probe, err := queryClusterVersion(dynClient, testLogger())
+	probe, err := queryClusterVersion(dynClient, emptyDiscovery(), testLogger())
 	assert.Error(t, err)
 	assert.Empty(t, probe.clusterID)
 	assert.Contains(t, err.Error(), "ClusterVersion probe failed")

@@ -41,7 +41,7 @@ func admit(
 func TestResolveAdmission_AuthResourceMode(t *testing.T) {
 	t.Run("CRD absent admits everyone", func(t *testing.T) {
 		client := &mockUserAllowedClient{allowed: false}
-		got := admit(client, NewAuthRepository(newFakeDynClientCRDAbsent()), config.AdmissionModeAuthResource, false)
+		got := admit(client, NewAuthRepository(newFakeDynClientCRDAbsent(), emptyDiscovery()), config.AdmissionModeAuthResource, false)
 
 		assert.True(t, got.Admitted)
 		assert.Equal(t, CodeAdmissionCRDAbsent, got.Code)
@@ -50,7 +50,7 @@ func TestResolveAdmission_AuthResourceMode(t *testing.T) {
 
 	t.Run("system:authenticated admits everyone", func(t *testing.T) {
 		client := &mockUserAllowedClient{allowed: false}
-		authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{models.SystemAuthenticated}))
+		authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{models.SystemAuthenticated}), emptyDiscovery())
 
 		got := admit(client, authRepo, config.AdmissionModeAuthResource, false)
 
@@ -62,7 +62,7 @@ func TestResolveAdmission_AuthResourceMode(t *testing.T) {
 	t.Run("a restricted group defers to the access review", func(t *testing.T) {
 		for _, granted := range []bool{true, false} {
 			client := &mockUserAllowedClient{allowed: granted}
-			authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
+			authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}), emptyDiscovery())
 
 			got := admit(client, authRepo, config.AdmissionModeAuthResource, false)
 
@@ -74,7 +74,7 @@ func TestResolveAdmission_AuthResourceMode(t *testing.T) {
 
 	t.Run("an admin is admitted without a second review", func(t *testing.T) {
 		client := &mockUserAllowedClient{allowed: false}
-		authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
+		authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}), emptyDiscovery())
 
 		got := admit(client, authRepo, config.AdmissionModeAuthResource, true)
 
@@ -85,7 +85,7 @@ func TestResolveAdmission_AuthResourceMode(t *testing.T) {
 
 	t.Run("a failed review is not success", func(t *testing.T) {
 		client := &mockUserAllowedClient{allowed: true, err: fmt.Errorf("CANARY review failure")}
-		authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
+		authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}), emptyDiscovery())
 
 		got := admit(client, authRepo, config.AdmissionModeAuthResource, false)
 
@@ -106,21 +106,21 @@ func TestResolveAdmission_AuthFailureModesDeferToTheReview(t *testing.T) {
 	}{
 		{
 			name:     "instance not provisioned",
-			authRepo: func() *AuthRepository { return NewAuthRepository(newFakeDynClientInstanceAbsent()) },
+			authRepo: func() *AuthRepository { return NewAuthRepository(newFakeDynClientInstanceAbsent(), emptyDiscovery()) },
 			wantCode: CodeAdmissionAuthInstanceMissing,
 		},
 		{
 			name: "service account forbidden",
 			authRepo: func() *AuthRepository {
 				return NewAuthRepository(newFakeDynClientFailingWith(
-					k8serrors.NewForbidden(authGR, models.AuthInstanceName, errors.New("CANARY_AUTH"))))
+					k8serrors.NewForbidden(authGR, models.AuthInstanceName, errors.New("CANARY_AUTH"))), emptyDiscovery())
 			},
 			wantCode: CodeAdmissionAuthForbidden,
 		},
 		{
 			name: "upstream unavailable",
 			authRepo: func() *AuthRepository {
-				return NewAuthRepository(newFakeDynClientFailingWith(k8serrors.NewServiceUnavailable("CANARY_AUTH")))
+				return NewAuthRepository(newFakeDynClientFailingWith(k8serrors.NewServiceUnavailable("CANARY_AUTH")), emptyDiscovery())
 			},
 			wantCode: CodeAdmissionAuthUnavailable,
 		},
@@ -129,7 +129,7 @@ func TestResolveAdmission_AuthFailureModesDeferToTheReview(t *testing.T) {
 			// admit-without-review path that CRD absence takes.
 			name: "method not supported",
 			authRepo: func() *AuthRepository {
-				return NewAuthRepository(newFakeDynClientFailingWith(k8serrors.NewMethodNotSupported(authGR, "get")))
+				return NewAuthRepository(newFakeDynClientFailingWith(k8serrors.NewMethodNotSupported(authGR, "get")), emptyDiscovery())
 			},
 			wantCode: CodeAdmissionAuthUnavailable,
 		},
@@ -167,9 +167,9 @@ func TestResolveAdmission_AuthenticatedModeNeedsNoAuthResourcePermissions(t *tes
 		t.Run(tc.name, func(t *testing.T) {
 			// A review that would deny, to prove it is never consulted.
 			client := &mockUserAllowedClient{allowed: false, err: errors.New("CANARY_REVIEW")}
-			authRepo := NewAuthRepository(nil)
+			authRepo := NewAuthRepository(nil, emptyDiscovery())
 			if tc.dyn != nil {
-				authRepo = NewAuthRepository(tc.dyn)
+				authRepo = NewAuthRepository(tc.dyn, emptyDiscovery())
 			}
 
 			got := admit(client, authRepo, config.AdmissionModeAuthenticated, false)
@@ -211,7 +211,7 @@ func TestGetStatusReviewFailuresPreserveAuthenticatedSession(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			client := &statusReviewClient{adminErr: tc.adminErr, mockUserAllowedClient: mockUserAllowedClient{allowed: tc.allowed, err: tc.allowedErr}}
-			repo := NewStatusRepository(nil, "test", NewAuthRepository(newFakeDynClientWithAuth(nil)), config.AdmissionModeAuthResource)
+			repo := NewStatusRepository(nil, "test", NewAuthRepository(newFakeDynClientWithAuth(nil), emptyDiscovery()), config.AdmissionModeAuthResource)
 
 			status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, statusClusterInfo{})
 
@@ -232,7 +232,7 @@ func TestGetStatus_XKSNonAdminBootstrapsWithoutAuthResource(t *testing.T) {
 		adminErr:              errors.New("CANARY_ADMIN"),
 		mockUserAllowedClient: mockUserAllowedClient{allowed: false, err: errors.New("CANARY_ALLOWED")},
 	}
-	repo := NewStatusRepository(nil, "rhaii", NewAuthRepository(newFakeDynClientCRDAbsent()), config.AdmissionModeAuthenticated)
+	repo := NewStatusRepository(nil, "rhaii", NewAuthRepository(newFakeDynClientCRDAbsent(), emptyDiscovery()), config.AdmissionModeAuthenticated)
 
 	status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, statusClusterInfo{})
 
@@ -245,7 +245,7 @@ func TestGetStatus_XKSNonAdminBootstrapsWithoutAuthResource(t *testing.T) {
 
 // Identity is the one hard requirement: no identity means no session to report.
 func TestGetStatus_UnresolvedIdentityFailsTheRequest(t *testing.T) {
-	repo := NewStatusRepository(nil, "test", NewAuthRepository(newFakeDynClientCRDAbsent()), config.AdmissionModeAuthenticated)
+	repo := NewStatusRepository(nil, "test", NewAuthRepository(newFakeDynClientCRDAbsent(), emptyDiscovery()), config.AdmissionModeAuthenticated)
 
 	_, err := repo.GetStatus(context.Background(), &identityFailureClient{}, &k8s.RequestIdentity{}, statusClusterInfo{})
 
@@ -292,7 +292,7 @@ func TestGetStatusAuthFailureFallsBackToSSAR(t *testing.T) {
 					return true, &unstructured.Unstructured{Object: map[string]any{"spec": "invalid"}}, auth.failure
 				})
 				client := &statusReviewClient{mockUserAllowedClient: mockUserAllowedClient{allowed: review.allowed, err: review.failure}}
-				repo := NewStatusRepository(nil, "test", NewAuthRepository(dynamicClient), config.AdmissionModeAuthResource)
+				repo := NewStatusRepository(nil, "test", NewAuthRepository(dynamicClient, emptyDiscovery()), config.AdmissionModeAuthResource)
 
 				status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, statusClusterInfo{})
 
