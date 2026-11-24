@@ -62,7 +62,7 @@ model-registry-ui-image=quay.io/model-registry:default
 	assert.Contains(t, overlayContent, "existing-key=existing-value")
 	assert.Contains(t, overlayContent, "model-registry-ui-image=quay.io/mr:prod",
 		"RELATED_IMAGE env var should be written to overlay params.env")
-	assert.NotContains(t, overlayContent, "core-bff-image=quay.io/core-bff:prod",
+	assert.NotContains(t, readExistingParams(filepath.Join(overlay, "params.env")), "core-bff-image",
 		"undeclared image parameters must not be added to a bundle")
 }
 

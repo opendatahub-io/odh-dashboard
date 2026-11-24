@@ -179,9 +179,9 @@ func TestReadCertManagerConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.configMapName != "" {
-				t.Setenv("OPERATOR_CONFIGMAP_NAME", tt.configMapName)
-			}
+			// Set unconditionally: an empty value selects the default name, so a value
+			// leaked from the environment cannot change which case is exercised.
+			t.Setenv("OPERATOR_CONFIGMAP_NAME", tt.configMapName)
 			builder := fake.NewClientBuilder().WithScheme(configTestScheme(t))
 			if tt.configMap != nil {
 				builder = builder.WithObjects(tt.configMap)

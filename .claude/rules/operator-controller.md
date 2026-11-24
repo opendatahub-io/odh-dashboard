@@ -198,7 +198,13 @@ Called once at startup, injected into the reconciler. Do not re-detect per recon
 
 ### Status conditions
 
-Use `common.Condition` from platform utilities. The `Ready` condition is mandatory. Future conditions: `ProvisioningSucceeded`, `Degraded`.
+Use `common.Condition` from platform utilities. `Ready` is the mandatory rollup, built by a lifecycle-specific `conditions.Manager` from its dependents:
+
+- `ProvisioningSucceeded`: manifests rendered and applied.
+- `DashboardAvailable`: the primary Deployment has rolled out and its HTTPRoute is accepted with resolved references for a declared parent at its current generation. Keep it separate from `ProvisioningSucceeded`, because a successful apply does not prove the workload or route is ready. A serving rolling update reports it `False` at Info severity, so `Ready` stays `True`.
+- `Degraded`: a diagnosed degradation.
+
+Dependents marked at Info severity do not fail `Ready`.
 
 ## Logging
 

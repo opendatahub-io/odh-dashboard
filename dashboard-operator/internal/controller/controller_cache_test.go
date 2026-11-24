@@ -29,10 +29,14 @@ func TestManagerCacheOptions(t *testing.T) {
 		gatewayv1.SchemeGroupVersion,
 		routev1.SchemeGroupVersion,
 		consoleLinkGVK.GroupVersion(),
+		certificateGVK.GroupVersion(),
 	})
 	mapper.Add(gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute"), meta.RESTScopeNamespace)
 	mapper.Add(routev1.SchemeGroupVersion.WithKind("Route"), meta.RESTScopeNamespace)
 	mapper.Add(consoleLinkGVK, meta.RESTScopeRoot)
+	// Register the Certificate API so the exclusion assertion below is not vacuous: the XKS
+	// Certificate must stay out of the shared cache even when cert-manager is installed.
+	mapper.Add(certificateGVK, meta.RESTScopeNamespace)
 	options, err := ManagerCacheOptions(applicationsNamespace, mapper)
 	require.NoError(t, err)
 	assert.True(t, options.ReaderFailOnMissingInformer)

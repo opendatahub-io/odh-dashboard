@@ -21,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -90,6 +89,13 @@ data:
 
 func createMinimalXKSManifests(t *testing.T) string {
 	t.Helper()
+	return createMinimalXKSManifestsWith(t, false)
+}
+
+// createMinimalXKSManifestsWith optionally adds the cert-manager Certificate the real RHAII bundle
+// renders. Fake clients have no Certificate mapping, so applying it reproduces a missing CRD.
+func createMinimalXKSManifestsWith(t *testing.T, includeCertificate bool) string {
+	t.Helper()
 
 	base := t.TempDir()
 	writeBundle := func(path, configMapName string, includeService bool) {
@@ -102,6 +108,20 @@ resources:
 `
 		if includeService {
 			kustomization += "  - service.yaml\n"
+		}
+		if includeService && includeCertificate {
+			kustomization += "  - certificate.yaml\n"
+			certificate := `apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rhaii-dashboard-tls
+spec:
+  secretName: rhaii-dashboard-tls
+  issuerRef:
+    name: test-ca-issuer
+    kind: ClusterIssuer
+`
+			require.NoError(t, os.WriteFile(filepath.Join(path, "certificate.yaml"), []byte(certificate), 0644))
 		}
 		configmap := `apiVersion: v1
 kind: ConfigMap
@@ -1288,7 +1308,6 @@ func TestReconcile_XKSRequiredAPIUnavailableRequeues(t *testing.T) {
 		Name: v1alpha1.DashboardInstanceName, Generation: 1,
 		Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 	}}
-	noMatch := &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: "cert-manager.io", Kind: "Certificate"}, SearchedVersions: []string{"v1"}}
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
 		WithObjects(dashboard, &corev1.ConfigMap{
@@ -1300,16 +1319,18 @@ func TestReconcile_XKSRequiredAPIUnavailableRequeues(t *testing.T) {
 		}).
 		WithStatusSubresource(dashboard).
 		WithInterceptorFuncs(interceptor.Funcs{
+			// The fake client stores unstructured objects of any kind, so report the
+			// missing cert-manager API on the deployer's Certificate lookup.
 			Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-				if u, ok := obj.(*unstructured.Unstructured); ok && u.GetKind() == "ConfigMap" && key.Name == "rhaii-dashboard-test" {
-					return noMatch
+				if u, ok := obj.(*unstructured.Unstructured); ok && u.GroupVersionKind().Group == "cert-manager.io" && u.GetKind() == "Certificate" {
+					return &meta.NoKindMatchError{GroupKind: u.GroupVersionKind().GroupKind(), SearchedVersions: []string{u.GroupVersionKind().Version}}
 				}
 				return delegate.Get(ctx, key, obj, opts...)
 			},
 		}).
 		Build()
 	r := &ctrlpkg.DashboardReconciler{
-		Client: cli, Scheme: s, ManifestsBasePath: createMinimalXKSManifests(t), Platform: cluster.XKS,
+		Client: cli, Scheme: s, ManifestsBasePath: createMinimalXKSManifestsWith(t, true), Platform: cluster.XKS,
 		Namespace: operatorNamespace, ApplicationsNamespace: applicationsNamespace, RouteAPIAvailable: true,
 	}
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}}
