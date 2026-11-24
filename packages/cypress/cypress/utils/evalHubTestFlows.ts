@@ -72,6 +72,7 @@ type EvalHubApiRequest = {
 type EvalHubApiResponse = Pick<Cypress.Response<unknown>, 'status' | 'body'> & {
   redirected?: boolean;
   finalUrl?: string;
+  skipRetry?: boolean;
 };
 
 export type EvalHubCleanupContext = {
@@ -87,6 +88,7 @@ const requestEvalHubApi = (
     .request({
       ...request,
       failOnStatusCode: false,
+      followRedirect: false,
       retryOnNetworkFailure: true,
       log: false,
     })
@@ -116,11 +118,10 @@ const requestEvalHubCleanupApi = (
       { timeout: 20000 },
       () =>
         new Cypress.Promise<EvalHubApiResponse>((resolve) => {
-          const networkFailure = (error: unknown): Cypress.Response<unknown> =>
-            ({
-              status: 0,
-              body: `Network request failed: ${getErrorMessage(error)}`,
-            } as Cypress.Response<unknown>);
+          const networkFailure = (error: unknown): EvalHubApiResponse => ({
+            status: 0,
+            body: `Network request failed: ${getErrorMessage(error)}`,
+          });
           let appWindow: (Window & { AbortController: typeof AbortController }) | undefined;
           let timeoutId: number | undefined;
           const clearTimeout = (): void => {
@@ -141,11 +142,29 @@ const requestEvalHubCleanupApi = (
               resolve({
                 status: 0,
                 body: 'Dashboard window is unavailable for the cleanup request.',
-              } as Cypress.Response<unknown>);
+                skipRetry: true,
+              });
               return;
             }
 
-            const url = new URL(request.url, appWindow.location.origin);
+            const dashboardBaseUrl = Cypress.config('baseUrl');
+            if (!dashboardBaseUrl) {
+              resolve({
+                status: 0,
+                body: 'Dashboard base URL is unavailable for cleanup.',
+                skipRetry: true,
+              });
+              return;
+            }
+            const url = new URL(request.url, dashboardBaseUrl);
+            if (appWindow.location.origin !== url.origin) {
+              resolve({
+                status: 0,
+                body: `Dashboard session is unavailable for cleanup: current origin is ${appWindow.location.origin}, expected ${url.origin}.`,
+                skipRetry: true,
+              });
+              return;
+            }
             Object.entries(request.qs ?? {}).forEach(([key, value]) => {
               url.searchParams.set(key, String(value));
             });
@@ -187,6 +206,7 @@ const requestEvalHubCleanupApi = (
     )
     .then<EvalHubApiResponse>((response) => {
       if (
+        !response.skipRetry &&
         (response.status === 0 || EVAL_HUB_TRANSIENT_STATUSES.has(response.status)) &&
         attempt < EVAL_HUB_API_MAX_ATTEMPTS
       ) {
@@ -506,18 +526,17 @@ export const deleteEvalHubCollection = (
     },
     `Delete EvalHub collection ${collectionId}`,
   ).then((response) => {
-    if (![204, 404].includes(response.status)) {
+    if (response.redirected || ![204, 404].includes(response.status)) {
+      const failure = response.redirected
+        ? `redirected to ${response.finalUrl ?? 'an unknown URL'}`
+        : `HTTP ${response.status}: ${String(response.body)}`;
       if (cleanupContext) {
         cleanupContext.reportFailure(
-          `Failed to delete EvalHub collection ${collectionId}: HTTP ${response.status}: ${String(
-            response.body,
-          )}`,
+          `Failed to delete EvalHub collection ${collectionId}: ${failure}`,
         );
         return response;
       }
-      throw new Error(
-        `Failed to delete EvalHub collection ${collectionId}: HTTP ${response.status}`,
-      );
+      throw new Error(`Failed to delete EvalHub collection ${collectionId}: ${failure}`);
     }
     return response;
   });

@@ -55,6 +55,11 @@ type MlflowDeleteAttempt = {
   httpResponse?: MlflowHttpResponse;
 };
 
+type MlflowDeleteResponseIssue = {
+  kind: 'invalid' | 'api';
+  message: string;
+};
+
 const EVALHUB_PROVISION_IF_MISSING_ENV = 'CY_EVAL_HUB_PROVISION_IF_MISSING';
 const EVALHUB_EXISTING_NAMESPACE_ENV = 'CY_EVAL_HUB_EXISTING_NAMESPACE';
 const DEFAULT_EXISTING_EVALHUB_NAMESPACE = 'evalhub';
@@ -63,10 +68,18 @@ const KUBERNETES_NAME_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
 const DEFAULT_EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS = 3;
 // Cypress applies this deadline to each command attempt in the retry chain.
 const EVALHUB_MLFLOW_CLEANUP_EXEC_TIMEOUT_MS = 60000;
+const EVALHUB_MLFLOW_CLEANUP_ATTEMPT_TIMEOUT_SECONDS = 45;
 const EVALHUB_MLFLOW_CLEANUP_RETRY_INTERVAL_MS = 1000;
 const EVALHUB_MLFLOW_CLEANUP_CURL_TIMEOUT_SECONDS = 10;
 const MLFLOW_HTTP_STATUS_MARKER = 'EVALHUB_MLFLOW_HTTP_STATUS';
 const RETRYABLE_MLFLOW_HTTP_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
+const shellQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
+
+const describeMlflowCommandFailure = (result: Cypress.Exec): string =>
+  result.exitCode === 124
+    ? `timed out after ${EVALHUB_MLFLOW_CLEANUP_ATTEMPT_TIMEOUT_SECONDS} seconds`
+    : maskSensitiveInfo(result.stderr || result.stdout || `exit code ${result.exitCode}`);
 
 const getMlflowPodLookupCommand = (applicationsNamespace: string): string[] => [
   `pod_name=$(oc --request-timeout=15s get pods -n ${applicationsNamespace} ` +
@@ -138,9 +151,21 @@ const execEvalHubMlflowCleanupCommand = (
   command: string,
   maxAttempts = DEFAULT_EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS,
   attempt = 1,
-): Cypress.Chainable<Cypress.Exec> =>
-  cy
-    .exec(command, {
+): Cypress.Chainable<Cypress.Exec> => {
+  // Bound the shell process before Cypress's deadline where timeout is available (Jenkins).
+  const boundedCommand = [
+    'timeout_command=$(command -v timeout || command -v gtimeout || true)',
+    'if [ -n "$timeout_command" ]; then',
+    `  "$timeout_command" -k 1s ${EVALHUB_MLFLOW_CLEANUP_ATTEMPT_TIMEOUT_SECONDS}s sh -c ${shellQuote(
+      command,
+    )}`,
+    'else',
+    `  sh -c ${shellQuote(command)}`,
+    'fi',
+  ].join('\n');
+
+  return cy
+    .exec(boundedCommand, {
       failOnNonZeroExit: false,
       timeout: EVALHUB_MLFLOW_CLEANUP_EXEC_TIMEOUT_MS,
       log: false,
@@ -151,14 +176,18 @@ const execEvalHubMlflowCleanupCommand = (
       }
 
       cy.log(
-        `MLflow cleanup command exited ${result.exitCode} ` +
-          `(attempt ${attempt}/${maxAttempts}); retrying`,
+        `MLflow cleanup command ${
+          result.exitCode === 124
+            ? `timed out after ${EVALHUB_MLFLOW_CLEANUP_ATTEMPT_TIMEOUT_SECONDS} seconds`
+            : `exited ${result.exitCode}`
+        } ` + `(attempt ${attempt}/${maxAttempts}); retrying`,
       );
       // eslint-disable-next-line cypress/no-unnecessary-waiting -- bounded cleanup retry backoff
       return cy
         .wait(EVALHUB_MLFLOW_CLEANUP_RETRY_INTERVAL_MS)
         .then(() => execEvalHubMlflowCleanupCommand(command, maxAttempts, attempt + 1));
     });
+};
 
 const formatInstance = ({ name, namespace, managedByE2e }: EvalHubInstance): string =>
   `${namespace}/${name}${managedByE2e ? ' (E2E-provisioned)' : ''}`;
@@ -444,14 +473,17 @@ const getEvalHubMlflowExperiment = (
   workspace: string,
   experimentName: string,
   reportFailure?: (message: string) => void,
+  requestedExperimentId?: string,
 ): Cypress.Chainable<EvalHubMlflowExperiment | null> => {
   const applicationsNamespace = assertNamespace(getApplicationsNamespace());
   const safeWorkspace = assertNamespace(workspace);
-  const encodedExperimentName = encodeURIComponent(experimentName);
+  const lookupPath = requestedExperimentId
+    ? `experiments/get?experiment_id=${encodeURIComponent(requestedExperimentId)}`
+    : `experiments/get-by-name?experiment_name=${encodeURIComponent(experimentName)}`;
   const curlCommand = [
     `oc --request-timeout=15s exec -n ${applicationsNamespace} "$pod_name" -c mlflow --`,
     `curl -skS --connect-timeout 5 --max-time ${EVALHUB_MLFLOW_CLEANUP_CURL_TIMEOUT_SECONDS} ` +
-      `'https://localhost:8443/mlflow/api/2.0/mlflow/experiments/get-by-name?experiment_name=${encodedExperimentName}'`,
+      `'https://localhost:8443/mlflow/api/2.0/mlflow/${lookupPath}'`,
     '-H "Authorization: Bearer $(oc --request-timeout=15s whoami -t)"',
     `-H 'X-MLFLOW-WORKSPACE: ${safeWorkspace}'`,
   ].join(' ');
@@ -471,9 +503,7 @@ const getEvalHubMlflowExperiment = (
     (lookupResult) => {
       if (lookupResult.exitCode !== 0) {
         return failLookup(
-          `MLflow experiment lookup command failed: ${maskSensitiveInfo(
-            lookupResult.stderr || lookupResult.stdout || `exit code ${lookupResult.exitCode}`,
-          )}`,
+          `MLflow experiment lookup command failed: ${describeMlflowCommandFailure(lookupResult)}`,
         );
       }
 
@@ -531,6 +561,9 @@ const getEvalHubMlflowExperiment = (
           `MLflow lookup did not return complete experiment details for ${experimentName}`,
         );
       }
+      if (requestedExperimentId !== undefined && experimentId !== requestedExperimentId) {
+        return failLookup(`MLflow lookup returned a different experiment ID for ${experimentName}`);
+      }
       return cy.wrap<EvalHubMlflowExperiment | null>(
         { experimentId, lifecycleStage },
         { log: false },
@@ -578,7 +611,10 @@ const deleteEvalHubMlflowExperiment = (
   });
 };
 
-const getMlflowDeleteError = (experimentName: string, responseText: string): string | undefined => {
+const getMlflowDeleteResponseIssue = (
+  experimentName: string,
+  responseText: string,
+): MlflowDeleteResponseIssue | undefined => {
   if (!responseText.trim()) {
     return undefined;
   }
@@ -587,18 +623,27 @@ const getMlflowDeleteError = (experimentName: string, responseText: string): str
   try {
     parsedResponse = JSON.parse(responseText) as unknown;
   } catch {
-    return `MLflow returned an invalid delete response for ${experimentName}`;
+    return {
+      kind: 'invalid',
+      message: `MLflow returned an invalid delete response for ${experimentName}`,
+    };
   }
   if (!isMlflowExperimentLookupResponse(parsedResponse)) {
-    return `MLflow returned an invalid delete response for ${experimentName}`;
+    return {
+      kind: 'invalid',
+      message: `MLflow returned an invalid delete response for ${experimentName}`,
+    };
   }
   const response = parsedResponse;
 
   const errorCode = response.error_code ?? response.error?.code;
   if (errorCode) {
-    return `MLflow experiment deletion failed for ${experimentName}: ${
-      response.message ?? response.error?.message ?? errorCode
-    }`;
+    return {
+      kind: 'api',
+      message: `MLflow experiment deletion failed for ${experimentName}: ${
+        response.message ?? response.error?.message ?? errorCode
+      }`,
+    };
   }
   return undefined;
 };
@@ -625,6 +670,8 @@ export const cleanupEvalHubMlflowExperiment = (
       }
 
       cy.log(`Deleting MLflow experiment ${experimentName} from workspace ${workspace}`);
+      const getOriginalExperiment = (): Cypress.Chainable<EvalHubMlflowExperiment | null> =>
+        getEvalHubMlflowExperiment(workspace, experimentName, reportFailure, experimentId);
       const deleteWithReconciliation = (attempt = 1): Cypress.Chainable<boolean> =>
         deleteEvalHubMlflowExperiment(workspace, experimentId).then(
           ({ commandResult, httpResponse }) => {
@@ -633,62 +680,69 @@ export const cleanupEvalHubMlflowExperiment = (
             const retryableStatus =
               status !== undefined && RETRYABLE_MLFLOW_HTTP_STATUSES.has(status);
             const responseMissing = !httpResponse;
+            const deleteResponseIssue =
+              httpResponse && httpResponse.status >= 200 && httpResponse.status < 300
+                ? getMlflowDeleteResponseIssue(experimentName, httpResponse.body)
+                : undefined;
+            const malformedResponse = deleteResponseIssue?.kind === 'invalid';
 
-            if (commandFailed || retryableStatus || status === 404 || responseMissing) {
-              return getEvalHubMlflowExperiment(workspace, experimentName, reportFailure).then(
-                (current) => {
-                  if (!current) {
+            if (
+              commandFailed ||
+              retryableStatus ||
+              status === 404 ||
+              responseMissing ||
+              malformedResponse
+            ) {
+              return getOriginalExperiment().then((current) => {
+                if (!current) {
+                  return cy.wrap<boolean>(false, { log: false });
+                }
+                if (!current.experimentId || current.lifecycleStage === 'deleted') {
+                  cy.log(
+                    `MLflow experiment ${experimentName} is deleted after an ambiguous delete response.`,
+                  );
+                  return cy.wrap<boolean>(true, { log: false });
+                }
+
+                let failure: string;
+                if (commandFailed) {
+                  failure = describeMlflowCommandFailure(commandResult);
+                } else if (responseMissing) {
+                  failure = `no parseable HTTP response: ${maskSensitiveInfo(
+                    commandResult.stdout || 'empty response',
+                  )}`;
+                } else if (deleteResponseIssue?.kind === 'invalid') {
+                  failure = deleteResponseIssue.message;
+                } else {
+                  failure = `HTTP ${String(status)}: ${maskSensitiveInfo(
+                    httpResponse.body || 'empty response',
+                  )}`;
+                }
+                if (!commandFailed && !retryableStatus && !responseMissing && !malformedResponse) {
+                  const message = `MLflow experiment deletion returned ${failure} and the experiment remains active.`;
+                  if (reportFailure) {
+                    reportFailure(message);
                     return cy.wrap<boolean>(false, { log: false });
                   }
-                  if (!current.experimentId || current.lifecycleStage === 'deleted') {
-                    cy.log(
-                      `MLflow experiment ${experimentName} is deleted after an ambiguous delete response.`,
-                    );
-                    return cy.wrap<boolean>(true, { log: false });
+                  throw new Error(message);
+                }
+                if (attempt >= DEFAULT_EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS) {
+                  const message =
+                    `MLflow experiment deletion failed after ${attempt} attempts; ` +
+                    `the experiment remains ${current.lifecycleStage}: ${failure}`;
+                  if (reportFailure) {
+                    reportFailure(message);
+                    return cy.wrap<boolean>(false, { log: false });
                   }
+                  throw new Error(message);
+                }
 
-                  let failure: string;
-                  if (commandFailed) {
-                    failure = maskSensitiveInfo(
-                      commandResult.stderr ||
-                        commandResult.stdout ||
-                        `oc exec exited with code ${commandResult.exitCode}`,
-                    );
-                  } else if (responseMissing) {
-                    failure = `no parseable HTTP response: ${maskSensitiveInfo(
-                      commandResult.stdout || 'empty response',
-                    )}`;
-                  } else {
-                    failure = `HTTP ${String(status)}: ${maskSensitiveInfo(
-                      httpResponse.body || 'empty response',
-                    )}`;
-                  }
-                  if (!commandFailed && !retryableStatus && !responseMissing) {
-                    const message = `MLflow experiment deletion returned ${failure} and the experiment remains active.`;
-                    if (reportFailure) {
-                      reportFailure(message);
-                      return cy.wrap<boolean>(false, { log: false });
-                    }
-                    throw new Error(message);
-                  }
-                  if (attempt >= DEFAULT_EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS) {
-                    const message =
-                      `MLflow experiment deletion failed after ${attempt} attempts; ` +
-                      `the experiment remains ${current.lifecycleStage}: ${failure}`;
-                    if (reportFailure) {
-                      reportFailure(message);
-                      return cy.wrap<boolean>(false, { log: false });
-                    }
-                    throw new Error(message);
-                  }
-
-                  cy.log(
-                    `MLflow delete attempt ${attempt} returned an ambiguous result; the experiment ` +
-                      'is still active. Re-resolving the tracking pod before retrying.',
-                  );
-                  return deleteWithReconciliation(attempt + 1);
-                },
-              );
+                cy.log(
+                  `MLflow delete attempt ${attempt} returned an ambiguous result; the experiment ` +
+                    'is still active. Re-resolving the tracking pod before retrying.',
+                );
+                return deleteWithReconciliation(attempt + 1);
+              });
             }
 
             const successfulHttpResponse = httpResponse;
@@ -704,35 +758,32 @@ export const cleanupEvalHubMlflowExperiment = (
               throw new Error(message);
             }
 
-            const deleteError = getMlflowDeleteError(experimentName, successfulHttpResponse.body);
-            if (deleteError) {
+            if (deleteResponseIssue) {
               if (reportFailure) {
-                reportFailure(deleteError);
+                reportFailure(deleteResponseIssue.message);
                 return cy.wrap<boolean>(false, { log: false });
               }
-              throw new Error(deleteError);
+              throw new Error(deleteResponseIssue.message);
             }
-            return getEvalHubMlflowExperiment(workspace, experimentName, reportFailure).then(
-              (deletedExperiment) => {
-                if (!deletedExperiment) {
+            return getOriginalExperiment().then((deletedExperiment) => {
+              if (!deletedExperiment) {
+                return cy.wrap<boolean>(false, { log: false });
+              }
+              if (
+                deletedExperiment.experimentId &&
+                deletedExperiment.lifecycleStage !== 'deleted'
+              ) {
+                const message =
+                  `MLflow experiment ${experimentName} is still ${deletedExperiment.lifecycleStage} ` +
+                  `after deletion (ID ${deletedExperiment.experimentId})`;
+                if (reportFailure) {
+                  reportFailure(message);
                   return cy.wrap<boolean>(false, { log: false });
                 }
-                if (
-                  deletedExperiment.experimentId &&
-                  deletedExperiment.lifecycleStage !== 'deleted'
-                ) {
-                  const message =
-                    `MLflow experiment ${experimentName} is still ${deletedExperiment.lifecycleStage} ` +
-                    `after deletion (ID ${deletedExperiment.experimentId})`;
-                  if (reportFailure) {
-                    reportFailure(message);
-                    return cy.wrap<boolean>(false, { log: false });
-                  }
-                  throw new Error(message);
-                }
-                return cy.wrap<boolean>(true, { log: false });
-              },
-            );
+                throw new Error(message);
+              }
+              return cy.wrap<boolean>(true, { log: false });
+            });
           },
         );
 
