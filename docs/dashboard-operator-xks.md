@@ -77,7 +77,10 @@ The Certificate belongs to the applications namespace, while XKS can run the
 Dashboard operator in a separate operator namespace. Install the controller
 chart with `xks.enabled: true` and `applicationsNamespace` set to that
 applications namespace. The chart then creates a namespaced Role and
-RoleBinding that bind the operator ServiceAccount across namespaces.
+RoleBinding that bind the operator ServiceAccount across namespaces, and sets
+`ODH_PLATFORM_TYPE=XKS` on the controller: platform detection only recognizes
+OpenShift variants, so without it a plain Kubernetes install would run the ODH
+lifecycle.
 
 The binding permits only the fixed `rhaii-dashboard-tls` Certificate. It does
 not grant cluster-wide Certificate access. Platform installers must pass the

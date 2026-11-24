@@ -365,6 +365,10 @@ func TestDashboardChartXKSCertificateRBACIsNamespaceAndNameScoped(t *testing.T) 
 		t.Fatal("XKS ClusterRole must allow creation of the unbound dashboard access ClusterRole")
 	}
 
+	if got := findControllerEnv(t, output, "ODH_PLATFORM_TYPE"); got != "XKS" {
+		t.Fatalf("xks.enabled must set ODH_PLATFORM_TYPE=XKS on the controller, got %q", got)
+	}
+
 	defaultOutput, err := renderChartTemplate(filepath.Join("..", "charts", "dashboard"))
 	if err != nil {
 		t.Fatalf("render default chart: %v", err)
@@ -372,6 +376,32 @@ func TestDashboardChartXKSCertificateRBACIsNamespaceAndNameScoped(t *testing.T) 
 	if strings.Contains(defaultOutput, "xks-certificate") || strings.Contains(defaultOutput, "rhaii-dashboard-access") {
 		t.Fatal("default chart must not render XKS-only RBAC")
 	}
+	if got := findControllerEnv(t, defaultOutput, "ODH_PLATFORM_TYPE"); got != "" {
+		t.Fatalf("default chart must leave platform detection automatic, got ODH_PLATFORM_TYPE=%q", got)
+	}
+}
+
+// findControllerEnv returns the value of the named env var on the controller Deployment's manager
+// container, or "" when it is not set.
+func findControllerEnv(t *testing.T, rendered, name string) string {
+	t.Helper()
+	for _, doc := range strings.Split(rendered, "---") {
+		if !strings.Contains(doc, "kind: Deployment") {
+			continue
+		}
+		var deployment appsv1.Deployment
+		if err := yaml.Unmarshal([]byte(doc), &deployment); err != nil {
+			t.Fatalf("parse controller Deployment: %v", err)
+		}
+		for _, container := range deployment.Spec.Template.Spec.Containers {
+			for _, env := range container.Env {
+				if env.Name == name {
+					return env.Value
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func findXKSCertificateRBAC(t *testing.T, rendered string) (rbacv1.Role, rbacv1.RoleBinding) {

@@ -61,6 +61,8 @@ rbac:
 
 # XKS deploys the controller separately from its dashboard operands. Enable
 # only when the platform installer also supplies applicationsNamespace.
+# Enabling it also sets ODH_PLATFORM_TYPE=XKS on the controller, because
+# platform auto-detection never selects XKS on its own.
 xks:
   enabled: false
 

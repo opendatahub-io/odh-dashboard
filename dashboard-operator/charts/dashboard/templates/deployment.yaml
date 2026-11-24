@@ -95,6 +95,13 @@ spec:
             # as the standalone/XKS default and the RBAC namespace source.
             - name: APPLICATIONS_NAMESPACE
               value: {{ include "dashboard.applicationsNamespace" . | quote }}
+            {{- if .Values.xks.enabled }}
+            # Platform detection only auto-detects OpenShift variants; without
+            # this, a plain Kubernetes install falls through to OpenDataHub and
+            # tries to render the OpenShift overlay.
+            - name: ODH_PLATFORM_TYPE
+              value: XKS
+            {{- end }}
             {{- range $name, $value := .Values.relatedImages }}
             {{- if $value }}
             - name: {{ $name }}
