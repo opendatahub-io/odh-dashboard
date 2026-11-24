@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -78,7 +79,11 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 }
 
 // BuildDashboardConfigPatch builds the JSON merge patch for DashboardConfig fields
-// affected by cluster settings.
+// affected by cluster settings. The patch carries the resourceVersion of the
+// configuration it was computed from, so the API server rejects it with a
+// conflict if another save changed the configuration since: a stale patch
+// cannot undo another admin's change. Defaults that were never stored carry no
+// version and keep the unconditional patch.
 func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 	settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
 ) ([]byte, error) {
@@ -96,6 +101,9 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 				"disableLLMd":   !settings.ModelServingPlatformEnabled.LLMd,
 			},
 		},
+	}
+	if rv := currentConfig.Metadata.ResourceVersion; rv != "" {
+		patch["metadata"] = map[string]any{"resourceVersion": rv}
 	}
 
 	modelServing := map[string]any{}
@@ -164,11 +172,28 @@ func (r *ClusterSettingsRepository) UpdateConfigMaps(ctx context.Context, namesp
 		// TODO: Gate this notebook-controller restart on a platform capability; XKS
 		// must not expose the notebook (workbench) feature or its settings.
 		if err := r.rolloutDeployment(ctx, cs, namespace, notebookControllerDeploy); err != nil {
-			return errors.Join(writeErr, fmt.Errorf("failed to rollout %s: %w", notebookControllerDeploy, err))
+			return joinAuthFirst(writeErr, fmt.Errorf("failed to rollout %s: %w", notebookControllerDeploy, err))
 		}
 	}
 
 	return writeErr
+}
+
+// joinAuthFirst keeps every cause, putting an authorization failure first.
+// The status is taken from the first Kubernetes error in the chain, so a
+// denial is reported as 401/403 rather than hidden behind an earlier conflict.
+func joinAuthFirst(errs ...error) error {
+	var auth, rest []error
+	for _, err := range errs {
+		switch {
+		case err == nil:
+		case k8serrors.IsForbidden(err) || k8serrors.IsUnauthorized(err):
+			auth = append(auth, err)
+		default:
+			rest = append(rest, err)
+		}
+	}
+	return errors.Join(append(auth, rest...)...)
 }
 
 // --- Pure helpers ---

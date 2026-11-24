@@ -52,7 +52,7 @@ func cullerEnabledSettings() *models.ClusterSettings {
 // Review (RHOAIENG-101218): a caller with partial permissions must be refused
 // before the first write, so no partial change is committed.
 func TestClusterSettings_PlanUpdate_DeniesBeforeAnyWrite(t *testing.T) {
-	caller := newClientPair(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: segmentKeyConfigName, Namespace: credNS}})
+	caller := newClientPair(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: segmentKeyConfigName, Namespace: credNS}, Data: map[string]string{keySegmentKeyEnabled: "true"}})
 	allowAllBut(caller, map[string]bool{"update configmaps": true})
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
@@ -65,7 +65,7 @@ func TestClusterSettings_PlanUpdate_DeniesBeforeAnyWrite(t *testing.T) {
 
 func TestClusterSettings_PlanUpdate_ReviewsEveryPlannedWrite(t *testing.T) {
 	caller := newClientPair(
-		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: segmentKeyConfigName, Namespace: credNS}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: segmentKeyConfigName, Namespace: credNS}, Data: map[string]string{keySegmentKeyEnabled: "true"}},
 	)
 	seen := allowAllBut(caller, nil)
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
@@ -87,7 +87,7 @@ func TestClusterSettings_PlanUpdate_ReviewsEveryPlannedWrite(t *testing.T) {
 }
 
 func TestClusterSettings_PlanUpdate_DisabledCullerReviewsDelete(t *testing.T) {
-	caller := newClientPair(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cullerConfigName, Namespace: credNS}})
+	caller := newClientPair(versioned(cullerCM(true, "60"), "1"))
 	seen := allowAllBut(caller, nil)
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
@@ -389,4 +389,62 @@ func TestClusterSettings_ConflictAfterPVCChange_StillRollsOut(t *testing.T) {
 	err = repo.UpdateConfigMaps(context.Background(), credNS, plan)
 	require.True(t, k8serrors.IsConflict(err), "the conflict is still reported: %v", err)
 	assert.True(t, rolledOut(caller))
+}
+
+// Review 6041827828 item 2: GET and write planning read the stored values the
+// same way, so saving exactly what GET returned plans no ConfigMap write and no
+// rollout, whatever representation of "off" is stored.
+func TestClusterSettings_SavingWhatGetShows_PlansNoConfigMapWrite(t *testing.T) {
+	disabledTracking := defaultDashConfig()
+	disabledTracking.Spec.DashboardConfig.DisableTracking = true
+	for _, tc := range []struct {
+		name string
+		cfg  *models.DashboardConfig
+		cms  []runtime.Object
+	}{
+		{"nothing stored", defaultDashConfig(), nil},
+		{"culling enabled", defaultDashConfig(), []runtime.Object{versioned(cullerCM(true, "60"), "1")}},
+		{"ENABLE_CULLING=false", defaultDashConfig(), []runtime.Object{versioned(cullerCM(false, "60"), "1")}},
+		{"culler map with no data", defaultDashConfig(), []runtime.Object{versioned(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: cullerConfigName}}, "1")}},
+		{"segmentKeyEnabled absent", defaultDashConfig(), []runtime.Object{versioned(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: segmentKeyConfigName}, Data: map[string]string{"segmentKey": "k"}}, "1")}},
+		{"tracking enabled", defaultDashConfig(), []runtime.Object{versioned(segmentCM(true), "1")}},
+		{"tracking disabled in the dashboard config", disabledTracking, []runtime.Object{versioned(segmentCM(true), "1")}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			caller := newClientPair(tc.cms...)
+			seen := allowAllBut(caller, map[string]bool{"update configmaps": true, "delete configmaps": true, "create configmaps": true, "patch deployments": true})
+			repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+			shown, err := repo.GetClusterSettings(context.Background(), credNS, tc.cfg)
+			require.NoError(t, err)
+			plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", shown, tc.cfg)
+			require.NoError(t, err, "a save of the values GET showed needs no ConfigMap or Deployment write")
+			require.Len(t, *seen, 1)
+			assert.Equal(t, "odhdashboardconfigs", (*seen)[0].Resource)
+			require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
+			assert.Empty(t, writes(caller))
+		})
+	}
+}
+
+// Review 6041827828 item 5: when a ConfigMap conflict is followed by a denied
+// rollout, both causes are kept and the denial decides the status.
+func TestClusterSettings_ConflictThenDeniedRollout_DenialWins(t *testing.T) {
+	caller := newClientPair(&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: notebookControllerDeploy, Namespace: credNS}})
+	allowAllBut(caller, nil)
+	caller.typed.PrependReactor("patch", "deployments", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewForbidden(appsv1.Resource("deployments"), notebookControllerDeploy, nil)
+	})
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config",
+		&models.ClusterSettings{PVCSize: 75, CullerTimeout: defaultCullerTimeout}, defaultDashConfig())
+	require.NoError(t, err)
+	require.NoError(t, caller.typed.Tracker().Add(versioned(segmentCM(true), "1")))
+
+	err = repo.UpdateConfigMaps(context.Background(), credNS, plan)
+	require.Error(t, err)
+	assert.True(t, k8serrors.IsForbidden(err), "the denial decides the status: %v", err)
+	assert.True(t, repo.SurfacesAuthFailure(err))
+	assert.Contains(t, err.Error(), "after the update was planned", "the conflict is kept too")
 }

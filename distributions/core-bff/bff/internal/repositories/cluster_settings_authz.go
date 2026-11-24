@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	authv1 "k8s.io/api/authorization/v1"
@@ -42,6 +41,7 @@ type ClusterSettingsPlan struct {
 	segmentKey       *corev1.ConfigMap
 	cullerOp         string
 	updateSegmentKey bool
+	trackingManaged  bool
 	pvcChanged       bool
 	rollout          bool
 	writes           []clusterSettingsWrite
@@ -121,10 +121,13 @@ func (r *ClusterSettingsRepository) buildPlan(
 		return nil, err
 	}
 	plan.culler = culler
+	// The stored values are read exactly as GET reads them, so a setting GET
+	// showed unchanged needs no write: ENABLE_CULLING other than "true" is off,
+	// and an absent segmentKeyEnabled is tracking disabled.
 	currentTimeout := cullerTimeoutOf(culler)
 	switch {
-	case settings.CullerTimeout == defaultCullerTimeout && culler == nil:
-		// Culling is already off: nothing to delete, so nothing to authorize.
+	case settings.CullerTimeout == currentTimeout:
+		// Unchanged, including culling off with the ConfigMap absent or disabled.
 		plan.cullerOp = cullerOpNone
 	case settings.CullerTimeout == defaultCullerTimeout:
 		plan.cullerOp = cullerOpDelete
@@ -133,8 +136,6 @@ func (r *ClusterSettingsRepository) buildPlan(
 		plan.cullerOp = cullerOpCreate
 		// RBAC cannot scope create by name, so the review is for any ConfigMap.
 		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "create"})
-	case currentTimeout == settings.CullerTimeout:
-		plan.cullerOp = cullerOpNone
 	default:
 		plan.cullerOp = cullerOpUpdate
 		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: cullerConfigName})
@@ -145,7 +146,10 @@ func (r *ClusterSettingsRepository) buildPlan(
 		return nil, err
 	}
 	plan.segmentKey = segmentKey
-	if segmentKey != nil && segmentKey.Data[keySegmentKeyEnabled] != strconv.FormatBool(settings.UserTrackingEnabled) {
+	// With tracking disabled in the dashboard config, GET does not show the
+	// setting and the form cannot change it, so the ConfigMap is left alone.
+	plan.trackingManaged = currentConfig == nil || !currentConfig.Spec.DashboardConfig.DisableTracking
+	if plan.trackingManaged && segmentKey != nil && trackingEnabledOf(segmentKey) != settings.UserTrackingEnabled {
 		plan.updateSegmentKey = true
 		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "update", name: segmentKeyConfigName})
 	}

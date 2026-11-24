@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
@@ -298,4 +299,80 @@ func TestGetClusterSettings_CallerNoInstance_NoServiceAccountRead(t *testing.T) 
 	f.app.GetClusterSettingsHandler(rr, req, nil)
 	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 	assert.Empty(t, f.saDyn.Actions(), "no service-account read")
+}
+
+// putSettings sends PUT /api/cluster-settings as the caller.
+func (f *callerSettingsFixture) putSettings(t *testing.T, s models.ClusterSettings) *httptest.ResponseRecorder {
+	t.Helper()
+	body, err := json.Marshal(s)
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodPut, "/api/cluster-settings", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{UserID: "caller", Token: k8s.NewBearerToken("caller-token")})
+	rr := httptest.NewRecorder()
+	f.app.UpdateClusterSettingsHandler(rr, req, nil)
+	return rr
+}
+
+func (f *callerSettingsFixture) storedConfig(t *testing.T) map[string]any {
+	t.Helper()
+	obj, err := f.dyn.Resource(models.DashboardConfigGVR).Namespace("dash-ns").Get(context.Background(), "odh-dashboard-config", metav1.GetOptions{})
+	require.NoError(t, err)
+	return obj.Object
+}
+
+// enforcePatchResourceVersion makes the fake API server reject a merge patch
+// whose metadata.resourceVersion is not the stored one, as a real one does.
+func (f *callerSettingsFixture) enforcePatchResourceVersion() {
+	f.dyn.PrependReactor("patch", "odhdashboardconfigs", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		var patch struct {
+			Metadata struct {
+				ResourceVersion string `json:"resourceVersion"`
+			} `json:"metadata"`
+		}
+		_ = json.Unmarshal(a.(k8stesting.PatchAction).GetPatch(), &patch)
+		obj, err := f.dyn.Tracker().Get(models.DashboardConfigGVR, "dash-ns", "odh-dashboard-config")
+		if err != nil {
+			return false, nil, nil
+		}
+		stored, _ := obj.(interface{ GetResourceVersion() string })
+		if patch.Metadata.ResourceVersion != "" && stored != nil && stored.GetResourceVersion() != patch.Metadata.ResourceVersion {
+			return true, nil, k8serrors.NewConflict(models.DashboardConfigGVR.GroupResource(), "odh-dashboard-config", errors.New("the object has been modified"))
+		}
+		return false, nil, nil
+	})
+}
+
+// Review 6041827828 item 1: a save computed from an older OdhDashboardConfig
+// must not undo another admin's change made while it was planning.
+func TestUpdateClusterSettings_ConcurrentConfigChange_Conflict(t *testing.T) {
+	f := newCallerSettingsFixture(t)
+	cr, err := f.dyn.Resource(models.DashboardConfigGVR).Namespace("dash-ns").Get(context.Background(), "odh-dashboard-config", metav1.GetOptions{})
+	require.NoError(t, err)
+	cr.SetResourceVersion("1")
+	require.NoError(t, f.dyn.Tracker().Update(models.DashboardConfigGVR, cr, "dash-ns"))
+	f.enforcePatchResourceVersion()
+
+	// While this save checks the ConfigMaps, a second admin disables KServe.
+	once := false
+	f.typed.PrependReactor("get", "configmaps", func(k8stesting.Action) (bool, runtime.Object, error) {
+		if !once {
+			once = true
+			other := cr.DeepCopy()
+			require.NoError(t, unstructured.SetNestedField(other.Object, true, "spec", "dashboardConfig", "disableKServe"))
+			other.SetResourceVersion("2")
+			require.NoError(t, f.dyn.Tracker().Update(models.DashboardConfigGVR, other, "dash-ns"))
+		}
+		return false, nil, nil
+	})
+
+	s := models.ClusterSettings{PVCSize: 20, CullerTimeout: 3600}
+	s.ModelServingPlatformEnabled.KServe = true
+	rr := f.putSettings(t, s)
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	var result models.MutationResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &result))
+	assert.False(t, result.Success, "a stale save is a conflict, not success")
+	spec := f.storedConfig(t)["spec"].(map[string]any)["dashboardConfig"].(map[string]any)
+	assert.Equal(t, true, spec["disableKServe"], "the other admin's change is kept")
 }

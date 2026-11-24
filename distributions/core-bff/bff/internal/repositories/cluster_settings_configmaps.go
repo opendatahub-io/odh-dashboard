@@ -39,17 +39,18 @@ func cullerTimeoutOf(cm *corev1.ConfigMap) int {
 }
 
 func readUserTrackingEnabled(ctx context.Context, saClientset kubernetes.Interface, namespace string) (bool, error) {
-	cm, err := saClientset.CoreV1().ConfigMaps(namespace).Get(ctx, segmentKeyConfigName, metav1.GetOptions{})
+	cm, err := getConfigMap(ctx, saClientset, namespace, segmentKeyConfigName)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return false, nil
-		}
 		return false, fmt.Errorf("failed to get segment key config: %w", err)
 	}
-	if cm.Data == nil {
-		return false, nil
-	}
-	return cm.Data[keySegmentKeyEnabled] == "true", nil
+	return trackingEnabledOf(cm), nil
+}
+
+// trackingEnabledOf returns the user-tracking setting a segment-key ConfigMap
+// stores: only segmentKeyEnabled "true" is enabled; nil, absent or any other
+// value is disabled.
+func trackingEnabledOf(cm *corev1.ConfigMap) bool {
+	return cm != nil && cm.Data[keySegmentKeyEnabled] == "true"
 }
 
 // --- ConfigMap writers ---
@@ -117,6 +118,9 @@ func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, c
 // conflict, so the request does not report success for a setting it did not
 // store.
 func (r *ClusterSettingsRepository) applySegmentKeyConfig(ctx context.Context, cs kubernetes.Interface, namespace string, plan *ClusterSettingsPlan) error {
+	if !plan.trackingManaged {
+		return nil
+	}
 	if !plan.updateSegmentKey {
 		return requireUnchanged(ctx, cs, namespace, segmentKeyConfigName, plan.segmentKey)
 	}
