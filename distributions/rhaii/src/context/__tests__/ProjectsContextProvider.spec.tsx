@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { render, act, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
@@ -100,6 +101,7 @@ describe('RHAII working project provider integration', () => {
   });
 
   it('should use normal list-backed selection without manual lookup when listing succeeds', async () => {
+    const user = userEvent.setup();
     mockFetchNamespaces.mockResolvedValue([project('allowed'), project('another')]);
     render(
       <ProjectsContextProvider>
@@ -109,13 +111,16 @@ describe('RHAII working project provider integration', () => {
     );
     await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('another'));
     fireEvent.click(screen.getByTestId('working-project-selector'));
-    expect(screen.getByRole('dialog', { name: 'Working project' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Project selector' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add project' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('manual-project-name')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
-    fireEvent.click(screen.getByRole('option', { name: 'All projects' }));
+    await user.click(screen.getByRole('button', { name: 'Project type' }));
+    await user.click(await screen.findByRole('option', { name: /All projects/ }));
+    await waitFor(() =>
+      expect(screen.getByTestId('working-project-option-another')).toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByTestId('working-project-option-another'));
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await user.click(screen.getByRole('button', { name: 'Select' }));
     await waitFor(() =>
       expect(screen.getByTestId('working-project-selector')).toHaveTextContent('Project: another'),
     );
@@ -131,6 +136,7 @@ describe('RHAII working project provider integration', () => {
   });
 
   it('should default to AI projects, show AI badges and allow switching to all projects', async () => {
+    const user = userEvent.setup();
     const aiProject = project('ai-project');
     aiProject.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
     mockFetchNamespaces.mockResolvedValue([aiProject, project('standard-project')]);
@@ -155,17 +161,19 @@ describe('RHAII working project provider integration', () => {
     ).toHaveTextContent('AI');
     expect(screen.queryByTestId('working-project-option-standard-project')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
-    fireEvent.click(screen.getByRole('option', { name: 'All projects' }));
-    expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Project type' }));
+    await user.click(await screen.findByRole('option', { name: /All projects/ }));
+    await waitFor(() =>
+      expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument(),
+    );
     expect(
       within(screen.getByTestId('working-project-option-standard-project')).queryByTestId(
         'ai-project-label',
       ),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('working-project-option-ai-project'));
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await user.click(screen.getByTestId('working-project-option-ai-project'));
+    await user.click(screen.getByRole('button', { name: 'Select' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(
       within(screen.getByTestId('working-project-selector')).getByTestId('ai-project-label'),
@@ -173,6 +181,7 @@ describe('RHAII working project provider integration', () => {
   });
 
   it('should allow selecting non-AI projects when the AI filter has no matches', async () => {
+    const user = userEvent.setup();
     mockFetchNamespaces.mockResolvedValue([project('standard-project')]);
     render(
       <ProjectsContextProvider>
@@ -185,10 +194,13 @@ describe('RHAII working project provider integration', () => {
     );
     fireEvent.click(screen.getByTestId('working-project-selector'));
     expect(screen.getByTestId('working-project-no-results')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
-    fireEvent.click(screen.getByRole('option', { name: 'All projects' }));
-    fireEvent.click(screen.getByTestId('working-project-option-standard-project'));
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await user.click(screen.getByRole('button', { name: 'Project type' }));
+    await user.click(await screen.findByRole('option', { name: /All projects/ }));
+    await waitFor(() =>
+      expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument(),
+    );
+    await user.click(screen.getByTestId('working-project-option-standard-project'));
+    await user.click(screen.getByRole('button', { name: 'Select' }));
     await waitFor(() =>
       expect(screen.getByTestId('working-project-selector')).toHaveTextContent('standard-project'),
     );
