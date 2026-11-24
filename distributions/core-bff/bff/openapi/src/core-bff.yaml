@@ -891,7 +891,10 @@ paths:
         and save again. Such a change is detected before the configuration patch where possible;
         a change in the short window after that check can leave the configuration patch applied
         while a later ConfigMap write reports the conflict. Enabling user tracking without a provisioned segment-key ConfigMap is
-        also 200 with success false, before anything is written. Under the caller credential policy (xKS) every planned write is reviewed
+        also 200 with success false, before anything is written. If the notebook-controller
+        rollout itself fails after the settings were stored, the response is 200 with success
+        false and a retry does not restart the controller (the stored settings already match);
+        restart it once it can be patched. Under the caller credential policy (xKS) every planned write is reviewed
         first, and a write the caller may not make is 403 before anything is written. When a
         conflict and an authorization failure both occur, the authorization failure decides the
         status. Under the caller policy, when no OdhDashboardConfig instance exists GET shows
