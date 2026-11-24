@@ -55,10 +55,6 @@ func NewDashboardHandler(
 
 	return &admission.Webhook{
 		Handler: admission.HandlerFunc(func(ctx context.Context, req admission.Request) admission.Response {
-			enforceConsent, err := namespacedRBACConsentEnforced(ctx, reader, enforceNamespacedRBACConsent, operatorNamespace)
-			if err != nil {
-				return admission.Errored(http.StatusInternalServerError, err)
-			}
 			if req.Resource == (metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}) {
 				if req.Namespace != operatorNamespace || req.Name != v1alpha1.NamespacedRBACStateConfigMapName {
 					return admission.Allowed("")
@@ -71,10 +67,21 @@ func NewDashboardHandler(
 				return admission.Allowed("")
 			}
 			if req.Resource == (metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}) {
+				if req.Operation == admissionv1.Delete {
+					return validateNamespacedRBACOptInWriter(req, allowedWriters)
+				}
+				enforceConsent, err := namespacedRBACConsentEnforced(ctx, reader, enforceNamespacedRBACConsent, operatorNamespace)
+				if err != nil {
+					return admission.Errored(http.StatusInternalServerError, err)
+				}
 				if !enforceConsent {
 					return admission.Allowed("")
 				}
 				return validateNamespacedRBACOptInWriter(req, allowedWriters)
+			}
+			enforceConsent, err := namespacedRBACConsentEnforced(ctx, reader, enforceNamespacedRBACConsent, operatorNamespace)
+			if err != nil {
+				return admission.Errored(http.StatusInternalServerError, err)
 			}
 			if req.Resource != (metav1.GroupVersionResource{Group: DashboardGVK.Group, Version: DashboardGVK.Version, Resource: "dashboards"}) {
 				return admission.Allowed("")
@@ -127,6 +134,18 @@ func namespacedRBACConsentEnforced(
 }
 
 func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map[string]struct{}) admission.Response {
+	if req.Operation == admissionv1.Delete {
+		if namespaceIsTerminating(req) {
+			return admission.Allowed("namespace is terminating")
+		}
+		if _, allowed := allowedWriters[req.UserInfo.Username]; allowed {
+			return admission.Allowed("")
+		}
+		return admission.Denied(fmt.Sprintf(
+			"user %q may not delete a namespace before it is terminating",
+			req.UserInfo.Username,
+		))
+	}
 	if req.Operation != admissionv1.Create && req.Operation != admissionv1.Update {
 		return admission.Allowed("")
 	}
@@ -164,6 +183,14 @@ func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map
 		req.UserInfo.Username,
 		v1alpha1.NamespacedRBACOptInLabel,
 	))
+}
+
+func namespaceIsTerminating(req admission.Request) bool {
+	var previous corev1.Namespace
+	if err := json.Unmarshal(req.OldObject.Raw, &previous); err != nil {
+		return false
+	}
+	return previous.DeletionTimestamp != nil
 }
 
 func validateDashboardNamespacedRBACWrite(

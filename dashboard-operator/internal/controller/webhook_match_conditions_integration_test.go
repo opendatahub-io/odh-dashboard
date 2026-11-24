@@ -95,6 +95,12 @@ func TestIntegration_WebhookMatchConditionsUseRealAPIServer(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond, "webhook configuration did not become active")
 	resetWebhookCalls(&mu, calls)
 
+	unrelatedConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "unrelated-config", Namespace: "system",
+	}}
+	require.NoError(t, cli.Create(context.Background(), unrelatedConfigMap), "unrelated ConfigMap CREATE must skip the webhook")
+	require.Zero(t, webhookCalls(t, &mu, calls, "configmaps"))
+
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "webhook-cel-test"}}
 	require.NoError(t, cli.Create(context.Background(), namespace), "unrelated Namespace CREATE must not depend on the webhook")
 	dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName}}

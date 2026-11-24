@@ -40,6 +40,7 @@ webhooks:
         operations:
           - CREATE
           - UPDATE
+          - DELETE
         resources:
           - namespaces
           - namespaces/status
@@ -65,7 +66,6 @@ webhooks:
       - name: namespaced-rbac-state-changed
         expression: >-
           request.resource.resource != 'configmaps' ||
-          request.namespace != 'system' ||
           (request.operation == 'DELETE'
             ? request.name == 'dashboard-namespaced-rbac-state'
             : object.?metadata.name.orValue('') == 'dashboard-namespaced-rbac-state')

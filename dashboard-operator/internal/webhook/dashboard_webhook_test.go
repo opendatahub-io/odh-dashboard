@@ -517,3 +517,30 @@ func TestDashboardHandler_ProtectsNamespaceOptInLabel(t *testing.T) {
 		})
 	}
 }
+
+func TestDashboardHandler_AllowsTerminatingNamespaceDelete(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		[]string{orchestrator},
+		true,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
+	)
+
+	deletionTimestamp := metav1.Now()
+	oldRaw, err := json.Marshal(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+		Name:              "opendatahub",
+		DeletionTimestamp: &deletionTimestamp,
+	}})
+	require.NoError(t, err)
+	request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Delete,
+		Resource:  metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"},
+		Name:      "opendatahub",
+		OldObject: runtime.RawExtension{Raw: oldRaw},
+		UserInfo:  authenticationv1.UserInfo{Username: "namespace-controller"},
+	}}
+
+	assert.True(t, handler.Handle(context.Background(), request).Allowed)
+}
