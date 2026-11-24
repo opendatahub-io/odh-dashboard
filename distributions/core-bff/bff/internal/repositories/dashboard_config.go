@@ -61,6 +61,16 @@ func (r *DashboardConfigRepository) GetDashboardConfig(
 	return r.mergeDashboardConfig(raw, featureFlagOverrides)
 }
 
+// DefaultDashboardConfig returns the platform defaults the dashboard shows
+// when no OdhDashboardConfig instance exists. It reads nothing.
+func (r *DashboardConfigRepository) DefaultDashboardConfig() (*models.DashboardConfig, error) {
+	raw, err := blankDefaults()
+	if err != nil {
+		return nil, err
+	}
+	return r.mergeDashboardConfig(raw, nil)
+}
+
 // GetAdminDashboardConfig reads the configuration the admin cluster-settings
 // endpoints show and compute their writes from. Under the service-account
 // policy it is the bootstrap read.

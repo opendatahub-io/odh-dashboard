@@ -20,14 +20,14 @@ func (app *App) GetClusterSettingsHandler(w http.ResponseWriter, r *http.Request
 	// stored settings, so a denied read is the caller's 403, never the defaults
 	// the bootstrap read falls back to. Only when no instance exists at all are
 	// the defaults shown, as before; saving then fails, because PUT refuses to
-	// write against a configuration it could not read.
+	// write against a configuration it could not read. The caller's read has
+	// already established that, so the defaults are built here, with no second
+	// read by the service account.
 	dashConfig, err := app.repositories.DashboardConfig.GetAdminDashboardConfig(
 		ctx, app.config.Namespace, app.config.DashboardConfigName,
 	)
 	if k8serrors.IsNotFound(err) || meta.IsNoMatchError(err) {
-		dashConfig, err = app.repositories.DashboardConfig.GetDashboardConfig(
-			ctx, app.config.Namespace, app.config.DashboardConfigName, nil,
-		)
+		dashConfig, err = app.repositories.DashboardConfig.DefaultDashboardConfig()
 	}
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

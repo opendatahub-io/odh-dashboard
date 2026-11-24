@@ -280,3 +280,22 @@ func TestGetClusterSettings_CallerNoInstance_ShowsDefaults(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &settings))
 	assert.Equal(t, 20, settings.PVCSize)
 }
+
+// Review 6037661521 item 4: once the caller's read found no instance, the
+// defaults are built directly; the service account is not asked again, so its
+// failure cannot turn the defaults into an error.
+func TestGetClusterSettings_CallerNoInstance_NoServiceAccountRead(t *testing.T) {
+	f := newCallerSettingsFixture(t)
+	require.NoError(t, f.dyn.Resource(models.DashboardConfigGVR).Namespace("dash-ns").Delete(context.Background(), "odh-dashboard-config", metav1.DeleteOptions{}))
+	f.saDyn.PrependReactor("*", "*", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewServiceUnavailable("service account read")
+	})
+	f.saDyn.ClearActions()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/cluster-settings", nil)
+	req = reqWithIdentity(req, &k8s.RequestIdentity{UserID: "caller", Token: k8s.NewBearerToken("caller-token")})
+	rr := httptest.NewRecorder()
+	f.app.GetClusterSettingsHandler(rr, req, nil)
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	assert.Empty(t, f.saDyn.Actions(), "no service-account read")
+}
