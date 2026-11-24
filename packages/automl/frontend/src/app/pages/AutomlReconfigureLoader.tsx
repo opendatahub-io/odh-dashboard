@@ -193,7 +193,8 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     savedTestBucket === trainingParams.train_data_bucket_name &&
     Boolean(trainingParams.train_data_file_key?.trim()) &&
     typeof savedTestKey === 'string' &&
-    Boolean(savedTestKey.trim());
+    Boolean(savedTestKey.trim()) &&
+    savedTestKey.trim() !== trainingParams.train_data_file_key?.trim();
 
   // Prefer the unified key, then legacy timeseries key, then legacy tabular key.
   const targetColumn = parsed.target_column || parsed.target || parsed.label_column || '';
@@ -217,6 +218,10 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     ...(parsed.preset != null && { preset: parsed.preset }),
     ...(resolvedEvalMetric !== undefined && { eval_metric: resolvedEvalMetric }),
   };
+  if (!hasSavedTestData) {
+    delete initialValues.test_data_bucket_name;
+    delete initialValues.test_data_file_key;
+  }
   /* eslint-enable camelcase */
 
   return (

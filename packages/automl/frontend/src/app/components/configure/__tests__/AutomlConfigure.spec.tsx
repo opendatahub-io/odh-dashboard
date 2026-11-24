@@ -538,6 +538,47 @@ describe('AutomlConfigure', () => {
       expect(await screen.findByText('submit backend detail')).toBeInTheDocument();
     });
 
+    it('should ignore connection refresh results after namespace navigation', async () => {
+      let finishRefresh: (secrets: unknown[]) => void = () => {
+        throw new Error('Refresh has not started');
+      };
+      mockSecretRefresh.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishRefresh = resolve;
+          }),
+      );
+      const { rerender } = renderComponent();
+      openConnectionModal();
+      await fillConnectionModal();
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Add connection' }));
+      await waitFor(() => expect(mockSecretRefresh).toHaveBeenCalled());
+      mockUseParams.mockReturnValue({ namespace: 'other-namespace' });
+      rerender(<AutomlConfigure />);
+      await act(async () =>
+        finishRefresh([
+          {
+            uuid: 'old-secret',
+            name: 'my-connection',
+            type: 's3',
+            data: {
+              AWS_ACCESS_KEY_ID: 'key',
+              AWS_SECRET_ACCESS_KEY: 'secret',
+              AWS_S3_ENDPOINT: 'endpoint',
+              AWS_S3_BUCKET: 'old-bucket',
+            },
+          },
+        ]),
+      );
+      expect(screen.queryByTestId('aws-secret-selector-value')).not.toBeInTheDocument();
+      expect(mockuseS3GetFileSchemaQuery).not.toHaveBeenCalledWith(
+        'other-namespace',
+        'my-connection',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
     it('should track cancellation through the shared modal', async () => {
       renderComponent();
       openConnectionModal();
@@ -1711,6 +1752,32 @@ describe('AutomlConfigure', () => {
           'aria-expanded',
           'true',
         );
+      },
+    );
+
+    it.each([false, true])(
+      'should reject a delayed test drop after leaving separate mode (switch back: %s)',
+      async (switchBack) => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        fireEvent.click(screen.getByTestId('test-data-accordion-toggle'));
+        fireEvent.click(
+          within(screen.getByTestId('test-data-source-upload-toggle')).getByRole('button'),
+        );
+        fireEvent.drop(screen.getByTestId('test-data-upload-zone'), {
+          dataTransfer: mockDataTransferForDrop([
+            new File(['test rows'], 'stale-test.csv', { type: 'text/csv' }),
+          ]),
+        });
+        fireEvent.click(screen.getByTestId('dataset-split-auto'));
+        if (switchBack) {
+          fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        }
+        await act(async () => undefined);
+        expect(mockS3MutateAsync).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByTestId('dataset-split-separate'));
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
       },
     );
 

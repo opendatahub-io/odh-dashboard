@@ -34,6 +34,7 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Spinner,
   Split,
   SplitItem,
   Stack,
@@ -47,7 +48,7 @@ import {
   ExclamationTriangleIcon,
 } from '@patternfly/react-icons';
 import { findKey } from 'es-toolkit';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
@@ -135,6 +136,7 @@ function explorerFileFromKey(fileKey?: string): ExplorerFile | undefined {
 type AutomlConfigureProps = {
   initialInputDataSecret?: SecretSelection;
   onDatasetUploadChange?: (isUploading: boolean) => void;
+  onDatasetSamplingBlockedChange?: (isBlocked: boolean) => void;
   /** Reports whether the currently selected prediction type matches the recommendation derived from the target column. */
   onRecommendationChange?: (isRecommended: boolean) => void;
   /** Reports the furthest configure-step section the user has reached, for funnel exit tracking. */
@@ -144,6 +146,7 @@ type AutomlConfigureProps = {
 function AutomlConfigure({
   initialInputDataSecret,
   onDatasetUploadChange,
+  onDatasetSamplingBlockedChange,
   onRecommendationChange,
   onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
@@ -157,6 +160,13 @@ function AutomlConfigure({
     formState: { isSubmitting: formIsSubmitting, errors },
   } = form;
   const { namespace } = useParams();
+  const currentNamespaceRef = useRef(namespace);
+  useLayoutEffect(() => {
+    currentNamespaceRef.current = namespace;
+    return () => {
+      currentNamespaceRef.current = undefined;
+    };
+  }, [namespace]);
   const [allConnectionTypes] = useWatchConnectionTypes();
   const automlConnectionTypes = React.useMemo(
     () =>
@@ -353,6 +363,16 @@ function AutomlConfigure({
     trainDataBucketName,
     datasetSplitMode === DATASET_SPLIT_SEPARATE ? testDataFileKey : undefined,
   );
+
+  const isDatasetSamplingBlocked =
+    datasetSplitMode === DATASET_SPLIT_SEPARATE &&
+    Boolean(
+      isFetchingColumns || columnsError || testSampleQuery.isFetching || testSampleQuery.error,
+    );
+  useEffect(() => {
+    onDatasetSamplingBlockedChange?.(isDatasetSamplingBlocked);
+  }, [isDatasetSamplingBlocked, onDatasetSamplingBlockedChange]);
+  useEffect(() => () => onDatasetSamplingBlockedChange?.(false), [onDatasetSamplingBlockedChange]);
 
   useEffect(() => {
     if (datasetSplitMode === DATASET_SPLIT_SEPARATE) {
@@ -663,6 +683,7 @@ function AutomlConfigure({
       namespace,
       secretName: trainDataSecretName,
       bucket: trainDataBucketName,
+      isActive: datasetSplitMode === DATASET_SPLIT_SEPARATE,
       requestSequenceRef: testDataUploadSeqRef,
       onStart: startTestDataUpload,
       onSuccess: completeTestDataUpload,
@@ -831,7 +852,9 @@ function AutomlConfigure({
                   <StackItem>
                     <Split hasGutter>
                       <SplitItem>
-                        <Content component="h3">Documents</Content>
+                        <Content component="h3" data-testid="documents-heading">
+                          Documents
+                        </Content>
                       </SplitItem>
                       <SplitItem isFilled />
                       {datasetSplitMode === DATASET_SPLIT_SEPARATE && (
@@ -1021,9 +1044,14 @@ function AutomlConfigure({
                                         justifyContent={{ default: 'justifyContentFlexEnd' }}
                                       >
                                         <FlexItem>
-                                          {columnsError && trainDataFileKey ? (
+                                          {isFetchingColumns && trainDataFileKey ? (
+                                            <Spinner
+                                              size="sm"
+                                              aria-label="Sampling training data"
+                                            />
+                                          ) : columnsError && trainDataFileKey ? (
                                             <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
-                                          ) : trainDataFileKey ? (
+                                          ) : trainDataFileKey && schemaColumns.length > 0 ? (
                                             <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" />
                                           ) : (
                                             <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
@@ -1168,10 +1196,12 @@ function AutomlConfigure({
                                         justifyContent={{ default: 'justifyContentFlexEnd' }}
                                       >
                                         <FlexItem>
-                                          {(testSampleQuery.error && testDataFileKey) ||
-                                          hasIdenticalDatasetFiles ? (
+                                          {testSampleQuery.isFetching && testDataFileKey ? (
+                                            <Spinner size="sm" aria-label="Sampling test data" />
+                                          ) : (testSampleQuery.error && testDataFileKey) ||
+                                            hasIdenticalDatasetFiles ? (
                                             <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
-                                          ) : testDataFileKey ? (
+                                          ) : testDataFileKey && testSampleQuery.data.length > 0 ? (
                                             <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" />
                                           ) : (
                                             <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
@@ -1684,7 +1714,11 @@ function AutomlConfigure({
             if (!refresh) {
               return;
             }
+            const startingNamespace = namespace;
             const list = await refresh();
+            if (currentNamespaceRef.current !== startingNamespace) {
+              return;
+            }
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
               setNewConnectionNotLoaded(false);

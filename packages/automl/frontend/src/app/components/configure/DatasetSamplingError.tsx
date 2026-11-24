@@ -13,6 +13,7 @@ export default function DatasetSamplingError({
   isRetrying = false,
 }: DatasetSamplingErrorProps): React.JSX.Element {
   const isCsvValidationError = error?.message.includes('CSV validation error:') ?? false;
+  const isSamplingLimitError = isCsvValidationError && error?.message.includes('within 1 MiB');
   if (isCsvValidationError) {
     return (
       <Alert
@@ -21,8 +22,9 @@ export default function DatasetSamplingError({
         title="Unable to sample document data"
         data-testid="dataset-sampling-error"
       >
-        Use a UTF-8 CSV file with a header and at least 100 data rows. Correct the document and
-        select it again, or upload a different document.
+        {isSamplingLimitError
+          ? 'The first 100 complete data rows must fit within the 1 MiB sampling limit. Reduce the size of those rows or select a different CSV file.'
+          : 'Use a UTF-8 CSV file with a header and at least 100 data rows. Correct the document and select it again, or upload a different document.'}
       </Alert>
     );
   }

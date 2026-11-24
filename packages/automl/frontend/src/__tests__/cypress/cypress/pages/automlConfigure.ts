@@ -18,7 +18,7 @@ class AutomlConfigurePage {
   }
 
   findDocumentsHeading() {
-    return cy.findByRole('heading', { name: 'Documents' });
+    return cy.findByTestId('documents-heading');
   }
 
   findAutoSplitRadio() {
@@ -56,9 +56,7 @@ class AutomlConfigurePage {
   selectStorageSecret(secretName: string, selectorTestId = 'aws-secret-selector') {
     cy.findByTestId(selectorTestId).click();
     cy.findByTestId(`${selectorTestId}-input`).type(secretName);
-    cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
-      .should('be.visible')
-      .click();
+    cy.findByRole('option', { name: secretName, exact: true }).should('be.visible').click();
     cy.findByTestId(`${selectorTestId}-input`).should('have.value', secretName);
   }
 }

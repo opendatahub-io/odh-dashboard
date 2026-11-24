@@ -237,7 +237,9 @@ paths:
             Selects an alternate representation of the file resource.
             When set to "schema", returns the CSV column schema with inferred types
             instead of streaming the file contents. Requires the file to be a CSV
-            with at least 100 data rows. When set to 'row-count', returns the total
+            with at least 100 data rows. Schema inference samples at most 1 MiB;
+            if 100 complete data rows do not fit within that limit, returns HTTP 400.
+            When set to 'row-count', returns the total
             number of CSV data records by streaming the entire file. The header and
             blank lines are excluded; quoted multiline fields count as one record.
             Files over 32 MiB or records over 1 MiB return 400 without a partial count.

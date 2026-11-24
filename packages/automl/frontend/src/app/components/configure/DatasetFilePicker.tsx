@@ -139,7 +139,7 @@ function DatasetFilePicker({
                   <Tr>
                     <Th>Name</Th>
                     <Th>Type</Th>
-                    <Th />
+                    <Th screenReaderText="Actions" />
                   </Tr>
                 </Thead>
                 <Tbody>

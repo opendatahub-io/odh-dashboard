@@ -492,6 +492,19 @@ describe('AutomlReconfigureLoader', () => {
     });
 
     it.each([
+      {
+        train_data_bucket_name: 'my-bucket',
+        train_data_file_key: 'train.csv',
+        test_data_bucket_name: 'my-bucket',
+        test_data_file_key: 'train.csv',
+      },
+      {
+        top_n: -1,
+        train_data_bucket_name: 'my-bucket',
+        train_data_file_key: 'train.csv',
+        test_data_bucket_name: 'my-bucket',
+        test_data_file_key: ' train.csv ',
+      },
       {},
       {
         top_n: -1,

@@ -15,6 +15,7 @@ type DatasetUploadOptions = {
   namespace?: string;
   secretName: string;
   bucket: string;
+  isActive?: boolean;
   requestSequenceRef: MutableRefObject<number>;
   onStart: () => void;
   onSuccess: (key: string) => void;
@@ -25,6 +26,7 @@ export default function useDatasetUpload({
   namespace,
   secretName,
   bucket,
+  isActive = true,
   requestSequenceRef,
   onStart,
   onSuccess,
@@ -35,8 +37,8 @@ export default function useDatasetUpload({
 } {
   const sequence = requestSequenceRef;
   const connection = useMemo(
-    () => ({ namespace, secretName, bucket }),
-    [namespace, secretName, bucket],
+    () => ({ namespace, secretName, bucket, isActive }),
+    [namespace, secretName, bucket, isActive],
   );
   const activeConnectionRef = useRef<typeof connection>();
   useLayoutEffect(() => {
@@ -49,8 +51,13 @@ export default function useDatasetUpload({
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
   const uploadFile = useCallback(
     async (file?: File) => {
-      // Dropzone may finish extracting files after the connection has changed.
-      if (!file || !namespace || activeConnectionRef.current !== connection) {
+      // Dropzone may finish extracting files after the connection or split mode has changed.
+      if (
+        !file ||
+        !namespace ||
+        !connection.isActive ||
+        activeConnectionRef.current !== connection
+      ) {
         return;
       }
       if (file.size > AUTOML_TRAINING_UPLOAD_MAX_BYTES) {

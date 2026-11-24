@@ -7,6 +7,7 @@ import React from 'react';
 import { BrowserRouter } from 'react-router';
 import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 import AutomlConfigurePage from '~/app/pages/AutomlConfigurePage';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { AUTOML_FAILURE_CATEGORY } from '~/app/utilities/tracking';
 
 const trackEvent = jest.fn();
@@ -187,75 +188,76 @@ jest.mock('~/app/components/empty-states/InvalidProject', () => ({
 }));
 
 // Mock SecretSelector component
-jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
-  __esModule: true,
-  SecretSelector: ({
-    onChange,
-    value,
-    valueName,
-    dataTestId,
-  }: {
-    onChange: (
-      secret:
-        | {
-            uuid: string;
-            name: string;
-            data: Record<string, string>;
-            type?: string;
-            invalid?: boolean;
-            displayName?: string;
-          }
-        | undefined,
-    ) => void;
-    value?: string;
-    valueName?: string;
-    dataTestId?: string;
-  }) => {
-    const isAwsSelector = dataTestId?.endsWith('aws-secret-selector');
-    let selectedValue = value;
-    if (valueName === 'Other AWS Secret') {
-      selectedValue = 'aws-secret-2';
-    } else if (valueName) {
-      selectedValue = 'aws-secret-1';
-    }
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => {
+  const secrets = [
+    {
+      uuid: 'aws-secret-1',
+      name: 'Test AWS Secret',
+      displayName: 'Test AWS Secret',
+      data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+      type: 's3',
+      invalid: false,
+    },
+    {
+      uuid: 'aws-secret-2',
+      name: 'Other AWS Secret',
+      data: { AWS_S3_BUCKET: 'other-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+      type: 's3',
+    },
+  ];
+  return {
+    __esModule: true,
+    SecretSelector: ({
+      onChange,
+      value,
+      valueName,
+      dataTestId,
+    }: {
+      onChange: (
+        secret:
+          | {
+              uuid: string;
+              name: string;
+              data: Record<string, string>;
+              type?: string;
+              invalid?: boolean;
+              displayName?: string;
+            }
+          | undefined,
+      ) => void;
+      value?: string;
+      valueName?: string;
+      dataTestId?: string;
+    }) => {
+      const isAwsSelector = dataTestId?.endsWith('aws-secret-selector');
+      const selectedValue = valueName
+        ? secrets.find((secret) => secret.name === valueName)?.uuid
+        : value;
 
-    const handleClick = () => {
-      if (isAwsSelector) {
-        onChange({
-          uuid: 'aws-secret-1',
-          name: 'Test AWS Secret',
-          displayName: 'Test AWS Secret',
-          data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
-          type: 's3',
-          invalid: false,
-        });
-      }
-    };
+      const handleClick = () => {
+        if (isAwsSelector) {
+          onChange(secrets[0]);
+        }
+      };
 
-    return (
-      <div data-testid={dataTestId}>
-        <button type="button" data-testid={`${dataTestId}-select-secret`} onClick={handleClick}>
-          Select Secret
-        </button>
-        <button
-          type="button"
-          data-testid={`${dataTestId}-select-other-secret`}
-          onClick={() =>
-            onChange({
-              uuid: 'aws-secret-2',
-              name: 'Other AWS Secret',
-              data: { AWS_S3_BUCKET: 'other-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
-              type: 's3',
-            })
-          }
-        >
-          Select Other Secret
-        </button>
-        {selectedValue && <div data-testid={`${dataTestId}-value`}>{selectedValue}</div>}
-      </div>
-    );
-  },
-}));
+      return (
+        <div data-testid={dataTestId}>
+          <button type="button" data-testid={`${dataTestId}-select-secret`} onClick={handleClick}>
+            Select Secret
+          </button>
+          <button
+            type="button"
+            data-testid={`${dataTestId}-select-other-secret`}
+            onClick={() => onChange(secrets[1])}
+          >
+            Select Other Secret
+          </button>
+          {selectedValue && <div data-testid={`${dataTestId}-value`}>{selectedValue}</div>}
+        </div>
+      );
+    },
+  };
+});
 
 const createTestQueryClient = () =>
   new QueryClient({
@@ -268,13 +270,15 @@ const createTestQueryClient = () =>
 
 const renderWithProviders = (component: React.ReactElement) => {
   const queryClient = createTestQueryClient();
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <TrackingProvider trackEvent={trackEvent}>
-        <BrowserRouter>{component}</BrowserRouter>
-      </TrackingProvider>
-    </QueryClientProvider>,
-  );
+  return render(component, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>
+        <TrackingProvider trackEvent={trackEvent}>
+          <BrowserRouter>{children}</BrowserRouter>
+        </TrackingProvider>
+      </QueryClientProvider>
+    ),
+  });
 };
 
 describe('AutomlConfigurePage', () => {
@@ -1321,6 +1325,60 @@ describe('AutomlConfigurePage', () => {
         expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-selected');
         expect(screen.getByText('Target column')).toBeInTheDocument();
         expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
+      });
+
+      it.each(['pending', 'failed'] as const)(
+        'should block separate-dataset submission while test sampling is %s and allow recovery',
+        async (samplingState) => {
+          const schemaQuery = jest.mocked(useS3GetFileSchemaQuery);
+          const originalImplementation = schemaQuery.getMockImplementation()!;
+          let blocked = true;
+          schemaQuery.mockImplementation((...args) => ({
+            ...originalImplementation(...args),
+            isFetching: args[3] === 'my-data/test.csv' && blocked && samplingState === 'pending',
+            error:
+              args[3] === 'my-data/test.csv' && blocked && samplingState === 'failed'
+                ? new Error('CSV validation error: invalid test CSV')
+                : null,
+          }));
+          try {
+            const props = {
+              initialValues: {
+                ...tabularInitialValues,
+                dataset_split_mode: 'separate' as const,
+                test_data_bucket_name: 'test-bucket',
+                test_data_file_key: 'my-data/test.csv',
+              },
+              initialInputDataSecret: tabularInitialSecret,
+              sourceRunId: 'run-1',
+            };
+            const { rerender } = renderWithProviders(<AutomlConfigurePage {...props} />);
+            await navigateToConfigure();
+            const submit = screen.getByRole('button', { name: 'Create new run' });
+            await waitFor(() => expect(submit).toBeDisabled());
+            await act(async () => fireEvent.submit(submit));
+            expect(mockMutateAsync).not.toHaveBeenCalled();
+            blocked = false;
+            rerender(<AutomlConfigurePage {...props} />);
+            await waitFor(() => expect(submit).toBeEnabled());
+          } finally {
+            schemaQuery.mockImplementation(originalImplementation);
+          }
+        },
+      );
+
+      it('should leave an unknown saved connection unresolved', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={{
+              ...tabularInitialValues,
+              train_data_secret_name: 'Missing AWS Secret',
+            }}
+            sourceRunId="run-1"
+          />,
+        );
+        await navigateToConfigure();
+        expect(screen.queryByTestId('aws-secret-selector-value')).not.toBeInTheDocument();
       });
 
       it('should submit the restored test dataset without changing separate mode', async () => {
