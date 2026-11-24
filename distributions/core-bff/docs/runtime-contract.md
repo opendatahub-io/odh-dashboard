@@ -81,7 +81,7 @@ that the header name is configuration, not a constant.
 | ------------------------ | ---------------------- | ---------------------- | ------------------------------------------------------------------- |
 | `--cert-file`            | `CERT_FILE`            | _(empty)_              | Serving certificate. Both halves or neither.                        |
 | `--key-file`             | `KEY_FILE`             | _(empty)_              | Serving key.                                                        |
-| `--bundle-paths`         | `BUNDLE_PATHS`         | _(5 well-known paths)_ | Comma-separated PEM CA bundles for the HTTP clients and proxies.    |
+| `--bundle-paths`         | `BUNDLE_PATHS`         | _(4 well-known paths)_ | Comma-separated PEM CA bundles for the HTTP clients and proxies.    |
 | `--insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | `false`                | Requires `DEV_MODE=true`; rejected everywhere else.                 |
 | `--allowed-origins`      | `ALLOWED_ORIGINS`      | _(none)_               | CORS origins. Production accepts exact `scheme://host[:port]` only. |
 
@@ -97,12 +97,15 @@ that the header name is configuration, not a constant.
 `PROMETHEUS_INSTANCE` (`thanos-querier`), `PROMETHEUS_PORT` (`9092`).
 
 `MODEL_SERVING_HOST` and `PROMETHEUS_HOST`, when set, must be absolute `http(s)://host[:port]`
-URLs with a port, if any, between 1 and 65535; a bare host name fails startup instead of failing
-the first request. Without `PROMETHEUS_HOST` the target is derived as
+URLs with a port, if any, between 1 and 65535, no query string or fragment, and no surrounding
+whitespace; request paths and queries are appended to them, and a bad value fails startup instead
+of failing the first request. Without `PROMETHEUS_HOST` the target is derived as
 `https://<instance>.<namespace>.svc.cluster.local:<port>`, so `PROMETHEUS_PORT` must be a port
-number. Both targets receive the caller's bearer token, so a production profile requires `https`,
-and the Prometheus client refuses a redirect that changes the scheme or host before sending it.
-Problems name the setting, never the value.
+number and the assembled URL must pass the same checks. Both targets receive the caller's bearer
+token, so they require `https` unless `DEV_MODE=true`, including when only `MOCK_K8S_CLIENT` is
+set; the loopback mock Prometheus started when no host is configured is not affected. The
+Prometheus client refuses a redirect that changes the scheme, host or effective port before
+sending it. Problems name the setting, never the value.
 
 ## Profiles
 
@@ -117,7 +120,7 @@ these rejections safe:
 | `AUTH_METHOD=disabled`                                                                                                                                                                             | No caller identity is extracted at all.                                                                                                                                                                                                                                                                                                        | `AUTH_METHOD=user_token`, or `DEV_MODE=true` locally.          |
 | `INSECURE_SKIP_VERIFY=true` (also rejected with only `MOCK_K8S_CLIENT`, which leaves the other outbound clients real)                                                                              | Disables upstream certificate verification on every outbound call.                                                                                                                                                                                                                                                                             | Supply the upstream CA through `BUNDLE_PATHS`.                 |
 | A kubeconfig with `insecure-skip-tls-verify`                                                                                                                                                       | client-go honours it for the service-account and caller-token clients regardless of `INSECURE_SKIP_VERIFY`.                                                                                                                                                                                                                                    | Supply the cluster CA in the kubeconfig.                       |
-| `MODEL_SERVING_HOST` or `PROMETHEUS_HOST` over `http`                                                                                                                                              | Both receive the caller's bearer token, which plaintext HTTP would expose.                                                                                                                                                                                                                                                                     | Use an `https://` URL; plaintext targets need `DEV_MODE=true`. |
+| `MODEL_SERVING_HOST` or `PROMETHEUS_HOST` over `http` (outside `DEV_MODE`, mocked Kubernetes or not)                                                                                               | Both receive the caller's bearer token, which plaintext HTTP would expose.                                                                                                                                                                                                                                                                     | Use an `https://` URL; plaintext targets need `DEV_MODE=true`. |
 | `ALLOWED_ORIGINS` with `*` anywhere (`*`, `https://*`, `https://*.example.com`), an entry with a path (including a trailing `/`), query or user info, or the scheme's default port (`:443`, `:80`) | CORS replies allow credentials and the middleware matches `*` as a wildcard, so a pattern admits any matching site. Browsers send `Origin` without a trailing slash, so `https://host/` could never match; they also omit the default port, so `https://host:443` could not either. Rejected entries are reported by position, never by value. | List each exact dashboard origin as `scheme://host[:port]`.    |
 
 ## TLS inputs
@@ -157,12 +160,16 @@ applies to every outbound transport and requires `DEV_MODE=true`. Every transpor
 
 The default set does not include the service-account `ca.crt`. That file is the Kubernetes API CA,
 and listing it would make the model-serving, module, inter-BFF and Prometheus transports trust it.
+The RHOAI, ODH and MaaS Portal deployments still pass it explicitly in `--bundle-paths`, so on
+those overlays the upstream transports also trust the Kubernetes API CA. That is the existing
+deployment behaviour, kept unchanged here; dropping the path from those manifests is tracked as a
+follow-up.
 
 `BUNDLE_PATHS` has two modes, because the two cases have different failure semantics:
 
 | Case                                       | Behaviour                                                                                                                                                                         |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Default set (the five well-known paths)    | Unreadable entries are skipped. Most do not exist on most clusters; the set is a convenience.                                                                                     |
+| Default set (the four well-known paths)    | Unreadable entries are skipped. Most do not exist on most clusters; the set is a convenience.                                                                                     |
 | Supplied explicitly by environment or flag | If **no** path yields a certificate, startup fails. That includes an explicitly empty or separator-only value. Falling back to the system pool would be a silent trust downgrade. |
 
 **Client credentials.** Outbound client certificates come from the Kubernetes rest config
@@ -171,10 +178,14 @@ rule as the serving pair. The dashboard never presents a client certificate it w
 
 The Kubernetes proxies are caller-scoped: each request carries the caller's bearer token. A
 kubeconfig client certificate is the BFF's own identity, and the API server does not define which
-authenticator wins when a request carries both, so the proxies present it only in `DEV_MODE`, where
-the developer's kubeconfig identity is the documented fallback. Outside `DEV_MODE` the certificate
-is used only by the service-account clients. With `MOCK_K8S_CLIENT` the proxies present the envtest
-certificate, because they act as that identity and impersonate the caller.
+authenticator wins when a request carries both. The proxies therefore present it only on a
+`DEV_MODE` fallback request, one that arrived without a caller token and runs on the developer's
+kubeconfig identity; a `DEV_MODE` request that carries its own token is authenticated by that token
+alone. Outside `DEV_MODE` the certificate is used only by the service-account clients, and every
+caller client is built from the kubeconfig validated at startup rather than a later re-read. With
+`MOCK_K8S_CLIENT` the proxies present the envtest certificate, because they act as that identity.
+The HTTP proxy adds impersonation headers for the caller; the WebSocket handshake builds its own
+headers and does not, so WebSocket requests against envtest run as the envtest identity.
 
 ## Certificate and trust rotation
 
