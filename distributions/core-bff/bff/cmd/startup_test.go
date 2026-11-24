@@ -382,7 +382,7 @@ func TestParseStartupConfig_RejectsUnusableTLSInput(t *testing.T) {
 		t.Setenv("KEY_FILE", keyFile)
 		_, err := parse(t)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "CERT_FILE/--cert-file (value omitted) could not be read: the file does not exist")
+		assert.Contains(t, err.Error(), "CERT_FILE/--cert-file (value omitted) could not be read: not found")
 		assert.NotContains(t, err.Error(), absent, "diagnostics name the setting, not its value")
 	})
 
@@ -424,8 +424,19 @@ func TestParseStartupConfig_RejectsUnusableRequiredCABundle(t *testing.T) {
 		_, err := parse(t)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "BUNDLE_PATHS was set explicitly but no CA certificates could be loaded")
-		assert.Contains(t, err.Error(), "no PEM certificates")
-		assert.Contains(t, err.Error(), "not found")
+		assert.Contains(t, err.Error(), "entry 1 (no PEM certificates)")
+		assert.Contains(t, err.Error(), "entry 2 (not found)")
+		assert.NotContains(t, err.Error(), dir, "entries are reported by position, not by value")
+	})
+
+	t.Run("PEM pasted into BUNDLE_PATHS is not echoed", func(t *testing.T) {
+		isolateEnv(t)
+		t.Setenv("BUNDLE_PATHS", "-----BEGIN CERTIFICATE-----\nMIIBCANARYCA\n-----END CERTIFICATE-----")
+		_, err := parse(t)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "entry 1 (")
+		assert.NotContains(t, err.Error(), "CANARYCA")
+		assert.NotContains(t, err.Error(), "-----BEGIN")
 	})
 
 	t.Run("default bundle set tolerates absent files", func(t *testing.T) {

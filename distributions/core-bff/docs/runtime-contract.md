@@ -179,10 +179,10 @@ follow-up.
 
 `BUNDLE_PATHS` has two modes, because the two cases have different failure semantics:
 
-| Case                                       | Behaviour                                                                                                                                                                         |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Default set (the four well-known paths)    | Unreadable entries are skipped. Most do not exist on most clusters; the set is a convenience.                                                                                     |
-| Supplied explicitly by environment or flag | If **no** path yields a certificate, startup fails. That includes an explicitly empty or separator-only value. Falling back to the system pool would be a silent trust downgrade. |
+| Case                                       | Behaviour                                                                                                                                                                                                                                           |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Default set (the four well-known paths)    | Unreadable entries are skipped. Most do not exist on most clusters; the set is a convenience.                                                                                                                                                       |
+| Supplied explicitly by environment or flag | If **no** path yields a certificate, startup fails. That includes an explicitly empty or separator-only value. Falling back to the system pool would be a silent trust downgrade. Failing entries are reported by 1-based position, never by value. |
 
 **Client credentials.** Outbound client certificates come from the Kubernetes rest config
 (`CertData`/`KeyData` or `CertFile`/`KeyFile`). A half-configured client pair is an error, the same

@@ -28,18 +28,20 @@ func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
 	}
 
 	var loadedAny bool
-	for _, p := range bundlePaths {
+	// An entry that does not load is logged by position, never by value: it
+	// may not be a path at all (a pasted PEM block, say).
+	for i, p := range bundlePaths {
 		p = strings.TrimSpace(p)
 		if p == "" {
 			continue
 		}
 		pemBytes, readErr := os.ReadFile(p)
 		if readErr != nil {
-			logger.Debug("CA bundle not readable, skipping", slog.String("path", p), slog.Any("error", readErr))
+			logger.Debug("CA bundle not readable, skipping", slog.Int("entry", i+1), slog.String("problem", config.FileProblem(readErr)))
 			continue
 		}
 		if ok := rootCAs.AppendCertsFromPEM(pemBytes); !ok {
-			logger.Debug("No certs appended from PEM bundle", slog.String("path", p))
+			logger.Debug("No certs appended from PEM bundle", slog.Int("entry", i+1))
 			continue
 		}
 		loadedAny = true

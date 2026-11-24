@@ -361,7 +361,7 @@ func validateServingTLS(tlsFiles TLSFiles, add func(string, ...any)) {
 			err     error
 		}{{"CERT_FILE/--cert-file", certErr}, {"KEY_FILE/--key-file", keyErr}} {
 			if f.err != nil {
-				add("%s (value omitted) could not be read: %s", f.setting, readProblem(f.err))
+				add("%s (value omitted) could not be read: %s", f.setting, FileProblem(f.err))
 			}
 		}
 		return
@@ -384,22 +384,6 @@ func validateServingTLS(tlsFiles TLSFiles, add func(string, ...any)) {
 	if problem := validityProblem(leaf, time.Now()); problem != "" {
 		add("the serving certificate from CERT_FILE/--cert-file (value omitted) %s; rotate it before starting", problem)
 	}
-}
-
-// readProblem describes a file read failure without the path, which
-// os.PathError would otherwise quote.
-func readProblem(err error) string {
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		return "the file does not exist"
-	case errors.Is(err, fs.ErrPermission):
-		return "permission denied"
-	}
-	var pathErr *fs.PathError
-	if errors.As(err, &pathErr) {
-		return pathErr.Err.Error()
-	}
-	return "read failed"
 }
 
 // validityProblem reports why leaf is not usable at now, or "" when it is.
@@ -430,36 +414,40 @@ func (c EnvConfig) validateTrustBundles(add func(string, ...any)) {
 		return
 	}
 
+	// Entries are reported by position, never by value: a PEM block pasted
+	// where a path belongs would otherwise land in the log.
 	var unusable []string
 	var loadedAny bool
-	for _, path := range c.BundlePaths {
+	for i, path := range c.BundlePaths {
 		path = strings.TrimSpace(path)
 		if path == "" {
 			continue
 		}
 		pem, err := os.ReadFile(path)
 		if err != nil {
-			unusable = append(unusable, fmt.Sprintf("%s (%s)", path, classifyFileError(err)))
+			unusable = append(unusable, fmt.Sprintf("entry %d (%s)", i+1, FileProblem(err)))
 			continue
 		}
 		if !x509.NewCertPool().AppendCertsFromPEM(pem) {
-			unusable = append(unusable, fmt.Sprintf("%s (no PEM certificates)", path))
+			unusable = append(unusable, fmt.Sprintf("entry %d (no PEM certificates)", i+1))
 			continue
 		}
 		loadedAny = true
 	}
 
 	if !loadedAny {
-		add("BUNDLE_PATHS was set explicitly but no CA certificates could be loaded from it: %s",
+		add("BUNDLE_PATHS was set explicitly but no CA certificates could be loaded from it (1-based entries, values omitted): %s",
 			strings.Join(unusable, ", "))
 	}
 }
 
-func classifyFileError(err error) string {
+// FileProblem describes a file read failure without the path, which
+// os.PathError would otherwise quote.
+func FileProblem(err error) string {
 	switch {
-	case errors.Is(err, os.ErrNotExist):
+	case errors.Is(err, fs.ErrNotExist):
 		return "not found"
-	case errors.Is(err, os.ErrPermission):
+	case errors.Is(err, fs.ErrPermission):
 		return "permission denied"
 	default:
 		return "unreadable"

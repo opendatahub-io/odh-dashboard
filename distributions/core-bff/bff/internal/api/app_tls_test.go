@@ -1,12 +1,14 @@
 package api
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"log/slog"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -203,4 +205,18 @@ func TestLoadClientCert_NoPairs_ReturnsNil(t *testing.T) {
 	certs, err := app.loadClientCert(rest.TLSClientConfig{}, "test")
 	require.NoError(t, err)
 	assert.Nil(t, certs)
+}
+
+// A loaded bundle can sit next to an entry that is not a path at all, which
+// startup accepts because one entry loaded. Its value must not reach the log.
+func TestInitRootCAs_DoesNotLogTheValueOfAnUnusableEntry(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	valid := writeSelfSignedCert(t, t.TempDir(), "ca")
+
+	pool := initRootCAs([]string{"-----BEGIN CERTIFICATE-----\nMIIBCANARYCA\n-----END CERTIFICATE-----", valid}, logger)
+
+	require.NotNil(t, pool)
+	assert.NotContains(t, buf.String(), "CANARYCA")
+	assert.Contains(t, buf.String(), "entry=1")
 }
