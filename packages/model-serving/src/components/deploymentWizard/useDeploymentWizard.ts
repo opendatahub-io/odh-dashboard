@@ -68,8 +68,10 @@ export const NO_TOKEN_AUTH_PERMISSION_TEXT =
 
 /**
  * The token authentication field after deploy-method overrides and the
- * caller's permission. An override that disables the field clears its tokens;
- * without permission the existing tokens are kept and shown, unchanged.
+ * caller's permission. An override that disables the field clears its tokens.
+ * Without permission the field is disabled and holds only the existing
+ * tokens, unchanged; new drafts stay in the field's own state, so they come
+ * back if the permission does, and are never saved meanwhile.
  */
 export const applyTokenAuthOverrides = (
   field: TokenAuthenticationFieldHook,
@@ -84,7 +86,11 @@ export const applyTokenAuthOverrides = (
     ...(!overrideDisabled && !canManageTokenAuth
       ? { disabledHelperText: NO_TOKEN_AUTH_PERMISSION_TEXT }
       : {}),
-    ...(overrideDisabled ? { data: [] } : {}),
+    ...(overrideDisabled
+      ? { data: [] }
+      : !canManageTokenAuth
+      ? { data: field.data?.filter((token) => !!token.k8sName) }
+      : {}),
   };
 };
 
@@ -338,7 +344,7 @@ export const useModelDeploymentWizard = (
       tokenAuthentication: applyTokenAuthOverrides(
         state.tokenAuthentication,
         tokenAuthOverrides,
-        state.canManageTokenAuth,
+        state.canManageTokenAuth !== false,
       ),
       // Only once the field has initialized: an empty `{}` reads as initialized data without
       // `selections` (e.g. the review step rendering first after a remount from YAML)

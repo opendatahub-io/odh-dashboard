@@ -11,8 +11,14 @@ export type RhaiiProject = ProjectKind & {
   canView?: boolean;
   canDeploy?: boolean;
   canEdit?: boolean;
+  canStartStop?: boolean;
   canDelete?: boolean;
   canManageTokenAuth?: boolean;
+  /**
+   * Listed while discovery was unavailable: the caller may list the
+   * namespace, but nothing it may do there is known until a lookup by name.
+   */
+  actionsUnverified?: boolean;
 } & AiClassificationUnknown;
 
 type K8sNamespaceItem = {
@@ -135,6 +141,7 @@ const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
     canView: allowed('view'),
     canDeploy: allowed('deploy'),
     canEdit: allowed('edit'),
+    canStartStop: allowed('startStop'),
     canDelete: allowed('delete'),
     canManageTokenAuth: allowed('manageTokenAuth'),
     ...(typeof item.isAiProject !== 'boolean' && { aiClassificationUnknown: true }),
@@ -240,10 +247,13 @@ const fetchLegacyNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject
 
 const withoutVerifiedActions = (project: RhaiiProject): RhaiiProject => ({
   ...project,
+  canView: false,
   canDeploy: false,
   canEdit: false,
+  canStartStop: false,
   canDelete: false,
   canManageTokenAuth: false,
+  actionsUnverified: true,
 });
 
 const fetchNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject[]> => {
@@ -252,11 +262,11 @@ const fetchNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject[]> =>
     return fetchLegacyNamespaces(signal);
   }
   if (resp.status === 503) {
-    // Discovery found nothing because its sources or reviews failed. A caller
-    // who may list namespaces can still browse them, but listing a namespace
-    // says nothing about what the caller may do in it: no action is offered
-    // until a lookup by name decides it. The result stays partial, so manual
-    // entry remains available.
+    // Discovery found nothing because its sources or reviews failed. Listing a
+    // namespace says nothing about what the caller may do in it, so the
+    // listed names are offered for selection only: nothing is watched or
+    // offered there until a lookup by name decides it. The result stays
+    // partial, so manual entry remains available.
     let browsable: RhaiiProject[] = [];
     try {
       browsable = (await fetchLegacyNamespaces(signal)).map(withoutVerifiedActions);

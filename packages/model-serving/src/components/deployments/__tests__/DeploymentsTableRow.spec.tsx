@@ -420,12 +420,22 @@ describe('DeploymentsTableRow', () => {
     };
 
     it('should not offer Edit or Delete to a read-only caller', () => {
-      renderWithActions({ canEdit: false, canDelete: false, canManageTokenAuth: false });
+      renderWithActions({
+        canEdit: false,
+        canStartStop: false,
+        canDelete: false,
+        canManageTokenAuth: false,
+      });
       expect(screen.queryByRole('button', { name: 'Kebab toggle' })).not.toBeInTheDocument();
     });
 
     it('should gate Edit and Delete independently', () => {
-      renderWithActions({ canEdit: false, canDelete: true, canManageTokenAuth: false });
+      renderWithActions({
+        canEdit: false,
+        canStartStop: false,
+        canDelete: true,
+        canManageTokenAuth: false,
+      });
       fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
       expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
@@ -433,35 +443,46 @@ describe('DeploymentsTableRow', () => {
     });
 
     it('should offer Edit without Delete', () => {
-      renderWithActions({ canEdit: true, canDelete: false, canManageTokenAuth: true });
+      renderWithActions({
+        canEdit: true,
+        canStartStop: true,
+        canDelete: false,
+        canManageTokenAuth: true,
+      });
       fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
       expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
       expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
     });
 
     it.each([
+      // Patch-only: may start and stop, may not edit from the wizard.
       [false, true],
       [true, false],
-    ])('should gate Start and Stop on edit access (edit: %s)', (canEdit, disabled) => {
-      mockUseDeploymentExtension.mockReturnValue({ properties: { platform: 'test-platform' } });
-      renderWithActions(
-        { canEdit, canDelete: false, canManageTokenAuth: false },
-        mockDeployment({
-          status: { state: ModelDeploymentState.LOADED, stoppedStates: runningStates },
-        }),
-      );
-      const toggle = screen.getByTestId('state-action-toggle');
-      expect(toggle).toHaveTextContent('Stop');
-      if (disabled) {
-        expect(toggle).toBeDisabled();
-      } else {
-        expect(toggle).toBeEnabled();
-      }
-      fireEvent.click(within(screen.getByTestId('model-status-text')).getByRole('button'));
-      expect(screen.getByTestId('status-modal')).toHaveTextContent(
-        canEdit ? 'can-stop' : 'no-stop',
-      );
-    });
+      [false, false],
+    ])(
+      'should gate Start and Stop on patch access (start/stop: %s, edit: %s)',
+      (canStartStop, canEdit) => {
+        const disabled = !canStartStop;
+        mockUseDeploymentExtension.mockReturnValue({ properties: { platform: 'test-platform' } });
+        renderWithActions(
+          { canEdit, canStartStop, canDelete: false, canManageTokenAuth: false },
+          mockDeployment({
+            status: { state: ModelDeploymentState.LOADED, stoppedStates: runningStates },
+          }),
+        );
+        const toggle = screen.getByTestId('state-action-toggle');
+        expect(toggle).toHaveTextContent('Stop');
+        if (disabled) {
+          expect(toggle).toBeDisabled();
+        } else {
+          expect(toggle).toBeEnabled();
+        }
+        fireEvent.click(within(screen.getByTestId('model-status-text')).getByRole('button'));
+        expect(screen.getByTestId('status-modal')).toHaveTextContent(
+          canStartStop ? 'can-stop' : 'no-stop',
+        );
+      },
+    );
 
     it('should offer every action when the project has none reported', () => {
       renderWithActions(undefined);

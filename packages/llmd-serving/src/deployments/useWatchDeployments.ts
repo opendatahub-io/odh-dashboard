@@ -3,12 +3,20 @@ import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
 import { useKueueStatusWithQueuePositions } from '@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getLLMdDeploymentEndpoints } from './endpoints';
 import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import { useWatchLLMInferenceService } from '../api/LLMInferenceService';
 import { useWatchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
+
+// Configs and Pods only add details (the server and the status) to a
+// deployment. A caller who may not read them still sees their deployments, so
+// a denied read is not reported as a page error.
+const isForbidden = (error: Error | undefined): boolean => getGenericErrorCode(error) === 403;
+const optionalReadError = (error: Error | undefined): Error | undefined =>
+  isForbidden(error) ? undefined : error;
 
 export const useWatchDeployments = (
   project: ProjectKind,
@@ -103,9 +111,11 @@ export const useWatchDeployments = (
   );
 
   const errors = React.useMemo(() => {
-    return [llmInferenceServiceError, llmInferenceServiceConfigsError, deploymentPodsError].filter(
-      (error): error is Error => Boolean(error),
-    );
+    return [
+      llmInferenceServiceError,
+      optionalReadError(llmInferenceServiceConfigsError),
+      optionalReadError(deploymentPodsError),
+    ].filter((error): error is Error => Boolean(error));
   }, [llmInferenceServiceError, llmInferenceServiceConfigsError, deploymentPodsError]);
 
   return React.useMemo(

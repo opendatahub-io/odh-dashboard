@@ -205,29 +205,40 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
 - Only `source: cluster-list` with `complete: true` is a complete listing. Anything else
   (`source: candidates`, failed reviews, the candidate cap) is shown as a partial listing: the
   authorized namespaces appear and manual entry stays available.
-- A `503` falls back to `GET /api/v1/namespaces`, so a caller who may list namespaces can still
-  browse them. Listing a namespace says nothing about the caller's actions in it, so these
-  namespaces get no action: they are not deployment targets and offer no Edit, Delete, Start, Stop
-  or token management. The listing counts as partial, so manual entry stays available and a lookup
-  by name decides the actions.
+- A `503` falls back to `GET /api/v1/namespaces`. Listing a namespace says nothing about the
+  caller's actions in it, so those names are offered only in the project selector: they are not in
+  `projects` or `modelServingProjects` (nothing is watched), are not deployment targets and offer
+  no action. The listing counts as partial, so selecting one, or entering any name, looks it up by
+  name first, and the lookup decides what is watched and offered.
 - `projects` and `modelServingProjects` hold only namespaces with `actions.view`: listing
   deployments in a create-only namespace would fail. A create-only namespace is still a deployment
   target, and a caller with only such namespaces gets the deployments page's **Deploy model**
   empty state instead of **No projects**.
-- `getProjectDeploymentActions` on `ProjectsContext` carries `actions.edit`, `actions.delete` and
-  `actions.manageTokenAuth`. The deployments table offers Edit, Start and Stop only with `edit`,
-  and Delete only with `delete`. The deployment wizard selects, edits and saves token
-  authentication only with `manageTokenAuth` as well as RoleBinding create access; without it the
-  field is disabled and existing tokens are left as they are.
+- The deployments page needs only `view` to list a project's models. Pod and config reads only add
+  details, so a denied one is not reported as a page error; other failures still are.
+- `getProjectDeploymentActions` on `ProjectsContext` carries `actions.edit`, `actions.startStop`,
+  `actions.delete` and `actions.manageTokenAuth`. The deployments table offers Edit only with
+  `edit`, Start and Stop (including Stop in the status modal) only with `startStop`, and Delete
+  only with `delete`.
+- The deployment wizard selects, edits and saves token authentication only with `manageTokenAuth`
+  as well as RoleBinding create access. Without it the field is disabled and holds only the
+  existing tokens, which are left as they are; a draft token is kept, not saved, and comes back if
+  the permission does. Saving a new token that cannot be provisioned is rejected before anything
+  is written, in the LLM-d and KServe deploy paths alike. Wizard state without
+  `canManageTokenAuth` (older callers) keeps the RoleBinding check alone.
 - A lookup the BFF denies (`403`, or `404` for a missing namespace) drops the project this session
-  cached, so it is no longer offered as a target. A failed lookup keeps it, and an older lookup
-  that completes after a newer one is ignored. A new deployment, from the form or from YAML, is
-  saved only while its project, and the namespace its YAML names, are still deployment targets;
+  cached, so it is no longer offered as a target. A failed lookup keeps it. An older lookup that
+  completes after a newer one is ignored, including the background restoration of recent
+  projects. A new deployment is saved only while its project is still a deployment target;
   editing an existing deployment is not affected.
+- Permissions are checked in one project, so YAML must deploy to it: the selected project for a
+  new deployment, the deployment's own for an edit. A YAML `metadata.namespace` that differs is
+  rejected on save.
 - `Active` and `Unknown` namespaces are selectable; `Terminating` ones are not.
 - Only namespaces with `actions.deploy` are deployment targets. The provider sets
   `deploymentTargetProjects` on `ProjectsContext`; the model deployment wizard's project selector,
-  and its check of a target passed in by navigation, use that subset. `projects` keeps every
+  its check of a target passed in by navigation, and the **Deploy model** buttons (disabled with a
+  reason in a project that is not a target, or when there is none) use that subset. `projects` keeps every
   namespace for browsing. A host that does not set the field keeps today's behaviour.
 - Waiting for a newly created project polls discovery and, when the listing is partial and the
   project is not in it, looks it up by name. A partial result is merged with the projects already

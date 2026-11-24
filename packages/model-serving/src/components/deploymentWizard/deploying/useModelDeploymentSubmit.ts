@@ -106,21 +106,29 @@ export const useModelDeploymentSubmit = (
             'Deploy method or extensions not loaded or could not be inferred from resources',
           );
         }
+        // Permissions are checked in one project, so the YAML must deploy to
+        // that same project: the selected one for a new deployment, the
+        // deployment's own for an edit.
+        const yamlNamespace = resources.model?.metadata.namespace;
+        const expectedNamespace = existingDeployment
+          ? existingDeployment.model.metadata.namespace
+          : formState.project.projectName;
+        if (yamlNamespace && expectedNamespace && yamlNamespace !== expectedNamespace) {
+          throw new Error(
+            `The YAML namespace "${yamlNamespace}" must match the project "${expectedNamespace}".`,
+          );
+        }
         // Access to a project can be revoked while the wizard is open. A new
         // deployment, from the form or the YAML, must still target a project
         // the caller may deploy to; an edit stays in the deployment's project.
-        if (!existingDeployment && deploymentTargetProjects) {
-          const targetNames = new Set(
-            [formState.project.projectName, resources.model?.metadata.namespace].filter(
-              (name): name is string => !!name,
-            ),
-          );
-          const deniedName = [...targetNames].find(
-            (name) => !deploymentTargetProjects.some(byName(name)),
-          );
-          if (deniedName) {
-            throw new Error(`You can no longer deploy models to the project "${deniedName}".`);
-          }
+        const targetName = expectedNamespace ?? yamlNamespace;
+        if (
+          !existingDeployment &&
+          deploymentTargetProjects &&
+          targetName &&
+          !deploymentTargetProjects.some(byName(targetName))
+        ) {
+          throw new Error(`You can no longer deploy models to the project "${targetName}".`);
         }
 
         // Prefer the Template on the shared model-server selection (spokes attach it).

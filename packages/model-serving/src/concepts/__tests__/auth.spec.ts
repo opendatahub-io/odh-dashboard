@@ -1,6 +1,9 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
+  assertTokensProvisionable,
+  canProvisionTokenAuth,
   generateRole,
+  UNPROVISIONABLE_TOKEN_MESSAGE,
   setUpTokenAuth,
   createServiceAccountIfMissing,
   createRoleIfMissing,
@@ -411,5 +414,31 @@ describe('createTokenSecrets', () => {
     ).rejects.toBe(failure);
 
     expect(secretsMock.deleteSecret).not.toHaveBeenCalled();
+  });
+});
+
+describe('token provisioning checks', () => {
+  it('should need RoleBinding access, and token auth unless it is unset', () => {
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: true })).toBe(true);
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: true, canManageTokenAuth: true })).toBe(
+      true,
+    );
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: true, canManageTokenAuth: false })).toBe(
+      false,
+    );
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: false, canManageTokenAuth: true })).toBe(
+      false,
+    );
+  });
+
+  it('should reject only new tokens that cannot be provisioned', () => {
+    const existing = { uuid: 'a', displayName: 'existing', k8sName: 'existing-sa' };
+    const fresh = { uuid: 'b', displayName: 'new' };
+    expect(() => assertTokensProvisionable([existing, fresh], false)).toThrow(
+      UNPROVISIONABLE_TOKEN_MESSAGE,
+    );
+    expect(() => assertTokensProvisionable([existing], false)).not.toThrow();
+    expect(() => assertTokensProvisionable(undefined, false)).not.toThrow();
+    expect(() => assertTokensProvisionable([fresh], true)).not.toThrow();
   });
 });

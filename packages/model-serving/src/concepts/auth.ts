@@ -184,6 +184,34 @@ export const createTokenSecrets = async (
   );
 };
 
+/**
+ * Whether token authentication can be provisioned: it creates a RoleBinding,
+ * and the host may report that the caller cannot manage the rest (namespace
+ * discovery on xKS). Wizard state from before `canManageTokenAuth` existed
+ * leaves it unset, which keeps the RoleBinding check alone.
+ */
+export const canProvisionTokenAuth = (wizardData: {
+  canCreateRoleBindings: boolean;
+  canManageTokenAuth?: boolean;
+}): boolean => wizardData.canCreateRoleBindings && wizardData.canManageTokenAuth !== false;
+
+export const UNPROVISIONABLE_TOKEN_MESSAGE =
+  'You do not have permission to create authentication tokens in this project. Remove the new tokens or ask for access.';
+
+/**
+ * Rejects new tokens (ones without a Secret yet) that cannot be provisioned,
+ * before anything is written, so a model never requires a token that was not
+ * created. Existing tokens are kept as they are.
+ */
+export const assertTokensProvisionable = (
+  tokenAuth: TokenAuthEntry[] | undefined,
+  canProvision: boolean,
+): void => {
+  if (!canProvision && tokenAuth?.some((token) => !token.k8sName)) {
+    throw new Error(UNPROVISIONABLE_TOKEN_MESSAGE);
+  }
+};
+
 export const setUpTokenAuth = async (
   tokenAuth: TokenAuthEntry[] | undefined,
   deployedModelName: string,

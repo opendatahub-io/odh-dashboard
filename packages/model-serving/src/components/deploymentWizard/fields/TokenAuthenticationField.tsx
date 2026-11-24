@@ -87,13 +87,24 @@ export const useTokenAuthenticationField = (
   >(initialData);
 
   const initialDataRef = React.useRef(initialData);
+  const inputsRef = React.useRef({ shouldAutoCheck, existingData });
   React.useEffect(() => {
     const isInitialDataDifferent = !_.isEqual(initialData, initialDataRef.current);
-    if (isInitialDataDifferent) {
-      initialDataRef.current = initialData;
-      setTokenAuthData(initialData);
+    if (!isInitialDataDifferent) {
+      return;
     }
-  }, [initialData]);
+    const previousInitialData = initialDataRef.current;
+    const onlyPermissionChanged =
+      inputsRef.current.shouldAutoCheck === shouldAutoCheck &&
+      inputsRef.current.existingData === existingData;
+    initialDataRef.current = initialData;
+    inputsRef.current = { shouldAutoCheck, existingData };
+    // A permission change alone must not discard what the user entered: the
+    // default token is added or removed only while it is still untouched.
+    setTokenAuthData((current) =>
+      onlyPermissionChanged && !_.isEqual(current, previousInitialData) ? current : initialData,
+    );
+  }, [initialData, shouldAutoCheck, existingData]);
 
   return {
     data: tokenAuthData,

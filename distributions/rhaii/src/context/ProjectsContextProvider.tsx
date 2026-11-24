@@ -366,13 +366,28 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     : listingUnavailable
     ? 'listing-unavailable'
     : 'listed';
+  // Names listed while discovery was unavailable are offered for selection
+  // too. Selecting one while the listing is partial looks it up by name first,
+  // so it is watched only once the lookup confirms what the caller may do.
+  const unverifiedProjects = React.useMemo(
+    () =>
+      projectData.filter(
+        (project) =>
+          project.actionsUnverified &&
+          project.status?.phase === NamespacePhase.Active &&
+          isAvailableProject(project.metadata.name, dashboardNamespace),
+      ),
+    [projectData, dashboardNamespace],
+  );
   const identities = React.useMemo(
     () =>
-      projects.map((project) => ({
-        name: project.metadata.name,
-        displayName: getDisplayNameFromK8sResource(project),
-      })),
-    [projects],
+      [...projects, ...unverifiedProjects]
+        .map((project) => ({
+          name: project.metadata.name,
+          displayName: getDisplayNameFromK8sResource(project),
+        }))
+        .toSorted((a, b) => a.name.localeCompare(b.name)),
+    [projects, unverifiedProjects],
   );
   const selectProject = React.useCallback(
     (identity: { name: string }) => {
@@ -434,8 +449,10 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       return;
     }
     const controller = new AbortController();
+    // Through validateProject, so a newer lookup's decision wins over an
+    // older restoration.
     readRecentNames().forEach((name) => {
-      void fetchNamespaceByName(name, controller.signal)
+      void validateProject(name, controller.signal)
         .then((project) => {
           if (!controller.signal.aborted) {
             addProject(project, false);
@@ -444,7 +461,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         .catch(() => undefined);
     });
     return () => controller.abort();
-  }, [status, unifiedProjectSelectorEnabled, addProject]);
+  }, [status, unifiedProjectSelectorEnabled, addProject, validateProject]);
 
   const getProjectDeploymentActions = React.useCallback<
     NonNullable<ProjectsContextType['getProjectDeploymentActions']>
@@ -454,6 +471,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       if (
         !project ||
         (project.canEdit === undefined &&
+          project.canStartStop === undefined &&
           project.canDelete === undefined &&
           project.canManageTokenAuth === undefined)
       ) {
@@ -461,6 +479,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       }
       return {
         canEdit: project.canEdit !== false,
+        canStartStop: project.canStartStop !== false,
         canDelete: project.canDelete !== false,
         canManageTokenAuth: project.canManageTokenAuth !== false,
       };

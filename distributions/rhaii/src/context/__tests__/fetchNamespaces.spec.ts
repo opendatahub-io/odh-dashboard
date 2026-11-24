@@ -41,6 +41,7 @@ const accessEntry = (
     view?: boolean;
     deploy?: boolean;
     edit?: boolean;
+    startStop?: boolean;
     delete?: boolean;
     unclassified?: boolean;
     manageTokenAuth?: boolean;
@@ -55,6 +56,7 @@ const accessEntry = (
     view: overrides.view ?? true,
     deploy: overrides.deploy ?? true,
     edit: overrides.edit ?? false,
+    startStop: overrides.startStop ?? false,
     delete: overrides.delete ?? false,
     manageTokenAuth: overrides.manageTokenAuth ?? false,
   },
@@ -115,6 +117,7 @@ describe('fetchNamespaces', () => {
           canView: true,
           canDeploy: true,
           canEdit: false,
+          canStartStop: false,
           canDelete: false,
           canManageTokenAuth: false,
         },
@@ -126,6 +129,7 @@ describe('fetchNamespaces', () => {
           canView: true,
           canDeploy: false,
           canEdit: false,
+          canStartStop: false,
           canDelete: false,
           canManageTokenAuth: false,
         },
@@ -206,6 +210,7 @@ describe('fetchNamespaces', () => {
           accessList('cluster-list', [
             accessEntry('create-only', { view: false, deploy: true }),
             accessEntry('editor', { edit: true, delete: true, manageTokenAuth: true }),
+            accessEntry('patch-only', { deploy: false, startStop: true }),
           ]),
         ),
       });
@@ -213,20 +218,24 @@ describe('fetchNamespaces', () => {
       const result = await fetchNamespaces();
 
       expect(
-        result.map(({ canView, canDeploy, canEdit, canDelete, canManageTokenAuth }) => [
-          canView,
-          canDeploy,
-          canEdit,
-          canDelete,
-          canManageTokenAuth,
-        ]),
+        result.map(
+          ({ canView, canDeploy, canEdit, canStartStop, canDelete, canManageTokenAuth }) => [
+            canView,
+            canDeploy,
+            canEdit,
+            canStartStop,
+            canDelete,
+            canManageTokenAuth,
+          ],
+        ),
       ).toEqual([
-        [false, true, false, false, false],
-        [true, true, true, true, true],
+        [false, true, false, false, false, false],
+        [true, true, true, false, true, true],
+        [true, false, false, true, false, false],
       ]);
     });
 
-    it('should let a lister browse but offer no action when discovery is unavailable', async () => {
+    it('should offer a lister the names but nothing to watch or do when discovery is unavailable', async () => {
       const fetchMock = mockRoutes({
         access: { ok: false, status: 503 } as Response,
         legacy: ok(mockNamespaceList(['team-a', 'team-b'])),
@@ -239,12 +248,14 @@ describe('fetchNamespaces', () => {
       const { projects = [] } = error as NamespaceListUnavailableError;
       expect(projects.map((p) => p.metadata.name)).toEqual(['team-a', 'team-b']);
       expect(projects[0]).toMatchObject({
+        canView: false,
         canDeploy: false,
         canEdit: false,
+        canStartStop: false,
         canDelete: false,
         canManageTokenAuth: false,
+        actionsUnverified: true,
       });
-      expect(projects[0].canView).toBeUndefined();
       expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/namespaces', { signal: undefined });
     });
 

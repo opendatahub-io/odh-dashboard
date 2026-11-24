@@ -90,6 +90,9 @@ const Consumer: React.FC = () => {
       <div data-testid="deploy-targets">
         {(deploymentTargetProjects ?? []).map(({ metadata }) => metadata.name).join(',')}
       </div>
+      <div data-testid="selector-projects">
+        {working.projects.map(({ name }) => name).join(',')}
+      </div>
       <div data-testid="working-project">{working.activeProject?.name ?? 'none'}</div>
       <div data-testid="allowed-actions">
         {JSON.stringify(getProjectDeploymentActions?.('allowed') ?? null)}
@@ -596,27 +599,76 @@ describe('RHAII working project provider integration', () => {
     expect(screen.getByTestId('serving-projects')).toHaveTextContent('allowed,legacy');
     expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed,create-only,legacy');
     expect(screen.getByTestId('allowed-actions')).toHaveTextContent(
-      JSON.stringify({ canEdit: false, canDelete: true, canManageTokenAuth: true }),
+      JSON.stringify({
+        canEdit: false,
+        canStartStop: true,
+        canDelete: true,
+        canManageTokenAuth: true,
+      }),
     );
   });
 
-  it('should offer no target or action for projects whose actions are unverified', async () => {
-    // What a lister browses when discovery is unavailable.
-    const unverified = { canDeploy: false, canEdit: false, canDelete: false };
+  it('should offer unverified projects for selection only, and watch one once a lookup confirms it', async () => {
+    // What a lister gets when discovery is unavailable.
+    const unverified = {
+      canView: false,
+      canDeploy: false,
+      canEdit: false,
+      canStartStop: false,
+      canDelete: false,
+      canManageTokenAuth: false,
+      actionsUnverified: true,
+    };
     mockFetchNamespaces.mockRejectedValue(
       new MockNamespaceListUnavailableError([
-        Object.assign(project('allowed'), unverified, { canManageTokenAuth: false }),
+        Object.assign(project('allowed'), unverified),
+        Object.assign(project('another'), unverified),
       ]),
+    );
+    mockFetchNamespaceByName.mockResolvedValue(
+      Object.assign(project('allowed'), {
+        canView: true,
+        canDeploy: true,
+        canEdit: false,
+        canStartStop: true,
+        canDelete: false,
+        canManageTokenAuth: false,
+      }),
     );
     render(
       <ProjectsContextProvider>
         <Consumer />
       </ProjectsContextProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed'));
-    expect(screen.getByTestId('deploy-targets')).toHaveTextContent(/^$/);
+    await waitFor(() =>
+      expect(screen.getByTestId('selector-projects')).toHaveTextContent('allowed,another'),
+    );
+    expect(screen.getByTestId('known-projects')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('serving-projects')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('deploy-targets')).toBeEmptyDOMElement();
     expect(screen.getByTestId('allowed-actions')).toHaveTextContent(
-      JSON.stringify({ canEdit: false, canDelete: false, canManageTokenAuth: false }),
+      JSON.stringify({
+        canEdit: false,
+        canStartStop: false,
+        canDelete: false,
+        canManageTokenAuth: false,
+      }),
+    );
+
+    fireEvent.click(screen.getByText('Try allowed'));
+    await waitFor(() =>
+      expect(screen.getByTestId('serving-projects')).toHaveTextContent('allowed'),
+    );
+    expect(mockFetchNamespaceByName).toHaveBeenCalledWith('allowed', undefined);
+    expect(screen.getByTestId('deploy-targets')).toHaveTextContent('allowed');
+    expect(screen.getByTestId('selector-projects')).toHaveTextContent('allowed,another');
+    expect(screen.getByTestId('allowed-actions')).toHaveTextContent(
+      JSON.stringify({
+        canEdit: false,
+        canStartStop: true,
+        canDelete: false,
+        canManageTokenAuth: false,
+      }),
     );
   });
 
@@ -687,6 +739,42 @@ describe('RHAII working project provider integration', () => {
     });
     expect(screen.getByTestId('deploy-targets')).not.toHaveTextContent('allowed');
     expect(screen.getByTestId('working-project')).toHaveTextContent('none');
+  });
+
+  it('should not let a recent-project restoration undo a newer denial', async () => {
+    localStorage.setItem('rhaii-recent-namespaces', JSON.stringify(['allowed']));
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([
+        Object.assign(project('allowed'), { canDeploy: true }),
+        Object.assign(project('another'), { canDeploy: true }),
+      ]),
+    );
+    let resolveRestoration: (value: ProjectKind) => void = () => undefined;
+    mockFetchNamespaceByName
+      .mockImplementationOnce(
+        () =>
+          new Promise<ProjectKind>((resolve) => {
+            resolveRestoration = resolve;
+          }),
+      )
+      .mockRejectedValueOnce(new MockProjectAccessDeniedError());
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(mockFetchNamespaceByName).toHaveBeenCalledWith('allowed', expect.any(AbortSignal)),
+    );
+    fireEvent.click(screen.getByText('Try allowed'));
+    await waitFor(() =>
+      expect(screen.getByTestId('deploy-targets')).toHaveTextContent(/^another$/),
+    );
+    await act(async () => {
+      resolveRestoration(Object.assign(project('allowed'), { canDeploy: true }));
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('deploy-targets')).toHaveTextContent(/^another$/);
   });
 
   it('should keep a cached project when a lookup fails without a decision', async () => {

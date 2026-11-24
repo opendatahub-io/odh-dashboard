@@ -196,13 +196,29 @@ describe('useModelDeploymentSubmit deployment targets', () => {
     },
   );
 
-  it('should check the namespace the YAML names, not only the selected project', async () => {
-    const { result } = renderWithTargets([target('test-project')], {
+  it('should reject YAML that names another project than the selected one', async () => {
+    // Both are targets, but permissions were checked in the selected project.
+    const { result } = renderWithTargets([target('test-project'), target('elsewhere')], {
       yamlNamespace: 'elsewhere',
     });
     await act(async () => result.current.onSave());
     expect(result.current.submitError?.message).toBe(
-      'You can no longer deploy models to the project "elsewhere".',
+      'The YAML namespace "elsewhere" must match the project "test-project".',
+    );
+    expect(deployModel).not.toHaveBeenCalled();
+  });
+
+  it('should reject an edit whose YAML moves the deployment out of its project', async () => {
+    const { result } = renderWithTargets(undefined, {
+      yamlNamespace: 'elsewhere',
+      existingDeployment: {
+        modelServingPlatformId: 'llmd-serving',
+        model: { metadata: { name: 'test-model', namespace: 'original' } },
+      } as Deployment,
+    });
+    await act(async () => result.current.onSave());
+    expect(result.current.submitError?.message).toBe(
+      'The YAML namespace "elsewhere" must match the project "original".',
     );
     expect(deployModel).not.toHaveBeenCalled();
   });
@@ -216,7 +232,10 @@ describe('useModelDeploymentSubmit deployment targets', () => {
 
   it('should save an edit and deploy where the host reports no targets', async () => {
     const edit = renderWithTargets([target('other')], {
-      existingDeployment: { modelServingPlatformId: 'llmd-serving' } as Deployment,
+      existingDeployment: {
+        modelServingPlatformId: 'llmd-serving',
+        model: { metadata: { name: 'test-model', namespace: 'test-project' } },
+      } as Deployment,
     });
     await act(async () => edit.result.current.onSave());
     expect(edit.result.current.submitError).toBeNull();

@@ -90,6 +90,7 @@ export const DeploymentRow: React.FC<{
   const { namespace } = deployment.model.metadata;
   const projectActions = namespace ? getProjectDeploymentActions?.(namespace) : undefined;
   const canEdit = projectActions?.canEdit !== false;
+  const canStartStop = projectActions?.canStartStop !== false;
   const canDelete = projectActions?.canDelete !== false;
   const project = projects.find((p) => p.metadata.name === namespace);
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
@@ -271,8 +272,8 @@ export const DeploymentRow: React.FC<{
               currentState={deployment.status.stoppedStates}
               onStart={onStart}
               onStop={onStop}
-              // Starting and stopping patch the deployment.
-              isDisabled={!canEdit}
+              // Starting and stopping patch the deployment's stopped annotation.
+              isDisabled={!canStartStop}
             />
           ) : (
             '-'
@@ -339,7 +340,7 @@ export const DeploymentRow: React.FC<{
             setEditLoading(false);
           }}
           onStopDeployment={
-            canEdit && startStopActionExtension && !deployment.status?.stoppedStates?.isStopped
+            canStartStop && startStopActionExtension && !deployment.status?.stoppedStates?.isStopped
               ? () => {
                   setStatusModalOpen(false);
                   onStop();

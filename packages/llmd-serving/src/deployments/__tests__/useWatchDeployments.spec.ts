@@ -1,5 +1,6 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import type { ProjectKind, PodKind } from '@odh-dashboard/k8s-core';
+import { K8sStatusError, type ProjectKind, type PodKind } from '@odh-dashboard/k8s-core';
+import { mock403Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLLMInferenceServiceK8sResource } from '../../__mocks__/mockLLMInferenceServiceK8sResource';
@@ -204,5 +205,42 @@ describe('useWatchDeployments', () => {
       loaded: true,
       error: undefined,
     });
+  });
+
+  it('should keep the deployments when an optional details read is denied', () => {
+    const forbidden = new K8sStatusError(mock403Error({}));
+    mockUseWatchLLMInferenceServiceConfigs.mockReturnValue([[], false, forbidden] as [
+      LLMInferenceServiceConfigKind[],
+      boolean,
+      Error | undefined,
+    ]);
+    mockUseLLMInferenceServicePods.mockReturnValue([[], false, forbidden] as [
+      PodKind[],
+      boolean,
+      Error | undefined,
+    ]);
+
+    const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+    const [deployments, loaded, errors] = renderResult.result.current as DeploymentHookResult;
+
+    expect(deployments).toHaveLength(1);
+    expect(loaded).toBe(true);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('should report other optional read failures and any model watch failure', () => {
+    const unavailable = new K8sStatusError({ ...mock403Error({}), code: 503, message: 'down' });
+    const forbidden = new K8sStatusError(mock403Error({}));
+    mockUseWatchLLMInferenceService.mockReturnValue([[], false, forbidden]);
+    mockUseLLMInferenceServicePods.mockReturnValue([[], false, unavailable] as [
+      PodKind[],
+      boolean,
+      Error | undefined,
+    ]);
+
+    const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+    const [, , errors] = renderResult.result.current as DeploymentHookResult;
+
+    expect(errors).toEqual([forbidden, unavailable]);
   });
 });

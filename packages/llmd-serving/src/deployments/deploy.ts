@@ -17,7 +17,11 @@ import type {
   HardwareProfileConfig,
 } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
-import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
+import {
+  assertTokensProvisionable,
+  canProvisionTokenAuth,
+  setUpTokenAuth,
+} from '@odh-dashboard/model-serving/concepts/auth';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import {
@@ -328,6 +332,9 @@ export const deployLLMdDeployment = async (
   if (!modelResource || !isLLMInferenceService(modelResource)) {
     throw new Error('LLMInferenceService is required');
   }
+  // Checked before anything is written: tokens are set up after the model.
+  const canProvisionTokens = canProvisionTokenAuth(wizardData);
+  assertTokensProvisionable(wizardData.tokenAuthentication.data, canProvisionTokens);
 
   const deploymentK8sName =
     modelResource.metadata.name || wizardData.k8sNameDesc.data.k8sName.value || '';
@@ -369,8 +376,7 @@ export const deployLLMdDeployment = async (
     (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) ??
     false;
 
-  // Token auth manages RoleBindings and Secrets; skip it without both.
-  if (wizardData.canCreateRoleBindings && wizardData.canManageTokenAuth) {
+  if (canProvisionTokens) {
     await setUpTokenAuth(
       wizardData.tokenAuthentication.data,
       llmInferenceService.metadata.name,

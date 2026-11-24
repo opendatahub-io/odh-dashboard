@@ -18,11 +18,23 @@ describe('applyTokenAuthOverrides', () => {
     expect(result.data).toHaveLength(1);
   });
 
-  it('should disable the field and keep its tokens without permission', () => {
-    const result = applyTokenAuthOverrides(field(), {}, false);
+  it('should disable the field and keep only existing tokens without permission', () => {
+    const result = applyTokenAuthOverrides(
+      {
+        ...field(),
+        data: [
+          { uuid: 'a', displayName: 'existing-token', k8sName: 'existing-token-sa' },
+          { uuid: 'b', displayName: 'new-draft' },
+        ],
+      },
+      {},
+      false,
+    );
     expect(result.isDisabled).toBe(true);
     expect(result.disabledHelperText).toBe(NO_TOKEN_AUTH_PERMISSION_TEXT);
-    expect(result.data).toEqual([{ uuid: 'a', displayName: 'existing-token' }]);
+    expect(result.data).toEqual([
+      { uuid: 'a', displayName: 'existing-token', k8sName: 'existing-token-sa' },
+    ]);
   });
 
   it('should keep a disabling override, its text, and clear the tokens', () => {
