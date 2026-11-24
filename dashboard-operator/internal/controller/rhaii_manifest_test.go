@@ -257,3 +257,22 @@ func containsManifestString(values []interface{}, want string) bool {
 	}
 	return false
 }
+
+// Caller overrides must win over computed values. Computed keys used to be copied over params after
+// the overrides, so an override for a colliding key was silently reverted.
+func TestApplyKustomizeParamsOverridesWinOverComputedValues(t *testing.T) {
+	for _, platform := range []cluster.Platform{cluster.OpenDataHub, cluster.XKS} {
+		t.Run(string(platform), func(t *testing.T) {
+			bundle := t.TempDir()
+			require.NoError(t, os.WriteFile(filepath.Join(bundle, "params.env"), []byte("gateway-domain=\n"), 0o600))
+			dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Gateway: &v1alpha1.GatewaySpec{Domain: "computed.example.com"}}}
+
+			require.NoError(t, applyKustomizeParamsWithOverrides(dashboard, []render.ManifestInfo{{Path: bundle}}, platform, map[string]string{
+				"gateway-domain": "override.example.com",
+			}))
+
+			params := readExistingParams(filepath.Join(bundle, "params.env"))
+			assert.Equal(t, "override.example.com", params["gateway-domain"])
+		})
+	}
+}

@@ -271,10 +271,8 @@ func applyKustomizeParamsWithOverrides(
 		// OpenShift bundles consume computed Kustomize replacement sources even
 		// when their params.env does not declare every key. The standalone XKS
 		// bundle is deliberately scoped to its declared params, apart from its
-		// caller-supplied certificate issuer overrides.
-		if platform == cluster.XKS {
-			maps.Copy(params, overrides)
-		} else {
+		// caller-supplied certificate issuer overrides (applied below).
+		if platform != cluster.XKS {
 			maps.Copy(params, renderParams)
 		}
 		// A bundle's params.env defines the parameters it consumes. Do not add
@@ -284,6 +282,9 @@ func applyKustomizeParamsWithOverrides(
 				params[key] = value
 			}
 		}
+		// Caller overrides take precedence over computed values; applying them
+		// before the loop above would let a colliding computed key revert them.
+		maps.Copy(params, overrides)
 		// OpenShift overlays use this key as the source of a Kustomize
 		// replacement for model-registry-ui-config. Keep the value empty here:
 		// the validated CR value is applied separately after rendering.
