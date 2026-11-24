@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -181,6 +182,45 @@ func TestReconcileMaaSPortalAvailability(t *testing.T) {
 			assert.Equal(t, tt.wantRetry == 0, cm.IsHappy(), "portal route and deployment health must determine aggregate readiness")
 		})
 	}
+}
+
+// With Gateway API installed after startup the shared cache has no HTTPRoute informer and fails
+// closed. MaaS Portal availability must still converge from a direct read.
+func TestReconcileMaaSPortalAvailabilityReadsHTTPRouteDirectly(t *testing.T) {
+	s := maasPortalScheme(t)
+	route := &gatewayv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace},
+		Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
+			ParentRefs: []gatewayv1.ParentReference{{Name: maasPortalGatewayName}},
+		}},
+		Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: []gatewayv1.RouteParentStatus{{ParentRef: gatewayv1.ParentReference{Name: maasPortalGatewayName}, Conditions: []metav1.Condition{
+			{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue},
+			{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue},
+		}}}}},
+	}
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace},
+		Status:     appsv1.DeploymentStatus{AvailableReplicas: 1, Conditions: []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}},
+	}
+	cached := fake.NewClientBuilder().WithScheme(s).WithObjects(deployment).WithInterceptorFuncs(interceptor.Funcs{
+		Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if _, ok := obj.(*gatewayv1.HTTPRoute); ok {
+				return &ctrlcache.ErrResourceNotCached{GVK: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute")}
+			}
+			return delegate.Get(ctx, key, obj, opts...)
+		},
+	}).Build()
+	reader := fake.NewClientBuilder().WithScheme(s).WithObjects(route).Build()
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}}}
+	r := &DashboardReconciler{Client: cached, APIReader: reader, Scheme: s, ApplicationsNamespace: maasPortalTestNamespace}
+	cm := maasPortalTestManager(t, dashboard)
+	statuses := map[string]v1alpha1.ModuleStatus{
+		"maas":  {Phase: v1alpha1.ModulePhaseDeployed},
+		"genAi": {Phase: v1alpha1.ModulePhaseDeployed},
+	}
+
+	assert.Zero(t, r.reconcileMaaSPortalAvailability(context.Background(), dashboard, cm, statuses))
+	assert.Equal(t, "Deployed", cm.GetCondition(conditionMaaSPortalAvailable).Reason)
 }
 
 func TestReconcileMaaSPortal_UnsupportedPlatform(t *testing.T) {

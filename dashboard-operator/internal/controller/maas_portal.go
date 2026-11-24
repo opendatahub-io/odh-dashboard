@@ -222,7 +222,10 @@ func (r *DashboardReconciler) reconcileMaaSPortalAvailability(ctx context.Contex
 		return maasPortalRetryInterval
 	}
 	var route gatewayv1.HTTPRoute
-	if err := r.Get(ctx, client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}, &route); err != nil {
+	// Read directly, as the Dashboard availability check does: the shared cache
+	// has no HTTPRoute informer when Gateway API was installed after startup, and
+	// a cached copy from before the apply could pass on its own older conditions.
+	if err := r.apiReader().Get(ctx, client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}, &route); err != nil {
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason(reasonMaaSPortalRouteUnavailable),
 			conditions.WithMessage("getting MaaS Portal HTTPRoute: %s", err))
