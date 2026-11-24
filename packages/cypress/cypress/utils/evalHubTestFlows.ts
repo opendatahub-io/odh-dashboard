@@ -69,7 +69,10 @@ type EvalHubApiRequest = {
   qs?: Record<string, string | number>;
 };
 
-type EvalHubApiResponse = Cypress.Response<unknown>;
+type EvalHubApiResponse = Pick<Cypress.Response<unknown>, 'status' | 'body'> & {
+  redirected?: boolean;
+  finalUrl?: string;
+};
 
 export type EvalHubCleanupContext = {
   reportFailure: (message: string) => void;
@@ -99,7 +102,7 @@ const requestEvalHubApi = (
           .then(() => requestEvalHubApi(request, operation, attempt + 1));
       }
 
-      return cy.wrap(response as Cypress.Response<unknown>, { log: false });
+      return cy.wrap(response as EvalHubApiResponse, { log: false });
     });
 
 /** Uses a caught browser fetch for cleanup so a network error becomes a result, not a Cypress failure. */
@@ -164,7 +167,12 @@ const requestEvalHubCleanupApi = (
                 } catch {
                   // Preserve text and let the caller report a useful unexpected-response warning.
                 }
-                return { status: response.status, body } as Cypress.Response<unknown>;
+                return {
+                  status: response.status,
+                  body,
+                  redirected: response.redirected,
+                  finalUrl: response.url,
+                };
               })
               .catch(networkFailure)
               .then((response) => {
@@ -445,18 +453,28 @@ const deleteEvalHubEvaluationJob = (
     `Delete EvalHub evaluation job ${jobId}`,
   )
     .then((response) => {
-      if (![200, 204, 404].includes(response.status)) {
+      const validSuccessPayload = isRecord(response.body) && typeof response.body.data === 'string';
+      let failureMessage: string | undefined;
+      if (response.redirected) {
+        failureMessage = `Failed to delete EvalHub evaluation job ${jobId}: the API unexpectedly redirected to ${String(
+          response.finalUrl ?? 'an unknown URL',
+        )}`;
+      } else if (response.status === 200 && !validSuccessPayload) {
+        failureMessage = `Failed to delete EvalHub evaluation job ${jobId}: ${describeEvalHubPayloadError(
+          response.body,
+        )}`;
+      } else if (![200, 204, 404].includes(response.status)) {
+        failureMessage = `Failed to delete EvalHub evaluation job ${jobId}: HTTP ${
+          response.status
+        }: ${String(response.body)}`;
+      }
+
+      if (failureMessage) {
         if (cleanupContext) {
-          cleanupContext.reportFailure(
-            `Failed to delete EvalHub evaluation job ${jobId}: HTTP ${response.status}: ${String(
-              response.body,
-            )}`,
-          );
+          cleanupContext.reportFailure(failureMessage);
           return;
         }
-        throw new Error(
-          `Failed to delete EvalHub evaluation job ${jobId}: HTTP ${response.status}`,
-        );
+        throw new Error(failureMessage);
       }
     })
     .then(() => cy.wrap(undefined as void));
