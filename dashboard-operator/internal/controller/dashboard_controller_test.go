@@ -1476,6 +1476,81 @@ func TestReconcile_ODHRemovedLegacyRedirectFailureDoesNotBlockTeardown(t *testin
 	assert.Equal(t, "LegacyRedirectCleanupFailed", degraded.Reason)
 }
 
+// With teardown still waiting on managed Pods, a legacy redirect cleanup failure must not turn the
+// pending-teardown RequeueAfter into error backoff (controller-runtime drops the Result when an
+// error is returned), and Remove's already-persisted status must not be rewritten wholesale.
+func TestReconcile_ODHRemovedLegacyRedirectFailureKeepsTeardownRequeue(t *testing.T) {
+	scheme := testScheme(t)
+	controller := true
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			UID:        types.UID("dashboard-uid"),
+			Generation: 1,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec: common.ManagementSpec{ManagementState: common.Removed},
+			LegacyRedirects: &v1alpha1.LegacyRedirectsSpec{
+				ManagementSpec: common.ManagementSpec{ManagementState: common.Removed},
+			},
+		},
+	}
+	redirectConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-redirect-config", Namespace: testNamespace,
+		OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: v1alpha1.GroupVersion.String(), Kind: v1alpha1.DashboardKind,
+			Name: dashboard.Name, UID: dashboard.UID, Controller: &controller,
+		}},
+	}}
+	terminatingPod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-terminating", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard"},
+	}}
+	statusWrites := 0
+	cli := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(dashboard, redirectConfig, terminatingPod).
+		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(ctx context.Context, delegate client.WithWatch, object client.Object, opts ...client.DeleteOption) error {
+				switch object.GetName() {
+				case redirectConfig.Name:
+					return errors.New("forced redirect cleanup failure")
+				case terminatingPod.Name:
+					return nil // the Pod is still terminating
+				}
+				return delegate.Delete(ctx, object, opts...)
+			},
+			SubResourceUpdate: func(ctx context.Context, delegate client.Client, subResourceName string, object client.Object, opts ...client.SubResourceUpdateOption) error {
+				statusWrites++
+				return delegate.SubResource(subResourceName).Update(ctx, object, opts...)
+			},
+		}).Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client: cli, APIReader: cli, Scheme: scheme,
+		ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub,
+		Namespace: testNamespace, ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.NoError(t, err, "the recorded legacy failure must not drop the teardown requeue")
+	assert.Positive(t, result.RequeueAfter)
+	assert.LessOrEqual(t, statusWrites, 2, "removal status plus the legacy failure delta, no wholesale rewrite")
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	provisioning := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, provisioning)
+	assert.Equal(t, "LegacyRedirectCleanupFailed", provisioning.Reason)
+
+	// A second pass with nothing new to report writes nothing.
+	statusWrites = 0
+	_, err = r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.NoError(t, err)
+	assert.LessOrEqual(t, statusWrites, 2)
+}
+
 func TestReconcileDegradedCondition(t *testing.T) {
 	dashboard := &v1alpha1.Dashboard{}
 	cm := conditions.NewManager(

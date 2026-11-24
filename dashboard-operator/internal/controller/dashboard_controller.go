@@ -247,14 +247,24 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if legacyRedirectErr == nil {
 			return result, err
 		}
+		// Remove has already persisted the removal status, so diff against what it
+		// wrote: only the legacy-redirect failure is new.
+		removalStatus := dashboard.Status.DeepCopy()
 		r.recordLegacyRedirectFailure(cm, legacyRedirectErr, "LegacyRedirectCleanupFailed")
 		dashboard.Status.Phase = common.PhaseNotReady
 		cm.Sort()
-		if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
+		if statusErr := r.updateStatusIfChanged(ctx, dashboard, removalStatus); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after legacy redirect cleanup failure")
 			return ctrl.Result{}, fmt.Errorf("failed to update status after legacy redirect cleanup failure: %w", statusErr)
 		}
-		return result, errors.Join(err, legacyRedirectErr)
+		if err == nil && result.RequeueAfter > 0 {
+			// controller-runtime ignores the Result when an error is returned, which
+			// would turn the pending-teardown requeue into error backoff. The
+			// failure is recorded in status and the requeued pass retries it.
+			logger.Error(legacyRedirectErr, "Failed to clean up legacy dashboard redirects; retrying with pending teardown", "requeueAfter", result.RequeueAfter)
+			return result, nil
+		}
+		return ctrl.Result{}, errors.Join(err, legacyRedirectErr)
 	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
