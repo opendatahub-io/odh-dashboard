@@ -2,14 +2,18 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
@@ -69,11 +73,27 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 	}
 
 	route := &gatewayv1.HTTPRoute{}
-	if err := r.Get(ctx, client.ObjectKey{Name: target.httpRouteName, Namespace: r.ApplicationsNamespace}, route); err != nil {
+	routeKey := client.ObjectKey{Name: target.httpRouteName, Namespace: r.ApplicationsNamespace}
+	err := r.Get(ctx, routeKey, route)
+	if httpRouteNotCached(err) {
+		// The HTTPRoute informer is registered only when Gateway API is present at
+		// operator startup, and the cache fails closed for unregistered kinds. When
+		// Gateway API is installed later (Helm-ordered xKS installs), read the route
+		// directly so availability can still converge without a pod restart.
+		log.FromContext(ctx).V(1).Info("HTTPRoute is not cached; reading it directly", "httpRoute", routeKey.String())
+		err = r.apiReader().Get(ctx, routeKey, route)
+	}
+	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			cm.MarkFalse(conditionDashboardAvailable,
 				conditions.WithReason("HTTPRouteNotFound"),
 				conditions.WithMessage("Waiting for Dashboard HTTPRoute %q", target.httpRouteName))
+			return dashboardAvailabilityRetryInterval, nil
+		}
+		if meta.IsNoMatchError(err) {
+			cm.MarkFalse(conditionDashboardAvailable,
+				conditions.WithReason("HTTPRouteAPIUnavailable"),
+				conditions.WithMessage("Waiting for the Gateway API HTTPRoute resource to be installed"))
 			return dashboardAvailabilityRetryInterval, nil
 		}
 		cm.MarkFalse(conditionDashboardAvailable,
@@ -100,6 +120,17 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 		conditions.WithReason("ResourcesAvailable"),
 		conditions.WithMessage("Dashboard Deployment and HTTPRoute are available"))
 	return 0, nil
+}
+
+// httpRouteNotCached reports whether a cached HTTPRoute read failed because the
+// kind has no informer (ErrResourceNotCached) or was unknown to the cache's
+// RESTMapper when it started.
+func httpRouteNotCached(err error) bool {
+	if err == nil {
+		return false
+	}
+	var notCached *ctrlcache.ErrResourceNotCached
+	return errors.As(err, &notCached) || meta.IsNoMatchError(err)
 }
 
 func deploymentAvailable(deployment *appsv1.Deployment) bool {

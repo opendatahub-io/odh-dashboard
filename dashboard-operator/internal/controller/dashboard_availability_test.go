@@ -10,9 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -262,4 +265,75 @@ func TestHTTPRouteAvailableWithConcreteReportedListener(t *testing.T) {
 	route.Status.Parents[0].ParentRef.Port = &port
 
 	assert.True(t, httpRouteAvailable(route))
+}
+
+// Gateway API installed after operator startup leaves no HTTPRoute informer, so the cached read
+// fails with ErrResourceNotCached. Availability must fall back to a direct read and converge
+// instead of hard-erroring every cycle until the pod restarts.
+func TestReconcileDashboardAvailabilityReadsUncachedHTTPRouteDirectly(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, gatewayv1.Install(scheme))
+	route := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	apiReader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(route).Build()
+
+	tests := []struct {
+		name       string
+		cacheErr   error
+		reader     client.Reader
+		wantReason string
+		wantRetry  time.Duration
+		wantReady  bool
+	}{
+		{
+			name:       "informer missing and route available",
+			cacheErr:   &ctrlcache.ErrResourceNotCached{GVK: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute")},
+			reader:     apiReader,
+			wantReason: "ResourcesAvailable",
+			wantReady:  true,
+		},
+		{
+			name:       "cache mapper predates Gateway API and route available",
+			cacheErr:   &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: gatewayv1.GroupName, Kind: "HTTPRoute"}},
+			reader:     apiReader,
+			wantReason: "ResourcesAvailable",
+			wantReady:  true,
+		},
+		{
+			name:     "Gateway API still not installed",
+			cacheErr: &ctrlcache.ErrResourceNotCached{GVK: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute")},
+			reader: fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(context.Context, client.WithWatch, client.ObjectKey, client.Object, ...client.GetOption) error {
+					return &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: gatewayv1.GroupName, Kind: "HTTPRoute"}}
+				},
+			}).Build(),
+			wantReason: "HTTPRouteAPIUnavailable",
+			wantRetry:  dashboardAvailabilityRetryInterval,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cached := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true)).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+						if _, ok := obj.(*gatewayv1.HTTPRoute); ok {
+							return tt.cacheErr
+						}
+						return delegate.Get(ctx, key, obj, opts...)
+					},
+				}).Build()
+			reconciler := &DashboardReconciler{Client: cached, APIReader: tt.reader, ApplicationsNamespace: availabilityTestNamespace}
+			dashboard := &v1alpha1.Dashboard{}
+			cm := conditions.NewManager(dashboard, string(common.ConditionTypeReady), conditionDashboardAvailable)
+
+			retryAfter, err := reconciler.reconcileDashboardAvailability(context.Background(), dashboard, cm, dashboardAvailabilityTarget{
+				deploymentName: "dashboard",
+				httpRouteName:  route.Name,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantRetry, retryAfter)
+			assert.Equal(t, tt.wantReason, cm.GetCondition(conditionDashboardAvailable).Reason)
+			assert.Equal(t, tt.wantReady, cm.IsHappy())
+		})
+	}
 }
