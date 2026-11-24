@@ -39,7 +39,7 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
     if (!collection) {
       return;
     }
-    const listed = collection.assets ?? [];
+    const listed = collection.assets;
     if (listed.length !== assetCount) {
       setError(
         'The asset list does not match this collection. Nothing was deleted. Refresh and try again.',
@@ -133,6 +133,8 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
 };
 
 const listedNames = (collection: CollectionInfo): string[] =>
-  collection.assets?.length ? collection.assets.map((asset) => asset.name) : collection.assetNames;
+  collection.assets.length > 0
+    ? collection.assets.map((asset) => asset.name)
+    : collection.assetNames;
 
 export default DeleteCollectionModal;

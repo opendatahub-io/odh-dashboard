@@ -108,8 +108,7 @@ const CollectionDetailPage: React.FC = () => {
           assetType: asset.assetType,
         })),
         tableCount: collectionDetail.assets.filter((asset) => asset.assetType === 'table').length,
-        volumeCount: collectionDetail.assets.filter((asset) => asset.assetType === 'volume')
-          .length,
+        volumeCount: collectionDetail.assets.filter((asset) => asset.assetType === 'volume').length,
       }
     : null;
 

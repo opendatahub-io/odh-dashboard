@@ -300,9 +300,7 @@ const TableDetailPage: React.FC = () => {
           onClose={() => setIsMoveModalOpen(false)}
           onMoved={(destination) => {
             setIsMoveModalOpen(false);
-            navigate(
-              assetDetailUrl(project, destination, name, isVolume ? 'volume' : 'table'),
-            );
+            navigate(assetDetailUrl(project, destination, name, isVolume ? 'volume' : 'table'));
           }}
         />
       ) : null}

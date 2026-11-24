@@ -9,13 +9,18 @@ const deleteOneAsset = (
   collection: string,
   asset: CollectionAssetRef,
 ): Promise<void> => {
-  if (asset.assetType === 'volume') {
-    return deleteVolume(project, collection, asset.name);
+  const { name, assetType } = asset;
+  // The declared union is only table | volume. Widen so a bad runtime value
+  // still reaches default instead of being treated as a table.
+  const runtimeAssetType: string = assetType;
+  switch (runtimeAssetType) {
+    case 'volume':
+      return deleteVolume(project, collection, name);
+    case 'table':
+      return deleteGenericTable(project, collection, name);
+    default:
+      return Promise.reject(new Error(`Asset "${name}" has an unknown type.`));
   }
-  if (asset.assetType === 'table') {
-    return deleteGenericTable(project, collection, asset.name);
-  }
-  return Promise.reject(new Error(`Asset "${asset.name}" has an unknown type.`));
 };
 
 /**

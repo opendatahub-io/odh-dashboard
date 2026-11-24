@@ -1,9 +1,6 @@
-import {
-  deleteCollection,
-  deleteGenericTable,
-  deleteVolume,
-} from '~/app/api/dataRegistry';
+import { deleteCollection, deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
 import { deleteCollectionWithAssets } from '~/app/utilities/deleteCollectionWithAssets';
+import type { CollectionAssetRef } from '~/app/utilities/collectionUtils';
 
 jest.mock('~/app/api/dataRegistry', () => ({
   deleteCollection: jest.fn(),
@@ -54,13 +51,23 @@ describe('deleteCollectionWithAssets', () => {
     expect(mockDeleteCollection).not.toHaveBeenCalled();
   });
 
+  it('rejects an unknown asset type and leaves the collection in place', async () => {
+    const asset = { name: 'mystery', assetType: 'blob' } as unknown as CollectionAssetRef;
+
+    await expect(deleteCollectionWithAssets('project', 'analytics', [asset])).rejects.toThrow(
+      'Asset "mystery" has an unknown type.',
+    );
+
+    expect(mockDeleteGenericTable).not.toHaveBeenCalled();
+    expect(mockDeleteVolume).not.toHaveBeenCalled();
+    expect(mockDeleteCollection).not.toHaveBeenCalled();
+  });
+
   it('leaves the collection in place when its delete fails after the assets are gone', async () => {
     mockDeleteCollection.mockRejectedValue(new Error('still not empty'));
 
     await expect(
-      deleteCollectionWithAssets('project', 'analytics', [
-        { name: 'claims', assetType: 'table' },
-      ]),
+      deleteCollectionWithAssets('project', 'analytics', [{ name: 'claims', assetType: 'table' }]),
     ).rejects.toThrow(/collection could not be removed/);
 
     expect(mockDeleteGenericTable).toHaveBeenCalledTimes(1);

@@ -495,9 +495,7 @@ export const isConflictError = (error: unknown): boolean =>
   (error instanceof Error && /(?:already exists|conflict|not empty)/i.test(error.message));
 
 export const isMissingRouteError = (error: unknown): boolean =>
-  error instanceof Error &&
-  getErrorCode(error) === 404 &&
-  !/does not exist/i.test(error.message);
+  error instanceof Error && getErrorCode(error) === 404 && !/does not exist/i.test(error.message);
 
 export const isConnectionError = (error: unknown): boolean =>
   error instanceof Error &&

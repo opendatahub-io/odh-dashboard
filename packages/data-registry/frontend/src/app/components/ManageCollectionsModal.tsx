@@ -194,11 +194,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
               </StackItem>
             ) : null}
             <StackItem>
-              <Alert
-                variant="info"
-                isInline
-                title={COLLECTION_DELETE_WITH_ASSETS_MESSAGE}
-              />
+              <Alert variant="info" isInline title={COLLECTION_DELETE_WITH_ASSETS_MESSAGE} />
             </StackItem>
             <StackItem>
               <Toolbar>

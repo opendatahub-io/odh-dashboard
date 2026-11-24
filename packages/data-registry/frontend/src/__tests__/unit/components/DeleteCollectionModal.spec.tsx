@@ -78,7 +78,9 @@ describe('DeleteCollectionModal', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: /Delete collection and assets\?/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Delete collection and assets\?/ }),
+    ).toBeInTheDocument();
     expect(screen.getByText('This deletes registry records')).toBeInTheDocument();
     expect(screen.getByText('asset-1')).toBeInTheDocument();
     expect(screen.getByTestId('confirm-delete-button')).toBeEnabled();
