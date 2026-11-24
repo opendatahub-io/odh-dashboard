@@ -2,6 +2,13 @@ import { getClusterAppsDomain } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 import { Path } from '../../types';
 import { replacePlaceholdersInYaml } from '../../utils/yaml_files';
+import {
+  type ApiKeyCleanupResult,
+  buildApiKeyDeleteCommand,
+  classifyOcGet,
+  getApiKeyCleanupResult,
+  getApiKeyCleanupSkipReason,
+} from '../maasApiKeyCleanup';
 
 export const modelsAsAServiceNamespace = 'models-as-a-service';
 
@@ -247,41 +254,43 @@ export const cleanupAuthPolicy = (
  * Credentials are read from the `postgres-creds` secret in APPLICATIONS_NAMESPACE.
  * Intended for E2E cleanup of keys created by Cypress tests (matched on `name`).
  *
+ * Throws when APPLICATIONS_NAMESPACE is unset or not a valid namespace, as before. Otherwise it
+ * never fails the test. When the secret or `deployment/postgres` is missing (NotFound), or the
+ * check itself fails (for example Forbidden), it logs one line saying cleanup was skipped and why.
+ * The database user and name are read into shell variables inside a single command, so they never
+ * appear in a command's text: not in the command log, not in the `[EXEC]` terminal log.
+ *
  * @param apiKeyName Display name of the API key to delete (same value used in the UI).
  */
-export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<CommandLineResult> => {
+export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<ApiKeyCleanupResult> => {
   const applicationNamespace = assertValidK8sNamespace(
     Cypress.env('APPLICATIONS_NAMESPACE') as string,
   );
-  const escapedName = apiKeyName.replace(/'/g, "''");
+  const namespaceArg = quoteShellArg(applicationNamespace);
+  const quiet = { failOnNonZeroExit: false, log: false };
+  // cy.log also reaches the terminal through the command:enqueued handler in support/e2e.ts.
+  const report = (result: ApiKeyCleanupResult): Cypress.Chainable<ApiKeyCleanupResult> =>
+    cy.log(result.message).then(() => result);
   cy.log(`Deleting API key "${apiKeyName}" from Postgres api_keys table`);
 
   return cy
-    .exec(
-      `oc get secret postgres-creds -n ${quoteShellArg(
-        applicationNamespace,
-      )} -o jsonpath='{.data.POSTGRES_USER}' | base64 -d`,
-      { failOnNonZeroExit: false },
-    )
-    .then((userResult) => {
-      const pgUser = userResult.stdout.trim();
-      return cy
-        .exec(
-          `oc get secret postgres-creds -n ${quoteShellArg(
-            applicationNamespace,
-          )} -o jsonpath='{.data.POSTGRES_DB}' | base64 -d`,
-          { failOnNonZeroExit: false },
-        )
-        .then((dbResult) => {
-          const pgDb = dbResult.stdout.trim();
-          return cy.exec(
-            `oc exec -n ${quoteShellArg(
-              applicationNamespace,
-            )} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "DELETE FROM api_keys WHERE name = '${escapedName}';"`,
-            { failOnNonZeroExit: false },
-          );
-        });
-    });
+    .exec(`oc get secret postgres-creds -n ${namespaceArg} -o name`, quiet)
+    .then((secretResult) =>
+      cy
+        .exec(`oc get deployment postgres -n ${namespaceArg} -o name`, quiet)
+        .then((deploymentResult) => {
+          const skipReason = getApiKeyCleanupSkipReason(applicationNamespace, {
+            secret: classifyOcGet(secretResult),
+            deployment: classifyOcGet(deploymentResult),
+          });
+          if (skipReason) {
+            return report({ deleted: false, message: skipReason });
+          }
+          return cy
+            .exec(buildApiKeyDeleteCommand(applicationNamespace, apiKeyName), quiet)
+            .then((deleteResult) => report(getApiKeyCleanupResult(apiKeyName, deleteResult)));
+        }),
+    );
 };
 
 /**
