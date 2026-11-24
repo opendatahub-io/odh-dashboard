@@ -191,6 +191,18 @@ describe('StartEvaluationRunPage', () => {
     expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
+  it('should not track job create opened when a direct URL visit has no benchmark selection', () => {
+    mockUseEvaluationSelection.mockReturnValue({
+      benchmark: undefined,
+      dataLoaded: true,
+      loadError: undefined,
+    });
+
+    renderPage();
+
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+  });
+
   it('should not track job create opened when the selection fails to load', () => {
     mockUseEvaluationSelection.mockReturnValue({
       benchmark: undefined,

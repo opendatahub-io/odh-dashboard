@@ -180,7 +180,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   // separate flow with its own event.
   const hasTrackedOpenRef = React.useRef(false);
   React.useEffect(() => {
-    if (isReconfigure || !dataLoaded || loadError || hasTrackedOpenRef.current) {
+    if (isReconfigure || !dataLoaded || loadError || !benchmark || hasTrackedOpenRef.current) {
       return;
     }
     hasTrackedOpenRef.current = true;
@@ -189,7 +189,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
       { surface: 'create_run_page' },
       {
         collectionType: 'unknown',
-        providerType: benchmark?.providerId,
+        providerType: benchmark.providerId,
       },
     );
   }, [trackEvalHubEvent, benchmark, dataLoaded, isReconfigure, loadError]);

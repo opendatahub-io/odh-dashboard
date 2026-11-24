@@ -953,6 +953,9 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
   it('should block submission when required test data fields are empty', () => {
     navigateToBenchmarkConfiguration();
 
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().should('be.enabled');
+
     startEvaluationRunPage.findTestDataRefSourceToggle().click();
     startEvaluationRunPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
     startEvaluationRunPage.findTestDataRefField('claimName').type('eval-datasets-pvc').clear();
