@@ -91,7 +91,13 @@ func NewTokenKubernetesClient(ctx context.Context, token string, logger *slog.Lo
 		httpcontract.LogContext(logger, ctx).Error("failed to get kubeconfig", "code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
+	return newTokenKubernetesClientFromBase(ctx, baseConfig, token, logger)
+}
 
+// newTokenKubernetesClientFromBase builds a caller client on baseConfig, which
+// it does not modify. rest.AnonymousClientConfig keeps the TLS server settings,
+// Insecure included, so baseConfig must already have passed startup checks.
+func newTokenKubernetesClientFromBase(ctx context.Context, baseConfig *rest.Config, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
 	// Start with an anonymous config to avoid preloaded auth
 	cfg := rest.AnonymousClientConfig(baseConfig)
 	cfg.BearerToken = token

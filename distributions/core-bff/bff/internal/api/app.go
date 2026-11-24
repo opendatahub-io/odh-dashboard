@@ -173,12 +173,13 @@ func initKubernetesClients(cfg config.EnvConfig, logger *slog.Logger) (k8sSetupR
 		if kcErr != nil {
 			return result, fmt.Errorf("failed to get kubeconfig for SA client: %w", kcErr)
 		}
-		// Checked before any client exists: the per-caller clients are built
-		// from the same kubeconfig and rest.AnonymousClientConfig keeps Insecure.
+		// Checked before any client exists, and the per-caller clients are built
+		// from this same validated copy rather than a later re-read:
+		// rest.AnonymousClientConfig keeps Insecure.
 		if err := requireVerifiedKubeconfig(cfg, kubeconfig); err != nil {
 			return result, err
 		}
-		result.factory, err = k8s.NewKubernetesClientFactory(cfg, logger)
+		result.factory, err = k8s.NewKubernetesClientFactory(cfg, logger, kubeconfig)
 		if err != nil {
 			return result, err
 		}

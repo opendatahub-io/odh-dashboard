@@ -11,6 +11,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
+	"k8s.io/client-go/rest"
 )
 
 // KubernetesClientFactory creates per-request Kubernetes clients and extracts
@@ -21,11 +22,25 @@ type KubernetesClientFactory interface {
 	ValidateRequestIdentity(identity *RequestIdentity) error
 }
 
-// NewKubernetesClientFactory creates a Kubernetes client factory based on the configured auth method.
-func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (KubernetesClientFactory, error) {
+// NewKubernetesClientFactory creates a Kubernetes client factory based on the
+// configured auth method. When base is non-nil every caller client is built
+// from a copy of it instead of a fresh kubeconfig read, so a kubeconfig that
+// changes after startup cannot bypass the checks base passed.
+func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger, base *rest.Config) (KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
 	case config.AuthMethodDisabled, config.AuthMethodUser:
-		k8sFactory := NewTokenClientFactory(logger, cfg)
+		k8sFactory := &TokenClientFactory{
+			Logger:                     logger,
+			Header:                     cfg.AuthTokenHeader,
+			Prefix:                     cfg.AuthTokenPrefix,
+			NewTokenKubernetesClientFn: NewTokenKubernetesClient,
+		}
+		if base != nil {
+			validated := rest.CopyConfig(base)
+			k8sFactory.NewTokenKubernetesClientFn = func(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
+				return newTokenKubernetesClientFromBase(ctx, validated, token, logger)
+			}
+		}
 		return k8sFactory, nil
 	default:
 		return nil, fmt.Errorf("invalid auth method: %q", cfg.AuthMethod)
