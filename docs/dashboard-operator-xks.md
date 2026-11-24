@@ -188,6 +188,7 @@ cross-namespace resources requiring explicit finalizer cleanup.
 | `DeploymentNotAvailable` | The workload has not completed rollout. | Inspect Deployment conditions and Pods. |
 | `HTTPRouteNotFound` | The route has not appeared. | Check rendering, apply status, and namespace. |
 | `HTTPRouteNotAccepted` | The Gateway has not accepted the route or resolved its backend. | Inspect HTTPRoute parent status, Gateway policy, and Service. |
+| `RequiredAPIUnavailable` | cert-manager or Gateway API CRDs are not installed, so the bundle cannot be applied. | Install the missing CRDs; the operator retries every 30 seconds without a restart. |
 | `HTTPRouteAPIUnavailable` | The Gateway API HTTPRoute resource is not installed. | Install Gateway API; availability converges without an operator restart. |
 | `DeploymentRolloutInProgress` | A rolling update is in progress while available Pods keep serving (Info severity). | None; `Ready` stays `True` unless the rollout stalls. |
 | `400 Client sent an HTTP request to an HTTPS server` through the Gateway | The Gateway is not originating TLS to port 8443. | See [Backend TLS](#backend-tls). |

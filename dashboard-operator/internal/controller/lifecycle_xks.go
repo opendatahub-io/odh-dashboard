@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
@@ -11,6 +12,7 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -33,6 +35,10 @@ func (xksDashboardLifecycle) availabilityTarget() dashboardAvailabilityTarget {
 func (l xksDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig) (ctrl.Result, error) {
 	return l.reconcileRHAIIDashboard(ctx, dashboard, cm, cfg)
 }
+
+// xksRequiredAPIRetryInterval bounds the retry while cert-manager or Gateway API
+// CRDs are missing; their arrival triggers no watch event.
+const xksRequiredAPIRetryInterval = 30 * time.Second
 
 func (l xksDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) (ctrl.Result, error) {
 	return l.removeRHAIIDashboard(ctx, dashboard, previousStatus, cm)
@@ -121,6 +127,16 @@ func (l xksDashboardLifecycle) reconcileRHAIIDashboard(
 		Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
 		Resources: resources,
 	}); err != nil {
+		if meta.IsNoMatchError(err) {
+			// A required API (cert-manager Certificate, Gateway API HTTPRoute) is not
+			// installed yet. Nothing watches for its CRD, and error backoff would grow
+			// to many minutes before the next attempt, so retry on a bounded interval.
+			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+				conditions.WithReason("RequiredAPIUnavailable"),
+				conditions.WithMessage("Waiting for a required API to be installed: %v", err))
+			log.FromContext(ctx).Info("Required API for the XKS bundle is not installed; retrying", "requeueAfter", xksRequiredAPIRetryInterval, "error", err.Error())
+			return ctrl.Result{RequeueAfter: xksRequiredAPIRetryInterval}, nil
+		}
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("DeployFailed"),
 			conditions.WithError(err))

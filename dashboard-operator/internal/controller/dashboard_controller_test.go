@@ -19,7 +19,9 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -1273,6 +1275,57 @@ data:
 			assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 		})
 	}
+}
+
+// A required API that is not installed yet (cert-manager or Gateway API CRDs on a Helm-ordered xKS
+// install) must report a clear reason and retry on a bounded interval instead of returning an error,
+// whose backoff would grow to many minutes with no watch to cut it short.
+func TestReconcile_XKSRequiredAPIUnavailableRequeues(t *testing.T) {
+	s := testScheme(t)
+	const operatorNamespace = "test-operator"
+	const applicationsNamespace = "test-applications"
+	dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{
+		Name: v1alpha1.DashboardInstanceName, Generation: 1,
+		Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+	}}
+	noMatch := &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: "cert-manager.io", Kind: "Certificate"}, SearchedVersions: []string{"v1"}}
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-config", Namespace: operatorNamespace},
+			Data: map[string]string{
+				"CERT_MANAGER_ISSUER_REF_NAME": "test-ca-issuer",
+				"CERT_MANAGER_ISSUER_REF_KIND": "ClusterIssuer",
+			},
+		}).
+		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				if u, ok := obj.(*unstructured.Unstructured); ok && u.GetKind() == "ConfigMap" && key.Name == "rhaii-dashboard-test" {
+					return noMatch
+				}
+				return delegate.Get(ctx, key, obj, opts...)
+			},
+		}).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client: cli, Scheme: s, ManifestsBasePath: createMinimalXKSManifests(t), Platform: cluster.XKS,
+		Namespace: operatorNamespace, ApplicationsNamespace: applicationsNamespace, RouteAPIAvailable: true,
+	}
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}}
+
+	result, err := r.Reconcile(context.Background(), request)
+	require.NoError(t, err)
+	assert.Equal(t, 30*time.Second, result.RequeueAfter)
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), request.NamespacedName, updated))
+	provisioning := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, provisioning)
+	assert.Equal(t, metav1.ConditionFalse, provisioning.Status)
+	assert.Equal(t, "RequiredAPIUnavailable", provisioning.Reason)
+	assert.Contains(t, provisioning.Message, "Certificate")
+	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
 }
 
 func TestReconcile_XKSStatusContract(t *testing.T) {
