@@ -225,7 +225,7 @@ func (c EnvConfig) validateProductionProfile(add func(string, ...any)) {
 	}
 
 	if c.AuthMethod == AuthMethodDisabled {
-		add("AUTH_METHOD=%s is not supported in a production profile; use %s, or set DEV_MODE=true for local development",
+		add("AUTH_METHOD=%s is not supported in a production profile; use %s, or set MOCK_K8S_CLIENT=true for a local run without a cluster",
 			AuthMethodDisabled, AuthMethodUser)
 	}
 

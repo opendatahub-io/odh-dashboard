@@ -52,7 +52,7 @@ validation runs:
 
 ```
 core-bff refusing to start: invalid configuration (2 problems):
-  - AUTH_METHOD=disabled is not supported in a production profile; use user_token, or set DEV_MODE=true for local development
+  - AUTH_METHOD=disabled is not supported in a production profile; use user_token, or set MOCK_K8S_CLIENT=true for a local run without a cluster
   - CERT_FILE/--cert-file is set but KEY_FILE/--key-file is not; TLS needs both, and a partial pair must not fall back to plaintext HTTP
 ```
 
