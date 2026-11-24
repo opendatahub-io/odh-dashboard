@@ -39,7 +39,12 @@ import {
   tasksInScope,
   translateStatusForNode,
 } from './parseUtils';
-import { executionsForIterationScope, resolveIterationExecutionId } from './iterationExecutions';
+import {
+  executionsForIterationScope,
+  executionsInContainingDag,
+  executionsUnderNamedDag,
+  resolveIterationExecutionId,
+} from './iterationExecutions';
 import { PipelineTask } from './pipelineTaskTypes';
 
 /**
@@ -520,6 +525,17 @@ const getNodesForTasks = (
         const subTasksArtifactMap = parseTasksForArtifactRelationship(taskId, subTasks);
 
         const nestedTasks = groupTask ? tasksInScope(fullTasks, groupTask.task_id) : [];
+        const nestedMlmd = mlmd
+          ? {
+              ...mlmd,
+              allExecutions: mlmd.allExecutions ?? mlmd.executions,
+              executions: executionsUnderNamedDag(
+                mlmd.executions ?? [],
+                mlmd.allExecutions ?? mlmd.executions ?? [],
+                taskName,
+              ),
+            }
+          : mlmd;
         const [nestedNodes, taskChildren] = getNodesForTasks(
           taskId,
           spec,
@@ -533,7 +549,7 @@ const getNodesForTasks = (
           component?.inputDefinitions?.artifacts,
           fullTasks,
           resolvedChildIndex,
-          mlmd,
+          nestedMlmd,
         );
 
         // Recompute runStatus from the (possibly aggregated) pipelineTask.status
@@ -599,7 +615,7 @@ export const usePipelineTaskTopology = (
             executionLinkedArtifactMap: getExecutionLinkedArtifactMap(artifacts, events),
             events: parseEventsByType(events ?? [])[Event.Type.OUTPUT],
             artifacts,
-            executions: executions ?? undefined,
+            executions: executions ? executionsInContainingDag(executions) : undefined,
             allExecutions: executions ?? undefined,
           }
         : undefined;

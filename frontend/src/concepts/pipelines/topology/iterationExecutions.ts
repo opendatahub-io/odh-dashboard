@@ -67,6 +67,48 @@ const childrenOf = (executions: Execution[], parentId: number): Execution[] =>
       execution.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue() === parentId,
   );
 
+const parentIdOf = (execution: Execution): number | undefined =>
+  execution.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+
+const taskNameOf = (execution: Execution): string | undefined =>
+  execution.getCustomPropertiesMap().get('task_name')?.getStringValue();
+
+/**
+ * Direct children of the pipeline root.
+ * A nested loop stays out of this list, so a root task cannot bind to it by name.
+ */
+export const executionsInContainingDag = (executions: Execution[]): Execution[] => {
+  const ids = new Set(executions.map((execution) => execution.getId()));
+  const parentless = executions.filter((execution) => parentIdOf(execution) == null);
+  if (parentless.length > 0) {
+    const parentlessIds = new Set(parentless.map((execution) => execution.getId()));
+    const children = executions.filter((execution) => {
+      const parentId = parentIdOf(execution);
+      return parentId != null && parentlessIds.has(parentId);
+    });
+    return children.length > 0 ? children : parentless;
+  }
+
+  const topLevel = executions.filter((execution) => {
+    const parentId = parentIdOf(execution);
+    return parentId == null || !ids.has(parentId);
+  });
+  return topLevel.length > 0 ? topLevel : executions;
+};
+
+/** Direct children of the named DAG execution found in the current scope. */
+export const executionsUnderNamedDag = (
+  scopeExecutions: Execution[],
+  allExecutions: Execution[],
+  dagName: string,
+): Execution[] => {
+  const dagExecution = scopeExecutions.find((execution) => taskNameOf(execution) === dagName);
+  if (!dagExecution) {
+    return [];
+  }
+  return childrenOf(allExecutions, dagExecution.getId());
+};
+
 /**
  * MLMD id of one loop iteration.
  *
@@ -136,12 +178,6 @@ export const executionsForIterationScope = (
     resolveIterationExecutionId(executions, allExecutions, scope),
   );
 };
-
-const taskNameOf = (execution: Execution): string | undefined =>
-  execution.getCustomPropertiesMap().get('task_name')?.getStringValue();
-
-const parentIdOf = (execution: Execution): number | undefined =>
-  execution.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
 
 const depthUnderAncestor = (
   executions: Execution[],
