@@ -136,6 +136,11 @@ func handleMcpDeploymentError(app *api.App, w http.ResponseWriter, r *http.Reque
 	switch {
 	case errors.Is(err, redhatrepos.ErrMcpDeploymentValidation):
 		app.BadRequest(w, r, err)
+	case (r.Method == http.MethodPost || r.Method == http.MethodPatch) &&
+		(apierrors.IsInvalid(err) || apierrors.IsBadRequest(err)):
+		// Kubernetes rejected the submitted MCPServer; show its validation message
+		// rather than treating the user's invalid resource as a server failure.
+		app.BadRequest(w, r, err)
 	case errors.Is(err, redhatrepos.ErrMcpDeploymentNotFound):
 		app.NotFound(w, r)
 	case errors.Is(err, redhatrepos.ErrMcpDeploymentConflict):

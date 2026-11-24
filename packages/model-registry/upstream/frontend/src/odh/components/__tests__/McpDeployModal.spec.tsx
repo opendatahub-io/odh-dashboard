@@ -229,6 +229,33 @@ describe('McpDeployModal', () => {
     );
   });
 
+  it('should show YAML validation details and keep the deploy modal open', async () => {
+    const onClose = jest.fn();
+    const message =
+      'MCP deployment validation failed: invalid configuration YAML: failed to parse YAML';
+    mockCreateMcpDeployment.mockReturnValue(jest.fn().mockRejectedValue(new Error(message)));
+
+    renderModal(
+      {
+        image: 'quay.io/mcp/weather:1.2.0',
+        displayName: 'Weather MCP',
+        registryServer: 'io.github.example/weather-server',
+        namespace: 'test-project',
+      },
+      undefined,
+      onClose,
+    );
+
+    await userEvent.type(screen.getByTestId('mcp-deploy-yaml-editor'), 'config: broken: yaml');
+    await userEvent.click(screen.getByTestId('modal-submit-button'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('error-message-alert')).toHaveTextContent(message),
+    );
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('should call createMcpDeployment without registry fields for the catalog flow', async () => {
     mockCreateMcpDeployment.mockReturnValue(jest.fn().mockResolvedValue(mockDeployment()));
 
@@ -404,10 +431,9 @@ describe('McpDeployModal', () => {
     expect(mockCreateMcpDeployment).not.toHaveBeenCalled();
   });
 
-  it('should surface an error and keep the modal open when updating an existing deployment fails', async () => {
-    mockUpdateMcpDeployment.mockReturnValue(
-      jest.fn().mockRejectedValue(new Error('update failed')),
-    );
+  it('should show validation details and keep the edit modal open when an update fails', async () => {
+    const message = 'MCPServer "my-server" is invalid: spec.config.port: must be provided';
+    mockUpdateMcpDeployment.mockReturnValue(jest.fn().mockRejectedValue(new Error(message)));
     const onClose = jest.fn();
 
     renderModal(
@@ -423,7 +449,9 @@ describe('McpDeployModal', () => {
 
     await userEvent.click(screen.getByTestId('modal-submit-button'));
 
-    await waitFor(() => expect(screen.getByText('update failed')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId('error-message-alert')).toHaveTextContent(message),
+    );
     expect(onClose).not.toHaveBeenCalled();
   });
 
