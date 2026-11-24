@@ -33,30 +33,41 @@ NS=${TEST_NAMESPACE:-corebff-caller-auth-$RANDOM}
 DASHBOARD_NS=${DASHBOARD_NAMESPACE:-opendatahub}
 PORT=${PORT:-4321}
 here=$(cd "$(dirname "$0")/.." && pwd)
-work=$(mktemp -d)
-chmod 700 "$work"
+work=""
 bff_pid=""
 ns_created=false
 fails=0
 
+# The admin token is read once and removed from the environment, so the BFF,
+# kubectl, curl and node started below never inherit it.
+AD_INPUT=${ADMIN_TOKEN:-}
+unset ADMIN_TOKEN
+
 # Every curl call is bounded, so a BFF that accepts a connection and then
 # stalls fails the run instead of hanging it.
 CURL_TIMEOUTS=(--connect-timeout 5 --max-time 30)
+# kubectl calls are bounded the same way.
+KUBECTL=(kubectl --request-timeout=30s)
 
 for tool in kubectl curl; do
   command -v "$tool" >/dev/null 2>&1 || { echo >&2 "$tool is required"; exit 1; }
 done
 
 cleanup() {
-  [[ -n "$bff_pid" ]] && kill "$bff_pid" 2>/dev/null || true
+  if [[ -n "$bff_pid" ]]; then
+    kill "$bff_pid" 2>/dev/null || true
+    wait "$bff_pid" 2>/dev/null || true
+  fi
   # Only delete a namespace this run created: a name that already existed (for
   # example a TEST_NAMESPACE collision) is never touched.
   if [[ "$ns_created" == "true" && "${KEEP_NAMESPACE:-false}" != "true" ]]; then
-    kubectl delete namespace "$NS" --wait=false >/dev/null 2>&1 || true
+    "${KUBECTL[@]}" delete namespace "$NS" --wait=false >/dev/null 2>&1 || true
   fi
-  rm -rf "$work"
+  [[ -n "$work" ]] && rm -rf "$work"
 }
 trap cleanup EXIT
+work=$(mktemp -d)
+chmod 700 "$work"
 
 # A BFF started here must own PORT: if something already listens there, the
 # checks below would run against that process instead. Refuse before creating
@@ -72,15 +83,15 @@ if [[ -z "${BFF_URL:-}" ]] && ! port_free "$PORT"; then
   exit 1
 fi
 
-echo "Cluster: $(kubectl config current-context)  namespace: $NS  platform: $PLATFORM"
-if ! kubectl create namespace "$NS" >/dev/null; then
+echo "Cluster: $("${KUBECTL[@]}" config current-context)  namespace: $NS  platform: $PLATFORM"
+if ! "${KUBECTL[@]}" create namespace "$NS" >/dev/null; then
   echo >&2 "could not create namespace $NS (it may already exist); not touching it"
   exit 1
 fi
 ns_created=true
-kubectl label namespace "$NS" purpose=core-bff-caller-auth-validation >/dev/null
-kubectl -n "$NS" create serviceaccount caller-test >/dev/null
-kubectl apply -f - >/dev/null <<EOF
+"${KUBECTL[@]}" label namespace "$NS" purpose=core-bff-caller-auth-validation >/dev/null
+"${KUBECTL[@]}" -n "$NS" create serviceaccount caller-test >/dev/null
+"${KUBECTL[@]}" apply -f - >/dev/null <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: serving-editor, namespace: $NS}
@@ -98,8 +109,9 @@ metadata: {name: serving-editor, namespace: $NS}
 subjects: [{kind: ServiceAccount, name: caller-test, namespace: $NS}]
 roleRef: {kind: Role, name: serving-editor, apiGroup: rbac.authorization.k8s.io}
 EOF
-SA=$(kubectl -n "$NS" create token caller-test --duration=1h)
-AD=${ADMIN_TOKEN:-$(command -v oc >/dev/null 2>&1 && oc whoami -t 2>/dev/null || true)}
+SA=$("${KUBECTL[@]}" -n "$NS" create token caller-test --duration=1h)
+AD=${AD_INPUT:-$(command -v oc >/dev/null 2>&1 && oc --request-timeout=30s whoami -t 2>/dev/null || true)}
+unset AD_INPUT
 
 if [[ -z "${BFF_URL:-}" ]]; then
   args=(--port "$PORT" --platform-type="$PLATFORM" --namespace="$DASHBOARD_NS" --static-assets-dir="$here/bff/static")
@@ -151,7 +163,7 @@ skip() { printf '%-4s %-58s SKIP (%s)\n' "$1" "$2" "$3"; }
 # so an absent label (empty output) is never confused with a failed read.
 ns_label() {
   local out rc=0
-  out=$(kubectl get namespace "$NS" -o jsonpath='{.metadata.labels.modelmesh-enabled}') || rc=$?
+  out=$("${KUBECTL[@]}" get namespace "$NS" -o jsonpath='{.metadata.labels.modelmesh-enabled}') || rc=$?
   if ((rc != 0)); then printf 'kubectl-exit-%d' "$rc"; else printf '%s' "$out"; fi
 }
 
