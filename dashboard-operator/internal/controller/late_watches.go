@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -167,6 +168,8 @@ func addLateOptionalWatches(mgr manager.Manager, dashboardController ctrlcontrol
 		handler: handler.EnqueueRequestsFromMapFunc(func(_ context.Context, certificate client.Object) []reconcile.Request {
 			return r.mapXKSCertificateToDashboard(certificate)
 		}),
-		predicates: []predicate.Predicate{predicate.GenerationChangedPredicate{}},
+		predicates: []predicate.Predicate{predicate.Funcs{UpdateFunc: func(e event.UpdateEvent) bool {
+			return certificateChanged(e.ObjectOld, e.ObjectNew)
+		}}},
 	})
 }

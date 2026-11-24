@@ -142,3 +142,28 @@ func TestOptionalOwnedResources(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, resources)
 }
+
+// The serving Certificate watch must fire on metadata drift (labels, owner references) as well as
+// on spec changes, since neither metadata change bumps the generation.
+func TestCertificateChanged(t *testing.T) {
+	base := &unstructured.Unstructured{}
+	base.SetGroupVersionKind(certificateGVK)
+	base.SetName(rhaiiDashboardTLSName)
+	base.SetGeneration(1)
+	base.SetLabels(map[string]string{"platform.opendatahub.io/part-of": "dashboard"})
+
+	unchanged := base.DeepCopy()
+	assert.False(t, certificateChanged(base, unchanged))
+
+	specChanged := base.DeepCopy()
+	specChanged.SetGeneration(2)
+	assert.True(t, certificateChanged(base, specChanged))
+
+	labelRemoved := base.DeepCopy()
+	labelRemoved.SetLabels(nil)
+	assert.True(t, certificateChanged(base, labelRemoved))
+
+	ownerRemoved := base.DeepCopy()
+	ownerRemoved.SetOwnerReferences([]metav1.OwnerReference{{Name: "default-dashboard"}})
+	assert.True(t, certificateChanged(base, ownerRemoved))
+}

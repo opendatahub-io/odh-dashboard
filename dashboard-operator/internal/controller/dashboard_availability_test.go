@@ -267,14 +267,14 @@ func TestHTTPRouteAvailableWithConcreteReportedListener(t *testing.T) {
 	assert.True(t, httpRouteAvailable(route))
 }
 
-// The HTTPRoute is always read directly, so availability converges even when Gateway API was
+// The Deployment and HTTPRoute are always read directly, so availability converges even when Gateway API was
 // installed after operator startup and the cache has no HTTPRoute informer (ErrResourceNotCached).
 func TestReconcileDashboardAvailabilityReadsUncachedHTTPRouteDirectly(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, clientgoscheme.AddToScheme(scheme))
 	require.NoError(t, gatewayv1.Install(scheme))
 	route := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
-	apiReader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(route).Build()
+	apiReader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true), route).Build()
 
 	tests := []struct {
 		name       string
@@ -301,9 +301,12 @@ func TestReconcileDashboardAvailabilityReadsUncachedHTTPRouteDirectly(t *testing
 		{
 			name:     "Gateway API still not installed",
 			cacheErr: &ctrlcache.ErrResourceNotCached{GVK: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute")},
-			reader: fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{
-				Get: func(context.Context, client.WithWatch, client.ObjectKey, client.Object, ...client.GetOption) error {
-					return &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: gatewayv1.GroupName, Kind: "HTTPRoute"}}
+			reader: fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true)).WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if _, ok := obj.(*gatewayv1.HTTPRoute); ok {
+						return &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: gatewayv1.GroupName, Kind: "HTTPRoute"}}
+					}
+					return delegate.Get(ctx, key, obj, opts...)
 				},
 			}).Build(),
 			wantReason: "HTTPRouteAPIUnavailable",
@@ -352,7 +355,7 @@ func TestReconcileDashboardAvailabilityIgnoresStaleCachedHTTPRoute(t *testing.T)
 		}
 	}
 	cached := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true), stale).Build()
-	reader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(applied).Build()
+	reader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true), applied).Build()
 	reconciler := &DashboardReconciler{Client: cached, APIReader: reader, ApplicationsNamespace: availabilityTestNamespace}
 	dashboard := &v1alpha1.Dashboard{}
 	cm := conditions.NewManager(dashboard, string(common.ConditionTypeReady), conditionDashboardAvailable)
@@ -365,4 +368,29 @@ func TestReconcileDashboardAvailabilityIgnoresStaleCachedHTTPRoute(t *testing.T)
 	assert.Equal(t, dashboardAvailabilityRetryInterval, retryAfter)
 	assert.Equal(t, "HTTPRouteNotAccepted", cm.GetCondition(conditionDashboardAvailable).Reason)
 	assert.False(t, cm.IsHappy())
+}
+
+// A cached Deployment from before a spec change still has matching generation and
+// observedGeneration. Availability must use the direct read, which shows the new generation
+// that has not been observed yet.
+func TestReconcileDashboardAvailabilityIgnoresStaleCachedDeployment(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, gatewayv1.Install(scheme))
+	route := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	applied := availabilityDeployment(true)
+	applied.Generation = 2
+	applied.Status.ObservedGeneration = 1
+	cached := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true), route).Build()
+	reader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(applied, route).Build()
+	reconciler := &DashboardReconciler{Client: cached, APIReader: reader, ApplicationsNamespace: availabilityTestNamespace}
+	dashboard := &v1alpha1.Dashboard{}
+	cm := conditions.NewManager(dashboard, string(common.ConditionTypeReady), conditionDashboardAvailable)
+
+	_, err := reconciler.reconcileDashboardAvailability(context.Background(), dashboard, cm, dashboardAvailabilityTarget{
+		deploymentName: "dashboard",
+		httpRouteName:  route.Name,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "DeploymentRolloutInProgress", cm.GetCondition(conditionDashboardAvailable).Reason)
 }

@@ -119,7 +119,11 @@ func addXKSCertificateWatch(mgr ctrl.Manager, controllerBuilder *builder.Builder
 		handler.TypedEnqueueRequestsFromMapFunc(func(_ context.Context, certificate *unstructured.Unstructured) []reconcile.Request {
 			return r.mapXKSCertificateToDashboard(certificate)
 		}),
-		predicate.TypedGenerationChangedPredicate[*unstructured.Unstructured]{},
+		predicate.TypedFuncs[*unstructured.Unstructured]{
+			UpdateFunc: func(e event.TypedUpdateEvent[*unstructured.Unstructured]) bool {
+				return certificateChanged(e.ObjectOld, e.ObjectNew)
+			},
+		},
 	))
 	return true, nil
 }
@@ -129,6 +133,16 @@ func (r *DashboardReconciler) mapXKSCertificateToDashboard(certificate client.Ob
 		return nil
 	}
 	return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}}}
+}
+
+// certificateChanged reports spec changes (generation) and metadata drift such
+// as removed labels or owner references, which leave the generation unchanged
+// but still need repair.
+func certificateChanged(oldObject, newObject client.Object) bool {
+	if oldObject == nil || newObject == nil {
+		return true
+	}
+	return oldObject.GetGeneration() != newObject.GetGeneration() || objectMetadataChanged(oldObject, newObject)
 }
 
 func serviceChangedPredicate() predicate.Predicate {

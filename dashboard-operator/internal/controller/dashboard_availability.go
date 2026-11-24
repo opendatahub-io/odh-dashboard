@@ -42,7 +42,10 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 	target dashboardAvailabilityTarget,
 ) (time.Duration, error) {
 	deployment := &appsv1.Deployment{}
-	if err := r.Get(ctx, client.ObjectKey{Name: target.deploymentName, Namespace: r.ApplicationsNamespace}, deployment); err != nil {
+	// Read directly: this runs right after the apply, and a cached copy from
+	// before a spec change still has matching generation and observedGeneration,
+	// so it could pass the rollout check for the previous spec.
+	if err := r.apiReader().Get(ctx, client.ObjectKey{Name: target.deploymentName, Namespace: r.ApplicationsNamespace}, deployment); err != nil {
 		if k8serrors.IsNotFound(err) {
 			cm.MarkFalse(conditionDashboardAvailable,
 				conditions.WithReason("DeploymentNotFound"),
