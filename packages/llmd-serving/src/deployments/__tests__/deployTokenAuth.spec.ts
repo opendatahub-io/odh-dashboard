@@ -1,8 +1,5 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
-import {
-  setUpTokenAuth,
-  UNPROVISIONABLE_TOKEN_MESSAGE,
-} from '@odh-dashboard/model-serving/concepts/auth';
+import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { mockLLMInferenceServiceK8sResource } from '../../__mocks__/mockLLMInferenceServiceK8sResource';
 import {
   createLLMInferenceService,
@@ -51,12 +48,13 @@ describe('deployLLMdDeployment token authentication', () => {
 
   it.each([
     [true, true, true],
-    [true, false, false],
+    // The host's token permission does not skip setup: Kubernetes decides.
+    [true, false, true],
     [false, true, false],
     // Wizard state from before canManageTokenAuth existed.
     [true, undefined, true],
   ])(
-    'should set up tokens on an edit only with both permissions (RoleBindings %s, token auth %s)',
+    'should set up tokens on an edit with RoleBinding create (RoleBindings %s, token auth %s)',
     async (canCreateRoleBindings, canManageTokenAuth, expected) => {
       jest.mocked(updateLLMInferenceService).mockResolvedValue(model);
       await deployLLMdDeployment(
@@ -70,22 +68,49 @@ describe('deployLLMdDeployment token authentication', () => {
     },
   );
 
-  it('should not deploy a new token after the host refused token management', async () => {
+  it('should keep auth on and set the default token up after a host token refusal', async () => {
+    // Paulo's shape: no Role create, but the token ServiceAccount, Role and
+    // RoleBinding already exist. Setup reuses them; Kubernetes decides.
+    await deployLLMdDeployment(
+      wizardData(true, false, [NEW_TOKEN]),
+      {},
+      'test-project',
+      undefined,
+      model,
+    );
+    const created = jest.mocked(createLLMInferenceService).mock.calls[0][0];
+    expect(created.metadata.annotations?.['security.opendatahub.io/enable-auth']).not.toBe('false');
+    expect(setUpTokenAuth).toHaveBeenCalledWith(
+      [NEW_TOKEN],
+      model.metadata.name,
+      model.metadata.namespace,
+      true,
+      model,
+      'llminferenceservices',
+      undefined,
+      { dryRun: undefined },
+    );
+  });
+
+  it('should stop at the dry run when Kubernetes refuses the token setup', async () => {
+    jest.mocked(setUpTokenAuth).mockRejectedValueOnce(new Error('roles is forbidden'));
     await expect(
       deployLLMdDeployment(
-        wizardData(true, false, [EXISTING_TOKEN, NEW_TOKEN]),
+        wizardData(true, false, [NEW_TOKEN]),
         {},
         'test-project',
         undefined,
         model,
+        undefined,
+        undefined,
+        true,
       ),
-    ).rejects.toThrow(UNPROVISIONABLE_TOKEN_MESSAGE);
-    expect(createLLMInferenceService).not.toHaveBeenCalled();
-    expect(setUpTokenAuth).not.toHaveBeenCalled();
+    ).rejects.toThrow('roles is forbidden');
+    expect(createLLMInferenceService).toHaveBeenCalledWith(expect.anything(), { dryRun: true });
   });
 
-  it('should keep the earlier behaviour without RoleBinding create alone', async () => {
-    // The field is disabled there; the model keeps requiring auth, setup is skipped.
+  it('should set the default token up on a new deployment without RoleBinding create', async () => {
+    // No permission check decides whether a new deployment requires auth.
     await deployLLMdDeployment(
       wizardData(false, undefined, [NEW_TOKEN]),
       {},
@@ -93,44 +118,9 @@ describe('deployLLMdDeployment token authentication', () => {
       undefined,
       model,
     );
-    expect(createLLMInferenceService).toHaveBeenCalled();
-    expect(setUpTokenAuth).not.toHaveBeenCalled();
-  });
-
-  it('should not create a model that requires auth when no token can be provisioned', async () => {
-    const requiresAuth = {
-      ...model,
-      metadata: {
-        ...model.metadata,
-        annotations: { 'security.opendatahub.io/enable-auth': 'true' },
-      },
-    };
-    await expect(
-      deployLLMdDeployment(
-        wizardData(true, false, []),
-        {},
-        'test-project',
-        undefined,
-        requiresAuth,
-      ),
-    ).rejects.toThrow(UNPROVISIONABLE_TOKEN_MESSAGE);
-    expect(createLLMInferenceService).not.toHaveBeenCalled();
-
-    const withoutAuth = {
-      ...model,
-      metadata: {
-        ...model.metadata,
-        annotations: { 'security.opendatahub.io/enable-auth': 'false' },
-      },
-    };
-    await deployLLMdDeployment(
-      wizardData(true, false, []),
-      {},
-      'test-project',
-      undefined,
-      withoutAuth,
-    );
-    expect(createLLMInferenceService).toHaveBeenCalled();
+    const created = jest.mocked(createLLMInferenceService).mock.calls[0][0];
+    expect(created.metadata.annotations?.['security.opendatahub.io/enable-auth']).not.toBe('false');
+    expect(setUpTokenAuth).toHaveBeenCalled();
   });
 
   describe('keepAuthWithoutTokenPermission', () => {

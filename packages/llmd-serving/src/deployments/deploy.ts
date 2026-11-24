@@ -17,12 +17,7 @@ import type {
   HardwareProfileConfig,
 } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
-import {
-  assertTokensProvisionable,
-  canProvisionTokenAuth,
-  setUpTokenAuth,
-  UNPROVISIONABLE_TOKEN_MESSAGE,
-} from '@odh-dashboard/model-serving/concepts/auth';
+import { canProvisionTokenAuth, setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import {
@@ -317,9 +312,10 @@ const deployLLMInferenceServiceConfig = async (
 const ENABLE_AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
 
 /**
- * Without permission to manage tokens the token field is disabled, so its
- * contents say nothing about whether the deployment requires authentication:
- * an edit keeps the existing setting instead of deriving it from the tokens.
+ * Without permission to create RoleBindings the token field is disabled, so
+ * its contents say nothing about whether the deployment requires
+ * authentication: an edit keeps the existing setting instead of deriving it
+ * from the tokens.
  */
 export const keepAuthWithoutTokenPermission = (
   model: LLMInferenceServiceKind,
@@ -358,12 +354,7 @@ export const deployLLMdDeployment = async (
   if (!modelResource || !isLLMInferenceService(modelResource)) {
     throw new Error('LLMInferenceService is required');
   }
-  // Checked before anything is written: tokens are set up after the model.
-  const canProvisionTokens = canProvisionTokenAuth(wizardData);
-  assertTokensProvisionable(
-    wizardData.tokenAuthentication.data,
-    wizardData.canManageTokenAuth !== false,
-  );
+  const canProvisionTokens = canProvisionTokenAuth(wizardData, !existingDeployment);
 
   const deploymentK8sName =
     modelResource.metadata.name || wizardData.k8sNameDesc.data.k8sName.value || '';
@@ -378,16 +369,6 @@ export const deployLLMdDeployment = async (
     deploymentK8sName,
     { dryRun },
   );
-  // Where token management was refused, a new deployment that still requires
-  // authentication (as YAML can ask) would require tokens nobody may create;
-  // the form sets enable-auth false without tokens.
-  if (
-    !existingDeployment &&
-    wizardData.canManageTokenAuth === false &&
-    modelResource.metadata.annotations?.[ENABLE_AUTH_ANNOTATION] !== 'false'
-  ) {
-    throw new Error(UNPROVISIONABLE_TOKEN_MESSAGE);
-  }
   const llmInferenceServiceToDeploy = keepAuthWithoutTokenPermission(
     applyHfTokenServiceAccount(modelResource, hfTokenSecretName, hfTokenServiceAccountName),
     existingDeployment?.model,

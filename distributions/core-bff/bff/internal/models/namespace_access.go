@@ -64,7 +64,9 @@ type NamespaceActions struct {
 	Delete bool `json:"delete"`
 	// CreateTokenAuth: set up token authentication on a new deployment: create
 	// Secrets; get and create ServiceAccounts, Roles and RoleBindings; and get
-	// LLMInferenceServices, which the token Role grants.
+	// LLMInferenceServices, which the token Role grants. Advisory: setup reuses
+	// the resources that already exist, so the UI never changes the auth
+	// choice on it; Kubernetes decides.
 	CreateTokenAuth bool `json:"createTokenAuth"`
 	// ManageTokenAuth: CreateTokenAuth, plus list, update and delete on
 	// Secrets to manage the tokens of an existing deployment.

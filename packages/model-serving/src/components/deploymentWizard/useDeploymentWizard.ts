@@ -66,46 +66,35 @@ export type UseModelDeploymentWizardState = WizardFormData & {
   fields: WizardField<unknown>[];
 };
 
-export const NO_TOKEN_AUTH_PERMISSION_TEXT =
-  'You do not have permission to manage token authentication in this project.';
-const WITHHELD_DRAFTS_TEXT =
-  'The new tokens you added elsewhere are not used here: remove them in that project before deploying here.';
+export const TOKEN_AUTH_PERMISSION_WARNING =
+  'You might not have permission to set up token authentication in this project. Existing token resources are reused; if one is missing and cannot be created, the deployment stops before anything is saved.';
 
 /**
  * The token authentication field after deploy-method overrides and the
- * caller's permission. An override that disables the field clears its tokens.
- * Where the host reports that the caller may not manage token authentication,
- * the field is disabled and holds only the existing tokens, unchanged; new
- * drafts stay in the field's own state, so they come back with the
- * permission. Saving with withheld drafts is refused rather than deploying
- * without the tokens the user added.
+ * caller's permissions. An override that disables the field clears its
+ * tokens. No permission changes whether a new deployment requires
+ * authentication: the host's token permission (namespace discovery on xKS)
+ * and RoleBinding create access only say whether the caller may create every
+ * token resource, but setup reuses the ones that already exist, so only
+ * Kubernetes can tell. Where either may be missing the field warns, and the
+ * dry run stops a refused setup before anything is saved. An edit without
+ * RoleBinding create keeps its earlier behaviour: the field is disabled with
+ * its tokens unchanged, and the deployment keeps its authentication setting.
  */
 export const applyTokenAuthOverrides = (
   field: TokenAuthenticationFieldHook,
   overrides: Partial<TokenAuthenticationFieldHook>,
-  canManageTokenAuth: boolean,
+  permissions: { canSetUp: boolean; mayBeRefused: boolean },
 ): TokenAuthenticationFieldHook => {
   const overrideDisabled = overrides.isDisabled ?? false;
-  const withheldDrafts = field.data?.filter((token) => !token.k8sName).length ?? 0;
+  const isDisabled = overrideDisabled || !permissions.canSetUp;
   return {
     ...field,
     ...overrides,
-    isDisabled: overrideDisabled || !canManageTokenAuth,
-    ...(!overrideDisabled && !canManageTokenAuth
-      ? {
-          disabledHelperText:
-            withheldDrafts > 0
-              ? `${NO_TOKEN_AUTH_PERMISSION_TEXT} ${WITHHELD_DRAFTS_TEXT}`
-              : NO_TOKEN_AUTH_PERMISSION_TEXT,
-        }
-      : {}),
-    ...(overrideDisabled
-      ? { data: [] }
-      : !canManageTokenAuth
-      ? {
-          data: field.data?.filter((token) => !!token.k8sName),
-          withheldDraftCount: withheldDrafts,
-        }
+    isDisabled,
+    ...(overrideDisabled ? { data: [] } : {}),
+    ...(!isDisabled && permissions.mayBeRefused
+      ? { permissionWarning: TOKEN_AUTH_PERMISSION_WARNING }
       : {}),
   };
 };
@@ -151,7 +140,7 @@ export const useModelDeploymentWizard = (
   // Step 1: Model Source
   const project = useProjectSection(initialProjectName);
 
-  const [canCreateRoleBindings] = useAccessReview({
+  const [canCreateRoleBindings, roleBindingReviewLoaded] = useAccessReview({
     ...accessReviewResource,
     namespace: project.projectName ?? undefined,
   });
@@ -217,7 +206,8 @@ export const useModelDeploymentWizard = (
     modelType,
     formState.modelServer,
     formState.deploymentMethod,
-    canCreateRoleBindings && canManageTokenAuth,
+    // A new deployment keeps its default token whatever the permissions.
+    !isEdit || canCreateRoleBindings,
   );
 
   const runtimeArgs = useRuntimeArgsField(
@@ -373,11 +363,12 @@ export const useModelDeploymentWizard = (
           ? { ...state.modelAvailability.data, saveAsAiAsset: true }
           : state.modelAvailability.data,
       },
-      tokenAuthentication: applyTokenAuthOverrides(
-        state.tokenAuthentication,
-        tokenAuthOverrides,
-        state.canManageTokenAuth !== false,
-      ),
+      tokenAuthentication: applyTokenAuthOverrides(state.tokenAuthentication, tokenAuthOverrides, {
+        canSetUp: !isEdit || state.canCreateRoleBindings,
+        mayBeRefused:
+          state.canManageTokenAuth === false ||
+          (roleBindingReviewLoaded && !state.canCreateRoleBindings),
+      }),
       // Only once the field has initialized: an empty `{}` reads as initialized data without
       // `selections` (e.g. the review step rendering first after a remount from YAML)
       ...(state['llmd-serving/gateway']
@@ -389,7 +380,14 @@ export const useModelDeploymentWizard = (
           }
         : {}),
     }),
-    [state, tokenAuthOverrides, modelAvailabilityOverrides, computedOverrides],
+    [
+      state,
+      tokenAuthOverrides,
+      modelAvailabilityOverrides,
+      computedOverrides,
+      isEdit,
+      roleBindingReviewLoaded,
+    ],
   );
 
   return {

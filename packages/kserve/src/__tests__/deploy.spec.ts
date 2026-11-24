@@ -3,10 +3,7 @@ import { deploymentStrategyRecreate } from '@odh-dashboard/model-serving/shared/
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import {
-  setUpTokenAuth,
-  UNPROVISIONABLE_TOKEN_MESSAGE,
-} from '@odh-dashboard/model-serving/concepts/auth';
+import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { deployKServeDeployment } from '../deploy';
 import { createServingRuntime, updateServingRuntime } from '../deployServer';
 import { deployInferenceService } from '../deployModel';
@@ -254,45 +251,43 @@ describe('deployKServeDeployment', () => {
         canManageTokenAuth: permissions.canManageTokenAuth,
       } as WizardFormData['state']);
 
-    it('should not deploy a new token after an explicit token-auth denial', async () => {
-      await expect(
-        deployKServeDeployment(
-          withTokens([{ uuid: 'n', displayName: 'new' }], {
-            canCreateRoleBindings: true,
-            canManageTokenAuth: false,
-          }),
-          {},
-          'test-project',
-        ),
-      ).rejects.toThrow(UNPROVISIONABLE_TOKEN_MESSAGE);
-      expect(mockDeployInferenceService).not.toHaveBeenCalled();
-      expect(setUpTokenAuth).not.toHaveBeenCalled();
-    });
-
-    it('should keep existing tokens unchanged without permission', async () => {
+    it('should keep a new token and set it up after a host token refusal', async () => {
       await deployKServeDeployment(
-        withTokens([{ uuid: 'e', displayName: 'existing', k8sName: 'existing-sa' }], {
+        withTokens([{ uuid: 'n', displayName: 'new' }], {
           canCreateRoleBindings: true,
           canManageTokenAuth: false,
         }),
         {},
         'test-project',
       );
-      expect(mockDeployInferenceService).toHaveBeenCalled();
-      expect(setUpTokenAuth).not.toHaveBeenCalled();
+      const deployed = mockDeployInferenceService.mock.calls[0][0];
+      expect(deployed.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
+      expect(setUpTokenAuth).toHaveBeenCalled();
     });
 
-    it('should keep an external route authenticated after a token-management refusal', async () => {
+    it("should set a new deployment's tokens up without RoleBinding create", async () => {
       await deployKServeDeployment(
-        {
-          ...withTokens([], { canCreateRoleBindings: true, canManageTokenAuth: false }),
-          externalRoute: { data: true },
-        } as WizardFormData['state'],
+        withTokens([{ uuid: 'n', displayName: 'new' }], { canCreateRoleBindings: false }),
         {},
         'test-project',
       );
-      const deployed = mockDeployInferenceService.mock.calls[0][0];
-      expect(deployed.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
+      expect(setUpTokenAuth).toHaveBeenCalled();
+    });
+
+    it("should leave an edit's tokens alone without RoleBinding create", async () => {
+      await deployKServeDeployment(
+        withTokens([{ uuid: 'e', displayName: 'existing', k8sName: 'existing-sa' }], {
+          canCreateRoleBindings: false,
+        }),
+        {},
+        'test-project',
+        {
+          modelServingPlatformId: 'kserve',
+          model: mockInferenceServiceK8sResource({}),
+          server: mockServingRuntimeK8sResource({ name: 'existing-runtime' }),
+        },
+      );
+      expect(setUpTokenAuth).not.toHaveBeenCalled();
     });
 
     it('should set tokens up for wizard state without canManageTokenAuth', async () => {

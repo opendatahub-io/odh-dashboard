@@ -25,9 +25,6 @@ import { useModelDeployedTracking } from '../../../shared/tracking/useModelDeplo
  *
  * @returns The onSubmit function to create / update the deployment
  */
-export const WITHHELD_TOKENS_MESSAGE =
-  'Token authentication cannot be set up in this project, but new tokens were added. Select the project where you added them, remove them there, or ask for access.';
-
 export const useModelDeploymentSubmit = (
   formState: WizardFormState, // Need initial data for existing auth secrets
   deployMethodActivationInput: DeployMethodActivationInput,
@@ -134,11 +131,6 @@ export const useModelDeploymentSubmit = (
           throw new Error(
             `You do not have permission to edit deployments in the project "${expectedNamespace}".`,
           );
-        }
-        // New tokens added in a project that allowed them are withheld here.
-        // Deploying without them would drop authentication the user set up.
-        if ((formState.tokenAuthentication.withheldDraftCount ?? 0) > 0) {
-          throw new Error(WITHHELD_TOKENS_MESSAGE);
         }
         // Where the host decides deploy targets, a new deployment needs its
         // project selected in the form: that is where its permissions (token

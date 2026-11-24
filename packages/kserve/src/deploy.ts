@@ -3,11 +3,7 @@ import type {
   WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import {
-  assertTokensProvisionable,
-  canProvisionTokenAuth,
-  setUpTokenAuth,
-} from '@odh-dashboard/model-serving/concepts/auth';
+import { canProvisionTokenAuth, setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { KServeDeployment } from './types';
 import { assembleServingRuntime, createServingRuntime, updateServingRuntime } from './deployServer';
@@ -33,12 +29,7 @@ export const deployKServeDeployment = async (
   applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
   updateExistingServingRuntime?: boolean,
 ): Promise<KServeDeployment> => {
-  // Checked before anything is written: tokens are set up after the model.
-  const canProvisionTokens = canProvisionTokenAuth(wizardData);
-  assertTokensProvisionable(
-    wizardData.tokenAuthentication.data,
-    wizardData.canManageTokenAuth !== false,
-  );
+  const canProvisionTokens = canProvisionTokenAuth(wizardData, !existingDeployment);
   const deploymentK8sName =
     wizardData.k8sNameDesc.data.k8sName.value || existingDeployment?.model.metadata.name || '';
   const hfTokenSecretName = await resolveHfTokenSecretName(
@@ -66,9 +57,6 @@ export const deployKServeDeployment = async (
     modelFormat: wizardData.modelFormatState.modelFormat,
     externalRoute: wizardData.externalRoute.data,
     tokenAuth: wizardData.tokenAuthentication.data,
-    // Where token management was refused the field holds no new tokens, but an
-    // external route must still require authentication: fail safe, not open.
-    requireAuth: wizardData.canManageTokenAuth === false && !!wizardData.externalRoute.data,
     numReplicas: wizardData.numReplicas.data,
     runtimeArgs: wizardData.runtimeArgs.data,
     environmentVariables: wizardData.environmentVariables.data,

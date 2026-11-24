@@ -185,35 +185,21 @@ export const createTokenSecrets = async (
 };
 
 /**
- * Whether token authentication can be provisioned: it creates a RoleBinding,
- * and the host may report that the caller cannot manage the rest (namespace
- * discovery on xKS). Wizard state from before `canManageTokenAuth` existed
- * leaves it unset, which keeps the RoleBinding check alone.
+ * Whether the deploy sets up token authentication. A new deployment always
+ * does: no permission check decides whether it requires authentication. Setup
+ * reuses the ServiceAccount, Role and RoleBinding where they exist, so
+ * Kubernetes decides, and the dry run stops a refused setup before anything is
+ * saved. An edit sets tokens up only with RoleBinding create access, as
+ * before: without it the token field is disabled and the deployment keeps its
+ * authentication setting.
  */
-export const canProvisionTokenAuth = (wizardData: {
-  canCreateRoleBindings: boolean;
-  canManageTokenAuth?: boolean;
-}): boolean => wizardData.canCreateRoleBindings && wizardData.canManageTokenAuth !== false;
+export const canProvisionTokenAuth = (
+  wizardData: { canCreateRoleBindings: boolean },
+  isNewDeployment: boolean,
+): boolean => isNewDeployment || wizardData.canCreateRoleBindings;
 
-export const UNPROVISIONABLE_TOKEN_MESSAGE =
-  'You do not have permission to create authentication tokens in this project. Remove the new tokens or ask for access.';
-
-/**
- * Rejects new tokens (ones without a Secret yet) where the host reported that
- * the caller may not manage token authentication (pass
- * `wizardData.canManageTokenAuth !== false`), before anything is written, so a
- * model never requires a token that was refused. Existing tokens are kept as
- * they are. Without RoleBinding create alone the wizard keeps its earlier
- * behaviour: the field is disabled and token setup is skipped.
- */
-export const assertTokensProvisionable = (
-  tokenAuth: TokenAuthEntry[] | undefined,
-  canProvision: boolean,
-): void => {
-  if (!canProvision && tokenAuth?.some((token) => !token.k8sName)) {
-    throw new Error(UNPROVISIONABLE_TOKEN_MESSAGE);
-  }
-};
+export const TOKEN_SETUP_REFUSED_MESSAGE =
+  'You do not have permission to set up token authentication in this project. Turn off token authentication to deploy without it, or ask for access.';
 
 export const setUpTokenAuth = async (
   tokenAuth: TokenAuthEntry[] | undefined,
@@ -260,9 +246,18 @@ export const setUpTokenAuth = async (
           createRoleIfMissing(role, namespace, opts),
         ]).then(() => createRoleBindingIfMissing(roleBinding, namespace, opts))
       : Promise.resolve()
-  ).then(() =>
-    createTokenSecrets(tokenAuth, deployedModelName, namespace, owner, existingSecrets, opts),
-  );
+  )
+    .then(() =>
+      createTokenSecrets(tokenAuth, deployedModelName, namespace, owner, existingSecrets, opts),
+    )
+    .catch((error: unknown) => {
+      // A refused setup stops the deployment (in the dry run, before anything
+      // is saved); say what the user can do about it.
+      if (getGenericErrorCode(error) === 403) {
+        throw new Error(TOKEN_SETUP_REFUSED_MESSAGE);
+      }
+      throw error;
+    });
 };
 
 export const isDeploymentAuthEnabled = (

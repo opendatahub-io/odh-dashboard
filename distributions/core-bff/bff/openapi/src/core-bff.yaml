@@ -2107,7 +2107,8 @@ components:
           description: >-
             create on secrets; get and create on serviceaccounts, roles and rolebindings; and get
             on llminferenceservices, which the token Role grants: what setting up token
-            authentication on a new deployment needs
+            authentication on a new deployment needs when none of its resources exist yet. Advisory:
+            setup reuses existing resources, so Kubernetes decides
         manageTokenAuth:
           type: boolean
           description: >-

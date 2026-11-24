@@ -12,7 +12,7 @@ import { useDeployMethod } from '../useDeployMethod';
 import { useWizardFieldApply } from '../../useWizardFieldApply';
 import { useWizardFieldPreDeploy } from '../useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy } from '../useWizardFieldPostDeploy';
-import { useModelDeploymentSubmit, WITHHELD_TOKENS_MESSAGE } from '../useModelDeploymentSubmit';
+import { useModelDeploymentSubmit } from '../useModelDeploymentSubmit';
 
 jest.mock('@odh-dashboard/plugin-core');
 jest.mock('../useDeployMethod');
@@ -323,33 +323,6 @@ describe('useModelDeploymentSubmit deployment targets', () => {
     );
     await act(async () => result.current.onSave());
     expect(result.current.submitError?.message).toBe('Select a project before deploying.');
-    expect(deployModel).not.toHaveBeenCalled();
-  });
-
-  it('should refuse to deploy without new tokens withheld from this project', async () => {
-    const { state } = mockDeploymentWizardState();
-    const { result } = renderHook(() =>
-      useModelDeploymentSubmit(
-        {
-          ...state,
-          tokenAuthentication: { ...state.tokenAuthentication, data: [], withheldDraftCount: 1 },
-        },
-        { modelLocationData: { data: undefined } },
-        {
-          model: {
-            kind: 'LLMInferenceService',
-            apiVersion: 'serving.kserve.io/v1alpha2',
-            metadata: { name: 'test-model', namespace: 'test-project' },
-          },
-        },
-        { isAllValid: true } as Parameters<typeof useModelDeploymentSubmit>[3],
-        {},
-        jest.fn(),
-        'form',
-      ),
-    );
-    await act(async () => result.current.onSave());
-    expect(result.current.submitError?.message).toBe(WITHHELD_TOKENS_MESSAGE);
     expect(deployModel).not.toHaveBeenCalled();
   });
 });

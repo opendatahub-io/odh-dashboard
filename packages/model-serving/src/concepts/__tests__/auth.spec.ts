@@ -1,10 +1,9 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
-  assertTokensProvisionable,
   canProvisionTokenAuth,
   generateRole,
-  UNPROVISIONABLE_TOKEN_MESSAGE,
   setUpTokenAuth,
+  TOKEN_SETUP_REFUSED_MESSAGE,
   createServiceAccountIfMissing,
   createRoleIfMissing,
   createRoleBindingIfMissing,
@@ -296,6 +295,35 @@ describe('setUpTokenAuth', () => {
     expect(roleBindingsMock.createRoleBinding).toHaveBeenCalled();
   });
 
+  it('should explain a refused setup: reading the token Role is forbidden', async () => {
+    rolesMock.getRole.mockRejectedValue({
+      statusObject: { code: 403, status: 'Failure', message: 'roles is forbidden' },
+    });
+    await expect(
+      setUpTokenAuth([], 'test-model', 'test-ns', true, mockOwner, 'inferenceservices', undefined, {
+        dryRun: true,
+      }),
+    ).rejects.toThrow(TOKEN_SETUP_REFUSED_MESSAGE);
+  });
+
+  it('should reuse an existing Role the caller may not create', async () => {
+    const existing = { metadata: { name: 'test-model-view-role' } };
+    rolesMock.getRole.mockResolvedValue(existing);
+    rolesMock.createRole.mockRejectedValue({
+      statusObject: { code: 403, status: 'Failure', message: 'forbidden' },
+    });
+    await setUpTokenAuth([], 'test-model', 'test-ns', true, mockOwner, 'inferenceservices');
+    expect(rolesMock.createRole).not.toHaveBeenCalled();
+  });
+
+  it('should pass other failures through unchanged', async () => {
+    const failure = { statusObject: { code: 500, status: 'Failure', message: 'boom' } };
+    rolesMock.getRole.mockRejectedValue(failure);
+    await expect(
+      setUpTokenAuth([], 'test-model', 'test-ns', true, mockOwner, 'inferenceservices'),
+    ).rejects.toBe(failure);
+  });
+
   it('should skip auth resource creation when createTokenAuthResources is false', async () => {
     await setUpTokenAuth([], 'test-model', 'test-ns', false, mockOwner, 'inferenceservices');
 
@@ -417,28 +445,14 @@ describe('createTokenSecrets', () => {
   });
 });
 
-describe('token provisioning checks', () => {
-  it('should need RoleBinding access, and token auth unless it is unset', () => {
-    expect(canProvisionTokenAuth({ canCreateRoleBindings: true })).toBe(true);
-    expect(canProvisionTokenAuth({ canCreateRoleBindings: true, canManageTokenAuth: true })).toBe(
-      true,
-    );
-    expect(canProvisionTokenAuth({ canCreateRoleBindings: true, canManageTokenAuth: false })).toBe(
-      false,
-    );
-    expect(canProvisionTokenAuth({ canCreateRoleBindings: false, canManageTokenAuth: true })).toBe(
-      false,
-    );
+describe('canProvisionTokenAuth', () => {
+  it('should always set tokens up for a new deployment', () => {
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: false }, true)).toBe(true);
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: true }, true)).toBe(true);
   });
 
-  it('should reject only new tokens that cannot be provisioned', () => {
-    const existing = { uuid: 'a', displayName: 'existing', k8sName: 'existing-sa' };
-    const fresh = { uuid: 'b', displayName: 'new' };
-    expect(() => assertTokensProvisionable([existing, fresh], false)).toThrow(
-      UNPROVISIONABLE_TOKEN_MESSAGE,
-    );
-    expect(() => assertTokensProvisionable([existing], false)).not.toThrow();
-    expect(() => assertTokensProvisionable(undefined, false)).not.toThrow();
-    expect(() => assertTokensProvisionable([fresh], true)).not.toThrow();
+  it('should set tokens up for an edit only with RoleBinding create', () => {
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: true }, false)).toBe(true);
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: false }, false)).toBe(false);
   });
 });

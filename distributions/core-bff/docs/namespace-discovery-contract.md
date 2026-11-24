@@ -157,8 +157,9 @@ Actions are decided per namespace, not per deployment: `edit` requires the Huggi
 ServiceAccount and Secret reads, and the config writes, even where no deployment uses a Hugging
 Face token or a config copy, because the edit wizard needs them for any that does.
 
-A deploy that uses token authentication needs both `deploy` and `createTokenAuth`, and an edit of
-its tokens `edit` and `manageTokenAuth`; a read-only
+The token actions are advisory: token setup reuses the ServiceAccount, Role and RoleBinding where
+they already exist, so a caller without `createTokenAuth` may still set tokens up in a namespace
+where they were pre-provisioned. Only Kubernetes can decide that; a read-only
 user gets `view` only and is offered no mutation. `pods` are reported but enable no action: they
 only add status details, and the UI degrades without them.
 
@@ -218,7 +219,14 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
   caller's actions in it, so those names are offered only in the project selector: they are not in
   `projects` or `modelServingProjects` (nothing is watched), are not deployment targets and offer
   no action. The listing counts as partial, so selecting one, or entering any name, looks it up by
-  name first, and the lookup decides what is watched and offered.
+  name first, and the lookup decides what is watched and offered. Without the unified project
+  selector (the default), the page's selector has no manual entry, so after a discovery failure
+  (a `503` or a partial listing) the provider looks up, four at a time, up to 50 names: the stored
+  preference, the recent projects and the listed names. Each one a lookup verifies is added with
+  its actions. The page reports itself loaded once those lookups end, or after 30 seconds, and
+  later lookups still add projects. Where nothing is known (for example the fallback list is
+  forbidden too), the **No projects** empty state offers to open a project by name
+  (`findProject` on `ProjectsContext`), through the same lookup.
 - `projects` and `modelServingProjects` hold only namespaces with `actions.view`: listing
   deployments in a create-only namespace would fail. A create-only namespace is still a deployment
   target, and a caller with only such namespaces gets the deployments page's **Deploy model**
@@ -232,10 +240,6 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
   instead of an error (a denied ServingRuntime read stays one), and KServe rows keep every action (Edit included, also when saved), authorized by
   Kubernetes. The wizard's deployment targets and token permission come from the same
   LLMInferenceService reviews and also apply to a new KServe deployment.
-- Where token management was refused, saving never creates a deployment that requires tokens
-  nobody may create: a new LLM-d deployment that still requires authentication (as YAML can ask)
-  is rejected. An edit keeps the deployment's authentication setting, also from YAML. A KServe
-  external route still requires authentication then, rather than opening the model.
 - RHAII's Kubernetes transport rejects with k8s-core's `K8sStatusError`, as the ODH frontend does,
   so the packages' status checks work: a `404` before creating a missing token ServiceAccount, Role
   or RoleBinding, and a `403` on an optional read.
@@ -243,21 +247,18 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
   `actions.delete`, `actions.createTokenAuth` and `actions.manageTokenAuth`. The deployments table
   offers Edit only with `edit`, Start and Stop (including Stop in the status modal) only with
   `startStop`, and Delete only with `delete`.
-- The deployment wizard selects and saves token authentication only with `createTokenAuth` for a
-  new deployment, or `manageTokenAuth` for an edit, as well as RoleBinding create access. A token
-  action that is off only because one of its reviews failed (`error`) is treated as unknown, not
-  denied, so the wizard does not turn token authentication off; Kubernetes, and the dry run,
-  decide. Without it the field is disabled and holds only the
-  existing tokens, which are left as they are; a draft token is kept, not saved, and comes back if
-  the permission does. Saving while such drafts are withheld is refused, with the reason shown in
-  the field, rather than deploying without the tokens the user added. Where the host refused token
-  management, the LLM-d and KServe deploy paths also reject a new token before anything is
-  written. A KServe edit is not gated by these LLMInferenceService-derived token actions. Without RoleBinding
-  create alone the wizard keeps its earlier behaviour: the field is disabled and token setup is
-  skipped. An LLM-d edit saved without the
-  permission keeps the deployment's existing authentication setting rather than deriving it from
-  the disabled field. Wizard state without `canManageTokenAuth` (older callers) keeps the
-  RoleBinding check alone.
+- No permission check changes whether a new deployment requires authentication. The token field
+  keeps its default token and stays enabled whatever `createTokenAuth` and RoleBinding create
+  access say. Where either may be missing it shows a warning: token setup reuses an existing
+  ServiceAccount, Role and RoleBinding, and if Kubernetes refuses it, the dry run stops the
+  deployment before anything is saved, saying to turn token authentication off or ask for access.
+  This also applies in ODH: a user without RoleBinding create (for example the `edit` role) now
+  keeps the default token, and deploys with it only where the token resources already exist. A force update dry-runs too, with the same overwrite, so
+  its Hugging Face and token setup are checked before anything is written. A token action that is
+  off only because one of its reviews failed (`error`) is unknown, and shows no warning. An edit
+  keeps its earlier behaviour: with RoleBinding create its tokens are managed, with a warning
+  where `manageTokenAuth` is `false`; without it the field is disabled, token setup is skipped and
+  the deployment keeps its existing authentication setting.
 - A lookup the BFF denies (`403`, or `404` for a missing namespace) drops the project this session
   cached, so it is no longer offered as a target, and its actions read as denied (not unknown)
   until a lookup allows it again. A failed lookup keeps it. An older lookup that

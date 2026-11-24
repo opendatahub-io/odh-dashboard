@@ -221,12 +221,15 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
               >
                 <TokenAuthenticationField
                   tokens={tokenAuthData}
-                  allowCreate={allowCreate && !wizardState.state.tokenAuthentication.isDisabled}
+                  // Not `allowCreate`: no permission changes whether a new
+                  // deployment requires authentication (see applyTokenAuthOverrides).
+                  allowCreate={!wizardState.state.tokenAuthentication.isDisabled}
                   onChange={wizardState.state.tokenAuthentication.setData}
                   shouldAutoCheck={shouldAutoCheckTokens}
                   isExternalRouteVisible={isExternalRouteVisible}
                   externalRouteData={externalRouteData}
                   disabledHelperText={wizardState.state.tokenAuthentication.disabledHelperText}
+                  permissionWarning={wizardState.state.tokenAuthentication.permissionWarning}
                 />
               </FormGroup>
             </StackItem>

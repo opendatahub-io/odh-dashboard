@@ -51,8 +51,8 @@ export type TokenAuthenticationFieldHook = {
   shouldAutoCheck: boolean;
   isDisabled: boolean;
   disabledHelperText?: string;
-  /** New tokens kept from another project but not usable in this one. */
-  withheldDraftCount?: number;
+  /** Shown while the field stays enabled: token setup may be refused. */
+  permissionWarning?: string;
 };
 
 export const useTokenAuthenticationField = (
@@ -213,6 +213,7 @@ type TokenAuthenticationFieldProps = {
   isExternalRouteVisible: boolean;
   externalRouteData?: boolean;
   disabledHelperText?: string;
+  permissionWarning?: string;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
@@ -223,6 +224,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   isExternalRouteVisible,
   externalRouteData,
   disabledHelperText,
+  permissionWarning,
 }) => {
   const isDisabled = !allowCreate;
   const createNewToken = React.useCallback(() => {
@@ -274,6 +276,18 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           <FormHelperText>
             <HelperText>
               <HelperTextItem>{disabledHelperText}</HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        ) : null}
+        {!isDisabled && permissionWarning ? (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem
+                variant="warning"
+                data-testid="token-authentication-permission-warning"
+              >
+                {permissionWarning}
+              </HelperTextItem>
             </HelperText>
           </FormHelperText>
         ) : null}
