@@ -28,15 +28,10 @@ import (
 // client reads them directly from the API server, while ConfigMap event handling
 // uses the dedicated caches configured in controller_configmaps.go.
 func ManagerCacheOptions(applicationsNamespace string, mapper meta.RESTMapper) (cache.Options, error) {
-	ownedRequirement, err := k8slabels.NewRequirement(
-		platformlabels.PlatformPartOf,
-		selection.In,
-		[]string{strings.ToLower(v1alpha1.DashboardKind), maasPortalPartOf},
-	)
+	ownedSelector, err := ownedResourceSelector()
 	if err != nil {
-		return cache.Options{}, fmt.Errorf("building owned-resource cache selector: %w", err)
+		return cache.Options{}, err
 	}
-	ownedSelector := k8slabels.NewSelector().Add(*ownedRequirement)
 	dashboardSelector := k8slabels.SelectorFromSet(k8slabels.Set{
 		platformlabels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
 	})
@@ -80,6 +75,20 @@ func ManagerCacheOptions(applicationsNamespace string, mapper meta.RESTMapper) (
 		ByObject:                    byObject,
 		ReaderFailOnMissingInformer: true,
 	}, nil
+}
+
+// ownedResourceSelector selects resources the Dashboard controller deploys: the
+// dashboard bundle and the MaaS Portal operand.
+func ownedResourceSelector() (k8slabels.Selector, error) {
+	ownedRequirement, err := k8slabels.NewRequirement(
+		platformlabels.PlatformPartOf,
+		selection.In,
+		[]string{strings.ToLower(v1alpha1.DashboardKind), maasPortalPartOf},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("building owned-resource cache selector: %w", err)
+	}
+	return k8slabels.NewSelector().Add(*ownedRequirement), nil
 }
 
 // NewManagerCache builds the cache after the manager has initialized its REST

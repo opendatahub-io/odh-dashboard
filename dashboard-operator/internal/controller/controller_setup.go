@@ -77,6 +77,9 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	if err != nil {
 		return err
 	}
+	if err := addLateOptionalWatches(mgr, dashboardController, r); err != nil {
+		return err
+	}
 	return addOdhDashboardConfigWatch(mgr, dashboardController, r)
 }
 
