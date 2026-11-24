@@ -59,11 +59,13 @@ make run LOG_LEVEL=DEBUG
 | `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME` | Name of the OdhDashboardConfig CR (default `odh-dashboard-config`) |
 | `-enabled-apps-cm` | `ENABLED_APPS_CM` | Name of the ConfigMap tracking enabled applications |
 | `-mf-remotes-config` | `MF_REMOTES_CONFIG` | Path to module federation remotes config file |
-| `-model-serving-host` | `MODEL_SERVING_HOST` | Override URL for model-serving proxy target (default: auto-constructed from namespace). Must be an absolute base URL without a query or fragment; `https` unless `DEV_MODE=true` |
+| `-model-serving-host` | `MODEL_SERVING_HOST` | Override URL for model-serving proxy target (default: auto-constructed from namespace). Must be an absolute base URL without a query or fragment; `https` unless `DEV_MODE=true`. A path is kept as the prefix routes are mounted under |
 | `-prometheus-host` | `PROMETHEUS_HOST` | Full Prometheus/Thanos host URL override. Must be an absolute base URL without a query or fragment; `https` unless `DEV_MODE=true` |
 | `-prometheus-namespace` | `PROMETHEUS_NAMESPACE` | Prometheus/Thanos namespace (default `openshift-monitoring`) |
 | `-prometheus-instance` | `PROMETHEUS_INSTANCE` | Prometheus/Thanos instance name (default `thanos-querier`) |
 | `-prometheus-port` | `PROMETHEUS_PORT` | Prometheus/Thanos RBAC port (default `9092`); must be 1-65535 |
+
+Settings that name Kubernetes objects (`NAMESPACE`, `OPERATOR_NAMESPACE`, `WORKBENCH_NAMESPACE`, `PROMETHEUS_NAMESPACE`, `PROMETHEUS_INSTANCE`, `DASHBOARD_CONFIG_NAME`, `ENABLED_APPS_CM`) must be valid Kubernetes names; startup names the setting and omits the value. See [runtime-contract.md](../docs/runtime-contract.md#kubernetes-names).
 
 ### TLS
 
@@ -189,7 +191,7 @@ cd .. && make docker-build
 
 Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 
-- **user_token** (default): extracts a bearer token from the configured header and performs SelfSubjectReview.
+- **user_token** (default): extracts a bearer token from the configured header and performs SelfSubjectReview. With `DEV_MODE=true`, a request with no token runs on the kubeconfig identity; a malformed token is still rejected with 401.
 - **disabled**: skips identity extraction entirely. Useful for local development or testing.
 
 ### Enabling CORS

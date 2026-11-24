@@ -103,9 +103,21 @@ of failing the first request. Without `PROMETHEUS_HOST` the target is derived as
 `https://<instance>.<namespace>.svc.cluster.local:<port>`, so `PROMETHEUS_PORT` must be a port
 number and the assembled URL must pass the same checks. Both targets receive the caller's bearer
 token, so they require `https` unless `DEV_MODE=true`, including when only `MOCK_K8S_CLIENT` is
-set; the loopback mock Prometheus started when no host is configured is not affected. The
-Prometheus client refuses a redirect that changes the scheme, host or effective port before
-sending it. Problems name the setting, never the value.
+set; the loopback mock Prometheus started when no host is configured is not affected. A path in
+`MODEL_SERVING_HOST` is a base the upstream is mounted under: `https://models.example/serving`
+receives `/serving/<route>`. The same holds for a kubeconfig API server URL with a path, on both
+the HTTP and the WebSocket proxy. The Prometheus and inter-BFF clients refuse a redirect that
+changes the scheme, host or effective port before sending it, since net/http would forward the
+caller's token on such a redirect. Problems name the setting, never the value.
+
+### Kubernetes names
+
+`NAMESPACE`, `OPERATOR_NAMESPACE`, `WORKBENCH_NAMESPACE` and `PROMETHEUS_NAMESPACE` must be valid
+namespace names (DNS-1123 labels), `PROMETHEUS_INSTANCE` a valid Service name (DNS-1035 label), and
+`DASHBOARD_CONFIG_NAME` and `ENABLED_APPS_CM` valid object names (DNS-1123 subdomains), when set.
+These values end up in API paths and in-cluster DNS names, so a value such as
+`monitoring/thanos-querier` would otherwise change the request target. Problems name the setting,
+never the value.
 
 ## Profiles
 
@@ -181,8 +193,12 @@ kubeconfig client certificate is the BFF's own identity, and the API server does
 authenticator wins when a request carries both. The proxies therefore present it only on a
 `DEV_MODE` fallback request, one that arrived without a caller token and runs on the developer's
 kubeconfig identity; a `DEV_MODE` request that carries its own token is authenticated by that token
-alone. Outside `DEV_MODE` the certificate is used only by the service-account clients, and every
-caller client is built from the kubeconfig validated at startup rather than a later re-read. With
+alone. Only a request with no credential falls back: in `DEV_MODE` a credential that was sent but
+is malformed (wrong prefix, empty token) is answered with 401, never with the fallback identity.
+Outside `DEV_MODE` the certificate is used only by the service-account clients. Every startup
+consumer reads the one kubeconfig validated at startup rather than a later re-read: the caller
+clients, the platform discovery probes (which run on the service-account clients), and the
+proxies' API server host and TLS settings. With
 `MOCK_K8S_CLIENT` the proxies present the envtest certificate, because they act as that identity.
 The HTTP proxy adds impersonation headers for the caller; the WebSocket handshake builds its own
 headers and does not, so WebSocket requests against envtest run as the envtest identity.
