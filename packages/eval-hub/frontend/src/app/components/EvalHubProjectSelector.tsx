@@ -1,6 +1,7 @@
 import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 
 type EvalHubProjectSelectorProps = {
@@ -16,8 +17,15 @@ const EvalHubProjectSelector: React.FC<EvalHubProjectSelectorProps> = ({
 }) => {
   const { search } = useLocation();
   const navigate = useNavigate();
+  const unifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
   const { namespaces, updatePreferredNamespace, namespacesLoaded } =
     useNamespaceSelectorWithPersistence();
+
+  if (unifiedProjectSelectorEnabled) {
+    return null;
+  }
 
   return (
     <div data-testid="eval-hub-project-selector">
