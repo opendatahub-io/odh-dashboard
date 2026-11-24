@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -100,10 +101,17 @@ func (r *ConnectionTypeRepository) Update(ctx context.Context, namespace, name s
 	if err != nil {
 		return nil, err
 	}
-	if _, resp, err := r.getValidatedConnectionType(ctx, cs, namespace, name); err != nil || resp != nil {
+	existing, resp, err := r.getValidatedConnectionType(ctx, cs, namespace, name)
+	if err != nil || resp != nil {
 		return resp, err
 	}
 
+	// Bind the write to the ConfigMap that was validated: if it changed since,
+	// the API server rejects the update as a conflict instead of writing over
+	// an object that was not checked. A version the client sent is kept.
+	if cm.ResourceVersion == "" {
+		cm.ResourceVersion = existing.ResourceVersion
+	}
 	_, updateErr := cs.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if updateErr != nil {
 		if r.clients.surfacesAuthFailure(updateErr) {
@@ -120,11 +128,13 @@ func (r *ConnectionTypeRepository) Patch(ctx context.Context, namespace, name st
 	if err != nil {
 		return nil, err
 	}
-	if _, resp, err := r.getValidatedConnectionType(ctx, cs, namespace, name); err != nil || resp != nil {
+	existing, resp, err := r.getValidatedConnectionType(ctx, cs, namespace, name)
+	if err != nil || resp != nil {
 		return resp, err
 	}
 
-	_, err = cs.CoreV1().ConfigMaps(namespace).Patch(ctx, name, types.JSONPatchType, patchData, metav1.PatchOptions{})
+	_, err = cs.CoreV1().ConfigMaps(namespace).Patch(ctx, name, types.JSONPatchType,
+		boundJSONPatch(patchData, existing.ResourceVersion), metav1.PatchOptions{})
 	if err != nil {
 		if r.clients.surfacesAuthFailure(err) {
 			return nil, err
@@ -160,17 +170,42 @@ func (r *ConnectionTypeRepository) Delete(ctx context.Context, namespace, name s
 	if err != nil {
 		return nil, err
 	}
-	if _, resp, err := r.getValidatedConnectionType(ctx, cs, namespace, name); err != nil || resp != nil {
+	existing, resp, err := r.getValidatedConnectionType(ctx, cs, namespace, name)
+	if err != nil || resp != nil {
 		return resp, err
 	}
 
-	if err := cs.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+	// Delete only the ConfigMap that was validated.
+	rv := existing.ResourceVersion
+	if err := cs.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{
+		Preconditions: &metav1.Preconditions{ResourceVersion: &rv},
+	}); err != nil {
 		if r.clients.surfacesAuthFailure(err) {
 			return nil, err
 		}
 		return &models.MutationResponse{Success: false, Error: err.Error()}, nil
 	}
 	return &models.MutationResponse{Success: true, Error: ""}, nil
+}
+
+// boundJSONPatch prepends a "test" operation on metadata.resourceVersion, so
+// the API server applies the patch only to the ConfigMap that was validated:
+// a JSON Patch fails as a whole when a test fails. A body that is not a JSON
+// array is passed through unchanged for the API server to reject.
+func boundJSONPatch(patchData []byte, resourceVersion string) []byte {
+	var ops []json.RawMessage
+	if resourceVersion == "" || json.Unmarshal(patchData, &ops) != nil {
+		return patchData
+	}
+	test, err := json.Marshal(map[string]string{"op": "test", "path": "/metadata/resourceVersion", "value": resourceVersion})
+	if err != nil {
+		return patchData
+	}
+	bound, err := json.Marshal(append([]json.RawMessage{test}, ops...))
+	if err != nil {
+		return patchData
+	}
+	return bound
 }
 
 func requireConnectionTypeLabels(cm *corev1.ConfigMap) *models.MutationResponse {
