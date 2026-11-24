@@ -49,8 +49,11 @@ set a different value for an operator-managed deployment.
 | `RELATED_IMAGE_ODH_RHAII_DASHBOARD_IMAGE` | RHAII dashboard image |
 | `RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE` | kube-rbac-proxy image |
 
-The checked-in dashboard `:main` reference remains a development fallback, not
-a release selection mechanism.
+`RELATED_IMAGE_ODH_RHAII_DASHBOARD_IMAGE` is required for now. The checked-in
+`quay.io/opendatahub/rhaii-dashboard:main` reference is a placeholder for the
+image that has not been published yet, so without the override the Deployment
+stays in `ImagePullBackOff`. Once the image ships, that reference becomes a
+development fallback, not a release selection mechanism.
 
 ### Certificate issuer contract
 
