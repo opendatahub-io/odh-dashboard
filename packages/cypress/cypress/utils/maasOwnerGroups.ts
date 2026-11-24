@@ -9,10 +9,11 @@ const OWNER_GROUPS_PLACEHOLDER = /\{\s*\{\s*OWNER_GROUPS\s*\}\s*\}/;
 
 /**
  * Coerces MAAS_OWNER_GROUPS into group names—either an array of strings or one comma-separated value.
- * Supplies a duplicate of the defaults if the value is missing or parses to nothing usable.
+ * Returns a copy of the defaults only when the setting is absent (undefined or null). Throws when
+ * it is set but names no group, so an empty value never grants the default groups.
  */
 export const parseMaaSOwnerGroups = (value: unknown): string[] => {
-  if (value === undefined || value === null || value === '') {
+  if (value === undefined || value === null) {
     return [...DEFAULT_MAAS_OWNER_GROUPS];
   }
   const entries = typeof value === 'string' ? value.split(',') : value;
@@ -20,7 +21,12 @@ export const parseMaaSOwnerGroups = (value: unknown): string[] => {
     throw new Error('MAAS_OWNER_GROUPS must be a list of group names or a comma-separated string');
   }
   const groups = entries.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
-  return groups.length > 0 ? groups : [...DEFAULT_MAAS_OWNER_GROUPS];
+  if (groups.length === 0) {
+    throw new Error(
+      'MAAS_OWNER_GROUPS is set but names no group; set at least one group name, or remove the setting to use the defaults',
+    );
+  }
+  return groups;
 };
 
 /**

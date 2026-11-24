@@ -14,9 +14,18 @@ const readFixture = (name: string): string =>
   fs.readFileSync(path.resolve(__dirname, '../../fixtures/resources/maas', name), 'utf8');
 
 describe('parseMaaSOwnerGroups', () => {
-  it.each([undefined, null, '', [], ' , ', ['', ' ']])('returns the defaults for %p', (value) => {
+  it.each([undefined, null])('returns the defaults when the setting is %p', (value) => {
     assert(parseMaaSOwnerGroups(value)).toEqual(['rhods-admins', 'rhods-users']);
   });
+
+  it.each(['', ' ', ' , ', [], [''], ['', ' ']])(
+    'rejects the explicitly empty setting %p',
+    (value) => {
+      assert(() => parseMaaSOwnerGroups(value)).toThrow(
+        'MAAS_OWNER_GROUPS is set but names no group',
+      );
+    },
+  );
 
   it('returns a copy of the defaults, not the shared list', () => {
     const groups = parseMaaSOwnerGroups(undefined);
@@ -66,13 +75,27 @@ describe('getOwnerGroupsReplacements', () => {
     });
   });
 
-  it('does not read the setting for a fixture without the placeholder', () => {
-    assert(getOwnerGroupsReplacements('groups: {{USER_GROUPS}}', {}, 42)).toEqual({});
+  it('rejects an explicitly empty setting when the fixture has the placeholder', () => {
+    assert(() => getOwnerGroupsReplacements(withPlaceholder, {}, [])).toThrow(
+      'MAAS_OWNER_GROUPS is set but names no group',
+    );
   });
 
-  it('does not read the setting when the caller passes OWNER_GROUPS', () => {
-    assert(getOwnerGroupsReplacements(withPlaceholder, { OWNER_GROUPS: '[]' }, 42)).toEqual({});
-  });
+  it.each([42, '', []])(
+    'does not read the setting %p for a fixture without the placeholder',
+    (setting) => {
+      assert(getOwnerGroupsReplacements('groups: {{USER_GROUPS}}', {}, setting)).toEqual({});
+    },
+  );
+
+  it.each([42, ''])(
+    'does not read the setting %p when the caller passes OWNER_GROUPS',
+    (setting) => {
+      assert(getOwnerGroupsReplacements(withPlaceholder, { OWNER_GROUPS: '[]' }, setting)).toEqual(
+        {},
+      );
+    },
+  );
 });
 
 describe('default MaaS fixtures with OWNER_GROUPS', () => {

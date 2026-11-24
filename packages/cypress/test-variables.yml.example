@@ -71,7 +71,8 @@ MAAS_PORTAL_ORGANIZATION_ID: your-organization-id
 MAAS_PORTAL_USER_GROUPS:
   - your-organization-id/ai-grid-users
 # Optional. Groups that own the MaaSSubscription and MaaSAuthPolicy the MaaS specs create from
-# the default fixtures; the test users must be in one of them. Default: rhods-admins, rhods-users.
+# the default fixtures; the test users must be in one of them. Default when unset: rhods-admins,
+# rhods-users. An empty value is an error.
 # MAAS_OWNER_GROUPS:
 #   - rhods-admins
 #   - rhods-users
