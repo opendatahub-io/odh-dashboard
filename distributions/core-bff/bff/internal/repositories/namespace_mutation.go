@@ -110,8 +110,9 @@ func buildMutationPatch(appCase models.NamespaceApplicationCase) (*namespacePatc
 // IsCredentialFailure reports whether err from ApplyMutation means the caller's
 // own credential could not be used (caller policy only): no resolved identity,
 // or a token the API server rejected. A mutation the credential may not
-// perform, or a server-side failure building clients, is not one. Under the service-account policy a
-// 401 concerns the dashboard's credential, never the caller's.
+// perform, or a server-side failure building clients, is not one. Under the
+// service-account policy a 401 concerns the dashboard's credential, never the
+// caller's.
 func (r *NamespaceMutationRepository) IsCredentialFailure(err error) bool {
 	return r.clients.policy == CredentialPolicyCaller &&
 		(errors.Is(err, httpcontract.ErrIdentityUnresolved) || k8serrors.IsUnauthorized(err))
