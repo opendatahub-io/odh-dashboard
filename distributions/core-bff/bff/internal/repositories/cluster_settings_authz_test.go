@@ -538,3 +538,28 @@ func TestClusterSettings_SegmentKeyReadError_ServiceAccountGetAndSaveAgree(t *te
 	_, err = repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", &enable, defaultDashConfig())
 	require.Error(t, err)
 }
+
+// Review pass 7: culling switched on without a readable idle time shows as
+// off in GET while the controller still culls; saving "off" deletes the map.
+func TestClusterSettings_CullingOnWithoutIdleTime_SaveOffDeletes(t *testing.T) {
+	for _, idle := range []string{"", "abc"} {
+		cm := versioned(cullerCM(true, idle), "1")
+		if idle == "" {
+			delete(cm.Data, keyCullIdleTime)
+		}
+		cm.Data[keyCullingEnabled] = "True"
+		caller := newClientPair(cm, &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: notebookControllerDeploy, Namespace: credNS}})
+		allowAllBut(caller, nil)
+		repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+		shown, err := repo.GetClusterSettings(context.Background(), credNS, defaultDashConfig())
+		require.NoError(t, err)
+		require.Equal(t, defaultCullerTimeout, shown.CullerTimeout)
+		plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", shown, defaultDashConfig())
+		require.NoError(t, err)
+		assert.Equal(t, cullerOpDelete, plan.cullerOp, "idle=%q", idle)
+		require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
+		_, getErr := caller.typed.CoreV1().ConfigMaps(credNS).Get(context.Background(), cullerConfigName, metav1.GetOptions{})
+		assert.True(t, k8serrors.IsNotFound(getErr))
+	}
+}

@@ -126,6 +126,12 @@ func (r *ClusterSettingsRepository) buildPlan(
 	// and an absent segmentKeyEnabled is tracking disabled.
 	currentTimeout := cullerTimeoutOf(culler)
 	switch {
+	case settings.CullerTimeout == defaultCullerTimeout && culler != nil && cullingFlagOn(culler) && currentTimeout == defaultCullerTimeout:
+		// Culling is switched on but has no readable idle time, so GET shows it
+		// off while the notebook controller still culls with its own default.
+		// Saving "off" removes the ConfigMap so culling really stops.
+		plan.cullerOp = cullerOpDelete
+		plan.writes = append(plan.writes, clusterSettingsWrite{resource: "configmaps", verb: "delete", name: cullerConfigName})
 	case settings.CullerTimeout == currentTimeout:
 		// Unchanged, including culling off with the ConfigMap absent or disabled.
 		plan.cullerOp = cullerOpNone

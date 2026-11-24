@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -27,7 +28,7 @@ func readCullerTimeout(ctx context.Context, saClientset kubernetes.Interface, na
 // cullerTimeoutOf returns the culler timeout, in seconds, a culler ConfigMap
 // stores; defaultCullerTimeout (culling off) when it is nil or disabled.
 func cullerTimeoutOf(cm *corev1.ConfigMap) int {
-	if cm == nil || cm.Data == nil || cm.Data[keyCullingEnabled] != "true" {
+	if !cullingFlagOn(cm) {
 		return defaultCullerTimeout
 	}
 	if idleTime, ok := cm.Data[keyCullIdleTime]; ok {
@@ -44,6 +45,12 @@ func readUserTrackingEnabled(ctx context.Context, saClientset kubernetes.Interfa
 		return false, fmt.Errorf("failed to get segment key config: %w", err)
 	}
 	return trackingEnabledOf(cm), nil
+}
+
+// cullingFlagOn reports whether a culler ConfigMap turns culling on
+// (ENABLE_CULLING "true", in any case).
+func cullingFlagOn(cm *corev1.ConfigMap) bool {
+	return cm != nil && strings.EqualFold(cm.Data[keyCullingEnabled], "true")
 }
 
 // trackingEnabledOf returns the user-tracking setting a segment-key ConfigMap
