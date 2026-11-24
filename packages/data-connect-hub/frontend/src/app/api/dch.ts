@@ -3,6 +3,7 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Connection,
   ConnectionType,
+  ConnectionNameAvailability,
   CreateConnectionRequest,
   TestCredentialsRequest,
 } from '~/app/types';
@@ -140,6 +141,46 @@ export const getConnections =
       parsed.data.every(isConnection)
     ) {
       return parsed.data;
+    }
+    throw new Error('Invalid response format');
+  };
+
+export const getConnectionNameAvailability =
+  (hostPath: string) =>
+  async (
+    opts: APIOptions,
+    namespace: string,
+    name: string,
+  ): Promise<ConnectionNameAvailability> => {
+    const searchParams = new URLSearchParams({ namespace, name });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connection-name-availability?${searchParams.toString()}`,
+      {
+        method: 'GET',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    const body = await response.text();
+
+    if (!response.ok) {
+      throw new ConnectionApiError(getResponseErrorMessage(body, response.status), response.status);
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      throw new Error('Invalid response format');
+    }
+    if (
+      isModArchResponse<unknown>(parsed) &&
+      isRecord(parsed.data) &&
+      typeof parsed.data.available === 'boolean' &&
+      Array.isArray(parsed.data.conflicts_with) &&
+      parsed.data.conflicts_with.every((conflict) => typeof conflict === 'string')
+    ) {
+      return parsed.data as ConnectionNameAvailability;
     }
     throw new Error('Invalid response format');
   };

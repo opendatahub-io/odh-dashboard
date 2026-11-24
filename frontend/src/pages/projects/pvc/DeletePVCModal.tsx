@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
 import { deletePvc, removeNotebookPVC } from '#~/api';
 import {
   useRelatedNotebooks,
@@ -23,6 +24,11 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
     pvcToDelete.metadata.name,
   );
   const connectedModels = useInferenceServicesForConnection(pvcToDelete);
+  const connectedResources: ConnectedResourceLabel[] = connectedModels.map((model) => ({
+    key: model.metadata.name,
+    title: getDisplayNameFromK8sResource(model),
+    kind: 'connected-models',
+  }));
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -63,7 +69,7 @@ const DeletePVCModal: React.FC<DeletePVCModalProps> = ({ pvcToDelete, onClose })
       dependent resources will stop working.
       <ConnectedResourcesDeleteModal
         connectedNotebooks={connectedNotebooks}
-        connectedModels={connectedModels}
+        connectedResources={connectedResources}
         loaded={notebookLoaded}
         namespace={pvcToDelete.metadata.namespace}
       />

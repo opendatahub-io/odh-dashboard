@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -17,6 +18,26 @@ type ConnectionsEnvelope Envelope[[]Connection, None]
 
 const ConnectionsPath = ApiPathPrefix + "/connections"
 const ConnectionPath = ApiPathPrefix + "/connections/:id"
+const ConnectionNameAvailabilityPath = ApiPathPrefix + "/connection-name-availability"
+
+type ConnectionNameAvailability struct {
+	Available     bool     `json:"available"`
+	ConflictsWith []string `json:"conflicts_with"`
+}
+
+type ConnectionNameAvailabilityEnvelope Envelope[ConnectionNameAvailability, None]
+
+func (app *App) listConnections(
+	ctx context.Context,
+	identity *k8s.RequestIdentity,
+	namespace string,
+) ([]Connection, error) {
+	repository, err := app.dataConnectHubRepository(ctx, identity, namespace)
+	if err != nil {
+		return nil, err
+	}
+	return repository.ListConnections(ctx)
+}
 
 func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
