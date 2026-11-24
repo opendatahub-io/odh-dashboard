@@ -35,6 +35,41 @@ parent reference through Kustomize. By default the bundle targets:
 The Gateway's attachment policy must permit the HTTPRoute. The Gateway owns the
 external hostname, so this lifecycle intentionally leaves `status.url` empty.
 
+### Backend TLS
+
+kube-rbac-proxy terminates TLS on the `rhaii-dashboard` Service port 8443, so
+the Gateway must originate TLS for the Gateway-to-dashboard hop. The Service's
+`appProtocol: https` describes the port; it does not make a Gateway originate
+TLS. A Gateway that sends plaintext gets `400 Client sent an HTTP request to an
+HTTPS server` from the proxy, even while `DashboardAvailable=True`, because
+route admission does not prove reachability.
+
+On xKS, the platform `GatewayConfig` provisions the Istio `rh-ai-gateway` and
+renders the `data-science-tls-rule` DestinationRule in the Gateway namespace,
+which originates TLS on port 8443. This is the same contract the OpenShift
+dashboard Service relies on, so the bundle ships no TLS policy of its own.
+
+Other Gateway API implementations, such as Envoy Gateway, need a
+`BackendTLSPolicy` that targets the `rhaii-dashboard` Service, trusts the CA of
+the configured issuer through a ConfigMap, and validates the hostname
+`rhaii-dashboard.<applications namespace>.svc`. The bundle does not render one:
+the CA must be distributed into the applications namespace, and the
+BackendTLSPolicy CRD is optional.
+
+### Network policy
+
+The `rhaii-dashboard` NetworkPolicy admits port 8443 only from Pods that carry
+`gateway.networking.k8s.io/gateway-name: <gateway-name>` in the
+`<gateway-namespace>` namespace. This matches Istio, which runs the Gateway data
+plane in the Gateway's own namespace. Implementations that run proxies
+elsewhere are blocked: Envoy Gateway runs them in `envoy-gateway-system` by
+default and returns `503` until an additional NetworkPolicy admits them.
+
+Kubelet probes on the dashboard port 8080 and the kube-rbac-proxy health port
+8444 need no rule, because NetworkPolicy always admits traffic from a Pod's
+own node. Both ports stay closed to every other peer. Port 8080 is the
+plaintext upstream behind kube-rbac-proxy.
+
 ## Configuration
 
 The operator deploys the bundle to `APPLICATIONS_NAMESPACE`; when that variable
@@ -136,6 +171,9 @@ cross-namespace resources requiring explicit finalizer cleanup.
 | `DeploymentNotAvailable` | The workload has not completed rollout. | Inspect Deployment conditions and Pods. |
 | `HTTPRouteNotFound` | The route has not appeared. | Check rendering, apply status, and namespace. |
 | `HTTPRouteNotAccepted` | The Gateway has not accepted the route or resolved its backend. | Inspect HTTPRoute parent status, Gateway policy, and Service. |
+| `HTTPRouteAPIUnavailable` | The Gateway API HTTPRoute resource is not installed. | Install Gateway API; availability converges without an operator restart. |
+| `DeploymentRolloutInProgress` | A rolling update is in progress while available Pods keep serving (Info severity). | None; `Ready` stays `True` unless the rollout stalls. |
+| `400 Client sent an HTTP request to an HTTPS server` through the Gateway | The Gateway is not originating TLS to port 8443. | See [Backend TLS](#backend-tls). |
 | `Ready=False` after apply | Availability or a diagnosed condition is still false. | Start with `DashboardAvailable`, then inspect the condition message. |
 
 For bundle parameters and local rendering, see the [manifest guide](../manifests/README.md).
