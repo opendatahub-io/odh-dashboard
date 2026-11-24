@@ -55,6 +55,7 @@ describe('Core BFF namespace access - XKS Platform', () => {
       view: true,
       deploy: false,
       edit: false,
+      startStop: false,
       delete: false,
       manageTokenAuth: false,
     });
@@ -67,7 +68,9 @@ describe('Core BFF namespace access - XKS Platform', () => {
     const data = dataOf(await userAClient.get(PATH));
     expect(data.namespaces.map((ns) => ns.name)).toEqual(['test-ns-a']);
     expect(data.namespaces[0].actions.deploy).toBe(true);
+    expect(data.namespaces[0].actions.startStop).toBe(true);
     expect(data.namespaces[0].actions.delete).toBe(true);
+    expect(data.namespaces[0].actions.manageTokenAuth).toBe(true);
   });
 
   it('uses the cluster list for a caller who may list namespaces', async () => {
