@@ -50,13 +50,7 @@
   }
 
   &__help {
-    align-self: center;
     min-height: auto;
-    padding: 0;
-  }
-
-  &__section-heading {
-    margin-block-end: var(--pf-t--global--spacer--sm);
   }
 
   &__filter-toggle.pf-v6-c-menu-toggle {

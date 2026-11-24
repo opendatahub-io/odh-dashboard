@@ -275,6 +275,37 @@ describe('WorkingProjectSelector', () => {
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(2));
   });
 
+  it('should scroll to a reviewed project when it arrives after the selector opens', async () => {
+    const reviewedProject = { name: 'reviewed-project' };
+    const { rerender } = render(
+      <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={jest.fn()}>
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    const scrollIntoView = jest.mocked(HTMLElement.prototype.scrollIntoView);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[reviewedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+  });
+
   it('should return to the disabled initial state after closing a creation review', () => {
     const { rerender } = render(
       <WorkingProjectProvider

@@ -67,7 +67,7 @@ type Props = {
   onProjectSelected?: (project: ProjectIdentity) => void;
   onProjectReviewClosed?: () => void;
   projectToReview?: string;
-  emptyListContent: React.ReactNode | ((onCreateProject: () => void) => React.ReactNode);
+  emptyListContent: React.ReactNode | ((onClose: () => void) => React.ReactNode);
 };
 
 const selectorHelp = {
@@ -85,7 +85,7 @@ const SelectorHelp: React.FC<{ title: string; content: string; testId: string }>
   <Popover showClose headerContent={title} bodyContent={content}>
     <Button
       variant="plain"
-      className="odh-working-project-selector__help"
+      className="odh-working-project-selector__help pf-v6-u-p-0"
       data-testid={testId}
       aria-label={`${title} information`}
     >
@@ -559,7 +559,7 @@ const WorkingProjectModal: React.FC<
         scrollFrameRef.current = undefined;
       }
     };
-  }, [projectToReview]);
+  }, [projectToReview, visibleProjects]);
   const canSelectProject =
     status === WorkingProjectStatusValue.Listed ||
     status === WorkingProjectStatusValue.ListingUnavailable ||
@@ -620,7 +620,7 @@ const WorkingProjectModal: React.FC<
                 <StackItem>
                   {!manualFallback && (
                     <Flex
-                      className="odh-working-project-selector__section-heading"
+                      className="pf-v6-u-mb-sm"
                       alignItems={{ default: 'alignItemsCenter' }}
                       spaceItems={{ default: 'spaceItemsSm' }}
                     >
