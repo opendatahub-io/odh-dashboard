@@ -396,6 +396,7 @@ func TestCallerAuth_DevModeBlankHeaderOnTheWire_NoFallback(t *testing.T) {
 		{"ordered, blank Authorization", []string{"Authorization", "x-forwarded-access-token"}, "Authorization:   "},
 		{"ordered, whitespace-only forwarded", []string{"Authorization", "x-forwarded-access-token"}, "X-Forwarded-Access-Token: \t "},
 		{"legacy header, blank", nil, "X-Forwarded-Access-Token:"},
+		{"list mode, token only in the legacy AUTH_TOKEN_HEADER", []string{"Authorization"}, "X-Forwarded-Access-Token: some-token"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			app := newTestApp(func(a *App) {

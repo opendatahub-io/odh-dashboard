@@ -9,6 +9,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
@@ -366,7 +367,7 @@ func (f *deniedAccessFactory) GetClient(_ context.Context) (k8s.KubernetesClient
 }
 
 // Review pass 3: applied:false is the answer for a mutation the credential may
-// not perform. Caller credentials that cannot be used at all are a 401.
+// not perform. A caller identity that cannot be resolved is a 401.
 func TestNamespaceMutation_CallerClientsUnavailable_Returns401(t *testing.T) {
 	const ns = "ns-caller-unavailable"
 	ensureNamespace(t, ns)
@@ -377,7 +378,7 @@ func TestNamespaceMutation_CallerClientsUnavailable_Returns401(t *testing.T) {
 			PlatformConfirmed: true,
 			SAClientset:       testSAClientset,
 			CallerClients: func(context.Context) (k8sclient.Interface, dynamic.Interface, error) {
-				return nil, nil, fmt.Errorf("token client could not be built")
+				return nil, nil, fmt.Errorf("no caller identity on the request: %w", httpcontract.ErrIdentityUnresolved)
 			},
 		})
 	})

@@ -329,6 +329,8 @@ if [[ -n "$bff_pid" ]]; then
   [[ -n "$AD" ]] && printf '%s\n' "$AD" >>"$work/needles"
   leaks=$(grep -cFf "$work/needles" "$work/bff.log" || true)
   check L1 "token values in the debug log" 0 "$leaks"
+else
+  skip L1 "token values in the debug log" "BFF_URL given; its log is not available"
 fi
 
 echo

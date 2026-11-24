@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
+
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -311,6 +313,8 @@ func TestNamespaceMutation_IsCredentialFailure_ByPolicy(t *testing.T) {
 
 	caller := &NamespaceMutationRepository{clients: clientSource{policy: CredentialPolicyCaller}}
 	assert.True(t, caller.IsCredentialFailure(unauth))
-	assert.True(t, caller.IsCredentialFailure(fmt.Errorf("wrapped: %w", ErrCallerClientsUnavailable)))
+	assert.True(t, caller.IsCredentialFailure(fmt.Errorf("%w: %w", ErrCallerClientsUnavailable, httpcontract.ErrIdentityUnresolved)))
+	assert.False(t, caller.IsCredentialFailure(fmt.Errorf("%w: failed to get kubeconfig", ErrCallerClientsUnavailable)),
+		"a server-side failure building clients is not the caller's credential")
 	assert.False(t, caller.IsCredentialFailure(forbidden), "a denial stays applied:false")
 }

@@ -84,18 +84,6 @@ type Credential struct {
 	Header string
 }
 
-// Sent reports whether the request carries any configured credential header
-// at all, even with an empty value. Only a request for which it is false has
-// no credential; DEV_MODE substitutes its kubeconfig identity only then.
-func (e Extractor) Sent(h http.Header) bool {
-	for _, header := range e.headers {
-		if _, ok := h[header]; ok {
-			return true
-		}
-	}
-	return false
-}
-
 // Extract resolves the caller credential.
 //
 // Errors wrap httpcontract.ErrCredentialsMissing (no credential header present)
@@ -140,7 +128,7 @@ func (e Extractor) extractLegacy(h http.Header) (Credential, error) {
 //   - A header that is absent, or present with an empty value, is skipped.
 //     net/http trims header whitespace, so a whitespace-only value sent on
 //     the wire also arrives empty and is skipped. (DEV_MODE still treats such
-//     a request as having sent a credential; see Sent.)
+//     a request as having sent a credential.)
 //   - A header that is present must be well formed. A malformed header fails
 //     the request; it never falls through to the next header, because the
 //     edge may have authenticated exactly that header.
