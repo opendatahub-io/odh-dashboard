@@ -70,22 +70,26 @@ const renderHardwareProfileYaml = (
 
 export const cleanupEvalHubHardwareProfile = (
   profileName: string,
+  reportFailure?: (message: string) => void,
 ): Cypress.Chainable<CommandLineResult> => {
   const namespace = getEvalHubApplicationsNamespace();
   assertEvalHubResourceName(profileName, 'EvalHub HardwareProfile name');
 
   const deleteCommand =
-    `oc delete hardwareprofiles "${profileName}" -n "${namespace}" ` +
+    `oc --request-timeout=60s delete hardwareprofiles "${profileName}" -n "${namespace}" ` +
     '--ignore-not-found --wait=true --timeout=60s';
   cy.log(`Deleting EvalHub HardwareProfile ${profileName} from ${namespace}`);
 
-  return cy.exec(deleteCommand, { failOnNonZeroExit: false }).then((result) => {
+  return cy.exec(deleteCommand, { failOnNonZeroExit: false, timeout: 70000 }).then((result) => {
     if (result.exitCode !== 0) {
-      throw new Error(
-        `Failed to delete EvalHub HardwareProfile ${profileName} in ${namespace}: ${
-          result.stderr || result.stdout
-        }`,
-      );
+      const message =
+        `Failed to delete EvalHub HardwareProfile ${profileName} in ${namespace}: ` +
+        `${result.stderr || result.stdout}`;
+      if (reportFailure) {
+        reportFailure(message);
+        return result;
+      }
+      throw new Error(message);
     }
     return result;
   });
@@ -132,24 +136,42 @@ export const setupEvalHubKueueResources = (
       ),
     );
 
-export const deleteEvalHubClusterQueue = (name: string): Cypress.Chainable<CommandLineResult> =>
+export const deleteEvalHubClusterQueue = (
+  name: string,
+  reportFailure?: (message: string) => void,
+): Cypress.Chainable<CommandLineResult> =>
   cy
     .exec(
-      `oc delete clusterqueue ${assertEvalHubResourceName(
+      `oc --request-timeout=15s delete clusterqueue ${assertEvalHubResourceName(
         name,
         'EvalHub ClusterQueue name',
       )} --ignore-not-found --wait=false`,
-      { failOnNonZeroExit: false },
+      { failOnNonZeroExit: false, timeout: 25000 },
     )
-    .then((result) => assertCommandSucceeded(result, `Delete ClusterQueue ${name}`));
+    .then((result) => {
+      if (result.exitCode !== 0 && reportFailure) {
+        reportFailure(`Delete ClusterQueue ${name} failed: ${result.stderr || result.stdout}`);
+        return result;
+      }
+      return assertCommandSucceeded(result, `Delete ClusterQueue ${name}`);
+    });
 
-export const deleteEvalHubResourceFlavor = (name: string): Cypress.Chainable<CommandLineResult> =>
+export const deleteEvalHubResourceFlavor = (
+  name: string,
+  reportFailure?: (message: string) => void,
+): Cypress.Chainable<CommandLineResult> =>
   cy
     .exec(
-      `oc delete resourceflavor ${assertEvalHubResourceName(
+      `oc --request-timeout=15s delete resourceflavor ${assertEvalHubResourceName(
         name,
         'EvalHub ResourceFlavor name',
       )} --ignore-not-found --wait=false`,
-      { failOnNonZeroExit: false },
+      { failOnNonZeroExit: false, timeout: 25000 },
     )
-    .then((result) => assertCommandSucceeded(result, `Delete ResourceFlavor ${name}`));
+    .then((result) => {
+      if (result.exitCode !== 0 && reportFailure) {
+        reportFailure(`Delete ResourceFlavor ${name} failed: ${result.stderr || result.stdout}`);
+        return result;
+      }
+      return assertCommandSucceeded(result, `Delete ResourceFlavor ${name}`);
+    });

@@ -1,11 +1,10 @@
 import { LDAP_ADMIN_USER } from './e2eUsers';
 import { ensureAdminOcSession } from './oc_commands/baseCommands';
-import { deleteOpenShiftProject } from './oc_commands/project';
+import { assertNamespace, doesMlflowExperimentNameExist } from './oc_commands/mlflow';
 import {
   cleanupEvalHubMlflowExperiment,
   waitForEvaluationJobComplete,
 } from './oc_commands/evalHubInstance';
-import { doesMlflowExperimentNameExist } from './oc_commands/mlflow';
 import { removeEvalHubTenantLabel } from './oc_commands/evalHubModelDeploy';
 import { cleanupEvalHubHardwareProfile } from './oc_commands/evalHubHardwareProfile';
 import {
@@ -69,11 +68,17 @@ type EvalHubApiRequest = {
   qs?: Record<string, string | number>;
 };
 
+type EvalHubApiResponse = Cypress.Response<unknown>;
+
+export type EvalHubCleanupContext = {
+  reportFailure: (message: string) => void;
+};
+
 const requestEvalHubApi = (
   request: EvalHubApiRequest,
   operation: string,
   attempt = 1,
-): Cypress.Chainable<Cypress.Response<unknown>> =>
+): Cypress.Chainable<EvalHubApiResponse> =>
   cy
     .request({
       ...request,
@@ -81,7 +86,7 @@ const requestEvalHubApi = (
       retryOnNetworkFailure: true,
       log: false,
     })
-    .then((response) => {
+    .then<EvalHubApiResponse>((response) => {
       if (EVAL_HUB_TRANSIENT_STATUSES.has(response.status) && attempt < EVAL_HUB_API_MAX_ATTEMPTS) {
         cy.log(
           `${operation} returned HTTP ${response.status}; retrying ` +
@@ -93,7 +98,100 @@ const requestEvalHubApi = (
           .then(() => requestEvalHubApi(request, operation, attempt + 1));
       }
 
-      return cy.wrap(response as Cypress.Response<unknown>);
+      return cy.wrap(response as Cypress.Response<unknown>, { log: false });
+    });
+
+/** Uses a caught browser fetch for cleanup so a network error becomes a result, not a Cypress failure. */
+const requestEvalHubCleanupApi = (
+  request: EvalHubApiRequest,
+  operation: string,
+  attempt = 1,
+): Cypress.Chainable<EvalHubApiResponse> =>
+  cy
+    .then(
+      { timeout: 20000 },
+      () =>
+        new Cypress.Promise<EvalHubApiResponse>((resolve) => {
+          const networkFailure = (error: unknown): Cypress.Response<unknown> =>
+            ({
+              status: 0,
+              body: `Network request failed: ${getErrorMessage(error)}`,
+            } as Cypress.Response<unknown>);
+          let appWindow: (Window & { AbortController: typeof AbortController }) | undefined;
+          let timeoutId: number | undefined;
+          const clearTimeout = (): void => {
+            if (timeoutId !== undefined) {
+              try {
+                appWindow?.clearTimeout(timeoutId);
+              } catch {
+                // A stale window should not prevent the cleanup result from being reported.
+              }
+            }
+          };
+
+          try {
+            appWindow = (Cypress as unknown as { state: (key: string) => unknown }).state(
+              'window',
+            ) as (Window & { AbortController: typeof AbortController }) | undefined;
+            if (!appWindow) {
+              resolve({
+                status: 0,
+                body: 'Dashboard window is unavailable for the cleanup request.',
+              } as Cypress.Response<unknown>);
+              return;
+            }
+
+            const url = new URL(request.url, appWindow.location.origin);
+            Object.entries(request.qs ?? {}).forEach(([key, value]) => {
+              url.searchParams.set(key, String(value));
+            });
+
+            const controller = new appWindow.AbortController();
+            timeoutId = appWindow.setTimeout(() => controller.abort(), 15000);
+            appWindow
+              .fetch(url.toString(), {
+                method: request.method,
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
+              })
+              .then(async (response) => {
+                const responseText = await response.text();
+                let body: unknown = responseText;
+                try {
+                  body = JSON.parse(responseText) as unknown;
+                } catch {
+                  // Preserve text and let the caller report a useful unexpected-response warning.
+                }
+                return { status: response.status, body } as Cypress.Response<unknown>;
+              })
+              .catch(networkFailure)
+              .then((response) => {
+                clearTimeout();
+                resolve(response);
+              });
+          } catch (error) {
+            clearTimeout();
+            resolve(networkFailure(error));
+          }
+        }),
+    )
+    .then<EvalHubApiResponse>((response) => {
+      if (
+        (response.status === 0 || EVAL_HUB_TRANSIENT_STATUSES.has(response.status)) &&
+        attempt < EVAL_HUB_API_MAX_ATTEMPTS
+      ) {
+        cy.log(
+          `${operation} returned ${
+            response.status === 0 ? 'a network error' : `HTTP ${response.status}`
+          }; ` + `retrying (${attempt}/${EVAL_HUB_API_MAX_ATTEMPTS})`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting -- bounded cleanup API backoff
+        return cy
+          .wait(EVAL_HUB_API_RETRY_INTERVAL_MS)
+          .then(() => requestEvalHubCleanupApi(request, operation, attempt + 1));
+      }
+      return cy.wrap(response, { log: false });
     });
 
 const extractJobIds = (body: unknown): string[] => {
@@ -159,8 +257,9 @@ const listEvalHubTenantCollections = (
   namespace: string,
   offset = 0,
   collectedCollections: EvalHubCollectionRecord[] = [],
+  cleanupContext?: EvalHubCleanupContext,
 ): Cypress.Chainable<EvalHubCollectionRecord[]> =>
-  requestEvalHubApi(
+  (cleanupContext ? requestEvalHubCleanupApi : requestEvalHubApi)(
     {
       method: 'GET',
       url: '/eval-hub/api/v1/evaluations/collections',
@@ -169,9 +268,25 @@ const listEvalHubTenantCollections = (
     'List EvalHub tenant collections',
   ).then((response) => {
     if (response.status !== 200) {
+      if (cleanupContext) {
+        cleanupContext.reportFailure(
+          `Failed to list EvalHub tenant collections: HTTP ${response.status}: ${String(
+            response.body,
+          )}`,
+        );
+        return cy.wrap(collectedCollections, { log: false });
+      }
       throw new Error(`Failed to list EvalHub tenant collections: HTTP ${response.status}`);
     }
     if (!hasEvalHubListPayload(response.body)) {
+      if (cleanupContext) {
+        cleanupContext.reportFailure(
+          `Failed to list EvalHub tenant collections: ${describeEvalHubPayloadError(
+            response.body,
+          )}`,
+        );
+        return cy.wrap(collectedCollections, { log: false });
+      }
       throw new Error(
         `Failed to list EvalHub tenant collections: ${describeEvalHubPayloadError(response.body)}`,
       );
@@ -185,7 +300,7 @@ const listEvalHubTenantCollections = (
       (totalCount === undefined || allCollections.length < totalCount);
 
     return hasMorePages
-      ? listEvalHubTenantCollections(namespace, offset + 100, allCollections)
+      ? listEvalHubTenantCollections(namespace, offset + 100, allCollections, cleanupContext)
       : cy.wrap(allCollections);
   });
 
@@ -217,8 +332,9 @@ const listEvalHubJobIds = (
   namespace: string,
   offset = 0,
   collectedIds: string[] = [],
+  cleanupContext?: EvalHubCleanupContext,
 ): Cypress.Chainable<string[]> =>
-  requestEvalHubApi(
+  (cleanupContext ? requestEvalHubCleanupApi : requestEvalHubApi)(
     {
       method: 'GET',
       url: '/eval-hub/api/v1/evaluations/jobs',
@@ -227,9 +343,23 @@ const listEvalHubJobIds = (
     'List EvalHub evaluation jobs',
   ).then((response) => {
     if (response.status !== 200) {
+      if (cleanupContext) {
+        cleanupContext.reportFailure(
+          `Failed to list EvalHub evaluation jobs: HTTP ${response.status}: ${String(
+            response.body,
+          )}`,
+        );
+        return cy.wrap(collectedIds, { log: false });
+      }
       throw new Error(`Failed to list EvalHub evaluation jobs: HTTP ${response.status}`);
     }
     if (!hasEvalHubListPayload(response.body)) {
+      if (cleanupContext) {
+        cleanupContext.reportFailure(
+          `Failed to list EvalHub evaluation jobs: ${describeEvalHubPayloadError(response.body)}`,
+        );
+        return cy.wrap(collectedIds, { log: false });
+      }
       throw new Error(
         `Failed to list EvalHub evaluation jobs: ${describeEvalHubPayloadError(response.body)}`,
       );
@@ -238,7 +368,7 @@ const listEvalHubJobIds = (
     const pageIds = extractJobIds(response.body);
     const allIds = [...collectedIds, ...pageIds];
     return pageIds.length === 100
-      ? listEvalHubJobIds(namespace, offset + 100, allIds)
+      ? listEvalHubJobIds(namespace, offset + 100, allIds, cleanupContext)
       : cy.wrap(allIds);
   });
 
@@ -299,8 +429,12 @@ export const waitForEvaluationRunComplete = (
   return cy.then(() => poll(Date.now() + timeoutMs));
 };
 
-const deleteEvalHubEvaluationJob = (namespace: string, jobId: string): Cypress.Chainable<void> =>
-  requestEvalHubApi(
+const deleteEvalHubEvaluationJob = (
+  namespace: string,
+  jobId: string,
+  cleanupContext?: EvalHubCleanupContext,
+): Cypress.Chainable<void> =>
+  (cleanupContext ? requestEvalHubCleanupApi : requestEvalHubApi)(
     {
       method: 'DELETE',
       url: `/eval-hub/api/v1/evaluations/jobs/${encodeURIComponent(jobId)}`,
@@ -311,6 +445,14 @@ const deleteEvalHubEvaluationJob = (namespace: string, jobId: string): Cypress.C
   )
     .then((response) => {
       if (![200, 204, 404].includes(response.status)) {
+        if (cleanupContext) {
+          cleanupContext.reportFailure(
+            `Failed to delete EvalHub evaluation job ${jobId}: HTTP ${response.status}: ${String(
+              response.body,
+            )}`,
+          );
+          return;
+        }
         throw new Error(
           `Failed to delete EvalHub evaluation job ${jobId}: HTTP ${response.status}`,
         );
@@ -319,10 +461,14 @@ const deleteEvalHubEvaluationJob = (namespace: string, jobId: string): Cypress.C
     .then(() => cy.wrap(undefined as void));
 
 /** Permanently deletes all evaluation jobs for a tenant used by an E2E test. */
-export const deleteEvalHubEvaluationJobs = (namespace: string): Cypress.Chainable<void> =>
-  listEvalHubJobIds(namespace).then((jobIds) =>
+export const deleteEvalHubEvaluationJobs = (
+  namespace: string,
+  cleanupContext?: EvalHubCleanupContext,
+): Cypress.Chainable<void> =>
+  listEvalHubJobIds(namespace, 0, [], cleanupContext).then((jobIds) =>
     jobIds.reduce<Cypress.Chainable<void>>(
-      (chain, jobId) => chain.then(() => deleteEvalHubEvaluationJob(namespace, jobId)),
+      (chain, jobId) =>
+        chain.then(() => deleteEvalHubEvaluationJob(namespace, jobId, cleanupContext)),
       cy.wrap(undefined as void),
     ),
   );
@@ -331,8 +477,9 @@ export const deleteEvalHubEvaluationJobs = (namespace: string): Cypress.Chainabl
 export const deleteEvalHubCollection = (
   namespace: string,
   collectionId: string,
-): Cypress.Chainable<Cypress.Response<unknown>> =>
-  requestEvalHubApi(
+  cleanupContext?: EvalHubCleanupContext,
+): Cypress.Chainable<EvalHubApiResponse> =>
+  (cleanupContext ? requestEvalHubCleanupApi : requestEvalHubApi)(
     {
       method: 'DELETE',
       url: `/eval-hub/api/v1/evaluations/collections/${encodeURIComponent(collectionId)}`,
@@ -341,6 +488,14 @@ export const deleteEvalHubCollection = (
     `Delete EvalHub collection ${collectionId}`,
   ).then((response) => {
     if (![204, 404].includes(response.status)) {
+      if (cleanupContext) {
+        cleanupContext.reportFailure(
+          `Failed to delete EvalHub collection ${collectionId}: HTTP ${response.status}: ${String(
+            response.body,
+          )}`,
+        );
+        return response;
+      }
       throw new Error(
         `Failed to delete EvalHub collection ${collectionId}: HTTP ${response.status}`,
       );
@@ -352,13 +507,20 @@ export const deleteEvalHubCollection = (
 const deleteEvalHubCollectionAndReturnVoid = (
   namespace: string,
   collectionId: string,
+  cleanupContext?: EvalHubCleanupContext,
 ): Cypress.Chainable<void> =>
-  deleteEvalHubCollection(namespace, collectionId).then(() => cy.wrap(undefined as void));
+  deleteEvalHubCollection(namespace, collectionId, cleanupContext).then(() =>
+    cy.wrap(undefined as void),
+  );
 
-export const deleteEvalHubTenantCollections = (namespace: string): Cypress.Chainable<void> =>
-  listEvalHubTenantCollections(namespace).then((collections) =>
+export const deleteEvalHubTenantCollections = (
+  namespace: string,
+  cleanupContext?: EvalHubCleanupContext,
+): Cypress.Chainable<void> =>
+  listEvalHubTenantCollections(namespace, 0, [], cleanupContext).then((collections) =>
     collections.reduce<Cypress.Chainable<void>>(
-      (chain, { id }) => chain.then(() => deleteEvalHubCollectionAndReturnVoid(namespace, id)),
+      (chain, { id }) =>
+        chain.then(() => deleteEvalHubCollectionAndReturnVoid(namespace, id, cleanupContext)),
       cy.wrap(undefined as void),
     ),
   );
@@ -1409,7 +1571,7 @@ export const runSingleBenchmarkEvaluationFlow = (
 // Shared cleanup orchestration
 export type EvalHubCleanupStep = {
   description: string;
-  run: () => Cypress.Chainable | void;
+  run: (context: EvalHubCleanupContext) => Cypress.Chainable | void;
 };
 
 /**
@@ -1471,7 +1633,7 @@ export const createEvalHubCleanupSteps = ({
     if (dashboardSessionEstablished) {
       cleanupSteps.push({
         description: `Delete EvalHub evaluation jobs for ${evaluationTenantProject}`,
-        run: () => deleteEvalHubEvaluationJobs(evaluationTenantProject),
+        run: (context) => deleteEvalHubEvaluationJobs(evaluationTenantProject, context),
       });
     } else {
       // Evaluation jobs are namespaced resources, so the project-deletion step below
@@ -1485,14 +1647,15 @@ export const createEvalHubCleanupSteps = ({
       collectionsToDelete.forEach((createdCollectionId) => {
         cleanupSteps.push({
           description: `Delete EvalHub collection ${createdCollectionId}`,
-          run: () => deleteEvalHubCollection(evaluationTenantProject, createdCollectionId),
+          run: (context) =>
+            deleteEvalHubCollection(evaluationTenantProject, createdCollectionId, context),
         });
       });
 
       if (deleteAllTenantCollections) {
         cleanupSteps.push({
           description: `Delete remaining EvalHub tenant collections for ${evaluationTenantProject}`,
-          run: () => deleteEvalHubTenantCollections(evaluationTenantProject),
+          run: (context) => deleteEvalHubTenantCollections(evaluationTenantProject, context),
         });
       }
     } else if (collectionsToDelete.length > 0 || deleteAllTenantCollections) {
@@ -1502,9 +1665,13 @@ export const createEvalHubCleanupSteps = ({
     experimentsToDelete.forEach((experimentName) => {
       cleanupSteps.push({
         description: `Delete MLflow experiment ${experimentName}`,
-        run: () => {
+        run: (context) => {
           cy.step(`Delete MLflow experiment: ${experimentName}`);
-          return cleanupEvalHubMlflowExperiment(evaluationTenantProject, experimentName);
+          return cleanupEvalHubMlflowExperiment(
+            evaluationTenantProject,
+            experimentName,
+            context.reportFailure,
+          );
         },
       });
     });
@@ -1513,16 +1680,27 @@ export const createEvalHubCleanupSteps = ({
   if (evaluationTenantProject) {
     cleanupSteps.push({
       description: `Remove EvalHub tenant label from ${evaluationTenantProject}`,
-      run: () => removeEvalHubTenantLabel(evaluationTenantProject),
+      run: (context) => removeEvalHubTenantLabel(evaluationTenantProject, context.reportFailure),
     });
     cleanupSteps.push({
       description: `Delete tenant project ${evaluationTenantProject}`,
-      run: () => {
+      run: (context) => {
         cy.step(`Delete tenant project: ${evaluationTenantProject}`);
-        return deleteOpenShiftProject(evaluationTenantProject, {
-          wait: true,
-          ignoreNotFound: true,
-        });
+        const namespace = assertNamespace(evaluationTenantProject);
+        return cy
+          .exec(
+            `oc --request-timeout=180s delete project ${namespace} --wait=true ` +
+              `--ignore-not-found --timeout=180s`,
+            { failOnNonZeroExit: false, timeout: 190000, log: false },
+          )
+          .then((result) => {
+            if (result.exitCode !== 0) {
+              context.reportFailure(
+                `Failed to delete tenant project ${namespace}: ${result.stderr || result.stdout}`,
+              );
+            }
+            return cy.wrap(undefined as void, { log: false });
+          });
       },
     });
   }
@@ -1530,9 +1708,9 @@ export const createEvalHubCleanupSteps = ({
   if (hardwareProfileName) {
     cleanupSteps.push({
       description: `Clean up Hardware Profile ${hardwareProfileName}`,
-      run: () => {
+      run: (context) => {
         cy.step(`Clean up Hardware Profile: ${hardwareProfileName}`);
-        return cleanupEvalHubHardwareProfile(hardwareProfileName);
+        return cleanupEvalHubHardwareProfile(hardwareProfileName, context.reportFailure);
       },
     });
   }
@@ -1540,43 +1718,26 @@ export const createEvalHubCleanupSteps = ({
   return cleanupSteps;
 };
 
-/** Runs every cleanup step and logs warnings without failing the completed test. */
+/** Runs every cleanup step independently and logs captured failures without failing the test. */
 export const runEvalHubCleanup = (steps: EvalHubCleanupStep[]): void => {
   const failures: string[] = [];
-  let activeDescription = '';
 
   const recordFailure = (description: string, error: unknown): void => {
     failures.push(`${description}: ${getErrorMessage(error)}`);
   };
 
-  const handleCypressFailure = (error: Cypress.CypressError): false | void => {
-    if (!activeDescription) {
-      throw error;
-    }
-    recordFailure(activeDescription, error);
-    activeDescription = '';
-    return false;
-  };
-
-  Cypress.on('fail', handleCypressFailure);
-
   steps.forEach(({ description, run }) => {
     cy.then(() => {
-      activeDescription = description;
       try {
-        return run();
+        return run({ reportFailure: (message) => recordFailure(description, message) });
       } catch (error) {
         recordFailure(description, error);
-        activeDescription = '';
         return undefined;
       }
-    }).then(() => {
-      activeDescription = '';
     });
   });
 
   cy.then(() => {
-    Cypress.off('fail', handleCypressFailure);
     if (failures.length > 0) {
       cy.log(
         `⚠️ EvalHub cleanup completed with ${failures.length} warning(s): ${maskSensitiveInfo(
