@@ -34,8 +34,7 @@ func (l rhoaiDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alp
 		return ctrl.Result{}, err
 	}
 	uploadConfigErr := r.reconcileModelRegistryUploadConfig(ctx, dashboard, deferredResources.modelRegistryUploadConfigResources, cm)
-	configRetryAfter, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(ctx)
-	if err != nil {
+	if err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(ctx); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("DashboardConfigDefaultFailed"), conditions.WithError(err))
 		return ctrl.Result{}, errors.Join(fmt.Errorf("failed to reconcile RHOAI dashboard config defaults: %w", err), uploadConfigErr)
 	}
@@ -45,7 +44,7 @@ func (l rhoaiDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alp
 	}
 	r.setMaaSPortalModuleCondition(cm, dashboard, features.statuses)
 	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, features.statuses, observabilityConfigResolved)
-	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, uploadConfigErr, minNonZeroDuration(portalRetryAfter, configRetryAfter), l.availabilityTarget())
+	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, uploadConfigErr, portalRetryAfter, l.availabilityTarget())
 }
 
 func (l rhoaiDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) (ctrl.Result, error) {

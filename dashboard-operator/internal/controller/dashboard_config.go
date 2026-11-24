@@ -47,39 +47,44 @@ func newOdhDashboardConfig() *unstructured.Unstructured {
 // must be correct even when another component wins the create race. The
 // OdhDashboardConfig remains user-managed: explicit values and every unrelated
 // field are preserved.
-func (r *DashboardReconciler) reconcileSelfManagedRHOAIDashboardConfigDefaults(ctx context.Context) (time.Duration, error) {
+func (r *DashboardReconciler) reconcileSelfManagedRHOAIDashboardConfigDefaults(ctx context.Context) error {
 	config := newOdhDashboardConfig()
 	key := types.NamespacedName{Name: odhDashboardConfigName, Namespace: r.ApplicationsNamespace}
 	if err := r.Get(ctx, key, config); err != nil {
 		if k8serrors.IsNotFound(err) {
-			return 0, nil
+			return nil
 		}
 		if meta.IsNoMatchError(err) {
-			return odhDashboardConfigDiscoveryInterval, nil
+			// No requeue: addOdhDashboardConfigWatch already polls discovery and
+			// registers the watch once the CRD appears; its initial list then
+			// triggers a reconcile. Requeuing here would re-render and re-apply
+			// the whole dashboard every interval on clusters where the CRD never
+			// arrives.
+			return nil
 		}
-		return 0, fmt.Errorf("get OdhDashboardConfig %s: %w", key, err)
+		return fmt.Errorf("get OdhDashboardConfig %s: %w", key, err)
 	}
 
 	_, found, err := unstructured.NestedBool(config.Object, "spec", "dashboardConfig", "disableTracking")
 	if err != nil {
-		return 0, fmt.Errorf("read OdhDashboardConfig %s disableTracking: %w", key, err)
+		return fmt.Errorf("read OdhDashboardConfig %s disableTracking: %w", key, err)
 	}
 	if found {
-		return 0, nil
+		return nil
 	}
 
 	original := config.DeepCopy()
 	if err := unstructured.SetNestedField(config.Object, false, "spec", "dashboardConfig", "disableTracking"); err != nil {
-		return 0, fmt.Errorf("set OdhDashboardConfig %s disableTracking default: %w", key, err)
+		return fmt.Errorf("set OdhDashboardConfig %s disableTracking default: %w", key, err)
 	}
 
 	patch := client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})
 	if err := r.Patch(ctx, config, patch); err != nil {
-		return 0, fmt.Errorf("patch OdhDashboardConfig %s disableTracking default: %w", key, err)
+		return fmt.Errorf("patch OdhDashboardConfig %s disableTracking default: %w", key, err)
 	}
 
 	log.FromContext(ctx).Info("Initialized RHOAI dashboard tracking default", "namespace", key.Namespace, "name", key.Name)
-	return 0, nil
+	return nil
 }
 
 func (r *DashboardReconciler) isTargetOdhDashboardConfig(obj client.Object) bool {

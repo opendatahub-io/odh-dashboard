@@ -42,7 +42,7 @@ func TestReconcileRHOAIDashboardConfigDefaultsInitializesMissingValue(t *testing
 		ApplicationsNamespace: dashboardConfigTestNamespace,
 	}
 
-	_, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
+	err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
 	require.NoError(t, err)
 
 	updated := newOdhDashboardConfig()
@@ -76,7 +76,7 @@ func TestReconcileRHOAIDashboardConfigDefaultsPreservesExplicitValues(t *testing
 				ApplicationsNamespace: dashboardConfigTestNamespace,
 			}
 
-			_, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
+			err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
 			require.NoError(t, err)
 
 			updated := newOdhDashboardConfig()
@@ -104,12 +104,14 @@ func TestReconcileRHOAIDashboardConfigDefaultsRejectsMalformedValue(t *testing.T
 		ApplicationsNamespace: dashboardConfigTestNamespace,
 	}
 
-	_, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
+	err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "disableTracking")
 }
 
-func TestReconcileSelfManagedRHOAIDashboardConfigDefaultsRequeuesWhenAPIIsUnavailable(t *testing.T) {
+// The discovery-polling OdhDashboardConfig watch drives the reconcile once the CRD appears; a requeue
+// here would be a permanent full-reconcile loop on clusters where it never does.
+func TestReconcileSelfManagedRHOAIDashboardConfigDefaultsWaitsForWatchWhenAPIIsUnavailable(t *testing.T) {
 	cli := fake.NewClientBuilder().WithInterceptorFuncs(interceptor.Funcs{
 		Get: func(context.Context, client.WithWatch, client.ObjectKey, client.Object, ...client.GetOption) error {
 			return &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: odhDashboardConfigGVK.Group, Kind: odhDashboardConfigGVK.Kind}}
@@ -117,10 +119,7 @@ func TestReconcileSelfManagedRHOAIDashboardConfigDefaultsRequeuesWhenAPIIsUnavai
 	}).Build()
 	r := &DashboardReconciler{Client: cli, ApplicationsNamespace: dashboardConfigTestNamespace}
 
-	retryAfter, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
-
-	require.NoError(t, err)
-	assert.Equal(t, odhDashboardConfigDiscoveryInterval, retryAfter)
+	require.NoError(t, r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background()))
 }
 
 func TestOdhDashboardConfigWatchFiltersAndMaps(t *testing.T) {
