@@ -479,6 +479,28 @@ describe('ImportCollectionModal', () => {
     expect(findEditor().value).not.toContain('name: from-file');
   });
 
+  it('should disable the name field while a file read is pending', async () => {
+    mockReadFile.mockReset();
+    renderModal();
+    expect(findNameInput()).toBeEnabled();
+
+    let resolveRead!: (content: string) => void;
+    mockReadFile.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveRead = resolve;
+        }),
+    );
+    setInputFiles(new File(['name: from-file\n'], 'pending.yaml', { type: 'text/yaml' }));
+    // A name typed during the read would be discarded when the read lands
+    // and replaces the definition, so the field waits for the read.
+    expect(findNameInput()).toBeDisabled();
+
+    resolveRead('name: from-file\n');
+    await waitFor(() => expect(findNameInput()).toBeEnabled());
+    expect(findNameInput().value).toBe('from-file');
+  });
+
   it('should disable the submit button while the definition matches the sample template without an alert', async () => {
     renderModal();
     expect(screen.queryByTestId('import-collection-template')).not.toBeInTheDocument();

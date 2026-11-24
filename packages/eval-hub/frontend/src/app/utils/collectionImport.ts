@@ -354,22 +354,32 @@ const isNameKeyToken = (text: string, start: number, end: number): boolean => {
  * once: the warning field's own line when present, the field's line within
  * its benchmark entry for benchmark-scoped warnings, the benchmark's id
  * line when only the entry is known, and line 1 for file-level warnings.
+ * Block YAML matches its unquoted/dash forms; pretty-printed JSON matches
+ * quoted keys, where a top-level field resolves to the shallowest-indented
+ * match so a same-named nested key cannot win. Best-effort: an unmatched
+ * anchor falls back to line 1.
  */
 export const findImportWarningLine = (lines: string[], warning: ImportWarning): number => {
   if (warning.benchmarkId !== undefined) {
     const benchmarkPattern = new RegExp(
-      `^\\s*-\\s*id:\\s*['"]?${escapeRegExp(warning.benchmarkId)}['"]?\\s*$`,
+      `^(?:\\s*-\\s*id:\\s*['"]?${escapeRegExp(warning.benchmarkId)}['"]?\\s*$` +
+        // Pretty-printed JSON benchmark entry: "id": "value", — the YAML
+        // alternative has no trailing comma.
+        `|\\s*"id"\\s*:\\s*"${escapeRegExp(warning.benchmarkId)}"\\s*,?\\s*$)`,
     );
     const benchmarkLine = lines.findIndex((line) => benchmarkPattern.test(line));
     if (benchmarkLine === -1) {
       return 1;
     }
     if (warning.benchmarkField !== undefined) {
-      const fieldPattern = new RegExp(`^\\s+${escapeRegExp(warning.benchmarkField)}:`);
+      const fieldPattern = new RegExp(
+        `^\\s+["']?${escapeRegExp(warning.benchmarkField)}["']?\\s*:`,
+      );
       for (let index = benchmarkLine + 1; index < lines.length; index++) {
         const line = lines[index];
-        // Stop at the next benchmark entry or at a top-level key.
-        if (/^\S/.test(line) || /^\s*-\s/.test(line)) {
+        // Stop at the next benchmark entry, a top-level key, or the closing
+        // bracket of a pretty-printed JSON entry.
+        if (/^\S/.test(line) || /^\s*-\s/.test(line) || /^\s*[}\]],?\s*$/.test(line)) {
           break;
         }
         if (fieldPattern.test(line)) {
@@ -383,6 +393,21 @@ export const findImportWarningLine = (lines: string[], warning: ImportWarning): 
     const fieldLine = lines.findIndex((line) => line.startsWith(`${warning.field}:`));
     if (fieldLine !== -1) {
       return fieldLine + 1;
+    }
+    // Pretty-printed JSON (or quoted YAML) keys: "field"/'field' at some
+    // indentation. Top-level keys sit at the shallowest indentation.
+    const quotedPattern = new RegExp(`^\\s*(["'])${escapeRegExp(warning.field)}\\1\\s*:`);
+    let quotedLine = -1;
+    let quotedIndent = Infinity;
+    lines.forEach((line, index) => {
+      const match = quotedPattern.exec(line);
+      if (match !== null && match[1].length < quotedIndent) {
+        quotedLine = index;
+        quotedIndent = match[1].length;
+      }
+    });
+    if (quotedLine !== -1) {
+      return quotedLine + 1;
     }
   }
   return 1;
@@ -427,6 +452,14 @@ const serializeYamlScalar = (value: string): string =>
   yaml.dump(value, { lineWidth: -1 }).trimEnd();
 
 /**
+ * True when ch can directly precede the opening quote of a quoted flow
+ * scalar. A quote anywhere else — inside a plain scalar such as
+ * team's suite — is ordinary text, not a string delimiter.
+ */
+const isFlowTokenBoundary = (ch: string): boolean =>
+  ch === ',' || ch === ':' || ch === '{' || ch === '[' || /\s/.test(ch);
+
+/**
  * End of the value that starts at start within a brace-delimited mapping.
  * Unlike strict JSON, YAML flow scalars may contain spaces, so the value
  * ends at the next ',' or closing bracket at the value's own nesting depth
@@ -439,7 +472,17 @@ const findFlowValueEnd = (text: string, start: number): number => {
   let i = start;
   while (i < len) {
     const ch = text[i];
-    if (ch === '"' || ch === "'") {
+    // A comment (whitespace-preceded #) ends the value; it stays in the
+    // text after the rewrite, and the whitespace run before it is left in
+    // place so the comment keeps its leading space.
+    if (ch === '#' && i > start && isFlowTokenBoundary(text[i - 1])) {
+      let end = i;
+      while (end > start && /\s/.test(text[end - 1])) {
+        end--;
+      }
+      return end;
+    }
+    if ((ch === '"' || ch === "'") && (i === start || isFlowTokenBoundary(text[i - 1]))) {
       i++;
       while (i < len) {
         if (ch === '"' && text[i] === '\\') {
@@ -478,7 +521,10 @@ const findFlowValueEnd = (text: string, start: number): number => {
  * rather than re-serializing the document, so values that do not survive a
  * parse/stringify round-trip — integers beyond the safe range, number
  * formatting, key order — are preserved verbatim. Quoted (JSON) and
- * unquoted (YAML flow) top-level name keys are both recognized. Returns
+ * unquoted (YAML flow) top-level name keys are both recognized; when the
+ * content repeats a top-level name key, the last occurrence is rewritten,
+ * matching the key the JSON parser (and the BFF decoder) keeps. Comments
+ * are skipped, so a key named inside a comment is never rewritten. Returns
  * null when the text is not a brace-delimited mapping, so the caller can
  * fall back to the YAML block path.
  */
@@ -499,7 +545,12 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
   const replaceValue = (valueStart: number, valueEnd: number): string =>
     text.slice(0, valueStart) + serialized + text.slice(valueEnd);
 
-  const replaceNameValue = (colonIndex: number): string | null => {
+  // The most recent top-level name value span. JSON.parse and the BFF's
+  // decoder keep the last of duplicate keys, so the rewrite targets the
+  // final occurrence, not the first.
+  let nameValueSpan: { start: number; end: number } | null = null;
+
+  const computeNameValueSpan = (colonIndex: number): { start: number; end: number } | null => {
     let valueStart = colonIndex + 1;
     while (valueStart < len && /\s/.test(text[valueStart])) {
       valueStart++;
@@ -508,14 +559,26 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
     if (valueEnd === -1) {
       return null;
     }
-    return replaceValue(valueStart, valueEnd);
+    return { start: valueStart, end: valueEnd };
   };
 
   let depth = 1;
   i++;
   while (i < len) {
     const ch = text[i];
-    if (ch === '"' || ch === "'") {
+    // A comment runs to the end of the line: keys and quotes inside it are
+    // not content and must not be rewritten.
+    if (ch === '#' && isFlowTokenBoundary(text[i - 1])) {
+      const newline = text.indexOf('\n', i);
+      if (newline === -1) {
+        break;
+      }
+      i = newline + 1;
+      continue;
+    }
+    // A quote opens a quoted key or value only at a token boundary; inside
+    // a plain flow scalar (at any depth) it is ordinary text.
+    if ((ch === '"' || ch === "'") && isFlowTokenBoundary(text[i - 1])) {
       // Quoted key or string value: scan to its close first.
       let end = i + 1;
       while (end < len) {
@@ -538,7 +601,15 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
         after++;
       }
       if (isNameKey && text[after] === ':') {
-        return replaceNameValue(after);
+        // Keep scanning: a later duplicate name key is the one the JSON
+        // parser keeps, so it must win.
+        const span = computeNameValueSpan(after);
+        if (span === null) {
+          return null;
+        }
+        nameValueSpan = span;
+        i = after;
+        continue;
       }
       i = end;
       continue;
@@ -564,7 +635,11 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
           after++;
         }
         if (text[after] === ':') {
-          return replaceNameValue(after);
+          const span = computeNameValueSpan(after);
+          if (span === null) {
+            return null;
+          }
+          nameValueSpan = span;
         }
       }
       i = end;
@@ -573,6 +648,9 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
     i++;
   }
 
+  if (nameValueSpan !== null) {
+    return replaceValue(nameValueSpan.start, nameValueSpan.end);
+  }
   // No top-level name key: insert one directly after the opening brace.
   const rest = text.slice(objectStart + 1);
   const body = rest.trim();
@@ -581,20 +659,41 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
 };
 
 /**
+ * A column-zero --- document marker followed by only whitespace and an
+ * optional comment (---, ---   , --- # second, ---# second): js-yaml treats
+ * each as a leading marker, so the first document's root content starts on a
+ * later line. Content other than a comment after the marker is not matched.
+ */
+const DOCUMENT_MARKER_PREFIX = /^---[ \t]*(?=$|#)/;
+
+/**
+ * A column-zero --- or ... document marker — bare, or followed by whitespace,
+ * a comment, or content (--- # second, ---# second, --- name: x): js-yaml
+ * ends the current document at each. Not matched: ---- and ---x, which the
+ * parser reads as plain scalars.
+ */
+const DOCUMENT_MARKER_BOUNDARY = /^(?:---|\.\.\.)(?=$|[\s#])/;
+
+/**
  * Offset of the first document's root node when it is a brace-delimited
  * (flow-style) mapping — the first content after any leading blank lines,
- * comments, or --- document markers — or -1 when the root is not a flow
- * mapping. A flow mapping preceded by a marker or comment otherwise misses
- * the flow path and falls through to the block-name regex and insertion
- * fallback, both of which corrupt flow-style documents.
+ * comments, or --- document markers (including one carrying a comment, or a
+ * flow mapping on the marker line itself, --- {name: x}) — or -1 when the
+ * root is not a flow mapping. A flow mapping preceded by a marker or comment
+ * must still reach the flow path; the block-name regex and insertion
+ * fallback both corrupt flow-style documents.
  */
 const findRootFlowMappingStart = (text: string): number => {
   const lines = text.split('\n');
   let offset = 0;
   for (const line of lines) {
-    if (/^\s*$/.test(line) || /^#/.test(line) || /^---\s*$/.test(line)) {
+    if (/^\s*$/.test(line) || /^\s*#/.test(line) || DOCUMENT_MARKER_PREFIX.test(line)) {
       offset += line.length + 1;
       continue;
+    }
+    const flowAfterMarker = /^---[ \t]*(?=\{)/.exec(line);
+    if (flowAfterMarker) {
+      return offset + flowAfterMarker[0].length;
     }
     const indent = line.length - line.trimStart().length;
     return line.startsWith('{', indent) ? offset + indent : -1;
@@ -604,7 +703,8 @@ const findRootFlowMappingStart = (text: string): number => {
 
 /**
  * Index of the first line that begins a document after the first one: the
- * first --- or ... marker at column 0 that follows content. Leading
+ * first --- or ... marker at column 0 — bare, or followed by a comment or
+ * content (--- # second, --- name: x) — that follows content. Leading
  * markers, comments, and blank lines belong to the first document's
  * prefix, so they do not end it.
  */
@@ -612,7 +712,7 @@ const findFirstDocumentEnd = (lines: string[]): number => {
   let seenContent = false;
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
-    if ((/^---\s*$/.test(line) || /^\.\.\.\s*$/.test(line)) && seenContent) {
+    if (DOCUMENT_MARKER_BOUNDARY.test(line) && seenContent) {
       return index;
     }
     if (line.trim() !== '' && !line.startsWith('#')) {
@@ -628,10 +728,14 @@ const findFirstDocumentEnd = (lines: string[]): number => {
  * import reads — is considered: a name in a later document is never
  * rewritten, and an insertion lands inside the first document. JSON and
  * flow-mapping content (including a flow mapping preceded by comments or a
- * --- marker) has only the name value replaced in place; YAML replaces the
+ * --- marker) has only the name value replaced in place — when that
+ * in-place replacement fails, the text is returned unchanged rather than
+ * falling back to block-style insertion, which would corrupt a flow
+ * document; YAML replaces the
  * complete `name:` entry (its line plus any continuation lines of a
  * multi-line value indented deeper than the name key), or inserts one
- * after any leading comment, blank block, or document marker (---) when
+ * after any leading comment, blank block, or document marker (---, with or
+ * without a trailing comment) when
  * the definition has no name yet — inserting before the marker would
  * create a name-only first document and hide the rest of the definition
  * from the import, which reads only documents[0]. A block mapping's
@@ -644,9 +748,10 @@ export const applyImportName = (text: string, newName: string): string => {
   const flowStart = findRootFlowMappingStart(text);
   if (flowStart !== -1) {
     const replaced = replaceTopLevelJsonName(text.slice(flowStart), newName);
-    if (replaced !== null) {
-      return text.slice(0, flowStart) + replaced;
-    }
+    // A flow root never falls through to the block path — a block-style
+    // name line spliced in front of a flow mapping corrupts the document.
+    // When the in-place replacement fails, leave the text unchanged.
+    return replaced !== null ? text.slice(0, flowStart) + replaced : text;
   }
   const serialized = serializeYamlScalar(newName);
   const lines = text.split('\n');
@@ -657,7 +762,7 @@ export const applyImportName = (text: string, newName: string): string => {
   let rootIndent = '';
   while (insertIndex < lines.length) {
     const line = lines[insertIndex];
-    if (/^\s*$/.test(line) || /^#/.test(line) || /^---\s*$/.test(line)) {
+    if (/^\s*$/.test(line) || /^\s*#/.test(line) || DOCUMENT_MARKER_PREFIX.test(line)) {
       insertIndex += 1;
       continue;
     }
@@ -705,7 +810,11 @@ export const applyImportName = (text: string, newName: string): string => {
       }
       break;
     }
-    lines.splice(nameIndex, end - nameIndex, `${rootIndent}name: ${serialized}`);
+    // A leading anchor on the value is preserved: dropping it would leave
+    // any alias to it elsewhere in the document undefined.
+    const anchor = /^\s*&\S+/.exec(lines[nameIndex].replace(namePattern, ''));
+    const anchorPrefix = anchor !== null ? `${anchor[0].trimStart()} ` : '';
+    lines.splice(nameIndex, end - nameIndex, `${rootIndent}name: ${anchorPrefix}${serialized}`);
     return lines.join('\n');
   }
   if (newName.trim() === '') {

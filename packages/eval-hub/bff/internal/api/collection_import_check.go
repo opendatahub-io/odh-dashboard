@@ -68,8 +68,13 @@ func buildImportCreateRequest(doc map[string]any) (evalhub.CreateCollectionReque
 		if id, ok := benchmark["id"].(string); !ok || strings.TrimSpace(id) == "" {
 			return request, nil, fmt.Errorf("%s: id is required", label)
 		}
-		if providerID, ok := benchmark["provider_id"].(string); !ok || strings.TrimSpace(providerID) == "" {
-			return request, nil, fmt.Errorf("%s: provider_id is required", label)
+		if providerID, present := benchmark["provider_id"]; present && providerID != nil {
+			if _, ok := providerID.(string); !ok {
+				return request, nil, fmt.Errorf("%s: provider_id must be a string", label)
+			}
+		}
+		if err := validateImportScoringFields(benchmark, label); err != nil {
+			return request, nil, err
 		}
 	}
 
@@ -77,6 +82,10 @@ func buildImportCreateRequest(doc map[string]any) (evalhub.CreateCollectionReque
 	domains, hasDomains := doc["domains"].([]any)
 	if (!hasCategory || strings.TrimSpace(category) == "") && (!hasDomains || len(domains) == 0) {
 		return request, nil, errors.New("either category or a non-empty domains list is required")
+	}
+
+	if err := validateImportScoringFields(doc, "collection"); err != nil {
+		return request, nil, err
 	}
 
 	// Convert through JSON so struct field types are enforced with the
@@ -140,6 +149,58 @@ func translateImportError(err error) error {
 		return evalhub.NewEvalHubError(evalhub.ErrCodeNotFound, "a referenced provider or benchmark is not found or not accessible", http.StatusNotFound)
 	}
 	return err
+}
+
+// validateImportScoringFields rejects scoring blocks that are present but
+// incomplete: the OpenAPI contract marks threshold (pass_criteria) and metric
+// and lower_is_better (primary_score) as required, but the decoded structs use
+// plain values, so a missing or null field would silently become threshold 0
+// or lower_is_better false and be sent to the server as an explicit value.
+// The server cannot detect the omission, so the import must reject it here.
+// Explicit 0 and false remain valid.
+func validateImportScoringFields(object map[string]any, label string) error {
+	if criteria, present := object["pass_criteria"]; present && criteria != nil {
+		criteriaMap, ok := criteria.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s: pass_criteria must be an object", label)
+		}
+		threshold, present := criteriaMap["threshold"]
+		if !present || threshold == nil || !isImportNumber(threshold) {
+			return fmt.Errorf("%s: pass_criteria.threshold is required and must be a number", label)
+		}
+	}
+	if score, present := object["primary_score"]; present && score != nil {
+		scoreMap, ok := score.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s: primary_score must be an object", label)
+		}
+		metric, present := scoreMap["metric"]
+		if !present || metric == nil {
+			return fmt.Errorf("%s: primary_score.metric is required", label)
+		}
+		if _, ok := metric.(string); !ok {
+			return fmt.Errorf("%s: primary_score.metric must be a string", label)
+		}
+		lowerIsBetter, present := scoreMap["lower_is_better"]
+		if !present || lowerIsBetter == nil {
+			return fmt.Errorf("%s: primary_score.lower_is_better is required", label)
+		}
+		if _, ok := lowerIsBetter.(bool); !ok {
+			return fmt.Errorf("%s: primary_score.lower_is_better must be a boolean", label)
+		}
+	}
+	return nil
+}
+
+// isImportNumber matches the numeric types the JSON (json.Number via
+// UseNumber) and YAML (int/int64/uint64/float64) parsers can produce.
+func isImportNumber(value any) bool {
+	switch value.(type) {
+	case json.Number, int, int64, uint64, float64:
+		return true
+	default:
+		return false
+	}
 }
 
 func sortedKeys(m map[string]any) []string {

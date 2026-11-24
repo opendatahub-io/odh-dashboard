@@ -86,6 +86,19 @@ func TestImportCollectionHandlerJSON(t *testing.T) {
 	assert.Equal(t, "arc_easy", result.Data.Collection.Benchmarks[0].ID)
 }
 
+// The server contract marks provider_id optional (nullable), so imports
+// without it must not be blocked in the BFF; the server stays authoritative.
+func TestImportCollectionHandlerBenchmarkWithoutProviderID(t *testing.T) {
+	content := `{"name": "no-provider", "domains": ["d"], "benchmarks": [{"id": "a"}, {"id": "b", "provider_id": null}]}`
+	result, response := postImport[ImportCollectionEnvelope](t, content, nil)
+
+	assert.Equal(t, http.StatusCreated, response.StatusCode)
+	require.Len(t, result.Data.Collection.Benchmarks, 2)
+	assert.Equal(t, "a", result.Data.Collection.Benchmarks[0].ID)
+	assert.Empty(t, result.Data.Collection.Benchmarks[0].ProviderID)
+	assert.Empty(t, result.Data.Collection.Benchmarks[1].ProviderID)
+}
+
 func TestImportCollectionHandlerServerManagedFieldsWarned(t *testing.T) {
 	content := `
 id: knowledge-reasoning-v1
@@ -193,9 +206,9 @@ name: broken
 			wantMessage: "at least one benchmark is required",
 		},
 		{
-			name:        "benchmark missing provider_id",
-			content:     "name: x\ndomains: [software]\nbenchmarks: [{id: quality}]\n",
-			wantMessage: "provider_id is required",
+			name:        "benchmark provider_id wrong type",
+			content:     "name: x\ndomains: [software]\nbenchmarks: [{id: quality, provider_id: 42}]\n",
+			wantMessage: "provider_id must be a string",
 		},
 		{
 			name:        "neither category nor domains",
@@ -211,6 +224,41 @@ name: broken
 			name:        "wrong field type",
 			content:     `{"name": 42, "domains": ["x"], "benchmarks": [{"id": "a", "provider_id": "b"}]}`,
 			wantMessage: "name is required and must be a non-empty string",
+		},
+		{
+			name:        "collection pass_criteria missing threshold",
+			content:     `{"name": "x", "domains": ["d"], "pass_criteria": {}, "benchmarks": [{"id": "a", "provider_id": "b"}]}`,
+			wantMessage: "collection: pass_criteria.threshold is required and must be a number",
+		},
+		{
+			name:        "collection pass_criteria null threshold",
+			content:     `{"name": "x", "domains": ["d"], "pass_criteria": {"threshold": null}, "benchmarks": [{"id": "a", "provider_id": "b"}]}`,
+			wantMessage: "collection: pass_criteria.threshold is required and must be a number",
+		},
+		{
+			name:        "collection pass_criteria string threshold",
+			content:     `{"name": "x", "domains": ["d"], "pass_criteria": {"threshold": "0.5"}, "benchmarks": [{"id": "a", "provider_id": "b"}]}`,
+			wantMessage: "collection: pass_criteria.threshold is required and must be a number",
+		},
+		{
+			name:        "benchmark pass_criteria missing threshold",
+			content:     `{"name": "x", "domains": ["d"], "benchmarks": [{"id": "a", "provider_id": "b", "pass_criteria": {}}]}`,
+			wantMessage: `benchmark "a": pass_criteria.threshold is required and must be a number`,
+		},
+		{
+			name:        "benchmark primary_score missing metric",
+			content:     `{"name": "x", "domains": ["d"], "benchmarks": [{"id": "a", "provider_id": "b", "primary_score": {"lower_is_better": true}}]}`,
+			wantMessage: `benchmark "a": primary_score.metric is required`,
+		},
+		{
+			name:        "benchmark primary_score missing lower_is_better",
+			content:     `{"name": "x", "domains": ["d"], "benchmarks": [{"id": "a", "provider_id": "b", "primary_score": {"metric": "acc"}}]}`,
+			wantMessage: `benchmark "a": primary_score.lower_is_better is required`,
+		},
+		{
+			name:        "benchmark primary_score string lower_is_better",
+			content:     `{"name": "x", "domains": ["d"], "benchmarks": [{"id": "a", "provider_id": "b", "primary_score": {"metric": "acc", "lower_is_better": "false"}}]}`,
+			wantMessage: `benchmark "a": primary_score.lower_is_better must be a boolean`,
 		},
 	}
 
@@ -339,15 +387,20 @@ func TestImportCollectionHandlerAliasLimit(t *testing.T) {
 }
 
 func TestImportCollectionHandlerNestedAliasByteAmplification(t *testing.T) {
-	// Nested anchors: each level aliases the previous one four times, so the
-	// 64 KiB base string expands to 4^6 × 64 KiB = 256 MiB while the document
-	// stays under 1 MiB with only 25 alias nodes.
+	// Nested anchors: each level aliases the previous level four times, so
+	// the 16 KiB base string expands through three levels (4 + 16 + 64
+	// aliases) past the 1 MiB expanded-byte budget while the document stays
+	// ~16 KiB and under the 100-alias budget, so the byte budget is what
+	// trips.
 	var b strings.Builder
-	b.WriteString("name: amp\nbase: &b \"" + strings.Repeat("x", 64<<10) + "\"\n")
-	for i := range 6 {
-		fmt.Fprintf(&b, "l%02d: &l%02d [*b, *b, *b, *b]\n", i+1, i+1)
+	b.WriteString("name: amp\nbase: &b \"" + strings.Repeat("x", 16<<10) + "\"\n")
+	prev := "b"
+	for i := range 3 {
+		level := fmt.Sprintf("l%02d", i+1)
+		fmt.Fprintf(&b, "%s: &%s [*%s, *%s, *%s, *%s]\n", level, level, prev, prev, prev, prev)
+		prev = level
 	}
-	b.WriteString("custom: *l06\n")
+	b.WriteString("custom: *l03\n")
 	_, _, err := parseImportContent(b.String())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "alias expansion exceeds the 1 MiB size limit")
@@ -544,6 +597,63 @@ func TestBuildImportCreateRequestPreservesExplicitZeroWeight(t *testing.T) {
 			{"id": "toxicity", "provider_id": "garak"}
 		]
 	}`, string(encoded))
+}
+
+// Explicit threshold 0 and lower_is_better false must pass validation and
+// serialize as explicit values, while null scoring blocks stay omitted —
+// omission is what the required-field checks reject, not the zero values.
+func TestBuildImportCreateRequestPreservesExplicitScoringValues(t *testing.T) {
+	doc := map[string]any{
+		"name":          "scoring",
+		"category":      "safety",
+		"pass_criteria": map[string]any{"threshold": 0},
+		"benchmarks": []any{
+			map[string]any{
+				"id":            "quality",
+				"provider_id":   "garak",
+				"primary_score": map[string]any{"metric": "acc", "lower_is_better": false},
+				"pass_criteria": map[string]any{"threshold": 0},
+			},
+		},
+	}
+	request, _, err := buildImportCreateRequest(doc)
+	require.NoError(t, err)
+	require.NotNil(t, request.PassCriteria)
+	assert.Equal(t, float64(0), request.PassCriteria.Threshold)
+	require.NotNil(t, request.Benchmarks[0].PrimaryScore)
+	assert.Equal(t, "acc", request.Benchmarks[0].PrimaryScore.Metric)
+	assert.False(t, request.Benchmarks[0].PrimaryScore.LowerIsBetter)
+	require.NotNil(t, request.Benchmarks[0].PassCriteria)
+	assert.Equal(t, float64(0), request.Benchmarks[0].PassCriteria.Threshold)
+
+	encoded, err := json.Marshal(request)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+		"name": "scoring",
+		"category": "safety",
+		"pass_criteria": {"threshold": 0},
+		"benchmarks": [
+			{
+				"id": "quality",
+				"provider_id": "garak",
+				"primary_score": {"metric": "acc", "lower_is_better": false},
+				"pass_criteria": {"threshold": 0}
+			}
+		]
+	}`, string(encoded))
+
+	nullBlocks := map[string]any{
+		"name":          "scoring",
+		"category":      "safety",
+		"pass_criteria": nil,
+		"benchmarks": []any{
+			map[string]any{"id": "quality", "provider_id": "garak", "primary_score": nil},
+		},
+	}
+	nullRequest, _, err := buildImportCreateRequest(nullBlocks)
+	require.NoError(t, err)
+	assert.Nil(t, nullRequest.PassCriteria)
+	assert.Nil(t, nullRequest.Benchmarks[0].PrimaryScore)
 }
 
 func TestTranslateImportError(t *testing.T) {

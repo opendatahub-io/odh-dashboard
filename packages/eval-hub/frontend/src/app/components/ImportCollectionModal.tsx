@@ -502,7 +502,7 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
                             // PF aligns the toolbar controls to flex-start;
                             // the utilities center the label against the
                             // taller icon buttons.
-                            className="evalhub-import-collection-modal__filename pf-v6-u-align-self-center pf-v6-u-display-flex pf-v6-u-align-items-center"
+                            className="pf-v6-u-align-self-center pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-font-family-monospace pf-v6-u-font-size-xs pf-v6-u-text-color-subtle"
                             data-testid="import-collection-filename"
                           >
                             {filename}
@@ -549,11 +549,14 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
                 </Button>
               </FormGroup>
               <FormGroup label="Collection name" isRequired fieldId="import-collection-name">
+                {/* A name typed while a file read is pending would be
+                    silently discarded when the read lands and replaces the
+                    definition, so the field waits for the read. */}
                 <TextInput
                   id="import-collection-name"
                   data-testid="import-collection-name"
                   value={nameValue}
-                  isDisabled={isNameDisabled || isSubmitting}
+                  isDisabled={isNameDisabled || isSubmitting || isReadingFile}
                   validated={isNameInvalid ? 'error' : 'default'}
                   aria-describedby="import-collection-name-helper"
                   onChange={(_event, value) => {

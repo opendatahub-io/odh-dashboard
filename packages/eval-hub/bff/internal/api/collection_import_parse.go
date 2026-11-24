@@ -13,8 +13,11 @@ import (
 // Import limits — the 1 MiB cap is the platform ceiling for ConfigMaps and
 // Secrets, which is where the EvalHub server materializes collections. The
 // parser bounds (nesting depth, alias count, expanded size, mapping width)
-// protect the parser from pathological constructs; the browser enforces the
-// same limits client-side.
+// protect this parser from pathological constructs. The browser preview does
+// not duplicate these budgets; it relies on js-yaml's own protections —
+// safe-load schema, duplicate-key rejection, a merge-key budget, and
+// alias-by-reference resolution that does not expand — plus the same 1 MiB
+// byte cap. The checks here remain authoritative on submission.
 const (
 	maxImportContentSize    = 1 << 20 // 1 MiB
 	maxYAMLDepth            = 50

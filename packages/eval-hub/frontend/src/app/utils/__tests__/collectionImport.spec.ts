@@ -262,6 +262,40 @@ describe('findImportWarningLine', () => {
     expect(findImportWarningLine(lines, { message: 'missing', field: 'absent-field' })).toBe(1);
     expect(findImportWarningLine(lines, { message: 'missing', benchmarkId: 'not-there' })).toBe(1);
   });
+
+  const jsonLines = [
+    '{',
+    '  "name": "warn-me",',
+    '  "id": "top-level-id",',
+    '  "mystery": 1,',
+    '  "benchmarks": [',
+    '    {',
+    '      "id": "quality",',
+    '      "provider_id": "garak",',
+    '      "url": "https://example.com"',
+    '    }',
+    '  ]',
+    '}',
+  ];
+
+  it('should resolve a top-level field in pretty-printed JSON to its own line', () => {
+    expect(findImportWarningLine(jsonLines, { message: 'mystery', field: 'mystery' })).toBe(4);
+  });
+
+  it('should prefer the shallowest quoted match when a field name repeats nested', () => {
+    expect(findImportWarningLine(jsonLines, { message: 'id', field: 'id' })).toBe(3);
+  });
+
+  it('should resolve a benchmark id and benchmark field in pretty-printed JSON', () => {
+    expect(findImportWarningLine(jsonLines, { message: 'b', benchmarkId: 'quality' })).toBe(7);
+    expect(
+      findImportWarningLine(jsonLines, {
+        message: 'url',
+        benchmarkId: 'quality',
+        benchmarkField: 'url',
+      }),
+    ).toBe(9);
+  });
 });
 
 describe('findNameCollision', () => {
@@ -317,6 +351,13 @@ describe('applyImportName', () => {
     expect(applyImportName(validYAML, 'renamed')).not.toContain('release-gate-safety');
   });
 
+  it('should preserve an anchor on the name value so aliases stay defined', () => {
+    const text = 'name: &n old\ndescription: *n\n';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('name: &n renamed\ndescription: *n\n');
+    expect(parseImportContent(result).doc).toEqual({ name: 'renamed', description: 'renamed' });
+  });
+
   it('should not replace indented benchmark name fields', () => {
     const text = 'name: top\nbenchmarks:\n  - id: x\n    name: nested\n';
     const result = applyImportName(text, 'renamed');
@@ -356,6 +397,22 @@ describe('applyImportName', () => {
   it('should not rewrite a flow-mapping name that only exists in a later document', () => {
     const text = '{domains: [software]}\n---\n{name: second-doc}';
     const result = applyImportName(text, 'renamed');
+    expect(result).toContain('name: second-doc');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should not rewrite a name that only exists in a later document after a comment-bearing marker', () => {
+    const text = 'description: first\n--- # second\nname: second-doc\n';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toContain('name: renamed');
+    expect(result).toContain('name: second-doc');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should treat a marker with content on its line as a document boundary', () => {
+    const text = 'description: first\n--- name: second-doc\n';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toContain('name: renamed');
     expect(result).toContain('name: second-doc');
     expect(parseImportContent(result).doc?.name).toBe('renamed');
   });
@@ -409,6 +466,12 @@ describe('applyImportName', () => {
     expect(result).toBe('{"name": "renamed", "domains": ["x"]}');
   });
 
+  it('should rewrite the last of duplicate JSON name keys, matching the parser', () => {
+    const result = applyImportName('{"name": "first", "name": "last"}', 'renamed');
+    expect(result).toBe('{"name": "first", "name": "renamed"}');
+    expect(JSON.parse(result)).toEqual({ name: 'renamed' });
+  });
+
   it('should preserve JSON values that do not survive a numeric round-trip', () => {
     const text = '{"name": "old", "parameters": {"id": 9007199254740993}}';
     expect(applyImportName(text, 'renamed')).toBe(
@@ -452,10 +515,44 @@ describe('applyImportName', () => {
     expect(parseImportContent(result).doc?.name).toBe('renamed suite');
   });
 
+  it('should replace a flow-mapping name value that contains an apostrophe', () => {
+    const result = applyImportName("{name: team's suite, domains: [software]}", 'renamed');
+    expect(result).toBe('{name: "renamed", domains: [software]}');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should replace the name when a nested plain flow scalar contains an apostrophe', () => {
+    const result = applyImportName("{benchmarks: [{note: it's broken}], name: old}", 'renamed');
+    expect(result).toBe('{benchmarks: [{note: it\'s broken}], name: "renamed"}');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should leave a flow mapping unchanged when the name cannot be replaced in place', () => {
+    const text = "{name: 'unclosed}";
+    expect(applyImportName(text, 'renamed')).toBe(text);
+  });
+
   it('should add a name to a YAML flow mapping that has none', () => {
     const result = applyImportName('{domains: [software]}', 'renamed');
     expect(result).toBe('{"name": "renamed",domains: [software]}');
     expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should not rewrite a name key that only exists in a comment', () => {
+    const text = '{domains: [software], # name: old\n description: d}';
+    const result = applyImportName(text, 'renamed');
+    expect(parseImportContent(result).doc).toEqual({
+      name: 'renamed',
+      domains: ['software'],
+      description: 'd',
+    });
+  });
+
+  it('should preserve a trailing comment when replacing a flow name value', () => {
+    const text = '{name: old # keep this\n, domains: [software]}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('{name: "renamed" # keep this\n, domains: [software]}');
+    expect(parseImportContent(result).doc).toEqual({ name: 'renamed', domains: ['software'] });
   });
 
   it('should replace the name in a flow mapping preceded by a document marker', () => {
@@ -481,6 +578,27 @@ describe('applyImportName', () => {
     );
   });
 
+  it('should treat an indented leading comment as a comment, not root content', () => {
+    const text = '  # header\nname: old\ndomains: [software]\n';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('  # header\nname: renamed\ndomains: [software]\n');
+    expect(parseImportContent(result).doc).toEqual({ name: 'renamed', domains: ['software'] });
+  });
+
+  it('should insert a name at the root when an indented comment precedes unnamed content', () => {
+    const text = '  # header\ndomains: [software]\n';
+    const result = applyImportName(text, 'inserted');
+    expect(result).toBe('  # header\nname: inserted\ndomains: [software]\n');
+    expect(parseImportContent(result).doc).toEqual({ name: 'inserted', domains: ['software'] });
+  });
+
+  it('should replace the name in a flow mapping preceded by an indented comment', () => {
+    const text = '  # header\n{name: old, domains: [software]}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('  # header\n{name: "renamed", domains: [software]}');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
   it('should insert a name after the leading comment block when one is missing', () => {
     const text = '# Example collection format\n\ndescription: kept\n';
     expect(applyImportName(text, 'inserted')).toBe(
@@ -497,6 +615,32 @@ describe('applyImportName', () => {
     expect(applyImportName(text, 'inserted')).toBe(
       '---\nname: inserted\ndescription: kept\nbenchmarks:\n  - id: arc_easy\n',
     );
+  });
+
+  it('should insert a name inside the first document when the leading marker carries a comment', () => {
+    const text = '--- # top\ndescription: kept\n';
+    expect(applyImportName(text, 'inserted')).toBe(
+      '--- # top\nname: inserted\ndescription: kept\n',
+    );
+  });
+
+  it('should insert a name inside the first document when the marker comment has no leading space', () => {
+    const text = '---# top\ndescription: kept\n';
+    expect(applyImportName(text, 'inserted')).toBe('---# top\nname: inserted\ndescription: kept\n');
+  });
+
+  it('should replace the name in a flow mapping preceded by a comment-bearing marker', () => {
+    const text = '--- # top\n{name: old, domains: [software]}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('--- # top\n{name: "renamed", domains: [software]}');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
+  });
+
+  it('should replace the name in a flow mapping on the marker line', () => {
+    const text = '--- {name: old, domains: [software]}';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('--- {name: "renamed", domains: [software]}');
+    expect(parseImportContent(result).doc?.name).toBe('renamed');
   });
 
   it('should round-trip a marker-led definition, preserving benchmarks and description', () => {

@@ -45,13 +45,18 @@ const EvalHubCodeEditor: React.FC<EvalHubCodeEditorProps> = ({
   ...props
 }) => {
   const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  // Module Federation shares the loader but not monaco-editor — the mounted
+  // editor may belong to a host-provided Monaco instance, and markers set
+  // through the locally bundled copy would never render.
+  const monacoRef = React.useRef<typeof monaco | null>(null);
 
   const applyDiagnostics = React.useCallback((list: CodeEditorDiagnostic[]) => {
+    const monacoInstance = monacoRef.current;
     const model = editorRef.current?.getModel();
-    if (!model) {
+    if (!monacoInstance || !model) {
       return;
     }
-    monaco.editor.setModelMarkers(
+    monacoInstance.editor.setModelMarkers(
       model,
       'evalhub-import',
       list.map((diagnostic) => {
@@ -61,8 +66,8 @@ const EvalHubCodeEditor: React.FC<EvalHubCodeEditorProps> = ({
           message: diagnostic.message,
           severity:
             diagnostic.severity === 'error'
-              ? monaco.MarkerSeverity.Error
-              : monaco.MarkerSeverity.Warning,
+              ? monacoInstance.MarkerSeverity.Error
+              : monacoInstance.MarkerSeverity.Warning,
           startLineNumber: lineNumber,
           startColumn: 1,
           endLineNumber: lineNumber,
@@ -83,8 +88,9 @@ const EvalHubCodeEditor: React.FC<EvalHubCodeEditorProps> = ({
       isCopyEnabled
       options={{ automaticLayout: true, scrollBeyondLastLine: false, ...options }}
       onChange={(value) => onChange(value)}
-      onEditorDidMount={(editor) => {
+      onEditorDidMount={(editor, monacoInstance) => {
         editorRef.current = editor;
+        monacoRef.current = monacoInstance;
         // The effect above may have run before the editor existed.
         applyDiagnostics(diagnostics);
       }}
