@@ -28,6 +28,7 @@ const initIntercepts = ({
     { path: API_VERSION },
     mockUserSettings({ userId: 'test-user' }),
   );
+  cy.interceptApi('GET /api/:apiVersion/info', { path: API_VERSION }, { hardware_profiles: [] });
   cy.interceptApi('GET /api/:apiVersion/namespaces', { path: API_VERSION }, namespaces);
   cy.interceptApi('GET /api/:apiVersion/evalhub/health', { path: API_VERSION }, health).as(
     'evalHubHealth',
