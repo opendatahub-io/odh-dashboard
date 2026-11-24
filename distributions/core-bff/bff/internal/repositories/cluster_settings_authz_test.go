@@ -558,6 +558,7 @@ func TestClusterSettings_CullingOnWithoutIdleTime_SaveOffDeletes(t *testing.T) {
 		plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", shown, defaultDashConfig())
 		require.NoError(t, err)
 		assert.Equal(t, cullerOpDelete, plan.cullerOp, "idle=%q", idle)
+		assert.True(t, plan.rollout, "the controller is restarted so culling stops, idle=%q", idle)
 		require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
 		_, getErr := caller.typed.CoreV1().ConfigMaps(credNS).Get(context.Background(), cullerConfigName, metav1.GetOptions{})
 		assert.True(t, k8serrors.IsNotFound(getErr))

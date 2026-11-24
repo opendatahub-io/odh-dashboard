@@ -482,3 +482,29 @@ func TestCallerAuth_DevModeBlankConfiguredHeaderNotReplacedByAlternate(t *testin
 		rawStatus(t, app.InjectRequestIdentity(inner), "Authorization:", "X-Forwarded-Access-Token: some-token"))
 	assert.False(t, *called)
 }
+
+// The other identity headers DEV_MODE consults follow the list rules: a
+// repeated header or two different tokens fail closed (401).
+func TestCallerAuth_DevModeAlternateFollowsListRules(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		lines []string
+	}{
+		{"repeated Authorization", []string{"Authorization: Bearer A", "Authorization: Bearer B"}},
+		{"Authorization and X-Forwarded-Access-Token disagree", []string{"Authorization: Bearer A", "X-Forwarded-Access-Token: B"}},
+		{"Authorization not Bearer", []string{"Authorization: Basic dXNlcjpwYXNz"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := newTestApp(func(a *App) {
+				a.config.AuthMethod = config.AuthMethodUser
+				a.config.DevMode = true
+				a.config.AuthTokenHeader = "X-Auth-Request-Access-Token"
+				a.config.AuthTokenHeaders = []string{"X-Auth-Request-Access-Token"}
+				a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), a.config)
+			})
+			inner, called := trackingHTTPHandler()
+			assert.Equal(t, http.StatusUnauthorized, rawStatus(t, app.InjectRequestIdentity(inner), tc.lines...))
+			assert.False(t, *called)
+		})
+	}
+}

@@ -121,7 +121,7 @@ func (app *App) configuredHeaderSent(h http.Header) bool {
 // configured headers did not carry: a WebSocket bearer subprotocol (a browser
 // can only send its token that way) or the other standard identity header
 // (Authorization or X-Forwarded-Access-Token) when it is not one of the
-// configured ones. It re-expresses the token in the first configured header,
+// configured ones, read with the ordered-list rules. It re-expresses the token in the first configured header,
 // in that header's format, so the factory parses it exactly like a normal
 // request. A malformed or empty one is passed on as an empty credential, which
 // the factory rejects as invalid.
@@ -133,29 +133,32 @@ func (app *App) alternateCredential(r *http.Request) (http.Header, bool) {
 	if token, ok := proxy.BearerSubprotocolToken(r); ok {
 		return app.credentialIn(configured[0], token), true
 	}
+	var others []string
 	for _, name := range []string{constants.HeaderAuthorization, constants.HeaderForwardedToken} {
-		if slices.ContainsFunc(configured, func(c string) bool { return strings.EqualFold(c, name) }) {
-			continue
+		if !slices.ContainsFunc(configured, func(c string) bool { return strings.EqualFold(c, name) }) {
+			others = append(others, name)
 		}
-		values, present := r.Header[http.CanonicalHeaderKey(name)]
-		if !present {
-			continue
-		}
-		token := ""
-		if len(values) > 0 {
-			token = strings.TrimSpace(values[0])
-		}
-		if name == constants.HeaderAuthorization {
-			scheme, rest, found := strings.Cut(token, " ")
-			if found && strings.EqualFold(scheme, "Bearer") {
-				token = strings.TrimSpace(rest)
-			} else {
-				token = ""
+	}
+	if len(others) == 0 {
+		return nil, false
+	}
+	// The other identity headers follow the list rules: Authorization must be
+	// Bearer, a repeated header or two different tokens fail closed.
+	cred, err := callerauth.Ordered(others...).Extract(r.Header)
+	switch {
+	case errors.Is(err, httpcontract.ErrCredentialsMissing):
+		// Sent but blank is still the caller's credential, an invalid one.
+		for _, name := range others {
+			if _, sent := r.Header[http.CanonicalHeaderKey(name)]; sent {
+				return app.credentialIn(configured[0], ""), true
 			}
 		}
-		return app.credentialIn(configured[0], token), true
+		return nil, false
+	case err != nil:
+		return app.credentialIn(configured[0], ""), true
+	default:
+		return app.credentialIn(configured[0], cred.Token), true
 	}
-	return nil, false
 }
 
 // credentialIn expresses token in header, in the format the extractor expects

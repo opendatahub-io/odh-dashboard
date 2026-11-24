@@ -177,7 +177,10 @@ func (r *ClusterSettingsRepository) buildPlan(
 
 	// The rollout decision uses the same read the writes are bound to.
 	plan.pvcChanged = settings.PVCSize != currentPVCSize(currentConfig)
-	if plan.pvcChanged || settings.CullerTimeout != currentTimeout {
+	// Deleting a culler map that still turned culling on is a change for the
+	// controller even though GET showed culling off before and after.
+	stillCulled := plan.cullerOp == cullerOpDelete && cullingFlagOn(culler)
+	if plan.pvcChanged || settings.CullerTimeout != currentTimeout || stillCulled {
 		plan.rollout = true
 		plan.writes = append(plan.writes, clusterSettingsWrite{group: "apps", resource: "deployments", verb: "patch", name: notebookControllerDeploy})
 	}
