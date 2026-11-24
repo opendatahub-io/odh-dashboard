@@ -240,11 +240,23 @@ func createLLMInferenceServiceRBAC(ctx context.Context, client k8sclient.Interfa
 		verbs = []string{"get", "list", "watch"}
 		name = "rhaii-viewer"
 	} else {
-		rules = append(rules, rbacv1.PolicyRule{
-			APIGroups: []string{""},
-			Resources: []string{"secrets"},
-			Verbs:     []string{"create", "get", "update", "patch", "delete"},
-		})
+		rules = append(rules,
+			rbacv1.PolicyRule{
+				APIGroups: []string{""},
+				Resources: []string{"secrets"},
+				Verbs:     []string{"create", "get", "list", "update", "patch", "delete"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{""},
+				Resources: []string{"serviceaccounts"},
+				Verbs:     []string{"get", "create"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{"rbac.authorization.k8s.io"},
+				Resources: []string{"roles", "rolebindings"},
+				Verbs:     []string{"get", "create"},
+			},
+		)
 	}
 	rules = append(rules, rbacv1.PolicyRule{
 		APIGroups: []string{"serving.kserve.io"},

@@ -32,6 +32,7 @@ const (
 
 	groupServing        = "serving.kserve.io"
 	groupInfrastructure = "infrastructure.opendatahub.io"
+	groupRBAC           = "rbac.authorization.k8s.io"
 )
 
 // ErrNamespaceDiscoveryUnavailable means discovery found nothing because every
@@ -56,13 +57,18 @@ type accessCheck struct {
 // DeriveNamespaceActions). They run first: a namespace where none of them
 // enables an action is not returned, so its remaining reviews are skipped.
 var actionPermissionMatrix = []accessCheck{
-	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"get", "list", "create", "update", "patch", "delete"}},
-	{Group: "", Resource: "secrets", Verbs: []string{"create", "get", "update", "patch", "delete"}},
+	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"get", "list", "watch", "create", "update", "patch", "delete"}},
+	// Token authentication: the token Secrets, and the ServiceAccount, Role
+	// and RoleBinding the wizard gets and creates if missing.
+	{Group: "", Resource: "secrets", Verbs: []string{"create", "get", "list", "update", "patch", "delete"}},
+	{Group: "", Resource: "serviceaccounts", Verbs: []string{"get", "create"}},
+	{Group: groupRBAC, Resource: "roles", Verbs: []string{"get", "create"}},
+	{Group: groupRBAC, Resource: "rolebindings", Verbs: []string{"get", "create"}},
 }
 
-// detailPermissionMatrix completes the matrix for namespaces that are returned.
+// detailPermissionMatrix completes the matrix for namespaces that are
+// returned: the optional reads behind deployment details.
 var detailPermissionMatrix = []accessCheck{
-	{Group: groupServing, Resource: "llminferenceservices", Verbs: []string{"watch"}},
 	{Group: groupServing, Resource: "llminferenceserviceconfigs", Verbs: []string{"get", "list"}},
 	{Group: "", Resource: "pods", Verbs: []string{"get", "list"}},
 }
@@ -215,8 +221,14 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 
 	lim := r.newLimiter()
 	results := make([]evaluated, len(names))
-	forEach(len(names), func(i int) {
+	// A bounded pool keeps a caller's uncapped cluster list from starting a
+	// goroutine per namespace. Once the request is cancelled or its deadline
+	// passes, namespaces not yet started are reported as failed reviews, as
+	// their reviews would have failed.
+	forEachBounded(ctx, len(names), r.namespaceWorkers(), func(i int) {
 		results[i] = r.evaluate(ctx, lim, client, identity, names[i], known)
+	}, func(i int) {
+		results[i] = evaluated{outcome: outcomeReviewFailed, failed: 1}
 	})
 
 	namespaces := make([]models.NamespaceAccess, 0, len(results))
@@ -431,14 +443,22 @@ func DeriveNamespaceActions(perms map[string]models.ResourcePermissions) models.
 		}
 		return true
 	}
+	// View needs watch: the deployments page watches the models it lists.
 	// Edit needs both patch and update: the wizard may save with either verb.
-	// Saving over an existing token Secret replaces it, which needs update.
+	// Start and Stop only patch an annotation.
+	// Token authentication lists the existing token Secrets, replaces them
+	// (update) and patches their owner reference, and gets or creates the
+	// ServiceAccount, Role and RoleBinding behind them.
 	return models.NamespaceActions{
-		View:            allowed(groupServing, "llminferenceservices", "list", "get"),
-		Deploy:          allowed(groupServing, "llminferenceservices", "create"),
-		Edit:            allowed(groupServing, "llminferenceservices", "patch", "update"),
-		Delete:          allowed(groupServing, "llminferenceservices", "delete"),
-		ManageTokenAuth: allowed("", "secrets", "create", "get", "update", "patch", "delete"),
+		View:      allowed(groupServing, "llminferenceservices", "list", "get", "watch"),
+		Deploy:    allowed(groupServing, "llminferenceservices", "create"),
+		Edit:      allowed(groupServing, "llminferenceservices", "patch", "update"),
+		StartStop: allowed(groupServing, "llminferenceservices", "patch"),
+		Delete:    allowed(groupServing, "llminferenceservices", "delete"),
+		ManageTokenAuth: allowed("", "secrets", "create", "get", "list", "update", "patch", "delete") &&
+			allowed("", "serviceaccounts", "get", "create") &&
+			allowed(groupRBAC, "roles", "get", "create") &&
+			allowed(groupRBAC, "rolebindings", "get", "create"),
 	}
 }
 
@@ -507,6 +527,48 @@ func (l limiter) do(fn func()) {
 	l <- struct{}{}
 	defer func() { <-l }()
 	fn()
+}
+
+// namespaceWorkers is how many namespaces one request evaluates at a time.
+// Each runs its reviews concurrently through the shared limiter, so this only
+// bounds goroutines, not API load.
+func (r *NamespaceAccessRepository) namespaceWorkers() int {
+	if r.reviewConcurrency < 1 {
+		return 1
+	}
+	return r.reviewConcurrency
+}
+
+// forEachBounded runs fn for 0..n-1 on at most workers goroutines. Indices not
+// started before ctx is done get skipped instead.
+func forEachBounded(ctx context.Context, n, workers int, fn, skipped func(int)) {
+	if workers > n {
+		workers = n
+	}
+	next := make(chan int)
+	var wg sync.WaitGroup
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range next {
+				fn(i)
+			}
+		}()
+	}
+	for i := 0; i < n; i++ {
+		if ctx.Err() != nil {
+			skipped(i)
+			continue
+		}
+		select {
+		case next <- i:
+		case <-ctx.Done():
+			skipped(i)
+		}
+	}
+	close(next)
+	wg.Wait()
 }
 
 // forEach runs fn for 0..n-1 concurrently. API calls inside fn go through the

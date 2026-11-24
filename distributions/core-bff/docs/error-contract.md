@@ -34,7 +34,7 @@ logs as `CREDENTIALS_MISSING`, `CREDENTIALS_INVALID` or `CREDENTIALS_EXPIRED`; a
 on the wire. A future authentication strategy can supply the trusted invalid/expired cause.
 An upstream 401 does not prove expiry. A successful SelfSubjectReview without a username is unresolved identity: return 401 `UNAUTHORIZED` and log `IDENTITY_UNRESOLVED`, without claiming the token is invalid. Other SSR request failures retain their actual cause.
 
-Completed access reviews use `status.allowed`, even when `evaluationError` is present. Diagnostics log only the boolean outcome and a fixed event name, never upstream text. Guarded operations propagate failed reviews and never grant access on a failure. The authenticated `/api/status` probe preserves the session and reports conservative flags when its reviews fail.
+Completed access reviews use `status.allowed`, even when `evaluationError` is present. Namespace discovery is the exception: it reports a review with neither `allowed` nor `denied` and an `evaluationError` as indeterminate (`error`); see the [namespace discovery contract](./namespace-discovery-contract.md). Diagnostics log only the boolean outcome and a fixed event name, never upstream text. Guarded operations propagate failed reviews and never grant access on a failure. The authenticated `/api/status` probe preserves the session and reports conservative flags when its reviews fail.
 
 The Kubernetes HTTP proxy strips outbound `Connection` and `Upgrade` headers and retains its defensive 502 rejection of upstream protocol switches. WebSocket clients use `/wss/k8s/*`.
 

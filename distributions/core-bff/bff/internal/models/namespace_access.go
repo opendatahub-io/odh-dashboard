@@ -50,22 +50,25 @@ type ResourcePermissions map[string]AccessDecision
 // matrix. Each is true only when every review it depends on was allowed, so a
 // failed review hides the action instead of offering it.
 type NamespaceActions struct {
-	// View: list and get LLMInferenceServices.
+	// View: list, get and watch LLMInferenceServices.
 	View bool `json:"view"`
 	// Deploy: create LLMInferenceServices.
 	Deploy bool `json:"deploy"`
-	// Edit: patch LLMInferenceServices.
+	// Edit: patch and update LLMInferenceServices.
 	Edit bool `json:"edit"`
+	// StartStop: patch LLMInferenceServices (the stopped annotation).
+	StartStop bool `json:"startStop"`
 	// Delete: delete LLMInferenceServices.
 	Delete bool `json:"delete"`
-	// ManageTokenAuth: create, get, patch (owner reference) and delete Secrets
-	// for token authentication.
+	// ManageTokenAuth: create, get, list, update, patch (owner reference) and
+	// delete Secrets, and get and create ServiceAccounts, Roles and
+	// RoleBindings, for token authentication.
 	ManageTokenAuth bool `json:"manageTokenAuth"`
 }
 
 // Any reports whether at least one action is available.
 func (a NamespaceActions) Any() bool {
-	return a.View || a.Deploy || a.Edit || a.Delete || a.ManageTokenAuth
+	return a.View || a.Deploy || a.Edit || a.StartStop || a.Delete || a.ManageTokenAuth
 }
 
 // NamespacePhaseUnknown is reported when the caller is authorized in a

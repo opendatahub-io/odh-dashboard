@@ -64,7 +64,7 @@ func TestNamespaceAccess_DeployerWithoutNamespaceList(t *testing.T) {
 	assert.True(t, list.Complete)
 	assert.Equal(t, []string{"test-ns-a"}, accessNames(list))
 	ns := list.Namespaces[0]
-	assert.Equal(t, models.NamespaceActions{View: true, Deploy: true, Edit: true, Delete: true, ManageTokenAuth: true}, ns.Actions)
+	assert.Equal(t, models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, ManageTokenAuth: true}, ns.Actions)
 	assert.Equal(t, "Active", ns.Phase, "the RoleBinding's namespace get is honoured")
 }
 

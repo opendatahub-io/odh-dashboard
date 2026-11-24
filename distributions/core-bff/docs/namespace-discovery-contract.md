@@ -96,10 +96,13 @@ not returned, and its remaining reviews are skipped.
 
 | Key (`<group>/<resource>`)                         | Verbs                                                    | Why                                                                             |
 | -------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `serving.kserve.io/llminferenceservices`           | `get` `list` `watch` `create` `update` `patch` `delete`  | Model lifecycle: list/inspect/watch, deploy, edit, delete (finalizers run server-side) |
-| `serving.kserve.io/llminferenceserviceconfigs`     | `get` `list`                                             | Namespace-local configs the wizard offers                                       |
-| `core/pods`                                        | `get` `list`                                             | Deployment status and troubleshooting                                           |
-| `core/secrets`                                     | `create` `get` `update` `patch` `delete`                 | Token-authentication Secrets; `update` replaces an existing token Secret, `patch` sets the owner reference to the LLMInferenceService, `delete` is explicit cleanup |
+| `serving.kserve.io/llminferenceservices`           | `get` `list` `watch` `create` `update` `patch` `delete`  | Model lifecycle: list/inspect/watch, deploy, edit, start/stop, delete (finalizers run server-side) |
+| `serving.kserve.io/llminferenceserviceconfigs`     | `get` `list`                                             | Namespace-local configs the wizard offers (optional detail)                     |
+| `core/pods`                                        | `get` `list`                                             | Deployment status and troubleshooting (optional detail)                         |
+| `core/secrets`                                     | `create` `get` `list` `update` `patch` `delete`          | Token-authentication Secrets; `list` reads a deployment's existing tokens, `update` replaces an existing token Secret, `patch` sets the owner reference to the LLMInferenceService, `delete` is explicit cleanup |
+| `core/serviceaccounts`                             | `get` `create`                                           | The token ServiceAccount, created when missing                                  |
+| `rbac.authorization.k8s.io/roles`                  | `get` `create`                                           | The Role that lets the token read its model, created when missing               |
+| `rbac.authorization.k8s.io/rolebindings`           | `get` `create`                                           | The RoleBinding to that Role, created when missing                              |
 | `core/namespaces`                                  | `get` (on the namespace itself)                          | Whether display name and phase can be read                                      |
 
 Cleanup of owned Secrets after a delete is Kubernetes garbage collection and needs no caller
@@ -136,18 +139,24 @@ missing role; if nothing else decides, that review is reported as `error` as wel
 
 | Action            | Requires every one of                                        |
 | ----------------- | ------------------------------------------------------------ |
-| `view`            | `llminferenceservices` `list`, `get`                         |
+| `view`            | `llminferenceservices` `list`, `get`, `watch`: the deployments page watches the models it lists |
 | `deploy`          | `llminferenceservices` `create`                              |
 | `edit`            | `llminferenceservices` `patch` and `update`                  |
+| `startStop`       | `llminferenceservices` `patch`: starting and stopping patch an annotation |
 | `delete`          | `llminferenceservices` `delete`                              |
-| `manageTokenAuth` | `secrets` `create`, `get`, `update`, `patch`, `delete`       |
+| `manageTokenAuth` | `secrets` `create`, `get`, `list`, `update`, `patch`, `delete`; `serviceaccounts`, `roles` and `rolebindings` `get`, `create` |
 
 An action is `true` only when every review it needs is `allowed`; a `denied` or `error` review
 hides it. A namespace is returned when at least one action is `true`. Admin flags, admission,
 dashboard labels and unrelated permissions (for example `pods` alone) never enable an action.
 
 A deploy that uses token authentication needs both `deploy` and `manageTokenAuth`; a read-only
-user gets `view` only and is offered no mutation.
+user gets `view` only and is offered no mutation. `configs` and `pods` are reported but enable no
+action: they are optional details, and the UI degrades without them.
+
+Creating the token Role and RoleBinding is also subject to Kubernetes' RBAC escalation check: the
+caller must hold the permissions the Role grants (`get` on the deployment's model). Any caller with
+`view` does, so discovery does not review `escalate` or `bind`.
 
 ## Outcomes
 
@@ -226,9 +235,11 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
 
 ## Cost
 
-For each candidate, the 11 action reviews; for a namespace that is returned, 5 more matrix reviews
-plus the named `get` (17 in all), and one namespace read when permitted. Reviews run concurrently
-with at most 16 in flight per request, which is what bounds the load on the API server. The
+For each candidate, the 19 action reviews; for a namespace that is returned, 4 more matrix reviews
+plus the named `get` (24 in all), and one namespace read when permitted. Reviews run concurrently
+with at most 16 in flight per request, which is what bounds the load on the API server, and at
+most 16 namespaces are evaluated at a time, which bounds the request's goroutines. Namespaces not
+started when the request is cancelled or its deadline passes count as failed reviews. The
 caller's per-request client allows 400 requests per second (burst 800) instead of client-go's 5/10
 default, which would otherwise throttle discovery to minutes. A request from configured
 candidates and label discovery evaluates at most 200 of them; a caller's own cluster list is not
@@ -250,12 +261,15 @@ contract.
         "phase": "Active",
         "displayName": "team-b",
         "isAiProject": false,
-        "actions": { "view": true, "deploy": false, "edit": false, "delete": false, "manageTokenAuth": false },
+        "actions": { "view": true, "deploy": false, "edit": false, "startStop": false, "delete": false, "manageTokenAuth": false },
         "permissions": {
           "serving.kserve.io/llminferenceservices": { "get": "allowed", "list": "allowed", "watch": "allowed", "create": "denied", "update": "denied", "patch": "denied", "delete": "denied" },
           "serving.kserve.io/llminferenceserviceconfigs": { "get": "denied", "list": "denied" },
           "core/pods": { "get": "denied", "list": "denied" },
-          "core/secrets": { "create": "denied", "get": "denied", "update": "denied", "patch": "denied", "delete": "denied" },
+          "core/secrets": { "create": "denied", "get": "denied", "list": "denied", "update": "denied", "patch": "denied", "delete": "denied" },
+          "core/serviceaccounts": { "get": "denied", "create": "denied" },
+          "rbac.authorization.k8s.io/roles": { "get": "denied", "create": "denied" },
+          "rbac.authorization.k8s.io/rolebindings": { "get": "denied", "create": "denied" },
           "core/namespaces": { "get": "allowed" }
         }
       }

@@ -122,8 +122,16 @@ func grant(allow map[string]bool, ns, group, resource string, verbs ...string) {
 
 func deployer(allow map[string]bool, ns string) {
 	grant(allow, ns, groupServing, "llminferenceservices", "get", "list", "watch", "create", "update", "patch", "delete")
-	grant(allow, ns, "", "secrets", "create", "get", "update", "patch", "delete")
+	tokenManager(allow, ns)
 	grant(allow, ns, "", "namespaces", "get")
+}
+
+// tokenManager grants what token authentication reads and writes.
+func tokenManager(allow map[string]bool, ns string) {
+	grant(allow, ns, "", "secrets", "create", "get", "list", "update", "patch", "delete")
+	grant(allow, ns, "", "serviceaccounts", "get", "create")
+	grant(allow, ns, groupRBAC, "roles", "get", "create")
+	grant(allow, ns, groupRBAC, "rolebindings", "get", "create")
 }
 
 func viewer(allow map[string]bool, ns string) {
@@ -144,6 +152,10 @@ func identity() *k8s.RequestIdentity { return &k8s.RequestIdentity{UserID: "u"} 
 func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 	llm := PermissionKey(groupServing, "llminferenceservices")
 	sec := PermissionKey("", "secrets")
+	sa := PermissionKey("", "serviceaccounts")
+	roles := PermissionKey(groupRBAC, "roles")
+	bindings := PermissionKey(groupRBAC, "rolebindings")
+	A, D, E := models.AccessAllowed, models.AccessDenied, models.AccessError
 	all := func(d models.AccessDecision, verbs ...string) models.ResourcePermissions {
 		p := models.ResourcePermissions{}
 		for _, v := range verbs {
@@ -151,6 +163,26 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 		}
 		return p
 	}
+	// tokenPerms is everything token authentication needs, with overrides.
+	tokenPerms := func(override func(map[string]models.ResourcePermissions)) map[string]models.ResourcePermissions {
+		perms := map[string]models.ResourcePermissions{
+			sec:      all(A, "create", "get", "list", "update", "patch", "delete"),
+			sa:       all(A, "get", "create"),
+			roles:    all(A, "get", "create"),
+			bindings: all(A, "get", "create"),
+		}
+		if override != nil {
+			override(perms)
+		}
+		return perms
+	}
+	viewVerbs := func() models.ResourcePermissions { return all(A, "get", "list", "watch") }
+	with := func(p models.ResourcePermissions, verb string, d models.AccessDecision) models.ResourcePermissions {
+		p[verb] = d
+		return p
+	}
+	full := tokenPerms(nil)
+	full[llm] = all(A, "get", "list", "watch", "create", "update", "patch", "delete")
 	for _, tc := range []struct {
 		name  string
 		perms map[string]models.ResourcePermissions
@@ -158,48 +190,88 @@ func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
 	}{
 		{
 			name:  "full deployer",
-			perms: map[string]models.ResourcePermissions{llm: all(models.AccessAllowed, "get", "list", "create", "update", "patch", "delete"), sec: all(models.AccessAllowed, "create", "get", "update", "patch", "delete")},
-			want:  models.NamespaceActions{View: true, Deploy: true, Edit: true, Delete: true, ManageTokenAuth: true},
-		},
-		{
-			name:  "edit needs update as well as patch",
-			perms: map[string]models.ResourcePermissions{llm: {"get": models.AccessAllowed, "list": models.AccessAllowed, "patch": models.AccessAllowed, "update": models.AccessDenied}},
-			want:  models.NamespaceActions{View: true},
-		},
-		{
-			name:  "errored update fails edit closed",
-			perms: map[string]models.ResourcePermissions{llm: {"get": models.AccessAllowed, "list": models.AccessAllowed, "patch": models.AccessAllowed, "update": models.AccessError}},
-			want:  models.NamespaceActions{View: true},
-		},
-		{
-			name:  "update without patch is not edit",
-			perms: map[string]models.ResourcePermissions{llm: {"get": models.AccessAllowed, "list": models.AccessAllowed, "patch": models.AccessDenied, "update": models.AccessAllowed}},
-			want:  models.NamespaceActions{View: true},
+			perms: full,
+			want:  models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, ManageTokenAuth: true},
 		},
 		{
 			name:  "read-only is never offered mutations",
-			perms: map[string]models.ResourcePermissions{llm: {"get": models.AccessAllowed, "list": models.AccessAllowed, "create": models.AccessDenied, "patch": models.AccessDenied, "delete": models.AccessDenied}},
+			perms: map[string]models.ResourcePermissions{llm: with(with(with(viewVerbs(), "create", D), "patch", D), "delete", D)},
 			want:  models.NamespaceActions{View: true},
+		},
+		{
+			name:  "view needs watch: the deployments page watches models",
+			perms: map[string]models.ResourcePermissions{llm: with(viewVerbs(), "watch", D)},
+			want:  models.NamespaceActions{},
 		},
 		{
 			name:  "view needs both list and get",
-			perms: map[string]models.ResourcePermissions{llm: {"list": models.AccessAllowed, "get": models.AccessDenied}},
+			perms: map[string]models.ResourcePermissions{llm: with(viewVerbs(), "get", D)},
 			want:  models.NamespaceActions{},
 		},
 		{
-			name:  "errored create fails closed",
-			perms: map[string]models.ResourcePermissions{llm: {"get": models.AccessAllowed, "list": models.AccessAllowed, "create": models.AccessError, "delete": models.AccessError}},
+			name:  "create-only deploys without viewing",
+			perms: map[string]models.ResourcePermissions{llm: all(A, "create")},
+			want:  models.NamespaceActions{Deploy: true},
+		},
+		{
+			name:  "patch-only can start and stop but not edit",
+			perms: map[string]models.ResourcePermissions{llm: with(viewVerbs(), "patch", A)},
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit needs update as well as patch",
+			perms: map[string]models.ResourcePermissions{llm: with(with(viewVerbs(), "patch", A), "update", D)},
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "errored update fails edit closed",
+			perms: map[string]models.ResourcePermissions{llm: with(with(viewVerbs(), "patch", A), "update", E)},
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "update without patch is neither edit nor start/stop",
+			perms: map[string]models.ResourcePermissions{llm: with(with(viewVerbs(), "patch", D), "update", A)},
 			want:  models.NamespaceActions{View: true},
 		},
 		{
-			name:  "token auth needs every Secret verb including the owner-reference patch",
-			perms: map[string]models.ResourcePermissions{sec: {"create": models.AccessAllowed, "get": models.AccessAllowed, "patch": models.AccessDenied, "delete": models.AccessAllowed}},
-			want:  models.NamespaceActions{},
+			name:  "errored create fails closed",
+			perms: map[string]models.ResourcePermissions{llm: with(with(viewVerbs(), "create", E), "delete", E)},
+			want:  models.NamespaceActions{View: true},
 		},
 		{
 			name:  "Secret access alone does not grant model actions",
-			perms: map[string]models.ResourcePermissions{sec: all(models.AccessAllowed, "create", "get", "update", "patch", "delete")},
+			perms: tokenPerms(nil),
 			want:  models.NamespaceActions{ManageTokenAuth: true},
+		},
+		{
+			name:  "token auth needs the owner-reference patch on Secrets",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sec]["patch"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "token auth needs to list the existing token Secrets",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sec]["list"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "token auth needs to read the ServiceAccount",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sa]["get"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "token auth needs to create the ServiceAccount",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sa]["create"] = E }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "token auth needs to read the Role",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[roles]["get"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "token auth needs to create the RoleBinding",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[bindings]["create"] = D }),
+			want:  models.NamespaceActions{},
 		},
 		{name: "nothing", perms: map[string]models.ResourcePermissions{}, want: models.NamespaceActions{}},
 	} {
@@ -229,7 +301,7 @@ func TestDiscover_NoNamespaceListPermission_MixedAccess(t *testing.T) {
 	assert.Equal(t, []string{"team-a", "team-b"}, names(list))
 
 	a, b := list.Namespaces[0], list.Namespaces[1]
-	assert.Equal(t, models.NamespaceActions{View: true, Deploy: true, Edit: true, Delete: true, ManageTokenAuth: true}, a.Actions)
+	assert.Equal(t, models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, ManageTokenAuth: true}, a.Actions)
 	assert.Equal(t, "Team A", a.DisplayName)
 	assert.Equal(t, "Active", a.Phase)
 	assert.Equal(t, models.NamespaceActions{View: true}, b.Actions)
@@ -412,7 +484,7 @@ func TestDiscover_LabelledNamespacesAreOnlyCandidates(t *testing.T) {
 	allow := map[string]bool{}
 	// The caller may use the namespace but cannot read the Namespace object, so
 	// the service account's copy must not leak its metadata.
-	grant(allow, "labelled-mine", groupServing, "llminferenceservices", "get", "list")
+	grant(allow, "labelled-mine", groupServing, "llminferenceservices", "get", "list", "watch")
 	viewer(allow, "unlabelled-mine")
 	repo := NewNamespaceAccessRepository(nil, "opendatahub.io/dashboard=true", sa, "opendatahub")
 
@@ -621,9 +693,9 @@ func TestDiscover_DefinitiveDenialWithAnUnrelatedFailureIsPartialEmpty(t *testin
 }
 
 func TestDiscover_FailureThatCouldEnableAnActionStaysUndecided(t *testing.T) {
-	// get is allowed, so a list that errors could still enable view.
+	// get and watch are allowed, so a list that errors could still enable view.
 	allow := map[string]bool{}
-	grant(allow, "only", groupServing, "llminferenceservices", "get")
+	grant(allow, "only", groupServing, "llminferenceservices", "get", "watch")
 	client := &rbacClient{allow: allow, fail: map[string]bool{key("only", groupServing, "llminferenceservices", "list"): true}}
 	repo := NewNamespaceAccessRepository([]string{"only"}, "", nil, "opendatahub")
 
@@ -741,7 +813,7 @@ func TestNamespacePermissionMatrix_CoversEveryActionReview(t *testing.T) {
 			verbs[PermissionKey(c.Group, c.Resource)+"|"+v]++
 		}
 	}
-	assert.Len(t, verbs, 16)
+	assert.Len(t, verbs, 23)
 	for k, n := range verbs {
 		assert.Equal(t, 1, n, k)
 	}
@@ -822,7 +894,8 @@ func TestDiscover_ClusterListIsNotCapped(t *testing.T) {
 func TestDiscover_ManageTokenAuthNeedsUpdateOnSecrets(t *testing.T) {
 	allow := map[string]bool{}
 	grant(allow, "team-a", groupServing, "llminferenceservices", "get", "list", "create")
-	grant(allow, "team-a", "", "secrets", "create", "get", "patch", "delete")
+	tokenManager(allow, "team-a")
+	allow[key("team-a", "", "secrets", "update")] = false
 	repo := NewNamespaceAccessRepository([]string{"team-a"}, "", nil, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), &rbacClient{allow: allow}, identity(), nil)
@@ -830,4 +903,43 @@ func TestDiscover_ManageTokenAuthNeedsUpdateOnSecrets(t *testing.T) {
 	require.Len(t, list.Namespaces, 1)
 	assert.False(t, list.Namespaces[0].Actions.ManageTokenAuth, "replacing an existing token Secret is a PUT")
 	assert.Equal(t, models.AccessDenied, list.Namespaces[0].Permissions[PermissionKey("", "secrets")]["update"])
+}
+
+func TestForEachBounded_LimitsWorkersAndSkipsAfterCancellation(t *testing.T) {
+	var running, peak int32
+	var mu sync.Mutex
+	done := map[int]bool{}
+	forEachBounded(context.Background(), 50, 4, func(i int) {
+		n := atomic.AddInt32(&running, 1)
+		for {
+			p := atomic.LoadInt32(&peak)
+			if n <= p || atomic.CompareAndSwapInt32(&peak, p, n) {
+				break
+			}
+		}
+		time.Sleep(time.Millisecond)
+		atomic.AddInt32(&running, -1)
+		mu.Lock()
+		done[i] = true
+		mu.Unlock()
+	}, func(int) { t.Error("nothing is skipped without cancellation") })
+	assert.Len(t, done, 50)
+	assert.LessOrEqual(t, atomic.LoadInt32(&peak), int32(4))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	skipped := 0
+	forEachBounded(ctx, 10, 4, func(int) { t.Error("nothing starts after cancellation") }, func(int) { skipped++ })
+	assert.Equal(t, 10, skipped)
+}
+
+func TestDiscover_CancelledRequestIsUnavailable(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "", nil, "opendatahub")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := repo.Discover(ctx, &rbacClient{allow: allow}, identity(), nil)
+	assert.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable, "skipped namespaces are undecided, not denied")
 }
