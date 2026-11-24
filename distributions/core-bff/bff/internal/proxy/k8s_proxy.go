@@ -51,6 +51,10 @@ type K8sProxyConfig struct {
 	RootCAs *x509.CertPool
 	// ClientCerts are client certificates for mTLS authentication.
 	ClientCerts []tls.Certificate
+	// FallbackClientCerts are presented only on requests whose identity has
+	// DevFallback set, so a caller that sent its own token is never also
+	// authenticated by the developer's kubeconfig certificate.
+	FallbackClientCerts []tls.Certificate
 	// InsecureSkipVerify disables TLS certificate verification.
 	InsecureSkipVerify bool
 	// AllowHTTP permits insecure HTTP connections to the K8s API server.
@@ -83,7 +87,7 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 		return nil, fmt.Errorf("K8sHost must be an absolute http/https URL, got %q", cfg.K8sHost)
 	}
 
-	proxy, err := NewReverseProxy(ProxyConfig{
+	proxyCfg := ProxyConfig{
 		TargetURL:          targetURL,
 		RootCAs:            cfg.RootCAs,
 		ClientCerts:        cfg.ClientCerts,
@@ -129,12 +133,43 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			}
 			return httpcontract.KubernetesResponse(resp)
 		},
-	})
+	}
+	proxy, err := NewReverseProxy(proxyCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create K8s reverse proxy: %w", err)
 	}
+	if len(cfg.FallbackClientCerts) == 0 {
+		return proxy, nil
+	}
 
-	return proxy, nil
+	fallbackCfg := proxyCfg
+	fallbackCfg.ClientCerts = withFallbackCerts(cfg.ClientCerts, cfg.FallbackClientCerts)
+	fallback, err := NewReverseProxy(fallbackCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create K8s dev-fallback reverse proxy: %w", err)
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isDevFallback(r) {
+			fallback.ServeHTTP(w, r)
+			return
+		}
+		proxy.ServeHTTP(w, r)
+	}), nil
+}
+
+// isDevFallback reports whether the request runs on the dev-mode kubeconfig
+// identity rather than on a token the caller supplied.
+func isDevFallback(r *http.Request) bool {
+	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	return ok && identity != nil && identity.DevFallback
+}
+
+// withFallbackCerts returns a new slice so the base transport's certificate
+// list is never aliased by the fallback one.
+func withFallbackCerts(base, fallback []tls.Certificate) []tls.Certificate {
+	out := make([]tls.Certificate, 0, len(base)+len(fallback))
+	out = append(out, base...)
+	return append(out, fallback...)
 }
 
 // jsonWatchAccept keeps JSON representations and their parameters while excluding binary encodings.

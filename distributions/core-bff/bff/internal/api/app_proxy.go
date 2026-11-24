@@ -44,14 +44,17 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 	// The proxies get their own pool so the kubeconfig CA never reaches the
 	// other outbound transports that share app.rootCAs.
 	k8sRootCAs := app.kubernetesProxyRootCAs()
-	var clientCerts []tls.Certificate
+	// envtest: the client certificate is the BFF's own identity on every
+	// request. Kubeconfig: it is the developer's identity and is presented only
+	// on DEV_MODE fallback requests, never next to a token the caller sent.
+	var clientCerts, fallbackCerts []tls.Certificate
 	if cfg.MockK8Client && k8sResult.testEnv != nil {
 		clientCerts, err = app.loadEnvtestTLS(k8sRootCAs, k8sResult.testEnv)
 		if err != nil {
 			return err
 		}
 	} else {
-		clientCerts, err = app.loadKubeconfigTLS(k8sRootCAs, cfg.DevMode)
+		fallbackCerts, err = app.loadKubeconfigTLS(k8sRootCAs, cfg.DevMode)
 		if err != nil {
 			return err
 		}
@@ -83,6 +86,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		K8sHost:              k8sHost,
 		RootCAs:              k8sRootCAs,
 		ClientCerts:          clientCerts,
+		FallbackClientCerts:  fallbackCerts,
 		InsecureSkipVerify:   insecureSkipVerify,
 		AllowHTTP:            allowHTTP,
 		AuthTokenHeader:      cfg.AuthTokenHeader,
@@ -99,16 +103,17 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 	app.wsTracker = proxy.NewConnectionTracker(app.logger)
 
 	wsHandler, err := proxy.NewWsProxyHandler(proxy.WsProxyConfig{
-		K8sHost:            k8sHost,
-		RootCAs:            k8sRootCAs,
-		ClientCerts:        clientCerts,
-		InsecureSkipVerify: insecureSkipVerify,
-		AllowHTTP:          allowHTTP,
-		AllowedOrigins:     cfg.AllowedOrigins,
-		SSRFValidateTarget: true,
-		DevFallbackToken:   devFallbackToken,
-		Tracker:            app.wsTracker,
-		Logger:             app.logger,
+		K8sHost:             k8sHost,
+		RootCAs:             k8sRootCAs,
+		ClientCerts:         clientCerts,
+		FallbackClientCerts: fallbackCerts,
+		InsecureSkipVerify:  insecureSkipVerify,
+		AllowHTTP:           allowHTTP,
+		AllowedOrigins:      cfg.AllowedOrigins,
+		SSRFValidateTarget:  true,
+		DevFallbackToken:    devFallbackToken,
+		Tracker:             app.wsTracker,
+		Logger:              app.logger,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create WebSocket proxy: %w", err)
