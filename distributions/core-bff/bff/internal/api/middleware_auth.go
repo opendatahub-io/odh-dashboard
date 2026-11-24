@@ -41,7 +41,10 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 		}
 
 		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
-		if err != nil && app.config.DevMode && errors.Is(err, httpcontract.ErrCredentialsMissing) {
+		// A configured header that was sent, but blank, is the caller's
+		// (invalid) credential: no other token and no fallback replaces it.
+		if err != nil && app.config.DevMode && errors.Is(err, httpcontract.ErrCredentialsMissing) &&
+			!app.configuredHeaderSent(r.Header) {
 			// None of the configured headers is present. A caller token in the
 			// other identity header (the host dashboard's module proxy sends
 			// Authorization) or in a WebSocket bearer subprotocol is still the
@@ -97,6 +100,17 @@ func (app *App) credentialHeaders() []string {
 func (app *App) credentialHeaderSent(h http.Header) bool {
 	for _, name := range app.credentialHeaders() {
 		if _, ok := h[name]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// configuredHeaderSent reports whether any of the configured credential
+// headers is present, even with an empty value.
+func (app *App) configuredHeaderSent(h http.Header) bool {
+	for _, name := range callerauth.New(app.config).Headers() {
+		if _, ok := h[name]; ok && name != "" {
 			return true
 		}
 	}

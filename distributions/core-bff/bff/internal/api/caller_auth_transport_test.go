@@ -467,3 +467,18 @@ func TestCallerAuth_DevModeAlternateCredentialIsTheCaller(t *testing.T) {
 		})
 	}
 }
+
+// A configured header sent blank is the caller's (invalid) credential: under
+// DEV_MODE no alternate token replaces it.
+func TestCallerAuth_DevModeBlankConfiguredHeaderNotReplacedByAlternate(t *testing.T) {
+	app := newTestApp(func(a *App) {
+		a.config.AuthMethod = config.AuthMethodUser
+		a.config.DevMode = true
+		a.config.AuthTokenHeaders = []string{"Authorization"}
+		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), a.config)
+	})
+	inner, called := trackingHTTPHandler()
+	assert.Equal(t, http.StatusUnauthorized,
+		rawStatus(t, app.InjectRequestIdentity(inner), "Authorization:", "X-Forwarded-Access-Token: some-token"))
+	assert.False(t, *called)
+}
