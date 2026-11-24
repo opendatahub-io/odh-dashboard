@@ -1,4 +1,10 @@
-import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import React from 'react';
+import { renderHook } from '@testing-library/react';
+import type { ProjectKind, TemplateKind } from '@odh-dashboard/k8s-core';
+import {
+  ProjectsContext,
+  type ProjectsContextType,
+} from '@odh-dashboard/ui-core/context/ProjectsContext';
 import {
   KueueFilteringState,
   useKueueConfiguration,
@@ -171,5 +177,56 @@ describe('useCanMakeNewDeployment', () => {
     testHook(useCanMakeNewDeployment)(null);
 
     expect(mockUseKueueConfiguration).toHaveBeenCalledWith(undefined);
+  });
+
+  describe('deployment targets', () => {
+    const namespace = (name: string): ProjectKind => ({
+      apiVersion: 'v1',
+      kind: 'Namespace',
+      metadata: { name },
+    });
+
+    const renderWithTargets = (
+      project: ProjectKind | null,
+      deploymentTargetProjects: ProjectKind[] | undefined,
+    ) => {
+      const context: ProjectsContextType = {
+        projects: [],
+        modelServingProjects: [],
+        nonActiveProjects: [],
+        deploymentTargetProjects,
+        preferredProject: null,
+        updatePreferredProject: jest.fn(),
+        waitForProject: jest.fn(),
+        loaded: true,
+        loadError: undefined,
+      };
+      return renderHook(() => useCanMakeNewDeployment(project), {
+        wrapper: ({ children }) =>
+          React.createElement(ProjectsContext.Provider, { value: context }, children),
+      }).result.current;
+    };
+
+    it('should not offer deploying in a project that is not a deployment target', () => {
+      expect(renderWithTargets(namespace('view-only'), [namespace('other')])).toEqual({
+        disabled: true,
+        disabledReason: 'You do not have permission to deploy models in this project.',
+      });
+    });
+
+    it('should not offer deploying without a project when there is no target', () => {
+      expect(renderWithTargets(null, [])).toEqual({
+        disabled: true,
+        disabledReason: 'You do not have permission to deploy models in any project.',
+      });
+    });
+
+    it.each([
+      ['a target project', namespace('mine'), [namespace('mine')]],
+      ['no project with targets', null, [namespace('mine')]],
+      ['a host without targets', namespace('any'), undefined],
+    ])('should offer deploying for %s', (_label, project, targets) => {
+      expect(renderWithTargets(project, targets).disabled).toBe(false);
+    });
   });
 });
