@@ -219,3 +219,18 @@ func TestStartupPlatform_WithTheShippedBaseRBAC_ConfirmsXKS(t *testing.T) {
 	assert.Equal(t, config.PlatformXKS, platform)
 	assert.True(t, confirmed, "the shipped base RBAC must let the probe see that the ClusterVersion API is absent")
 }
+
+// The shipped ClusterRoleBinding leaves the service-account subject's
+// namespace to the kustomization's namespace transformer. A hard-coded one
+// (it used to say "system") is never rewritten, so no ClusterRole rule would
+// reach the deployed service account.
+func TestShippedClusterRoleBinding_DoesNotHardCodeTheSubjectNamespace(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Clean("../../../manifests/base/cluster-role-binding.yaml"))
+	require.NoError(t, err)
+	var crb rbacv1.ClusterRoleBinding
+	require.NoError(t, yaml.NewYAMLOrJSONDecoder(bytes.NewReader(raw), 4096).Decode(&crb))
+	require.NotEmpty(t, crb.Subjects)
+	for _, s := range crb.Subjects {
+		assert.Empty(t, s.Namespace, "subject %s must take the overlay's namespace", s.Name)
+	}
+}
