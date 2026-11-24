@@ -341,9 +341,12 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		// DEV_MODE fallback, or a mock without a token) sends none of them.
 		//
 		// Authorization keeps the Bearer prefix; other headers receive the raw
-		// token.
-		authTokenHeader := strings.TrimSpace(app.config.AuthTokenHeader)
-		reserved := reservedCredentialHeaders(authTokenHeader)
+		// token. The reserved set is Authorization, X-Forwarded-Access-Token and
+		// every configured credential header (AUTH_TOKEN_HEADERS in list mode,
+		// plus the legacy AUTH_TOKEN_HEADER): the headers StripHeaders removes
+		// and validateServiceRefs reserves.
+		configured := app.credentialHeaders()
+		reserved := reservedCredentialHeaders(configured...)
 		cfg.SetOutboundHeadersFn = func(r *http.Request, outH http.Header) {
 			for k, v := range customHeaders {
 				outH.Set(k, v)
@@ -360,10 +363,10 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 				return
 			}
 			outH.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
-			// With no ingress header configured only Authorization carries the
-			// token (no raw-token injection); otherwise every reserved header
+			// With no credential header configured only Authorization carries
+			// the token (no raw-token injection); otherwise every reserved header
 			// does, so a module reading any convention sees the same caller.
-			if authTokenHeader == "" {
+			if len(configured) == 0 {
 				return
 			}
 			for _, h := range reserved {

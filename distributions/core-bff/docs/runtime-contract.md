@@ -338,9 +338,10 @@ all (no `Authorization` header, no bearer subprotocol), so it authenticates with
 alone; no placeholder token is ever sent upstream. In every profile the WebSocket proxy and the
 reverse proxies drop client-supplied bearer subprotocols and send only the resolved token, and every proxy strips
 both inbound identity headers (`Authorization` and `X-Forwarded-Access-Token`) whichever is
-configured; an `authorize` module receives the resolved token in both. On an `authorize` module route
-`Authorization`, `X-Forwarded-Access-Token` and the configured `AUTH_TOKEN_HEADER` are reserved: a
-federation entry that sets a static value in any of them fails startup, and at request time they carry
+configured; an `authorize` module receives the resolved token in both and in every other configured
+credential header (`AUTH_TOKEN_HEADERS` or `AUTH_TOKEN_HEADER`; Bearer-prefixed only in `Authorization`). On an
+`authorize` module route `Authorization`, `X-Forwarded-Access-Token` and every configured credential header are
+reserved: a federation entry that sets a static value in any of them fails startup, and at request time they carry
 only the resolved token, so a tokenless identity (a certificate-only fallback, or a mock without a
 token) sends none of them. The host dashboard's module proxy sends
 `Authorization`, so federated development keeps working.

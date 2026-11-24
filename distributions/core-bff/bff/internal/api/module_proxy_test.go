@@ -1347,3 +1347,64 @@ func TestModuleProxy_StripsTheOtherIdentityHeader(t *testing.T) {
 		}
 	}
 }
+
+// TestInitModuleProxies_AuthorizeOrderedHeaders covers ordered-header mode with
+// an empty legacy AUTH_TOKEN_HEADER: every configured credential header must
+// carry the resolved caller token, so a module that authenticates only through
+// x-forwarded-access-token (or another configured name) accepts the request.
+func TestInitModuleProxies_AuthorizeOrderedHeaders(t *testing.T) {
+	cases := []struct {
+		name    string
+		headers []string
+		require string
+		want    string
+	}{
+		{"forwarded access token", []string{"Authorization", "x-forwarded-access-token"}, "X-Forwarded-Access-Token", "test-token-123"},
+		{"custom raw header", []string{"Authorization", "X-Auth-Request-Access-Token"}, "X-Auth-Request-Access-Token", "test-token-123"},
+		{"authorization keeps bearer", []string{"x-forwarded-access-token", "Authorization"}, "Authorization", "Bearer test-token-123"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var received http.Header
+			// The fixture authenticates only through tc.require.
+			backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				received = r.Header.Clone()
+				if r.Header.Get(tc.require) != tc.want {
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer backend.Close()
+
+			app := newTestApp(func(a *App) {
+				a.config.DevMode = true
+				a.config.AuthTokenHeader = ""
+				a.config.AuthTokenHeaders = tc.headers
+			})
+			proxyHandler := createTestProxy(t, app, backend.URL, "/ordered/api", "/api", true, false, nil)
+
+			admin := k8mocks.DefaultTestUsers[0]
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/ordered/api/v1/items", nil)
+			// Client-supplied values for the configured headers are stripped.
+			for _, h := range tc.headers {
+				req.Header.Set(h, "attacker-token")
+			}
+			req = reqWithIdentity(req, &k8s.RequestIdentity{
+				UserID: admin.UserName,
+				Groups: admin.Groups,
+				Token:  k8s.NewBearerToken("test-token-123"),
+			})
+			proxyHandler.ServeHTTP(rr, req)
+
+			require.Equal(t, http.StatusOK, rr.Code)
+			assert.Equal(t, "Bearer test-token-123", received.Get("Authorization"))
+			assert.Equal(t, "test-token-123", received.Get("X-Forwarded-Access-Token"))
+			for _, h := range tc.headers {
+				assert.Len(t, received.Values(h), 1, h)
+				assert.NotContains(t, received.Get(h), "attacker-token", h)
+			}
+		})
+	}
+}
