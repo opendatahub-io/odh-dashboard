@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"io"
 	"net/http"
 	"net/url"
@@ -78,29 +80,42 @@ type moduleProxyHandler struct {
 }
 
 // parseFederationConfig reads and deserializes the federation-config JSON file.
+// Failures name MF_REMOTES_CONFIG, never its value or the file contents: the
+// path is operator input, and os and encoding/json errors would quote it or
+// the offending bytes.
 func parseFederationConfig(filePath string) ([]moduleFederationEntry, error) {
 	if filePath == "" {
 		return nil, nil
 	}
+	const setting = "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted)"
 
 	f, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read federation config %s: %w", filePath, err)
+		return nil, fmt.Errorf("%s could not be read: %s", setting, config.FileProblem(err))
 	}
 	defer f.Close()
 
 	limited := io.LimitReader(f, maxFederationConfigLen+1)
 	data, err := io.ReadAll(limited)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read federation config %s: %w", filePath, err)
+		return nil, fmt.Errorf("%s could not be read: %s", setting, config.FileProblem(err))
 	}
 	if len(data) > maxFederationConfigLen {
-		return nil, fmt.Errorf("federation config %s exceeds maximum size of %d bytes", filePath, maxFederationConfigLen)
+		return nil, fmt.Errorf("%s exceeds the maximum size of %d bytes", setting, maxFederationConfigLen)
 	}
 
 	var entries []moduleFederationEntry
 	if err := json.Unmarshal(data, &entries); err != nil {
-		return nil, fmt.Errorf("failed to parse federation config %s: %w", filePath, err)
+		var syntaxErr *json.SyntaxError
+		var typeErr *json.UnmarshalTypeError
+		switch {
+		case errors.As(err, &syntaxErr):
+			return nil, fmt.Errorf("%s is not valid JSON (byte offset %d)", setting, syntaxErr.Offset)
+		case errors.As(err, &typeErr):
+			return nil, fmt.Errorf("%s does not match the federation-config schema (field %q)", setting, typeErr.Field)
+		default:
+			return nil, fmt.Errorf("%s could not be parsed", setting)
+		}
 	}
 
 	return entries, nil

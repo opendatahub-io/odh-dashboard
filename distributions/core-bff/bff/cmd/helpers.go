@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func getEnvAsInt(name string, defaultVal int) int {
@@ -24,13 +25,16 @@ func getEnvAsString(name string, defaultVal string) string {
 	return defaultVal
 }
 
-func getEnvAsBool(name string, defaultVal bool) bool {
-	if value, exists := os.LookupEnv(name); exists {
-		if boolValue, err := strconv.ParseBool(value); err == nil {
-			return boolValue
+// firstNonEmptyEnv returns the first of names that is set to a non-blank
+// value, or def. A fallback chain treats an explicitly empty variable as
+// unset, so NAMESPACE="" still falls through to POD_NAMESPACE.
+func firstNonEmptyEnv(def string, names ...string) string {
+	for _, name := range names {
+		if value, ok := os.LookupEnv(name); ok && strings.TrimSpace(value) != "" {
+			return value
 		}
 	}
-	return defaultVal
+	return def
 }
 
 // parseLevel parses a LOG_LEVEL value. An invalid value falls back to INFO

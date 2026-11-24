@@ -39,7 +39,7 @@ func TestParseFederationConfig(t *testing.T) {
 				return "/nonexistent/federation-config.json"
 			},
 			wantErr:   true,
-			errSubstr: "/nonexistent/federation-config.json",
+			errSubstr: "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted) could not be read: not found",
 		},
 		{
 			name: "malformed JSON returns error",
@@ -50,7 +50,7 @@ func TestParseFederationConfig(t *testing.T) {
 				return p
 			},
 			wantErr:   true,
-			errSubstr: "failed to parse federation config",
+			errSubstr: "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted) is not valid JSON",
 		},
 		{
 			name: "empty JSON array succeeds",
@@ -75,7 +75,7 @@ func TestParseFederationConfig(t *testing.T) {
 				return p
 			},
 			wantErr:   true,
-			errSubstr: "exceeds maximum size",
+			errSubstr: "exceeds the maximum size",
 		},
 		{
 			name: "valid JSON with multiple entries",
@@ -1113,7 +1113,17 @@ func TestInitModuleProxies_MalformedJSON(t *testing.T) {
 	})
 	err := app.initModuleProxies()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to parse federation config")
+	assert.Contains(t, err.Error(), "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted) is not valid JSON")
+	assert.NotContains(t, err.Error(), p, "the path is not echoed")
+	assert.NotContains(t, err.Error(), "not json", "the file contents are not echoed")
+}
+
+// A value that is not a path at all (a pasted secret, say) must not reach the
+// startup error through the wrapped filesystem error.
+func TestParseFederationConfig_DoesNotEchoTheValue(t *testing.T) {
+	_, err := parseFederationConfig("/nonexistent/CANARY-federation.json")
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "CANARY")
 }
 
 func TestInitModuleProxies_NonExistentFile(t *testing.T) {
@@ -1122,7 +1132,8 @@ func TestInitModuleProxies_NonExistentFile(t *testing.T) {
 	})
 	err := app.initModuleProxies()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "/does/not/exist.json")
+	assert.Contains(t, err.Error(), "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted) could not be read: not found")
+	assert.NotContains(t, err.Error(), "/does/not/exist.json")
 }
 
 func TestInitModuleProxies_SkipsNoProxyRoutes(t *testing.T) {

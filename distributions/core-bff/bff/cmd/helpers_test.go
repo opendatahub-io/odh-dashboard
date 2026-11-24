@@ -83,35 +83,6 @@ func TestGetEnvAsString(t *testing.T) {
 	})
 }
 
-func TestGetEnvAsBool(t *testing.T) {
-	t.Run("returns true when set to true", func(t *testing.T) {
-		t.Setenv("TEST_BOOL", "true")
-		if got := getEnvAsBool("TEST_BOOL", false); got != true {
-			t.Fatalf("expected true, got %v", got)
-		}
-	})
-
-	t.Run("returns false when set to false", func(t *testing.T) {
-		t.Setenv("TEST_BOOL", "false")
-		if got := getEnvAsBool("TEST_BOOL", true); got != false {
-			t.Fatalf("expected false, got %v", got)
-		}
-	})
-
-	t.Run("returns default when not set", func(t *testing.T) {
-		if got := getEnvAsBool("TEST_BOOL_MISSING", true); got != true {
-			t.Fatalf("expected true, got %v", got)
-		}
-	})
-
-	t.Run("returns default when value is invalid", func(t *testing.T) {
-		t.Setenv("TEST_BOOL_BAD", "notabool")
-		if got := getEnvAsBool("TEST_BOOL_BAD", true); got != true {
-			t.Fatalf("expected true, got %v", got)
-		}
-	})
-}
-
 func TestParseLevel(t *testing.T) {
 	cases := []struct {
 		name     string

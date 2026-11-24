@@ -116,6 +116,9 @@ func (c EnvConfig) validateCore(add func(string, ...any)) {
 	if strings.TrimSpace(c.Namespace) == "" {
 		add("NAMESPACE/--namespace is empty; the dashboard namespace is required")
 	}
+	if strings.TrimSpace(c.DashboardConfigName) == "" {
+		add("DASHBOARD_CONFIG_NAME/--dashboard-config-name is empty; unset it to use the default %q, or name the OdhDashboardConfig instance", "odh-dashboard-config")
+	}
 	c.validateKubernetesNames(add)
 
 	if strings.TrimSpace(c.StaticAssetsDir) == "" {
@@ -131,16 +134,20 @@ func (c EnvConfig) validateKubernetesNames(add func(string, ...any)) {
 	for _, n := range []struct {
 		setting, value, kind string
 		check                func(string) []string
+		required             bool
 	}{
-		{"NAMESPACE/--namespace", c.Namespace, "namespace name", validation.IsDNS1123Label},
-		{"OPERATOR_NAMESPACE/--operator-namespace", c.OperatorNamespace, "namespace name", validation.IsDNS1123Label},
-		{"WORKBENCH_NAMESPACE/--workbench-namespace", c.WorkbenchNamespace, "namespace name", validation.IsDNS1123Label},
-		{"DASHBOARD_CONFIG_NAME/--dashboard-config-name", c.DashboardConfigName, "object name", validation.IsDNS1123Subdomain},
-		{"ENABLED_APPS_CM/--enabled-apps-cm", c.EnabledAppsCM, "ConfigMap name", validation.IsDNS1123Subdomain},
-		{"PROMETHEUS_NAMESPACE/--prometheus-namespace", c.PrometheusNamespace, "namespace name", validation.IsDNS1123Label},
-		{"PROMETHEUS_INSTANCE/--prometheus-instance", c.PrometheusInstance, "Service name", validation.IsDNS1035Label},
+		{"NAMESPACE/--namespace", c.Namespace, "namespace name", validation.IsDNS1123Label, true},
+		{"OPERATOR_NAMESPACE/--operator-namespace", c.OperatorNamespace, "namespace name", validation.IsDNS1123Label, false},
+		{"WORKBENCH_NAMESPACE/--workbench-namespace", c.WorkbenchNamespace, "namespace name", validation.IsDNS1123Label, false},
+		{"DASHBOARD_CONFIG_NAME/--dashboard-config-name", c.DashboardConfigName, "object name", validation.IsDNS1123Subdomain, true},
+		{"ENABLED_APPS_CM/--enabled-apps-cm", c.EnabledAppsCM, "ConfigMap name", validation.IsDNS1123Subdomain, false},
+		{"PROMETHEUS_NAMESPACE/--prometheus-namespace", c.PrometheusNamespace, "namespace name", validation.IsDNS1123Label, false},
+		{"PROMETHEUS_INSTANCE/--prometheus-instance", c.PrometheusInstance, "Service name", validation.IsDNS1035Label, false},
 	} {
-		if strings.TrimSpace(n.value) == "" {
+		// An optional setting may be empty. Whitespace is a value, and an
+		// invalid one, except where a required setting's blank is already
+		// reported as missing.
+		if n.value == "" || (n.required && strings.TrimSpace(n.value) == "") {
 			continue
 		}
 		if len(n.check(n.value)) > 0 {
@@ -246,6 +253,14 @@ func (c EnvConfig) validateServiceTargets(add func(string, ...any)) {
 	if c.PrometheusHost != "" {
 		return
 	}
+	// The derived target needs all three parts. Leaving all of them empty
+	// turns Prometheus off; leaving only some empty is a half-configured
+	// target that would otherwise fail every query at request time.
+	parts := []string{c.PrometheusInstance, c.PrometheusNamespace, c.PrometheusPort}
+	if set := countNonEmpty(parts); set > 0 && set < len(parts) {
+		add("PROMETHEUS_INSTANCE, PROMETHEUS_NAMESPACE and PROMETHEUS_PORT (values omitted) are only partly set; set all three to derive the Prometheus target, leave all three empty to turn it off, or set PROMETHEUS_HOST")
+		return
+	}
 	if c.PrometheusPort != "" && !isPort(c.PrometheusPort) {
 		add("PROMETHEUS_PORT/--prometheus-port (value omitted) must be a port number between 1 and 65535")
 		return
@@ -290,8 +305,12 @@ func serviceTargetProblem(target string, allowPlaintext bool) string {
 		return "must be an absolute http(s) URL such as https://host:port"
 	case u.Hostname() == "":
 		return "has no host"
+	case u.User != nil:
+		return "must not carry user info; the caller's bearer token is the only credential sent"
 	case u.Port() != "" && !isPort(u.Port()):
 		return "has a port outside 1-65535"
+	case strings.HasSuffix(u.Host, ":"):
+		return "has an empty port"
 	case u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || strings.Contains(target, "#"):
 		return "must not carry a query string or fragment; it is a base URL that request paths are appended to"
 	case !allowPlaintext && u.Scheme != "https":
@@ -329,7 +348,39 @@ func exactOriginProblem(origin string) string {
 		// allowlist compares strings as written, so this could never match.
 		return "the scheme's default port (:443 for https, :80 for http) must be omitted"
 	}
+	// The remaining forms could never equal a browser's serialized Origin
+	// either: browsers send a canonical decimal port and an ASCII (punycode)
+	// host without a trailing dot.
+	if problem := canonicalHostPortProblem(u); problem != "" {
+		return problem
+	}
 	return ""
+}
+
+// canonicalHostPortProblem reports why u's host and port are not in the
+// canonical form a client sends: an empty or non-canonical port, a trailing
+// dot, or a host that is not ASCII.
+func canonicalHostPortProblem(u *url.URL) string {
+	switch host := u.Hostname(); {
+	case strings.HasSuffix(u.Host, ":"):
+		return "the port is empty"
+	case u.Port() != "" && !isPort(u.Port()):
+		return "the port must be a decimal number between 1 and 65535 without leading zeros"
+	case strings.HasSuffix(host, "."):
+		return "the host must not end with a dot"
+	case !isASCII(host):
+		return "the host must be ASCII; use the punycode (xn--) form of an internationalized name"
+	}
+	return ""
+}
+
+func isASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] > 0x7e || s[i] < 0x21 {
+			return false
+		}
+	}
+	return true
 }
 
 // validateServingTLS fails startup on any half-configured or unusable serving

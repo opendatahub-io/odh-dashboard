@@ -12,14 +12,15 @@ import (
 // production profile. Tests mutate one field at a time from here.
 func productionConfig() EnvConfig {
 	return EnvConfig{
-		Port:            4000,
-		DeploymentMode:  DeploymentModeStandalone,
-		PlatformType:    PlatformXKS,
-		Namespace:       "rhaii",
-		StaticAssetsDir: "./static",
-		AuthMethod:      AuthMethodUser,
-		AuthTokenHeader: DefaultAuthTokenHeader,
-		LogLevel:        slog.LevelInfo,
+		Port:                4000,
+		DeploymentMode:      DeploymentModeStandalone,
+		PlatformType:        PlatformXKS,
+		Namespace:           "rhaii",
+		DashboardConfigName: "odh-dashboard-config",
+		StaticAssetsDir:     "./static",
+		AuthMethod:          AuthMethodUser,
+		AuthTokenHeader:     DefaultAuthTokenHeader,
+		LogLevel:            slog.LevelInfo,
 	}
 }
 
@@ -127,6 +128,7 @@ func TestInsecureSkipVerify_RequiresDevModeWhenOnlyKubernetesIsMocked(t *testing
 func TestValidate_ServiceTargetPorts(t *testing.T) {
 	cfg := productionConfig()
 	cfg.ModelServingServiceHost = "https://model-serving.internal:65536"
+	cfg.PrometheusInstance, cfg.PrometheusNamespace = "thanos-querier", "openshift-monitoring"
 	cfg.PrometheusPort = "metrics"
 
 	err := cfg.Validate(TLSFiles{})
@@ -137,6 +139,7 @@ func TestValidate_ServiceTargetPorts(t *testing.T) {
 
 	for _, port := range []string{"0", "65536", "+9092", "09092", "-1"} {
 		cfg := productionConfig()
+		cfg.PrometheusInstance, cfg.PrometheusNamespace = "thanos-querier", "openshift-monitoring"
 		cfg.PrometheusPort = port
 		assert.Error(t, cfg.Validate(TLSFiles{}), port)
 	}
@@ -144,11 +147,13 @@ func TestValidate_ServiceTargetPorts(t *testing.T) {
 	// PROMETHEUS_PORT only feeds the derived target, so an explicit host wins.
 	cfg = productionConfig()
 	cfg.PrometheusHost = "https://thanos.internal:9091"
+	cfg.PrometheusInstance, cfg.PrometheusNamespace = "thanos-querier", "openshift-monitoring"
 	cfg.PrometheusPort = "metrics"
 	require.NoError(t, cfg.Validate(TLSFiles{}))
 
 	cfg = productionConfig()
 	cfg.ModelServingServiceHost = "https://model-serving.internal:8443"
+	cfg.PrometheusInstance, cfg.PrometheusNamespace = "thanos-querier", "openshift-monitoring"
 	cfg.PrometheusPort = "9092"
 	require.NoError(t, cfg.Validate(TLSFiles{}))
 }
@@ -421,4 +426,82 @@ func TestValidate_KubernetesNameSettings(t *testing.T) {
 	cfg.DashboardConfigName, cfg.EnabledAppsCM = "odh-dashboard-config", "odh-enabled-applications-config"
 	cfg.PrometheusNamespace, cfg.PrometheusInstance, cfg.PrometheusPort = "openshift-monitoring", "thanos-querier", "9092"
 	require.NoError(t, cfg.Validate(TLSFiles{}))
+}
+
+// Blank settings: a required one fails startup, an optional one may be empty
+// but not whitespace, and the derived Prometheus target is all-or-nothing.
+func TestValidate_BlankSettings(t *testing.T) {
+	for _, v := range []string{"", "   "} {
+		cfg := productionConfig()
+		cfg.DashboardConfigName = v
+		err := cfg.Validate(TLSFiles{})
+		require.Error(t, err, "%q", v)
+		assert.Contains(t, err.Error(), "DASHBOARD_CONFIG_NAME/--dashboard-config-name is empty")
+	}
+
+	cfg := productionConfig()
+	cfg.OperatorNamespace, cfg.EnabledAppsCM = "  ", "\t"
+	err := cfg.Validate(TLSFiles{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "OPERATOR_NAMESPACE/--operator-namespace (value omitted) is not a valid Kubernetes namespace name")
+	assert.Contains(t, err.Error(), "ENABLED_APPS_CM/--enabled-apps-cm (value omitted) is not a valid Kubernetes ConfigMap name")
+
+	for _, parts := range [][3]string{
+		{"thanos-querier", "", "9092"},
+		{"", "openshift-monitoring", "9092"},
+		{"thanos-querier", "openshift-monitoring", ""},
+	} {
+		cfg := productionConfig()
+		cfg.PrometheusInstance, cfg.PrometheusNamespace, cfg.PrometheusPort = parts[0], parts[1], parts[2]
+		err := cfg.Validate(TLSFiles{})
+		require.Error(t, err, parts)
+		assert.Contains(t, err.Error(), "are only partly set")
+	}
+
+	cfg = productionConfig() // all three empty: Prometheus off
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+	cfg.PrometheusHost = "https://thanos.internal:9091" // an explicit host makes the parts irrelevant
+	cfg.PrometheusNamespace = "openshift-monitoring"
+	require.NoError(t, cfg.Validate(TLSFiles{}))
+}
+
+// Origins that could never equal a browser's serialized Origin are rejected,
+// like the default-port form already was.
+func TestValidate_ProductionRejectsNonCanonicalOrigins(t *testing.T) {
+	for _, origin := range []string{
+		"https://dash.example:0443",
+		"https://dash.example:",
+		"https://dash.example:99999",
+		"https://dash.example:00080",
+		"https://dash.example.",
+		"https://dásh.example",
+	} {
+		cfg := productionConfig()
+		cfg.AllowedOrigins = []string{origin}
+		err := cfg.Validate(TLSFiles{})
+		require.Error(t, err, origin)
+		assert.Contains(t, err.Error(), "ALLOWED_ORIGINS entry 1 (1-based, value omitted) is not an exact origin")
+	}
+	for _, origin := range []string{"https://dash.example:8443", "https://Dashboard.Example.com", "https://xn--dsh-yla.example"} {
+		cfg := productionConfig()
+		cfg.AllowedOrigins = []string{origin}
+		assert.NoError(t, cfg.Validate(TLSFiles{}), origin)
+	}
+}
+
+func TestValidate_ServiceTargetsRejectUserInfoAndAnEmptyPort(t *testing.T) {
+	for value, reason := range map[string]string{
+		"https://user:secret@prom.example": "must not carry user info",
+		"https://prom.example:":            "has an empty port",
+	} {
+		cfg := productionConfig()
+		cfg.PrometheusHost = value
+		err := cfg.Validate(TLSFiles{})
+		require.Error(t, err, value)
+		assert.Contains(t, err.Error(), "PROMETHEUS_HOST/--prometheus-host (value omitted) "+reason)
+		assert.NotContains(t, err.Error(), "secret")
+	}
+	cfg := productionConfig()
+	cfg.PrometheusHost = "https://thanos-querier.openshift-monitoring.svc.cluster.local.:9091"
+	assert.NoError(t, cfg.Validate(TLSFiles{}), "a fully qualified name with a trailing dot is a valid service target")
 }

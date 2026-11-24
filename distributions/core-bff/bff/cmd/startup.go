@@ -57,12 +57,34 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	// than silently replaced by the default. The check runs after parsing, so a
 	// valid -port still overrides an invalid PORT.
 	envPort, envPortErr := lookupEnvPort()
-	fs.IntVar(&cfg.Port, "port", envPort, "API server port")
+	cfg.Port = envPort
+	// -port is parsed with the same strict decimal rule as PORT: flag.IntVar
+	// would read a leading 0 as octal (-port=010 is 8) and accept 0x1f90.
+	fs.Func("port", "API server port", func(s string) error {
+		n, err := parseDecimalPort(s)
+		if err != nil {
+			return err
+		}
+		cfg.Port = n
+		return nil
+	})
+
+	// Boolean environment settings are strict too. A malformed value
+	// (MOCK_K8S_CLIENT=yes) used to fall back silently to the default; it is
+	// now reported after parsing, unless the matching flag overrides it.
+	envBoolErrs := map[string]error{}
+	envBool := func(flagName, envName string) bool {
+		v, err := lookupEnvBool(envName)
+		if err != nil {
+			envBoolErrs[flagName] = err
+		}
+		return v
+	}
 	fs.StringVar(&sc.TLS.CertFile, "cert-file", getEnvAsString("CERT_FILE", ""), "Path to TLS certificate file")
 	fs.StringVar(&sc.TLS.KeyFile, "key-file", getEnvAsString("KEY_FILE", ""), "Path to TLS key file")
-	fs.BoolVar(&cfg.MockK8Client, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
-	fs.BoolVar(&cfg.MockHTTPClient, "mock-http-client", getEnvAsBool("MOCK_HTTP_CLIENT", false), "Use mock HTTP client")
-	fs.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
+	fs.BoolVar(&cfg.MockK8Client, "mock-k8s-client", envBool("mock-k8s-client", "MOCK_K8S_CLIENT"), "Use mock Kubernetes client")
+	fs.BoolVar(&cfg.MockHTTPClient, "mock-http-client", envBool("mock-http-client", "MOCK_HTTP_CLIENT"), "Use mock HTTP client")
+	fs.BoolVar(&cfg.DevMode, "dev-mode", envBool("dev-mode", "DEV_MODE"), "Use development mode for access to local K8s cluster")
 	fs.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	// Enum settings are applied from the environment *after* parsing, and only
@@ -104,11 +126,11 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	fs.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix to strip from the token header value (default: none)")
 
 	// TLS configuration flags
-	fs.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (development profiles only, default: false)")
+	fs.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", envBool("insecure-skip-verify", "INSECURE_SKIP_VERIFY"), "Skip TLS certificate verification (development profiles only, default: false)")
 
 	// ─── BFF Inter-Communication ─────────────────────────────────
 	fs.BoolVar(&cfg.MockBFFClients, "mock-bff-clients",
-		getEnvAsBool("MOCK_BFF_CLIENTS", false),
+		envBool("mock-bff-clients", "MOCK_BFF_CLIENTS"),
 		"Enable mock BFF clients (no real HTTP calls to other BFFs)")
 
 	// ─── Core BFF ─────────────────────────────────────────────
@@ -120,7 +142,7 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 		"Dashboard admission contract: auth-resource, authenticated, or empty to resolve from the platform")
 
 	fs.StringVar(&cfg.Namespace, "namespace",
-		getEnvAsString("NAMESPACE", getEnvAsString("POD_NAMESPACE", getEnvAsString("OC_PROJECT", "opendatahub"))),
+		firstNonEmptyEnv("opendatahub", "NAMESPACE", "POD_NAMESPACE", "OC_PROJECT"),
 		"Kubernetes namespace where the dashboard is deployed (falls back to POD_NAMESPACE, then OC_PROJECT)")
 	fs.StringVar(&cfg.OperatorNamespace, "operator-namespace", getEnvAsString("OPERATOR_NAMESPACE", ""), "Preferred namespace of the installed data science operator subscription")
 	fs.StringVar(&cfg.WorkbenchNamespace, "workbench-namespace",
@@ -183,6 +205,11 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	if envPortErr != nil && !setOnCLI["port"] {
 		return sc, envPortErr
 	}
+	for _, name := range []string{"dev-mode", "mock-k8s-client", "mock-http-client", "mock-bff-clients", "insecure-skip-verify"} {
+		if err := envBoolErrs[name]; err != nil && !setOnCLI[name] {
+			return sc, err
+		}
+	}
 
 	if value, ok := lookupEnv("LOG_LEVEL"); ok && !setOnCLI["log-level"] {
 		cfg.LogLevel = parseLevel(value, errOut)
@@ -225,11 +252,36 @@ func lookupEnvPort() (int, error) {
 	if !ok {
 		return defaultPort, nil
 	}
-	port, err := strconv.Atoi(strings.TrimSpace(value))
+	port, err := parseDecimalPort(value)
 	if err != nil {
-		return defaultPort, errors.New("invalid PORT: it must be an integer between 1 and 65535")
+		return defaultPort, errors.New("invalid PORT: it must be a decimal integer between 1 and 65535, without sign, spaces or leading zeros")
 	}
 	return port, nil
+}
+
+// parseDecimalPort accepts only a canonical decimal integer. The range is
+// checked by config validation, which reports the number.
+func parseDecimalPort(s string) (int, error) {
+	n, err := strconv.Atoi(s)
+	if err != nil || strconv.Itoa(n) != s {
+		return 0, errors.New("must be a decimal integer without sign, spaces or leading zeros")
+	}
+	return n, nil
+}
+
+// lookupEnvBool reads a boolean environment setting strictly. An absent
+// variable is false; a present one must be a strconv.ParseBool value. The
+// error names the variable, not the value.
+func lookupEnvBool(name string) (bool, error) {
+	value, ok := lookupEnv(name)
+	if !ok {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("invalid %s (value omitted): it must be true or false", name)
+	}
+	return b, nil
 }
 
 // sanitizeParseError rewrites a FlagSet parse error so it names at most a

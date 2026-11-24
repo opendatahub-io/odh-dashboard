@@ -27,7 +27,7 @@ func (c EnvConfig) LogValue() slog.Value {
 		slog.String("workbenchNamespace", c.WorkbenchNamespace),
 		slog.String("dashboardConfigName", c.DashboardConfigName),
 		slog.String("enabledAppsCM", c.EnabledAppsCM),
-		slog.String("staticAssetsDir", c.StaticAssetsDir),
+		slog.Bool("staticAssetsDirSet", c.StaticAssetsDir != ""),
 		slog.String("logLevel", c.LogLevel.String()),
 		slog.Bool("productionProfile", c.IsProductionProfile()),
 
@@ -52,15 +52,27 @@ func (c EnvConfig) LogValue() slog.Value {
 			slog.Bool("mockBFFClients", c.MockBFFClients),
 		),
 
-		slog.Group("services",
-			slog.Bool("modelServingHostSet", c.ModelServingServiceHost != ""),
-			slog.Bool("prometheusHostSet", c.PrometheusHost != ""),
+		slog.Group("services", c.serviceAttrs()...),
+	)
+}
+
+// serviceAttrs reports the upstream targets as presence flags. The derived
+// Prometheus parts are logged only when they are in use, that is without
+// PROMETHEUS_HOST: only then has startup validated them as Kubernetes names
+// and a port, so an overridden, unvalidated value never reaches the log.
+func (c EnvConfig) serviceAttrs() []any {
+	attrs := []any{
+		slog.Bool("modelServingHostSet", c.ModelServingServiceHost != ""),
+		slog.Bool("prometheusHostSet", c.PrometheusHost != ""),
+	}
+	if c.PrometheusHost == "" {
+		attrs = append(attrs,
 			slog.String("prometheusNamespace", c.PrometheusNamespace),
 			slog.String("prometheusInstance", c.PrometheusInstance),
 			slog.String("prometheusPort", c.PrometheusPort),
-			slog.Bool("mfRemotesConfigSet", c.MFRemotesConfig != ""),
-		),
-	)
+		)
+	}
+	return append(attrs, slog.Bool("mfRemotesConfigSet", c.MFRemotesConfig != ""))
 }
 
 func countNonEmpty(values []string) int {

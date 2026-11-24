@@ -85,6 +85,8 @@ func TestParseStartupConfig_NamespaceFallbacks(t *testing.T) {
 		{"NAMESPACE wins", map[string]string{"NAMESPACE": "a", "POD_NAMESPACE": "b", "OC_PROJECT": "c"}, "a"},
 		{"POD_NAMESPACE next", map[string]string{"POD_NAMESPACE": "redhat-ods-applications", "OC_PROJECT": "c"}, "redhat-ods-applications"},
 		{"OC_PROJECT last", map[string]string{"OC_PROJECT": "c"}, "c"},
+		{"empty NAMESPACE falls through", map[string]string{"NAMESPACE": "", "POD_NAMESPACE": "redhat-ods-applications"}, "redhat-ods-applications"},
+		{"blank NAMESPACE falls through", map[string]string{"NAMESPACE": "  ", "POD_NAMESPACE": "", "OC_PROJECT": "c"}, "c"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			isolateEnv(t)
@@ -95,6 +97,18 @@ func TestParseStartupConfig_NamespaceFallbacks(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, sc.Env.Namespace)
 		})
+	}
+}
+
+// An explicitly empty DASHBOARD_CONFIG_NAME overrides the default, and /api/config
+// would then fail every lookup with "name is required". Startup rejects it.
+func TestParseStartupConfig_RejectsAnEmptyDashboardConfigName(t *testing.T) {
+	for _, v := range []string{"", " "} {
+		isolateEnv(t)
+		t.Setenv("DASHBOARD_CONFIG_NAME", v)
+		_, err := parse(t)
+		require.Error(t, err, "%q", v)
+		assert.Contains(t, err.Error(), "DASHBOARD_CONFIG_NAME/--dashboard-config-name is empty")
 	}
 }
 
@@ -518,6 +532,34 @@ func TestResolvedConfigDiagnosticsAreRedacted(t *testing.T) {
 	assert.NotContains(t, out, "Bearer")
 }
 
+// Free-form settings are presence flags in the resolved-config log, and the
+// derived Prometheus parts are logged only when they are in use (and so
+// validated). Markers stand in for whatever an operator might put there.
+func TestParseStartupConfig_ResolvedConfigLogOmitsFreeFormValues(t *testing.T) {
+	isolateEnv(t)
+	t.Setenv("STATIC_ASSETS_DIR", "/srv/CANARY-ASSETS")
+	t.Setenv("PROMETHEUS_HOST", "https://thanos.internal:9091")
+	t.Setenv("PROMETHEUS_PORT", "CANARY-PORT")
+	t.Setenv("MF_REMOTES_CONFIG", "/etc/CANARY-MF.json")
+	sc, err := parse(t)
+	require.NoError(t, err)
+
+	var sb strings.Builder
+	slog.New(slog.NewTextHandler(&sb, nil)).Info("resolved runtime configuration", slog.Any("config", sc.Env))
+	out := sb.String()
+
+	assert.NotContains(t, out, "CANARY")
+	assert.Contains(t, out, "config.staticAssetsDirSet=true")
+	assert.Contains(t, out, "config.services.mfRemotesConfigSet=true")
+
+	isolateEnv(t)
+	sc, err = parse(t)
+	require.NoError(t, err)
+	sb.Reset()
+	slog.New(slog.NewTextHandler(&sb, nil)).Info("resolved runtime configuration", slog.Any("config", sc.Env))
+	assert.Contains(t, sb.String(), "config.services.prometheusPort=9092", "the derived, validated parts are still logged")
+}
+
 func writeCABundle(t *testing.T) string {
 	t.Helper()
 	certPEM, _ := keyPairPEM(t)
@@ -573,4 +615,43 @@ func TestParseStartupConfig_UsageDoesNotPrintResolvedDefaults(t *testing.T) {
 	assert.Contains(t, out.String(), "-prometheus-host")
 	assert.NotContains(t, out.String(), "s3cret")
 	assert.NotContains(t, out.String(), "thanos.example.com")
+}
+
+// Boolean environment settings are strict: a malformed value used to resolve
+// to false silently. The error names the variable, never the value, and a
+// valid flag still overrides it.
+func TestParseStartupConfig_RejectsMalformedBooleanEnvironment(t *testing.T) {
+	for _, name := range []string{"DEV_MODE", "MOCK_K8S_CLIENT", "MOCK_HTTP_CLIENT", "MOCK_BFF_CLIENTS", "INSECURE_SKIP_VERIFY"} {
+		for _, v := range []string{"yes", "on", "true ", "1\n", ""} {
+			isolateEnv(t)
+			t.Setenv(name, v)
+			_, err := parse(t)
+			require.Error(t, err, "%s=%q", name, v)
+			assert.Contains(t, err.Error(), "invalid "+name+" (value omitted)")
+		}
+	}
+
+	isolateEnv(t)
+	t.Setenv("MOCK_K8S_CLIENT", "yes")
+	_, err := parse(t, "-mock-k8s-client=false")
+	require.NoError(t, err, "a valid flag overrides a malformed environment value")
+}
+
+// -port and PORT share one strict decimal rule; flag.IntVar used to read a
+// leading 0 as octal (-port=010 was 8) and accept hex.
+func TestParseStartupConfig_PortIsStrictDecimal(t *testing.T) {
+	for _, v := range []string{"010", "0x1f90", "+8080", " 8080", "8080 "} {
+		isolateEnv(t)
+		_, err := parse(t, "-port="+v)
+		require.Error(t, err, "-port=%q", v)
+
+		isolateEnv(t)
+		t.Setenv("PORT", v)
+		_, err = parse(t)
+		require.Error(t, err, "PORT=%q", v)
+	}
+	isolateEnv(t)
+	sc, err := parse(t, "-port=8943")
+	require.NoError(t, err)
+	assert.Equal(t, 8943, sc.Env.Port)
 }
