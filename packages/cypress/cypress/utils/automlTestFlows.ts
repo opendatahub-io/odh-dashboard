@@ -8,19 +8,39 @@ import { automlResultsPage } from '../pages/automl/resultsPage';
 import { AUTOML_RUN_TIMEOUT } from '../support/timeouts';
 import type { AutomlTestData } from '../types';
 
-/** Upload or replace a CSV while the Upload file tab is selected. */
-export const uploadAutomlTrainingDataFile = (trainingDataFile: string, uuid: string): void => {
+/** Upload or replace a CSV and yield the resolved S3 key. */
+export const uploadAutomlTrainingDataFile = (
+  trainingDataFile: string,
+  uuid: string,
+): Cypress.Chainable<string> => {
   const uploadFileName = `${trainingDataFile.replace('.csv', '')}-${uuid}.csv`;
+  cy.intercept('POST', `**/api/v1/s3/files/${encodeURIComponent(uploadFileName)}?*`).as(
+    'automlTrainingDataUpload',
+  );
   automlConfigurePage
     .findUploadFileInput()
     .selectFile(
       { contents: `resources/automl/${trainingDataFile}`, fileName: uploadFileName },
       { force: true },
     );
-  automlConfigurePage
-    .findUploadedFileCell(60000)
-    .should('be.visible')
-    .and('contain.text', uploadFileName);
+  return cy
+    .wait<unknown, { uploaded: boolean; key: string }>('@automlTrainingDataUpload', {
+      responseTimeout: 60000,
+    })
+    .then(({ response }) => {
+      if (!response) {
+        throw new Error('AutoML training data upload did not return a response.');
+      }
+      expect(response.statusCode).to.eq(201);
+      expect(response.body.uploaded).to.eq(true);
+      const resolvedKey = response.body.key;
+      expect(resolvedKey).to.be.a('string').and.not.eq('');
+      return automlConfigurePage
+        .findUploadedFileCell(60000)
+        .should('be.visible')
+        .and('contain.text', resolvedKey)
+        .then(() => resolvedKey);
+    });
 };
 
 /**
@@ -39,7 +59,7 @@ export const configureAutomlRun = (
   projectName: string,
   uuid: string,
   options: { selectFromBucket?: boolean } = {},
-): void => {
+): Cypress.Chainable<string> => {
   cy.step('Login and wait for pipeline server');
   cy.visitWithLogin(automlExperimentsPage.pathWithDefaults(), HTPASSWD_CLUSTER_ADMIN_USER);
   waitForAutoXDspaReady(projectName);
@@ -65,22 +85,22 @@ export const configureAutomlRun = (
   automlConfigurePage.findSelectOption(new RegExp(testData.secretName, 'i')).click();
 
   cy.step('Upload CSV file');
-  const uploadFileName = `${testData.trainingDataFile.replace('.csv', '')}-${uuid}.csv`;
   automlConfigurePage.findUploadFileToggle().click();
-  uploadAutomlTrainingDataFile(testData.trainingDataFile, uuid);
+  return uploadAutomlTrainingDataFile(testData.trainingDataFile, uuid).then((resolvedKey) => {
+    if (options.selectFromBucket === false) {
+      return cy.wrap(resolvedKey);
+    }
 
-  if (options.selectFromBucket === false) {
-    return;
-  }
-
-  cy.step('Verify uploaded file is browsable in file explorer and select it');
-  automlConfigurePage.findSelectFileToggle().find('button').click();
-  automlConfigurePage.findBrowseBucketButton().click();
-  automlConfigurePage.findFileExplorerTable().should('be.visible');
-  automlConfigurePage.findFileExplorerSearch(30000).should('be.visible').type(uploadFileName);
-  automlConfigurePage.findFileExplorerTable().contains('td', uploadFileName).should('be.visible');
-  automlConfigurePage.findFileExplorerTable().contains('td', uploadFileName).click();
-  automlConfigurePage.findFileExplorerSelectBtn().click();
+    cy.step('Verify uploaded file is browsable in file explorer and select it');
+    automlConfigurePage.findSelectFileToggle().find('button').click();
+    automlConfigurePage.findBrowseBucketButton().click();
+    automlConfigurePage.findFileExplorerTable().should('be.visible');
+    automlConfigurePage.findFileExplorerSearch(30000).should('be.visible').type(resolvedKey);
+    automlConfigurePage.findFileExplorerTable().contains('td', resolvedKey).should('be.visible');
+    automlConfigurePage.findFileExplorerTable().contains('td', resolvedKey).click();
+    automlConfigurePage.findFileExplorerSelectBtn().click();
+    return cy.wrap(resolvedKey);
+  });
 };
 
 /** Select a prediction type and its dataset columns after uploading training data. */
@@ -187,13 +207,15 @@ export const verifyAutomlLeaderboardColumns = (): void => {
 };
 
 /** Reuse a completed run to check restored settings and discard draft edits without training. */
-export const verifyAutomlReconfiguration = (testData: AutomlTestData, uuid: string): void => {
+export const verifyAutomlReconfiguration = (
+  testData: AutomlTestData,
+  trainingDataFile: string,
+): void => {
   loadAutomlConfigurationFixture('e2e/automl/testAutomlConfiguration.yaml').then(
     (configuration) => {
       const sourcePreset = testData.preset ?? configuration.defaultPreset;
       const sourceTopN = testData.topN ?? configuration.topModels.min;
       const targetColumn = testData.labelColumn ?? testData.targetColumn;
-      const trainingDataFile = `${testData.trainingDataFile.replace('.csv', '')}-${uuid}.csv`;
 
       const verifyRestoredSettings = (): void => {
         automlConfigurePage
