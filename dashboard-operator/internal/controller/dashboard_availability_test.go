@@ -36,6 +36,20 @@ func TestReconcileDashboardAvailability(t *testing.T) {
 	zeroAvailableDeployment.Status.AvailableReplicas = 0
 	stalledRolloutDeployment := availabilityDeployment(true)
 	stalledRolloutDeployment.Status.UpdatedReplicas = 0
+	stalledRolloutDeployment.Status.Conditions = append(stalledRolloutDeployment.Status.Conditions, appsv1.DeploymentCondition{
+		Type: appsv1.DeploymentProgressing, Status: corev1.ConditionFalse, Reason: deploymentProgressDeadlineExceeded,
+	})
+	// Default maxSurge mid-rollout for the 2-replica dashboard: one new pod up, both old pods still serving.
+	surgingRolloutDeployment := availabilityDeployment(true)
+	two := int32(2)
+	surgingRolloutDeployment.Spec.Replicas = &two
+	surgingRolloutDeployment.Status.Replicas = 3
+	surgingRolloutDeployment.Status.UpdatedReplicas = 1
+	surgingRolloutDeployment.Status.ReadyReplicas = 3
+	surgingRolloutDeployment.Status.AvailableReplicas = 3
+	surgingRolloutDeployment.Status.Conditions = append(surgingRolloutDeployment.Status.Conditions, appsv1.DeploymentCondition{
+		Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue, Reason: "ReplicaSetUpdated",
+	})
 	zeroDesiredDeployment := availabilityDeployment(true)
 	zero := int32(0)
 	zeroDesiredDeployment.Spec.Replicas = &zero
@@ -51,7 +65,9 @@ func TestReconcileDashboardAvailability(t *testing.T) {
 	}{
 		{name: "deployment is missing", wantReason: "DeploymentNotFound", wantRetry: dashboardAvailabilityRetryInterval},
 		{name: "deployment is pending", objects: []client.Object{availabilityDeployment(false)}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
-		{name: "deployment status is stale", objects: []client.Object{staleDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "deployment status is stale while previous generation serves", objects: []client.Object{staleDeployment, readyRoute}, wantReason: "DeploymentRolloutInProgress", wantRetry: dashboardAvailabilityRetryInterval, wantReady: true},
+		{name: "rolling update with surge keeps serving", objects: []client.Object{surgingRolloutDeployment, readyRoute}, wantReason: "DeploymentRolloutInProgress", wantRetry: dashboardAvailabilityRetryInterval, wantReady: true},
+		{name: "rolling update with rejected route", objects: []client.Object{surgingRolloutDeployment, availabilityRoute("gateway", metav1.ConditionFalse, metav1.ConditionTrue, 0)}, wantReason: "HTTPRouteNotAccepted", wantRetry: dashboardAvailabilityRetryInterval},
 		{name: "deployment has no available replicas", objects: []client.Object{zeroAvailableDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
 		{name: "old replica is available while current rollout is stalled", objects: []client.Object{stalledRolloutDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
 		{name: "deployment is scaled to zero", objects: []client.Object{zeroDesiredDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},

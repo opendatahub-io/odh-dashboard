@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
@@ -52,11 +53,19 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 			conditions.WithReason("DeploymentReadFailed"))
 		return 0, fmt.Errorf("getting Dashboard Deployment %q: %w", target.deploymentName, err)
 	}
+	rolloutInProgress := false
 	if !deploymentRolloutComplete(deployment) {
-		cm.MarkFalse(conditionDashboardAvailable,
-			conditions.WithReason("DeploymentNotAvailable"),
-			conditions.WithMessage("Waiting for Dashboard Deployment %q to become Available", target.deploymentName))
-		return dashboardAvailabilityRetryInterval, nil
+		if !deploymentServingDuringRollout(deployment) {
+			cm.MarkFalse(conditionDashboardAvailable,
+				conditions.WithReason("DeploymentNotAvailable"),
+				conditions.WithMessage("Waiting for Dashboard Deployment %q to become Available", target.deploymentName))
+			return dashboardAvailabilityRetryInterval, nil
+		}
+		// A routine rolling update (image bump, federation hash) keeps serving
+		// from available pods while maxSurge temporarily raises the replica
+		// count. Report it without failing Ready; a stalled rollout
+		// (ProgressDeadlineExceeded) or one with no available pods still does.
+		rolloutInProgress = true
 	}
 
 	route := &gatewayv1.HTTPRoute{}
@@ -76,6 +85,14 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 		cm.MarkFalse(conditionDashboardAvailable,
 			conditions.WithReason("HTTPRouteNotAccepted"),
 			conditions.WithMessage("Waiting for Dashboard HTTPRoute %q to be accepted with resolved references", target.httpRouteName))
+		return dashboardAvailabilityRetryInterval, nil
+	}
+
+	if rolloutInProgress {
+		cm.MarkFalse(conditionDashboardAvailable,
+			conditions.WithReason("DeploymentRolloutInProgress"),
+			conditions.WithSeverity(common.ConditionSeverityInfo),
+			conditions.WithMessage("Dashboard Deployment %q is serving while its rollout completes", target.deploymentName))
 		return dashboardAvailabilityRetryInterval, nil
 	}
 
@@ -102,6 +119,34 @@ func deploymentAvailable(deployment *appsv1.Deployment) bool {
 	}
 	return false
 }
+
+// deploymentServingDuringRollout reports whether an incomplete rollout still
+// serves traffic from available pods and has not exceeded its progress
+// deadline. Status may briefly lag a new generation; the previous generation's
+// Available condition still describes what is serving.
+func deploymentServingDuringRollout(deployment *appsv1.Deployment) bool {
+	if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 0 {
+		return false
+	}
+	if deployment.Status.AvailableReplicas == 0 {
+		return false
+	}
+	available := false
+	for _, condition := range deployment.Status.Conditions {
+		switch {
+		case condition.Type == appsv1.DeploymentAvailable && condition.Status == corev1.ConditionTrue:
+			available = true
+		case condition.Type == appsv1.DeploymentProgressing && condition.Status == corev1.ConditionFalse &&
+			condition.Reason == deploymentProgressDeadlineExceeded:
+			return false
+		}
+	}
+	return available
+}
+
+// deploymentProgressDeadlineExceeded is the Progressing reason the Deployment
+// controller sets when a rollout stalls past spec.progressDeadlineSeconds.
+const deploymentProgressDeadlineExceeded = "ProgressDeadlineExceeded"
 
 func deploymentRolloutComplete(deployment *appsv1.Deployment) bool {
 	if !deploymentAvailable(deployment) {

@@ -103,7 +103,11 @@ role to the identities allowed to use the dashboard.
 | `Ready` | Provisioning and dashboard availability succeeded and no XKS degradation is reported. |
 
 A rollout or Gateway admission wait is normal progress, reported as
-`DashboardAvailable=False`, rather than `Degraded`.
+`DashboardAvailable=False`, rather than `Degraded`. A rolling update of a
+Deployment that is still serving from available pods reports
+`DashboardAvailable=False` with reason `DeploymentRolloutInProgress` at Info
+severity, so `Ready` stays `True`; a rollout that exceeds its progress deadline
+or has no available pods sets `Ready=False`.
 
 ## Removal
 
