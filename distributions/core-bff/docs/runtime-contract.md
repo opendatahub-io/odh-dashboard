@@ -219,8 +219,10 @@ empty) is answered with 401, never with the fallback identity. A caller token in
 identity header (`Authorization: Bearer`, or `X-Forwarded-Access-Token`, whichever is not the
 configured one) is the caller's credential too: it is used as the request identity, never replaced
 by the fallback, and is 401 when malformed. A WebSocket bearer subprotocol (`base64url.bearer.authorization.k8s.io.<token>`, a browser's
-only way to send a token on a WebSocket) counts the same way. In every profile the WebSocket proxy
-drops client-supplied bearer subprotocols and sends only the resolved token, and every proxy strips
+only way to send a token on a WebSocket) counts the same way. When several are present they are tried
+in a fixed order (bearer subprotocol, then `Authorization`, then `X-Forwarded-Access-Token`), and
+every `Sec-WebSocket-Protocol` line is read. In every profile the WebSocket proxy and the
+reverse proxies drop client-supplied bearer subprotocols and send only the resolved token, and every proxy strips
 both inbound identity headers (`Authorization` and `X-Forwarded-Access-Token`) whichever is
 configured; an `authorize` module receives the resolved token in both. The host dashboard's module proxy sends
 `Authorization`, so federated development keeps working.

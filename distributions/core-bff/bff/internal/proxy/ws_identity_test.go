@@ -65,3 +65,36 @@ func TestBearerSubprotocolToken(t *testing.T) {
 	assert.True(t, ok)
 	assert.Empty(t, token, "an undecodable bearer subprotocol is a present but invalid credential")
 }
+
+// A bearer subprotocol on a second Sec-WebSocket-Protocol line is still seen:
+// websocket.Subprotocols reads only the first line.
+func TestBearerSubprotocolToken_ReadsEveryHeaderLine(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/wss/k8s/api/v1/pods", nil)
+	req.Header.Add("Sec-WebSocket-Protocol", "base64.binary.k8s.io")
+	req.Header.Add("Sec-WebSocket-Protocol", bearerSubprotocolPrefix+base64.RawURLEncoding.EncodeToString([]byte("caller")))
+	token, ok := BearerSubprotocolToken(req)
+	assert.True(t, ok)
+	assert.Equal(t, "caller", token)
+	assert.Equal(t, []string{"base64.binary.k8s.io"}, withoutBearerSubprotocols(AllSubprotocols(req.Header)))
+}
+
+// Reverse proxies (module, model-serving) pass upgrades through; a client
+// bearer subprotocol must not ride along next to the resolved identity, on
+// any header line.
+func TestReverseProxy_StripsBearerSubprotocols(t *testing.T) {
+	got := make(chan []string, 1)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got <- r.Header.Values("Sec-Websocket-Protocol")
+	}))
+	defer upstream.Close()
+	u := mustURL(t, upstream.URL)
+	rp, err := NewReverseProxy(ProxyConfig{TargetURL: u, AllowHTTP: true, Logger: testLogger()})
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/x", nil).WithContext(newIdentityContext("caller-A"))
+	req.Header.Add("Sec-WebSocket-Protocol", "base64.binary.k8s.io, "+bearerSubprotocolPrefix+"b3RoZXItQg")
+	req.Header.Add("Sec-WebSocket-Protocol", bearerSubprotocolPrefix+"b3RoZXItQw")
+	rp.ServeHTTP(httptest.NewRecorder(), req)
+
+	assert.Equal(t, []string{"base64.binary.k8s.io"}, <-got)
+}

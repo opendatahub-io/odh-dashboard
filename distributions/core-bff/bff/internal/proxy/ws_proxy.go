@@ -89,7 +89,7 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// A client-supplied bearer subprotocol is a credential, not a protocol to
 	// negotiate: only the BFF's resolved token (added by dialK8sWebSocket) may
 	// reach the API server, so the request never carries two identities.
-	clientSubprotocols := withoutBearerSubprotocols(websocket.Subprotocols(r))
+	clientSubprotocols := withoutBearerSubprotocols(AllSubprotocols(r.Header))
 
 	tlsConfig := p.tlsConfig
 	if identity.DevFallback && p.fallbackTLS != nil {

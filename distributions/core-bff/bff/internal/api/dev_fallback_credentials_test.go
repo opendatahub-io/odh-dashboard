@@ -217,3 +217,35 @@ func TestDevModeFallback_WebSocketBearerSubprotocolIsACredential(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code, "an undecodable bearer subprotocol is an invalid credential")
 	assert.Nil(t, identity)
 }
+
+// Over a real socket, a bearer subprotocol on a second header line is still a
+// credential: it must not fall back to the developer's identity.
+func TestDevModeFallback_BearerSubprotocolOnASecondLine(t *testing.T) {
+	cfg := config.EnvConfig{DevMode: true, AuthMethod: config.AuthMethodUser, AuthTokenHeader: config.DefaultAuthTokenHeader, DevUser: "dev-user"}
+	app := newTestApp(func(a *App) {
+		a.config = cfg
+		a.kubernetesClientFactory = k8s.NewTokenClientFactory(testLogger(), cfg)
+	})
+	srv := httptest.NewServer(app.InjectRequestIdentity(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, _ := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+		if identity != nil && identity.DevFallback {
+			w.Header().Set("X-Test-Fallback", "true")
+		}
+	})))
+	defer srv.Close()
+
+	conn, err := net.Dial("tcp", srv.Listener.Addr().String())
+	require.NoError(t, err)
+	defer conn.Close()
+	_, err = fmt.Fprintf(conn, "GET /wss/k8s/api/v1/pods HTTP/1.1\r\nHost: x\r\n"+
+		"Sec-WebSocket-Protocol: base64.binary.k8s.io\r\n"+
+		"Sec-WebSocket-Protocol: base64url.bearer.authorization.k8s.io.%s\r\nConnection: close\r\n\r\n",
+		base64.RawURLEncoding.EncodeToString([]byte("caller-token")))
+	require.NoError(t, err)
+	resp, err := http.ReadResponse(bufio.NewReader(conn), nil)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Empty(t, resp.Header.Get("X-Test-Fallback"), "the caller's subprotocol token is used, not the fallback")
+}

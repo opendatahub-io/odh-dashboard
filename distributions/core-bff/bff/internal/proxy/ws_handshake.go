@@ -119,6 +119,35 @@ func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, t
 	return dialWithHandshakeResponse(&dialer, targetWSURL, dialHeaders, targetURL.Hostname(), netDialContext)
 }
 
+// AllSubprotocols returns every subprotocol offered across all
+// Sec-WebSocket-Protocol lines. websocket.Subprotocols reads only the first
+// line, so a credential on a second line would otherwise go unseen.
+func AllSubprotocols(h http.Header) []string {
+	var out []string
+	for _, line := range h.Values("Sec-Websocket-Protocol") {
+		for _, p := range strings.Split(line, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				out = append(out, p)
+			}
+		}
+	}
+	return out
+}
+
+// stripBearerSubprotocols rewrites the Sec-WebSocket-Protocol lines of h
+// without Kubernetes bearer-token subprotocols, so a proxied upgrade carries
+// only the identity the proxy resolved.
+func stripBearerSubprotocols(h http.Header) {
+	if len(h.Values("Sec-Websocket-Protocol")) == 0 {
+		return
+	}
+	kept := withoutBearerSubprotocols(AllSubprotocols(h))
+	h.Del("Sec-Websocket-Protocol")
+	if len(kept) > 0 {
+		h.Set("Sec-Websocket-Protocol", strings.Join(kept, ", "))
+	}
+}
+
 // withoutBearerSubprotocols drops Kubernetes bearer-token subprotocols.
 func withoutBearerSubprotocols(protocols []string) []string {
 	out := make([]string, 0, len(protocols))
@@ -135,7 +164,7 @@ func withoutBearerSubprotocols(protocols []string) []string {
 // and whether such a subprotocol was present. A present but undecodable one
 // yields "" and true.
 func BearerSubprotocolToken(r *http.Request) (string, bool) {
-	for _, p := range websocket.Subprotocols(r) {
+	for _, p := range AllSubprotocols(r.Header) {
 		if !strings.HasPrefix(strings.ToLower(p), bearerSubprotocolPrefix) {
 			continue
 		}

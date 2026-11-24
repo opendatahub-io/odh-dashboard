@@ -72,6 +72,9 @@ func (cfg ProxyConfig) rewriteFunc() func(*httputil.ProxyRequest) {
 
 		stripImpersonationHeaders(pr.Out.Header)
 		stripConfiguredHeaders(pr.Out.Header, cfg.StripHeaders)
+		// A client bearer subprotocol on a proxied upgrade is a second identity
+		// next to the resolved one; it never reaches an upstream.
+		stripBearerSubprotocols(pr.Out.Header)
 		// Install trusted authentication after stripping caller-provided headers.
 		rewriteAuthHeader(pr, cfg.AuthHeaderFn)
 		// SetOutboundHeadersFn must run after stripImpersonationHeaders so that
