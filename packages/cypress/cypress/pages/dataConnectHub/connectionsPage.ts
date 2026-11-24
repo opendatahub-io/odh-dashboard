@@ -29,6 +29,10 @@ class DataConnectHubConnectionsPage {
     return cy.findByTestId('connection-types-description');
   }
 
+  findConnectionTypesGallery() {
+    return cy.findByTestId('connection-types-gallery-toolbar');
+  }
+
   findConnectionsEmptyState() {
     return cy.findByTestId('connections-empty-state');
   }

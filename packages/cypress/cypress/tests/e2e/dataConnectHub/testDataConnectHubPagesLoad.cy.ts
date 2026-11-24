@@ -76,6 +76,7 @@ describe('Data Connect Hub Pages Load E2E', () => {
         .findTab('connection-types')
         .should('have.attr', 'aria-selected', 'true');
       dataConnectHubConnectionsPage.findConnectionTypesDescription().should('be.visible');
+      dataConnectHubConnectionsPage.findConnectionTypesGallery().should('be.visible');
 
       cy.step('Load the connections content');
       dataConnectHubConnectionsPage.findTab('connections').click();
