@@ -177,6 +177,12 @@ func CopyServiceAccountFields(desired *corev1.ServiceAccount, target *corev1.Ser
 	// NOTE: we merge rather than replace, because administrators and other controllers attach
 	//       their own metadata to a ServiceAccount (e.g. the IAM annotations used by IRSA)
 
+	//
+	// TODO: when allowing users to set ServiceAccount labels/annotations,
+	//       use the `target` object "metadata.managedFields" to determine which map keys were actually created
+	//       by this controller and so need to be cleaned up if they are no longer present in the `desired` object.
+	//
+
 	var updated bool
 	target.Labels, updated = mergeStringMapFields(desired.Labels, target.Labels)
 	if updated {
