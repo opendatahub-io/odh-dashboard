@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -412,4 +413,81 @@ func TestConfirmAPIAbsent_TypedIncompleteEntriesAreInconclusive(t *testing.T) {
 		{Versions: []metav1.GroupVersionForDiscovery{{GroupVersion: "v1", Version: "v1"}}},
 	}}, true))
 	require.NoError(t, validateGroupList(&metav1.APIGroupList{}, false), "an explicit empty list is valid")
+}
+
+var authsGVR = schema.GroupVersionResource{Group: "services.platform.opendatahub.io", Version: "v1alpha1", Resource: "auths"}
+
+// Fresh review: a sibling CRD can keep the requested version listed while the
+// resource moved to another version. Every listed version is searched; a hit
+// anywhere is inconclusive, and only a group where no version serves the
+// resource confirms absence (the Auth CRD not installed beside its siblings).
+func TestConfirmAPIAbsent_SearchesEveryVersionOfTheGroup(t *testing.T) {
+	list := func(version string, names ...string) *metav1.APIResourceList {
+		l := &metav1.APIResourceList{GroupVersion: authsGVR.Group + "/" + version, APIResources: []metav1.APIResource{}}
+		for _, n := range names {
+			l.APIResources = append(l.APIResources, metav1.APIResource{Name: n, Kind: "K"})
+		}
+		return l
+	}
+	cases := []struct {
+		name   string
+		lists  []*metav1.APIResourceList
+		absent bool
+	}{
+		{"sibling keeps v1alpha1, auths moved to v1", []*metav1.APIResourceList{list("v1alpha1", "monitorings"), list("v1", "auths")}, false},
+		{"auths only at another version", []*metav1.APIResourceList{list("v1", "auths")}, false},
+		{"auths at the requested version", []*metav1.APIResourceList{list("v1alpha1", "auths", "monitorings")}, false},
+		{"Auth CRD not installed beside its siblings", []*metav1.APIResourceList{list("v1alpha1", "monitorings"), list("v1", "gatewayconfigs")}, true},
+		{"group not served", nil, true},
+	}
+	for _, tc := range cases {
+		t.Run("typed: "+tc.name, func(t *testing.T) {
+			absent, err := ConfirmAPIAbsent(context.Background(), fakeDiscovery(tc.lists...), authsGVR)
+			assert.Equal(t, tc.absent, absent)
+			if !tc.absent {
+				assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
+			}
+		})
+		t.Run("over the wire: "+tc.name, func(t *testing.T) {
+			byPath := map[string][]byte{}
+			var versions []any
+			for _, l := range tc.lists {
+				v := strings.TrimPrefix(l.GroupVersion, authsGVR.Group+"/")
+				versions = append(versions, map[string]any{"groupVersion": l.GroupVersion, "version": v})
+				body, _ := json.Marshal(map[string]any{"kind": "APIResourceList", "apiVersion": "v1",
+					"groupVersion": l.GroupVersion, "resources": l.APIResources})
+				byPath["/apis/"+l.GroupVersion] = body
+			}
+			groups := []any{}
+			if len(versions) > 0 {
+				groups = append(groups, map[string]any{"name": authsGVR.Group, "versions": versions})
+			}
+			apis, _ := json.Marshal(map[string]any{"kind": "APIGroupList", "apiVersion": "v1", "groups": groups})
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case "/api":
+					_, _ = w.Write([]byte(`{"kind":"APIVersions","apiVersion":"v1","versions":["v1"]}`))
+				case "/apis":
+					_, _ = w.Write(apis)
+				default:
+					if b, ok := byPath[r.URL.Path]; ok {
+						_, _ = w.Write(b)
+						return
+					}
+					http.NotFound(w, r)
+				}
+			}))
+			defer srv.Close()
+			disc, err := discovery.NewDiscoveryClientForConfig(&rest.Config{Host: srv.URL})
+			require.NoError(t, err)
+			absent, err := ConfirmAPIAbsent(context.Background(), disc, authsGVR)
+			assert.Equal(t, tc.absent, absent)
+			if tc.absent {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
+			}
+		})
+	}
 }

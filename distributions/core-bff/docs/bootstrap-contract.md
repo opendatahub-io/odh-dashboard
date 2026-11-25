@@ -70,13 +70,13 @@ Only positive evidence that the OpenShift configuration API is absent confirms X
 a resource name on the read is only a hint, because a proxy or gateway in front of the API server
 can return the same response on OpenShift. The probe then asks discovery (`/apis`, readable by
 every authenticated identity through the default `system:discovery` role), and only a successful
-answer that lists the core `v1` group but not `config.openshift.io/v1` `clusterversions` confirms
-absence. An answer without the core group is a stub, not a discovery document. Discovery goes
-through the same network path as the read, so this catches an intermediary that rejects resource
-paths, not one that forges discovery; set `ODH_PLATFORM_TYPE` where neither can be trusted. A discovery
-failure, a discovery answer that serves the resource, or one that serves the group only at another
-version (a version skew, for example the Auth CRD's `v1alpha1` set to `served: false` during an
-upgrade), is inconclusive. The same rule decides whether the Auth CRD is absent. A missing
+answer that lists the core `v1` group and in which no listed version of `config.openshift.io` serves
+`clusterversions` confirms absence. An answer without the core group is a stub, not a discovery
+document. Discovery goes through the same network path as the read, so this catches an intermediary
+that rejects resource paths, not one that forges discovery; set `ODH_PLATFORM_TYPE` where neither can
+be trusted. A discovery failure, an unreadable resource list, or a resource served at any version of
+its group is inconclusive. That includes a version skew: for example the Auth CRD's `v1alpha1` set to
+`served: false` during an upgrade, while a sibling CRD keeps `v1alpha1` listed. The same rule decides whether the Auth CRD is absent. A missing
 singleton, a malformed object or a 405 on the read is not that evidence either, and a successful read is
 OpenShift even when the cluster ID cannot be parsed. The same confirmation also decides whether
 the HTTPS listener may skip the cluster TLS profile (see [runtime-contract.md](./runtime-contract.md)).
