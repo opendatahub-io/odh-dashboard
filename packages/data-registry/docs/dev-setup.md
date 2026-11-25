@@ -16,9 +16,9 @@ pnpm install
 cd packages/data-registry
 ```
 
-## Mock Development
+## Local UI and BFF Without a Cluster
 
-Use mock mode for UI and BFF development when no Kubernetes cluster is needed:
+Use the package's mock Kubernetes client for local UI and BFF development:
 
 ```bash
 make dev-start
@@ -37,7 +37,7 @@ Build the package without starting it:
 make build
 ```
 
-## Federated Development
+## Local Federated Development Against a Cluster
 
 Use federated mode when testing the dashboard integration against a real
 RHOAI/OpenShift environment:
@@ -55,8 +55,8 @@ in-cluster ConfigMap discovery depends on `POD_NAMESPACE`, which is injected
 into a deployed pod but is not present in a local shell. Without the explicit
 URL, registry requests can return `503`.
 
-This command does not install the Data Registry backend. The full cluster and
-port-forward setup is in [Full Environment Setup](environment-setup.md).
+This command does not install the Data Registry backend. For the port-forward
+and local dashboard host, see [Local Dashboard Integration](environment-setup.md).
 
 See [Environment Variables](env-variables.md) for upstream API discovery,
 authentication, and proxy settings.

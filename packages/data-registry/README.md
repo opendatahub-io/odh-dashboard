@@ -1,176 +1,25 @@
-# Data Registry UI
+# Data Registry Dashboard
 
-## Overview
+This package contains the federated Data Registry UI and its Go BFF for the
+OpenShift AI Dashboard. The registry API runs separately on the cluster and
+stores asset metadata and location references, not the underlying data.
 
-The Data Registry UI is a standalone web app for Data Registry. In this repository, you will find the frontend and backend for the Data Registry UI.
+## Start Here
 
-## Contributing
+- [Dashboard documentation](docs/README.md) — UI workflows, local development,
+  architecture, and testing.
+- [Contributing](CONTRIBUTING.md) — package setup and checks.
+- [Backend API guide and contract](https://github.com/opendatahub-io/data-registry)
+  — direct API use and schemas.
+- [Customer walkthrough](https://github.com/red-hat-data-services/red-hat-ai-examples/tree/main/examples/data-registry)
+  — cluster setup, asset registration, notebook access, and sharing.
 
-You can check the [contributing guidelines] for more information on how to contribute to the Data Registry UI.
+The dashboard loads the React remote and routes requests through the BFF. The
+BFF uses the caller's identity for project and connection lookups and forwards
+registry operations to the backend. See the [request flow](docs/architecture.md)
+and [BFF connection behavior](bff/README.md#dch-connection-lookup).
 
-## Quick Install
-
-Bootstrap a fresh copy of this starter without cloning the repo by using the published CLI:
-
-```bash
-pnpm dlx mod-arch-installer my-module --flavor default
-```
-
-See [`docs/install.md`](./docs/install.md) for all CLI options and details about the PatternFly-first default flavor.
-
-## OpenAPI Specification
-
-You can find the OpenAPI specification for the Data Registry BFF in
-[`bff/openapi/src/data-registry.yaml`](./bff/openapi/src/data-registry.yaml). The upstream Data Registry
-API contract that the BFF proxies to is vendored at
-[`bff/openapi/src/data-registry-api.yaml`](./bff/openapi/src/data-registry-api.yaml).
-
-## Targeted environments
-
-The UI has a standalone local-development mode and a federated supported deployment mode:
-
-1. **Standalone**: Local development only. The UI is served by the BFF and the BFF is responsible for serving the API requests.
-
-2. **Federated**: The supported RHOAI/ODH Dashboard deployment, where the UI is served as a micro-frontend and integrated with the host dashboard.
-
-## Project Discovery And Authorization
-
-The project selector uses the same project context as the rest of the dashboard. When a project
-was selected in another section, Data Registry carries that selection forward; otherwise it uses
-the user's preferred project. If the user has no accessible projects, the UI shows the standard
-empty state with a **Create project** action.
-
-Project discovery is performed by the BFF through `/api/v1/namespaces` while preserving the
-requesting user's identity:
-
-- Kubernetes requests use the caller's OpenShift bearer token. If the caller cannot list core
-  Kubernetes namespaces, the BFF falls back to the OpenShift Project API so the selector can still
-  show projects visible to that caller.
-
-Data Registry is supported as an ODH/RHOAI Dashboard module. Its federated deployment and local
-federated development configuration use the same user-token authentication path.
-
-## Connection Lookup
-
-Data Registry uses DCH connections when the DCH BFF is configured and both its connection
-and connection-type lookups succeed. An unconfigured or unavailable DCH integration falls back
-to the existing project Secret lookup; a 404 from either DCH collection endpoint is treated as
-unavailable so clusters can fall back while the DCH backend API is absent. An empty DCH list is a
-successful result. DCH authorization denials also fall back because the DCH BFF can return 403
-when its backing API and RBAC resources are not installed. The Secret lookup independently checks
-the current user's project access. Other 4xx responses and malformed responses remain errors;
-unresolved connector types produce a warning and omit only the affected connections.
-
-Names and provider labels are temporary display information. Asset requests contain only
-the source and stable identifier. Existing references are preserved when unavailable,
-and unrelated edits omit `connection_ref` so they can proceed without a successful lookup.
-
-See [BFF connection configuration](bff/README.md#dch-connection-lookup) for setup and local
-mock testing. Production deployment requires the DCH onboarding changes that use port 9243. Volume connection replacement additionally requires a Data Registry server implementing
-`UpdateVolumeRequest.connection_ref` from API contract 0.8.0. This Dashboard change alone
-does not implement server persistence. Verify replacement and omission with write-and-read
-tests against that server before cluster acceptance.
-
-## Environment Variables
-
-The following environment variables are used to configure the deployment and development environment for the Data Registry UI. These variables should be defined in a `.env.local` file in the `clients/ui` directory of the project. **This values will affect the build and push commands**.
-
-### `CONTAINER_TOOL`
-
-- **Description**: Specifies the container tool to be used for building and running containers.
-- **Default Value**: `docker`
-- **Possible Values**: `docker`, `podman`, etc.
-- **Example**: `CONTAINER_TOOL=docker`
-
-### `IMG_UI`
-
-- **Description**: Specifies the image name and tag for the UI (with BFF).
-- **Default Value**: `ghcr.io/your-org/data-registry/ui:latest`
-- **Example**: `IMG_UI=ghcr.io/your-org/data-registry/ui:latest`
-
-### `IMG_UI_STANDALONE`
-
-- **Description**: Specifies the image name and tag for the UI (with BFF) in **standalone mode**, used for local kind deployment.
-- **Default Value**: `ghcr.io/your-org/data-registry/ui-standalone:latest`
-- **Example**: `IMG_UI_STANDALONE=ghcr.io/your-org/data-registry/ui-standalone:latest`
-
-### `IMG_UI_FEDERATED`
-
-- **Description**: Specifies the image name and tag for the UI (with BFF) in **federated mode**, used by the ODH/RHOAI Dashboard.
-- **Default Value**: `ghcr.io/your-org/data-registry/ui-federated:latest`
-- **Example**: `IMG_UI_FEDERATED=ghcr.io/your-org/data-registry/ui-federated:latest`
-
-### `PLATFORM`
-
-- **Description**: Specifies the platform for a **docker buildx** build.
-- **Default Value**: `linux/amd64`
-- **Example**: `PLATFORM=linux/amd64`
-
-### `DEPLOYMENT_MODE`
-
-- **Description**: Specifies the deployment mode for the UI.
-- **Default Value**: `standalone`
-- **Note**: This variable is used to determine how the UI is built and deployed.
-- **Possible Values**: `standalone`, `federated`
-- **Example**: `DEPLOYMENT_MODE=standalone`
-
-### `STYLE_THEME`
-
-- **Description**: Specifies the theme/styling framework to be used for the UI.
-- **Default Value**: `patternfly-theme`
-- **Possible Values**: `patternfly-theme`
-- **Example**: `STYLE_THEME=patternfly-theme`
-
-### Example `.env.local` File
-
-Here is an example of what your `.env.local` file might look like:
-
-```shell
-CONTAINER_TOOL=docker
-IMG_UI=quay.io/<personal-registry>/data-registry-ui:latest
-IMG_UI_STANDALONE=quay.io/<personal-registry>/data-registry-ui-standalone:latest
-PLATFORM=linux/amd64
-```
-
-## Build and Push Commands
-
-The following Makefile targets are used to build and push the Docker images the UI images. These targets utilize the environment variables defined in the `.env.local` file.
-
-### Build Commands
-
-- **`docker-build`**: Builds the Docker image for the UI platform.
-
-  - Command: `make docker-build`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
-
-- **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
-
-  - Command: `make docker-buildx`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
-
-- **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
-
-  - Command: `make docker-build-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
-
-- **`docker-buildx-standalone`**: Builds the Docker image with buildX for multiarch support **in standalone mode**.
-  - Command: `make docker-buildx-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
-
-### Push Commands
-
-- **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
-
-  - Command: `make docker-push`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
-
-- **`docker-push-standalone`**: Pushes the Docker image for the UI service to the container registry **in standalone mode**.
-  - Command: `make docker-push-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
-
-## Deployments
-
-For more information on how to deploy the Data Registry UI, please refer to the [Mod arch UI] documentation.
-
-[Mod arch UI]: ./docs/README.md
-[contributing guidelines]: ./CONTRIBUTING.md
+The [BFF OpenAPI specification](bff/openapi/src/data-registry.yaml) describes
+Dashboard-owned routes. Its [vendored registry contract](bff/openapi/src/data-registry-api.yaml)
+supports the proxy; the [backend repository](https://github.com/opendatahub-io/data-registry/tree/main/api-contract)
+publishes the API contract for direct consumers.
