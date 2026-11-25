@@ -172,6 +172,24 @@ describe('EmbeddableConnectionWizardRemote', () => {
     );
   });
 
+  it('does not render the wizard while rechecking availability on reopen', async () => {
+    const { rerender } = render(
+      <EmbeddableConnectionWizardRemote isOpen namespace="test-project" />,
+    );
+
+    expect(await screen.findByTestId('create-connection-tearsheet')).toBeTruthy();
+
+    rerender(<EmbeddableConnectionWizardRemote isOpen={false} namespace="test-project" />);
+    await waitFor(() => expect(screen.queryByTestId('create-connection-tearsheet')).toBeNull());
+
+    global.fetch = jest.fn<typeof fetch>().mockReturnValue(new Promise(() => undefined));
+    rerender(<EmbeddableConnectionWizardRemote isOpen namespace="test-project" />);
+
+    expect(await screen.findByTestId('connection-wizard-loading-tearsheet')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Connection type' })).toBeNull();
+    expect(screen.queryByText('No data connection types')).toBeNull();
+  });
+
   it('renders the locked namespace as plain text and enables credential verification by default', async () => {
     const user = userEvent.setup();
     render(

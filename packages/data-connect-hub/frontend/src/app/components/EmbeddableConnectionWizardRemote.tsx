@@ -155,29 +155,6 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
     return null;
   }
 
-  if (isOpen && availability.status === 'checking' && !isWizardReady) {
-    return (
-      <Tearsheet
-        isOpen
-        stackLevel={tearsheetStackLevel}
-        onClose={() => onClose?.('cancelled')}
-        onEscapePress={() => onClose?.('cancelled')}
-        data-testid="connection-wizard-loading-tearsheet"
-        modalProps={{ disableFocusTrap: true }}
-      >
-        <TearsheetHeader title="Create connection" />
-        <TearsheetBody>
-          <Bullseye>
-            <Spinner
-              aria-label="Loading connection wizard"
-              data-testid="connection-wizard-loading"
-            />
-          </Bullseye>
-        </TearsheetBody>
-      </Tearsheet>
-    );
-  }
-
   if (isOpen && availability.status === 'unavailable') {
     return (
       unavailableFallback ?? (
@@ -193,28 +170,47 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
     );
   }
 
-  if (!isWizardReady) {
-    return null;
-  }
+  const isLoadingAvailability = isOpen && availability.status === 'checking';
 
   return (
     <EmbeddedConnectionWizardContext.Provider value={embeddedContextValue}>
       <NotificationContextProvider>
-        <CreateConnectionWizard
-          isOpen={isOpen}
-          namespace={namespace}
-          onClose={(outcome) => onClose?.(outcome)}
-          initialFormData={
-            initialConnectionTypeId
-              ? { data_connection_type_id: initialConnectionTypeId }
-              : undefined
-          }
-          onCreate={async (data, selectedNamespace) => {
-            const connection = await createConnection('')({}, selectedNamespace, data);
-            invokeOnCreated(connection, selectedNamespace);
-            return connection;
-          }}
-        />
+        {isLoadingAvailability ? (
+          <Tearsheet
+            isOpen
+            stackLevel={tearsheetStackLevel}
+            onClose={() => onClose?.('cancelled')}
+            onEscapePress={() => onClose?.('cancelled')}
+            data-testid="connection-wizard-loading-tearsheet"
+            modalProps={{ disableFocusTrap: true }}
+          >
+            <TearsheetHeader title="Create connection" />
+            <TearsheetBody>
+              <Bullseye>
+                <Spinner
+                  aria-label="Loading connection wizard"
+                  data-testid="connection-wizard-loading"
+                />
+              </Bullseye>
+            </TearsheetBody>
+          </Tearsheet>
+        ) : (
+          <CreateConnectionWizard
+            isOpen={isOpen}
+            namespace={namespace}
+            onClose={(outcome) => onClose?.(outcome)}
+            initialFormData={
+              initialConnectionTypeId
+                ? { data_connection_type_id: initialConnectionTypeId }
+                : undefined
+            }
+            onCreate={async (data, selectedNamespace) => {
+              const connection = await createConnection('')({}, selectedNamespace, data);
+              invokeOnCreated(connection, selectedNamespace);
+              return connection;
+            }}
+          />
+        )}
         <ToastNotifications />
       </NotificationContextProvider>
     </EmbeddedConnectionWizardContext.Provider>
