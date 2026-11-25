@@ -86,19 +86,20 @@ The callback receives `{ status: 'checking' }` when the wizard opens, then eithe
 
 The loader accepts `EmbeddableConnectionWizardProps`. Import the type from `@odh-dashboard/data-connect-hub/types`.
 
-| Prop                           | Type                                                     | Default     | Description                                                                                                                                                |
-| ------------------------------ | -------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isOpen`                       | `boolean`                                                | Required    | Controls wizard visibility and starts availability checks.                                                                                                 |
-| `namespace`                    | `string`                                                 | Required    | Namespace in which the connection is created.                                                                                                              |
-| `initialConnectionTypeId`      | `string`                                                 | `undefined` | Preselects a connection type and starts at the details step when the type exists.                                                                          |
-| `connectionTypeProviders`      | `[string, ...string[]]`                                  | `undefined` | Restricts the connection-type gallery to these DCH providers, such as `s3`. The list must not be empty. Provider filtering supersedes the initial type ID. |
-| `onCreated`                    | `(connection: DchConnection, namespace: string) => void` | `undefined` | Event callback invoked after the BFF successfully creates a connection.                                                                                    |
-| `onClose`                      | `(outcome: ConnectionWizardCloseOutcome) => void`        | `undefined` | Event callback invoked after a successful creation or user cancellation.                                                                                   |
-| `isNamespaceSelectable`        | `boolean`                                                | `false`     | Allows the user to select a project instead of displaying the supplied namespace as text.                                                                  |
-| `enableCredentialVerification` | `boolean`                                                | `true`      | Shows credential verification for flight-ready connection types.                                                                                           |
-| `tearsheetStackLevel`          | `number`                                                 | `0`         | Sets the PatternFly tearsheet stacking level. Use a higher level when the wizard renders above another tearsheet.                                          |
-| `unavailableFallback`          | `ReactNode`                                              | Alert       | Rendered when the feature, remote, or backend is unavailable.                                                                                              |
-| `onAvailabilityChange`         | `(availability: ConnectionWizardAvailability) => void`   | `undefined` | Receives the current wizard availability state.                                                                                                            |
+| Prop                           | Type                                                                      | Default     | Description                                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isOpen`                       | `boolean`                                                                 | Required    | Controls wizard visibility and starts availability checks.                                                                                                 |
+| `namespace`                    | `string`                                                                  | Required    | Namespace in which the connection is created.                                                                                                              |
+| `initialConnectionTypeId`      | `string`                                                                  | `undefined` | Preselects a connection type and starts at the details step when the type exists.                                                                          |
+| `connectionTypeProviders`      | `[string, ...string[]]`                                                   | `undefined` | Restricts the connection-type gallery to these DCH providers, such as `s3`. The list must not be empty. Provider filtering supersedes the initial type ID. |
+| `onCreated`                    | `(connection: DchConnection, namespace: string) => void or Promise<void>` | `undefined` | Event callback invoked after the BFF successfully creates a connection.                                                                                    |
+| `onCreatedError`               | `(error: unknown) => void`                                                | `undefined` | Receives errors thrown or rejected by the consumer's `onCreated` callback.                                                                                 |
+| `onClose`                      | `(outcome: ConnectionWizardCloseOutcome) => void`                         | `undefined` | Event callback invoked after a successful creation or user cancellation.                                                                                   |
+| `isNamespaceSelectable`        | `boolean`                                                                 | `false`     | Allows the user to select a project instead of displaying the supplied namespace as text.                                                                  |
+| `enableCredentialVerification` | `boolean`                                                                 | `true`      | Shows credential verification for flight-ready connection types.                                                                                           |
+| `tearsheetStackLevel`          | `number`                                                                  | `0`         | Sets the PatternFly tearsheet stacking level. Use a higher level when the wizard renders above another tearsheet.                                          |
+| `unavailableFallback`          | `ReactNode`                                                               | Alert       | Rendered when the feature, remote, or backend is unavailable.                                                                                              |
+| `onAvailabilityChange`         | `(availability: ConnectionWizardAvailability) => void`                    | `undefined` | Receives the current wizard availability state.                                                                                                            |
 
 While availability is checked, the loader renders the connection tearsheet with a loading spinner. This preserves the wizard's presentation before the federated component is available.
 
@@ -106,10 +107,16 @@ While availability is checked, the loader renders the connection tearsheet with 
 
 - Invoked only after DCH successfully creates the connection.
 - Receives the created `DchConnection` and the final namespace. The namespace can differ from the `namespace` prop when `isNamespaceSelectable` is enabled.
-- Is an event callback, not an async continuation. The wizard does not await a returned value or promise.
-- Consumers that perform asynchronous work in `onCreated` must handle their own errors; otherwise, the wizard can create an unhandled promise rejection.
+- Is an event callback, not an async continuation. The wizard does not wait for callback completion before closing, but it forwards callback rejections to `onCreatedError`.
+- Callback errors are passed to `onCreatedError` and do not enter the wizard’s creation error path. The wizard still reports the successful connection creation.
 - The wizard resets its form, shows its success notification, and calls `onClose` after this callback.
 - Use `connection.metadata.id` or `connection.resource` to update consumer state, selections, or caches.
+
+### `onCreatedError`
+
+- Receives errors thrown synchronously by `onCreated` or returned as rejected promises.
+- Is intended for consumer-side handling, such as refreshing a selection or showing a consumer-owned notification.
+- Does not change the wizard’s success state because the DCH connection was already created.
 
 ### `onClose`
 

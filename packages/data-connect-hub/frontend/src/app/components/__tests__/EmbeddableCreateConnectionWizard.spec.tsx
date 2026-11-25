@@ -163,7 +163,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
 
   it('creates through the Data Connect Hub BFF and reports the created connection', async () => {
     const user = userEvent.setup();
-    const onCreated = jest.fn();
+    const onCreated = jest.fn<() => void>();
     const onClose = jest.fn();
     render(
       <EmbeddableCreateConnectionWizard
@@ -191,6 +191,65 @@ describe('EmbeddableCreateConnectionWizard', () => {
     );
     expect(onClose).toHaveBeenCalled();
     expect(await screen.findByText('Connection created')).toBeTruthy();
+  });
+
+  it('keeps a successful creation open-path isolated from a synchronous callback error', async () => {
+    const user = userEvent.setup();
+    const onCreated = jest.fn(() => {
+      throw new Error('callback failed');
+    });
+    const onCreatedError = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <EmbeddableCreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        initialConnectionTypeId={connectionTypeId}
+        onCreated={onCreated}
+        onCreatedError={onCreatedError}
+        onClose={onClose}
+      />,
+    );
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith(createdConnection, 'test-project'));
+    expect(onCreatedError).toHaveBeenCalledWith(new Error('callback failed'));
+    expect(onClose).toHaveBeenCalledWith('created');
+    expect(await screen.findByText('Connection created')).toBeTruthy();
+    expect(screen.queryByText('Unable to create connection')).toBeNull();
+  });
+
+  it('keeps a successful creation isolated from an asynchronous callback error', async () => {
+    const user = userEvent.setup();
+    const onCreated = jest.fn(() => Promise.reject(new Error('callback failed')));
+    const onCreatedError = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <EmbeddableCreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        initialConnectionTypeId={connectionTypeId}
+        onCreated={onCreated}
+        onCreatedError={onCreatedError}
+        onClose={onClose}
+      />,
+    );
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    await waitFor(() => expect(onCreatedError).toHaveBeenCalledWith(new Error('callback failed')));
+    expect(onClose).toHaveBeenCalledWith('created');
+    expect(await screen.findByText('Connection created')).toBeTruthy();
+    expect(screen.queryByText('Unable to create connection')).toBeNull();
   });
 
   it('filters connection types by provider', async () => {

@@ -68,7 +68,9 @@ export type EmbeddableCreateConnectionWizardProps = {
    * Called after the Data Connect Hub BFF successfully creates a connection.
    * This is an event callback; the wizard does not wait for returned work.
    */
-  onCreated?: (connection: DchConnection, namespace: string) => void;
+  onCreated?: (connection: DchConnection, namespace: string) => void | Promise<void>;
+  /** Called when the onCreated callback throws or returns a rejected promise. */
+  onCreatedError?: (error: unknown) => void;
   /** Called when the wizard closes after creation or is cancelled by the user. */
   onClose?: (outcome: ConnectionWizardCloseOutcome) => void;
   /** Whether the user can select a different project. Defaults to false. */

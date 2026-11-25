@@ -4,7 +4,10 @@ import { createConnection } from '~/app/api/dch';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { EmbeddedConnectionWizardContext } from '~/app/context/EmbeddedConnectionWizardContext';
-import type { EmbeddableCreateConnectionWizardProps } from '~/types/embeddable-create-connection-wizard';
+import type {
+  DchConnection,
+  EmbeddableCreateConnectionWizardProps,
+} from '~/types/embeddable-create-connection-wizard';
 
 /**
  * Self-contained connection creation wizard for Module Federation consumers.
@@ -17,6 +20,7 @@ const EmbeddableCreateConnectionWizard: React.FC<EmbeddableCreateConnectionWizar
   initialConnectionTypeId,
   connectionTypeProviders,
   onCreated,
+  onCreatedError,
   onClose,
   isNamespaceSelectable = false,
   enableCredentialVerification = true,
@@ -38,6 +42,22 @@ const EmbeddableCreateConnectionWizard: React.FC<EmbeddableCreateConnectionWizar
     ],
   );
 
+  const invokeOnCreatedError = (error: unknown) => {
+    try {
+      void Promise.resolve(onCreatedError?.(error)).catch(() => undefined);
+    } catch {
+      return;
+    }
+  };
+
+  const invokeOnCreated = (connection: DchConnection, selectedNamespace: string) => {
+    try {
+      Promise.resolve(onCreated?.(connection, selectedNamespace)).catch(invokeOnCreatedError);
+    } catch (error) {
+      invokeOnCreatedError(error);
+    }
+  };
+
   return (
     <EmbeddedConnectionWizardContext.Provider value={embeddedContextValue}>
       <NotificationContextProvider>
@@ -52,7 +72,7 @@ const EmbeddableCreateConnectionWizard: React.FC<EmbeddableCreateConnectionWizar
           }
           onCreate={async (data, selectedNamespace) => {
             const connection = await createConnection('')({}, selectedNamespace, data);
-            void onCreated?.(connection, selectedNamespace);
+            invokeOnCreated(connection, selectedNamespace);
             return connection;
           }}
         />
