@@ -46,8 +46,12 @@ bff_pid=""
 ns_created=false
 cr_created=false
 crb_created=false
+# UIDs returned by a successful create; empty after an ambiguous result.
+cr_uid=""
+crb_uid=""
+cleanup_failed=false
 # Cluster-scoped objects this run creates carry RUN_LABEL=RUN_ID; cleanup
-# deletes only an object that still carries this run's value, by UID.
+# deletes only this run's object, by UID.
 RUN_LABEL=corebff-validate-run
 RUN_ID=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
 fails=0
@@ -68,22 +72,41 @@ for tool in kubectl curl; do
   command -v "$tool" >/dev/null 2>&1 || { echo >&2 "$tool is required"; exit 1; }
 done
 
-# delete_owned removes a cluster-scoped RBAC object only if it carries this
-# run's ownership label, with a UID precondition so an object recreated under
-# the same name in between is never deleted.
+# delete_owned removes a cluster-scoped RBAC object this run created, with a
+# UID precondition so an object recreated under the same name is never
+# deleted. With the UID from a successful create it deletes that object; after
+# an ambiguous create it first reads the ownership label and deletes only an
+# object carrying this run's value. Any failure to read or delete (other than
+# NotFound) is reported with the object's name and fails the run.
 delete_owned() {
-  local resource=$1 name=$2 meta uid run
-  meta=$("${KUBECTL[@]}" get "$resource.rbac.authorization.k8s.io" "$name" \
-    -o "jsonpath={.metadata.uid} {.metadata.labels.$RUN_LABEL}" 2>/dev/null) || return 0
-  uid=${meta%% *}
-  run=${meta#* }
-  [[ -n "$uid" && "$run" == "$RUN_ID" ]] || return 0
+  local resource=$1 name=$2 uid=$3 out meta run
+  if [[ -z "$uid" ]]; then
+    if ! out=$("${KUBECTL[@]}" get "$resource.rbac.authorization.k8s.io" "$name" \
+      -o "jsonpath={.metadata.uid} {.metadata.labels.$RUN_LABEL}" 2>&1); then
+      [[ "$out" == *"(NotFound)"* ]] && return 0
+      cleanup_warn "$resource/$name" "could not read it to check its $RUN_LABEL=$RUN_ID label"
+      return 0
+    fi
+    meta=$out
+    uid=${meta%% *}
+    run=${meta#* }
+    [[ -n "$uid" && "$run" == "$RUN_ID" ]] || return 0
+  fi
   printf '{"kind":"DeleteOptions","apiVersion":"v1","preconditions":{"uid":"%s"}}' "$uid" >"$work/delete-$resource.json"
-  "${KUBECTL[@]}" delete --raw "/apis/rbac.authorization.k8s.io/v1/$resource/$name" \
-    -f "$work/delete-$resource.json" >/dev/null 2>&1 || true
+  if ! out=$("${KUBECTL[@]}" delete --raw "/apis/rbac.authorization.k8s.io/v1/$resource/$name" \
+    -f "$work/delete-$resource.json" 2>&1); then
+    [[ "$out" == *"(NotFound)"* ]] && return 0
+    cleanup_warn "$resource/$name" "delete failed"
+  fi
+}
+
+cleanup_warn() {
+  echo >&2 "cleanup: $1 (label $RUN_LABEL=$RUN_ID) may be left behind: $2; delete it by hand"
+  cleanup_failed=true
 }
 
 cleanup() {
+  local rc=$?
   if [[ -n "$bff_pid" ]]; then
     kill "$bff_pid" 2>/dev/null || true
     wait "$bff_pid" 2>/dev/null || true
@@ -94,15 +117,19 @@ cleanup() {
   # with KEEP_NAMESPACE: it names only this run's namespace, but is not left behind.
   # Each is deleted only if this run created it.
   if [[ "$crb_created" == "true" ]]; then
-    delete_owned clusterrolebindings "corebff-validate-$NS"
+    delete_owned clusterrolebindings "corebff-validate-$NS" "$crb_uid"
   fi
   if [[ "$cr_created" == "true" ]]; then
-    delete_owned clusterroles "corebff-validate-$NS"
+    delete_owned clusterroles "corebff-validate-$NS" "$cr_uid"
   fi
   if [[ "$ns_created" == "true" && "${KEEP_NAMESPACE:-false}" != "true" ]]; then
     "${KUBECTL[@]}" delete namespace "$NS" --wait=false >/dev/null 2>&1 || true
   fi
   [[ -n "$work" ]] && rm -rf "$work"
+  if [[ "$cleanup_failed" == "true" && $rc -eq 0 ]]; then
+    exit 1
+  fi
+  return 0
 }
 trap cleanup EXIT
 work=$(mktemp -d)
@@ -317,23 +344,30 @@ if [[ "$PLATFORM" == "XKS" ]]; then
   # Forbidden), so the object is not this run's and cleanup never touches it;
   # 2 ambiguous (a client timeout can follow a server-side create), so cleanup
   # checks the label and deletes only this run's object (delete_owned).
+  # On success created_uid holds the new object's UID, which cleanup deletes by.
   created_by_us() {
     local out rc=0
+    created_uid=""
     out=$("${KUBECTL[@]}" create "$@" --dry-run=client -o json |
       "${KUBECTL[@]}" label --local -f - "$RUN_LABEL=$RUN_ID" -o json |
-      "${KUBECTL[@]}" create -f - 2>&1) || rc=$?
-    ((rc == 0)) && return 0
+      "${KUBECTL[@]}" create -f - -o 'jsonpath={.metadata.uid}' 2>&1) || rc=$?
+    if ((rc == 0)); then
+      created_uid=$out
+      return 0
+    fi
     [[ "$out" == *"Error from server (AlreadyExists)"* || "$out" == *"Error from server (Forbidden)"* ]] && return 1
     return 2
   }
   cr_rc=0
   created_by_us clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" || cr_rc=$?
   ((cr_rc != 1)) && cr_created=true
+  cr_uid=$created_uid
   crb_rc=1
   if ((cr_rc == 0)); then
     crb_rc=0
     created_by_us clusterrolebinding "corebff-validate-$NS" --clusterrole="corebff-validate-$NS" --serviceaccount="$NS:ns-patcher" || crb_rc=$?
     ((crb_rc != 1)) && crb_created=true
+    crb_uid=$created_uid
   fi
   if ((cr_rc == 0 && crb_rc == 0)); then
     PATCHER_TOKEN=$("${KUBECTL[@]}" -n "$NS" create token ns-patcher --duration=1h)
