@@ -11,6 +11,13 @@ components:
 - ../../components/prometheus
 - ../../components/common
 
+patches:
+# Rename and restrict the shared prometheus metrics NP for OpenShift.
+- target:
+    kind: NetworkPolicy
+    name: allow-prometheus-scrape
+  path: metrics-networkpolicy-patch.yaml
+
 replacements:
 - source:
     kind: Service

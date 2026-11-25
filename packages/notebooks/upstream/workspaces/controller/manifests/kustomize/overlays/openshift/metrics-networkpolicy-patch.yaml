@@ -1,0 +1,25 @@
+# Rename allow-prometheus-scrape → workspaces-controller-metrics-allow-ports
+# and restrict metrics ingress to platform monitoring namespaces (ADR-0016).
+- op: replace
+  path: /metadata/name
+  value: workspaces-controller-metrics-allow-ports
+- op: replace
+  path: /spec/ingress
+  value:
+  # Permit metrics scraping only from the platform monitoring namespaces.
+  - ports:
+    - port: metrics
+      protocol: TCP
+    from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: openshift-monitoring
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: openshift-user-workload-monitoring
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: redhat-ods-monitoring
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: opendatahub-monitoring

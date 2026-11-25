@@ -1,23 +1,33 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: workspaces-controller
+  name: workspaces-controller-allow-ports
 spec:
   podSelector:
     matchLabels:
       app: workspaces-controller
       app.kubernetes.io/component: controller-manager
+  policyTypes:
+  - Ingress
+  - Egress
   ingress:
+  # Webhook calls from the kube-apiserver may originate from the node network rather than a pod.
+  # Webhook server (named port "https-webhook", TCP 9443): port-scoped, no
+  # peer restriction. kube-apiserver admission review requests originate from
+  # the host network (or the Konnectivity proxy on managed platforms);
+  # NetworkPolicy peer selectors cannot reliably match this traffic.
   - ports:
     - protocol: TCP
       port: https-webhook
-    # allow traffic from anywhere, as the kubernetes api server must reach the webhook
-    from: []
+  # Kubelet health probes may originate from the node network rather than a pod.
+  # Health probes (TCP 8081): /healthz and /readyz. Port-scoped, no peer
+  # restriction. Kubelet probes originate from the node host network and
+  # cannot be constrained by NetworkPolicy peer selectors.
   - ports:
     - protocol: TCP
       port: 8081
-    # health-probe port (--health-probe-bind-address=:8081); must be listed
-    # because the policy above already selects this pod, implicitly denying
-    # any port not covered by an ingress rule.
-  policyTypes:
-  - Ingress
+  # Allow-all egress: the controller reaches the kube-apiserver (dynamic
+  # endpoint), DNS, and user-namespace resources that cannot be reliably
+  # represented by stable NetworkPolicy peers.
+  egress:
+  - {}
