@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Pagination, Toolbar, ToolbarContent } from '@patternfly/react-core';
+import { Pagination } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { useTableColumnSort, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -13,11 +13,10 @@ import OverviewTableRow from './OverviewTableRow';
 
 type OverviewTableProps = {
   data: ModelOverviewItem[];
-  toolbarContent: React.ReactNode;
   onClearFilters: () => void;
 };
 
-const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onClearFilters }) => {
+const OverviewTable: React.FC<OverviewTableProps> = ({ data, onClearFilters }) => {
   const [expandedModels, setExpandedModels] = React.useState<Set<string>>(new Set());
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
@@ -59,15 +58,6 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onC
 
   return (
     <>
-      {toolbarContent && (
-        <Toolbar
-          inset={{ default: 'insetNone' }}
-          className="pf-v6-u-w-100"
-          clearAllFilters={onClearFilters}
-        >
-          <ToolbarContent>{toolbarContent}</ToolbarContent>
-        </Toolbar>
-      )}
       <Table data-testid="overview-table">
         <Thead>
           <Tr>

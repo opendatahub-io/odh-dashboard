@@ -41,7 +41,7 @@ describe('OverviewTable', () => {
 
   it('should render pagination when data length equals page size', () => {
     const data = Array.from({ length: 10 }, (_, i) => mockOverviewItem(`model-${i}`));
-    render(<OverviewTable data={data} toolbarContent={null} onClearFilters={onClearFilters} />);
+    render(<OverviewTable data={data} onClearFilters={onClearFilters} />);
 
     expect(screen.getByTestId('overview-table')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: /pagination/i })).toBeInTheDocument();
@@ -49,14 +49,14 @@ describe('OverviewTable', () => {
 
   it('should render pagination when data length is less than page size', () => {
     const data = [mockOverviewItem('model-1'), mockOverviewItem('model-2')];
-    render(<OverviewTable data={data} toolbarContent={null} onClearFilters={onClearFilters} />);
+    render(<OverviewTable data={data} onClearFilters={onClearFilters} />);
 
     expect(screen.getByTestId('overview-table')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: /pagination/i })).toBeInTheDocument();
   });
 
   it('should not render pagination when data is empty', () => {
-    render(<OverviewTable data={[]} toolbarContent={null} onClearFilters={onClearFilters} />);
+    render(<OverviewTable data={[]} onClearFilters={onClearFilters} />);
 
     expect(screen.getByTestId('overview-table')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: /pagination/i })).not.toBeInTheDocument();
@@ -64,7 +64,7 @@ describe('OverviewTable', () => {
 
   it('should render pagination when data length exceeds page size', () => {
     const data = Array.from({ length: 15 }, (_, i) => mockOverviewItem(`model-${i}`));
-    render(<OverviewTable data={data} toolbarContent={null} onClearFilters={onClearFilters} />);
+    render(<OverviewTable data={data} onClearFilters={onClearFilters} />);
 
     expect(screen.getByRole('navigation', { name: /pagination/i })).toBeInTheDocument();
   });

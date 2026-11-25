@@ -11,6 +11,7 @@ import {
   createSubscriptionPage,
   policyPage,
   phaseModal,
+  viewSubscriptionPage,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptionFormData,
@@ -72,22 +73,58 @@ describe('MaaS Governance Page / Overview Tab', () => {
     maasGovernancePage.findCreateAuthPolicyButton().should('exist');
   });
 
-  it('should show the overview empty state in the overview tab when there are no models', () => {
+  it('should show group data in the groups view when there are no models', () => {
     interceptMaasGovernanceData(
       mockSubscriptionFormData({
         modelRefs: [],
       }),
     );
     maasGovernancePage.visit('overview');
-    maasGovernancePage.findOverviewEmptyState().should('exist');
+    // Subscriptions and policies still exist, so the groups view has data and no empty state shows
+    maasGovernancePage.findOverviewEmptyState().should('not.exist');
     maasGovernancePage.findSubscriptionsTab().should('be.visible');
     maasGovernancePage.findAuthPoliciesTab().should('be.visible');
-    overviewTabPage.findTable().should('not.exist');
+    overviewTabPage.findTable().should('exist');
+
+    overviewTabPage.findGroupsViewButton().click();
+    cy.url().should('include', 'view=groups');
+    overviewTabPage.findGroupsTable().should('exist');
+    overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
+
+    // Model filter options come from subscription model refs when no models are registered
+    overviewTabPage.filterByTypeahead('model', 'granite-3-8b-instruct', 'Granite 3 8B Instruct');
+    overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
+    overviewTabPage.clearAllFilters();
+    overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
+  });
+
+  it('should return to the groups view after visiting resource details from a group row', () => {
+    maasGovernancePage.visit('overview');
+    overviewTabPage.findGroupsViewButton().click();
+    cy.url().should('include', 'view=groups');
+    overviewTabPage.findGroupRow('premium-users').should('exist');
+
+    overviewTabPage.expandGroupRow('premium-users');
+    overviewTabPage.expandExpandableItemInGroupRow('premium-users', 'Premium Team Subscription');
+    overviewTabPage
+      .findExpandableItemNameInGroupRow('premium-users', 'Premium Team Subscription')
+      .click();
+    cy.url().should('include', '/maas-governance/subscriptions/view/premium-team-sub');
+    viewSubscriptionPage
+      .findBreadcrumbSubscriptionsLink()
+      .should('contain.text', 'MaaS governance');
+    viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
+
+    // The breadcrumb returns to the originating groups view, not the models view
+    cy.url().should('include', '/maas-governance/overview');
+    cy.url().should('include', 'view=groups');
+    overviewTabPage.findGroupsTable().should('exist');
+    overviewTabPage.findGroupRows().should('have.length.greaterThan', 0);
   });
 
   it('should show the filter empty state when overview filters match no models', () => {
     maasGovernancePage.visit('overview');
-    overviewTabPage.findFilterInput('model').type('nonexistent-model-xyz');
+    overviewTabPage.filterByTypeahead('model', 'nonexistent-model-xyz');
     overviewTabPage.findEmptyTableState().should('exist');
     overviewTabPage.findClearFiltersButton().click();
     overviewTabPage.findModelRows().should('have.length', 6);
@@ -238,7 +275,7 @@ describe('MaaS Governance Page / Overview Tab', () => {
       .findModelRowRoot('granite-3-8b-instruct', 'team-sandbox')
       .should('have.class', 'pf-m-expanded')
       .and('contain.text', 'Sandbox Granite Subscription');
-    overviewTabPage.findFilterInput('model').type('Granite');
+    overviewTabPage.filterByTypeahead('model', 'Granite');
     overviewTabPage.findModelRows().should('have.length', 2);
 
     // The duplicate ID Granite model prefilled in the create subscription form
@@ -252,7 +289,7 @@ describe('MaaS Governance Page / Overview Tab', () => {
     createSubscriptionPage.findModelsTable().should('contain.text', 'team-sandbox');
     createSubscriptionPage.findCancelButton().click();
     cy.url().should('include', '/maas-governance/overview');
-    overviewTabPage.findFilterInput('model').type('Granite');
+    overviewTabPage.filterByTypeahead('model', 'Granite');
 
     // The original Granite model prefilled in the create authorization policy form
     overviewTabPage.findModelRows().should('have.length', 2);
@@ -271,24 +308,24 @@ describe('MaaS Governance Page / Overview Tab', () => {
   it('should filter by model name, model ID, description, project, group name, subscription name, and authorization policy name', () => {
     maasGovernancePage.visit('overview');
     // Display name
-    overviewTabPage.findFilterInput('model').type('Llama');
+    overviewTabPage.filterByTypeahead('model', 'Llama');
     overviewTabPage.findModelRows().should('have.length', 1);
     overviewTabPage.clearAllFilters();
 
     // Resource name — same ID can exist in multiple namespaces
-    overviewTabPage.findFilterInput('model').type('granite-3-8b-instruct');
+    overviewTabPage.filterByTypeahead('model', 'granite-3-8b-instruct', 'Granite 3 8B Instruct');
     overviewTabPage.findModelRows().should('have.length', 2);
     overviewTabPage.clearAllFilters();
 
     // Description
-    overviewTabPage.findFilterInput('model').type('instruction');
+    overviewTabPage.filterByTypeahead('model', 'instruction');
     overviewTabPage.findModelRows().should('have.length', 2);
     overviewTabPage.clearAllFilters();
 
     // Filter by project
     overviewTabPage.findFilterDropdownButton().click();
     overviewTabPage.findFilterDropdownItem('project').click();
-    overviewTabPage.findFilterInput('project').type('team-sandbox');
+    overviewTabPage.filterByTypeahead('project', 'team-sandbox', 'team-sandbox');
     overviewTabPage.findModelRows().should('have.length', 1);
     overviewTabPage.findModelRows().eq(0).should('contain.text', 'Granite 3 8B Instruct (sandbox)');
     overviewTabPage.findModelRows().eq(0).should('contain.text', 'team-sandbox');
@@ -297,7 +334,7 @@ describe('MaaS Governance Page / Overview Tab', () => {
     overviewTabPage.clearAllFilters();
     overviewTabPage.findFilterDropdownButton().click();
     overviewTabPage.findFilterDropdownItem('groupName').click();
-    overviewTabPage.findFilterInput('group').type('interns');
+    overviewTabPage.filterByTypeahead('group', 'interns', 'interns');
     overviewTabPage.findModelRows().should('have.length', 2);
     overviewTabPage.clearAllFilters();
     overviewTabPage.findModelRows().should('have.length', 6);
@@ -305,7 +342,7 @@ describe('MaaS Governance Page / Overview Tab', () => {
     // Subscription name
     overviewTabPage.findFilterDropdownButton().click();
     overviewTabPage.findFilterDropdownItem('subscriptionName').click();
-    overviewTabPage.findFilterInput('subscription').type('Team');
+    overviewTabPage.filterByTypeahead('subscription', 'Team');
     overviewTabPage.findModelRows().should('have.length', 2);
     overviewTabPage.clearAllFilters();
     overviewTabPage.findModelRows().should('have.length', 6);
@@ -313,7 +350,7 @@ describe('MaaS Governance Page / Overview Tab', () => {
     // Authorization policy name
     overviewTabPage.findFilterDropdownButton().click();
     overviewTabPage.findFilterDropdownItem('authPolicyName').click();
-    overviewTabPage.findFilterInput('policy').type('Team');
+    overviewTabPage.filterByTypeahead('policy', 'Team');
     overviewTabPage.findModelRows().should('have.length', 2);
     overviewTabPage.clearAllFilters();
     overviewTabPage.findModelRows().should('have.length', 6);
@@ -334,7 +371,7 @@ describe('MaaS Governance Page / Overview Tab', () => {
 
   it('should highlight matching subscriptions and policies when a group chip is clicked', () => {
     maasGovernancePage.visit('overview');
-    overviewTabPage.findFilterInput('model').type('Granite 3 8B Instruct');
+    overviewTabPage.filterByTypeahead('model', 'Granite 3 8B Instruct');
     overviewTabPage.findModelRows().should('have.length', 2);
 
     const graniteModelId = 'granite-3-8b-instruct';
