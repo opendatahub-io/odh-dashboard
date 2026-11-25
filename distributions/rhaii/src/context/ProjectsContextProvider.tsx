@@ -10,7 +10,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
-import { parseStoredWorkingProjectName } from '@odh-dashboard/ui-core/context/workingProjectStorage';
+import { useRecentProjects } from '@odh-dashboard/ui-core/hooks/useRecentProjects';
 import { WorkingProjectProvider } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { useWorkingProjectSynchronization } from '@odh-dashboard/ui-core/hooks/useWorkingProjectSynchronization';
 import fetchNamespaces, {
@@ -23,21 +23,6 @@ import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 const WAIT_FOR_PROJECT_TIMEOUT_MS = 30_000;
 const WAIT_FOR_PROJECT_POLL_MS = 2_000;
 const RECENT_NAMESPACES_KEY = 'rhaii-recent-namespaces';
-
-const readRecentNames = (): string[] => {
-  try {
-    const raw: unknown = JSON.parse(localStorage.getItem(RECENT_NAMESPACES_KEY) ?? '[]');
-    return Array.isArray(raw)
-      ? raw.filter(
-          (name): name is string =>
-            typeof name === 'string' &&
-            parseStoredWorkingProjectName(JSON.stringify(name)) === name,
-        )
-      : [];
-  } catch {
-    return [];
-  }
-};
 
 type ProjectsContextProviderProps = {
   children: React.ReactNode;
@@ -237,7 +222,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   );
 
   const addProject = React.useCallback(
-    (project: ProjectKind, remember = true) => {
+    (project: ProjectKind) => {
       const { name } = project.metadata;
       if (
         !isAvailableProject(name, dashboardNamespace) ||
@@ -246,16 +231,6 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         return;
       }
       setProjectData((previous) => [...previous.filter((p) => p.metadata.name !== name), project]);
-      if (remember) {
-        try {
-          localStorage.setItem(
-            RECENT_NAMESPACES_KEY,
-            JSON.stringify([name, ...readRecentNames().filter((item) => item !== name)]),
-          );
-        } catch {
-          // Browser storage is optional; keep the in-memory entry.
-        }
-      }
     },
     [dashboardNamespace],
   );
@@ -282,10 +257,18 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [validateProject],
   );
 
+  const rememberRecentProject = useRecentProjects({
+    storageKey: RECENT_NAMESPACES_KEY,
+    enabled: unifiedProjectSelectorEnabled && loaded && !loadError && listingUnavailable,
+    validateProject,
+    onProjectRestored: addProject,
+  });
+
   const rememberProject = React.useCallback(
     async (name: string, signal: AbortSignal) => {
       const project = await validateProject(name, signal);
       addProject(project);
+      rememberRecentProject(name);
       if (listingUnavailable && projects.length === 0 && !preferredProject) {
         updatePreferredProject(project);
       }
@@ -293,6 +276,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [
       addProject,
       validateProject,
+      rememberRecentProject,
       listingUnavailable,
       projects.length,
       preferredProject,
@@ -330,7 +314,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     (identity: { name: string; displayName?: string }) => {
       const project = validatedProjects.current.get(identity);
       if (project) {
-        addProject(project, false);
+        addProject(project);
         validatedProjects.current.delete(identity);
       }
     },
@@ -361,29 +345,12 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         return;
       }
       return validateProject(identity.name).then((project) => {
-        addProject(project, false);
+        addProject(project);
         updatePreferredProject(project);
       });
     },
     [status, selectProject, validateProject, addProject, updatePreferredProject],
   );
-
-  React.useEffect(() => {
-    if (!unifiedProjectSelectorEnabled || status !== 'listing-unavailable') {
-      return;
-    }
-    const controller = new AbortController();
-    readRecentNames().forEach((name) => {
-      void fetchNamespaceByName(name, controller.signal)
-        .then((project) => {
-          if (!controller.signal.aborted) {
-            addProject(project, false);
-          }
-        })
-        .catch(() => undefined);
-    });
-    return () => controller.abort();
-  }, [status, unifiedProjectSelectorEnabled, addProject]);
 
   const contextValue = React.useMemo<ProjectsContextType>(
     () => ({

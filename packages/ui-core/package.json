@@ -14,6 +14,7 @@
     "./utilities/utils": "./src/utilities/utils.ts",
     "./hooks": "./src/hooks/index.ts",
     "./hooks/useWorkingProjectSynchronization": "./src/hooks/useWorkingProjectSynchronization.ts",
+    "./hooks/useRecentProjects": "./src/hooks/useRecentProjects.ts",
     "./hooks/useBrowserStorage": "./src/hooks/useBrowserStorage.tsx",
     "./hooks/useFetch": "./src/hooks/useFetch.ts",
     "./hooks/useFetchState": "./src/hooks/useFetchState.ts",
