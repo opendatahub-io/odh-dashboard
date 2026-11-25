@@ -85,7 +85,6 @@
   "dependencies": {
     "@kubernetes/client-node": "^0.12.3",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
-    "@types/tar": "^6.1.13",
     "jsonpath-plus": "^10.4.0",
     "tough-cookie": "^4.1.4",
     "ws": "^8.21.0",
@@ -136,7 +135,6 @@
     "ws": "^8.21.0",
     "@types/ws": "^8.18.1",
     "dompurify": "^3.4.17",
-    "@types/tar": "^6.1.13",
     "tar": "^7.5.22",
     "jsonpath-plus": "^10.4.0",
     "tough-cookie": "^4.1.4",
