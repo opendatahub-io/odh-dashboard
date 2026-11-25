@@ -1162,6 +1162,65 @@ describe('CreateConnectionWizard', () => {
     expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
   });
 
+  it('closes without a warning when a single type is automatically selected', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    await user.click(screen.getByTestId('cancel-connection-wizard-button'));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
+  });
+
+  it('resets credentials when automatically replacing an incompatible initial type', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        new ConnectionTypeInstance({
+          ...connectionTypes[0].toJSON(),
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              {
+                name: 'URI',
+                label: 'URI',
+                required: true,
+                type: 'string',
+                default_value: 'postgres://default',
+              },
+            ],
+          },
+        }),
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          data_connection_type_id: unknownConnectionTypeId,
+          credentials: { secret: 'existing-connection', properties: { OLD_CREDENTIAL: 'value' } },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect((screen.getByTestId('credential-URI') as HTMLInputElement).value).toBe(
+      'postgres://default',
+    );
+  });
+
   it('does not treat asynchronously loaded credential defaults as user changes', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();

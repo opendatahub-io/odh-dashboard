@@ -130,6 +130,15 @@ const isValidConnectionName = (name: string): boolean =>
 
 const hasCredentialValue = (value?: string): boolean => Boolean(value?.trim());
 
+const getConnectionTypeDefaults = (
+  connectionType?: ConnectionTypeInstance,
+): Record<string, string> =>
+  Object.fromEntries(
+    (connectionType?.resource.credentials_fields ?? [])
+      .filter((field) => field.default_value !== undefined)
+      .map((field) => [field.name, field.default_value ?? '']),
+  );
+
 type ConnectionTypeStepProps = {
   connectionTypes: ConnectionTypeInstance[];
   selectedConnectionTypeId: string;
@@ -898,6 +907,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const [activeStepIndex, setActiveStepIndex] = React.useState(1);
   const [isOpenSessionReady, setIsOpenSessionReady] = React.useState(false);
   const [selectedNamespace, setSelectedNamespace] = React.useState(namespace);
+  const [baselineFormData, setBaselineFormData] =
+    React.useState<CreateConnectionFormData>(INITIAL_FORM_DATA);
   const [isCreating, setIsCreating] = React.useState(false);
   const [isDiscardModalOpen, setIsDiscardModalOpen] = React.useState(false);
   const [discardModalCancelMethod, setDiscardModalCancelMethod] =
@@ -954,9 +965,6 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const selectedConnectionType = connectionTypes.find(
     (connectionType) => connectionType.metadata.id === formData.data_connection_type_id,
   );
-  const initialConnectionType = connectionTypes.find(
-    (connectionType) => connectionType.metadata.id === initialFormData.data_connection_type_id,
-  );
   const hasConnectionType = Boolean(formData.data_connection_type_id);
   const hasConnectionTypesReady = connectionTypesLoaded && !connectionTypesError;
   const hasSingleConnectionType = hasConnectionTypesReady && connectionTypes.length === 1;
@@ -976,39 +984,12 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     (item) => item.name === selectedNamespace,
   )?.displayName;
   const defaultCredentials = React.useMemo(
-    () =>
-      Object.fromEntries(
-        (selectedConnectionType?.resource.credentials_fields ?? [])
-          .filter((field) => field.default_value !== undefined)
-          .map((field) => [field.name, field.default_value ?? '']),
-      ),
+    () => getConnectionTypeDefaults(selectedConnectionType),
     [selectedConnectionType],
-  );
-  const initialDefaultCredentials = React.useMemo(
-    () =>
-      Object.fromEntries(
-        (initialConnectionType?.resource.credentials_fields ?? [])
-          .filter((field) => field.default_value !== undefined)
-          .map((field) => [field.name, field.default_value ?? '']),
-      ),
-    [initialConnectionType],
   );
   const baselinePropertyRows = React.useMemo(
     () => createPropertyRows(initialFormData.properties),
     [initialFormData],
-  );
-  const baselineFormData = React.useMemo(
-    () => ({
-      ...initialFormData,
-      credentials: {
-        ...initialFormData.credentials,
-        properties: {
-          ...initialDefaultCredentials,
-          ...initialFormData.credentials.properties,
-        },
-      },
-    }),
-    [initialDefaultCredentials, initialFormData],
   );
   const hasMissingCredentialDefaults = Object.keys(defaultCredentials).some(
     (name) => !(name in formData.credentials.properties),
@@ -1066,10 +1047,20 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
         row.value !== baselinePropertyRows[index]?.value,
     );
 
+  const invalidateVerification = React.useCallback(() => {
+    verificationRequestRef.current += 1;
+    verificationAbortRef.current?.abort();
+    verificationAbortRef.current = undefined;
+    setIsVerifying(false);
+    setIsVerified(false);
+    setVerificationError(undefined);
+  }, []);
+
   React.useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
       const initialPropertyRows = createPropertyRows(initialFormData.properties);
       setFormData(initialFormData);
+      setBaselineFormData(initialFormData);
       setSelectedNamespace(namespace);
       setPropertyRows(initialPropertyRows);
       setTouchedProperties(new Set());
@@ -1088,13 +1079,15 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   }, [initialFormData, isOpen, namespace]);
   React.useEffect(() => {
     if (isOpen && isOpenSessionReady && hasSelectedConnectionType && hasMissingCredentialDefaults) {
-      setFormData((current) => ({
+      const formDataWithDefaults = (current: CreateConnectionFormData) => ({
         ...current,
         credentials: {
           ...current.credentials,
           properties: { ...defaultCredentials, ...current.credentials.properties },
         },
-      }));
+      });
+      setFormData(formDataWithDefaults);
+      setBaselineFormData(formDataWithDefaults);
     }
   }, [
     defaultCredentials,
@@ -1105,13 +1098,25 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   ]);
   React.useEffect(() => {
     if (isOpen && hasSingleConnectionType && !hasSelectedConnectionType) {
-      setFormData((current) => ({
+      const autoSelectedConnectionType = connectionTypes[0];
+      const defaultsForType = getConnectionTypeDefaults(autoSelectedConnectionType);
+      const formDataWithAutoSelection = (current: CreateConnectionFormData) => ({
         ...current,
-        data_connection_type_id: connectionTypes[0].metadata.id,
-      }));
+        data_connection_type_id: autoSelectedConnectionType.metadata.id,
+        credentials: { ...current.credentials, properties: defaultsForType },
+      });
+      setFormData(formDataWithAutoSelection);
+      setBaselineFormData(formDataWithAutoSelection);
+      invalidateVerification();
       setConnectionTypeWarning(undefined);
     }
-  }, [connectionTypes, hasSelectedConnectionType, hasSingleConnectionType, isOpen]);
+  }, [
+    connectionTypes,
+    hasSelectedConnectionType,
+    hasSingleConnectionType,
+    invalidateVerification,
+    isOpen,
+  ]);
   React.useEffect(() => {
     if (isOpen && !hasResolvedSessionStartIndex && canResolveStartIndex) {
       setSessionStartIndex(calculatedStartIndex);
@@ -1120,14 +1125,6 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     }
   }, [calculatedStartIndex, canResolveStartIndex, hasResolvedSessionStartIndex, isOpen]);
 
-  const invalidateVerification = React.useCallback(() => {
-    verificationRequestRef.current += 1;
-    verificationAbortRef.current?.abort();
-    verificationAbortRef.current = undefined;
-    setIsVerifying(false);
-    setIsVerified(false);
-    setVerificationError(undefined);
-  }, []);
   React.useEffect(() => {
     if (!isOpen) {
       invalidateVerification();
@@ -1171,11 +1168,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
         },
       });
     }
-    const defaultsForType = Object.fromEntries(
-      (selectedType?.resource.credentials_fields ?? [])
-        .filter((field) => field.default_value !== undefined)
-        .map((field) => [field.name, field.default_value ?? '']),
-    );
+    const defaultsForType = getConnectionTypeDefaults(selectedType);
     setFormData((current) => ({
       ...current,
       data_connection_type_id: connectionTypeId,

@@ -12,7 +12,7 @@ import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useCreateConnectionNamespaces } from '~/app/hooks/useCreateConnectionNamespaces';
 import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import { useConnectionNameAvailability } from '~/app/hooks/useConnectionNameAvailability';
-import { createConnection } from '~/app/api/dch';
+import { createConnection, testCredentials } from '~/app/api/dch';
 import type { Connection, NamespaceKind } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionTypes');
@@ -35,6 +35,7 @@ jest.mock('~/app/utilities/tracking', () => ({
 }));
 jest.mock('~/app/api/dch', () => ({
   createConnection: jest.fn(),
+  testCredentials: jest.fn(),
 }));
 
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
@@ -45,6 +46,7 @@ const mockUseConnectionNameAvailability = jest.mocked(useConnectionNameAvailabil
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockUseAccessReview = jest.mocked(useAccessReview);
 const mockCreateConnection = jest.mocked(createConnection);
+const mockTestCredentials = jest.mocked(testCredentials);
 
 const connectionTypeId = '550e8400-e29b-41d4-a716-446655440003';
 const databaseConnectionTypeId = '550e8400-e29b-41d4-a716-446655440004';
@@ -114,6 +116,7 @@ describe('EmbeddableConnectionWizardRemote', () => {
       undefined,
     ]);
     global.fetch = jest.fn<typeof fetch>().mockResolvedValue({ ok: true, status: 200 } as Response);
+    mockTestCredentials.mockImplementation(() => () => Promise.resolve());
     jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(jest.fn());
     mockCreateConnection.mockReturnValue(
       jest.fn<() => Promise<Connection>>().mockResolvedValue(createdConnection),
@@ -263,6 +266,37 @@ describe('EmbeddableConnectionWizardRemote', () => {
     await user.type(screen.getByTestId('credential-URI'), 's3://warehouse');
 
     expect(screen.queryByTestId('verify-connection-button')).toBeNull();
+  });
+
+  it('invalidates verification when provider filtering automatically replaces the type', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <EmbeddableConnectionWizardRemote
+        isOpen
+        namespace="test-project"
+        initialConnectionTypeId={connectionTypeId}
+      />,
+    );
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 's3://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Verify' }));
+
+    expect(await screen.findByText('Connection verified')).toBeTruthy();
+
+    rerender(
+      <EmbeddableConnectionWizardRemote
+        isOpen
+        namespace="test-project"
+        initialConnectionTypeId={connectionTypeId}
+        connectionTypeProviders={['postgresql']}
+      />,
+    );
+
+    expect(await screen.findByText('PostgreSQL')).toBeTruthy();
+    expect(screen.queryByText('Connection verified')).toBeNull();
+    expect(screen.queryByTestId('credential-URI')).toBeNull();
   });
 
   it('disables credential verification when the user cannot create connections', async () => {
