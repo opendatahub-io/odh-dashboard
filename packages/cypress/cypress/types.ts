@@ -344,6 +344,7 @@ export type TestConfig = {
   MAAS_PORTAL_MODEL_NAME?: string;
   MAAS_PORTAL_ORGANIZATION_ID?: string;
   MAAS_PORTAL_USER_GROUPS?: string[];
+  MAAS_OWNER_GROUPS?: string[] | string;
   MAAS_API_KEY?: string;
   MAAS_PORTAL_ADMIN_USER?: UserAuthConfig;
   MAAS_PORTAL_USER?: UserAuthConfig;
