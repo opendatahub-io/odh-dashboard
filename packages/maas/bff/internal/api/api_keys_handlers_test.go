@@ -495,6 +495,48 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data.Owner.Groups).To(HaveLen(2))
 		})
 
+		It("resolves a K8s-only subscription by ID for MaaS admins", func() {
+			// multi-group-llama-sub exists as a K8s MaaSSubscription mock but is absent
+			// from the maas-api fake My Subscriptions list, so only the admin fallback
+			// (membership-scoped lookup fails, K8s CR resolution) can serve it.
+			originalCheck := isMaasAdminCheck
+			isMaasAdminCheck = func(_ *App, _ *http.Request) (bool, error) { return true, nil }
+			DeferCleanup(func() { isMaasAdminCheck = originalCheck })
+
+			identity := &kubernetes.RequestIdentity{UserID: "admin@example.com"}
+			actual, rs, err := setupMockApiTest[Envelope[*models.MySubscriptionListItem, None]](
+				http.MethodGet,
+				"/api/v1/subscriptions/multi-group-llama-sub",
+				nil,
+				k8Factory,
+				identity,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data.SubscriptionIDHeader).To(Equal("multi-group-llama-sub"))
+			Expect(actual.Data.DisplayName).To(Equal("Enterprise Multi-Group Llama Access"))
+			Expect(actual.Data.ModelRefs).NotTo(BeEmpty())
+		})
+
+		It("returns 404 for a K8s-only subscription when the caller is not a MaaS admin", func() {
+			originalCheck := isMaasAdminCheck
+			isMaasAdminCheck = func(_ *App, _ *http.Request) (bool, error) { return false, nil }
+			DeferCleanup(func() { isMaasAdminCheck = originalCheck })
+
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			_, rs, err := setupMockApiTest[Envelope[*models.MySubscriptionListItem, None]](
+				http.MethodGet,
+				"/api/v1/subscriptions/multi-group-llama-sub",
+				nil,
+				k8Factory,
+				identity,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+		})
+
 		It("returns 400 when no identity is provided", func() {
 			_, rs, err := setupApiTest[Envelope[[]models.MySubscriptionListItem, None]](
 				http.MethodGet,
