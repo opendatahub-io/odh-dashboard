@@ -38,7 +38,7 @@
       "workspaces/controller/Dockerfile",
       "developing/"
     ],
-    "commit": "1aeae87d3c96fd1042986f5a0707ad2cb034192d"
+    "commit": "fd7fbffc4d04f1a5e20a7b31191bdb3cd563f0ed"
   },
   "module-federation": {
     "name": "notebooks",

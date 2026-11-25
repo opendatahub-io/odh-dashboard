@@ -298,6 +298,7 @@ describe('convertFormDataToUpdate', () => {
     expect((result.podTemplate as unknown as Record<string, unknown>).extraEnv).toEqual([
       { name: 'MY_VAR', value: 'test' },
     ]);
+    expect(result.podTemplate.serviceAccount).toEqual(original.podTemplate.serviceAccount);
   });
 
   it('should preserve culling config from form data', () => {

@@ -45,6 +45,12 @@ export enum V1Beta1ImagePortProtocol {
   ImagePortProtocolHTTP = 'HTTP',
 }
 
+export enum V1Beta1FilterRuleScope {
+  FilterRuleScopeWorkspaceKind = 'WORKSPACE_KIND',
+  FilterRuleScopePodConfig = 'POD_CONFIG',
+  FilterRuleScopeImageConfig = 'IMAGE_CONFIG',
+}
+
 export enum V1URIScheme {
   URISchemeHTTP = 'HTTP',
   URISchemeHTTPS = 'HTTPS',
@@ -3853,6 +3859,87 @@ export interface V1Beta1ActivityRuleMatch {
   matchPodConfig?: V1Beta1PodConfigMatch;
 }
 
+export interface V1Beta1FilterRule {
+  /** the effect to apply to matched items when all `match` conditions are satisfied */
+  effect: V1Beta1FilterRuleEffect;
+  /**
+   * the conditions which must ALL be satisfied for the rule to apply
+   * +kubebuilder:validation:MinItems:=1
+   * +listType:="atomic"
+   */
+  match: V1Beta1FilterRuleMatch[];
+  /** the type of resource whose visibility this rule controls */
+  scope: V1Beta1FilterRuleScope;
+}
+
+export interface V1Beta1FilterRuleDenyMessage {
+  /**
+   * the text of the message to show when the item is denied
+   * +kubebuilder:validation:MinLength:=2
+   * +kubebuilder:validation:MaxLength:=1024
+   */
+  text: string;
+}
+
+export interface V1Beta1FilterRuleEffect {
+  /**
+   * server-enforced behavior evaluated by the backend API server
+   * +kubebuilder:validation:Optional
+   */
+  api?: V1Beta1FilterRuleEffectAPI;
+  /**
+   * rendering hints for the frontend (the item is still returned by the API)
+   * +kubebuilder:validation:Optional
+   */
+  ui?: V1Beta1FilterRuleEffectUI;
+}
+
+export interface V1Beta1FilterRuleEffectAPI {
+  /**
+   * return the matched item but reject any workspace create/update which selects it
+   * +kubebuilder:validation:Optional
+   */
+  deny?: boolean;
+  /**
+   * a message explaining why the matched item is denied
+   * +kubebuilder:validation:Optional
+   */
+  denyMessage?: V1Beta1FilterRuleDenyMessage;
+  /**
+   * omit the matched item from the API response entirely
+   * +kubebuilder:validation:Optional
+   */
+  hide?: boolean;
+}
+
+export interface V1Beta1FilterRuleEffectUI {
+  /** suggest the UI hide the matched item */
+  hide: boolean;
+}
+
+export interface V1Beta1FilterRuleMatch {
+  /**
+   * match against the `spawner.labels` of an imageConfig value
+   * +kubebuilder:validation:Optional
+   */
+  matchImageConfig?: V1Beta1FilterRuleSelector;
+  /**
+   * match against the labels of the namespace the workspace would be created in
+   * +kubebuilder:validation:Optional
+   */
+  matchNamespace?: V1Beta1FilterRuleSelector;
+  /**
+   * match against the `spawner.labels` of a podConfig value
+   * +kubebuilder:validation:Optional
+   */
+  matchPodConfig?: V1Beta1FilterRuleSelector;
+}
+
+export interface V1Beta1FilterRuleSelector {
+  /** a standard Kubernetes label selector */
+  selector: V1LabelSelector;
+}
+
 export interface V1Beta1HTTPProxy {
   /**
    * if the path prefix is stripped from incoming HTTP requests
@@ -4540,6 +4627,7 @@ export interface WorkspacekindsWorkspaceKindListItem {
 
 export interface WorkspacekindsWorkspaceKindUpdate {
   activityRules?: V1Beta1ActivityRule[];
+  filterRules?: V1Beta1FilterRule[];
   podTemplate: V1Beta1WorkspaceKindPodTemplate;
   /**
    * RevisionString is an opaque token that can be treated like an etag.
