@@ -546,8 +546,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// reconcile StatefulSet (now with sidecar if KubeGateway is enabled)
 	var statefulSetName string
-	if !r.Config.UseKubeGateway {
-		var stsResult *ctrl.Result
+	var stsResult *ctrl.Result
+	if writeStatefulSet {
 		statefulSet, statefulSetName, stsResult, err = r.reconcileOwnedStatefulSet(ctx, log, workspace, req.Namespace, statefulSet)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -555,6 +555,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if stsResult != nil {
 			return *stsResult, nil
 		}
+	} else {
+		statefulSetName = statefulSet.Name
 	}
 
 	if r.Config.UseIstio {
@@ -1081,7 +1083,11 @@ func (r *WorkspaceReconciler) reconcileOwnedStatefulSet(
 	default:
 		foundStatefulSet = &ownedStatefulSets.Items[0]
 		statefulSetName = foundStatefulSet.Name
-		if helper.CopyStatefulSetFields(desiredStatefulSet, foundStatefulSet) {
+		controllerRefUpdated, err := helper.ReplaceWorkspaceAsController(foundStatefulSet, workspace, r.Scheme)
+		if err != nil {
+			return nil, "", nil, err
+		}
+		if helper.CopyStatefulSetFields(desiredStatefulSet, foundStatefulSet) || controllerRefUpdated {
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while updating StatefulSet, will requeue")
