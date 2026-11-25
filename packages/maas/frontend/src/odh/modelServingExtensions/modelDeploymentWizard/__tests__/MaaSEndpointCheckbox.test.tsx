@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import {
   MaaSEndpointFieldWizardField,
   maasFieldSchema,
@@ -37,26 +38,35 @@ describe('MaaSEndpointCheckbox', () => {
     expect(MaaSEndpointFieldWizardField.parentId).toBe('model-users');
   });
 
-  it('maps the user audience radios to the MaaS field value', () => {
+  it('maps the audience cards to the MaaS field value', () => {
     const onChange = jest.fn();
     const MaaSField = MaaSEndpointFieldWizardField.component;
+    const fieldId = 'maas/save-as-maas-checkbox';
 
-    render(
-      <MaaSField
-        id="maas/save-as-maas-checkbox"
-        value={{ isChecked: false }}
-        onChange={onChange}
-      />,
+    const { rerender } = render(
+      <MaaSField id={fieldId} value={{ isChecked: false }} onChange={onChange} />,
     );
 
-    expect((screen.getByTestId('project-members-radio') as HTMLInputElement).checked).toBe(true);
-    expect(
-      screen.getByText(
-        'Available via Model-as-a-Service (MaaS) to users with an admin-assigned subscription and authorization policy.',
-      ),
-    ).toBeTruthy();
-    fireEvent.click(screen.getByTestId('maas/save-as-maas-checkbox'));
-    expect(onChange).toHaveBeenCalledWith({ isChecked: true });
+    const projectMembers = screen.getByTestId('project-members-radio');
+    const subscribedUsers = screen.getByTestId(fieldId);
+
+    expect(projectMembers).toBeChecked();
+    expect(projectMembers).toHaveAccessibleName('Project members');
+    expect(subscribedUsers).not.toBeChecked();
+    expect(subscribedUsers).toHaveAccessibleName('Subscribed users');
+    expect(subscribedUsers).toHaveAccessibleDescription(
+      'Available as a service (MaaS) to users with an admin-assigned subscription and authorization policy.',
+    );
+
+    fireEvent.click(subscribedUsers);
+    expect(onChange).toHaveBeenLastCalledWith({ isChecked: true });
+
+    rerender(<MaaSField id={fieldId} value={{ isChecked: true }} onChange={onChange} />);
+    expect(subscribedUsers).toBeChecked();
+    expect(projectMembers).not.toBeChecked();
+
+    fireEvent.click(projectMembers);
+    expect(onChange).toHaveBeenLastCalledWith({ isChecked: false });
   });
 
   it('locks the MaaS gateway and provides its routing guidance for subscribed users', () => {

@@ -14,6 +14,14 @@ class MaaSWizardField {
   findSubscribedUsersRadio() {
     return cy.findByTestId('maas/save-as-maas-checkbox');
   }
+
+  findProjectMembersCard() {
+    return cy.findByTestId('project-members-card');
+  }
+
+  findSubscribedUsersCard() {
+    return cy.findByTestId('subscribed-users-card');
+  }
 }
 
 class APIKeysPage {

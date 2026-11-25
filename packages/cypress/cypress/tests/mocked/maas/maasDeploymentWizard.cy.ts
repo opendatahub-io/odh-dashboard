@@ -190,7 +190,7 @@ describe('MaaS Deployment Wizard', () => {
     maasWizardField.findProjectMembersRadio().should('exist').should('be.checked');
 
     // Select subscribed users — the gateway field becomes disabled and shows the MaaS gateway.
-    maasWizardField.findSubscribedUsersRadio().click();
+    maasWizardField.findSubscribedUsersCard().click();
     maasWizardField.findSubscribedUsersRadio().should('be.checked');
 
     modelServingWizard.assertGatewaySelectDisabled();
@@ -366,7 +366,7 @@ describe('MaaS Deployment Wizard', () => {
       .should('contain.text', 'maas-default-gateway | openshift-ingress');
 
     // Select Project members — gateway becomes enabled and no longer shows the MaaS gateway.
-    maasWizardField.findProjectMembersRadio().click();
+    maasWizardField.findProjectMembersCard().click();
     maasWizardField.findProjectMembersRadio().should('be.checked');
 
     // Gateway should now be enabled; open it to verify maas-default-gateway is hidden
@@ -453,7 +453,7 @@ describe('MaaS Deployment Wizard', () => {
     maasWizardField.findProjectMembersRadio().should('exist').should('be.checked');
 
     // Select subscribed users.
-    maasWizardField.findSubscribedUsersRadio().click();
+    maasWizardField.findSubscribedUsersCard().click();
     maasWizardField.findSubscribedUsersRadio().should('be.checked');
 
     modelServingWizard.findNextButton().should('be.enabled').click();
