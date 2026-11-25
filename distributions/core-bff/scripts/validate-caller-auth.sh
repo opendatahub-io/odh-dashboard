@@ -85,7 +85,7 @@ delete_owned() {
     if ! meta=$("${KUBECTL[@]}" get "$resource.rbac.authorization.k8s.io" "$name" \
       -o "jsonpath={.metadata.uid} {.metadata.labels.$RUN_LABEL}" 2>"$work/get-$resource.err"); then
       [[ "$(<"$work/get-$resource.err")" == *"(NotFound)"* ]] && return 0
-      cleanup_warn "$resource/$name" "could not read it to check its $RUN_LABEL=$RUN_ID label"
+      cleanup_warn "$resource/$name" "" "could not read it to check its label: $(head -n1 "$work/get-$resource.err")"
       return 0
     fi
     uid=${meta%% *}
@@ -96,12 +96,21 @@ delete_owned() {
   if ! out=$("${KUBECTL[@]}" delete --raw "/apis/rbac.authorization.k8s.io/v1/$resource/$name" \
     -f "$work/delete-$resource.json" 2>&1); then
     [[ "$out" == *"(NotFound)"* ]] && return 0
-    cleanup_warn "$resource/$name" "delete failed"
+    if [[ "$out" == *"(Conflict)"* ]]; then
+      cleanup_warn "$resource/$name" "$uid" "not deleted: an object with another UID now holds this name, so it may not be this run's: $(head -n1 <<<"$out")"
+    else
+      cleanup_warn "$resource/$name" "$uid" "delete failed: $(head -n1 <<<"$out")"
+    fi
   fi
 }
 
+# cleanup_warn reports an RBAC object cleanup could not remove. It never tells
+# the operator to delete by name alone: the object now at that name may belong
+# to someone else, so they are told what identifies this run's object.
 cleanup_warn() {
-  echo >&2 "cleanup: $1 (label $RUN_LABEL=$RUN_ID) may be left behind: $2; delete it by hand"
+  local object=$1 uid=$2 reason=$3 identity="label $RUN_LABEL=$RUN_ID"
+  [[ -n "$uid" ]] && identity="$identity and UID $uid"
+  echo >&2 "cleanup: $object may be left behind ($reason). Remove it only if it still carries $identity; otherwise it is not this run's object."
   cleanup_failed=true
 }
 
