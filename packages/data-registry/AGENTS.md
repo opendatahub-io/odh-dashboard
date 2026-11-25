@@ -80,10 +80,7 @@ mod-arch-starter/
 ├── manifests/                   # Kubernetes manifests
 │   ├── base/                    # Base Kustomize resources
 │   └── overlays/                # Environment-specific overlays
-├── docs/                        # Project documentation
-│   ├── README.md                # Documentation index
-│   ├── dev-setup.md             # Local package development
-│   └── environment-setup.md     # Local dashboard against a cluster
+├── docs/                        # Project documentation; start with README.md
 ├── scripts/                     # Utility scripts
 ├── Dockerfile                   # Container image build
 ├── Makefile                     # Root-level make commands
