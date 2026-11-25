@@ -46,6 +46,10 @@ bff_pid=""
 ns_created=false
 cr_created=false
 crb_created=false
+# Cluster-scoped objects this run creates carry RUN_LABEL=RUN_ID; cleanup
+# deletes only an object that still carries this run's value, by UID.
+RUN_LABEL=corebff-validate-run
+RUN_ID=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
 fails=0
 skips=0
 
@@ -64,6 +68,21 @@ for tool in kubectl curl; do
   command -v "$tool" >/dev/null 2>&1 || { echo >&2 "$tool is required"; exit 1; }
 done
 
+# delete_owned removes a cluster-scoped RBAC object only if it carries this
+# run's ownership label, with a UID precondition so an object recreated under
+# the same name in between is never deleted.
+delete_owned() {
+  local resource=$1 name=$2 meta uid run
+  meta=$("${KUBECTL[@]}" get "$resource.rbac.authorization.k8s.io" "$name" \
+    -o "jsonpath={.metadata.uid} {.metadata.labels.$RUN_LABEL}" 2>/dev/null) || return 0
+  uid=${meta%% *}
+  run=${meta#* }
+  [[ -n "$uid" && "$run" == "$RUN_ID" ]] || return 0
+  printf '{"kind":"DeleteOptions","apiVersion":"v1","preconditions":{"uid":"%s"}}' "$uid" >"$work/delete-$resource.json"
+  "${KUBECTL[@]}" delete --raw "/apis/rbac.authorization.k8s.io/v1/$resource/$name" \
+    -f "$work/delete-$resource.json" >/dev/null 2>&1 || true
+}
+
 cleanup() {
   if [[ -n "$bff_pid" ]]; then
     kill "$bff_pid" 2>/dev/null || true
@@ -75,10 +94,10 @@ cleanup() {
   # with KEEP_NAMESPACE: it names only this run's namespace, but is not left behind.
   # Each is deleted only if this run created it.
   if [[ "$crb_created" == "true" ]]; then
-    "${KUBECTL[@]}" delete clusterrolebinding "corebff-validate-$NS" --ignore-not-found >/dev/null 2>&1 || true
+    delete_owned clusterrolebindings "corebff-validate-$NS"
   fi
   if [[ "$cr_created" == "true" ]]; then
-    "${KUBECTL[@]}" delete clusterrole "corebff-validate-$NS" --ignore-not-found >/dev/null 2>&1 || true
+    delete_owned clusterroles "corebff-validate-$NS"
   fi
   if [[ "$ns_created" == "true" && "${KEEP_NAMESPACE:-false}" != "true" ]]; then
     "${KUBECTL[@]}" delete namespace "$NS" --wait=false >/dev/null 2>&1 || true
@@ -293,24 +312,27 @@ if [[ "$PLATFORM" == "XKS" ]]; then
   # skipped (and STRICT=true fails the run) rather than aborting it.
   "${KUBECTL[@]}" -n "$NS" create serviceaccount ns-patcher >/dev/null
   "${KUBECTL[@]}" -n "$NS" create rolebinding ns-patcher-serving --role=serving-editor --serviceaccount="$NS:ns-patcher" >/dev/null
-  # created_by_us runs a create and reports whether this run may own the
-  # object: yes on success, and also on a failure other than AlreadyExists (a
-  # client timeout can follow a server-side create), so cleanup removes it.
-  # Only an AlreadyExists object is someone else's and is never touched.
+  # created_by_us creates the object with this run's ownership label and
+  # reports the outcome: 0 created; 1 a confirmed refusal (AlreadyExists, or
+  # Forbidden), so the object is not this run's and cleanup never touches it;
+  # 2 ambiguous (a client timeout can follow a server-side create), so cleanup
+  # checks the label and deletes only this run's object (delete_owned).
   created_by_us() {
     local out rc=0
-    out=$("$@" 2>&1) || rc=$?
+    out=$("${KUBECTL[@]}" create "$@" --dry-run=client -o json |
+      "${KUBECTL[@]}" label --local -f - "$RUN_LABEL=$RUN_ID" -o json |
+      "${KUBECTL[@]}" create -f - 2>&1) || rc=$?
     ((rc == 0)) && return 0
-    [[ "$out" == *AlreadyExists* ]] && return 1
+    [[ "$out" == *AlreadyExists* || "$out" == *Forbidden* || "$out" == *forbidden* ]] && return 1
     return 2
   }
   cr_rc=0
-  created_by_us "${KUBECTL[@]}" create clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" || cr_rc=$?
+  created_by_us clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" || cr_rc=$?
   ((cr_rc != 1)) && cr_created=true
   crb_rc=1
   if ((cr_rc == 0)); then
     crb_rc=0
-    created_by_us "${KUBECTL[@]}" create clusterrolebinding "corebff-validate-$NS" --clusterrole="corebff-validate-$NS" --serviceaccount="$NS:ns-patcher" || crb_rc=$?
+    created_by_us clusterrolebinding "corebff-validate-$NS" --clusterrole="corebff-validate-$NS" --serviceaccount="$NS:ns-patcher" || crb_rc=$?
     ((crb_rc != 1)) && crb_created=true
   fi
   if ((cr_rc == 0 && crb_rc == 0)); then
