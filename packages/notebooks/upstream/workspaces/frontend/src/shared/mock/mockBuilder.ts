@@ -1061,6 +1061,7 @@ export const buildMockWorkspaceResourceUsage = (
 ): ResourcesWorkspaceResourceUsage => ({
   containers: {
     main: buildMockContainerResourceUsage(),
+    container1: buildMockContainerResourceUsage(),
   },
   ...overrides,
 });
