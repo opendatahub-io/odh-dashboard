@@ -17,6 +17,8 @@ limitations under the License.
 package helper
 
 import (
+	"fmt"
+
 	"google.golang.org/protobuf/proto"
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
