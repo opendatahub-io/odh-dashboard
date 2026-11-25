@@ -243,6 +243,17 @@ describe('EmbeddableConnectionWizard', () => {
     expect(document.querySelector('.pf-m-stack-level-2')).toBeInTheDocument();
   });
 
+  it('invokes onClose when the loading tearsheet is dismissed', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    mockLoadRemote.mockReturnValue(new Promise(() => undefined));
+
+    render(<EmbeddableConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
+
+    await user.click(await screen.findByRole('button', { name: /close/i }));
+    expect(onClose).toHaveBeenCalledWith('cancelled');
+  });
+
   it('keeps success notifications mounted after the wizard closes', async () => {
     const user = userEvent.setup();
     render(<StatefulWizardConsumer />);

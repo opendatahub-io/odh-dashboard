@@ -120,6 +120,17 @@ describe('EmbeddableConnectionWizardRemote', () => {
     );
   });
 
+  it('invokes onClose while availability is being checked', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    mockUseAccessReview.mockReturnValue([false, false]);
+
+    render(<EmbeddableConnectionWizardRemote isOpen namespace="test-project" onClose={onClose} />);
+
+    await user.click(await screen.findByRole('button', { name: /close/i }));
+    expect(onClose).toHaveBeenCalledWith('cancelled');
+  });
+
   it('renders the locked namespace as plain text and enables credential verification by default', async () => {
     const user = userEvent.setup();
     render(

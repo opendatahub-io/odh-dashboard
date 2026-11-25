@@ -152,6 +152,8 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
       <Tearsheet
         isOpen
         stackLevel={tearsheetStackLevel}
+        onClose={() => onClose?.('cancelled')}
+        onEscapePress={() => onClose?.('cancelled')}
         data-testid="connection-wizard-loading-tearsheet"
         modalProps={{ disableFocusTrap: true }}
       >

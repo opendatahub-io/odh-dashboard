@@ -39,6 +39,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
   namespace,
   unavailableFallback,
   onAvailabilityChange,
+  onClose,
   tearsheetStackLevel,
   ...wizardProps
 }) => {
@@ -104,6 +105,8 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
       <Tearsheet
         isOpen
         stackLevel={tearsheetStackLevel}
+        onClose={() => onClose?.('cancelled')}
+        onEscapePress={() => onClose?.('cancelled')}
         data-testid="connection-wizard-loading-tearsheet"
         modalProps={{ disableFocusTrap: true }}
       >
@@ -147,6 +150,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
       tearsheetStackLevel={tearsheetStackLevel}
       unavailableFallback={unavailableFallback}
       onAvailabilityChange={onAvailabilityChange}
+      onClose={onClose}
       {...wizardProps}
     />
   );
