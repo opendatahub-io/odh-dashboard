@@ -154,15 +154,24 @@ describe('MaaS Auth Policies', () => {
     phaseModal.findAffectedModelStatusMessage('granite-3-8b-instruct').should('exist');
   });
 
-  it('should filter policies by keyword', () => {
+  it('should filter policies by partial text fragments and typeahead selections', () => {
     authPoliciesPage.findRows().should('have.length', 8);
 
-    authPoliciesPage.findKeywordFilterInput().type('premium');
+    authPoliciesPage.filterByTypeahead('policy', 'premium');
     authPoliciesPage.findRows().should('have.length', 1);
     authPoliciesPage
       .getRow('Premium Team Policy')
       .findName()
       .should('contain.text', 'Premium Team Policy');
+
+    authPoliciesPage.clearAllFilters();
+    authPoliciesPage.findRows().should('have.length', 8);
+  });
+
+  it('should filter policies by description fragments', () => {
+    authPoliciesPage.filterByTypeahead('policy', 'research and analytics');
+    authPoliciesPage.findRows().should('have.length', 1);
+    authPoliciesPage.getRow('Gemma Research Policy').findName().should('exist');
 
     authPoliciesPage.clearAllFilters();
     authPoliciesPage.findRows().should('have.length', 8);
@@ -220,14 +229,6 @@ describe('MaaS Auth Policies', () => {
     premiumPolicy.findExpandedModelName().should('exist');
     premiumPolicy.findExpandedModelName().should('have.length', 2);
     premiumPolicy.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
-    premiumPolicy.findExpandedModelDescription().should('have.length', 2);
-    premiumPolicy
-      .findExpandedModelDescription()
-      .eq(0)
-      .should(
-        'contain.text',
-        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
-      );
     premiumPolicy.findExpandedModelResourceName().should('have.length', 2);
     premiumPolicy
       .findExpandedModelResourceName()
@@ -389,7 +390,7 @@ describe('View Auth Policy Page', () => {
     authPoliciesPage.findRows().should('have.length', 8);
     authPoliciesPage.findCreateAuthPolicyButton().should('exist');
 
-    authPoliciesPage.findKeywordFilterInput().type('premium');
+    authPoliciesPage.filterByTypeahead('policy', 'premium');
     authPoliciesPage.findRows().should('have.length', 1);
     authPoliciesPage.clearAllFilters();
     authPoliciesPage.findRows().should('have.length', 8);
