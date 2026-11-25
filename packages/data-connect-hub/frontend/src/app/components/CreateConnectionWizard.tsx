@@ -920,7 +920,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   );
   const connectionTypes = React.useMemo(
     () =>
-      connectionTypeProviders?.length
+      connectionTypeProviders
         ? allConnectionTypes.filter((connectionType) =>
             connectionTypeProviders.includes(connectionType.resource.provider),
           )

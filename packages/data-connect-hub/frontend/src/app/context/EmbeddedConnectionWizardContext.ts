@@ -1,11 +1,12 @@
 import React from 'react';
+import type { ConnectionTypeProviders } from '~/types/embeddable-create-connection-wizard';
 
 type EmbeddedConnectionWizardContextValue = {
   isEmbedded: boolean;
   isNamespaceSelectable: boolean;
   enableCredentialVerification: boolean;
   tearsheetStackLevel?: number;
-  connectionTypeProviders?: string[];
+  connectionTypeProviders?: ConnectionTypeProviders;
 };
 
 const defaultEmbeddedConnectionWizardContext: EmbeddedConnectionWizardContextValue = {

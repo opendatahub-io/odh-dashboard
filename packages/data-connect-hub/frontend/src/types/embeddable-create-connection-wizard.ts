@@ -63,7 +63,7 @@ export type EmbeddableCreateConnectionWizardProps = {
   /** Initial connection type selected by the host. */
   initialConnectionTypeId?: string;
   /** Restricts the connection type gallery to these DCH providers, such as 's3'. */
-  connectionTypeProviders?: string[];
+  connectionTypeProviders?: ConnectionTypeProviders;
   /**
    * Called after the Data Connect Hub BFF successfully creates a connection.
    * This is an event callback; the wizard does not wait for returned work.
@@ -84,6 +84,8 @@ export type EmbeddableCreateConnectionWizardProps = {
 };
 
 export type ConnectionWizardCloseOutcome = 'created' | 'cancelled';
+
+export type ConnectionTypeProviders = [string, ...string[]];
 
 export type ConnectionWizardAvailability =
   | { status: 'checking' }

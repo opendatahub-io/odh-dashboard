@@ -206,6 +206,20 @@ describe('EmbeddableCreateConnectionWizard', () => {
     expect(screen.queryByText('S3')).toBeNull();
   });
 
+  it('does not widen provider filtering when an invalid empty provider list is supplied', async () => {
+    render(
+      <EmbeddableCreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        connectionTypeProviders={[] as unknown as [string]}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Connection type' })).toBeTruthy();
+    expect(screen.queryByText('S3')).toBeNull();
+    expect(screen.queryByText('PostgreSQL')).toBeNull();
+  });
+
   it('passes a tearsheet stacking level to the wizard', async () => {
     render(
       <EmbeddableCreateConnectionWizard isOpen namespace="test-project" tearsheetStackLevel={1} />,
