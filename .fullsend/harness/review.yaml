@@ -33,6 +33,12 @@ host_files:
   - src: .run/jira.json
     dest: /sandbox/workspace/odh-review/jira.json
     optional: true
+  # Findings from the host adapters (CodeRabbit), each with a ref, for the
+  # challenger to weigh next to the reviewers' findings. Absent when no
+  # adapter returned a finding.
+  - src: .run/host-findings.json
+    dest: /sandbox/workspace/odh-review/host-findings.json
+    optional: true
   # Images captured from the PR body by the host pre-script, and the manifest
   # that lets a reviewer report them as unavailable when the tarball is
   # missing. test-impact-review reads these.

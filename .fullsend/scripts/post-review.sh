@@ -144,6 +144,8 @@ FAILURE_REASONS = ("tool-failure", "missing-context", "ambiguous-findings", "tok
 RISK_LEVELS = ("low", "medium", "high", "critical")
 CONFIDENCE_LEVELS = ("low", "medium", "high")
 CHALLENGER_ACTIONS = ("kept", "downgraded", "merged", "removed", "justified")
+HOST_CHALLENGER_ACTIONS = ("kept", "downgraded", "removed", "justified")
+HOST_REF_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,63}-[0-9]{1,4}")
 # Categories the stock orchestrator raises itself and never hands the challenger.
 UNCHALLENGED_CATEGORIES = frozenset({
     "sub-agent-failure", "protected-path", "provenance-warning", "scope-authorization-implicit",
@@ -562,6 +564,7 @@ def normalize(result_path, side_dir, manifest_path, transcripts_dir):
     raised = {}
     adapters = []
     host_findings = []
+    host_refs = {}
     for row in adapter_rows:
         entry = {"id": row["id"]}
         envelope = envelopes.get(row["id"])
@@ -579,7 +582,7 @@ def normalize(result_path, side_dir, manifest_path, transcripts_dir):
             continue
         categories = [c for c in (row.get("categories") or []) if text(c)]
         mine = []
-        for raw in envelope.get("findings") if isinstance(envelope.get("findings"), list) else []:
+        for position, raw in enumerate(envelope.get("findings") if isinstance(envelope.get("findings"), list) else [], 1):
             finding = clean_finding(raw, strict=True)
             if not finding:
                 continue
@@ -587,8 +590,10 @@ def normalize(result_path, side_dir, manifest_path, transcripts_dir):
                 finding["category"] = categories[0]
             finding["dimension"] = row["id"]
             finding.pop("id", None)
+            # The ref pre-review.sh gave this finding in host-findings.json.
+            host_refs[id(finding)] = f"{row['id']}-{position}"
             mine.append(finding)
-        raised[row["id"]] = mine
+        raised[row["id"]] = [dict(f) for f in mine]
         host_findings += mine
 
     # Challenger audit.
@@ -607,6 +612,39 @@ def normalize(result_path, side_dir, manifest_path, transcripts_dir):
                 if action == "merged" and not isinstance(raw.get("merged_into"), dict):
                     action = "merged-survivor"
                 adjudicated.append((finding, action, text(raw.get("challenger_reason"))))
+    # The challenger's decisions on host adapter findings, by ref. The host
+    # list stays the source of truth: a finding leaves it only on an explicit
+    # removed or justified decision that carries a reason, and anything the
+    # challenger omits or garbles stays as the adapter reported it.
+    host_removed = []
+    host_counts = {"kept": 0, "downgraded": 0}
+    if adjudicated is not None and isinstance(audit.get("host_adjudicated"), list):
+        decisions = {}
+        for raw in audit["host_adjudicated"]:
+            if not isinstance(raw, dict) or not isinstance(raw.get("ref"), str):
+                continue
+            ref = raw["ref"].strip()
+            action = raw.get("challenger_action")
+            if HOST_REF_RE.fullmatch(ref) and ref not in decisions and action in HOST_CHALLENGER_ACTIONS:
+                decisions[ref] = (action, text(raw.get("challenger_reason")), raw.get("severity"))
+        remaining = []
+        for finding in host_findings:
+            action, reason, severity = decisions.get(host_refs.get(id(finding)), (None, "", None))
+            if action in ("removed", "justified") and reason:
+                entry = dict(finding)
+                entry["challenger_action"] = action
+                entry["removal_reason"] = reason
+                host_removed.append(entry)
+                continue
+            if action == "downgraded" and reason and severity in SEVERITIES \
+                    and SEVERITIES.index(severity) > SEVERITIES.index(finding["severity"]):
+                finding["severity"] = severity
+                host_counts["downgraded"] += 1
+            elif action is not None:
+                host_counts["kept"] += 1
+            remaining.append(finding)
+        host_findings = remaining
+
     # Readiness checks, product ask and rating, each from its persona's side file.
     reported = set()
     checks = []
@@ -714,13 +752,14 @@ def normalize(result_path, side_dir, manifest_path, transcripts_dir):
                 if reason:
                     entry["removal_reason"] = reason
                 removed.append(entry)
+        removed += host_removed
         challenger = {
             "status": "ran",
-            "input": len(as_raised),
-            "kept": count("kept", "merged-survivor"),
+            "input": len(as_raised) + len(host_removed) + host_counts["kept"] + host_counts["downgraded"],
+            "kept": count("kept", "merged-survivor") + host_counts["kept"],
             "removed": len(removed),
             "merged": count("merged"),
-            "downgraded": count("downgraded"),
+            "downgraded": count("downgraded") + host_counts["downgraded"],
             "removed_findings": removed,
         }
     elif audit_present:
@@ -733,7 +772,7 @@ def normalize(result_path, side_dir, manifest_path, transcripts_dir):
         if agent_findings:
             reason = "the only reviewer findings are ones the orchestrator raises itself, which are not challenged"
         elif host_findings:
-            reason = "no reviewer findings to adjudicate (host adapter findings are not challenged)"
+            reason = "no reviewer findings to adjudicate (host adapter findings are challenged only alongside them)"
         else:
             reason = "no findings to adjudicate"
         challenger = {"status": "skipped", "reason": reason}
@@ -4477,7 +4516,7 @@ Draft202012Validator(json.load(open(sys.argv[1], encoding='utf-8'))).validate(js
   norm_run
   norm_expect "CodeRabbit finding alone counts toward the verdict without a challenger contradiction" \
     '.action == "request-changes" and .confidence.level == "high"' \
-    '^Skipped — no reviewer findings to adjudicate \(host adapter findings are not challenged\)\.$'
+    '^Skipped — no reviewer findings to adjudicate \(host adapter findings are challenged only alongside them\)\.$'
 
   # A side-file persona reported as failed although its side file is valid ran;
   # without the side file the failure stands.
@@ -4599,6 +4638,37 @@ Draft202012Validator(json.load(open(sys.argv[1], encoding='utf-8'))).validate(js
     '^\| Docs currency \| findings \| ➖ \| did not return a result \(sub-agent failure\) \|'
   if [[ "$(jq -c '[.findings[] | select(.category == "sub-agent-failure") | .dimension] | sort' "${norm}")" != '["docs-currency","style-conventions"]' ]]; then
     echo "FAIL normalize unreturned: the dropped failure findings were not put back" >&2
+    fail=1
+  fi
+
+  # The challenger's decisions on host findings: an explicit removed or
+  # justified with a reason takes a CodeRabbit finding out, a downgrade lowers
+  # it, and anything else (kept, no entry, no reason, unknown ref, a raise in
+  # severity) leaves it as reported.
+  norm_setup host-adjudicated
+  cr() { jq -cn --arg s "$1" --arg f "$2" --arg d "$3" '{severity: $s, category: "coderabbit", file: $f, line: "3", description: $d, actionable: true}'; }
+  jq -n --argjson f "[$(cr high a.ts "Duplicate of the reviewer finding."),$(cr high b.ts "Author justified this one."),$(cr high c.ts "Severity is inflated here."),$(cr medium d.ts "Removal without a reason given."),$(cr medium e.ts "The challenger left this out."),$(cr low f.ts "The challenger tried to raise this.")]" \
+    '[{id:"coderabbit",dimension:"coderabbit",kind:"cli-adapter",output:"findings",status:"ok",findings:$f}]' > "${case_dir}/config/.run/collected.json"
+  rev='{"severity":"medium","category":"logic-error","file":"a.ts","line":3,"description":"Index is off by one.","actionable":true,"dimension":"correctness"}'
+  jq --argjson f "${rev}" '.findings = [$f]' "${case_dir}/output/agent-result.json" > "${case_dir}/r.json" && mv "${case_dir}/r.json" "${case_dir}/output/agent-result.json"
+  jq -n --argjson f "${rev}" '{as_raised: [$f], adjudicated: [$f + {challenger_action: "kept", challenger_reason: "Confirmed in source."}],
+    host_adjudicated: [
+      {ref: "coderabbit-1", challenger_action: "removed", challenger_reason: "Same defect as the kept logic-error at a.ts:3."},
+      {ref: "coderabbit-2", challenger_action: "justified", challenger_reason: "The PR Justifications cover it and the diff agrees."},
+      {ref: "coderabbit-3", challenger_action: "downgraded", severity: "low", challenger_reason: "Only a test helper is affected."},
+      {ref: "coderabbit-4", challenger_action: "removed"},
+      {ref: "coderabbit-6", challenger_action: "downgraded", severity: "critical", challenger_reason: "Looks worse."},
+      {ref: "coderabbit-99", challenger_action: "removed", challenger_reason: "No such finding."},
+      {ref: "../etc", challenger_action: "removed", challenger_reason: "Bad ref."}]}' > "${case_dir}/output/odh/challenger.json"
+  norm_run
+  norm_expect "the challenger's decisions on CodeRabbit findings are applied" \
+    '([.findings[] | select(.dimension == "coderabbit") | [.file, .severity]] == [["c.ts","low"],["d.ts","medium"],["e.ts","medium"],["f.ts","low"]])
+     and ([.producers.challenger.removed_findings[] | [.file, .challenger_action]] == [["a.ts","removed"],["b.ts","justified"]])
+     and (.producers.challenger | .input == 6 and .kept == 3 and .removed == 2 and .downgraded == 1)
+     and (.producers.raised.coderabbit | length == 6 and .[2].severity == "high")' \
+    'Same defect as the kept logic-error'
+  if ! sticky_input_valid "${norm}"; then
+    echo "FAIL normalize host-adjudicated: sticky input is not schema-valid" >&2
     fail=1
   fi
 

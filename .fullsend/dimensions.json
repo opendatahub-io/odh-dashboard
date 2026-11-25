@@ -187,7 +187,7 @@
           "token_env": "CODERABBIT_API_KEY"
         }
       },
-      "notes": "Host-side CodeRabbit CLI output, normalized without credentials. post-review.sh merges its findings into the sticky on the host; they do not enter the sandbox or pass through the challenger. The transport is trusted; finding text is external review evidence."
+      "notes": "Host-side CodeRabbit CLI output, normalized without credentials. post-review.sh merges its findings into the sticky on the host. pre-review.sh also stages them as host-findings.json for the challenger, whose decisions the host applies. The transport is trusted; finding text is external review evidence."
     },
     {
       "id": "product-ask-review",

@@ -154,6 +154,7 @@ validate_adapter_registry() {
       (.runner | type == "string" and test("^scripts/[A-Za-z0-9._/-]+\\.sh$")) and
       (.producer_file | type == "string" and test("^\\.run/[A-Za-z0-9._-]+\\.json$")) and
       (.producer_file != ".run/collected.json") and
+      (.producer_file != ".run/host-findings.json") and
       (.host.execution == "pre_review") and
       (.host.setup_runner | type == "string" and
         (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
@@ -366,6 +367,31 @@ aggregate_cli_adapters() {
       (.output | type == "string")
     )]' \
       "${files[@]}" > "${run_dir}/collected.json"
+  fi
+  write_host_findings "${run_dir}"
+}
+
+# .run/host-findings.json: the findings of every findings adapter that ran,
+# each with a ref ("<adapter id>-<position>"), for the challenger to weigh
+# next to the reviewers' findings. The harness stages it into the sandbox.
+# post-review.sh derives the same refs from collected.json and applies the
+# challenger's decisions; the file is absent when there is nothing to weigh.
+write_host_findings() {
+  local run_dir="$1"
+  rm -f "${run_dir}/host-findings.json"
+  jq '{findings: [.[]
+        | select(.output == "findings" and .status == "ok" and (.findings | type == "array"))
+        | .id as $id
+        | .findings | to_entries[]
+        | select(.value | type == "object")
+        | {ref: "\($id)-\(.key + 1)", source: $id}
+          + (.value | {severity, category, file, line, description, remediation}
+             | with_entries(select(.value != null)))]}' \
+    "${run_dir}/collected.json" > "${run_dir}/host-findings.json.tmp"
+  if jq -e '.findings | length > 0' "${run_dir}/host-findings.json.tmp" >/dev/null; then
+    mv "${run_dir}/host-findings.json.tmp" "${run_dir}/host-findings.json"
+  else
+    rm -f "${run_dir}/host-findings.json.tmp"
   fi
 }
 
@@ -736,6 +762,26 @@ run_self_test() {
     pass "collected.json envelope shapes"
   else
     flunk "collected.json envelope shapes"
+  fi
+
+  # host-findings.json: only findings of an ok findings envelope, each with
+  # the ref post-review.sh derives; no file when there is nothing to weigh.
+  local hf="${root}/host-findings"
+  mkdir -p "${hf}"
+  printf '%s' '[{"id":"x","kind":"cli-adapter","output":"context","status":"ok"},{"id":"cr","kind":"cli-adapter","output":"findings","status":"ok","findings":[{"severity":"high","category":"cr","file":"a.ts","line":"3","description":"One.","actionable":true},"junk",{"severity":"low","category":"cr","file":"b.ts","description":"Two."}]},{"id":"err","kind":"cli-adapter","output":"findings","status":"error","findings":[{"severity":"high","category":"e","file":"c.ts","description":"No."}]}]' > "${hf}/collected.json"
+  write_host_findings "${hf}"
+  if jq -e '.findings == [{ref:"cr-1",source:"cr",severity:"high",category:"cr",file:"a.ts",line:"3",description:"One."},{ref:"cr-3",source:"cr",severity:"low",category:"cr",file:"b.ts",description:"Two."}]' \
+      "${hf}/host-findings.json" >/dev/null 2>&1; then
+    pass "host-findings.json carries ok findings with refs"
+  else
+    flunk "host-findings.json carries ok findings with refs"
+  fi
+  printf '%s' '[{"id":"cr","kind":"cli-adapter","output":"findings","status":"ok","findings":[]}]' > "${hf}/collected.json"
+  write_host_findings "${hf}"
+  if [[ ! -e "${hf}/host-findings.json" && ! -e "${hf}/host-findings.json.tmp" ]]; then
+    pass "host-findings.json is absent when no adapter reported a finding"
+  else
+    flunk "host-findings.json is absent when no adapter reported a finding"
   fi
 
   # Skip, with and without the runner's output file: no adapter runs.

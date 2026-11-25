@@ -311,9 +311,13 @@ GitHub.
   under Product ask.
 - **CodeRabbit.** [`fetch-coderabbit-context.sh`](scripts/fetch-coderabbit-context.sh)
   runs `coderabbit review --agent --deep --remote` and writes at most 50
-  normalized findings. They never enter the sandbox. `post-review.sh` merges
-  them into the findings under the `coderabbit` category; they count toward
-  the action by severity like any other finding.
+  normalized findings. `post-review.sh` merges them into the findings under
+  the `coderabbit` category; they count toward the action by severity like
+  any other finding. The challenger weighs them too: they are staged for it
+  as `host-findings.json`, and it can remove a duplicate or false positive,
+  mark one justified, or lower a severity. The host applies those decisions
+  and keeps any finding the challenger did not explicitly decide (contract
+  in [`personas/README.md`](personas/README.md)).
 - **PR images.** [`fetch-pr-images.sh`](scripts/fetch-pr-images.sh) captures
   GitHub-hosted images referenced by the PR body and issue comments and
   stages `pr-images.json` and `pr-images.tar.gz` for `test-impact-review`.
@@ -450,8 +454,10 @@ its own orchestrator.
 - Rating runs in parallel with the other reviewers and does not see findings,
   checks, product ask or the challenger's output. The host applies the caps
   and floors afterwards.
-- CodeRabbit findings are merged on the host and do not pass through the
-  challenger.
+- CodeRabbit findings are merged on the host. The challenger weighs them
+  when it runs, but the stock orchestrator skips the challenger when the
+  reviewers raise nothing, so a PR with only CodeRabbit findings gets them
+  unchallenged. They are not deduplicated against each other.
 - Checks and product ask come from side files. When a reviewer does not
   write one, a check shows `could-not-verify`, and product ask is omitted with
   a note under Evidence inspected.

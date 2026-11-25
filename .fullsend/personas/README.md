@@ -52,7 +52,7 @@ Rules for every side file:
 
 | File | Shape | Host use |
 | --- | --- | --- |
-| `challenger.json` | `{"as_raised": [finding], "adjudicated": [finding + "challenger_action" + "challenger_reason" + optional "merged_into"]}` | Producers table, challenger audit, Justified section |
+| `challenger.json` | `{"as_raised": [finding], "adjudicated": [finding + "challenger_action" + "challenger_reason" + optional "merged_into"], "host_adjudicated": [{"ref", "challenger_action", "challenger_reason", optional "severity"}]}` | Producers table, challenger audit, Justified section, decisions on CodeRabbit findings |
 | `rating.json` | `{"risk": {"level", "why"}, "confidence": {"level", "why"}, "change_summary": string}` | Signal table, verdict policy, change summary |
 | `product-ask-review.json` | `{"product_ask": {...}}` | Product ask section |
 | `test-impact-review.json` | `{"check": {"id": "test-impact", "status", "summary", "details"}}` | Checks table and verdict policy |
@@ -87,5 +87,20 @@ Field details:
 ## Host-side findings
 
 CodeRabbit findings are fetched on the host by `pre-review.sh` and merged
-into the sticky by `post-review.sh`. They do not enter the sandbox and do not
-go through the challenger.
+into the sticky by `post-review.sh`. They never enter the stock result,
+because their category is not a stock one.
+
+The challenger still weighs them. `pre-review.sh` writes them, each with a
+`ref` (`coderabbit-<position>`), to `.run/host-findings.json`, which the
+harness stages at `/sandbox/workspace/odh-review/host-findings.json`. The
+challenger records a decision per ref under `host_adjudicated` in its side
+file, and `post-review.sh` applies it:
+
+- `removed` or `justified` with a reason takes the finding out of the
+  findings and into the challenger audit (or the Justified section).
+- `downgraded` with a reason and a lower severity lowers it.
+- `kept`, a missing entry, an unknown ref or a malformed entry leaves the
+  finding as CodeRabbit reported it.
+
+The stock orchestrator skips the challenger when the reviewers raise
+nothing, so on such a run CodeRabbit findings are not challenged.
