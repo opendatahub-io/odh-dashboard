@@ -49,6 +49,8 @@ const basePodConfigTest: OptionsPodConfigValue = {
   hidden: false,
   clusterMetrics: undefined,
   restrictions: { deny: false },
+  podMetadata: { labels: {}, annotations: {} },
+  statefulSetMetadata: { labels: {}, annotations: {} },
 };
 
 describe('useWorkspaceCountPerKind', () => {
@@ -130,6 +132,7 @@ describe('useWorkspaceCountPerKind', () => {
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           statefulSetMetadata: { labels: {}, annotations: {} },
+          serviceAccount: { metadata: { labels: {}, annotations: {} } },
           volumeMountPaths: { home: '/home' },
           options: {
             imageConfig: {
@@ -171,6 +174,7 @@ describe('useWorkspaceCountPerKind', () => {
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           statefulSetMetadata: { labels: {}, annotations: {} },
+          serviceAccount: { metadata: { labels: {}, annotations: {} } },
           volumeMountPaths: { home: '/home' },
           options: {
             imageConfig: {
@@ -245,6 +249,7 @@ describe('useWorkspaceCountPerKind', () => {
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           statefulSetMetadata: { labels: {}, annotations: {} },
+          serviceAccount: { metadata: { labels: {}, annotations: {} } },
           volumeMountPaths: { home: '/home' },
           options: {
             imageConfig: {
@@ -264,6 +269,7 @@ describe('useWorkspaceCountPerKind', () => {
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           statefulSetMetadata: { labels: {}, annotations: {} },
+          serviceAccount: { metadata: { labels: {}, annotations: {} } },
           volumeMountPaths: { home: '/home' },
           options: {
             imageConfig: {
@@ -339,6 +345,7 @@ describe('useWorkspaceCountPerKind', () => {
       podTemplate: {
         podMetadata: { labels: {}, annotations: {} },
         statefulSetMetadata: { labels: {}, annotations: {} },
+        serviceAccount: { metadata: { labels: {}, annotations: {} } },
         volumeMountPaths: { home: '/home' },
         options: {
           imageConfig: {

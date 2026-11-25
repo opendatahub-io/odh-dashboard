@@ -453,9 +453,14 @@ export const buildMockWorkspaceKind = (
       },
     },
     statefulSetMetadata: {
-      labels: {},
-      annotations: {},
+      labels: {
+        myWorkspaceKindStatefulSetLabel: 'my-value',
+      },
+      annotations: {
+        myWorkspaceKindStatefulSetAnnotation: 'my-value',
+      },
     },
+    serviceAccount: { metadata: { labels: {}, annotations: {} } },
     volumeMountPaths: {
       home: '/home/jovyan',
     },
@@ -590,6 +595,8 @@ export const buildMockWorkspaceKind = (
               workspacesCount: 0,
             },
             restrictions: { deny: false },
+            podMetadata: { labels: {}, annotations: {} },
+            statefulSetMetadata: { labels: {}, annotations: {} },
           },
           {
             id: 'small_cpu',
@@ -601,6 +608,8 @@ export const buildMockWorkspaceKind = (
               { key: 'memory', value: '512Mi' },
             ],
             restrictions: { deny: false },
+            podMetadata: { labels: {}, annotations: {} },
+            statefulSetMetadata: { labels: {}, annotations: {} },
           },
           {
             id: 'medium_cpu',
@@ -612,6 +621,8 @@ export const buildMockWorkspaceKind = (
               { key: 'memory', value: '1Gi' },
             ],
             restrictions: { deny: false },
+            podMetadata: { labels: {}, annotations: {} },
+            statefulSetMetadata: { labels: {}, annotations: {} },
           },
           {
             id: 'large_cpu',
@@ -634,6 +645,8 @@ export const buildMockWorkspaceKind = (
               workspacesCount: 5,
             },
             restrictions: { deny: false },
+            podMetadata: { labels: {}, annotations: {} },
+            statefulSetMetadata: { labels: {}, annotations: {} },
           },
           {
             id: 'large_cpu_hidden',
@@ -649,6 +662,8 @@ export const buildMockWorkspaceKind = (
               workspacesCount: 0,
             },
             restrictions: { deny: false },
+            podMetadata: { labels: {}, annotations: {} },
+            statefulSetMetadata: { labels: {}, annotations: {} },
           },
         ],
       },
@@ -741,7 +756,7 @@ export const buildMockWorkspaceKindUpdate = (
       },
     ],
     serviceAccount: { clusterRoles: [{ name: 'default-editor' }] },
-    volumeMounts: listItem.podTemplate.volumeMounts,
+    volumeMountPaths: listItem.podTemplate.volumeMountPaths,
   },
 });
 

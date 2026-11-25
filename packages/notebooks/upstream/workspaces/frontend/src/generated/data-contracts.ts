@@ -566,8 +566,15 @@ export interface OptionsPodConfigValue {
   hidden: boolean;
   id: string;
   labels?: OptionsOptionLabel[];
+  podMetadata: OptionsPodMetadata;
   redirect?: OptionsOptionRedirect;
   restrictions: CommonRestrictions;
+  statefulSetMetadata: OptionsStatefulSetMetadata;
+}
+
+export interface OptionsPodMetadata {
+  annotations: Record<string, string>;
+  labels: Record<string, string>;
 }
 
 export interface OptionsPodTemplateOptions {
@@ -578,6 +585,11 @@ export interface OptionsPodTemplateOptions {
 export interface OptionsRedirectMessage {
   level: OptionsRedirectMessageLevel;
   text: string;
+}
+
+export interface OptionsStatefulSetMetadata {
+  annotations: Record<string, string>;
+  labels: Record<string, string>;
 }
 
 export interface PvcsPVCCreate {
@@ -3813,10 +3825,12 @@ export interface V1Beta1ActivityRule {
   /** the action to take when the rule matches and its conditions are met */
   effect: V1Beta1ActivityRuleEffect;
   /**
-   * the conditions under which this rule applies
+   * the conditions which must ALL be satisfied for the rule to apply
+   *  - an omitted or empty list makes this a catch-all rule that matches all Workspaces
    * +kubebuilder:validation:Optional
+   * +listType:="atomic"
    */
-  match?: V1Beta1ActivityRuleMatch;
+  match?: V1Beta1ActivityRuleMatch[];
 }
 
 export interface V1Beta1ActivityRuleConfig {
@@ -3848,15 +3862,23 @@ export interface V1Beta1ActivityRuleEffect {
 
 export interface V1Beta1ActivityRuleMatch {
   /**
-   * filters Workspaces by namespace labels
+   * filters Workspaces by the labels of their namespace
    * +kubebuilder:validation:Optional
    */
-  matchNamespace?: V1Beta1NamespaceMatch;
+  matchNamespace?: V1Beta1ActivityRuleSelector;
   /**
-   * filters Workspaces by the PodConfig option they are using
+   * filters Workspaces by the labels of the PodConfig option they are using
    * +kubebuilder:validation:Optional
    */
-  matchPodConfig?: V1Beta1PodConfigMatch;
+  matchPodConfig?: V1Beta1ActivityRuleSelector;
+}
+
+export interface V1Beta1ActivityRuleSelector {
+  /**
+   * a standard Kubernetes label selector
+   *  - must not be empty, use an empty 'match' list for a catch-all rule
+   */
+  selector: V1LabelSelector;
 }
 
 export interface V1Beta1FilterRule {
@@ -3936,7 +3958,10 @@ export interface V1Beta1FilterRuleMatch {
 }
 
 export interface V1Beta1FilterRuleSelector {
-  /** a standard Kubernetes label selector */
+  /**
+   * a standard Kubernetes label selector
+   *  - must not be empty
+   */
   selector: V1LabelSelector;
 }
 
@@ -4064,11 +4089,6 @@ export interface V1Beta1IstioHeaderOperations {
   set?: Record<string, string>;
 }
 
-export interface V1Beta1NamespaceMatch {
-  /** the standard Kubernetes label selector to match namespace labels */
-  selector: V1LabelSelector;
-}
-
 export interface V1Beta1OptionRedirect {
   /**
    * information about the redirect
@@ -4152,11 +4172,6 @@ export interface V1Beta1PodConfig {
   values: V1Beta1PodConfigValue[];
 }
 
-export interface V1Beta1PodConfigMatch {
-  /** the standard Kubernetes label selector to match podConfig labels */
-  selector: V1LabelSelector;
-}
-
 export interface V1Beta1PodConfigSpec {
   /**
    * affinity configs for the pod
@@ -4168,6 +4183,12 @@ export interface V1Beta1PodConfigSpec {
    * +kubebuilder:validation:Optional
    */
   nodeSelector?: Record<string, string>;
+  /**
+   * metadata to apply to Workspace Pods when this podConfig is selected
+   *  - layered over the WorkspaceKind-level `podMetadata`, winning on key conflicts
+   * +kubebuilder:validation:Optional
+   */
+  podMetadata?: V1Beta1WorkspaceKindPodMetadata;
   /**
    * resource configs for the "main" container in the pod
    * +kubebuilder:validation:Optional
@@ -4184,6 +4205,12 @@ export interface V1Beta1PodConfigSpec {
    * +kubebuilder:example="volcano"
    */
   schedulerName?: string;
+  /**
+   * metadata to apply to the Workspace StatefulSet when this podConfig is selected
+   *  - layered over the WorkspaceKind-level `statefulSetMetadata`, winning on key conflicts
+   * +kubebuilder:validation:Optional
+   */
+  statefulSetMetadata?: V1Beta1WorkspaceKindStatefulSetMetadata;
   /**
    * toleration configs for the pod
    * +kubebuilder:validation:Optional
@@ -4290,8 +4317,6 @@ export interface V1Beta1WorkspaceKindClusterRole {
 export interface V1Beta1WorkspaceKindMainContainer {
   /**
    * environment variables for the main container (MUTABLE)
-   *  - spec for EnvVar:
-   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvar-v1-core
    *  - the following go template functions are available:
    *     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
    * +kubebuilder:validation:Optional
@@ -4302,8 +4327,6 @@ export interface V1Beta1WorkspaceKindMainContainer {
   extraEnv?: V1EnvVar[];
   /**
    * extra volume mounts for the main container (MUTABLE)
-   *  - spec for VolumeMount:
-   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core
    * +kubebuilder:validation:Optional
    * +listType:="map"
    * +listMapKey:="mountPath"
@@ -4311,29 +4334,21 @@ export interface V1Beta1WorkspaceKindMainContainer {
   extraVolumeMounts?: V1VolumeMount[];
   /**
    * the liveness probe for the main container (MUTABLE)
-   *  - spec for Probe:
-   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
    * +kubebuilder:validation:Optional
    */
   livenessProbe?: V1Probe;
   /**
    * the readiness probe for the main container (MUTABLE)
-   *  - spec for Probe:
-   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
    * +kubebuilder:validation:Optional
    */
   readinessProbe?: V1Probe;
   /**
    * container security context for the main container (MUTABLE)
-   *  - spec for SecurityContext:
-   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core
    * +kubebuilder:validation:Optional
    */
   securityContext?: V1SecurityContext;
   /**
    * the startup probe for the main container (MUTABLE)
-   *  - spec for Probe:
-   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
    * +kubebuilder:validation:Optional
    */
   startupProbe?: V1Probe;
@@ -4362,8 +4377,6 @@ export interface V1Beta1WorkspaceKindPodOptions {
 export interface V1Beta1WorkspaceKindPodSpec {
   /**
    * extra volumes for Workspace Pods (MUTABLE)
-   *  - spec for Volume:
-   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core
    * +kubebuilder:validation:Optional
    * +listType:="map"
    * +listMapKey:="name"
@@ -4380,7 +4393,7 @@ export interface V1Beta1WorkspaceKindPodSpec {
    *  - this is the default for all Workspaces of this WorkspaceKind, it may be
    *    overridden by the `schedulerName` of a pod config value
    *  - if not set here, or on the pod config value, the Kubernetes API server
-   *    will default to the "default-scheduler"
+   *    will default to the default scheduler
    *  - no character/length validation, matching Kubernetes which applies none
    *    to PodSpec.SchedulerName; an empty value means the default scheduler
    * +kubebuilder:validation:Optional
@@ -4389,8 +4402,6 @@ export interface V1Beta1WorkspaceKindPodSpec {
   schedulerName?: string;
   /**
    * security context for Workspace Pods (MUTABLE)
-   *  - spec for PodSecurityContext:
-   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core
    * +kubebuilder:validation:Optional
    */
   securityContext?: V1PodSecurityContext;
@@ -4578,7 +4589,7 @@ export interface WorkspacekindsActivityProbePodExec {
 export interface WorkspacekindsActivityRule {
   config: WorkspacekindsActivityRuleConfig;
   effect: WorkspacekindsActivityRuleEffect;
-  match?: WorkspacekindsActivityRuleMatch;
+  match?: WorkspacekindsActivityRuleMatch[];
 }
 
 export interface WorkspacekindsActivityRuleConfig {
@@ -4591,20 +4602,16 @@ export interface WorkspacekindsActivityRuleEffect {
 }
 
 export interface WorkspacekindsActivityRuleMatch {
-  matchNamespace?: WorkspacekindsMatchNamespace;
-  matchPodConfig?: WorkspacekindsMatchPodConfig;
+  matchNamespace?: WorkspacekindsActivityRuleSelector;
+  matchPodConfig?: WorkspacekindsActivityRuleSelector;
+}
+
+export interface WorkspacekindsActivityRuleSelector {
+  selector: V1LabelSelector;
 }
 
 export interface WorkspacekindsClusterKindMetrics {
   workspacesCount: number;
-}
-
-export interface WorkspacekindsMatchNamespace {
-  selector: V1LabelSelector;
-}
-
-export interface WorkspacekindsMatchPodConfig {
-  selector: V1LabelSelector;
 }
 
 export interface WorkspacekindsPodMetadata {
