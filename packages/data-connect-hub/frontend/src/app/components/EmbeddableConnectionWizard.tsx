@@ -8,7 +8,7 @@ import type {
   ConnectionWizardAvailability,
   EmbeddableConnectionWizardProps,
   EmbeddableCreateConnectionWizardProps,
-} from '@odh-dashboard/data-connect-hub/types';
+} from '~/types';
 
 const DATA_CONNECT_HUB_ENTRY = '/_mf/dataConnectHub/remoteEntry.js';
 const DATA_CONNECT_HUB_BACKEND_HEALTH = '/data-connect-hub/healthcheck/backend';
