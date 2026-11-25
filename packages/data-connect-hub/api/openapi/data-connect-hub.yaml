@@ -40,7 +40,7 @@ paths:
       operationId: getNamespaces
       summary: Get Available Namespaces
       description: Returns available namespaces in the cluster.
-  /api/v1/backend-health:
+  /healthcheck/backend:
     summary: Path used to check the upstream Data Connect Hub REST service.
     get:
       tags:
@@ -48,8 +48,6 @@ paths:
       responses:
         '204':
           description: The upstream Data Connect Hub REST service is available.
-        '401':
-          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':

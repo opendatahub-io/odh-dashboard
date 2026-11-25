@@ -109,7 +109,7 @@ describe('EmbeddableConnectionWizard', () => {
       remotes: [{ name: 'dataConnectHub', entry: '/_mf/dataConnectHub/remoteEntry.js' }],
     });
     expect(mockLoadRemote).toHaveBeenCalledWith('dataConnectHub/EmbeddableCreateConnectionWizard');
-    expect(global.fetch).toHaveBeenCalledWith('/data-connect-hub/api/v1/backend-health', {
+    expect(global.fetch).toHaveBeenCalledWith('/data-connect-hub/healthcheck/backend', {
       signal: expect.any(AbortSignal),
     });
     await waitFor(() => expect(onAvailabilityChange).toHaveBeenCalledWith({ status: 'available' }));

@@ -11,7 +11,7 @@ import type {
 } from '@odh-dashboard/data-connect-hub/types';
 
 const DATA_CONNECT_HUB_ENTRY = '/_mf/dataConnectHub/remoteEntry.js';
-const DATA_CONNECT_HUB_BACKEND_HEALTH = '/data-connect-hub/api/v1/backend-health';
+const DATA_CONNECT_HUB_BACKEND_HEALTH = '/data-connect-hub/healthcheck/backend';
 const REMOTE_MODULE = 'dataConnectHub/EmbeddableCreateConnectionWizard';
 
 let hasRegisteredRemote = false;

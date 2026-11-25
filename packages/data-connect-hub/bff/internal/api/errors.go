@@ -69,9 +69,10 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	app.errorResponse(w, r, httpError)
 }
 
-func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request) {
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, cause error) {
 	app.logger.Warn(
 		"Data Connect Hub backend is unavailable",
+		"error", cause,
 		"method", r.Method,
 		"uri", r.URL.RequestURI(),
 	)

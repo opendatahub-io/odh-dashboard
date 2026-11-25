@@ -2,25 +2,18 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/data-connect-hub/bff/internal/constants"
 	httpclient "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/httpclient"
-	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
 )
 
 const backendHealthTimeout = 5 * time.Second
 
 func (app *App) BackendHealthHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-	if !ok || identity == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
-
 	if app.config.MockHTTPClient {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -31,7 +24,7 @@ func (app *App) BackendHealthHandler(w http.ResponseWriter, r *http.Request, _ h
 		apiURL = app.dataConnectHubAPIURL.Get()
 	}
 	if apiURL == "" {
-		app.serviceUnavailableResponse(w, r)
+		app.serviceUnavailableResponse(w, r, errors.New("Data Connect Hub API URL is not configured"))
 		return
 	}
 
@@ -40,7 +33,7 @@ func (app *App) BackendHealthHandler(w http.ResponseWriter, r *http.Request, _ h
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL+"/health", nil)
 	if err != nil {
-		app.serviceUnavailableResponse(w, r)
+		app.serviceUnavailableResponse(w, r, fmt.Errorf("failed to create backend health request: %w", err))
 		return
 	}
 
@@ -51,13 +44,17 @@ func (app *App) BackendHealthHandler(w http.ResponseWriter, r *http.Request, _ h
 	client := &http.Client{Transport: transport}
 	response, err := client.Do(request)
 	if err != nil {
-		app.serviceUnavailableResponse(w, r)
+		app.serviceUnavailableResponse(w, r, fmt.Errorf("failed to request upstream health: %w", err))
 		return
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		app.serviceUnavailableResponse(w, r)
+		app.serviceUnavailableResponse(
+			w,
+			r,
+			fmt.Errorf("upstream health endpoint returned status %d", response.StatusCode),
+		)
 		return
 	}
 

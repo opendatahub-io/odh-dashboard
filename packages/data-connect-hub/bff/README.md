@@ -11,7 +11,7 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 This trimmed service exposes ONLY:
 
 - GET `/healthcheck` – liveness probe
-- GET `/api/v1/backend-health` – checks the upstream Data Connect Hub REST service
+- GET `/healthcheck/backend` – checks the upstream Data Connect Hub REST service
 - GET `/api/v1/user` – returns the authenticated (mock) user
 - GET `/api/v1/namespaces` – list namespaces available to the authenticated user, using core Namespaces when cluster-wide listing succeeds and OpenShift Projects when that listing is forbidden
 
@@ -102,7 +102,7 @@ The following endpoints are available plus static asset serving (index.html fall
 
 ```text
 GET /healthcheck
-GET /api/v1/backend-health
+GET /healthcheck/backend
 GET /api/v1/user
 GET /api/v1/namespaces
 ```
@@ -113,7 +113,7 @@ When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user 
 
 ```shell
 curl -i localhost:4000/healthcheck
-curl -i -H "Authorization: Bearer <token>" localhost:4000/api/v1/backend-health
+curl -i localhost:4000/healthcheck/backend
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces
 ```

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"context"
+	"bytes"
 	"io"
 	"log/slog"
 	"net/http"
@@ -9,9 +9,7 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/config"
-	"github.com/opendatahub-io/data-connect-hub/bff/internal/constants"
 	helper "github.com/opendatahub-io/data-connect-hub/bff/internal/helpers"
-	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,35 +19,30 @@ func backendHealthTestApp(cfg config.EnvConfig, apiURL string) *App {
 	return app
 }
 
-func backendHealthRequest(t *testing.T, addIdentity bool) (*httptest.ResponseRecorder, *http.Request) {
+func backendHealthRequest(t *testing.T) (*httptest.ResponseRecorder, *http.Request) {
 	t.Helper()
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/backend-health", nil)
-	if addIdentity {
-		identity := &k8s.RequestIdentity{UserID: "test-user"}
-		request = request.WithContext(
-			context.WithValue(request.Context(), constants.RequestIdentityKey, identity),
-		)
-	}
+	request := httptest.NewRequest(http.MethodGet, BackendHealthPath, nil)
 	return response, request
 }
 
 func TestBackendHealthHandlerReturnsNoContentInMockMode(t *testing.T) {
 	app := backendHealthTestApp(config.EnvConfig{MockHTTPClient: true}, "")
-	response, request := backendHealthRequest(t, true)
+	response, request := backendHealthRequest(t)
 
 	app.BackendHealthHandler(response, request, nil)
 
 	require.Equal(t, http.StatusNoContent, response.Code)
 }
 
-func TestBackendHealthHandlerRequiresIdentity(t *testing.T) {
-	app := backendHealthTestApp(config.EnvConfig{}, "https://example.com")
-	response, request := backendHealthRequest(t, false)
+func TestBackendHealthRouteDoesNotRequireAuthentication(t *testing.T) {
+	app := backendHealthTestApp(config.EnvConfig{MockHTTPClient: true}, "")
+	response, request := backendHealthRequest(t)
 
-	app.BackendHealthHandler(response, request, nil)
+	app.Routes().ServeHTTP(response, request)
 
-	require.Equal(t, http.StatusBadRequest, response.Code)
+	require.Equal(t, http.StatusNoContent, response.Code)
+	require.Empty(t, request.Header.Get("Authorization"))
 }
 
 func TestBackendHealthHandlerChecksUpstreamHealth(t *testing.T) {
@@ -60,7 +53,7 @@ func TestBackendHealthHandlerChecksUpstreamHealth(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	app := backendHealthTestApp(config.EnvConfig{}, server.URL)
-	response, request := backendHealthRequest(t, true)
+	response, request := backendHealthRequest(t)
 
 	app.BackendHealthHandler(response, request, nil)
 
@@ -74,17 +67,20 @@ func TestBackendHealthHandlerReturnsServiceUnavailableForUnhealthyUpstream(t *te
 	}))
 	t.Cleanup(server.Close)
 	app := backendHealthTestApp(config.EnvConfig{}, server.URL)
-	response, request := backendHealthRequest(t, true)
+	var logs bytes.Buffer
+	app.logger = slog.New(slog.NewTextHandler(&logs, nil))
+	response, request := backendHealthRequest(t)
 
 	app.BackendHealthHandler(response, request, nil)
 
 	require.Equal(t, http.StatusServiceUnavailable, response.Code)
+	require.Contains(t, logs.String(), "upstream health endpoint returned status 500")
 }
 
 func TestBackendHealthHandlerReturnsServiceUnavailableWithoutUpstreamURL(t *testing.T) {
 	app := backendHealthTestApp(config.EnvConfig{}, "")
 	app.logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	response, request := backendHealthRequest(t, true)
+	response, request := backendHealthRequest(t)
 
 	app.BackendHealthHandler(response, request, nil)
 

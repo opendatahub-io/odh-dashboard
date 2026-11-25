@@ -20,6 +20,10 @@
       {
         "path": "/data-connect-hub/healthcheck",
         "pathRewrite": "/healthcheck"
+      },
+      {
+        "path": "/data-connect-hub/healthcheck/backend",
+        "pathRewrite": "/healthcheck/backend"
       }
     ],
     "local": {
