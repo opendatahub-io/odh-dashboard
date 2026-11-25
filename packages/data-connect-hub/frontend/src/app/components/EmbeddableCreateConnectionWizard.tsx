@@ -44,7 +44,7 @@ const EmbeddableCreateConnectionWizard: React.FC<EmbeddableCreateConnectionWizar
         <CreateConnectionWizard
           isOpen={isOpen}
           namespace={namespace}
-          onClose={() => onClose?.()}
+          onClose={(outcome) => onClose?.(outcome)}
           initialFormData={
             initialConnectionTypeId
               ? { data_connection_type_id: initialConnectionTypeId }

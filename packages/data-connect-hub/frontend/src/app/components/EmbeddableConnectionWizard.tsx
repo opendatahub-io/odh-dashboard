@@ -60,7 +60,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
       verb: 'create',
       namespace,
     },
-    Boolean(namespace),
+    Boolean(namespace && isOpen),
   );
   const [remoteComponent, setRemoteComponent] =
     React.useState<React.ComponentType<EmbeddableCreateConnectionWizardProps> | null>(null);
@@ -147,11 +147,11 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     };
   }, [areaAvailability.status, canCreateConnection, createAccessLoaded, isOpen, namespace]);
 
-  if (!isOpen) {
+  if (!isOpen && !remoteComponent) {
     return null;
   }
 
-  if (availability.status === 'checking') {
+  if (isOpen && availability.status === 'checking') {
     return (
       <Tearsheet
         isOpen
@@ -172,7 +172,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     );
   }
 
-  if (availability.status === 'unavailable' || !remoteComponent) {
+  if (isOpen && (availability.status === 'unavailable' || !remoteComponent)) {
     return (
       unavailableFallback ?? (
         <Alert
@@ -187,10 +187,14 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     );
   }
 
+  if (!remoteComponent) {
+    return null;
+  }
+
   const Wizard = remoteComponent;
   return (
     <Wizard
-      isOpen
+      isOpen={isOpen}
       namespace={namespace}
       tearsheetStackLevel={tearsheetStackLevel}
       {...wizardProps}

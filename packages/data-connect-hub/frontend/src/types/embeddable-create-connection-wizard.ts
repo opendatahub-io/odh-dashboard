@@ -69,8 +69,8 @@ export type EmbeddableCreateConnectionWizardProps = {
    * This is an event callback; the wizard does not wait for returned work.
    */
   onCreated?: (connection: DchConnection, namespace: string) => void;
-  /** Called when the user closes or cancels the wizard. */
-  onClose?: () => void;
+  /** Called when the wizard closes after creation or is cancelled by the user. */
+  onClose?: (outcome: ConnectionWizardCloseOutcome) => void;
   /** Whether the user can select a different project. Defaults to false. */
   isNamespaceSelectable?: boolean;
   /**
@@ -82,6 +82,8 @@ export type EmbeddableCreateConnectionWizardProps = {
   /** Stacking level used when the wizard renders above other tearsheets. */
   tearsheetStackLevel?: number;
 };
+
+export type ConnectionWizardCloseOutcome = 'created' | 'cancelled';
 
 export type ConnectionWizardAvailability =
   | { status: 'checking' }

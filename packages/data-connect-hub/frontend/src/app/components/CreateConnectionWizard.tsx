@@ -62,6 +62,7 @@ import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import { connectionDetailsRoute, projectHomeRoute } from '~/app/routes';
 import { getConnectionAccessTooltip } from '~/app/utilities/connectionAccess';
 import { SENSITIVE_CREDENTIAL_MASK, isSensitiveCredentialField } from '~/app/utilities/credentials';
+import type { ConnectionWizardCloseOutcome } from '~/types/embeddable-create-connection-wizard';
 import type {
   ConnectionType,
   ConnectionTypeCredentialField,
@@ -85,7 +86,7 @@ export type CreateConnectionFormData = CreateConnectionRequest;
 export type CreateConnectionWizardProps = {
   isOpen: boolean;
   namespace: string;
-  onClose: () => void;
+  onClose: (outcome: ConnectionWizardCloseOutcome) => void;
   onCreate?: (
     data: CreateConnectionFormData,
     selectedNamespace: string,
@@ -1296,7 +1297,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
           },
         });
         resetForm();
-        onClose();
+        onClose('cancelled');
       }
     },
     [
@@ -1353,7 +1354,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
         },
       });
       resetForm();
-      onClose();
+      onClose('created');
       return;
     }
 
@@ -1403,7 +1404,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
             },
       );
       resetForm();
-      onClose();
+      onClose('created');
     } catch (error) {
       const creationError =
         error instanceof Error ? error : new Error('Unable to create connection');

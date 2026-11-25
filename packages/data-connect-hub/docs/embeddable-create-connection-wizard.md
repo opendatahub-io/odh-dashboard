@@ -52,6 +52,8 @@ function ConnectionCreator({ namespace }: { namespace: string }) {
 
 The consumer owns the button and open state. DCH owns the wizard steps, BFF calls, notifications, and submission state.
 
+Keep the loader mounted while it is closed and toggle `isOpen`. This keeps its notification provider mounted so success and error toasts remain visible after the wizard closes.
+
 ## Availability and Fallbacks
 
 The loader checks availability only while `isOpen` is `true`. It:
@@ -91,7 +93,7 @@ The loader accepts `EmbeddableConnectionWizardProps`. Import the type from `@odh
 | `initialConnectionTypeId`      | `string`                                                 | `undefined` | Preselects a connection type and starts at the details step when the type exists.                                              |
 | `connectionTypeProviders`      | `string[]`                                               | `undefined` | Restricts the connection-type gallery to these DCH providers, such as `s3`. Provider filtering supersedes the initial type ID. |
 | `onCreated`                    | `(connection: DchConnection, namespace: string) => void` | `undefined` | Event callback invoked after the BFF successfully creates a connection.                                                        |
-| `onClose`                      | `() => void`                                             | `undefined` | Event callback invoked after a close, cancel, discard, or successful creation.                                                 |
+| `onClose`                      | `(outcome: ConnectionWizardCloseOutcome) => void`        | `undefined` | Event callback invoked after a successful creation or user cancellation.                                                       |
 | `isNamespaceSelectable`        | `boolean`                                                | `false`     | Allows the user to select a project instead of displaying the supplied namespace as text.                                      |
 | `enableCredentialVerification` | `boolean`                                                | `true`      | Shows credential verification for flight-ready connection types.                                                               |
 | `tearsheetStackLevel`          | `number`                                                 | `0`         | Sets the PatternFly tearsheet stacking level. Use a higher level when the wizard renders above another tearsheet.              |
@@ -105,6 +107,7 @@ While availability is checked, the loader renders the connection tearsheet with 
 - Invoked only after DCH successfully creates the connection.
 - Receives the created `DchConnection` and the final namespace. The namespace can differ from the `namespace` prop when `isNamespaceSelectable` is enabled.
 - Is an event callback, not an async continuation. The wizard does not await a returned value or promise.
+- Consumers that perform asynchronous work in `onCreated` must handle their own errors; otherwise, the wizard can create an unhandled promise rejection.
 - The wizard resets its form, shows its success notification, and calls `onClose` after this callback.
 - Use `connection.metadata.id` or `connection.resource` to update consumer state, selections, or caches.
 
@@ -112,6 +115,7 @@ While availability is checked, the loader renders the connection tearsheet with 
 
 - Invoked when the user closes, cancels, or discards the wizard.
 - Also invoked after successful creation, after `onCreated`.
+- Receives `'created'` after successful creation and `'cancelled'` when the user closes, cancels, or discards the wizard.
 - Consumers normally set `isOpen` to `false` here.
 - The wizard does not invoke it when creation fails; it shows its creation error notification and remains open.
 

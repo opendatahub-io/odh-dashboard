@@ -60,7 +60,7 @@ describe('ConnectionTypeDetails', () => {
     mockCreateConnectionWizard.mockImplementation(({ isOpen, onClose, onCreate }) =>
       isOpen ? (
         <div data-testid="mock-create-connection-wizard">
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={() => onClose('cancelled')}>
             Close mocked wizard
           </button>
           <button type="button" onClick={() => void onCreate?.(createRequest, 'new-project')}>

@@ -182,6 +182,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
 
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(createdConnection, 'test-project'));
+    expect(onClose).toHaveBeenCalledWith('created');
     expect(mockCreateConnection).toHaveBeenCalledWith('');
     expect(mockCreateConnection.mock.results[0]?.value).toHaveBeenCalledWith(
       {},

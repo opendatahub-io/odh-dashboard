@@ -1,10 +1,12 @@
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { getInstance, init, loadRemote, registerRemotes } from '@module-federation/runtime';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import EmbeddableConnectionWizard from '~/app/components/EmbeddableConnectionWizard';
+import EmbeddableCreateConnectionWizard from '~/app/components/EmbeddableCreateConnectionWizard';
 import type { ConnectionWizardAvailability } from '~/types';
 
 jest.mock('@module-federation/runtime', () => ({
@@ -25,6 +27,29 @@ jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useAccessReview: jest.fn(),
 }));
 
+jest.mock('~/app/components/CreateConnectionWizard', () => ({
+  __esModule: true,
+  default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+    const { useNotification } = jest.requireActual('~/app/hooks/useNotification');
+    const notification = useNotification();
+
+    return (
+      <div data-testid="remote-notification-wizard">
+        <span>{isOpen ? 'open' : 'closed'}</span>
+        <button
+          type="button"
+          onClick={() => {
+            notification.success('Connection created');
+            onClose();
+          }}
+        >
+          Create connection
+        </button>
+      </div>
+    );
+  },
+}));
+
 const mockGetInstance = jest.mocked(getInstance);
 const mockInit = jest.mocked(init);
 const mockRegisterRemotes = jest.mocked(registerRemotes);
@@ -33,6 +58,18 @@ const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockUseAccessReview = jest.mocked(useAccessReview);
 
 const RemoteWizard = () => <div data-testid="remote-connection-wizard" />;
+
+const StatefulWizardConsumer = () => {
+  const [isOpen, setIsOpen] = React.useState(true);
+
+  return (
+    <EmbeddableConnectionWizard
+      isOpen={isOpen}
+      namespace="test-project"
+      onClose={() => setIsOpen(false)}
+    />
+  );
+};
 
 describe('EmbeddableConnectionWizard', () => {
   beforeEach(() => {
@@ -179,6 +216,15 @@ describe('EmbeddableConnectionWizard', () => {
     render(<EmbeddableConnectionWizard isOpen={false} namespace="test-project" />);
 
     expect(screen.queryByTestId('connection-wizard-loading')).toBeNull();
+    expect(mockUseAccessReview).toHaveBeenCalledWith(
+      expect.objectContaining({
+        group: 'dataconnecthub.opendatahub.io',
+        resource: 'data-connections',
+        verb: 'create',
+        namespace: 'test-project',
+      }),
+      false,
+    );
     expect(mockLoadRemote).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
   });
@@ -193,5 +239,18 @@ describe('EmbeddableConnectionWizard', () => {
     expect(spinner).toBeInTheDocument();
     expect(spinner.getAttribute('style')).toBeNull();
     expect(document.querySelector('.pf-m-stack-level-2')).toBeInTheDocument();
+  });
+
+  it('keeps success notifications mounted after the wizard closes', async () => {
+    const user = userEvent.setup();
+    mockLoadRemote.mockResolvedValue({ default: EmbeddableCreateConnectionWizard });
+
+    render(<StatefulWizardConsumer />);
+
+    await user.click(await screen.findByRole('button', { name: 'Create connection' }));
+
+    expect(await screen.findByText('closed')).toBeInTheDocument();
+    expect(await screen.findByText('Connection created')).toBeInTheDocument();
+    expect(screen.getByTestId('toast-notification-group')).toBeInTheDocument();
   });
 });
