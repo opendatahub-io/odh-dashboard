@@ -116,11 +116,12 @@ Static assets (index.html fallback) are also served for any other path.
 
 ### OpenAPI Specification
 
-The BFF's own contract — covering `/healthcheck`, `/api/v1/user`, `/api/v1/namespaces`, and every
-Data Registry proxy route below — is documented at
+The BFF's contract documents its own endpoints and known Data Registry proxy routes at
 [`openapi/src/data-registry.yaml`](openapi/src/data-registry.yaml). Proxy route schemas are referenced via
 cross-file `$ref` into the vendored [`openapi/src/data-registry-api.yaml`](openapi/src/data-registry-api.yaml)
-contract described next, since responses are relayed verbatim.
+contract described next, since responses are relayed verbatim. The catchall proxy can forward
+upstream routes absent from this specification. Direct API consumers should use the
+[public backend contract](https://github.com/opendatahub-io/data-registry/tree/main/api-contract).
 
 ### Sample local calls
 
@@ -142,9 +143,9 @@ authorization, data persistence, or business logic of its own. See
 ([RHAI-366](https://redhat.atlassian.net/browse/RHAI-366)) for background.
 
 - **Contract**: vendored at [`openapi/src/data-registry-api.yaml`](openapi/src/data-registry-api.yaml),
-  fetched from the [data-registry-production](https://gitlab.cee.redhat.com/data-strategy/data-registry-production/-/blob/main/api-contract/data-registry-api.yaml)
-  repo. This is manually synced — re-fetch and re-vendor when the backend contract changes (there
-  is no automated sync yet; this is a known follow-up risk).
+  with the [public backend contract](https://github.com/opendatahub-io/data-registry/blob/main/api-contract/data-registry-api.yaml)
+  as the source of truth. This copy is manually synced; compare its content with upstream when
+  the backend contract changes, even if the version number is unchanged.
 - **Routing**: a single catchall handler, `DataRegistryReverseProxy`
   (`internal/api/registry_proxy_handler.go`), is mounted once on the `DataRegistryPathPrefix+"/"`
   subtree in `Routes()` (`internal/api/app.go`) — there is no per-operation route list. Any
@@ -392,8 +393,3 @@ Leaving the service name unset exercises the Secret path. Contract tests can exe
 pnpm run test:contract
 BFF_DCH_SERVICE_NAME=mock-dch MOCK_BFF_CLIENTS=true pnpm run test:contract
 ```
-
-The shared API contract is manually synchronized from `data-registry-production`. Version
-0.8.0 requires the upstream server to discard display fields on writes and support volume
-connection replacement. Those server changes and cluster write-and-read tests are separate
-from the BFF's connection lookup and must be completed before declaring the integration ready.

@@ -19,7 +19,8 @@ BFF uses the caller's identity for project and connection lookups and forwards
 registry operations to the backend. See the [request flow](docs/architecture.md)
 and [BFF connection behavior](bff/README.md#dch-connection-lookup).
 
-The [BFF OpenAPI specification](bff/openapi/src/data-registry.yaml) describes
-Dashboard-owned routes. Its [vendored registry contract](bff/openapi/src/data-registry-api.yaml)
-supports the proxy; the [backend repository](https://github.com/opendatahub-io/data-registry/tree/main/api-contract)
-publishes the API contract for direct consumers.
+The [BFF OpenAPI specification](bff/openapi/src/data-registry.yaml) documents
+BFF-owned endpoints and known proxy paths. It references a
+[vendored backend contract](bff/openapi/src/data-registry-api.yaml) for proxy
+schemas, but the BFF can forward upstream paths not listed there. Direct API
+consumers should use the [public backend contract](https://github.com/opendatahub-io/data-registry/tree/main/api-contract).

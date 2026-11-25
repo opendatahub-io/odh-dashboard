@@ -16,11 +16,13 @@ info:
       [RHAI-415](https://redhat.atlassian.net/browse/RHAI-415) and the parent epic
       [RHAI-366](https://redhat.atlassian.net/browse/RHAI-366).
 
-    The proxy paths below mirror the vendored upstream contract,
-    [`data-registry-api.yaml`](./data-registry-api.yaml) (fetched from the
-    [data-registry-production](https://gitlab.cee.redhat.com/data-strategy/data-registry-production/-/blob/main/api-contract/data-registry-api.yaml)
-    repo), 1:1 under the `/api/v1` prefix instead of the upstream's `/v1` root — only the
-    literal `/api` segment is stripped before forwarding. Because responses are relayed
+    The documented proxy paths below use the vendored upstream contract,
+    [`data-registry-api.yaml`](./data-registry-api.yaml). The
+    [public backend contract](https://github.com/opendatahub-io/data-registry/tree/main/api-contract)
+    is the source of truth; the vendored copy may lag it. The catchall proxy can forward
+    upstream paths absent from this specification. Proxy paths use the `/api/v1` prefix
+    instead of the upstream's `/v1` root — only the literal `/api` segment is stripped
+    before forwarding. Because responses are relayed
     verbatim, request/response schemas for these routes are referenced directly from
     `data-registry-api.yaml` rather than redefined here. See
     [bff/README.md#data-registry-api-proxy](../../README.md#data-registry-api-proxy) for the
