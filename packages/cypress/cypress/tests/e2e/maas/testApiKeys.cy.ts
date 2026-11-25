@@ -1,3 +1,4 @@
+import type { CreateAPIKeyResponse } from '@odh-dashboard/maas/types/api-key';
 import {
   checkMaaSSubscriptionState,
   checkMaaSAuthPolicyState,
@@ -33,7 +34,7 @@ import { ApiKeyStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
-import { waitForApiKeyDates, watchApiKeyCreation } from '../../../utils/dateUtils';
+import { formatApiKeyDisplayDate, formatApiKeyExpirationDate } from '../../../utils/dateUtils';
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;
@@ -183,7 +184,11 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         .findSubscriptionModelRateLimit(modelName)
         .should('contain.text', tokenLimit);
       createApiKeyModal.findExpirationDateInput().should('exist');
-      watchApiKeyCreation();
+      // The creation response contains the one-time API key.
+      cy.intercept(
+        { method: 'POST', pathname: '**/maas/api/v1/api-keys', times: 1 },
+        { log: false },
+      ).as('createApiKeyForDateChecks');
       createApiKeyModal.findSubmitButton().click();
       copyApiKeyModal.findApiKeyName().should('contain.text', apiKeyName);
       copyApiKeyModal.findSubscriptionName().should('contain.text', subscriptionName);
@@ -199,9 +204,16 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         .findDescription()
         .should('contain.text', `${testData.apiKeyDescription} ${subscriptionName}`);
       apiKeyRow.findStatus().should('contain.text', ApiKeyStatus.active);
-      waitForApiKeyDates(apiKeyExpirationTimeId).then(({ createdOn, expiresOn }) => {
-        apiKeyRow.findCreationDate().should('have.text', createdOn);
-        apiKeyRow.findExpirationDate().should('have.text', expiresOn);
+      cy.wait<unknown, { data?: Pick<CreateAPIKeyResponse, 'createdAt'> }>(
+        '@createApiKeyForDateChecks',
+        { log: false },
+      ).then(({ response }) => {
+        const keyCreatedAt = new Date(response?.body.data?.createdAt ?? '');
+        expect(keyCreatedAt.getTime(), 'API key creation timestamp').to.satisfy(Number.isFinite);
+        apiKeyRow.findCreationDate().should('contain.text', formatApiKeyDisplayDate(keyCreatedAt));
+        apiKeyRow
+          .findExpirationDate()
+          .should('contain.text', formatApiKeyExpirationDate(apiKeyExpirationTimeId, keyCreatedAt));
       });
       apiKeyRow.findLastUsedAt().should('not.be.empty');
 

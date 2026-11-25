@@ -1,3 +1,4 @@
+import type { CreateAPIKeyResponse } from '@odh-dashboard/maas/types/api-key';
 import {
   checkMaaSSubscriptionState,
   checkMaaSAuthPolicyState,
@@ -44,7 +45,7 @@ import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelS
 import { getClipboardContent } from '../../../utils/clipboardUtils';
 import type { CapturedDownload } from '../../../utils/downloadUtils';
 import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
-import { waitForApiKeyDates, watchApiKeyCreation } from '../../../utils/dateUtils';
+import { formatApiKeyDisplayDate, formatApiKeyExpirationDate } from '../../../utils/dateUtils';
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;
@@ -325,7 +326,11 @@ describe('An admin can manage MaaS authorization policies and control model acce
         createApiKeyModal.findSubmitButton().should('be.disabled');
         createApiKeyModal.setAfterDays(Number(apiKeyExpirationTime));
         createApiKeyModal.findSubmitButton().should('be.enabled');
-        watchApiKeyCreation();
+        // The creation response contains the one-time API key.
+        cy.intercept(
+          { method: 'POST', pathname: '**/maas/api/v1/api-keys', times: 1 },
+          { log: false },
+        ).as('createApiKeyForDateChecks');
         createApiKeyModal.findSubmitButton().click();
 
         cy.step('Read the API key from the success dialog');
@@ -346,12 +351,24 @@ describe('An admin can manage MaaS authorization policies and control model acce
           apiKeyRow.findStatus().should('contain.text', ApiKeyStatus.active);
           apiKeyRow.findSubscription().should('contain.text', subscriptionName);
           apiKeyRow.findOwner().should('contain.text', LDAP_ADMIN_USER.USERNAME);
-          waitForApiKeyDates(`${Number(apiKeyExpirationTime)}d`).then(
-            ({ createdOn, expiresOn }) => {
-              apiKeyRow.findCreationDate().should('have.text', createdOn);
-              apiKeyRow.findExpirationDate().should('have.text', expiresOn);
-            },
-          );
+          cy.wait<unknown, { data?: Pick<CreateAPIKeyResponse, 'createdAt'> }>(
+            '@createApiKeyForDateChecks',
+            { log: false },
+          ).then(({ response }) => {
+            const keyCreatedAt = new Date(response?.body.data?.createdAt ?? '');
+            expect(keyCreatedAt.getTime(), 'API key creation timestamp').to.satisfy(
+              Number.isFinite,
+            );
+            apiKeyRow
+              .findCreationDate()
+              .should('contain.text', formatApiKeyDisplayDate(keyCreatedAt));
+            apiKeyRow
+              .findExpirationDate()
+              .should(
+                'contain.text',
+                formatApiKeyExpirationDate(apiKeyExpirationTime, keyCreatedAt),
+              );
+          });
 
           cy.step('Try and inference with the model using the copied API key');
           verifyMaaSModelInferenceUsingCopiedApiKeyFromModal(
