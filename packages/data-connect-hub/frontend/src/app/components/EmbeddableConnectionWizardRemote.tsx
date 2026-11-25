@@ -70,6 +70,11 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
   const [availability, setAvailability] = React.useState<ConnectionWizardAvailability>({
     status: 'checking',
   });
+  const onAvailabilityChangeRef = React.useRef(onAvailabilityChange);
+
+  React.useEffect(() => {
+    onAvailabilityChangeRef.current = onAvailabilityChange;
+  }, [onAvailabilityChange]);
 
   const invokeOnCreatedError = (error: unknown) => {
     try {
@@ -88,22 +93,25 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
   };
 
   React.useEffect(() => {
-    if (isOpen) {
-      onAvailabilityChange?.(availability);
-    }
-  }, [availability, isOpen, onAvailabilityChange]);
-
-  React.useEffect(() => {
     if (!isOpen) {
+      setAvailability({ status: 'checking' });
       return undefined;
     }
 
     let cancelled = false;
     const abortController = new AbortController();
-    setAvailability({ status: 'checking' });
+    const notifyAvailability = (nextAvailability: ConnectionWizardAvailability) => {
+      if (cancelled) {
+        return;
+      }
+      setAvailability(nextAvailability);
+      onAvailabilityChangeRef.current?.(nextAvailability);
+    };
+
+    notifyAvailability({ status: 'checking' });
 
     if (!areaAvailability.status) {
-      setAvailability({ status: 'unavailable', reason: 'feature-flag' });
+      notifyAvailability({ status: 'unavailable', reason: 'feature-flag' });
       return undefined;
     }
 
@@ -111,7 +119,7 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
       return undefined;
     }
     if (!canCreateConnection) {
-      setAvailability({ status: 'unavailable', reason: 'permissions' });
+      notifyAvailability({ status: 'unavailable', reason: 'permissions' });
       return undefined;
     }
 
@@ -131,9 +139,9 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
       }
       if (result === 'available') {
         setIsWizardReady(true);
-        setAvailability({ status: 'available' });
+        notifyAvailability({ status: 'available' });
       } else {
-        setAvailability({ status: 'unavailable', reason: 'backend' });
+        notifyAvailability({ status: 'unavailable', reason: 'backend' });
       }
     });
 

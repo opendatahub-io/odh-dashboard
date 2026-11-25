@@ -223,6 +223,52 @@ describe('EmbeddableConnectionWizard', () => {
     expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
   });
 
+  it('reports checking before each open after a remote failure', async () => {
+    const onAvailabilityChange = jest.fn(
+      (_availability: ConnectionWizardAvailability) => undefined,
+    );
+    mockLoadRemote.mockRejectedValueOnce(new Error('remote unavailable'));
+
+    const { rerender } = render(
+      <EmbeddableConnectionWizard
+        isOpen
+        namespace="test-project"
+        initialConnectionTypeId="connection-type-id"
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+
+    expect(await screen.findByTestId('connection-wizard-unavailable')).toBeInTheDocument();
+    expect(onAvailabilityChange).toHaveBeenNthCalledWith(1, { status: 'checking' });
+    expect(onAvailabilityChange).toHaveBeenNthCalledWith(2, {
+      status: 'unavailable',
+      reason: 'remote',
+    });
+
+    rerender(
+      <EmbeddableConnectionWizard
+        isOpen={false}
+        namespace="test-project"
+        initialConnectionTypeId="connection-type-id"
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+    mockLoadRemote.mockResolvedValue({ default: EmbeddableConnectionWizardRemote });
+    rerender(
+      <EmbeddableConnectionWizard
+        isOpen
+        namespace="test-project"
+        initialConnectionTypeId="connection-type-id"
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+
+    expect(onAvailabilityChange).toHaveBeenNthCalledWith(3, { status: 'checking' });
+    await waitFor(() =>
+      expect(onAvailabilityChange).toHaveBeenNthCalledWith(5, { status: 'available' }),
+    );
+  });
+
   it('does not check availability while closed', () => {
     render(<EmbeddableConnectionWizard isOpen={false} namespace="test-project" />);
 

@@ -45,15 +45,23 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
 }) => {
   const [remoteComponent, setRemoteComponent] =
     React.useState<React.ComponentType<EmbeddableConnectionWizardProps> | null>(null);
-  const [isRemoteLoading, setIsRemoteLoading] = React.useState(false);
+  const [isRemoteLoading, setIsRemoteLoading] = React.useState(true);
   const [isRemoteUnavailable, setIsRemoteUnavailable] = React.useState(false);
+  const onAvailabilityChangeRef = React.useRef(onAvailabilityChange);
+
+  React.useEffect(() => {
+    onAvailabilityChangeRef.current = onAvailabilityChange;
+  }, [onAvailabilityChange]);
 
   React.useEffect(() => {
     if (!isOpen) {
+      setIsRemoteLoading(true);
+      setIsRemoteUnavailable(false);
       return undefined;
     }
 
     let cancelled = false;
+    onAvailabilityChangeRef.current?.({ status: 'checking' });
     setIsRemoteLoading(true);
     setIsRemoteUnavailable(false);
 
@@ -62,6 +70,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     } catch {
       setIsRemoteLoading(false);
       setIsRemoteUnavailable(true);
+      onAvailabilityChangeRef.current?.({ status: 'unavailable', reason: 'remote' });
       return undefined;
     }
 
@@ -76,6 +85,9 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
         setRemoteComponent(() => component);
         setIsRemoteLoading(false);
         setIsRemoteUnavailable(!component);
+        if (!component) {
+          onAvailabilityChangeRef.current?.({ status: 'unavailable', reason: 'remote' });
+        }
       })
       .catch(() => {
         if (cancelled) {
@@ -83,18 +95,13 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
         }
         setIsRemoteLoading(false);
         setIsRemoteUnavailable(true);
+        onAvailabilityChangeRef.current?.({ status: 'unavailable', reason: 'remote' });
       });
 
     return () => {
       cancelled = true;
     };
   }, [isOpen]);
-
-  React.useEffect(() => {
-    if (isOpen && isRemoteUnavailable) {
-      onAvailabilityChange?.({ status: 'unavailable', reason: 'remote' });
-    }
-  }, [isOpen, isRemoteUnavailable, onAvailabilityChange]);
 
   if (!isOpen && !remoteComponent) {
     return null;

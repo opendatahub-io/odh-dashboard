@@ -131,6 +131,47 @@ describe('EmbeddableConnectionWizardRemote', () => {
     expect(onClose).toHaveBeenCalledWith('cancelled');
   });
 
+  it('reports checking before each open after a backend failure', async () => {
+    const onAvailabilityChange = jest.fn();
+    global.fetch = jest.fn<typeof fetch>().mockRejectedValueOnce(new Error('backend unavailable'));
+
+    const { rerender } = render(
+      <EmbeddableConnectionWizardRemote
+        isOpen
+        namespace="test-project"
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+
+    expect(await screen.findByTestId('connection-wizard-unavailable')).toBeTruthy();
+    expect(onAvailabilityChange).toHaveBeenNthCalledWith(1, { status: 'checking' });
+    expect(onAvailabilityChange).toHaveBeenNthCalledWith(2, {
+      status: 'unavailable',
+      reason: 'backend',
+    });
+
+    rerender(
+      <EmbeddableConnectionWizardRemote
+        isOpen={false}
+        namespace="test-project"
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+    global.fetch = jest.fn<typeof fetch>().mockResolvedValue({ ok: true, status: 200 } as Response);
+    rerender(
+      <EmbeddableConnectionWizardRemote
+        isOpen
+        namespace="test-project"
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+
+    expect(onAvailabilityChange).toHaveBeenNthCalledWith(3, { status: 'checking' });
+    await waitFor(() =>
+      expect(onAvailabilityChange).toHaveBeenNthCalledWith(4, { status: 'available' }),
+    );
+  });
+
   it('renders the locked namespace as plain text and enables credential verification by default', async () => {
     const user = userEvent.setup();
     render(
