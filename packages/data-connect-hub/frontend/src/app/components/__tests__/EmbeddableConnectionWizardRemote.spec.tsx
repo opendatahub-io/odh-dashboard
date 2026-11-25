@@ -2,7 +2,9 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import EmbeddableCreateConnectionWizard from '~/app/components/EmbeddableCreateConnectionWizard';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import EmbeddableConnectionWizardRemote from '~/app/components/EmbeddableConnectionWizardRemote';
 import { ConnectionTypeInstance } from '~/app/components/ConnectionType';
 import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
@@ -18,6 +20,15 @@ jest.mock('~/app/hooks/useNamespaces');
 jest.mock('~/app/hooks/useCreateConnectionNamespaces');
 jest.mock('~/app/hooks/useConnectionAccess');
 jest.mock('~/app/hooks/useConnectionNameAvailability');
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  SupportedArea: {
+    PLUGIN_DATA_CONNECT_HUB: 'plugin-data-connect-hub',
+  },
+  useIsAreaAvailable: jest.fn(),
+}));
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useAccessReview: jest.fn(),
+}));
 jest.mock('~/app/utilities/tracking', () => ({
   ...jest.requireActual<typeof import('~/app/utilities/tracking')>('~/app/utilities/tracking'),
   fireDataConnectHubTrackEvent: jest.fn(),
@@ -31,6 +42,8 @@ const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockUseCreateConnectionNamespaces = jest.mocked(useCreateConnectionNamespaces);
 const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
 const mockUseConnectionNameAvailability = jest.mocked(useConnectionNameAvailability);
+const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
+const mockUseAccessReview = jest.mocked(useAccessReview);
 const mockCreateConnection = jest.mocked(createConnection);
 
 const connectionTypeId = '550e8400-e29b-41d4-a716-446655440003';
@@ -71,7 +84,7 @@ const createdConnection: Connection = {
   status: { state: 'ready' },
 };
 
-describe('EmbeddableCreateConnectionWizard', () => {
+describe('EmbeddableConnectionWizardRemote', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
@@ -86,11 +99,21 @@ describe('EmbeddableCreateConnectionWizard', () => {
       undefined,
     ]);
     mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
+    mockUseIsAreaAvailable.mockReturnValue({
+      status: true,
+      devFlags: null,
+      featureFlags: null,
+      reliantAreas: null,
+      requiredCapabilities: null,
+      requiredComponents: null,
+    });
+    mockUseAccessReview.mockReturnValue([true, true]);
     mockUseConnectionNameAvailability.mockReturnValue([
       { available: true, conflicts_with: [] },
       true,
       undefined,
     ]);
+    global.fetch = jest.fn<typeof fetch>().mockResolvedValue({ ok: true, status: 200 } as Response);
     jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(jest.fn());
     mockCreateConnection.mockReturnValue(
       jest.fn<() => Promise<Connection>>().mockResolvedValue(createdConnection),
@@ -100,7 +123,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
   it('renders the locked namespace as plain text and enables credential verification by default', async () => {
     const user = userEvent.setup();
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         initialConnectionTypeId={connectionTypeId}
@@ -121,7 +144,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
 
   it('renders a selectable namespace when namespace selection is enabled', async () => {
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         initialConnectionTypeId={connectionTypeId}
@@ -138,7 +161,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
     mockUseNamespaces.mockReturnValue([[], false, new Error('namespace request failed')]);
 
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         initialConnectionTypeId={connectionTypeId}
@@ -157,7 +180,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
   it('can disable credential verification', async () => {
     const user = userEvent.setup();
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         initialConnectionTypeId={connectionTypeId}
@@ -176,7 +199,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
     mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
     const user = userEvent.setup();
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         initialConnectionTypeId={connectionTypeId}
@@ -195,7 +218,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
     const onCreated = jest.fn<() => void>();
     const onClose = jest.fn();
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         initialConnectionTypeId={connectionTypeId}
@@ -230,7 +253,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
     const onCreatedError = jest.fn();
     const onClose = jest.fn();
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         initialConnectionTypeId={connectionTypeId}
@@ -259,7 +282,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
     const onCreatedError = jest.fn();
     const onClose = jest.fn();
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         initialConnectionTypeId={connectionTypeId}
@@ -283,7 +306,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
 
   it('filters connection types by provider', async () => {
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         connectionTypeProviders={['postgresql']}
@@ -296,7 +319,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
 
   it('does not widen provider filtering when an invalid empty provider list is supplied', async () => {
     render(
-      <EmbeddableCreateConnectionWizard
+      <EmbeddableConnectionWizardRemote
         isOpen
         namespace="test-project"
         connectionTypeProviders={[] as unknown as [string]}
@@ -310,7 +333,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
 
   it('passes a tearsheet stacking level to the wizard', async () => {
     render(
-      <EmbeddableCreateConnectionWizard isOpen namespace="test-project" tearsheetStackLevel={1} />,
+      <EmbeddableConnectionWizardRemote isOpen namespace="test-project" tearsheetStackLevel={1} />,
     );
 
     expect(await screen.findByTestId('create-connection-tearsheet')).toBeTruthy();

@@ -2,17 +2,10 @@ import React from 'react';
 import { getInstance, init, loadRemote, registerRemotes } from '@module-federation/runtime';
 import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
 import { Tearsheet, TearsheetBody, TearsheetHeader } from '@patternfly/react-component-groups';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
-import type {
-  ConnectionWizardAvailability,
-  EmbeddableConnectionWizardProps,
-  EmbeddableCreateConnectionWizardProps,
-} from '~/types';
+import type { EmbeddableConnectionWizardProps } from '@odh-dashboard/data-connect-hub/types';
 
 const DATA_CONNECT_HUB_ENTRY = '/_mf/dataConnectHub/remoteEntry.js';
-const DATA_CONNECT_HUB_BACKEND_HEALTH = '/data-connect-hub/healthcheck/backend';
-const REMOTE_MODULE = 'dataConnectHub/EmbeddableCreateConnectionWizard';
+const REMOTE_MODULE = 'dataConnectHub/EmbeddableConnectionWizard';
 
 let hasRegisteredRemote = false;
 
@@ -37,13 +30,10 @@ const registerDataConnectHubRemote = (): void => {
   hasRegisteredRemote = true;
 };
 
-const checkBackendHealth = async (signal: AbortSignal): Promise<void> => {
-  const response = await fetch(DATA_CONNECT_HUB_BACKEND_HEALTH, { signal });
-  if (!response.ok) {
-    throw new Error(`Connection backend health check failed with status ${response.status}`);
-  }
-};
-
+/**
+ * Consumer-facing loader for the federated connection wizard. Only the
+ * availability-aware public facade is exposed by the DCH remote.
+ */
 const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
   isOpen,
   namespace,
@@ -52,27 +42,10 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
   tearsheetStackLevel,
   ...wizardProps
 }) => {
-  const areaAvailability = useIsAreaAvailable(SupportedArea.PLUGIN_DATA_CONNECT_HUB);
-  const [canCreateConnection, createAccessLoaded] = useAccessReview(
-    {
-      group: 'dataconnecthub.opendatahub.io',
-      resource: 'data-connections',
-      verb: 'create',
-      namespace,
-    },
-    Boolean(namespace && isOpen),
-  );
   const [remoteComponent, setRemoteComponent] =
-    React.useState<React.ComponentType<EmbeddableCreateConnectionWizardProps> | null>(null);
-  const [availability, setAvailability] = React.useState<ConnectionWizardAvailability>({
-    status: 'checking',
-  });
-
-  React.useEffect(() => {
-    if (isOpen) {
-      onAvailabilityChange?.(availability);
-    }
-  }, [availability, isOpen, onAvailabilityChange]);
+    React.useState<React.ComponentType<EmbeddableConnectionWizardProps> | null>(null);
+  const [isRemoteLoading, setIsRemoteLoading] = React.useState(false);
+  const [isRemoteUnavailable, setIsRemoteUnavailable] = React.useState(false);
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -80,88 +53,53 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     }
 
     let cancelled = false;
-    const abortController = new AbortController();
-    setAvailability({ status: 'checking' });
-
-    if (!areaAvailability.status) {
-      setAvailability({ status: 'unavailable', reason: 'feature-flag' });
-      return undefined;
-    }
-
-    if (!createAccessLoaded) {
-      return undefined;
-    }
-    if (!canCreateConnection) {
-      setAvailability({ status: 'unavailable', reason: 'permissions' });
-      return undefined;
-    }
+    setIsRemoteLoading(true);
+    setIsRemoteUnavailable(false);
 
     try {
       registerDataConnectHubRemote();
     } catch {
-      setAvailability({ status: 'unavailable', reason: 'remote' });
+      setIsRemoteLoading(false);
+      setIsRemoteUnavailable(true);
       return undefined;
     }
 
-    const loadWizard = async (): Promise<'available' | 'remote' | 'backend'> => {
-      const remoteComponentPromise = (async () => {
-        try {
-          const module = await loadRemote<{
-            default: React.ComponentType<EmbeddableCreateConnectionWizardProps>;
-          }>(REMOTE_MODULE);
-          return module?.default ?? null;
-        } catch {
-          return null;
-        }
-      })();
-
-      try {
-        await checkBackendHealth(abortController.signal);
-      } catch {
+    loadRemote<{
+      default: React.ComponentType<EmbeddableConnectionWizardProps>;
+    }>(REMOTE_MODULE)
+      .then((module) => {
         if (cancelled) {
-          return 'available';
+          return;
         }
-        return 'backend';
-      }
-
-      if (cancelled) {
-        return 'available';
-      }
-
-      const component = await remoteComponentPromise;
-      if (cancelled) {
-        return 'available';
-      }
-      if (!component) {
-        return 'remote';
-      }
-      setRemoteComponent(() => component);
-      return 'available';
-    };
-
-    void loadWizard().then((result) => {
-      if (cancelled) {
-        return;
-      }
-      if (result === 'available') {
-        setAvailability({ status: 'available' });
-      } else {
-        setRemoteComponent(null);
-        setAvailability({ status: 'unavailable', reason: result });
-      }
-    });
+        const component = module?.default ?? null;
+        setRemoteComponent(() => component);
+        setIsRemoteLoading(false);
+        setIsRemoteUnavailable(!component);
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setIsRemoteLoading(false);
+        setIsRemoteUnavailable(true);
+      });
 
     return () => {
       cancelled = true;
-      abortController.abort();
     };
-  }, [areaAvailability.status, canCreateConnection, createAccessLoaded, isOpen, namespace]);
+  }, [isOpen]);
+
+  React.useEffect(() => {
+    if (isOpen && isRemoteUnavailable) {
+      onAvailabilityChange?.({ status: 'unavailable', reason: 'remote' });
+    }
+  }, [isOpen, isRemoteUnavailable, onAvailabilityChange]);
 
   if (!isOpen && !remoteComponent) {
     return null;
   }
 
-  if (isOpen && availability.status === 'checking') {
+  if (isOpen && isRemoteLoading && !remoteComponent) {
     return (
       <Tearsheet
         isOpen
@@ -182,7 +120,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     );
   }
 
-  if (isOpen && (availability.status === 'unavailable' || !remoteComponent)) {
+  if (isOpen && (isRemoteUnavailable || !remoteComponent)) {
     return (
       unavailableFallback ?? (
         <Alert
@@ -207,6 +145,8 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
       isOpen={isOpen}
       namespace={namespace}
       tearsheetStackLevel={tearsheetStackLevel}
+      unavailableFallback={unavailableFallback}
+      onAvailabilityChange={onAvailabilityChange}
       {...wizardProps}
     />
   );

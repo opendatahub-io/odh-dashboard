@@ -60,9 +60,11 @@ The loader checks availability only while `isOpen` is `true`. It:
 
 1. Checks the `plugin-data-connect-hub` area, including the `dataConnectHub` feature flag.
 2. Checks whether the user can create `data-connections` in the supplied namespace.
-3. Registers `dataConnectHub` with the consumer's Module Federation runtime and loads `EmbeddableCreateConnectionWizard`.
+3. Registers `dataConnectHub` with the consumer's Module Federation runtime and loads the availability-aware `EmbeddableConnectionWizard` facade.
 4. Calls `GET /data-connect-hub/healthcheck/backend`.
-5. Renders the federated wizard only when the feature is enabled, the user has create permission, and both the remote and BFF are available.
+5. Renders the wizard only when the feature is enabled, the user has create permission, and the BFF is available.
+
+Only the availability-aware `EmbeddableConnectionWizard` facade is exposed through Module Federation. The implementation component is private to the DCH bundle and is not a supported remote entry point.
 
 The backend-health endpoint calls the upstream DCH REST service's `/health` endpoint. This is separate from `/data-connect-hub/healthcheck`, which is only the DCH BFF liveness endpoint.
 

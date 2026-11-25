@@ -55,7 +55,7 @@ export type DchConnectionType = {
  * Props for the embeddable connection creation wizard exposed by the
  * data-connect-hub Module Federation remote.
  */
-export type EmbeddableCreateConnectionWizardProps = {
+export type EmbeddableConnectionWizardProps = {
   /** Whether the wizard is open. */
   isOpen: boolean;
   /** Namespace in which the connection is created. */
@@ -83,6 +83,10 @@ export type EmbeddableCreateConnectionWizardProps = {
   enableCredentialVerification?: boolean;
   /** Stacking level used when the wizard renders above other tearsheets. */
   tearsheetStackLevel?: number;
+  /** Rendered instead of the wizard when DCH is unavailable. */
+  unavailableFallback?: ReactNode;
+  /** Receives the current wizard availability state. */
+  onAvailabilityChange?: (availability: ConnectionWizardAvailability) => void;
 };
 
 export type ConnectionWizardCloseOutcome = 'created' | 'cancelled';
@@ -96,10 +100,3 @@ export type ConnectionWizardAvailability =
       status: 'unavailable';
       reason: 'feature-flag' | 'remote' | 'backend' | 'permissions';
     };
-
-export type EmbeddableConnectionWizardProps = EmbeddableCreateConnectionWizardProps & {
-  /** Rendered instead of the wizard when DCH is unavailable. */
-  unavailableFallback?: ReactNode;
-  /** Receives the current wizard availability state. */
-  onAvailabilityChange?: (availability: ConnectionWizardAvailability) => void;
-};

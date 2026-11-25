@@ -5,8 +5,9 @@ import userEvent from '@testing-library/user-event';
 import { getInstance, init, loadRemote, registerRemotes } from '@module-federation/runtime';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import moduleFederationConfig from '../../../../config/moduleFederation.js';
 import EmbeddableConnectionWizard from '~/app/components/EmbeddableConnectionWizard';
-import EmbeddableCreateConnectionWizard from '~/app/components/EmbeddableCreateConnectionWizard';
+import EmbeddableConnectionWizardRemote from '~/app/components/EmbeddableConnectionWizardRemote';
 import type { ConnectionWizardAvailability } from '~/types';
 
 jest.mock('@module-federation/runtime', () => ({
@@ -57,8 +58,6 @@ const mockLoadRemote = jest.mocked(loadRemote);
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockUseAccessReview = jest.mocked(useAccessReview);
 
-const RemoteWizard = () => <div data-testid="remote-connection-wizard" />;
-
 const StatefulWizardConsumer = () => {
   const [isOpen, setIsOpen] = React.useState(true);
 
@@ -77,7 +76,7 @@ describe('EmbeddableConnectionWizard', () => {
     mockGetInstance.mockReturnValue(null);
     mockInit.mockReturnValue({} as ReturnType<typeof init>);
     mockRegisterRemotes.mockReturnValue(undefined);
-    mockLoadRemote.mockResolvedValue({ default: RemoteWizard });
+    mockLoadRemote.mockResolvedValue({ default: EmbeddableConnectionWizardRemote });
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
       devFlags: null,
@@ -88,6 +87,19 @@ describe('EmbeddableConnectionWizard', () => {
     });
     mockUseAccessReview.mockReturnValue([true, true]);
     global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 } as Response);
+  });
+
+  it('exposes only the availability-aware wizard facade', () => {
+    const exposes = moduleFederationConfig.moduleFederationPlugins[0].options.exposes;
+
+    expect(Object.keys(exposes)).toEqual([
+      './extensions',
+      './extension-points',
+      './EmbeddableConnectionWizard',
+    ]);
+    expect(exposes['./EmbeddableConnectionWizard']).toBe(
+      './src/app/components/EmbeddableConnectionWizardRemote',
+    );
   });
 
   it('registers the remote, checks backend health, and renders the wizard', async () => {
@@ -103,19 +115,19 @@ describe('EmbeddableConnectionWizard', () => {
       />,
     );
 
-    expect(await screen.findByTestId('remote-connection-wizard')).toBeInTheDocument();
+    expect(await screen.findByTestId('remote-notification-wizard')).toBeInTheDocument();
     expect(mockInit).toHaveBeenCalledWith({
       name: 'connectionWizardConsumer',
       remotes: [{ name: 'dataConnectHub', entry: '/_mf/dataConnectHub/remoteEntry.js' }],
     });
-    expect(mockLoadRemote).toHaveBeenCalledWith('dataConnectHub/EmbeddableCreateConnectionWizard');
+    expect(mockLoadRemote).toHaveBeenCalledWith('dataConnectHub/EmbeddableConnectionWizard');
     expect(global.fetch).toHaveBeenCalledWith('/data-connect-hub/healthcheck/backend', {
       signal: expect.any(AbortSignal),
     });
     await waitFor(() => expect(onAvailabilityChange).toHaveBeenCalledWith({ status: 'available' }));
   });
 
-  it('renders the fallback without remote or backend checks when the feature is disabled', () => {
+  it('renders the fallback without backend checks when the feature is disabled', async () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
       devFlags: null,
@@ -133,8 +145,7 @@ describe('EmbeddableConnectionWizard', () => {
       />,
     );
 
-    expect(screen.getByTestId('legacy-connection-modal')).toBeInTheDocument();
-    expect(mockLoadRemote).not.toHaveBeenCalled();
+    expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -154,7 +165,6 @@ describe('EmbeddableConnectionWizard', () => {
     );
 
     expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
-    expect(mockLoadRemote).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(onAvailabilityChange).toHaveBeenCalledWith({
@@ -169,38 +179,14 @@ describe('EmbeddableConnectionWizard', () => {
 
     render(<EmbeddableConnectionWizard isOpen namespace="test-project" />);
 
-    expect(await screen.findByTestId('connection-wizard-loading-tearsheet')).toBeInTheDocument();
-    expect(mockLoadRemote).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByTestId('connection-wizard-loading-tearsheet')).toBeInTheDocument(),
+    );
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('renders the fallback when the backend health check fails', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 } as Response);
-    const onAvailabilityChange = jest.fn(
-      (_availability: ConnectionWizardAvailability) => undefined,
-    );
-
-    render(
-      <EmbeddableConnectionWizard
-        isOpen
-        namespace="test-project"
-        unavailableFallback={<div data-testid="legacy-connection-modal" />}
-        onAvailabilityChange={onAvailabilityChange}
-      />,
-    );
-
-    expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
-    await waitFor(() =>
-      expect(onAvailabilityChange).toHaveBeenCalledWith({
-        status: 'unavailable',
-        reason: 'backend',
-      }),
-    );
-  });
-
-  it('reports backend unavailability without waiting for the remote load', async () => {
-    mockLoadRemote.mockReturnValue(new Promise(() => undefined));
-    global.fetch = jest.fn().mockRejectedValue(new Error('backend unavailable'));
     const onAvailabilityChange = jest.fn(
       (_availability: ConnectionWizardAvailability) => undefined,
     );
@@ -241,15 +227,6 @@ describe('EmbeddableConnectionWizard', () => {
     render(<EmbeddableConnectionWizard isOpen={false} namespace="test-project" />);
 
     expect(screen.queryByTestId('connection-wizard-loading')).toBeNull();
-    expect(mockUseAccessReview).toHaveBeenCalledWith(
-      expect.objectContaining({
-        group: 'dataconnecthub.opendatahub.io',
-        resource: 'data-connections',
-        verb: 'create',
-        namespace: 'test-project',
-      }),
-      false,
-    );
     expect(mockLoadRemote).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
   });
@@ -268,8 +245,6 @@ describe('EmbeddableConnectionWizard', () => {
 
   it('keeps success notifications mounted after the wizard closes', async () => {
     const user = userEvent.setup();
-    mockLoadRemote.mockResolvedValue({ default: EmbeddableCreateConnectionWizard });
-
     render(<StatefulWizardConsumer />);
 
     await user.click(await screen.findByRole('button', { name: 'Create connection' }));

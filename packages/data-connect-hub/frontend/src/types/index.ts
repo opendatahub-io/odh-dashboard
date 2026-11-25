@@ -5,5 +5,4 @@ export type {
   ConnectionWizardCloseOutcome,
   ConnectionTypeProviders,
   EmbeddableConnectionWizardProps,
-  EmbeddableCreateConnectionWizardProps,
 } from './embeddable-create-connection-wizard';
