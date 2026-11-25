@@ -57,15 +57,21 @@ build_ignore = [
 docker_host = os.environ.get("DOCKER_HOST", "")
 docker_cli = str(local("command -v docker 2>/dev/null || true", quiet=True)) != ""
 podman_cli = str(local("command -v podman 2>/dev/null || true", quiet=True)) != ""
-if "podman" in docker_host:
-    podman_daemon = True
-elif docker_cli:
+if docker_cli:
+    # `docker version` resolves the same endpoint the build will use
+    # (DOCKER_CONTEXT overrides DOCKER_HOST, which overrides the current
+    # context), so classifying through it keeps detection, build, and push
+    # on one precedence chain even when DOCKER_HOST and DOCKER_CONTEXT
+    # conflict.
     podman_daemon = "Podman Engine" in str(local("docker version 2>&1 || true", quiet=True))
+elif "podman" in docker_host:
+    # No docker CLI: a DOCKER_HOST at Podman's compat socket identifies the
+    # daemon on podman-only installs without contacting it.
+    podman_daemon = True
 elif podman_cli:
-    # No docker CLI: treat a podman CLI as a podman-only install. Without it,
-    # a Podman daemon behind a generically named socket or no DOCKER_HOST at
-    # all would fall through to docker_build and hit the BuildKit session
-    # error this branch exists to avoid.
+    # No docker CLI and no identifying DOCKER_HOST: treat a podman CLI as a
+    # podman-only install rather than falling through to docker_build and
+    # the BuildKit session error this branch exists to avoid.
     podman_daemon = True
 else:
     podman_daemon = False

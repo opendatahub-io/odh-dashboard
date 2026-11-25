@@ -113,9 +113,11 @@ def fixture_cli():
                 print(container["id"])
             elif template == "{{json .NetworkSettings.Networks.kind}}":
                 print('{"kind":{}}' if container.get("kind_network") else "null")
-            elif template == "{{json .HostConfig.PortBindings}}":
-                port = config.get("registry_port", "5001")
-                print('{"5000/tcp":[{"HostIp":"127.0.0.1","HostPort":"%s"}]}' % port)
+            elif template.startswith("{{len (index"):
+                print(len(container.get("bindings", [])))
+            elif template.startswith("{{index (index"):
+                bindings = container.get("bindings", [])
+                print(bindings[0] if bindings else "")
             else:
                 print(str(container["running"]).lower())
         return 0
@@ -134,6 +136,7 @@ def fixture_cli():
             "id": "registry-container",
             "running": True,
             "kind_network": False,
+            "bindings": ["{127.0.0.1 5001}"],
         }
         persist()
         return 0
@@ -302,6 +305,7 @@ class SetupKindTest(unittest.TestCase):
             "id": "registry-container",
             "running": True,
             "kind_network": True,
+            "bindings": ["{127.0.0.1 5001}"],
         }
         self.run_setup()
         self.assertFalse(self.commands("docker", "run"))
@@ -326,21 +330,38 @@ class SetupKindTest(unittest.TestCase):
             "id": "registry-container",
             "running": False,
             "kind_network": True,
+            "bindings": ["{127.0.0.1 5001}"],
         }
         self.run_setup()
         self.assertIn(["start", REGISTRY], self.commands("docker", "start"))
         self.assertFalse(self.commands("docker", "run"))
         self.assertFalse(self.commands("docker", "rm"))
 
-    def test_registry_published_port_is_validated(self):
+    def assert_registry_rejected(self, bindings, running):
         self.config["containers"]["docker"][REGISTRY] = {
             "id": "registry-container",
-            "running": True,
+            "running": running,
             "kind_network": True,
+            "bindings": bindings,
         }
-        self.config["registry_port"] = "9999"
         result = self.run_setup(success=False)
-        self.assertIn("does not publish 127.0.0.1:5001", result.stdout)
+        self.assertIn("does not publish exactly 127.0.0.1:5001", result.stdout)
+        self.assertNotIn(["start", REGISTRY], self.commands("docker", "start"))
+        self.assertFalse(self.commands("docker", "run"))
+
+    def test_running_registry_with_wrong_port_is_rejected(self):
+        self.assert_registry_rejected(["{127.0.0.1 9999}"], running=True)
+
+    def test_stopped_registry_with_wildcard_binding_is_rejected(self):
+        # A stopped registry created with `-p 5001:5000` binds all interfaces;
+        # starting it would expose the unauthenticated registry beyond
+        # loopback. It must be rejected, not started.
+        self.assert_registry_rejected(["{ 5001}"], running=False)
+
+    def test_registry_with_extra_non_loopback_binding_is_rejected(self):
+        self.assert_registry_rejected(
+            ["{127.0.0.1 5001}", "{0.0.0.0 5001}"], running=True
+        )
 
     def test_discovery_failure_does_not_create_cluster(self):
         self.config["discovery_failure"] = True

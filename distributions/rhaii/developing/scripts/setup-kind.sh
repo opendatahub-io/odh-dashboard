@@ -119,20 +119,26 @@ kubectl create namespace opendatahub --dry-run=client -o yaml | kubectl apply -f
 # Kind nodes, so the registry is created in that same runtime.
 
 registry_state="$("${CONTAINER_PROVIDER}" inspect --format '{{.State.Running}}' "${REGISTRY_NAME}" 2>/dev/null || true)"
-if [[ "${registry_state}" == "true" ]]; then
-  # Reusing a running registry: it must publish the port we advertise in the
-  # local-registry-hosting ConfigMap below, or pushes will fail.
-  port_bindings="$("${CONTAINER_PROVIDER}" inspect --format '{{json .HostConfig.PortBindings}}' "${REGISTRY_NAME}")"
-  if ! grep -Eq '"HostIp"[[:space:]]*:[[:space:]]*"127\.0\.0\.1"' <<< "${port_bindings}" \
-     || ! grep -Eq "\"HostPort\"[[:space:]]*:[[:space:]]*\"${REGISTRY_PORT}\"" <<< "${port_bindings}"; then
-    echo "ERROR: Existing '${REGISTRY_NAME}' does not publish 127.0.0.1:${REGISTRY_PORT}. Remove it or re-create it with the expected port binding."
+if [[ -n "${registry_state}" ]]; then
+  # An existing registry (running or stopped) is reused only if its port
+  # bindings are exactly what the local-registry-hosting ConfigMap below
+  # advertises: one 5000/tcp binding to 127.0.0.1:${REGISTRY_PORT}. Starting
+  # a container preserves its original bindings, so stopped registries need
+  # the same validation as running ones -- and anything looser (wildcard
+  # bindings, a different port, extra publications) would either break pushes
+  # or expose the unauthenticated registry beyond loopback.
+  binding_count="$("${CONTAINER_PROVIDER}" inspect --format '{{len (index .HostConfig.PortBindings "5000/tcp")}}' "${REGISTRY_NAME}")"
+  binding="$("${CONTAINER_PROVIDER}" inspect --format '{{index (index .HostConfig.PortBindings "5000/tcp") 0}}' "${REGISTRY_NAME}" 2>/dev/null || true)"
+  if [[ "${binding_count}" != "1" || "${binding}" != "{127.0.0.1 ${REGISTRY_PORT}}" ]]; then
+    echo "ERROR: Existing '${REGISTRY_NAME}' does not publish exactly 127.0.0.1:${REGISTRY_PORT} on 5000/tcp. Remove it or re-create it with the expected port binding."
     exit 1
   fi
-elif [[ -n "${registry_state}" ]]; then
-  # The container exists but is stopped: start it so previously pushed images
-  # in its writable layer are preserved (recreating would lose them).
-  echo "Starting stopped local registry '${REGISTRY_NAME}'..."
-  "${CONTAINER_PROVIDER}" start "${REGISTRY_NAME}"
+  if [[ "${registry_state}" != "true" ]]; then
+    # Stopped, not absent: start it so previously pushed images in its
+    # writable layer are preserved (recreating would lose them).
+    echo "Starting stopped local registry '${REGISTRY_NAME}'..."
+    "${CONTAINER_PROVIDER}" start "${REGISTRY_NAME}"
+  fi
 else
   echo "Creating local registry '${REGISTRY_NAME}' on 127.0.0.1:${REGISTRY_PORT}..."
   # Fully qualified so short-name resolution (e.g. Podman aliases) cannot
