@@ -31,6 +31,23 @@ class ModelServingToolbar extends Contextual<HTMLElement> {
   }
 }
 class ModelServingGlobal {
+  openDeploymentStatusModal(name: string) {
+    this.getModelRow(name).findByTestId('model-status-text').click();
+    return this.findDeploymentStatusModal();
+  }
+
+  findDeploymentStatusModal() {
+    return cy.findByTestId('deployment-status-modal');
+  }
+
+  findDeploymentStatusResourcesTab() {
+    return this.findDeploymentStatusModal().findByTestId('deployment-status-resources-tab');
+  }
+
+  findDeploymentKueueAlert() {
+    return this.findDeploymentStatusModal().findByTestId('deployment-status-kueue-alert');
+  }
+
   visit(project?: string) {
     cy.visitWithLogin(`/ai-hub/models/deployments${project ? `/${project}` : ''}`);
     this.wait();
