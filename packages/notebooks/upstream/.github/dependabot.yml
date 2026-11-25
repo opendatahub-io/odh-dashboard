@@ -1,0 +1,28 @@
+# https://docs.github.com/en/code-security/dependabot
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(gha)"
+
+  # only open security update PRs (see linked docs for explanation of `open-pull-requests-limit: 0`)
+  #  https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/configuring-dependabot-security-updates#overriding-the-default-behavior-with-a-configuration-file
+  #  https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#open-pull-requests-limit
+
+  # security PRs need to be further enabled in the repository settings
+  #  https://docs.github.com/en/code-security/dependabot/dependabot-auto-triage-rules/customizing-auto-triage-rules-to-prioritize-dependabot-alerts
+
+  # The shipped image is workspaces/controller. workspaces/backend is not built by Konflux.
+  - package-ecosystem: "gomod"
+    open-pull-requests-limit: 0
+    directory: "/workspaces/controller"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "fix(deps)"
+    groups:
+      go:
+        applies-to: security-updates
