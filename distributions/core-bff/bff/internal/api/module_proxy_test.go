@@ -540,7 +540,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				}},
 			},
 			wantErr:   true,
-			errSubstr: "custom x-forwarded-access-token header while authorize is enabled",
+			errSubstr: "custom X-Forwarded-Access-Token header while authorize is enabled",
 		},
 		{
 			name:       "authorize with custom auth-token header case-insensitive",
@@ -553,7 +553,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				}},
 			},
 			wantErr:   true,
-			errSubstr: "custom x-forwarded-access-token header while authorize is enabled",
+			errSubstr: "custom X-Forwarded-Access-Token header while authorize is enabled",
 		},
 		{
 			name:       "non-authorized route with auth-token header allowed",
