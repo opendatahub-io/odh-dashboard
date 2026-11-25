@@ -4164,6 +4164,26 @@ export interface V1Beta1PodConfigSpec {
    */
   affinity?: V1Affinity;
   /**
+   * extra environment variables for the "main" container, specific to this pod config
+   *  - use this for variables that depend on the hardware or scheduling of this pod config,
+   *    for example `PJRT_DEVICE=CPU` for a CPU pod config, or `TPU_TOPOLOGY=2x2` for a TPU slice
+   *  - these are combined with the WorkspaceKind-level `podTemplate.podSpec.mainContainer.extraEnv`:
+   *     - a variable with the same `name` as a WorkspaceKind-level variable replaces its value,
+   *       but keeps the position of the WorkspaceKind-level variable
+   *     - all other variables are added after the WorkspaceKind-level variables, in the order listed here
+   *  - Kubernetes only expands `$(VAR_NAME)` references to variables that appear EARLIER in the
+   *    final list, so WorkspaceKind-level variables can NOT reference variables only defined here
+   *  - like all pod config `spec` fields, this can NOT be changed while the pod config is used by
+   *    any Workspace, instead, create a new pod config value and redirect the old one to it
+   *  - the following go template functions are available:
+   *     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+   * +kubebuilder:validation:Optional
+   * +kubebuilder:example:={{name: "PJRT_DEVICE", value: "CPU"}}
+   * +listType:="map"
+   * +listMapKey:="name"
+   */
+  extraEnv?: V1EnvVar[];
+  /**
    * node selector configs for the pod
    * +kubebuilder:validation:Optional
    */
@@ -4302,10 +4322,12 @@ export interface V1Beta1WorkspaceKindClusterRole {
 export interface V1Beta1WorkspaceKindMainContainer {
   /**
    * environment variables for the main container (MUTABLE)
+   *  - these apply to ALL Workspaces of this WorkspaceKind, regardless of the selected pod config
+   *  - a pod config may override (by `name`) or add to these with its own `spec.extraEnv`
    *  - the following go template functions are available:
    *     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
    * +kubebuilder:validation:Optional
-   * +kubebuilder:example:={ "NB_PREFIX": "{{ httpPathPrefix 'jupyterlab' }}" }
+   * +kubebuilder:example:={{name: "NB_PREFIX", value: "{{ httpPathPrefix \"jupyterlab\" }}"}}
    * +listType:="map"
    * +listMapKey:="name"
    */
@@ -4481,6 +4503,39 @@ export interface V1Beta1WorkspaceKindServiceAccount {
    * +kubebuilder:example={{name: "kubeflow-edit"}}
    */
   clusterRoles?: V1Beta1WorkspaceKindClusterRole[];
+  /**
+   * metadata for the ServiceAccount of each Workspace (MUTABLE)
+   *  - for example, the annotations used by cloud Workload Identity:
+   *     - "eks.amazonaws.com/role-arn" (EKS IRSA)
+   *     - "iam.gke.io/gcp-service-account" (GKE)
+   *     - "azure.workload.identity/client-id" (Azure)
+   *  - the Azure "azure.workload.identity/use" label belongs on the Pod, NOT the
+   *    ServiceAccount, so set it in `spec.podTemplate.podMetadata.labels` instead
+   *  - the controller-managed `workspaces.kubeflow.org/*` labels always take precedence
+   *  - changes are applied to the ServiceAccounts of existing Workspaces without a restart,
+   *    but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the
+   *    ServiceAccount when a Pod is created, so running Workspaces must be restarted
+   *    for those changes to take effect
+   *  - removing a key here also removes it from the ServiceAccounts of existing Workspaces,
+   *    but only if the controller was the last to change its value (ownership is tracked
+   *    with `metadata.managedFields`), regardless of who originally added the key
+   * +kubebuilder:validation:Optional
+   * +kubebuilder:example={annotations: {"eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"}}
+   */
+  metadata?: V1Beta1WorkspaceKindServiceAccountMetadata;
+}
+
+export interface V1Beta1WorkspaceKindServiceAccountMetadata {
+  /**
+   * annotations to be applied to the Workspace ServiceAccount resource
+   * +kubebuilder:validation:Optional
+   */
+  annotations?: Record<string, string>;
+  /**
+   * labels to be applied to the Workspace ServiceAccount resource
+   * +kubebuilder:validation:Optional
+   */
+  labels?: Record<string, string>;
 }
 
 export interface V1Beta1WorkspaceKindSpawner {
@@ -4603,12 +4658,22 @@ export interface WorkspacekindsPodTemplate {
   /** TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views */
   options: OptionsPodTemplateOptions;
   podMetadata: WorkspacekindsPodMetadata;
+  serviceAccount: WorkspacekindsServiceAccount;
   statefulSetMetadata: WorkspacekindsStatefulSetMetadata;
   volumeMountPaths: WorkspacekindsPodVolumeMountPaths;
 }
 
 export interface WorkspacekindsPodVolumeMountPaths {
   home: string;
+}
+
+export interface WorkspacekindsServiceAccount {
+  metadata: WorkspacekindsServiceAccountMetadata;
+}
+
+export interface WorkspacekindsServiceAccountMetadata {
+  annotations: Record<string, string>;
+  labels: Record<string, string>;
 }
 
 export interface WorkspacekindsStatefulSetMetadata {
