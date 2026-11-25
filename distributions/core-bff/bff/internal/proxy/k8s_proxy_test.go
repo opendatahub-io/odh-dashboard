@@ -424,6 +424,7 @@ func TestK8sProxy_DevFallbackToken_NotUsedForNormalIdentity(t *testing.T) {
 // certificate: the request carries no Authorization header at all.
 func TestK8sProxy_DevFallbackToken_EmptySendsNoAuthorization(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Reached-Backend", "true")
 		w.Header().Set("X-Got-Auth", r.Header.Get("Authorization"))
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -440,6 +441,12 @@ func TestK8sProxy_DevFallbackToken_EmptySendsNoAuthorization(t *testing.T) {
 
 	handler.ServeHTTP(rec, req)
 
+	// A proxy error before the backend also leaves X-Got-Auth empty, so the
+	// request must have succeeded through the backend first.
+	if rec.Code != http.StatusOK || rec.Header().Get("X-Reached-Backend") != "true" {
+		t.Fatalf("status = %d, reached backend = %q; want 200 from the backend (body %q)",
+			rec.Code, rec.Header().Get("X-Reached-Backend"), rec.Body.String())
+	}
 	if got := rec.Header().Get("X-Got-Auth"); got != "" {
 		t.Errorf("auth = %q, want no Authorization header on a token-less fallback", got)
 	}
