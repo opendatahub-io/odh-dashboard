@@ -93,7 +93,7 @@ func TestParseProfile(t *testing.T) {
 					fieldMinTLSVersion: tlsVersionName12,
 					fieldCiphers: []any{
 						openSSLCipherECDHEECDSAAES128GCMSHA256,
-						"ECDHE-RSA-AES256-GCM-SHA384",
+						openSSLCipherECDHERSAAES256GCMSHA384,
 					},
 				},
 			}),
@@ -252,7 +252,7 @@ func TestResolve_TransientError_SetsAPIAvailable(t *testing.T) {
 
 func TestResolve_Forbidden_SetsAPIAvailable(t *testing.T) {
 	gr := schema.GroupResource{
-		Group: "config.openshift.io", Resource: "apiservers",
+		Group: apiServerGroup, Resource: "apiservers",
 	}
 	fc := &errorClient{err: apierrors.NewForbidden(gr, apiServerName, nil)}
 	result, err := resolve(context.Background(), fc)

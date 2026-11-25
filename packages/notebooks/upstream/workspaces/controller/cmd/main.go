@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
-	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -247,9 +246,10 @@ func main() {
 	}
 
 	if err = (&controllerInternal.WorkspaceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Config: cfg,
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+		Scheme:    mgr.GetScheme(),
+		Config:    cfg,
 		PodExecutor: &helper.RemoteCommandExecutor{
 			Clientset:  clientset,
 			RestConfig: restCfg,

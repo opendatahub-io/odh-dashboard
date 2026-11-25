@@ -56,7 +56,28 @@ const (
 	tlsVersionName12 = "VersionTLS12"
 	tlsVersionName13 = "VersionTLS13"
 
+	apiServerGroup = "config.openshift.io"
+
 	openSSLCipherECDHEECDSAAES128GCMSHA256 = "ECDHE-ECDSA-AES128-GCM-SHA256"
+	openSSLCipherECDHERSAAES128GCMSHA256   = "ECDHE-RSA-AES128-GCM-SHA256"
+	openSSLCipherECDHEECDSAAES256GCMSHA384 = "ECDHE-ECDSA-AES256-GCM-SHA384"
+	openSSLCipherECDHERSAAES256GCMSHA384   = "ECDHE-RSA-AES256-GCM-SHA384"
+	openSSLCipherECDHEECDSAChaCha          = "ECDHE-ECDSA-CHACHA20-POLY1305"
+	openSSLCipherECDHERSAChaCha            = "ECDHE-RSA-CHACHA20-POLY1305"
+	openSSLCipherECDHEECDSAChaChaSHA256    = "ECDHE-ECDSA-CHACHA20-POLY1305-SHA256"
+	openSSLCipherECDHERSAChaChaSHA256      = "ECDHE-RSA-CHACHA20-POLY1305-SHA256"
+
+	ianaCipherTLS13AES128      = "TLS_AES_128_GCM_SHA256"
+	ianaCipherTLS13AES256      = "TLS_AES_256_GCM_SHA384"
+	ianaCipherTLS13ChaCha      = "TLS_CHACHA20_POLY1305_SHA256"
+	ianaCipherECDHEECDSAChaCha = "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
+	ianaCipherECDHERSAChaCha   = "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
+
+	groupSecP256r1      = "secp256r1"
+	groupSecP384r1      = "secp384r1"
+	groupSecP521r1      = "secp521r1"
+	groupX25519         = "X25519"
+	groupX25519MLKEM768 = "X25519MLKEM768"
 )
 
 // TLS adherence policy values from apiservers.config.openshift.io spec.tlsAdherence.
@@ -68,7 +89,7 @@ const (
 )
 
 var apiServerGVK = schema.GroupVersionKind{
-	Group: "config.openshift.io", Version: "v1", Kind: "APIServer",
+	Group: apiServerGroup, Version: "v1", Kind: "APIServer",
 }
 
 // tls13CipherNames are TLS 1.3 cipher names Go manages automatically; they are
