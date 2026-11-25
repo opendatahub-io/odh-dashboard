@@ -120,6 +120,9 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Core BFF Frontend Docs](distributions/core-bff/frontend/docs/) | Frontend dev setup, testing, and styling guides |
 | [Core BFF BFF Docs](distributions/core-bff/bff/README.md) | Go BFF documentation |
 | [Core BFF OpenAPI Spec](distributions/core-bff/bff/openapi/src/core-bff.yaml) | OpenAPI specification (contract-first source of truth) |
+| [Core BFF Runtime Contract](distributions/core-bff/docs/runtime-contract.md) | Configuration inputs and precedence, production-profile rejections, TLS and trust policy, certificate rotation, xKS minimal permissions |
+| [Core BFF Bootstrap Contract](distributions/core-bff/docs/bootstrap-contract.md) | `/api/status` semantics — identity vs admission vs UI capability, admission modes, read-only configuration bootstrap, cache isolation |
+| [Core BFF Error Contract](distributions/core-bff/docs/error-contract.md) | Error envelope, request correlation, and Kubernetes proxy failure shapes |
 | [Base Distribution README](distributions/base/README.md) | App shell setup, dev environment, environment variables |
 | [RHAII Runtime Audit](distributions/rhaii/docs/runtime-audit.md) | Production bundle inventory, strict dependency boundary check, and remaining runtime qualification |
 

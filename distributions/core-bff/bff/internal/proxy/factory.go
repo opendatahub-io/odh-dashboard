@@ -61,11 +61,20 @@ func (cfg ProxyConfig) rewriteFunc() func(*httputil.ProxyRequest) {
 		pr.Out.Host = target.Host
 
 		if cfg.PathRewriteFn != nil {
-			pr.Out.URL.Path = cfg.PathRewriteFn(pr.In)
+			// The rewrite yields the upstream route; the target's own path is a
+			// base it is mounted under, so it is kept in front. Both the decoded
+			// and the escaped form are built, so an escaped base such as
+			// /tenant%2Fblue stays one segment.
+			route := cfg.PathRewriteFn(pr.In)
+			pr.Out.URL.Path = JoinBasePath(target.Path, route)
+			pr.Out.URL.RawPath = JoinBasePath(target.EscapedPath(), escapedRoute(cfg.PathRewriteFn, pr.In, route))
 		}
 
 		stripImpersonationHeaders(pr.Out.Header)
 		stripConfiguredHeaders(pr.Out.Header, cfg.StripHeaders)
+		// A client bearer subprotocol on a proxied upgrade is a second identity
+		// next to the resolved one; it never reaches an upstream.
+		stripBearerSubprotocols(pr.Out.Header)
 		// Install trusted authentication after stripping caller-provided headers.
 		rewriteAuthHeader(pr, cfg.AuthHeaderFn)
 		// SetOutboundHeadersFn must run after stripImpersonationHeaders so that
@@ -76,6 +85,41 @@ func (cfg ProxyConfig) rewriteFunc() func(*httputil.ProxyRequest) {
 
 		pr.Out.URL.RawQuery = pr.In.URL.RawQuery
 	}
+}
+
+// JoinBasePath puts route under base, the path of a configured target URL such
+// as https://models.example/serving or a kubeconfig server behind a path
+// prefix. An empty or "/" base leaves route unchanged.
+func JoinBasePath(base, route string) string {
+	base = strings.TrimSuffix(base, "/")
+	if base == "" {
+		return route
+	}
+	if route == "" {
+		return base
+	}
+	if !strings.HasPrefix(route, "/") {
+		route = "/" + route
+	}
+	return base + route
+}
+
+// escapedRoute is the escaped form of route. The rewrite functions trim or
+// prepend constant ASCII prefixes, so applying one to the request's escaped
+// path yields the escaped route; that is used only when it decodes back to
+// route, and otherwise route is escaped afresh.
+func escapedRoute(rewrite func(*http.Request) string, in *http.Request, route string) string {
+	clone := *in
+	u := *in.URL
+	u.Path = in.URL.EscapedPath()
+	u.RawPath = ""
+	clone.URL = &u
+	if raw := rewrite(&clone); raw != "" {
+		if decoded, err := url.PathUnescape(raw); err == nil && decoded == route {
+			return raw
+		}
+	}
+	return (&url.URL{Path: route}).EscapedPath()
 }
 
 func rewriteAuthHeader(pr *httputil.ProxyRequest, authHeaderFn func(*http.Request) string) {
@@ -90,6 +134,7 @@ func rewriteAuthHeader(pr *httputil.ProxyRequest, authHeaderFn func(*http.Reques
 func stripImpersonationHeaders(h http.Header) {
 	h.Del(constants.HeaderImpersonateUser)
 	h.Del(constants.HeaderImpersonateGroup)
+	h.Del("Impersonate-Uid")
 	for key := range h {
 		if strings.HasPrefix(strings.ToLower(key), "impersonate-extra-") {
 			h.Del(key)
