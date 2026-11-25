@@ -137,7 +137,6 @@ func (r *DashboardReconciler) reconcileOpenShiftCore(ctx context.Context, dashbo
 type openShiftFeatureState struct {
 	statuses                map[string]v1alpha1.ModuleStatus
 	federationData          string
-	rbacErr                 error
 	observabilityRetryAfter time.Duration
 }
 
@@ -156,11 +155,6 @@ func (r *DashboardReconciler) reconcileOpenShiftFeatures(ctx context.Context, da
 	dashboard.Status.ModuleStatuses = statuses
 
 	state := openShiftFeatureState{statuses: statuses, observabilityRetryAfter: observabilityRetryInterval}
-	state.rbacErr = r.reconcileNamespacedRBAC(ctx, dashboard)
-	if state.rbacErr != nil {
-		logger.Error(state.rbacErr, "Failed to reconcile namespaced RBAC")
-		cm.MarkTrue(string(common.ConditionTypeDegraded), conditions.WithReason("NamespacedRBACFailed"), conditions.WithError(state.rbacErr))
-	}
 	if observabilityConfigResolved {
 		state.observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm, observabilityManifest)
 	}
@@ -197,17 +191,7 @@ func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, da
 		return ctrl.Result{}, err
 	}
 	r.reconcileDegradedCondition(cm, state.statuses)
-	if state.rbacErr != nil {
-		cm.MarkTrue(string(common.ConditionTypeDegraded), conditions.WithReason("NamespacedRBACFailed"), conditions.WithError(state.rbacErr))
-	}
-	rbacRetryAfter := time.Duration(0)
-	if state.rbacErr != nil {
-		// Namespaced RBAC failures are non-fatal so the core Dashboard can
-		// remain available, but they still need a bounded retry when no watched
-		// resource changes.
-		rbacRetryAfter = observabilityRetryInterval
-	}
-	requeueAfter := minNonZeroDuration(cfg.ReconcileInterval, availabilityRetryAfter, urlRetryAfter, extraRetryAfter, state.observabilityRetryAfter, rbacRetryAfter)
+	requeueAfter := minNonZeroDuration(cfg.ReconcileInterval, availabilityRetryAfter, urlRetryAfter, extraRetryAfter, state.observabilityRetryAfter)
 	if dashboard.Spec.Observability == nil && requeueAfter == 0 {
 		requeueAfter = observabilityRetryInterval
 	}

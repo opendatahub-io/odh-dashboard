@@ -87,10 +87,11 @@ func TestGetClusterSettingsHandler_Success(t *testing.T) {
 		a.config.Namespace = "dash-ns"
 		a.config.DashboardConfigName = "odh-dashboard-config"
 		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
-			Platform:    config.PlatformOpenShift,
-			SADynClient: fakeDyn,
-			SAClientset: testSAClientset,
-			Namespace:   "",
+			Platform:          config.PlatformOpenShift,
+			PlatformConfirmed: true,
+			SADynClient:       fakeDyn,
+			SAClientset:       testSAClientset,
+			Namespace:         "",
 		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]
@@ -121,10 +122,11 @@ func TestUpdateClusterSettingsHandler_ValidInput_Returns200(t *testing.T) {
 		a.config.Namespace = ns
 		a.config.DashboardConfigName = "odh-dashboard-config"
 		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
-			Platform:    config.PlatformOpenShift,
-			SADynClient: fakeDyn,
-			SAClientset: testSAClientset,
-			Namespace:   "",
+			Platform:          config.PlatformOpenShift,
+			PlatformConfirmed: true,
+			SADynClient:       fakeDyn,
+			SAClientset:       testSAClientset,
+			Namespace:         "",
 		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]

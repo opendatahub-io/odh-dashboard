@@ -6,9 +6,25 @@ import (
 )
 
 const (
-	DashboardComponentName = "dashboard"
-	DashboardInstanceName  = "default-dashboard"
-	DashboardKind          = "Dashboard"
+	DashboardComponentName   = "dashboard"
+	DashboardInstanceName    = "default-dashboard"
+	DashboardKind            = "Dashboard"
+	NamespacedRBACOptInLabel = "dashboard.opendatahub.io/allow-namespaced-rbac"
+	// NamespacedRBACInventoryAnnotation is controller-owned durable state used
+	// to find grants after recipient-controlled resource metadata changes.
+	NamespacedRBACInventoryAnnotation = "dashboard.opendatahub.io/namespaced-rbac-grants"
+	// NamespacedRBACConsentEnforcedAnnotation makes enforcement monotonic after
+	// the platform completes its transition from legacy grants.
+	NamespacedRBACConsentEnforcedAnnotation = "dashboard.opendatahub.io/namespaced-rbac-consent-enforced"
+	// NamespacedRBACStateConfigMapName identifies controller-protected state that
+	// survives replacement of the cluster-scoped Dashboard object.
+	NamespacedRBACStateConfigMapName = "dashboard-namespaced-rbac-state"
+	// NamespacedRBACConsentEnforcedKey records the monotonic enforcement latch in
+	// NamespacedRBACStateConfigMapName.
+	NamespacedRBACConsentEnforcedKey = "consent-enforced"
+	// NamespacedRBACGrantInventoryKey records authoritative grant history in
+	// NamespacedRBACStateConfigMapName.
+	NamespacedRBACGrantInventoryKey = "grants"
 )
 
 // ModuleOverrideState is a tri-state enum for module enablement overrides.
@@ -223,7 +239,8 @@ type DashboardSpec struct {
 
 	// NotebooksNamespace is the namespace where Workbenches (notebooks) run.
 	// When set, the dashboard-operator creates a Role and RoleBinding in this
-	// namespace granting the dashboard SA access to notebook-related resources.
+	// namespace granting the dashboard SA access to notebook-related resources,
+	// but only when the namespace has dashboard.opendatahub.io/allow-namespaced-rbac=true.
 	// Absent means notebooks RBAC is skipped (component not enabled or standalone
 	// deployment where notebooks are not used).
 	// +optional
@@ -233,7 +250,8 @@ type DashboardSpec struct {
 
 	// ModelRegistryNamespace is the namespace where the Model Registry runs.
 	// When set, the dashboard-operator creates a Role and RoleBinding in this
-	// namespace granting the dashboard SA access to model registry resources.
+	// namespace granting the dashboard SA access to model registry resources,
+	// but only when the namespace has dashboard.opendatahub.io/allow-namespaced-rbac=true.
 	// Absent means model registry RBAC is skipped.
 	// +optional
 	// +kubebuilder:validation:MaxLength=63

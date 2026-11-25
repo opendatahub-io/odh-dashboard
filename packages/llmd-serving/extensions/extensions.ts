@@ -23,6 +23,7 @@ import type {
   HrefNavItemExtension,
   RouteExtension,
   TabRouteTabExtension,
+  ConnectionsConnectedResourcesExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type {
@@ -48,6 +49,7 @@ import type {
   AcceleratorConfigFieldData,
   AcceleratorConfigFieldType,
 } from '../src/wizardFields/AcceleratorConfigField';
+import type { LLMdConnectionsResourcesData } from '../src/connections/connectedResources';
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 const ADMIN_USER = 'ADMIN_USER';
@@ -413,6 +415,7 @@ const extensions: (
   | RouteExtension
   | TabRouteTabExtension
   | RuntimeImageInstallTargetExtension
+  | ConnectionsConnectedResourcesExtension<LLMdConnectionsResourcesData>
 )[] = [
   {
     type: 'app.area',
@@ -600,6 +603,18 @@ const extensions: (
         import('../src/wizardFields/deploymentMethodField').then(
           (m) => m.llmdDeploymentMethodOverride,
         ),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
+  },
+  {
+    type: 'app.connections/connected-resources',
+    properties: {
+      useConnectedResources: () =>
+        import('../src/connections/connectedResources').then((m) => m.useConnectedResources),
+      getConnectedResources: () =>
+        import('../src/connections/connectedResources').then((m) => m.getConnectedResourceLabels),
     },
     flags: {
       required: [LLMD_SERVING_ID],

@@ -19,6 +19,7 @@ CEL validation restricts the controller to the `default-dashboard` singleton.
 | --- | --- |
 | `spec.managementState` | `Managed` reconciles the operand; `Removed` removes it while retaining the CR. |
 | `spec.gateway` | Supplies ingress information consumed by the selected lifecycle. |
+| `spec.notebooksNamespace` and `spec.modelRegistryNamespace` | Name the orchestrator-managed namespaces where OpenShift lifecycles grant the Dashboard service account notebook and model registry API access; see [namespaced RBAC](dashboard-operator-openshift.md#namespaced-rbac). XKS ignores them. |
 | `spec.components` and `spec.modules` | Provide component availability and module overrides to OpenShift lifecycles. |
 | `spec.observability` | Configures optional observability for OpenShift lifecycles. |
 | `spec.maasPortal` | Configures the MaaS Portal where that lifecycle supports it. |
@@ -69,7 +70,8 @@ The reconciler owns Kubernetes controller plumbing; lifecycle implementations
 own their resource set and readiness dependencies.
 
 ```text
-fetch CR → finalizer/deletion handling → select lifecycle
+fetch CR → select lifecycle → finalizer/deletion handling
+        → revoke or reconcile namespaced RBAC (OpenShift lifecycles)
         → render and apply manifests → reconcile lifecycle dependencies
         → update status and requeue when progress is pending
 ```

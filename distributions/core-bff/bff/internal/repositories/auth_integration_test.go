@@ -69,7 +69,7 @@ func newFakeDynClientInstanceAbsent() *dynamicfake.FakeDynamicClient {
 
 func TestGetAuth_CRDPresent_ReturnsGroups(t *testing.T) {
 	fakeDyn := newFakeDynClientWithAuth([]string{models.SystemAuthenticated, "allowed-group"})
-	repo := NewAuthRepository(fakeDyn)
+	repo := NewAuthRepository(fakeDyn, emptyDiscovery())
 
 	auth, err := repo.GetAuth(context.Background())
 	require.NoError(t, err)
@@ -81,7 +81,7 @@ func TestGetAuth_CRDPresent_ReturnsGroups(t *testing.T) {
 
 func TestGetAuth_CRDAbsent_ReturnsNil(t *testing.T) {
 	fakeDyn := newFakeDynClientCRDAbsent()
-	repo := NewAuthRepository(fakeDyn)
+	repo := NewAuthRepository(fakeDyn, emptyDiscovery())
 
 	auth, err := repo.GetAuth(context.Background())
 	require.NoError(t, err)
@@ -106,7 +106,7 @@ func TestGetAuth_MalformedSpec_ReturnsError(t *testing.T) {
 		},
 		cr,
 	)
-	repo := NewAuthRepository(fakeDyn)
+	repo := NewAuthRepository(fakeDyn, emptyDiscovery())
 
 	auth, err := repo.GetAuth(context.Background())
 	assert.Error(t, err)
@@ -116,7 +116,7 @@ func TestGetAuth_MalformedSpec_ReturnsError(t *testing.T) {
 
 func TestGetAuth_InstanceAbsent_ReturnsError(t *testing.T) {
 	fakeDyn := newFakeDynClientInstanceAbsent()
-	repo := NewAuthRepository(fakeDyn)
+	repo := NewAuthRepository(fakeDyn, emptyDiscovery())
 
 	auth, err := repo.GetAuth(context.Background())
 	assert.Error(t, err)
@@ -125,7 +125,7 @@ func TestGetAuth_InstanceAbsent_ReturnsError(t *testing.T) {
 }
 
 func TestGetAuth_NilClient_ReturnsError(t *testing.T) {
-	repo := NewAuthRepository(nil)
+	repo := NewAuthRepository(nil, emptyDiscovery())
 
 	auth, err := repo.GetAuth(context.Background())
 	assert.Nil(t, auth)
@@ -135,7 +135,7 @@ func TestGetAuth_NilClient_ReturnsError(t *testing.T) {
 
 func TestResolveIsAllowed_AuthPresent_SystemAuthenticated_ReturnsTrue(t *testing.T) {
 	fakeDyn := newFakeDynClientWithAuth([]string{models.SystemAuthenticated})
-	authRepo := NewAuthRepository(fakeDyn)
+	authRepo := NewAuthRepository(fakeDyn, emptyDiscovery())
 
 	auth, err := authRepo.GetAuth(context.Background())
 	require.NoError(t, err)
@@ -147,7 +147,7 @@ func TestResolveIsAllowed_AuthPresent_SystemAuthenticated_ReturnsTrue(t *testing
 
 func TestResolveIsAllowed_AuthPresent_NoEscapeHatch_FallsToSSAR(t *testing.T) {
 	fakeDyn := newFakeDynClientWithAuth([]string{"restricted-group"})
-	authRepo := NewAuthRepository(fakeDyn)
+	authRepo := NewAuthRepository(fakeDyn, emptyDiscovery())
 
 	auth, err := authRepo.GetAuth(context.Background())
 	require.NoError(t, err)

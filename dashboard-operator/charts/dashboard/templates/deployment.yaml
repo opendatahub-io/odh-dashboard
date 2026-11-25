@@ -1,3 +1,6 @@
+{{- if and .Values.webhook.enforceNamespacedRBACConsent (or (not .Values.webhook.enabled) (empty .Values.webhook.namespacedRBACWriters)) }}
+{{- fail "webhook.enforceNamespacedRBACConsent requires webhook.enabled and at least one webhook.namespacedRBACWriters entry" }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -79,6 +82,10 @@ spec:
             {{- if .Values.webhook.enabled }}
             - --enable-webhook
             - --webhook-port={{ .Values.webhook.port }}
+            {{- if .Values.webhook.enforceNamespacedRBACConsent }}
+            - --enforce-namespaced-rbac-consent
+            - {{ printf "--namespaced-rbac-writers=%s" (join "," .Values.webhook.namespacedRBACWriters) | quote }}
+            {{- end }}
             {{- end }}
           env:
             - name: OPERATOR_NAMESPACE

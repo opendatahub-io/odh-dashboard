@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -34,11 +35,13 @@ func (app *App) initModelServingProxy() error {
 
 	targetURL, err := url.Parse(host)
 	if err != nil {
-		return fmt.Errorf("failed to parse model-serving host URL: %w", err)
+		// Not wrapped: a url.Error quotes the raw URL, which may carry userinfo.
+		return errors.New("MODEL_SERVING_HOST/--model-serving-host is not a valid URL (value omitted)")
 	}
 
-	allowHTTP := app.config.DevMode || app.config.MockK8Client
-	insecureSkipVerify := app.config.InsecureSkipVerify && (app.config.DevMode || app.config.MockK8Client)
+	// MOCK_K8S_CLIENT returned the mock handler above; a real target needs DEV_MODE for plaintext.
+	allowHTTP := app.config.DevMode
+	insecureSkipVerify := app.config.SkipsTLSVerification()
 
 	rp, err := proxy.NewReverseProxy(proxy.ProxyConfig{
 		TargetURL:          targetURL,
@@ -55,7 +58,7 @@ func (app *App) initModelServingProxy() error {
 				// before requests reach this handler. Defensive fallback omits the header.
 				return ""
 			}
-			return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
+			return k8s.BearerHeader(identity.ResolveToken(app.devFallbackToken))
 		},
 		StripHeaders:       proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
 		ModifyResponse:     ssrf.NewRedirectValidator(app.logger),

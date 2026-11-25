@@ -13,13 +13,16 @@ rules:
       - create
       - update
       - delete
+  # Bootstrap reads are read-only on this profile: a missing instance falls back
+  # to defaults rather than the dashboard provisioning it, so `create` is not
+  # granted. `patch` covers the admin-only PATCH /api/config route.
+  # See distributions/core-bff/docs/bootstrap-contract.md.
   - apiGroups:
       - opendatahub.io
     resources:
       - odhdashboardconfigs
     verbs:
       - get
-      - create
       - patch
   - apiGroups:
       - dashboard.opendatahub.io

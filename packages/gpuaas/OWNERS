@@ -1,18 +1,24 @@
-approvers:
-  - dpanshug
-  - claudialphonse78
-  - pnaik1
+filters:
+  '.*':
+    approvers:
+      - dpanshug
+      - claudialphonse78
+      - pnaik1
+    reviewers:
+      - dpanshug
+      - claudialphonse78
+      - pnaik1
+      - kanishka-commits
+      - PR3MM
+    labels:
+      - area/gpuaas
+      - area/components
 
-reviewers:
-  - dpanshug
-  - claudialphonse78
-  - pnaik1
-  - kanishka-commits
-  - PR3MM
-
-labels:
-  - area/gpuaas
-  - area/components
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
 
 options:
   no_parent_owners: true

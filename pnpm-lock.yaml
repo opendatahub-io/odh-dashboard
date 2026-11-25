@@ -4369,6 +4369,9 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@monaco-editor/react':
+        specifier: ^4.7.0
+        version: 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@odh-dashboard/analytics':
         specifier: workspace:*
         version: link:../../analytics
@@ -5062,6 +5065,9 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@monaco-editor/react':
+        specifier: ^4.7.0
+        version: 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@odh-dashboard/analytics':
         specifier: workspace:*
         version: link:../../analytics
@@ -5383,12 +5389,12 @@ importers:
 
   packages/mlflow-embedded:
     dependencies:
-      '@odh-dashboard/analytics':
-        specifier: workspace:*
-        version: link:../analytics
       '@module-federation/runtime':
         specifier: '>=0.15.0'
         version: 0.24.1
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
@@ -5450,6 +5456,9 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@monaco-editor/react':
+        specifier: ^4.7.0
+        version: 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
@@ -5789,12 +5798,12 @@ importers:
 
   packages/model-serving:
     dependencies:
-      '@odh-dashboard/analytics':
-        specifier: workspace:*
-        version: link:../analytics
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../foundation
