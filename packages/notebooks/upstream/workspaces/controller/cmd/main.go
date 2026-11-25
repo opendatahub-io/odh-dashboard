@@ -124,8 +124,10 @@ func main() {
 	// Get controller namespace (from service account file or POD_NAMESPACE env var)
 	cfg.ControllerNamespace = getControllerNamespace("kubeflow-workspaces")
 
+	// Production default: JSON logs at info, stack traces on errors.
+	// Raise verbosity with --zap-devel or --zap-log-level (for example "debug" or "2").
 	opts := zap.Options{
-		Development: true,
+		Development: false,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
