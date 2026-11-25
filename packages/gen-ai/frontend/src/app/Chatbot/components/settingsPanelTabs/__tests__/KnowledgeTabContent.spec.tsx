@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { mockVectorStores } from '~/__mocks__/mockVectorStores';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import KnowledgeTabContent from '~/app/Chatbot/components/settingsPanelTabs/KnowledgeTabContent';
@@ -119,6 +120,8 @@ describe('KnowledgeTabContent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseAiAssetVectorStoresEnabled.mockReturnValue(false);
+    mockUseFetchVectorStores.mockReturnValue([[], true, undefined, jest.fn()]);
     // Reset the Zustand store to initial state with isRagEnabled: false
     useChatbotConfigStore.getState().resetConfiguration();
   });
@@ -151,6 +154,156 @@ describe('KnowledgeTabContent', () => {
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     expect(ragSwitch).toBeChecked();
+  });
+
+  describe('Troubleshooting', () => {
+    it('does not show the link when RAG is disabled even if files are uploaded', () => {
+      render(
+        <KnowledgeTabContent
+          {...defaultProps}
+          fileManagement={createMockFileManagement({
+            files: [{ id: '1' }] as UseFileManagementReturn['files'],
+          })}
+        />,
+      );
+
+      expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
+    });
+
+    it('does not show the link when RAG is enabled without uploaded files', () => {
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
+    });
+
+    it('shows the link when RAG is enabled and at least one file is uploaded', () => {
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+      render(
+        <KnowledgeTabContent
+          {...defaultProps}
+          fileManagement={createMockFileManagement({
+            files: [{ id: '1' }] as UseFileManagementReturn['files'],
+          })}
+        />,
+      );
+
+      expect(screen.getByTestId('rag-troubleshooting-button')).toHaveTextContent('Troubleshooting');
+    });
+
+    it('should hide the link for an unselected or unready external store when inline uploads exist', async () => {
+      const user = userEvent.setup();
+      const [store, otherStore] = mockVectorStores;
+      mockUseAiAssetVectorStoresEnabled.mockReturnValue(true);
+      mockUseFetchVectorStores.mockReturnValue([
+        [
+          {
+            ...store,
+            status: 'pending',
+            // eslint-disable-next-line camelcase
+            file_counts: { cancelled: 0, completed: 0, failed: 0, in_progress: 1, total: 1 },
+          },
+          otherStore,
+        ],
+        true,
+        undefined,
+        jest.fn(),
+      ]);
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+      render(
+        <KnowledgeTabContent
+          {...defaultProps}
+          fileManagement={createMockFileManagement({
+            files: [{ id: '1' }] as UseFileManagementReturn['files'],
+          })}
+        />,
+      );
+
+      expect(screen.getByTestId('rag-troubleshooting-button')).toBeInTheDocument();
+
+      await user.click(screen.getByTestId('knowledge-mode-external-radio'));
+      expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('external-vector-store-toggle'));
+      await user.click(
+        within(screen.getByTestId(`vector-store-option-${store.id}`)).getByRole('option'),
+      );
+      expect(screen.getByTestId('external-vector-store-toggle')).toHaveTextContent(store.name);
+      expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('knowledge-mode-upload-radio'));
+      expect(screen.getByTestId('rag-troubleshooting-button')).toBeInTheDocument();
+    });
+
+    it('should show the link for an external store with completed files when there are no inline uploads', async () => {
+      const user = userEvent.setup();
+      const [store] = mockVectorStores;
+      mockUseAiAssetVectorStoresEnabled.mockReturnValue(true);
+      mockUseFetchVectorStores.mockReturnValue([[store], true, undefined, jest.fn()]);
+      useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      await user.click(screen.getByTestId('external-vector-store-toggle'));
+      await user.click(
+        within(screen.getByTestId(`vector-store-option-${store.id}`)).getByRole('option'),
+      );
+
+      expect(screen.getByTestId('rag-troubleshooting-button')).toBeInTheDocument();
+    });
+
+    it('navigates to the Prompt tab from the popover', async () => {
+      const user = userEvent.setup();
+      const onNavigateToPrompt = jest.fn();
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+      render(
+        <KnowledgeTabContent
+          {...defaultProps}
+          onNavigateToPrompt={onNavigateToPrompt}
+          fileManagement={createMockFileManagement({
+            files: [{ id: '1' }] as UseFileManagementReturn['files'],
+          })}
+        />,
+      );
+
+      await user.click(screen.getByTestId('rag-troubleshooting-button'));
+      expect(
+        await screen.findByText(/If RAG is enabled but the model is not using retrieved knowledge/),
+      ).toBeInTheDocument();
+      await user.click(await screen.findByTestId('go-to-prompt-tab'));
+
+      await waitFor(() => expect(onNavigateToPrompt).toHaveBeenCalledTimes(1));
+    });
+
+    it('should discard pending Prompt navigation when reopening the popover', async () => {
+      const user = userEvent.setup();
+      const onNavigateToPrompt = jest.fn();
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+
+      render(
+        <KnowledgeTabContent
+          {...defaultProps}
+          onNavigateToPrompt={onNavigateToPrompt}
+          fileManagement={createMockFileManagement({
+            files: [{ id: '1' }] as UseFileManagementReturn['files'],
+          })}
+        />,
+      );
+
+      const trigger = screen.getByTestId('rag-troubleshooting-button');
+      await user.click(trigger);
+      const dialog = await screen.findByRole('dialog', { name: 'RAG troubleshooting' });
+      await user.click(within(dialog).getByTestId('go-to-prompt-tab'));
+      await user.click(trigger);
+      await user.click(screen.getByRole('button', { name: 'Close troubleshooting' }));
+
+      await waitFor(() => expect(dialog).not.toBeInTheDocument());
+      expect(onNavigateToPrompt).not.toHaveBeenCalled();
+    });
   });
 
   it('calls updateRagEnabled and fires tracking event when RAG toggle is changed', async () => {
@@ -384,15 +537,11 @@ describe('KnowledgeTabContent', () => {
   });
 
   describe('Playground Collection Dropdown Selected tracking', () => {
-    const mockStores = [
-      { id: 'vs-1', name: 'My Store', object: 'vector_store' as const, metadata: {} },
-      { id: 'vs-2', name: 'Other Store', object: 'vector_store' as const, metadata: {} },
-    ];
+    const [store] = mockVectorStores;
 
     beforeEach(() => {
       mockUseAiAssetVectorStoresEnabled.mockReturnValue(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mockUseFetchVectorStores.mockReturnValue([mockStores as any, true, undefined, jest.fn()]);
+      mockUseFetchVectorStores.mockReturnValue([mockVectorStores, true, undefined, jest.fn()]);
       useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
     });
 
@@ -404,13 +553,15 @@ describe('KnowledgeTabContent', () => {
       await user.click(screen.getByTestId('external-vector-store-toggle'));
 
       // Click on an option
-      await user.click(screen.getByRole('option', { name: 'My Store' }));
+      await user.click(
+        within(screen.getByTestId(`vector-store-option-${store.id}`)).getByRole('option'),
+      );
 
       expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
         'Playground Collection Dropdown Selected',
         {
-          collectionName: 'My Store',
-          collectionId: 'vs-1',
+          collectionName: store.name,
+          collectionId: store.id,
           compareMode: false,
           configID: 'default',
         },
