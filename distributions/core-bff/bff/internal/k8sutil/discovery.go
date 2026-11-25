@@ -24,8 +24,9 @@ var ErrAbsenceUnconfirmed = errors.New("API absence not confirmed by discovery")
 // proxy or gateway in front of the API server) can return the same response,
 // so it is not proof on its own. Absence is confirmed only by a successful
 // discovery answer that includes the core group (so it is a real discovery
-// document) and either does not list the group version or lists it without
-// the resource. Over the wire each document (/api, /apis, the group
+// document) and either does not list the group at all or lists the group
+// version without the resource. A group served only at other versions is a
+// version skew, not absence, and is inconclusive. Over the wire each document (/api, /apis, the group
 // version's resource list) is read once with ctx, must decode as its
 // discovery kind, and the decision is taken from that same body; a malformed
 // successful body is inconclusive, while a valid empty list still counts. A
@@ -67,7 +68,10 @@ func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVer
 		return false, fmt.Errorf("%w: /api does not list the core group", ErrAbsenceUnconfirmed)
 	}
 
+	// The core group is always served, so for a core resource only its
+	// version decides; a missing version is a skew, not absence.
 	listed := slices.Contains(core.Versions, gvr.Version)
+	groupListed := true
 	resourcesPath := "/api/" + gvr.Version
 	if gvr.Group != "" {
 		var groups metav1.APIGroupList
@@ -79,10 +83,14 @@ func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVer
 			return false, fmt.Errorf("%w: /apis: %w", ErrAbsenceUnconfirmed, err)
 		}
 		listed = listsGroupVersion(&groups, gvr.Group, gv)
+		groupListed = listsGroup(&groups, gvr.Group)
 		resourcesPath = "/apis/" + gvr.Group + "/" + gvr.Version
 	}
-	if !listed {
+	if !groupListed {
 		return true, nil
+	}
+	if !listed {
+		return false, errGroupServedAtAnotherVersion
 	}
 
 	// The group version is listed, so its resource list decides; it is read
@@ -112,8 +120,11 @@ func confirmTyped(disc discovery.DiscoveryInterface, gvr schema.GroupVersionReso
 	if !listsGroupVersion(groups, "", "v1") {
 		return false, fmt.Errorf("%w: the group list does not include the core group", ErrAbsenceUnconfirmed)
 	}
-	if !listsGroupVersion(groups, gvr.Group, gv) {
+	if !listsGroup(groups, gvr.Group) {
 		return true, nil
+	}
+	if !listsGroupVersion(groups, gvr.Group, gv) {
+		return false, errGroupServedAtAnotherVersion
 	}
 	resources, err := disc.ServerResourcesForGroupVersion(gv)
 	if err != nil {
@@ -171,6 +182,17 @@ func validateGroupList(groups *metav1.APIGroupList, allowCore bool) error {
 		}
 	}
 	return nil
+}
+
+// errGroupServedAtAnotherVersion: the group is served, only not at the
+// version asked for. That is a version skew (for example a CRD whose old
+// version was set to served: false during an upgrade), not absence: the
+// resource may well exist, so the caller keeps its restrictive path.
+var errGroupServedAtAnotherVersion = fmt.Errorf("%w: the group is served at another version", ErrAbsenceUnconfirmed)
+
+// listsGroup reports whether groups lists the named group at any version.
+func listsGroup(groups *metav1.APIGroupList, group string) bool {
+	return slices.ContainsFunc(groups.Groups, func(g metav1.APIGroup) bool { return g.Name == group })
 }
 
 func listsGroupVersion(groups *metav1.APIGroupList, group, groupVersion string) bool {

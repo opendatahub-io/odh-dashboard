@@ -74,7 +74,9 @@ answer that lists the core `v1` group but not `config.openshift.io/v1` `clusterv
 absence. An answer without the core group is a stub, not a discovery document. Discovery goes
 through the same network path as the read, so this catches an intermediary that rejects resource
 paths, not one that forges discovery; set `ODH_PLATFORM_TYPE` where neither can be trusted. A discovery
-failure, or a discovery answer that serves the resource, is inconclusive. A missing
+failure, a discovery answer that serves the resource, or one that serves the group only at another
+version (a version skew, for example the Auth CRD's `v1alpha1` set to `served: false` during an
+upgrade), is inconclusive. The same rule decides whether the Auth CRD is absent. A missing
 singleton, a malformed object or a 405 on the read is not that evidence either, and a successful read is
 OpenShift even when the cluster ID cannot be parsed. The same confirmation also decides whether
 the HTTPS listener may skip the cluster TLS profile (see [runtime-contract.md](./runtime-contract.md)).

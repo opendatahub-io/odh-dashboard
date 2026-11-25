@@ -44,8 +44,10 @@ func TestConfirmAPIAbsent(t *testing.T) {
 		absent bool
 	}{
 		{"group not served", fakeDiscovery(), true},
-		{"other group versions only", fakeDiscovery(&metav1.APIResourceList{GroupVersion: "config.openshift.io/v2",
-			APIResources: []metav1.APIResource{{Name: "clusterversions", Kind: "ClusterVersion"}}}), true},
+		// Version skew: the group is served, only not at this version, so the
+		// resource may exist and absence is not confirmed.
+		{"group served at another version only", fakeDiscovery(&metav1.APIResourceList{GroupVersion: "config.openshift.io/v2",
+			APIResources: []metav1.APIResource{{Name: "clusterversions", Kind: "ClusterVersion"}}}), false},
 		{"group version served without the resource", fakeDiscovery(&metav1.APIResourceList{GroupVersion: "config.openshift.io/v1",
 			APIResources: []metav1.APIResource{{Name: "infrastructures", Kind: "Infrastructure"}}}), true},
 		{"resource served", fakeDiscovery(&metav1.APIResourceList{GroupVersion: "config.openshift.io/v1",
@@ -324,6 +326,8 @@ func TestConfirmAPIAbsent_IncompleteEntriesAreInconclusive(t *testing.T) {
 	cases := []tc{
 		{"complete documents: absent", coreDoc, groupList(group()), "", true},
 		{"explicit empty group list: absent", coreDoc, groupList(), "", true},
+		{"group served at another version: inconclusive", coreDoc, groupList(map[string]any{"name": "config.openshift.io",
+			"versions": []any{map[string]any{"groupVersion": "config.openshift.io/v2", "version": "v2"}}}), "", false},
 		{"explicit empty resource list: absent", coreDoc, groupList(configGroup), resourceList(), true},
 		{"complete resource list without the resource: absent", coreDoc, groupList(configGroup), resourceList(resource()), true},
 		{"core document with an empty version", `{"kind":"APIVersions","apiVersion":"v1","versions":["v1",""]}`, groupList(), "", false},
