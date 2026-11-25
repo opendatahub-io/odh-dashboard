@@ -121,8 +121,9 @@ Layout, in order:
 4. `## Findings`, grouped by severity, then `### Justified (N)` when present.
    On `approve` with neither, the host renders "Looks good to me."
 5. `## Product ask`
-6. `## TODO` (omitted when empty). The host adds one item: the protected-path
-   notice when a changed file matches `REVIEW_PROTECTED_PATHS`.
+6. `## TODO` (omitted when empty). The host builds it from the findings,
+   checks and verdict, and adds the protected-path notice when a changed file
+   matches `REVIEW_PROTECTED_PATHS`.
 7. Collapsed **Review details**: Producers, Challenger (counts and the removed
    audit), Evidence inspected, Labels
 
@@ -399,11 +400,12 @@ header documents the RHOAI MLflow values and the `recover` modes
 (`mark-only`, `resend`, `bridge-only`).
 
 **Which runs are traced.** Only runs of this repository's `fullsend.yaml` for
-`pull_request_target`, `issue_comment`, `issues`, `workflow_dispatch` or
-`schedule`, and other than `pull_request_target` only from the default
-branch. A run for any other event, `pull_request` included, is skipped. PR
-identity is resolved only for `pull_request_target` runs, so a `/fs-review`
-run is traced without PR identity, coverage or posted verdict.
+`pull_request`, `pull_request_target`, `issue_comment`, `issues`,
+`workflow_dispatch` or `schedule`. A `pull_request` run is traced only for a
+same-repo PR whose head leaves `fullsend.yaml` unchanged; the other events
+only from the default branch. PR identity is resolved for `pull_request` and
+`pull_request_target` runs, so a `/fs-review` run is traced without PR
+identity, coverage or posted verdict.
 
 | Span | Contents |
 | --- | --- |
