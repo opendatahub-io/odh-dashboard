@@ -453,8 +453,8 @@ its own orchestrator.
 - Checks and product ask come from side files. When a reviewer does not
   write one, a check shows `could-not-verify`, and product ask is omitted with
   a note under Evidence inspected.
-- The orchestrator no longer synthesizes `## TODO`; only the host's
-  protected-path item appears there.
+- The orchestrator no longer synthesizes `## TODO`. The host builds it from
+  the findings, checks and verdict with a fixed recipe.
 - The local orchestrator `SKILL.md`, `agents/review.md`, the vendored stock
   personas, the meta-prompts and the `producers.json` ledger are gone.
 - Finding categories are the stock ones:
