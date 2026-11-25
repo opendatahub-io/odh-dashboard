@@ -323,7 +323,7 @@ if [[ "$PLATFORM" == "XKS" ]]; then
       "${KUBECTL[@]}" label --local -f - "$RUN_LABEL=$RUN_ID" -o json |
       "${KUBECTL[@]}" create -f - 2>&1) || rc=$?
     ((rc == 0)) && return 0
-    [[ "$out" == *AlreadyExists* || "$out" == *Forbidden* || "$out" == *forbidden* ]] && return 1
+    [[ "$out" == *"Error from server (AlreadyExists)"* || "$out" == *"Error from server (Forbidden)"* ]] && return 1
     return 2
   }
   cr_rc=0
