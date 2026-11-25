@@ -228,7 +228,7 @@ const extensions: (
     flags: { required: [SupportedArea.K_SERVE] },
     properties: {
       platform: KSERVE_ID,
-      modelLabelSelector: (name) => ({ 'serving.kserve.io/inferenceservice': name }),
+      modelNameLabel: 'serving.kserve.io/inferenceservice',
       resources: [
         {
           apiGroup: 'apps',

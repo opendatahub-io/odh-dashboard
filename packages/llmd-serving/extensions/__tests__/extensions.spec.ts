@@ -16,7 +16,8 @@ it('should register LLM-d Events inputs including the unfiltered StatefulSet wat
       flags: { required: ['llmd-serving'] },
       properties: {
         platform: 'llmd-serving',
-        modelLabelSelector: expect.any(Function),
+        modelNameLabel: 'app.kubernetes.io/name',
+        additionalLabels: { 'app.kubernetes.io/part-of': 'llminferenceservice' },
         resources: [
           {
             apiGroup: 'apps',
@@ -50,10 +51,6 @@ it('should register LLM-d Events inputs including the unfiltered StatefulSet wat
       },
     }),
   ]);
-  expect(inputs[0]?.properties.modelLabelSelector('test-model')).toEqual({
-    'app.kubernetes.io/name': 'test-model',
-    'app.kubernetes.io/part-of': 'llminferenceservice',
-  });
 });
 
 describe('llm-d deployment tracking registration', () => {

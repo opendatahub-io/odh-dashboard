@@ -433,10 +433,8 @@ const extensions: (
     flags: { required: [LLMD_SERVING_ID] },
     properties: {
       platform: LLMD_SERVING_ID,
-      modelLabelSelector: (name) => ({
-        'app.kubernetes.io/name': name,
-        'app.kubernetes.io/part-of': 'llminferenceservice',
-      }),
+      modelNameLabel: 'app.kubernetes.io/name',
+      additionalLabels: { 'app.kubernetes.io/part-of': 'llminferenceservice' },
       resources: [
         {
           apiGroup: 'apps',

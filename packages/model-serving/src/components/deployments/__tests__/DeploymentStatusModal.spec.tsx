@@ -68,7 +68,11 @@ describe('DeploymentStatusModal', () => {
       kserve: [
         {
           type: 'model-serving.platform/events-discovery',
-          properties: { platform: 'kserve', modelLabelSelector: () => ({}), resources: [] },
+          properties: {
+            platform: 'kserve',
+            modelNameLabel: 'serving.kserve.io/inferenceservice',
+            resources: [],
+          },
         },
       ],
     });

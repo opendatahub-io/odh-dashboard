@@ -39,7 +39,14 @@ const useDeploymentEventSources = ({
             isList: true,
             groupVersionKind: groupVersionKind(model),
             selector:
-              scope === 'model' ? { matchLabels: discovery.modelLabelSelector(name) } : undefined,
+              scope === 'model'
+                ? {
+                    matchLabels: {
+                      ...discovery.additionalLabels,
+                      [discovery.modelNameLabel]: name,
+                    },
+                  }
+                : undefined,
           },
         };
       }),

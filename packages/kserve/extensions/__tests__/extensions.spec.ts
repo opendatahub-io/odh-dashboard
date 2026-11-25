@@ -19,7 +19,7 @@ describe('KServe UI capability gating', () => {
         flags: { required: [SupportedArea.K_SERVE] },
         properties: {
           platform: KSERVE_ID,
-          modelLabelSelector: expect.any(Function),
+          modelNameLabel: 'serving.kserve.io/inferenceservice',
           resources: [
             {
               apiGroup: 'apps',
@@ -39,9 +39,6 @@ describe('KServe UI capability gating', () => {
         },
       }),
     ]);
-    expect(inputs[0]?.properties.modelLabelSelector('test-model')).toEqual({
-      'serving.kserve.io/inferenceservice': 'test-model',
-    });
   });
   const kserveArea = extensions.find(
     (extension) =>

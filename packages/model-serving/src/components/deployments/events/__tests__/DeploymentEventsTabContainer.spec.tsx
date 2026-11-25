@@ -33,10 +33,8 @@ function useFakeWatch(resource: WatchK8sResource | null): K8sWatchResult<K8sReso
 
 const discovery: ModelServingEventsDiscovery['properties'] = {
   platform: 'llmd-serving',
-  modelLabelSelector: (name) => ({
-    'app.kubernetes.io/name': name,
-    'app.kubernetes.io/part-of': 'llminferenceservice',
-  }),
+  modelNameLabel: 'app.kubernetes.io/name',
+  additionalLabels: { 'app.kubernetes.io/part-of': 'llminferenceservice' },
   resources: [
     {
       apiGroup: 'apps',
@@ -121,7 +119,12 @@ it('should wait for both permission checks before starting any diagnostics watch
   expect(mockWatch.mock.calls.map(([resource]) => resource)).toContainEqual(
     expect.objectContaining({
       namespace: 'test-project',
-      selector: { matchLabels: discovery.modelLabelSelector('test-model') },
+      selector: {
+        matchLabels: {
+          'app.kubernetes.io/name': 'test-model',
+          'app.kubernetes.io/part-of': 'llminferenceservice',
+        },
+      },
     }),
   );
   expect(mockWatch.mock.calls.map(([resource]) => resource)).toContainEqual(

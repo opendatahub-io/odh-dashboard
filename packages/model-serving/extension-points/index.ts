@@ -61,7 +61,8 @@ export type ModelServingEventsDiscovery = Extension<
   'model-serving.platform/events-discovery',
   {
     platform: string;
-    modelLabelSelector: (modelName: string) => Record<string, string>;
+    modelNameLabel: string;
+    additionalLabels?: Record<string, string>;
     resources: readonly EventsResourceDescriptor[];
   }
 >;
