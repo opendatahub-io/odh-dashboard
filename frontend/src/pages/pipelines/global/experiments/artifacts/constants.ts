@@ -1,5 +1,5 @@
 import { SortableData } from '@odh-dashboard/ui-core';
-import { Artifact as MlmdArtifact } from '#~/third_party/mlmd';
+import { ArtifactKF } from '#~/concepts/pipelines/kfTypes';
 
 export enum FilterOptions {
   Artifact = 'name',
@@ -18,7 +18,7 @@ export const options = {
   [FilterOptions.Type]: 'Type',
 };
 
-export const columns: SortableData<MlmdArtifact>[] = [
+export const columns: SortableData<ArtifactKF>[] = [
   {
     label: 'Artifact',
     field: 'name',
@@ -27,7 +27,7 @@ export const columns: SortableData<MlmdArtifact>[] = [
   },
   {
     label: 'ID',
-    field: 'id',
+    field: 'artifact_id',
     sortable: false,
     width: 10,
   },
@@ -44,7 +44,7 @@ export const columns: SortableData<MlmdArtifact>[] = [
   },
   {
     label: 'Created',
-    field: 'createTimeSinceEpoch',
+    field: 'created_at',
     sortable: false,
     width: 15,
   },

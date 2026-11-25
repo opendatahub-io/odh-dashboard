@@ -1,7 +1,7 @@
 import React from 'react';
 
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import { usePipelinesAPI, MlmdListContextProvider } from '#~/concepts/pipelines/context';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PipelineServerActions from '#~/concepts/pipelines/content/PipelineServerActions';
 import PipelineCoreApplicationPage from '#~/pages/pipelines/global/PipelineCoreApplicationPage';
 import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
@@ -27,9 +27,7 @@ export const GlobalArtifactsPage: React.FC = () => {
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>
-          <MlmdListContextProvider>
-            <ArtifactsList />
-          </MlmdListContextProvider>
+          <ArtifactsList key={pipelinesAPI.namespace} />
         </EnsureCompatiblePipelineServer>
       </EnsureAPIAvailability>
     </PipelineCoreApplicationPage>

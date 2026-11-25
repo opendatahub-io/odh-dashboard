@@ -5,24 +5,52 @@ import {
   EmptyState,
   EmptyStateVariant,
   EmptyStateBody,
+  EmptyStateActions,
+  EmptyStateFooter,
+  Button,
   Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
-import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
-import { useMlmdListContext } from '#~/concepts/pipelines/context';
-import { useGetArtifactsList } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsList';
+import useFilters, { FilterValue } from '#~/utilities/useFilters';
+import { useGetArtifactsList } from '#~/concepts/pipelines/apiHooks/useGetArtifactsList';
+import { FilterOptions, initialFilterData } from './constants';
+import { getArtifactsFilter, isArtifactAccessDenied } from './artifactResourceUtils';
 import { ArtifactsTable } from './ArtifactsTable';
 
 export const ArtifactsList: React.FC = () => {
-  const { filterQuery } = useMlmdListContext();
-  const [artifactsResponse, isArtifactsLoaded, artifactsError] = useGetArtifactsList();
-  const { artifacts, nextPageToken } = artifactsResponse || {};
-  const filterQueryRef = React.useRef(filterQuery);
+  const { filterData, onFilterUpdate, onClearFilters } = useFilters(initialFilterData);
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(10);
+  const [pageTokens, setPageTokens] = React.useState<Record<number, string>>({});
+  const hasLoadedArtifacts = React.useRef(false);
+  const filter = getArtifactsFilter(filterData);
+  const [artifactsResponse, isArtifactsLoaded, artifactsError] = useGetArtifactsList(
+    pageTokens[page],
+    pageSize,
+    filter,
+  );
+  const { artifacts = [], next_page_token: nextPageToken } = artifactsResponse ?? {};
+  if (isArtifactsLoaded) {
+    hasLoadedArtifacts.current = true;
+  }
+
+  const resetPage = () => {
+    setPage(1);
+    setPageTokens({});
+  };
+  const updateFilter = (key: FilterOptions, value: FilterValue) => {
+    onFilterUpdate(key, value);
+    resetPage();
+  };
+  const clearFilters = () => {
+    onClearFilters();
+    resetPage();
+  };
 
   if (artifactsError) {
-    if (getGenericErrorCode(artifactsError) === 403) {
+    if (isArtifactAccessDenied(artifactsError)) {
       return <UnauthorizedError accessDomain="artifacts" />;
     }
     return (
@@ -34,12 +62,21 @@ export const ArtifactsList: React.FC = () => {
           variant={EmptyStateVariant.lg}
         >
           <EmptyStateBody>{artifactsError.message}</EmptyStateBody>
+          {filter && (
+            <EmptyStateFooter>
+              <EmptyStateActions>
+                <Button variant="primary" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              </EmptyStateActions>
+            </EmptyStateFooter>
+          )}
         </EmptyState>
       </Bullseye>
     );
   }
 
-  if (!isArtifactsLoaded) {
+  if (!isArtifactsLoaded && !hasLoadedArtifacts.current) {
     return (
       <Bullseye>
         <Spinner />
@@ -47,7 +84,7 @@ export const ArtifactsList: React.FC = () => {
     );
   }
 
-  if (!artifacts?.length && !filterQuery && filterQueryRef.current === filterQuery) {
+  if (isArtifactsLoaded && !artifacts.length && !filter) {
     return (
       <EmptyState
         headingLevel="h4"
@@ -69,6 +106,22 @@ export const ArtifactsList: React.FC = () => {
       artifacts={artifacts}
       nextPageToken={nextPageToken}
       isLoaded={isArtifactsLoaded}
+      page={page}
+      pageSize={pageSize}
+      filterData={filterData}
+      onFilterUpdate={updateFilter}
+      onClearFilters={clearFilters}
+      onNextPage={(nextPage) => {
+        if (nextPageToken) {
+          setPageTokens((tokens) => ({ ...tokens, [nextPage]: nextPageToken }));
+          setPage(nextPage);
+        }
+      }}
+      onPreviousPage={setPage}
+      onPageSizeChange={(newSize) => {
+        setPageSize(newSize);
+        resetPage();
+      }}
     />
   );
 };
