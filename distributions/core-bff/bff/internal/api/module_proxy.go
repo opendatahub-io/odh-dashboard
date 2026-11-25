@@ -2,12 +2,15 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
@@ -78,29 +81,42 @@ type moduleProxyHandler struct {
 }
 
 // parseFederationConfig reads and deserializes the federation-config JSON file.
+// Failures name MF_REMOTES_CONFIG, never its value or the file contents: the
+// path is operator input, and os and encoding/json errors would quote it or
+// the offending bytes.
 func parseFederationConfig(filePath string) ([]moduleFederationEntry, error) {
 	if filePath == "" {
 		return nil, nil
 	}
+	const setting = "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted)"
 
 	f, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read federation config %s: %w", filePath, err)
+		return nil, fmt.Errorf("%s could not be read: %s", setting, config.FileProblem(err))
 	}
 	defer f.Close()
 
 	limited := io.LimitReader(f, maxFederationConfigLen+1)
 	data, err := io.ReadAll(limited)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read federation config %s: %w", filePath, err)
+		return nil, fmt.Errorf("%s could not be read: %s", setting, config.FileProblem(err))
 	}
 	if len(data) > maxFederationConfigLen {
-		return nil, fmt.Errorf("federation config %s exceeds maximum size of %d bytes", filePath, maxFederationConfigLen)
+		return nil, fmt.Errorf("%s exceeds the maximum size of %d bytes", setting, maxFederationConfigLen)
 	}
 
 	var entries []moduleFederationEntry
 	if err := json.Unmarshal(data, &entries); err != nil {
-		return nil, fmt.Errorf("failed to parse federation config %s: %w", filePath, err)
+		var syntaxErr *json.SyntaxError
+		var typeErr *json.UnmarshalTypeError
+		switch {
+		case errors.As(err, &syntaxErr):
+			return nil, fmt.Errorf("%s is not valid JSON (byte offset %d)", setting, syntaxErr.Offset)
+		case errors.As(err, &typeErr):
+			return nil, fmt.Errorf("%s does not match the federation-config schema (field %q)", setting, typeErr.Field)
+		default:
+			return nil, fmt.Errorf("%s could not be parsed", setting)
+		}
 	}
 
 	return entries, nil
@@ -176,13 +192,13 @@ func validateProxyPaths(entries []normalizedProxyEntry) error {
 			return fmt.Errorf("entry %s uses root path / which conflicts with the SPA catch-all", e.entryName)
 		}
 		if !strings.HasPrefix(e.service.Path, "/") {
-			return fmt.Errorf("entry %s has non-rooted proxy path %s (must start with /)", e.entryName, e.service.Path)
+			return fmt.Errorf("entry %s has a non-rooted proxy path (value omitted; must start with /)", e.entryName)
 		}
 		if strings.HasSuffix(e.service.Path, "/") {
-			return fmt.Errorf("entry %s has trailing slash in proxy path %s (will be appended automatically)", e.entryName, e.service.Path)
+			return fmt.Errorf("entry %s has a trailing slash in its proxy path (value omitted; it is appended automatically)", e.entryName)
 		}
 		if strings.ContainsAny(e.service.Path, "{}") {
-			return fmt.Errorf("entry %s has http.ServeMux wildcard syntax in proxy path %s", e.entryName, e.service.Path)
+			return fmt.Errorf("entry %s has http.ServeMux wildcard syntax in its proxy path (value omitted)", e.entryName)
 		}
 	}
 
@@ -218,37 +234,59 @@ func proxyPathsOverlap(a, b string) bool {
 	return a == b || strings.HasPrefix(a, b+"/") || strings.HasPrefix(b, a+"/")
 }
 
+// Entry errors name the entry and the field that failed, never the rejected
+// value: the federation config is free-form operator input.
 func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeader string) error {
 	for _, e := range entries {
 		if e.service.Service.Name == "" {
 			return fmt.Errorf("entry %s has empty service name", e.entryName)
 		}
 		if !rfc1123Label.MatchString(e.service.Service.Name) {
-			return fmt.Errorf("entry %s has invalid service name %q (must be a valid RFC 1123 label)", e.entryName, e.service.Service.Name)
+			return fmt.Errorf("entry %s has an invalid service name (value omitted; must be a valid RFC 1123 label)", e.entryName)
 		}
 		if e.service.Service.Namespace == "" {
 			return fmt.Errorf("entry %s has empty service namespace", e.entryName)
 		}
 		if !rfc1123Label.MatchString(e.service.Service.Namespace) {
-			return fmt.Errorf("entry %s has invalid service namespace %q (must be a valid RFC 1123 label)", e.entryName, e.service.Service.Namespace)
+			return fmt.Errorf("entry %s has an invalid service namespace (value omitted; must be a valid RFC 1123 label)", e.entryName)
 		}
 		if e.service.Service.Port <= 0 || e.service.Service.Port > 65535 {
-			return fmt.Errorf("entry %s has invalid service port %d (must be 1-65535)", e.entryName, e.service.Service.Port)
+			return fmt.Errorf("entry %s has an invalid service port (value omitted; must be 1-65535)", e.entryName)
 		}
 
 		if e.service.Authorize {
 			for k := range e.service.Headers {
-				if strings.EqualFold(k, constants.HeaderAuthorization) {
-					return fmt.Errorf("entry %s sets a custom Authorization header while authorize is enabled; these conflict", e.entryName)
-				}
-				if authTokenHeader != "" && strings.EqualFold(k, authTokenHeader) {
-					return fmt.Errorf("entry %s sets a custom %s header while authorize is enabled; the server-resolved token takes precedence", e.entryName, authTokenHeader)
+				if reserved, ok := reservedCredentialHeader(k, authTokenHeader); ok {
+					return fmt.Errorf("entry %s sets a custom %s header while authorize is enabled; credential headers carry only the server-resolved caller token", e.entryName, reserved)
 				}
 			}
 		}
 	}
 
 	return nil
+}
+
+// reservedCredentialHeaders are the headers that carry the caller credential to
+// an authorized module: Authorization and X-Forwarded-Access-Token always,
+// whichever header ingress is configured to read, plus the configured one.
+// Only the server-resolved token may appear in them.
+func reservedCredentialHeaders(authTokenHeader string) []string {
+	headers := []string{constants.HeaderAuthorization, constants.HeaderForwardedToken}
+	if authTokenHeader != "" && !slices.ContainsFunc(headers, func(h string) bool { return strings.EqualFold(h, authTokenHeader) }) {
+		headers = append(headers, authTokenHeader)
+	}
+	return headers
+}
+
+// reservedCredentialHeader reports whether name is a reserved credential
+// header, returning its canonical spelling.
+func reservedCredentialHeader(name, authTokenHeader string) (string, bool) {
+	for _, h := range reservedCredentialHeaders(strings.TrimSpace(authTokenHeader)) {
+		if strings.EqualFold(strings.TrimSpace(name), h) {
+			return http.CanonicalHeaderKey(h), true
+		}
+	}
+	return "", false
 }
 
 // buildModuleProxyConfig creates a ProxyConfig for a normalized proxy entry.
@@ -283,39 +321,49 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 			if !ok || identity == nil {
 				return ""
 			}
-			return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
+			return k8s.BearerHeader(identity.ResolveToken(app.devFallbackToken))
 		}
 
-		// Re-inject the validated user token in the ingress auth header
-		// (default: x-forwarded-access-token). mod-arch BFFs (maas, gen-ai, ...)
-		// read the token from this header, not the Kubernetes-style Authorization
-		// header that AuthHeaderFn sets. The inbound value is stripped by
-		// SensitiveIngressHeaders (StripHeaders) so a client cannot spoof it;
-		// SetOutboundHeadersFn runs after stripping (see proxy.rewriteFunc), so
-		// the value set here is the trusted, server-resolved token. Both headers
-		// are forwarded so upstreams reading either convention authenticate.
+		// Re-inject the validated user token in every credential header.
+		// mod-arch BFFs (maas, gen-ai, ...) read x-forwarded-access-token, not
+		// the Kubernetes-style Authorization header that AuthHeaderFn sets, and
+		// the configured ingress header may be a third one. The inbound values
+		// are stripped by SensitiveIngressHeaders (StripHeaders) so a client
+		// cannot spoof them; SetOutboundHeadersFn runs after stripping (see
+		// proxy.rewriteFunc). Static headers are applied first, then every
+		// reserved credential header is cleared, so only the server-resolved
+		// token can appear there. A tokenless identity (a certificate-only
+		// DEV_MODE fallback, or a mock without a token) sends none of them.
 		//
-		// Keep the Bearer prefix when the configured ingress header is Authorization;
-		// other configured headers receive the raw token.
-		authTokenHeader := app.config.AuthTokenHeader
-		if authTokenHeader != "" || len(customHeaders) > 0 {
-			isAuthorizationHeader := strings.EqualFold(authTokenHeader, constants.HeaderAuthorization)
-			cfg.SetOutboundHeadersFn = func(r *http.Request, outH http.Header) {
-				// Apply custom headers first so the server-resolved token set below
-				// is authoritative and cannot be overridden by a static config value.
-				for k, v := range customHeaders {
-					outH.Set(k, v)
-				}
-				if authTokenHeader != "" {
-					if identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
-						if token := identity.ResolveToken(app.devFallbackToken); token != "" {
-							if isAuthorizationHeader {
-								outH.Set(authTokenHeader, k8s.BearerTokenPrefix+token)
-							} else {
-								outH.Set(authTokenHeader, token)
-							}
-						}
-					}
+		// Authorization keeps the Bearer prefix; other headers receive the raw
+		// token.
+		authTokenHeader := strings.TrimSpace(app.config.AuthTokenHeader)
+		reserved := reservedCredentialHeaders(authTokenHeader)
+		cfg.SetOutboundHeadersFn = func(r *http.Request, outH http.Header) {
+			for k, v := range customHeaders {
+				outH.Set(k, v)
+			}
+			for _, h := range reserved {
+				outH.Del(h)
+			}
+			identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			if !ok || identity == nil {
+				return
+			}
+			token := identity.ResolveToken(app.devFallbackToken)
+			if token == "" {
+				return
+			}
+			outH.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+			// With no ingress header configured only Authorization carries the
+			// token (no raw-token injection); otherwise every reserved header
+			// does, so a module reading any convention sees the same caller.
+			if authTokenHeader == "" {
+				return
+			}
+			for _, h := range reserved {
+				if !strings.EqualFold(h, constants.HeaderAuthorization) {
+					outH.Set(h, token)
 				}
 			}
 		}
@@ -377,8 +425,8 @@ func (app *App) buildModuleProxyHandlers(entries []normalizedProxyEntry) ([]modu
 			return nil, fmt.Errorf("failed to parse target URL for entry %s: %w", entry.entryName, err)
 		}
 
-		allowHTTP := !entry.service.TLS || app.config.DevMode || app.config.MockK8Client
-		insecureSkipVerify := app.config.InsecureSkipVerify && (app.config.DevMode || app.config.MockK8Client)
+		allowHTTP := !entry.service.TLS || app.config.DevMode
+		insecureSkipVerify := app.config.SkipsTLSVerification()
 
 		cfg := app.buildModuleProxyConfig(entry, targetURL, allowHTTP, insecureSkipVerify, true)
 

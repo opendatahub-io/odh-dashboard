@@ -6,6 +6,7 @@ import (
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
@@ -37,6 +38,11 @@ func (r *ComponentsRepository) ListComponents(
 
 	list, err := r.saDynClient.Resource(models.OdhApplicationGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
+		// A 405 is checked first: IsResourceUnavailable counts it as absence,
+		// but a rejected LIST does not establish that the API is missing.
+		if k8serrors.IsMethodNotSupported(err) {
+			return nil, fmt.Errorf("component list returned method not supported: %w", err)
+		}
 		if k8sutil.IsResourceUnavailable(err) {
 			return []map[string]any{}, nil
 		}

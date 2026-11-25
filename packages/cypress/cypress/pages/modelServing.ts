@@ -1454,32 +1454,32 @@ class ModelServingWizard extends Wizard {
     );
   }
 
-  findServiceAccountNameInput() {
+  findSecretNameInput() {
     return cy.findByTestId('service-account-form-name');
   }
 
-  findAddServiceAccountButton() {
+  findAddSecretButton() {
     return cy.findByTestId('add-service-account-button');
   }
 
-  findAllServiceAccountInputs() {
+  findAllSecretNameInputs() {
     return cy.findAllByTestId('service-account-form-name');
   }
 
-  findServiceAccountByIndex(index: number) {
-    return this.findAllServiceAccountInputs().eq(index);
+  findSecretNameByIndex(index: number) {
+    return this.findAllSecretNameInputs().eq(index);
   }
 
-  findServiceNameAlert() {
+  findSecretNameAlert() {
     return cy.findByText('Duplicates are invalid');
   }
 
-  findAllRemoveServiceAccountButtons() {
+  findAllRemoveSecretButtons() {
     return cy.findAllByTestId('remove-service-account-button');
   }
 
-  findRemoveServiceAccountByIndex(index: number) {
-    return this.findAllRemoveServiceAccountButtons().eq(index);
+  findRemoveSecretByIndex(index: number) {
+    return this.findAllRemoveSecretButtons().eq(index);
   }
 
   findNumReplicasInput() {
@@ -1746,12 +1746,24 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('review-step-model-details');
   }
 
+  findReviewStepModelDeploymentSection() {
+    return cy.findByTestId('review-step-model-deployment');
+  }
+
   findReviewHuggingFaceApiKey() {
     return cy.findByTestId('review-item-huggingFaceApiKey');
   }
 
   findReviewHuggingFaceApiKeyValue() {
     return cy.findByTestId('review-item-huggingFaceApiKey-value');
+  }
+
+  findReviewTokenSecrets() {
+    return cy.findByTestId('review-item-tokenAuthentication-serviceAccounts');
+  }
+
+  findReviewTokenSecretsValue() {
+    return cy.findByTestId('review-item-tokenAuthentication-serviceAccounts-value');
   }
 
   findDeploymentMethodRadio(key: DeploymentMethodKey) {

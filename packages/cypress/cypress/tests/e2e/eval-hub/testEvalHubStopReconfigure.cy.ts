@@ -158,6 +158,7 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
         evaluationRunName,
         inferenceServiceName,
         mlflowExperimentName,
+        numExamples: testData.numExamples,
         additionalBenchmarkParams,
       });
       stopAndReconfigureEvaluation(evaluationRunName, reconfiguredRunName, evaluationTenantProject);

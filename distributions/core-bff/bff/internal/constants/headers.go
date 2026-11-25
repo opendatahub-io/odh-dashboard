@@ -15,6 +15,7 @@ const (
 	HeaderRetryAfter                  = "Retry-After"
 	HeaderTrailer                     = "Trailer"
 	HeaderCacheControl                = "Cache-Control"
+	HeaderVary                        = "Vary"
 	HeaderReferrerPolicy              = "Referrer-Policy"
 	HeaderXContentTypeOptions         = "X-Content-Type-Options"
 	HeaderCrossOriginOpenerPolicy     = "Cross-Origin-Opener-Policy"

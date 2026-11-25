@@ -248,6 +248,25 @@ export const getConnectionTypeFromUri = (uri: string): ModelServingCompatibleTyp
   }
 };
 
+export const applyK8sNameAndNamespace = (
+  llmInferenceService: LLMInferenceServiceKind,
+  k8sName?: string,
+  namespace?: string,
+): LLMInferenceServiceKind => {
+  if (llmInferenceService.metadata.resourceVersion) {
+    // If the resource already exists, we cannot change its name or namespace
+    return llmInferenceService;
+  }
+  const result = structuredClone(llmInferenceService);
+  result.metadata.name = k8sName ?? llmInferenceService.metadata.name;
+  result.metadata.namespace = namespace ?? llmInferenceService.metadata.namespace;
+  // The served model name defaults to the resource name; follow a rename unless it was set apart (e.g. in YAML)
+  if (result.spec.model.name === llmInferenceService.metadata.name) {
+    result.spec.model.name = result.metadata.name;
+  }
+  return result;
+};
+
 export const applyDisplayNameDesc = (
   inferenceService: LLMInferenceServiceKind,
   name?: string,

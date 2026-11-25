@@ -886,7 +886,7 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('browse-all-benchmarks')).toBeInTheDocument();
     expect(screen.getByTestId('browse-all-benchmarks-explore')).toHaveAttribute(
       'href',
-      '/evaluation/test-project/create/benchmarks',
+      '/evaluation/test-project/create/single-benchmark',
     );
   });
 

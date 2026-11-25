@@ -122,17 +122,19 @@ export const parseMaaSUsageExample = (usageExample: string): ParsedMaaSUsageExam
 /** Sends the Portal-provided usage example without executing its shell command. */
 export const executeMaaSUsageExample = (
   usageExample: string,
+  endpointOverride?: string,
+  requestBodyOverride?: MaaSCompletionRequestBody,
 ): Cypress.Chainable<{ status: number; body: string }> => {
   const { endpoint, apiKey, requestBody } = parseMaaSUsageExample(usageExample);
   return cy
     .request({
       method: 'POST',
-      url: endpoint,
+      url: endpointOverride ?? endpoint,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: requestBody,
+      body: requestBodyOverride ?? requestBody,
       failOnStatusCode: false,
       retryOnNetworkFailure: false,
       log: false,

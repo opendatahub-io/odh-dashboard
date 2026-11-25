@@ -74,6 +74,16 @@ describe('Data Connect Hub BFF Contract Tests', () => {
         status: 201,
       });
     });
+
+    it('should check connection name availability for a project', async () => {
+      const result = await apiClient.get(
+        '/api/v1/connection-name-availability?namespace=default&name=warehouse',
+      );
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionNameAvailabilityResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
   });
 
   describe('Connection Endpoint', () => {

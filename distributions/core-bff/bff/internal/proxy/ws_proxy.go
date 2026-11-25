@@ -30,6 +30,9 @@ type WsProxyConfig struct {
 	RootCAs *x509.CertPool
 	// ClientCerts are client certificates for mTLS authentication.
 	ClientCerts []tls.Certificate
+	// FallbackClientCerts are presented only on handshakes whose identity has
+	// DevFallback set; see K8sProxyConfig.FallbackClientCerts.
+	FallbackClientCerts []tls.Certificate
 	// InsecureSkipVerify disables TLS certificate verification.
 	InsecureSkipVerify bool
 	// AllowHTTP permits insecure HTTP connections to the K8s API server.
@@ -51,6 +54,7 @@ type wsProxy struct {
 	targetURL        *url.URL
 	wsScheme         string
 	tlsConfig        *tls.Config
+	fallbackTLS      *tls.Config
 	devFallbackToken string
 	tracker          *ConnectionTracker
 	logger           *slog.Logger
@@ -78,13 +82,20 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	token := identity.ResolveToken(p.devFallbackToken)
 
-	targetWSURL := buildTargetWSURL(p.wsScheme, p.targetURL.Host, r)
+	targetWSURL := buildTargetWSURL(p.wsScheme, p.targetURL.Host, p.targetURL, r)
 	upstreamRequest := r.Clone(r.Context())
 	upstreamRequest.URL.Path = kubernetesWebSocketPath(r)
 	watch := httpcontract.IsWatchRequest(upstreamRequest)
-	clientSubprotocols := websocket.Subprotocols(r)
+	// A client-supplied bearer subprotocol is a credential, not a protocol to
+	// negotiate: only the BFF's resolved token (added by dialK8sWebSocket) may
+	// reach the API server, so the request never carries two identities.
+	clientSubprotocols := withoutBearerSubprotocols(AllSubprotocols(r.Header))
 
-	targetConn, resp, dialErr := dialK8sWebSocket(targetWSURL, p.tlsConfig, token, p.targetURL, p.netDialContext, clientSubprotocols, httpcontract.RequestID(r.Context()))
+	tlsConfig := p.tlsConfig
+	if identity.DevFallback && p.fallbackTLS != nil {
+		tlsConfig = p.fallbackTLS
+	}
+	targetConn, resp, dialErr := dialK8sWebSocket(targetWSURL, tlsConfig, token, p.targetURL, p.netDialContext, clientSubprotocols, httpcontract.RequestID(r.Context()))
 	if dialErr != nil {
 		p.handleDialError(w, r, resp, dialErr)
 		return
@@ -100,7 +111,10 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	httpcontract.Log(p.logger, r).Info("WebSocket connected")
 	diagnosticRequest := upstreamRequest.Clone(upstreamRequest.Context())
-	diagnosticRequest.Header.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	if token != "" {
+		// The redactor scrubs this token from relayed diagnostics.
+		diagnosticRequest.Header.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	}
 	bridgeConnections(p.tracker, clientConn, targetConn, httpcontract.RequestID(r.Context()), watch, diagnosticRequest)
 }
 
@@ -149,6 +163,11 @@ func NewWsProxyHandler(cfg WsProxyConfig) (http.Handler, error) {
 	if len(cfg.ClientCerts) > 0 {
 		tlsConfig.Certificates = cfg.ClientCerts
 	}
+	var fallbackTLS *tls.Config
+	if len(cfg.FallbackClientCerts) > 0 {
+		fallbackTLS = tlsConfig.Clone()
+		fallbackTLS.Certificates = withFallbackCerts(cfg.ClientCerts, cfg.FallbackClientCerts)
+	}
 
 	var netDialContext func(ctx context.Context, network, addr string) (net.Conn, error)
 	if cfg.SSRFValidateTarget {
@@ -159,6 +178,7 @@ func NewWsProxyHandler(cfg WsProxyConfig) (http.Handler, error) {
 		targetURL:        targetURL,
 		wsScheme:         wsScheme,
 		tlsConfig:        tlsConfig,
+		fallbackTLS:      fallbackTLS,
 		devFallbackToken: cfg.DevFallbackToken,
 		tracker:          cfg.Tracker,
 		logger:           cfg.Logger,
