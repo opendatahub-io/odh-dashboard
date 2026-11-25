@@ -85,10 +85,6 @@ const (
 	workspaceKubeRbacProxyTLSCertsMountPath  = "/etc/tls/private"
 	workspaceKubeRbacProxyTLSCertFilePath    = "/etc/tls/private/tls.crt"
 	workspaceKubeRbacProxyTLSKeyFilePath     = "/etc/tls/private/tls.key"
-	// requeue delay when the local cache is known to be stale (fixed delay,
-	// since a stale cache is not write contention, so no exponential backoff
-	// is needed)
-	requeueAfterStaleCache = 250 * time.Millisecond
 
 	// lengths for resource names
 	generateNameSuffixLength    = 6
