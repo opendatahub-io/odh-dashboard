@@ -175,10 +175,19 @@ const requestEvalHubCleanupApi = (
               .fetch(url.toString(), {
                 method: request.method,
                 credentials: 'same-origin',
+                redirect: 'manual',
                 headers: { Accept: 'application/json' },
                 signal: controller.signal,
               })
               .then(async (response) => {
+                if (response.type === 'opaqueredirect') {
+                  return {
+                    status: 0,
+                    body: 'Dashboard cleanup request redirected without following the redirect.',
+                    redirected: true,
+                    skipRetry: true,
+                  };
+                }
                 const responseText = await response.text();
                 let body: unknown = responseText;
                 try {
