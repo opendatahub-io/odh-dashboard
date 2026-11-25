@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -27,17 +28,6 @@ var coreGroup = &metav1.APIResourceList{GroupVersion: "v1", APIResources: []meta
 
 func fakeDiscovery(resources ...*metav1.APIResourceList) *fakediscovery.FakeDiscovery {
 	return &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{Resources: append([]*metav1.APIResourceList{coreGroup}, resources...)}}
-}
-
-// blockingDiscovery never answers, like a hung discovery request.
-type blockingDiscovery struct {
-	discovery.DiscoveryInterface
-	release chan struct{}
-}
-
-func (b blockingDiscovery) ServerGroups() (*metav1.APIGroupList, error) {
-	<-b.release
-	return nil, errors.New("released")
 }
 
 func TestConfirmAPIAbsent(t *testing.T) {
@@ -75,17 +65,91 @@ func TestConfirmAPIAbsent(t *testing.T) {
 	}
 }
 
-func TestConfirmAPIAbsent_HonoursTheContextDeadline(t *testing.T) {
-	release := make(chan struct{})
-	defer close(release)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
-	defer cancel()
+// Review 6058010211: the caller's context reaches the discovery request, so a
+// caller that leaves cancels the in-flight HTTP request instead of leaving it
+// running.
+func TestConfirmAPIAbsent_CancellationReachesTheTransport(t *testing.T) {
+	started := make(chan struct{})
+	cancelled := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-r.Context().Done()
+		close(cancelled)
+	}))
+	defer srv.Close()
 
-	absent, err := ConfirmAPIAbsent(ctx, blockingDiscovery{release: release}, clusterVersions)
-	require.Error(t, err)
+	disc, err := discovery.NewDiscoveryClientForConfig(&rest.Config{Host: srv.URL})
+	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-started
+		cancel()
+	}()
+
+	absent, err := ConfirmAPIAbsent(ctx, disc, clusterVersions)
 	assert.False(t, absent)
 	assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
-	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.ErrorIs(t, err, context.Canceled)
+	select {
+	case <-cancelled:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the discovery request was not cancelled on the server side")
+	}
+}
+
+func TestConfirmAPIAbsent_AlreadyCancelledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	absent, err := ConfirmAPIAbsent(ctx, fakeDiscovery(), clusterVersions)
+	assert.False(t, absent)
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+// Review 6058010211: the decision uses the resource list that was validated.
+// Successive reads return different bodies; the list is read once and that
+// same body decides.
+func TestConfirmAPIAbsent_DecidesFromTheValidatedResourceList(t *testing.T) {
+	const apiDoc = `{"kind":"APIVersions","apiVersion":"v1","versions":["v1"],"serverAddressByClientCIDRs":[]}`
+	const listsConfig = `{"kind":"APIGroupList","apiVersion":"v1","groups":[{"name":"config.openshift.io",` +
+		`"versions":[{"groupVersion":"config.openshift.io/v1","version":"v1"}],` +
+		`"preferredVersion":{"groupVersion":"config.openshift.io/v1","version":"v1"}}]}`
+	const servesClusterVersions = `{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v1",` +
+		`"resources":[{"name":"clusterversions","singularName":"","namespaced":false,"kind":"ClusterVersion","verbs":["get"]}]}`
+	for _, tc := range []struct {
+		name   string
+		bodies []string
+	}{
+		{"malformed, then a list serving the resource", []string{`{}`, servesClusterVersions}},
+		{"another group version's list, then a list serving the resource", []string{
+			`{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v2","resources":[]}`, servesClusterVersions}},
+		{"a list serving the resource, then malformed", []string{servesClusterVersions, `{}`}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var reads atomic.Int32
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case "/api":
+					_, _ = w.Write([]byte(apiDoc))
+				case "/apis":
+					_, _ = w.Write([]byte(listsConfig))
+				case "/apis/config.openshift.io/v1":
+					n := int(reads.Add(1)) - 1
+					_, _ = w.Write([]byte(tc.bodies[min(n, len(tc.bodies)-1)]))
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer srv.Close()
+
+			disc, err := discovery.NewDiscoveryClientForConfig(&rest.Config{Host: srv.URL})
+			require.NoError(t, err)
+			absent, err := ConfirmAPIAbsent(context.Background(), disc, clusterVersions)
+			assert.False(t, absent)
+			assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
+			assert.Equal(t, int32(1), reads.Load(), "the resource list is read once")
+		})
+	}
 }
 
 // The reviewer's reproduction through the real discovery client: a proxy that
