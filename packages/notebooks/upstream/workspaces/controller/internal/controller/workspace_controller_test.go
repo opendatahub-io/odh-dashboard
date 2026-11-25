@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -609,6 +610,92 @@ var _ = Describe("Workspace Controller", func() {
 			}
 			_, err := reconciler.generateVirtualService(workspace, workspaceKind, service, imageConfigSpec)
 			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("When generating a Gateway API HTTPRoute for a Workspace", func() {
+
+		// Define utility variables for object names.
+		// NOTE: to avoid conflicts between parallel tests, resource names are unique to each test
+		var (
+			workspaceName     string
+			workspaceKindName string
+		)
+
+		// NOTE: these tests call the generate functions directly and do not create any
+		//       resources in the cluster, so no teardown is required.
+		var (
+			reconciler      *WorkspaceReconciler
+			workspace       *kubefloworgv1beta1.Workspace
+			workspaceKind   *kubefloworgv1beta1.WorkspaceKind
+			service         *corev1.Service
+			imageConfigSpec kubefloworgv1beta1.ImageConfigSpec
+		)
+
+		BeforeEach(func() {
+			uniqueName := "ws-gateway-httproute-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+
+			reconciler = &WorkspaceReconciler{
+				Config: &config.EnvConfig{
+					ClusterDomain: "cluster.local",
+				},
+			}
+			workspaceKind = NewExampleWorkspaceKind1(workspaceKindName)
+			workspace = NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			service = &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("ws-%s", workspaceName),
+					Namespace: namespaceName,
+				},
+			}
+			imageConfigSpec = workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec
+		})
+
+		It("should not rewrite the path when `removePathPrefix` is false", func() {
+			By("generating the HTTPRoute")
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RemovePathPrefix = new(false)
+			httpRoute := reconciler.generateGatewayV1HTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+
+			By("checking the HTTP route has no filters")
+			Expect(httpRoute).NotTo(BeNil())
+			Expect(httpRoute.Spec.Rules).To(HaveLen(1))
+			Expect(httpRoute.Spec.Rules[0].Filters).To(BeEmpty())
+		})
+
+		It("should rewrite the path prefix to '/' when `removePathPrefix` is true", func() {
+			By("generating the HTTPRoute")
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RemovePathPrefix = new(true)
+			httpRoute := reconciler.generateGatewayV1HTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+
+			By("checking the HTTP route replaces the matched prefix with '/'")
+			Expect(httpRoute).NotTo(BeNil())
+			Expect(httpRoute.Spec.Rules).To(HaveLen(1))
+			Expect(httpRoute.Spec.Rules[0].Matches).To(HaveLen(1))
+			Expect(httpRoute.Spec.Rules[0].Matches[0].Path.Type).To(HaveValue(Equal(gatewayv1.PathMatchPathPrefix)))
+			Expect(httpRoute.Spec.Rules[0].Filters).To(Equal([]gatewayv1.HTTPRouteFilter{
+				{
+					Type: gatewayv1.HTTPRouteFilterURLRewrite,
+					URLRewrite: &gatewayv1.HTTPURLRewriteFilter{
+						Path: &gatewayv1.HTTPPathModifier{
+							Type:               gatewayv1.PrefixMatchHTTPPathModifier,
+							ReplacePrefixMatch: new("/"),
+						},
+					},
+				},
+			}))
+		})
+
+		It("should not rewrite the path when `httpProxy` is not set", func() {
+			By("generating the HTTPRoute")
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy = nil
+			httpRoute := reconciler.generateGatewayV1HTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+
+			By("checking the HTTP route has no filters")
+			Expect(httpRoute).NotTo(BeNil())
+			Expect(httpRoute.Spec.Rules).To(HaveLen(1))
+			Expect(httpRoute.Spec.Rules[0].Filters).To(BeEmpty())
 		})
 	})
 

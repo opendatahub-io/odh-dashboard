@@ -2244,6 +2244,25 @@ func (r *WorkspaceReconciler) generateGatewayV1HTTPRoute(workspace *kubefloworgv
 		case kubefloworgv1beta1.ImagePortProtocolHTTP:
 			// Generate notebook path: /workspace/connect/{namespace}/{notebook-name}/{port-id}
 			notebookPath := fmt.Sprintf(workspaceConnectPathTemplate, workspace.Namespace, workspace.Name, imageConfigPort.Id)
+
+			// determine rewrite configuration
+			//  - when removePathPrefix is true, rewrite the matched prefix to "/" so the
+			//    upstream receives the path with the connect prefix stripped
+			var httpRouteFilters []gatewayv1.HTTPRouteFilter
+			if podTemplatePort.HTTPProxy != nil && ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
+				httpRouteFilters = []gatewayv1.HTTPRouteFilter{
+					{
+						Type: gatewayv1.HTTPRouteFilterURLRewrite,
+						URLRewrite: &gatewayv1.HTTPURLRewriteFilter{
+							Path: &gatewayv1.HTTPPathModifier{
+								Type:               gatewayv1.PrefixMatchHTTPPathModifier,
+								ReplacePrefixMatch: new("/"),
+							},
+						},
+					},
+				}
+			}
+
 			httpRoute = &gatewayv1.HTTPRoute{
 				ObjectMeta: metav1.ObjectMeta{
 					// Use a deterministic name (not GenerateName) so we can find it for cleanup
@@ -2274,6 +2293,7 @@ func (r *WorkspaceReconciler) generateGatewayV1HTTPRoute(workspace *kubefloworgv
 									},
 								},
 							},
+							Filters: httpRouteFilters,
 							BackendRefs: []gatewayv1.HTTPBackendRef{
 								{
 									BackendRef: gatewayv1.BackendRef{
