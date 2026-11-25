@@ -33,7 +33,7 @@ import { ApiKeyStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
-import { waitForApiKeyDates, watchApiKeyCreation } from '../../../utils/maasApiKeyDates';
+import { waitForApiKeyDates, watchApiKeyCreation } from '../../../utils/dateUtils';
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;

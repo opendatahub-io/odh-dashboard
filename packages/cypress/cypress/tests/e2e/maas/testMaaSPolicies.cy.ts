@@ -44,7 +44,7 @@ import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelS
 import { getClipboardContent } from '../../../utils/clipboardUtils';
 import type { CapturedDownload } from '../../../utils/downloadUtils';
 import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
-import { waitForApiKeyDates, watchApiKeyCreation } from '../../../utils/maasApiKeyDates';
+import { waitForApiKeyDates, watchApiKeyCreation } from '../../../utils/dateUtils';
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;

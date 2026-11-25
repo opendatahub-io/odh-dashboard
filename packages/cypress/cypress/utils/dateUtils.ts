@@ -1,5 +1,16 @@
 import type { CreateAPIKeyRequest, CreateAPIKeyResponse } from '@odh-dashboard/maas/types/api-key';
 
+/**
+ * Matches ApiKeysTableRow.formatDate in packages/maas/frontend.
+ * The UI always formats with en-US regardless of the runner locale.
+ */
+export const formatApiKeyDisplayDate = (date: Date): string =>
+  date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+
 type CreateKeyRequest = { data: Pick<CreateAPIKeyRequest, 'expiresIn'> };
 type CreateKeyResponse = { data: Pick<CreateAPIKeyResponse, 'createdAt' | 'expiresAt'> };
 
@@ -8,7 +19,7 @@ const createKeyAlias = 'createApiKeyForDateChecks';
 const formatApiKeyDate = (timestamp: string | undefined, field: string): string => {
   const date = new Date(timestamp ?? '');
   expect(date.getTime(), `API key ${field} timestamp`).to.satisfy(Number.isFinite);
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  return formatApiKeyDisplayDate(date);
 };
 
 // The one-time response includes the plaintext key, so suppress request and wait logging.
