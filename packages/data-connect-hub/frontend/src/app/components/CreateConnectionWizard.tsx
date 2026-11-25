@@ -933,17 +933,21 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
         : allConnectionTypes,
     [allConnectionTypes, connectionTypeProviders],
   );
-  const [namespaces, namespacesLoaded, namespacesError] = useNamespaces(isOpen);
+  const [namespaces, namespacesLoaded, namespacesError] = useNamespaces(
+    isOpen && isNamespaceSelectable,
+  );
   const { isAllowed: canVerifyConnection, loaded: verifyAccessLoaded } = useConnectionAccess(
     selectedNamespace,
     'create',
   );
   const namespacesForAccess = React.useMemo(
     () =>
-      namespaces.some((item) => item.name === namespace)
-        ? namespaces
-        : [{ name: namespace }, ...namespaces],
-    [namespace, namespaces],
+      isNamespaceSelectable
+        ? namespaces.some((item) => item.name === namespace)
+          ? namespaces
+          : [{ name: namespace }, ...namespaces]
+        : [{ name: namespace }],
+    [isNamespaceSelectable, namespace, namespaces],
   );
   const [availableNamespaces, availableNamespacesLoaded, availableNamespacesError] =
     useCreateConnectionNamespaces(namespacesForAccess, isOpen);
@@ -1009,8 +1013,11 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const hasMissingCredentialDefaults = Object.keys(defaultCredentials).some(
     (name) => !(name in formData.credentials.properties),
   );
-  const projectLoadError = namespacesError ?? availableNamespacesError;
-  const hasNamespacesReady = namespacesLoaded && availableNamespacesLoaded && !projectLoadError;
+  const projectLoadError = isNamespaceSelectable
+    ? (namespacesError ?? availableNamespacesError)
+    : availableNamespacesError;
+  const hasNamespacesReady =
+    (!isNamespaceSelectable || namespacesLoaded) && availableNamespacesLoaded && !projectLoadError;
   const hasValidDetails =
     hasSelectedConnectionType &&
     hasNamespacesReady &&

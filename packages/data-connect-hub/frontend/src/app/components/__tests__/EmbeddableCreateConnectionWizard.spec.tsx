@@ -108,7 +108,7 @@ describe('EmbeddableCreateConnectionWizard', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
-    expect(screen.getByTestId('connection-project-value').textContent).toBe('Test Project');
+    expect(screen.getByTestId('connection-project-value').textContent).toBe('test-project');
     expect(screen.queryByTestId('connection-project-select')).toBeNull();
     expect(screen.queryByTestId('connection-project-access-popover-link')).toBeNull();
 
@@ -131,6 +131,27 @@ describe('EmbeddableCreateConnectionWizard', () => {
 
     expect(await screen.findByTestId('connection-project-select')).toBeTruthy();
     expect(screen.queryByTestId('connection-project-value')).toBeNull();
+  });
+
+  it('uses a locked namespace when namespace enumeration fails', async () => {
+    const user = userEvent.setup();
+    mockUseNamespaces.mockReturnValue([[], false, new Error('namespace request failed')]);
+
+    render(
+      <EmbeddableCreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        initialConnectionTypeId={connectionTypeId}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(mockUseNamespaces).toHaveBeenCalledWith(false);
+    expect(screen.getByTestId('connection-project-value').textContent).toBe('test-project');
+    expect(screen.queryByText('Unable to load projects')).toBeNull();
+
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', false);
   });
 
   it('can disable credential verification', async () => {
