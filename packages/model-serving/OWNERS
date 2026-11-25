@@ -1,14 +1,20 @@
 # OWNERS
 
-approvers:
-  - model-serving-metrics-approvers
+filters:
+  '.*':
+    approvers:
+      - model-serving-metrics-approvers
+    reviewers:
+      - model-serving-metrics-reviewers
+    labels:
+      - area/model-serving
+      - area/components
 
-reviewers:
-  - model-serving-metrics-reviewers
-
-labels:
-  - area/model-serving
-  - area/components
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
 
 options:
   no_parent_owners: true

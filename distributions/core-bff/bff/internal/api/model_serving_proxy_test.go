@@ -65,6 +65,22 @@ func TestModelServingProxy_StripsHeaders(t *testing.T) {
 	assert.Empty(t, receivedHeaders.Get("Forwarded"), "Forwarded should be stripped")
 }
 
+// A url.Error quotes the raw URL, userinfo included, so the parse failure is
+// reported by setting name only.
+func TestModelServingProxy_InvalidHostDoesNotEchoURL(t *testing.T) {
+	app := newTestApp(func(a *App) {
+		a.config.ModelServingServiceHost = "https://user:s3cret@model-serving:bad-port"
+		a.config.MockK8Client = false
+	})
+
+	err := app.initModelServingProxy()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "MODEL_SERVING_HOST")
+	assert.NotContains(t, err.Error(), "s3cret")
+	assert.NotContains(t, err.Error(), "model-serving:bad-port")
+}
+
 func TestModelServingProxy_MockMode(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.config.MockK8Client = true

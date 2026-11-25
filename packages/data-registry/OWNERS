@@ -1,12 +1,20 @@
 # OWNERS
 
-approvers:
-  - data-registry-approvers
-reviewers:
-  - data-registry-reviewers
-labels:
-  - area/data-registry
-  - area/components
+filters:
+  '.*':
+    approvers:
+      - data-registry-approvers
+    reviewers:
+      - data-registry-reviewers
+    labels:
+      - area/data-registry
+      - area/components
+
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
 
 options:
   no_parent_owners: true

@@ -1,12 +1,20 @@
 # OWNERS
 
-approvers:
-  - eval-hub-approvers
-reviewers:
-  - eval-hub-reviewers
-labels:
-  - area/eval-hub
-  - area/components
+filters:
+  '.*':
+    approvers:
+      - eval-hub-approvers
+    reviewers:
+      - eval-hub-reviewers
+    labels:
+      - area/eval-hub
+      - area/components
+
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
 
 options:
   no_parent_owners: true

@@ -68,7 +68,28 @@ func ServeTLSWithReload(ctx context.Context, logger *slog.Logger, factory Server
 // It blocks with the same semantics as ServeTLSWithReload: nil on graceful
 // shutdown via ctx cancellation, otherwise the serve error.
 func ListenAndServeTLSWithReload(ctx context.Context, logger *slog.Logger, template *http.Server, certFile, keyFile string) error {
-	factory := func(_ *tls.Config) *http.Server {
+	return ServeTLSWithReload(ctx, logger, serverFactoryFrom(template), certFile, keyFile)
+}
+
+// ListenAndServeTLSWithoutClusterProfile serves HTTPS with Mozilla Intermediate
+// defaults and never reads the cluster TLS profile.
+//
+// Use it on vanilla Kubernetes. `apiservers.config.openshift.io` does not exist
+// there, so the profile read can only ever fall back to these same defaults —
+// but issuing it would still make startup depend on a `config.openshift.io`
+// permission the xKS profile deliberately omits, and would put an OpenShift
+// configuration API request in the startup path of a non-OpenShift cluster.
+//
+// Certificate rotation still works: the pair is served through CertReloader
+// exactly as in the profile-tracking variant.
+func ListenAndServeTLSWithoutClusterProfile(ctx context.Context, logger *slog.Logger, template *http.Server, certFile, keyFile string) error {
+	static := func(context.Context) (*tls.Config, error) { return intermediateDefaults(), nil }
+	return serveTLSWithReload(ctx, logger, serverFactoryFrom(template), certFile, keyFile,
+		DefaultReloadInterval, static, static)
+}
+
+func serverFactoryFrom(template *http.Server) ServerFactory {
+	return func(_ *tls.Config) *http.Server {
 		return &http.Server{
 			Addr:              template.Addr,
 			Handler:           template.Handler,
@@ -81,7 +102,6 @@ func ListenAndServeTLSWithReload(ctx context.Context, logger *slog.Logger, templ
 			BaseContext:       template.BaseContext,
 		}
 	}
-	return ServeTLSWithReload(ctx, logger, factory, certFile, keyFile)
 }
 
 // serveTLSWithReload is the testable implementation behind ServeTLSWithReload. It
@@ -101,12 +121,22 @@ func serveTLSWithReload(
 		return fmt.Errorf("initial TLS profile resolution failed: %w", err)
 	}
 
+	// The certificate pair is served through GetCertificate rather than the
+	// ListenAndServeTLS file arguments, so an in-place rotation of the mounted
+	// Secret is picked up without a pod restart. Loading fails closed here; see
+	// CertReloader for the fail-safe policy on later rotations.
+	certs, err := NewCertReloader(certFile, keyFile, logger)
+	if err != nil {
+		return err
+	}
+
 	for {
 		srv := factory(tlsCfg)
 		// Hand each generation its own clone; http.Server mutates TLSConfig
 		// (e.g. appends ALPN protos and the loaded certificate), which would
 		// otherwise corrupt the config we compare future reads against.
 		srv.TLSConfig = tlsCfg.Clone()
+		srv.TLSConfig.GetCertificate = certs.GetCertificate
 		// A cluster cipher profile may legitimately pin a TLS 1.2 cipher list that
 		// omits every suite HTTP/2 requires; in that case serve HTTP/1.1 only rather
 		// than letting http.Server.ServeTLS fail to configure HTTP/2 and refuse to
@@ -115,7 +145,8 @@ func serveTLSWithReload(
 
 		serveErrCh := make(chan error, 1)
 		go func() {
-			if e := srv.ListenAndServeTLS(certFile, keyFile); e != nil && !errors.Is(e, http.ErrServerClosed) {
+			// Empty paths: TLSConfig.GetCertificate supplies the pair.
+			if e := srv.ListenAndServeTLS("", ""); e != nil && !errors.Is(e, http.ErrServerClosed) {
 				serveErrCh <- e
 				return
 			}

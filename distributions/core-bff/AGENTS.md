@@ -227,30 +227,38 @@ schemas.
 
 ### BFF Configuration Flags
 
-| Flag                     | Env Var                    | Description                                    | Default                  |
-| ------------------------ | -------------------------- | ---------------------------------------------- | ------------------------ |
-| `-port`                  | `PORT`                     | Listen port                                    | 4000                     |
-| `-deployment-mode`       | `DEPLOYMENT_MODE`          | `standalone` or `federated`                    | standalone               |
-| `-platform-type`         | `ODH_PLATFORM_TYPE`        | `OpenShift`, `XKS`, or empty (auto-detect)     | (auto-detect)            |
-| `-dev-mode`              | `DEV_MODE`                 | Enables relaxed behaviors                      | false                    |
-| `-mock-k8s-client`       | `MOCK_K8S_CLIENT`          | Use in-memory stub for k8s                     | false                    |
-| `-mock-http-client`      | `MOCK_HTTP_CLIENT`         | Use mock HTTP client                           | false                    |
-| `-mock-bff-clients`      | `MOCK_BFF_CLIENTS`         | Use mock inter-BFF clients                     | false                    |
-| `-static-assets-dir`     | `STATIC_ASSETS_DIR`        | Directory to serve frontend assets             | ./static                 |
-| `-log-level`             | `LOG_LEVEL`                | ERROR, WARN, INFO, DEBUG                       | INFO                     |
-| `-allowed-origins`       | `ALLOWED_ORIGINS`          | Comma-separated CORS origins                   | ""                       |
-| `-auth-method`           | `AUTH_METHOD`              | `disabled` (mock) or `user_token`              | user_token               |
-| `-auth-token-header`     | `AUTH_TOKEN_HEADER`        | Header to read bearer token from               | x-forwarded-access-token |
-| `-auth-token-prefix`     | `AUTH_TOKEN_PREFIX`        | Prefix to strip from token header value        | (none)                   |
-| `-cert-file`             | (CLI only)                 | TLS certificate path                           | (none)                   |
-| `-key-file`              | (CLI only)                 | TLS key path                                   | (none)                   |
-| `-insecure-skip-verify`  | `INSECURE_SKIP_VERIFY`     | Skip upstream TLS verify (dev only)            | false                    |
-| `-namespace`             | `NAMESPACE` / `OC_PROJECT` | Dashboard namespace                            | opendatahub              |
-| `-workbench-namespace`   | `WORKBENCH_NAMESPACE`      | Workbench namespace (defaults to dashboard ns) | (namespace)              |
-| `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME`    | OdhDashboardConfig CR name                     | odh-dashboard-config     |
-| `-enabled-apps-cm`       | `ENABLED_APPS_CM`          | ConfigMap tracking enabled applications        | ""                       |
-| `-mf-remotes-config`     | `MF_REMOTES_CONFIG`        | Path to module federation remotes config       | ""                       |
-| `-bundle-paths`          |                            | Comma-separated PEM CA bundle paths            | (system defaults)        |
+A summary of the main settings. [docs/runtime-contract.md](./docs/runtime-contract.md) is the
+authoritative reference: it lists every setting, its precedence and what startup validation rejects.
+
+| Flag                     | Env Var                                      | Description                                    | Default                  |
+| ------------------------ | -------------------------------------------- | ---------------------------------------------- | ------------------------ |
+| `-port`                  | `PORT`                                       | Listen port                                    | 4000                     |
+| `-deployment-mode`       | `DEPLOYMENT_MODE`                            | `standalone` or `federated`                    | standalone               |
+| `-platform-type`         | `ODH_PLATFORM_TYPE`                          | `OpenShift`, `XKS`, or empty (auto-detect)     | (auto-detect)            |
+| `-admission-mode`        | `ADMISSION_MODE`                             | `auth-resource`, `authenticated`, or empty     | (from platform)          |
+| `-dev-mode`              | `DEV_MODE`                                   | Enables relaxed behaviors                      | false                    |
+| `-mock-k8s-client`       | `MOCK_K8S_CLIENT`                            | Use in-memory stub for k8s                     | false                    |
+| `-mock-http-client`      | `MOCK_HTTP_CLIENT`                           | Use mock HTTP client                           | false                    |
+| `-mock-bff-clients`      | `MOCK_BFF_CLIENTS`                           | Use mock inter-BFF clients                     | false                    |
+| `-static-assets-dir`     | `STATIC_ASSETS_DIR`                          | Directory to serve frontend assets             | ./static                 |
+| `-log-level`             | `LOG_LEVEL`                                  | ERROR, WARN, INFO, DEBUG                       | INFO                     |
+| `-allowed-origins`       | `ALLOWED_ORIGINS`                            | Comma-separated CORS origins                   | ""                       |
+| `-auth-method`           | `AUTH_METHOD`                                | `disabled` (mock) or `user_token`              | user_token               |
+| `-auth-token-header`     | `AUTH_TOKEN_HEADER`                          | Header to read bearer token from               | x-forwarded-access-token |
+| `-auth-token-prefix`     | `AUTH_TOKEN_PREFIX`                          | Prefix to strip from token header value        | (none)                   |
+| `-cert-file`             | `CERT_FILE`                                  | TLS certificate path                           | (none)                   |
+| `-key-file`              | `KEY_FILE`                                   | TLS key path                                   | (none)                   |
+| `-insecure-skip-verify`  | `INSECURE_SKIP_VERIFY`                       | Skip upstream TLS verify (dev only)            | false                    |
+| `-namespace`             | `NAMESPACE` / `POD_NAMESPACE` / `OC_PROJECT` | Dashboard namespace (first non-empty wins)     | opendatahub              |
+| `-workbench-namespace`   | `WORKBENCH_NAMESPACE`                        | Workbench namespace (defaults to dashboard ns) | (namespace)              |
+| `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME`                      | OdhDashboardConfig CR name                     | odh-dashboard-config     |
+| `-enabled-apps-cm`       | `ENABLED_APPS_CM`                            | ConfigMap tracking enabled applications        | ""                       |
+| `-mf-remotes-config`     | `MF_REMOTES_CONFIG`                          | Path to module federation remotes config       | ""                       |
+| `-bundle-paths`          | `BUNDLE_PATHS`                               | Comma-separated PEM CA bundle paths            | (system defaults)        |
+
+Startup validates every value before anything is built: numbers and booleans parse strictly, Kubernetes
+names and service URLs are checked, required settings may not be blank, and errors name the setting,
+never its value. See [docs/runtime-contract.md](docs/runtime-contract.md) for the full rules.
 
 ---
 

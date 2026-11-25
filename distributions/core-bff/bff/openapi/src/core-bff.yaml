@@ -661,10 +661,49 @@ paths:
       operationId: getStatus
       summary: Get user session status
       description: >-
-        Returns user identity, admin status, cluster info, and access status.
-        Once identity is authenticated, failed admin or allowed-access reviews degrade to false
-        for the corresponding flag, preserving the Fastify status polling contract.
-        Authentication failures still fail the request; guarded operations enforce their own reviews.
+        Bootstrap endpoint. Returns three separable things, and the contract
+        keeps them separate:
+
+
+        **Identity** (`userName`, `userID`, `currentUser`) is resolved by the
+        API server. It is the only hard requirement: a failure here fails the
+        request.
+
+
+        **Admission** (`isAllowed`) says whether the dashboard shell may load.
+        How it is decided depends on the admission mode. A caller whose `patch`
+        review on `auths/auth` succeeds (a dashboard admin) is admitted first,
+        without an Auth lookup or a `get` review. For everyone else, in
+        `auth-resource` mode (the OpenShift default) the Auth resource gates
+        it: an absent CRD
+        or an `allowedGroups` entry of `system:authenticated` admits everyone,
+        otherwise an SSAR for `get` on `auths/auth` decides. A missing Auth
+        instance, a forbidden read, or an upstream failure each defer to that
+        SSAR rather than denying outright, so reduced service-account RBAC
+        never becomes an admission dependency. In `authenticated` mode (the xKS
+        default) any caller the API server resolves is admitted, and the Auth
+        resource is not consulted at all.
+
+
+        **UI capability** (`isAdmin`) says whether admin surfaces are offered.
+        It comes from an SSAR for `patch` on `auths/auth` and degrades to
+        `false` when the review cannot be evaluated.
+
+
+        Neither `isAllowed` nor `isAdmin` authorizes anything. Every API
+        operation runs its own resource authorization regardless of what this
+        endpoint returned, and a client must not treat these fields as
+        permission to call a guarded route.
+
+
+        On the xKS profile bootstrap reads are read-only: required resources
+        are provisioned by the installation owner or supplied through the
+        configured source, and the dashboard never creates them. On OpenShift,
+        `GET /api/config` still auto-creates a missing `OdhDashboardConfig`
+        instance when the CRD is installed, as RHOAI does today.
+
+
+        See `docs/bootstrap-contract.md`.
       responses:
         '200':
           $ref: '#/components/responses/StatusResponse'
@@ -2326,6 +2365,18 @@ components:
         type: string
         format: uuid
         maxLength: 36
+    IdentityVary:
+      description: >-
+        The standard identity headers `Authorization`,
+        `X-Forwarded-Access-Token` and `Cookie`, plus the configured
+        `AUTH_TOKEN_HEADER` when it is a different header. Sent on every /api response alongside `Cache-Control:
+        no-cache, no-store, private, max-age=0, must-revalidate`. `no-store` is
+        what forbids a compliant cache from storing the response; `Vary` keys
+        any cache that honours it on these headers, and does not protect
+        against an intermediary that ignores it.
+      schema:
+        type: string
+        example: 'Authorization, X-Forwarded-Access-Token, Cookie'
 
   responses:
     HealthCheckResponse:
@@ -2448,6 +2499,8 @@ components:
           $ref: '#/components/headers/RequestID'
         Audit-ID:
           $ref: '#/components/headers/AuditID'
+        Vary:
+          $ref: '#/components/headers/IdentityVary'
       description: User session status
       content:
         application/json:

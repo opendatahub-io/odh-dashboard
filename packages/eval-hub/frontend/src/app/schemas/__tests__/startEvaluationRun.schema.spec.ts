@@ -1,4 +1,5 @@
 import {
+  benchmarkParameterValuesSchema,
   startEvaluationRunDefaultValues,
   startEvaluationRunSchema,
   type StartEvaluationRunFormValues,
@@ -9,6 +10,32 @@ const validValues = (): StartEvaluationRunFormValues => ({
   evaluationName: 'My evaluation',
   selectedInferenceServiceName: 'model-a',
   selectedExperimentName: 'EvalHub',
+});
+
+describe('benchmarkParameterValuesSchema', () => {
+  const benchmarkParameterKey = 'num_examples';
+
+  it.each([0, 42])('should accept non-negative whole-number values (%s)', (value) => {
+    expect(
+      benchmarkParameterValuesSchema.safeParse({ [benchmarkParameterKey]: value }).success,
+    ).toBe(true);
+  });
+
+  it.each([-1, 1.5])('should reject negative or fractional values (%s)', (value) => {
+    const result = benchmarkParameterValuesSchema.safeParse({ [benchmarkParameterKey]: value });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: [benchmarkParameterKey],
+            message: 'Enter a non-negative whole number.',
+          }),
+        ]),
+      );
+    }
+  });
 });
 
 describe('startEvaluationRunSchema', () => {
