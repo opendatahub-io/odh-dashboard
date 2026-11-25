@@ -283,7 +283,13 @@ describe('ModelDeploymentWizard re-init from YAML', () => {
   it('should remount the form with YAML-derived data on top of navigation data after a YAML edit', () => {
     renderWizard();
     expect(mockToggle.mounts).toBe(1);
-    expect(jest.mocked(useModelDeploymentWizard)).toHaveBeenLastCalledWith(navData, undefined, {});
+    expect(jest.mocked(useModelDeploymentWizard)).toHaveBeenLastCalledWith(
+      navData,
+      undefined,
+      {},
+      true,
+      true,
+    );
 
     switchToForm();
 
@@ -292,6 +298,8 @@ describe('ModelDeploymentWizard re-init from YAML', () => {
       { ...navData, ...formDataFromYaml },
       undefined,
       {},
+      true,
+      true,
     );
     // YAML only owns the model; the existing server stays in the merge base
     expect(jest.mocked(useFormToResourcesTransformer)).toHaveBeenLastCalledWith(expect.anything(), {
@@ -310,7 +318,13 @@ describe('ModelDeploymentWizard re-init from YAML', () => {
     switchToForm();
 
     expect(mockToggle.mounts).toBe(1);
-    expect(jest.mocked(useModelDeploymentWizard)).toHaveBeenLastCalledWith(navData, undefined, {});
+    expect(jest.mocked(useModelDeploymentWizard)).toHaveBeenLastCalledWith(
+      navData,
+      undefined,
+      {},
+      true,
+      true,
+    );
     expect(jest.mocked(useFormToResourcesTransformer)).toHaveBeenLastCalledWith(
       expect.anything(),
       existingDeployment,
