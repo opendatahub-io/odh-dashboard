@@ -50,6 +50,7 @@ import {
   ActivityWarningLevel,
   getActivityStatus,
   formatTimeRemaining,
+  getWorkspaceDisplayName,
 } from '~/shared/utilities/WorkspaceUtils';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { WorkspacesWorkspaceListItem, V1Beta1WorkspaceState } from '~/generated/data-contracts';
@@ -240,7 +241,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       (ws: WorkspacesWorkspaceListItem) => string
     > = useMemo(
       () => ({
-        name: (ws) => ws.name,
+        name: (ws) => getWorkspaceDisplayName(ws),
         kind: (ws) => ws.workspaceKind.name,
         image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
         podConfig: (ws) => ws.podTemplate.options.podConfig.current.displayName,
@@ -272,7 +273,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const getSortableRowValues = (
       workspace: WorkspacesWorkspaceListItem,
     ): Record<WorkspaceTableSortableColumnKeys, string | number> => ({
-      name: workspace.name,
+      name: getWorkspaceDisplayName(workspace),
       kind: workspace.workspaceKind.name,
       namespace: workspace.namespace,
       image: workspace.podTemplate.options.imageConfig.current.displayName,
@@ -510,10 +511,10 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                         viewDetailsAction.onClick?.(event, rowIndex, {}, {})
                                       }
                                     >
-                                      {workspace.name}
+                                      {getWorkspaceDisplayName(workspace)}
                                     </Button>
                                   ) : (
-                                    workspace.name
+                                    getWorkspaceDisplayName(workspace)
                                   );
                                 })()}
                               {columnKey === 'image' && (
