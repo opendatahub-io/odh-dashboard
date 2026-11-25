@@ -1,4 +1,5 @@
 # https://docs.github.com/en/code-security/dependabot
+# Prefixes must not include a scope. semantic-prs.yaml sets disallowScopes: ".*".
 version: 2
 updates:
   - package-ecosystem: "github-actions"
@@ -6,7 +7,7 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      prefix: "chore(gha)"
+      prefix: "ci"
 
   # only open security update PRs (see linked docs for explanation of `open-pull-requests-limit: 0`)
   #  https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/configuring-dependabot-security-updates#overriding-the-default-behavior-with-a-configuration-file
@@ -22,7 +23,7 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      prefix: "fix(deps)"
+      prefix: "fix"
     groups:
       go:
         applies-to: security-updates
