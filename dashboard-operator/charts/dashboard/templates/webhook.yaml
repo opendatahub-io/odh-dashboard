@@ -68,7 +68,6 @@ webhooks:
         operations:
           - CREATE
           - UPDATE
-          - DELETE
         resources:
           - namespaces
           - namespaces/status

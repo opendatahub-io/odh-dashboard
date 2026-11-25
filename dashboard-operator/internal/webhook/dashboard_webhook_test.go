@@ -518,27 +518,33 @@ func TestDashboardHandler_ProtectsNamespaceOptInLabel(t *testing.T) {
 	}
 }
 
-func TestDashboardHandler_AllowsTerminatingNamespaceDelete(t *testing.T) {
+func TestDashboardHandler_AllowsStateConfigMapDeleteWhenOperatorNamespaceIsTerminating(t *testing.T) {
 	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	deletionTimestamp := metav1.Now()
 	handler := dashwebhook.NewDashboardHandler(
-		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "opendatahub",
+				DeletionTimestamp: &deletionTimestamp,
+				Finalizers:        []string{"kubernetes"},
+			},
+		}).Build(),
 		[]string{orchestrator},
 		true,
 		"system:serviceaccount:opendatahub:dashboard-operator",
 		"opendatahub",
 	)
 
-	deletionTimestamp := metav1.Now()
-	oldRaw, err := json.Marshal(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
-		Name:              "opendatahub",
-		DeletionTimestamp: &deletionTimestamp,
+	configMapRaw, err := json.Marshal(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: v1alpha1.NamespacedRBACStateConfigMapName, Namespace: "opendatahub",
 	}})
 	require.NoError(t, err)
 	request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
 		Operation: admissionv1.Delete,
-		Resource:  metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"},
-		Name:      "opendatahub",
-		OldObject: runtime.RawExtension{Raw: oldRaw},
+		Resource:  metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"},
+		Namespace: "opendatahub",
+		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+		OldObject: runtime.RawExtension{Raw: configMapRaw},
 		UserInfo:  authenticationv1.UserInfo{Username: "namespace-controller"},
 	}}
 

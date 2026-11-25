@@ -251,7 +251,6 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 	assert.ElementsMatch(t, []admissionregistrationv1.OperationType{
 		admissionregistrationv1.Create,
 		admissionregistrationv1.Update,
-		admissionregistrationv1.Delete,
 	}, namespaceRule.Operations)
 	assert.Equal(t, []string{""}, namespaceRule.APIGroups)
 	assert.ElementsMatch(t, []string{"namespaces", "namespaces/status", "namespaces/finalize"}, namespaceRule.Resources)

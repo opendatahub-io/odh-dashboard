@@ -59,6 +59,15 @@ func NewDashboardHandler(
 				if req.Namespace != operatorNamespace || req.Name != v1alpha1.NamespacedRBACStateConfigMapName {
 					return admission.Allowed("")
 				}
+				if req.Operation == admissionv1.Delete {
+					terminating, err := operatorNamespaceIsTerminating(ctx, reader, operatorNamespace)
+					if err != nil {
+						return admission.Errored(http.StatusInternalServerError, err)
+					}
+					if terminating {
+						return admission.Allowed("operator namespace is terminating")
+					}
+				}
 				if req.UserInfo.Username != controllerWriter {
 					return admission.Denied(fmt.Sprintf(
 						"user %q may not change controller-owned namespaced RBAC state", req.UserInfo.Username,
@@ -67,9 +76,6 @@ func NewDashboardHandler(
 				return admission.Allowed("")
 			}
 			if req.Resource == (metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}) {
-				if req.Operation == admissionv1.Delete {
-					return validateNamespacedRBACOptInWriter(req, allowedWriters)
-				}
 				enforceConsent, err := namespacedRBACConsentEnforced(ctx, reader, enforceNamespacedRBACConsent, operatorNamespace)
 				if err != nil {
 					return admission.Errored(http.StatusInternalServerError, err)
@@ -97,6 +103,17 @@ func NewDashboardHandler(
 			)
 		}),
 	}
+}
+
+func operatorNamespaceIsTerminating(ctx context.Context, reader client.Reader, operatorNamespace string) (bool, error) {
+	namespace := &corev1.Namespace{}
+	if err := reader.Get(ctx, client.ObjectKey{Name: operatorNamespace}, namespace); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("reading operator namespace termination state: %w", err)
+	}
+	return namespace.DeletionTimestamp != nil, nil
 }
 
 func namespacedRBACConsentEnforced(
@@ -134,18 +151,6 @@ func namespacedRBACConsentEnforced(
 }
 
 func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map[string]struct{}) admission.Response {
-	if req.Operation == admissionv1.Delete {
-		if namespaceIsTerminating(req) {
-			return admission.Allowed("namespace is terminating")
-		}
-		if _, allowed := allowedWriters[req.UserInfo.Username]; allowed {
-			return admission.Allowed("")
-		}
-		return admission.Denied(fmt.Sprintf(
-			"user %q may not delete a namespace before it is terminating",
-			req.UserInfo.Username,
-		))
-	}
 	if req.Operation != admissionv1.Create && req.Operation != admissionv1.Update {
 		return admission.Allowed("")
 	}
@@ -183,14 +188,6 @@ func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map
 		req.UserInfo.Username,
 		v1alpha1.NamespacedRBACOptInLabel,
 	))
-}
-
-func namespaceIsTerminating(req admission.Request) bool {
-	var previous corev1.Namespace
-	if err := json.Unmarshal(req.OldObject.Raw, &previous); err != nil {
-		return false
-	}
-	return previous.DeletionTimestamp != nil
 }
 
 func validateDashboardNamespacedRBACWrite(
