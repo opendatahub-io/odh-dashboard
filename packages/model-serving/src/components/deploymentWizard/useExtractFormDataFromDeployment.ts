@@ -158,6 +158,8 @@ export const useExtractFormDataFromDeployment = (
       return { formData: undefined, fieldErrors: [], error: undefined };
     }
 
+    const isExistingResource = !!deployment.model.metadata.resourceVersion;
+
     try {
       const hardwareProfileResult =
         formDataExtension?.properties.extractHardwareProfileConfig(deployment);
@@ -170,7 +172,10 @@ export const useExtractFormDataFromDeployment = (
             : undefined,
 
         // Setup K8s name and description fields with deployment model data
-        k8sNameDesc: setupDefaults({ initialData: deployment.model }),
+        k8sNameDesc: setupDefaults({
+          initialData: deployment.model,
+          editableK8sName: !isExistingResource,
+        }),
 
         hardwareProfile: hardwareProfileResult?.data ?? undefined,
 
@@ -213,7 +218,9 @@ export const useExtractFormDataFromDeployment = (
           formDataExtension?.properties.extractEnvironmentVariables(deployment) ?? undefined,
 
         huggingFaceApiKey: huggingFaceApiKey ?? undefined,
-        requiresHuggingFaceApiKey: Boolean(huggingFaceApiKey),
+        // Only assert what the deployment shows: no key doesn't mean the model isn't gated, so
+        // leave the flag unset and keep what the caller knows (e.g. a catalog prefill)
+        ...(huggingFaceApiKey ? { requiresHuggingFaceApiKey: true } : {}),
 
         // Extract model availability data
         modelAvailability:
@@ -226,7 +233,7 @@ export const useExtractFormDataFromDeployment = (
             dashboardNamespace,
           ) ?? undefined,
         // Set to true if resource already exists
-        isEditing: !!deployment.model.metadata.resourceVersion,
+        isEditing: isExistingResource,
         // Include extracted data from dynamic wizard fields (spread as top-level properties)
         ...extractedFieldData,
       };

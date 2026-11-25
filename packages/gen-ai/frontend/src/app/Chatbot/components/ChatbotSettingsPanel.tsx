@@ -247,6 +247,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     return storedWidth || DEFAULT_WIDTH;
   });
   const tabsContainerRef = React.useRef<HTMLDivElement>(null);
+  const promptTabRef = React.useRef<HTMLButtonElement>(null);
+  const shouldFocusPromptTabRef = React.useRef(false);
   const [areTabsCompact, setAreTabsCompact] = React.useState(
     Number.parseFloat(panelWidth) < COMPACT_TABS_WIDTH_THRESHOLD,
   );
@@ -306,6 +308,15 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     Number.isInteger(parsedActiveTabKey) ? parsedActiveTabKey : 0,
     maxTabKey,
   );
+
+  React.useEffect(() => {
+    if (activeTabKey === 1 && shouldFocusPromptTabRef.current) {
+      shouldFocusPromptTabRef.current = false;
+      // PatternFly restores focus when the popover unmounts, before this effect runs.
+      promptTabRef.current?.focus();
+    }
+  }, [activeTabKey]);
+
   const handleTabSelect = (tabIndex: string | number) => {
     // Only update internal state when uncontrolled so it doesn't diverge from the prop
     if (activeTabKeyProp === undefined) {
@@ -418,6 +429,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               data-testid="chatbot-settings-page-tab-model"
             />
             <Tab
+              ref={promptTabRef}
               eventKey={1}
               tabContentId="chatbot-settings-page-tab-content-prompt"
               title={renderTabTitle(areTabsCompact, 'Prompt', <RhUiTaskIcon />)}
@@ -535,6 +547,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         >
           <KnowledgeTabContent
             configId={configId}
+            onNavigateToPrompt={() => {
+              shouldFocusPromptTabRef.current = activeTabKey !== 1;
+              handleTabSelect(1);
+            }}
             sourceManagement={sourceManagement}
             fileManagement={fileManagement}
             alerts={alerts}

@@ -22,6 +22,7 @@ type DeploymentWizardViewModeToggleProps = {
   canUpdateFormFromYaml: boolean;
   isSwitchToFormLoading: boolean;
   isSwitchToYamlLoading: boolean;
+  isDisabled?: boolean; //Disables both views, e.g. while a deploy is in flight
 };
 
 export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeToggleProps> = ({
@@ -33,13 +34,14 @@ export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeTo
   canUpdateFormFromYaml,
   isSwitchToFormLoading,
   isSwitchToYamlLoading,
+  isDisabled = false,
 }) => {
   const [isBidirectionalYamlWizardGaEnabled] = useFeatureFlag('bidirectionalYamlWizardGa');
   const [isYamlErrorsModalOpen, setIsYamlErrorsModalOpen] = React.useState(false);
 
-  const isFormDisabled = isBidirectionalYamlWizardGaEnabled
-    ? isSwitchToFormLoading
-    : viewMode === 'yaml-edit';
+  const isFormDisabled =
+    isDisabled ||
+    (isBidirectionalYamlWizardGaEnabled ? isSwitchToFormLoading : viewMode === 'yaml-edit');
 
   return (
     <Flex>
@@ -87,7 +89,7 @@ export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeTo
             }
             buttonId="yaml-view"
             isSelected={viewMode !== 'form'}
-            isDisabled={isSwitchToYamlLoading}
+            isDisabled={isDisabled || isSwitchToYamlLoading}
             onChange={() => {
               if (viewMode === 'form') {
                 switchToYaml();

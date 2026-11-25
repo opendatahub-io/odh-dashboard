@@ -13,6 +13,7 @@ import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import { filterEnabledConnectionTypes } from '#~/concepts/connectionTypes/utils';
 import ConnectionsTable from './ConnectionsTable';
 import { ManageConnectionModal } from './ManageConnectionsModal';
+import { useGetConnectedResources } from './useGetConnectedResources';
 
 const ConnectionsDescription =
   'Connections enable you to store and retrieve information that typically should not be stored in code. For example, you can store details (including credentials) for object storage, databases, and more. You can then attach the connections to artifacts in your project, such as workbenches and model servers.';
@@ -35,8 +36,15 @@ const ConnectionsList: React.FC = () => {
 
   const tooltipRef = React.useRef<HTMLButtonElement>();
 
+  const {
+    loaded: connectedResourcesLoaded,
+    getConnectedResourceLabels,
+    hookNotifications,
+  } = useGetConnectedResources(currentProject);
+
   return (
     <>
+      {hookNotifications}
       <DetailsSection
         objectType={ProjectObjectType.connections}
         id={ProjectSectionID.CONNECTIONS}
@@ -119,6 +127,8 @@ const ConnectionsList: React.FC = () => {
           setManageConnectionModal={(modalConnection?: Connection) =>
             setManageConnectionModal({ connection: modalConnection, isEdit: true })
           }
+          getConnectedResourceLabels={getConnectedResourceLabels}
+          connectedResourcesLoaded={connectedResourcesLoaded}
         />
       </DetailsSection>
       {manageConnectionModal && (

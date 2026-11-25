@@ -16,19 +16,29 @@ jest.mock('@odh-dashboard/ui-core/components/projectSelector/WorkingProjectSelec
   default: ({
     onProjectSelected,
     onCreateProject,
+    projectToReview,
+    onProjectReviewClosed,
   }: {
     onProjectSelected: (project: { name: string; displayName?: string }) => void;
-    onCreateProject?: (isEmpty: boolean) => void;
+    onCreateProject?: () => void;
+    projectToReview?: string;
+    onProjectReviewClosed?: () => void;
   }) => (
     <>
+      <div data-testid="project-to-review">{projectToReview ?? ''}</div>
       <button
         type="button"
         onClick={() => onProjectSelected({ name: 'project-x', displayName: 'Project X' })}
       >
         Select project
       </button>
+      {projectToReview && onProjectReviewClosed && (
+        <button type="button" onClick={onProjectReviewClosed}>
+          Close project review
+        </button>
+      )}
       {onCreateProject && (
-        <button type="button" onClick={() => onCreateProject(true)}>
+        <button type="button" onClick={onCreateProject}>
           Create project
         </button>
       )}
@@ -56,6 +66,7 @@ jest.mock('#~/utilities/useNotification', () => ({ __esModule: true, default: je
 
 describe('MastheadProjectSelector', () => {
   const info = jest.fn();
+  const success = jest.fn();
   const selectProject = jest.fn();
 
   const setWorkingProjects = (projects: ProjectIdentity[]) => {
@@ -73,7 +84,7 @@ describe('MastheadProjectSelector', () => {
     setWorkingProjects([]);
     jest.mocked(useNotification).mockReturnValue({
       info,
-      success: jest.fn(),
+      success,
       error: jest.fn(),
       warning: jest.fn(),
     });
@@ -93,7 +104,7 @@ describe('MastheadProjectSelector', () => {
     expect(screen.getByText(/You're now working in/)).toBeInTheDocument();
   });
 
-  it('should select a created project only after it appears in the current provider list', () => {
+  it('should review a created project, notify once, and wait for confirmation', () => {
     jest.mocked(useAccessReview).mockReturnValue([true, true]);
     const { rerender } = render(<MastheadProjectSelector />);
 
@@ -104,20 +115,20 @@ describe('MastheadProjectSelector', () => {
     expect(info).not.toHaveBeenCalled();
 
     setWorkingProjects([{ name: 'new-project', displayName: 'New Project' }]);
+    expect(screen.getByTestId('project-to-review')).toHaveTextContent('new-project');
     rerender(<MastheadProjectSelector />);
+    expect(success).toHaveBeenCalledTimes(1);
+    expect(success).toHaveBeenCalledWith('Project created', expect.anything());
 
-    expect(selectProject).toHaveBeenCalledTimes(1);
-    expect(selectProject).toHaveBeenCalledWith({ name: 'new-project', displayName: 'New Project' });
-    expect(info).toHaveBeenCalledTimes(1);
-    expect(info).toHaveBeenCalledWith('Working project updated', expect.anything());
-    render(<>{info.mock.calls[0][1] as React.ReactNode}</>);
-    expect(screen.getByText('New Project').tagName).toBe('STRONG');
+    expect(selectProject).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
 
+    expect(screen.getByTestId('project-to-review')).toHaveTextContent('new-project');
     rerender(<MastheadProjectSelector />);
-    expect(selectProject).toHaveBeenCalledTimes(1);
-    expect(info).toHaveBeenCalledTimes(1);
+    expect(success).toHaveBeenCalledTimes(1);
+    expect(selectProject).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
   });
-
   it('should not select or notify when project creation is cancelled', () => {
     jest.mocked(useAccessReview).mockReturnValue([true, true]);
     const { rerender } = render(<MastheadProjectSelector />);
@@ -129,5 +140,42 @@ describe('MastheadProjectSelector', () => {
 
     expect(selectProject).not.toHaveBeenCalled();
     expect(info).not.toHaveBeenCalled();
+  });
+
+  it('should notify when the review is closed before the created project appears', () => {
+    jest.mocked(useAccessReview).mockReturnValue([true, true]);
+    const { rerender } = render(<MastheadProjectSelector />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finish creating project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close project review' }));
+
+    setWorkingProjects([{ name: 'new-project', displayName: 'New Project' }]);
+    rerender(<MastheadProjectSelector />);
+
+    expect(success).toHaveBeenCalledTimes(1);
+    expect(success).toHaveBeenCalledWith('Project created', expect.anything());
+  });
+
+  it('should notify again when a project with the same name is created later', () => {
+    jest.mocked(useAccessReview).mockReturnValue([true, true]);
+    const { rerender } = render(<MastheadProjectSelector />);
+
+    const createProject = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Finish creating project' }));
+      setWorkingProjects([{ name: 'new-project', displayName: 'New Project' }]);
+      rerender(<MastheadProjectSelector />);
+    };
+
+    createProject();
+    expect(success).toHaveBeenCalledTimes(1);
+
+    setWorkingProjects([]);
+    rerender(<MastheadProjectSelector />);
+    createProject();
+
+    expect(success).toHaveBeenCalledTimes(2);
+    expect(success).toHaveBeenNthCalledWith(2, 'Project created', expect.anything());
   });
 });
