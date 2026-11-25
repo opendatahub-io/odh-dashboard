@@ -14,5 +14,5 @@ func emptyDiscovery() discovery.DiscoveryInterface {
 
 // coreGroup is listed by every real API server; discovery is not trusted without it.
 func coreGroup() *metav1.APIResourceList {
-	return &metav1.APIResourceList{GroupVersion: "v1", APIResources: []metav1.APIResource{{Name: "pods"}}}
+	return &metav1.APIResourceList{GroupVersion: "v1", APIResources: []metav1.APIResource{{Name: "pods", Kind: "Pod"}}}
 }

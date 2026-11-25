@@ -60,6 +60,9 @@ func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVer
 	if err := readDiscoveryDocument(ctx, rc, "/api", "APIVersions", "versions", &core); err != nil {
 		return false, fmt.Errorf("%w: /api: %w", ErrAbsenceUnconfirmed, err)
 	}
+	if slices.Contains(core.Versions, "") {
+		return false, fmt.Errorf("%w: /api lists an empty version", ErrAbsenceUnconfirmed)
+	}
 	if !slices.Contains(core.Versions, "v1") {
 		return false, fmt.Errorf("%w: /api does not list the core group", ErrAbsenceUnconfirmed)
 	}
@@ -69,6 +72,10 @@ func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVer
 	if gvr.Group != "" {
 		var groups metav1.APIGroupList
 		if err := readDiscoveryDocument(ctx, rc, "/apis", "APIGroupList", "groups", &groups); err != nil {
+			return false, fmt.Errorf("%w: /apis: %w", ErrAbsenceUnconfirmed, err)
+		}
+		// /apis never lists the core group, so every entry needs a name.
+		if err := validateGroupList(&groups, false); err != nil {
 			return false, fmt.Errorf("%w: /apis: %w", ErrAbsenceUnconfirmed, err)
 		}
 		listed = listsGroupVersion(&groups, gvr.Group, gv)
@@ -98,6 +105,10 @@ func confirmTyped(disc discovery.DiscoveryInterface, gvr schema.GroupVersionReso
 	if groups == nil {
 		return false, fmt.Errorf("%w: empty group list", ErrAbsenceUnconfirmed)
 	}
+	// ServerGroups merges /api in as the unnamed core group.
+	if err := validateGroupList(groups, true); err != nil {
+		return false, fmt.Errorf("%w: group list: %w", ErrAbsenceUnconfirmed, err)
+	}
 	if !listsGroupVersion(groups, "", "v1") {
 		return false, fmt.Errorf("%w: the group list does not include the core group", ErrAbsenceUnconfirmed)
 	}
@@ -120,12 +131,46 @@ func absentFrom(resources *metav1.APIResourceList, gvr schema.GroupVersionResour
 	if resources.GroupVersion != gv {
 		return false, fmt.Errorf("%w: the resource list is for %q, not %s", ErrAbsenceUnconfirmed, resources.GroupVersion, gv)
 	}
+	// An entry without a name or kind is incomplete: it could be the
+	// resource, so its silence is not evidence of absence.
+	for i, r := range resources.APIResources {
+		if r.Name == "" || r.Kind == "" {
+			return false, fmt.Errorf("%w: resource entry %d is incomplete", ErrAbsenceUnconfirmed, i)
+		}
+	}
 	for _, r := range resources.APIResources {
 		if r.Name == gvr.Resource {
 			return false, fmt.Errorf("%w: the resource is served", ErrAbsenceUnconfirmed)
 		}
 	}
 	return true, nil
+}
+
+// validateGroupList rejects an incomplete group entry: absence is decided by
+// matching names and group versions, so an entry missing either could be the
+// group being looked for. Every group needs a name (only the merged core
+// group, when allowCore, has none) and at least one version, and each version
+// needs a version and the groupVersion that name and version imply. An
+// explicit empty group list is still a valid answer.
+func validateGroupList(groups *metav1.APIGroupList, allowCore bool) error {
+	for i, g := range groups.Groups {
+		if g.Name == "" && !allowCore {
+			return fmt.Errorf("group entry %d has no name", i)
+		}
+		if len(g.Versions) == 0 {
+			return fmt.Errorf("group entry %d has no versions", i)
+		}
+		for j, v := range g.Versions {
+			want := v.Version
+			if g.Name != "" {
+				want = g.Name + "/" + v.Version
+			}
+			if v.Version == "" || v.GroupVersion == "" || v.GroupVersion != want {
+				return fmt.Errorf("group entry %d version %d is incomplete", i, j)
+			}
+		}
+	}
+	return nil
 }
 
 func listsGroupVersion(groups *metav1.APIGroupList, group, groupVersion string) bool {

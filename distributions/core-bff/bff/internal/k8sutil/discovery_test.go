@@ -2,6 +2,7 @@ package k8sutil
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -25,7 +26,7 @@ var clusterVersions = schema.GroupVersionResource{Group: "config.openshift.io", 
 
 // coreGroup is what every real API server lists; without it a discovery
 // answer is not trusted.
-var coreGroup = &metav1.APIResourceList{GroupVersion: "v1", APIResources: []metav1.APIResource{{Name: "pods"}}}
+var coreGroup = &metav1.APIResourceList{GroupVersion: "v1", APIResources: []metav1.APIResource{{Name: "pods", Kind: "Pod"}}}
 
 func fakeDiscovery(resources ...*metav1.APIResourceList) *fakediscovery.FakeDiscovery {
 	return &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{Resources: append([]*metav1.APIResourceList{coreGroup}, resources...)}}
@@ -44,11 +45,11 @@ func TestConfirmAPIAbsent(t *testing.T) {
 	}{
 		{"group not served", fakeDiscovery(), true},
 		{"other group versions only", fakeDiscovery(&metav1.APIResourceList{GroupVersion: "config.openshift.io/v2",
-			APIResources: []metav1.APIResource{{Name: "clusterversions"}}}), true},
+			APIResources: []metav1.APIResource{{Name: "clusterversions", Kind: "ClusterVersion"}}}), true},
 		{"group version served without the resource", fakeDiscovery(&metav1.APIResourceList{GroupVersion: "config.openshift.io/v1",
-			APIResources: []metav1.APIResource{{Name: "infrastructures"}}}), true},
+			APIResources: []metav1.APIResource{{Name: "infrastructures", Kind: "Infrastructure"}}}), true},
 		{"resource served", fakeDiscovery(&metav1.APIResourceList{GroupVersion: "config.openshift.io/v1",
-			APIResources: []metav1.APIResource{{Name: "clusterversions"}}}), false},
+			APIResources: []metav1.APIResource{{Name: "clusterversions", Kind: "ClusterVersion"}}}), false},
 		{"group list fails", failingGroups, false},
 		// A stub from an intermediary decodes to a list without the core group.
 		{"answer without the core group", &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{}}, false},
@@ -262,4 +263,149 @@ func TestConfirmAPIAbsent_CoreDocumentWithoutVersions(t *testing.T) {
 	absent, err := ConfirmAPIAbsent(context.Background(), disc, clusterVersions)
 	assert.False(t, absent)
 	assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
+}
+
+// Review 6060889411: every field absence is decided from must be present and
+// non-empty. An entry missing one (or carrying "") could be the API being
+// looked for, so the answer is inconclusive; explicit empty lists still count.
+func TestConfirmAPIAbsent_IncompleteEntriesAreInconclusive(t *testing.T) {
+	// An unrelated group and resource, complete, so only the mutation decides.
+	group := func() map[string]any {
+		return map[string]any{
+			"name":     "apps.example.io",
+			"versions": []any{map[string]any{"groupVersion": "apps.example.io/v1", "version": "v1"}},
+		}
+	}
+	configGroup := map[string]any{
+		"name":     "config.openshift.io",
+		"versions": []any{map[string]any{"groupVersion": "config.openshift.io/v1", "version": "v1"}},
+	}
+	resource := func() map[string]any {
+		return map[string]any{"name": "infrastructures", "kind": "Infrastructure", "namespaced": false, "verbs": []any{"get"}}
+	}
+	groupList := func(groups ...any) string {
+		if groups == nil {
+			groups = []any{}
+		}
+		b, _ := json.Marshal(map[string]any{"kind": "APIGroupList", "apiVersion": "v1", "groups": groups})
+		return string(b)
+	}
+	resourceList := func(resources ...any) string {
+		if resources == nil {
+			resources = []any{}
+		}
+		b, _ := json.Marshal(map[string]any{"kind": "APIResourceList", "apiVersion": "v1",
+			"groupVersion": "config.openshift.io/v1", "resources": resources})
+		return string(b)
+	}
+	const coreDoc = `{"kind":"APIVersions","apiVersion":"v1","versions":["v1"]}`
+
+	type mutation struct {
+		name string
+		edit func(map[string]any)
+	}
+	missingOrEmpty := func(field string) []mutation {
+		return []mutation{
+			{field + " missing", func(m map[string]any) { delete(m, field) }},
+			{field + " empty", func(m map[string]any) { m[field] = "" }},
+		}
+	}
+	version := func(edit func(map[string]any)) func(map[string]any) {
+		return func(g map[string]any) { edit(g["versions"].([]any)[0].(map[string]any)) }
+	}
+
+	type tc struct {
+		name      string
+		core      string
+		apis      string
+		resources string
+		absent    bool
+	}
+	cases := []tc{
+		{"complete documents: absent", coreDoc, groupList(group()), "", true},
+		{"explicit empty group list: absent", coreDoc, groupList(), "", true},
+		{"explicit empty resource list: absent", coreDoc, groupList(configGroup), resourceList(), true},
+		{"complete resource list without the resource: absent", coreDoc, groupList(configGroup), resourceList(resource()), true},
+		{"core document with an empty version", `{"kind":"APIVersions","apiVersion":"v1","versions":["v1",""]}`, groupList(), "", false},
+		{"group with an explicit empty versions list", coreDoc, groupList(map[string]any{"name": "apps.example.io", "versions": []any{}}), "", false},
+		{"group without versions", coreDoc, groupList(map[string]any{"name": "apps.example.io"}), "", false},
+		{"version whose groupVersion does not match", coreDoc, groupList(map[string]any{"name": "apps.example.io",
+			"versions": []any{map[string]any{"groupVersion": "config.openshift.io/v1", "version": "v1"}}}), "", false},
+	}
+	for _, m := range missingOrEmpty("name") {
+		g := group()
+		m.edit(g)
+		cases = append(cases, tc{"group " + m.name, coreDoc, groupList(g), "", false})
+	}
+	for _, field := range []string{"groupVersion", "version"} {
+		for _, m := range missingOrEmpty(field) {
+			g := group()
+			version(m.edit)(g)
+			cases = append(cases, tc{"group version " + m.name, coreDoc, groupList(g), "", false})
+		}
+	}
+	for _, field := range []string{"name", "kind"} {
+		for _, m := range missingOrEmpty(field) {
+			r := resource()
+			m.edit(r)
+			cases = append(cases, tc{"resource " + m.name, coreDoc, groupList(configGroup), resourceList(r), false})
+		}
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch {
+				case r.URL.Path == "/api":
+					_, _ = w.Write([]byte(c.core))
+				case r.URL.Path == "/apis":
+					_, _ = w.Write([]byte(c.apis))
+				case r.URL.Path == "/apis/config.openshift.io/v1" && c.resources != "":
+					_, _ = w.Write([]byte(c.resources))
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer srv.Close()
+
+			disc, err := discovery.NewDiscoveryClientForConfig(&rest.Config{Host: srv.URL})
+			require.NoError(t, err)
+			absent, err := ConfirmAPIAbsent(context.Background(), disc, clusterVersions)
+			assert.Equal(t, c.absent, absent)
+			if c.absent {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
+			}
+		})
+	}
+}
+
+// The typed path (in-memory clients) applies the same entry rules.
+func TestConfirmAPIAbsent_TypedIncompleteEntriesAreInconclusive(t *testing.T) {
+	for name, entry := range map[string]metav1.APIResource{
+		"resource name empty": {Name: "", Kind: "Infrastructure"},
+		"resource kind empty": {Name: "infrastructures", Kind: ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			disc := fakeDiscovery(&metav1.APIResourceList{GroupVersion: "config.openshift.io/v1", APIResources: []metav1.APIResource{entry}})
+			absent, err := ConfirmAPIAbsent(context.Background(), disc, clusterVersions)
+			assert.False(t, absent)
+			assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
+		})
+	}
+
+	// Group entries as the typed path sees them (ServerGroups merges /api in
+	// as the unnamed core group).
+	require.Error(t, validateGroupList(&metav1.APIGroupList{Groups: []metav1.APIGroup{
+		{Name: "apps.example.io", Versions: []metav1.GroupVersionForDiscovery{{Version: "v1"}}},
+	}}, true))
+	require.Error(t, validateGroupList(&metav1.APIGroupList{Groups: []metav1.APIGroup{
+		{Versions: []metav1.GroupVersionForDiscovery{{GroupVersion: "v1", Version: "v1"}}},
+	}}, false), "only the merged core group may be unnamed")
+	require.NoError(t, validateGroupList(&metav1.APIGroupList{Groups: []metav1.APIGroup{
+		{Versions: []metav1.GroupVersionForDiscovery{{GroupVersion: "v1", Version: "v1"}}},
+	}}, true))
+	require.NoError(t, validateGroupList(&metav1.APIGroupList{}, false), "an explicit empty list is valid")
 }

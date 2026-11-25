@@ -224,8 +224,35 @@ func TestLookup_ConfirmedAbsenceIsCachedBriefly(t *testing.T) {
 	// asked again and the bare 404 is no longer accepted as absence.
 	disc.Resources = []*metav1.APIResourceList{coreGroup(), {
 		GroupVersion: models.AuthGVR.GroupVersion().String(),
-		APIResources: []metav1.APIResource{{Name: models.AuthGVR.Resource}},
+		APIResources: []metav1.APIResource{{Name: models.AuthGVR.Resource, Kind: "Auth"}},
 	}}
 	now = now.Add(absenceCacheTTL + time.Second)
 	assert.Equal(t, AuthUnavailable, repo.Lookup(context.Background()).Availability)
+}
+
+// Review 6060889411: an incomplete discovery entry is not evidence that the
+// Auth CRD is absent, so admission keeps the caller's access review.
+func TestLookup_IncompleteDiscoveryEntryKeepsTheReview(t *testing.T) {
+	bare404 := &k8serrors.StatusError{ErrStatus: metav1.Status{
+		Status: metav1.StatusFailure, Code: 404, Reason: metav1.StatusReasonNotFound,
+	}}
+	for name, entry := range map[string]metav1.APIResource{
+		"resource without a name": {Kind: "Auth"},
+		"resource without a kind": {Name: "auths"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			disc := &fakediscovery.FakeDiscovery{Fake: &k8stesting.Fake{Resources: []*metav1.APIResourceList{coreGroup(), {
+				GroupVersion: models.AuthGVR.GroupVersion().String(),
+				APIResources: []metav1.APIResource{entry},
+			}}}}
+			lookup := NewAuthRepository(newFakeDynClientFailingWith(bare404), disc).Lookup(context.Background())
+			assert.Equal(t, AuthUnavailable, lookup.Availability)
+			assert.ErrorIs(t, lookup.Err, k8sutil.ErrAbsenceUnconfirmed)
+
+			client := &mockUserAllowedClient{allowed: false}
+			got := admit(client, NewAuthRepository(newFakeDynClientFailingWith(bare404), disc), config.AdmissionModeAuthResource, false)
+			assert.False(t, got.Admitted)
+			assert.Equal(t, 1, client.calls, "the caller's own review decides")
+		})
+	}
 }

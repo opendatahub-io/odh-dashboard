@@ -166,7 +166,7 @@ func TestAmbiguousPlatformProbeDoesNotRelaxAdmission(t *testing.T) {
 func servesClusterVersion(d *fakediscovery.FakeDiscovery) {
 	d.Resources = []*metav1.APIResourceList{coreGroup(), {
 		GroupVersion: models.ClusterVersionGVR.GroupVersion().String(),
-		APIResources: []metav1.APIResource{{Name: models.ClusterVersionGVR.Resource}},
+		APIResources: []metav1.APIResource{{Name: models.ClusterVersionGVR.Resource, Kind: "ClusterVersion"}},
 	}}
 }
 
