@@ -437,6 +437,8 @@ func TestConfirmAPIAbsent_SearchesEveryVersionOfTheGroup(t *testing.T) {
 		{"sibling keeps v1alpha1, auths moved to v1", []*metav1.APIResourceList{list("v1alpha1", "monitorings"), list("v1", "auths")}, false},
 		{"auths only at another version", []*metav1.APIResourceList{list("v1", "auths")}, false},
 		{"auths at the requested version", []*metav1.APIResourceList{list("v1alpha1", "auths", "monitorings")}, false},
+		{"only a subresource of auths listed", []*metav1.APIResourceList{list("v1alpha1", "auths/status")}, false},
+		{"a sibling whose name starts with auths", []*metav1.APIResourceList{list("v1alpha1", "authsettings")}, true},
 		{"Auth CRD not installed beside its siblings", []*metav1.APIResourceList{list("v1alpha1", "monitorings"), list("v1", "gatewayconfigs")}, true},
 		{"group not served", nil, true},
 	}

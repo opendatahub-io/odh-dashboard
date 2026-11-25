@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -151,7 +152,8 @@ func absentFrom(resources *metav1.APIResourceList, gvr schema.GroupVersionResour
 		}
 	}
 	for _, r := range resources.APIResources {
-		if r.Name != gvr.Resource {
+		// A subresource ("auths/status") also shows the resource is served.
+		if r.Name != gvr.Resource && !strings.HasPrefix(r.Name, gvr.Resource+"/") {
 			continue
 		}
 		if version == gvr.Version {
