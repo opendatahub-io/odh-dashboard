@@ -1547,7 +1547,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName:  secret.SecretName,
-					DefaultMode: &secret.DefaultMode,
+					DefaultMode: secret.DefaultMode,
 				},
 			},
 		}
