@@ -1337,7 +1337,7 @@ func TestModuleProxy_StripsTheOtherIdentityHeader(t *testing.T) {
 		req.Header.Set("X-Forwarded-Access-Token", "spoofed-B") //nolint:gosec // G101: test value
 		handler.ServeHTTP(httptest.NewRecorder(), req)
 
-		s := <-got
+		s := recvWithin(t, got)
 		assert.NotEqual(t, "spoofed-B", s.forwarded, "authorize=%v", authorize)
 		if authorize {
 			assert.Equal(t, "Bearer caller-A", s.auth)

@@ -37,7 +37,7 @@ func TestK8sProxy_KeepsTheAPIServerBasePath(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/namespaces", nil).WithContext(newIdentityContext("t"))
 	handler.ServeHTTP(httptest.NewRecorder(), req)
 
-	assert.Equal(t, "/k8s/clusters/c-1/api/v1/namespaces", <-got)
+	assert.Equal(t, "/k8s/clusters/c-1/api/v1/namespaces", recvWithin(t, got))
 }
 
 func TestBuildTargetWSURL_KeepsTheAPIServerBasePath(t *testing.T) {
@@ -71,7 +71,7 @@ func TestK8sProxy_KeepsAnEscapedBasePath(t *testing.T) {
 		require.NoError(t, err)
 		req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/namespaces?limit=1", nil).WithContext(newIdentityContext("t"))
 		handler.ServeHTTP(httptest.NewRecorder(), req)
-		assert.Equal(t, tc.want, <-got, tc.base)
+		assert.Equal(t, tc.want, recvWithin(t, got), tc.base)
 	}
 }
 
@@ -87,7 +87,7 @@ func TestK8sProxy_KeepsAnEscapedRoute(t *testing.T) {
 	require.NoError(t, err)
 	req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/namespaces/ns/configmaps/a%2Fb", nil).WithContext(newIdentityContext("t"))
 	handler.ServeHTTP(httptest.NewRecorder(), req)
-	assert.Equal(t, "/tenant%2Fblue/api/v1/namespaces/ns/configmaps/a%2Fb", <-got)
+	assert.Equal(t, "/tenant%2Fblue/api/v1/namespaces/ns/configmaps/a%2Fb", recvWithin(t, got))
 }
 
 func TestBuildTargetWSURL_KeepsAnEscapedBasePath(t *testing.T) {

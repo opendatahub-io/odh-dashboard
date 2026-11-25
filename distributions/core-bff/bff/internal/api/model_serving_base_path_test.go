@@ -34,7 +34,7 @@ func TestModelServingProxy_KeepsTheConfiguredBasePath(t *testing.T) {
 		&k8s.RequestIdentity{Token: k8s.NewBearerToken("caller-token")})
 	app.modelServingProxy.ServeHTTP(httptest.NewRecorder(), req)
 
-	assert.Equal(t, "/serving/v1/models?limit=2", <-got)
+	assert.Equal(t, "/serving/v1/models?limit=2", recvWithin(t, got))
 }
 
 // An escaped base stays one segment: /tenant%2Fblue is not /tenant/blue.
@@ -59,5 +59,5 @@ func TestModelServingProxy_KeepsAnEscapedBasePath(t *testing.T) {
 		&k8s.RequestIdentity{Token: k8s.NewBearerToken("caller-token")})
 	app.modelServingProxy.ServeHTTP(httptest.NewRecorder(), req)
 
-	assert.Equal(t, "/tenant%2Fblue/v1/models", <-got)
+	assert.Equal(t, "/tenant%2Fblue/v1/models", recvWithin(t, got))
 }

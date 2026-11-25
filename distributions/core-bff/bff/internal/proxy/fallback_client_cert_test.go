@@ -74,7 +74,7 @@ func TestK8sProxy_FallbackClientCertOnlyOnDevFallbackRequests(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/namespaces", nil).WithContext(tc.ctx)
 			handler.ServeHTTP(httptest.NewRecorder(), req)
-			assert.Equal(t, tc.certs, <-seen)
+			assert.Equal(t, tc.certs, recvWithin(t, seen))
 		})
 	}
 }
@@ -108,7 +108,7 @@ func TestWsProxy_FallbackClientCertOnlyOnDevFallbackHandshakes(t *testing.T) {
 				_ = conn.Close()
 			}
 			require.Error(t, dialErr, "the recording API server rejects every handshake")
-			assert.Equal(t, tc.certs, <-seen)
+			assert.Equal(t, tc.certs, recvWithin(t, seen))
 		})
 	}
 }
