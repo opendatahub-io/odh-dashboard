@@ -10,6 +10,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
+	"k8s.io/client-go/rest"
 )
 
 func impersonateFromIdentity(in *http.Request, out http.Header) {
@@ -31,7 +32,23 @@ func resolveK8sHost(cfg config.EnvConfig, k8sResult k8sSetupResult) (string, err
 	if err != nil {
 		return "", fmt.Errorf("failed to get kubeconfig for proxy: %w", err)
 	}
-	return kubeconfig.Host, nil
+	serverURL, err := kubeconfigServerURL(kubeconfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve the kubeconfig API server URL for proxy: %w", err)
+	}
+	return serverURL, nil
+}
+
+// kubeconfigServerURL returns the API server URL client-go resolves for the
+// REST clients, not the raw Host: a scheme-less host:port becomes https://
+// when TLS settings are present (http:// otherwise), and a base path in the
+// server URL is kept. requireVerifiedKubeconfig checks the same URL.
+func kubeconfigServerURL(kubeconfig *rest.Config) (string, error) {
+	serverURL, _, err := rest.DefaultServerUrlFor(kubeconfig)
+	if err != nil {
+		return "", err
+	}
+	return serverURL.String(), nil
 }
 
 func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) error {

@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -252,7 +253,7 @@ func initStartupClusterInfoWith(
 		if cfg.MockK8Client {
 			ci.serverURL = k8sResult.testEnv.Config.Host
 		} else if kubeconfig, err := k8sResult.restConfig(); err == nil {
-			ci.serverURL = kubeconfig.Host
+			ci.serverURL = reportedServerURL(kubeconfig)
 		}
 		ci.currentContext = helpers.GetCurrentContext()
 		return ci, cfg.PlatformType, true
@@ -286,8 +287,17 @@ func initStartupClusterInfoWith(
 		return ci, platform, confirmed
 	}
 	ci, probeErr := query(typedClient, dynClient, logger)
-	ci.serverURL = kubeconfig.Host
+	ci.serverURL = reportedServerURL(kubeconfig)
 	ci.currentContext = helpers.GetCurrentContext()
 	platform, confirmed := resolveStartupPlatform(ci, probeErr, explicitPlatform, cfg.PlatformType, logger)
 	return ci, platform, confirmed
+}
+
+// reportedServerURL is the API server URL the clients and proxies use
+// (kubeconfigServerURL), or the raw Host when client-go cannot resolve it.
+func reportedServerURL(kubeconfig *rest.Config) string {
+	if u, err := kubeconfigServerURL(kubeconfig); err == nil {
+		return u
+	}
+	return kubeconfig.Host
 }
