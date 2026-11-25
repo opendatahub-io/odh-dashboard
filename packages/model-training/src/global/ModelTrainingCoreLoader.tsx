@@ -2,8 +2,10 @@ import * as React from 'react';
 import { Navigate, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
-import { byName } from '@odh-dashboard/k8s-core';
+import {
+  useWorkingProject,
+  WorkingProjectStatusValue,
+} from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
@@ -35,12 +37,16 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
     projects: workingProjects,
     selectProject,
     registerProjectRouteSync,
+    status: workingProjectStatus,
   } = useWorkingProject();
   const { isAdmin } = useUser();
   const isUnifiedProjectSelectorEnabled = useIsAreaAvailable(
     SupportedArea.UNIFIED_PROJECT_SELECTOR,
   ).status;
   const storedProject = getStoredPreferredProject(projects);
+  const routeProjects = isUnifiedProjectSelectorEnabled
+    ? workingProjects
+    : projects.map(({ metadata }) => ({ name: metadata.name }));
 
   useWorkingProjectRouteSync({
     activeProjectName: activeProject?.name,
@@ -54,14 +60,13 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
       : undefined,
   });
 
+  const hasInvalidWorkingProjectRoute =
+    isUnifiedProjectSelectorEnabled &&
+    workingProjectStatus === WorkingProjectStatusValue.RouteInvalid;
+
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
-  if (projects.length === 0) {
-    renderStateProps = {
-      empty: true,
-      emptyStatePage: <ModelTrainingNoProjects />,
-    };
-  } else if (namespace) {
-    const foundProject = projects.find(byName(namespace));
+  if (namespace && (routeProjects.length > 0 || hasInvalidWorkingProjectRoute)) {
+    const foundProject = routeProjects.find(({ name }) => name === namespace);
     if (foundProject) {
       // Render the content
       return (
@@ -78,16 +83,21 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
         <InvalidProject namespace={namespace} getRedirectPath={getInvalidRedirectPath} />
       ),
     };
+  } else if (routeProjects.length === 0) {
+    renderStateProps = {
+      empty: true,
+      emptyStatePage: <ModelTrainingNoProjects />,
+    };
   } else {
     const canViewAllProjects = isUnifiedProjectSelectorEnabled && isAdmin && allProjectsRequested;
 
-    const effectiveProject = canViewAllProjects
+    const effectiveProjectName = canViewAllProjects
       ? null
       : isUnifiedProjectSelectorEnabled
-      ? projects.find(byName(activeProject?.name))
-      : storedProject ?? preferredProject;
-    if (effectiveProject) {
-      return <Navigate to={getInvalidRedirectPath(effectiveProject.metadata.name)} replace />;
+      ? activeProject?.name
+      : (storedProject ?? preferredProject)?.metadata.name;
+    if (effectiveProjectName) {
+      return <Navigate to={getInvalidRedirectPath(effectiveProjectName)} replace />;
     }
     // Go with All projects path
     return (
