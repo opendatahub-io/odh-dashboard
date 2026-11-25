@@ -473,8 +473,7 @@ const WorkingProjectModal: React.FC<
   const [selectedFilter, setFilter] = React.useState<string>();
   const scrolledRowRef = React.useRef<HTMLElement | null>(null);
   const scrollFrameRef = React.useRef<number>();
-  const reviewProjectMatchesAiFilter =
-    !projectToReview || Boolean(isInAiFilter?.(projectToReview));
+  const reviewProjectMatchesAiFilter = !projectToReview || Boolean(isInAiFilter?.(projectToReview));
   const activeProjectMatchesAiFilter =
     !activeProject || Boolean(isInAiFilter?.(activeProject.name));
   const filter =
