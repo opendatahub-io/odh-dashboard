@@ -176,6 +176,13 @@ describe('RHAII working project provider integration', () => {
         'ai-project-label',
       ),
     ).toHaveTextContent('AI');
+    expect(
+      within(
+        within(screen.getByTestId('working-project-option-ai-project')).getByTestId(
+          'ai-project-label',
+        ),
+      ).getByRole('img', { hidden: true }),
+    ).toHaveAttribute('aria-hidden', 'true');
     expect(screen.queryByTestId('working-project-option-standard-project')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Project type' }));
@@ -197,7 +204,40 @@ describe('RHAII working project provider integration', () => {
     ).toBeInTheDocument();
   });
 
-  it('should allow selecting non-AI projects when the AI filter has no matches', async () => {
+  it.each([
+    { stored: '', ai: true, expected: 'ai-a' },
+    { stored: '', ai: false, expected: 'standard-a' },
+    { stored: 'standard-b', ai: true, expected: 'standard-b' },
+    { stored: 'deleted', ai: true, expected: 'ai-a' },
+    { stored: 'deleted', ai: false, expected: 'standard-a' },
+  ])(
+    'should resolve listed UPS projects with preference $stored and AI availability $ai',
+    async ({ stored, ai, expected }) => {
+      const namespaces = ['standard-b', 'standard-a', ...(ai ? ['ai-b', 'ai-a'] : [])].map(project);
+      for (const namespace of namespaces) {
+        if (namespace.metadata.name.startsWith('ai-')) {
+          namespace.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
+        }
+      }
+      if (stored) localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify(stored));
+      mockFetchNamespaces.mockResolvedValue(namespaces);
+      render(
+        <ProjectsContextProvider>
+          <Consumer />
+        </ProjectsContextProvider>,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('working-project')).toHaveTextContent(expected),
+      );
+      expect(screen.getByTestId('route-project')).toHaveTextContent(expected);
+      expect(JSON.parse(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY) ?? 'null')).toBe(
+        expected,
+      );
+      expect(mockFetchNamespaceByName).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should default to All projects when the listed fallback is non-AI', async () => {
     const user = userEvent.setup();
     mockFetchNamespaces.mockResolvedValue([project('standard-project')]);
     render(
@@ -210,9 +250,7 @@ describe('RHAII working project provider integration', () => {
       expect(screen.getByTestId('known-projects')).toHaveTextContent('standard-project'),
     );
     fireEvent.click(screen.getByTestId('working-project-selector'));
-    expect(screen.getByTestId('working-project-no-results')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Project type' }));
-    await user.click(await screen.findByRole('option', { name: /All projects/ }));
+    expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent('All projects');
     await waitFor(() =>
       expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument(),
     );
@@ -221,6 +259,31 @@ describe('RHAII working project provider integration', () => {
     await waitFor(() =>
       expect(screen.getByTestId('working-project-selector')).toHaveTextContent('standard-project'),
     );
+  });
+
+  it('should wait for listed data and preserve a later explicit selection through rerenders', async () => {
+    let resolve: (value: ProjectKind[]) => void = () => undefined;
+    mockFetchNamespaces.mockReturnValue(
+      new Promise((complete) => {
+        resolve = complete;
+      }),
+    );
+    const tree = () => (
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>
+    );
+    const { rerender } = render(tree());
+    expect(screen.getByTestId('source-status')).toHaveTextContent('loading');
+    expect(screen.getByTestId('working-project')).toHaveTextContent('none');
+    const ai = project('ai-project');
+    ai.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
+    await act(async () => resolve([ai, project('allowed')]));
+    expect(screen.getByTestId('working-project')).toHaveTextContent('ai-project');
+    fireEvent.click(screen.getByText('Select allowed'));
+    rerender(tree());
+    expect(screen.getByTestId('working-project')).toHaveTextContent('allowed');
+    expect(screen.getByTestId('route-project')).toHaveTextContent('allowed');
   });
 
   it('should distinguish forbidden listing from empty listing and allow only validated additions', async () => {
@@ -681,19 +744,26 @@ describe('RHAII working project provider integration', () => {
     expect(screen.getByTestId('known-projects')).toHaveTextContent('');
   });
 
-  it('should preserve the legacy project context when UPS is disabled', async () => {
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-    } as ReturnType<typeof useIsAreaAvailable>);
-    mockFetchNamespaces.mockResolvedValue([project('allowed')]);
-    render(
-      <ProjectsContextProvider>
-        <Consumer />
-      </ProjectsContextProvider>,
-    );
-    await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed'));
-    expect(screen.getByTestId('source-status')).toHaveTextContent('provider-absent');
-  });
+  it.each(['', 'allowed'])(
+    'should preserve the legacy project context when UPS is disabled (stored: %s)',
+    async (stored) => {
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: false,
+      } as ReturnType<typeof useIsAreaAvailable>);
+      mockFetchNamespaces.mockResolvedValue([project('allowed')]);
+      if (stored) localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify(stored));
+      render(
+        <ProjectsContextProvider>
+          <Consumer />
+        </ProjectsContextProvider>,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed'),
+      );
+      expect(screen.getByTestId('source-status')).toHaveTextContent('provider-absent');
+      expect(screen.getByTestId('route-project')).toHaveTextContent(stored || 'none');
+    },
+  );
 });
 
 afterEach(() => {

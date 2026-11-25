@@ -41,6 +41,8 @@ const namespaceToProject = (
     ...(typeof displayName === 'string' && {
       annotations: { 'openshift.io/display-name': displayName },
     }),
+    // The BFF derives isAiProject from this label; reconstruct it for isAiProject() consumers.
+    // This is display classification, not an authorization decision.
     ...(isAiProject === true && {
       labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
     }),

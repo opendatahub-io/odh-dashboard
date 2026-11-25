@@ -157,6 +157,44 @@ describe('WorkingProjectSelector', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('should provide a Close action for a plain-text empty list', () => {
+    const onProjectChange = jest.fn();
+    render(
+      <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={onProjectChange}>
+        <WorkingProjectSelector
+          manualProjectMode
+          emptyListContent="There are no projects in the namespace list."
+        />
+      </WorkingProjectProvider>,
+    );
+    const trigger = screen.getByTestId('working-project-selector');
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(screen.getByText('There are no projects in the namespace list.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Close'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(onProjectChange).not.toHaveBeenCalled();
+    fireEvent.click(trigger);
+    expect(screen.getByText('Close')).toBeInTheDocument();
+  });
+
+  it('should leave function-provided empty-list actions unchanged', () => {
+    render(
+      <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={jest.fn()}>
+        <WorkingProjectSelector
+          emptyListContent={(onClose) => <button onClick={onClose}>Cancel</button>}
+        />
+      </WorkingProjectProvider>,
+    );
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.queryByText('Close')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('should not duplicate actions supplied by the empty-list content', () => {
     render(
       <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={jest.fn()}>

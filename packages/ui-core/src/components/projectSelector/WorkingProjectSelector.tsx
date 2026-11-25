@@ -855,6 +855,7 @@ const WorkingProjectModal: React.FC<
       </ModalBody>
       <WorkingProjectSelectorFooter
         isEmptyProjectList={isEmptyProjectList}
+        showEmptyListClose={typeof emptyListContent === 'string'}
         manualFallback={manualFallback}
         showManualEmptyContent={showManualEmptyContent}
         canSelectProject={canSelectProject}

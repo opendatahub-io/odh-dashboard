@@ -10,6 +10,7 @@ import {
 
 type Props = {
   isEmptyProjectList: boolean;
+  showEmptyListClose: boolean;
   manualFallback: boolean;
   showManualEmptyContent: boolean;
   canSelectProject: boolean;
@@ -29,6 +30,7 @@ type Props = {
 
 const WorkingProjectSelectorFooter: React.FC<Props> = ({
   isEmptyProjectList,
+  showEmptyListClose,
   manualFallback,
   showManualEmptyContent,
   canSelectProject,
@@ -45,7 +47,7 @@ const WorkingProjectSelectorFooter: React.FC<Props> = ({
   onCreateProject,
   onAddProject,
 }) => {
-  if (isEmptyProjectList || showManualEmptyContent) {
+  if ((isEmptyProjectList && !showEmptyListClose) || showManualEmptyContent) {
     return null;
   }
 
@@ -73,7 +75,7 @@ const WorkingProjectSelectorFooter: React.FC<Props> = ({
     );
   }
 
-  if (!canSelectProject) {
+  if (!canSelectProject || isEmptyProjectList) {
     return (
       <ModalFooter>
         {selectionError && (

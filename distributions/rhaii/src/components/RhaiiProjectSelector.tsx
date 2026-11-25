@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { Label } from '@patternfly/react-core';
 import { isAiProject } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import WorkingProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/WorkingProjectSelector';
+import AILabel from '@odh-dashboard/ui-core/components/AILabel';
 
 const RhaiiProjectSelector: React.FC = () => {
   const { projects } = React.useContext(ProjectsContext);
@@ -15,11 +15,7 @@ const RhaiiProjectSelector: React.FC = () => {
     <WorkingProjectSelector
       manualProjectMode
       isAiProject={(name) => aiProjectNames.has(name)}
-      aiLabel={
-        <Label variant="outline" data-testid="ai-project-label" isCompact>
-          AI
-        </Label>
-      }
+      aiLabel={<AILabel />}
       emptyListContent="There are no projects in the namespace list."
     />
   );

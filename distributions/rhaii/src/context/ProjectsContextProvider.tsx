@@ -6,12 +6,16 @@ import {
   byName,
   getDisplayNameFromK8sResource,
   isAvailableProject,
+  isAiProject,
   NamespacePhase,
 } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { useRecentProjects } from '@odh-dashboard/ui-core/hooks/useRecentProjects';
-import { WorkingProjectProvider } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
+import {
+  WorkingProjectProvider,
+  type ProjectIdentity,
+} from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { useWorkingProjectSynchronization } from '@odh-dashboard/ui-core/hooks/useWorkingProjectSynchronization';
 import fetchNamespaces, {
   FETCH_TIMEOUT_MS,
@@ -144,11 +148,11 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       return;
     }
     initializedFromStorage.current = true;
-    if (storedPreferredName) {
-      const match = projects.find(byName(storedPreferredName));
-      if (match) {
-        setPreferredProject(match);
-      }
+    const storedProject = projects.find(byName(storedPreferredName));
+    if (storedProject) {
+      setPreferredProject(storedProject);
+    } else if (unifiedProjectSelectorEnabled) {
+      updatePreferredProject(projects.find(isAiProject) ?? projects[0]);
     }
   }, [
     loaded,
@@ -157,6 +161,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     loadError,
     projects,
     storedPreferredName,
+    updatePreferredProject,
   ]);
 
   const waitControllerRef = React.useRef<AbortController | null>(null);
@@ -309,9 +314,11 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [projects, loaded, loadError, updatePreferredProject],
   );
 
-  const validatedProjects = React.useRef(new WeakMap<object, ProjectKind>());
+  // The sync hook passes the exact validated identity to onProjectValidated.
+  // Keep each request's resource separate, even for concurrent lookups of the same name.
+  const validatedProjects = React.useRef(new WeakMap<ProjectIdentity, ProjectKind>());
   const onProjectValidated = React.useCallback(
-    (identity: { name: string; displayName?: string }) => {
+    (identity: ProjectIdentity) => {
       const project = validatedProjects.current.get(identity);
       if (project) {
         addProject(project);
