@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"unicode"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -57,7 +58,7 @@ func ConfirmAPIAbsent(ctx context.Context, disc discovery.DiscoveryInterface, gv
 func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVersionResource) (bool, error) {
 	// Every real API server serves the core group at /api.
 	var core metav1.APIVersions
-	if err := readDiscoveryDocument(ctx, rc, "/api", "APIVersions", "versions", &core); err != nil {
+	if err := readDiscoveryDocument(ctx, rc, "/api", "APIVersions", "versions", &core.Versions, nil); err != nil {
 		return false, fmt.Errorf("%w: /api: %w", ErrAbsenceUnconfirmed, err)
 	}
 	if slices.Contains(core.Versions, "") {
@@ -74,7 +75,7 @@ func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVer
 	versions := core.Versions
 	if gvr.Group != "" {
 		var groups metav1.APIGroupList
-		if err := readDiscoveryDocument(ctx, rc, "/apis", "APIGroupList", "groups", &groups); err != nil {
+		if err := readDiscoveryDocument(ctx, rc, "/apis", "APIGroupList", "groups", &groups.Groups, nil); err != nil {
 			return false, fmt.Errorf("%w: /apis: %w", ErrAbsenceUnconfirmed, err)
 		}
 		// /apis never lists the core group, so every entry needs a name.
@@ -92,7 +93,8 @@ func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVer
 			path = "/apis/" + gvr.Group + "/" + v
 		}
 		var resources metav1.APIResourceList
-		if err := readDiscoveryDocument(ctx, rc, path, "APIResourceList", "resources", &resources); err != nil {
+		if err := readDiscoveryDocument(ctx, rc, path, "APIResourceList", "resources", &resources.APIResources,
+			map[string]any{"groupVersion": &resources.GroupVersion}); err != nil {
 			return false, fmt.Errorf("%w: resource list: %w", ErrAbsenceUnconfirmed, err)
 		}
 		if absent, err := absentFrom(&resources, gvr, v); !absent {
@@ -236,15 +238,23 @@ func restClientOf(disc discovery.DiscoveryInterface) rest.Interface {
 	return rc
 }
 
-// readDiscoveryDocument GETs path with ctx and decodes it into into,
-// requiring the given kind and its list field (listKey). The list field is
-// required by the discovery schema: a body without it, or with null, decodes
-// to an empty list and would read as absence, so it is rejected; an explicit
-// empty array is a valid answer.
-func readDiscoveryDocument(ctx context.Context, rc rest.Interface, path, kind, listKey string, into any) error {
+// readDiscoveryDocument GETs path with ctx, checks it is a discovery
+// document of the given kind, and decodes its list field (listKey) into list
+// and any other named fields into extra. The list is decoded from the exact
+// raw value that was checked, so the decision and the validation see the same
+// list. The list field is required by the discovery schema: a body without
+// it, or with null, would decode to an empty list and read as absence, so it
+// is rejected; an explicit empty array is a valid answer. A body in which any
+// object repeats a key, or carries two keys that differ only in case, is
+// rejected: encoding/json matches field names case-insensitively and keeps
+// the last, so such a body could validate one list and decode another.
+func readDiscoveryDocument(ctx context.Context, rc rest.Interface, path, kind, listKey string, list any, extra map[string]any) error {
 	raw, err := rc.Get().AbsPath(path).SetHeader("Accept", "application/json").Do(ctx).Raw()
 	if err != nil {
 		return err
+	}
+	if err := rejectAmbiguousKeys(raw); err != nil {
+		return fmt.Errorf("not a discovery document: %w", err)
 	}
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &fields); err != nil {
@@ -254,11 +264,81 @@ func readDiscoveryDocument(ctx context.Context, rc rest.Interface, path, kind, l
 	if err := json.Unmarshal(fields["kind"], &gotKind); err != nil || gotKind != kind {
 		return fmt.Errorf("the response is not an %s", kind)
 	}
-	if list := bytes.TrimSpace(fields[listKey]); len(list) == 0 || list[0] != '[' {
+	rawList := bytes.TrimSpace(fields[listKey])
+	if len(rawList) == 0 || rawList[0] != '[' {
 		return fmt.Errorf("the %s has no %q list", kind, listKey)
 	}
-	if err := json.Unmarshal(raw, into); err != nil {
+	if err := json.Unmarshal(rawList, list); err != nil {
 		return fmt.Errorf("not a discovery document: %w", err)
 	}
+	for key, into := range extra {
+		if v, ok := fields[key]; ok {
+			if err := json.Unmarshal(v, into); err != nil {
+				return fmt.Errorf("not a discovery document: %w", err)
+			}
+		}
+	}
 	return nil
+}
+
+// rejectAmbiguousKeys walks a JSON document and fails if any object, at any
+// depth, has two keys that are equal ignoring case (an exact repeat included).
+func rejectAmbiguousKeys(raw []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	return walkJSONValue(dec)
+}
+
+// foldKey maps every rune to the smallest rune in its Unicode case-folding
+// orbit, so keys that encoding/json would match ("groups", "Groups", or with
+// a long s "groupſ") fold to the same string.
+func foldKey(key string) string {
+	var b strings.Builder
+	for _, r := range key {
+		least := r
+		for f := unicode.SimpleFold(r); f != r; f = unicode.SimpleFold(f) {
+			if f < least {
+				least = f
+			}
+		}
+		b.WriteRune(least)
+	}
+	return b.String()
+}
+
+func walkJSONValue(dec *json.Decoder) error {
+	tok, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	delim, ok := tok.(json.Delim)
+	if !ok {
+		return nil
+	}
+	switch delim {
+	case '{':
+		seen := map[string]bool{}
+		for dec.More() {
+			keyTok, err := dec.Token()
+			if err != nil {
+				return err
+			}
+			key, _ := keyTok.(string)
+			folded := foldKey(key)
+			if seen[folded] {
+				return errors.New("an object repeats a key, or has keys that differ only in case")
+			}
+			seen[folded] = true
+			if err := walkJSONValue(dec); err != nil {
+				return err
+			}
+		}
+	case '[':
+		for dec.More() {
+			if err := walkJSONValue(dec); err != nil {
+				return err
+			}
+		}
+	}
+	_, err = dec.Token() // the closing delimiter
+	return err
 }

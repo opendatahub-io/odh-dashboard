@@ -493,3 +493,52 @@ func TestConfirmAPIAbsent_SearchesEveryVersionOfTheGroup(t *testing.T) {
 		})
 	}
 }
+
+// Review 6061453906: encoding/json matches keys case-insensitively and keeps
+// the last, so a body could validate one list and decode another. Keys that
+// repeat or differ only in case, at any depth, make the answer inconclusive.
+func TestConfirmAPIAbsent_AmbiguousKeysAreInconclusive(t *testing.T) {
+	const core = `{"kind":"APIVersions","apiVersion":"v1","versions":["v1"]}`
+	const configGroup = `{"name":"config.openshift.io","versions":[{"groupVersion":"config.openshift.io/v1","version":"v1"}]}`
+	const served = `{"name":"clusterversions","kind":"ClusterVersion","namespaced":false,"verbs":["get"]}`
+	for _, tc := range []struct{ name, core, apis, resources string }{
+		{"groups and Groups", core, `{"kind":"APIGroupList","apiVersion":"v1","groups":[` + configGroup + `],"Groups":[]}`, ""},
+		{"groups repeated", core, `{"kind":"APIGroupList","apiVersion":"v1","groups":[` + configGroup + `],"groups":[]}`, ""},
+		{"groups with a long s", core, `{"kind":"APIGroupList","apiVersion":"v1","groups":[` + configGroup + `],"groupſ":[]}`, ""},
+		{"resources and Resources", core, `{"kind":"APIGroupList","apiVersion":"v1","groups":[` + configGroup + `]}`,
+			`{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v1","resources":[` + served + `],"Resources":[]}`},
+		{"entry name and Name", core, `{"kind":"APIGroupList","apiVersion":"v1","groups":[` + configGroup + `]}`,
+			`{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v1","resources":[{"name":"clusterversions","Name":"other","kind":"ClusterVersion","verbs":["get"]}]}`},
+		{"group entry name and NAME", core, `{"kind":"APIGroupList","apiVersion":"v1","groups":[{"name":"config.openshift.io","NAME":"x.io","versions":[{"groupVersion":"config.openshift.io/v1","version":"v1"}]}]}`, ""},
+		{"versions and Versions", `{"kind":"APIVersions","apiVersion":"v1","versions":["v1"],"Versions":[]}`, `{"kind":"APIGroupList","apiVersion":"v1","groups":[]}`, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch {
+				case r.URL.Path == "/api":
+					_, _ = w.Write([]byte(tc.core))
+				case r.URL.Path == "/apis":
+					_, _ = w.Write([]byte(tc.apis))
+				case r.URL.Path == "/apis/config.openshift.io/v1" && tc.resources != "":
+					_, _ = w.Write([]byte(tc.resources))
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer srv.Close()
+			disc, err := discovery.NewDiscoveryClientForConfig(&rest.Config{Host: srv.URL})
+			require.NoError(t, err)
+			absent, err := ConfirmAPIAbsent(context.Background(), disc, clusterVersions)
+			assert.False(t, absent)
+			assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
+		})
+	}
+}
+
+func TestFoldKey(t *testing.T) {
+	assert.Equal(t, foldKey("groups"), foldKey("GROUPS"))
+	assert.Equal(t, foldKey("groups"), foldKey("groupſ"), "long s folds like encoding/json")
+	assert.Equal(t, foldKey("kind"), foldKey("Kind"), "Kelvin sign folds to k")
+	assert.NotEqual(t, foldKey("groups"), foldKey("group"))
+}
