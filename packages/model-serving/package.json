@@ -112,7 +112,8 @@
     "./shared/kueue/useQueuePositionsForDeployments": "./src/shared/kueue/useQueuePositionsForDeployments.ts",
     "./shared/api/gatewayDiscovery": "./src/shared/api/gatewayDiscovery.ts",
     "./shared/hooks/useGatewayOptions": "./src/shared/hooks/useGatewayOptions.ts",
-    "./shared/contexts/ModelServingDataContext": "./src/shared/contexts/ModelServingDataContext.tsx"
+    "./shared/contexts/ModelServingDataContext": "./src/shared/contexts/ModelServingDataContext.tsx",
+    "./shared/utils/connectedResources": "./src/shared/utils/connectedResources.ts"
   },
   "dependencies": {
     "@odh-dashboard/analytics": "workspace:*",

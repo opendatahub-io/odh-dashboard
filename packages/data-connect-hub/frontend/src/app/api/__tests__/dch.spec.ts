@@ -6,6 +6,7 @@ import {
   createConnection,
   deleteConnection,
   getConnection,
+  getConnectionNameAvailability,
   getConnections,
   getConnectionType,
   getConnectionTypes,
@@ -129,6 +130,31 @@ describe('getConnections', () => {
     expect(error).toBeInstanceOf(ConnectionApiError);
     expect((error as ConnectionApiError).status).toBe(403);
     expect((error as ConnectionApiError).message).toBe('Access forbidden');
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+});
+
+describe('getConnectionNameAvailability', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsModArchResponse.mockReturnValue(true);
+  });
+
+  it('returns name availability from a valid response', async () => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        response(200, JSON.stringify({ data: { available: false, conflicts_with: ['secret'] } })),
+      );
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(
+      getConnectionNameAvailability('')({}, 'test-project', 'warehouse'),
+    ).resolves.toEqual({ available: false, conflicts_with: ['secret'] });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/data-connect-hub/api/v1/connection-name-availability?namespace=test-project&name=warehouse',
+      expect.objectContaining({ method: 'GET' }),
+    );
     delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
 });

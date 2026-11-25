@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
+import { Button, EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import projectsEmptyStateImg from '#~/images/empty-state-projects-color.svg';
@@ -7,9 +7,15 @@ import NewProjectButton from './NewProjectButton';
 
 type EmptyProjectsProps = {
   allowCreate: boolean;
+  onCreateProject?: () => void;
+  onCancel?: () => void;
 };
 
-const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
+const EmptyProjects: React.FC<EmptyProjectsProps> = ({
+  allowCreate,
+  onCreateProject,
+  onCancel,
+}) => {
   const navigate = useNavigate();
 
   return (
@@ -27,9 +33,20 @@ const EmptyProjects: React.FC<EmptyProjectsProps> = ({ allowCreate }) => {
       <EmptyStateFooter>
         {allowCreate ? (
           <>
-            <NewProjectButton
-              onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
-            />
+            {onCreateProject ? (
+              <Button data-testid="create-project" variant="primary" onClick={onCreateProject}>
+                Create project
+              </Button>
+            ) : (
+              <NewProjectButton
+                onProjectCreated={(projectName) => navigate(`/projects/${projectName}`)}
+              />
+            )}
+            {onCancel && (
+              <Button data-testid="cancel-create-project" variant="link" onClick={onCancel}>
+                Cancel
+              </Button>
+            )}
           </>
         ) : (
           <WhosMyAdministrator

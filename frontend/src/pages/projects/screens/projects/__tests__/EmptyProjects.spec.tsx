@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import EmptyProjects from '#~/pages/projects/screens/projects/EmptyProjects';
 import { useUser } from '#~/redux/selectors';
@@ -41,6 +41,33 @@ describe('EmptyProjects', () => {
     );
     expect(bodyText).not.toHaveTextContent('To request a project, contact your administrator.');
   });
+  it('should call onCreateProject when the selector create action is clicked', () => {
+    const onCreateProject = jest.fn();
+
+    render(<EmptyProjects allowCreate onCreateProject={onCreateProject} />);
+
+    fireEvent.click(screen.getByTestId('create-project'));
+
+    expect(onCreateProject).toHaveBeenCalledTimes(1);
+    expect(onCreateProject).toHaveBeenCalledWith(expect.any(Object));
+  });
+
+  it('should call onCancel when the selector cancel action is clicked', () => {
+    const onCancel = jest.fn();
+
+    render(<EmptyProjects allowCreate onCancel={onCancel} />);
+
+    fireEvent.click(screen.getByTestId('cancel-create-project'));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not show the cancel action without an onCancel callback', () => {
+    render(<EmptyProjects allowCreate />);
+
+    expect(screen.queryByTestId('cancel-create-project')).not.toBeInTheDocument();
+  });
+
   it('should show the who is my admin help when not allowed to create projects', async () => {
     render(<EmptyProjects allowCreate={false} />);
     const bodyText = await screen.findByTestId('projects-empty-body-text');

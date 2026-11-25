@@ -14,7 +14,6 @@ spec:
         - limit: 1000
           window: 1h
   owner:
-    groups:
-      - name: rhods-admins
-      - name: rhods-users
+    # Set by createMaaSSubscription from MAAS_OWNER_GROUPS (default: rhods-admins, rhods-users).
+    groups: {{OWNER_GROUPS}}
   inferencePriority: 1

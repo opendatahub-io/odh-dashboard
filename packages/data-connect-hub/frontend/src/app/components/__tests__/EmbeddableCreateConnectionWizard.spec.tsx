@@ -9,6 +9,7 @@ import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useCreateConnectionNamespaces } from '~/app/hooks/useCreateConnectionNamespaces';
 import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
+import { useConnectionNameAvailability } from '~/app/hooks/useConnectionNameAvailability';
 import { createConnection } from '~/app/api/dch';
 import type { Connection, NamespaceKind } from '~/app/types';
 
@@ -16,6 +17,7 @@ jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
 jest.mock('~/app/hooks/useCreateConnectionNamespaces');
 jest.mock('~/app/hooks/useConnectionAccess');
+jest.mock('~/app/hooks/useConnectionNameAvailability');
 jest.mock('~/app/utilities/tracking', () => ({
   ...jest.requireActual<typeof import('~/app/utilities/tracking')>('~/app/utilities/tracking'),
   fireDataConnectHubTrackEvent: jest.fn(),
@@ -28,6 +30,7 @@ const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockUseCreateConnectionNamespaces = jest.mocked(useCreateConnectionNamespaces);
 const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
+const mockUseConnectionNameAvailability = jest.mocked(useConnectionNameAvailability);
 const mockCreateConnection = jest.mocked(createConnection);
 
 const connectionTypeId = '550e8400-e29b-41d4-a716-446655440003';
@@ -83,6 +86,11 @@ describe('EmbeddableCreateConnectionWizard', () => {
       undefined,
     ]);
     mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
+    mockUseConnectionNameAvailability.mockReturnValue([
+      { available: true, conflicts_with: [] },
+      true,
+      undefined,
+    ]);
     jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(jest.fn());
     mockCreateConnection.mockReturnValue(
       jest.fn<() => Promise<Connection>>().mockResolvedValue(createdConnection),

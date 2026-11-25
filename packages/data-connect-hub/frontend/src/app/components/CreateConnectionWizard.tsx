@@ -54,6 +54,7 @@ import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
 import { ConnectionTypeInstance } from '~/app/components/ConnectionType';
 import PasswordInput from '~/app/components/PasswordInput';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
+import { useConnectionNameAvailability } from '~/app/hooks/useConnectionNameAvailability';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useEmbeddedConnectionWizard } from '~/app/context/EmbeddedConnectionWizardContext';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -170,6 +171,7 @@ type ConnectionDetailsStepProps = {
   namespaces: NamespaceKind[];
   selectedNamespace: string;
   connectionName: string;
+  hasNameConflict: boolean;
   properties: PropertyRow[];
   propertyErrors: Record<number, string>;
   touchedProperties: Set<number>;
@@ -189,6 +191,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
   namespaces,
   selectedNamespace,
   connectionName,
+  hasNameConflict,
   properties,
   propertyErrors,
   touchedProperties,
@@ -206,6 +209,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
   const [isNamespaceSelectOpen, setIsNamespaceSelectOpen] = React.useState(false);
   const { goToStepById } = useWizardContext();
   const hasInvalidName = connectionName.length > 0 && !isValidConnectionName(connectionName);
+  const hasNameError = hasInvalidName || hasNameConflict;
 
   return (
     <Form className="dch-connection-wizard-step-form">
@@ -304,15 +308,16 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
               id="connection-name"
               value={connectionName}
               onChange={(_event, value) => onConnectionNameChange(value)}
-              validated={hasInvalidName ? 'error' : 'default'}
+              validated={hasNameError ? 'error' : 'default'}
               data-testid="connection-name-input"
             />
-            {hasInvalidName ? (
+            {hasNameError ? (
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem variant="error">
-                    Use lowercase letters, numbers, and hyphens. Start and end with a letter or
-                    number, and use no more than 63 characters.
+                    {hasNameConflict
+                      ? 'A connection or secret with this name already exists in this project. Choose a different name.'
+                      : 'Use lowercase letters, numbers, and hyphens. Start and end with a letter or number, and use no more than 63 characters.'}
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
@@ -914,6 +919,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const verificationAbortRef = React.useRef<AbortController>();
   const wasOpenRef = React.useRef(false);
   const lastTrackedConnectionTypeIdRef = React.useRef<string>();
+  const hasNotifiedNameAvailabilityFailureRef = React.useRef(false);
   const [allConnectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
     selectedNamespace,
     isOpen,
@@ -941,10 +947,6 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   );
   const [availableNamespaces, availableNamespacesLoaded, availableNamespacesError] =
     useCreateConnectionNamespaces(namespacesForAccess, isOpen);
-  const notification = useNotification();
-  const selectedNamespaceDisplayName = availableNamespaces.find(
-    (item) => item.name === selectedNamespace,
-  )?.displayName;
   const selectedConnectionType = connectionTypes.find(
     (connectionType) => connectionType.metadata.id === formData.data_connection_type_id,
   );
@@ -955,6 +957,20 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const hasConnectionTypesReady = connectionTypesLoaded && !connectionTypesError;
   const hasSingleConnectionType = hasConnectionTypesReady && connectionTypes.length === 1;
   const hasSelectedConnectionType = hasConnectionTypesReady && Boolean(selectedConnectionType);
+  const isNameValid = isValidConnectionName(formData.name);
+  const [nameAvailability, nameAvailabilityLoaded, nameAvailabilityError] =
+    useConnectionNameAvailability(
+      selectedNamespace,
+      formData.name,
+      isOpen && hasSelectedConnectionType && isNameValid,
+    );
+  const nameConflicts = nameAvailability?.conflicts_with ?? [];
+  const hasNameConflict = nameConflicts.length > 0;
+  const hasResolvedNameAvailability = nameAvailabilityLoaded || Boolean(nameAvailabilityError);
+  const notification = useNotification();
+  const selectedNamespaceDisplayName = availableNamespaces.find(
+    (item) => item.name === selectedNamespace,
+  )?.displayName;
   const defaultCredentials = React.useMemo(
     () =>
       Object.fromEntries(
@@ -999,7 +1015,9 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     hasSelectedConnectionType &&
     hasNamespacesReady &&
     Boolean(selectedNamespace) &&
-    isValidConnectionName(formData.name);
+    isNameValid &&
+    hasResolvedNameAvailability &&
+    !hasNameConflict;
   const propertyErrors = getPropertyErrors(propertyRows);
   const hasValidProperties = Object.keys(propertyErrors).length === 0;
   const hasValidDetailsWithProperties = hasValidDetails && hasValidProperties;
@@ -1011,16 +1029,14 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       hasCredentialValue(formData.credentials.properties[field.name]),
     );
   const needsInitialValidationData =
-    hasConnectionType &&
-    Boolean(selectedNamespace) &&
-    isValidConnectionName(formData.name) &&
-    hasValidProperties;
+    hasConnectionType && Boolean(selectedNamespace) && isNameValid && hasValidProperties;
   const canResolveStartIndex =
     isOpenSessionReady &&
     (!hasSelectedConnectionType || !hasMissingCredentialDefaults) &&
     (connectionTypesLoaded || Boolean(connectionTypesError)) &&
     (!hasSingleConnectionType || hasSelectedConnectionType) &&
-    (!needsInitialValidationData || hasNamespacesReady || Boolean(projectLoadError));
+    (!needsInitialValidationData || hasNamespacesReady || Boolean(projectLoadError)) &&
+    (!hasSelectedConnectionType || !isNameValid || hasResolvedNameAvailability);
   const calculatedStartIndex = hasValidConfiguration
     ? 4
     : hasValidDetailsWithProperties
@@ -1054,6 +1070,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       setIsOpenSessionReady(true);
       setActiveStepIndex(1);
       lastTrackedConnectionTypeIdRef.current = undefined;
+      hasNotifiedNameAvailabilityFailureRef.current = false;
     } else if (!isOpen && wasOpenRef.current) {
       setIsOpenSessionReady(false);
       setHasResolvedSessionStartIndex(false);
@@ -1110,6 +1127,16 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       setIsDiscardModalOpen(false);
     }
   }, [invalidateVerification, isOpen]);
+  React.useEffect(() => {
+    if (!isOpen || !nameAvailabilityError || hasNotifiedNameAvailabilityFailureRef.current) {
+      return;
+    }
+    hasNotifiedNameAvailabilityFailureRef.current = true;
+    notification.warning(
+      'Unable to check connection name',
+      'Connection creation will fail if this name is already in use. Continue with a unique name.',
+    );
+  }, [isOpen, nameAvailabilityError, notification]);
   React.useEffect(() => {
     if (!isDiscardModalOpen) {
       return;
@@ -1501,6 +1528,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
               namespaces={availableNamespaces}
               selectedNamespace={selectedNamespace}
               connectionName={formData.name}
+              hasNameConflict={hasNameConflict}
               properties={propertyRows}
               propertyErrors={propertyErrors}
               touchedProperties={touchedProperties}
