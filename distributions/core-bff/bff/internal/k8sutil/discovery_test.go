@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -71,10 +72,11 @@ func TestConfirmAPIAbsent(t *testing.T) {
 func TestConfirmAPIAbsent_CancellationReachesTheTransport(t *testing.T) {
 	started := make(chan struct{})
 	cancelled := make(chan struct{})
+	var startOnce, cancelOnce sync.Once
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		close(started)
+		startOnce.Do(func() { close(started) })
 		<-r.Context().Done()
-		close(cancelled)
+		cancelOnce.Do(func() { close(cancelled) })
 	}))
 	defer srv.Close()
 
