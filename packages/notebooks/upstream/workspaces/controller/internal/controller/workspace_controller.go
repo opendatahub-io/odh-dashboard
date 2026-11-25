@@ -64,7 +64,7 @@ const (
 	WorkspaceFinalizer = "notebooks.kubeflow.org/workspace-cleanup"
 
 	// label keys
-	workspaceNameLabel     = "notebooks.kubeflow.org/workspace-name"
+	workspaceNameLabel     = "workspaces.kubeflow.org/workspace-name"
 	workspaceSelectorLabel = "statefulset"
 	odhComponentLabelKey   = "opendatahub.io/component"
 	odhNamespaceLabelKey   = "opendatahub.io/namespace"
