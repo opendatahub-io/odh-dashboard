@@ -79,9 +79,7 @@ export type CopySuiteBenchmarkSelectionStepProps = {
   collectionCategories?: readonly string[];
   prefilterProviders?: boolean;
   isInteractionDisabled?: boolean;
-  onNext: (selectedKeys: string[]) => void;
-  onBack: () => void;
-  onCancel: () => void;
+  onSelectionChange: (selectedKeys: string[]) => void;
 };
 
 const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepProps> = ({
@@ -90,25 +88,14 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
   collectionCategories = [],
   prefilterProviders = false,
   isInteractionDisabled = false,
-  onNext,
-  onBack,
-  onCancel,
+  onSelectionChange,
 }) => {
   const { trackEvalHubEvent } = useEvalHubTracking();
 
-  const [draftSelectedBenchmarkKeys, setDraftSelectedBenchmarkKeys] =
-    React.useState(selectedBenchmarkKeys);
   const [page, setPage] = React.useState(1);
   const [detailsBenchmarkKey, setDetailsBenchmarkKey] = React.useState<string | undefined>();
 
-  React.useEffect(() => {
-    setDraftSelectedBenchmarkKeys(selectedBenchmarkKeys);
-  }, [selectedBenchmarkKeys]);
-
-  const selected = React.useMemo(
-    () => new Set(draftSelectedBenchmarkKeys),
-    [draftSelectedBenchmarkKeys],
-  );
+  const selected = React.useMemo(() => new Set(selectedBenchmarkKeys), [selectedBenchmarkKeys]);
 
   const catalogBenchmarks = React.useMemo<CatalogBenchmark[]>(() => {
     const benchmarks: CatalogBenchmark[] = [];
@@ -255,9 +242,8 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     return sortedBenchmarks.slice(start, start + PAGE_SIZE);
   }, [sortedBenchmarks, effectivePage]);
 
-  const selectionCount = draftSelectedBenchmarkKeys.length;
+  const selectionCount = selectedBenchmarkKeys.length;
   const remainingSelections = MAX_BENCHMARKS - selectionCount;
-  const isSelectionCountValid = selectionCount >= 1 && selectionCount <= MAX_BENCHMARKS;
   const isAtSelectionLimit = selectionCount >= MAX_BENCHMARKS;
   const hasTooManySelections = selectionCount > MAX_BENCHMARKS;
   const hasActiveFilters = hasActiveBenchmarkFilters(filterData);
@@ -311,18 +297,14 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     searchInputTrackingProps.reset();
   }, [searchInputTrackingProps, setFilterDataFromUser]);
 
-  const toggleSelection = React.useCallback((key: string) => {
-    setPage(1);
-    setDraftSelectedBenchmarkKeys((currentKeys) =>
-      toggleBenchmarkSelectionKey(currentKeys, key, MAX_BENCHMARKS),
-    );
-  }, []);
-
-  const handleNext = React.useCallback(() => {
-    if (isSelectionCountValid && !isInteractionDisabled) {
-      onNext([...draftSelectedBenchmarkKeys]);
-    }
-  }, [draftSelectedBenchmarkKeys, isInteractionDisabled, isSelectionCountValid, onNext]);
+  const toggleSelection = React.useCallback(
+    (key: string) => {
+      setPage(1);
+      const nextKeys = toggleBenchmarkSelectionKey(selectedBenchmarkKeys, key, MAX_BENCHMARKS);
+      onSelectionChange(nextKeys);
+    },
+    [onSelectionChange, selectedBenchmarkKeys],
+  );
 
   return (
     <div
@@ -660,37 +642,6 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
           </Stack>
         </div>
       </fieldset>
-
-      <div
-        id="copy-suite-select-benchmarks-actions"
-        className="evalhub-copy-suite-page__footer"
-        data-testid="copy-suite-select-benchmarks-actions"
-      >
-        <Button
-          variant="secondary"
-          data-testid="copy-suite-back-select-benchmarks"
-          onClick={onBack}
-          isDisabled={isInteractionDisabled}
-        >
-          Back
-        </Button>
-        <Button
-          variant="primary"
-          data-testid="copy-suite-next-select-benchmarks"
-          onClick={handleNext}
-          isDisabled={isInteractionDisabled || !isSelectionCountValid}
-        >
-          Next
-        </Button>
-        <Button
-          variant="link"
-          data-testid="copy-suite-cancel-select-benchmarks"
-          onClick={onCancel}
-          isDisabled={isInteractionDisabled}
-        >
-          Cancel
-        </Button>
-      </div>
 
       {!isInteractionDisabled ? (
         <CopySuiteBenchmarkDetailsOverlay

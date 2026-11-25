@@ -81,25 +81,38 @@ const createProvidersWithBenchmarks = (count: number): Provider[] => [
   },
 ];
 
+const noOpSelectionChange = (): void => undefined;
+
+const ControlledSelectionStepHarness: React.FC<
+  Partial<React.ComponentProps<typeof CopySuiteBenchmarkSelectionStep>>
+> = ({
+  selectedBenchmarkKeys = ['provider-one:planning', 'provider-one:tasks'],
+  onSelectionChange = noOpSelectionChange,
+  ...overrides
+}) => {
+  const [selectedKeys, setSelectedKeys] = React.useState(selectedBenchmarkKeys);
+  const handleSelectionChange = React.useCallback(
+    (nextKeys: string[]) => {
+      onSelectionChange(nextKeys);
+      setSelectedKeys(nextKeys);
+    },
+    [onSelectionChange],
+  );
+
+  return (
+    <CopySuiteBenchmarkSelectionStep
+      providers={providers}
+      {...overrides}
+      selectedBenchmarkKeys={selectedKeys}
+      onSelectionChange={handleSelectionChange}
+    />
+  );
+};
+
 const renderSelectionStep = (
   overrides: Partial<React.ComponentProps<typeof CopySuiteBenchmarkSelectionStep>> = {},
 ) => {
-  const onNext = jest.fn();
-  const onBack = jest.fn();
-  const onCancel = jest.fn();
-
-  render(
-    <CopySuiteBenchmarkSelectionStep
-      providers={providers}
-      selectedBenchmarkKeys={['provider-one:planning', 'provider-one:tasks']}
-      onNext={onNext}
-      onBack={onBack}
-      onCancel={onCancel}
-      {...overrides}
-    />,
-  );
-
-  return { onNext, onBack, onCancel };
+  render(<ControlledSelectionStepHarness {...overrides} />);
 };
 
 describe('CopySuiteBenchmarkSelectionStep', () => {
@@ -410,9 +423,7 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
       ],
       selectedBenchmarkKeys: [],
       collectionCategories: [],
-      onNext: jest.fn(),
-      onBack: jest.fn(),
-      onCancel: jest.fn(),
+      onSelectionChange: noOpSelectionChange,
     };
     const { rerender } = render(<CopySuiteBenchmarkSelectionStep {...props} />);
 
@@ -449,9 +460,7 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
       ],
       selectedBenchmarkKeys: [],
       collectionCategories: ['software'],
-      onNext: jest.fn(),
-      onBack: jest.fn(),
-      onCancel: jest.fn(),
+      onSelectionChange: noOpSelectionChange,
     };
     const { rerender } = render(<CopySuiteBenchmarkSelectionStep {...props} />);
 
@@ -486,38 +495,46 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     ).toEqual(['57-Subject knowledge test', 'Task completion', 'Planning quality']);
   });
 
-  it('should stage selection changes until Next is clicked', () => {
-    const { onNext } = renderSelectionStep();
+  it('should report controlled selection changes to the collection form', () => {
+    const onSelectionChange = jest.fn();
+    renderSelectionStep({ onSelectionChange });
 
     fireEvent.click(
       screen.getByTestId('benchmark-catalog-checkbox-mmlu').closest('tr') as HTMLElement,
     );
 
-    expect(onNext).not.toHaveBeenCalled();
-    expect(screen.getByTestId('benchmark-catalog-checkbox-mmlu')).toBeChecked();
-    fireEvent.click(screen.getByTestId('copy-suite-next-select-benchmarks'));
-
-    expect(onNext).toHaveBeenCalledWith([
+    expect(onSelectionChange).toHaveBeenCalledWith([
       'provider-one:planning',
       'provider-one:tasks',
       'provider-two:mmlu',
     ]);
   });
 
-  it('should disable Next when no benchmark is selected', () => {
-    renderSelectionStep({ selectedBenchmarkKeys: [] });
+  it('should wait for the parent to provide updated selected benchmark keys', () => {
+    const onSelectionChange = jest.fn();
+    const selectedBenchmarkKeys = ['provider-one:planning', 'provider-one:tasks'];
+    const { rerender } = render(
+      <CopySuiteBenchmarkSelectionStep
+        providers={providers}
+        selectedBenchmarkKeys={selectedBenchmarkKeys}
+        onSelectionChange={onSelectionChange}
+      />,
+    );
 
-    expect(screen.getByTestId('copy-suite-next-select-benchmarks')).toBeDisabled();
-  });
+    fireEvent.click(screen.getByTestId('benchmark-catalog-checkbox-mmlu'));
 
-  it('should call Back and Cancel from the page footer', () => {
-    const { onBack, onCancel } = renderSelectionStep();
+    expect(onSelectionChange).toHaveBeenCalledWith([...selectedBenchmarkKeys, 'provider-two:mmlu']);
+    expect(screen.getByTestId('benchmark-catalog-checkbox-mmlu')).not.toBeChecked();
 
-    fireEvent.click(screen.getByTestId('copy-suite-back-select-benchmarks'));
-    fireEvent.click(screen.getByTestId('copy-suite-cancel-select-benchmarks'));
+    rerender(
+      <CopySuiteBenchmarkSelectionStep
+        providers={providers}
+        selectedBenchmarkKeys={[...selectedBenchmarkKeys, 'provider-two:mmlu']}
+        onSelectionChange={onSelectionChange}
+      />,
+    );
 
-    expect(onBack).toHaveBeenCalledTimes(1);
-    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('benchmark-catalog-checkbox-mmlu')).toBeChecked();
   });
 
   it('should filter by benchmark name and show an empty state when nothing matches', () => {
@@ -638,7 +655,7 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
       { length: 21 },
       (_, index) => `provider-many:benchmark-${String(index).padStart(2, '0')}`,
     );
-    const { onNext } = renderSelectionStep({
+    renderSelectionStep({
       providers: providerMany,
       selectedBenchmarkKeys: initiallySelectedKeys,
     });
@@ -649,14 +666,11 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(screen.getByTestId('benchmark-catalog-limit-message')).not.toHaveTextContent(
       '-1 out of 20 remaining',
     );
-    expect(screen.getByTestId('copy-suite-next-select-benchmarks')).toBeDisabled();
-    expect(onNext).not.toHaveBeenCalled();
-
     fireEvent.click(screen.getByTestId('benchmark-catalog-checkbox-benchmark-00'));
 
-    expect(screen.getByTestId('copy-suite-next-select-benchmarks')).not.toBeDisabled();
-    fireEvent.click(screen.getByTestId('copy-suite-next-select-benchmarks'));
-    expect(onNext).toHaveBeenCalledWith(initiallySelectedKeys.slice(1));
+    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
+      '0 out of 20 remaining',
+    );
   });
 
   it('should open benchmark details in a drawer overlay', () => {

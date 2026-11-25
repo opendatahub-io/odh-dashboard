@@ -10,7 +10,6 @@ import {
   getThresholdInputValue,
   getThresholdRequestValue,
   isPercentageMetric,
-  normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
 import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
 import { evaluationBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
@@ -34,7 +33,7 @@ import {
 import {
   copySuiteDefaultValues,
   getCopySuiteSchema,
-  isSameAsSourceCollectionName,
+  getCopySuiteSettingsSchema,
   type CopySuiteBenchmarkParameter,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
@@ -52,7 +51,7 @@ import type {
   ProviderBenchmark,
 } from '~/app/types';
 
-const DEFAULT_SUITE_THRESHOLD = 70;
+const DEFAULT_BENCHMARK_THRESHOLD = 70;
 const MIN_WEIGHT_PERCENT = 5;
 export const MAX_BENCHMARKS = 20;
 const EDIT_AFTER_RUN_ERROR = 'Collections cannot be edited after they have been run.';
@@ -66,7 +65,6 @@ type CollectionSavedFormState = Pick<
   | 'suiteModalities'
   | 'suiteIndustries'
   | 'suiteEvaluates'
-  | 'suiteThreshold'
   | 'benchmarkCount'
   | 'benchmarks'
   | 'benchmarkParameterKeys'
@@ -87,7 +85,6 @@ export const serializeCollectionSavedFormState = (
   suiteModalities: JSON.stringify(values.suiteModalities),
   suiteIndustries: JSON.stringify(values.suiteIndustries),
   suiteEvaluates: JSON.stringify(values.suiteEvaluates),
-  suiteThreshold: values.suiteThreshold,
   benchmarkCount: values.benchmarks.length,
   benchmarks: values.benchmarks
     .map((benchmark) => benchmark.name)
@@ -275,7 +272,6 @@ type BuildPendingCollectionParams = {
   suiteModalities: string[];
   suiteIndustries: string[];
   suiteEvaluates: SuiteEvaluatesOption[];
-  suiteThreshold: number;
   benchmarks: CopySuiteBenchmark[];
 };
 
@@ -289,7 +285,6 @@ export const buildPendingCollection = ({
   suiteIndustries,
   // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
   // suiteEvaluates,
-  suiteThreshold,
   benchmarks,
 }: BuildPendingCollectionParams): Collection => {
   const baseCollection = sourceCollection ?? { resource: { id: '' }, name: '' };
@@ -324,8 +319,6 @@ export const buildPendingCollection = ({
     // eslint-disable-next-line camelcase
     evaluation_targets: [...MODEL_EVALUATION_TARGETS],
     custom: buildCustomMetadata(baseCollection.custom),
-    // eslint-disable-next-line camelcase
-    pass_criteria: { threshold: suiteThreshold / 100 },
     benchmarks: normalizedBenchmarks,
   };
 };
@@ -474,7 +467,7 @@ const buildBenchmarkFromProvider = (
           providerBenchmark.pass_criteria.threshold,
           providerBenchmark.primary_score?.metric ?? providerBenchmark.metrics?.[0],
         )
-      : DEFAULT_SUITE_THRESHOLD,
+      : DEFAULT_BENCHMARK_THRESHOLD,
     availableMetrics: providerBenchmark.metrics ?? [],
     testDataRef: { ...testDataRefDefaultValues },
   };
@@ -524,7 +517,7 @@ const buildInitialBenchmarks = (
         additionalParameters: parameterState.additionalParameters,
         threshold: cb.pass_criteria
           ? getThresholdInputValue(cb.pass_criteria.threshold, primaryScore?.metric)
-          : DEFAULT_SUITE_THRESHOLD,
+          : DEFAULT_BENCHMARK_THRESHOLD,
         availableMetrics: pb?.metrics ?? [],
         testDataRef: parseTestDataRef(cb.test_data_ref),
       };
@@ -630,9 +623,6 @@ const buildInitialFormValues = (
   // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
   // suiteEvaluates: resolveInitialEvaluates(sourceCollection, providers),
   suiteEvaluates: resolveInitialEvaluates(),
-  suiteThreshold: sourceCollection.pass_criteria
-    ? normalizeThreshold(sourceCollection.pass_criteria.threshold)
-    : DEFAULT_SUITE_THRESHOLD,
   benchmarks: buildInitialBenchmarks(sourceCollection, providers),
 });
 
@@ -644,7 +634,6 @@ type EditableCollectionRequest = {
   modalities?: string[];
   industries?: string[];
   evaluation_targets?: string[];
-  pass_criteria?: { threshold: number };
   benchmarks?: CollectionBenchmark[];
 };
 
@@ -666,13 +655,6 @@ export const buildCollectionPatchOperations = (
       // eslint-disable-next-line camelcase
       // value: request.evaluation_targets ?? [],
       value: [...MODEL_EVALUATION_TARGETS],
-    },
-    {
-      op: 'add',
-      // eslint-disable-next-line camelcase
-      path: '/pass_criteria',
-      // eslint-disable-next-line camelcase
-      value: request.pass_criteria ?? { threshold: 0 },
     },
   ];
 
@@ -719,6 +701,10 @@ export function useCopySuiteForm({
       ),
     [mode, sourceCollection?.name, requiredParameterKeys],
   );
+  const settingsValidationSchema = React.useMemo(
+    () => getCopySuiteSettingsSchema(mode === 'copy' ? sourceCollection?.name : undefined),
+    [mode, sourceCollection?.name],
+  );
 
   const form = useForm<CopySuiteFormValues>({
     mode: 'onChange',
@@ -752,7 +738,6 @@ export function useCopySuiteForm({
     suiteModalities,
     suiteIndustries,
     suiteEvaluates,
-    suiteThreshold,
     benchmarks,
   ] = useWatch({
     control: form.control,
@@ -764,7 +749,6 @@ export function useCopySuiteForm({
       'suiteModalities',
       'suiteIndustries',
       'suiteEvaluates',
-      'suiteThreshold',
       'benchmarks',
     ],
   });
@@ -812,11 +796,6 @@ export function useCopySuiteForm({
     },
     [form],
   );
-  const handleSuiteThresholdChange = React.useCallback(
-    (value: number) => form.setValue('suiteThreshold', value, { shouldValidate: true }),
-    [form],
-  );
-
   const updateBenchmark = React.useCallback(
     (index: number, field: keyof CopySuiteBenchmark, value: unknown) => {
       const currentBenchmarks = form.getValues('benchmarks');
@@ -835,7 +814,7 @@ export function useCopySuiteForm({
             updatedBenchmark.threshold = providerBenchmark?.pass_criteria
               ? getThresholdInputValue(providerBenchmark.pass_criteria.threshold, value)
               : isPercentageMetric(value)
-                ? DEFAULT_SUITE_THRESHOLD
+                ? DEFAULT_BENCHMARK_THRESHOLD
                 : 0;
           }
           return updatedBenchmark;
@@ -849,6 +828,9 @@ export function useCopySuiteForm({
   const applyBenchmarkSelection = React.useCallback(
     (selectedKeys: string[]) => {
       if (selectedKeys.length === 0) {
+        if (form.getValues('benchmarks').length > 0) {
+          form.setValue('benchmarks', [], { shouldValidate: true });
+        }
         return;
       }
 
@@ -876,6 +858,7 @@ export function useCopySuiteForm({
         .filter((benchmark): benchmark is CopySuiteBenchmark => benchmark !== undefined);
 
       if (nextBenchmarks.length === 0) {
+        form.setValue('benchmarks', [], { shouldValidate: true });
         return;
       }
 
@@ -901,9 +884,7 @@ export function useCopySuiteForm({
     [form],
   );
 
-  const isSettingsValid =
-    suiteName.trim() !== '' &&
-    !isSameAsSourceCollectionName(suiteName, mode === 'copy' ? sourceCollection?.name : undefined);
+  const isSettingsValid = settingsValidationSchema.safeParse({ suiteName, suiteDomains }).success;
 
   const isValid = isSettingsValid && benchmarks.length > 0 && isFormValid;
 
@@ -950,11 +931,15 @@ export function useCopySuiteForm({
       // eslint-disable-next-line camelcase
       evaluation_targets: [...MODEL_EVALUATION_TARGETS],
       custom: buildCustomMetadata(sourceCollection?.custom),
-      // eslint-disable-next-line camelcase
-      pass_criteria: { threshold: values.suiteThreshold / 100 },
+      ...(mode === 'copy' && sourceCollection?.pass_criteria !== undefined
+        ? {
+            // eslint-disable-next-line camelcase
+            pass_criteria: sourceCollection.pass_criteria,
+          }
+        : {}),
       benchmarks: normalizedBenchmarks,
     };
-  }, [form, sourceCollection]);
+  }, [form, mode, sourceCollection]);
 
   const buildCreateRequest = React.useCallback(
     (): CreateCollectionRequest => ({
@@ -993,7 +978,6 @@ export function useCopySuiteForm({
       suiteModalities: values.suiteModalities,
       suiteIndustries: values.suiteIndustries,
       suiteEvaluates: values.suiteEvaluates,
-      suiteThreshold: values.suiteThreshold,
       benchmarks: values.benchmarks,
     });
   }, [sourceCollection, form]);
@@ -1327,8 +1311,6 @@ export function useCopySuiteForm({
     suiteIndustries,
     suiteEvaluates,
     setSuiteEvaluates,
-    suiteThreshold,
-    handleSuiteThresholdChange,
     benchmarks,
     selectedBenchmarkKeys,
     totalWeight,

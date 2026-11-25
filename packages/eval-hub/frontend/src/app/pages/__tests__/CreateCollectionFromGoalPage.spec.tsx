@@ -877,7 +877,7 @@ describe('CreateCollectionFromGoalPage', () => {
 
     expect(await screen.findByTestId('goal-suite-run-evaluation-modal')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Start evaluation run' })).toBeInTheDocument();
-    expect(screen.getByTestId('evaluation-name-input')).toHaveValue('Answer quality suite');
+    expect(await screen.findByTestId('evaluation-name-input')).toHaveValue('Answer quality suite');
     fireEvent.click(screen.getByTestId('start-evaluation-cancel'));
 
     await waitFor(() =>

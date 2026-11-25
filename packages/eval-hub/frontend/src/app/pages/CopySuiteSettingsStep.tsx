@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Alert,
   Button,
+  Content,
   Form,
   FormHelperText,
   FormGroup,
@@ -18,25 +19,18 @@ import {
   TextInputGroupMain,
   TextInputGroupUtilities,
   TextInput,
+  Title,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { Controller, useFormContext, type Control } from 'react-hook-form';
-import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
+import { Controller, useFormContext, useFormState, type Control } from 'react-hook-form';
 import { formatCollectionMetadataValue } from '~/app/components/benchmarkUtils';
 // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
 // import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_MENU_OPTIONS } from '~/app/pages/const';
 import { COLLECTION_METADATA_OPTIONS } from '~/app/pages/const';
-import {
-  isSameAsSourceCollectionName,
-  SOURCE_COLLECTION_NAME_ERROR,
-  type CopySuiteFormValues,
-} from '~/app/schemas/copySuite.schema';
+import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 
 type CopySuiteSettingsStepProps = {
-  onNext: () => void;
-  onCancel: () => void;
   prerequisite?: string;
-  sourceCollectionName?: string;
 };
 
 type CollectionMetadataFieldName =
@@ -278,26 +272,25 @@ const CollectionMetadataTypeaheadField: React.FC<CollectionMetadataTypeaheadFiel
 
 const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = (props) => {
   const { control } = useFormContext<CopySuiteFormValues>();
+  const { errors } = useFormState({ control, name: props.name });
+  const errorMessage = errors[props.name]?.message;
 
   return (
     <FormGroup label={props.label} isRequired={props.isRequired} fieldId={props.fieldId}>
       <CollectionMetadataTypeaheadField control={control} {...props} />
+      {errorMessage ? (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem variant="error">{errorMessage}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      ) : null}
     </FormGroup>
   );
 };
 
-const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
-  onNext,
-  onCancel,
-  prerequisite,
-  sourceCollectionName,
-}) => {
-  const { control, watch } = useFormContext<CopySuiteFormValues>();
-  const suiteName = watch('suiteName');
-  const suiteDomains = watch('suiteDomains');
-  const isSourceNameConflict = isSameAsSourceCollectionName(suiteName, sourceCollectionName);
-  const isSettingsValid =
-    suiteName.trim() !== '' && suiteDomains.length > 0 && !isSourceNameConflict;
+const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ prerequisite }) => {
+  const { control } = useFormContext<CopySuiteFormValues>();
 
   return (
     <div
@@ -305,6 +298,17 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
       className="evalhub-copy-suite-page__step"
       data-testid="copy-suite-step-settings"
     >
+      <Title
+        headingLevel="h2"
+        size="xl"
+        className="pf-v6-u-mt-0 pf-v6-u-mb-0"
+        data-testid="copy-suite-step-title"
+      >
+        Collection settings
+      </Title>
+      <Content component="p" data-testid="copy-suite-step-description">
+        Set the collection name, description, and category.
+      </Content>
       <Form id="copy-suite-form" style={{ maxWidth: 840 }} data-testid="copy-suite-form">
         {prerequisite ? (
           <Alert
@@ -321,11 +325,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
             name="suiteName"
             control={control}
             render={({ field, fieldState }) => {
-              const errorMessage =
-                fieldState.error?.message ??
-                (isSameAsSourceCollectionName(field.value, sourceCollectionName)
-                  ? SOURCE_COLLECTION_NAME_ERROR
-                  : undefined);
+              const errorMessage = fieldState.error?.message;
 
               return (
                 <>
@@ -417,38 +417,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
           options={COLLECTION_METADATA_OPTIONS.industries}
         />
         */}
-
-        <Controller
-          name="suiteThreshold"
-          control={control}
-          render={({ field }) => (
-            <BenchmarkThresholdField
-              value={field.value}
-              onChange={field.onChange}
-              label="Collection threshold"
-              description="Set the minimum passing score for this collection. Results below this threshold are marked as failing."
-              fieldId="suite-threshold"
-            />
-          )}
-        />
       </Form>
-      <div
-        id="copy-suite-settings-actions"
-        className="evalhub-copy-suite-page__footer"
-        data-testid="copy-suite-settings-actions"
-      >
-        <Button
-          variant="primary"
-          data-testid="copy-suite-next"
-          onClick={onNext}
-          isDisabled={!isSettingsValid}
-        >
-          Next
-        </Button>
-        <Button variant="link" data-testid="copy-suite-cancel" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
     </div>
   );
 };

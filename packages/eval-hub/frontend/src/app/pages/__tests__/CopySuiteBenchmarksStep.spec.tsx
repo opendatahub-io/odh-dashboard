@@ -35,14 +35,9 @@ const EmptyBenchmarksStep: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         showWeightEdit={false}
         weightSegments={[]}
         minWeightPercent={5}
-        isValid={false}
-        isSubmitting={false}
         onUpdateBenchmark={jest.fn()}
         onWeightsChange={jest.fn()}
-        onSaveAndRun={jest.fn()}
-        onSaveOnly={jest.fn()}
         onBack={onBack}
-        onCancel={jest.fn()}
       />
     </FormProvider>
   );

@@ -12,6 +12,9 @@ import {
   PageSection,
   Spinner,
   Title,
+  Wizard,
+  WizardStep,
+  useWizardContext,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -43,13 +46,25 @@ import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
 import CopySuiteSettingsStep from '~/app/pages/CopySuiteSettingsStep';
+import ManualCollectionReviewStep from '~/app/pages/ManualCollectionReviewStep';
+import ManualCollectionWizardFooter from '~/app/pages/ManualCollectionWizardFooter';
 import type { Collection } from '~/app/types';
 import { useCopySuiteForm } from './useCopySuiteForm';
 
 import './CopySuitePage.scss';
 
-type CopySuiteStep = 'settings' | 'selectBenchmarks' | 'benchmarks';
 type SuiteEditorMode = 'copy' | 'create' | 'edit';
+
+type WizardContext = ReturnType<typeof useWizardContext>;
+
+type WizardContextCaptureProps = {
+  children: (context: WizardContext) => React.ReactNode;
+};
+
+const WizardContextCapture: React.FC<WizardContextCaptureProps> = ({ children }) => {
+  const context = useWizardContext();
+  return children(context);
+};
 
 type SuiteEditorPageProps = {
   mode: SuiteEditorMode;
@@ -66,7 +81,6 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
 
-  const [currentStep, setCurrentStep] = React.useState<CopySuiteStep>('settings');
   const [isRunModalOpen, setIsRunModalOpen] = React.useState(false);
   const [isClonePending, setIsClonePending] = React.useState(false);
 
@@ -228,28 +242,13 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   const curatedSuitePage = sourceEvaluationTarget
     ? CURATED_SUITE_PAGE_CONFIG[sourceEvaluationTarget]
     : undefined;
-  const isBenchmarksStep = currentStep === 'benchmarks';
-  const showPageHeader = currentStep !== 'selectBenchmarks';
-  const pageTitle = isBenchmarksStep
-    ? 'Benchmarks'
-    : isCreateMode
-      ? 'Create benchmark collection'
-      : isEditMode
-        ? 'Edit collection'
-        : 'Copy collection';
-  const pageDescription = isBenchmarksStep
-    ? 'Choose the primary metric, number of samples, random seed, threshold, and weight used to calculate the result for each benchmark.'
-    : isCreateMode
-      ? 'Create a benchmark collection by choosing its metadata, benchmarks, thresholds, and metrics.'
-      : isEditMode
-        ? 'Edit this collection by updating its metadata, benchmarks, thresholds, and metrics.'
-        : 'Customize benchmarks, thresholds, and metrics before adding this collection to your dashboard.';
-  const settingsBreadcrumbLabel = isCreateMode
-    ? 'Create benchmark collection'
+  const pageTitle = isCreateMode
+    ? 'Create collection'
     : isEditMode
       ? 'Edit collection'
-      : 'Customize collection';
-
+      : 'Copy collection';
+  const pageDescription =
+    'Configure your collection, select benchmarks, and review their settings.';
   const breadcrumbItems: React.ReactElement[] = [];
 
   if (isCollectionSelectionOrigin) {
@@ -314,7 +313,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
         }
       />,
     );
-  } else {
+  } else if (!isCreateMode || isEvaluateOrigin) {
     breadcrumbItems.push(
       <BreadcrumbItem
         key="benchmarkSuites"
@@ -329,200 +328,163 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     );
   }
 
-  if (currentStep === 'settings') {
-    breadcrumbItems.push(
-      <BreadcrumbItem key="settings" isActive>
-        {settingsBreadcrumbLabel}
-      </BreadcrumbItem>,
-    );
-  } else {
-    breadcrumbItems.push(
-      <BreadcrumbItem
-        key="settings"
-        render={() => (
-          <Button
-            variant="link"
-            isInline
-            className="pf-v6-c-breadcrumb__link"
-            onClick={() => {
-              if (!isPageInteractionDisabled) {
-                setCurrentStep('settings');
-              }
-            }}
-            isDisabled={isPageInteractionDisabled}
-            data-testid="copy-suite-breadcrumb-settings"
-          >
-            {settingsBreadcrumbLabel}
-          </Button>
-        )}
-      />,
-    );
-
-    if (currentStep === 'selectBenchmarks') {
-      breadcrumbItems.push(
-        <BreadcrumbItem key="selectBenchmarks" isActive>
-          Select benchmarks
-        </BreadcrumbItem>,
-      );
-    } else {
-      breadcrumbItems.push(
-        <BreadcrumbItem
-          key="selectBenchmarks"
-          render={() => (
-            <Button
-              variant="link"
-              isInline
-              className="pf-v6-c-breadcrumb__link"
-              onClick={() => {
-                if (!isPageInteractionDisabled) {
-                  setCurrentStep('selectBenchmarks');
-                }
-              }}
-              isDisabled={isPageInteractionDisabled}
-              data-testid="copy-suite-breadcrumb-select-benchmarks"
-            >
-              Select benchmarks
-            </Button>
-          )}
-        />,
-        <BreadcrumbItem key="benchmarks" isActive>
-          Benchmarks
-        </BreadcrumbItem>,
-      );
-    }
-  }
+  breadcrumbItems.push(
+    <BreadcrumbItem key="collection-action" isActive>
+      {pageTitle}
+    </BreadcrumbItem>,
+  );
 
   return (
-    <ApplicationsPage
-      noHeader
-      breadcrumb={
-        <ContextBreadcrumb
-          pageName="Evaluations"
-          projectDisplayName={projectDisplayName}
-          homePath={evaluationsBaseRoute(namespace)}
-          projectHomePath={projectHomeRoute(namespace)}
-          isHomeDisabled={isPageInteractionDisabled}
-          isProjectLinkDisabled={isPageInteractionDisabled}
-          homeTestId="copy-suite-breadcrumb-evaluations"
-        >
-          {breadcrumbItems}
-        </ContextBreadcrumb>
-      }
-      loaded
-      empty={false}
-    >
-      <PageSection
-        id="copy-suite-page-header"
-        hasBodyWrapper={false}
-        isFilled
-        className="evalhub-copy-suite-page"
-      >
-        <FormProvider {...form.form}>
-          <div
-            id="copy-suite-editor"
-            className="evalhub-copy-suite-page__editor"
-            data-testid="copy-suite-editor"
+    <div className="evalhub-copy-suite-page">
+      <ApplicationsPage
+        noHeader
+        breadcrumb={
+          <ContextBreadcrumb
+            pageName="Evaluations"
+            projectDisplayName={projectDisplayName}
+            homePath={evaluationsBaseRoute(namespace)}
+            projectHomePath={projectHomeRoute(namespace)}
+            isHomeDisabled={isPageInteractionDisabled}
+            isProjectLinkDisabled={isPageInteractionDisabled}
+            homeTestId="copy-suite-breadcrumb-evaluations"
           >
-            {showPageHeader ? (
-              <>
-                <Title
-                  headingLevel="h1"
-                  size="2xl"
-                  data-testid="app-page-title"
-                  className="pf-v6-u-mt-0 pf-v6-u-mb-0"
-                >
-                  {pageTitle}
-                </Title>
-                <Content
-                  component="p"
-                  data-testid="copy-suite-description"
-                  className={isBenchmarksStep ? 'pf-v6-u-mb-xl' : undefined}
-                >
-                  {pageDescription}
-                </Content>
-              </>
-            ) : null}
-
-            {currentStep === 'settings' ? (
-              <CopySuiteSettingsStep
-                onNext={() => setCurrentStep('selectBenchmarks')}
-                onCancel={form.handleCancel}
-                prerequisite={prerequisite}
-                sourceCollectionName={mode === 'copy' ? sourceCollection?.name : undefined}
-              />
-            ) : currentStep === 'selectBenchmarks' ? (
-              <CopySuiteBenchmarkSelectionStep
-                providers={providers}
-                selectedBenchmarkKeys={form.selectedBenchmarkKeys}
-                collectionCategories={form.suiteDomains}
-                prefilterProviders={!isCreateMode}
-                isInteractionDisabled={isPageInteractionDisabled}
-                onNext={(selectedKeys) => {
-                  form.applyBenchmarkSelection(selectedKeys);
-                  setCurrentStep('benchmarks');
-                }}
-                onBack={() => setCurrentStep('settings')}
-                onCancel={form.handleCancel}
-              />
-            ) : (
-              <CopySuiteBenchmarksStep
-                benchmarks={form.benchmarks}
-                providers={providers}
-                showWeightEdit={form.benchmarks.length > 1}
-                weightSegments={form.weightSegments}
-                minWeightPercent={form.minWeightPercent}
-                isValid={form.isValid}
-                isSubmitting={isPageInteractionDisabled}
-                isInteractionDisabled={isPageInteractionDisabled}
-                parameterConfig={curatedCollectionConfig?.parameters}
-                onUpdateBenchmark={form.updateBenchmark}
-                onWeightsChange={form.handleWeightsChange}
-                onBack={() => setCurrentStep('selectBenchmarks')}
-                onSaveAndRun={form.handleSaveAndRun}
-                onSaveOnly={form.handleSaveOnly}
-                primaryActionTestId={
-                  isCreateMode
-                    ? 'create-suite-submit'
-                    : isEditMode
-                      ? 'edit-suite-save-and-run'
-                      : undefined
+            {breadcrumbItems}
+          </ContextBreadcrumb>
+        }
+        loaded
+        empty={false}
+      >
+        <PageSection
+          id="copy-suite-page-header"
+          hasBodyWrapper={false}
+          isFilled
+          className="evalhub-copy-suite-page__section"
+        >
+          <FormProvider {...form.form}>
+            <div
+              id="copy-suite-editor"
+              className="evalhub-copy-suite-page__editor"
+              data-testid="copy-suite-editor"
+            >
+              <Title
+                headingLevel="h1"
+                size="2xl"
+                data-testid="app-page-title"
+                className="pf-v6-u-mt-0 pf-v6-u-mb-0"
+              >
+                {pageTitle}
+              </Title>
+              <Content component="p" data-testid="copy-suite-description">
+                {pageDescription}
+              </Content>
+              <Wizard
+                className="evalhub-copy-suite-page__wizard"
+                height="100%"
+                isVisitRequired
+                navAriaLabel="Collection creation steps"
+                footer={
+                  <ManualCollectionWizardFooter
+                    mode={mode}
+                    isSettingsValid={form.isSettingsValid}
+                    selectedBenchmarkCount={form.benchmarks.length}
+                    isValid={form.isValid && Boolean(pendingCollection)}
+                    isBusy={isPageInteractionDisabled}
+                    isSubmitting={form.isSubmitting}
+                    onCancel={form.handleCancel}
+                    onSaveAndRun={form.handleSaveAndRun}
+                    onSaveOnly={form.handleSaveOnly}
+                  />
                 }
-                secondaryActionLabel={isEditMode ? 'Save changes' : undefined}
-                onCancel={form.handleCancel}
-              />
-            )}
-          </div>
-        </FormProvider>
-        {isRunModalOpen && (isCreateMode || pendingCollection) ? (
-          <StartEvaluationRunModal
-            isOpen={isRunModalOpen}
-            onClose={() => setIsRunModalOpen(false)}
-            namespace={namespace}
-            collection={pendingCollection}
-            isCollectionFlow
-            defaultEvaluationName={form.suiteName}
-            modalId={
-              isCreateMode
-                ? 'create-suite-run-evaluation-modal'
-                : isEditMode
-                  ? 'edit-suite-run-evaluation-modal'
-                  : 'copy-suite-run-evaluation-modal'
-            }
-            resolveCollection={
-              isCreateMode ? form.createCollectionForRun : form.cloneCollectionForRun
-            }
-            onClonePendingChange={setIsClonePending}
-            trackingSource={
-              isCreateMode ? 'create_suite' : isEditMode ? 'edit_suite' : 'copy_suite'
-            }
-            onSuccess={() => {
-              setIsRunModalOpen(false);
-              navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
-            }}
-          />
-        ) : null}
-      </PageSection>
-    </ApplicationsPage>
+              >
+                <WizardStep
+                  name="Collection settings"
+                  id="settings"
+                  isDisabled={isPageInteractionDisabled}
+                >
+                  <CopySuiteSettingsStep prerequisite={prerequisite} />
+                </WizardStep>
+                <WizardStep
+                  name="Benchmarks"
+                  id="selectBenchmarks"
+                  isDisabled={!form.isSettingsValid || isPageInteractionDisabled}
+                >
+                  <CopySuiteBenchmarkSelectionStep
+                    providers={providers}
+                    selectedBenchmarkKeys={form.selectedBenchmarkKeys}
+                    collectionCategories={form.suiteDomains}
+                    prefilterProviders={!isCreateMode}
+                    isInteractionDisabled={isPageInteractionDisabled}
+                    onSelectionChange={form.applyBenchmarkSelection}
+                  />
+                </WizardStep>
+                <WizardStep
+                  name="Benchmark settings"
+                  id="benchmarks"
+                  isDisabled={form.benchmarks.length === 0 || isPageInteractionDisabled}
+                >
+                  <WizardContextCapture>
+                    {({ goToPrevStep }) => (
+                      <CopySuiteBenchmarksStep
+                        benchmarks={form.benchmarks}
+                        providers={providers}
+                        showWeightEdit={form.benchmarks.length > 1}
+                        weightSegments={form.weightSegments}
+                        minWeightPercent={form.minWeightPercent}
+                        isInteractionDisabled={isPageInteractionDisabled}
+                        parameterConfig={curatedCollectionConfig?.parameters}
+                        onUpdateBenchmark={form.updateBenchmark}
+                        onWeightsChange={form.handleWeightsChange}
+                        onBack={goToPrevStep}
+                      />
+                    )}
+                  </WizardContextCapture>
+                </WizardStep>
+                <WizardStep
+                  name="Review"
+                  id="review"
+                  isDisabled={!form.isValid || !pendingCollection || isPageInteractionDisabled}
+                >
+                  {pendingCollection ? (
+                    <ManualCollectionReviewStep
+                      collection={pendingCollection}
+                      providers={providers}
+                    />
+                  ) : null}
+                </WizardStep>
+              </Wizard>
+            </div>
+          </FormProvider>
+          {isRunModalOpen && (isCreateMode || pendingCollection) ? (
+            <StartEvaluationRunModal
+              isOpen={isRunModalOpen}
+              onClose={() => setIsRunModalOpen(false)}
+              namespace={namespace}
+              collection={pendingCollection}
+              isCollectionFlow
+              defaultEvaluationName={form.suiteName}
+              modalId={
+                isCreateMode
+                  ? 'create-suite-run-evaluation-modal'
+                  : isEditMode
+                    ? 'edit-suite-run-evaluation-modal'
+                    : 'copy-suite-run-evaluation-modal'
+              }
+              resolveCollection={
+                isCreateMode ? form.createCollectionForRun : form.cloneCollectionForRun
+              }
+              onClonePendingChange={setIsClonePending}
+              trackingSource={
+                isCreateMode ? 'create_suite' : isEditMode ? 'edit_suite' : 'copy_suite'
+              }
+              onSuccess={() => {
+                setIsRunModalOpen(false);
+                navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
+              }}
+            />
+          ) : null}
+        </PageSection>
+      </ApplicationsPage>
+    </div>
   );
 };
 

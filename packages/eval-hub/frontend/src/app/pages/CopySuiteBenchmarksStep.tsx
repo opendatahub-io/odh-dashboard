@@ -38,20 +38,11 @@ type CopySuiteBenchmarksStepProps = {
   showWeightEdit: boolean;
   weightSegments: WeightSegment[];
   minWeightPercent: number;
-  isValid: boolean;
-  isSubmitting: boolean;
   isInteractionDisabled?: boolean;
   parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
   onUpdateBenchmark: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
   onWeightsChange: (weights: number[]) => void;
-  onSaveAndRun: () => void;
-  onSaveOnly: () => void;
   onBack: () => void;
-  primaryActionLabel?: string;
-  primaryActionTestId?: string;
-  secondaryActionLabel?: string;
-  showSecondaryAction?: boolean;
-  onCancel: () => void;
 };
 
 const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
@@ -60,20 +51,11 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   showWeightEdit,
   weightSegments,
   minWeightPercent,
-  isValid,
-  isSubmitting,
   isInteractionDisabled = false,
   parameterConfig,
   onUpdateBenchmark,
   onWeightsChange,
-  onSaveAndRun,
-  onSaveOnly,
   onBack,
-  primaryActionLabel = 'Save and run',
-  primaryActionTestId = 'copy-suite-save-and-run',
-  secondaryActionLabel = 'Add to my collections',
-  showSecondaryAction = true,
-  onCancel,
 }) => {
   const { config } = useModularArchContext();
   const {
@@ -90,7 +72,10 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   }, [isInteractionDisabled]);
 
   const getScrollableElement = React.useCallback(
-    () => getEvalHubScrollContainer(config.deploymentMode),
+    () =>
+      document.querySelector<HTMLElement>(
+        '.evalhub-copy-suite-page__wizard .pf-v6-c-wizard__main',
+      ) ?? getEvalHubScrollContainer(config.deploymentMode),
     [config.deploymentMode],
   );
 
@@ -249,48 +234,6 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
           <EmptyBenchmarksState onBack={onBack} />
         )}
       </fieldset>
-
-      <div
-        id="copy-suite-actions"
-        className="evalhub-copy-suite-page__footer"
-        data-testid="copy-suite-actions"
-      >
-        <Button
-          variant="secondary"
-          data-testid="copy-suite-back-step-2"
-          onClick={onBack}
-          isDisabled={isSubmitting}
-        >
-          Back
-        </Button>
-        <Button
-          variant="primary"
-          data-testid={primaryActionTestId}
-          onClick={onSaveAndRun}
-          isDisabled={!isValid || isSubmitting}
-          isLoading={isSubmitting}
-        >
-          {primaryActionLabel}
-        </Button>
-        {showSecondaryAction ? (
-          <Button
-            variant="secondary"
-            data-testid="copy-suite-save-only"
-            onClick={onSaveOnly}
-            isDisabled={!isValid || isSubmitting}
-          >
-            {secondaryActionLabel}
-          </Button>
-        ) : null}
-        <Button
-          variant="link"
-          data-testid="copy-suite-cancel-step-2"
-          onClick={onCancel}
-          isDisabled={isSubmitting}
-        >
-          Cancel
-        </Button>
-      </div>
 
       {!isInteractionDisabled ? (
         <CopySuiteBenchmarkDetailsOverlay

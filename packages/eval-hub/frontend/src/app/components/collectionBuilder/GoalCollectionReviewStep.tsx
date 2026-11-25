@@ -1,24 +1,18 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import {
-  Card,
-  CardBody,
-  CardTitle,
   Content,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
   Label,
-  List,
-  ListItem,
   Title,
   useWizardContext,
 } from '@patternfly/react-core';
-import { getMetricDisplayName, formatCategory } from '~/app/components/benchmarkUtils';
+import { formatCategory } from '~/app/components/benchmarkUtils';
+import CollectionBenchmarkReviewList from '~/app/components/collectionBuilder/CollectionBenchmarkReviewList';
 import { useProviders } from '~/app/hooks/useProviders';
-import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
-import { formatThresholdValue } from '~/app/utilities/evaluationUtils';
 import type { CollectionBenchmark, CollectionGenerationResult } from '~/app/types';
 
 type GoalCollectionReviewStepProps = {
@@ -27,16 +21,6 @@ type GoalCollectionReviewStepProps = {
   suiteDescription: string;
   selectedBenchmarks: CollectionBenchmark[];
   namespace: string;
-};
-
-const formatParameterValue = (value: unknown): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (value === null || typeof value !== 'object') {
-    return String(value);
-  }
-  return JSON.stringify(value, null, 2);
 };
 
 const formatParameterLabel = (key: string): string => {
@@ -67,7 +51,6 @@ const GoalCollectionReviewStep: React.FC<GoalCollectionReviewStepProps> = ({
 }) => {
   const { activeStep } = useWizardContext();
   const { providers } = useProviders(activeStep.id === 'review' ? namespace : '');
-  const benchmarksByKey = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);
   const categories = generatedCollection.domains?.length
     ? generatedCollection.domains
     : generatedCollection.category
@@ -118,76 +101,13 @@ const GoalCollectionReviewStep: React.FC<GoalCollectionReviewStepProps> = ({
         </DescriptionListGroup>
       </DescriptionList>
 
-      <Title headingLevel="h3" className="pf-v6-u-mb-md pf-v6-u-mt-lg">
-        Benchmarks ({selectedBenchmarks.length})
-      </Title>
-      {selectedBenchmarks.length === 0 ? (
-        <Content component="p">No benchmarks are selected.</Content>
-      ) : (
-        <List isPlain data-testid="goal-suite-review-benchmarks">
-          {selectedBenchmarks.map((benchmark) => {
-            const catalogBenchmark = benchmarksByKey.get(
-              `${benchmark.provider_id ?? ''}:${benchmark.id}`,
-            );
-            const provider = providers.find((item) => item.resource.id === benchmark.provider_id);
-            const providerName = provider?.title || provider?.name || benchmark.provider_id;
-            const parameters = Object.entries(benchmark.parameters ?? {});
-            const hasDetails =
-              Boolean(benchmark.primary_score?.metric) ||
-              Boolean(benchmark.pass_criteria) ||
-              parameters.length > 0;
-            return (
-              <ListItem
-                key={`${benchmark.provider_id ?? ''}:${benchmark.id}`}
-                className="pf-v6-u-mb-md"
-              >
-                <Card isCompact>
-                  <CardTitle>
-                    {catalogBenchmark?.name ?? benchmark.id}
-                    <Content component="p" className="evalhub-collection-generation-card__provider">
-                      {benchmark.id}
-                      {providerName ? ` · ${providerName}` : ''}
-                    </Content>
-                  </CardTitle>
-                  {hasDetails ? (
-                    <CardBody data-testid="goal-suite-review-benchmark-details">
-                      <DescriptionList isHorizontal isCompact className="pf-v6-u-mt-sm">
-                        {benchmark.primary_score?.metric ? (
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>Primary metric</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {getMetricDisplayName(benchmark.primary_score.metric)}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                        ) : null}
-                        {benchmark.pass_criteria ? (
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>Threshold</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {formatThresholdValue(
-                                benchmark.pass_criteria.threshold,
-                                benchmark.primary_score?.metric,
-                              )}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                        ) : null}
-                        {parameters.map(([key, value]) => (
-                          <DescriptionListGroup key={key}>
-                            <DescriptionListTerm>{formatParameterLabel(key)}</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {formatParameterValue(value)}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                        ))}
-                      </DescriptionList>
-                    </CardBody>
-                  ) : null}
-                </Card>
-              </ListItem>
-            );
-          })}
-        </List>
-      )}
+      <CollectionBenchmarkReviewList
+        benchmarks={selectedBenchmarks}
+        providers={providers}
+        formatParameterLabel={formatParameterLabel}
+        testIdPrefix="goal-suite-review"
+        providerClassName="evalhub-collection-generation-card__provider"
+      />
     </div>
   );
 };
