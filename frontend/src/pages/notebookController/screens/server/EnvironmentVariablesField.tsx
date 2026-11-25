@@ -104,6 +104,7 @@ const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps> = ({
               <Button
                 data-id="show-password-button"
                 data-testid={`${fieldIndex}-show-password`}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
                 variant="control"
                 onClick={() => setShowPassword(!showPassword)}
               >
