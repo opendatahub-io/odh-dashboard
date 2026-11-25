@@ -263,9 +263,6 @@ func main() {
 			Clientset:  clientset,
 			RestConfig: restCfg,
 		},
-		HTTPProber: &helper.DefaultHTTPProber{
-			Client: &http.Client{},
-		},
 	}).SetupWithManager(mgr, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 		// allow multiple Workspaces to be reconciled (and probed) in parallel so that a
