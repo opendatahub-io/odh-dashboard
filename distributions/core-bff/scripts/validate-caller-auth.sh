@@ -81,13 +81,13 @@ done
 delete_owned() {
   local resource=$1 name=$2 uid=$3 out meta run
   if [[ -z "$uid" ]]; then
-    if ! out=$("${KUBECTL[@]}" get "$resource.rbac.authorization.k8s.io" "$name" \
-      -o "jsonpath={.metadata.uid} {.metadata.labels.$RUN_LABEL}" 2>&1); then
-      [[ "$out" == *"(NotFound)"* ]] && return 0
+    # stderr is kept apart so a kubectl warning cannot pass for the UID.
+    if ! meta=$("${KUBECTL[@]}" get "$resource.rbac.authorization.k8s.io" "$name" \
+      -o "jsonpath={.metadata.uid} {.metadata.labels.$RUN_LABEL}" 2>"$work/get-$resource.err"); then
+      [[ "$(<"$work/get-$resource.err")" == *"(NotFound)"* ]] && return 0
       cleanup_warn "$resource/$name" "could not read it to check its $RUN_LABEL=$RUN_ID label"
       return 0
     fi
-    meta=$out
     uid=${meta%% *}
     run=${meta#* }
     [[ -n "$uid" && "$run" == "$RUN_ID" ]] || return 0
@@ -348,13 +348,18 @@ if [[ "$PLATFORM" == "XKS" ]]; then
   created_by_us() {
     local out rc=0
     created_uid=""
+    # stdout carries only the UID; stderr (errors, server warnings) is kept
+    # apart so a warning cannot corrupt it. A create that succeeds without a
+    # well-formed UID is treated as ambiguous.
     out=$("${KUBECTL[@]}" create "$@" --dry-run=client -o json |
       "${KUBECTL[@]}" label --local -f - "$RUN_LABEL=$RUN_ID" -o json |
-      "${KUBECTL[@]}" create -f - -o 'jsonpath={.metadata.uid}' 2>&1) || rc=$?
+      "${KUBECTL[@]}" create -f - -o 'jsonpath={.metadata.uid}' 2>"$work/create.err") || rc=$?
     if ((rc == 0)); then
+      [[ "$out" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || return 2
       created_uid=$out
       return 0
     fi
+    out=$(<"$work/create.err")
     [[ "$out" == *"Error from server (AlreadyExists)"* || "$out" == *"Error from server (Forbidden)"* ]] && return 1
     return 2
   }
