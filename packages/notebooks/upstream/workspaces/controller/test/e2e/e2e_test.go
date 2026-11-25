@@ -1487,4 +1487,5 @@ var _ = Describe("controller", Ordered, func() {
 			Consistently(verifyStaysRunning, 10*time.Second, interval).Should(Succeed())
 		})
 	})
+
 })
