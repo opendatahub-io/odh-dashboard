@@ -115,4 +115,5 @@ cluster and version metadata as the rest of the dashboard telemetry. Outside dev
 forwarded at most once per browser per 24 hours, and only once `isSegmentReady()` reports the
 SDK is initialized, so a startup violation is retried by a later occurrence instead of being
 lost. URLs are stripped of credentials, query strings and fragments; an unparseable URL is
-reported as `invalid`. Development sends no telemetry and shows a toast instead.
+reported as `invalid`. Development sends no telemetry; violations are still logged with
+`console.warn`.

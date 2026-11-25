@@ -1,12 +1,16 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   type CspViolationRecord,
+  type DocumentLoad,
+  beginDocumentLoad,
   describeViolation,
+  documentLoadStatus,
   documentsOf,
   filterByDocument,
   findUnexpected,
   hostFromURI,
   isAllowlisted,
+  latestDocumentLoad,
   toAllowlist,
   toRecord,
 } from '../violations';
@@ -151,5 +155,20 @@ describe('describeViolation', () => {
 
   it('reports a missing source as n/a', () => {
     expect(describeViolation(record({ sourceFile: '' }))).toContain('(source: n/a)');
+  });
+});
+
+describe('document loads', () => {
+  it('classifies each load of the same URL on its own', () => {
+    const loads: DocumentLoad[] = [];
+    const first = beginDocumentLoad(loads, 'https://dashboard.example/');
+    first.status = 'not-a-dashboard-document';
+    const second = beginDocumentLoad(loads, 'https://dashboard.example/');
+    second.status = 'verified';
+
+    expect(first.id).not.toBe(second.id);
+    expect(documentLoadStatus(loads, first.id)).toBe('not-a-dashboard-document');
+    expect(documentLoadStatus(loads, second.id)).toBe('verified');
+    expect(latestDocumentLoad(loads, 'https://dashboard.example/')).toBe(second);
   });
 });

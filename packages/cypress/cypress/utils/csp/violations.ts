@@ -71,3 +71,35 @@ export const describeViolation = (violation: CspViolationRecord): string =>
   `${violation.effectiveDirective} blocked ${violation.blockedURI} (source: ${
     violation.sourceFile || 'n/a'
   })`;
+
+export type DocumentLoadStatus = 'verified' | 'not-a-dashboard-document';
+
+/** One browser load of a document. A later load of the same URL is a different entry. */
+export type DocumentLoad = {
+  id: number;
+  url: string;
+  status?: DocumentLoadStatus;
+};
+
+/** Records a new load. The id is never reused, including when `url` was loaded before. */
+export const beginDocumentLoad = (loads: DocumentLoad[], url: string): DocumentLoad => {
+  const previous = loads.at(-1);
+  const load: DocumentLoad = {
+    id: previous === undefined ? 0 : previous.id + 1,
+    url,
+  };
+  loads.push(load);
+  return load;
+};
+
+/** The most recent recorded load of `url`. */
+export const latestDocumentLoad = (
+  loads: readonly DocumentLoad[],
+  url: string,
+): DocumentLoad | undefined => loads.findLast((load) => load.url === url);
+
+/** The classification stored for one load, independent of any other load of its URL. */
+export const documentLoadStatus = (
+  loads: readonly DocumentLoad[],
+  loadId: number,
+): DocumentLoadStatus | undefined => loads.find((load) => load.id === loadId)?.status;

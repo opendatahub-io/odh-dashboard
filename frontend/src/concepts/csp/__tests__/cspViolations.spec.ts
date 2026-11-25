@@ -1,5 +1,4 @@
 import {
-  CSP_VIOLATION_EVENT,
   CSP_VIOLATION_SEGMENT_EVENT,
   CSP_VIOLATION_STORAGE_KEY,
   CSP_VIOLATION_THROTTLE_MS,
@@ -427,45 +426,6 @@ describe('installCspViolationReporter', () => {
 
     expect(errors).toEqual([]);
     expect(console.warn).toHaveBeenCalledTimes(1);
-  });
-
-  it('dispatches a dev-only event once per unique violation', () => {
-    const listener = jest.fn();
-    window.addEventListener(CSP_VIOLATION_EVENT, listener);
-    try {
-      install({ devMode: true });
-      const violation = makeViolation({
-        effectiveDirective: 'script-src',
-        blockedURI: 'https://evil.example/a.js',
-      });
-      document.dispatchEvent(violation);
-      document.dispatchEvent(violation);
-
-      expect(listener).toHaveBeenCalledTimes(1);
-      expect(listener.mock.calls[0][0].detail).toMatchObject({
-        effectiveDirective: 'script-src',
-        blockedHost: 'evil.example',
-      });
-    } finally {
-      window.removeEventListener(CSP_VIOLATION_EVENT, listener);
-    }
-  });
-
-  it('does not dispatch the dev event in production mode', () => {
-    const listener = jest.fn();
-    window.addEventListener(CSP_VIOLATION_EVENT, listener);
-    try {
-      install({ devMode: false });
-      document.dispatchEvent(
-        makeViolation({
-          effectiveDirective: 'script-src',
-          blockedURI: 'https://evil.example/a.js',
-        }),
-      );
-      expect(listener).not.toHaveBeenCalled();
-    } finally {
-      window.removeEventListener(CSP_VIOLATION_EVENT, listener);
-    }
   });
 
   it('clears the throttle window on request', () => {

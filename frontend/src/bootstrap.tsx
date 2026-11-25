@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks';
-import { CspViolationToaster } from '#~/concepts/csp/CspViolationToaster';
+import { useCspViolationReporter } from '#~/concepts/csp/useCspViolationReporter';
 import { sdkStore, store } from './redux/store/store';
 import App from './app/App';
 import { ThemeProvider } from './app/ThemeContext';
@@ -17,7 +17,11 @@ import { installMonacoLoader } from './concepts/dashboard/codeEditor/monacoLoade
 // Configure the one shared Monaco loader before any host or remote code editor can mount.
 installMonacoLoader();
 
-const DEV_MODE = process.env.NODE_ENV !== 'production';
+/** Mounts CSP violation capture once for the legacy dashboard. Renders nothing. */
+const CspViolationCapture: React.FC = () => {
+  useCspViolationReporter();
+  return null;
+};
 
 // Creates a data router using createBrowserRouter
 const router = createBrowserRouter([
@@ -27,10 +31,9 @@ const router = createBrowserRouter([
       <SDKInitialize>
         <BrowserStorageContextProvider>
           <ThemeProvider>
+            <CspViolationCapture />
             <NotificationProvider>
               <App />
-              {/* Enables CSP violation capture for the whole app; toasts in dev only. */}
-              <CspViolationToaster devMode={DEV_MODE} />
             </NotificationProvider>
           </ThemeProvider>
         </BrowserStorageContextProvider>

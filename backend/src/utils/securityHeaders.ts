@@ -151,16 +151,6 @@ export const isHtmlContentType = (value: unknown): boolean => {
 };
 
 /**
- * Sets the CSP on HTML documents only. JSON APIs and static assets carry no policy.
- * Must run after the payload content type is known — `onSend` satisfies that.
- * Only the header name depends on the mode; the directive string is byte-identical.
- *
- * Called from the SPA route (`routes/root.ts`), the only place this server renders a
- * document of its own. It is not part of {@link applySecurityHeaders}, so a module proxy
- * reply that happens to be HTML keeps the upstream UI's headers rather than receiving the
- * dashboard policy.
- */
-/**
  * A fresh, unpredictable nonce for one document response. Base64url so it needs no
  * escaping inside the HTML attribute or the CSP header.
  */

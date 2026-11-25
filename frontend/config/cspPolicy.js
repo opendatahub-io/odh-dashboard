@@ -12,7 +12,7 @@
  * that already left another server.
  *
  * Development always sends `Content-Security-Policy-Report-Only`: violations are still
- * reported — console, dev toast, Segment — without blocking HMR, eval-based source maps
+ * reported — console and Segment — without blocking HMR, eval-based source maps
  * or the local API sockets. The declared dev delta below is applied so the report only
  * contains real regressions instead of known dev-only allowances.
  *

@@ -5,9 +5,8 @@
  * Report-Only, depending on `CSP_MODE`), and there is no server-side collector: the
  * gateway runs `ext_authz` on every request, so unauthenticated browser reports sent
  * to a same-origin endpoint would be rejected. Violations are therefore captured in
- * the browser, logged to the console, surfaced as a dev-only toast, and forwarded
- * through the host tracking adapter so they carry the same cluster/version context as the
- * dashboard's other events.
+ * the browser, logged to the console, and forwarded through the host tracking adapter
+ * so they carry the same cluster/version context as the dashboard's other events.
  *
  * Outside development a violation is forwarded once per unique violation (disposition +
  * effective directive + blocked host) per browser per 24 hours, and only once the Segment
@@ -20,7 +19,6 @@
 import { isSegmentReady } from '@odh-dashboard/analytics';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
-export const CSP_VIOLATION_EVENT = 'odh-csp-violation';
 export const CSP_VIOLATION_SEGMENT_EVENT = 'CSP Violation';
 export const CSP_VIOLATION_STORAGE_KEY = 'odh-csp-violation-reported';
 export const CSP_VIOLATION_THROTTLE_MS = 24 * 60 * 60 * 1000;
@@ -44,7 +42,6 @@ export type CspViolationReport = {
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
 
 type ReporterOptions = {
-  devMode?: boolean;
   documentRef?: Document;
   windowRef?: Window;
   storage?: StorageLike | null;
@@ -101,8 +98,8 @@ export const blockedHost = (blockedURI: string, base: string = window.location.o
 const subscribers = new Set<(report: CspViolationReport) => void>();
 
 /**
- * Subscribes to every captured violation, before throttling. Used by the dev-only
- * toast; production consumers should prefer the Segment event.
+ * Subscribes to every captured violation, before throttling. Production consumers
+ * should prefer the Segment event.
  */
 export const subscribeToCspViolations = (
   listener: (report: CspViolationReport) => void,
@@ -200,34 +197,26 @@ const reportViolation = (report: CspViolationReport): void => {
  * Installs the violation listener. Returns a cleanup function.
  *
  * - Every violation is logged with `console.warn`.
- * - In dev mode an `odh-csp-violation` window event is dispatched once per unique
- *   violation so the UI can show a toast.
  * - Every violation is forwarded through the host tracking adapter, which decides
  *   whether it is logged or sent. The reporter never inspects the SDK itself.
  * - Outside development the same violation is forwarded at most once per browser per
  *   24 hours; development logging is never throttled.
  */
 export const installCspViolationReporter = ({
-  devMode = false,
   documentRef = document,
   windowRef = window,
   storage = defaultStorage(),
   now = Date.now,
 }: ReporterOptions = {}): (() => void) => {
-  const shownThisSession = new Set<string>();
+  const notifiedThisSession = new Set<string>();
 
-  // Local UI feedback happens once per unique violation per page session.
-  const notifyUi = (report: CspViolationReport, key: string): void => {
-    if (shownThisSession.has(key)) {
+  // Listeners are notified once per unique violation per page session.
+  const notifySubscribers = (report: CspViolationReport, key: string): void => {
+    if (notifiedThisSession.has(key)) {
       return;
     }
-    shownThisSession.add(key);
+    notifiedThisSession.add(key);
     subscribers.forEach((listener) => listener(report));
-    if (devMode) {
-      windowRef.dispatchEvent(
-        new CustomEvent<CspViolationReport>(CSP_VIOLATION_EVENT, { detail: report }),
-      );
-    }
   };
 
   // Development logs instead of sending, so there is nothing to throttle: the per-violation
@@ -261,7 +250,7 @@ export const installCspViolationReporter = ({
       `[CSP] ${report.effectiveDirective} blocked ${report.blockedHost} on ${report.pagePath}`,
     );
 
-    notifyUi(report, key);
+    notifySubscribers(report, key);
     sendTelemetry(report, key);
   };
 

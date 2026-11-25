@@ -8,8 +8,6 @@ import {
 type UseCspViolationReporterOptions = {
   /** Set to false to disable capture entirely (for example in tests or tools). */
   enabled?: boolean;
-  /** Enables the dev-only `odh-csp-violation` event. Has no effect on capture. */
-  devMode?: boolean;
   /** Called once per unique violation per page session. */
   onViolation?: (report: CspViolationReport) => void;
 };
@@ -25,7 +23,6 @@ type UseCspViolationReporterOptions = {
  */
 export const useCspViolationReporter = ({
   enabled = true,
-  devMode = false,
   onViolation,
 }: UseCspViolationReporterOptions = {}): CspViolationReport[] => {
   const [violations, setViolations] = React.useState<CspViolationReport[]>([]);
@@ -44,13 +41,13 @@ export const useCspViolationReporter = ({
       setViolations((current) => [...current, report]);
       onViolationRef.current?.(report);
     });
-    const uninstall = installCspViolationReporter({ devMode });
+    const uninstall = installCspViolationReporter();
 
     return () => {
       unsubscribe();
       uninstall();
     };
-  }, [enabled, devMode]);
+  }, [enabled]);
 
   return violations;
 };

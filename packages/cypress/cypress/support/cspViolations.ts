@@ -19,26 +19,25 @@
  * API-mocked specs run against a static file server that sends no CSP, so they observe no
  * violations and are exempt from the document header check.
  *
- * Violations are attributed to the document that raised them and every document is
- * classified independently (see `readDocumentPolicy`), so an authentication or gateway
- * document does not fail a dashboard spec and a dashboard document the spec navigated away
- * from keeps its violations.
+ * Violations are attributed to the load that raised them. Each load is classified on its
+ * own, including a later load of the same URL (see `readDocumentPolicy`), so an
+ * authentication or gateway document does not fail a dashboard spec and a dashboard
+ * document the spec navigated away from keeps its violations.
  *
  * Adding an allowlist entry is a deliberate act: it documents a known, accepted
  * violation. Entries are `<effective-directive> <blocked-host>`, for example
  * `img-src legacy-images.example.com`.
  */
-import {
-  type DocumentPolicyOutcome,
-  type DocumentWindow,
-  readDocumentPolicy,
-} from '../utils/csp/readDocumentPolicy';
+import { type DocumentWindow, readDocumentPolicy } from '../utils/csp/readDocumentPolicy';
 import {
   type CspViolationRecord,
+  type DocumentLoad,
+  type DocumentLoadStatus,
+  beginDocumentLoad,
   describeViolation,
-  documentsOf,
-  filterByDocument,
+  documentLoadStatus,
   findUnexpected,
+  latestDocumentLoad,
   toAllowlist,
   toRecord,
 } from '../utils/csp/violations';
@@ -50,12 +49,17 @@ export const CSP_VIOLATION_ALLOWLIST: readonly string[] = [
 
 export type { CspViolationRecord };
 
+type CapturedViolation = CspViolationRecord & { loadId: number };
+
 const allowlist = toAllowlist(CSP_VIOLATION_ALLOWLIST);
 
-let violations: CspViolationRecord[] = [];
+let violations: CapturedViolation[] = [];
 let documentLoaded = false;
-/** Classification per document URL, so each document is fetched and judged once per spec. */
-const documentClasses = new Map<string, DocumentPolicyOutcome['status']>();
+/** One entry per browser load. A later load of the same URL does not reuse an earlier one. */
+let loads: DocumentLoad[] = [];
+/** Classification started for a load, settled before that load's violations are judged. */
+const loadClassifications = new Map<number, Promise<void>>();
+const loadErrors = new Map<number, Error>();
 let verifiedAnyDocument = false;
 
 /** Violations recorded for the current test, before allowlist filtering. */
@@ -75,44 +79,42 @@ export const findUnexpectedCspViolations = (
 
 export { readDocumentPolicy };
 
-// Registered before any page script runs, so violations raised during initial load
-// (fonts, images, module-federation chunks) are captured too.
-Cypress.on('window:before:load', (win) => {
-  documentLoaded = true;
-  win.addEventListener('securitypolicyviolation', (event) => {
-    // The listener lives on the window that raised the event, so that window is also the
-    // fallback attribution when the browser omits `documentURI`.
-    violations.push(toRecord(event as SecurityPolicyViolationEvent, win.location.href));
-  });
-});
-
 before(() => {
   // Everything is per spec. In particular the page may be loaded in a `before` hook, so
   // violations raised during that load are kept for the first test instead of being
   // erased by a per-test reset; `afterEach` clears them once it has inspected them.
   violations = [];
   documentLoaded = false;
-  documentClasses.clear();
+  loads = [];
+  loadClassifications.clear();
+  loadErrors.clear();
   verifiedAnyDocument = false;
 });
 
-/** Asserts the recorded violations, then clears them. */
+/**
+ * Asserts the recorded violations, then clears them.
+ *
+ * The clear runs whether the assertion passes or throws. A failed assertion used to
+ * leave the records in module state, and a Cypress retry (live end-to-end runs retry
+ * twice) then failed again on that same batch. Records captured while a `before` hook
+ * loaded the page stay until this assertion consumes them.
+ */
 const expectNoUnexpectedViolations = (
   records: readonly CspViolationRecord[] = violations,
 ): void => {
-  const unexpected = findUnexpectedCspViolations(records);
-  const message = unexpected.map(describeViolation).join('\n');
+  try {
+    const unexpected = findUnexpectedCspViolations(records);
+    const message = unexpected.map(describeViolation).join('\n');
 
-  expect(
-    unexpected,
-    `Unexpected Content-Security-Policy violations:\n${message}\n\n` +
-      'Fix the blocked resource or add an explicit, commented entry to ' +
-      'CSP_VIOLATION_ALLOWLIST in packages/cypress/cypress/support/cspViolations.ts.',
-  ).to.have.length(0);
-
-  // Cleared only after the assertion above, so violations captured while a `before` hook
-  // loaded the page fail the first test rather than disappearing before it starts.
-  violations = [];
+    expect(
+      unexpected,
+      `Unexpected Content-Security-Policy violations:\n${message}\n\n` +
+        'Fix the blocked resource or add an explicit, commented entry to ' +
+        'CSP_VIOLATION_ALLOWLIST in packages/cypress/cypress/support/cspViolations.ts.',
+    ).to.have.length(0);
+  } finally {
+    violations = [];
+  }
 };
 
 const originOf = (url: string): string | null => {
@@ -123,12 +125,16 @@ const originOf = (url: string): string | null => {
   }
 };
 
+type ClassifiableWindow = DocumentWindow & {
+  document: { querySelector: (selector: string) => unknown };
+};
+
 /**
  * Origin of the dashboard under test. The document that is loaded decides when it is the
  * dashboard shell; otherwise the configured `baseUrl` does. Violations raised by another
  * origin belong to another product's document, whatever document is showing.
  */
-const dashboardOrigin = (win: Window): string | null => {
+const dashboardOrigin = (win: ClassifiableWindow): string | null => {
   const current = originOf(win.location.href);
   if (current && win.document.querySelector('#root')) {
     return current;
@@ -137,25 +143,23 @@ const dashboardOrigin = (win: Window): string | null => {
 };
 
 /**
- * Classifies one document: the dashboard shell (`verified`), another document
- * (`not-a-dashboard-document`) or unreadable (`verification-error`, which never becomes a
- * skip). Results are cached so each document is read once per spec.
+ * Classifies one load: the dashboard shell (`verified`), another document
+ * (`not-a-dashboard-document`), or unreadable (`verification-error`, which never becomes a
+ * skip). The caller stores the result on the load. A later load of the same URL is
+ * classified again.
  */
-const classifyDocument = async (
-  win: DocumentWindow,
-  url: string,
-  origin: string | null,
-): Promise<void> => {
-  if (documentClasses.has(url)) {
-    return;
-  }
-  if (origin && originOf(url) !== origin) {
+const classifyLoad = async (
+  win: ClassifiableWindow,
+  load: DocumentLoad,
+): Promise<DocumentLoadStatus> => {
+  const origin = dashboardOrigin(win);
+  if (origin && originOf(load.url) !== origin) {
     // A document on another origin is not the dashboard's document and fetching it would
     // be a cross-origin request, so it is classified without being read.
-    documentClasses.set(url, 'not-a-dashboard-document');
-    return;
+    return 'not-a-dashboard-document';
   }
-  const outcome = await readDocumentPolicy(win, url);
+
+  const outcome = await readDocumentPolicy(win, load.url);
   if (outcome.status === 'verification-error') {
     // A failed verification must never be treated as an out-of-scope document: doing so
     // would let the spec pass without the header ever being checked.
@@ -163,38 +167,70 @@ const classifyDocument = async (
       `The CSP guard could not verify the dashboard document policy: ${outcome.detail}.`,
     );
   }
-  documentClasses.set(url, outcome.status);
-  if (outcome.status === 'verified') {
-    verifiedAnyDocument = true;
-  }
+  return outcome.status;
 };
 
+const classificationError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(String(error));
+
+// Registered before any page script runs, so violations raised during initial load
+// (fonts, images, module-federation chunks) are captured too. Each load is classified
+// on its own; a later load of the same URL does not reuse the earlier result.
+Cypress.on('window:before:load', (win) => {
+  documentLoaded = true;
+  const load = beginDocumentLoad(loads, win.location.href);
+  if (!Cypress.env('MOCK')) {
+    loadClassifications.set(
+      load.id,
+      classifyLoad(win, load).then(
+        (status) => {
+          load.status = status;
+          if (status === 'verified') {
+            verifiedAnyDocument = true;
+          }
+        },
+        (error: unknown) => {
+          loadErrors.set(load.id, classificationError(error));
+        },
+      ),
+    );
+  }
+  win.addEventListener('securitypolicyviolation', (event) => {
+    // The listener lives on the window that raised the event, so that window's load is
+    // the attribution when the browser omits `documentURI`.
+    violations.push({
+      ...toRecord(event as SecurityPolicyViolationEvent, win.location.href),
+      loadId: load.id,
+    });
+  });
+});
+
 afterEach(() => {
-  // Violations belong to the document that raised them, and the listener attaches to every
-  // window the spec opens. Classify every document first and assert violations only for the
-  // ones the policy covers, so an authentication or gateway document cannot fail a dashboard
-  // spec and a dashboard document the spec navigated away from keeps its violations.
+  // Violations belong to the load that raised them. Judge each load from the policy it
+  // was served, so an authentication or gateway document cannot fail a dashboard spec and
+  // a dashboard document the spec navigated away from keeps its violations.
   if (Cypress.env('MOCK') || !documentLoaded) {
     expectNoUnexpectedViolations();
     return;
   }
 
   // An empty violation list proves nothing on its own: without a policy the browser never
-  // checks anything. Verify once per document, on a real (non-mocked) deployment, that the
-  // dashboard document carried a policy.
+  // checks anything. Each load was read on its own, including a later load of the same URL.
   cy.window({ log: false }).then(async (win) => {
-    const origin = dashboardOrigin(win);
-    for (const url of [win.location.href, ...documentsOf(violations)]) {
-      await classifyDocument(win, url, origin);
+    await Promise.all(loadClassifications.values());
+    const failure = loadErrors.values().next();
+    if (!failure.done) {
+      loadErrors.clear();
+      violations = [];
+      throw failure.value;
     }
 
     // `#root` proves the loaded document is the dashboard shell. If the response read for
-    // its URL was another document, the session or a replica answered instead, and that
+    // this load was another document, the session or a replica answered instead, and that
     // response says nothing about the loaded document.
-    if (
-      win.document.querySelector('#root') &&
-      documentClasses.get(win.location.href) !== 'verified'
-    ) {
+    const currentLoad = latestDocumentLoad(loads, win.location.href);
+    if (win.document.querySelector('#root') && currentLoad?.status !== 'verified') {
+      violations = [];
       throw new Error(
         'The CSP guard could not verify the dashboard document policy: the loaded document ' +
           'is the dashboard shell, but the response read for its URL was not.',
@@ -202,7 +238,7 @@ afterEach(() => {
     }
 
     expectNoUnexpectedViolations(
-      filterByDocument(violations, (url) => documentClasses.get(url) === 'verified'),
+      violations.filter((violation) => documentLoadStatus(loads, violation.loadId) === 'verified'),
     );
   });
 });
