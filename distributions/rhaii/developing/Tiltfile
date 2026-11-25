@@ -30,24 +30,75 @@ build_args = {
 
 # ── RHAII Dashboard ───────────────────────────────────────────────────────────
 
-docker_build(
-    "rhaii-dashboard",
-    context=repo_root,
-    dockerfile=os.path.join(dist_root, "Dockerfile"),
-    build_args=build_args,
-    ignore=[
-        "distributions/rhaii/node_modules",
-        "distributions/rhaii/public",
-        "distributions/rhaii/developing",
-        "distributions/base/public",
-        "distributions/base/node_modules",
-        "distributions/core-bff/bff/bin",
-        "node_modules",
-        "frontend/node_modules",
-        "packages/*/node_modules",
-        "**/*.md",
-    ],
-)
+# File-watch scope for the image build: the whole repo-root build context
+# (matching the Dockerfile COPY layers), minus vendored and generated output.
+# Used by both build paths below; in custom_build, ignore patterns are
+# evaluated relative to each entry in deps.
+build_ignore = [
+    "distributions/rhaii/node_modules",
+    "distributions/rhaii/public",
+    "distributions/rhaii/developing",
+    "distributions/base/public",
+    "distributions/base/node_modules",
+    "distributions/core-bff/bff/bin",
+    "node_modules",
+    "frontend/node_modules",
+    "packages/*/node_modules",
+    "**/*.md",
+]
+
+# Tilt's docker_build drives builds through BuildKit's gRPC session protocol,
+# which Podman's Docker-compatible API does not implement (the session
+# upgrade fails with "unable to upgrade to h2c, received 404"). When the
+# local daemon is Podman, fall back to a plain engine build through the CLI;
+# Tilt still tags and loads the resulting image into kind. On a
+# BuildKit-capable daemon (e.g. Docker on Linux/macOS) keep the native
+# docker_build.
+docker_version_out = str(local("docker version 2>&1 || true", quiet=True))
+podman_daemon = "Podman Engine" in docker_version_out
+
+def shell_quote(value):
+    return "'" + value.replace("'", "'\"'\"'") + "'"
+
+quoted_repo_root = shell_quote(repo_root)
+quoted_dockerfile = shell_quote(os.path.join(dist_root, "Dockerfile"))
+
+if podman_daemon:
+    # Prefer the podman CLI when installed; otherwise the docker CLI reaches
+    # the same daemon through the compat API with the legacy builder.
+    podman_cli = str(local("command -v podman 2>/dev/null || true", quiet=True)) != ""
+    build_binary = "podman" if podman_cli else "DOCKER_BUILDKIT=0 docker"
+    custom_build(
+        "rhaii-dashboard",
+        command=(
+            "cd " + quoted_repo_root + " && "
+            # $EXPECTED_REF is unqualified ("rhaii-dashboard:tilt-...") when the
+            # cluster has no local registry; podman normalizes such names to
+            # localhost/, which Tilt then cannot find, so qualify them to
+            # docker.io/library/. Refs containing "/" are already qualified
+            # (e.g. "localhost:5001/rhaii-dashboard:tilt-..." when Kind runs a
+            # local registry) and must be used as-is: podman rejects
+            # "docker.io/library/localhost:5001/..." as an invalid reference.
+            + 'ref="$EXPECTED_REF"; case "$ref" in */*) ;; *) ref="docker.io/library/$ref";; esac; '
+            + build_binary
+            + " build -t \"$ref\""
+            + "".join([
+                " --build-arg %s=%s" % (key, shell_quote(value))
+                for key, value in build_args.items()
+            ])
+            + " -f " + quoted_dockerfile + " ."
+        ),
+        deps=[repo_root],
+        ignore=build_ignore,
+    )
+else:
+    docker_build(
+        "rhaii-dashboard",
+        context=repo_root,
+        dockerfile=os.path.join(dist_root, "Dockerfile"),
+        build_args=build_args,
+        ignore=build_ignore,
+    )
 
 k8s_yaml(kustomize(os.path.join(tilt_root, "manifests")))
 k8s_yaml(os.path.join(tilt_root, "manifests/model-serving-demo.yaml"))
@@ -66,10 +117,7 @@ node_bin = os.environ.get("NVM_BIN", "")
 remote_env = {}
 if node_bin:
     remote_env["PATH"] = node_bin + ":" + os.environ.get("PATH", "")
-def shell_quote(value):
-    return "'" + value.replace("'", "'\"'\"'") + "'"
 
-quoted_repo_root = shell_quote(repo_root)
 model_serving_frontend = os.path.join(repo_root, "packages/model-serving/frontend")
 quoted_model_serving_frontend = shell_quote(model_serving_frontend)
 local_resource(
