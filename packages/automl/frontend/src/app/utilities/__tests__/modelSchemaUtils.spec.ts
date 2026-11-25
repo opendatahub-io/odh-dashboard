@@ -366,7 +366,8 @@ describe('buildSamplePayload', () => {
 
     it('should build scalar-valued history rows and a separate known_covariates array', () => {
       // The serving runtime expects instances as history rows with scalar values, and
-      // known covariates as a separate top-level array of future rows.
+      // known covariates as a separate top-level array of future rows. Known covariates
+      // also appear in the history rows — models may use their lagged historical values.
       expect(buildSamplePayload(tsRows, true)).toEqual({
         instances: [
           {
@@ -374,6 +375,7 @@ describe('buildSamplePayload', () => {
             date: '<timestamp>',
             sales: '<double>',
             temperature: '<double>',
+            promotion: '<bool>',
           },
         ],
         known_covariates: [{ store_id: '<string>', date: '<timestamp>', promotion: '<bool>' }],

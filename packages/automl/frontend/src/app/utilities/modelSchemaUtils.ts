@@ -190,9 +190,9 @@ export const buildModelSchema = (
  *   placeholders (e.g. `["<integer>"]`) — the same shape as model.json's
  *   `inference.sample_payload`.
  * - Timeseries: the serving runtime (kserve-autogluon-server) expects `instances` to be
- *   history rows with scalar values — one row per timestamp carrying the id, timestamp,
- *   and target columns plus past covariates — and, when the model uses known covariates,
- *   a separate top-level `known_covariates` array of future rows carrying the id,
+ *   history rows with scalar values — one row per timestamp carrying every input column
+ *   (id, timestamp, target, covariates) — and, when the model uses known covariates, a
+ *   separate top-level `known_covariates` array of future rows carrying the id,
  *   timestamp, and known covariate columns.
  */
 export const buildSamplePayload = (
@@ -213,18 +213,21 @@ export const buildSamplePayload = (
     return { instances: [instance] };
   }
 
-  // Timeseries history row: id, timestamp, target, past covariates — scalar values.
+  // Timeseries history row: id, timestamp, target, past covariates, and known covariates —
+  // scalar values. Known covariates appear in the history rows too: models trained with
+  // them may use their lagged historical values, and the training data included those
+  // columns (the serving runtime carries extra history columns through).
   const historyRow: Record<string, string> = Object.create(null);
   // Known-covariates row: id, timestamp, and the known covariate columns — scalar values.
   const knownRow: Record<string, string> = Object.create(null);
   for (const row of rows) {
-    if (row.role === 'ID column' || row.role === 'Timestamp column') {
-      historyRow[row.name] = placeholder(row);
+    historyRow[row.name] = placeholder(row);
+    if (
+      row.role === 'ID column' ||
+      row.role === 'Timestamp column' ||
+      row.role === 'Known covariate'
+    ) {
       knownRow[row.name] = placeholder(row);
-    } else if (row.role === 'Known covariate') {
-      knownRow[row.name] = placeholder(row);
-    } else {
-      historyRow[row.name] = placeholder(row);
     }
   }
   const hasKnownCovariates = rows.some((row) => row.role === 'Known covariate');
