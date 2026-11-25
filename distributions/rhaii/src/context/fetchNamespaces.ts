@@ -196,8 +196,8 @@ export const FETCH_TIMEOUT_MS = 30_000;
 
 /**
  * The caller's namespaces cannot be listed exhaustively. `projects` holds the
- * ones the BFF could still authorize (from configured candidates or label
- * discovery); manual entry stays available for the rest.
+ * ones the BFF could still authorize (from configured or requested
+ * candidates); manual entry stays available for the rest.
  */
 export class NamespaceListUnavailableError extends Error {
   readonly projects?: RhaiiProject[];

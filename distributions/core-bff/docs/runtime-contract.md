@@ -60,21 +60,21 @@ core-bff refusing to start: invalid configuration (2 problems):
 
 ### Core
 
-| Flag                      | Environment                                          | Default                | Notes                                                                                |
-| ------------------------- | ---------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
-| `--port`                  | `PORT`                                               | `4000`                 | Must be an integer 1–65535. A malformed explicit `PORT` is refused.                  |
-| `--deployment-mode`       | `DEPLOYMENT_MODE`                                    | `standalone`           | `standalone` or `federated`.                                                         |
-| `--platform-type`         | `ODH_PLATFORM_TYPE`                                  | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection.                   |
-| `--admission-mode`        | `ADMISSION_MODE`                                     | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.                      |
-| `--namespace`             | `NAMESPACE`, else `POD_NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required. The RHOAI and ODH overlays set `POD_NAMESPACE` only.  |
-| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`                                | _(= namespace)_        | Namespace allowlist entry.                                                           |
-| `--operator-namespace`    | `OPERATOR_NAMESPACE`                                 | _(empty)_              | Preferred subscription namespace (OpenShift).                                        |
-| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`                              | `odh-dashboard-config` | OdhDashboardConfig CR name.                                                          |
-| `--enabled-apps-cm`       | `ENABLED_APPS_CM`                                    | _(empty)_              | ConfigMap tracking enabled applications.                                             |
-| `--static-assets-dir`     | `STATIC_ASSETS_DIR`                                  | `./static`             | SPA asset root. Required.                                                            |
-| `--log-level`             | `LOG_LEVEL`                                          | `INFO`                 | `error`, `warn`, `info`, `debug`.                                                    |
-| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`                                  | _(empty)_              | Module federation remotes file. Errors name the setting, never the path or contents. |
-| `--namespace-candidates`  | `NAMESPACE_CANDIDATES`         | _(empty)_              | xKS discovery candidates, comma-separated. Grants nothing. See the namespace discovery contract. |
+| Flag                      | Environment                                          | Default                | Notes                                                                                            |
+| ------------------------- | ---------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `--port`                  | `PORT`                                               | `4000`                 | Must be an integer 1–65535. A malformed explicit `PORT` is refused.                              |
+| `--deployment-mode`       | `DEPLOYMENT_MODE`                                    | `standalone`           | `standalone` or `federated`.                                                                     |
+| `--platform-type`         | `ODH_PLATFORM_TYPE`                                  | _(auto-detect)_        | `OpenShift`, `XKS`, or empty. Explicit always wins over detection.                               |
+| `--admission-mode`        | `ADMISSION_MODE`                                     | _(from platform)_      | `auth-resource` or `authenticated`. See the bootstrap contract.                                  |
+| `--namespace`             | `NAMESPACE`, else `POD_NAMESPACE`, else `OC_PROJECT` | `opendatahub`          | Dashboard namespace. Required. The RHOAI and ODH overlays set `POD_NAMESPACE` only.              |
+| `--workbench-namespace`   | `WORKBENCH_NAMESPACE`                                | _(= namespace)_        | Namespace allowlist entry.                                                                       |
+| `--operator-namespace`    | `OPERATOR_NAMESPACE`                                 | _(empty)_              | Preferred subscription namespace (OpenShift).                                                    |
+| `--dashboard-config-name` | `DASHBOARD_CONFIG_NAME`                              | `odh-dashboard-config` | OdhDashboardConfig CR name.                                                                      |
+| `--enabled-apps-cm`       | `ENABLED_APPS_CM`                                    | _(empty)_              | ConfigMap tracking enabled applications.                                                         |
+| `--static-assets-dir`     | `STATIC_ASSETS_DIR`                                  | `./static`             | SPA asset root. Required.                                                                        |
+| `--log-level`             | `LOG_LEVEL`                                          | `INFO`                 | `error`, `warn`, `info`, `debug`.                                                                |
+| `--mf-remotes-config`     | `MF_REMOTES_CONFIG`                                  | _(empty)_              | Module federation remotes file. Errors name the setting, never the path or contents.             |
+| `--namespace-candidates`  | `NAMESPACE_CANDIDATES`                               | _(empty)_              | xKS discovery candidates, comma-separated. Grants nothing. See the namespace discovery contract. |
 
 ### Authentication
 

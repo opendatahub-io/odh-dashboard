@@ -19,10 +19,10 @@ OpenAPI definition is `getNamespaceAccess` / `getNamespaceAccessByName` in
 
 Both are **xKS only**. On OpenShift they are absent (404) and project selection is unchanged.
 
-| Endpoint                                | Purpose                                                       |
-| --------------------------------------- | ------------------------------------------------------------- |
-| `GET /api/v1/namespace-access`          | Discover the caller's namespaces with their permission matrix |
-| `GET /api/v1/namespace-access/{name}`   | Evaluate one namespace (manual entry)                         |
+| Endpoint                              | Purpose                                                       |
+| ------------------------------------- | ------------------------------------------------------------- |
+| `GET /api/v1/namespace-access`        | Discover the caller's namespaces with their permission matrix |
+| `GET /api/v1/namespace-access/{name}` | Evaluate one namespace (manual entry)                         |
 
 `GET /api/v1/namespace-access` accepts a repeatable `namespace` query parameter (at most 50,
 DNS-1123 names) for names the client already knows: entries typed into the manual fallback and
@@ -41,11 +41,11 @@ OpenShift: a project member now gets the same answer from this lookup that a dir
 Candidates only propose names. **No source grants anything**: a candidate is returned only after
 the caller's own reviews allow at least one action in it.
 
-| Order | Source                                                         | When                                                     | `source`       |
-| ----- | -------------------------------------------------------------- | -------------------------------------------------------- | -------------- |
-| 1     | The caller's own namespace list                                | SSAR `list namespaces` (cluster-scoped) allowed          | `cluster-list` |
-| 2     | `NAMESPACE_CANDIDATES`                                         | Caller cannot list                                       | `candidates`   |
-| 3     | `namespace` query parameters                                   | Always                                                   | either         |
+| Order | Source                          | When                                            | `source`       |
+| ----- | ------------------------------- | ----------------------------------------------- | -------------- |
+| 1     | The caller's own namespace list | SSAR `list namespaces` (cluster-scoped) allowed | `cluster-list` |
+| 2     | `NAMESPACE_CANDIDATES`          | Caller cannot list                              | `candidates`   |
+| 3     | `namespace` query parameters    | Always                                          | either         |
 
 `source: candidates` tells the UI the list is not exhaustive and manual entry should stay
 available.
@@ -66,6 +66,12 @@ neither list namespaces nor reach a configured candidate can still open a projec
 looks it up with `GET /api/v1/namespace-access/{name}` (or sends it as a `namespace` query
 parameter), and it is returned only if the caller's reviews allow it.
 
+The RHAII bundle (`manifests/distributions/rhaii`) sets no `NAMESPACE_CANDIDATES`, so on it such a
+caller starts from an empty list and opens projects by name; the UI also re-checks their stored and
+recent projects. An install that knows its RHAII namespaces sets `NAMESPACE_CANDIDATES` to list
+them. Granting the service account anything on `namespaces` is not part of this contract; the
+bundle's final RBAC is owned by [RHAI-50761](https://redhat.atlassian.net/browse/RHAI-50761).
+
 `NAMESPACE_CANDIDATES` remains available where the set of RHAII namespaces is known at install
 time. A richer source (for example one the operator manages, or a UX for registering namespaces)
 is a possible future improvement, to be agreed with PM and UX.
@@ -84,16 +90,16 @@ not prove access in any particular namespace. The only namespace-less review is 
 The reviews the actions depend on run first. A namespace where none of them enables an action is
 not returned, and its remaining reviews are skipped.
 
-| Key (`<group>/<resource>`)                         | Verbs                                                    | Why                                                                             |
-| -------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `serving.kserve.io/llminferenceservices`           | `get` `list` `watch` `create` `update` `patch` `delete`  | Model lifecycle: list/inspect/watch, deploy, edit, start/stop, delete (finalizers run server-side) |
-| `serving.kserve.io/llminferenceserviceconfigs`     | `get` `list` `watch` `update` `patch`                    | Namespace-local configs: a deployment's own config copy (its `baseRefs`), which the deployments page watches, the edit wizard loads, and saving an edit writes back |
-| `core/pods`                                        | `get` `list`                                             | Deployment status and troubleshooting (optional detail)                         |
-| `core/secrets`                                     | `create` `get` `list` `update` `delete`                  | Token-authentication Secrets; `list` reads a deployment's existing tokens, `update` replaces an existing token Secret, `delete` removes a token, and `get` reads the Hugging Face token Secret when editing. The owner reference is set in the object itself |
-| `core/serviceaccounts`                             | `get` `create`                                           | The token ServiceAccount, created when missing                                  |
-| `rbac.authorization.k8s.io/roles`                  | `get` `create`                                           | The Role that lets the token read its model, created when missing               |
-| `rbac.authorization.k8s.io/rolebindings`           | `get` `create`                                           | The RoleBinding to that Role, created when missing                              |
-| `core/namespaces`                                  | `get` (on the namespace itself)                          | Whether display name and phase can be read                                      |
+| Key (`<group>/<resource>`)                     | Verbs                                                   | Why                                                                                                                                                                                                                                                          |
+| ---------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `serving.kserve.io/llminferenceservices`       | `get` `list` `watch` `create` `update` `patch` `delete` | Model lifecycle: list/inspect/watch, deploy, edit, start/stop, delete (finalizers run server-side)                                                                                                                                                           |
+| `serving.kserve.io/llminferenceserviceconfigs` | `get` `list` `watch` `update` `patch`                   | Namespace-local configs: a deployment's own config copy (its `baseRefs`), which the deployments page watches, the edit wizard loads, and saving an edit writes back                                                                                          |
+| `core/pods`                                    | `get` `list`                                            | Deployment status and troubleshooting (optional detail)                                                                                                                                                                                                      |
+| `core/secrets`                                 | `create` `get` `list` `update` `delete`                 | Token-authentication Secrets; `list` reads a deployment's existing tokens, `update` replaces an existing token Secret, `delete` removes a token, and `get` reads the Hugging Face token Secret when editing. The owner reference is set in the object itself |
+| `core/serviceaccounts`                         | `get` `create`                                          | The token ServiceAccount, created when missing                                                                                                                                                                                                               |
+| `rbac.authorization.k8s.io/roles`              | `get` `create`                                          | The Role that lets the token read its model, created when missing                                                                                                                                                                                            |
+| `rbac.authorization.k8s.io/rolebindings`       | `get` `create`                                          | The RoleBinding to that Role, created when missing                                                                                                                                                                                                           |
+| `core/namespaces`                              | `get` (on the namespace itself)                         | Whether display name and phase can be read                                                                                                                                                                                                                   |
 
 Cleanup of owned Secrets after a delete is Kubernetes garbage collection and needs no caller
 permission; `delete` on Secrets covers explicit cleanup only. On clusters that enable the
@@ -102,10 +108,10 @@ needs `update` on `llminferenceservices/finalizers`; vanilla AKS does not enable
 
 Evaluated once, in the dashboard namespace (`shared`):
 
-| Key                                                 | Verbs         | Why                                   |
-| --------------------------------------------------- | ------------- | ------------------------------------- |
-| `infrastructure.opendatahub.io/hardwareprofiles`    | `get` `list`  | Retained shared HardwareProfile reads |
-| `serving.kserve.io/llminferenceserviceconfigs`      | `get` `list`  | Retained shared config reads          |
+| Key                                              | Verbs        | Why                                   |
+| ------------------------------------------------ | ------------ | ------------------------------------- |
+| `infrastructure.opendatahub.io/hardwareprofiles` | `get` `list` | Retained shared HardwareProfile reads |
+| `serving.kserve.io/llminferenceserviceconfigs`   | `get` `list` | Retained shared config reads          |
 
 Bootstrap and the wizard need **no shared Secret access**; Secrets are only reviewed in the
 target namespace.
@@ -127,15 +133,15 @@ reason, so the review is `denied` unless something else allows it.
 
 ### Actions
 
-| Action            | Requires every one of                                        |
-| ----------------- | ------------------------------------------------------------ |
-| `view`            | `llminferenceservices` `list`, `get`. `watch` is reported but not required: without it the deployments page polls the list instead of watching |
-| `deploy`          | `llminferenceservices` `create`                              |
+| Action            | Requires every one of                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `view`            | `llminferenceservices` `list`, `get`. `watch` is reported but not required: without it the deployments page polls the list instead of watching                                                                                                                                                                                                                                                                                                                                                         |
+| `deploy`          | `llminferenceservices` `create`                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `edit`            | `llminferenceservices` `patch` and `update`; `llminferenceserviceconfigs` `get`, `list`, `update`, `patch`; `secrets` `get`, `list`; `serviceaccounts` `get`. The edit wizard first loads the deployment's config copy, its token Secrets and its Hugging Face token ServiceAccount and Secret; without them it cannot load the deployment, and saving would drop its config reference or its tokens. Saving writes the config copy back. As with `view`, the config `watch` is reported, not required |
-| `startStop`       | `llminferenceservices` `patch`: starting and stopping patch an annotation |
-| `delete`          | `llminferenceservices` `delete`                              |
-| `createTokenAuth` | `secrets` `create`; `serviceaccounts`, `roles` and `rolebindings` `get`, `create`; `llminferenceservices` `get`. What token authentication on a new deployment needs |
-| `manageTokenAuth` | `createTokenAuth`, plus `secrets` `list`, `update`, `delete`. What managing the tokens of an existing deployment needs: they are listed, replaced on every save, and deleted when removed |
+| `startStop`       | `llminferenceservices` `patch`: starting and stopping patch an annotation                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `delete`          | `llminferenceservices` `delete`                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `createTokenAuth` | `secrets` `create`; `serviceaccounts`, `roles` and `rolebindings` `get`, `create`; `llminferenceservices` `get`. What token authentication on a new deployment needs                                                                                                                                                                                                                                                                                                                                   |
+| `manageTokenAuth` | `createTokenAuth`, plus `secrets` `list`, `update`, `delete`. What managing the tokens of an existing deployment needs: they are listed, replaced on every save, and deleted when removed                                                                                                                                                                                                                                                                                                              |
 
 An action is `true` only when every review it needs is `allowed`; a `denied` or `error` review
 hides it. A namespace is returned when at least one action is `true`. Admin flags, admission,
@@ -157,17 +163,17 @@ both token actions require it; a create-only deployer gets `deploy` without toke
 
 ## Outcomes
 
-| Situation                                                  | List endpoint                                           | Single endpoint |
-| ---------------------------------------------------------- | ------------------------------------------------------- | --------------- |
-| Authorized namespaces found                                | 200, `namespaces: [...]`                                | 200             |
-| No candidates, or every candidate denied                   | 200, `namespaces: []`, `complete: true`                 | 403             |
-| Namespace does not exist, caller cannot read namespaces    | not listed                                              | 403 (same as denied) |
-| Namespace does not exist, caller holds cluster-wide grants on matrix resources but no `get namespaces` | listed with `phase: Unknown` | 200 with `phase: Unknown` |
-| Namespace does not exist, caller may read it               | not listed                                              | 404             |
-| Some reviews or a source failed, and at least one candidate was decided (authorized, denied or not found; a candidate is denied when no action is possible even if every failed review had been allowed) | 200, `complete: false`, `issues` lists codes and counts, including failures in namespaces that are still returned; `namespaces` may be empty | 503 if no action could be decided |
-| Nothing could be decided: every candidate's reviews failed, or there were no candidates and a source failed | 503 `SERVICE_UNAVAILABLE`, `error.issues` lists the codes and counts | 503 |
-| More than 200 candidates with `source: candidates`         | 200, `complete: false`, requested names first then the rest by name, `CANDIDATES_TRUNCATED` | n/a |
-| Request deadline (25 s) expired                            | pending reviews count as failed, `DISCOVERY_DEADLINE_EXCEEDED`; 200 or 503 by the rows above | 503, even if an action was already allowed |
+| Situation                                                                                                                                                                                                | List endpoint                                                                                                                                | Single endpoint                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Authorized namespaces found                                                                                                                                                                              | 200, `namespaces: [...]`                                                                                                                     | 200                                        |
+| No candidates, or every candidate denied                                                                                                                                                                 | 200, `namespaces: []`, `complete: true`                                                                                                      | 403                                        |
+| Namespace does not exist, caller cannot read namespaces                                                                                                                                                  | not listed                                                                                                                                   | 403 (same as denied)                       |
+| Namespace does not exist, caller holds cluster-wide grants on matrix resources but no `get namespaces`                                                                                                   | listed with `phase: Unknown`                                                                                                                 | 200 with `phase: Unknown`                  |
+| Namespace does not exist, caller may read it                                                                                                                                                             | not listed                                                                                                                                   | 404                                        |
+| Some reviews or a source failed, and at least one candidate was decided (authorized, denied or not found; a candidate is denied when no action is possible even if every failed review had been allowed) | 200, `complete: false`, `issues` lists codes and counts, including failures in namespaces that are still returned; `namespaces` may be empty | 503 if no action could be decided          |
+| Nothing could be decided: every candidate's reviews failed, or there were no candidates and a source failed                                                                                              | 503 `SERVICE_UNAVAILABLE`, `error.issues` lists the codes and counts                                                                         | 503                                        |
+| More than 200 candidates with `source: candidates`                                                                                                                                                       | 200, `complete: false`, requested names first then the rest by name, `CANDIDATES_TRUNCATED`                                                  | n/a                                        |
+| Request deadline (25 s) expired                                                                                                                                                                          | pending reviews count as failed, `DISCOVERY_DEADLINE_EXCEEDED`; 200 or 503 by the rows above                                                 | 503, even if an action was already allowed |
 
 `issues` never contains a namespace name, and error responses never echo one, so a failure cannot
 reveal a namespace the caller is not authorized for. Counts can reflect the size of the
@@ -298,12 +304,40 @@ contract.
         "phase": "Active",
         "displayName": "team-b",
         "isAiProject": false,
-        "actions": { "view": true, "deploy": false, "edit": false, "startStop": false, "delete": false, "createTokenAuth": false, "manageTokenAuth": false },
+        "actions": {
+          "view": true,
+          "deploy": false,
+          "edit": false,
+          "startStop": false,
+          "delete": false,
+          "createTokenAuth": false,
+          "manageTokenAuth": false
+        },
         "permissions": {
-          "serving.kserve.io/llminferenceservices": { "get": "allowed", "list": "allowed", "watch": "allowed", "create": "denied", "update": "denied", "patch": "denied", "delete": "denied" },
-          "serving.kserve.io/llminferenceserviceconfigs": { "get": "denied", "list": "denied", "watch": "denied", "update": "denied", "patch": "denied" },
+          "serving.kserve.io/llminferenceservices": {
+            "get": "allowed",
+            "list": "allowed",
+            "watch": "allowed",
+            "create": "denied",
+            "update": "denied",
+            "patch": "denied",
+            "delete": "denied"
+          },
+          "serving.kserve.io/llminferenceserviceconfigs": {
+            "get": "denied",
+            "list": "denied",
+            "watch": "denied",
+            "update": "denied",
+            "patch": "denied"
+          },
           "core/pods": { "get": "denied", "list": "denied" },
-          "core/secrets": { "create": "denied", "get": "denied", "list": "denied", "update": "denied", "delete": "denied" },
+          "core/secrets": {
+            "create": "denied",
+            "get": "denied",
+            "list": "denied",
+            "update": "denied",
+            "delete": "denied"
+          },
           "core/serviceaccounts": { "get": "denied", "create": "denied" },
           "rbac.authorization.k8s.io/roles": { "get": "denied", "create": "denied" },
           "rbac.authorization.k8s.io/rolebindings": { "get": "denied", "create": "denied" },
