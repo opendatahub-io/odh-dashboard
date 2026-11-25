@@ -39,7 +39,7 @@ export const useLLMInferenceServicePods = (
           namespace,
           selector: {
             matchLabels: {
-              'app.kubernetes.io/component': 'llminferenceservice-workload',
+              'app.kubernetes.io/part-of': 'llminferenceservice',
             },
           },
         }

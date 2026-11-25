@@ -7,7 +7,10 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { autoragResultsPage } from '../../../pages/autorag/resultsPage';
-import { cleanupAutoragInfrastructure } from '../../../utils/oc_commands/autoragInfra';
+import {
+  cleanupAutoragInfrastructure,
+  provisionAutoragPgvector,
+} from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
   checkAutoragMaaSReadiness,
@@ -47,10 +50,11 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
         projectName = `${testData.projectNamePrefix}-${uuid}`;
         cleanupReady = true;
       })
-      .then(() => checkAutoragMaaSReadiness())
+      .then(() => checkAutoragMaaSReadiness(testData))
       .then((fixture) => {
         maasFixture = fixture;
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        provisionAutoragPgvector(projectName);
       }),
   );
 
@@ -72,7 +76,7 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
   it(
     'Can submit a run, verify it in experiments list, and stop it',
     {
-      tags: ['@AutoRAG', '@AutoRAGRegression', '@AutoRAGCI', '@Featureflagged'],
+      tags: ['@AutoRAG', '@AutoRAGCI', '@AutoRAGRegression', '@Featureflagged'],
     },
     () => {
       configureAutoragRun(testData, projectName, uuid, getMaaSFixture(), {
@@ -92,9 +96,14 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
         getMaaSFixture(),
       ).then((runId) => {
         cy.step('Terminate the submitted run and confirm');
+        cy.intercept('POST', '**/pipeline-runs/*/terminate*').as('autoragTerminateRun');
         autoragResultsPage.findStopRunButton().click();
         autoragResultsPage.findStopRunModal().should('be.visible');
         autoragResultsPage.findConfirmStopRunButton().click();
+        cy.wait('@autoragTerminateRun').then(({ request, response }) => {
+          expect(request.url).to.include(`/pipeline-runs/${encodeURIComponent(runId)}/terminate`);
+          expect(response?.statusCode).to.equal(200);
+        });
 
         cy.step('Verify the submitted run reaches a terminal state');
         verifyAutoragRunTerminated(projectName, runId);

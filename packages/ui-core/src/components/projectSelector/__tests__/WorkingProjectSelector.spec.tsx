@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import userEvent from '@testing-library/user-event';
 import {
   type ProjectIdentity,
   WorkingProjectProvider,
@@ -10,6 +11,380 @@ import WorkingProjectSelector from '../WorkingProjectSelector';
 
 describe('WorkingProjectSelector', () => {
   const project: ProjectIdentity = { name: 'project-x', displayName: 'Project X' };
+  const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'scrollIntoView',
+  );
+
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: jest.fn(),
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    if (scrollIntoViewDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', scrollIntoViewDescriptor);
+    } else {
+      delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
+  it('should keep Select disabled until a project is selected during a normal open', () => {
+    render(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector emptyListContent={<div>No projects</div>} />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).not.toHaveAttribute('aria-describedby');
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
+
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+  });
+
+  it('should render the loading state without showing the project list', () => {
+    const { rerender } = render(
+      <WorkingProjectProvider
+        status={WorkingProjectStatusValue.Loading}
+        projects={[]}
+        activeProject={null}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={project.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    expect(screen.getByText('Loading projects…')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).not.toHaveAttribute('aria-describedby');
+    expect(screen.queryByText('Available projects')).not.toBeInTheDocument();
+
+    rerender(
+      <WorkingProjectProvider
+        status={WorkingProjectStatusValue.Loading}
+        projects={[]}
+        activeProject={null}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={project.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    expect(screen.getByText('Loading projects…')).toBeInTheDocument();
+  });
+
+  it('should render the project-source-error state without showing the project list', () => {
+    render(
+      <WorkingProjectProvider
+        projects={[]}
+        activeProject={null}
+        status={WorkingProjectStatusValue.ProjectSourceError}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector emptyListContent={<div>No projects</div>} />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    expect(screen.getByText('Unable to load projects. Try again later.')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).not.toHaveAttribute('aria-describedby');
+    expect(screen.queryByText('Available projects')).not.toBeInTheDocument();
+  });
+
+  it('should enable Select for a project being reviewed after creation', () => {
+    render(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={project.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+  });
+
+  it('should show the Create project action in the selector footer', () => {
+    const onCreateProject = jest.fn();
+
+    render(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          onCreateProject={onCreateProject}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    const createProjectButton = screen.getByRole('button', { name: 'Create project' });
+    expect(createProjectButton).toBeInTheDocument();
+    expect(screen.queryByText('onCreateProject();')).not.toBeInTheDocument();
+
+    fireEvent.click(createProjectButton);
+
+    expect(onCreateProject).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('should not duplicate actions supplied by the empty-list content', () => {
+    render(
+      <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={jest.fn()}>
+        <WorkingProjectSelector
+          emptyListContent={
+            <>
+              <button type="button">Create project</button>
+              <button type="button">Cancel</button>
+            </>
+          }
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    expect(screen.getAllByRole('button', { name: 'Create project' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(1);
+  });
+
+  it('should not reset a user selection when the project list refreshes', async () => {
+    const reviewedProject = { name: 'reviewed-project' };
+    const selectedProject = { name: 'selected-project' };
+    const refreshedProject = { name: 'refreshed-project' };
+    const { rerender } = render(
+      <WorkingProjectProvider
+        projects={[reviewedProject, selectedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    fireEvent.click(screen.getByTestId(`working-project-option-${selectedProject.name}`));
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[reviewedProject, selectedProject, refreshedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    expect(
+      within(screen.getByTestId(`working-project-option-${selectedProject.name}`)).getByLabelText(
+        'Selected project',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId(`working-project-option-${reviewedProject.name}`)).queryByLabelText(
+        'Selected project',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should scroll to a project under review only once until the reviewed project changes', async () => {
+    const reviewedProject = { name: 'reviewed-project' };
+    const refreshedProject = { name: 'refreshed-project' };
+    const { rerender } = render(
+      <WorkingProjectProvider
+        projects={[reviewedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    const scrollIntoView = jest.mocked(HTMLElement.prototype.scrollIntoView);
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[reviewedProject, refreshedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[reviewedProject, refreshedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={refreshedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(2));
+  });
+
+  it('should scroll to a reviewed project when it arrives after the selector opens', async () => {
+    const reviewedProject = { name: 'reviewed-project' };
+    const { rerender } = render(
+      <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={jest.fn()}>
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    const scrollIntoView = jest.mocked(HTMLElement.prototype.scrollIntoView);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[reviewedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+  });
+
+  it('should scroll again when the reviewed project row remounts', async () => {
+    const reviewedProject = { name: 'reviewed-project' };
+    const { rerender } = render(
+      <WorkingProjectProvider
+        projects={[reviewedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    const scrollIntoView = jest.mocked(HTMLElement.prototype.scrollIntoView);
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={jest.fn()}>
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+    expect(
+      screen.queryByTestId(`working-project-option-${reviewedProject.name}`),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[reviewedProject]}
+        activeProject={reviewedProject}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={reviewedProject.name}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(2));
+  });
+
+  it('should return to the disabled initial state after closing a creation review', () => {
+    const { rerender } = render(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          projectToReview={project.name}
+          onProjectReviewClosed={jest.fn()}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('modal-cancel-button'));
+
+    rerender(
+      <WorkingProjectProvider
+        projects={[project]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector emptyListContent={<div>No projects</div>} />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+  });
 
   it('should report a confirmed selection even when the selected project is already active', async () => {
     const onProjectChange = jest.fn();
@@ -29,7 +404,8 @@ describe('WorkingProjectSelector', () => {
     );
 
     fireEvent.click(screen.getByTestId('working-project-selector'));
-    fireEvent.click(screen.getByTestId('modal-submit-button'));
+    fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
+    await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
 
     expect(onProjectChange).toHaveBeenCalledWith(project);
     await waitFor(() => expect(onProjectSelected).toHaveBeenCalledWith(project));
@@ -76,82 +452,81 @@ describe('WorkingProjectSelector', () => {
       },
     );
 
-    it.each([undefined, 'ai', 'all'])(
-      'should follow restored selection unless the user chose filter %s',
-      (explicitFilter) => {
-        const projects = [{ name: 'ai-project' }, { name: 'standard-project' }];
-        const tree = (activeProject: ProjectIdentity | null) => (
-          <WorkingProjectProvider
-            status={manualFallback ? 'listing-unavailable' : 'listed'}
-            projects={projects}
-            activeProject={activeProject}
-            onProjectChange={jest.fn()}
-          >
-            <WorkingProjectSelector
-              manualProjectMode={manualFallback}
-              isAiProject={(name) => name === 'ai-project'}
-              emptyListContent="No projects"
-            />
-          </WorkingProjectProvider>
-        );
-        const { rerender } = render(tree(null));
-        fireEvent.click(screen.getByTestId('working-project-selector'));
-        if (explicitFilter) {
-          fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
-          fireEvent.click(
-            screen.getByRole('option', {
-              name: explicitFilter === 'ai' ? 'AI projects only' : 'All projects',
-            }),
-          );
-        }
-        rerender(tree(projects[1]));
-        expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
-          explicitFilter === 'ai' ? 'AI projects only' : 'All projects',
-        );
-        if (explicitFilter !== 'ai') {
-          expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument();
-        }
-        rerender(tree(projects[0]));
-        expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
-          explicitFilter === 'all' ? 'All projects' : 'AI projects only',
-        );
-      },
-    );
-
-    it('should open on All projects after selecting a non-AI project', async () => {
+    it('should preserve an explicitly selected All projects filter when the active project is restored', async () => {
+      const user = userEvent.setup();
       const projects = [{ name: 'ai-project' }, { name: 'standard-project' }];
-      const Wrapper: React.FC = () => {
-        const [activeProject, setActiveProject] = React.useState<ProjectIdentity>(projects[0]);
-        return (
-          <WorkingProjectProvider
-            status={manualFallback ? 'listing-unavailable' : 'listed'}
-            projects={projects}
-            activeProject={activeProject}
-            onProjectChange={setActiveProject}
-          >
-            <WorkingProjectSelector
-              manualProjectMode={manualFallback}
-              isAiProject={(name) => name === 'ai-project'}
-              emptyListContent="No projects"
-            />
-          </WorkingProjectProvider>
-        );
-      };
-      render(<Wrapper />);
-      fireEvent.click(screen.getByTestId('working-project-selector'));
-      fireEvent.click(screen.getByRole('button', { name: 'Project type' }));
-      fireEvent.click(screen.getByRole('option', { name: 'All projects' }));
-      fireEvent.click(screen.getByTestId('working-project-option-standard-project'));
-      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      const tree = (activeProject: ProjectIdentity | null) => (
+        <WorkingProjectProvider
+          status={manualFallback ? 'listing-unavailable' : 'listed'}
+          projects={projects}
+          activeProject={activeProject}
+          onProjectChange={jest.fn()}
+        >
+          <WorkingProjectSelector
+            manualProjectMode={manualFallback}
+            isAiProject={(name) => name === 'ai-project'}
+            emptyListContent="No projects"
+          />
+        </WorkingProjectProvider>
+      );
 
+      const { rerender } = render(tree(null));
       fireEvent.click(screen.getByTestId('working-project-selector'));
+      await act(async () => {
+        await user.click(screen.getByRole('button', { name: 'Project type' }));
+      });
+      const option = await screen.findByTestId('working-project-filter-all');
+      await user.click(option);
+
+      rerender(tree(projects[1]));
       expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
         'All projects',
       );
-      expect(screen.getByRole('radio', { name: /standard-project/ })).toBeChecked();
+      expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument();
     });
   });
+  it.each([
+    {
+      projectToReview: 'standard-project',
+      expectedFilter: 'All projects',
+      visibleProject: 'standard-project',
+    },
+    {
+      projectToReview: 'ai-project',
+      expectedFilter: 'AI projects only',
+      visibleProject: 'ai-project',
+      hiddenProject: 'standard-project',
+    },
+  ])(
+    'should choose the $expectedFilter filter when reviewing $projectToReview without an active project',
+    ({ projectToReview, expectedFilter, visibleProject, hiddenProject }) => {
+      const projects = [{ name: 'ai-project' }, { name: 'standard-project' }];
+
+      render(
+        <WorkingProjectProvider
+          projects={projects}
+          activeProject={null}
+          onProjectChange={jest.fn()}
+        >
+          <WorkingProjectSelector
+            emptyListContent="No projects"
+            projectToReview={projectToReview}
+            isAiProject={(name) => name === 'ai-project'}
+          />
+        </WorkingProjectProvider>,
+      );
+
+      expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+        expectedFilter,
+      );
+      expect(screen.getByTestId(`working-project-option-${visibleProject}`)).toBeInTheDocument();
+      if (hiddenProject) {
+        expect(
+          screen.queryByTestId(`working-project-option-${hiddenProject}`),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
 
   it('should show the search empty state when the filter matches no projects', () => {
     render(
@@ -176,12 +551,15 @@ describe('WorkingProjectSelector', () => {
     expect(screen.queryByTestId(`working-project-option-${project.name}`)).not.toBeInTheDocument();
   });
 
-  it('should allow selecting a project when the current route is invalid', () => {
+  it.each([
+    ['a route-invalid state', WorkingProjectStatusValue.RouteInvalid],
+    ['no selected project', undefined],
+  ])('should allow selecting a project in %s', async (_description, status) => {
     const onProjectChange = jest.fn();
 
     render(
       <WorkingProjectProvider
-        status={WorkingProjectStatusValue.RouteInvalid}
+        {...(status ? { status } : {})}
         projects={[project]}
         activeProject={null}
         onProjectChange={onProjectChange}
@@ -192,27 +570,7 @@ describe('WorkingProjectSelector', () => {
 
     fireEvent.click(screen.getByTestId('working-project-selector'));
     fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
-    fireEvent.click(screen.getByTestId('modal-submit-button'));
-
-    expect(onProjectChange).toHaveBeenCalledWith(project);
-  });
-
-  it('should allow selecting a project when no project is selected', () => {
-    const onProjectChange = jest.fn();
-
-    render(
-      <WorkingProjectProvider
-        projects={[project]}
-        activeProject={null}
-        onProjectChange={onProjectChange}
-      >
-        <WorkingProjectSelector emptyListContent={<div>No projects</div>} />
-      </WorkingProjectProvider>,
-    );
-
-    fireEvent.click(screen.getByTestId('working-project-selector'));
-    fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
-    fireEvent.click(screen.getByTestId('modal-submit-button'));
+    await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
 
     expect(onProjectChange).toHaveBeenCalledWith(project);
   });
@@ -268,8 +626,8 @@ describe('WorkingProjectSelector', () => {
     expect(trigger).toHaveTextContent('No project selected');
     fireEvent.click(trigger);
     expect(screen.queryByTestId('working-project-empty-image')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Select' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add project' }));
+    expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
     expect(screen.queryByTestId('manual-project-name-help')).not.toBeInTheDocument();
     expect(screen.getByText(/Find an existing project by its resource name/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -288,10 +646,11 @@ describe('WorkingProjectSelector', () => {
       </WorkingProjectProvider>,
     );
     fireEvent.click(screen.getByTestId('working-project-selector'));
-    expect(screen.getByRole('dialog', { name: 'Working project' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Project selector' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add project' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('working-project-empty-image')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    fireEvent.click(screen.getByTestId(`working-project-option-${project.name}`));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
     expect(onProjectChange).toHaveBeenCalledWith(project);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
@@ -374,7 +733,7 @@ describe('WorkingProjectSelector', () => {
       fireEvent.change(screen.getByTestId('manual-project-name'), { target: { value: 'first' } });
       fireEvent.click(screen.getByRole('button', { name: 'Search' }));
       await waitFor(() => expect(screen.getByTestId('modal-submit-button')).not.toBeDisabled());
-      fireEvent.click(screen.getByTestId('modal-submit-button'));
+      await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
       const signal = rememberProject.mock.calls[0][1] as AbortSignal;
       expect(screen.getByTestId('manual-project-name')).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
@@ -410,7 +769,7 @@ describe('WorkingProjectSelector', () => {
         });
         fireEvent.click(screen.getByRole('button', { name: 'Search' }));
         await waitFor(() => expect(screen.getByTestId('modal-submit-button')).not.toBeDisabled());
-        fireEvent.click(screen.getByTestId('modal-submit-button'));
+        await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
         expect(rememberProject).toHaveBeenLastCalledWith('second', expect.any(AbortSignal));
         expect(screen.getByTestId('project-added-notification')).toHaveTextContent('second');
@@ -690,7 +1049,7 @@ describe('WorkingProjectSelector', () => {
     expect(screen.getByRole('button', { name: 'Select' })).toBeDisabled();
     expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('working-project-option-another'));
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
     const notification = await screen.findByTestId('working-project-updated-notification');
     expect(notification).toHaveClass('pf-m-info');
     expect(notification).toHaveTextContent("You're now working in another.");
@@ -898,6 +1257,36 @@ describe('WorkingProjectSelector', () => {
     await waitFor(() => expect(onProjectChange).toHaveBeenCalledWith({ name: 'another' }));
   });
 
+  it('should show project counts and the AI label in the project filter options', async () => {
+    render(
+      <WorkingProjectProvider
+        projects={[project, { name: 'ai-project-1' }, { name: 'ai-project-2' }]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent="No projects"
+          isAiProject={(name) => name.startsWith('ai-project')}
+          aiLabel={<span>AI</span>}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    const filter = screen.getByRole('button', { name: 'Project type' });
+
+    expect(filter).toHaveTextContent('All projects');
+    expect(filter).toHaveTextContent('3');
+
+    fireEvent.click(filter);
+
+    const allProjectsOption = await screen.findByRole('option', { name: /All projects/ });
+    const aiProjectsOption = await screen.findByRole('option', { name: /AI projects only/ });
+    expect(allProjectsOption).toHaveTextContent('3');
+    expect(aiProjectsOption).toHaveTextContent('2');
+    expect(aiProjectsOption).toHaveTextContent('AI');
+  });
+
   it('should show both identity names only in the xKS fallback and avoid duplicate names', () => {
     render(
       <WorkingProjectProvider
@@ -946,7 +1335,7 @@ describe('WorkingProjectSelector', () => {
     );
     fireEvent.click(screen.getByTestId('working-project-selector'));
     fireEvent.click(screen.getByTestId('working-project-option-another'));
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
     expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
@@ -959,7 +1348,7 @@ describe('WorkingProjectSelector', () => {
     );
     expect(onProjectSelected).not.toHaveBeenCalled();
     expect(screen.getByTestId('working-project-selector')).toHaveTextContent('Project: Project X');
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(onProjectSelected).toHaveBeenCalledWith({ name: 'another' });
   });
