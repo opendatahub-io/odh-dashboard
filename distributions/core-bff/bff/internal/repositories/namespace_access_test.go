@@ -15,10 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes/fake"
-	k8stesting "k8s.io/client-go/testing"
 )
 
 var errReview = errors.New("review failed")
@@ -356,7 +353,7 @@ func TestDiscover_NoNamespaceListPermission_MixedAccess(t *testing.T) {
 	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{
 		"team-a": activeNS("team-a", "Team A"), "team-b": activeNS("team-b", ""), "team-c": activeNS("team-c", ""),
 	}}
-	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b", "team-c", "secret-ns"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b", "team-c", "secret-ns"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -384,7 +381,7 @@ func TestDiscover_NoNamespaceListPermission_MixedAccess(t *testing.T) {
 }
 
 func TestDiscover_EmptyResultIsAnArray(t *testing.T) {
-	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
 	list, err := repo.Discover(context.Background(), &rbacClient{}, identity(), nil)
 	require.NoError(t, err)
 	require.NotNil(t, list.Namespaces)
@@ -395,7 +392,7 @@ func TestDiscover_EmptyResultIsAnArray(t *testing.T) {
 }
 
 func TestDiscover_AllCandidatesDeniedIsEmptyNotAnError(t *testing.T) {
-	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "opendatahub")
 	list, err := repo.Discover(context.Background(), &rbacClient{}, identity(), nil)
 	require.NoError(t, err)
 	assert.Empty(t, list.Namespaces)
@@ -406,7 +403,7 @@ func TestDiscover_RequestedNamespacesAreTheManualFallback(t *testing.T) {
 	allow := map[string]bool{}
 	viewer(allow, "remembered")
 	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{"remembered": activeNS("remembered", "")}}
-	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), []string{"remembered", "not-mine"})
 	require.NoError(t, err)
@@ -423,7 +420,7 @@ func TestDiscover_FailedReviewsAreReportedWithoutNames(t *testing.T) {
 		}
 	}
 	client := &rbacClient{allow: allow, fail: fail, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
-	repo := NewNamespaceAccessRepository([]string{"team-a", "broken"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a", "broken"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -441,7 +438,7 @@ func TestDiscover_PartialReviewFailureKeepsNamespaceButFailsActionClosed(t *test
 		fail:       map[string]bool{key("team-a", groupServing, "llminferenceservices", "create"): true},
 		namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")},
 	}
-	repo := NewNamespaceAccessRepository([]string{"team-a"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -464,7 +461,7 @@ func TestDiscover_IndeterminateReviewsAreErrorsNotDenials(t *testing.T) {
 		}
 	}
 	client := &rbacClient{allow: allow, indeterminate: indeterminate, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
-	repo := NewNamespaceAccessRepository([]string{"team-a", "webhook-down"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a", "webhook-down"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -475,7 +472,7 @@ func TestDiscover_IndeterminateReviewsAreErrorsNotDenials(t *testing.T) {
 	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 2}}, list.Issues)
 
 	// Indeterminate everywhere is unavailable, never an empty success.
-	only := NewNamespaceAccessRepository([]string{"webhook-down"}, "", nil, "opendatahub")
+	only := NewNamespaceAccessRepository([]string{"webhook-down"}, "opendatahub")
 	_, err = only.Discover(context.Background(), client, identity(), nil)
 	assert.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable)
 	_, err = only.Get(context.Background(), client, identity(), "webhook-down")
@@ -491,7 +488,7 @@ func TestDiscover_IndeterminateClusterListReviewFallsBackToCandidates(t *testing
 		indeterminate: map[string]bool{key("", "", "namespaces", "list"): true},
 		namespaces:    map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")},
 	}
-	repo := NewNamespaceAccessRepository([]string{"team-a"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -501,7 +498,7 @@ func TestDiscover_IndeterminateClusterListReviewFallsBackToCandidates(t *testing
 }
 
 func TestDiscover_EveryReviewFailingIsUnavailable(t *testing.T) {
-	repo := NewNamespaceAccessRepository([]string{"team-a"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
 	list, err := repo.Discover(context.Background(), &rbacClient{reviewErr: errReview}, identity(), nil)
 	require.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable)
 	assert.False(t, list.Complete)
@@ -519,7 +516,7 @@ func TestDiscover_ClusterListUsesTheCallersListAndStillFilters(t *testing.T) {
 		"team-a": activeNS("team-a", ""), "team-b": activeNS("team-b", ""),
 	}}
 	// Configured candidates are not consulted when the caller can list.
-	repo := NewNamespaceAccessRepository([]string{"configured"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"configured"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -531,7 +528,7 @@ func TestDiscover_ClusterListFailureFallsBackToCandidates(t *testing.T) {
 	allow := map[string]bool{}
 	viewer(allow, "team-a")
 	client := &rbacClient{canList: true, listErr: errors.New("boom"), allow: allow, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
-	repo := NewNamespaceAccessRepository([]string{"team-a"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -539,28 +536,6 @@ func TestDiscover_ClusterListFailureFallsBackToCandidates(t *testing.T) {
 	assert.Equal(t, []string{"team-a"}, names(list))
 	assert.False(t, list.Complete)
 	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueClusterListFailed, Count: 1}}, list.Issues)
-}
-
-func TestDiscover_LabelledNamespacesAreOnlyCandidates(t *testing.T) {
-	sa := fake.NewSimpleClientset(
-		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "labelled-mine", Labels: map[string]string{"opendatahub.io/dashboard": "true"}, Annotations: map[string]string{"openshift.io/display-name": "Mine"}}, Status: corev1.NamespaceStatus{Phase: corev1.NamespaceActive}},
-		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "labelled-other", Labels: map[string]string{"opendatahub.io/dashboard": "true"}}},
-		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "unlabelled-mine"}},
-	)
-	allow := map[string]bool{}
-	// The caller may use the namespace but cannot read the Namespace object, so
-	// the service account's copy must not leak its metadata.
-	grant(allow, "labelled-mine", groupServing, "llminferenceservices", "get", "list", "watch")
-	viewer(allow, "unlabelled-mine")
-	repo := NewNamespaceAccessRepository(nil, "opendatahub.io/dashboard=true", sa, "opendatahub")
-
-	list, err := repo.Discover(context.Background(), &rbacClient{allow: allow}, identity(), nil)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"labelled-mine"}, names(list), "a label never grants access, and unlabelled namespaces are not discovered")
-	assert.Empty(t, list.Namespaces[0].DisplayName)
-	assert.Equal(t, models.NamespacePhaseUnknown, list.Namespaces[0].Phase)
-	assert.Nil(t, list.Namespaces[0].IsAiProject, "the label is metadata too: unreadable means the classification is unknown")
-	assert.Equal(t, models.AccessDenied, list.Namespaces[0].Permissions[PermissionKey("", "namespaces")]["get"])
 }
 
 func TestDiscover_IsAiProjectFollowsTheReadableLabel(t *testing.T) {
@@ -575,7 +550,7 @@ func TestDiscover_IsAiProjectFollowsTheReadableLabel(t *testing.T) {
 	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{
 		"ai": ai, "not-exact": notExact, "plain": activeNS("plain", "Plain"),
 	}}
-	repo := NewNamespaceAccessRepository([]string{"ai", "not-exact", "plain"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"ai", "not-exact", "plain"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -587,21 +562,10 @@ func TestDiscover_IsAiProjectFollowsTheReadableLabel(t *testing.T) {
 	assert.Equal(t, map[string]bool{"ai": true, "not-exact": false, "plain": false}, got)
 }
 
-func TestDiscover_LabelDiscoveryFailureIsReported(t *testing.T) {
-	sa := fake.NewSimpleClientset()
-	sa.PrependReactor("list", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, k8serrors.NewForbidden(schema.GroupResource{Resource: "namespaces"}, "", errors.New("no"))
-	})
-	repo := NewNamespaceAccessRepository(nil, "opendatahub.io/dashboard=true", sa, "opendatahub")
-
-	_, err := repo.Discover(context.Background(), &rbacClient{}, identity(), nil)
-	require.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable, "a failed source with nothing found is not an empty result")
-}
-
 func TestDiscover_SharedNamespaceReads(t *testing.T) {
 	allow := map[string]bool{}
 	grant(allow, "opendatahub", groupInfrastructure, "hardwareprofiles", "get", "list")
-	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), &rbacClient{allow: allow}, identity(), nil)
 	require.NoError(t, err)
@@ -622,7 +586,7 @@ func TestDiscover_BoundsConcurrentReviews(t *testing.T) {
 		existing[n] = activeNS(n, "")
 	}
 	client := &rbacClient{allow: allow, namespaces: existing}
-	repo := NewNamespaceAccessRepository(candidates, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(candidates, "opendatahub")
 	repo.reviewConcurrency = 4
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
@@ -637,7 +601,7 @@ func TestDiscover_TruncatesCandidates(t *testing.T) {
 	for i := 0; i < MaxDiscoveryCandidates+5; i++ {
 		configured = append(configured, "ns-"+itoa(i))
 	}
-	repo := NewNamespaceAccessRepository(configured, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(configured, "opendatahub")
 	list, err := repo.Discover(context.Background(), &rbacClient{}, identity(), requested)
 	require.NoError(t, err, "truncation alone is not a failure")
 	assert.False(t, list.Complete)
@@ -668,7 +632,7 @@ func TestGet_Outcomes(t *testing.T) {
 		}
 	}
 	client := &rbacClient{allow: allow, fail: failAll, namespaces: map[string]*corev1.Namespace{"mine": activeNS("mine", "Mine")}}
-	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
 	ctx := context.Background()
 
 	got, err := repo.Get(ctx, client, identity(), "mine")
@@ -693,25 +657,6 @@ func TestGet_Outcomes(t *testing.T) {
 	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
 }
 
-func TestDiscover_LabelledMetadataShownWhenCallerCanRead(t *testing.T) {
-	sa := fake.NewSimpleClientset(&corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: "labelled", Labels: map[string]string{"x": "y"}, Annotations: map[string]string{"openshift.io/display-name": "Labelled"}},
-		Status:     corev1.NamespaceStatus{Phase: corev1.NamespaceActive},
-	})
-	allow := map[string]bool{}
-	viewer(allow, "labelled")
-	repo := NewNamespaceAccessRepository(nil, "x=y", sa, "opendatahub")
-
-	client := &rbacClient{allow: allow}
-	list, err := repo.Discover(context.Background(), client, identity(), nil)
-	require.NoError(t, err)
-	require.Len(t, list.Namespaces, 1)
-	assert.Equal(t, "Labelled", list.Namespaces[0].DisplayName)
-	// The metadata is shown because of the caller's own named get, made the way
-	// the API server resolves GET /api/v1/namespaces/labelled.
-	assert.Contains(t, client.reviewed, k8s.AccessReviewAttributes{Verb: "get", Resource: "namespaces", Namespace: "labelled", Name: "labelled"})
-}
-
 func TestDiscover_ReliableDenialPlusFailureIsPartialEmptyNot503(t *testing.T) {
 	fail := map[string]bool{}
 	for _, c := range namespacePermissionMatrix {
@@ -720,7 +665,7 @@ func TestDiscover_ReliableDenialPlusFailureIsPartialEmptyNot503(t *testing.T) {
 		}
 	}
 	client := &rbacClient{allow: map[string]bool{}, fail: fail}
-	repo := NewNamespaceAccessRepository([]string{"not-mine", "broken"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"not-mine", "broken"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err, "a reliable denial means discovery did not fail outright")
@@ -733,7 +678,7 @@ func TestDiscover_NotFoundStillReportsItsFailedReviews(t *testing.T) {
 	allow := map[string]bool{}
 	deployer(allow, "gone")
 	client := &rbacClient{allow: allow, fail: map[string]bool{key("gone", "", "pods", "list"): true}}
-	repo := NewNamespaceAccessRepository([]string{"gone"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"gone"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err, "a namespace that does not exist is a decided answer")
@@ -746,7 +691,7 @@ func TestDiscover_DefinitiveDenialWithAnUnrelatedFailureIsPartialEmpty(t *testin
 	// Paulo's repro: list errors, get and every other action review deny. No
 	// action is possible even if list were allowed (view needs get too).
 	client := &rbacClient{allow: map[string]bool{}, fail: map[string]bool{key("only", groupServing, "llminferenceservices", "list"): true}}
-	repo := NewNamespaceAccessRepository([]string{"only"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"only"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err, "a definitive denial is a decided answer, not 503")
@@ -763,7 +708,7 @@ func TestDiscover_FailureThatCouldEnableAnActionStaysUndecided(t *testing.T) {
 	allow := map[string]bool{}
 	grant(allow, "only", groupServing, "llminferenceservices", "get")
 	client := &rbacClient{allow: allow, fail: map[string]bool{key("only", groupServing, "llminferenceservices", "list"): true}}
-	repo := NewNamespaceAccessRepository([]string{"only"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"only"}, "opendatahub")
 
 	_, err := repo.Discover(context.Background(), client, identity(), nil)
 	assert.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable)
@@ -776,7 +721,7 @@ func TestDiscover_FailedNamespaceReadIsReported(t *testing.T) {
 	allow := map[string]bool{}
 	viewer(allow, "mine")
 	client := &rbacClient{allow: allow, getErr: k8serrors.NewServiceUnavailable("etcd is down")}
-	repo := NewNamespaceAccessRepository([]string{"mine"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"mine"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -803,7 +748,7 @@ func TestGet_DeadlineAfterAnAllowedReviewIsUnavailable(t *testing.T) {
 	allow := map[string]bool{}
 	viewer(allow, "team-a")
 	client := &detailBlockingClient{rbacClient{allow: allow}}
-	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
 	repo.timeout = 50 * time.Millisecond
 
 	_, err := repo.Get(context.Background(), client, identity(), "team-a")
@@ -820,7 +765,7 @@ func TestDiscover_EveryActionIsReviewedInTheTargetNamespace(t *testing.T) {
 	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{
 		"team-a": activeNS("team-a", ""), "team-b": activeNS("team-b", ""),
 	}}
-	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -834,28 +779,9 @@ func TestDiscover_EveryActionIsReviewedInTheTargetNamespace(t *testing.T) {
 	}
 }
 
-func TestDiscover_ServiceAccountMetadataNeedsTheCallersNamedGet(t *testing.T) {
-	allow := map[string]bool{}
-	deployer(allow, "labelled")
-	delete(allow, key("labelled", "", "namespaces", "get"))
-	grant(allow, "", "", "namespaces", "get") // a namespace-less get proves nothing here
-	sa := fake.NewSimpleClientset(&corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: "labelled", Labels: map[string]string{"opendatahub.io/dashboard": "true"}, Annotations: map[string]string{"openshift.io/display-name": "Secret name"}},
-		Status:     corev1.NamespaceStatus{Phase: corev1.NamespaceActive},
-	})
-	repo := NewNamespaceAccessRepository(nil, "opendatahub.io/dashboard=true", sa, "opendatahub")
-
-	list, err := repo.Discover(context.Background(), &rbacClient{allow: allow}, identity(), nil)
-	require.NoError(t, err)
-	require.Len(t, list.Namespaces, 1)
-	assert.Empty(t, list.Namespaces[0].DisplayName)
-	assert.Equal(t, models.NamespacePhaseUnknown, list.Namespaces[0].Phase)
-	assert.Equal(t, models.AccessDenied, list.Namespaces[0].Permissions[PermissionKey("", "namespaces")]["get"])
-}
-
 func TestDiscover_HiddenNamespacesCostOnlyTheActionReviews(t *testing.T) {
 	client := &rbacClient{allow: map[string]bool{}}
-	repo := NewNamespaceAccessRepository([]string{"not-mine"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"not-mine"}, "opendatahub")
 
 	_, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -893,7 +819,7 @@ func TestDiscover_RequestedNamesSurviveTruncation(t *testing.T) {
 	allow := map[string]bool{}
 	viewer(allow, "zz-mine")
 	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{"zz-mine": activeNS("zz-mine", "")}}
-	repo := NewNamespaceAccessRepository(configured, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(configured, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), []string{"zz-mine"})
 	require.NoError(t, err)
@@ -910,7 +836,7 @@ func (c *blockingClient) ReviewAccess(ctx context.Context, _ *k8s.RequestIdentit
 }
 
 func TestDiscover_DeadlineFailsClosedAndIsReported(t *testing.T) {
-	repo := NewNamespaceAccessRepository([]string{"team-a"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
 	repo.timeout = 50 * time.Millisecond
 
 	list, err := repo.Discover(context.Background(), &blockingClient{}, identity(), nil)
@@ -928,7 +854,7 @@ func TestDiscover_ClusterListDropsRequestedNamesItDoesNotList(t *testing.T) {
 	// not exist; only the named get is missing.
 	grant(allow, "*", groupServing, "llminferenceservices", "get", "list", "watch", "create", "update", "patch", "delete")
 	client := &rbacClient{canList: true, allow: allow, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
-	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), []string{"ghost", "team-a"})
 	require.NoError(t, err)
@@ -948,7 +874,7 @@ func TestDiscover_ClusterListIsNotCapped(t *testing.T) {
 	viewer(allow, "ns-204")
 	viewer(allow, "ns-99")
 	client := &rbacClient{canList: true, allow: allow, namespaces: existing}
-	repo := NewNamespaceAccessRepository(nil, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), client, identity(), nil)
 	require.NoError(t, err)
@@ -962,7 +888,7 @@ func TestDiscover_ManageTokenAuthNeedsUpdateOnSecrets(t *testing.T) {
 	grant(allow, "team-a", groupServing, "llminferenceservices", "get", "list", "create")
 	tokenManager(allow, "team-a")
 	allow[key("team-a", "", "secrets", "update")] = false
-	repo := NewNamespaceAccessRepository([]string{"team-a"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
 
 	list, err := repo.Discover(context.Background(), &rbacClient{allow: allow}, identity(), nil)
 	require.NoError(t, err)
@@ -1002,7 +928,7 @@ func TestForEachBounded_LimitsWorkersAndSkipsAfterCancellation(t *testing.T) {
 func TestDiscover_CancelledRequestIsUnavailable(t *testing.T) {
 	allow := map[string]bool{}
 	viewer(allow, "team-a")
-	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "", nil, "opendatahub")
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "opendatahub")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 

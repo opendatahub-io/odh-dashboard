@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -15,9 +16,6 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/runtime"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
-	clienttesting "k8s.io/client-go/testing"
 )
 
 // These run against envtest, whose API server authorizes the reviews with real
@@ -26,7 +24,7 @@ import (
 func newNamespaceAccessTestApp(candidates ...string) *App {
 	return newTestApp(func(a *App) {
 		a.config.PlatformType = config.PlatformXKS
-		a.repositories.NamespaceAccess = repositories.NewNamespaceAccessRepository(candidates, "", testSAClientset, "opendatahub")
+		a.repositories.NamespaceAccess = repositories.NewNamespaceAccessRepository(candidates, "opendatahub")
 	})
 }
 
@@ -181,15 +179,28 @@ func mustField(t *testing.T, body []byte, field string) json.RawMessage {
 	return v
 }
 
+// failingReviewsFactory hands out the real caller client with every access
+// review failing, as when the authorization service is down.
+type failingReviewsFactory struct{ k8s.KubernetesClientFactory }
+
+type failingReviewsClient struct{ k8s.KubernetesClientInterface }
+
+func (f failingReviewsFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	c, err := f.KubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return failingReviewsClient{c}, nil
+}
+
+func (failingReviewsClient) ReviewAccess(context.Context, *k8s.RequestIdentity, k8s.AccessReviewAttributes) (k8s.AccessReviewResult, error) {
+	var none k8s.AccessReviewResult
+	return none, errors.New("authorization service unavailable")
+}
+
 func TestNamespaceAccess_UnavailableCarriesTheIssueCodes(t *testing.T) {
-	failingSA := k8sfake.NewSimpleClientset()
-	failingSA.PrependReactor("list", "namespaces", func(clienttesting.Action) (bool, runtime.Object, error) {
-		return true, nil, errors.New("label lookup failed")
-	})
-	app := newTestApp(func(a *App) {
-		a.config.PlatformType = config.PlatformXKS
-		a.repositories.NamespaceAccess = repositories.NewNamespaceAccessRepository(nil, "team=ai", failingSA, "opendatahub")
-	})
+	app := newNamespaceAccessTestApp("test-ns-a")
+	app.kubernetesClientFactory = failingReviewsFactory{app.kubernetesClientFactory}
 	rr := httptest.NewRecorder()
 	app.GetNamespaceAccessHandler(rr, namespaceAccessRequest(k8mocks.DefaultTestUsers[2], NamespaceAccessPath), nil)
 
@@ -204,6 +215,6 @@ func TestNamespaceAccess_UnavailableCarriesTheIssueCodes(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
 	assert.Equal(t, "SERVICE_UNAVAILABLE", body.Error.Code)
 	assert.NotEmpty(t, body.Error.RequestID)
-	assert.Contains(t, body.Error.Issues, models.NamespaceDiscoveryIssue{Code: models.IssueLabelDiscoveryFailed, Count: 1},
-		"the cause tells a candidate-source failure from an authorization failure")
+	assert.Contains(t, body.Error.Issues, models.NamespaceDiscoveryIssue{Code: models.IssueAccessReviewFailed, Count: 1},
+		"the cause tells an authorization-service failure from a denial")
 }

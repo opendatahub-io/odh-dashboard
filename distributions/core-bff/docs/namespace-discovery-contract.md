@@ -45,8 +45,7 @@ the caller's own reviews allow at least one action in it.
 | ----- | -------------------------------------------------------------- | -------------------------------------------------------- | -------------- |
 | 1     | The caller's own namespace list                                | SSAR `list namespaces` (cluster-scoped) allowed          | `cluster-list` |
 | 2     | `NAMESPACE_CANDIDATES`                                         | Caller cannot list                                       | `candidates`   |
-| 3     | Service-account label enumeration (`NAMESPACE_DISCOVERY_LABEL_SELECTOR`) | Caller cannot list, selector configured        | `candidates`   |
-| 4     | `namespace` query parameters                                   | Always                                                   | either         |
+| 3     | `namespace` query parameters                                   | Always                                                   | either         |
 
 `source: candidates` tells the UI the list is not exhaustive and manual entry should stay
 available.
@@ -58,25 +57,14 @@ seeing every one they are authorized in, within the request deadline (see [Cost]
 cluster with more namespaces than one request can review, the rest are reported as failed reviews
 and the listing is partial.
 
-`NAMESPACE_DISCOVERY_LABEL_SELECTOR` is trimmed once at startup; a whitespace-only value disables
-label discovery, as validation treats it, instead of matching every namespace.
+### No service-account access
 
-### The service-account exception
-
-The label enumeration is the only place discovery uses the dashboard service account. The BFF
-leaves it off unless `NAMESPACE_DISCOVERY_LABEL_SELECTOR` is set, and it requires a cluster-scoped
-`list` on `namespaces` for the service account. The RHAII bundle
-(`manifests/distributions/rhaii`) turns it on with `opendatahub.io/dashboard=true` and grants
-that `list`; `manifests/base` grants neither. The [bootstrap contract](./bootstrap-contract.md#service-account-permissions)
-lists it as the one optional service-account permission on `namespaces`. The final RHAII manifest
-RBAC is owned by [RHOAIENG-104119](https://redhat.atlassian.net/browse/RHOAIENG-104119). It is
-narrow by construction:
-
-- It lists only namespaces matching the configured selector.
-- It contributes names. Its copy of a namespace's metadata (display name, phase) is used only
-  when the caller's own `get` on that namespace is allowed.
-- A name it contributes reaches the caller only after the caller's reviews authorize it, so a
-  label (for example `opendatahub.io/dashboard=true`) never establishes access.
+Discovery never uses the dashboard service account. Every candidate and every decision comes from
+the caller's own credentials, so the service account needs no permission on `namespaces` (see the
+[bootstrap contract](./bootstrap-contract.md#service-account-permissions)). A caller who can
+neither list namespaces nor reach a configured candidate can still open a project by name: the UI
+looks it up with `GET /api/v1/namespace-access/{name}` (or sends it as a `namespace` query
+parameter), and it is returned only if the caller's reviews allow it.
 
 `NAMESPACE_CANDIDATES` remains available where the set of RHAII namespaces is known at install
 time. A richer source (for example one the operator manages, or a UX for registering namespaces)
@@ -184,7 +172,7 @@ both token actions require it; a create-only deployer gets `deploy` without toke
 `issues` never contains a namespace name, and error responses never echo one, so a failure cannot
 reveal a namespace the caller is not authorized for. Counts can reflect the size of the
 operator-configured sources (for example how many candidates were truncated); they never carry
-names. Issue codes: `CLUSTER_LIST_REVIEW_FAILED`, `CLUSTER_LIST_FAILED`, `LABEL_DISCOVERY_FAILED`,
+names. Issue codes: `CLUSTER_LIST_REVIEW_FAILED`, `CLUSTER_LIST_FAILED`,
 `ACCESS_REVIEW_FAILED`, `CANDIDATES_TRUNCATED`, `SHARED_ACCESS_REVIEW_FAILED` (dashboard-namespace
 reads; never causes a 503 on its own), `DISCOVERY_DEADLINE_EXCEEDED`, `NAMESPACE_READ_FAILED` (the
 caller may `get` a returned namespace but reading it failed, so its `phase` is `Unknown` for a
@@ -288,7 +276,7 @@ most 16 namespaces are evaluated at a time, which bounds the request's goroutine
 started when the request is cancelled or its deadline passes count as failed reviews. The
 caller's per-request client allows 400 requests per second (burst 800) instead of client-go's 5/10
 default, which would otherwise throttle discovery to minutes. A request from configured
-candidates and label discovery evaluates at most 200 of them; a caller's own cluster list is not
+candidates evaluates at most 200 of them; a caller's own cluster list is not
 capped. Every request stops after 25 seconds, below the server's 60-second write timeout. At the client
 rate that bounds one request to roughly 10,000 reviews: about 390 namespaces the caller can use, or
 about 440 they cannot, fewer when authorizer webhooks are slow. Beyond that the listing is partial,
@@ -338,7 +326,7 @@ contract.
 
 - `bff/internal/repositories/namespace_access.go` — candidates, matrix, actions, outcomes
 - `bff/internal/repositories/namespace_access_test.go` — matrix, mixed/read-only access, failed
-  reviews, empty results, fallback, label exception, concurrency bound
+  reviews, empty results, fallback, concurrency bound
 - `bff/internal/api/namespace_access_handler_test.go` — envtest with real RBAC
 - `contract-tests/__tests__/xks/testCoreBffNamespaceAccess.test.ts` and
   `contract-tests/__tests__/openshift/testCoreBffNamespaceAccess.test.ts`

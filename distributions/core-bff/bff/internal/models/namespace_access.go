@@ -30,7 +30,6 @@ const (
 const (
 	IssueClusterListReviewFailed = "CLUSTER_LIST_REVIEW_FAILED"
 	IssueClusterListFailed       = "CLUSTER_LIST_FAILED"
-	IssueLabelDiscoveryFailed    = "LABEL_DISCOVERY_FAILED"
 	IssueAccessReviewFailed      = "ACCESS_REVIEW_FAILED"
 	// IssueNamespaceReadFailed: the caller may get the namespace, but reading
 	// it failed, so its phase and metadata are missing (phase Unknown).
@@ -87,8 +86,7 @@ const NamespacePhaseUnknown = "Unknown"
 // permission matrix that authorized it.
 type NamespaceAccess struct {
 	Name string `json:"name"`
-	// DisplayName is present only when the namespace object could be read (by
-	// the caller, or by the opt-in label discovery).
+	// DisplayName is present only when the caller could read the namespace object.
 	DisplayName string `json:"displayName,omitempty"`
 	// Phase is always set: the namespace's status.phase when it could be read,
 	// otherwise NamespacePhaseUnknown.

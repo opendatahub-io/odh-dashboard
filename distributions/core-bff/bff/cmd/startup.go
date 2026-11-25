@@ -182,9 +182,6 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	fs.Func("namespace-candidates",
 		"Comma-separated namespaces the xKS namespace discovery evaluates for callers who cannot list namespaces (each is returned only if the caller's access reviews allow it)",
 		newListParser(&cfg.NamespaceCandidates))
-	fs.StringVar(&cfg.NamespaceDiscoveryLabelSelector, "namespace-discovery-label-selector",
-		getEnvAsString("NAMESPACE_DISCOVERY_LABEL_SELECTOR", ""),
-		"Optional label selector the service account uses to enumerate extra xKS discovery candidates (empty disables it; needs cluster list on namespaces)")
 	fs.StringVar(&cfg.DashboardConfigName, "dashboard-config-name",
 		getEnvAsString("DASHBOARD_CONFIG_NAME", "odh-dashboard-config"),
 		"Name of the OdhDashboardConfig CR")
@@ -274,10 +271,6 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	// Validation trims the header name, so every consumer must see the trimmed
 	// value too: Header.Get, the proxy strip list, CORS and Vary all use it.
 	sc.Env.AuthTokenHeader = strings.TrimSpace(sc.Env.AuthTokenHeader)
-
-	// Normalized once, so validation and discovery read the same value: a
-	// whitespace-only selector would otherwise pass as empty and match every namespace.
-	sc.Env.NamespaceDiscoveryLabelSelector = strings.TrimSpace(sc.Env.NamespaceDiscoveryLabelSelector)
 
 	// Any nonempty value is a list the operator set, including whitespace only.
 	if authTokenHeadersRaw != "" && len(sc.Env.AuthTokenHeaders) == 0 {

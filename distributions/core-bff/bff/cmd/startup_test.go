@@ -37,7 +37,7 @@ func isolateEnv(t *testing.T) {
 		"OPERATOR_NAMESPACE", "WORKBENCH_NAMESPACE", "DASHBOARD_CONFIG_NAME", "ENABLED_APPS_CM",
 		"MF_REMOTES_CONFIG", "DEV_USER", "DEV_GROUPS", "MODEL_SERVING_HOST",
 		"PROMETHEUS_HOST", "PROMETHEUS_NAMESPACE", "PROMETHEUS_INSTANCE", "PROMETHEUS_PORT",
-		"NAMESPACE_CANDIDATES", "NAMESPACE_DISCOVERY_LABEL_SELECTOR",
+		"NAMESPACE_CANDIDATES",
 	} {
 		t.Setenv(name, "")
 		require.NoError(t, os.Unsetenv(name))
@@ -757,19 +757,4 @@ func TestParseStartupConfig_DevModeClientPortIsStrict(t *testing.T) {
 	sc, err = parse(t)
 	require.NoError(t, err)
 	assert.Equal(t, 8080, sc.Env.DevModeClientPort)
-}
-
-// Validation treats a whitespace-only selector as empty; discovery must read
-// the same value, or Kubernetes would match every namespace with it.
-func TestParseStartupConfig_LabelSelectorIsNormalized(t *testing.T) {
-	for _, tc := range []struct{ raw, want string }{
-		{"   ", ""},
-		{" team=ai ", "team=ai"},
-	} {
-		isolateEnv(t)
-		t.Setenv("NAMESPACE_DISCOVERY_LABEL_SELECTOR", tc.raw)
-		sc, err := parse(t)
-		require.NoError(t, err)
-		assert.Equal(t, tc.want, sc.Env.NamespaceDiscoveryLabelSelector)
-	}
 }

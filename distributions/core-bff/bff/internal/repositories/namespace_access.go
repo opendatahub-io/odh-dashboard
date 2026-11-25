@@ -11,15 +11,13 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
 	// MaxRequestedNamespaces bounds the caller-supplied candidates per request.
 	MaxRequestedNamespaces = 50
 	// MaxDiscoveryCandidates bounds the namespaces evaluated per request when
-	// they come from configured candidates or label discovery. A caller who may
+	// they come from configured or requested candidates. A caller who may
 	// list namespaces has every listed namespace evaluated instead, so the
 	// result keeps the namespaces they could already list; that request is
 	// bounded by the review concurrency, the client rate limit and the deadline.
@@ -105,20 +103,16 @@ func PermissionKey(group, resource string) string {
 // sources only propose names; none of them grants anything.
 type NamespaceAccessRepository struct {
 	candidates        []string
-	labelSelector     string
-	saClientset       kubernetes.Interface
 	sharedNamespace   string
 	reviewConcurrency int
 	timeout           time.Duration
 }
 
-// NewNamespaceAccessRepository builds the repository. saClientset is used only
-// when labelSelector is non-empty.
-func NewNamespaceAccessRepository(candidates []string, labelSelector string, saClientset kubernetes.Interface, sharedNamespace string) *NamespaceAccessRepository {
+// NewNamespaceAccessRepository builds the repository. Discovery runs entirely
+// on the caller's credentials; it holds no service-account client.
+func NewNamespaceAccessRepository(candidates []string, sharedNamespace string) *NamespaceAccessRepository {
 	return &NamespaceAccessRepository{
 		candidates:        candidates,
-		labelSelector:     labelSelector,
-		saClientset:       saClientset,
 		sharedNamespace:   sharedNamespace,
 		reviewConcurrency: accessReviewConcurrency,
 		timeout:           DiscoveryTimeout,
@@ -151,7 +145,7 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 
 	issues := issueCounter{}
 	source := models.NamespaceSourceCandidates
-	known := knownNamespaces{byCaller: map[string]*corev1.Namespace{}, bySA: map[string]*corev1.Namespace{}}
+	known := knownNamespaces{byCaller: map[string]*corev1.Namespace{}}
 	// Requested names are evaluated first so truncation never drops them.
 	var names []string
 	seen := map[string]bool{}
@@ -201,20 +195,6 @@ func (r *NamespaceAccessRepository) Discover(ctx context.Context, client k8s.Kub
 	if source == models.NamespaceSourceCandidates {
 		for _, name := range r.candidates {
 			addName(name)
-		}
-		if r.labelSelector != "" && r.saClientset != nil {
-			// The one service-account exception: it proposes names only. The
-			// namespaces it reads are returned to the caller solely after the
-			// caller's own reviews below authorize them.
-			list, listErr := r.saClientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{LabelSelector: r.labelSelector})
-			if listErr != nil {
-				issues.add(models.IssueLabelDiscoveryFailed, 1)
-			} else {
-				for i := range list.Items {
-					known.bySA[list.Items[i].Name] = &list.Items[i]
-					addName(list.Items[i].Name)
-				}
-			}
 		}
 	}
 	sort.Strings(others)
@@ -330,12 +310,10 @@ type evaluated struct {
 	readFailed bool
 }
 
-// knownNamespaces holds Namespace objects discovery already read. byCaller came
-// from the caller's own list; bySA from the service-account label enumeration
-// and is used only when the caller may read the namespace itself.
+// knownNamespaces holds Namespace objects discovery already read from the
+// caller's own list.
 type knownNamespaces struct {
 	byCaller map[string]*corev1.Namespace
-	bySA     map[string]*corev1.Namespace
 }
 
 // evaluate reviews one namespace as the caller. Every review names the
@@ -370,8 +348,7 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 	ns := known.byCaller[name]
 	nsKey := PermissionKey("", "namespaces")
 	// The caller's own named get, with the namespace attribute the API server
-	// sets for GET /api/v1/namespaces/<name>. Service-account metadata is used
-	// only when this review allows it.
+	// sets for GET /api/v1/namespaces/<name>.
 	var getReview k8s.AccessReviewResult
 	var err error
 	lim.do(func() {
@@ -383,9 +360,6 @@ func (r *NamespaceAccessRepository) evaluate(ctx context.Context, lim limiter, c
 		failed++
 	case models.AccessAllowed:
 		perms[nsKey] = models.ResourcePermissions{"get": models.AccessAllowed}
-		if ns == nil {
-			ns = known.bySA[name]
-		}
 		if ns != nil {
 			break
 		}

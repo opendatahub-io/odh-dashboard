@@ -196,13 +196,6 @@ type EnvConfig struct {
 	// returned only after the caller's own access reviews allow it.
 	NamespaceCandidates []string
 
-	// NamespaceDiscoveryLabelSelector, when set, lets the dashboard service
-	// account enumerate namespaces matching this selector as additional xKS
-	// discovery candidates. Empty (the default) disables the enumeration. It is
-	// the one documented service-account exception in namespace discovery and
-	// needs a cluster-scoped list on namespaces for the service account.
-	NamespaceDiscoveryLabelSelector string
-
 	// DashboardConfigName is the name of the OdhDashboardConfig CR to read.
 	DashboardConfigName string
 

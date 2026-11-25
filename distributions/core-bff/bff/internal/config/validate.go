@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
@@ -125,11 +124,6 @@ func (c EnvConfig) validateCore(add func(string, ...any)) {
 	for _, ns := range c.NamespaceCandidates {
 		if len(validation.IsDNS1123Label(ns)) != 0 {
 			add("NAMESPACE_CANDIDATES/--namespace-candidates contains %q, which is not a valid namespace name", ns)
-		}
-	}
-	if sel := strings.TrimSpace(c.NamespaceDiscoveryLabelSelector); sel != "" {
-		if _, err := labels.Parse(sel); err != nil {
-			add("NAMESPACE_DISCOVERY_LABEL_SELECTOR/--namespace-discovery-label-selector is not a valid label selector: %v", err)
 		}
 	}
 

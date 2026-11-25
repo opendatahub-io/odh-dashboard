@@ -168,8 +168,7 @@ paths:
         Authorized namespace discovery for callers who may not list namespaces
         cluster-wide. Candidates come from the caller's own cluster list when
         permitted (source cluster-list); otherwise from the configured
-        NAMESPACE_CANDIDATES, the optional service-account label discovery and the
-        namespace query parameters (source candidates). Each candidate is returned
+        NAMESPACE_CANDIDATES and the namespace query parameters (source candidates). Each candidate is returned
         only when the caller's SelfSubjectAccessReviews, each made in that
         namespace, allow at least one RHAII action in it. Failed and indeterminate
         reviews (an authorizer error with no decision) are reported as error, never
@@ -2151,7 +2150,6 @@ components:
           enum:
             - CLUSTER_LIST_REVIEW_FAILED
             - CLUSTER_LIST_FAILED
-            - LABEL_DISCOVERY_FAILED
             - ACCESS_REVIEW_FAILED
             - CANDIDATES_TRUNCATED
             - SHARED_ACCESS_REVIEW_FAILED
@@ -3160,8 +3158,8 @@ components:
           $ref: '#/components/headers/RequestID'
       description: >-
         Discovery decided nothing because every source or review failed. issues
-        tells a candidate-source failure (for example LABEL_DISCOVERY_FAILED) from
-        an authorization-service failure (ACCESS_REVIEW_FAILED).
+        tells a failed cluster list (CLUSTER_LIST_FAILED) from an
+        authorization-service failure (ACCESS_REVIEW_FAILED).
       content:
         application/json:
           schema:
@@ -3172,7 +3170,7 @@ components:
               message: 'the upstream service is temporarily unavailable'
               requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
               issues:
-                - { code: LABEL_DISCOVERY_FAILED, count: 1 }
+                - { code: ACCESS_REVIEW_FAILED, count: 1 }
 
     BFFForbidden:
       headers:
