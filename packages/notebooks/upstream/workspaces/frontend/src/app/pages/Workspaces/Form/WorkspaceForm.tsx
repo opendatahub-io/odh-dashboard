@@ -632,7 +632,7 @@ const WorkspaceForm: React.FC = () => {
                         namespace={namespace}
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
-                        homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
+                        homeVolumeMountPath={data.kind?.podTemplate.volumeMountPaths.home}
                         displayNameError={displayNameError}
                         onDisplayNameChange={onDisplayNameChange}
                         resourceNameError={resourceNameError}

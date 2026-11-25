@@ -456,7 +456,7 @@ export const buildMockWorkspaceKind = (
       labels: {},
       annotations: {},
     },
-    volumeMounts: {
+    volumeMountPaths: {
       home: '/home/jovyan',
     },
     options: {
@@ -730,6 +730,9 @@ export const buildMockWorkspaceKindUpdate = (
       },
     },
     podMetadata: listItem.podTemplate.podMetadata,
+    podSpec: {
+      mainContainer: {},
+    },
     ports: [
       {
         id: 'http',
