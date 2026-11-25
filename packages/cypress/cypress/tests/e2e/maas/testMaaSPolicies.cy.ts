@@ -44,6 +44,7 @@ import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelS
 import { getClipboardContent } from '../../../utils/clipboardUtils';
 import type { CapturedDownload } from '../../../utils/downloadUtils';
 import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
+import { waitForApiKeyDates, watchApiKeyCreation } from '../../../utils/maasApiKeyDates';
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;
@@ -61,12 +62,6 @@ let apiKeyExpirationTime: string;
 let policiesModelsCount: number;
 let policiesGroupsCount: number;
 let tokenLimit: string;
-const today = new Date().toLocaleDateString('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-});
-let expiryDate: string;
 
 const CLIPBOARD_WRITE_TEXT_STUB_ALIAS = 'clipboardWriteText';
 
@@ -89,9 +84,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
         tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
         apiKeyName = `${subscriptionName}-api-key`;
         apiKeyExpirationTime = testData.apiKeyExpirationTime;
-        expiryDate = new Date(
-          new Date().setDate(new Date().getDate() + parseInt(apiKeyExpirationTime, 10)),
-        ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       })
       .then(() => {
         cy.log(`Create clean project`);
@@ -333,6 +325,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         createApiKeyModal.findSubmitButton().should('be.disabled');
         createApiKeyModal.setAfterDays(Number(apiKeyExpirationTime));
         createApiKeyModal.findSubmitButton().should('be.enabled');
+        watchApiKeyCreation();
         createApiKeyModal.findSubmitButton().click();
 
         cy.step('Read the API key from the success dialog');
@@ -353,8 +346,12 @@ describe('An admin can manage MaaS authorization policies and control model acce
           apiKeyRow.findStatus().should('contain.text', ApiKeyStatus.active);
           apiKeyRow.findSubscription().should('contain.text', subscriptionName);
           apiKeyRow.findOwner().should('contain.text', LDAP_ADMIN_USER.USERNAME);
-          apiKeyRow.findCreationDate().should('contain.text', today);
-          apiKeyRow.findExpirationDate().should('contain.text', expiryDate);
+          waitForApiKeyDates(`${Number(apiKeyExpirationTime)}d`).then(
+            ({ createdOn, expiresOn }) => {
+              apiKeyRow.findCreationDate().should('have.text', createdOn);
+              apiKeyRow.findExpirationDate().should('have.text', expiresOn);
+            },
+          );
 
           cy.step('Try and inference with the model using the copied API key');
           verifyMaaSModelInferenceUsingCopiedApiKeyFromModal(
