@@ -152,7 +152,7 @@ const execEvalHubMlflowCleanupCommand = (
   maxAttempts = DEFAULT_EVALHUB_MLFLOW_CLEANUP_MAX_ATTEMPTS,
   attempt = 1,
 ): Cypress.Chainable<Cypress.Exec> => {
-  // Bound the shell process before Cypress's deadline where timeout is available (Jenkins).
+  // A missing timeout utility must fail before Cypress's deadline instead of running unbounded.
   const boundedCommand = [
     'timeout_command=$(command -v timeout || command -v gtimeout || true)',
     'if [ -n "$timeout_command" ]; then',
@@ -160,7 +160,8 @@ const execEvalHubMlflowCleanupCommand = (
       command,
     )}`,
     'else',
-    `  sh -c ${shellQuote(command)}`,
+    '  echo "MLflow cleanup requires timeout or gtimeout; command not run" >&2',
+    '  exit 127',
     'fi',
   ].join('\n');
 
@@ -171,7 +172,7 @@ const execEvalHubMlflowCleanupCommand = (
       log: false,
     })
     .then((result) => {
-      if (result.exitCode === 0 || attempt >= maxAttempts) {
+      if (result.exitCode === 0 || result.exitCode === 127 || attempt >= maxAttempts) {
         return cy.wrap(result, { log: false });
       }
 

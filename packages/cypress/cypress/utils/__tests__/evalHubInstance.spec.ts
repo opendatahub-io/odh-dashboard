@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { beforeAll, describe, expect, it, jest } from '@jest/globals';
 import type * as EvalHubInstance from '../oc_commands/evalHubInstance';
 
@@ -89,6 +90,28 @@ describe('cleanupEvalHubMlflowExperiment', () => {
     expect(
       commands.exec.mock.calls.every(([command]) => !command.includes('experiments/delete')),
     ).toBe(true);
+  });
+
+  it('should fail promptly when no timeout utility is available', async () => {
+    const commands = setupCypress([
+      execResult('', 127, 'MLflow cleanup requires timeout or gtimeout; command not run'),
+    ]);
+    const reportFailure = jest.fn<(message: string) => void>();
+
+    await expect(
+      cleanupEvalHubMlflowExperiment('tenant-1', 'experiment-1', reportFailure),
+    ).resolves.toBe(false);
+
+    expect(commands.exec).toHaveBeenCalledTimes(1);
+    expect(commands.wait).not.toHaveBeenCalled();
+    const fallback = spawnSync('/bin/sh', ['-c', commands.exec.mock.calls[0][0]], {
+      env: { PATH: '/nonexistent' },
+      encoding: 'utf8',
+      timeout: 5000,
+    });
+    expect(fallback.status).toBe(127);
+    expect(fallback.stderr).toContain('MLflow cleanup requires timeout or gtimeout');
+    expect(reportFailure).toHaveBeenCalledWith(expect.stringContaining('command not run'));
   });
 
   it('should check the original experiment before replaying an ambiguous delete', async () => {

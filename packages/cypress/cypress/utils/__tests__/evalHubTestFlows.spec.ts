@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type * as EvalHubTestFlows from '../evalHubTestFlows';
 
@@ -18,7 +19,7 @@ const makeResponse = (status: number, type: ResponseType = 'basic'): Response =>
     text: () => Promise.resolve(''),
   } as Response);
 
-const setupCypress = () => {
+const setupCypress = ({ serial = false }: { serial?: boolean } = {}) => {
   const fetch = jest.fn<Window['fetch']>().mockResolvedValue(makeResponse(204));
   const appWindow = {
     location: { origin: dashboardOrigin },
@@ -27,12 +28,19 @@ const setupCypress = () => {
     clearTimeout: jest.fn(),
     fetch,
   };
+  let commandQueue: Promise<unknown> = Promise.resolve();
   const commands = {
-    then: jest.fn((optionsOrCallback: unknown, callback?: () => unknown) =>
-      Promise.resolve().then(
-        (typeof optionsOrCallback === 'function' ? optionsOrCallback : callback) as () => unknown,
-      ),
-    ),
+    then: jest.fn((optionsOrCallback: unknown, callback?: () => unknown) => {
+      const run = (
+        typeof optionsOrCallback === 'function' ? optionsOrCallback : callback
+      ) as () => unknown;
+      if (!serial) {
+        return Promise.resolve().then(run);
+      }
+      const next = commandQueue.then(run);
+      commandQueue = next.then(() => undefined);
+      return next;
+    }),
     wrap: jest.fn((value: unknown) => Promise.resolve(value)),
     wait: jest.fn(() => Promise.resolve()),
     log: jest.fn(),
@@ -77,6 +85,20 @@ describe('EvalHub dashboard cleanup requests', () => {
         redirect: 'manual',
       }),
     );
+    const [requestUrl, requestOptions] = runtime.fetch.mock.calls[0];
+    // Jest's jsdom has no Request constructor; Node's Fetch implementation validates the same options.
+    expect(() =>
+      execFileSync(process.execPath, [
+        '-e',
+        'new Request(process.argv[1], JSON.parse(process.argv[2]))',
+        String(requestUrl),
+        JSON.stringify({
+          method: requestOptions?.method,
+          credentials: requestOptions?.credentials,
+          redirect: requestOptions?.redirect,
+        }),
+      ]),
+    ).not.toThrow();
     expect(reportFailure).not.toHaveBeenCalled();
   });
 
@@ -124,14 +146,22 @@ describe('EvalHub dashboard cleanup requests', () => {
     expect(reportFailure).toHaveBeenCalledWith(expect.stringContaining('HTTP 503'));
   });
 
+  // eslint-disable-next-line cypress/no-async-tests -- Jest awaits a stubbed queue, not real Cypress commands.
   it('should continue later steps and emit one sanitized warning summary', async () => {
+    runtime = setupCypress({ serial: true });
     const order: string[] = [];
+    let releaseReport: () => void = () => undefined;
+    const delayedReport = new Promise<void>((resolve) => {
+      releaseReport = resolve;
+    });
     runEvalHubCleanup([
       {
         description: 'Delete experiment',
         run: ({ reportFailure }) => {
           order.push('experiment');
-          reportFailure('failed with sensitive-value');
+          return delayedReport.then(() => {
+            reportFailure('failed with sensitive-value');
+          }) as unknown as Cypress.Chainable<void>;
         },
       },
       {
@@ -148,6 +178,10 @@ describe('EvalHub dashboard cleanup requests', () => {
         },
       },
     ]);
+    await Promise.resolve();
+    expect(order).toEqual(['experiment']);
+    expect(runtime.commands.log).not.toHaveBeenCalled();
+    releaseReport();
     await Promise.all(runtime.commands.then.mock.results.map(({ value }) => value));
 
     expect(order).toEqual(['experiment', 'project', 'hardware profile']);
