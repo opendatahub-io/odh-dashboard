@@ -37,7 +37,7 @@ import {
 } from '~/app/utilities/evaluationUtils';
 import {
   evaluationCopySuiteRoute,
-  evaluationCreateSuiteChooserRoute,
+  evaluationCreateCollectionEntryRoute,
   evaluationEditSuiteRoute,
   evaluationEvaluateNavigationState,
   evaluationGalleryNavigationState,
@@ -336,7 +336,7 @@ const EvaluationsPage: React.FC = () => {
                   <Button
                     variant="primary"
                     component={(props) => (
-                      <Link {...props} to={evaluationCreateSuiteChooserRoute(namespace)} />
+                      <Link {...props} to={evaluationCreateCollectionEntryRoute(namespace)} />
                     )}
                     data-testid="create-suite-header-button"
                   >

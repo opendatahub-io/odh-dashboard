@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
 import { evalHubEvaluationsRoute, evalHubRootPath } from './utilities/routes';
@@ -20,6 +20,7 @@ import EvaluationReconfigureLoader from './pages/EvaluationReconfigureLoader';
 import CopySuitePage, { CreateSuitePage, EditSuitePage } from './pages/CopySuitePage';
 import CreateCollectionChooserPage from './pages/CreateCollectionChooserPage';
 import CreateCollectionFromGoalPage from './pages/CreateCollectionFromGoalPage';
+import { evaluationCreateSuiteRoute, isGoalCollectionBuilderEnabled } from './routes';
 
 export const useNavData = (): NavDataItem[] => [
   {
@@ -28,6 +29,11 @@ export const useNavData = (): NavDataItem[] => [
     href: evalHubRootPath,
   },
 ];
+
+const RedirectToCreateCollectionForm: React.FC = () => {
+  const { namespace } = useParams<{ namespace: string }>();
+  return <Navigate to={evaluationCreateSuiteRoute(namespace)} replace />;
+};
 
 const AppRoutes: React.FC = () => (
   <>
@@ -44,10 +50,25 @@ const AppRoutes: React.FC = () => (
           element={<CuratedBenchmarkSuitesPage />}
         />
         <Route path=":namespace/results/:jobId" element={<EvaluationResultsPage />} />
-        <Route path=":namespace/create-suite" element={<CreateCollectionChooserPage />} />
+        <Route
+          path=":namespace/create-suite"
+          element={
+            isGoalCollectionBuilderEnabled() ? (
+              <CreateCollectionChooserPage />
+            ) : (
+              <RedirectToCreateCollectionForm />
+            )
+          }
+        />
         <Route
           path=":namespace/create-suite/from-goal"
-          element={<CreateCollectionFromGoalPage />}
+          element={
+            isGoalCollectionBuilderEnabled() ? (
+              <CreateCollectionFromGoalPage />
+            ) : (
+              <RedirectToCreateCollectionForm />
+            )
+          }
         />
         <Route
           path={`:namespace/${evaluationComparePathSegment}/benchmarks`}
