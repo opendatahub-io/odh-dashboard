@@ -129,6 +129,8 @@ const (
 	stateMsgRunning                        = "Workspace is running"
 	stateMsgTerminating                    = "Workspace is terminating"
 	stateMsgUnknown                        = "Workspace is in an unknown state"
+	stateMsgWaitingStatefulSetReconcile    = "Waiting for Kubernetes to reconcile StatefulSet"
+	stateMsgWaitingPodUpdate               = "Waiting for Pod update"
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -2265,6 +2267,14 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 	state := kubefloworgv1beta1.WorkspaceStateUnknown
 	stateMessage := stateMsgUnknown
 
+	// STATUS: Pending (kubernetes might not have processed StatefulSet)
+	if statefulSet.GetGeneration() != statefulSet.Status.ObservedGeneration {
+		return kubefloworgv1beta1.WorkspaceStatePending,
+			stateMsgWaitingStatefulSetReconcile,
+			ctrl.Result{},
+			nil
+	}
+
 	// cases where the Pod does not exist
 	if pod == nil {
 		// STATUS: Paused
@@ -2315,6 +2325,14 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 			state = kubefloworgv1beta1.WorkspaceStateTerminating
 			stateMessage = stateMsgTerminating
 			return state, stateMessage, ctrl.Result{}, nil
+		}
+
+		// STATUS: Pending (StatefulSet might not have rolled out new Pod)
+		if pod.Labels[appsv1.StatefulSetRevisionLabel] != statefulSet.Status.UpdateRevision {
+			return kubefloworgv1beta1.WorkspaceStatePending,
+				stateMsgWaitingPodUpdate,
+				ctrl.Result{},
+				nil
 		}
 
 		// get the pod phase
