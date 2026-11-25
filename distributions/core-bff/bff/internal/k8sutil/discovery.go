@@ -1,6 +1,7 @@
 package k8sutil
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -56,7 +57,7 @@ func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVer
 
 	// Every real API server serves the core group at /api.
 	var core metav1.APIVersions
-	if err := readDiscoveryDocument(ctx, rc, "/api", "APIVersions", &core); err != nil {
+	if err := readDiscoveryDocument(ctx, rc, "/api", "APIVersions", "versions", &core); err != nil {
 		return false, fmt.Errorf("%w: /api: %w", ErrAbsenceUnconfirmed, err)
 	}
 	if !slices.Contains(core.Versions, "v1") {
@@ -67,7 +68,7 @@ func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVer
 	resourcesPath := "/api/" + gvr.Version
 	if gvr.Group != "" {
 		var groups metav1.APIGroupList
-		if err := readDiscoveryDocument(ctx, rc, "/apis", "APIGroupList", &groups); err != nil {
+		if err := readDiscoveryDocument(ctx, rc, "/apis", "APIGroupList", "groups", &groups); err != nil {
 			return false, fmt.Errorf("%w: /apis: %w", ErrAbsenceUnconfirmed, err)
 		}
 		listed = listsGroupVersion(&groups, gvr.Group, gv)
@@ -80,7 +81,7 @@ func confirmOverWire(ctx context.Context, rc rest.Interface, gvr schema.GroupVer
 	// The group version is listed, so its resource list decides; it is read
 	// once and searched as validated.
 	var resources metav1.APIResourceList
-	if err := readDiscoveryDocument(ctx, rc, resourcesPath, "APIResourceList", &resources); err != nil {
+	if err := readDiscoveryDocument(ctx, rc, resourcesPath, "APIResourceList", "resources", &resources); err != nil {
 		return false, fmt.Errorf("%w: resource list: %w", ErrAbsenceUnconfirmed, err)
 	}
 	return absentFrom(&resources, gvr, gv)
@@ -151,18 +152,25 @@ func restClientOf(disc discovery.DiscoveryInterface) rest.Interface {
 }
 
 // readDiscoveryDocument GETs path with ctx and decodes it into into,
-// requiring the given kind.
-func readDiscoveryDocument(ctx context.Context, rc rest.Interface, path, kind string, into any) error {
+// requiring the given kind and its list field (listKey). The list field is
+// required by the discovery schema: a body without it, or with null, decodes
+// to an empty list and would read as absence, so it is rejected; an explicit
+// empty array is a valid answer.
+func readDiscoveryDocument(ctx context.Context, rc rest.Interface, path, kind, listKey string, into any) error {
 	raw, err := rc.Get().AbsPath(path).SetHeader("Accept", "application/json").Do(ctx).Raw()
 	if err != nil {
 		return err
 	}
-	var meta metav1.TypeMeta
-	if err := json.Unmarshal(raw, &meta); err != nil {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
 		return fmt.Errorf("not a discovery document: %w", err)
 	}
-	if meta.Kind != kind {
+	var gotKind string
+	if err := json.Unmarshal(fields["kind"], &gotKind); err != nil || gotKind != kind {
 		return fmt.Errorf("the response is not an %s", kind)
+	}
+	if list := bytes.TrimSpace(fields[listKey]); len(list) == 0 || list[0] != '[' {
+		return fmt.Errorf("the %s has no %q list", kind, listKey)
 	}
 	if err := json.Unmarshal(raw, into); err != nil {
 		return fmt.Errorf("not a discovery document: %w", err)

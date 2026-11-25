@@ -191,6 +191,16 @@ func TestConfirmAPIAbsent_ValidatesDiscoveryDocumentsOverHTTP(t *testing.T) {
 		{"malformed /apis", `{"message":"ok"}`, "", false},
 		{"/apis of another kind", `{"kind":"Status","apiVersion":"v1","status":"Success"}`, "", false},
 		{"valid empty group list", `{"kind":"APIGroupList","apiVersion":"v1","groups":[]}`, "", true},
+		// Review 6059203374: groups and resources are required by the schema;
+		// a missing or null list is not an empty one.
+		{"group list without groups", `{"kind":"APIGroupList","apiVersion":"v1"}`, "", false},
+		{"group list with null groups", `{"kind":"APIGroupList","apiVersion":"v1","groups":null}`, "", false},
+		{"listed group, resource list without resources", listsConfig,
+			`{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v1"}`, false},
+		{"listed group, resource list with null resources", listsConfig,
+			`{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v1","resources":null}`, false},
+		{"listed group, empty resource list", listsConfig,
+			`{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v1","resources":[]}`, true},
 		{"listed group, malformed resource list", listsConfig, `{}`, false},
 		{"listed group, resource list without the resource", listsConfig,
 			`{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v1","resources":[{"name":"infrastructures","singularName":"","namespaced":false,"kind":"Infrastructure","verbs":["get"]}]}`, true},
@@ -228,4 +238,26 @@ func TestConfirmAPIAbsent_ValidatesDiscoveryDocumentsOverHTTP(t *testing.T) {
 			}
 		})
 	}
+}
+
+// /api must carry its versions list too; without it the core group is not shown.
+func TestConfirmAPIAbsent_CoreDocumentWithoutVersions(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api":
+			_, _ = w.Write([]byte(`{"kind":"APIVersions","apiVersion":"v1"}`))
+		case "/apis":
+			_, _ = w.Write([]byte(`{"kind":"APIGroupList","apiVersion":"v1","groups":[]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	disc, err := discovery.NewDiscoveryClientForConfig(&rest.Config{Host: srv.URL})
+	require.NoError(t, err)
+	absent, err := ConfirmAPIAbsent(context.Background(), disc, clusterVersions)
+	assert.False(t, absent)
+	assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
 }
