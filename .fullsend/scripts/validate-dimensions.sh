@@ -44,6 +44,32 @@ jq -e '
     (($stage == "pre-dispatch") == ($llm and $context)))
 ' "${REGISTRY}" >/dev/null || fail "stage must be pre-dispatch on every LLM row with output context, and absent on every other row"
 
+# A check:* row may declare the sub-checks its producer returns. Declaring them
+# is optional: without checks[] the row is a single check whose id is the row
+# id (the pre-multi-check contract). When declared, the set owns the row ids
+# and labels, so validate its shape and keep the id namespace disjoint from
+# producer ids — otherwise a sub-check and a producer could not be told apart.
+jq -e '
+  all(.dimensions[] | select(has("checks"));
+    ((.output // "findings") | startswith("check:")) and
+    (.checks | type == "array" and length > 0) and
+    all(.checks[];
+      (type == "object") and
+      ((.id // "") | type == "string" and length > 0) and
+      ((.label // "") | type == "string" and length > 0)) and
+    ((.checks | map(.id) | unique | length) == (.checks | length)))
+' "${REGISTRY}" >/dev/null || fail "checks[] is only valid on check:* rows and must be a non-empty array of unique {id,label} objects"
+
+if ! jq -e '
+  ([.dimensions[].id]) as $dims |
+  ([.dimensions[] | .checks // [] | .[] | .id]) as $subs |
+  (($subs | unique | length) == ($subs | length)) and
+  (([$subs[] | select(. as $s | $dims | index($s))] | length) == 0)
+' "${REGISTRY}" >/dev/null; then
+  fail "declared checks[] ids must be unique across the registry and must not collide with a dimension id"
+fi
+
+
 while IFS=$'\t' read -r id label kind output definition meta result_fields inline_skill; do
   [[ -n "${id}" ]] || fail "dimension without id"
   [[ -n "${label}" ]] || fail "${id}: missing non-empty label"

@@ -172,7 +172,7 @@ def load_rating_policy():
 POLICY = load_rating_policy()
 
 def load_dimension_registry():
-    """Map dimension id → {label, output, result_fields} from dimensions.json."""
+    """Map dimension id → {label, output, result_fields, checks} from dimensions.json."""
     registry = {}
     base = os.environ.get("FULLSEND_CONFIG_DIR") or ""
     path = os.path.join(base, "dimensions.json") if base else ""
@@ -201,17 +201,81 @@ def load_dimension_registry():
         fields = row.get("result_fields")
         if isinstance(fields, list):
             entry["result_fields"] = [f for f in fields if isinstance(f, str) and f]
+        declared = row.get("checks")
+        if isinstance(declared, list):
+            pairs = []
+            for item in declared:
+                if not isinstance(item, dict):
+                    continue
+                check_id = item.get("id")
+                if not isinstance(check_id, str) or not check_id.strip():
+                    continue
+                check_label = item.get("label")
+                if not isinstance(check_label, str) or not check_label.strip():
+                    check_label = check_id.strip()
+                pairs.append((check_id.strip(), check_label.strip()))
+            if pairs:
+                entry["checks"] = pairs
         registry[dim_id] = entry
     return registry
 
 DIMENSION_REGISTRY = load_dimension_registry()
 
+# Registry-declared sub-check ids → {label, owner}. A check:* row without a
+# checks[] declaration is a single check whose id is the row id, so the two
+# namespaces coexist without touching existing producers.
+CHECK_REGISTRY = {}
+for _dim_id, _entry in DIMENSION_REGISTRY.items():
+    for _check_id, _check_label in _entry.get("checks") or []:
+        CHECK_REGISTRY.setdefault(_check_id, {"label": _check_label, "owner": _dim_id})
+
 def dimension_label(dim_id):
-    """Human-facing name for a registry id; falls back to the id."""
+    """Human-facing name for a registry id or declared sub-check id."""
     if not isinstance(dim_id, str) or not dim_id:
         return dim_id or ""
     entry = DIMENSION_REGISTRY.get(dim_id) or {}
-    return entry.get("label") or dim_id
+    if entry.get("label"):
+        return entry["label"]
+    return (CHECK_REGISTRY.get(dim_id) or {}).get("label") or dim_id
+
+def declared_checks(dim_id):
+    """(id, label) pairs a check producer declares; [] means the implicit self-check."""
+    if not isinstance(dim_id, str):
+        return []
+    return list((DIMENSION_REGISTRY.get(dim_id) or {}).get("checks") or [])
+
+def emitted_check_ids(producers, dim_id):
+    """Sub-check ids the producers ledger records as returned for one producer."""
+    raw = (producers or {}).get("check_ids")
+    if not isinstance(raw, dict):
+        return []
+    ids = raw.get(dim_id)
+    if not isinstance(ids, list):
+        return []
+    return [i for i in ids if isinstance(i, str) and i]
+
+def declared_check_ids(dim_id):
+    """Sub-check ids a check producer must return.
+
+    Registry declaration first; otherwise the producer id itself is the single
+    legacy check. The model-authored ledger never supplies ids: a producer that
+    returns several checks declares them in dimensions.json, so labels stay
+    host-owned and an undeclared id can never become a rendered row."""
+    ids = [check_id for check_id, _ in declared_checks(dim_id)]
+    if ids:
+        return ids
+    return [dim_id] if isinstance(dim_id, str) and dim_id else []
+
+def check_owner(check_id):
+    """Registry producer that declares this sub-check id, if any."""
+    if not isinstance(check_id, str) or not check_id:
+        return None
+    entry = CHECK_REGISTRY.get(check_id)
+    if entry:
+        return entry.get("owner")
+    if dimension_type(check_id) == "check":
+        return check_id
+    return None
 
 def output_kind(output):
     """Collapse registry/envelope output to a lowercase Type token."""
@@ -335,6 +399,160 @@ def ran_producer_ids(producers):
             ran.append(item)
     return ran
 
+def check_producer_ids(producers):
+    """Check-output producer ids that ran, in dispatch then adapter order."""
+    order = []
+    for item in (producers or {}).get("dispatched") or []:
+        if isinstance(item, str) and item and dimension_type(item) == "check" and item not in order:
+            order.append(item)
+    for entry in (producers or {}).get("adapters") or []:
+        name = entry.get("id") if isinstance(entry, dict) else entry
+        if isinstance(name, str) and name and dimension_type(name) == "check" and name not in order:
+            order.append(name)
+    return order
+
+def producer_checks(name, review_checks):
+    """Rows owned by one check producer: its declared sub-ids or its legacy self-id."""
+    mine = []
+    for check in review_checks:
+        check_id = check.get("id") if isinstance(check, dict) else None
+        if check_id == name or check_owner(check_id) == name:
+            mine.append(check)
+    return mine
+
+def reconcile_readiness_checks(result, producers, ran_ids, inspected):
+    """Flatten, backfill, order, and gate readiness rows for 1..N-check producers.
+
+    Ledger accounting stays per producer: dispatch, retry and gating keys are
+    producer ids. Only the rendered/gated rows multiply. A row is floored to
+    could-not-verify when its producer did not run or when a producer never
+    returned a declared check. A row whose id no producer declares is dropped
+    and recorded, so an unknown id never becomes an extra rendered row."""
+    rows = checks(result)
+    producers_order = check_producer_ids(producers)
+    registry_loaded = bool(DIMENSION_REGISTRY)
+
+    # A producer that declares sub-checks must not answer its own producer id
+    # once the ledger records sub-check ids. That shape is a current result
+    # that skipped its declared set, not the pre-multi-check legacy row.
+    reject_self_id = set()
+    for name in producers_order:
+        if declared_checks(name) and emitted_check_ids(producers, name):
+            reject_self_id.add(name)
+
+    kept = []
+    seen = set()
+    for row in rows:
+        check_id = row.get("id")
+        if not isinstance(check_id, str) or not check_id:
+            continue
+        if check_id in seen:
+            add_limit(
+                inspected,
+                f"Dropped a duplicate readiness check row for '{label_text(check_id)}'.",
+            )
+            continue
+        seen.add(check_id)
+        if check_id in reject_self_id:
+            add_limit(
+                inspected,
+                f"Dropped a readiness row '{label_text(check_id)}' that used a producer "
+                "id instead of one of its declared sub-check ids.",
+            )
+            continue
+        if registry_loaded and check_owner(check_id) is None:
+            add_limit(
+                inspected,
+                f"Dropped a readiness row with undeclared check id '{label_text(check_id)}'.",
+            )
+            continue
+        kept.append(row)
+
+    for name in producers_order:
+        declared = declared_check_ids(name)
+        if not declared:
+            continue
+        mine_ids = {row.get("id") for row in producer_checks(name, kept)}
+        if (
+            mine_ids == {name}
+            and declared != [name]
+            and not emitted_check_ids(producers, name)
+        ):
+            # Legacy single-row shape predating check_ids: a producer that
+            # answered its own id before it declared sub-checks still gates as
+            # one row. A current result always records check_ids, so this never
+            # lets a declared producer skip its sub-checks.
+            continue
+        for check_id in declared:
+            if check_id in mine_ids:
+                continue
+            summary = f"The producer did not return this check (expected '{check_id}')."
+            kept.append({"id": check_id, "status": "could-not-verify", "summary": summary})
+            add_limit(inspected, f"{dimension_label(check_id)}: {summary}")
+
+    for name in producers_order:
+        declared = set(declared_check_ids(name))
+        for check_id in emitted_check_ids(producers, name):
+            if check_id not in declared:
+                add_limit(
+                    inspected,
+                    f"result.producers.check_ids records '{label_text(check_id)}' for "
+                    f"'{label_text(name)}', which is not one of its declared checks.",
+                )
+
+    # Sub-checks count as run only through the ledger of a producer that ran:
+    # the ids that producer recorded in check_ids, limited to the ids its
+    # registry row declares. A legacy single-check producer (id == producer
+    # id) is covered by ran_ids itself.
+    ran_check_ids = set()
+    for name in producers_order:
+        if name not in ran_ids:
+            continue
+        declared = set(declared_check_ids(name))
+        for check_id in emitted_check_ids(producers, name):
+            if check_id in declared:
+                ran_check_ids.add(check_id)
+
+    for row in kept:
+        check_id = row.get("id")
+        if check_id in ran_ids or check_id in ran_check_ids:
+            continue
+        prior = str(row.get("status") or "missing")
+        owner = check_owner(check_id)
+        if owner is None:
+            row["status"] = "could-not-verify"
+            row["summary"] = (
+                f"Check id '{label_text(check_id)}' is not declared by any check producer in "
+                f"dimensions.json, so the reported status ({prior}) is not a completed check."
+            )
+            add_limit(
+                inspected,
+                f"Undeclared readiness check id '{label_text(check_id)}' was floored to could-not-verify.",
+            )
+            continue
+        if row.get("status") == "could-not-verify":
+            continue
+        row["status"] = "could-not-verify"
+        row["summary"] = (
+            f"result.producers does not record '{owner}' as running, "
+            f"so '{check_id}' ({prior}) is not a completed check."
+        )
+
+    def sort_key(item):
+        index, row = item
+        owner = check_owner(row.get("id"))
+        producer_index = producers_order.index(owner) if owner in producers_order else len(producers_order)
+        declared = declared_check_ids(owner)
+        try:
+            declared_index = declared.index(row.get("id"))
+        except ValueError:
+            declared_index = len(declared)
+        return (producer_index, declared_index, index)
+
+    kept = [row for _, row in sorted(enumerate(kept), key=sort_key)]
+    if kept or "checks" in result:
+        result["checks"] = kept
+
 def reconcile_producers(result):
     """Validate result.producers and demote checks that did not run.
 
@@ -365,18 +583,7 @@ def reconcile_producers(result):
             )
 
     ran_ids = set(ran_producer_ids(producers))
-    for check in checks(result):
-        check_id = check.get("id")
-        if not isinstance(check_id, str) or not check_id or check_id in ran_ids:
-            continue
-        if check.get("status") == "could-not-verify":
-            continue
-        prior = str(check.get("status") or "missing")
-        check["status"] = "could-not-verify"
-        check["summary"] = (
-            f"result.producers does not record '{check_id}' as running, "
-            f"so the reported status ({prior}) is not a completed check."
-        )
+    reconcile_readiness_checks(result, producers, ran_ids, inspected)
     if inspected:
         result["inspected"] = inspected
     elif "inspected" in result:
@@ -866,6 +1073,13 @@ def author_wait_detail(result):
     return f"{listed} before the agent bar can clear. Human still finalizes."
 
 STATUS_MARK = {"pass": "✅", "warning": "🟡", "fail": "❌", "not-applicable": "➖", "could-not-verify": "❔"}
+# Display text for a check status. The result keeps the machine value; only the
+# sticky shortens it.
+STATUS_LABEL = {"not-applicable": "N/A"}
+
+def status_text(status):
+    return STATUS_LABEL.get(status, status)
+
 ACTION_MARK = {"approve": "✅", "comment": "💬", "request-changes": "🔴", "reject": "⛔", "failure": "❌"}
 
 def mark(table, key, default=""):
@@ -1153,14 +1367,27 @@ def findings_result(name, result):
     return "No findings."
 
 def check_result(name, review_checks):
-    for check in review_checks:
-        if isinstance(check, dict) and check.get("id") == name:
-            status = clean(check.get("status") or "")
-            summary = clean(check.get("summary") or "")
-            if status and summary:
-                return f"{status} — {summary}"
-            return status or summary or "No check result."
-    return "No check result."
+    """Producers Result for a check row: the whole-producer outcome.
+
+    One row keeps the historical 'status — summary'. Several rows collapse to
+    per-status counts; the Checks table carries the per-aspect detail."""
+    mine = [c for c in producer_checks(name, review_checks) if isinstance(c, dict)]
+    if not mine:
+        return "No check result."
+    if len(mine) == 1:
+        status = clean(mine[0].get("status") or "")
+        summary = clean(mine[0].get("summary") or "")
+        if status and summary:
+            return f"{status_text(status)} — {summary}"
+        return status_text(status) or summary or "No check result."
+    counts = {}
+    for check in mine:
+        status = clean(check.get("status") or "missing")
+        counts[status] = counts.get(status, 0) + 1
+    order = ["fail", "could-not-verify", "warning", "pass", "not-applicable"]
+    parts = [f"{counts.pop(status)} {status_text(status)}" for status in order if status in counts]
+    parts.extend(f"{counts[status]} {status_text(status)}" for status in sorted(counts))
+    return f"{len(mine)} checks: " + ", ".join(parts)
 
 def signal_result(dim_id, result):
     entry = DIMENSION_REGISTRY.get(dim_id) or {}
@@ -1345,7 +1572,7 @@ def render_checks_table(result):
     for check in rows:
         status = check.get("status") or ""
         lines.append(
-            f"| {table_cell(result_label(check.get('id')))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
+            f"| {table_cell(result_label(check.get('id')))} | {mark(STATUS_MARK, status)} {table_cell(status_text(status))} "
             f"| {check_details_cell(check)} |")
     return lines
 
@@ -2467,6 +2694,163 @@ JSON
     fail=1
   else
     echo "PASS could-not-verify check needs a human"
+  fi
+
+  # One check:* producer may return one check per declared sub-dimension.
+  # Each renders as its own row, in registry declaration order, and the
+  # dispatched producer id alone keeps them from being floored.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-evidence\",\"status\":\"pass\",\"summary\":\"Evidence covers the change.\"},{\"id\":\"test-impact-automation\",\"status\":\"pass\",\"summary\":\"Units cover the new helper.\"},{\"id\":\"test-impact-efficiency\",\"status\":\"not-applicable\",\"summary\":\"No tests to tier.\"},{\"id\":\"test-impact-visual\",\"status\":\"not-applicable\",\"summary\":\"No visual delta: the rendered text is pinned by an exact-string assertion.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"check_ids\":{\"test-impact-review\":[\"test-impact-automation\",\"test-impact-efficiency\",\"test-impact-evidence\",\"test-impact-visual\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check.json"
+  transform_review_result "${tmp}/multi-check.json" > "${tmp}/multi-check-out.json"
+  body=$(jq -r .body "${tmp}/multi-check-out.json")
+  if ! jq -e '.action == "approve" and (.checks | map(.id)) == ["test-impact-automation","test-impact-efficiency","test-impact-evidence","test-impact-visual"] and (.checks | all(.status != "could-not-verify"))' "${tmp}/multi-check-out.json" >/dev/null; then
+    echo "FAIL multi-check: expecting approve, declared order, no demotion" >&2
+    fail=1
+  elif ! grep -qE '^\| Test: Automation \| ✅ pass \|' <<<"${body}" ||
+       ! grep -qE '^\| Test: Efficiency \| ➖ N/A \|' <<<"${body}" ||
+       ! grep -qE '^\| Test: Evidence depth \| ✅ pass \|' <<<"${body}" ||
+       ! grep -qE '^\| Test: Visual evidence \| ➖ N/A \|' <<<"${body}"; then
+    echo "FAIL multi-check: one labelled row per aspect was not rendered" >&2
+    fail=1
+  elif grep -q '^Checks$' <<<"${body}"; then
+    echo "FAIL multi-check: not-applicable rows must not become TODO noise" >&2
+    fail=1
+  else
+    echo "PASS multi-check producer renders one labelled row per aspect"
+  fi
+
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-automation\",\"status\":\"pass\",\"summary\":\"Units cover the new helper.\"},{\"id\":\"test-impact-efficiency\",\"status\":\"fail\",\"summary\":\"Heavy Cypress use with no unit test.\"},{\"id\":\"test-impact-visual\",\"status\":\"pass\",\"summary\":\"Screenshot shows the changed surface.\"},{\"id\":\"test-impact-evidence\",\"status\":\"pass\",\"summary\":\"Evidence covers the change.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"check_ids\":{\"test-impact-review\":[\"test-impact-automation\",\"test-impact-efficiency\",\"test-impact-evidence\",\"test-impact-visual\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-fail.json"
+  transform_review_result "${tmp}/multi-check-fail.json" > "${tmp}/multi-check-fail-out.json"
+  body=$(jq -r .body "${tmp}/multi-check-fail-out.json")
+  if [[ "$(jq -r .action "${tmp}/multi-check-fail-out.json")" != "request-changes" ]] ||
+     ! grep -Fq '1 failed readiness check' <<<"${body}" ||
+     ! grep -qE '^\| Test: Efficiency \| ❌ fail \|' <<<"${body}"; then
+    echo "FAIL multi-check-fail: a failing sub-check must request changes" >&2
+    fail=1
+  else
+    echo "PASS a failing sub-check requests changes"
+  fi
+
+  # The visual aspect carries its own status: an artifact that does not show the
+  # change fails Visual and requests changes, independent of the other aspects.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-visual\",\"status\":\"fail\",\"summary\":\"Screenshot attached, but it shows the old layout rather than the change.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"check_ids\":{\"test-impact-review\":[\"test-impact-visual\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-visual-fail.json"
+  transform_review_result "${tmp}/multi-check-visual-fail.json" > "${tmp}/multi-check-visual-fail-out.json"
+  if [[ "$(jq -r .action "${tmp}/multi-check-visual-fail-out.json")" != "request-changes" ]] ||
+     ! grep -qE '^\| Test: Visual evidence \| ❌ fail \|' <<<"$(jq -r .body "${tmp}/multi-check-visual-fail-out.json")"; then
+    echo "FAIL multi-check-visual-fail: a failing visual row must request changes" >&2
+    fail=1
+  else
+    echo "PASS a failing visual row requests changes"
+  fi
+
+  # A producer that omits a declared check is incomplete: the missing rows are
+  # floored to could-not-verify rather than silently passing.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-automation\",\"status\":\"pass\",\"summary\":\"Units cover the new helper.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"check_ids\":{\"test-impact-review\":[\"test-impact-automation\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-subset.json"
+  transform_review_result "${tmp}/multi-check-subset.json" > "${tmp}/multi-check-subset-out.json"
+  if ! jq -e '.action == "comment" and .confidence.level == "medium" and ([.checks[] | select(.id == "test-impact-efficiency") | .status] == ["could-not-verify"]) and ([.checks[] | select(.id == "test-impact-evidence") | .status] == ["could-not-verify"]) and ([.checks[] | select(.id == "test-impact-automation") | .status] == ["pass"])' "${tmp}/multi-check-subset-out.json" >/dev/null; then
+    echo "FAIL multi-check-subset: an omitted declared check must floor to could-not-verify and cap confidence" >&2
+    fail=1
+  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("Test: Efficiency"))' "${tmp}/multi-check-subset-out.json" >/dev/null; then
+    echo "FAIL multi-check-subset: the missing sub-check was not recorded in inspected" >&2
+    fail=1
+  else
+    echo "PASS an omitted declared check is floored, recorded, and caps confidence"
+  fi
+
+  # An id no producer declares is a producer-side schema failure, not an extra
+  # row: drop it (recording the limit) and floor the declared checks it left
+  # unreturned, so it cannot approve.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-made-up\",\"status\":\"pass\",\"summary\":\"Looks fine to me.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"check_ids\":{\"test-impact-review\":[\"test-impact-made-up\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-unknown.json"
+  transform_review_result "${tmp}/multi-check-unknown.json" > "${tmp}/multi-check-unknown-out.json"
+  if ! jq -e '.action == "comment" and (.checks | length) == 4 and ([.checks[].status] | unique) == ["could-not-verify"] and (([.checks[].id] | index("test-impact-made-up")) == null)' "${tmp}/multi-check-unknown-out.json" >/dev/null; then
+    echo "FAIL multi-check-unknown: an undeclared sub-check id must be dropped, not rendered" >&2
+    fail=1
+  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("test-impact-made-up"))' "${tmp}/multi-check-unknown-out.json" >/dev/null; then
+    echo "FAIL multi-check-unknown: the undeclared id was not recorded as a limit" >&2
+    fail=1
+  else
+    echo "PASS an undeclared sub-check id is dropped and recorded"
+  fi
+
+  # A producer that declares sub-checks cannot fall back to a rolled-up
+  # producer-id row once the ledger records sub-check ids. That is an
+  # incomplete current result, not the legacy single row.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"pass\",\"summary\":\"Everything is fine, trust me.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"check_ids\":{\"test-impact-review\":[\"test-impact-review\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-selfid.json"
+  transform_review_result "${tmp}/multi-check-selfid.json" > "${tmp}/multi-check-selfid-out.json"
+  if ! jq -e '.action == "comment" and (.checks | length) == 4 and ([.checks[].status] | unique) == ["could-not-verify"] and (([.checks[].id] | index("test-impact-review")) == null)' "${tmp}/multi-check-selfid-out.json" >/dev/null; then
+    echo "FAIL multi-check-selfid: a declared producer must not pass on a rolled-up producer-id row" >&2
+    fail=1
+  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("test-impact-review"))' "${tmp}/multi-check-selfid-out.json" >/dev/null; then
+    echo "FAIL multi-check-selfid: the rejected producer-id row was not recorded" >&2
+    fail=1
+  else
+    echo "PASS a declared producer cannot skip its sub-checks with a producer-id row"
+  fi
+
+  # An undeclared producer is a single check whose id is the producer id. The
+  # ledger cannot invent a multi-check set for it; ids it emits beyond that are
+  # dropped, not rendered.
+  mkdir -p "${tmp}/undeclared-cfg"
+  jq '.dimensions += [{"id":"fake-check","label":"Fake check","kind":"cli-adapter","output":"check:fake","producer_file":"x","failure_severity":"info","budget_priority":9,"re_review":"full"}]' \
+    "${POST_REVIEW_SCRIPT_DIR}/../dimensions.json" > "${tmp}/undeclared-cfg/dimensions.json"
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"fake-check-a\",\"status\":\"pass\",\"summary\":\"a\"},{\"id\":\"fake-check-b\",\"status\":\"pass\",\"summary\":\"b\"}],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"fake-check\",\"status\":\"ok\"}],\"skipped\":[],\"returned\":[\"fake-check\"],\"raised\":{},\"check_ids\":{\"fake-check\":[\"fake-check-a\",\"fake-check-b\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-undeclared.json"
+  FULLSEND_CONFIG_DIR="${tmp}/undeclared-cfg" transform_review_result "${tmp}/multi-check-undeclared.json" > "${tmp}/multi-check-undeclared-out.json"
+  if ! jq -e '.action == "comment" and (.checks | length) == 1 and .checks[0].id == "fake-check" and .checks[0].status == "could-not-verify"' "${tmp}/multi-check-undeclared-out.json" >/dev/null; then
+    echo "FAIL multi-check-undeclared: ledger-only sub-checks must not duplicate or pass" >&2
+    fail=1
+  elif ! jq -e '(.inspected.could_not_verify | join(" ")) | contains("fake-check-a")' "${tmp}/multi-check-undeclared-out.json" >/dev/null; then
+    echo "FAIL multi-check-undeclared: the dropped ledger id was not recorded" >&2
+    fail=1
+  else
+    echo "PASS an undeclared producer cannot declare sub-checks through the ledger"
+  fi
+
+  # A ledger entry does not rescue a sub-check whose producer never ran.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-automation\",\"status\":\"pass\",\"summary\":\"Units cover the new helper.\"},{\"id\":\"test-impact-efficiency\",\"status\":\"pass\",\"summary\":\"Efficient tier.\"},{\"id\":\"test-impact-evidence\",\"status\":\"pass\",\"summary\":\"Evidence covers the change.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[{\"id\":\"test-impact-review\",\"reason\":\"budget exhausted\"}],\"returned\":[\"pr-description-review\"],\"raised\":{},\"check_ids\":{\"test-impact-review\":[\"test-impact-automation\",\"test-impact-efficiency\",\"test-impact-evidence\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-unrun.json"
+  transform_review_result "${tmp}/multi-check-unrun.json" > "${tmp}/multi-check-unrun-out.json"
+  if ! jq -e '.action == "comment" and ([.checks[] | select(.id | startswith("test-impact-")) | .status] | unique) == ["could-not-verify"]' "${tmp}/multi-check-unrun-out.json" >/dev/null; then
+    echo "FAIL multi-check-unrun: an unrun producer must not keep passing sub-checks" >&2
+    fail=1
+  else
+    echo "PASS an unrun producer cannot keep passing sub-checks"
+  fi
+
+  # A duplicate id is a schema failure too: one row survives.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-automation\",\"status\":\"pass\",\"summary\":\"Units cover the new helper.\"},{\"id\":\"test-impact-efficiency\",\"status\":\"pass\",\"summary\":\"Efficient tier.\"},{\"id\":\"test-impact-visual\",\"status\":\"pass\",\"summary\":\"Screenshot shows the changed surface.\"},{\"id\":\"test-impact-evidence\",\"status\":\"pass\",\"summary\":\"Evidence covers the change.\"},{\"id\":\"test-impact-automation\",\"status\":\"fail\",\"summary\":\"Contradictory duplicate.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"check_ids\":{\"test-impact-review\":[\"test-impact-automation\",\"test-impact-efficiency\",\"test-impact-evidence\",\"test-impact-visual\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-dupe.json"
+  transform_review_result "${tmp}/multi-check-dupe.json" > "${tmp}/multi-check-dupe-out.json"
+  if ! jq -e '.action == "approve" and ([.checks[] | select(.id == "test-impact-automation") | .status] == ["pass"]) and (.checks | length) == 4' "${tmp}/multi-check-dupe-out.json" >/dev/null; then
+    echo "FAIL multi-check-dupe: duplicate id must collapse to the first row" >&2
+    fail=1
+  elif ! jq -e '.inspected.could_not_verify | any(.[]; contains("duplicate"))' "${tmp}/multi-check-dupe-out.json" >/dev/null; then
+    echo "FAIL multi-check-dupe: the duplicate was not recorded as a limit" >&2
+    fail=1
+  else
+    echo "PASS a duplicate sub-check id collapses to one row with a recorded limit"
+  fi
+
+  # A row that declares exactly one check keeps today's single-row behaviour.
+  mkdir -p "${tmp}/single-cfg"
+  jq '.dimensions |= map(if .id == "pr-description-review" then .checks = [{"id":"pr-description-body","label":"PR description"}] else . end)' \
+    "${POST_REVIEW_SCRIPT_DIR}/../dimensions.json" > "${tmp}/single-cfg/dimensions.json"
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-body\",\"status\":\"pass\",\"summary\":\"Problem, solution and evidence are present.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"check_ids\":{\"pr-description-review\":[\"pr-description-body\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/single-check.json"
+  FULLSEND_CONFIG_DIR="${tmp}/single-cfg" transform_review_result "${tmp}/single-check.json" > "${tmp}/single-check-out.json"
+  body=$(jq -r .body "${tmp}/single-check-out.json")
+  if [[ "$(jq -r .action "${tmp}/single-check-out.json")" != "approve" ]] ||
+     ! grep -qE '^\| PR description \| ✅ pass \|' <<<"${body}" ||
+     ! grep -qE '^\| PR description \| check \| ✅ \| pass — Problem, solution and evidence are present\.' <<<"${body}"; then
+    echo "FAIL single-check: a one-check producer must render and gate as before" >&2
+    fail=1
+  else
+    echo "PASS a one-check producer renders and gates as before"
+  fi
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-body\",\"status\":\"fail\",\"summary\":\"Problem section is empty.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"check_ids\":{\"pr-description-review\":[\"pr-description-body\"]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/single-check-fail.json"
+  FULLSEND_CONFIG_DIR="${tmp}/single-cfg" transform_review_result "${tmp}/single-check-fail.json" > "${tmp}/single-check-fail-out.json"
+  body=$(jq -r .body "${tmp}/single-check-fail-out.json")
+  if [[ "$(jq -r .action "${tmp}/single-check-fail-out.json")" != "request-changes" ]] ||
+     ! grep -qF '1 failed readiness check' <<<"${body}"; then
+    echo "FAIL single-check-fail: a one-check producer must still gate on fail" >&2
+    fail=1
+  else
+    echo "PASS a one-check producer still gates on fail"
   fi
 
   prepare_summary_only_result "${tmp}/request-changes-out.json" "${tmp}/summary-only.json"
