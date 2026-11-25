@@ -200,8 +200,8 @@ const TopologyConfigurationCreateEditInner: React.FC<{
   };
 
   const topologyTypeLabel = resolvedTopologyType
-    ? TopologyTypeLabels[resolvedTopologyType]
-    : 'Unknown';
+    ? TopologyTypeLabels[resolvedTopologyType].toLowerCase()
+    : 'unknown';
 
   const sourceDisplayName = duplicateSource ? getDisplayNameFromK8sResource(duplicateSource) : '';
 
