@@ -395,8 +395,8 @@ export type DataScienceProjectData = {
   existingImage: string;
   replaceImage: string;
   replaceImageArm64?: string;
-  serviceAccountName1: string;
-  serviceAccountName2: string;
+  secretName1: string;
+  secretName2: string;
   connectionNameSuffix: string;
   adminRoleName: string;
   contributorRoleName: string;

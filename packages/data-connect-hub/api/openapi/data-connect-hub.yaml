@@ -115,6 +115,40 @@ paths:
       operationId: createConnection
       summary: Create a data connection
       description: Creates a data connection in the selected project using inline credentials.
+  /api/v1/connection-name-availability:
+    summary: Path used to check data connection name availability.
+    get:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - name: name
+          description: The connection name to check.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          in: query
+          required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionNameAvailabilityResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: getConnectionNameAvailability
+      summary: Check data connection name availability
+      description: Returns whether a connection or secret already uses the requested name in the selected project.
   /api/v1/connection-types:
     summary: Path used to list connection types for a project.
     get:
@@ -399,6 +433,19 @@ components:
               type: string
             updated_at:
               type: string
+    ConnectionNameAvailability:
+      type: object
+      required:
+        - available
+        - conflicts_with
+      properties:
+        available:
+          type: boolean
+        conflicts_with:
+          type: array
+          items:
+            type: string
+            enum: [connection, secret]
     ConnectionTypeEnumValue:
       type: object
       required:
@@ -815,6 +862,19 @@ components:
               data:
                 $ref: '#/components/schemas/Connection'
       description: Created data connection.
+    ConnectionNameAvailabilityResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+              data:
+                $ref: '#/components/schemas/ConnectionNameAvailability'
+      description: Availability of a data connection name in a project.
     ConnectionTypesResponse:
       content:
         application/json:
