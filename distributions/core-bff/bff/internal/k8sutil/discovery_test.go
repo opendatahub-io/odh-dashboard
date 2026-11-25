@@ -108,3 +108,60 @@ func TestConfirmAPIAbsent_StubDiscoveryOverHTTP(t *testing.T) {
 	assert.False(t, absent)
 	assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
 }
+
+// Fullsend/CodeRabbit: the core group comes from /api, so a malformed but
+// successful /apis body must not confirm absence of a non-core API, while a
+// valid empty group list still does. The same applies to the resource list of
+// a listed group version.
+func TestConfirmAPIAbsent_ValidatesDiscoveryDocumentsOverHTTP(t *testing.T) {
+	const apiDoc = `{"kind":"APIVersions","apiVersion":"v1","versions":["v1"],"serverAddressByClientCIDRs":[]}`
+	const listsConfig = `{"kind":"APIGroupList","apiVersion":"v1","groups":[{"name":"config.openshift.io",` +
+		`"versions":[{"groupVersion":"config.openshift.io/v1","version":"v1"}],` +
+		`"preferredVersion":{"groupVersion":"config.openshift.io/v1","version":"v1"}}]}`
+	for _, tc := range []struct {
+		name      string
+		apis      string
+		resources string
+		absent    bool
+	}{
+		{"malformed /apis", `{"message":"ok"}`, "", false},
+		{"/apis of another kind", `{"kind":"Status","apiVersion":"v1","status":"Success"}`, "", false},
+		{"valid empty group list", `{"kind":"APIGroupList","apiVersion":"v1","groups":[]}`, "", true},
+		{"listed group, malformed resource list", listsConfig, `{}`, false},
+		{"listed group, resource list without the resource", listsConfig,
+			`{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v1","resources":[{"name":"infrastructures","singularName":"","namespaced":false,"kind":"Infrastructure","verbs":["get"]}]}`, true},
+		{"listed group, resource served", listsConfig,
+			`{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"config.openshift.io/v1","resources":[{"name":"clusterversions","singularName":"","namespaced":false,"kind":"ClusterVersion","verbs":["get"]}]}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case "/api":
+					_, _ = w.Write([]byte(apiDoc))
+				case "/apis":
+					_, _ = w.Write([]byte(tc.apis))
+				case "/apis/config.openshift.io/v1":
+					if tc.resources == "" {
+						http.NotFound(w, r)
+						return
+					}
+					_, _ = w.Write([]byte(tc.resources))
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer srv.Close()
+
+			disc, err := discovery.NewDiscoveryClientForConfig(&rest.Config{Host: srv.URL})
+			require.NoError(t, err)
+			absent, err := ConfirmAPIAbsent(context.Background(), disc, clusterVersions)
+			assert.Equal(t, tc.absent, absent)
+			if tc.absent {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, ErrAbsenceUnconfirmed)
+			}
+		})
+	}
+}
