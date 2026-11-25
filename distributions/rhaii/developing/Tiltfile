@@ -47,15 +47,21 @@ build_ignore = [
     "**/*.md",
 ]
 
-# Tilt's docker_build drives builds through BuildKit's gRPC session protocol,
-# which Podman's Docker-compatible API does not implement (the session
-# upgrade fails with "unable to upgrade to h2c, received 404"). When the
-# local daemon is Podman, fall back to a plain engine build through the CLI;
-# Tilt still tags and loads the resulting image into kind. On a
-# BuildKit-capable daemon (e.g. Docker on Linux/macOS) keep the native
-# docker_build.
-docker_version_out = str(local("docker version 2>&1 || true", quiet=True))
-podman_daemon = "Podman Engine" in docker_version_out
+# Tilt's docker_build needs BuildKit's gRPC session, which Podman's
+# Docker-compatible API does not implement ("unable to upgrade to h2c,
+# received 404"). On a Podman daemon, build via the legacy CLI instead;
+# otherwise keep the native docker_build.
+#
+# A DOCKER_HOST at Podman's compat socket also identifies the daemon on
+# podman-only installs without a docker CLI.
+docker_host = os.environ.get("DOCKER_HOST", "")
+docker_cli = str(local("command -v docker 2>/dev/null || true", quiet=True)) != ""
+if "podman" in docker_host:
+    podman_daemon = True
+elif docker_cli:
+    podman_daemon = "Podman Engine" in str(local("docker version 2>&1 || true", quiet=True))
+else:
+    podman_daemon = False
 
 def shell_quote(value):
     return "'" + value.replace("'", "'\"'\"'") + "'"
@@ -64,22 +70,56 @@ quoted_repo_root = shell_quote(repo_root)
 quoted_dockerfile = shell_quote(os.path.join(dist_root, "Dockerfile"))
 
 if podman_daemon:
-    # Prefer the podman CLI when installed; otherwise the docker CLI reaches
-    # the same daemon through the compat API with the legacy builder.
+    # Endpoint the docker CLI would resolve: DOCKER_HOST, else the current
+    # Docker context's endpoint. Podman does not read either, so it is
+    # forwarded as CONTAINER_HOST below to keep build and push on the same
+    # Podman connection/image store.
+    docker_endpoint = docker_host
+    if docker_cli and not docker_endpoint:
+        docker_endpoint = str(local(
+            "docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true",
+            quiet=True,
+        )).strip()
+    podman_env = "CONTAINER_HOST=%s " % shell_quote(docker_endpoint) if docker_endpoint else ""
     podman_cli = str(local("command -v podman 2>/dev/null || true", quiet=True)) != ""
-    build_binary = "podman" if podman_cli else "DOCKER_BUILDKIT=0 docker"
+    if docker_cli:
+        # The docker CLI resolves the same endpoint as Tilt's client (DOCKER_HOST /
+        # Docker contexts), so build through it. Pushing through it is not an
+        # option: Podman's compat API enforces TLS even for localhost registries
+        # ("server gave HTTP response to HTTPS client"), so push via the podman
+        # CLI with --tls-verify=false, pinned to the same endpoint via
+        # CONTAINER_HOST. Without a podman CLI there is no way to push to the
+        # plain-HTTP registry at all — fail loudly instead of with the cryptic
+        # TLS error.
+        build_binary = "DOCKER_BUILDKIT=0 docker"
+        push_command = (
+            podman_env + "podman push --tls-verify=false \"$ref\""
+            if podman_cli
+            else (
+                "echo \"ERROR: the daemon is Podman, which requires the podman CLI to push "
+                + "to the insecure local registry; install podman or mark localhost:5001 "
+                + "insecure in the daemon's containers-registries.conf\" >&2; exit 1"
+            )
+        )
+    else:
+        # Podman-only install: build and push through the podman CLI, pinned to
+        # the endpoint the daemon was detected on.
+        build_binary = podman_env + "podman"
+        push_command = podman_env + "podman push --tls-verify=false \"$ref\""
+    # Tilt's push would go through the Docker API, which cannot mark the
+    # plain-HTTP local registry insecure; push via the CLI instead and use
+    # skips_local_docker to stop Tilt from pushing (or kind-loading) itself.
     custom_build(
         "rhaii-dashboard",
         command=(
             "cd " + quoted_repo_root + " && "
-            # $EXPECTED_REF is unqualified ("rhaii-dashboard:tilt-...") when the
-            # cluster has no local registry; podman normalizes such names to
-            # localhost/, which Tilt then cannot find, so qualify them to
-            # docker.io/library/. Refs containing "/" are already qualified
-            # (e.g. "localhost:5001/rhaii-dashboard:tilt-..." when Kind runs a
-            # local registry) and must be used as-is: podman rejects
-            # "docker.io/library/localhost:5001/..." as an invalid reference.
-            + 'ref="$EXPECTED_REF"; case "$ref" in */*) ;; *) ref="docker.io/library/$ref";; esac; '
+            # $EXPECTED_REF is registry-qualified ("localhost:5001/rhaii-dashboard:tilt-...")
+            # when Kind runs a local registry. Without one there is nowhere to push
+            # (skips_local_docker disables Tilt's kind-load fallback, which is broken
+            # on Podman: any `ctr images import --snapshotter=...` fails with
+            # "no unpack platforms defined" on current kindest/node images —
+            # cf. kubernetes-sigs/kind#3945, closed but still reproducible), so fail loudly.
+            + 'ref="$EXPECTED_REF"; case "$ref" in localhost:*) ;; *) echo "ERROR: no local registry detected; run scripts/setup-kind.sh before tilt up" >&2; exit 1;; esac; '
             + build_binary
             + " build -t \"$ref\""
             + "".join([
@@ -87,9 +127,12 @@ if podman_daemon:
                 for key, value in build_args.items()
             ])
             + " -f " + quoted_dockerfile + " ."
+            + " && "
+            + push_command
         ),
         deps=[repo_root],
         ignore=build_ignore,
+        skips_local_docker=True,
     )
 else:
     docker_build(

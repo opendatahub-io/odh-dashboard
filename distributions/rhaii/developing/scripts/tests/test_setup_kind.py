@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Run with python3 scripts/tests/test_setup_kind.py; requires Bash and Kind.
+"""Run with python3 scripts/tests/test_setup_kind.py; requires Bash.
 
-Use the installed Kind binary for discovery, with isolated container CLI fixtures.
-Cluster creation and kubectl are stubbed; these tests never contact a real runtime.
+All CLIs (kind, kubectl, container runtimes) are stubbed through isolated
+fixtures driven by a JSON config; these tests never contact a real runtime
+or Kind installation.
 """
 
 import json
@@ -17,7 +18,13 @@ import unittest
 
 SCRIPT = Path(__file__).resolve().parents[1] / "setup-kind.sh"
 NODE = "rhaii-tilt-control-plane"
+REGISTRY = "kind-registry"
+CLUSTER = "rhaii-tilt"
 RUNTIMES = ("docker", "nerdctl", "podman", "finch", "nerdctl.lima")
+
+
+def save_config(root, config):
+    (root / "config.json").write_text(json.dumps(config))
 
 
 def fixture_cli():
@@ -28,11 +35,24 @@ def fixture_cli():
         log.write(json.dumps([name, args, os.environ.get("KIND_EXPERIMENTAL_PROVIDER")]) + "\n")
 
     if name == "kind":
-        if args[:2] == ["get", "clusters"] and config.get("discovery_failure"):
-            return 1
+        if args[:2] == ["get", "clusters"]:
+            if config.get("discovery_failure"):
+                return 1
+            if config.get("cluster_exists"):
+                print(CLUSTER)
+            return 0
         if args[:2] == ["create", "cluster"]:
-            return 1 if config.get("create_failure") else 0
-        return subprocess.run([os.environ["SETUP_KIND_TEST_REAL_KIND"], *args]).returncode
+            if config.get("create_failure"):
+                return 1
+            config["cluster_exists"] = True
+            save_config(root, config)
+            return 0
+        if args[:2] == ["get", "nodes"]:
+            if not config.get("cluster_exists") or config.get("empty_nodes"):
+                return 1
+            print(NODE)
+            return 0
+        return 2
 
     if name == "kubectl":
         if args[:2] == ["config", "use-context"]:
@@ -46,7 +66,9 @@ def fixture_cli():
             print("apiVersion: v1\nkind: Namespace\nmetadata:\n  name: opendatahub")
             return 0
         if args == ["apply", "-f", "-"]:
-            return 0 if "name: opendatahub" in sys.stdin.read() else 1
+            body = sys.stdin.read()
+            known = ("name: opendatahub", "name: local-registry-hosting")
+            return 0 if any(marker in body for marker in known) else 1
         return 2
 
     runtime = config["installed"].get(name)
@@ -56,6 +78,11 @@ def fixture_cli():
         print("Docker version 28.0.0" if runtime == "docker" else f"{runtime} version 5.0.0")
         return 0
     containers = config["containers"].get(runtime, {})
+
+    def persist():
+        config["containers"][runtime] = containers
+        save_config(root, config)
+
     if args[0] == "info":
         print("{}")
         return 0
@@ -63,7 +90,15 @@ def fixture_cli():
         if config.get("empty_nodes") and "{{.Names}}" in args:
             return 0
         if containers:
-            print("\n".join(containers) if "{{.Names}}" in args else "rhaii-tilt")
+            print("\n".join(containers) if "{{.Names}}" in args else CLUSTER)
+        return 0
+    if args[:2] == ["network", "inspect"]:
+        return 1 if config.get("network_missing") else 0
+    if args[:2] == ["network", "connect"]:
+        if args[-1] not in containers:
+            return 1
+        containers[args[-1]]["kind_network"] = True
+        persist()
         return 0
     if args[0] == "inspect":
         if config.get("inspect_failure"):
@@ -74,18 +109,37 @@ def fixture_cli():
             return 1
         for node in names:
             container = containers[node]
-            print(container["id"] if template == "{{.Id}}" else str(container["running"]).lower())
+            if template == "{{.Id}}":
+                print(container["id"])
+            elif template == "{{json .NetworkSettings.Networks.kind}}":
+                print('{"kind":{}}' if container.get("kind_network") else "null")
+            else:
+                print(str(container["running"]).lower())
         return 0
     if args[0] == "start":
         if config.get("start_failure"):
             return 1
         containers[args[1]]["running"] = True
-        (root / "config.json").write_text(json.dumps(config))
+        persist()
+        return 0
+    if args[0] == "rm":
+        containers.pop(args[-1], None)
+        persist()
+        return 0
+    if args[0] == "run":
+        containers[args[args.index("--name") + 1]] = {
+            "id": "registry-container",
+            "running": True,
+            "kind_network": False,
+        }
+        persist()
+        return 0
+    if args[0] == "exec":
         return 0
     return 2
 
 
-@unittest.skipUnless(shutil.which("kind") and shutil.which("bash"), "requires Kind and Bash")
+@unittest.skipUnless(shutil.which("bash"), "requires Bash")
 class SetupKindTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="setup-kind-test-")
@@ -95,7 +149,7 @@ class SetupKindTest(unittest.TestCase):
         bins.mkdir()
         for name in ("kind", "kubectl"):
             (bins / name).symlink_to(Path(__file__).resolve())
-        for name in ("bash", "dirname", "grep", "sleep", "env"):
+        for name in ("bash", "dirname", "grep", "sleep", "env", "cat"):
             (bins / name).symlink_to(shutil.which(name))
         (bins / "python3").symlink_to(sys.executable)
         self.env = os.environ.copy()
@@ -104,9 +158,9 @@ class SetupKindTest(unittest.TestCase):
         self.env.update(
             PATH=str(bins),
             SETUP_KIND_TEST_DIR=str(self.root),
-            SETUP_KIND_TEST_REAL_KIND=shutil.which("kind"),
         )
         self.config = {
+            "cluster_exists": True,
             "installed": {"docker": "docker"},
             "containers": {"docker": {NODE: {"id": "docker-node", "running": False}}},
         }
@@ -118,7 +172,7 @@ class SetupKindTest(unittest.TestCase):
                 binary.unlink()
             if name in self.config["installed"]:
                 binary.symlink_to(Path(__file__).resolve())
-        (self.root / "config.json").write_text(json.dumps(self.config))
+        save_config(self.root, self.config)
         result = subprocess.run(
             [shutil.which("bash"), str(SCRIPT)], env=self.env,
             capture_output=True, text=True, timeout=15,
@@ -157,14 +211,18 @@ class SetupKindTest(unittest.TestCase):
         self.use_runtime("podman")
         self.config["installed"]["docker"] = "podman"
         self.run_setup()
-        self.assertFalse(self.commands("docker", "ps"))
-        self.assertTrue(self.commands("podman", "ps"))
+        # The docker shim may be probed during discovery (it resolves the same
+        # podman containers), but must never be used to act on them.
+        mutating = ("start", "run", "rm", "exec", "network")
+        self.assertFalse(
+            [args for cli, args, _ in self.calls if cli == "docker" and args[0] in mutating]
+        )
         self.assertEqual(self.commands("podman", "start"), [["start", NODE]])
 
     def test_finch_only_installation(self):
         self.use_runtime("finch")
         self.run_setup()
-        self.assertTrue(self.commands("finch", "ps"))
+        self.assertTrue(self.commands("finch", "run"))
         self.assertEqual(self.commands("finch", "start"), [["start", NODE]])
 
     def test_nerdctl_installation(self):
@@ -203,17 +261,54 @@ class SetupKindTest(unittest.TestCase):
         self.run_setup()
         self.assertEqual(self.commands("docker", "start"), [["start", NODE]])
 
-    def test_fresh_clusters_leave_provider_detection_to_kind(self):
+    def test_fresh_cluster_registry_uses_node_owning_runtime(self):
+        # Kind picks its own provider for creation (no KIND_EXPERIMENTAL_PROVIDER
+        # is exported), but the registry must still land in the runtime that
+        # owns the freshly created nodes.
         for runtime in ("docker", "podman", "finch"):
             with self.subTest(runtime=runtime):
                 self.use_runtime(runtime)
-                if runtime == "podman":
-                    self.config["installed"]["docker"] = "podman"
-                self.config["containers"] = {}
+                self.config["cluster_exists"] = False
                 (self.root / "calls.jsonl").write_text("")
                 self.run_setup()
                 self.assertTrue(self.commands("kind", "create"))
-                self.assertFalse(any(args[0] == "inspect" for _, args, _ in self.calls))
+                self.assertTrue(self.commands(runtime, "run"))
+                self.assertTrue(self.commands(runtime, "network"))
+                self.assertTrue(self.commands(runtime, "exec"))
+
+    def test_registry_uses_node_owning_runtime_when_multiple_clis_installed(self):
+        # Docker is installed but does not own the Kind nodes; the registry
+        # must be created through the runtime that does.
+        self.config["installed"] = {"docker": "docker", "podman": "podman"}
+        self.config["containers"] = {
+            "docker": {},
+            "podman": {NODE: {"id": "podman-node", "running": True}},
+        }
+        self.run_setup()
+        self.assertTrue(self.commands("podman", "run"))
+        self.assertFalse(self.commands("docker", "run"))
+
+    def test_existing_registry_is_reused(self):
+        self.config["containers"]["docker"][REGISTRY] = {
+            "id": "registry-container",
+            "running": True,
+            "kind_network": True,
+        }
+        self.run_setup()
+        self.assertFalse(self.commands("docker", "run"))
+        self.assertFalse(self.commands("docker", "rm"))
+        self.assertFalse(
+            [args for args in self.commands("docker", "network") if args[:2] == ["network", "connect"]]
+        )
+        self.assertTrue(self.commands("kubectl", "apply"))
+
+    def test_registry_is_attached_to_kind_network(self):
+        self.run_setup()
+        self.assertEqual(
+            [args for args in self.commands("docker", "network") if args[:2] == ["network", "connect"]],
+            [["network", "connect", "--alias", REGISTRY, "kind", REGISTRY]],
+        )
+        self.assertTrue(all(args[0] == "exec" for args in self.commands("docker", "exec")))
 
     def test_discovery_failure_does_not_create_cluster(self):
         self.config["discovery_failure"] = True

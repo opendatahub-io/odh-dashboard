@@ -226,14 +226,6 @@ else
   kubectl apply --server-side --force-conflicts -f "$KSERVE_URL"
 fi
 
-# --- KServe serving runtimes -------------------------------------------------
-# The controller manifest does not include the ClusterServingRuntime
-# definitions. Install them separately so model formats such as sklearn have
-# a runtime available for automatic selection.
-
-info "Installing KServe ${KSERVE_VERSION} cluster serving runtimes..."
-kubectl apply --server-side --force-conflicts -f "$KSERVE_RESOURCES_URL"
-
 # --- Configure RawDeployment mode ---------------------------------------------
 # KServe defaults to serverless (Knative) mode. We run without Knative/Istio,
 # so switch to RawDeployment mode and disable ingress creation. Configure this
@@ -251,6 +243,11 @@ kubectl patch configmap inferenceservice-config \
     }
   }'
 
+# --- Wait for the KServe controllers before applying webhook-validated CRs ---
+# ClusterServingRuntime and LLMInferenceServiceConfig applies are validated by
+# the KServe admission webhooks; applying them before the controllers are
+# Available fails with "failed calling webhook ... connection refused".
+
 info "Waiting for kserve-controller-manager to be ready..."
 kubectl wait deployment kserve-controller-manager \
   -n kserve \
@@ -262,6 +259,14 @@ kubectl wait deployment llmisvc-controller-manager \
   -n kserve \
   --for=condition=Available \
   --timeout="$WAIT_TIMEOUT"
+
+# --- KServe serving runtimes -------------------------------------------------
+# The controller manifest does not include the ClusterServingRuntime
+# definitions. Install them separately so model formats such as sklearn have
+# a runtime available for automatic selection.
+
+info "Installing KServe ${KSERVE_VERSION} cluster serving runtimes..."
+kubectl apply --server-side --force-conflicts -f "$KSERVE_RESOURCES_URL"
 
 # --- Summary ------------------------------------------------------------------
 
