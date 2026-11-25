@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ImportCollectionModal from '~/app/components/ImportCollectionModal';
@@ -402,8 +402,9 @@ describe('ImportCollectionModal', () => {
     await waitFor(() => expect(screen.getByTestId('import-collection-submit')).toBeEnabled());
 
     // ...and the older read resolving late must not overwrite it.
-    resolveFirst(contentA);
-    await waitFor(() => expect(mockReadFile).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      resolveFirst(contentA);
+    });
     expect(findEditor().value).toContain('name: file-b');
     expect(findEditor().value).not.toContain('name: file-a');
     expect(screen.getByTestId('import-collection-filename').textContent).toContain('b.yaml');
@@ -436,8 +437,9 @@ describe('ImportCollectionModal', () => {
     expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
 
     // ...so the earlier read resolving late must not replace the edits.
-    resolveFirst(contentA);
-    await waitFor(() => expect(mockReadFile).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      resolveFirst(contentA);
+    });
     expect(findEditor().value).toContain('name: importable');
     expect(findEditor().value).not.toContain('name: file-a');
   });
@@ -473,8 +475,9 @@ describe('ImportCollectionModal', () => {
     expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
 
     // The read resolving late must not overwrite the edits.
-    resolveRead(fileContent);
-    await waitFor(() => expect(mockReadFile).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      resolveRead(fileContent);
+    });
     expect(findEditor().value).toContain('name: importable');
     expect(findEditor().value).not.toContain('name: from-file');
   });

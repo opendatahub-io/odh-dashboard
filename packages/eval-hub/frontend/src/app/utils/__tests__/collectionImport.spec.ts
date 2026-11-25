@@ -227,6 +227,31 @@ describe('getImportWarnings', () => {
     expect(warnings[100]).toEqual({ message: '50 more warnings are not shown.' });
     expect(warnings.slice(0, 100).every((warning) => warning.field !== undefined)).toBe(true);
   });
+
+  it('should cap warnings without building them for a wide benchmark repeated through aliases', () => {
+    // js-yaml resolves *b to the same object reference, so each alias repeats
+    // the anchored mapping's unknown fields. Before the cap was enforced
+    // during construction, this shape built every warning object first.
+    const fields = Array.from({ length: 60 }, (_, i) => `mystery${i}`);
+    const text = [
+      'name: x',
+      'description: d',
+      'benchmarks:',
+      '  - &b',
+      ...fields.map((field) => `      ${field}: 1`),
+      ...Array.from({ length: 5000 }, () => '  - *b'),
+    ].join('\n');
+    const parsed = parseImportContent(text);
+    expect(parsed.doc).not.toBeNull();
+    const warnings = getImportWarnings(parsed.doc ?? {});
+    expect(warnings).toHaveLength(101);
+    expect(warnings[100]).toEqual({ message: '299960 more warnings are not shown.' });
+    expect(warnings[0]).toEqual({
+      message: 'Benchmark "at index 0": unrecognized field "mystery0" will be ignored.',
+      benchmarkId: 'at index 0',
+      benchmarkField: 'mystery0',
+    });
+  });
 });
 
 describe('findImportWarningLine', () => {
@@ -411,6 +436,13 @@ describe('applyImportName', () => {
     const text = 'name: &n old\ndescription: *n\n';
     const result = applyImportName(text, 'renamed');
     expect(result).toBe('name: &n renamed\ndescription: *n\n');
+    expect(parseImportContent(result).doc).toEqual({ name: 'renamed', description: 'renamed' });
+  });
+
+  it('should preserve an anchor on a flow-style name value so aliases stay defined', () => {
+    const text = '{name: &n old, description: *n}\n';
+    const result = applyImportName(text, 'renamed');
+    expect(result).toBe('{name: &n "renamed", description: *n}\n');
     expect(parseImportContent(result).doc).toEqual({ name: 'renamed', description: 'renamed' });
   });
 

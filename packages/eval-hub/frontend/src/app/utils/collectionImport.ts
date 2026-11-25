@@ -293,52 +293,84 @@ export type ImportWarning = {
  */
 export const getImportWarnings = (doc: Record<string, unknown>): ImportWarning[] => {
   const warnings: ImportWarning[] = [];
+  let hiddenCount = 0;
+  const pushWarning = (warning: ImportWarning): void => {
+    if (warnings.length < MAX_IMPORT_WARNINGS) {
+      warnings.push(warning);
+    } else {
+      hiddenCount += 1;
+    }
+  };
   Object.keys(doc)
     .toSorted()
     .forEach((field) => {
       if (SERVER_MANAGED_COLLECTION_FIELDS.has(field)) {
-        warnings.push({
+        pushWarning({
           message: `Field "${field}" is managed by the server and will be ignored.`,
           field,
         });
       } else if (!KNOWN_COLLECTION_FIELDS.has(field)) {
-        warnings.push({ message: `Unrecognized field "${field}" will be ignored.`, field });
+        pushWarning({ message: `Unrecognized field "${field}" will be ignored.`, field });
       }
     });
   if (typeof doc.description !== 'string' || doc.description.trim() === '') {
-    warnings.push({
+    pushWarning({
       message:
         'No description provided. Consider adding one so the collection is easy to identify.',
     });
   }
   const benchmarks = Array.isArray(doc.benchmarks) ? doc.benchmarks : [];
+  // js-yaml resolves aliases to shared object references, so one anchored
+  // mapping can appear as many benchmark entries. Each unique object's field
+  // classification is computed once, and past the cap warnings are only
+  // counted, so a small file of repeated aliases cannot multiply into
+  // millions of warning objects on the render path.
+  const classifiedEntries = new WeakMap<
+    Record<string, unknown>,
+    { serverManaged: string[]; unknownFields: string[] }
+  >();
   benchmarks.forEach((entry, index) => {
     if (!isRecord(entry)) {
       return;
     }
+    let fields = classifiedEntries.get(entry);
+    if (fields === undefined) {
+      const serverManaged: string[] = [];
+      const unknownFields: string[] = [];
+      Object.keys(entry)
+        .toSorted()
+        .forEach((field) => {
+          if (SERVER_MANAGED_BENCHMARK_FIELDS.has(field)) {
+            serverManaged.push(field);
+          } else if (!KNOWN_BENCHMARK_FIELDS.has(field)) {
+            unknownFields.push(field);
+          }
+        });
+      fields = { serverManaged, unknownFields };
+      classifiedEntries.set(entry, fields);
+    }
+    if (warnings.length >= MAX_IMPORT_WARNINGS) {
+      hiddenCount += fields.serverManaged.length + fields.unknownFields.length;
+      return;
+    }
     const id = typeof entry.id === 'string' && entry.id !== '' ? entry.id : `at index ${index}`;
-    Object.keys(entry)
-      .toSorted()
-      .forEach((field) => {
-        if (SERVER_MANAGED_BENCHMARK_FIELDS.has(field)) {
-          warnings.push({
-            message: `Benchmark "${id}": field "${field}" is managed by the server and will be ignored.`,
-            benchmarkId: id,
-            benchmarkField: field,
-          });
-        } else if (!KNOWN_BENCHMARK_FIELDS.has(field)) {
-          warnings.push({
-            message: `Benchmark "${id}": unrecognized field "${field}" will be ignored.`,
-            benchmarkId: id,
-            benchmarkField: field,
-          });
-        }
+    fields.serverManaged.forEach((field) => {
+      pushWarning({
+        message: `Benchmark "${id}": field "${field}" is managed by the server and will be ignored.`,
+        benchmarkId: id,
+        benchmarkField: field,
       });
+    });
+    fields.unknownFields.forEach((field) => {
+      pushWarning({
+        message: `Benchmark "${id}": unrecognized field "${field}" will be ignored.`,
+        benchmarkId: id,
+        benchmarkField: field,
+      });
+    });
   });
-  if (warnings.length > MAX_IMPORT_WARNINGS) {
-    const hidden = warnings.length - MAX_IMPORT_WARNINGS;
-    warnings.length = MAX_IMPORT_WARNINGS;
-    warnings.push({ message: `${hidden} more warnings are not shown.` });
+  if (hiddenCount > 0) {
+    warnings.push({ message: `${hiddenCount} more warnings are not shown.` });
   }
   return warnings;
 };
@@ -719,6 +751,17 @@ const replaceTopLevelJsonName = (text: string, newName: string): string | null =
     let valueStart = colonIndex + 1;
     while (valueStart < len && /\s/.test(text[valueStart])) {
       valueStart++;
+    }
+    // A leading anchor property (&n) stays in the text: dropping it would
+    // leave any alias to it elsewhere in the document undefined.
+    if (text[valueStart] === '&') {
+      valueStart++;
+      while (valueStart < len && !/[\s,{}[\]]/.test(text[valueStart])) {
+        valueStart++;
+      }
+      while (valueStart < len && /\s/.test(text[valueStart])) {
+        valueStart++;
+      }
     }
     const valueEnd = findFlowValueEnd(text, valueStart);
     if (valueEnd === -1) {
