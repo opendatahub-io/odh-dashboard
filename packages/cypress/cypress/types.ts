@@ -344,6 +344,7 @@ export type TestConfig = {
   MAAS_PORTAL_MODEL_NAME?: string;
   MAAS_PORTAL_ORGANIZATION_ID?: string;
   MAAS_PORTAL_USER_GROUPS?: string[];
+  MAAS_OWNER_GROUPS?: string[] | string;
   MAAS_API_KEY?: string;
   MAAS_PORTAL_ADMIN_USER?: UserAuthConfig;
   MAAS_PORTAL_USER?: UserAuthConfig;
@@ -395,8 +396,8 @@ export type DataScienceProjectData = {
   existingImage: string;
   replaceImage: string;
   replaceImageArm64?: string;
-  serviceAccountName1: string;
-  serviceAccountName2: string;
+  secretName1: string;
+  secretName2: string;
   connectionNameSuffix: string;
   adminRoleName: string;
   contributorRoleName: string;

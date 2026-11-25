@@ -38,22 +38,18 @@ const useAssembleDeploymentFn = (
 /**
  * Based on the formData, return the resources (only LLMInferenceService for now).
  * @param formData The form in any state
- * @param existingDeployment When editing an existing deployment
+ * @param latestResourcesFromYamlOrEdit The existing deployment, or the latest resources from YAML, so unmanaged
+ * properties (e.g. added via YAML) are kept when the form is assembled
  * @returns The resources (only LLMInferenceService for now) that will be used to create the deployment
  */
 export const useFormToResourcesTransformer = (
   formData: WizardFormData,
-  existingDeployment?: Deployment,
+  latestResourcesFromYamlOrEdit?: DeploymentAssemblyResources,
 ): {
   resources: DeploymentAssemblyResources<Deployment>;
-  setLatestResourcesFromYaml: (newResources: DeploymentAssemblyResources) => void;
   loaded: boolean;
   errors?: Error[];
 } => {
-  // Keep track of the latest resources from YAML (or edit on first load) so we can merge unmanaged properties added via YAML
-  const [lastestResourcesFromYamlOrEdit, setLatestResourcesFromYaml] = React.useState<
-    DeploymentAssemblyResources | undefined
-  >(existingDeployment);
   // As of now, the assembleFn is what creates the Deployment / model resource with most form data applied.
   // applyFieldData is then used to apply the field data to the deployment.
   const [assembleDeploymentFn, assembleDeploymentFnLoaded, assembleDeploymentFnErrors] =
@@ -75,7 +71,7 @@ export const useFormToResourcesTransformer = (
     }
     let deployment = assembleDeploymentFn(
       formData,
-      lastestResourcesFromYamlOrEdit,
+      latestResourcesFromYamlOrEdit,
       undefined,
       getConnectionSecret(formData.state),
     );
@@ -85,19 +81,10 @@ export const useFormToResourcesTransformer = (
       model: deployment.model,
       ...(deployment.server ? { server: deployment.server } : {}),
     };
-  }, [applyFieldData, assembleDeploymentFn, lastestResourcesFromYamlOrEdit, formData]);
+  }, [applyFieldData, assembleDeploymentFn, latestResourcesFromYamlOrEdit, formData]);
 
   return React.useMemo(
-    () => ({
-      resources: formResources,
-      setLatestResourcesFromYaml: (newResources: DeploymentAssemblyResources | undefined) => {
-        setLatestResourcesFromYaml((prev) => {
-          return { ...prev, model: newResources?.model };
-        });
-      },
-      loaded,
-      errors,
-    }),
+    () => ({ resources: formResources, loaded, errors }),
     [formResources, loaded, errors],
   );
 };

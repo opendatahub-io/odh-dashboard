@@ -26,6 +26,7 @@ import {
   applyDashboardResourceLabel,
   applyTokenAuthentication,
   applyDefaultScheduler,
+  applyK8sNameAndNamespace,
 } from './model';
 import { applyConfigBaseRef } from './server';
 import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
@@ -141,6 +142,7 @@ const assembleLLMInferenceService = (
         'opendatahub.io/model-type': 'generative',
       });
 
+  llmInferenceService = applyK8sNameAndNamespace(llmInferenceService, k8sName, projectName);
   llmInferenceService = applyDisplayNameDesc(llmInferenceService, displayName, description);
   llmInferenceService = applyDashboardResourceLabel(llmInferenceService);
   llmInferenceService = applyModelLocation(

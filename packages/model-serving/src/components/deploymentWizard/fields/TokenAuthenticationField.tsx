@@ -28,7 +28,7 @@ import { showAuthWarning } from '../hooks/useAuthWarning';
 // Schema
 const tokenSchema = z.object({
   uuid: z.string(),
-  displayName: z.string().min(1, 'Service account name is required'),
+  displayName: z.string().min(1, 'Secret name is required'),
   k8sName: z.string().optional(),
   error: z.string().optional(),
 });
@@ -132,7 +132,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
   };
 
   return (
-    <FormGroup label="Service account name" fieldId="service-account-form-name">
+    <FormGroup label="Secret name" fieldId="service-account-form-name">
       <Split>
         <SplitItem isFilled>
           <TextInput
@@ -165,7 +165,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
               >
                 {newToken.error
                   ? newToken.error
-                  : 'Enter the name of the service account for which the token will be generated'}
+                  : 'Enter a name for the secret that stores the generated token'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -173,7 +173,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
         <SplitItem>
           <Button
             variant="plain"
-            aria-label="Remove service account"
+            aria-label="Remove secret"
             data-testid="remove-service-account-button"
             icon={<MinusCircleIcon />}
             isDisabled={disabled}
@@ -298,7 +298,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
                   isDisabled={isDisabled}
                   data-testid="add-service-account-button"
                 >
-                  Add a service account
+                  Add a secret
                 </Button>
               </StackItem>
             </Stack>
