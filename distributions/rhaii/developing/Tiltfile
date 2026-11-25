@@ -56,10 +56,17 @@ build_ignore = [
 # podman-only installs without a docker CLI.
 docker_host = os.environ.get("DOCKER_HOST", "")
 docker_cli = str(local("command -v docker 2>/dev/null || true", quiet=True)) != ""
+podman_cli = str(local("command -v podman 2>/dev/null || true", quiet=True)) != ""
 if "podman" in docker_host:
     podman_daemon = True
 elif docker_cli:
     podman_daemon = "Podman Engine" in str(local("docker version 2>&1 || true", quiet=True))
+elif podman_cli:
+    # No docker CLI: treat a podman CLI as a podman-only install. Without it,
+    # a Podman daemon behind a generically named socket or no DOCKER_HOST at
+    # all would fall through to docker_build and hit the BuildKit session
+    # error this branch exists to avoid.
+    podman_daemon = True
 else:
     podman_daemon = False
 
@@ -70,18 +77,26 @@ quoted_repo_root = shell_quote(repo_root)
 quoted_dockerfile = shell_quote(os.path.join(dist_root, "Dockerfile"))
 
 if podman_daemon:
-    # Endpoint the docker CLI would resolve: DOCKER_HOST, else the current
-    # Docker context's endpoint. Podman does not read either, so it is
-    # forwarded as CONTAINER_HOST below to keep build and push on the same
-    # Podman connection/image store.
+    # Resolve the endpoint the docker CLI itself would use, matching its
+    # documented precedence (DOCKER_CONTEXT overrides DOCKER_HOST, which
+    # overrides the current context — see the docker CLI reference). Podman
+    # reads neither variable, so the result is forwarded as CONTAINER_HOST
+    # below to keep build and push on the same Podman connection/store.
     docker_endpoint = docker_host
-    if docker_cli and not docker_endpoint:
-        docker_endpoint = str(local(
-            "docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true",
-            quiet=True,
-        )).strip()
+    if docker_cli:
+        docker_context = os.environ.get("DOCKER_CONTEXT", "")
+        if docker_context:
+            docker_endpoint = str(local(
+                "docker context inspect " + shell_quote(docker_context)
+                + " --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true",
+                quiet=True,
+            )).strip()
+        elif not docker_endpoint:
+            docker_endpoint = str(local(
+                "docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true",
+                quiet=True,
+            )).strip()
     podman_env = "CONTAINER_HOST=%s " % shell_quote(docker_endpoint) if docker_endpoint else ""
-    podman_cli = str(local("command -v podman 2>/dev/null || true", quiet=True)) != ""
     if docker_cli:
         # The docker CLI resolves the same endpoint as Tilt's client (DOCKER_HOST /
         # Docker contexts), so build through it. Pushing through it is not an

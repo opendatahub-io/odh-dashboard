@@ -266,7 +266,18 @@ kubectl wait deployment llmisvc-controller-manager \
 # a runtime available for automatic selection.
 
 info "Installing KServe ${KSERVE_VERSION} cluster serving runtimes..."
-kubectl apply --server-side --force-conflicts -f "$KSERVE_RESOURCES_URL"
+# The controllers being Available does not guarantee the webhook endpoint is
+# immediately serviceable (Service endpoint / cert propagation can lag), so
+# retry the webhook-validated apply on transient failures.
+apply_attempts=0
+until kubectl apply --server-side --force-conflicts -f "$KSERVE_RESOURCES_URL"; do
+  apply_attempts=$((apply_attempts + 1))
+  if (( apply_attempts >= 5 )); then
+    error "Failed to apply ${KSERVE_RESOURCES_URL} after ${apply_attempts} attempts"
+  fi
+  echo "Retrying KServe cluster serving runtimes apply (${apply_attempts}/5)..."
+  sleep 5
+done
 
 # --- Summary ------------------------------------------------------------------
 

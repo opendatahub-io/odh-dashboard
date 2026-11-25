@@ -122,6 +122,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Core BFF OpenAPI Spec](distributions/core-bff/bff/openapi/src/core-bff.yaml) | OpenAPI specification (contract-first source of truth) |
 | [Base Distribution README](distributions/base/README.md) | App shell setup, dev environment, environment variables |
 | [RHAII Runtime Audit](distributions/rhaii/docs/runtime-audit.md) | Production bundle inventory, strict dependency boundary check, and remaining runtime qualification |
+| [RHAII Dev Environment](distributions/rhaii/developing/README.md) | Tilt-based inner loop: Kind cluster with local registry, KServe setup, prerequisites (incl. podman CLI for Podman daemons) |
 
 ---
 

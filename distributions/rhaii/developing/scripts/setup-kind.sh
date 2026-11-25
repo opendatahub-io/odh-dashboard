@@ -118,11 +118,27 @@ kubectl create namespace opendatahub --dry-run=client -o yaml | kubectl apply -f
 # CONTAINER_PROVIDER was determined above from the runtime that owns the
 # Kind nodes, so the registry is created in that same runtime.
 
-if [[ "$("${CONTAINER_PROVIDER}" inspect --format '{{.State.Running}}' "${REGISTRY_NAME}" 2>/dev/null || true)" != "true" ]]; then
+registry_state="$("${CONTAINER_PROVIDER}" inspect --format '{{.State.Running}}' "${REGISTRY_NAME}" 2>/dev/null || true)"
+if [[ "${registry_state}" == "true" ]]; then
+  # Reusing a running registry: it must publish the port we advertise in the
+  # local-registry-hosting ConfigMap below, or pushes will fail.
+  port_bindings="$("${CONTAINER_PROVIDER}" inspect --format '{{json .HostConfig.PortBindings}}' "${REGISTRY_NAME}")"
+  if ! grep -Eq '"HostIp"[[:space:]]*:[[:space:]]*"127\.0\.0\.1"' <<< "${port_bindings}" \
+     || ! grep -Eq "\"HostPort\"[[:space:]]*:[[:space:]]*\"${REGISTRY_PORT}\"" <<< "${port_bindings}"; then
+    echo "ERROR: Existing '${REGISTRY_NAME}' does not publish 127.0.0.1:${REGISTRY_PORT}. Remove it or re-create it with the expected port binding."
+    exit 1
+  fi
+elif [[ -n "${registry_state}" ]]; then
+  # The container exists but is stopped: start it so previously pushed images
+  # in its writable layer are preserved (recreating would lose them).
+  echo "Starting stopped local registry '${REGISTRY_NAME}'..."
+  "${CONTAINER_PROVIDER}" start "${REGISTRY_NAME}"
+else
   echo "Creating local registry '${REGISTRY_NAME}' on 127.0.0.1:${REGISTRY_PORT}..."
-  "${CONTAINER_PROVIDER}" rm -f "${REGISTRY_NAME}" >/dev/null 2>&1 || true
+  # Fully qualified so short-name resolution (e.g. Podman aliases) cannot
+  # redirect the pull to a different registry.
   "${CONTAINER_PROVIDER}" run -d --restart=always -p "127.0.0.1:${REGISTRY_PORT}:5000" \
-    --network bridge --name "${REGISTRY_NAME}" registry:3
+    --network bridge --name "${REGISTRY_NAME}" docker.io/library/registry:3
 fi
 
 # Attach the registry to the kind network so the nodes can reach it as
@@ -141,7 +157,7 @@ fi
 # to the registry container over the kind network (kind nodes from v0.27.0+
 # already enable the certs.d config dir; no containerd config patch needed).
 REGISTRY_DIR="/etc/containerd/certs.d/localhost:${REGISTRY_PORT}"
-for node in $(kind get nodes --name "${CLUSTER_NAME}"); do
+for node in "${node_names[@]}"; do
   "${CONTAINER_PROVIDER}" exec "${node}" mkdir -p "${REGISTRY_DIR}"
   cat <<EOF | "${CONTAINER_PROVIDER}" exec -i "${node}" cp /dev/stdin "${REGISTRY_DIR}/hosts.toml"
 [host."http://${REGISTRY_NAME}:5000"]

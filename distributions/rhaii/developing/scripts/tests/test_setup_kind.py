@@ -50,7 +50,7 @@ def fixture_cli():
         if args[:2] == ["get", "nodes"]:
             if not config.get("cluster_exists") or config.get("empty_nodes"):
                 return 1
-            print(NODE)
+            print("\n".join(config.get("nodes", [NODE])))
             return 0
         return 2
 
@@ -113,6 +113,9 @@ def fixture_cli():
                 print(container["id"])
             elif template == "{{json .NetworkSettings.Networks.kind}}":
                 print('{"kind":{}}' if container.get("kind_network") else "null")
+            elif template == "{{json .HostConfig.PortBindings}}":
+                port = config.get("registry_port", "5001")
+                print('{"5000/tcp":[{"HostIp":"127.0.0.1","HostPort":"%s"}]}' % port)
             else:
                 print(str(container["running"]).lower())
         return 0
@@ -134,6 +137,8 @@ def fixture_cli():
         }
         persist()
         return 0
+
+
     if args[0] == "exec":
         return 0
     return 2
@@ -257,9 +262,13 @@ class SetupKindTest(unittest.TestCase):
         self.assertEqual(self.commands("podman", "start"), [["start", NODE]])
 
     def test_multi_node_recovery_only_starts_stopped_nodes(self):
+        self.config["nodes"] = [NODE, "rhaii-tilt-worker"]
         self.config["containers"]["docker"]["rhaii-tilt-worker"] = {"id": "worker", "running": True}
         self.run_setup()
         self.assertEqual(self.commands("docker", "start"), [["start", NODE]])
+        # Every node must receive the registry configuration.
+        configured_nodes = {args[1] for args in self.commands("docker", "exec") if "-i" not in args}
+        self.assertEqual(configured_nodes, {NODE, "rhaii-tilt-worker"})
 
     def test_fresh_cluster_registry_uses_node_owning_runtime(self):
         # Kind picks its own provider for creation (no KIND_EXPERIMENTAL_PROVIDER
@@ -309,6 +318,29 @@ class SetupKindTest(unittest.TestCase):
             [["network", "connect", "--alias", REGISTRY, "kind", REGISTRY]],
         )
         self.assertTrue(all(args[0] == "exec" for args in self.commands("docker", "exec")))
+
+    def test_stopped_registry_is_started_not_recreated(self):
+        # A stopped registry keeps its writable layer (previously pushed
+        # images); it must be started, not removed and re-created.
+        self.config["containers"]["docker"][REGISTRY] = {
+            "id": "registry-container",
+            "running": False,
+            "kind_network": True,
+        }
+        self.run_setup()
+        self.assertIn(["start", REGISTRY], self.commands("docker", "start"))
+        self.assertFalse(self.commands("docker", "run"))
+        self.assertFalse(self.commands("docker", "rm"))
+
+    def test_registry_published_port_is_validated(self):
+        self.config["containers"]["docker"][REGISTRY] = {
+            "id": "registry-container",
+            "running": True,
+            "kind_network": True,
+        }
+        self.config["registry_port"] = "9999"
+        result = self.run_setup(success=False)
+        self.assertIn("does not publish 127.0.0.1:5001", result.stdout)
 
     def test_discovery_failure_does_not_create_cluster(self):
         self.config["discovery_failure"] = True
