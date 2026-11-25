@@ -37,7 +37,7 @@ spec:
   - name: output-image
     value: quay.io/rhoai/odh-mod-arch-automl-rhel9:{{target_branch}}
   - name: rhoai-version
-    value: "3.5.4"
+    value: "3.5.5"
   - name: dockerfile
     value: Dockerfile.konflux.automl
   - name: path-context

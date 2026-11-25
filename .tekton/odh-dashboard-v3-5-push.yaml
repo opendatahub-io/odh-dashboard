@@ -35,7 +35,7 @@ spec:
   - name: output-image
     value: quay.io/rhoai/odh-dashboard-rhel9:{{target_branch}}
   - name: rhoai-version
-    value: "3.5.4"
+    value: "3.5.5"
   - name: dockerfile
     value: Dockerfile.konflux
   - name: path-context
