@@ -1,6 +1,6 @@
 module github.com/kubeflow/notebooks/workspaces/backend
 
-go 1.27.1
+go 1.26.5
 
 replace github.com/kubeflow/notebooks/workspaces/controller => ../controller
 
