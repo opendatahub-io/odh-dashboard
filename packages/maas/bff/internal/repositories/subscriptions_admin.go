@@ -123,7 +123,7 @@ func ConvertK8sSubscriptionToListItem(sub models.MaaSSubscription) models.Subscr
 func tokenRateLimitsFromK8s(limits []models.TokenRateLimit) []models.TokenRateLimitInfo {
 	mapped := make([]models.TokenRateLimitInfo, len(limits))
 	for i, limit := range limits {
-		mapped[i] = models.TokenRateLimitInfo{Limit: limit.Limit, Window: limit.Window}
+		mapped[i] = models.TokenRateLimitInfo(limit)
 	}
 	return mapped
 }
