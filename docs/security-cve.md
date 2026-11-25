@@ -185,6 +185,22 @@ fix(deps): bump <pkg> to <version> (CVE-YYYY-NNNNN)
   cherry-pick cleanly.
 - Link the Jira tracker in the PR description (`Fixes: <jira-url>`).
 
+### Approval
+
+Packages have their own `OWNERS` files, so a bump across several packages would otherwise need
+one approver per package. Members of the
+[`dependency-approvers`](adding-owners-and-reviewers.md#dependency-approvers) alias can approve
+**dependency manifests only** (`package.json`, `go.mod`, `go.sum`, `pnpm-lock.yaml`,
+`pnpm-workspace.yaml`) in every package:
+
+- **Manifest/lockfile-only PR** (most Dependabot, Renovate and manual CVE bumps): ask one
+  dependency approver for `/approve`.
+- **PR that also changes code, `Dockerfile*` or workflows** (API migrations, Go toolchain or base
+  image bumps): the dependency approver covers the manifests and the owning teams approve the
+  rest. To unblock the security fix faster, split the code change into its own PR when it can land
+  first.
+- `upstream/` trees are not covered; fix them upstream (see above).
+
 ## Fixing CVEs on Release Branches
 
 Every z-stream fix flows in one direction — never skip the ODH branch or cherry-pick straight from
