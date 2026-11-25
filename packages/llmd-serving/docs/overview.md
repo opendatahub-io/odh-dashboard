@@ -10,6 +10,7 @@
 - **No BFF**: CRUD for `LLMInferenceService` in `src/api/` uses the OpenShift dynamic plugin SDK from the browser with the main dashboard's in-cluster credentials.
 - **Extension points**: `extensions/extensions.ts` registers `model-serving.platform/watch-deployments`, `model-serving.deployment/deploy`, `model-serving.deployment/form-data`, `model-serving.deployment/wizard-field`, and `model-serving.deployments-table/start-stop-action`; host `model-serving` orchestrates and supplies the shared single-model platform shell; this package supplies LLM-d-specific behavior only.
 - **No Module Federation remote**: Dashboard loads via monorepo exports (e.g. `./extensions`, `./types`, test helpers under `./__tests__/utils`).
+- **Events discovery**: `model-serving.platform/events-discovery` configures Deployment, ReplicaSet, and LeaderWorkerSet watches filtered by `app.kubernetes.io/name=<model-name>,app.kubernetes.io/part-of=llminferenceservice`. StatefulSets are watched across the namespace because they carry LeaderWorkerSet labels rather than model labels. The status modal combines these candidates with Pods from the existing watch and resolves Event sources by owner UID.
 - **API**: Group `serving.kserve.io`, resource `llminferenceservices`, version `v1alpha2`; shapes in `src/types.ts` as `LLMInferenceServiceKind`.
 
 ## Modular Dependency Boundaries
