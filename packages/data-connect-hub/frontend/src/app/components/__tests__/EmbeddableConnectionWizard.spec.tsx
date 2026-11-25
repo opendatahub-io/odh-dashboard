@@ -198,6 +198,31 @@ describe('EmbeddableConnectionWizard', () => {
     );
   });
 
+  it('reports backend unavailability without waiting for the remote load', async () => {
+    mockLoadRemote.mockReturnValue(new Promise(() => undefined));
+    global.fetch = jest.fn().mockRejectedValue(new Error('backend unavailable'));
+    const onAvailabilityChange = jest.fn(
+      (_availability: ConnectionWizardAvailability) => undefined,
+    );
+
+    render(
+      <EmbeddableConnectionWizard
+        isOpen
+        namespace="test-project"
+        unavailableFallback={<div data-testid="legacy-connection-modal" />}
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+
+    expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(onAvailabilityChange).toHaveBeenCalledWith({
+        status: 'unavailable',
+        reason: 'backend',
+      }),
+    );
+  });
+
   it('renders the fallback when the federated wizard cannot load', async () => {
     mockLoadRemote.mockRejectedValue(new Error('remote unavailable'));
 

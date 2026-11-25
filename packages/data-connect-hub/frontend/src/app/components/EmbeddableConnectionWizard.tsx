@@ -104,24 +104,34 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     }
 
     const loadWizard = async (): Promise<'available' | 'remote' | 'backend'> => {
-      const [remoteResult, healthResult] = await Promise.allSettled([
-        loadRemote<{
-          default: React.ComponentType<EmbeddableCreateConnectionWizardProps>;
-        }>(REMOTE_MODULE),
-        checkBackendHealth(abortController.signal),
-      ]);
+      const remoteComponentPromise = (async () => {
+        try {
+          const module = await loadRemote<{
+            default: React.ComponentType<EmbeddableCreateConnectionWizardProps>;
+          }>(REMOTE_MODULE);
+          return module?.default ?? null;
+        } catch {
+          return null;
+        }
+      })();
+
+      try {
+        await checkBackendHealth(abortController.signal);
+      } catch {
+        if (cancelled) {
+          return 'available';
+        }
+        return 'backend';
+      }
 
       if (cancelled) {
         return 'available';
       }
-      if (remoteResult.status === 'rejected') {
-        return 'remote';
-      }
-      if (healthResult.status === 'rejected') {
-        return 'backend';
-      }
 
-      const component = remoteResult.value?.default;
+      const component = await remoteComponentPromise;
+      if (cancelled) {
+        return 'available';
+      }
       if (!component) {
         return 'remote';
       }
