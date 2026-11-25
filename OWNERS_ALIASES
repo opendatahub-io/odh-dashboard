@@ -153,14 +153,18 @@ aliases:
   # General Dashboard infrastructure
   # (2026-11-19) Pewter Scrum
   platform-approvers:
+    - caponetto
     - christianvogt
     - liday-rh
     - lucferbux
+    - paulovmr
   platform-reviewers:
+    - caponetto
     - christianvogt
     - jenny-s51
     - liday-rh
     - lucferbux
+    - paulovmr
 
   # Quality / E2E testing
   # (2026-11-19) General test ownership (not scrum based)
