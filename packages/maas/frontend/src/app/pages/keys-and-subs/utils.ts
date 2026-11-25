@@ -208,9 +208,19 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
     return undefined;
   }
 
-  const exact = models.find((model) => model.id === refName);
-  if (exact) {
-    return exact;
+  // A short-name catalog-ID match cannot verify the namespace. When a refNamespace
+  // was supplied, only accept the exact match when the ref name is itself a
+  // fully-qualified catalog id that embeds the ref's namespace (e.g.
+  // publishers/team-b/models/qwen); otherwise skip it and rely on the
+  // namespace-verified branches below (publisher path, owned_by) — an ambiguous
+  // ref is left unresolved rather than risking another namespace's model.
+  const exactMatchIsNamespaceVerified =
+    !refNamespace || refName.includes(`/${refNamespace}/models/`);
+  if (exactMatchIsNamespaceVerified) {
+    const exact = models.find((model) => model.id === refName);
+    if (exact) {
+      return exact;
+    }
   }
 
   if (refNamespace) {
@@ -339,7 +349,10 @@ export const buildApiKeyUsageExample = (
         `curl -X POST --globoff ${shellSafeURL} \\`,
         authHeader,
         '  -F "file=@<path-to-audio-file>" \\',
-        `  -F "model=${shellSafeModelId}"`,
+        // --form-string sends the model id as a literal string; -F would let curl
+        // interpret multipart directives in catalog-provided ids (e.g. "@/etc/passwd"
+        // would upload a local file instead of sending the literal model id).
+        `  --form-string "model=${shellSafeModelId}"`,
       ].join('\n');
     }
 

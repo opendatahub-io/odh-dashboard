@@ -516,7 +516,16 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 			Expect(actual.Data.SubscriptionIDHeader).To(Equal("multi-group-llama-sub"))
 			Expect(actual.Data.DisplayName).To(Equal("Enterprise Multi-Group Llama Access"))
-			Expect(actual.Data.ModelRefs).NotTo(BeEmpty())
+			Expect(actual.Data.ModelRefs).To(HaveLen(1))
+			// The K8s fallback must carry the CR's quotas and billing rate onto the
+			// passthrough shape (snake_case per_token), not drop them.
+			Expect(actual.Data.ModelRefs[0].TokenRateLimits).To(Equal([]models.TokenRateLimitInfo{
+				{Limit: 2000, Window: "1m"},
+				{Limit: 80000, Window: "1h"},
+				{Limit: 600000, Window: "24h"},
+			}))
+			Expect(actual.Data.ModelRefs[0].BillingRate).NotTo(BeNil())
+			Expect(actual.Data.ModelRefs[0].BillingRate.PerToken).To(Equal("gold"))
 		})
 
 		It("returns 404 for a K8s-only subscription when the caller is not a MaaS admin", func() {

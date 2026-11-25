@@ -297,6 +297,59 @@ describe('findMaaSModelBySubscriptionRef', () => {
     expect(findMaaSModelBySubscriptionRef(colliding, { refName: 'qwen' })).toBeUndefined();
   });
 
+  it('should not accept a short catalog-ID match owned by another namespace when refNamespace is supplied', () => {
+    const catalog = [
+      {
+        id: 'qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-a/qwen',
+      },
+    ];
+    // The short catalog id belongs to team-a; the ref names team-b, so the
+    // unverified exact match must be skipped and the ref left unresolved.
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, { refName: 'qwen', refNamespace: 'team-b' }),
+    ).toBeUndefined();
+
+    // The same short id with namespace-compatible owned_by still resolves via
+    // the verified owned_by branch.
+    const compatible = [
+      {
+        id: 'qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b/qwen',
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(compatible, { refName: 'qwen', refNamespace: 'team-b' })?.id,
+    ).toBe('qwen');
+  });
+
+  it('should still exact-match a fully-qualified path ref name when refNamespace is supplied', () => {
+    const catalog = [
+      {
+        id: 'publishers/team-b/models/qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b/qwen',
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, {
+        refName: 'publishers/team-b/models/qwen',
+        refNamespace: 'team-b',
+      })?.id,
+    ).toBe('publishers/team-b/models/qwen');
+
+    // A fully-qualified ref name from a different namespace than the ref's own
+    // is not trusted as an exact match.
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, {
+        refName: 'publishers/team-b/models/qwen',
+        refNamespace: 'team-a',
+      }),
+    ).toBeUndefined();
+  });
+
   it('should resolve via entitlement only when only one model_ref', () => {
     expect(
       findMaaSModelBySubscriptionRef(models, {
@@ -416,11 +469,30 @@ describe('buildApiKeyUsageExample', () => {
     );
     expect(example).toContain('/v1/audio/transcriptions');
     expect(example).toContain('-F "file=@<path-to-audio-file>"');
-    expect(example).toContain('-F "model=asr-model"');
+    expect(example).toContain('--form-string "model=asr-model"');
+    // The model field must not use -F, which lets curl interpret multipart
+    // directives in catalog-provided model ids.
+    expect(example).not.toContain('-F "model=');
     expect(example).not.toContain('Content-Type: application/json');
     expect(getApiKeyUsageExampleEndpointPath(ApiKeyUsageExampleKind.Transcription)).toBe(
       '/v1/audio/transcriptions',
     );
+  });
+
+  it('should send transcription model ids as literal form strings, not curl multipart directives', () => {
+    for (const maliciousId of ['@/etc/passwd', '<(id)', 'a;headers=@x']) {
+      const example = buildApiKeyUsageExample(
+        'https://maas.apps.example.com',
+        maliciousId,
+        'sk-test-key',
+        ApiKeyUsageExampleKind.Transcription,
+      );
+      // Only the intentional audio-file upload may use -F; the model id must be
+      // passed via --form-string so curl treats it as a literal string.
+      expect(example).toContain(`--form-string "model=${maliciousId}"`);
+      expect(example.match(/-F /g)).toHaveLength(1);
+      expect(example).toContain('-F "file=@<path-to-audio-file>"');
+    }
   });
 
   it('should not duplicate /v1 when the base URL already ends with it', () => {

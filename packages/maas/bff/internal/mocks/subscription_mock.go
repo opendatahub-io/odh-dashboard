@@ -209,6 +209,7 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 						{Limit: 80000, Window: "1h"},
 						{Limit: 600000, Window: "24h"},
 					},
+					BillingRate:   &models.BillingRate{PerToken: "gold"},
 					ObjectiveName: "maas-models-as-a-service-gold-llama-3-70b-instruct-inference-pool-c3d4e5f6a7",
 					TargetPool:    "llama-3-70b-instruct-inference-pool",
 					Ready:         boolPtr(true),

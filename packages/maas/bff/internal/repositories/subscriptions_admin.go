@@ -97,10 +97,12 @@ func ConvertK8sSubscriptionToListItem(sub models.MaaSSubscription) models.Subscr
 	modelRefs := make([]models.ModelRefInfo, len(sub.ModelRefs))
 	for i, ref := range sub.ModelRefs {
 		modelRefs[i] = models.ModelRefInfo{
-			Name:        ref.Name,
-			Namespace:   ref.Namespace,
-			DisplayName: ref.DisplayName,
-			Description: ref.Description,
+			Name:            ref.Name,
+			Namespace:       ref.Namespace,
+			DisplayName:     ref.DisplayName,
+			Description:     ref.Description,
+			TokenRateLimits: tokenRateLimitsFromK8s(ref.TokenRateLimits),
+			BillingRate:     billingRateFromK8s(ref.BillingRate),
 		}
 	}
 
@@ -113,4 +115,22 @@ func ConvertK8sSubscriptionToListItem(sub models.MaaSSubscription) models.Subscr
 		Owner:                   &owner,
 		ModelRefs:               modelRefs,
 	}
+}
+
+// tokenRateLimitsFromK8s maps K8s (camelCase perToken) rate limits onto the
+// passthrough shape and normalizes absent limits to an empty array, matching
+// the MyModelRefInfo.token_rate_limits OpenAPI schema (non-nullable).
+func tokenRateLimitsFromK8s(limits []models.TokenRateLimit) []models.TokenRateLimitInfo {
+	mapped := make([]models.TokenRateLimitInfo, len(limits))
+	for i, limit := range limits {
+		mapped[i] = models.TokenRateLimitInfo{Limit: limit.Limit, Window: limit.Window}
+	}
+	return mapped
+}
+
+func billingRateFromK8s(rate *models.BillingRate) *models.BillingRateInfo {
+	if rate == nil {
+		return nil
+	}
+	return &models.BillingRateInfo{PerToken: rate.PerToken}
 }
