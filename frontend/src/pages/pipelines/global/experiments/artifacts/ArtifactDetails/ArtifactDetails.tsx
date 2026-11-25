@@ -17,27 +17,31 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
 import {
-  getArtifactName,
-  getIsArtifactModelRegistered,
-} from '#~/pages/pipelines/global/experiments/artifacts/utils';
+  getArtifactResourceName,
+  getIsArtifactResourceModelRegistered,
+  isArtifactAccessDenied,
+} from '#~/pages/pipelines/global/experiments/artifacts/artifactResourceUtils';
 import { ArtifactDetailsTabKey } from '#~/pages/pipelines/global/experiments/artifacts/constants';
-import { useGetArtifactById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
+import { useGetArtifactById } from '#~/concepts/pipelines/apiHooks/useGetArtifactById';
 import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
 import ArtifactDetailsTitle from './ArtifactDetailsTitle';
 
 export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
   const { artifactId } = useParams();
-  const [artifact, isArtifactLoaded, artifactError] = useGetArtifactById(Number(artifactId));
-  const artifactName = getArtifactName(artifact);
+  const [artifact, isArtifactLoaded, artifactError] = useGetArtifactById(artifactId);
+  const artifactName = getArtifactResourceName(artifact);
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
-  const isArtifactModelRegistered = modelRegistryAvailable
-    ? getIsArtifactModelRegistered(artifact)
-    : false;
+  const isArtifactModelRegistered =
+    modelRegistryAvailable && getIsArtifactResourceModelRegistered(artifact);
 
   if (artifactError) {
+    if (isArtifactAccessDenied(artifactError)) {
+      return <UnauthorizedError accessDomain="artifacts" />;
+    }
     return (
       <EmptyState
         headingLevel="h4"
@@ -71,7 +75,7 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
       breadcrumb={
         <PipelineContextBreadcrumb>
           {breadcrumbPath}
-          <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
+          <BreadcrumbItem isActive>
             <Truncate content={artifactName} />
           </BreadcrumbItem>
         </PipelineContextBreadcrumb>

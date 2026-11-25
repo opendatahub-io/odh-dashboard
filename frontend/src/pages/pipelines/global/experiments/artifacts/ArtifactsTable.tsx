@@ -4,84 +4,38 @@ import { TableVariant } from '@patternfly/react-table';
 import { DashboardEmptyTableView, TableBase } from '@odh-dashboard/ui-core';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
-import { Artifact } from '#~/third_party/mlmd';
-import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
-import { useMlmdListContext } from '#~/concepts/pipelines/context';
-import useFilters from '#~/utilities/useFilters';
-import { FilterOptions, columns, initialFilterData, options } from './constants';
+import { ArtifactKF, PipelineArtifactTypeKF } from '#~/concepts/pipelines/kfTypes';
+import { FilterValue } from '#~/utilities/useFilters';
+import { FilterOptions, columns, options } from './constants';
 import ArtifactsTableRow from './ArtifactsTableRow';
 
 interface ArtifactsTableProps {
-  artifacts: Artifact[] | null | undefined;
+  artifacts: ArtifactKF[];
   nextPageToken: string | undefined;
   isLoaded: boolean;
+  page: number;
+  pageSize: number;
+  filterData: Record<FilterOptions, string | undefined>;
+  onFilterUpdate: (key: FilterOptions, value: FilterValue) => void;
+  onClearFilters: () => void;
+  onNextPage: (nextPage: number) => void;
+  onPreviousPage: (previousPage: number) => void;
+  onPageSizeChange: (newSize: number) => void;
 }
 
 export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
   artifacts,
   isLoaded,
   nextPageToken,
+  page,
+  pageSize,
+  filterData,
+  onFilterUpdate,
+  onClearFilters,
+  onNextPage,
+  onPreviousPage,
+  onPageSizeChange,
 }) => {
-  const {
-    maxResultSize,
-    setFilterQuery,
-    setPageToken: setRequestToken,
-    setMaxResultSize,
-  } = useMlmdListContext(nextPageToken);
-  const [page, setPage] = React.useState(1);
-  const { filterData, onFilterUpdate, onClearFilters } = useFilters(initialFilterData);
-  const [pageTokens, setPageTokens] = React.useState<Record<number, string>>({});
-
-  const onNextPageClick = React.useCallback(
-    (_: React.SyntheticEvent<HTMLButtonElement>, nextPage: number) => {
-      if (nextPageToken) {
-        setPageTokens((prevTokens) => ({ ...prevTokens, [nextPage]: nextPageToken }));
-        setRequestToken(nextPageToken);
-        setPage(nextPage);
-      }
-    },
-    [nextPageToken, setRequestToken],
-  );
-
-  const onPrevPageClick = React.useCallback(
-    (_: React.SyntheticEvent<HTMLButtonElement>, prevPage: number) => {
-      if (pageTokens[prevPage]) {
-        setRequestToken(pageTokens[prevPage]);
-        setPage(prevPage);
-      } else {
-        setRequestToken(undefined);
-      }
-    },
-    [pageTokens, setRequestToken],
-  );
-
-  React.useEffect(() => {
-    if (Object.values(filterData).some((filterOption) => !!filterOption)) {
-      let filterQuery = '';
-
-      if (filterData[FilterOptions.Artifact]) {
-        const artifactNameQuery = `custom_properties.display_name.string_value LIKE '%${encodeURIComponent(
-          filterData[FilterOptions.Artifact],
-        )}%'`;
-        filterQuery += filterQuery.length ? ` AND ${artifactNameQuery}` : artifactNameQuery;
-      }
-
-      if (filterData[FilterOptions.Id]) {
-        const artifactIdQuery = `id = cast(${filterData[FilterOptions.Id]} as int64)`;
-        filterQuery += filterQuery.length ? ` AND ${artifactIdQuery}` : artifactIdQuery;
-      }
-
-      if (filterData[FilterOptions.Type]) {
-        const artifactTypeQuery = `type LIKE '%${filterData[FilterOptions.Type]}%'`;
-        filterQuery += filterQuery.length ? ` AND ${artifactTypeQuery}` : artifactTypeQuery;
-      }
-
-      setFilterQuery(filterQuery);
-    } else {
-      setFilterQuery('');
-    }
-  }, [filterData, setFilterQuery]);
-
   const toolbarContent = React.useMemo(
     () => (
       <FilterToolbar<keyof typeof options>
@@ -101,8 +55,6 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
               {...props}
               aria-label="Search ID"
               placeholder="Search..."
-              type="number"
-              min={1}
               onChange={(_event, value) => onChange(value)}
               data-testid="artifact-id-filter-input"
             />
@@ -112,12 +64,14 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
               {...props}
               value={value ?? ''}
               aria-label="Search type"
-              options={Object.values(ArtifactType).map(
-                (v): SimpleSelectOption => ({
-                  key: v,
-                  label: v,
-                }),
-              )}
+              options={Object.values(PipelineArtifactTypeKF)
+                .filter((type) => type !== PipelineArtifactTypeKF.TYPE_UNSPECIFIED)
+                .map(
+                  (type, index): SimpleSelectOption => ({
+                    key: String(index + 1),
+                    label: type,
+                  }),
+                )}
               onChange={(v) => onChange(v)}
               data-testid="artifact-type-filter-select"
               popperProps={{ maxWidth: undefined }}
@@ -135,21 +89,21 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
   return (
     <TableBase
       loading={!isLoaded}
-      data={artifacts ?? []}
+      data={artifacts}
       columns={columns}
       enablePagination="compact"
       page={page}
-      perPage={maxResultSize}
-      disableItemCount
-      onNextClick={onNextPageClick}
-      onPreviousClick={onPrevPageClick}
+      perPage={pageSize}
+      itemCount={(page - 1) * pageSize + artifacts.length + (nextPageToken ? 1 : 0)}
+      onNextClick={(_, nextPage) => onNextPage(nextPage)}
+      onPreviousClick={(_, prevPage) => onPreviousPage(prevPage)}
       onSetPage={(_, newPage) => {
         if (newPage < page || !isLoaded) {
-          setPage(newPage);
+          onPreviousPage(newPage);
         }
       }}
-      onPerPageSelect={(_, newSize) => setMaxResultSize(newSize)}
-      toggleTemplate={() => <>{maxResultSize} per page </>}
+      onPerPageSelect={(_, newSize) => onPageSizeChange(newSize)}
+      toggleTemplate={() => <>{pageSize} per page </>}
       onClearFilters={onClearFilters}
       toolbarContent={toolbarContent}
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}

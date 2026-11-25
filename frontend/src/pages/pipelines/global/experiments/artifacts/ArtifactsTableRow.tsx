@@ -3,48 +3,42 @@ import { Td, Tr } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { ArtifactUriLink } from '#~/concepts/pipelines/content/artifacts/ArtifactUriLink';
 import PipelinesTableRowTime from '#~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { artifactsDetailsRoute } from '#~/routes/pipelines/artifacts';
-import { Artifact } from '#~/third_party/mlmd';
-import { getArtifactName, getIsArtifactModelRegistered } from './utils';
+import { ArtifactKF } from '#~/concepts/pipelines/kfTypes';
+import {
+  getArtifactResourceName,
+  getIsArtifactResourceModelRegistered,
+} from './artifactResourceUtils';
 
 type ArtifactsTableRowProps = {
-  artifact: Artifact;
+  artifact: ArtifactKF;
 };
 
 const ArtifactsTableRow: React.FC<ArtifactsTableRowProps> = ({ artifact }) => {
   const { namespace } = usePipelinesAPI();
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
-  const isArtifactModelRegistered = modelRegistryAvailable
-    ? getIsArtifactModelRegistered(artifact)
-    : false;
-
   return (
-    <Tr key={artifact.getId()}>
+    <Tr key={artifact.artifact_id}>
       <Td dataLabel="Artifact">
-        <>
-          <Link to={artifactsDetailsRoute(namespace, artifact.getId())}>
-            {getArtifactName(artifact)}
-          </Link>
-          {isArtifactModelRegistered && (
-            <>
-              {' '}
-              <Label variant="outline" color="green" isCompact data-testid="model-registered-label">
-                Registered
-              </Label>
-            </>
-          )}
-        </>
+        <Link to={artifactsDetailsRoute(namespace, artifact.artifact_id)}>
+          {getArtifactResourceName(artifact)}
+        </Link>
+        {modelRegistryAvailable && getIsArtifactResourceModelRegistered(artifact) && (
+          <>
+            {' '}
+            <Label variant="outline" color="green" isCompact data-testid="model-registered-label">
+              Registered
+            </Label>
+          </>
+        )}
       </Td>
-      <Td dataLabel="ID">{artifact.getId()}</Td>
-      <Td dataLabel="Type">{artifact.getType()}</Td>
-      <Td dataLabel="URI">
-        <ArtifactUriLink artifact={artifact} />
-      </Td>
+      <Td dataLabel="ID">{artifact.artifact_id}</Td>
+      <Td dataLabel="Type">{artifact.type}</Td>
+      <Td dataLabel="URI">{artifact.uri || '-'}</Td>
       <Td dataLabel="Created">
-        <PipelinesTableRowTime date={new Date(artifact.getCreateTimeSinceEpoch())} />
+        {artifact.created_at ? <PipelinesTableRowTime date={new Date(artifact.created_at)} /> : '-'}
       </Td>
     </Tr>
   );
