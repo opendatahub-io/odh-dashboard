@@ -8,14 +8,9 @@ import {
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
-import {
-  ActivityRuleEntry,
-  WorkspaceKindPodTemplateData,
-  WorkspacesPodVolumeMountValue,
-} from '~/app/types';
+import { ActivityRuleEntry, WorkspaceKindPodTemplateData } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
-import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 import { WorkspaceKindFormActivityRules } from '~/app/pages/WorkspaceKinds/Form/activityRules/WorkspaceKindFormActivityRules';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 
@@ -49,17 +44,6 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
           activityProbe: undefined,
         });
       }
-    },
-    [podTemplate, updatePodTemplate],
-  );
-
-  const handleVolumes = useCallback(
-    (newVolumes: WorkspacesPodVolumeMountValue[]) => {
-      setVolumes(newVolumes);
-      updatePodTemplate({
-        ...podTemplate,
-        extraVolumeMounts: newVolumes,
-      });
     },
     [podTemplate, updatePodTemplate],
   );
