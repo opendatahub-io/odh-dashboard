@@ -124,6 +124,16 @@ export const convertFeatureStoreLineageToVisualizationData = (
   // Create missing nodes from relationships
   // This handles cases where relationships reference objects not in the objects arrays
   const createMissingNodesFromRelationships = () => {
+    // Quick check: if we have feature views and feature services in the objects arrays,
+    // we likely don't need to create missing nodes (optimization)
+    const hasFeatureViews = actualFeatureViews.length > 0;
+    const hasFeatureServices = featureStoreLineage.objects.featureServices.length > 0;
+
+    // If we have complete data (both feature views and services present), skip this step
+    if (hasFeatureViews && hasFeatureServices) {
+      return;
+    }
+
     featureStoreLineage.relationships.forEach((relationship) => {
       // Check source
       if (relationship.source.name && relationship.source.type) {
