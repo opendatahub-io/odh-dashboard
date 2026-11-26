@@ -79,6 +79,35 @@ describe('parseEvaluationResultsArtifact', () => {
   it('should preserve an empty canonical results artifact', () => {
     expect(parseEvaluationResultsArtifact([])).toEqual([]);
   });
+
+  it('should reject canonical metrics with oversized names or evaluators', () => {
+    expect(() =>
+      parseEvaluationResultsArtifact([
+        {
+          ...sharedFields,
+          answer_contexts: [],
+          metrics: [{ name: 'x'.repeat(257), evaluator: 'unitxt', score: 0.8 }],
+        },
+      ]),
+    ).toThrow();
+    expect(() =>
+      parseEvaluationResultsArtifact([
+        {
+          ...sharedFields,
+          answer_contexts: [],
+          metrics: [{ name: 'faithfulness', evaluator: 'u'.repeat(257), score: 0.8 }],
+        },
+      ]),
+    ).toThrow();
+  });
+
+  it('should reject legacy scores with oversized metric names', () => {
+    expect(() =>
+      parseEvaluationResultsArtifact([
+        { ...sharedFields, answer_contexts: [], scores: { ['x'.repeat(257)]: 0.8 } },
+      ]),
+    ).toThrow();
+  });
 });
 
 describe('LegacyEvaluationResultsSchema', () => {
