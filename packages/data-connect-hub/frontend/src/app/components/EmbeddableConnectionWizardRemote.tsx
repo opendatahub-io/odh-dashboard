@@ -66,6 +66,15 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
     },
     Boolean(namespace && isOpen),
   );
+  const [canGetConnectionTypes, connectionTypesAccessLoaded] = useAccessReview(
+    {
+      group: 'dataconnecthub.opendatahub.io',
+      resource: 'data-connection-types',
+      verb: 'get',
+      namespace,
+    },
+    Boolean(namespace && isOpen),
+  );
   const [isWizardReady, setIsWizardReady] = React.useState(false);
   const [availability, setAvailability] = React.useState<ConnectionWizardAvailability>({
     status: 'checking',
@@ -115,10 +124,10 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
       return undefined;
     }
 
-    if (!createAccessLoaded) {
+    if (!createAccessLoaded || !connectionTypesAccessLoaded) {
       return undefined;
     }
-    if (!canCreateConnection) {
+    if (!canCreateConnection || !canGetConnectionTypes) {
       notifyAvailability({ status: 'unavailable', reason: 'permissions' });
       return undefined;
     }
@@ -149,7 +158,15 @@ const EmbeddableConnectionWizardRemote: React.FC<EmbeddableConnectionWizardProps
       cancelled = true;
       abortController.abort();
     };
-  }, [areaAvailability.status, canCreateConnection, createAccessLoaded, isOpen, namespace]);
+  }, [
+    areaAvailability.status,
+    canCreateConnection,
+    canGetConnectionTypes,
+    connectionTypesAccessLoaded,
+    createAccessLoaded,
+    isOpen,
+    namespace,
+  ]);
 
   if (!isOpen && !isWizardReady) {
     return null;

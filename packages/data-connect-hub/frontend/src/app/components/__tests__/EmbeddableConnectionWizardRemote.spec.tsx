@@ -134,6 +134,30 @@ describe('EmbeddableConnectionWizardRemote', () => {
     expect(onClose).toHaveBeenCalledWith('cancelled');
   });
 
+  it('renders the fallback when connection types cannot be read', async () => {
+    const onAvailabilityChange = jest.fn();
+    mockUseAccessReview.mockImplementation((review: { resource?: string }) => [
+      review.resource !== 'data-connection-types',
+      true,
+    ]);
+
+    render(
+      <EmbeddableConnectionWizardRemote
+        isOpen
+        namespace="test-project"
+        unavailableFallback={<div data-testid="legacy-connection-modal" />}
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+
+    expect(await screen.findByTestId('legacy-connection-modal')).toBeTruthy();
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(onAvailabilityChange).toHaveBeenCalledWith({
+      status: 'unavailable',
+      reason: 'permissions',
+    });
+  });
+
   it('reports checking before each open after a backend failure', async () => {
     const onAvailabilityChange = jest.fn();
     global.fetch = jest.fn<typeof fetch>().mockRejectedValueOnce(new Error('backend unavailable'));
