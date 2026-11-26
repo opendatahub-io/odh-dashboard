@@ -64,14 +64,22 @@ describe('applyTokenAuthOverrides', () => {
 });
 
 describe('applyTokenAuthOverrides on an edit', () => {
-  it('should not advise turning tokens off, which needs the same access', () => {
+  it('should not advise turning tokens off where the deployment has tokens', () => {
     const result = applyTokenAuthOverrides(
       field(),
       {},
-      { canSetUp: true, mayBeRefused: true, isEdit: true },
+      { canSetUp: true, mayBeRefused: true, hasExistingTokens: true },
     );
     expect(result.permissionWarning).toBe(TOKEN_AUTH_EDIT_PERMISSION_WARNING);
-    expect(result.permissionWarning).not.toBe(TOKEN_AUTH_PERMISSION_WARNING);
+  });
+
+  it('should keep the setup wording where the deployment has no tokens yet', () => {
+    const result = applyTokenAuthOverrides(
+      field(),
+      {},
+      { canSetUp: true, mayBeRefused: true, hasExistingTokens: false },
+    );
+    expect(result.permissionWarning).toBe(TOKEN_AUTH_PERMISSION_WARNING);
   });
 });
 

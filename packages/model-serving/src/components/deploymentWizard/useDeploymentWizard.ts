@@ -70,8 +70,8 @@ export const TOKEN_AUTH_PERMISSION_WARNING =
   'You might not have permission to set up token authentication in this project. If its token resources cannot be created, the deployment stops before anything is saved; turn token authentication off to deploy without it.';
 
 /**
- * For an edit: saving updates the deployment's tokens, and turning them off
- * deletes them, so neither avoids a missing permission.
+ * For an edit of a deployment that has tokens: saving updates them, and
+ * turning them off deletes them, so neither avoids a missing permission.
  */
 export const TOKEN_AUTH_EDIT_PERMISSION_WARNING =
   "You might not have permission to manage this deployment's tokens. If Kubernetes refuses the token changes, saving stops before anything is changed; ask for access to manage them.";
@@ -91,7 +91,7 @@ export const TOKEN_AUTH_EDIT_PERMISSION_WARNING =
 export const applyTokenAuthOverrides = (
   field: TokenAuthenticationFieldHook,
   overrides: Partial<TokenAuthenticationFieldHook>,
-  permissions: { canSetUp: boolean; mayBeRefused: boolean; isEdit?: boolean },
+  permissions: { canSetUp: boolean; mayBeRefused: boolean; hasExistingTokens?: boolean },
 ): TokenAuthenticationFieldHook => {
   const overrideDisabled = overrides.isDisabled ?? false;
   const isDisabled = overrideDisabled || !permissions.canSetUp;
@@ -102,7 +102,7 @@ export const applyTokenAuthOverrides = (
     ...(overrideDisabled ? { data: [] } : {}),
     ...(!isDisabled && permissions.mayBeRefused
       ? {
-          permissionWarning: permissions.isEdit
+          permissionWarning: permissions.hasExistingTokens
             ? TOKEN_AUTH_EDIT_PERMISSION_WARNING
             : TOKEN_AUTH_PERMISSION_WARNING,
         }
@@ -212,6 +212,10 @@ export const useModelDeploymentWizard = (
     formState.deploymentMethod,
   );
 
+  // The deployment's own token Secrets, which saving an edit replaces.
+  const hasExistingTokens = !!initialFormData?.tokenAuthentication?.some(
+    (token) => !!token.k8sName,
+  );
   const tokenAuthentication = useTokenAuthenticationField(
     initialFormData?.tokenAuthentication ?? undefined,
     modelType,
@@ -376,7 +380,7 @@ export const useModelDeploymentWizard = (
       },
       tokenAuthentication: applyTokenAuthOverrides(state.tokenAuthentication, tokenAuthOverrides, {
         canSetUp: !isEdit || state.canCreateRoleBindings,
-        isEdit,
+        hasExistingTokens: isEdit && hasExistingTokens,
         mayBeRefused:
           state.canManageTokenAuth === false ||
           (roleBindingReviewLoaded && !state.canCreateRoleBindings),
@@ -398,6 +402,7 @@ export const useModelDeploymentWizard = (
       modelAvailabilityOverrides,
       computedOverrides,
       isEdit,
+      hasExistingTokens,
       roleBindingReviewLoaded,
     ],
   );

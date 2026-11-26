@@ -11,7 +11,10 @@ import {
 import { FindProjectNotice } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
-import { parseStoredWorkingProjectName } from '@odh-dashboard/ui-core/context/workingProjectStorage';
+import {
+  parseStoredWorkingProjectName,
+  readStoredWorkingProjectName,
+} from '@odh-dashboard/ui-core/context/workingProjectStorage';
 import { WorkingProjectProvider } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { useWorkingProjectSynchronization } from '@odh-dashboard/ui-core/hooks/useWorkingProjectSynchronization';
 import fetchNamespaces, {
@@ -389,16 +392,14 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   // them again.
   const [deniedNames, setDeniedNames] = React.useState<ReadonlySet<string>>(() => new Set());
 
-  const storedPreferredNameRef = React.useRef(storedPreferredName);
-  React.useEffect(() => {
-    storedPreferredNameRef.current = storedPreferredName;
-  }, [storedPreferredName]);
   const forgetProject = React.useCallback(
     (name: string) => {
       setProjectData((previous) => previous.filter((p) => p.metadata.name !== name));
       setDeniedNames((previous) => new Set(previous).add(name));
-      // Nor is a denied stored preference.
-      if (storedPreferredNameRef.current === name) {
+      // Nor is a denied stored preference, where this provider owns it. With
+      // the unified selector the shared working-project storage keeps its rule
+      // of never being cleared on a failed lookup.
+      if (!unifiedProjectSelectorEnabled && readStoredWorkingProjectName(localStorage) === name) {
         setStoredPreferredName('');
       }
       // A denied or missing project is not looked up again on the next visit.
@@ -411,7 +412,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         // Browser storage is optional.
       }
     },
-    [setStoredPreferredName],
+    [setStoredPreferredName, unifiedProjectSelectorEnabled],
   );
 
   const validateProject = React.useCallback(
