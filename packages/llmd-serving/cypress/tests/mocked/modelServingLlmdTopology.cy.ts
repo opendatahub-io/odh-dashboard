@@ -12,7 +12,7 @@ import {
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
-import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
@@ -400,13 +400,29 @@ describe('Model Serving LLMD Topology & Routing', () => {
     const initEditIntercepts = ({
       topologyConfigs = mockTopologyConfigs,
       routerConfigs = mockRouterConfigs,
+      localRouterConfig,
       existingDeployment,
     }: {
       topologyConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
       routerConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
+      localRouterConfig?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>;
       existingDeployment: ReturnType<typeof mockLLMInferenceServiceK8sResource>;
     }) => {
       initIntercepts({ topologyConfigs, routerConfigs });
+
+      const routingConfigRef =
+        existingDeployment.metadata.annotations?.[ROUTING_CONFIG_REF_ANNOTATION];
+      if (routingConfigRef) {
+        cy.interceptK8s(
+          'GET',
+          {
+            model: LLMInferenceServiceConfigModel,
+            ns: 'test-project',
+            name: routingConfigRef,
+          },
+          localRouterConfig ?? { statusCode: 404, body: mock404Error({}) },
+        ).as('getLocalRouterConfig');
+      }
       cy.interceptK8sList(
         { model: SecretModel, ns: 'test-project' },
         mockK8sResourceList([mockURISecretK8sResource({ namespace: 'test-project' })]),
@@ -439,13 +455,22 @@ describe('Model Serving LLMD Topology & Routing', () => {
 
     it('should pre-select topology config and routing config from existing deployment', () => {
       initEditIntercepts({
+        localRouterConfig: mockLLMInferenceServiceConfigK8sResource({
+          name: 'test-llm-inference-service-managed-scheduler',
+          displayName: 'Managed scheduler (Local Copy)',
+          namespace: 'test-project',
+          configType: ConfigType.ROUTER,
+        }),
         existingDeployment: mockLLMInferenceServiceK8sResource({
           additionalAnnotations: {
             [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.MULTI_NODE,
             [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'multi-node-config',
-            [ROUTING_CONFIG_REF_ANNOTATION]: 'managed-scheduler',
+            [ROUTING_CONFIG_REF_ANNOTATION]: 'test-llm-inference-service-managed-scheduler',
           },
-          baseRefs: [{ name: 'multi-node-config' }, { name: 'managed-scheduler' }],
+          baseRefs: [
+            { name: 'multi-node-config' },
+            { name: 'test-llm-inference-service-managed-scheduler' },
+          ],
         }),
       });
 
@@ -456,7 +481,10 @@ describe('Model Serving LLMD Topology & Routing', () => {
         'contain.text',
         'Multi-node Data Parallel',
       );
-      cy.findByTestId('routing-config-select').should('contain.text', 'Managed scheduler');
+      cy.findByTestId('routing-config-select').should(
+        'contain.text',
+        'Managed scheduler (Local Copy)',
+      );
       modelServingWizardEdit.findNextButton().should('be.enabled');
     });
 
@@ -487,18 +515,28 @@ describe('Model Serving LLMD Topology & Routing', () => {
 
       initEditIntercepts({
         routerConfigs: [...mockRouterConfigs, incompatibleRouterConfig],
+        localRouterConfig: mockLLMInferenceServiceConfigK8sResource({
+          name: 'test-llm-inference-service-multi-only-router',
+          displayName: 'Multi-only Router (Local Copy)',
+          namespace: 'test-project',
+          configType: ConfigType.ROUTER,
+          supportedTopologies: [TopologyType.MULTI_NODE],
+        }),
         existingDeployment: mockLLMInferenceServiceK8sResource({
           additionalAnnotations: {
             [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.SINGLE_NODE,
-            [ROUTING_CONFIG_REF_ANNOTATION]: 'multi-only-router',
+            [ROUTING_CONFIG_REF_ANNOTATION]: 'test-llm-inference-service-multi-only-router',
           },
-          baseRefs: [{ name: 'multi-only-router' }],
+          baseRefs: [{ name: 'test-llm-inference-service-multi-only-router' }],
         }),
       });
 
       openEditWizardModelDeploymentStep('Test LLM Inference Service');
 
-      cy.findByTestId('routing-config-select').should('contain.text', 'Multi-only Router');
+      cy.findByTestId('routing-config-select').should(
+        'contain.text',
+        'Multi-only Router (Local Copy)',
+      );
       cy.findByText(/is not compatible with the current topology type/).should('exist');
       modelServingWizardEdit.findNextButton().should('be.enabled');
     });

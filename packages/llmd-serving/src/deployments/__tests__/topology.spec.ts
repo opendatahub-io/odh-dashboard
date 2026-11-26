@@ -5,6 +5,7 @@ import {
   TOPOLOGY_TYPE_ANNOTATION,
   TOPOLOGY_CONFIG_REF_ANNOTATION,
   ROUTING_CONFIG_REF_ANNOTATION,
+  ConfigType,
   TopologyType,
   type LLMdDeployment,
   type LLMInferenceServiceKind,
@@ -17,8 +18,12 @@ import {
   extractTopologyConfig,
   extractRoutingConfig,
   preDeployTopologyConfig,
+  preDeployRoutingConfig,
 } from '../topology';
-import { createLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
+import {
+  createLLMInferenceServiceConfig,
+  deleteLLMInferenceServiceConfig,
+} from '../../api/LLMInferenceServiceConfigs';
 
 jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
   createLLMInferenceServiceConfig: jest.fn(),
@@ -26,6 +31,7 @@ jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
 }));
 
 const mockCreateConfig = jest.mocked(createLLMInferenceServiceConfig);
+const mockDeleteConfig = jest.mocked(deleteLLMInferenceServiceConfig);
 
 const makeDeployment = (
   overrides?: Partial<{
@@ -59,7 +65,7 @@ const buildRouterConfig = (name: string) =>
   mockLLMInferenceServiceConfigK8sResource({
     name,
     displayName: `Router ${name}`,
-    configType: 'router' as never,
+    configType: ConfigType.ROUTER,
   });
 
 // ─── applyTopologyType ─────────────────────────────────────────────────────────
@@ -228,13 +234,15 @@ describe('applyTopologyConfig', () => {
 // ─── applyRoutingConfig ─────────────────────────────────────────────────────────
 
 describe('applyRoutingConfig', () => {
-  it('adds config name to baseRefs and stores annotation', () => {
+  it('adds the local config copy name to baseRefs and stores annotation', () => {
     const deployment = makeDeployment();
     const config = buildRouterConfig('router-1');
     const result = applyRoutingConfig(deployment, { selectedConfig: config });
 
-    expect(result.model.spec.baseRefs).toContainEqual({ name: 'router-1' });
-    expect(result.model.metadata.annotations?.[ROUTING_CONFIG_REF_ANNOTATION]).toBe('router-1');
+    expect(result.model.spec.baseRefs).toContainEqual({ name: localConfigName('router-1') });
+    expect(result.model.metadata.annotations?.[ROUTING_CONFIG_REF_ANNOTATION]).toBe(
+      localConfigName('router-1'),
+    );
   });
 
   it('replaces a previous routing config baseRef', () => {
@@ -245,7 +253,7 @@ describe('applyRoutingConfig', () => {
     const config = buildRouterConfig('new-router');
     const result = applyRoutingConfig(deployment, { selectedConfig: config });
 
-    expect(result.model.spec.baseRefs).toContainEqual({ name: 'new-router' });
+    expect(result.model.spec.baseRefs).toContainEqual({ name: localConfigName('new-router') });
     expect(result.model.spec.baseRefs).not.toContainEqual({ name: 'old-router' });
   });
 
@@ -294,7 +302,9 @@ describe('baseRefs ordering', () => {
     deployment = applyRoutingConfig(deployment, { selectedConfig: routerConfig });
 
     const names = deployment.model.spec.baseRefs?.map((r) => r.name) ?? [];
-    expect(names.indexOf(localConfigName('topo-1'))).toBeLessThan(names.indexOf('router-1'));
+    expect(names.indexOf(localConfigName('topo-1'))).toBeLessThan(
+      names.indexOf(localConfigName('router-1')),
+    );
   });
 
   it('coexists with existing accelerator config baseRef', () => {
@@ -308,7 +318,7 @@ describe('baseRefs ordering', () => {
     expect(deployment.model.spec.baseRefs).toEqual([
       { name: 'my-deployment' },
       { name: localConfigName('topo-1') },
-      { name: 'router-1' },
+      { name: localConfigName('router-1') },
     ]);
   });
 });
@@ -363,6 +373,14 @@ describe('preDeploy config copies', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCreateConfig.mockResolvedValue(mockLLMInferenceServiceConfigK8sResource({}));
+    mockDeleteConfig.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'Status',
+      status: 'Success',
+      code: 200,
+      message: 'deleted',
+      reason: 'Deleted',
+    });
   });
 
   it('carries the config type label onto the topology config copy', async () => {
@@ -443,6 +461,193 @@ describe('preDeploy config copies', () => {
 
     await expect(
       preDeployTopologyConfig({ selectedConfig: topologyConfig }, wizardState, deployment),
+    ).resolves.toBe(deployment);
+  });
+});
+
+// ─── preDeployRoutingConfig ─────────────────────────────────────────────────────
+
+describe('preDeployRoutingConfig', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wizardState = {} as any;
+
+  const k8sStatusError = (code: number) =>
+    new K8sStatusError({
+      apiVersion: 'v1',
+      kind: 'Status',
+      status: 'Failure',
+      code,
+      message: 'error',
+      reason: 'Error',
+    });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCreateConfig.mockResolvedValue(mockLLMInferenceServiceConfigK8sResource({}));
+    mockDeleteConfig.mockResolvedValue({
+      apiVersion: 'v1',
+      kind: 'Status',
+      status: 'Success',
+      code: 200,
+      message: 'deleted',
+      reason: 'Deleted',
+    });
+  });
+
+  it('carries the router config type label onto the local copy', async () => {
+    const routerConfig = buildRouterConfig('router-1');
+    expect(routerConfig.metadata.labels?.['opendatahub.io/config-type']).toBe(ConfigType.ROUTER);
+
+    let deployment = makeDeployment();
+    deployment = applyRoutingConfig(deployment, { selectedConfig: routerConfig });
+    await preDeployRoutingConfig({ selectedConfig: routerConfig }, wizardState, deployment);
+
+    expect(mockCreateConfig).toHaveBeenCalledTimes(1);
+    expect(mockCreateConfig.mock.calls[0][0].metadata.labels?.['opendatahub.io/config-type']).toBe(
+      ConfigType.ROUTER,
+    );
+  });
+
+  it('does not carry the dashboard label onto the local copy', async () => {
+    const routerConfig = buildRouterConfig('router-1');
+
+    let deployment = makeDeployment();
+    deployment = applyRoutingConfig(deployment, { selectedConfig: routerConfig });
+    await preDeployRoutingConfig({ selectedConfig: routerConfig }, wizardState, deployment);
+
+    expect(mockCreateConfig.mock.calls[0][0].metadata.labels?.['opendatahub.io/dashboard']).toBe(
+      undefined,
+    );
+  });
+
+  it('marks the local copy in its display name', async () => {
+    const routerConfig = buildRouterConfig('router-1');
+
+    let deployment = makeDeployment();
+    deployment = applyRoutingConfig(deployment, { selectedConfig: routerConfig });
+    await preDeployRoutingConfig({ selectedConfig: routerConfig }, wizardState, deployment);
+
+    expect(
+      mockCreateConfig.mock.calls[0][0].metadata.annotations?.['openshift.io/display-name'],
+    ).toBe('Router router-1 (Local Copy)');
+  });
+
+  it('recreates the local copy when editing without changing the selection', async () => {
+    const routerConfig = buildRouterConfig('router-1');
+    const configRef = localConfigName('router-1');
+
+    const existingDeployment = makeDeployment({
+      annotations: { [ROUTING_CONFIG_REF_ANNOTATION]: configRef },
+    });
+    let deployment = makeDeployment();
+    deployment = applyRoutingConfig(deployment, { selectedConfig: routerConfig });
+
+    await preDeployRoutingConfig(
+      { selectedConfig: routerConfig },
+      wizardState,
+      deployment,
+      existingDeployment,
+    );
+
+    expect(mockCreateConfig).toHaveBeenCalledTimes(1);
+    expect(mockCreateConfig.mock.calls[0][0].metadata.name).toBe(configRef);
+    expect(mockDeleteConfig).not.toHaveBeenCalled();
+  });
+
+  it('creates the new local copy before deleting the old one when switching', async () => {
+    const oldConfigRef = localConfigName('old-router');
+    const newConfigRef = localConfigName('new-router');
+
+    const existingDeployment = makeDeployment({
+      annotations: { [ROUTING_CONFIG_REF_ANNOTATION]: oldConfigRef },
+    });
+    let deployment = makeDeployment();
+    deployment = applyRoutingConfig(deployment, {
+      selectedConfig: buildRouterConfig('new-router'),
+    });
+
+    await preDeployRoutingConfig(
+      { selectedConfig: buildRouterConfig('new-router') },
+      wizardState,
+      deployment,
+      existingDeployment,
+    );
+
+    expect(mockCreateConfig.mock.calls[0][0].metadata.name).toBe(newConfigRef);
+    expect(mockDeleteConfig).toHaveBeenCalledWith(oldConfigRef, 'test-project', {
+      dryRun: undefined,
+    });
+  });
+
+  it('passes dry-run through to local copy creation and old copy deletion', async () => {
+    const oldConfigRef = localConfigName('old-router');
+
+    const existingDeployment = makeDeployment({
+      annotations: { [ROUTING_CONFIG_REF_ANNOTATION]: oldConfigRef },
+    });
+    let deployment = makeDeployment();
+    deployment = applyRoutingConfig(deployment, {
+      selectedConfig: buildRouterConfig('new-router'),
+    });
+
+    await preDeployRoutingConfig(
+      { selectedConfig: buildRouterConfig('new-router') },
+      wizardState,
+      deployment,
+      existingDeployment,
+      true,
+    );
+
+    expect(mockCreateConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ name: localConfigName('new-router') }),
+      }),
+      { dryRun: true },
+    );
+    expect(mockDeleteConfig).toHaveBeenCalledWith(oldConfigRef, 'test-project', { dryRun: true });
+  });
+
+  it('does not create a local copy for default routing', async () => {
+    let deployment = makeDeployment();
+    deployment = applyRoutingConfig(deployment, { selectedConfig: undefined });
+
+    await preDeployRoutingConfig({ selectedConfig: undefined }, wizardState, deployment);
+
+    expect(mockCreateConfig).not.toHaveBeenCalled();
+    expect(mockDeleteConfig).not.toHaveBeenCalled();
+  });
+
+  it('tolerates a 409 when the local copy already exists', async () => {
+    const routerConfig = buildRouterConfig('router-1');
+    mockCreateConfig.mockRejectedValue(k8sStatusError(409));
+
+    let deployment = makeDeployment();
+    deployment = applyRoutingConfig(deployment, { selectedConfig: routerConfig });
+
+    await expect(
+      preDeployRoutingConfig({ selectedConfig: routerConfig }, wizardState, deployment),
+    ).resolves.toBe(deployment);
+  });
+
+  it('tolerates a 404 when deleting an old local copy that is already gone', async () => {
+    const oldConfigRef = localConfigName('old-router');
+    mockDeleteConfig.mockRejectedValue(k8sStatusError(404));
+
+    const existingDeployment = makeDeployment({
+      annotations: { [ROUTING_CONFIG_REF_ANNOTATION]: oldConfigRef },
+    });
+    let deployment = makeDeployment();
+    deployment = applyRoutingConfig(deployment, {
+      selectedConfig: buildRouterConfig('new-router'),
+    });
+
+    await expect(
+      preDeployRoutingConfig(
+        { selectedConfig: buildRouterConfig('new-router') },
+        wizardState,
+        deployment,
+        existingDeployment,
+      ),
     ).resolves.toBe(deployment);
   });
 });

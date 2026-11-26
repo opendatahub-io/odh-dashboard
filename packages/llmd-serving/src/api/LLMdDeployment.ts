@@ -6,6 +6,7 @@ import {
   TOPOLOGY_CONFIG_REF_ANNOTATION,
   ACCELERATOR_CONFIG_REF_ANNOTATION,
   type LLMdDeployment,
+  ROUTING_CONFIG_REF_ANNOTATION,
 } from '../types';
 
 export const deleteDeployment = async (deployment: LLMdDeployment): Promise<void> => {
@@ -26,10 +27,10 @@ export const deleteDeployment = async (deployment: LLMdDeployment): Promise<void
 
   // Local copies of admin configs are recorded on the deployment by annotation. Each is created
   // in the deployment's own namespace at deploy time and must be cleaned up on delete.
-  // RHOAIENG-79541 will add ROUTING_CONFIG_REF_ANNOTATION here once routing configs also copy.
   const CONFIG_COPY_ANNOTATIONS = [
     TOPOLOGY_CONFIG_REF_ANNOTATION,
     ACCELERATOR_CONFIG_REF_ANNOTATION,
+    ROUTING_CONFIG_REF_ANNOTATION,
   ];
   for (const annotationKey of CONFIG_COPY_ANNOTATIONS) {
     const configName = deployment.model.metadata.annotations?.[annotationKey];

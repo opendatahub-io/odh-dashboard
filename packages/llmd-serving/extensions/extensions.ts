@@ -180,6 +180,7 @@ export type TopologyConfigsExtensionsType =
   | WizardFieldExtension<AdvancedRoutingFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<AdvancedRoutingFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>
+  | WizardFieldDeploymentFunctionsExtension<AdvancedRoutingFieldData, LLMdDeployment>
   // Inference service config
   | WizardFieldExtension<AcceleratorConfigFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<AcceleratorConfigFieldData, LLMdDeployment>
@@ -308,6 +309,18 @@ export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
       required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
     },
   } satisfies WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-deployment-functions',
+    properties: {
+      fieldId: 'llmd-serving/advanced-routing',
+      platform: LLMD_SERVING_ID,
+      preDeploy: () => import('../src/deployments/topology').then((m) => m.preDeployRoutingConfig),
+      postDeploy: null,
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldDeploymentFunctionsExtension<AdvancedRoutingFieldData, LLMdDeployment>,
   // ─── Inference service config ─────────────────────────────
   {
     type: 'model-serving.deployment/wizard-field',

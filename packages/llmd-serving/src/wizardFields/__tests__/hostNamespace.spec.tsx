@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { HostApiCoreContext } from '@odh-dashboard/plugin-core/host-api';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import {
   useFetchLLMInferenceServiceConfig,
   useFetchLLMInferenceServiceConfigs,
@@ -34,6 +35,55 @@ beforeEach(() => {
     loaded: true,
     error: undefined,
     refresh: jest.fn(),
+  });
+});
+
+describe('AdvancedRoutingField local config resolution', () => {
+  it('should include the referenced local config when loading edit-flow data', () => {
+    const dashboardConfig = mockLLMInferenceServiceConfigK8sResource({ name: 'dashboard-router' });
+    const localConfig = mockLLMInferenceServiceConfigK8sResource({
+      name: 'deployment-dashboard-router',
+    });
+
+    mockUseFetchRouterConfigs.mockReturnValue({
+      data: [dashboardConfig],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+    jest.mocked(useFetchLLMInferenceServiceConfig).mockReturnValue({
+      data: localConfig,
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    const hostApi = {
+      dashboardNamespace: 'custom-dashboard',
+      checkAccess: jest.fn(),
+      fetchDashboardConfig: jest.fn(),
+      fetchClusterSettings: jest.fn(),
+      updateClusterSettings: jest.fn(),
+    };
+    const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+      <HostApiCoreContext.Provider value={hostApi}>{children}</HostApiCoreContext.Provider>
+    );
+
+    const { result } = renderHook(
+      () =>
+        useAdvancedRoutingData({
+          project: { projectName: 'test-project', setProjectName: jest.fn() },
+          configRef: 'deployment-dashboard-router',
+        }),
+      { wrapper: Wrapper },
+    );
+
+    expect(useFetchLLMInferenceServiceConfig).toHaveBeenCalledWith(
+      'deployment-dashboard-router',
+      'test-project',
+    );
+    expect(result.current.data.routerConfigs).toEqual([dashboardConfig, localConfig]);
+    expect(result.current.loaded).toBe(true);
   });
 });
 
