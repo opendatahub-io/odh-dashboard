@@ -135,11 +135,6 @@ const namespaceToProject = (
   },
 });
 
-/**
- * Maps one entry of the BFF's namespace discovery. The BFF only returns
- * namespaces the caller is authorized in, so an `Unknown` phase (the caller
- * cannot read the Namespace object) is selectable and labelled by its name.
- */
 // The reviews each token action is derived from (see DeriveNamespaceActions).
 const CREATE_TOKEN_REVIEWS: [string, string][] = [
   ['serving.kserve.io/llminferenceservices', 'get'],
@@ -161,6 +156,11 @@ const TOKEN_ACTION_REVIEWS: Record<string, [string, string][]> = {
   ],
 };
 
+/**
+ * Maps one entry of the BFF's namespace discovery. The BFF only returns
+ * namespaces the caller is authorized in, so an `Unknown` phase (the caller
+ * cannot read the Namespace object) is selectable and labelled by its name.
+ */
 const accessToProject = (item: NamespaceAccessItem): RhaiiProject | null => {
   const { name, phase, actions } = item;
   if (typeof name !== 'string' || name.length === 0) {

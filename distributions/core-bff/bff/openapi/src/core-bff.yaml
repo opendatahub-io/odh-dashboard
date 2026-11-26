@@ -2801,6 +2801,8 @@ components:
                 core/serviceaccounts: { get: allowed, create: allowed }
                 rbac.authorization.k8s.io/roles: { get: allowed, create: allowed }
                 rbac.authorization.k8s.io/rolebindings: { get: allowed, create: allowed }
+                core/pods: { get: allowed, list: allowed }
+                core/namespaces: { get: allowed }
 
     NamespacesResponse:
       headers:

@@ -243,7 +243,9 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
   LLMInferenceServices only: a denied KServe InferenceService read shows no KServe deployments
   instead of an error (a denied ServingRuntime read stays one), and KServe rows keep every action (Edit included, also when saved), authorized by
   Kubernetes. The wizard's deployment targets and token permission come from the same
-  LLMInferenceService reviews and also apply to a new KServe deployment.
+  LLMInferenceService reviews and also apply to a new KServe deployment. A namespace where the
+  caller has only KServe InferenceService access enables no action, so discovery does not return it
+  and RHAII does not offer it; reviewing InferenceServices too is a follow-up.
 - RHAII's Kubernetes transport rejects with k8s-core's `K8sStatusError`, as the ODH frontend does,
   so the packages' status checks work: a `404` before creating a missing token ServiceAccount, Role
   or RoleBinding, and a `403` on an optional read.
