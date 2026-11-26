@@ -152,6 +152,14 @@ type EnvConfig struct {
 	// Default is "" (empty); set to "Bearer " when using the standard Authorization header.
 	AuthTokenPrefix string
 
+	// AuthTokenHeaders is an ordered list of headers that may carry the caller
+	// credential (AUTH_TOKEN_HEADERS / --auth-token-headers). When set it
+	// replaces AuthTokenHeader/AuthTokenPrefix: Authorization must use the
+	// Bearer scheme, any other header carries the bare token, and every header
+	// presented must carry the same token. Empty keeps the single-header mode.
+	// See docs/runtime-contract.md, "Caller credentials".
+	AuthTokenHeaders []string
+
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)

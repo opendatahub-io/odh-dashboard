@@ -171,21 +171,112 @@ func (c EnvConfig) validateAuth(add func(string, ...any)) {
 			AuthMethodDisabled, AuthMethodUser)
 	}
 
-	if c.AuthMethod == AuthMethodUser {
-		switch header := strings.TrimSpace(c.AuthTokenHeader); {
-		case header == "":
-			add("AUTH_TOKEN_HEADER/--auth-token-header is empty while AUTH_METHOD=%s; a token header is required",
-				AuthMethodUser)
-		case !isHTTPFieldName(c.AuthTokenHeader):
-			add("AUTH_TOKEN_HEADER/--auth-token-header (value omitted) is not a valid HTTP field name; a gateway could never send it")
-		case unusableTokenHeaders[strings.ToLower(header)]:
-			// Hop-by-hop headers are consumed by the first proxy, Host is the
-			// request target, and Cookie carries the browser's whole jar.
-			add("AUTH_TOKEN_HEADER/--auth-token-header (value omitted) names a hop-by-hop, Host or Cookie header, which cannot carry the caller's token")
-		case strings.EqualFold(header, "Authorization") && c.AuthTokenPrefix == "":
-			add("AUTH_TOKEN_HEADER=Authorization needs AUTH_TOKEN_PREFIX/--auth-token-prefix (for example \"Bearer \"); without it the scheme becomes part of the token")
+	if c.AuthMethod == AuthMethodUser && len(c.AuthTokenHeaders) == 0 && strings.TrimSpace(c.AuthTokenHeader) == "" {
+		add("AUTH_TOKEN_HEADER/--auth-token-header is empty while AUTH_METHOD=%s; a token header is required",
+			AuthMethodUser)
+	}
+
+	// Name and forbidden-header checks for both settings live in one place.
+	c.validateAuthTokenHeaders(add)
+
+	// Single-header mode: Authorization carries a scheme, so without a prefix
+	// the scheme would become part of the token. List mode parses the Bearer
+	// scheme itself and forbids a prefix.
+	if c.AuthMethod == AuthMethodUser && len(c.AuthTokenHeaders) == 0 &&
+		strings.EqualFold(strings.TrimSpace(c.AuthTokenHeader), "Authorization") && c.AuthTokenPrefix == "" {
+		add("AUTH_TOKEN_HEADER=Authorization needs AUTH_TOKEN_PREFIX/--auth-token-prefix (for example \"Bearer \"); without it the scheme becomes part of the token")
+	}
+}
+
+// credentialHeaderForbidden lists headers that must never be read as the caller
+// credential: they carry other identity or session material that the edge, not
+// the caller, is supposed to control, or they are removed before
+// authentication (the correlation middleware strips X-Request-ID and Audit-ID),
+// so a credential in them would never arrive. Prefix entries end in "-".
+var credentialHeaderForbidden = []string{
+	"cookie", "set-cookie", "proxy-authorization", "host",
+	"impersonate-user", "impersonate-group", "impersonate-uid", "impersonate-extra-",
+	"x-remote-",
+	"x-forwarded-user", "x-forwarded-groups", "x-forwarded-email", "x-forwarded-preferred-username",
+	"x-request-id", "audit-id",
+}
+
+// validateAuthTokenHeaders checks the caller-credential header settings.
+//
+// AUTH_TOKEN_HEADERS, when set, replaces the single-header pair, so a prefix
+// set alongside it is ambiguous (it would apply to one header and not the
+// other) and is rejected rather than guessed at. Otherwise the legacy
+// AUTH_TOKEN_HEADER gets the same name and forbidden-header checks, so an
+// identity or session header cannot become the credential through either
+// setting.
+//
+// Rejected entries are identified by position, never echoed: a token pasted
+// into the setting by mistake is a valid header token and must not reach the
+// startup log, which records only whether the legacy header is set and how
+// many list entries there are. A forbidden header is reported by the credentialHeaderForbidden
+// entry it matches (for a prefix entry, the prefix alone).
+func (c EnvConfig) validateAuthTokenHeaders(add func(string, ...any)) {
+	// The legacy header is checked in both modes: module proxies still forward
+	// it, so it must never name an identity or session header.
+	if strings.TrimSpace(c.AuthTokenHeader) != "" {
+		validateCredentialHeaderName(add, "AUTH_TOKEN_HEADER/--auth-token-header", c.AuthTokenHeader)
+	}
+	if len(c.AuthTokenHeaders) == 0 {
+		return
+	}
+	if c.AuthTokenPrefix != "" {
+		add("AUTH_TOKEN_PREFIX/--auth-token-prefix is set together with AUTH_TOKEN_HEADERS/--auth-token-headers; the list defines its own parsing (Authorization uses the Bearer scheme, other headers carry the bare token), so unset the prefix")
+	}
+
+	seen := map[string]bool{}
+	for i, raw := range c.AuthTokenHeaders {
+		setting := fmt.Sprintf("AUTH_TOKEN_HEADERS/--auth-token-headers entry %d", i+1)
+		if !validateCredentialHeaderName(add, setting, raw) {
+			continue
+		}
+		lower := strings.ToLower(strings.TrimSpace(raw))
+		if seen[lower] {
+			add("%s repeats an earlier entry (value omitted); list each header once", setting)
+			continue
+		}
+		seen[lower] = true
+	}
+}
+
+// validateCredentialHeaderName reports problems with one credential header name
+// under setting, and returns whether the name is a usable header name.
+func validateCredentialHeaderName(add func(string, ...any), setting, raw string) bool {
+	name := strings.TrimSpace(raw)
+	if !isHTTPFieldName(name) {
+		add("%s (value omitted) is not a valid HTTP field name; a gateway could never send it", setting)
+		return false
+	}
+	if unusableTokenHeaders[strings.ToLower(name)] {
+		// Hop-by-hop headers are consumed by the first proxy, Host is the
+		// request target, and Cookie carries the browser's whole jar.
+		add("%s (value omitted) names a hop-by-hop, Host or Cookie header, which cannot carry the caller's token", setting)
+		return false
+	}
+	if f, ok := forbiddenCredentialHeader(strings.ToLower(name)); ok {
+		if strings.HasSuffix(f, "-") {
+			add("%s is an %s* header (rest of the value omitted), a reserved identity, session or correlation header that cannot carry the caller token", setting, f)
+		} else {
+			add("%s is %s, a reserved identity, session or correlation header that cannot carry the caller token", setting, f)
 		}
 	}
+	return true
+}
+
+// forbiddenCredentialHeader returns the credentialHeaderForbidden entry lower
+// matches. Only that fixed entry is ever reported, never the configured text,
+// so a prefix match cannot echo an operator-supplied suffix.
+func forbiddenCredentialHeader(lower string) (string, bool) {
+	for _, f := range credentialHeaderForbidden {
+		if lower == f || (strings.HasSuffix(f, "-") && strings.HasPrefix(lower, f)) {
+			return f, true
+		}
+	}
+	return "", false
 }
 
 // isHTTPFieldName reports whether name is an RFC 9110 field name: one or more

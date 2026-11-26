@@ -77,15 +77,131 @@ core-bff refusing to start: invalid configuration (2 problems):
 
 ### Authentication
 
-| Flag                  | Environment         | Default                    | Notes                                                                                                                                                  |
-| --------------------- | ------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--auth-method`       | `AUTH_METHOD`       | `user_token`               | `user_token` or `disabled`. `disabled` is rejected in a production profile.                                                                            |
-| `--auth-token-header` | `AUTH_TOKEN_HEADER` | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token`; a valid HTTP field name that is not hop-by-hop, `Host` or `Cookie`. `Authorization` needs `AUTH_TOKEN_PREFIX`. |
-| `--auth-token-prefix` | `AUTH_TOKEN_PREFIX` | _(empty)_                  | Set to `Bearer ` when the header is `Authorization`.                                                                                                   |
+| Flag                   | Environment          | Default                    | Notes                                                                                                                                                         |
+| ---------------------- | -------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--auth-method`        | `AUTH_METHOD`        | `user_token`               | `user_token` or `disabled`. `disabled` is rejected in a production profile.                                                                                   |
+| `--auth-token-header`  | `AUTH_TOKEN_HEADER`  | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token` and `AUTH_TOKEN_HEADERS` is unset; a valid HTTP field name that is not hop-by-hop, `Host` or `Cookie`. `Authorization` needs `AUTH_TOKEN_PREFIX`. |
+| `--auth-token-prefix`  | `AUTH_TOKEN_PREFIX`  | _(empty)_                  | Set to `Bearer ` when the header is `Authorization`.                                                                                                          |
+| `--auth-token-headers` | `AUTH_TOKEN_HEADERS` | _(empty)_                  | Ordered list of credential headers. When set, replaces `AUTH_TOKEN_HEADER`; `AUTH_TOKEN_PREFIX` must be unset. See [Caller credentials](#caller-credentials). |
 
-The header the gateway populates on xKS is settled by
-[RHOAIENG-96081](https://redhat.atlassian.net/browse/RHOAIENG-96081); this contract only states
-that the header name is configuration, not a constant.
+## Caller credentials
+
+Tracked by [RHOAIENG-96081](https://redhat.atlassian.net/browse/RHOAIENG-96081). One caller
+identity is resolved once per request, by `InjectRequestIdentity`, and every transport uses it:
+REST handlers, the Kubernetes HTTP proxy (`/api/k8s/*`), the Kubernetes WebSocket proxy
+(`/wss/k8s/*`), the model-serving proxy and the module proxies. The extractor lives in
+`bff/internal/callerauth` and knows nothing about Kubernetes.
+
+The identity carries only the token. Who the caller is comes from `SelfSubjectReview` against the
+API server, never from a header. `X-Forwarded-User`, `X-Forwarded-Groups`, `Impersonate-*` and
+`X-Remote-*` are never read as identity, are removed before any request is proxied, and cannot be
+configured as credential headers. Neither can `X-Request-ID` and `Audit-ID`, which the correlation
+middleware removes before authentication. Startup rejects all of them, and any name that is not a
+valid HTTP header, in `AUTH_TOKEN_HEADERS` and in `AUTH_TOKEN_HEADER` alike. A rejected entry is reported by
+setting and position, never by its value, so a token pasted into the setting by mistake does not
+reach the log. A list that is set but names no header (`,` or whitespace only) also fails startup
+rather than falling back to the single-header mode. An empty value is the same as unset.
+
+### Two modes, one setting
+
+| `AUTH_TOKEN_HEADERS` | Mode          | Used by                                                        | Behaviour                                                                                         |
+| -------------------- | ------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| unset _(default)_    | single header | OpenShift (unchanged)                                          | Reads `AUTH_TOKEN_HEADER`; strips `AUTH_TOKEN_PREFIX` when set (the prefix must then be present). |
+| ordered list         | precedence    | xKS (RHAII manifest: `Authorization,x-forwarded-access-token`) | Rules below. `AUTH_TOKEN_PREFIX` must be empty; the combination fails startup as ambiguous.       |
+
+The xKS gateway sends the Entra access token in both `Authorization: Bearer` and
+`x-forwarded-access-token`. Which one is the contract is not decided yet, so the xKS value accepts
+both, `Authorization` first; the RHAII manifest (`manifests/distributions/rhaii/deployment.yaml`)
+sets that value. Switching to one header is a configuration change, not a code change.
+
+### Precedence rules (ordered list)
+
+Headers are consulted in the configured order.
+
+1. **Absent or empty** headers are skipped. The HTTP server trims surrounding whitespace from header
+   values, so a whitespace-only value sent on the wire arrives empty and is skipped too.
+2. **`Authorization` must use the Bearer scheme** (`Bearer <token>`, scheme case-insensitive). Any
+   other header carries the bare token. A token with embedded whitespace or a comma is malformed.
+3. **A header that is present must be well formed.** A malformed header fails the request; it does
+   **not** fall through to the next header, because the edge may have authenticated exactly that
+   header.
+4. **A header repeated with several values** is rejected.
+5. **Every credential presented must be the same token.** The first in order is reported as the
+   source. Two different tokens fail closed: the BFF cannot tell which one the edge authenticated.
+6. **None present** is a missing credential.
+
+| Request                                                     | Result                              |
+| ----------------------------------------------------------- | ----------------------------------- |
+| `Authorization: Bearer T`                                   | Caller `T`                          |
+| `x-forwarded-access-token: T`                               | Caller `T`                          |
+| both, same `T`                                              | Caller `T` (source `Authorization`) |
+| both, different tokens                                      | 401                                 |
+| `Authorization: Basic …` (with or without a valid fallback) | 401                                 |
+| `Authorization: Bearer` with no token, repeated header      | 401                                 |
+| only empty or whitespace-only credential headers            | 401 (missing credential)            |
+| no credential header                                        | 401                                 |
+
+### Failing closed
+
+Every route except the public ones (`/healthcheck`, the OpenAPI document, the static SPA shell and
+the OpenShift-only NIM status routes) requires a credential. A protected route without one returns
+`401` under the [error contract](./error-contract.md), which keeps it distinct from upstream
+transport and availability failures (`502`/`503`/`504`); the request log records
+`CREDENTIALS_MISSING` or `CREDENTIALS_INVALID`, never the value. The
+Kubernetes HTTP and WebSocket proxies also refuse, on their own, any request without a caller
+token, so an uncredentialed request can never reach the API server anonymously.
+
+Outside `DEV_MODE` nothing can replace a missing or rejected caller credential:
+
+- The kubeconfig/service-account identity is used only by the documented service-account reads
+  (see the [bootstrap contract](./bootstrap-contract.md#service-account-permissions)), never as a
+  substitute for the caller.
+- A client certificate in the kubeconfig is **not** presented with a caller credential. The
+  Kubernetes proxies present it only for the `DEV_MODE` fallback identity (no caller credential
+  sent), on a separate connection pool; outside `DEV_MODE` it is never presented (see
+  [TLS inputs](#tls-inputs)). The typed clients drop it too (`rest.AnonymousClientConfig`).
+- `DEV_MODE` keeps its kubeconfig fallback identity for local development, but only when **no**
+  credential header was sent at all. A credential header that was sent, even empty, blocks the
+  fallback. A malformed or conflicting one is rejected with 401, as in production; an empty one is
+  skipped like an absent one in the ordered list (rule 1), so the request is a 401 only when no other
+  configured header carries a token. With `AUTH_METHOD=disabled` no credential is ever read, so under `DEV_MODE`
+  every request is the fallback identity and runs as the kubeconfig. On the Kubernetes proxies that
+  needs a kubeconfig with a bearer token or a client certificate: with an exec-plugin kubeconfig
+  (for example `kubelogin` on AKS) the proxies have no kubeconfig credential to present, so proxied
+  requests reach the API server without one. Without `DEV_MODE`, disabled auth
+  only works with the mock clients. `DEV_MODE` is a development profile and cannot be enabled in
+  production without the profile changing.
+
+### Where the configured headers are applied
+
+Every configured header (plus `AUTH_TOKEN_HEADER`, which module proxies use as their outbound
+header) is:
+
+- removed from inbound requests before any HTTP proxy forwards them (the WebSocket proxy never copies
+  inbound headers: its upstream handshake is built from scratch); the proxies install the resolved
+  caller token themselves (`Authorization: Bearer` for the Kubernetes API);
+- redacted in request debug logs and never written in error text;
+- allowed as a CORS request header and listed in `Vary` on `/api` responses;
+- rejected as a static header in module-proxy configuration when `authorize` is on.
+
+WebSocket upgrades are authenticated the same way as any other request, before the upgrade. The
+browser cannot set `Authorization` on a WebSocket, so on xKS the gateway supplies the header.
+
+Covered by `bff/internal/callerauth/credentials_test.go` (precedence and rejections),
+`bff/internal/api/caller_auth_transport_test.go` (routing and identity resolution for every transport through the real handler tree; the proxies themselves are replaced by recorders there),
+`bff/internal/proxy/caller_auth_test.go` (proxy stripping and fail-closed forwarding) and the
+`xks/testCoreBffCallerAuth` and `openshift/testCoreBffCallerAuth` contract suites.
+`scripts/validate-caller-auth.sh` runs the same checks against a live cluster with a throwaway
+ServiceAccount (`PLATFORM=XKS` or `PLATFORM=OpenShift`). It never prints a token or passes one as
+a process argument: credential headers are written to files only the user can read and passed to
+curl and the WebSocket client by path. A `BFF_URL` it does not start must be `https://`, or
+`http://` on a loopback host for a port-forward, so tokens never cross a remote plaintext link. Its
+`X-Remote-*` row only checks that the caller keeps its own access: the API server ignores those
+headers on a bearer-token connection, so their stripping is shown by `caller_auth_test.go`, which
+inspects the upstream request. On xKS it also creates a second ServiceAccount that may patch only
+its test Namespace, so the mutation rows prove the caller's credentials are used without an admin
+token; the cluster-scoped grant is removed on exit. Skipped rows are counted, and `STRICT=true`
+fails the run when any were skipped.
 
 ### Transport and trust
 
@@ -213,22 +329,25 @@ kubeconfig client certificate is the BFF's own identity, and the API server does
 authenticator wins when a request carries both. The proxies therefore present it only on a
 `DEV_MODE` fallback request, one that arrived without a caller token and runs on the developer's
 kubeconfig identity; a `DEV_MODE` request that carries its own token is authenticated by that token
-alone. Only a request with no credential falls back. In `DEV_MODE` a credential that was sent but
-is malformed (wrong prefix, an empty or whitespace-only header, which the HTTP parser trims to
-empty) is answered with 401, never with the fallback identity. A caller token in the other
-identity header (`Authorization: Bearer`, or `X-Forwarded-Access-Token`, whichever is not the
-configured one) is the caller's credential too: it is used as the request identity, never replaced
+alone. Only a request that sent no credential at all falls back. In `DEV_MODE` a credential header
+that was sent but is empty or malformed (wrong prefix, an empty or whitespace-only header, which the
+HTTP parser trims to empty) is answered with 401, never with the fallback identity; that includes the
+legacy `AUTH_TOKEN_HEADER` when `AUTH_TOKEN_HEADERS` is set. A caller token in the other
+identity header (`Authorization: Bearer`, or `X-Forwarded-Access-Token`, whichever is not among the
+configured ones) is the caller's credential too: it is used as the request identity, never replaced
 by the fallback, and is 401 when malformed. A WebSocket bearer subprotocol (`base64url.bearer.authorization.k8s.io.<token>`, a browser's
-only way to send a token on a WebSocket) counts the same way. When several are present they are tried
-in a fixed order (bearer subprotocol, then `Authorization`, then `X-Forwarded-Access-Token`), and
-every `Sec-WebSocket-Protocol` line is read. A fallback request on a certificate-only kubeconfig carries no bearer token at
+only way to send a token on a WebSocket) counts the same way and is taken first; every
+`Sec-WebSocket-Protocol` line is read. Otherwise the other identity headers are read with the list
+rules: `Authorization` must use Bearer, a repeated header or two different tokens are a 401, and one
+sent blank is an invalid credential. A fallback request on a certificate-only kubeconfig carries no bearer token at
 all (no `Authorization` header, no bearer subprotocol), so it authenticates with the certificate
 alone; no placeholder token is ever sent upstream. In every profile the WebSocket proxy and the
 reverse proxies drop client-supplied bearer subprotocols and send only the resolved token, and every proxy strips
 both inbound identity headers (`Authorization` and `X-Forwarded-Access-Token`) whichever is
-configured; an `authorize` module receives the resolved token in both. On an `authorize` module route
-`Authorization`, `X-Forwarded-Access-Token` and the configured `AUTH_TOKEN_HEADER` are reserved: a
-federation entry that sets a static value in any of them fails startup, and at request time they carry
+configured; an `authorize` module receives the resolved token in both and in every other configured
+credential header (`AUTH_TOKEN_HEADERS` or `AUTH_TOKEN_HEADER`; Bearer-prefixed only in `Authorization`). On an
+`authorize` module route `Authorization`, `X-Forwarded-Access-Token` and every configured credential header are
+reserved: a federation entry that sets a static value in any of them fails startup, and at request time they carry
 only the resolved token, so a tokenless identity (a certificate-only fallback, or a mock without a
 token) sends none of them. The host dashboard's module proxy sends
 `Authorization`, so federated development keeps working.
@@ -239,7 +358,9 @@ clients, the `DEV_MODE` fallback client, the platform discovery probes (which ru
 service-account clients), and the proxies' API server host and TLS settings. With
 `MOCK_K8S_CLIENT` the proxies present the envtest certificate, because they act as that identity.
 The HTTP proxy adds impersonation headers for the caller; the WebSocket handshake builds its own
-headers and does not, so WebSocket requests against envtest run as the envtest identity.
+headers and does not, so WebSocket requests against envtest run as the envtest identity. With
+`AUTH_METHOD=user_token`, both proxies refuse a token that maps to no mocked test user (`401`),
+so such a token never runs as the envtest identity.
 
 ## Certificate and trust rotation
 
@@ -331,12 +452,12 @@ disagreement with the probe is logged.
 
 ## Retained supporting services
 
-| Service             | Endpoint                                                                                 | Namespace              | TLS                                                                   | Credentials                                                                              | Response contract                                                  |
-| ------------------- | ---------------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Kubernetes API      | rest config (in-cluster or kubeconfig)                                                   | n/a                    | Clients: rest config CA. Proxies: root pool + bundles + kubeconfig CA | Caller bearer token; SA client for the privileged reads listed in the bootstrap contract | Kubernetes `v1.Status` on failure, sanitized by the error contract |
-| Model serving       | `MODEL_SERVING_HOST`, else `https://model-serving-api.<namespace>.svc.cluster.local:443` | dashboard namespace    | Root pool + bundles, SSRF-guarded dialer                              | Caller bearer token forwarded                                                            | Passthrough; local failures use the proxy error contract           |
-| Module BFFs         | federation config / per-module service                                                   | per module             | Root pool + bundles                                                   | Caller bearer token forwarded                                                            | Passthrough, `Cache-Control: no-store` forced on replies           |
-| Prometheus / Thanos | `PROMETHEUS_HOST`, else built from namespace/instance/port                               | `PROMETHEUS_NAMESPACE` | Root pool + bundles                                                   | Caller bearer token                                                                      | OpenShift only; 404 on xKS via `requirePlatform`                   |
+| Service             | Endpoint                                                                                 | Namespace              | TLS                                                                   | Credentials                                                                                                                   | Response contract                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Kubernetes API      | rest config (in-cluster or kubeconfig)                                                   | n/a                    | Clients: rest config CA. Proxies: root pool + bundles + kubeconfig CA | Caller bearer token; SA client only for the reads listed in the bootstrap contract (and, on OpenShift, admin-gated mutations) | Kubernetes `v1.Status` on failure, sanitized by the error contract |
+| Model serving       | `MODEL_SERVING_HOST`, else `https://model-serving-api.<namespace>.svc.cluster.local:443` | dashboard namespace    | Root pool + bundles, SSRF-guarded dialer                              | Caller bearer token forwarded                                                                                                 | Passthrough; local failures use the proxy error contract           |
+| Module BFFs         | federation config / per-module service                                                   | per module             | Root pool + bundles                                                   | Caller bearer token forwarded                                                                                                 | Passthrough, `Cache-Control: no-store` forced on replies           |
+| Prometheus / Thanos | `PROMETHEUS_HOST`, else built from namespace/instance/port                               | `PROMETHEUS_NAMESPACE` | Root pool + bundles                                                   | Caller bearer token                                                                                                           | OpenShift only; 404 on xKS via `requirePlatform`                   |
 
 A mock response is never evidence that one of these is available. `MOCK_K8S_CLIENT` moves the
 deployment out of the production profile. `MOCK_HTTP_CLIENT` and `MOCK_BFF_CLIENTS` do not, so the

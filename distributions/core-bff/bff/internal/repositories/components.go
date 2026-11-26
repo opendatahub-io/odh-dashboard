@@ -16,14 +16,17 @@ import (
 // ComponentsRepository handles OdhApplication CRD listing and removal from the
 // enabled-apps ConfigMap. "Components" here refers specifically to OdhApplication
 // resources, not generic Kubernetes components.
-// Uses the SA clients for all operations, matching the privileged watcher model.
+//
+// ListComponents reads the catalogue with the service account on every
+// platform (documented bootstrap read). RemoveComponent is an admin mutation
+// and follows the credential policy.
 type ComponentsRepository struct {
 	saDynClient dynamic.Interface
-	saClientset kubernetes.Interface
+	clients     clientSource
 }
 
 func NewComponentsRepository(saDynClient dynamic.Interface, saClientset kubernetes.Interface) *ComponentsRepository {
-	return &ComponentsRepository{saDynClient: saDynClient, saClientset: saClientset}
+	return &ComponentsRepository{saDynClient: saDynClient, clients: saSource(saClientset, saDynClient)}
 }
 
 // ListComponents lists OdhApplication CRDs. Returns empty slice when CRD is absent.
@@ -65,12 +68,19 @@ func (r *ComponentsRepository) RemoveComponent(ctx context.Context, namespace, a
 	if enabledAppsCM == "" {
 		return &models.MutationResponse{Success: false, Error: "enabled apps ConfigMap not configured"}, nil
 	}
-	if r.saClientset == nil {
+	cs, err := r.clients.typed(ctx)
+	if err != nil {
+		if r.clients.policy == CredentialPolicyCaller {
+			return nil, err
+		}
 		return &models.MutationResponse{Success: false, Error: "service account clientset not configured"}, nil
 	}
 
-	cm, err := r.saClientset.CoreV1().ConfigMaps(namespace).Get(ctx, enabledAppsCM, metav1.GetOptions{})
+	cm, err := cs.CoreV1().ConfigMaps(namespace).Get(ctx, enabledAppsCM, metav1.GetOptions{})
 	if err != nil {
+		if r.clients.surfacesAuthFailure(err) {
+			return nil, err
+		}
 		return &models.MutationResponse{Success: false, Error: fmt.Sprintf("failed to read enabled apps ConfigMap: %v", err)}, nil
 	}
 
@@ -80,8 +90,11 @@ func (r *ComponentsRepository) RemoveComponent(ctx context.Context, namespace, a
 
 	delete(cm.Data, appName)
 
-	_, err = r.saClientset.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
+	_, err = cs.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
+		if r.clients.surfacesAuthFailure(err) {
+			return nil, err
+		}
 		return &models.MutationResponse{Success: false, Error: fmt.Sprintf("failed to update enabled apps ConfigMap: %v", err)}, nil
 	}
 

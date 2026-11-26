@@ -7,6 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 )
 
 const ComponentLabelValue = "core"
@@ -31,6 +32,11 @@ type KubernetesClientInterface interface {
 
 	// Dynamic client for CRD operations
 	GetDynamicClient() (dynamic.Interface, error)
+
+	// GetClientset returns the typed clientset authenticated as this client's
+	// caller. Repositories use it for caller-scoped access (see
+	// repositories.CredentialPolicyCaller).
+	GetClientset() (kubernetes.Interface, error)
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, namespace, name string) (*corev1.ConfigMap, error)
