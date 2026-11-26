@@ -47,6 +47,8 @@ const EvalHubCoreLoader: React.FC<EvalHubCoreLoaderProps> = ({ getInvalidRedirec
     selectProject,
     enabled: isUnifiedProjectSelectorEnabled,
     getProjectPath: getInvalidRedirectPath,
+    // Resource IDs and creation selections belong to the previous project.
+    preserveLocationOnProjectChange: false,
     registerProjectRouteSync,
   });
 

@@ -52,23 +52,28 @@ const Observer: React.FC = () => {
   return null;
 };
 
-const renderWithRouter = (path: string, getInvalidRedirectPath: (ns: string) => string) =>
-  render(
-    <MemoryRouter initialEntries={[path]}>
-      <Observer />
-      <Routes>
+const getRouterTree = (
+  path: string | Partial<ReturnType<typeof useLocation>>,
+  getInvalidRedirectPath: (ns: string) => string,
+) => (
+  <MemoryRouter initialEntries={[path]}>
+    <Observer />
+    <Routes>
+      <Route
+        path="/"
+        element={<EvalHubCoreLoader getInvalidRedirectPath={getInvalidRedirectPath} />}
+      >
         <Route
-          path="/"
-          element={<EvalHubCoreLoader getInvalidRedirectPath={getInvalidRedirectPath} />}
-        >
-          <Route
-            path=":namespace/*"
-            element={<div data-testid="outlet-content">Outlet rendered</div>}
-          />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
-  );
+          path=":namespace/*"
+          element={<div data-testid="outlet-content">Outlet rendered</div>}
+        />
+      </Route>
+    </Routes>
+  </MemoryRouter>
+);
+
+const renderWithRouter = (path: string, getInvalidRedirectPath: (ns: string) => string) =>
+  render(getRouterTree(path, getInvalidRedirectPath));
 
 describe('EvalHubCoreLoader', () => {
   const mockGetRedirectPath = (ns: string) => `/${ns}`;
@@ -173,8 +178,10 @@ describe('EvalHubCoreLoader', () => {
     });
 
     it('should select the valid URL project instead of redirecting to the shared preference', () => {
-      renderWithRouter('/project-b', mockGetRedirectPath);
-      expect(location.pathname).toBe('/project-b');
+      renderWithRouter('/project-b/results/job-b?tab=runs#details', mockGetRedirectPath);
+      expect(location.pathname).toBe('/project-b/results/job-b');
+      expect(location.search).toBe('?tab=runs');
+      expect(location.hash).toBe('#details');
       expect(selectProject).toHaveBeenCalledWith({ name: 'project-b' });
       expect(screen.getByTestId('outlet-content')).toBeInTheDocument();
     });
@@ -217,29 +224,59 @@ describe('EvalHubCoreLoader', () => {
       expect(screen.queryByTestId('header-content')).not.toBeInTheDocument();
     });
 
-    it('should preserve the shared hook suffix and query behavior on masthead changes', async () => {
+    it.each([
+      '/project-a?tab=runs',
+      '/project-a/results/job-a?tab=runs#details',
+      '/project-a/reconfigure/job-a',
+      '/project-a/create/start?type=benchmark',
+      '/project-a/create/start?type=collection',
+      '/project-a/create/collections/collection-a/edit',
+      '/project-a/create/collections/collection-a/copy',
+      '/project-a/compare?runs=run-a,run-b&experiments=experiment-a,experiment-b',
+    ])('should return to the new project landing page when switching from %s', async (path) => {
+      const { pathname, search, hash } = new URL(path, 'http://localhost');
+      const entry = {
+        pathname,
+        search,
+        hash,
+        state: {
+          benchmark: { id: 'benchmark-a' },
+          collection: { resource: { id: 'collection-a' } },
+        },
+      };
+      const view = render(getRouterTree(entry, mockGetRedirectPath));
+      expect(location.pathname).toBe(entry.pathname);
+      expect(location.state).toEqual(entry.state);
+      expect(selectProject).not.toHaveBeenCalled();
+      jest.mocked(useWorkingProject).mockReturnValue({
+        ...jest.mocked(useWorkingProject)(),
+        activeProject: { name: 'project-b' },
+      });
+      view.rerender(getRouterTree(entry, mockGetRedirectPath));
+
+      await waitFor(() => expect(location.pathname).toBe('/project-b'));
+      expect(location.search).toBe('');
+      expect(location.hash).toBe('');
+      expect(location.state).toBeNull();
+      expect(screen.getByTestId('outlet-content')).toBeInTheDocument();
+    });
+
+    it('should leave the current route unchanged when UPS is disabled', () => {
+      jest
+        .mocked(useIsAreaAvailable)
+        .mockReturnValue({ status: false } as ReturnType<typeof useIsAreaAvailable>);
       const path = '/project-a/results/job-a?tab=runs#details';
       const view = renderWithRouter(path, mockGetRedirectPath);
       jest.mocked(useWorkingProject).mockReturnValue({
         ...jest.mocked(useWorkingProject)(),
         activeProject: { name: 'project-b' },
       });
-      view.rerender(
-        <MemoryRouter initialEntries={[path]}>
-          <Observer />
-          <Routes>
-            <Route
-              path="/"
-              element={<EvalHubCoreLoader getInvalidRedirectPath={mockGetRedirectPath} />}
-            >
-              <Route path=":namespace/*" element={<div data-testid="outlet-content" />} />
-            </Route>
-          </Routes>
-        </MemoryRouter>,
-      );
-      await waitFor(() => expect(location.pathname).toBe('/project-b/results/job-a'));
+      view.rerender(getRouterTree(path, mockGetRedirectPath));
+
+      expect(location.pathname).toBe('/project-a/results/job-a');
       expect(location.search).toBe('?tab=runs');
       expect(location.hash).toBe('#details');
+      expect(selectProject).not.toHaveBeenCalled();
     });
 
     it('should reconcile a project URL reached through browser navigation', async () => {
