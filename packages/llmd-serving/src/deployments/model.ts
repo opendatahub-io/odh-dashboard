@@ -34,6 +34,8 @@ import {
 } from '../wizardFields/deploymentMethodField';
 import { isLLMd } from '../formUtils';
 
+const CONNECTION_PATH_ANNOTATION = 'opendatahub.io/connection-path';
+
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
   modelLocationData: ModelLocationData,
@@ -71,19 +73,22 @@ export const applyModelLocation = (
   if (modelLocationData.type === ModelLocationType.PVC) {
     delete result.metadata.annotations[MetadataAnnotation.ConnectionName];
   }
-  // Adds path annotation for S3
-  if (
-    modelLocationData.additionalFields.modelPath &&
-    modelLocationData.connectionTypeObject &&
-    isModelServingCompatible(
-      modelLocationData.connectionTypeObject ?? [],
-      ModelServingCompatibleTypes.S3ObjectStorage,
-    )
-  ) {
-    result.metadata.annotations['opendatahub.io/connection-path'] =
-      modelLocationData.additionalFields.modelPath;
-  } else {
-    delete result.metadata.annotations['opendatahub.io/connection-path'];
+  const { connection, connectionTypeObject, additionalFields } = modelLocationData;
+  const { modelPath } = additionalFields;
+  const isS3Connection =
+    modelLocationData.type !== ModelLocationType.PVC &&
+    connectionTypeObject &&
+    isModelServingCompatible(connectionTypeObject, ModelServingCompatibleTypes.S3ObjectStorage);
+  const preserveExistingModelPath =
+    modelLocationData.type !== ModelLocationType.PVC &&
+    !!connection &&
+    connection === llmdInferenceService.metadata.annotations?.[MetadataAnnotation.ConnectionName] &&
+    (connectionSecretName ?? connection) === connection &&
+    (!connectionTypeObject || (isS3Connection && modelPath === undefined));
+  if (isS3Connection && modelPath) {
+    result.metadata.annotations[CONNECTION_PATH_ANNOTATION] = modelPath;
+  } else if (!preserveExistingModelPath) {
+    delete result.metadata.annotations[CONNECTION_PATH_ANNOTATION];
   }
   // Adds uri for OCI
   if (
@@ -203,9 +208,12 @@ const extractAdditionalFields = (deployment: LLMInferenceServiceKind): Record<st
   const uri = getModelLocationUri(deployment) ?? '';
 
   const connectionType = getConnectionTypeFromUri(uri);
-  if (connectionType === ModelServingCompatibleTypes.S3ObjectStorage) {
-    additionalFields.modelPath =
-      deployment.metadata.annotations?.['opendatahub.io/connection-path'] || '';
+  const annotatedModelPath = deployment.metadata.annotations?.[CONNECTION_PATH_ANNOTATION];
+  if (
+    connectionType === ModelServingCompatibleTypes.S3ObjectStorage ||
+    (!uri && annotatedModelPath)
+  ) {
+    additionalFields.modelPath = annotatedModelPath ?? '';
   }
 
   if (connectionType === ModelServingCompatibleTypes.OCI) {

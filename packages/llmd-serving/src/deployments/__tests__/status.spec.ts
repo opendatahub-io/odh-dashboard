@@ -25,6 +25,21 @@ describe('LLM inference service lifecycle state', () => {
     expect(getLLMInferenceServiceStatusMessage(service)).toContain('missing-config');
   });
 
+  it('should expose a missing scaling CRD reported without severity by the controller', () => {
+    const message = 'no matches for kind "ScaledObject" in version "keda.sh/v1alpha1"';
+    const service = mockLLMInferenceServiceK8sResource({
+      conditions: ['Ready', 'WorkloadsReady', 'MainWorkloadReady'].map((type) => ({
+        type,
+        status: 'False',
+        reason: 'ScalingCRDNotFound',
+        message,
+      })),
+    });
+
+    expect(getLLMInferenceServiceModelState(service)).toBe(ModelDeploymentState.FAILED_TO_LOAD);
+    expect(getLLMInferenceServiceStatusMessage(service)).toBe(message);
+  });
+
   it('should keep a resource in deleting state until Kubernetes removes it', () => {
     const service = mockLLMInferenceServiceK8sResource({ deleted: true, isReady: true });
     service.metadata.finalizers = ['serving.kserve.io/finalizer'];

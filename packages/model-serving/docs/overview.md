@@ -4,6 +4,8 @@
 
 - `@odh-dashboard/model-serving` is the Model Serving UI for ODH Dashboard: serving runtimes, deploy wizard, inference endpoints, and deployment status across projects.
 - Replaces deprecated `frontend/src/pages/modelServing/`.
+- The deployment wizard preserves direct LLM-d model URIs and PVC paths through YAML preview and submission. It validates connection-based locations before submitting the deployment.
+- While Kubernetes is deleting a deployment, the status modal shows deletion progress and the deployment row hides endpoints and disables lifecycle actions.
 
 ## Design Intent
 

@@ -7,6 +7,7 @@ import { listInferenceService } from '@odh-dashboard/internal/api/k8s/inferenceS
 import { getHardwareProfile } from '@odh-dashboard/internal/api/k8s/hardwareProfiles';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
 import { TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
+import { LLMInferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
 import {
   IdentifierResourceType,
   SchedulingType,
@@ -15,9 +16,13 @@ import {
   type WorkloadKind,
 } from '@odh-dashboard/k8s-core';
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import type { TrainJobKind } from '@odh-dashboard/model-training/k8sTypes';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import {
+  filterInfrastructureWorkloads,
   getInfrastructureJobStatus,
   listInfrastructureWorkloads,
 } from '../infrastructureWorkloads';
@@ -146,6 +151,50 @@ describe('listInfrastructureWorkloads', () => {
       hardwareProfile.metadata.name,
       hardwareProfile.metadata.namespace,
     );
+  });
+
+  it('should show and filter deleting model deployments despite stale serving status', async () => {
+    const kserve = mockInferenceServiceK8sResource({
+      name: 'terminating-kserve',
+      deleted: true,
+      activeModelState: ModelDeploymentState.LOADED,
+    });
+    const llmd = mockLLMInferenceServiceK8sResource({
+      name: 'terminating-llmd',
+      deleted: true,
+      isStopped: true,
+      conditions: [{ type: 'Ready', status: 'True', message: 'Ready to serve' }],
+    });
+    listInferenceServiceMock.mockResolvedValue([kserve]);
+    k8sListResourceMock.mockImplementation(async ({ model }) => ({
+      apiVersion: 'v1',
+      metadata: { resourceVersion: '', continue: '' },
+      items: model === LLMInferenceServiceModel ? [llmd as K8sResourceCommon] : [],
+    }));
+
+    const { workloads } = await listInfrastructureWorkloads('project-a', 'Project-A', false);
+
+    expect(workloads.map(({ name }) => name).toSorted()).toEqual([
+      'terminating-kserve',
+      'terminating-llmd',
+    ]);
+    for (const row of workloads) {
+      expect(row).toMatchObject({
+        status: { label: 'Deleting' },
+        deploymentStatus: {
+          state: ModelDeploymentState.DELETING,
+          message:
+            'Waiting for Kubernetes and serving controllers to finish deleting this deployment.',
+        },
+      });
+    }
+    const workloadsWithStaleQueueStatus = workloads.map((row) => ({
+      ...row,
+      kueueStatus: KueueWorkloadStatus.Queued,
+    }));
+    expect(
+      filterInfrastructureWorkloads(workloadsWithStaleQueueStatus, '', 'status', ['Deleting']),
+    ).toEqual(workloadsWithStaleQueueStatus);
   });
 });
 

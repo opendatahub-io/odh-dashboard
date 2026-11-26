@@ -1,4 +1,7 @@
-import { k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  k8sDeleteResource,
+  K8sStatusError as SdkK8sStatusError,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import { deleteDeployment } from '../LLMdDeployment';
@@ -11,7 +14,10 @@ import {
   type LLMInferenceServiceKind,
 } from '../../types';
 
-jest.mock('@openshift/dynamic-plugin-sdk-utils');
+jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
+  ...jest.requireActual('@openshift/dynamic-plugin-sdk-utils'),
+  k8sDeleteResource: jest.fn(),
+}));
 
 const mockK8sDeleteResource = jest.mocked(k8sDeleteResource);
 
@@ -41,8 +47,11 @@ const deletedNames = (
     .filter(([options]) => options.model === model)
     .map(([options]) => options.queryOptions?.name);
 
-const k8sStatusError = (code: number) =>
-  new K8sStatusError({
+const k8sStatusError = (
+  code: number,
+  ErrorClass: typeof K8sStatusError | typeof SdkK8sStatusError = K8sStatusError,
+) =>
+  new ErrorClass({
     apiVersion: 'v1',
     kind: 'Status',
     status: 'Failure',
@@ -91,16 +100,19 @@ describe('deleteDeployment', () => {
     expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([DEPLOYMENT_NAME, topology]);
   });
 
-  it('should finish cleanup on retry after a partial configuration deletion failure', async () => {
+  it.each([
+    { transport: 'dashboard', ErrorClass: K8sStatusError },
+    { transport: 'RHAII SDK', ErrorClass: SdkK8sStatusError },
+  ])('should retry config cleanup with the $transport error', async ({ ErrorClass }) => {
     const topology = `${DEPLOYMENT_NAME}-topology`;
     const accelerator = `${DEPLOYMENT_NAME}-accelerator`;
     const remainingConfigs = new Set([DEPLOYMENT_NAME, topology, accelerator]);
     let primaryExists = true;
     let failTopology = true;
-    const unavailable = k8sStatusError(503);
+    const unavailable = k8sStatusError(503, ErrorClass);
     mockK8sDeleteResource.mockImplementation(async ({ model, queryOptions }) => {
       if (model === LLMInferenceServiceModel) {
-        if (!primaryExists) throw k8sStatusError(404);
+        if (!primaryExists) throw k8sStatusError(404, ErrorClass);
         primaryExists = false;
       } else {
         const configName = queryOptions?.name ?? '';
@@ -108,7 +120,7 @@ describe('deleteDeployment', () => {
           failTopology = false;
           throw unavailable;
         }
-        if (!remainingConfigs.delete(configName)) throw k8sStatusError(404);
+        if (!remainingConfigs.delete(configName)) throw k8sStatusError(404, ErrorClass);
       }
       return { kind: 'Status', status: 'Success' };
     });

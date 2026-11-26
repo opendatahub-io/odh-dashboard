@@ -250,6 +250,13 @@ const PENDING_CONDITION_REASONS = new Set<string>([
   'InferencePoolNotReady',
 ]);
 
+// Knative omits the default error severity when serializing these conditions.
+const HARD_FAILURE_CONDITION_REASONS = new Set<string>([
+  LLMInferenceServiceReadyConditionReason.PROGRESS_DEADLINE_EXCEEDED,
+  'ConfigNotFound',
+  'ScalingCRDNotFound',
+]);
+
 const getFailedCondition = (service: LLMInferenceServiceKind) => {
   const conditions = service.status?.conditions ?? [];
   const ready = conditions.find((condition) => condition.type === 'Ready');
@@ -270,8 +277,7 @@ const getFailedCondition = (service: LLMInferenceServiceKind) => {
             spec.children?.some((child) => child.type === condition.type),
         )) &&
       condition.status === 'False' &&
-      (condition.reason === LLMInferenceServiceReadyConditionReason.PROGRESS_DEADLINE_EXCEEDED ||
-        condition.reason === 'ConfigNotFound' ||
+      (HARD_FAILURE_CONDITION_REASONS.has(condition.reason ?? '') ||
         (condition.severity === 'Error' && !PENDING_CONDITION_REASONS.has(condition.reason ?? ''))),
   );
 };

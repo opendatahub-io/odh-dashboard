@@ -38,6 +38,19 @@ describe('extractModelLocationData', () => {
     });
   });
 
+  it('should extract the annotated S3 path before the controller resolves the URI', () => {
+    const model = mockLLMInferenceServiceK8sResource({
+      modelUri: '',
+      secretName: 's3-connection',
+      additionalAnnotations: { 'opendatahub.io/connection-path': 'models/weights' },
+    });
+
+    expect(extractModelLocationData({ model })).toMatchObject({
+      connection: 's3-connection',
+      additionalFields: { modelPath: 'models/weights' },
+    });
+  });
+
   it('should leave a model location inherited from a config in YAML', () => {
     const model = mockLLMInferenceServiceK8sResource({});
     delete model.spec.model;
@@ -225,7 +238,10 @@ describe('applyModelLocation', () => {
 
   it('should remove a stale connection reference when changing to a PVC', () => {
     const result = applyModelLocation(
-      mockLLMInferenceServiceK8sResource({ secretName: 'old-connection' }),
+      mockLLMInferenceServiceK8sResource({
+        secretName: 'old-connection',
+        additionalAnnotations: { 'opendatahub.io/connection-path': 'models/weights' },
+      }),
       {
         type: ModelLocationType.PVC,
         fieldValues: { URI: 'pvc://models/weights' },
@@ -235,7 +251,27 @@ describe('applyModelLocation', () => {
     );
     expect(result.spec.model?.uri).toBe('pvc://models/weights');
     expect(result.metadata.annotations?.[MetadataAnnotation.ConnectionName]).toBeUndefined();
+    expect(result.metadata.annotations?.['opendatahub.io/connection-path']).toBeUndefined();
   });
+
+  it.each(['s3-connection', 'other-connection'])(
+    'should preserve an unresolved S3 model path only for the original connection (%s)',
+    (connection) => {
+      const service = mockLLMInferenceServiceK8sResource({
+        secretName: 's3-connection',
+        additionalAnnotations: { 'opendatahub.io/connection-path': 'models/weights' },
+      });
+      const result = applyModelLocation(
+        service,
+        { type: ModelLocationType.EXISTING, connection, fieldValues: {}, additionalFields: {} },
+        connection,
+      );
+
+      expect(result.metadata.annotations?.['opendatahub.io/connection-path']).toBe(
+        connection === 's3-connection' ? 'models/weights' : undefined,
+      );
+    },
+  );
 
   it('should retain the S3 path annotation and connection resolution', () => {
     const result = applyModelLocation(
