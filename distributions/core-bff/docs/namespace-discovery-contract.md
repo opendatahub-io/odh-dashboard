@@ -223,8 +223,9 @@ falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery
   name first, and the lookup decides what is watched and offered. Without the unified project
   selector (the default), the page's selector has no manual entry, so after a discovery failure
   (a `503` or a partial listing) the provider looks up, four at a time, up to 50 names: the stored
-  preference, the recent projects (the last 10 opened; a denied or missing one is dropped, as is a denied stored preference) and the
-  listed names. Each one a lookup verifies is added with its actions. When the initial load is
+  preference, the recent projects (the last 10 opened; a denied or missing one is dropped, as is a
+  denied stored preference) and the listed names. With the unified selector a denied recent project
+  is dropped too, but the shared working-project storage is never cleared by a failed lookup. Each one a lookup verifies is added with its actions. When the initial load is
   partial, the page reports itself loaded once those lookups end, or after 30 seconds, and later
   lookups still add projects; a listing that turns partial later never takes back a loaded page.
   While the listing is incomplete, the deployments page header offers **Open project by name**,

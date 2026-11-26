@@ -399,7 +399,13 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       // Nor is a denied stored preference, where this provider owns it. With
       // the unified selector the shared working-project storage keeps its rule
       // of never being cleared on a failed lookup.
-      if (!unifiedProjectSelectorEnabled && readStoredWorkingProjectName(localStorage) === name) {
+      let storedName: string | null = null;
+      try {
+        storedName = readStoredWorkingProjectName(localStorage);
+      } catch {
+        // Browser storage is optional.
+      }
+      if (!unifiedProjectSelectorEnabled && storedName === name) {
         setStoredPreferredName('');
       }
       // A denied or missing project is not looked up again on the next visit.

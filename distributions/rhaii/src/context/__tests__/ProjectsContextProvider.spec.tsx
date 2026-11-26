@@ -1096,6 +1096,24 @@ describe('RHAII working project provider integration', () => {
     );
   });
 
+  it('should keep the shared stored preference a lookup denies with the unified selector', async () => {
+    localStorage.setItem('mod-arch.namespace.lastUsed', JSON.stringify('gone'));
+    localStorage.setItem('rhaii-recent-namespaces', JSON.stringify(['gone']));
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError([]));
+    mockFetchNamespaceByName.mockRejectedValue(new MockProjectAccessDeniedError());
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(mockFetchNamespaceByName).toHaveBeenCalledWith('gone', expect.any(AbortSignal)),
+    );
+    await waitFor(() => expect(localStorage.getItem('rhaii-recent-namespaces')).toBe('[]'));
+    expect(localStorage.getItem('mod-arch.namespace.lastUsed')).toContain('gone');
+    expect(screen.getByTestId('known-projects')).not.toHaveTextContent('gone');
+  });
+
   it('should change nothing for a by-name lookup cancelled before it finished', async () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
