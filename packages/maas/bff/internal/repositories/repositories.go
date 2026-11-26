@@ -115,7 +115,7 @@ func NewRepositories(
 		ExternalModels:    externalModels,
 		ExternalProviders: externalProviders,
 		Secrets:           secrets,
-		UsageDashboards:   NewUsageDashboardsRepository(config.PersesNamespace, config.MockK8Client),
+		UsageDashboards:   NewUsageDashboardsRepository(logger, config.PersesNamespace, config.MockK8Client),
 		Yaml:              yamlRepo,
 	}, nil
 }
