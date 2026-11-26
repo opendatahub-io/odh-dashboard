@@ -1,3 +1,6 @@
+# Early-gate test launcher for odh-dashboard (RHAI-50780).
+# /early-gate-test comment on a PR labeled early-gate -> gate test pipeline (Jenkins install + smoke tests).
+# Long-term this should live in konflux-central (source of truth for PaC definitions) — RHAI-59943.
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
@@ -5,16 +8,17 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "issue_comment" &&
-      body.comment.body.matches("^/early-gate-test$") &&
-      body.issue.labels.exists(l, l.name == "early-gate")
+    pipelinesascode.tekton.dev/on-cel-expression: |-
+      konflux_cluster == "stone-prod-p02"
+      && event == "issue_comment"
+      && body.comment.body.matches("^/early-gate-test$")
+      && body.issue.labels.exists(l, l.name == "early-gate")
   labels:
-    appstudio.openshift.io/application: early-gate
+    appstudio.openshift.io/application: rhoai-early-gate
     appstudio.openshift.io/component: early-gate-ci
     pipelines.appstudio.openshift.io/type: test
   name: early-gate-ci-test
-  namespace: open-data-hub-tenant
+  namespace: rhoai-tenant
 spec:
   params:
   - name: git-url
@@ -28,7 +32,7 @@ spec:
     resolver: git
     params:
     - name: url
-      value: https://github.com/opendatahub-io/odh-konflux-central.git
+      value: https://github.com/red-hat-data-services/konflux-central.git
     - name: revision
       value: 'main'
     - name: pathInRepo
