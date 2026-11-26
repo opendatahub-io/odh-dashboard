@@ -57,6 +57,6 @@ describe('ModelServingProjectSelection', () => {
     });
     fireEvent.click(screen.getByTestId('find-project-submit'));
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/deployments/second'));
-    expect(findProject).toHaveBeenCalledWith('second');
+    expect(findProject).toHaveBeenCalledWith('second', expect.any(AbortSignal));
   });
 });

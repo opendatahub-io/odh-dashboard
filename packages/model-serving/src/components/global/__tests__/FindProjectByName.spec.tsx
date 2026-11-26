@@ -9,9 +9,11 @@ import FindProjectByName from '../FindProjectByName';
 describe('FindProjectByName', () => {
   it('should not navigate when the form closed before the lookup finished', async () => {
     let resolveLookup: (project: ProjectKind) => void = () => undefined;
+    const signals: (AbortSignal | undefined)[] = [];
     const findProject = jest.fn(
-      () =>
+      (_name: string, signal?: AbortSignal) =>
         new Promise<ProjectKind>((resolve) => {
+          signals.push(signal);
           resolveLookup = resolve;
         }),
     );
@@ -21,9 +23,11 @@ describe('FindProjectByName', () => {
       target: { value: 'late' },
     });
     fireEvent.click(screen.getByTestId('find-project-submit'));
-    expect(findProject).toHaveBeenCalledWith('late');
+    expect(findProject).toHaveBeenCalledWith('late', expect.any(AbortSignal));
 
     unmount();
+    // The host sees the cancellation, so it changes nothing either.
+    expect(signals[0]?.aborted).toBe(true);
     await act(async () => {
       resolveLookup(mockProjectK8sResource({ k8sName: 'late' }));
     });

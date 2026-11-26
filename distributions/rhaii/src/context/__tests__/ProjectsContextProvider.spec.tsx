@@ -1076,6 +1076,61 @@ describe('RHAII working project provider integration', () => {
     expect(loadedStates.slice(firstLoaded)).not.toContain(false);
   });
 
+  it('should forget a stored preference a lookup denies', async () => {
+    mockUseIsAreaAvailable.mockReturnValue({
+      status: false,
+    } as ReturnType<typeof useIsAreaAvailable>);
+    localStorage.setItem('mod-arch.namespace.lastUsed', JSON.stringify('gone'));
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError([]));
+    mockFetchNamespaceByName.mockRejectedValue(new MockProjectAccessDeniedError());
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(mockFetchNamespaceByName).toHaveBeenCalledWith('gone', expect.any(AbortSignal)),
+    );
+    await waitFor(() =>
+      expect(localStorage.getItem('mod-arch.namespace.lastUsed')).not.toContain('gone'),
+    );
+  });
+
+  it('should change nothing for a by-name lookup cancelled before it finished', async () => {
+    mockUseIsAreaAvailable.mockReturnValue({
+      status: false,
+    } as ReturnType<typeof useIsAreaAvailable>);
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError([]));
+    let resolveLookup: (value: ProjectKind) => void = () => undefined;
+    mockFetchNamespaceByName.mockImplementation(
+      () =>
+        new Promise<ProjectKind>((resolve) => {
+          resolveLookup = resolve;
+        }),
+    );
+    let findProject: ProjectsContextType['findProject'];
+    const Finder: React.FC = () => {
+      findProject = React.useContext(ProjectsContext).findProject;
+      return null;
+    };
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+        <Finder />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() => expect(findProject).toBeDefined());
+    const controller = new AbortController();
+    const lookup = findProject?.('allowed', controller.signal);
+    controller.abort();
+    await act(async () => {
+      resolveLookup(Object.assign(project('allowed'), { canView: true, canDeploy: true }));
+      await expect(lookup).rejects.toThrow();
+    });
+    expect(screen.getByTestId('known-projects')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('route-project')).toHaveTextContent('none');
+  });
+
   it('should not make a project the caller cannot browse the working project', async () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,

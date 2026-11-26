@@ -389,19 +389,30 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   // them again.
   const [deniedNames, setDeniedNames] = React.useState<ReadonlySet<string>>(() => new Set());
 
-  const forgetProject = React.useCallback((name: string) => {
-    setProjectData((previous) => previous.filter((p) => p.metadata.name !== name));
-    setDeniedNames((previous) => new Set(previous).add(name));
-    // A denied or missing project is not looked up again on the next visit.
-    try {
-      localStorage.setItem(
-        RECENT_NAMESPACES_KEY,
-        JSON.stringify(readRecentNames().filter((item) => item !== name)),
-      );
-    } catch {
-      // Browser storage is optional.
-    }
-  }, []);
+  const storedPreferredNameRef = React.useRef(storedPreferredName);
+  React.useEffect(() => {
+    storedPreferredNameRef.current = storedPreferredName;
+  }, [storedPreferredName]);
+  const forgetProject = React.useCallback(
+    (name: string) => {
+      setProjectData((previous) => previous.filter((p) => p.metadata.name !== name));
+      setDeniedNames((previous) => new Set(previous).add(name));
+      // Nor is a denied stored preference.
+      if (storedPreferredNameRef.current === name) {
+        setStoredPreferredName('');
+      }
+      // A denied or missing project is not looked up again on the next visit.
+      try {
+        localStorage.setItem(
+          RECENT_NAMESPACES_KEY,
+          JSON.stringify(readRecentNames().filter((item) => item !== name)),
+        );
+      } catch {
+        // Browser storage is optional.
+      }
+    },
+    [setStoredPreferredName],
+  );
 
   const validateProject = React.useCallback(
     async (name: string, signal?: AbortSignal) => {
@@ -584,6 +595,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   // example the dashboard namespace arriving late) runs them in the
   // background instead of taking the loaded page back.
   const listedLookupsSettledOnceRef = React.useRef(false);
+  const listedLookupsDeadlineRef = React.useRef<number>();
   const settleListedLookups = React.useCallback(() => {
     listedLookupsSettledOnceRef.current = true;
     setListedLookupsSettled(true);
@@ -623,8 +635,13 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     if (!listedLookupsSettledOnceRef.current) {
       setListedLookupsSettled(false);
     }
-    // The page waits at most this long; later lookups still add projects.
-    const deadline = setTimeout(settleListedLookups, FETCH_TIMEOUT_MS);
+    // The page waits at most this long in all, however often the lookups
+    // restart before they settle; later lookups still add projects.
+    listedLookupsDeadlineRef.current ??= Date.now() + FETCH_TIMEOUT_MS;
+    const deadline = setTimeout(
+      settleListedLookups,
+      Math.max(0, listedLookupsDeadlineRef.current - Date.now()),
+    );
     let next = 0;
     const worker = async (): Promise<void> => {
       while (!controller.signal.aborted && next < names.length) {
@@ -663,8 +680,10 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   // listing is incomplete and the unified selector, which offers manual entry,
   // is off.
   const findProject = React.useCallback(
-    async (name: string) => {
-      const project = await validateProject(name);
+    async (name: string, signal?: AbortSignal) => {
+      // A cancelled lookup (its form closed) rejects here, before it adds
+      // the project or changes the working project.
+      const project = await validateProject(name, signal);
       addProject(project);
       if (project.canView === false) {
         // Kept as a deployment target, but the deployments page cannot list

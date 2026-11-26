@@ -58,7 +58,7 @@ describe('NoProjectsPage', () => {
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/models/deployments/allowed'),
     );
-    expect(findProject).toHaveBeenCalledWith('allowed');
+    expect(findProject).toHaveBeenCalledWith('allowed', expect.any(AbortSignal));
   });
 
   it('should show why a lookup was refused and stay on the page', async () => {

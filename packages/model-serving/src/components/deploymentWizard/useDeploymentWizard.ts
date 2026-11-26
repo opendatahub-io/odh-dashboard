@@ -70,6 +70,13 @@ export const TOKEN_AUTH_PERMISSION_WARNING =
   'You might not have permission to set up token authentication in this project. If its token resources cannot be created, the deployment stops before anything is saved; turn token authentication off to deploy without it.';
 
 /**
+ * For an edit: saving updates the deployment's tokens, and turning them off
+ * deletes them, so neither avoids a missing permission.
+ */
+export const TOKEN_AUTH_EDIT_PERMISSION_WARNING =
+  "You might not have permission to manage this deployment's tokens. If Kubernetes refuses the token changes, saving stops before anything is changed; ask for access to manage them.";
+
+/**
  * The token authentication field after deploy-method overrides and the
  * caller's permissions. An override that disables the field clears its
  * tokens. No permission changes whether a new deployment requires
@@ -84,7 +91,7 @@ export const TOKEN_AUTH_PERMISSION_WARNING =
 export const applyTokenAuthOverrides = (
   field: TokenAuthenticationFieldHook,
   overrides: Partial<TokenAuthenticationFieldHook>,
-  permissions: { canSetUp: boolean; mayBeRefused: boolean },
+  permissions: { canSetUp: boolean; mayBeRefused: boolean; isEdit?: boolean },
 ): TokenAuthenticationFieldHook => {
   const overrideDisabled = overrides.isDisabled ?? false;
   const isDisabled = overrideDisabled || !permissions.canSetUp;
@@ -94,7 +101,11 @@ export const applyTokenAuthOverrides = (
     isDisabled,
     ...(overrideDisabled ? { data: [] } : {}),
     ...(!isDisabled && permissions.mayBeRefused
-      ? { permissionWarning: TOKEN_AUTH_PERMISSION_WARNING }
+      ? {
+          permissionWarning: permissions.isEdit
+            ? TOKEN_AUTH_EDIT_PERMISSION_WARNING
+            : TOKEN_AUTH_PERMISSION_WARNING,
+        }
       : {}),
   };
 };
@@ -365,6 +376,7 @@ export const useModelDeploymentWizard = (
       },
       tokenAuthentication: applyTokenAuthOverrides(state.tokenAuthentication, tokenAuthOverrides, {
         canSetUp: !isEdit || state.canCreateRoleBindings,
+        isEdit,
         mayBeRefused:
           state.canManageTokenAuth === false ||
           (roleBindingReviewLoaded && !state.canCreateRoleBindings),

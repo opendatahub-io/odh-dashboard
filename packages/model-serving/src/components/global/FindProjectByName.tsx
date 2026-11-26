@@ -9,10 +9,10 @@ import {
   HelperTextItem,
   TextInput,
 } from '@patternfly/react-core';
-import { FindProjectNotice } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { isFindProjectNotice } from '@odh-dashboard/ui-core/context/ProjectsContext';
 
 type FindProjectByNameProps = {
-  findProject: (projectName: string) => Promise<unknown>;
+  findProject: (projectName: string, signal?: AbortSignal) => Promise<unknown>;
   onFound: (projectName: string) => void;
 };
 
@@ -27,14 +27,10 @@ const FindProjectByName: React.FC<FindProjectByNameProps> = ({ findProject, onFo
   const [notice, setNotice] = React.useState<string>();
   const [isSearching, setIsSearching] = React.useState(false);
   // A lookup still in flight when the form closes (a popover dismissed, a page
-  // left) must not navigate or update the form afterwards.
-  const mountedRef = React.useRef(true);
-  React.useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  // left) is cancelled: it must not change the working project, navigate, or
+  // update the form afterwards.
+  const lookupRef = React.useRef<AbortController>();
+  React.useEffect(() => () => lookupRef.current?.abort(), []);
 
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -45,24 +41,27 @@ const FindProjectByName: React.FC<FindProjectByNameProps> = ({ findProject, onFo
     setIsSearching(true);
     setError(undefined);
     setNotice(undefined);
-    findProject(projectName)
+    lookupRef.current?.abort();
+    const controller = new AbortController();
+    lookupRef.current = controller;
+    findProject(projectName, controller.signal)
       .then(() => {
-        if (mountedRef.current) {
+        if (!controller.signal.aborted) {
           onFound(projectName);
         }
       })
       .catch((err: unknown) => {
-        if (!mountedRef.current) {
+        if (controller.signal.aborted) {
           return;
         }
-        if (err instanceof FindProjectNotice) {
+        if (isFindProjectNotice(err)) {
           setNotice(err.message);
         } else {
           setError(err instanceof Error ? err.message : 'Unable to open that project.');
         }
       })
       .finally(() => {
-        if (mountedRef.current) {
+        if (!controller.signal.aborted) {
           setIsSearching(false);
         }
       });

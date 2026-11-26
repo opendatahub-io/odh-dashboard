@@ -203,7 +203,7 @@ export const TOKEN_SETUP_REFUSED_MESSAGE =
 
 /** For a deployment that already has tokens, where turning them off is a change too. */
 export const TOKEN_CHANGE_REFUSED_MESSAGE =
-  "You do not have permission to change this deployment's tokens. Keep its tokens as they are, or ask for access.";
+  "You do not have permission to manage this deployment's tokens, which saving it updates. Ask for access to manage them.";
 
 export const setUpTokenAuth = async (
   tokenAuth: TokenAuthEntry[] | undefined,

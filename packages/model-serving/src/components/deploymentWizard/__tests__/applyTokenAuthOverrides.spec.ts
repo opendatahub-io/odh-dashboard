@@ -2,6 +2,7 @@ import type { TokenAuthenticationFieldHook } from '../fields/TokenAuthentication
 import {
   applyTokenAuthOverrides,
   canUseTokenAuth,
+  TOKEN_AUTH_EDIT_PERMISSION_WARNING,
   TOKEN_AUTH_PERMISSION_WARNING,
 } from '../useDeploymentWizard';
 
@@ -59,6 +60,18 @@ describe('applyTokenAuthOverrides', () => {
     expect(result.disabledHelperText).toBe('Not supported');
     expect(result.data).toEqual([]);
     expect(result.permissionWarning).toBeUndefined();
+  });
+});
+
+describe('applyTokenAuthOverrides on an edit', () => {
+  it('should not advise turning tokens off, which needs the same access', () => {
+    const result = applyTokenAuthOverrides(
+      field(),
+      {},
+      { canSetUp: true, mayBeRefused: true, isEdit: true },
+    );
+    expect(result.permissionWarning).toBe(TOKEN_AUTH_EDIT_PERMISSION_WARNING);
+    expect(result.permissionWarning).not.toBe(TOKEN_AUTH_PERMISSION_WARNING);
   });
 });
 

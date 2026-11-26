@@ -23,7 +23,17 @@ export type ProjectDeploymentActions = {
  * and kept (for example as a deployment target) but cannot be opened. Its
  * message is shown as a notice rather than an error.
  */
-export class FindProjectNotice extends Error {}
+export class FindProjectNotice extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FindProjectNotice';
+  }
+}
+
+/** By name as well, so a notice from another bundled copy of this module is recognised. */
+export const isFindProjectNotice = (error: unknown): error is FindProjectNotice =>
+  error instanceof FindProjectNotice ||
+  (error instanceof Error && error.name === 'FindProjectNotice');
 
 export type ProjectsContextType = {
   projects: ProjectKind[];
@@ -49,7 +59,7 @@ export type ProjectsContextType = {
    * to is added as a deployment target, and the call rejects with a message
    * saying so. Rejects, with a message to show, when the caller may not use it.
    */
-  findProject?: (projectName: string) => Promise<ProjectKind>;
+  findProject?: (projectName: string, signal?: AbortSignal) => Promise<ProjectKind>;
 
   /** Some component set this value, you should use this instead of projects[0] */
   preferredProject: ProjectKind | null;
