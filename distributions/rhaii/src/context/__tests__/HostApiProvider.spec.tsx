@@ -1,6 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { setUtilsConfig } from '@openshift/dynamic-plugin-sdk-utils';
-import { useAccessReview, useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
+import {
+  useAccessReview,
+  useAccessReviewResult,
+  useHostApiCore,
+} from '@odh-dashboard/plugin-core/host-api';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import HostApiProvider from '../HostApiProvider';
 import { k8sFetch } from '../k8sFetch';
@@ -140,6 +144,29 @@ describe('RHAII host access reviews through the Kubernetes transport', () => {
       wrapper: HostApiProvider,
     });
     await waitFor(() => expect(result.current).toEqual([false, true]));
+  });
+
+  it('should surface an access review timeout as a failure', async () => {
+    fetchMock.mockImplementation(
+      (_url, options) =>
+        new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener('abort', () => reject(options.signal?.reason), {
+            once: true,
+          });
+        }),
+    );
+    const { result } = renderHook(() => useAccessReviewResult(llmAttributes), {
+      wrapper: HostApiProvider,
+    });
+    expect(result.current.loaded).toBe(false);
+
+    await act(async () => jest.advanceTimersByTimeAsync(30_000));
+
+    expect(result.current).toMatchObject({
+      allowed: false,
+      loaded: true,
+      error: { name: 'TimeoutError', message: 'Kubernetes access review timed out.' },
+    });
   });
 
   it('should expose transport rejection to direct host API callers', async () => {

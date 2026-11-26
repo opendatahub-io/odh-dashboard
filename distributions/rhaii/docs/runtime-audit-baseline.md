@@ -4,7 +4,6 @@ Use the [production runtime audit](runtime-audit.md) to obtain current module co
 
 ## Dependency Cleanup
 
-- Remove KServe frontend registration and its transitive dependencies when the replacement serving integration is ready.
 - Remove the legacy application settings and dashboard configuration paths reached through shared hardware profiles. Move runtime constants and enums to their owning shared package where needed.
 - Replace the legacy workload and Kueue status dependencies used by LLMD deployment watching.
 - Replace the legacy gateway proxy helper while preserving the required transport behavior.

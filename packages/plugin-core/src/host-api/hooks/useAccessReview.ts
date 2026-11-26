@@ -4,13 +4,13 @@ import { HostApiCoreContext } from '../HostApiCoreContext';
 
 /**
  * Non-cached access review for the current host and resource attributes.
- * Returns [allowed, loaded]. Pending and disabled checks deny access; failed
- * checks settle as denied. Results from superseded requests are discarded.
+ * Pending and disabled checks deny access. Failed checks retain the transport error.
+ * Results from superseded requests are discarded.
  */
-export const useAccessReview = (
+export const useAccessReviewResult = (
   resourceAttributes: AccessReviewResourceAttributes,
   shouldRunCheck = true,
-): [boolean, boolean] => {
+): { allowed: boolean; loaded: boolean; error?: Error } => {
   const { checkAccess } = React.useContext(HostApiCoreContext);
   const {
     group = '',
@@ -32,6 +32,7 @@ export const useAccessReview = (
   const [result, setResult] = React.useState<{
     request: typeof request;
     allowed: boolean;
+    error?: Error;
   }>();
 
   React.useEffect(() => {
@@ -40,14 +41,19 @@ export const useAccessReview = (
     }
     let active = true;
     const review = async () => {
-      let allowed = false;
       try {
-        allowed = (await request.checkAccess(request.attributes)) === true;
-      } catch {
-        // Missing host services and failed reviews never grant permission.
-      }
-      if (active) {
-        setResult({ request, allowed });
+        const allowed = (await request.checkAccess(request.attributes)) === true;
+        if (active) {
+          setResult({ request, allowed });
+        }
+      } catch (error) {
+        if (active) {
+          setResult({
+            request,
+            allowed: false,
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
+        }
       }
     };
     void review();
@@ -57,6 +63,14 @@ export const useAccessReview = (
   }, [request]);
 
   return request.shouldRunCheck && result?.request === request
-    ? [result.allowed, true]
-    : [false, false];
+    ? { allowed: result.allowed, loaded: true, error: result.error }
+    : { allowed: false, loaded: false, error: undefined };
+};
+
+export const useAccessReview = (
+  resourceAttributes: AccessReviewResourceAttributes,
+  shouldRunCheck = true,
+): [boolean, boolean] => {
+  const { allowed, loaded } = useAccessReviewResult(resourceAttributes, shouldRunCheck);
+  return [allowed, loaded];
 };

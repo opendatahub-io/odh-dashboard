@@ -11,12 +11,11 @@ import {
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { K8sAPIOptions, K8sWatchResult, PodKind } from '@odh-dashboard/k8s-core';
 import { PodModel } from '@odh-dashboard/k8s-core/api/models';
-import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
-import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
 import { getKueueSchedulingSubStep } from '@odh-dashboard/ui-core/kueue/statusInfo';
 import { KUEUE_STATUSES_PAST_ADMISSION } from '@odh-dashboard/k8s-core/kueue/types';
 import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
+import { useDeploymentWatch } from '../api/useDeploymentWatch';
 import {
   LLMdDeployment,
   LLMInferenceServiceKind,
@@ -31,22 +30,9 @@ export const useLLMInferenceServicePods = (
   opts?: K8sAPIOptions,
   enabled = true,
 ): K8sWatchResult<PodKind[]> => {
-  const result = useK8sWatchResourceList<PodKind[]>(
-    enabled
-      ? {
-          isList: true,
-          groupVersionKind: groupVersionKind(PodModel),
-          namespace,
-          selector: {
-            matchLabels: {
-              'app.kubernetes.io/part-of': 'llminferenceservice',
-            },
-          },
-        }
-      : null,
-    PodModel,
-    opts,
-  );
+  const result = useDeploymentWatch<PodKind>(PodModel, enabled ? namespace : undefined, opts, {
+    'app.kubernetes.io/part-of': 'llminferenceservice',
+  });
 
   return enabled ? result : EMPTY_LLM_INFERENCE_SERVICE_PODS_RESULT;
 };

@@ -6,25 +6,41 @@ metadata:
     opendatahub.io/dashboard: 'true'
     modelmesh-enabled: 'false'
 ---
-apiVersion: serving.kserve.io/v1beta1
-kind: InferenceService
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceService
 metadata:
-  name: sklearn-iris
+  name: opt-125m-tilt-demo
   namespace: model-serving-demo
+  annotations:
+    openshift.io/display-name: Facebook OPT 125M
 spec:
-  predictor:
-    model:
-      modelFormat:
-        name: sklearn
-      runtime: kserve-sklearnserver
-      storageUri: gs://kfserving-examples/models/sklearn/1.0/model
-      resources:
-        requests:
-          cpu: 100m
-          memory: 256Mi
-        limits:
-          cpu: 500m
-          memory: 512Mi
+  model:
+    uri: hf://facebook/opt-125m
+    name: facebook/opt-125m
+  replicas: 1
+  router:
+    gateway: {}
+    route: {}
+    scheduler: {}
+  template:
+    containers:
+      - name: main
+        image: docker.io/vllm/vllm-openai-cpu:v0.31.0
+        args: [--model, facebook/opt-125m, --dtype, float32, --max-model-len, '1024']
+        env:
+          - name: HF_HOME
+            value: /tmp/hf_home
+          - name: VLLM_CPU_KVCACHE_SPACE
+            value: '1'
+          - name: VLLM_ENABLE_V1_MULTIPROCESSING
+            value: '0'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 4Gi
+          limits:
+            cpu: '1'
+            memory: 8Gi
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

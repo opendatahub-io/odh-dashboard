@@ -1,4 +1,7 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import * as React from 'react';
+import { renderHook, waitFor } from '@testing-library/react';
+import { HostApiCoreContext } from '@odh-dashboard/plugin-core/host-api';
 import type { ProjectKind, PodKind } from '@odh-dashboard/k8s-core';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
@@ -13,6 +16,23 @@ import * as llmInferenceServiceApi from '../../api/LLMInferenceService';
 import * as llmInferenceServiceConfigsApi from '../../api/LLMInferenceServiceConfigs';
 import * as statusModule from '../status';
 import { useWatchDeployments } from '../useWatchDeployments';
+
+const withDeploymentApi = (checkAccess: jest.Mock, hasConfigApi: boolean) => {
+  const deploymentApi = {
+    group: 'serving.kserve.io',
+    resource: 'llminferenceservices',
+    resources: {
+      llminferenceservices: ['list', 'watch'],
+      ...(hasConfigApi ? { llminferenceserviceconfigs: ['list', 'watch'] } : {}),
+    },
+  };
+  const Wrapper: React.FC<React.PropsWithChildren> = ({ children }) => {
+    const core = React.useContext(HostApiCoreContext);
+    const value = React.useMemo(() => ({ ...core, checkAccess, deploymentApi }), [core]);
+    return React.createElement(HostApiCoreContext.Provider, { value }, children);
+  };
+  return Wrapper;
+};
 
 jest.mock('../../api/LLMInferenceService');
 jest.mock('../../api/LLMInferenceServiceConfigs');
@@ -148,6 +168,70 @@ describe('useWatchDeployments', () => {
       true,
     );
     expect(mockUseLLMInferenceServicePods).toHaveBeenCalledWith('test-project', undefined, true);
+  });
+
+  it('should keep read-only models visible when config discovery is missing and pod access is denied', async () => {
+    const checkAccess = jest.fn().mockResolvedValue(false);
+    const { result, rerender } = renderHook(() => useWatchDeployments(mockProject), {
+      wrapper: withDeploymentApi(checkAccess, false),
+    });
+    await waitFor(() =>
+      expect(result.current[0]?.[0].podDiscovery?.error?.message).toContain('Cannot watch pods'),
+    );
+    expect(result.current[1]).toBe(true);
+    expect(mockUseWatchLLMInferenceServiceConfigs).toHaveBeenLastCalledWith(
+      'test-project',
+      undefined,
+      undefined,
+      false,
+    );
+    expect(mockUseLLMInferenceServicePods).toHaveBeenLastCalledWith(
+      'test-project',
+      undefined,
+      false,
+    );
+    rerender();
+    expect(checkAccess).toHaveBeenCalledTimes(2);
+    expect(checkAccess.mock.calls.map(([attrs]) => [attrs.resource, attrs.verb])).toEqual([
+      ['pods', 'list'],
+      ['pods', 'watch'],
+    ]);
+  });
+
+  it('should keep models loaded when optional watches start or fail after access is granted', async () => {
+    const checkAccess = jest.fn().mockResolvedValue(true);
+    mockUseWatchLLMInferenceServiceConfigs.mockImplementation((_ns, _labels, _options, enabled) => [
+      [],
+      !enabled,
+      undefined,
+    ]);
+    mockUseLLMInferenceServicePods.mockImplementation((_ns, _options, enabled) => [
+      [],
+      !enabled,
+      undefined,
+    ]);
+    const { result, rerender } = renderHook(() => useWatchDeployments(mockProject), {
+      wrapper: withDeploymentApi(checkAccess, true),
+    });
+
+    expect(result.current[1]).toBe(true);
+    await waitFor(() =>
+      expect(mockUseLLMInferenceServicePods).toHaveBeenLastCalledWith(
+        'test-project',
+        undefined,
+        true,
+      ),
+    );
+    expect(result.current[1]).toBe(true);
+    expect(result.current[0]?.[0].podDiscovery?.loaded).toBe(false);
+
+    const podsError = new Error('Pod access revoked');
+    mockUseLLMInferenceServicePods.mockReturnValue([[], false, podsError]);
+    mockUseWatchLLMInferenceServiceConfigs.mockReturnValue([[], false, new Error('Config error')]);
+    rerender();
+    expect(result.current[1]).toBe(true);
+    expect(result.current[0]?.[0].podDiscovery?.error).toBe(podsError);
+    expect(result.current[2]).toEqual([]);
   });
 
   it('should expose all matching Pod roles without changing the ordered status input', () => {

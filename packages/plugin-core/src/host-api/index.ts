@@ -9,7 +9,7 @@ export { useHostApi } from './hooks/useHostApi';
 export { useHostApiCore } from './hooks/useHostApiCore';
 export { useHostApiInfra } from './hooks/useHostApiInfra';
 export { useDashboardNamespace } from './hooks/useDashboardNamespace';
-export { useAccessReview } from './hooks/useAccessReview';
+export { useAccessReview, useAccessReviewResult } from './hooks/useAccessReview';
 export { useTemplates } from './hooks/useTemplates';
 export { useSecretOps } from './hooks/useSecretOps';
 export { useWatchConnectionTypes } from './hooks/useWatchConnectionTypes';

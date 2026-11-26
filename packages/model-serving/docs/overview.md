@@ -140,10 +140,10 @@ The `package.json` `exports` field defines the public API. Key categories:
 
 ### RHAII host integration scope
 
-The RHAII Tilt integration establishes the federation foundation: the host loads the
-`modelServing` remote, supplies project context and the required host/Kubernetes SDK providers,
-and includes KServe extensions plus a local demo model for validation. It is local development and
-demo wiring, not a production model-serving deployment.
+In the RHAII Tilt setup, the host loads the `modelServing` remote with the deployments profile,
+registers the llm-d deployment extensions, and supplies project context and the Kubernetes SDK
+providers. Tilt applies a demo `LLMInferenceService` in the `model-serving-demo` namespace so
+developers can validate the integration with the cluster-side KServe controllers.
 
 RHAII access checks use standard Kubernetes SelfSubjectAccessReview requests through the host's
 Core BFF transport. Reviews require explicit approval; pending, disabled, and failed checks deny

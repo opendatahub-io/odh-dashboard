@@ -1,5 +1,6 @@
 import { loadRemote } from '@module-federation/runtime';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { createDistribution } from '@odh-dashboard/base-distribution';
 import pluginExtensions, { featureFlags } from './distribution-extensions';
 import K8sSdkProvider from './context/K8sSdkProvider';
@@ -10,7 +11,12 @@ const REMOTE_LOAD_TIMEOUT_MS = 10_000;
 
 const start = async () => {
   const extensions: Record<string, Extension[]> = { ...pluginExtensions };
-  const resolvedFeatureFlags = { ...featureFlags };
+  const resolvedFeatureFlags = {
+    ...featureFlags,
+    [SupportedArea.MODEL_SERVING]:
+      Array.isArray(extensions.modelServing) && extensions.modelServing.length > 0,
+    [SupportedArea.LLMD_SERVING]: false,
+  };
 
   if (remoteEntry) {
     try {
@@ -28,13 +34,13 @@ const start = async () => {
           clearTimeout(timeoutId);
         }
       });
-      if (remote?.default) {
+      if (Array.isArray(remote?.default) && remote.default.length > 0) {
         extensions.modelServing = remote.default;
-        resolvedFeatureFlags['model-serving-shell'] = true;
+        resolvedFeatureFlags[SupportedArea.MODEL_SERVING] = true;
       } else {
         // eslint-disable-next-line no-console
         console.warn('Model-serving remote loaded without extension declarations.');
-        resolvedFeatureFlags['model-serving-shell'] = false;
+        resolvedFeatureFlags[SupportedArea.MODEL_SERVING] = false;
       }
     } catch (error: unknown) {
       // eslint-disable-next-line no-console
@@ -42,7 +48,7 @@ const start = async () => {
         'Failed to load the model-serving remote; continuing with static extensions.',
         error,
       );
-      resolvedFeatureFlags['model-serving-shell'] = false;
+      resolvedFeatureFlags[SupportedArea.MODEL_SERVING] = false;
     }
   }
 

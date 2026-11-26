@@ -9,13 +9,10 @@ packages:
     - name: rhaii
       extensionsPath: ./extensions
   bundled:
-    - package: '@odh-dashboard/kserve'
-      extensionsPath: ./extensions
-      featureFlags:
-        kserve: true
     - package: '@odh-dashboard/llmd-serving'
       extensionsPath: ./extensions/deployments
       featureFlags:
-        llmd-serving: true
+        enable-llmd-serving: true
 
-featureFlags: {}
+featureFlags:
+  vllm-on-maas: false

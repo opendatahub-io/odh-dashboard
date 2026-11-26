@@ -70,12 +70,13 @@ const MockViewModeToggle: React.FC<ToggleProps> = (props) => {
   return null;
 };
 
-const mockSubmit = (loading: boolean, methodAvailable = true) => {
+const mockSubmit = (loading: boolean, methodAvailable = true, accessReason?: string) => {
   jest.mocked(useModelDeploymentSubmit).mockReturnValue({
     onSave: jest.fn(),
     isLoading: false,
-    isReady: !loading && methodAvailable,
+    isReady: !loading && methodAvailable && !accessReason,
     isReadinessLoading: loading,
+    accessReason,
     submitError: null,
     clearSubmitError: jest.fn(),
   });
@@ -129,7 +130,7 @@ describe('ModelDeploymentWizard submit readiness', () => {
   );
 
   it.each<ModelDeploymentWizardViewMode>(['form', 'yaml-preview', 'yaml-edit'])(
-    'should disable actual %s submit until extensions finish loading',
+    'should disable %s submission until extensions load and project access allows it',
     (viewMode) => {
       jest.mocked(useYamlViewSession).mockReturnValue({
         viewMode,
@@ -144,8 +145,14 @@ describe('ModelDeploymentWizard submit readiness', () => {
       const view = <ModelDeploymentWizard title="Deploy" primaryButtonText="Deploy model" />;
       const { rerender } = render(view);
       expect(screen.getByTestId('wizard-submit-button')).toBeDisabled();
+      const accessReason = 'Access denied to create llminferenceservices in project test-project.';
+      mockSubmit(false, true, accessReason);
+      rerender(<ModelDeploymentWizard title="Deploy" primaryButtonText="Deploy model" />);
+      expect(screen.getByText(accessReason)).toBeVisible();
+      expect(screen.getByTestId('wizard-submit-button')).toBeDisabled();
       mockSubmit(false);
       rerender(<ModelDeploymentWizard title="Deploy" primaryButtonText="Deploy model" />);
+      expect(screen.queryByText(accessReason)).not.toBeInTheDocument();
       expect(screen.getByTestId('wizard-submit-button')).toBeEnabled();
       if (viewMode !== 'form') {
         fireEvent.click(screen.getByTestId('wizard-submit-button'));

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useDeploymentAccess } from './useDeploymentAccess';
 import {
   Deployment,
   isModelServingPlatformWatchDeployments,
@@ -34,7 +35,7 @@ type PlatformDeploymentWatcherProps = {
   filterFn?: (model: Deployment['model']) => boolean;
 };
 
-const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
+const ProjectDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   platformId,
   watcher,
   project,
@@ -56,6 +57,26 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   }, [platformId, deployments, loaded, errors, onStateChange, unloadPlatformDeployments]);
 
   return null;
+};
+
+const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = (props) => {
+  const { project, onStateChange, platformId, unloadPlatformDeployments } = props;
+  const list = useDeploymentAccess('list', project.metadata.name);
+  const watch = useDeploymentAccess('watch', project.metadata.name);
+  const allowed = list.allowed && watch.allowed;
+  const loaded = list.loaded && watch.loaded;
+  const reason = list.reason ?? watch.reason;
+  React.useEffect(() => {
+    if (allowed) {
+      return undefined;
+    }
+    onStateChange(platformId, {
+      loaded,
+      errors: loaded && reason ? [new Error(reason)] : undefined,
+    });
+    return () => unloadPlatformDeployments(platformId);
+  }, [allowed, loaded, reason, onStateChange, platformId, unloadPlatformDeployments]);
+  return allowed ? <ProjectDeploymentWatcher {...props} /> : null;
 };
 
 type ModelDeploymentsProviderProps = {
@@ -82,8 +103,10 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
   );
 
   const [platformDeployments, setPlatformDeployments] = React.useState<{
-    [platformId: string]: { deployments?: Deployment[]; loaded: boolean; errors?: Error[] };
-  }>(Object.fromEntries(availablePlatforms.map((platformId) => [platformId, { loaded: false }])));
+    [platformId: string]:
+      | { deployments?: Deployment[]; loaded: boolean; errors?: Error[] }
+      | undefined;
+  }>({});
 
   const updatePlatformDeployments = React.useCallback(
     (
@@ -107,28 +130,21 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
     const allDeployments: Deployment[] = [];
     const errors: Error[] = [];
 
-    for (const key in platformDeployments) {
-      const state = platformDeployments[key];
-      if (state.deployments) {
-        allDeployments.push(...state.deployments);
-      }
-      if (state.errors) {
-        errors.push(...state.errors);
+    let allLoaded = deploymentWatchersLoaded;
+    for (const platform of availablePlatforms) {
+      for (const project of projects) {
+        const state = platformDeployments[`${platform}/${project.metadata.name}`];
+        if (!state?.loaded) {
+          allLoaded = false;
+        }
+        if (state?.deployments) {
+          allDeployments.push(...state.deployments);
+        }
+        if (state?.errors) {
+          errors.push(...state.errors);
+        }
       }
     }
-
-    const allLoaded =
-      deploymentWatchersLoaded &&
-      (projects.length === 0 ||
-        availablePlatforms.every((platformId) => {
-          const platformKeys = Object.keys(platformDeployments).filter((key) =>
-            key.startsWith(`${platformId}-project-`),
-          );
-          return (
-            platformKeys.length > 0 &&
-            platformKeys.every((key) => platformDeployments[key].loaded === true)
-          );
-        }));
 
     return {
       deployments: allLoaded ? allDeployments : undefined,
@@ -148,10 +164,10 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
           return null;
         }
 
-        return projects.map((project, index) => (
+        return projects.map((project) => (
           <PlatformDeploymentWatcher
             key={`${platformId}-${project.metadata.name}`}
-            platformId={`${platformId}-project-${index}`}
+            platformId={`${platformId}/${project.metadata.name}`}
             watcher={watcher}
             project={project}
             labelSelectors={labelSelectors}

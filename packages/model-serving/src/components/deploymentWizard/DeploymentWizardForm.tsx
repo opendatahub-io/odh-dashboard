@@ -1,5 +1,5 @@
 import React from 'react';
-import { PageSection, Spinner, Wizard, WizardStep } from '@patternfly/react-core';
+import { Alert, PageSection, Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import {
@@ -152,21 +152,29 @@ const DeploymentWizardForm: React.FC<DeploymentWizardFormProps> = ({
     switchToForm();
   };
 
-  const { onSave, onOverwrite, isLoading, isReadinessLoading, submitError, clearSubmitError } =
-    useModelDeploymentSubmit(
-      wizardFormData.state,
-      wizardFormData.deployMethodActivationInput,
-      lastUpdatedSource === 'form' ? formAsResources : yamlAsResources.resources,
-      validation,
-      externalData,
-      exitWizardOnSubmit,
-      viewMode,
-      wizardFormData.initialData,
-      existingDeployment,
-      yamlSubmitErrors,
-    );
+  const {
+    onSave,
+    onOverwrite,
+    isLoading,
+    isReadinessLoading,
+    accessReason,
+    submitError,
+    clearSubmitError,
+  } = useModelDeploymentSubmit(
+    wizardFormData.state,
+    wizardFormData.deployMethodActivationInput,
+    lastUpdatedSource === 'form' ? formAsResources : yamlAsResources.resources,
+    validation,
+    externalData,
+    exitWizardOnSubmit,
+    viewMode,
+    wizardFormData.initialData,
+    existingDeployment,
+    yamlSubmitErrors,
+  );
 
   const externalDataReady = isExternalDataReady(externalData);
+  const isSubmitDisabled = !externalDataReady || isReadinessLoading || !!accessReason;
 
   const wizardFooter = React.useMemo(
     () => (
@@ -174,7 +182,7 @@ const DeploymentWizardForm: React.FC<DeploymentWizardFormProps> = ({
         error={submitError}
         clearError={clearSubmitError}
         isLoading={isLoading}
-        isSubmitDisabled={!externalDataReady || isReadinessLoading}
+        isSubmitDisabled={isSubmitDisabled}
         submitButtonText={primaryButtonText}
         onOverwrite={onOverwrite}
         onRefresh={onRefresh}
@@ -185,8 +193,7 @@ const DeploymentWizardForm: React.FC<DeploymentWizardFormProps> = ({
       submitError,
       clearSubmitError,
       isLoading,
-      externalDataReady,
-      isReadinessLoading,
+      isSubmitDisabled,
       primaryButtonText,
       onRefresh,
       onOverwrite,
@@ -244,6 +251,9 @@ const DeploymentWizardForm: React.FC<DeploymentWizardFormProps> = ({
           setExternalData={setExternalData}
           dispatch={wizardFormData.dispatch}
         />
+        {accessReason && currentProjectName && (
+          <Alert isInline variant="info" title={accessReason} />
+        )}
         {isExitModalOpen && (
           <ExitDeploymentModal onClose={closeExitModal} onConfirm={handleExitConfirm} />
         )}
@@ -265,8 +275,7 @@ const DeploymentWizardForm: React.FC<DeploymentWizardFormProps> = ({
             <PageSection hasBodyWrapper={false} isFilled={false} style={{ paddingTop: 0 }}>
               <ModelDeploymentFooter
                 isSubmitDisabled={
-                  !externalDataReady ||
-                  isReadinessLoading ||
+                  isSubmitDisabled ||
                   (viewMode === 'yaml-edit' ? !yaml?.yaml : !validation.isAllValid)
                 }
                 onSave={onSave}

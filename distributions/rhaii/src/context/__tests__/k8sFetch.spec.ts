@@ -50,7 +50,27 @@ describe('RHAII Kubernetes transport', () => {
       },
     } as Response);
 
-    await expect(k8sFetch('/api/v1/namespaces')).rejects.toThrow('HTTP 502');
+    await expect(k8sFetch('/api/v1/namespaces')).rejects.toMatchObject({
+      message: expect.stringContaining('HTTP 502'),
+      status: { code: 502 },
+    });
+  });
+
+  it('should preserve an HTTP watch rejection independently of list access', async () => {
+    const path = '/apis/serving.kserve.io/v1alpha2/namespaces/project/llminferenceservices';
+    const list = { ok: true, status: 200 } as Response;
+    const body = mock403Error({ message: 'Watch rejected by the proxy.' });
+    fetchMock.mockResolvedValueOnce(list).mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => body,
+    } as Response);
+
+    await expect(k8sFetch(path)).resolves.toBe(list);
+    await expect(k8sFetch(`${path}?watch=true`)).rejects.toMatchObject({
+      status: { code: 403 },
+      message: body.message,
+    });
   });
 
   it('should propagate a cancelled request', async () => {

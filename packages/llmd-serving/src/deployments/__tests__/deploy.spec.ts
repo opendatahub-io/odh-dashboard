@@ -18,6 +18,7 @@ import { mockLLMInferenceServiceK8sResource } from '../../__mocks__/mockLLMInfer
 import type { LLMdDeployment, LLMInferenceServiceKind } from '../../types';
 import { assembleLLMdDeployment } from '../deploy';
 import { extractHardwareProfileConfig } from '../hardware';
+import { extractModelServerTemplate } from '../server';
 
 jest.mock('@odh-dashboard/plugin-core', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core'),
@@ -99,6 +100,21 @@ const existingDRADeployment = (annotations: Record<string, string>): LLMdDeploym
 };
 
 describe('assembleLLMdDeployment', () => {
+  it('should keep the existing base references when editing without access to the config', () => {
+    const baseRefs = [{ name: 'shared-config' }, { name: 'test-llm-inference-service' }];
+    const deployment: LLMdDeployment = {
+      modelServingPlatformId: 'llmd-serving',
+      model: mockLLMInferenceServiceK8sResource({ baseRefs }),
+    };
+    const formData = wizardData(draHardwareProfileConfig());
+    formData.state.modelServer = extractModelServerTemplate(deployment);
+
+    const { model, server } = assembleLLMdDeployment(formData, deployment);
+
+    expect(model.spec.baseRefs).toStrictEqual(baseRefs);
+    expect(server).toBeUndefined();
+  });
+
   it('should keep the resource claims and the resource version when the same DRA hardware profile stays selected', () => {
     const existingDeployment = existingDRADeployment({
       'opendatahub.io/hardware-profile-name': 'dra-profile',

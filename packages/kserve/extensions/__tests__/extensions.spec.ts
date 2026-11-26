@@ -22,6 +22,12 @@ describe('KServe UI capability gating', () => {
     (extension) => extension.type === 'model-serving.platform/delete-deployment',
   );
 
+  it('should preserve the platform ID as a string literal', () => {
+    const id: typeof KSERVE_ID = 'kserve';
+    expect(KSERVE_ID).toBe(id);
+    expect(KSERVE_ID).toBe(SupportedArea.K_SERVE);
+  });
+
   it('should keep the KServe area gated on the disableKServe flag and DSC component', () => {
     expect(kserveArea).toBeDefined();
     expect(kserveArea?.properties).toEqual(

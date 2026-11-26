@@ -12,6 +12,13 @@ import { ModelTypeLabel } from '../../../../shared/types/form-data';
 
 jest.mock('@odh-dashboard/plugin-core');
 
+const deployMethod = (platform: string) => ({
+  type: 'model-serving.deployment/deploy',
+  properties: { platform },
+  uid: platform,
+  pluginName: platform,
+});
+
 describe('ModelTypeSelectField', () => {
   beforeEach(() => {
     mockExtensions([]);
@@ -91,6 +98,7 @@ describe('ModelTypeSelectField', () => {
       render(
         <ModelTypeSelectField
           modelType={{ type: ServingRuntimeModelType.PREDICTIVE }}
+          isEditing
           externalData={{ data: { extraOptions: [], forced: false } }}
         />,
       );
@@ -98,6 +106,7 @@ describe('ModelTypeSelectField', () => {
     });
 
     it('should call setModelType on valid selection', async () => {
+      mockExtensions([deployMethod('kserve')]);
       render(
         <ModelTypeSelectField
           setModelType={mockSetModelType}
@@ -137,6 +146,7 @@ describe('ModelTypeSelectField', () => {
     });
 
     it('should render both model type options', async () => {
+      mockExtensions([deployMethod('kserve'), deployMethod('llmd-serving')]);
       render(<ModelTypeSelectField externalData={{ data: { extraOptions: [], forced: false } }} />);
       const button = screen.getByRole('button');
 
@@ -146,6 +156,20 @@ describe('ModelTypeSelectField', () => {
 
       expect(screen.getByText(ModelTypeLabel.PREDICTIVE)).toBeInTheDocument();
       expect(screen.getByText(ModelTypeLabel.GENERATIVE)).toBeInTheDocument();
+    });
+
+    it('should select the sole generative model type when llm-d is the only deploy method', () => {
+      mockExtensions([deployMethod('llmd-serving')]);
+      render(
+        <ModelTypeSelectField
+          setModelType={mockSetModelType}
+          externalData={{ data: { extraOptions: [], forced: false } }}
+        />,
+      );
+
+      expect(screen.queryByText(ModelTypeLabel.PREDICTIVE)).not.toBeInTheDocument();
+      expect(screen.getByTestId('model-type-select')).toBeDisabled();
+      expect(mockSetModelType).toHaveBeenCalledWith({ type: ServingRuntimeModelType.GENERATIVE });
     });
 
     it('should render extra options', async () => {

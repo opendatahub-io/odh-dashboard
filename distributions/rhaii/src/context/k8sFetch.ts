@@ -21,9 +21,16 @@ export const k8sFetch = async (url: string, options?: RequestInit): Promise<Resp
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => undefined);
     if (isK8sStatus(body)) {
-      throw new K8sStatusError(body);
+      throw new K8sStatusError({ ...body, code: response.status });
     }
-    throw new Error(`Kubernetes request failed (HTTP ${response.status})`);
+    throw new K8sStatusError({
+      apiVersion: 'v1',
+      kind: 'Status',
+      status: 'Failure',
+      code: response.status,
+      reason: response.statusText,
+      message: `Kubernetes request failed (HTTP ${response.status})`,
+    });
   }
   return response;
 };

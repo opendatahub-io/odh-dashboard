@@ -4,7 +4,9 @@ import { z, type ZodIssue } from 'zod';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { FieldValidationProps } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
+import { useModelServingDeployMethods } from '../../../concepts/useModelServingDeployMethods';
 import {
   isModelTypeFieldOverride,
   ModelLocationData,
@@ -89,19 +91,24 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
   isEditing,
   externalData,
 }) => {
+  const { deployMethods } = useModelServingDeployMethods();
+  const hasPredictiveMethod = deployMethods.some(
+    ({ properties }) => properties.platform === SupportedArea.K_SERVE,
+  );
+  const showPredictive =
+    hasPredictiveMethod || (isEditing && modelType?.type === ServingRuntimeModelType.PREDICTIVE);
   const options = React.useMemo(() => {
     return [
-      {
-        key: ServingRuntimeModelType.PREDICTIVE,
-        label: ModelTypeLabel.PREDICTIVE,
-      },
+      ...(showPredictive
+        ? [{ key: ServingRuntimeModelType.PREDICTIVE, label: ModelTypeLabel.PREDICTIVE }]
+        : []),
       {
         key: ServingRuntimeModelType.GENERATIVE,
         label: ModelTypeLabel.GENERATIVE,
       },
       ...externalData.data.extraOptions,
     ];
-  }, [externalData.data.extraOptions]);
+  }, [externalData.data.extraOptions, showPredictive]);
 
   return (
     <>

@@ -4,7 +4,7 @@ import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatu
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
-import { isAreaAvailable } from '#~/concepts/areas/utils';
+import { getFlags, isAreaAvailable } from '#~/concepts/areas/utils';
 
 describe('isAreaAvailable', () => {
   describe('community plugins settings', () => {
@@ -447,8 +447,23 @@ describe('isAreaAvailable', () => {
   });
 
   describe('LLM admin page areas', () => {
+    // These settings depend on an area contributed by the LLMD plugin at runtime.
+    const withLlmdSpoke = (...[area, config, dsc, dsci]: Parameters<typeof isAreaAvailable>) =>
+      isAreaAvailable(area, config, dsc, dsci, {
+        internalStateMap: {
+          ...SupportedAreasStateMap,
+          [SupportedArea.LLMD_SERVING]: { featureFlags: ['disableLLMd'] },
+        },
+        flagState: getFlags(config),
+      });
+
+    it('should keep LLMD unavailable when the spoke has not registered its area', () => {
+      const { spec } = mockDashboardConfig({ disableLLMd: false, disableModelServing: false });
+      expect(isAreaAvailable(SupportedArea.LLMD_SERVING, spec, null, null).status).toBe(false);
+    });
+
     it('should make LLMD_TOPOLOGY_CONFIGS available when llmdTemplates is true', () => {
-      const isAvailable = isAreaAvailable(
+      const isAvailable = withLlmdSpoke(
         SupportedArea.LLMD_TOPOLOGY_CONFIGS,
         mockDashboardConfig({
           llmdTemplates: true,
@@ -470,7 +485,7 @@ describe('isAreaAvailable', () => {
     });
 
     it('should hide LLMD_TOPOLOGY_CONFIGS when llmdTemplates is false', () => {
-      const isAvailable = isAreaAvailable(
+      const isAvailable = withLlmdSpoke(
         SupportedArea.LLMD_TOPOLOGY_CONFIGS,
         mockDashboardConfig({
           llmdTemplates: false,
@@ -491,7 +506,7 @@ describe('isAreaAvailable', () => {
     });
 
     it('should make VLLM_ON_MAAS available when vLLMDeploymentOnMaaS is true and LLMD_SERVING is available', () => {
-      const isAvailable = isAreaAvailable(
+      const isAvailable = withLlmdSpoke(
         SupportedArea.VLLM_ON_MAAS,
         mockDashboardConfig({
           vLLMDeploymentOnMaaS: true,
@@ -513,7 +528,7 @@ describe('isAreaAvailable', () => {
     });
 
     it('should hide VLLM_ON_MAAS when vLLMDeploymentOnMaaS is false', () => {
-      const isAvailable = isAreaAvailable(
+      const isAvailable = withLlmdSpoke(
         SupportedArea.VLLM_ON_MAAS,
         mockDashboardConfig({
           vLLMDeploymentOnMaaS: false,
@@ -534,7 +549,7 @@ describe('isAreaAvailable', () => {
     });
 
     it('should hide LLMD_TOPOLOGY_CONFIGS when LLMD_SERVING is disabled', () => {
-      const isAvailable = isAreaAvailable(
+      const isAvailable = withLlmdSpoke(
         SupportedArea.LLMD_TOPOLOGY_CONFIGS,
         mockDashboardConfig({
           llmdTemplates: true,
