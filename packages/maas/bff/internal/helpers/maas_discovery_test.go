@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
@@ -310,6 +311,155 @@ func TestDiscoverMaasApiURLWithToken_HTTP(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "503") {
 			t.Fatalf("error %q should mention status 503", err)
+		}
+	})
+
+	t.Run("401 unauthorized", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+		}))
+		defer server.Close()
+
+		_, err := discoverMaasApiURLWithToken(context.Background(), config.EnvConfig{
+			MaasApiInternalUrl: server.URL,
+		}, logger, nil, token)
+		if err == nil {
+			t.Fatal("expected error for 401 response")
+		}
+		if !strings.Contains(err.Error(), "401") {
+			t.Fatalf("error %q should mention status 401", err)
+		}
+	})
+
+	t.Run("403 forbidden", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+		}))
+		defer server.Close()
+
+		_, err := discoverMaasApiURLWithToken(context.Background(), config.EnvConfig{
+			MaasApiInternalUrl: server.URL,
+		}, logger, nil, token)
+		if err == nil {
+			t.Fatal("expected error for 403 response")
+		}
+		if !strings.Contains(err.Error(), "403") {
+			t.Fatalf("error %q should mention status 403", err)
+		}
+	})
+
+	t.Run("slow maas-api hits context deadline", func(t *testing.T) {
+		released := make(chan struct{})
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			<-r.Context().Done()
+			close(released)
+		}))
+		defer server.Close()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+
+		_, err := discoverMaasApiURLWithToken(ctx, config.EnvConfig{
+			MaasApiInternalUrl: server.URL,
+		}, logger, nil, token)
+		if err == nil {
+			t.Fatal("expected error when maas-api is slow")
+		}
+		select {
+		case <-released:
+		case <-time.After(5 * time.Second):
+			t.Error("handler goroutine was not released after context cancellation")
+		}
+	})
+
+	t.Run("unreachable maas-api", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+		server.Close() // shut down immediately so the address is unreachable
+
+		_, err := discoverMaasApiURLWithToken(context.Background(), config.EnvConfig{
+			MaasApiInternalUrl: server.URL,
+		}, logger, nil, token)
+		if err == nil {
+			t.Fatal("expected error when maas-api is unreachable")
+		}
+	})
+
+	t.Run("several tenants picks maas-default-gateway", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(models.TenantsResponse{
+				Tenants: []models.TenantInfo{
+					{
+						Name:    "tenant-a",
+						Gateway: models.GatewayMetadata{Name: "gateway-a", ExternalURL: "https://a.example.com"},
+					},
+					{
+						Name:    "tenant-b",
+						Gateway: models.GatewayMetadata{Name: "gateway-b"}, // empty externalUrl, must be skipped
+					},
+					{
+						Name:    "models-as-a-service",
+						Gateway: models.GatewayMetadata{Name: maasDefaultGatewayName, ExternalURL: "https://maas.several.example.com"},
+					},
+					{
+						Name:    "tenant-c",
+						Gateway: models.GatewayMetadata{Name: "gateway-c", ExternalURL: "https://c.example.com"},
+					},
+				},
+			})
+		}))
+		defer server.Close()
+
+		got, err := discoverMaasApiURLWithToken(context.Background(), config.EnvConfig{
+			MaasApiInternalUrl: server.URL,
+		}, logger, nil, token)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := "https://maas.several.example.com/maas-api"
+		if got != want {
+			t.Fatalf("got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("no maas-default-gateway tenant over HTTP", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(models.TenantsResponse{
+				Tenants: []models.TenantInfo{
+					{
+						Name:    "tenant-a",
+						Gateway: models.GatewayMetadata{Name: "gateway-a", ExternalURL: "https://a.example.com"},
+					},
+					{
+						Name:    "tenant-b",
+						Gateway: models.GatewayMetadata{Name: "gateway-b", ExternalURL: "https://b.example.com"},
+					},
+				},
+			})
+		}))
+		defer server.Close()
+
+		_, err := discoverMaasApiURLWithToken(context.Background(), config.EnvConfig{
+			MaasApiInternalUrl: server.URL,
+		}, logger, nil, token)
+		if err == nil {
+			t.Fatal("expected error when no tenant uses maas-default-gateway")
+		}
+		if !strings.Contains(err.Error(), maasDefaultGatewayName) {
+			t.Fatalf("error %q should mention %q", err, maasDefaultGatewayName)
+		}
+	})
+
+	t.Run("malformed JSON response", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte("not-json{"))
+		}))
+		defer server.Close()
+
+		_, err := discoverMaasApiURLWithToken(context.Background(), config.EnvConfig{
+			MaasApiInternalUrl: server.URL,
+		}, logger, nil, token)
+		if err == nil {
+			t.Fatal("expected error for malformed JSON response")
 		}
 	})
 }
