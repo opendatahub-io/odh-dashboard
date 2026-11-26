@@ -1068,7 +1068,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
 interface FileExplorerProps {
   /** Optional expanded presentation. Existing consumers retain the modal. */
   presentation?: 'modal' | 'tearsheet';
-  /** Temporarily hide the dialog for a child preview, preserving selection and navigation. */
+  /** Keep a tear sheet behind a child preview, preserving selection and navigation. */
   isCovered?: boolean;
   /** Product-owned preview rendered only while viewing file details. */
   renderFilePreview?: (file: ExplorerFile) => ReactNode;
@@ -1361,8 +1361,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     // eslint-disable-next-line no-restricted-syntax
     <Dialog
       id={id}
-      isOpen={isOpen && !isCovered}
+      isOpen={isOpen && (presentation === 'tearsheet' || !isCovered)}
       onClose={(e) => {
+        if (isCovered) {
+          return;
+        }
         onClose(e);
         resetState();
       }}
@@ -1372,7 +1375,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             elementToFocus: `#${CSS.escape(`${rootId}-FileExplorer-search-input`)}`,
           }
         : {
-            modalProps: { elementToFocus: `#${CSS.escape(`${rootId}-FileExplorer-search-input`)}` },
+            modalProps: {
+              elementToFocus: `#${CSS.escape(`${rootId}-FileExplorer-search-input`)}`,
+              disableFocusTrap: isCovered,
+            },
           })}
       aria-labelledby={`${rootId}-FileExplorer-modal-title`}
       aria-describedby={modalDescription ? modalDescriptionId : `${rootId}-FileExplorer-modal-body`}

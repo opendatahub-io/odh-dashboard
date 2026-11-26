@@ -2,20 +2,22 @@
   // Keep wide CSV content inside its own scroller instead of expanding the details card.
   contain: inline-size;
   overflow-x: auto;
+}
 
-  &__mismatch {
-    --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartWidth: var(
-      --pf-t--global--border--width--strong
-    );
-    --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartColor: var(
-      --pf-t--global--border--color--status--warning--default
-    );
+.automl-m-mismatch {
+  --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartWidth: var(
+    --pf-t--global--border--width--strong
+  );
+  --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartColor: var(
+    --pf-t--global--border--color--status--warning--default
+  );
 
+  // Limit emphasis to column headers; keep sample cells and comparison rows neutral.
+  &:is(th) {
     background-color: color-mix(
       in srgb,
       var(--pf-t--global--color--status--warning--default) 20%,
       var(--pf-t--global--background--color--primary--default)
     );
-    color: var(--pf-t--global--text--color--regular);
   }
 }

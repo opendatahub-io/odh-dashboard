@@ -87,7 +87,9 @@ describe('FileExplorer', () => {
       const firstRow = screen.getByTestId('file-explorer-row--file-1-json');
       fireEvent.click(within(firstRow).getByRole('radio'));
       rerender(<FileExplorer {...defaultProps} presentation="tearsheet" isCovered />);
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      fireEvent.keyDown(document.body, { key: 'Escape' });
+      expect(mockOnClose).not.toHaveBeenCalled();
       rerender(<FileExplorer {...defaultProps} presentation="tearsheet" />);
       expect(
         within(screen.getByTestId('file-explorer-row--file-1-json')).getByRole('radio'),

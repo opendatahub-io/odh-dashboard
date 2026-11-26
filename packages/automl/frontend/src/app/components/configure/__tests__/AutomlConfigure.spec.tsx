@@ -538,46 +538,53 @@ describe('AutomlConfigure', () => {
       expect(await screen.findByText('submit backend detail')).toBeInTheDocument();
     });
 
-    it('should ignore connection refresh results after namespace navigation', async () => {
-      let finishRefresh: (secrets: unknown[]) => void = () => {
-        throw new Error('Refresh has not started');
-      };
-      mockSecretRefresh.mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            finishRefresh = resolve;
-          }),
-      );
-      const { rerender } = renderComponent();
-      openConnectionModal();
-      await fillConnectionModal();
-      await userEvent.setup().click(screen.getByRole('button', { name: 'Add connection' }));
-      await waitFor(() => expect(mockSecretRefresh).toHaveBeenCalled());
-      mockUseParams.mockReturnValue({ namespace: 'other-namespace' });
-      rerender(<AutomlConfigure />);
-      await act(async () =>
-        finishRefresh([
-          {
-            uuid: 'old-secret',
-            name: 'my-connection',
-            type: 's3',
-            data: {
-              AWS_ACCESS_KEY_ID: 'key',
-              AWS_SECRET_ACCESS_KEY: 'secret',
-              AWS_S3_ENDPOINT: 'endpoint',
-              AWS_S3_BUCKET: 'old-bucket',
+    it.each([false, true])(
+      'should ignore connection refresh results after navigation (round trip: %s)',
+      async (roundTrip) => {
+        let finishRefresh: (secrets: unknown[]) => void = () => {
+          throw new Error('Refresh has not started');
+        };
+        mockSecretRefresh.mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finishRefresh = resolve;
+            }),
+        );
+        const { rerender } = renderComponent();
+        openConnectionModal();
+        await fillConnectionModal();
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Add connection' }));
+        await waitFor(() => expect(mockSecretRefresh).toHaveBeenCalled());
+        mockUseParams.mockReturnValue({ namespace: 'other-namespace' });
+        rerender(<AutomlConfigure />);
+        if (roundTrip) {
+          mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+          rerender(<AutomlConfigure />);
+        }
+        await act(async () =>
+          finishRefresh([
+            {
+              uuid: 'old-secret',
+              name: 'my-connection',
+              type: 's3',
+              data: {
+                AWS_ACCESS_KEY_ID: 'key',
+                AWS_SECRET_ACCESS_KEY: 'secret',
+                AWS_S3_ENDPOINT: 'endpoint',
+                AWS_S3_BUCKET: 'old-bucket',
+              },
             },
-          },
-        ]),
-      );
-      expect(screen.queryByTestId('aws-secret-selector-value')).not.toBeInTheDocument();
-      expect(mockuseS3GetFileSchemaQuery).not.toHaveBeenCalledWith(
-        'other-namespace',
-        'my-connection',
-        expect.anything(),
-        expect.anything(),
-      );
-    });
+          ]),
+        );
+        expect(screen.queryByTestId('aws-secret-selector-value')).not.toBeInTheDocument();
+        expect(mockuseS3GetFileSchemaQuery).not.toHaveBeenCalledWith(
+          'other-namespace',
+          'my-connection',
+          expect.anything(),
+          expect.anything(),
+        );
+      },
+    );
 
     it('should track cancellation through the shared modal', async () => {
       renderComponent();
@@ -1245,7 +1252,9 @@ describe('AutomlConfigure', () => {
             data: key === 'uploaded-key.csv' ? replacementColumns : MOCK_COLUMNS,
             sample: {
               columns: key === 'uploaded-key.csv' ? replacementColumns : MOCK_COLUMNS,
-              sampleRows: [],
+              sampleRows: Array.from({ length: key === 'uploaded-key.csv' ? 100 : 1 }, () =>
+                (key === 'uploaded-key.csv' ? replacementColumns : MOCK_COLUMNS).map(() => 'value'),
+              ),
               sampleSize: key === 'uploaded-key.csv' ? 100 : 1,
               parseWarnings: 0,
             },
@@ -1545,6 +1554,7 @@ describe('AutomlConfigure', () => {
         const fileKey = isTraining ? 'data.csv' : 'test.csv';
         const prefix = isTraining ? 'training-data' : 'test-data';
         let isFetchingSample = true;
+        let isSamplePaused = false;
         let sampleError: Error | null = null;
         mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: fileKey });
         mockuseS3GetFileSchemaQuery.mockImplementation(
@@ -1553,6 +1563,7 @@ describe('AutomlConfigure', () => {
               data: key ? MOCK_COLUMNS : [],
               isLoading: false,
               isFetching: key === fileKey && isFetchingSample,
+              isPaused: key === fileKey && isSamplePaused,
               error: key === fileKey ? sampleError : null,
               resetSchemaCache: mockResetSchemaCache,
               refetch: jest.fn(),
@@ -1610,6 +1621,10 @@ describe('AutomlConfigure', () => {
         focusedElement.focus();
         expect(focusedElement).toHaveFocus();
         sampleError = null;
+        isSamplePaused = true;
+        rerender(<AutomlConfigure />);
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        isSamplePaused = false;
         rerender(<AutomlConfigure />);
         expect(toggle).toHaveAttribute('aria-expanded', 'false');
         expect(mode === 'select' ? toggle : focusedElement).toHaveFocus();

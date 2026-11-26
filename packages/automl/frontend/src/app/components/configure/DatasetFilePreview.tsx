@@ -22,7 +22,7 @@ export default function DatasetFilePreview({
 }: DatasetFilePreviewProps): React.JSX.Element {
   const query = useS3GetFileSchemaQuery(namespace, secretName, bucket, fileKey);
   return (
-    <Tearsheet isOpen onClose={onClose} aria-label={`Preview ${fileKey}`}>
+    <Tearsheet isOpen stackLevel={1} onClose={onClose} aria-label={`Preview ${fileKey}`}>
       <TearsheetHeader title={fileKey.split('/').pop() ?? fileKey} />
       <TearsheetBody>
         {query.isFetching ? (

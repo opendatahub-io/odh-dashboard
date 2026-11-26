@@ -161,13 +161,13 @@ function AutomlConfigure({
   } = form;
   const { namespace } = useParams();
   const [datasetNamespace, setDatasetNamespace] = useState(namespace);
-  const currentNamespaceRef = useRef(namespace);
-  useLayoutEffect(() => {
-    currentNamespaceRef.current = namespace;
-    return () => {
-      currentNamespaceRef.current = undefined;
-    };
-  }, [namespace]);
+  const namespaceGenerationRef = useRef(0);
+  useLayoutEffect(
+    () => () => {
+      namespaceGenerationRef.current += 1;
+    },
+    [namespace],
+  );
   const [allConnectionTypes] = useWatchConnectionTypes();
   const automlConnectionTypes = React.useMemo(
     () =>
@@ -404,6 +404,7 @@ function AutomlConfigure({
       !isTrainingDataFileUploading &&
       !isLoadingColumns &&
       !isFetchingColumns &&
+      !isTrainingSamplePaused &&
       !columnsError &&
       schemaColumns.length > 0
     ) {
@@ -418,6 +419,7 @@ function AutomlConfigure({
     isTrainingDataFileUploading,
     isLoadingColumns,
     isFetchingColumns,
+    isTrainingSamplePaused,
     columnsError,
     schemaColumns.length,
   ]);
@@ -430,6 +432,7 @@ function AutomlConfigure({
       pendingTestDataCollapseRef.current === testDataFileKey &&
       !isTestDataFileUploading &&
       !testSampleQuery.isFetching &&
+      !testSampleQuery.isPaused &&
       !testSampleQuery.error &&
       testSampleQuery.data.length > 0
     ) {
@@ -443,6 +446,7 @@ function AutomlConfigure({
     areDatasetFilesDistinct,
     isTestDataFileUploading,
     testSampleQuery.isFetching,
+    testSampleQuery.isPaused,
     testSampleQuery.error,
     testSampleQuery.data.length,
   ]);
@@ -1730,9 +1734,9 @@ function AutomlConfigure({
             if (!refresh) {
               return;
             }
-            const startingNamespace = namespace;
+            const startingGeneration = namespaceGenerationRef.current;
             const list = await refresh();
-            if (currentNamespaceRef.current !== startingNamespace) {
+            if (namespaceGenerationRef.current !== startingGeneration) {
               return;
             }
             const secret = list?.find((s) => s.name === connection.metadata.name);
@@ -1768,6 +1772,7 @@ function AutomlConfigure({
         />
       )}
       <S3FileExplorer
+        key={`${previewScope}/${fileExplorerTarget}`}
         id={`AutoMLConfigure-S3FileExplorer-${fileExplorerTarget}`}
         apiPath="/automl/api/v1/s3"
         presentation="tearsheet"

@@ -81,9 +81,7 @@ export default function DatasetSampleTable({
           label: column.name,
           field: String(index),
           sortable: false,
-          className: highlightedColumns.has(column.name)
-            ? 'automl-dataset-preview__mismatch'
-            : undefined,
+          className: highlightedColumns.has(column.name) ? 'automl-m-mismatch' : undefined,
         }))}
         enablePagination={!compact && sample.sampleRows.length > 0}
         showBottomPagination={false}
@@ -99,15 +97,7 @@ export default function DatasetSampleTable({
         rowRenderer={(row, rowIndex) => (
           <Tr key={rowIndex}>
             {sample.columns.map((column, index) => (
-              <Td
-                key={`${column.name}-${index}`}
-                dataLabel={column.name}
-                className={
-                  highlightedColumns.has(column.name)
-                    ? 'automl-dataset-preview__mismatch'
-                    : undefined
-                }
-              >
+              <Td key={`${column.name}-${index}`} dataLabel={column.name}>
                 {row[index] || '—'}
               </Td>
             ))}

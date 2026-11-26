@@ -145,7 +145,8 @@ describe('DatasetCompatibilityCheck', () => {
     fireEvent.click(screen.getByRole('button', { name: 'View details' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Data preview' }));
     rerender(<DatasetCompatibilityCheck {...input} isCovered />);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Compatibility check' })).toBeInTheDocument();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
     rerender(<DatasetCompatibilityCheck {...input} />);
     expect(screen.getByRole('tab', { name: 'Data preview' })).toHaveAttribute(
       'aria-selected',

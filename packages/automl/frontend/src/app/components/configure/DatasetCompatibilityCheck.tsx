@@ -132,8 +132,13 @@ function DatasetCompatibilityCheck({
       </Alert>
       {isOpen && (
         <Tearsheet
-          isOpen={!isCovered}
-          onClose={() => setIsOpen(false)}
+          isOpen
+          modalProps={{ disableFocusTrap: isCovered }}
+          onClose={() => {
+            if (!isCovered) {
+              setIsOpen(false);
+            }
+          }}
           aria-label="Compatibility check"
         >
           <TearsheetHeader
@@ -180,11 +185,7 @@ function DatasetCompatibilityCheck({
                         rowRenderer={(column) => (
                           <Tr
                             key={column.name}
-                            className={
-                              column.status !== 'match'
-                                ? 'automl-dataset-preview__mismatch'
-                                : undefined
-                            }
+                            className={column.status !== 'match' ? 'automl-m-mismatch' : undefined}
                           >
                             <Td dataLabel="Column" hasLeftBorder={column.status !== 'match'}>
                               {column.status !== 'match' && (
@@ -194,13 +195,9 @@ function DatasetCompatibilityCheck({
                               )}
                               {column.name}
                             </Td>
-                            <Td dataLabel="Training data" hasLeftBorder={column.status !== 'match'}>
-                              {column.trainingType}
-                            </Td>
-                            <Td dataLabel="Test data" hasLeftBorder={column.status !== 'match'}>
-                              {column.testType}
-                            </Td>
-                            <Td dataLabel="Status" hasLeftBorder={column.status !== 'match'}>
+                            <Td dataLabel="Training data">{column.trainingType}</Td>
+                            <Td dataLabel="Test data">{column.testType}</Td>
+                            <Td dataLabel="Status">
                               <Flex
                                 alignItems={{ default: 'alignItemsCenter' }}
                                 spaceItems={{ default: 'spaceItemsSm' }}
