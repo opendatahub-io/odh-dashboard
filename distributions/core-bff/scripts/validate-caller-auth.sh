@@ -13,7 +13,7 @@
 # row per check. Token values are never printed and never passed on a command
 # line: each credential header is written by the shell (a builtin, so no
 # process argument) to a file only this user can read, and curl and the
-# WebSocket client read it from there. The namespace is deleted on exit.
+# WebSocket client read it from there. The namespace is deleted on exit, by UID.
 #
 # Usage (from distributions/core-bff):
 #   scripts/validate-caller-auth.sh                 # xKS mode, starts a local BFF
@@ -47,11 +47,12 @@ ns_created=false
 cr_created=false
 crb_created=false
 # UIDs returned by a successful create; empty after an ambiguous result.
+ns_uid=""
 cr_uid=""
 crb_uid=""
 cleanup_failed=false
-# Cluster-scoped objects this run creates carry RUN_LABEL=RUN_ID; cleanup
-# deletes only this run's object, by UID.
+# The namespace and cluster-scoped objects this run creates carry
+# RUN_LABEL=RUN_ID; cleanup deletes only this run's object, by UID.
 RUN_LABEL=corebff-validate-run
 RUN_ID=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
 fails=0
@@ -72,36 +73,64 @@ for tool in kubectl curl; do
   command -v "$tool" >/dev/null 2>&1 || { echo >&2 "$tool is required"; exit 1; }
 done
 
-# delete_owned removes a cluster-scoped RBAC object this run created, with a
-# UID precondition so an object recreated under the same name is never
-# deleted. With the UID from a successful create it deletes that object; after
-# an ambiguous create it first reads the ownership label and deletes only an
+# delete_owned removes a namespace or cluster-scoped RBAC object this run
+# created, with a UID precondition so an object recreated under the same name
+# is never deleted. resource is the kubectl resource (namespaces,
+# clusterroles.rbac.authorization.k8s.io, ...) and path its API collection.
+# With the UID from a successful create it deletes that object; after an
+# ambiguous create it first reads the ownership label and deletes only an
 # object carrying this run's value. Any failure to read or delete (other than
 # NotFound) is reported with the object's name and fails the run.
 delete_owned() {
-  local resource=$1 name=$2 uid=$3 out meta run
+  local resource=$1 path=$2 name=$3 uid=$4 out meta run short=${1%%.*}
   if [[ -z "$uid" ]]; then
     # stderr is kept apart so a kubectl warning cannot pass for the UID.
-    if ! meta=$("${KUBECTL[@]}" get "$resource.rbac.authorization.k8s.io" "$name" \
-      -o "jsonpath={.metadata.uid} {.metadata.labels.$RUN_LABEL}" 2>"$work/get-$resource.err"); then
-      [[ "$(<"$work/get-$resource.err")" == *"(NotFound)"* ]] && return 0
-      cleanup_warn "$resource/$name" "" "could not read it to check its label: $(head -n1 "$work/get-$resource.err")"
+    if ! meta=$("${KUBECTL[@]}" get "$resource" "$name" \
+      -o "jsonpath={.metadata.uid} {.metadata.labels.$RUN_LABEL}" 2>"$work/get-$short.err"); then
+      [[ "$(<"$work/get-$short.err")" == *"(NotFound)"* ]] && return 0
+      cleanup_warn "$short/$name" "" "could not read it to check its label: $(head -n1 "$work/get-$short.err")"
       return 0
     fi
     uid=${meta%% *}
     run=${meta#* }
     [[ -n "$uid" && "$run" == "$RUN_ID" ]] || return 0
   fi
-  printf '{"kind":"DeleteOptions","apiVersion":"v1","preconditions":{"uid":"%s"}}' "$uid" >"$work/delete-$resource.json"
-  if ! out=$("${KUBECTL[@]}" delete --raw "/apis/rbac.authorization.k8s.io/v1/$resource/$name" \
-    -f "$work/delete-$resource.json" 2>&1); then
+  printf '{"kind":"DeleteOptions","apiVersion":"v1","preconditions":{"uid":"%s"}}' "$uid" >"$work/delete-$short.json"
+  if ! out=$("${KUBECTL[@]}" delete --raw "$path/$name" -f "$work/delete-$short.json" 2>&1); then
     [[ "$out" == *"(NotFound)"* ]] && return 0
     if [[ "$out" == *"(Conflict)"* ]]; then
-      cleanup_warn "$resource/$name" "$uid" "not deleted: an object with another UID now holds this name, so it may not be this run's: $(head -n1 <<<"$out")"
+      cleanup_warn "$short/$name" "$uid" "not deleted: an object with another UID now holds this name, so it may not be this run's: $(head -n1 <<<"$out")"
     else
-      cleanup_warn "$resource/$name" "$uid" "delete failed: $(head -n1 <<<"$out")"
+      cleanup_warn "$short/$name" "$uid" "delete failed: $(head -n1 <<<"$out")"
     fi
   fi
+}
+
+# created_by_us creates an object with this run's ownership label (plus any
+# extra key=value labels in create_labels) and reports the outcome: 0 created;
+# 1 a confirmed refusal (AlreadyExists, or Forbidden), so the object is not
+# this run's and cleanup never touches it; 2 ambiguous (a client timeout can
+# follow a server-side create), so cleanup checks the label and deletes only
+# this run's object (delete_owned).
+# On success created_uid holds the new object's UID, which cleanup deletes by.
+create_labels=()
+created_by_us() {
+  local out rc=0
+  created_uid=""
+  # stdout carries only the UID; stderr (errors, server warnings) is kept
+  # apart so a warning cannot corrupt it. A create that succeeds without a
+  # well-formed UID is treated as ambiguous.
+  out=$("${KUBECTL[@]}" create "$@" --dry-run=client -o json |
+    "${KUBECTL[@]}" label --local -f - "$RUN_LABEL=$RUN_ID" ${create_labels[@]+"${create_labels[@]}"} -o json |
+    "${KUBECTL[@]}" create -f - -o 'jsonpath={.metadata.uid}' 2>"$work/create.err") || rc=$?
+  if ((rc == 0)); then
+    [[ "$out" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || return 2
+    created_uid=$out
+    return 0
+  fi
+  out=$(<"$work/create.err")
+  [[ "$out" == *"Error from server (AlreadyExists)"* || "$out" == *"Error from server (Forbidden)"* ]] && return 1
+  return 2
 }
 
 # cleanup_warn reports an RBAC object cleanup could not remove. It never tells
@@ -126,13 +155,14 @@ cleanup() {
   # with KEEP_NAMESPACE: it names only this run's namespace, but is not left behind.
   # Each is deleted only if this run created it.
   if [[ "$crb_created" == "true" ]]; then
-    delete_owned clusterrolebindings "corebff-validate-$NS" "$crb_uid"
+    delete_owned clusterrolebindings.rbac.authorization.k8s.io /apis/rbac.authorization.k8s.io/v1/clusterrolebindings "corebff-validate-$NS" "$crb_uid"
   fi
   if [[ "$cr_created" == "true" ]]; then
-    delete_owned clusterroles "corebff-validate-$NS" "$cr_uid"
+    delete_owned clusterroles.rbac.authorization.k8s.io /apis/rbac.authorization.k8s.io/v1/clusterroles "corebff-validate-$NS" "$cr_uid"
   fi
   if [[ "$ns_created" == "true" && "${KEEP_NAMESPACE:-false}" != "true" ]]; then
-    "${KUBECTL[@]}" delete namespace "$NS" --wait=false >/dev/null 2>&1 || true
+    # By UID, so a namespace recreated under this name is never deleted.
+    delete_owned namespaces /api/v1/namespaces "$NS" "$ns_uid"
   fi
   [[ -n "$work" ]] && rm -rf "$work"
   if [[ "$cleanup_failed" == "true" && $rc -eq 0 ]]; then
@@ -166,12 +196,24 @@ if [[ -z "${BFF_URL:-}" ]] && ! port_free "$PORT"; then
 fi
 
 echo "Cluster: $("${KUBECTL[@]}" config current-context)  namespace: $NS  platform: $PLATFORM"
-if ! "${KUBECTL[@]}" create namespace "$NS" >/dev/null; then
-  echo >&2 "could not create namespace $NS (it may already exist); not touching it"
-  exit 1
-fi
-ns_created=true
-"${KUBECTL[@]}" label namespace "$NS" purpose=core-bff-caller-auth-validation >/dev/null
+ns_rc=0
+create_labels=(purpose=core-bff-caller-auth-validation)
+created_by_us namespace "$NS" || ns_rc=$?
+create_labels=()
+case $ns_rc in
+  0) ns_created=true ns_uid=$created_uid ;;
+  1)
+    echo >&2 "could not create namespace $NS ($(head -n1 "$work/create.err")); not touching it"
+    exit 1
+    ;;
+  *)
+    # The create may have committed: cleanup deletes it only if it carries
+    # this run's label.
+    ns_created=true
+    echo >&2 "could not confirm the creation of namespace $NS ($(head -n1 "$work/create.err"))"
+    exit 1
+    ;;
+esac
 "${KUBECTL[@]}" -n "$NS" create serviceaccount caller-test >/dev/null
 "${KUBECTL[@]}" apply -f - >/dev/null <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
@@ -348,30 +390,6 @@ if [[ "$PLATFORM" == "XKS" ]]; then
   # skipped (and STRICT=true fails the run) rather than aborting it.
   "${KUBECTL[@]}" -n "$NS" create serviceaccount ns-patcher >/dev/null
   "${KUBECTL[@]}" -n "$NS" create rolebinding ns-patcher-serving --role=serving-editor --serviceaccount="$NS:ns-patcher" >/dev/null
-  # created_by_us creates the object with this run's ownership label and
-  # reports the outcome: 0 created; 1 a confirmed refusal (AlreadyExists, or
-  # Forbidden), so the object is not this run's and cleanup never touches it;
-  # 2 ambiguous (a client timeout can follow a server-side create), so cleanup
-  # checks the label and deletes only this run's object (delete_owned).
-  # On success created_uid holds the new object's UID, which cleanup deletes by.
-  created_by_us() {
-    local out rc=0
-    created_uid=""
-    # stdout carries only the UID; stderr (errors, server warnings) is kept
-    # apart so a warning cannot corrupt it. A create that succeeds without a
-    # well-formed UID is treated as ambiguous.
-    out=$("${KUBECTL[@]}" create "$@" --dry-run=client -o json |
-      "${KUBECTL[@]}" label --local -f - "$RUN_LABEL=$RUN_ID" -o json |
-      "${KUBECTL[@]}" create -f - -o 'jsonpath={.metadata.uid}' 2>"$work/create.err") || rc=$?
-    if ((rc == 0)); then
-      [[ "$out" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || return 2
-      created_uid=$out
-      return 0
-    fi
-    out=$(<"$work/create.err")
-    [[ "$out" == *"Error from server (AlreadyExists)"* || "$out" == *"Error from server (Forbidden)"* ]] && return 1
-    return 2
-  }
   cr_rc=0
   created_by_us clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" || cr_rc=$?
   ((cr_rc != 1)) && cr_created=true
@@ -396,7 +414,9 @@ else
   check M1 "service account applies after the caller's SSAR" '{"applied":true}' "$(body -H "@$CALLER" "$B/api/namespaces/$NS/1")"
   check M2 "  ...label written by the service account" "false" "$(ns_label)"
 fi
-check M4 "caller who fails the access review" 403 "$(code -H "@$CALLER" "$B/api/namespaces/default/1")"
+# A dry run, so a caller the access review wrongly admits cannot change
+# default: the check still exercises authorization.
+check M4 "caller who fails the access review, dry run" 403 "$(code -H "@$CALLER" "$B/api/namespaces/default/1?dryRun=All")"
 if [[ -n "$AD" ]]; then
   ADMIN=$(hdr admin "$H" "$P$AD")
   check M5 "admin applies the mutation" '{"applied":true}' "$(body -H "@$ADMIN" "$B/api/namespaces/$NS/1")"
