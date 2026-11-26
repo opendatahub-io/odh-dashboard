@@ -691,3 +691,16 @@ func TestValidate_AuthTokenHeaderMustBeAbleToCarryAToken(t *testing.T) {
 	cfg.AuthTokenPrefix = "Bearer "
 	require.NoError(t, cfg.Validate(TLSFiles{}))
 }
+
+// A rejected candidate is named by its position, never echoed: startup errors
+// name the setting, not the value.
+func TestValidate_NamespaceCandidatesOmitTheRejectedValue(t *testing.T) {
+	cfg := productionConfig()
+	cfg.NamespaceCandidates = []string{"team-a", "Not_A_Namespace"}
+
+	err := cfg.Validate(TLSFiles{})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "NAMESPACE_CANDIDATES/--namespace-candidates entry 2 is not a valid namespace name (value omitted)")
+	assert.NotContains(t, err.Error(), "Not_A_Namespace")
+}

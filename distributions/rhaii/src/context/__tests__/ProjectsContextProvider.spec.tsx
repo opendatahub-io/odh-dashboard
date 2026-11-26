@@ -1055,7 +1055,9 @@ describe('RHAII working project provider integration', () => {
     );
     await waitFor(() => expect(findProject).toBeDefined());
     await act(async () => {
-      await findProject?.('deploy-only');
+      await expect(findProject?.('deploy-only')).rejects.toThrow(
+        'You can deploy models to deploy-only, but not view its deployments.',
+      );
     });
     expect(screen.getByTestId('deploy-targets')).toHaveTextContent('deploy-only');
     expect(screen.getByTestId('route-project')).toHaveTextContent('none');

@@ -121,9 +121,9 @@ func (c EnvConfig) validateCore(add func(string, ...any)) {
 	}
 	c.validateKubernetesNames(add)
 
-	for _, ns := range c.NamespaceCandidates {
+	for i, ns := range c.NamespaceCandidates {
 		if len(validation.IsDNS1123Label(ns)) != 0 {
-			add("NAMESPACE_CANDIDATES/--namespace-candidates contains %q, which is not a valid namespace name", ns)
+			add("NAMESPACE_CANDIDATES/--namespace-candidates entry %d is not a valid namespace name (value omitted)", i+1)
 		}
 	}
 

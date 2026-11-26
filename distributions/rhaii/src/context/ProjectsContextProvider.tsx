@@ -335,6 +335,11 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
               setProjectData(listed);
             }
             setListingUnavailable(partial);
+            if (!partial) {
+              // A complete listing ends the initial episode, so a later partial
+              // one never sends the page back to waiting.
+              setInitialListingUnavailable(false);
+            }
             resolve();
             return;
           }
@@ -633,6 +638,13 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     async (name: string) => {
       const project = await validateProject(name);
       addProject(project);
+      if (project.canView === false) {
+        // Kept as a deployment target, but the deployments page cannot list
+        // it, so opening it would show it as not found.
+        throw new Error(
+          `You can deploy models to ${name}, but not view its deployments. It is offered when you deploy a model.`,
+        );
+      }
       updatePreferredProject(project);
       return project;
     },

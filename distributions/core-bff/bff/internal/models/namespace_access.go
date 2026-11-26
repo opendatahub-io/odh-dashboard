@@ -20,7 +20,7 @@ const (
 	// so the candidates are the namespaces the caller listed.
 	NamespaceSourceClusterList NamespaceDiscoverySource = "cluster-list"
 	// NamespaceSourceCandidates: the caller cannot list namespaces, so the
-	// candidates are the configured, labelled and requested namespaces. The UI
+	// candidates are the configured and requested namespaces. The UI
 	// keeps offering manual namespace entry in this mode.
 	NamespaceSourceCandidates NamespaceDiscoverySource = "candidates"
 )
