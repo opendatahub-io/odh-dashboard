@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/callerauth"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
+	"k8s.io/client-go/rest"
 )
 
 // KubernetesClientFactory creates per-request Kubernetes clients and extracts
@@ -21,11 +21,25 @@ type KubernetesClientFactory interface {
 	ValidateRequestIdentity(identity *RequestIdentity) error
 }
 
-// NewKubernetesClientFactory creates a Kubernetes client factory based on the configured auth method.
-func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (KubernetesClientFactory, error) {
+// NewKubernetesClientFactory creates a Kubernetes client factory based on the
+// configured auth method. When base is non-nil every caller client is built
+// from a copy of it instead of a fresh kubeconfig read, so a kubeconfig that
+// changes after startup cannot bypass the checks base passed.
+func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger, base *rest.Config) (KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
 	case config.AuthMethodDisabled, config.AuthMethodUser:
-		k8sFactory := NewTokenClientFactory(logger, cfg)
+		// NewTokenClientFactory builds the shared caller-credential extractor;
+		// only the client constructor is replaced when base is set.
+		k8sFactory := NewTokenClientFactory(logger, cfg).(*TokenClientFactory)
+		if base != nil {
+			validated := rest.CopyConfig(base)
+			k8sFactory.NewTokenKubernetesClientFn = func(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
+				return newTokenKubernetesClientFromBase(ctx, validated, token, logger)
+			}
+			k8sFactory.newDevFallbackClientFn = func(ctx context.Context, logger *slog.Logger) (KubernetesClientInterface, error) {
+				return newKubeconfigKubernetesClientFromBase(ctx, validated, logger)
+			}
+		}
 		return k8sFactory, nil
 	default:
 		return nil, fmt.Errorf("invalid auth method: %q", cfg.AuthMethod)
@@ -39,43 +53,52 @@ func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (Kube
 // TokenClientFactory creates Kubernetes clients using user-provided bearer tokens.
 type TokenClientFactory struct {
 	Logger *slog.Logger
+	// Header and Prefix are the single-header settings. They are used only when
+	// Credentials was not built (tests and downstream code that construct the
+	// factory literally); NewTokenClientFactory always sets Credentials.
 	Header string
 	Prefix string
+	// Credentials is the caller-credential extractor shared by every transport.
+	Credentials *callerauth.Extractor
 	// NewTokenKubernetesClientFn is the function used to create token-based Kubernetes clients.
 	// Pass the request context and base logger; resolve audit correlation when logging.
 	// This can be overridden by downstream code to provide custom client creation logic.
 	NewTokenKubernetesClientFn func(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error)
+	// newDevFallbackClientFn builds the DEV_MODE fallback client. It is set to
+	// use the validated startup kubeconfig; nil means a fresh read, which only
+	// factories built without one (tests) use.
+	newDevFallbackClientFn func(ctx context.Context, logger *slog.Logger) (KubernetesClientInterface, error)
 }
 
 // NewTokenClientFactory creates a new token-based Kubernetes client factory.
 func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) KubernetesClientFactory {
+	extractor := callerauth.New(cfg)
 	return &TokenClientFactory{
 		Logger:                     logger,
 		Header:                     cfg.AuthTokenHeader,
 		Prefix:                     cfg.AuthTokenPrefix,
+		Credentials:                &extractor,
 		NewTokenKubernetesClientFn: NewTokenKubernetesClient,
 	}
 }
 
+func (f *TokenClientFactory) extractor() callerauth.Extractor {
+	if f.Credentials != nil {
+		return *f.Credentials
+	}
+	return callerauth.Legacy(f.Header, f.Prefix)
+}
+
+// ExtractRequestIdentity resolves the caller credential. The identity carries
+// only the token; the user name is resolved later by SelfSubjectReview, so a
+// header can never assert who the caller is.
 func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error) {
-	raw := httpHeader.Get(f.Header)
-	if raw == "" {
-		return nil, fmt.Errorf("missing required header: %s: %w", f.Header, httpcontract.ErrCredentialsMissing)
-	}
-
-	token := raw
-	if f.Prefix != "" {
-		if !strings.HasPrefix(raw, f.Prefix) {
-			return nil, fmt.Errorf("malformed credential: %w", httpcontract.ErrCredentialsInvalid)
-		}
-		token = strings.TrimPrefix(raw, f.Prefix)
-	}
-
-	if strings.TrimSpace(token) == "" {
-		return nil, httpcontract.ErrCredentialsInvalid
+	cred, err := f.extractor().Extract(httpHeader)
+	if err != nil {
+		return nil, err
 	}
 	return &RequestIdentity{
-		Token: NewBearerToken(strings.TrimSpace(token)),
+		Token: NewBearerToken(cred.Token),
 	}, nil
 }
 
@@ -104,6 +127,9 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 	}
 
 	if identity.DevFallback {
+		if f.newDevFallbackClientFn != nil {
+			return f.newDevFallbackClientFn(ctx, f.Logger)
+		}
 		return NewKubeconfigKubernetesClient(ctx, f.Logger)
 	}
 

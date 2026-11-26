@@ -2,11 +2,14 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import '@testing-library/jest-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import type { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import AIModelTableRow from '~/app/AIAssets/components/AIModelTableRow';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
+
+const trackEvent = jest.fn();
 
 // Mock the components and utilities
 jest.mock('../EndpointDetailModal', () => ({
@@ -44,10 +47,7 @@ jest.mock('mod-arch-shared', () => ({
   ),
 }));
 
-const mockFireMiscTrackingEvent = jest.fn();
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: (...args: unknown[]) => mockFireMiscTrackingEvent(...args),
-}));
+const mockFireMiscTrackingEvent = trackEvent;
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -128,6 +128,7 @@ describe('AIModelTableRow', () => {
       <TestWrapper>
         <AIModelTableRow {...defaultProps} model={model} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('model-info')).toHaveTextContent('Test Model');
@@ -140,6 +141,7 @@ describe('AIModelTableRow', () => {
       <TestWrapper>
         <AIModelTableRow {...defaultProps} model={model} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('endpoint-view-button')).toBeInTheDocument();
@@ -156,6 +158,7 @@ describe('AIModelTableRow', () => {
       <TestWrapper>
         <AIModelTableRow {...defaultProps} model={model} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     fireEvent.click(screen.getByTestId('endpoint-view-button'));
@@ -168,6 +171,7 @@ describe('AIModelTableRow', () => {
       <TestWrapper>
         <AIModelTableRow {...defaultProps} model={model} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     fireEvent.click(screen.getByTestId('endpoint-view-button'));
@@ -183,6 +187,7 @@ describe('AIModelTableRow', () => {
       <TestWrapper>
         <AIModelTableRow {...defaultProps} model={model} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('endpoint-view-button')).toBeInTheDocument();
@@ -194,6 +199,7 @@ describe('AIModelTableRow', () => {
       <TestWrapper>
         <AIModelTableRow {...defaultProps} model={model} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByText('text-generation')).toBeInTheDocument();
@@ -206,6 +212,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Ready')).toBeInTheDocument();
@@ -217,6 +224,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Inactive')).toBeInTheDocument();
@@ -228,6 +236,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Unknown')).toBeInTheDocument();
@@ -241,6 +250,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Try in playground')).toBeInTheDocument();
@@ -259,6 +269,7 @@ describe('AIModelTableRow', () => {
             lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Try in playground')).toBeInTheDocument();
@@ -270,6 +281,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const button = screen.getByText('Try in playground');
@@ -282,6 +294,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const button = screen.getByTestId('try-playground-button');
@@ -299,6 +312,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const button = screen.getByTestId('try-playground-button');
@@ -315,6 +329,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const button = screen.getByText('Try in playground');
@@ -334,6 +349,7 @@ describe('AIModelTableRow', () => {
             lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const button = screen.getByText('Try in playground');
@@ -353,6 +369,7 @@ describe('AIModelTableRow', () => {
             lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const button = screen.getByText('Try in playground');
@@ -372,6 +389,7 @@ describe('AIModelTableRow', () => {
             lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const tryButton = screen.getByText('Try in playground');
@@ -391,6 +409,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const tryButton = screen.getByText('Try in playground');
@@ -409,6 +428,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('asr-playground-info')).toHaveTextContent(
@@ -423,6 +443,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.queryByRole('button', { name: /playground/i })).not.toBeInTheDocument();
@@ -434,6 +455,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Try in playground')).toBeInTheDocument();
@@ -461,6 +483,7 @@ describe('AIModelTableRow', () => {
             lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       fireEvent.click(screen.getByText('Try in playground'));
@@ -492,6 +515,7 @@ describe('AIModelTableRow', () => {
             lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Try in playground')).toBeInTheDocument();
@@ -516,6 +540,7 @@ describe('AIModelTableRow', () => {
             lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       fireEvent.click(screen.getByText('Try in playground'));
@@ -537,6 +562,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Try in playground')).toBeInTheDocument();
@@ -552,6 +578,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Try in playground').closest('button')).toHaveAttribute(
@@ -577,6 +604,7 @@ describe('AIModelTableRow', () => {
             lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Try in playground')).toBeInTheDocument();
@@ -599,6 +627,7 @@ describe('AIModelTableRow', () => {
             lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const tryButton = screen.getByText('Try in playground');
@@ -620,6 +649,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const button = screen.getByText('Try in playground');
@@ -634,6 +664,7 @@ describe('AIModelTableRow', () => {
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} showPlaygroundColumn={false} />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
@@ -653,6 +684,7 @@ describe('AIModelTableRow', () => {
             showPlaygroundColumn={false}
           />
         </TestWrapper>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();

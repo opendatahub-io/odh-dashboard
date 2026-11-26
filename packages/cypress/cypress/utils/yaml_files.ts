@@ -13,7 +13,8 @@ export const replacePlaceholdersInYaml = (
   for (const [key, value] of Object.entries(replacements)) {
     // Handle both {{var}} and { { var } } formats using regex
     const regex = new RegExp(`\\{\\s*{\\s*${key}\\s*}\\s*}`, 'g');
-    modifiedYaml = modifiedYaml.replace(regex, value);
+    // A replacer function keeps `$&` and similar patterns in the value literal.
+    modifiedYaml = modifiedYaml.replace(regex, () => value);
   }
   return modifiedYaml;
 };

@@ -3,6 +3,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
+import { createStandaloneAnalytics } from '@odh-dashboard/analytics/standalone';
 import {
   BrowserStorageContextProvider,
   NotificationContextProvider,
@@ -15,10 +17,13 @@ import {
   MANDATORY_NAMESPACE,
   MAAS_MANDATORY_NAMESPACE,
   API_URL_PREFIX,
+  APP_VERSION,
+  DEV_MODE,
 } from '~/app/utilities/const';
 import App from '~/app/App';
 import ToastNotifications from '~/app/components/ToastNotifications';
 
+const standaloneAnalytics = createStandaloneAnalytics({ devMode: DEV_MODE, version: APP_VERSION });
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DEPLOYMENT_MODE,
@@ -29,15 +34,17 @@ const modularArchConfig: ModularArchConfig = {
 
 root.render(
   <React.StrictMode>
-    <Router>
-      <ModularArchContextProvider config={modularArchConfig}>
-        <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            <ToastNotifications />
-            <App />
-          </NotificationContextProvider>
-        </BrowserStorageContextProvider>
-      </ModularArchContextProvider>
-    </Router>
+    <AnalyticsTrackingProvider value={standaloneAnalytics}>
+      <Router>
+        <ModularArchContextProvider config={modularArchConfig}>
+          <BrowserStorageContextProvider>
+            <NotificationContextProvider>
+              <ToastNotifications />
+              <App />
+            </NotificationContextProvider>
+          </BrowserStorageContextProvider>
+        </ModularArchContextProvider>
+      </Router>
+    </AnalyticsTrackingProvider>
   </React.StrictMode>,
 );

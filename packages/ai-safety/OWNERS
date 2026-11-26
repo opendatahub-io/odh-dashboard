@@ -1,12 +1,20 @@
 # OWNERS
 
-approvers:
-  - ai-safety-approvers
-reviewers:
-  - ai-safety-reviewers
-labels:
-  - area/ai-safety-trusty
-  - area/components
+filters:
+  '.*':
+    approvers:
+      - ai-safety-approvers
+    reviewers:
+      - ai-safety-reviewers
+    labels:
+      - area/ai-safety-trusty
+      - area/components
+
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
 
 options:
   no_parent_owners: true

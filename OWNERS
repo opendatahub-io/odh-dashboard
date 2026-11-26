@@ -2,6 +2,9 @@
 # Package ownership lives in packages/<pkg>/OWNERS and manifest module ownership in
 # manifests/modules/<module>/OWNERS (both with options.no_parent_owners: true).
 # Root filters cover the remaining path-based areas.
+# dependency-approvers may approve dependency manifests everywhere: the filter below
+# covers paths owned by this file, and each scoped OWNERS file repeats it
+# (see docs/adding-owners-and-reviewers.md#dependency-approvers).
 filters:
   # Allow team approvers to approve changes to their own sections in OWNERS_ALIASES
   'OWNERS_ALIASES':
@@ -34,6 +37,12 @@ filters:
       - openshift-cherrypick-robot
       - general-approvers
       - managers-backup-approvers
+
+  # Dependency manifests for every path owned by this file (root lockfile and
+  # workspace overrides, root/frontend/backend package.json, pkg/*/go.mod, ...).
+  '(^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
 
   'backend/.*':
     labels:

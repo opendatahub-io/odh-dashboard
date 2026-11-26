@@ -27,6 +27,14 @@ func (kc *SharedClientLogic) BearerToken() (string, error) { return kc.Token.Raw
 
 func (kc *SharedClientLogic) GetGroups(ctx context.Context) ([]string, error) { return []string{}, nil }
 
+// GetClientset returns the typed clientset this client was built with.
+func (kc *SharedClientLogic) GetClientset() (kubernetes.Interface, error) {
+	if kc.Client == nil {
+		return nil, fmt.Errorf("typed client not available")
+	}
+	return kc.Client, nil
+}
+
 // GetDynamicClient returns a lazily-initialized dynamic client for CRD operations.
 func (kc *SharedClientLogic) GetDynamicClient() (dynamic.Interface, error) {
 	kc.dynamicOnce.Do(func() {

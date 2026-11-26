@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -41,16 +40,19 @@ func originChecker(allowedOrigins []string) func(*http.Request) bool {
 	if slices.Contains(allowedOrigins, "*") {
 		return func(r *http.Request) bool { return true }
 	}
+	// Origins compare case-insensitively, as the CORS middleware compares
+	// them: scheme and host are case-insensitive, and browsers send them
+	// lower-cased, so https://Dashboard.Example.com must match here too.
 	allowed := make(map[string]bool, len(allowedOrigins))
 	for _, o := range allowedOrigins {
-		allowed[strings.TrimRight(o, "/")] = true
+		allowed[strings.ToLower(strings.TrimRight(o, "/"))] = true
 	}
 	return func(r *http.Request) bool {
 		origin := r.Header.Get(constants.HeaderOrigin)
 		if origin == "" {
 			return false
 		}
-		return allowed[strings.TrimRight(origin, "/")]
+		return allowed[strings.ToLower(strings.TrimRight(origin, "/"))]
 	}
 }
 
@@ -73,18 +75,37 @@ func kubernetesWebSocketPath(r *http.Request) string {
 	return strings.TrimPrefix(r.URL.Path, strings.TrimSuffix(WssProxyPrefix, "/"))
 }
 
-func buildTargetWSURL(wsScheme, host string, r *http.Request) string {
-	kubeURI := kubernetesWebSocketPath(r)
-	targetWSURL := fmt.Sprintf("%s://%s%s", wsScheme, host, kubeURI)
-	if r.URL.RawQuery != "" {
-		targetWSURL += "?" + r.URL.RawQuery
+// buildTargetWSURL keeps base, the configured API server URL's path, in front
+// of the Kubernetes route. The URL is assembled from its parts rather than by
+// string concatenation, so an escaped base such as /tenant%23blue is not
+// mistaken for a fragment and an escaped segment stays one segment.
+func buildTargetWSURL(wsScheme, host string, base *url.URL, r *http.Request) string {
+	route := kubernetesWebSocketPath(r)
+	rawRoute := strings.TrimPrefix(r.URL.EscapedPath(), strings.TrimSuffix(WssProxyPrefix, "/"))
+	if decoded, err := url.PathUnescape(rawRoute); err != nil || decoded != route {
+		rawRoute = (&url.URL{Path: route}).EscapedPath()
 	}
-	return targetWSURL
+	basePath, baseRaw := "", ""
+	if base != nil {
+		basePath, baseRaw = base.Path, base.EscapedPath()
+	}
+	target := url.URL{
+		Scheme:   wsScheme,
+		Host:     host,
+		Path:     JoinBasePath(basePath, route),
+		RawPath:  JoinBasePath(baseRaw, rawRoute),
+		RawQuery: r.URL.RawQuery,
+	}
+	return target.String()
 }
 
 func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, targetURL *url.URL, netDialContext func(ctx context.Context, network, addr string) (net.Conn, error), clientSubprotocols []string, requestID string) (*websocket.Conn, *http.Response, error) {
 	subprotocols := make([]string, 0, len(clientSubprotocols)+1)
-	subprotocols = append(subprotocols, bearerSubprotocol(token))
+	// A DEV_MODE fallback on a certificate-only kubeconfig has no token: the
+	// handshake then authenticates with the client certificate alone.
+	if token != "" {
+		subprotocols = append(subprotocols, bearerSubprotocol(token))
+	}
 	subprotocols = append(subprotocols, clientSubprotocols...)
 
 	dialer := websocket.Dialer{
@@ -96,10 +117,70 @@ func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, t
 	dialHeaders := http.Header{}
 	dialHeaders.Set(constants.HeaderHost, targetURL.Host)
 	dialHeaders.Set(constants.HeaderOrigin, targetURL.Scheme+"://"+targetURL.Host)
-	dialHeaders.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	if token != "" {
+		dialHeaders.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	}
 
 	dialHeaders.Set(httpcontract.RequestIDHeader, requestID)
 	return dialWithHandshakeResponse(&dialer, targetWSURL, dialHeaders, targetURL.Hostname(), netDialContext)
+}
+
+// AllSubprotocols returns every subprotocol offered across all
+// Sec-WebSocket-Protocol lines. websocket.Subprotocols reads only the first
+// line, so a credential on a second line would otherwise go unseen.
+func AllSubprotocols(h http.Header) []string {
+	var out []string
+	for _, line := range h.Values("Sec-Websocket-Protocol") {
+		for _, p := range strings.Split(line, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				out = append(out, p)
+			}
+		}
+	}
+	return out
+}
+
+// stripBearerSubprotocols rewrites the Sec-WebSocket-Protocol lines of h
+// without Kubernetes bearer-token subprotocols, so a proxied upgrade carries
+// only the identity the proxy resolved.
+func stripBearerSubprotocols(h http.Header) {
+	if len(h.Values("Sec-Websocket-Protocol")) == 0 {
+		return
+	}
+	kept := withoutBearerSubprotocols(AllSubprotocols(h))
+	h.Del("Sec-Websocket-Protocol")
+	if len(kept) > 0 {
+		h.Set("Sec-Websocket-Protocol", strings.Join(kept, ", "))
+	}
+}
+
+// withoutBearerSubprotocols drops Kubernetes bearer-token subprotocols.
+func withoutBearerSubprotocols(protocols []string) []string {
+	out := make([]string, 0, len(protocols))
+	for _, p := range protocols {
+		if !strings.HasPrefix(strings.ToLower(p), bearerSubprotocolPrefix) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// BearerSubprotocolToken returns the token a client carries in a Kubernetes
+// bearer subprotocol (the only way a browser can send one on a WebSocket),
+// and whether such a subprotocol was present. A present but undecodable one
+// yields "" and true.
+func BearerSubprotocolToken(r *http.Request) (string, bool) {
+	for _, p := range AllSubprotocols(r.Header) {
+		if !strings.HasPrefix(strings.ToLower(p), bearerSubprotocolPrefix) {
+			continue
+		}
+		raw, err := base64.RawURLEncoding.DecodeString(p[len(bearerSubprotocolPrefix):])
+		if err != nil {
+			return "", true
+		}
+		return strings.TrimSpace(string(raw)), true
+	}
+	return "", false
 }
 
 func bearerSubprotocol(token string) string {

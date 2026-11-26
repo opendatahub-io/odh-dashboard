@@ -60,7 +60,7 @@ func TestBuildTargetWSURL(t *testing.T) {
 			if tt.query == "" {
 				req = httptest.NewRequest(http.MethodGet, tt.path, nil)
 			}
-			got := buildTargetWSURL(tt.wsScheme, tt.host, req)
+			got := buildTargetWSURL(tt.wsScheme, tt.host, nil, req)
 			if got != tt.want {
 				t.Errorf("buildTargetWSURL() = %q, want %q", got, tt.want)
 			}
@@ -425,4 +425,15 @@ func TestUpgradeVersionFailureRetainsProtocolHeader(t *testing.T) {
 	require.Contains(t, response.Header().Get("Content-Type"), "application/json")
 	require.Contains(t, response.Body.String(), `"code":"BAD_REQUEST"`)
 	require.NotEmpty(t, response.Header().Get(httpcontract.RequestIDHeader))
+}
+
+// CORS matches origins case-insensitively, so the WebSocket check must too:
+// browsers send scheme and host lower-cased.
+func TestOriginChecker_IsCaseInsensitiveLikeCORS(t *testing.T) {
+	check := originChecker([]string{"https://Dashboard.Example.com"})
+	req := httptest.NewRequest(http.MethodGet, "/wss/k8s/api/v1/pods", nil)
+	req.Header.Set("Origin", "https://dashboard.example.com")
+	require.True(t, check(req))
+	req.Header.Set("Origin", "https://evil.example.com")
+	require.False(t, check(req))
 }

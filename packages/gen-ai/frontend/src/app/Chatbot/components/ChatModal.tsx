@@ -1,6 +1,6 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 
 export type PlaygroundConfirmModalVariant = 'new-chat' | 'compare';
@@ -18,11 +18,12 @@ const ChatModal: React.FC<ChatModalProps> = ({
   onConfirm,
   variant = 'new-chat',
 }) => {
+  const trackEvent = useTrackEvent();
   const isCompare = variant === 'compare';
 
   const handleCancel = () => {
     if (!isCompare) {
-      fireFormTrackingEvent('Playground New Chat Canceled', {
+      trackEvent('Playground New Chat Canceled', {
         outcome: TrackingOutcome.cancel,
       });
     }
@@ -31,7 +32,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
 
   const handleConfirm = () => {
     if (!isCompare) {
-      fireFormTrackingEvent('Playground New Chat Confirmed', {
+      trackEvent('Playground New Chat Confirmed', {
         outcome: TrackingOutcome.submit,
         success: true,
       });

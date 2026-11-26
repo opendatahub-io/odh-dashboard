@@ -1,6 +1,6 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   Button,
   Content,
@@ -92,6 +92,7 @@ export default function PromptTable({
   onClose,
   displayText,
 }: PromptTableProps): React.ReactNode {
+  const trackEvent = useTrackEvent();
   const [perPage, setPerPage] = useState(10);
   const [activePage, setActivePage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<MLflowPrompt | null>(null);
@@ -562,7 +563,7 @@ export default function PromptTable({
               setFilterType(FilterType.NAME);
               setModelSortDirection(undefined);
               if (newKey === 1) {
-                fireMiscTrackingEvent('Playground Global Prompts Tab Viewed', {});
+                trackEvent('Playground Global Prompts Tab Viewed', {});
               }
             }}
           >

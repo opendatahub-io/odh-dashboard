@@ -1,8 +1,8 @@
 /* eslint-disable arrow-body-style */
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { ChatbotSourceSettings, FileModel } from '~/app/types';
@@ -53,6 +53,7 @@ const useSourceManagement = ({
   onFileUploadComplete,
   uploadedFiles = [],
 }: UseSourceManagementProps): UseSourceManagementReturn => {
+  const trackEvent = useTrackEvent();
   const { apiAvailable } = useGenAiAPI();
   const { uploadFile } = useFileUploadWithPolling();
 
@@ -212,7 +213,7 @@ const useSourceManagement = ({
               setFilesWithSettings((prev) =>
                 prev.filter((fileWithSettings) => fileWithSettings.file.name !== file.name),
               );
-              fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
+              trackEvent(UPLOAD_EVENT_NAME, {
                 outcome: TrackingOutcome.submit,
                 success: true,
                 chunkSize: settings.maxChunkLength,
@@ -225,7 +226,7 @@ const useSourceManagement = ({
               setFilesWithSettings((prev) =>
                 prev.filter((fileWithSettings) => fileWithSettings.file.name !== file.name),
               );
-              fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
+              trackEvent(UPLOAD_EVENT_NAME, {
                 outcome: TrackingOutcome.submit,
                 success: false,
                 error: errorCategory(result.error),
@@ -276,9 +277,10 @@ const useSourceManagement = ({
     [
       pendingFiles,
       apiAvailable,
-      onFileUploadComplete,
       onShowErrorAlert,
+      onFileUploadComplete,
       uploadFile,
+      trackEvent,
       onShowSuccessAlert,
       removeUploadedSource,
     ],
@@ -301,7 +303,7 @@ const useSourceManagement = ({
       });
     }
 
-    fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
+    trackEvent(UPLOAD_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,
     });
 
@@ -309,7 +311,7 @@ const useSourceManagement = ({
     setCurrentFileForSettings(null);
     setPendingFiles([]);
     // processPendingFiles will be called automatically via useEffect when filesWithSettings updates
-  }, [pendingFiles, filesWithSettings, removeUploadedSource]);
+  }, [pendingFiles, trackEvent, filesWithSettings, removeUploadedSource]);
 
   return {
     selectedSourceSettings,

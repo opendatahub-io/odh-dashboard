@@ -2,6 +2,7 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import MCPServerToolsModal from '~/app/Chatbot/mcp/MCPServerToolsModal';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
@@ -61,7 +62,7 @@ describe('MCPServerToolsModal', () => {
     it('should render modal with server name as title', () => {
       mockUseMCPServerTools.mockReturnValue(createMockToolsResponse({}));
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByRole('heading', { name: 'Test Server' })).toBeInTheDocument();
       expect(screen.getByTestId('mcp-tools-modal')).toBeInTheDocument();
@@ -75,7 +76,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByRole('status')).toBeInTheDocument();
       expect(screen.getByLabelText('Loading tools')).toBeInTheDocument();
@@ -91,7 +92,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByText(/Failed to load tools from Test Server/i)).toBeInTheDocument();
       expect(screen.getByText(errorMessage)).toBeInTheDocument();
@@ -105,7 +106,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByText('No tools available for this server')).toBeInTheDocument();
     });
@@ -117,7 +118,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       await waitFor(() => {
         expect(screen.getByTestId('mcp-tools-modal-table')).toBeInTheDocument();
@@ -137,7 +138,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       await waitFor(() => {
         expect(screen.getByText(/1 out of 1 selected/i)).toBeInTheDocument();
@@ -163,7 +164,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
@@ -185,7 +186,7 @@ describe('MCPServerToolsModal', () => {
       }),
     );
 
-    render(<MCPServerToolsModal {...defaultProps} />);
+    render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     // Wait for tools to load
     await waitFor(() => {
@@ -244,7 +245,7 @@ describe('MCPServerToolsModal', () => {
       }),
     );
 
-    render(<MCPServerToolsModal {...defaultProps} />);
+    render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText(/4 out of 4 selected/i)).toBeInTheDocument();
@@ -286,7 +287,7 @@ describe('MCPServerToolsModal', () => {
       }),
     );
 
-    render(<MCPServerToolsModal {...defaultProps} />);
+    render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     // Wait for tools to load (all selected by default)
     await waitFor(() => {
@@ -327,7 +328,7 @@ describe('MCPServerToolsModal', () => {
       }),
     );
 
-    render(<MCPServerToolsModal {...defaultProps} />);
+    render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     // Wait for tools to load (all selected by default)
     await waitFor(() => {
@@ -365,7 +366,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       await waitFor(() => {
         expect(screen.getByText(/2 out of 3 selected/i)).toBeInTheDocument();
@@ -387,7 +388,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       await waitFor(() => {
         expect(screen.getByText(/2 out of 3 selected/i)).toBeInTheDocument();
@@ -403,7 +404,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       await waitFor(() => {
         expect(screen.getByText(/3 out of 3 selected/i)).toBeInTheDocument();
@@ -419,7 +420,7 @@ describe('MCPServerToolsModal', () => {
         }),
       );
 
-      render(<MCPServerToolsModal {...defaultProps} />);
+      render(<MCPServerToolsModal {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       await waitFor(() => {
         expect(screen.getByText(/0 out of 3 selected/i)).toBeInTheDocument();
