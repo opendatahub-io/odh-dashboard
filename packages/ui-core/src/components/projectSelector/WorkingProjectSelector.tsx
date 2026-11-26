@@ -44,6 +44,7 @@ import { Link } from 'react-router-dom';
 import { isValidK8sName } from '@odh-dashboard/k8s-core';
 import ProjectSelectorEmptyState from './ProjectSelectorEmptyState';
 import WorkingProjectSelectorFooter from './WorkingProjectSelectorFooter';
+import ContentModal from '../ContentModal';
 import {
   type ProjectIdentity,
   type WorkingProjectStatus,
@@ -290,7 +291,18 @@ const AddProjectModal: React.FC<{
 };
 
 const WorkingProjectSelector: React.FC<Props> = (props) => {
-  const { status, projects, activeProject, discoverProject, rememberProject } = useWorkingProject();
+  const {
+    status,
+    projects,
+    activeProject,
+    discoverProject,
+    rememberProject,
+    pendingProjectChange,
+    confirmProjectChange,
+    cancelProjectChange,
+    isConfirmingProjectChange,
+    projectChangeError,
+  } = useWorkingProject();
   const isEmptyProjectList = status === WorkingProjectStatusValue.EmptyList;
   const isListingUnavailable = status === WorkingProjectStatusValue.ListingUnavailable;
   const manualFallback = props.manualProjectMode && isListingUnavailable;
@@ -316,6 +328,13 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
       props.onProjectReviewClosed?.();
     }
     triggerRef.current?.focus();
+  };
+  const cancelProjectChangeRequest = () => {
+    if (isConfirmingProjectChange) {
+      return;
+    }
+    cancelProjectChange?.();
+    setOpen(true);
   };
   const label = activeProject
     ? `Project: ${activeProject.displayName || activeProject.name}`
@@ -420,6 +439,35 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
           )}
         </AlertGroup>
       )}
+      {pendingProjectChange && (
+        <ContentModal
+          title="Switch projects?"
+          onClose={cancelProjectChangeRequest}
+          variant="small"
+          dataTestId="switch-project-modal"
+          titleIconVariant="warning"
+          contents={pendingProjectChange.description}
+          error={projectChangeError}
+          alertTitle="Unable to switch projects"
+          buttonActions={[
+            {
+              label: 'Continue',
+              onClick: () => void confirmProjectChange?.(),
+              variant: 'primary',
+              dataTestId: 'confirm-project-switch',
+              isDisabled: isConfirmingProjectChange,
+              isLoading: isConfirmingProjectChange,
+            },
+            {
+              label: 'Cancel',
+              onClick: cancelProjectChangeRequest,
+              variant: 'link',
+              dataTestId: 'cancel-project-switch',
+              isDisabled: isConfirmingProjectChange,
+            },
+          ]}
+        />
+      )}
     </>
   );
 };
@@ -440,11 +488,21 @@ const WorkingProjectModal: React.FC<
   onAddProject,
 }) => {
   const headingId = React.useId();
-  const { status, projects, activeProject, selectProject } = useWorkingProject();
+  const {
+    status,
+    projects,
+    activeProject,
+    selectProject,
+    requestProjectChange,
+    hasProjectChangeHandler,
+  } = useWorkingProject();
   const isEmptyProjectList = status === WorkingProjectStatusValue.EmptyList;
   const isListingUnavailable = status === WorkingProjectStatusValue.ListingUnavailable;
   const manualFallback = manualProjectMode && isListingUnavailable;
   const showManualEmptyContent = isListingUnavailable && projects.length === 0;
+  const shouldShowEmptyProjectState =
+    isEmptyProjectList ||
+    (status === WorkingProjectStatusValue.RouteInvalid && projects.length === 0);
   const [selecting, setSelecting] = React.useState(false);
   const [hasUserSelectedProject, setHasUserSelectedProject] = React.useState(false);
   const [selectionError, setSelectionError] = React.useState<Error>();
@@ -574,9 +632,14 @@ const WorkingProjectModal: React.FC<
     setSelecting(true);
     setSelectionError(undefined);
     try {
-      await selectProject(selectedProject);
-      onProjectSelected?.(selectedProject);
-      onClose();
+      if (hasProjectChangeHandler && requestProjectChange) {
+        onClose();
+        requestProjectChange(selectedProject);
+      } else {
+        await selectProject(selectedProject);
+        onProjectSelected?.(selectedProject);
+        onClose();
+      }
     } catch (error) {
       setSelectionError(
         error instanceof Error ? error : new Error('Unable to change project. Try again.'),
@@ -588,7 +651,7 @@ const WorkingProjectModal: React.FC<
 
   return (
     <Modal
-      variant={isEmptyProjectList || manualFallback ? 'medium' : 'large'}
+      variant={shouldShowEmptyProjectState || manualFallback ? 'medium' : 'large'}
       isOpen
       onClose={close}
       aria-labelledby={headingId}
@@ -603,7 +666,7 @@ const WorkingProjectModal: React.FC<
             <Alert isInline variant="danger" title="Projects unavailable">
               Unable to load projects. Try again later.
             </Alert>
-          ) : isEmptyProjectList || showManualEmptyContent ? (
+          ) : shouldShowEmptyProjectState || showManualEmptyContent ? (
             <ProjectSelectorEmptyState
               content={emptyProjectContent}
               showManualEmptyContent={showManualEmptyContent}
@@ -848,7 +911,7 @@ const WorkingProjectModal: React.FC<
         </Stack>
       </ModalBody>
       <WorkingProjectSelectorFooter
-        isEmptyProjectList={isEmptyProjectList}
+        isEmptyProjectList={shouldShowEmptyProjectState}
         manualFallback={manualFallback}
         showManualEmptyContent={showManualEmptyContent}
         canSelectProject={canSelectProject}

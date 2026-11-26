@@ -93,8 +93,11 @@ const WorkingProjectSelectorFooter: React.FC<Props> = ({
     );
   }
 
+  const shouldShowCreateProjectAction =
+    status === WorkingProjectStatusValue.Listed ||
+    status === WorkingProjectStatusValue.RouteInvalid;
   const secondaryAction =
-    onCreateProject && status === WorkingProjectStatusValue.Listed ? (
+    onCreateProject && shouldShowCreateProjectAction ? (
       <Button
         variant="secondary"
         isDisabled={selecting}
