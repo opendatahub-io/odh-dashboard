@@ -1,5 +1,6 @@
 # Early-gate test launcher for odh-dashboard (RHAI-50780).
 # /early-gate-test comment on a PR labeled early-gate -> gate test pipeline (Jenkins install + smoke tests).
+# Long-term this should live in konflux-central (source of truth for PaC definitions) — RHAI-59943.
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:

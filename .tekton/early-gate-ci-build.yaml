@@ -1,5 +1,6 @@
 # Early-gate launcher for odh-dashboard (RHAI-50780).
 # /early-gate-build comment on a PR labeled early-gate -> gate build pipeline (operator + bundle + FBC).
+# Long-term this should live in konflux-central (source of truth for PaC definitions) — RHAI-59943.
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
