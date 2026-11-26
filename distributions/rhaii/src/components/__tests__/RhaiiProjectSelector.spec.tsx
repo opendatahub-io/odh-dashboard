@@ -58,4 +58,35 @@ describe('RhaiiProjectSelector', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('working-project-option-plain')).not.toBeInTheDocument();
   });
+
+  it('should keep names listed during a discovery outage under AI projects only', () => {
+    const value: ProjectsContextType = {
+      projects: [],
+      modelServingProjects: [],
+      nonActiveProjects: [],
+      preferredProject: null,
+      updatePreferredProject: () => undefined,
+      waitForProject: () => Promise.resolve(),
+      loaded: true,
+      loadError: undefined,
+    };
+    render(
+      <ProjectsContext.Provider value={value}>
+        <WorkingProjectProvider
+          status="listing-unavailable"
+          projects={[{ name: 'listed-only' }]}
+          activeProject={null}
+          onProjectChange={jest.fn()}
+        >
+          <RhaiiProjectSelector />
+        </WorkingProjectProvider>
+      </ProjectsContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+      'AI projects only',
+    );
+    expect(screen.getByTestId('working-project-option-listed-only')).toBeInTheDocument();
+  });
 });

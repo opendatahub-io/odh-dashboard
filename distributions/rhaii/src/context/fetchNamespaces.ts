@@ -45,8 +45,17 @@ type NamespaceAccessItem = {
 type NamespaceAccessList = {
   source?: unknown;
   complete?: unknown;
+  issueCodes: string[];
   namespaces: NamespaceAccessItem[];
 };
+
+// Issues that leave every authorized namespace in the result: a failed review
+// in the dashboard namespace, and a namespace returned with phase Unknown.
+// Any other issue may have dropped a namespace.
+const ISSUES_KEEPING_EVERY_NAMESPACE = new Set([
+  'SHARED_ACCESS_REVIEW_FAILED',
+  'NAMESPACE_READ_FAILED',
+]);
 
 // The discovery endpoints exist only on xKS; elsewhere they return 404 and the
 // UI keeps using the namespace list and lookup it always used.
@@ -92,6 +101,11 @@ const parseNamespaceAccessList = (value: unknown): NamespaceAccessList => {
   return {
     source: data.source,
     complete: data.complete,
+    issueCodes: Array.isArray(data.issues)
+      ? data.issues.flatMap((issue) =>
+          isRecord(issue) && typeof issue.code === 'string' ? [issue.code] : [],
+        )
+      : [],
     namespaces: data.namespaces.filter((item): item is NamespaceAccessItem => isRecord(item)),
   };
 };
@@ -330,10 +344,15 @@ const fetchNamespaces = async (signal?: AbortSignal): Promise<RhaiiProject[]> =>
   const projects = list.namespaces
     .map(accessToProject)
     .filter((project): project is RhaiiProject => project !== null);
-  if (list.source !== 'cluster-list' || list.complete !== true) {
-    // Discovery from candidates, or one that hit failures or the candidate
-    // cap, is not exhaustive: show what was authorized and keep manual entry
-    // available for the rest.
+  const exhaustive =
+    list.source === 'cluster-list' &&
+    (list.complete === true ||
+      (list.issueCodes.length > 0 &&
+        list.issueCodes.every((code) => ISSUES_KEEPING_EVERY_NAMESPACE.has(code))));
+  if (!exhaustive) {
+    // Discovery from candidates, or one that hit failures that may have
+    // dropped a namespace or the candidate cap, is not exhaustive: show what
+    // was authorized and keep manual entry available for the rest.
     throw new NamespaceListUnavailableError('Namespace listing is partial', projects);
   }
   return projects;

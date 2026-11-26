@@ -23,11 +23,18 @@ const RhaiiProjectSelector: React.FC = () => {
     [projects],
   );
 
+  // Names outside `projects` were listed while discovery was unavailable, so
+  // their classification is unknown too; they stay under the default filter.
+  const knownNames = React.useMemo(
+    () => new Set(projects.map(({ metadata }) => metadata.name)),
+    [projects],
+  );
+
   return (
     <WorkingProjectSelector
       manualProjectMode
       isAiProject={(name) => aiProjectNames.has(name)}
-      isInAiFilter={(name) => aiFilterNames.has(name)}
+      isInAiFilter={(name) => aiFilterNames.has(name) || !knownNames.has(name)}
       aiLabel={
         <Label variant="outline" data-testid="ai-project-label" isCompact>
           AI

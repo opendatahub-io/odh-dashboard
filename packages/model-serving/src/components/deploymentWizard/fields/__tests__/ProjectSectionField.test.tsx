@@ -159,6 +159,33 @@ describe('ProjectSection', () => {
       expect(updatePreferredProject).toHaveBeenCalledWith(deployer);
     });
 
+    it('should not adopt a deploy-only target as the working project', () => {
+      const deployOnly = mockProjectK8sResource({ k8sName: 'deploy-only' });
+      const DeployOnlyProvider = ({ children }: { children: React.ReactNode }) => {
+        const value = React.useMemo(
+          () => ({
+            projects: [viewer],
+            deploymentTargetProjects: [deployOnly],
+            loaded: true,
+            preferredProject: null,
+            modelServingProjects: [viewer],
+            nonActiveProjects: [],
+            updatePreferredProject,
+            waitForProject: () => Promise.resolve(),
+            loadError: undefined,
+          }),
+          [],
+        );
+        return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;
+      };
+      const { result } = renderHook(() => useProjectSection(), { wrapper: DeployOnlyProvider });
+      act(() => {
+        result.current.setProjectName('deploy-only');
+      });
+      expect(result.current.projectName).toBe('deploy-only');
+      expect(updatePreferredProject).not.toHaveBeenCalled();
+    });
+
     it('should resolve targets to every project when the host sets none', () => {
       const { result } = renderHook(() => useDeploymentTargetProjects(), {
         wrapper: MockProjectsProvider,

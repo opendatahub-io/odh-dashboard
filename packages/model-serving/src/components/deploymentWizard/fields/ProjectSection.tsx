@@ -43,19 +43,21 @@ export const useDeploymentTargetNamespaces = ():
 
 export const useProjectSection = (initialProjectName?: string): ProjectSectionType => {
   const [projectName, setProjectNameState] = React.useState<string | undefined>(initialProjectName);
-  const { updatePreferredProject } = React.useContext(ProjectsContext);
+  const { projects, updatePreferredProject } = React.useContext(ProjectsContext);
   const targets = useDeploymentTargetProjects();
 
   const setProjectName = React.useCallback(
     (newProjectName?: string) => {
       setProjectNameState(newProjectName);
 
+      // A target becomes the working project only when it is also browsable:
+      // the pages that read the preference cannot show a deploy-only one.
       const project = targets.find(byName(newProjectName));
-      if (project) {
+      if (project && projects.some(byName(newProjectName))) {
         updatePreferredProject(project);
       }
     },
-    [targets, updatePreferredProject],
+    [targets, projects, updatePreferredProject],
   );
   return { initialProjectName, projectName, setProjectName };
 };

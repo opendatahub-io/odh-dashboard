@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -411,7 +412,16 @@ func (kc *TokenKubernetesClient) ReviewAccess(ctx context.Context, _ *RequestIde
 	}
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		httpcontract.LogContext(kc.Logger, ctx).Error("SSAR review failed", "verb", attrs.Verb, "group", attrs.Group, "resource", attrs.Resource, "code", httpcontract.SafeErrorCode(err))
+		logger := httpcontract.LogContext(kc.Logger, ctx)
+		attrsLog := []any{"verb", attrs.Verb, "group", attrs.Group, "resource", attrs.Resource, "code", httpcontract.SafeErrorCode(err)}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			// A cancelled or expired request fails every pending review at
+			// once; the caller reports them in aggregate, so one line each
+			// would flood the log.
+			logger.Debug("SSAR review cancelled", attrsLog...)
+		} else {
+			logger.Error("SSAR review failed", attrsLog...)
+		}
 		return AccessReviewDenied, fmt.Errorf("failed to review access (verb=%s, resource=%s/%s): %w", attrs.Verb, attrs.Group, attrs.Resource, err)
 	}
 	result := ClassifyAccessReview(resp.Status.Allowed, resp.Status.Denied, resp.Status.EvaluationError)

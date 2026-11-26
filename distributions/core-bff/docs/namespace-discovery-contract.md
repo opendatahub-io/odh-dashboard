@@ -211,10 +211,11 @@ namespace in its default "AI projects only" filter, without the AI badge, so it 
 `GET /api/v1/namespace-access/{name}`. A 404 means the endpoints are absent (not xKS), and the UI
 falls back to `GET /api/v1/namespaces` and its lookup, unchanged. With discovery:
 
-- Only `source: cluster-list` with `complete: true` is a complete listing. `complete` is `false`
-  whenever an issue was recorded, truncation and a failed shared review included. Anything else
-  (`source: candidates`, failed reviews, the candidate cap) is shown as a partial listing: the
-  authorized namespaces appear and manual entry stays available.
+- Only `source: cluster-list` is a complete listing, and only when `complete` is `true` or every
+  issue leaves the authorized namespaces in the result (`SHARED_ACCESS_REVIEW_FAILED`,
+  `NAMESPACE_READ_FAILED`). `complete` is `false` whenever an issue was recorded. Anything else
+  (`source: candidates`, failed namespace reviews, the candidate cap, the deadline) is shown as a
+  partial listing: the authorized namespaces appear and manual entry stays available.
 - A `503` falls back to `GET /api/v1/namespaces`. Listing a namespace says nothing about the
   caller's actions in it, so those names are offered only in the project selector: they are not in
   `projects` or `modelServingProjects` (nothing is watched), are not deployment targets and offer

@@ -206,6 +206,27 @@ describe('fetchNamespaces', () => {
       ).toEqual(['team-a']);
     });
 
+    it('should keep a cluster list exhaustive when its issues dropped no namespace', async () => {
+      const list = accessList('cluster-list', [accessEntry('team-a')], false);
+      list.data.issues = [
+        { code: 'SHARED_ACCESS_REVIEW_FAILED', count: 1 },
+        { code: 'NAMESPACE_READ_FAILED', count: 1 },
+      ] as never[];
+      mockRoutes({ access: ok(list) });
+
+      const projects = await fetchNamespaces();
+
+      expect(projects.map((p) => p.metadata.name)).toEqual(['team-a']);
+    });
+
+    it('should report a cluster list partial when a failed review may have dropped a namespace', async () => {
+      const list = accessList('cluster-list', [accessEntry('team-a')], false);
+      list.data.issues = [{ code: 'ACCESS_REVIEW_FAILED', count: 1 }] as never[];
+      mockRoutes({ access: ok(list) });
+
+      await expect(fetchNamespaces()).rejects.toBeInstanceOf(NamespaceListUnavailableError);
+    });
+
     it('should map each discovered action', async () => {
       mockRoutes({
         access: ok(
