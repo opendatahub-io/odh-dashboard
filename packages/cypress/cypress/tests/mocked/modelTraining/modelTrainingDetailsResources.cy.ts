@@ -234,6 +234,7 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.shouldBeOpen();
       trainingJobDetailsDrawer.selectTab('Resources');
 
+      trainingJobResourcesTab.findCPUQuotaConsumed().should('contain', '40 (40%)');
       trainingJobResourcesTab.findQuotaSourceValue().should('not.exist');
     });
 

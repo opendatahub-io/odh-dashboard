@@ -196,6 +196,7 @@ describe('RayJob Resources Tab', () => {
     rayJobDetailsDrawer.shouldBeOpen();
     rayJobDetailsDrawer.selectTab('Resources');
 
+    rayJobResourcesTab.findConsumedQuotaValue().should('contain', 'CPU');
     rayJobResourcesTab.findQuotaSourceValue().should('not.exist');
   });
 

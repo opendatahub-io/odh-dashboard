@@ -231,7 +231,7 @@ describe('Workbench page — Kueue & Status', () => {
     workbenchStatusModal.find().should('be.visible');
     workbenchStatusModal.findResourcesTab().should('be.visible').click();
 
-    workbenchStatusModal.findQuotasSection().should('be.visible');
+    workbenchStatusModal.findQuotasSection().should('contain.text', 'Consumed: 40 (40%)');
     workbenchStatusModal.findQuotaSourceValue().should('not.exist');
   });
 
