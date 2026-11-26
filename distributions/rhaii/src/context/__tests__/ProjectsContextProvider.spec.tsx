@@ -1089,6 +1089,29 @@ describe('ProjectsContextProvider — waitForProject settlement', () => {
     expect(screen.getByTestId('source-status')).toHaveTextContent('listing-unavailable');
   });
 
+  it('keeps a verified project when a later outage lists it without actions', async () => {
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
+    mockFetchNamespaceByName.mockResolvedValue(project('allowed'));
+    const waitForProject = await renderWait();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add allowed'));
+    });
+    expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed');
+
+    const unverified = { canView: false, canDeploy: false, actionsUnverified: true };
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([
+        Object.assign(project('allowed'), unverified),
+        Object.assign(project('project-c'), unverified),
+      ]),
+    );
+    mockFetchNamespaceByName.mockResolvedValue(project('project-c'));
+    await act(async () => {
+      await expect(waitForProject('project-c')).resolves.toBeUndefined();
+    });
+    expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed,project-c');
+  });
+
   it('marks the listing partial when a poll after a complete load is partial', async () => {
     mockFetchNamespaces.mockResolvedValue([project('allowed')]);
     const waitForProject = await renderWait();

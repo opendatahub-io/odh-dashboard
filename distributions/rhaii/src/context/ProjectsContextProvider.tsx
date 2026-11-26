@@ -46,10 +46,20 @@ const readRecentNames = (): string[] => {
   }
 };
 
-/** Merges by name; entries from `incoming` replace earlier ones. */
+/**
+ * Merges by name; entries from `incoming` replace earlier ones, except that a
+ * name listed without verified actions (a discovery outage) never replaces a
+ * project a lookup already verified.
+ */
 const mergeProjects = (previous: RhaiiProject[], incoming: RhaiiProject[]): RhaiiProject[] => {
   const byProjectName = new Map(previous.map((project) => [project.metadata.name, project]));
-  incoming.forEach((project) => byProjectName.set(project.metadata.name, project));
+  incoming.forEach((project) => {
+    const known = byProjectName.get(project.metadata.name);
+    if (project.actionsUnverified && known && !known.actionsUnverified) {
+      return;
+    }
+    byProjectName.set(project.metadata.name, project);
+  });
   return [...byProjectName.values()];
 };
 

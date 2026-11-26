@@ -151,6 +151,12 @@ Actions are decided per namespace, not per deployment: `edit` requires the Huggi
 ServiceAccount and Secret reads, and the config writes, even where no deployment uses a Hugging
 Face token or a config copy, because the edit wizard needs them for any that does.
 
+Some wizard choices need more than their action: deploying from a config template creates the
+deployment's config copy (`llminferenceserviceconfigs` `create`), and switching an edit's topology
+or accelerator config creates a new copy and deletes the old one (`create`, `delete`). These verbs
+are not in the matrix and gate no action, since a deployment without a template needs neither.
+Where they are missing, the dry run stops the save before anything is written, with Kubernetes' 403. Offering only the templates a caller can use is a follow-up.
+
 The token actions are advisory: token setup reuses the ServiceAccount, Role and RoleBinding where
 they already exist, so a caller without `createTokenAuth` may still set tokens up in a namespace
 where they were pre-provisioned. Only Kubernetes can decide that; a read-only
