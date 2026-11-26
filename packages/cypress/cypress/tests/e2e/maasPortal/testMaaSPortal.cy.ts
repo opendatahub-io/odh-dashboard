@@ -142,7 +142,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
     ensureAdminOcSession();
     configureMaaSPortalOnly()
       .then((snapshot) => {
-        dscSnapshot = snapshot;
+        dscSnapshot ??= snapshot;
         return waitForMaaSPortalOnlyInstall(
           Cypress.env('APPLICATIONS_NAMESPACE') as string,
           snapshot,

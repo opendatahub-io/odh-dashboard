@@ -8,10 +8,7 @@ class MaaSPortalPage {
   }
 
   visitWithLogin(url: string, credentials: UserAuthConfig): void {
-    cy.visitWithLogin(url, {
-      ...credentials,
-      USERNAME: credentials.EMAIL?.trim() || credentials.USERNAME,
-    });
+    cy.visitWithLogin(url, credentials);
   }
 
   loginWithCachedSession(url: string, credentials: UserAuthConfig): void {

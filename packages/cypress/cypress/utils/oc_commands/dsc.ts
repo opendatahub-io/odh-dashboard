@@ -1,9 +1,12 @@
+import { execWithOutput } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 
 type DSC = Record<string, unknown>;
 
 type DashboardComponent = {
-  managementState?: string;
+  standard?: {
+    managementState?: string;
+  };
   maasPortal?: Record<string, unknown>;
 };
 
@@ -22,7 +25,7 @@ type DscResource = {
 export type MaaSPortalDscSnapshot = {
   name: string;
   namespace?: string;
-  dashboardManagementState?: string;
+  standardManagementState?: string;
   maasPortal?: Record<string, unknown>;
 };
 
@@ -122,23 +125,23 @@ export const configureMaaSPortalOnly = (): Cypress.Chainable<MaaSPortalDscSnapsh
     const dashboard = dsc?.spec?.components?.dashboard;
     const name = dsc?.metadata?.name;
 
-    if (!dsc || !name || !dashboard) {
+    if (!dsc || !name || !dashboard?.standard) {
       throw new Error(
-        'A DataScienceCluster with spec.components.dashboard is required for the MaaS Portal E2E',
+        'A DSC v3 resource with spec.components.dashboard.standard is required for the MaaS Portal E2E',
       );
     }
 
     const snapshot: MaaSPortalDscSnapshot = {
       name,
       namespace: dsc.metadata?.namespace,
-      dashboardManagementState: dashboard.managementState,
+      standardManagementState: dashboard.standard.managementState,
       maasPortal: dashboard.maasPortal,
     };
     const patch = {
       spec: {
         components: {
           dashboard: {
-            managementState: 'Removed',
+            standard: { managementState: 'Removed' },
             maasPortal: { managementState: 'Managed' },
           },
         },
@@ -156,7 +159,7 @@ export const configureMaaSPortalOnly = (): Cypress.Chainable<MaaSPortalDscSnapsh
         if (result.exitCode !== 0) {
           throw new Error(`Failed to configure portal-only DSC: ${result.stderr || result.stdout}`);
         }
-        cy.log('Configured DSC with dashboard=Removed and maasPortal=Managed');
+        cy.log('Configured DSC with dashboard.standard=Removed and maasPortal=Managed');
         return cy.wrap(snapshot);
       });
   });
@@ -166,11 +169,40 @@ export const waitForMaaSPortalOnlyInstall = (
   applicationsNamespace: string,
   snapshot: MaaSPortalDscSnapshot,
 ): Cypress.Chainable<string> =>
-  cy
-    .exec(
-      'oc wait dashboards.components.platform.opendatahub.io/default-dashboard --for=condition=MaaSPortalAvailable --timeout=600s',
-      { failOnNonZeroExit: false, timeout: 610000 },
-    )
+  execWithOutput(
+    `oc wait datasciencecluster ${dscResourceArgs(
+      snapshot,
+    )} --for=jsonpath='{.spec.components.dashboard.standard.managementState}'=Removed --timeout=600s --output=name`,
+    610,
+  )
+    .then((dashboardStateResult) => {
+      if (dashboardStateResult.exitCode !== 0) {
+        throw new Error(
+          `DataScienceCluster dashboard.standard managementState did not become Removed: ${
+            dashboardStateResult.stderr || dashboardStateResult.stdout
+          }`,
+        );
+      }
+      return execWithOutput(
+        `oc wait datasciencecluster ${dscResourceArgs(
+          snapshot,
+        )} --for=jsonpath='{.spec.components.dashboard.maasPortal.managementState}'=Managed --timeout=600s --output=name`,
+        610,
+      );
+    })
+    .then((portalStateResult) => {
+      if (portalStateResult.exitCode !== 0) {
+        throw new Error(
+          `DataScienceCluster MaaS Portal managementState did not become Managed: ${
+            portalStateResult.stderr || portalStateResult.stdout
+          }`,
+        );
+      }
+      return execWithOutput(
+        'oc wait dashboards.components.platform.opendatahub.io/default-dashboard --for=condition=MaaSPortalAvailable --timeout=600s --output=name',
+        610,
+      );
+    })
     .then((conditionResult) => {
       if (conditionResult.exitCode !== 0) {
         throw new Error(
@@ -198,12 +230,13 @@ export const waitForMaaSPortalOnlyInstall = (
             .then((dscResult) => {
               const dsc = JSON.parse(dscResult.stdout) as DscResource;
               const dashboardSpec = dsc.spec?.components?.dashboard;
-              if (
-                dashboardSpec?.managementState !== 'Removed' ||
-                dashboardSpec.maasPortal?.managementState !== 'Managed'
-              ) {
+              const standardState = dashboardSpec?.standard?.managementState ?? 'unset';
+              const portalManagementState = dashboardSpec?.maasPortal?.managementState;
+              const portalState =
+                typeof portalManagementState === 'string' ? portalManagementState : 'unset';
+              if (standardState !== 'Removed' || portalState !== 'Managed') {
                 throw new Error(
-                  'DataScienceCluster does not reflect dashboard=Removed and maasPortal=Managed',
+                  `DataScienceCluster does not reflect dashboard.standard=Removed and maasPortal=Managed (got standard=${standardState}, maasPortal=${portalState})`,
                 );
               }
               return cy
@@ -245,7 +278,7 @@ export const restoreDsc = (snapshot: MaaSPortalDscSnapshot): Cypress.Chainable<n
     spec: {
       components: {
         dashboard: {
-          managementState: snapshot.dashboardManagementState ?? null,
+          standard: { managementState: snapshot.standardManagementState ?? null },
           maasPortal: snapshot.maasPortal ?? null,
         },
       },
@@ -265,7 +298,7 @@ export const restoreDsc = (snapshot: MaaSPortalDscSnapshot): Cypress.Chainable<n
           `Failed to restore DSC after MaaS Portal E2E: ${result.stderr || result.stdout}`,
         );
       }
-      cy.log('Restored the original DSC dashboard and MaaS Portal management states');
+      cy.log('Restored the original DSC dashboard.standard and MaaS Portal management states');
       return cy.wrap(null);
     });
 };
