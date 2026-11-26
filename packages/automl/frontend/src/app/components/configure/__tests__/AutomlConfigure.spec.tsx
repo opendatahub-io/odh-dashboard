@@ -8,6 +8,7 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
+import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
@@ -97,34 +98,36 @@ function getMockS3MutateAsync(): jest.Mock {
 // Mock S3FileExplorer component
 jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
-  default: ({
-    id,
-    isOpen,
-    onSelectFiles,
-    onClose,
-  }: {
-    id: string;
-    isOpen: boolean;
-    onSelectFiles: (files: ExplorerFiles) => void;
-    onClose: () => void;
-  }) =>
-    isOpen ? (
-      <div data-testid="file-explorer-modal">
-        <button
-          data-testid={`file-explorer-select-${id.endsWith('-test') ? 'test-' : ''}file`}
-          onClick={() => {
-            const isTestData = id.endsWith('-test');
-            const file = isTestData
-              ? { path: '/test.csv', name: 'test.csv', type: 'csv' }
-              : { path: '/data.csv', name: 'data.csv', type: 'csv' };
-            onSelectFiles([file]);
-            onClose();
-          }}
-        >
-          Select File
-        </button>
-      </div>
-    ) : null,
+  default: jest.fn(
+    ({
+      id,
+      isOpen,
+      onSelectFiles,
+      onClose,
+    }: {
+      id: string;
+      isOpen: boolean;
+      onSelectFiles: (files: ExplorerFiles) => void;
+      onClose: () => void;
+    }) =>
+      isOpen ? (
+        <div data-testid="file-explorer-modal">
+          <button
+            data-testid={`file-explorer-select-${id.endsWith('-test') ? 'test-' : ''}file`}
+            onClick={() => {
+              const isTestData = id.endsWith('-test');
+              const file = isTestData
+                ? { path: '/test.csv', name: 'test.csv', type: 'csv' }
+                : { path: '/data.csv', name: 'data.csv', type: 'csv' };
+              onSelectFiles([file]);
+              onClose();
+            }}
+          >
+            Select File
+          </button>
+        </div>
+      ) : null,
+  ),
 }));
 
 // Mock SecretSelector — maps UUID to label like the real selector
@@ -583,6 +586,37 @@ describe('AutomlConfigure', () => {
           expect.anything(),
           expect.anything(),
         );
+      },
+    );
+
+    it.each([false, true])(
+      'should ignore connection creation after project navigation (round trip: %s)',
+      async (roundTrip) => {
+        let finishCreation: () => void = () => {
+          throw new Error('Creation has not started');
+        };
+        mockCreateSecretMutateAsync.mockImplementationOnce(
+          () =>
+            new Promise<void>((resolve) => {
+              finishCreation = resolve;
+            }),
+        );
+        const { rerender } = renderComponent();
+        openConnectionModal();
+        await fillConnectionModal();
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Add connection' }));
+        await waitFor(() => expect(mockCreateSecretMutateAsync).toHaveBeenCalled());
+        mockUseParams.mockReturnValue({ namespace: 'other-namespace' });
+        rerender(<AutomlConfigure />);
+        if (roundTrip) {
+          mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+          rerender(<AutomlConfigure />);
+        }
+        openConnectionModal();
+        await act(async () => finishCreation());
+        expect(screen.getByRole('dialog', { name: /^Add a connection/ })).toBeInTheDocument();
+        expect(mockSecretRefresh).not.toHaveBeenCalled();
+        expect(screen.queryByTestId('aws-secret-selector-value')).not.toBeInTheDocument();
       },
     );
 
@@ -1170,11 +1204,20 @@ describe('AutomlConfigure', () => {
         'train.csv',
       );
 
+      const explorerCallsBeforeNavigation = jest.mocked(S3FileExplorer).mock.calls.length;
       const schemaCallsBeforeNavigation = mockuseS3GetFileSchemaQuery.mock.calls.length;
       const rowCountQuery = jest.mocked(useS3GetFileRowCountQuery);
       const countCallsBeforeNavigation = rowCountQuery.mock.calls.length;
       mockUseParams.mockReturnValue({ namespace: 'other-namespace' });
       rerender(<AutomlConfigure />);
+      jest
+        .mocked(S3FileExplorer)
+        .mock.calls.slice(explorerCallsBeforeNavigation)
+        .forEach(([props]) => {
+          expect(props.namespace).toBe('other-namespace');
+          expect(props.s3SecretName).not.toBe('Test Secret 1');
+          expect(props.bucket).not.toBe('test-bucket-1');
+        });
       const callsAfterNavigation = [
         ...mockuseS3GetFileSchemaQuery.mock.calls.slice(schemaCallsBeforeNavigation),
         ...rowCountQuery.mock.calls.slice(countCallsBeforeNavigation),
@@ -1404,6 +1447,7 @@ describe('AutomlConfigure', () => {
     it.each([false, true])(
       'should show compatibility for both selected files (mismatch: %s)',
       (hasMismatch) => {
+        let pausedFile: string | undefined;
         mockuseS3GetFileSchemaQuery.mockImplementation((_namespace, _secret, _bucket, key) => {
           const columns =
             hasMismatch && key === 'test.csv' ? MOCK_COLUMNS.slice(0, 1) : MOCK_COLUMNS;
@@ -1419,10 +1463,11 @@ describe('AutomlConfigure', () => {
               : undefined,
             isLoading: false,
             isFetching: false,
+            isPaused: key === pausedFile,
             resetSchemaCache: mockResetSchemaCache,
           } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>;
         });
-        renderComponent();
+        const { rerender } = renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
         fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
         fireEvent.click(screen.getByTestId('file-explorer-select-file'));
@@ -1448,6 +1493,14 @@ describe('AutomlConfigure', () => {
             { exact: false },
           ),
         ).toBeInTheDocument();
+        for (const file of ['data.csv', 'test.csv']) {
+          pausedFile = file;
+          rerender(<AutomlConfigure />);
+          expect(screen.getByRole('status')).toHaveTextContent('Waiting for connection');
+          expect(screen.queryByRole('button', { name: 'View details' })).not.toBeInTheDocument();
+        }
+        pausedFile = undefined;
+        rerender(<AutomlConfigure />);
         fireEvent.click(screen.getByRole('button', { name: 'View details' }));
         expect(
           screen.getByRole('grid', { name: 'Training and test column comparison' }),

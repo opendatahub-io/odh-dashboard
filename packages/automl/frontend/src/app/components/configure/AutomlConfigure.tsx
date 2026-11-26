@@ -182,10 +182,14 @@ function AutomlConfigure({
   );
   const [isTargetColumnOpen, setIsTargetColumnOpen] = useState(false);
   const [isMetricModalOpen, setIsMetricModalOpen] = useState(false);
-  const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
+  const [connectionModalGeneration, setConnectionModalGeneration] = useState<number>();
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const [filePreview, setFilePreview] = useState<{ fileKey: string; scope: string }>();
+  const [filePreview, setFilePreview] = useState<{
+    fileKey: string;
+    scope: string;
+    trigger: HTMLElement;
+  }>();
   const [fileExplorerTarget, setFileExplorerTarget] = useState<'train' | 'test'>('train');
   const [isTrainingAccordionExpanded, setIsTrainingAccordionExpanded] = useState(false);
   const [isTestAccordionExpanded, setIsTestAccordionExpanded] = useState(false);
@@ -453,8 +457,8 @@ function AutomlConfigure({
 
   const previewScope = `${namespace}/${trainDataSecretName}/${trainDataBucketName}`;
   const previewFileKey = filePreview?.scope === previewScope ? filePreview.fileKey : undefined;
-  const setPreviewFileKey = (fileKey?: string) =>
-    setFilePreview(fileKey ? { fileKey, scope: previewScope } : undefined);
+  const openFilePreview = (fileKey: string, event: React.MouseEvent<HTMLButtonElement>) =>
+    setFilePreview({ fileKey, scope: previewScope, trigger: event.currentTarget });
 
   const {
     data: trainingDataRowCount,
@@ -538,6 +542,7 @@ function AutomlConfigure({
   // Clear namespace-scoped connection state on navigation, preserving saved values on mount.
   useReconfigureSafeEffect(() => {
     setDatasetNamespace(namespace);
+    setConnectionModalGeneration(undefined);
     setSelectedSecret(undefined);
     setValue('train_data_secret_name', '', { shouldValidate: true });
     setValue('train_data_bucket_name', '', { shouldValidate: true });
@@ -782,7 +787,7 @@ function AutomlConfigure({
               key={`add-new-connection-${dataTestId}`}
               variant="secondary"
               isDisabled={formIsSubmitting}
-              onClick={() => setIsConnectionModalOpen(true)}
+              onClick={() => setConnectionModalGeneration(namespaceGenerationRef.current)}
             >
               Add new connection
             </Button>
@@ -1351,6 +1356,7 @@ function AutomlConfigure({
                               test={testSampleQuery.sample}
                               trainingFile={trainDataFileKey}
                               testFile={testDataFileKey ?? ''}
+                              isPaused={isTrainingSamplePaused || testSampleQuery.isPaused}
                               isChecking={
                                 isFetchingColumns ||
                                 testSampleQuery.isFetching ||
@@ -1359,7 +1365,7 @@ function AutomlConfigure({
                               }
                               isCovered={Boolean(previewFileKey)}
                               hasError={Boolean(columnsError || testSampleQuery.error)}
-                              onViewFile={setPreviewFileKey}
+                              onViewFile={openFilePreview}
                             />
                           </StackItem>
                         </>
@@ -1722,21 +1728,22 @@ function AutomlConfigure({
         </GridItem>
       </Grid>
 
-      {isConnectionModalOpen && (
+      {connectionModalGeneration !== undefined && (
         <ConnectionModal
           connectionTypes={automlConnectionTypes}
           project={namespace}
           onClose={() => {
-            setIsConnectionModalOpen(false);
+            if (namespaceGenerationRef.current === connectionModalGeneration) {
+              setConnectionModalGeneration(undefined);
+            }
           }}
           onSubmit={async (connection: Connection) => {
             const refresh = secretsRefreshRef.current;
-            if (!refresh) {
+            if (namespaceGenerationRef.current !== connectionModalGeneration || !refresh) {
               return;
             }
-            const startingGeneration = namespaceGenerationRef.current;
             const list = await refresh();
-            if (namespaceGenerationRef.current !== startingGeneration) {
+            if (namespaceGenerationRef.current !== connectionModalGeneration) {
               return;
             }
             const secret = list?.find((s) => s.name === connection.metadata.name);
@@ -1777,21 +1784,21 @@ function AutomlConfigure({
         apiPath="/automl/api/v1/s3"
         presentation="tearsheet"
         isCovered={Boolean(previewFileKey)}
-        bucket={trainDataBucketName}
+        bucket={datasetBucketName}
         renderFilePreview={(file) =>
           file.type.toLowerCase() === 'csv' ? (
             <DatasetFileDetailsPreview
               key={file.path}
               namespace={namespace}
-              secretName={trainDataSecretName}
-              bucket={trainDataBucketName}
+              secretName={datasetSecretName}
+              bucket={datasetBucketName}
               fileKey={file.path.replace(/^\//, '')}
-              onViewFile={() => setPreviewFileKey(file.path.replace(/^\//, ''))}
+              onViewFile={(event) => openFilePreview(file.path.replace(/^\//, ''), event)}
             />
           ) : null
         }
         namespace={namespace}
-        s3SecretName={trainDataSecretName}
+        s3SecretName={datasetSecretName}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelectFiles={(files) => {
@@ -1826,10 +1833,11 @@ function AutomlConfigure({
         <DatasetFilePreview
           key={`${namespace}/${trainDataSecretName}/${trainDataBucketName}/${previewFileKey}`}
           namespace={namespace}
-          secretName={trainDataSecretName}
-          bucket={trainDataBucketName}
+          secretName={datasetSecretName}
+          bucket={datasetBucketName}
           fileKey={previewFileKey}
-          onClose={() => setPreviewFileKey(undefined)}
+          trigger={filePreview?.trigger}
+          onClose={() => setFilePreview(undefined)}
         />
       )}
       <OptimizationMetricModal

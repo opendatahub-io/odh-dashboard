@@ -21,3 +21,8 @@
     );
   }
 }
+
+.automl-dataset-file-preview-backdrop {
+  // Place the nested preview above the covered parent's modal box.
+  --pf-v6-c-backdrop--ZIndex: var(--pf-t--global--z-index--xl);
+}

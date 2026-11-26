@@ -43,36 +43,53 @@ type Props = {
   trainingFile: string;
   testFile: string;
   isChecking: boolean;
+  isPaused?: boolean;
   hasError: boolean;
   isCovered?: boolean;
-  onViewFile: (fileKey: string) => void;
+  onViewFile: (fileKey: string, event: React.MouseEvent<HTMLButtonElement>) => void;
 };
 
 function DatasetCompatibilityCheck({
-  training,
-  test,
+  training: currentTraining,
+  test: currentTest,
   trainingFile,
   testFile,
   isChecking,
+  isPaused = false,
   hasError,
   isCovered = false,
   onViewFile,
 }: Props): React.JSX.Element | null {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [openSamples, setOpenSamples] = React.useState<{
+    training: DatasetSample;
+    test: DatasetSample;
+  }>();
+  const isOpen = Boolean(openSamples);
+  const hasCurrentSamples = Boolean(
+    currentTraining?.columns.length &&
+    currentTest?.columns.length &&
+    currentTraining.sampleSize &&
+    currentTest.sampleSize,
+  );
+  // Preserve the open dialog and its child portal if a refetch returns an empty file.
+  const training = hasCurrentSamples ? currentTraining : openSamples?.training;
+  const test = hasCurrentSamples ? currentTest : openSamples?.test;
   const [tab, setTab] = React.useState<string | number>(0);
   if (!trainingFile || !testFile || trainingFile === testFile) {
     return null;
   }
-  if (isChecking && !isOpen) {
+  if ((isChecking || isPaused) && !isOpen) {
     return (
       <Flex alignItems={{ default: 'alignItemsCenter' }} role="status">
         <Spinner size="sm" aria-label="Checking compatibility" />
-        <span>Checking compatibility…</span>
+        <span>
+          {isPaused ? 'Waiting for connection to check compatibility…' : 'Checking compatibility…'}
+        </span>
       </Flex>
     );
   }
   if (
-    hasError ||
+    (hasError && !isOpen) ||
     !training?.columns.length ||
     !test?.columns.length ||
     !training.sampleSize ||
@@ -121,7 +138,7 @@ function DatasetCompatibilityCheck({
               variant="link"
               isInline
               data-testid="dataset-compatibility-view-details"
-              onClick={() => setIsOpen(true)}
+              onClick={() => setOpenSamples({ training, test })}
             >
               View details
             </Button>
@@ -136,7 +153,7 @@ function DatasetCompatibilityCheck({
           modalProps={{ disableFocusTrap: isCovered }}
           onClose={() => {
             if (!isCovered) {
-              setIsOpen(false);
+              setOpenSamples(undefined);
             }
           }}
           aria-label="Compatibility check"
@@ -147,11 +164,27 @@ function DatasetCompatibilityCheck({
           />
           <TearsheetBody>
             <Stack hasGutter>
-              {isChecking && (
+              {(hasError || !hasCurrentSamples) && (
+                <StackItem>
+                  <Alert
+                    isInline
+                    variant="danger"
+                    title="Compatibility check could not be refreshed"
+                  >
+                    The displayed comparison uses previously sampled data. Close this view and retry
+                    sampling the files.
+                  </Alert>
+                </StackItem>
+              )}
+              {(isChecking || isPaused) && (
                 <StackItem>
                   <Flex alignItems={{ default: 'alignItemsCenter' }} role="status">
                     <Spinner size="sm" aria-label="Refreshing compatibility" />
-                    <span>Refreshing compatibility…</span>
+                    <span>
+                      {isPaused
+                        ? 'Waiting for connection to check compatibility…'
+                        : 'Refreshing compatibility…'}
+                    </span>
                   </Flex>
                 </StackItem>
               )}
@@ -201,7 +234,9 @@ function DatasetCompatibilityCheck({
                               <Flex
                                 alignItems={{ default: 'alignItemsCenter' }}
                                 spaceItems={{ default: 'spaceItemsSm' }}
-                                className={`pf-v6-u-text-color-status-${COLUMN_STATUS_COLOR[column.status]}`}
+                                className={`pf-v6-u-text-color-status-${
+                                  COLUMN_STATUS_COLOR[column.status]
+                                }`}
                               >
                                 <FlexItem>
                                   {column.status === 'match' ? (
@@ -253,7 +288,7 @@ function DatasetCompatibilityCheck({
                                       <Button
                                         variant="link"
                                         isInline
-                                        onClick={() => onViewFile(file)}
+                                        onClick={(event) => onViewFile(file, event)}
                                       >
                                         View file
                                       </Button>

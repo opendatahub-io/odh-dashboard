@@ -35,6 +35,24 @@ describe('DatasetCompatibilityCheck', () => {
     expect(screen.queryByText('View details')).not.toBeInTheDocument();
   });
 
+  it('should wait for a connection with cached samples and retain an open comparison', () => {
+    const input = props();
+    const { rerender } = render(<DatasetCompatibilityCheck {...input} isPaused />);
+    expect(screen.getByRole('status')).toHaveTextContent('Waiting for connection');
+    expect(
+      screen.queryByText('Compatibility check passed', { exact: false }),
+    ).not.toBeInTheDocument();
+    rerender(<DatasetCompatibilityCheck {...input} />);
+    fireEvent.click(screen.getByTestId('dataset-compatibility-view-details'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Data preview' }));
+    rerender(<DatasetCompatibilityCheck {...input} isPaused />);
+    expect(screen.getByRole('status')).toHaveTextContent('Waiting for connection');
+    expect(screen.getByRole('tab', { name: 'Data preview' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
   it('should not compare the same training and test file', () => {
     render(<DatasetCompatibilityCheck {...props()} testFile="train.csv" />);
     expect(screen.queryByText('View details')).not.toBeInTheDocument();
@@ -98,7 +116,10 @@ describe('DatasetCompatibilityCheck', () => {
     expect(screen.getByText('Previewing rows 21–21 of 21')).toBeInTheDocument();
     expect(within(trainingTable).getByText('row-21')).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'View file' })[1]);
-    expect(input.onViewFile).toHaveBeenCalledWith('test.csv');
+    expect(input.onViewFile).toHaveBeenCalledWith(
+      'test.csv',
+      expect.objectContaining({ type: 'click' }),
+    );
   });
 
   it('should clamp the preview page when a refreshed sample has fewer rows', () => {

@@ -11,7 +11,9 @@ export default function DatasetFileDetailsPreview({
   bucket,
   fileKey,
   onViewFile,
-}: Omit<DatasetFilePreviewProps, 'onClose'> & { onViewFile: () => void }): React.JSX.Element {
+}: Omit<DatasetFilePreviewProps, 'onClose' | 'trigger'> & {
+  onViewFile: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}): React.JSX.Element {
   const query = useS3GetFileSchemaQuery(namespace, secretName, bucket, fileKey);
   const previewRows = Math.min(3, query.sample?.sampleRows.length ?? 0);
   return (
