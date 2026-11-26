@@ -127,6 +127,10 @@ class EvaluationsPage {
     return cy.findByTestId('choose-own-benchmarks-tile');
   }
 
+  findImportCollectionButton() {
+    return cy.findByTestId('import-collection-button');
+  }
+
   findBrowseAllBenchmarksExploreButton() {
     return cy.findByTestId('browse-all-benchmarks-explore');
   }

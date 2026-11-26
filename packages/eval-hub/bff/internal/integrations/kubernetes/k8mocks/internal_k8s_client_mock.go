@@ -40,6 +40,11 @@ func (m *InternalKubernetesClientMock) CanListEvalHubInstances(_ context.Context
 	return true, nil
 }
 
+// CanCreateEvalHubResources always returns true in tests — same envtest SAR unreliability as CanListEvalHubInstances.
+func (m *InternalKubernetesClientMock) CanCreateEvalHubResources(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
 // GetEvalHubServiceURL returns a deterministic fake URL for test environments.
 func (m *InternalKubernetesClientMock) GetEvalHubServiceURL(_ context.Context, _ *k8s.RequestIdentity, _ string) (string, error) {
 	return "http://mock-evalhub.test.svc.cluster.local", nil

@@ -11,6 +11,5 @@ spec:
     - name: "{{MODEL_NAME}}"
       namespace: "{{PROJECT_NAME}}"
   subjects:
-    groups:
-      - name: rhods-admins
-      - name: rhods-users
+    # Set by createMaaSAuthPolicy from MAAS_OWNER_GROUPS (default: rhods-admins, rhods-users).
+    groups: {{OWNER_GROUPS}}

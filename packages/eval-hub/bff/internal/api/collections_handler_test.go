@@ -360,7 +360,7 @@ func TestPatchCollectionHandlerRejectsInvalidBenchmarkTestDataRefs(t *testing.T)
 			Benchmarks: []evalhub.CollectionBenchmark{{
 				ID:         "mmlu",
 				ProviderID: "lm_evaluation_harness",
-				Weight:     1,
+				Weight:     weightPtr(1),
 				TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
 					URL: "https://github.com/example/data.git",
 					Ref: "main",
@@ -468,7 +468,7 @@ func TestPatchCollectionHandlerAllowsValidBenchmarkTestDataRef(t *testing.T) {
 		Benchmarks: []evalhub.CollectionBenchmark{{
 			ID:         "mmlu",
 			ProviderID: "lm_evaluation_harness",
-			Weight:     1,
+			Weight:     weightPtr(1),
 			TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
 				URL: "https://github.com/example/data.git",
 				Ref: "main",
@@ -764,7 +764,7 @@ func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 				{
 					ID:         "mmlu",
 					ProviderID: "lm_evaluation_harness",
-					Weight:     1,
+					Weight:     weightPtr(1),
 					TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
 						URL: firstURL,
 						Ref: "main",
@@ -773,7 +773,7 @@ func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 				{
 					ID:         "hellaswag",
 					ProviderID: "lm_evaluation_harness",
-					Weight:     1,
+					Weight:     weightPtr(1),
 					TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
 						URL: secondURL,
 						Ref: "main",
@@ -802,7 +802,7 @@ func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 			status: http.StatusOK,
 			verify: func(t *testing.T, result CollectionEnvelope) {
 				assert.Len(t, result.Data.Benchmarks, 2)
-				assert.Equal(t, float64(2), result.Data.Benchmarks[1].Weight)
+				assert.Equal(t, float64(2), *result.Data.Benchmarks[1].Weight)
 			},
 		},
 		{
@@ -816,7 +816,7 @@ func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 			status: http.StatusOK,
 			verify: func(t *testing.T, result CollectionEnvelope) {
 				assert.Len(t, result.Data.Benchmarks, 2)
-				assert.Equal(t, float64(2), result.Data.Benchmarks[0].Weight)
+				assert.Equal(t, float64(2), *result.Data.Benchmarks[0].Weight)
 				assert.Equal(t, "https://user:pass@example.com/legacy.git", result.Data.Benchmarks[0].TestDataRef.Git.URL)
 			},
 		},
@@ -1086,7 +1086,7 @@ func TestCreateCollectionHandlerRequiresNameAndBenchmark(t *testing.T) {
 		{name: "blank name", body: evalhub.CreateCollectionRequest{Name: " \t", Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}}}},
 		{name: "missing benchmark", body: evalhub.CreateCollectionRequest{Name: "Suite"}},
 		{name: "blank benchmark id", body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{ID: " \t"}}}},
-		{name: "negative benchmark weight", body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: -0.1}}}},
+		{name: "negative benchmark weight", body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: weightPtr(-0.1)}}}},
 		{
 			name: "test data ref with no variant",
 			body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{
@@ -1216,7 +1216,7 @@ func TestCloneCollectionHandler(t *testing.T) {
 		Tags: []string{"custom", "agent"}, Domains: &domains, Tasks: &tasks, Modalities: &modalities,
 		Industries: &industries, EvaluationTargets: &evaluationTargets, Custom: map[string]any{"source": "copy-suite"},
 		PassCriteria: &evalhub.CollectionPassCriteria{Threshold: 0.8},
-		Benchmarks:   []evalhub.CollectionBenchmark{{ID: "arc_challenge", ProviderID: "lm_evaluation_harness", Weight: 0.8, Parameters: map[string]any{"num_few_shot": 5}}},
+		Benchmarks:   []evalhub.CollectionBenchmark{{ID: "arc_challenge", ProviderID: "lm_evaluation_harness", Weight: weightPtr(0.8), Parameters: map[string]any{"num_few_shot": 5}}},
 	}
 
 	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
@@ -1337,7 +1337,7 @@ func TestCloneCollectionHandlerInvalidBenchmark(t *testing.T) {
 		{name: "empty", benchmarks: []evalhub.CollectionBenchmark{{ID: ""}}},
 		{name: "whitespace-only", benchmarks: []evalhub.CollectionBenchmark{{ID: " \t"}}},
 		{name: "invalid ID after valid ID", benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}, {ID: " "}}},
-		{name: "negative weight", benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: -0.1}}},
+		{name: "negative weight", benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: weightPtr(-0.1)}}},
 		{
 			name: "test data ref with no variant",
 			benchmarks: []evalhub.CollectionBenchmark{{

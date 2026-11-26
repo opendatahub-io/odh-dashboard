@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   MaaSModelRefSummary,
@@ -47,6 +47,7 @@ export const useSubscriptionModels = (
   const [models, setModels] = React.useState<SubscriptionModelEntry[]>(initialModels);
   const [isAddModelsModalOpen, setIsAddModelsModalOpen] = React.useState(false);
   const [editLimitsTarget, setEditLimitsTarget] = React.useState<number | null>(null);
+  const trackEvent = useTrackEvent();
 
   const allModelsHaveRateLimits = models.every((m) => m.tokenRateLimits.length > 0);
 
@@ -93,7 +94,7 @@ export const useSubscriptionModels = (
 
   const handleSaveRateLimits = React.useCallback(
     (rateLimits: TokenRateLimit[]) => {
-      fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED, {
+      trackEvent(MaaSEvents.SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED, {
         outcome: TrackingOutcome.submit,
         limitCount: rateLimits.length,
       } satisfies SubscriptionTokenLimitsConfiguredSuccessProperties);
@@ -107,15 +108,15 @@ export const useSubscriptionModels = (
       );
       setEditLimitsTarget(null);
     },
-    [editLimitsTarget],
+    [editLimitsTarget, trackEvent],
   );
 
   const handleCloseRateLimitsModal = React.useCallback(() => {
     setEditLimitsTarget(null);
-    fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED, {
+    trackEvent(MaaSEvents.SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED, {
       outcome: TrackingOutcome.cancel,
     } satisfies SubscriptionTokenLimitsConfiguredCancelProperties);
-  }, []);
+  }, [trackEvent]);
 
   return {
     models,

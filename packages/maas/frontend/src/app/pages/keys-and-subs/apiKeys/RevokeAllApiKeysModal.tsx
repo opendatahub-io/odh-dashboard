@@ -13,7 +13,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { bulkRevokeApiKeys } from '~/app/api/api-keys';
 import useUser from '~/app/hooks/useUser';
@@ -29,6 +29,7 @@ type RevokeAllApiKeysModalProps = {
 };
 
 const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, keyCount }) => {
+  const trackEvent = useTrackEvent();
   const { userId } = useUser();
   const [revoking, setRevoking] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -42,7 +43,7 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
 
     try {
       await bulkRevokeApiKeys()({}, userId);
-      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+      trackEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: true,
         bulkMode: ApiKeyBulkRevokeMode.ALL_MY_KEYS,
@@ -52,7 +53,7 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
       onClose(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to revoke API keys';
-      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+      trackEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: errorCategory(err),
@@ -63,13 +64,13 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
       setError(err instanceof Error ? err : new Error(message));
       setRevoking(false);
     }
-  }, [onClose, userId, keyCount]);
+  }, [onClose, userId, keyCount, trackEvent]);
 
   const onBeforeClose = (revoked: boolean) => {
     if (revoked) {
       handleRevoke();
     } else {
-      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+      trackEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
         outcome: TrackingOutcome.cancel,
         bulkMode: ApiKeyBulkRevokeMode.ALL_MY_KEYS,
         keyCount,

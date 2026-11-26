@@ -1746,6 +1746,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('review-step-model-details');
   }
 
+  findReviewStepModelDeploymentSection() {
+    return cy.findByTestId('review-step-model-deployment');
+  }
+
   findReviewHuggingFaceApiKey() {
     return cy.findByTestId('review-item-huggingFaceApiKey');
   }

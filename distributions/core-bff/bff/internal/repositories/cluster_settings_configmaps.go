@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -17,85 +18,89 @@ import (
 // --- ConfigMap readers ---
 
 func readCullerTimeout(ctx context.Context, saClientset kubernetes.Interface, namespace string) (int, error) {
-	cm, err := saClientset.CoreV1().ConfigMaps(namespace).Get(ctx, cullerConfigName, metav1.GetOptions{})
+	cm, err := getConfigMap(ctx, saClientset, namespace, cullerConfigName)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return defaultCullerTimeout, nil
-		}
 		return 0, fmt.Errorf("failed to get culler config: %w", err)
 	}
-	if cm.Data == nil || cm.Data[keyCullingEnabled] != "true" {
-		return defaultCullerTimeout, nil
+	return cullerTimeoutOf(cm), nil
+}
+
+// cullerTimeoutOf returns the culler timeout, in seconds, a culler ConfigMap
+// stores; defaultCullerTimeout (culling off) when it is nil or disabled.
+func cullerTimeoutOf(cm *corev1.ConfigMap) int {
+	if !cullingFlagOn(cm) {
+		return defaultCullerTimeout
 	}
 	if idleTime, ok := cm.Data[keyCullIdleTime]; ok {
 		if mins, parseErr := strconv.Atoi(idleTime); parseErr == nil {
-			return mins * 60, nil
+			return mins * 60
 		}
 	}
-	return defaultCullerTimeout, nil
+	return defaultCullerTimeout
 }
 
 func readUserTrackingEnabled(ctx context.Context, saClientset kubernetes.Interface, namespace string) (bool, error) {
-	cm, err := saClientset.CoreV1().ConfigMaps(namespace).Get(ctx, segmentKeyConfigName, metav1.GetOptions{})
+	cm, err := getConfigMap(ctx, saClientset, namespace, segmentKeyConfigName)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return false, nil
-		}
 		return false, fmt.Errorf("failed to get segment key config: %w", err)
 	}
-	if cm.Data == nil {
-		return false, nil
-	}
-	return cm.Data[keySegmentKeyEnabled] == "true", nil
+	return trackingEnabledOf(cm), nil
+}
+
+// cullingFlagOn reports whether a culler ConfigMap turns culling on
+// (ENABLE_CULLING "true", in any case).
+func cullingFlagOn(cm *corev1.ConfigMap) bool {
+	return cm != nil && strings.EqualFold(cm.Data[keyCullingEnabled], "true")
+}
+
+// trackingEnabledOf returns the user-tracking setting a segment-key ConfigMap
+// stores: only segmentKeyEnabled "true" is enabled; nil, absent or any other
+// value is disabled.
+func trackingEnabledOf(cm *corev1.ConfigMap) bool {
+	return cm != nil && cm.Data[keySegmentKeyEnabled] == "true"
 }
 
 // --- ConfigMap writers ---
 
-func (r *ClusterSettingsRepository) detectChanges(
-	ctx context.Context,
-	namespace string, settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
-) bool {
-	if settings.PVCSize != currentPVCSize(currentConfig) {
-		return true
+// applyCullerConfig performs the planned culler ConfigMap operation and only
+// that one, bound to the ConfigMap the plan read: a planned create fails if the
+// ConfigMap now exists, a planned update or delete fails with a conflict if it
+// changed, and a ConfigMap left alone must be unchanged.
+func (r *ClusterSettingsRepository) applyCullerConfig(ctx context.Context, cs kubernetes.Interface, namespace string, plan *ClusterSettingsPlan) error {
+	cmClient := cs.CoreV1().ConfigMaps(namespace)
+	cullerMinutes := plan.settings.CullerTimeout / 60
+
+	switch plan.cullerOp {
+	case cullerOpNone:
+		return requireUnchanged(ctx, cs, namespace, cullerConfigName, plan.culler)
+	case cullerOpDelete:
+		rv := plan.culler.ResourceVersion
+		err := cmClient.Delete(ctx, cullerConfigName, metav1.DeleteOptions{Preconditions: &metav1.Preconditions{ResourceVersion: &rv}})
+		if k8serrors.IsNotFound(err) {
+			// Already gone: the planned state holds, and the planned rollout follows.
+			return nil
+		}
+		return err
+	case cullerOpCreate:
+		return r.createCullerConfigMap(ctx, cs, namespace, true, cullerMinutes)
+	case cullerOpUpdate:
+		cm := plan.culler.DeepCopy()
+		if cm.Data == nil {
+			cm.Data = map[string]string{}
+		}
+		cm.Data[keyCullingEnabled] = strconv.FormatBool(true)
+		cm.Data[keyCullIdleTime] = strconv.Itoa(cullerMinutes)
+		_, err := cmClient.Update(ctx, cm, metav1.UpdateOptions{})
+		if k8serrors.IsNotFound(err) {
+			return planConflict(cullerConfigName, "was deleted")
+		}
+		return err
+	default:
+		return fmt.Errorf("unknown culler config operation %q", plan.cullerOp)
 	}
-	currentTimeout, err := readCullerTimeout(ctx, r.saClientset, namespace)
-	if err != nil {
-		return true
-	}
-	return settings.CullerTimeout != currentTimeout
 }
 
-func (r *ClusterSettingsRepository) updateCullerConfig(ctx context.Context, namespace string, cullerTimeout int) error {
-	cmClient := r.saClientset.CoreV1().ConfigMaps(namespace)
-	cullerMinutes := cullerTimeout / 60
-	isEnabled := cullerTimeout != defaultCullerTimeout
-
-	if !isEnabled {
-		err := cmClient.Delete(ctx, cullerConfigName, metav1.DeleteOptions{})
-		if err != nil && !k8serrors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete culler config: %w", err)
-		}
-		return nil
-	}
-
-	cm, err := cmClient.Get(ctx, cullerConfigName, metav1.GetOptions{})
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return err
-		}
-		return r.createCullerConfigMap(ctx, namespace, isEnabled, cullerMinutes)
-	}
-
-	if cm.Data == nil {
-		cm.Data = map[string]string{}
-	}
-	cm.Data[keyCullingEnabled] = strconv.FormatBool(isEnabled)
-	cm.Data[keyCullIdleTime] = strconv.Itoa(cullerMinutes)
-	_, err = cmClient.Update(ctx, cm, metav1.UpdateOptions{})
-	return err
-}
-
-func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, namespace string, isEnabled bool, cullerMinutes int) error {
+func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, cs kubernetes.Interface, namespace string, isEnabled bool, cullerMinutes int) error {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cullerConfigName,
@@ -110,35 +115,68 @@ func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, n
 			keyIdlenessCheckPeriod: defaultIdlenessCheckPeriod,
 		},
 	}
-	_, err := r.saClientset.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
+	_, err := cs.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
 	return err
 }
 
-func (r *ClusterSettingsRepository) updateSegmentKeyConfig(ctx context.Context, namespace string, enabled bool) error {
-	cmClient := r.saClientset.CoreV1().ConfigMaps(namespace)
-	cm, err := cmClient.Get(ctx, segmentKeyConfigName, metav1.GetOptions{})
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return nil
-		}
-		return err
+// applySegmentKeyConfig performs the planned segment-key ConfigMap update,
+// bound to the ConfigMap the plan read, or checks that a ConfigMap the plan left
+// alone is unchanged. A ConfigMap changed or removed since the plan is a
+// conflict, so the request does not report success for a setting it did not
+// store.
+func (r *ClusterSettingsRepository) applySegmentKeyConfig(ctx context.Context, cs kubernetes.Interface, namespace string, plan *ClusterSettingsPlan) error {
+	if !plan.trackingManaged {
+		return nil
 	}
+	if !plan.updateSegmentKey {
+		return requireUnchanged(ctx, cs, namespace, segmentKeyConfigName, plan.segmentKey)
+	}
+	cm := plan.segmentKey.DeepCopy()
 	if cm.Data == nil {
 		cm.Data = map[string]string{}
 	}
-	cm.Data[keySegmentKeyEnabled] = strconv.FormatBool(enabled)
-	_, err = cmClient.Update(ctx, cm, metav1.UpdateOptions{})
+	cm.Data[keySegmentKeyEnabled] = strconv.FormatBool(plan.settings.UserTrackingEnabled)
+	_, err := cs.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
+	if k8serrors.IsNotFound(err) {
+		return planConflict(segmentKeyConfigName, "was deleted")
+	}
 	return err
+}
+
+// requireUnchanged checks that a ConfigMap the plan left alone is as the plan
+// read it: still absent when planned is nil, otherwise at the same
+// resourceVersion. One created or changed since the plan holds a value this
+// request did not write or check, so it is reported as a conflict instead of
+// success.
+func requireUnchanged(ctx context.Context, cs kubernetes.Interface, namespace, name string, planned *corev1.ConfigMap) error {
+	current, err := getConfigMap(ctx, cs, namespace, name)
+	if err != nil {
+		return err
+	}
+	switch {
+	case planned == nil && current != nil:
+		return planConflict(name, "was created")
+	case planned != nil && current == nil:
+		return planConflict(name, "was deleted")
+	case planned != nil && current.ResourceVersion != planned.ResourceVersion:
+		return planConflict(name, "was changed")
+	}
+	return nil
+}
+
+func planConflict(name, what string) error {
+	return k8serrors.NewConflict(corev1.Resource("configmaps"), name,
+		fmt.Errorf("it %s after the update was planned; reload the settings and save again", what))
 }
 
 // --- Deployment rollout ---
 
-func (r *ClusterSettingsRepository) rolloutDeployment(ctx context.Context, namespace, name string) error {
+func (r *ClusterSettingsRepository) rolloutDeployment(ctx context.Context, cs kubernetes.Interface, namespace, name string) error {
 	patch := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"%s":"%s"}}}}}`,
 		annotationRestartedAt,
 		time.Now().UTC().Format(time.RFC3339))
 
-	_, err := r.saClientset.AppsV1().Deployments(namespace).Patch(
+	_, err := cs.AppsV1().Deployments(namespace).Patch(
 		ctx, name, types.MergePatchType, []byte(patch), metav1.PatchOptions{},
 	)
 	return err

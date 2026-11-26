@@ -192,6 +192,25 @@ describe('useFormYamlResources', () => {
     expect(renderResult.result.current.resources.resources).toEqual({ model: updatedModel });
   });
 
+  it('should have no yaml snapshot when the editor is seeded from an existing deployment', () => {
+    const renderResult = testHook(useFormYamlResources)(mockDeployment);
+    expect(renderResult.result.current.yamlAtEntry).toBeUndefined();
+  });
+
+  it('should snapshot the generated yaml when reinitialized from the form and keep it while editing', () => {
+    const renderResult = testHook(useFormYamlResources)();
+    act(() => {
+      renderResult.result.current.reinitYamlFromResources({ model: mockModel });
+    });
+    expect(renderResult.result.current.yamlAtEntry).toBe(stringify(mockModel));
+
+    act(() => {
+      renderResult.result.current.setYaml({ yaml: stringify({ ...mockModel, spec: {} }) });
+    });
+    expect(renderResult.result.current.yamlAtEntry).toBe(stringify(mockModel));
+    expect(renderResult).hookToHaveUpdateCount(3);
+  });
+
   it('should not replace edited yaml when the initial deployment prop changes', () => {
     const renderResult = testHook(useFormYamlResources)(mockDeployment);
     const customYaml = stringify({
@@ -227,7 +246,6 @@ describe('useFormToResourcesTransformer', () => {
 
     expect(renderResult).hookToStrictEqual({
       resources: {},
-      setLatestResourcesFromYaml: expect.any(Function),
       loaded: true,
       errors: [],
     });
@@ -307,7 +325,6 @@ describe('useFormToResourcesTransformer', () => {
       resources: {
         model: mockDeployment.model,
       },
-      setLatestResourcesFromYaml: expect.any(Function),
       loaded: true,
       errors: [],
     });
@@ -371,7 +388,6 @@ describe('useFormToResourcesTransformer', () => {
     );
     expect(renderResult).hookToStrictEqual({
       resources: { model: deploymentWithMetadata.model },
-      setLatestResourcesFromYaml: expect.any(Function),
       loaded: true,
       errors: [],
     });
@@ -395,7 +411,7 @@ describe('useFormToResourcesTransformer', () => {
     expect(mockUseWizardFieldApply).toHaveBeenCalledWith(formDataNoMetadata.state, undefined);
   });
 
-  it('should pass existingDeployment to assembleDeployment', () => {
+  it('should pass the merge base to assembleDeployment', () => {
     const existingDeployment: Deployment = {
       ...mockDeployment,
       model: {
@@ -436,7 +452,7 @@ describe('useFormToResourcesTransformer', () => {
     );
   });
 
-  it('should keep the existing server when applying resources from YAML', () => {
+  it('should re-assemble onto a new merge base', () => {
     const server: DeploymentAssemblyResources['server'] = {
       apiVersion: 'serving.kserve.io/v1alpha2',
       kind: 'LLMInferenceServiceConfig',
@@ -446,11 +462,6 @@ describe('useFormToResourcesTransformer', () => {
     const yamlModel: ModelResourceType = {
       ...mockModel,
       metadata: { ...mockModel.metadata, name: 'from-yaml' },
-    };
-    const yamlServer: DeploymentAssemblyResources['server'] = {
-      apiVersion: 'serving.kserve.io/v1alpha2',
-      kind: 'LLMInferenceServiceConfig',
-      metadata: { name: 'yaml-server', namespace: 'test-ns' },
     };
     const mockAssembleDeployment = jest.fn().mockReturnValue(mockDeployment);
 
@@ -473,17 +484,13 @@ describe('useFormToResourcesTransformer', () => {
     });
 
     const renderResult = testHook(useFormToResourcesTransformer)(mockFormData, existingDeployment);
-    act(() => {
-      renderResult.result.current.setLatestResourcesFromYaml({
-        model: yamlModel,
-        server: yamlServer,
-      });
-    });
+    const mergeBaseFromYaml = { ...existingDeployment, model: yamlModel };
+    renderResult.rerender(mockFormData, mergeBaseFromYaml);
 
-    // YAML only owns the model; the existing server must not be replaced or dropped
+    expect(mockAssembleDeployment).toHaveBeenCalledTimes(2);
     expect(mockAssembleDeployment).toHaveBeenLastCalledWith(
       mockFormData,
-      { ...existingDeployment, model: yamlModel },
+      mergeBaseFromYaml,
       undefined,
       '',
     );

@@ -1,14 +1,20 @@
 # OWNERS
 
-approvers:
-  - connections-approvers
+filters:
+  '.*':
+    approvers:
+      - connections-approvers
+    reviewers:
+      - connections-reviewers
+    labels:
+      - area/connections
+      - area/components
 
-reviewers:
-  - connections-reviewers
-
-labels:
-  - area/connections
-  - area/components
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
 
 options:
   no_parent_owners: true

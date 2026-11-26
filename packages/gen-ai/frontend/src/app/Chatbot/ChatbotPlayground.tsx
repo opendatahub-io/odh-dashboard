@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Alert,
@@ -17,10 +18,6 @@ import { Chatbot, ChatbotContent, ChatbotDisplayMode } from '@patternfly/chatbot
 // Imported here (not just App.tsx) so the CSS is bundled when loaded via Module Federation
 import '@patternfly/chatbot/dist/css/main.css';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import {
-  fireMiscTrackingEvent,
-  fireFormTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
@@ -272,6 +269,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   deploymentCount = 0,
   onDeploymentClick,
 }) => {
+  const trackEvent = useTrackEvent();
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
   const isEmbedded = useIsEmbeddedPlayground();
@@ -619,7 +617,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const handleDocumentAttach = React.useCallback(
     async <T extends File>(acceptedFiles: T[]) => {
       if (!apiAvailable) {
-        fireDocumentAttachedEvent({
+        fireDocumentAttachedEvent(trackEvent, {
           success: false,
           outcome: TrackingOutcome.submit,
           documentCountAdded: 0,
@@ -627,7 +625,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           source: 'filePicker',
           error: 'uploadFailed',
         });
-        fireMiscTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
+        trackEvent(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
           error: 'serviceUnavailable',
           documentFileType: getDocumentTrackingFileType(acceptedFiles[0]?.name ?? ''),
           documentCount: acceptedFiles.length,
@@ -668,7 +666,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         }
       } catch (error) {
         uploadFailure = classifyDocumentProcessingError(error);
-        fireMiscTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
+        trackEvent(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
           ...uploadFailure,
           documentFileType: getDocumentTrackingFileType(failedFile?.name ?? ''),
           documentCount: acceptedFiles.length,
@@ -689,7 +687,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               : 'uploadFailed';
         }
         if (uploadFailure || added.length > 0) {
-          fireDocumentAttachedEvent({
+          fireDocumentAttachedEvent(trackEvent, {
             success: !uploadFailure,
             outcome: TrackingOutcome.submit,
             documentCountAdded: added.length,
@@ -704,7 +702,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         setDocumentUploadCount(0);
       }
     },
-    [api, apiAvailable, alertManagement, documentStorageKey, updateDocumentAttachments],
+    [apiAvailable, documentStorageKey, trackEvent, alertManagement, api, updateDocumentAttachments],
   );
 
   const handleRemoveDocument = React.useCallback(
@@ -718,7 +716,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const handleViewDocument = React.useCallback(
     (attachment: DocumentAttachment, documentCount: number) => {
-      fireDocumentContentViewedEvent({
+      fireDocumentContentViewedEvent(trackEvent, {
         documentCount,
         documentFileType: getDocumentTrackingFileType(attachment.filename),
         viewSource: 'attachmentCard',
@@ -727,7 +725,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       });
       setViewedDocument(attachment);
     },
-    [],
+    [trackEvent],
   );
 
   const performImageUpload = React.useCallback(
@@ -771,7 +769,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               useChatbotConfigStore.getState().updateHasVisionImage(cId, true);
             }
           });
-          fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_COMPLETED, {
+          trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_COMPLETED, {
             outcome: TrackingOutcome.submit,
             success: true,
             fileType: file.type || 'unknown',
@@ -795,7 +793,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               `${file.name} failed to upload. Please try again.`,
               'Image Upload Error',
             );
-            fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_COMPLETED, {
+            trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: false,
               fileType: file.type || 'unknown',
@@ -810,7 +808,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           }
         });
     },
-    [namespace?.name, alertManagement],
+    [namespace?.name, trackEvent, alertManagement],
   );
 
   const handleImageUpload = React.useCallback(
@@ -868,7 +866,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       });
     }
     if (imageUploadState.fileName || imageUploadState.uploading) {
-      fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_REMOVED, {
+      trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_REMOVED, {
         configID: configIds.indexOf(primaryConfigId),
         compareMode: isCompareMode,
       });
@@ -878,6 +876,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     imageUploadState.previewUrl,
     imageUploadState.fileName,
     hasImageInConversation,
+    trackEvent,
     configIds,
     primaryConfigId,
     isCompareMode,
@@ -939,12 +938,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     audioTranscription.abort();
     audioUploadLatchRef.current = false;
     setHasAudioInCurrentMessage(false);
-    fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_REMOVED, {
+    trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_REMOVED, {
       configID: configIds.indexOf(primaryConfigId),
       compareMode: isCompareMode,
       phase: cancelPhase,
     });
-  }, [audioTranscription, configIds, primaryConfigId, isCompareMode]);
+  }, [audioTranscription, trackEvent, configIds, primaryConfigId, isCompareMode]);
 
   // Show success toast once when transcription completes
   const { phase } = audioTranscription.state;
@@ -1197,7 +1196,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   variant="link"
                   isInline
                   onClick={() => {
-                    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
+                    trackEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
                       agentID: loadedProfileId ?? '',
                       triggerContext: 'restriction_nudge_modal',
                     });
@@ -1272,7 +1271,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             updateDocumentAttachments(() => []);
             setViewedDocument(null);
             if (isCompareMode) {
-              fireMiscTrackingEvent('Playground Compare Chat Cleared', {
+              trackEvent('Playground Compare Chat Cleared', {
                 success: true,
                 hadImage,
                 hadAudio,
@@ -1323,7 +1322,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               traceId={selectedTraceId || ''}
               workspace={namespace?.name}
               onClose={() => {
-                fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_CLOSED, {
+                trackEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_CLOSED, {
                   traceId: selectedTraceId ?? undefined,
                   compareMode: isCompareMode,
                 });

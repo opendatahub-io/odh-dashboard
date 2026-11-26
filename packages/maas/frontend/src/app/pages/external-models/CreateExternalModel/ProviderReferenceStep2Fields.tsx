@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ExternalProvider } from '~/app/types/external-models';
 import {
   ADD_PATH_PLACEHOLDER_HELPER,
@@ -156,6 +156,7 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
   providerType,
   context,
 }) => {
+  const trackEvent = useTrackEvent();
   const pathError = fieldErrors?.path;
   const apiFormatConfig = form.apiFormat
     ? PROVIDER_REFERENCE_API_FORMATS[form.apiFormat]
@@ -199,7 +200,7 @@ export const ProviderReferencePathField: React.FC<ProviderReferencePathFieldProp
           style={{ textDecoration: 'underline' }}
           onClick={() => {
             onChange({ path: apiFormatConfig.defaultPath });
-            fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_PATH_RESET, {
+            trackEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_PATH_RESET, {
               apiFormat: convertStringToExternalProviderRefApiFormat(form.apiFormat ?? ''),
               providerType: convertStringToExternalModelProviderType(providerType),
               context,
@@ -233,6 +234,7 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
   providerSource,
   context,
 }) => {
+  const trackEvent = useTrackEvent();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const inheritedConfig = selectedProvider?.config ?? {};
   const inheritedConfigCount = Object.keys(inheritedConfig).length;
@@ -316,7 +318,7 @@ export const ProviderReferenceConfigSection: React.FC<ProviderReferenceConfigSec
         isExpanded={isExpanded}
         onToggle={(_event, expanded) => {
           setIsExpanded(expanded);
-          fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_ADVANCED_SETTINGS_EXPANDED, {
+          trackEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_ADVANCED_SETTINGS_EXPANDED, {
             isExpanded: expanded,
             inheritedCount: inheritedConfigCount,
             overrideCount,

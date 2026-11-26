@@ -730,6 +730,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
           primaryActionLabel={
             isDetailsBenchmarkSelected ? 'Deselect benchmark' : 'Select benchmark'
           }
+          isPrimaryActionDisabled={!isDetailsBenchmarkSelected && isAtSelectionLimit}
         />
       ) : null}
     </div>

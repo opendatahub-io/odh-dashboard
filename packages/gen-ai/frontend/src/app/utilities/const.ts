@@ -9,3 +9,6 @@ const DEPLOYMENT_MODE =
   asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Federated;
 
 export { URL_PREFIX, API_URL_PREFIX, DEPLOYMENT_MODE };
+
+export const DEV_MODE = process.env.APP_ENV === 'development';
+export const APP_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';

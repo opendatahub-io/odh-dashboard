@@ -236,7 +236,10 @@ module.exports = (env) => ({
       ],
     }),
     new MonacoWebpackPlugin({
-      languages: ['yaml'],
+      // Every code editor (host and MF remotes) uses this bundled Monaco, so each language that
+      // runs in a worker must be listed here: an unlisted label resolves to `<publicPath>/undefined`
+      // and the worker fails to load. JSON is used by the mlflow MCP register modal.
+      languages: ['yaml', 'json'],
       // Replace the built-in YAML worker with monaco-yaml so syntax validation runs off-thread.
       customLanguages: [
         {

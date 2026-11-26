@@ -226,7 +226,7 @@ Add the flag under `spec.dashboardConfig.properties` (after `dataConnectHub`), o
 
 Mirror the `data-connect-hub` entries:
 - `OWNERS_ALIASES`: `<name>-approvers` and `<name>-reviewers` with the handles from Phase 0
-- `packages/<name>/OWNERS`: the same aliases, `area/<name>` plus `area/components`, and `options.no_parent_owners: true` (without it Prow inherits the root catch-all and `general-approvers` can approve the package)
+- `packages/<name>/OWNERS`: the same aliases, `area/<name>` plus `area/components`, and `options.no_parent_owners: true` (without it Prow inherits the root catch-all and `general-approvers` can approve the package). Use the `filters:` form with the `dependency-approvers` filter; copy the template from `docs/adding-owners-and-reviewers.md#package-ownership`. Top-level `approvers:` makes Prow ignore `filters:`
 - When `/konflux-onboarding` adds `manifests/modules/<name>/`, it must also add `manifests/modules/<name>/OWNERS` with the same aliases, `area/<name>`, `area/manifests`, and `options.no_parent_owners: true`
 
 ### 7. Dependabot — `.github/dependabot.yml`

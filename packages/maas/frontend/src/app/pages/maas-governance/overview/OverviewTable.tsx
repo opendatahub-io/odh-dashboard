@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Pagination, Toolbar, ToolbarContent } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { useTableColumnSort, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import {
   MaaSEvents,
@@ -18,6 +18,7 @@ type OverviewTableProps = {
 };
 
 const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onClearFilters }) => {
+  const trackEvent = useTrackEvent();
   const [expandedModels, setExpandedModels] = React.useState<Set<string>>(new Set());
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
@@ -41,7 +42,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onC
 
   const toggleModel = (row: ModelOverviewItem) => {
     if (!expandedModels.has(rowKey(row))) {
-      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_ROW_EXPANDED, {
+      trackEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_ROW_EXPANDED, {
         subscriptionCount: row.subscriptions.length,
         policyCount: row.authPolicies.length,
       } satisfies MaaSGovernanceOverviewRowExpandedProperties);

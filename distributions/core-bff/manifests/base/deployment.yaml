@@ -44,6 +44,12 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            # The dashboard namespace is the pod's own: the namespaced Role is
+            # bound here, so service-account reads must target it too.
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           volumeMounts:
             - name: tmp
               mountPath: /tmp

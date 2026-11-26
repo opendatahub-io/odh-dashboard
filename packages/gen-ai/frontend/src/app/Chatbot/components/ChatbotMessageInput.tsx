@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Alert,
@@ -14,7 +15,6 @@ import {
 import { ChatbotFootnote, FileDetailsLabel, MessageBar } from '@patternfly/chatbot';
 import { FileRejection } from 'react-dropzone';
 import { OutlinedFileImageIcon, VolumeUpIcon, OutlinedFileAltIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   VISION_UPLOAD_CONFIG,
@@ -121,6 +121,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   isDocumentUploadDisabled = false,
   shouldShowPdfTextExtractionNotice = false,
 }) => {
+  const trackEvent = useTrackEvent();
   const [isAttachMenuOpen, setIsAttachMenuOpen] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const [hideImageCapabilityAlert, setHideImageCapabilityAlert] = React.useState(() => {
@@ -191,13 +192,13 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
       setIsAttachMenuOpen(false);
       if (action === 'upload-image') {
         imageInputRef.current?.click();
-        fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_SELECTED, {
+        trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_SELECTED, {
           configID: configIndex ?? 0,
           compareMode: isCompareMode ?? false,
         });
       } else if (action === 'upload-audio') {
         audioInputRef.current?.click();
-        fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_SELECTED, {
+        trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_SELECTED, {
           configID: configIndex ?? 0,
           compareMode: isCompareMode ?? false,
         });
@@ -205,7 +206,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         documentInputRef.current?.click();
       }
     },
-    [configIndex, isCompareMode],
+    [configIndex, isCompareMode, trackEvent],
   );
 
   const handleImageFileSelect = React.useCallback(
@@ -285,7 +286,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
 
       const trackValidationFailure = (file: File, error: 'unsupportedType' | 'fileTooLarge') => {
         const documentFileType = getDocumentTrackingFileType(file.name);
-        fireDocumentAttachedEvent({
+        fireDocumentAttachedEvent(trackEvent, {
           success: false,
           outcome: TrackingOutcome.submit,
           documentCountAdded: 0,
@@ -293,7 +294,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           source: 'filePicker',
           error,
         });
-        fireMiscTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
+        trackEvent(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
           error,
           documentFileType,
           documentCount: files.length,
@@ -332,7 +333,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         onDocumentAttach(accepted, [], new Event('change'));
       }
     },
-    [onDocumentAttach],
+    [onDocumentAttach, trackEvent],
   );
 
   const audioAnnounceText = React.useMemo(() => {

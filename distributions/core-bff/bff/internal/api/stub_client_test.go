@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 )
 
 type stubDynClient struct {
@@ -17,6 +18,9 @@ type stubDynClient struct {
 }
 
 func (s *stubDynClient) GetDynamicClient() (dynamic.Interface, error) { return s.dyn, nil }
+func (s *stubDynClient) GetClientset() (kubernetes.Interface, error) {
+	return nil, fmt.Errorf("stub has no typed client")
+}
 func (s *stubDynClient) GetNamespaces(_ context.Context, _ *k8s.RequestIdentity) ([]corev1.Namespace, error) {
 	return nil, nil
 }

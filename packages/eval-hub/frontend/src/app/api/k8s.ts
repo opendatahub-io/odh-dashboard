@@ -28,6 +28,8 @@ import {
   EvaluationJobsResponse,
   EvaluationJobsResult,
   InferenceServicesResponse,
+  ImportCollectionAccessResponse,
+  ImportCollectionResponse,
   InfoResponse,
   ListCollectionsParams,
   ListEvaluationJobsParams,
@@ -599,6 +601,42 @@ export const deleteCollectionGeneration =
       return undefined;
     });
   };
+
+export const importCollection =
+  (hostPath: string, namespace: string, content: string) =>
+  (opts: APIOptions): Promise<ImportCollectionResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collection-imports`,
+        { content },
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<ImportCollectionResponse>(response)) {
+        validateCollection(response.data.collection);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getCollectionImportAccess =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<ImportCollectionAccessResponse> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collection-imports/access`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<ImportCollectionAccessResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
 
 export const getProviders =
   (hostPath: string, namespace: string) =>

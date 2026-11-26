@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Button,
@@ -9,7 +10,6 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalVectorStoreSummary } from '~/app/types';
 
 type VectorStoreTableRowInfoProps = {
@@ -17,6 +17,7 @@ type VectorStoreTableRowInfoProps = {
 };
 
 const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store }) => {
+  const trackEvent = useTrackEvent();
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -27,7 +28,7 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
         isVisible={isOpen}
         shouldOpen={() => {
           setIsOpen(true);
-          fireMiscTrackingEvent('Available Endpoints Vector Store Info Viewed', {
+          trackEvent('Available Endpoints Vector Store Info Viewed', {
             collectionName: store.vector_store_name,
             providerType: store.provider_type,
           });
@@ -46,7 +47,7 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
                 clickTip="Copied"
                 aria-label="Copy provider ID"
                 onCopy={() =>
-                  fireMiscTrackingEvent('Available Endpoints Vector Store Info Copied', {
+                  trackEvent('Available Endpoints Vector Store Info Copied', {
                     copyTarget: 'provider_id',
                     collectionName: store.vector_store_name,
                   })
@@ -65,7 +66,7 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
                 clickTip="Copied"
                 aria-label="Copy provider type"
                 onCopy={() =>
-                  fireMiscTrackingEvent('Available Endpoints Vector Store Info Copied', {
+                  trackEvent('Available Endpoints Vector Store Info Copied', {
                     copyTarget: 'provider_type',
                     collectionName: store.vector_store_name,
                   })
@@ -84,7 +85,7 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
                 clickTip="Copied"
                 aria-label="Copy vector store ID"
                 onCopy={() =>
-                  fireMiscTrackingEvent('Available Endpoints Vector Store Info Copied', {
+                  trackEvent('Available Endpoints Vector Store Info Copied', {
                     copyTarget: 'vector_store_id',
                     collectionName: store.vector_store_name,
                   })

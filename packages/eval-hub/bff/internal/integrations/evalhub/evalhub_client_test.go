@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func weightPtr(f float64) *float64 { return &f }
+
 func TestEvalHubClient_HealthCheck(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/health", r.URL.Path)
@@ -1212,7 +1214,7 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 			{
 				ID:         "arc_challenge",
 				ProviderID: "lm_evaluation_harness",
-				Weight:     0.8,
+				Weight:     weightPtr(0.8),
 				Parameters: map[string]any{"num_few_shot": 5},
 			},
 		},
