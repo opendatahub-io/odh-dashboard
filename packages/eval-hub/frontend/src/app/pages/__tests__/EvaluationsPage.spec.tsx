@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-rou
 import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { EvaluationJob, EvaluationJobsResult, HardwareProfileInfo } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
+import { evaluationCreateCollectionEntryRoute } from '~/app/routes';
 import {
   mockBenchmarkSuiteCollections,
   mockCuratedBenchmarkSuiteCollections,
@@ -230,6 +231,7 @@ describe('EvaluationsPage', () => {
           <LocationDisplay />
           <Routes>
             <Route path="/:namespace" element={<EvaluationsPage />} />
+            <Route path="/evaluation/:namespace/create-suite" element={<div />} />
             <Route path="/evaluation/:namespace/create/collections/new" element={<div />} />
           </Routes>
         </MemoryRouter>
@@ -342,13 +344,13 @@ describe('EvaluationsPage', () => {
     );
   });
 
-  it('should navigate to the manual collection editor from the page header', () => {
+  it('should navigate to collection creation from the page header', () => {
     renderPage('test-project');
 
     fireEvent.click(screen.getByTestId('create-suite-header-button'));
 
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
-      '/evaluation/test-project/create/collections/new',
+      evaluationCreateCollectionEntryRoute('test-project'),
     );
   });
 

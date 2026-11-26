@@ -520,6 +520,7 @@ export type CollectionGenerationProgress = {
 export type CollectionGenerationErrorCode =
   | 'guardrails_rejected'
   | 'guardrails_unavailable'
+  | 'no_relevant_benchmarks'
   | 'model_failed'
   | 'tool_failed'
   | 'validation_failed'

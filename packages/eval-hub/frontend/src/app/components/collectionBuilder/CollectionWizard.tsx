@@ -35,7 +35,7 @@ export type CollectionWizardAction = {
 };
 
 export type CollectionWizardCleanup = {
-  fromStepId: string;
+  fromStepIds: readonly string[];
   toStepIds: readonly string[];
   onLeave: () => Promise<unknown>;
 };
@@ -64,7 +64,7 @@ const CollectionWizardFooter: React.FC<CollectionWizardFooterProps> = ({
     const currentCleanup = cleanupRef.current;
     if (
       currentCleanup &&
-      previousStepId.current === currentCleanup.fromStepId &&
+      currentCleanup.fromStepIds.includes(String(previousStepId.current)) &&
       currentCleanup.toStepIds.includes(String(activeStep.id))
     ) {
       void currentCleanup.onLeave().catch(() => {
@@ -77,7 +77,7 @@ const CollectionWizardFooter: React.FC<CollectionWizardFooterProps> = ({
   React.useEffect(
     () => () => {
       const currentCleanup = cleanupRef.current;
-      if (currentCleanup && activeStepId.current === currentCleanup.fromStepId) {
+      if (currentCleanup && currentCleanup.fromStepIds.includes(String(activeStepId.current))) {
         void currentCleanup.onLeave().catch(() => {
           // There is no wizard surface to show a cleanup error after unmount.
         });

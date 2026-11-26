@@ -14,6 +14,8 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Stack,
+  StackItem,
   TextArea,
   TextInputGroup,
   TextInputGroupMain,
@@ -138,132 +140,140 @@ const CollectionMetadataTypeaheadField: React.FC<CollectionMetadataTypeaheadFiel
         };
 
         return (
-          <Select
-            id={`${fieldId}-select`}
-            role="menu"
-            isOpen={isOpen}
-            selected={selected}
-            onSelect={(_event, value) => {
-              if (typeof value === 'string') {
-                toggleSelection(value);
-              }
-            }}
-            onOpenChange={(open) => {
-              setIsOpen(open);
-              if (!open) {
-                setSearch('');
-                resetFocusedOption();
-              }
-            }}
-            toggle={(toggleRef) => (
-              <MenuToggle
-                ref={toggleRef}
-                id={`${fieldId}-toggle`}
-                variant="typeahead"
-                onClick={() => {
-                  setIsOpen((previous) => !previous);
-                  inputRef.current?.focus();
+          <Stack hasGutter>
+            <StackItem>
+              <Select
+                id={`${fieldId}-select`}
+                role="menu"
+                isOpen={isOpen}
+                selected={selected}
+                onSelect={(_event, value) => {
+                  if (typeof value === 'string') {
+                    toggleSelection(value);
+                  }
                 }}
-                isExpanded={isOpen}
-                isFullWidth
-                data-testid={`${testId}-toggle`}
-              >
-                <TextInputGroup isPlain>
-                  <TextInputGroupMain
-                    inputId={fieldId}
-                    value={search}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (!isOpen) {
-                        setIsOpen(true);
-                      }
+                onOpenChange={(open) => {
+                  setIsOpen(open);
+                  if (!open) {
+                    setSearch('');
+                    resetFocusedOption();
+                  }
+                }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    id={`${fieldId}-toggle`}
+                    variant="typeahead"
+                    onClick={() => {
+                      setIsOpen((previous) => !previous);
+                      inputRef.current?.focus();
                     }}
-                    onChange={(_event, value) => {
-                      setSearch(value);
-                      resetFocusedOption();
-                      if (!isOpen) {
-                        setIsOpen(true);
-                      }
-                    }}
-                    onKeyDown={handleInputKeyDown}
-                    autoComplete="off"
-                    innerRef={inputRef}
-                    placeholder={
-                      selected.length === 0
-                        ? (emptySelectionLabel ?? `Select ${label.toLowerCase()}`)
-                        : undefined
-                    }
-                    aria-label={label}
-                    role="combobox"
                     isExpanded={isOpen}
-                    aria-controls={listboxId}
-                    aria-activedescendant={
-                      focusedOptionIndex !== null && filteredOptions[focusedOptionIndex]
-                        ? getOptionId(filteredOptions[focusedOptionIndex])
-                        : undefined
-                    }
-                    inputProps={{ 'data-testid': `${testId}-input` }}
+                    isInForm
+                    isFullWidth
+                    data-testid={`${testId}-toggle`}
                   >
-                    <LabelGroup aria-label="Current selections">
-                      {selected.map((value) => (
-                        <Label
-                          key={value}
-                          variant="outline"
-                          data-testid={`${testId}-tag-${value}`}
-                          closeBtnProps={{
-                            'aria-label': `Remove ${formatCollectionMetadataValue(value)}`,
-                          }}
-                          onClose={(event) => {
-                            event.stopPropagation();
-                            toggleSelection(value);
-                          }}
-                        >
-                          {formatCollectionMetadataValue(value)}
-                        </Label>
-                      ))}
-                    </LabelGroup>
-                  </TextInputGroupMain>
-                  <TextInputGroupUtilities>
-                    {selected.length > 0 ? (
-                      <Button
-                        variant="plain"
-                        icon={<TimesIcon aria-hidden />}
-                        aria-label="Clear all selections"
+                    <TextInputGroup isPlain>
+                      <TextInputGroupMain
+                        inputId={fieldId}
+                        value={search}
                         onClick={(event) => {
                           event.stopPropagation();
-                          field.onChange([]);
-                          setSearch('');
-                          resetFocusedOption();
-                          inputRef.current?.focus();
+                          if (!isOpen) {
+                            setIsOpen(true);
+                          }
                         }}
+                        onChange={(_event, value) => {
+                          setSearch(value);
+                          resetFocusedOption();
+                          if (!isOpen) {
+                            setIsOpen(true);
+                          }
+                        }}
+                        onKeyDown={handleInputKeyDown}
+                        autoComplete="off"
+                        innerRef={inputRef}
+                        placeholder={
+                          selected.length > 0
+                            ? `${selected.length} selected`
+                            : (emptySelectionLabel ?? `Select ${label.toLowerCase()}`)
+                        }
+                        aria-label={label}
+                        role="combobox"
+                        isExpanded={isOpen}
+                        aria-controls={listboxId}
+                        aria-activedescendant={
+                          focusedOptionIndex !== null && filteredOptions[focusedOptionIndex]
+                            ? getOptionId(filteredOptions[focusedOptionIndex])
+                            : undefined
+                        }
+                        inputProps={{ 'data-testid': `${testId}-input` }}
                       />
-                    ) : null}
-                  </TextInputGroupUtilities>
-                </TextInputGroup>
-              </MenuToggle>
-            )}
-            variant="typeahead"
-          >
-            <SelectList isAriaMultiselectable id={listboxId}>
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((option, index) => (
-                  <SelectOption
-                    key={option}
-                    value={option}
-                    hasCheckbox
-                    isSelected={selected.includes(option)}
-                    isFocused={focusedOptionIndex === index}
-                    id={getOptionId(option)}
-                    data-testid={`${testId}-option-${option}`}
-                  >
-                    {formatCollectionMetadataValue(option)}
-                  </SelectOption>
-                ))
-              ) : (
-                <SelectOption isDisabled>No results found</SelectOption>
-              )}
-            </SelectList>
-          </Select>
+                      <TextInputGroupUtilities>
+                        {selected.length > 0 ? (
+                          <Button
+                            variant="plain"
+                            icon={<TimesIcon aria-hidden />}
+                            aria-label="Clear all selections"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              field.onChange([]);
+                              setSearch('');
+                              resetFocusedOption();
+                              inputRef.current?.focus();
+                            }}
+                          />
+                        ) : null}
+                      </TextInputGroupUtilities>
+                    </TextInputGroup>
+                  </MenuToggle>
+                )}
+                variant="typeahead"
+              >
+                <SelectList isAriaMultiselectable id={listboxId}>
+                  {filteredOptions.length > 0 ? (
+                    filteredOptions.map((option, index) => (
+                      <SelectOption
+                        key={option}
+                        value={option}
+                        hasCheckbox
+                        isSelected={selected.includes(option)}
+                        isFocused={focusedOptionIndex === index}
+                        id={getOptionId(option)}
+                        data-testid={`${testId}-option-${option}`}
+                      >
+                        {formatCollectionMetadataValue(option)}
+                      </SelectOption>
+                    ))
+                  ) : (
+                    <SelectOption isDisabled>No results found</SelectOption>
+                  )}
+                </SelectList>
+              </Select>
+            </StackItem>
+            {selected.length > 0 ? (
+              <StackItem onClick={(event) => event.stopPropagation()}>
+                <LabelGroup aria-label="Current selections">
+                  {selected.map((value) => (
+                    <Label
+                      key={value}
+                      variant="outline"
+                      data-testid={`${testId}-tag-${value}`}
+                      closeBtnProps={{
+                        'aria-label': `Remove ${formatCollectionMetadataValue(value)}`,
+                      }}
+                      onClose={(event) => {
+                        event.stopPropagation();
+                        toggleSelection(value);
+                      }}
+                    >
+                      {formatCollectionMetadataValue(value)}
+                    </Label>
+                  ))}
+                </LabelGroup>
+              </StackItem>
+            ) : null}
+          </Stack>
         );
       }}
     />

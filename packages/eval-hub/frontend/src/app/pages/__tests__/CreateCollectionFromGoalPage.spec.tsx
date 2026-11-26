@@ -242,8 +242,8 @@ const selectRecommendationModel = async (name = 'granite-3b'): Promise<void> => 
   );
 };
 
-const completeGenerationToReview = async (): Promise<void> => {
-  await renderPage();
+const completeGenerationToReview = async () => {
+  const rendered = await renderPage();
   fireEvent.change(screen.getByTestId('goal-suite-name'), {
     target: { value: '  Answer quality suite  ' },
   });
@@ -262,6 +262,7 @@ const completeGenerationToReview = async (): Promise<void> => {
   await waitFor(() => expect(screen.getByTestId('next-benchmark-overview')).toBeEnabled());
   fireEvent.click(screen.getByTestId('next-benchmark-overview'));
   expect(await screen.findByTestId('goal-suite-review-step')).toBeInTheDocument();
+  return rendered;
 };
 
 const startPendingGeneration = async (): Promise<void> => {
@@ -560,6 +561,20 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(await screen.findByTestId('collection-generation-stale-warning')).toBeInTheDocument();
   });
 
+  it.each([
+    ['collection name', 'goal-suite-name', 'Updated collection name'],
+    ['collection description', 'goal-suite-description', 'Updated collection description'],
+  ])('should not mark recommendations stale when the %s changes', async (_, fieldId, value) => {
+    await startCompletedGeneration();
+    fireEvent.click(screen.getByRole('button', { name: 'Collection settings' }));
+    expect(await screen.findByTestId('suite-settings-step')).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId(fieldId), { target: { value } });
+    fireEvent.click(screen.getByRole('button', { name: 'Benchmark overview' }));
+
+    expect(await screen.findByTestId('benchmark-overview-step')).toBeInTheDocument();
+    expect(screen.queryByTestId('collection-generation-stale-warning')).not.toBeInTheDocument();
+  });
+
   it('should allow a validated external recommendation model when project model discovery fails', async () => {
     mockUseInferenceServices.mockReturnValue({
       inferenceServices: [],
@@ -626,6 +641,49 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(screen.getByTestId('api-key-input')).toHaveValue('evalhub-api-secret');
   });
 
+  it('should trim external model fields and omit collection metadata from generation', async () => {
+    await renderPage();
+    fireEvent.change(screen.getByTestId('goal-suite-name'), {
+      target: { value: '  External model suite  ' },
+    });
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('recommendation-model-option-external')).getByRole('option', {
+        hidden: true,
+      }),
+    );
+    fireEvent.change(screen.getByTestId('model-name-input'), {
+      target: { value: '  external-chat-model  ' },
+    });
+    fireEvent.change(screen.getByTestId('endpoint-url-input'), {
+      target: { value: '  https://api.example.com/v1  ' },
+    });
+    fireEvent.change(screen.getByTestId('api-key-input'), {
+      target: { value: '  external-secret  ' },
+    });
+    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+      target: { value: 'Assess answer quality.' },
+    });
+    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+
+    await waitFor(() => expect(mockCreateCollectionGeneration).toHaveBeenCalledTimes(1));
+    expect(mockCreateCollectionGeneration).toHaveBeenCalledWith('', 'test-project', {
+      evaluation_goal: 'Assess answer quality.',
+      model: {
+        name: 'external-chat-model',
+        url: 'https://api.example.com/v1',
+        auth: { secret_ref: 'external-secret' },
+      },
+      max_benchmarks: 12,
+      strictness: 'moderate',
+      generation_effort: 'standard',
+    });
+    expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+  });
+
   it('should generate, poll, edit, and preserve the benchmark recommendation before Review', async () => {
     await renderPage();
 
@@ -633,7 +691,7 @@ describe('CreateCollectionFromGoalPage', () => {
       target: { value: 'Answer quality suite' },
     });
     fireEvent.change(screen.getByTestId('goal-suite-description'), {
-      target: { value: 'Collection description is not part of the generation request.' },
+      target: { value: '  Collection description for the final collection.  ' },
     });
     await selectRecommendationModel();
     fireEvent.click(screen.getByRole('button', { name: 'Show advanced settings' }));
@@ -774,9 +832,33 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
   });
 
+  it('should keep the generation when the page rerenders from Benchmark overview', async () => {
+    const rendered = await startCompletedGeneration();
+
+    rendered.rerender(createPageElement());
+
+    expect(screen.getByTestId('benchmark-overview-step')).toBeInTheDocument();
+    expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+  });
+
   it('should delete the generation when the page unmounts from Benchmark overview', async () => {
     const rendered = await startCompletedGeneration();
 
+    rendered.unmount();
+
+    await waitFor(() =>
+      expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith(
+        '',
+        'test-project',
+        'generation-1',
+      ),
+    );
+  });
+
+  it('should delete the generation when the page unmounts from Review', async () => {
+    const rendered = await completeGenerationToReview();
+
+    expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
     rendered.unmount();
 
     await waitFor(() =>
@@ -820,7 +902,7 @@ describe('CreateCollectionFromGoalPage', () => {
     mockCreateCollection.mockReturnValue(() =>
       Promise.resolve({
         resource: { id: 'created-collection' },
-        name: 'Answer quality suite',
+        name: 'Updated answer quality suite',
         benchmarks: [],
       }),
     );
@@ -839,6 +921,21 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(benchmarkReview).toHaveTextContent('80%');
     expect(benchmarkReview).not.toHaveTextContent(/Samples|Random seed|Batch size/);
 
+    fireEvent.click(screen.getByRole('button', { name: 'Collection settings' }));
+    expect(await screen.findByTestId('suite-settings-step')).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('goal-suite-name'), {
+      target: { value: '  Updated answer quality suite  ' },
+    });
+    fireEvent.change(screen.getByTestId('goal-suite-description'), {
+      target: { value: '  Updated collection description  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Benchmark overview' }));
+    expect(await screen.findByTestId('benchmark-overview-step')).toBeInTheDocument();
+    expect(screen.queryByTestId('collection-generation-stale-warning')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('next-benchmark-overview'));
+    expect(await screen.findByTestId('goal-suite-review-step')).toBeInTheDocument();
+    expect(mockCreateCollectionGeneration).toHaveBeenCalledTimes(1);
+
     fireEvent.click(screen.getByTestId('goal-suite-save'));
 
     await waitFor(() => expect(mockCreateCollection).toHaveBeenCalledTimes(1));
@@ -846,8 +943,8 @@ describe('CreateCollectionFromGoalPage', () => {
       '',
       'test-project',
       expect.objectContaining({
-        name: 'Answer quality suite',
-        description: 'Collection description',
+        name: 'Updated answer quality suite',
+        description: 'Updated collection description',
         domains: ['trustworthiness'],
         evaluation_targets: ['model'],
         benchmarks: [
@@ -866,7 +963,7 @@ describe('CreateCollectionFromGoalPage', () => {
     );
     expect(notification.success).toHaveBeenCalledWith(
       'Collection created',
-      '"Answer quality suite" has been added to your collections.',
+      '"Updated answer quality suite" has been added to your collections.',
     );
     expect(refreshCollections).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(

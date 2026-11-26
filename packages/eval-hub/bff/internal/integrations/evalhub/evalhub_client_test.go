@@ -536,8 +536,12 @@ func TestEvalHubClient_CreateCollectionGeneration(t *testing.T) {
 		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.NotContains(t, string(body), "collection_name")
+		assert.NotContains(t, string(body), "collection_description")
 		var request CreateCollectionGenerationRequest
-		require.NoError(t, json.NewDecoder(r.Body).Decode(&request))
+		require.NoError(t, json.Unmarshal(body, &request))
 		assert.Equal(t, "Build a reasoning collection", request.EvaluationGoal)
 		assert.Equal(t, "generator", request.Model.Name)
 		assert.Equal(t, "https://models.example.com/v1", request.Model.URL)

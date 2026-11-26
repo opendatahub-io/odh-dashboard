@@ -15,6 +15,7 @@ import {
   evaluationEvaluateNavigationState,
   evaluationGalleryNavigationState,
 } from '~/app/routes';
+import { COLLECTION_METADATA_OPTIONS } from '~/app/pages/const';
 import {
   getCopySuiteSchema,
   getCopySuiteSettingsSchema,
@@ -970,6 +971,37 @@ describe('ManualCollectionEditorPage', () => {
     );
 
     expect(form.form.getValues('suiteDomains')).toEqual(['reasoning']);
+  });
+
+  it('should expand selected categories and remove a hidden category without closing the select', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+    const categories = [...COLLECTION_METADATA_OPTIONS.domains];
+    const form = makeForm({ suiteDomains: categories });
+    mockUseCopySuiteForm.mockReturnValue(form);
+
+    renderPage();
+
+    expect(screen.getByTestId('suite-domains-input')).toHaveAttribute('placeholder', '8 selected');
+    fireEvent.click(screen.getByTestId('suite-domains-input'));
+    expect(
+      screen.getByTestId('suite-domains-option-grounded_document_understanding'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '5 more' }));
+
+    const hiddenCategory = 'trustworthiness';
+    expect(screen.getByTestId(`suite-domains-tag-${hiddenCategory}`)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show Less' })).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByTestId(`suite-domains-tag-${hiddenCategory}`)).getByRole('button'),
+    );
+
+    expect(form.form.getValues('suiteDomains')).toEqual(categories.slice(0, -1));
+    expect(screen.queryByTestId(`suite-domains-tag-${hiddenCategory}`)).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('suite-domains-option-grounded_document_understanding'),
+    ).toBeInTheDocument();
   });
 
   it('should allow the final selected metadata value to be removed', () => {

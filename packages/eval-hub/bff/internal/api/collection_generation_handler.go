@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -134,6 +135,79 @@ func validateCollectionGenerationRequest(input evalhub.CreateCollectionGeneratio
 	return nil
 }
 
+func jsonObject(value json.RawMessage) bool {
+	trimmed := strings.TrimSpace(string(value))
+	return strings.HasPrefix(trimmed, "{")
+}
+
+func jsonObjectArray(value json.RawMessage, minimumItems int) bool {
+	trimmed := strings.TrimSpace(string(value))
+	if !strings.HasPrefix(trimmed, "[") {
+		return false
+	}
+	var items []json.RawMessage
+	if err := json.Unmarshal(value, &items); err != nil {
+		return false
+	}
+	if len(items) < minimumItems {
+		return false
+	}
+	for _, item := range items {
+		if !jsonObject(item) {
+			return false
+		}
+	}
+	return true
+}
+
+func validateCollectionGenerationResult(result json.RawMessage) error {
+	var parsed struct {
+		Collection  json.RawMessage `json:"collection"`
+		Rationale   string          `json:"rationale"`
+		Explanation json.RawMessage `json:"explanation"`
+	}
+	if err := json.Unmarshal(result, &parsed); err != nil {
+		return fmt.Errorf("upstream returned an invalid completed collection generation result: %w", err)
+	}
+	if !jsonObject(parsed.Collection) {
+		return fmt.Errorf("upstream completed collection generation without a collection object")
+	}
+	var collection struct {
+		Benchmarks json.RawMessage `json:"benchmarks"`
+	}
+	if err := json.Unmarshal(parsed.Collection, &collection); err != nil || !jsonObjectArray(collection.Benchmarks, 1) {
+		return fmt.Errorf("upstream completed collection generation without a non-empty benchmarks array")
+	}
+	if strings.TrimSpace(parsed.Rationale) == "" {
+		return fmt.Errorf("upstream completed collection generation without a rationale")
+	}
+	if !jsonObject(parsed.Explanation) {
+		return fmt.Errorf("upstream completed collection generation without an explanation object")
+	}
+	var explanation struct {
+		SelectedBenchmarks json.RawMessage `json:"selected_benchmarks"`
+		RejectedBenchmarks json.RawMessage `json:"rejected_benchmarks"`
+	}
+	if err := json.Unmarshal(parsed.Explanation, &explanation); err != nil ||
+		!jsonObjectArray(explanation.SelectedBenchmarks, 1) || !jsonObjectArray(explanation.RejectedBenchmarks, 0) {
+		return fmt.Errorf("upstream completed collection generation with invalid benchmark explanations")
+	}
+	return nil
+}
+
+func validateCollectionGenerationError(statusError json.RawMessage) error {
+	if !jsonObject(statusError) {
+		return fmt.Errorf("upstream failed collection generation without an error object")
+	}
+	var parsed struct {
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(statusError, &parsed); err != nil || strings.TrimSpace(parsed.Message) == "" {
+		return fmt.Errorf("upstream failed collection generation without an error message")
+	}
+	return nil
+}
+
 func validateCollectionGenerationID(id string) error {
 	if strings.TrimSpace(id) == "" || strings.TrimSpace(id) != id || id == "." || id == ".." ||
 		strings.ContainsAny(id, "/\\") || strings.IndexFunc(id, unicode.IsControl) >= 0 {
@@ -177,11 +251,21 @@ func validateCollectionGenerationResource(generation *evalhub.CollectionGenerati
 	if generation.Status.State == "completed" && !hasResult {
 		return fmt.Errorf("upstream completed collection generation without a result")
 	}
+	if generation.Status.State == "completed" {
+		if err := validateCollectionGenerationResult(generation.Result); err != nil {
+			return err
+		}
+	}
 	if generation.Status.State != "completed" && hasResult {
 		return fmt.Errorf("upstream returned a result for a non-completed collection generation")
 	}
 	if generation.Status.State == "failed" && !hasError {
 		return fmt.Errorf("upstream failed collection generation without an error")
+	}
+	if generation.Status.State == "failed" {
+		if err := validateCollectionGenerationError(generation.Status.Error); err != nil {
+			return err
+		}
 	}
 	if generation.Status.State != "failed" && hasError {
 		return fmt.Errorf("upstream returned an error for a non-failed collection generation")

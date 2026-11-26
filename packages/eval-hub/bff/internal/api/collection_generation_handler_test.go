@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -65,6 +66,27 @@ func TestCreateCollectionGenerationHandler(t *testing.T) {
 	assert.Equal(t, request.EvaluationGoal, mockClient.LastCollectionGenerationRequest.EvaluationGoal)
 	assert.Equal(t, "model-credentials", mockClient.LastCollectionGenerationRequest.Model.Auth.SecretRef)
 	assert.Equal(t, PathPrefix+ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns", response.Header.Get("Location"))
+}
+
+func TestCreateCollectionGenerationHandlerRejectsCollectionMetadataFields(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		body string
+	}{
+		{name: "collection name", body: `{"evaluation_goal":"Assess reasoning","model":{"name":"generator","url":"https://models.example.com/v1"},"collection_name":"Reasoning suite"}`},
+		{name: "collection description", body: `{"evaluation_goal":"Assess reasoning","model":{"name":"generator","url":"https://models.example.com/v1"},"collection_description":"For reasoning"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mockClient := ehmocks.NewMockEvalHubClient()
+			request := httptest.NewRequest(http.MethodPost, ApiPathPrefix+collectionGenerationPath+"?namespace=test-ns", strings.NewReader(tc.body))
+			request.Header.Set("kubeflow-userid", "user@example.com")
+			response := httptest.NewRecorder()
+			newTestAppWithEvalHub(nil, mockClient).Routes().ServeHTTP(response, request)
+
+			assert.Equal(t, http.StatusBadRequest, response.Code)
+			assert.Nil(t, mockClient.LastCollectionGenerationRequest)
+		})
+	}
 }
 
 func TestCreateCollectionGenerationHandlerRejectsInvalidRequest(t *testing.T) {
@@ -227,6 +249,99 @@ func TestGetCollectionGenerationHandlerCompletedResult(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Equal(t, "completed", result.Data.Status.State)
 	assert.Contains(t, string(result.Data.Result), "arc_challenge")
+}
+
+func TestGetCollectionGenerationRejectsMalformedCompletedResult(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	request := validCollectionGenerationRequest()
+	invalidResults := []struct {
+		name   string
+		result json.RawMessage
+	}{
+		{name: "invalid JSON", result: json.RawMessage(`{"collection":`)},
+		{name: "collection is not an object", result: json.RawMessage(`{"collection":[],"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
+		{name: "benchmarks are not an array", result: json.RawMessage(`{"collection":{"benchmarks":{}},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
+		{name: "benchmarks are empty", result: json.RawMessage(`{"collection":{"benchmarks":[]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
+		{name: "benchmark entry is null", result: json.RawMessage(`{"collection":{"benchmarks":[null]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
+		{name: "benchmark entry is not an object", result: json.RawMessage(`{"collection":{"benchmarks":[1]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
+		{name: "missing rationale", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
+		{name: "explanation is not an object", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":[]}`)},
+		{name: "selected explanations are not an array", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":{"selected_benchmarks":{},"rejected_benchmarks":[]}}`)},
+		{name: "selected explanation entry is null", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":{"selected_benchmarks":[null],"rejected_benchmarks":[]}}`)},
+		{name: "rejected explanation entry is not an object", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":["invalid"]}}`)},
+		{name: "rejected explanations are missing", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}]}}`)},
+	}
+
+	for _, tc := range invalidResults {
+		t.Run(tc.name, func(t *testing.T) {
+			client := generationResponseOverrideClient{generation: &evalhub.CollectionGenerationResource{
+				Resource: evalhub.CollectionGenerationResourceMetadata{ID: "generation-001", Tenant: "test-ns", Owner: "user@example.com", CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:01:00Z"},
+				Request:  evalhub.CollectionGenerationRequestSummary{EvaluationGoal: request.EvaluationGoal, Model: request.Model, MaxBenchmarks: 12, Strictness: "moderate", GenerationEffort: "standard"},
+				Status:   evalhub.CollectionGenerationStatus{State: "completed"},
+				Result:   tc.result,
+			}}
+			_, response, err := setupApiTestWithEvalHub[HTTPError](
+				http.MethodGet,
+				ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
+				nil, nil, identity, client,
+			)
+
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
+		})
+	}
+}
+
+func TestGetCollectionGenerationRejectsMalformedFailedStatusError(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	request := validCollectionGenerationRequest()
+	invalidErrors := []struct {
+		name  string
+		error json.RawMessage
+	}{
+		{name: "error is not an object", error: json.RawMessage(`[]`)},
+		{name: "missing message", error: json.RawMessage(`{"code":"model_failed"}`)},
+		{name: "message is not a string", error: json.RawMessage(`{"message":42}`)},
+		{name: "blank message", error: json.RawMessage(`{"message":"  "}`)},
+	}
+
+	for _, tc := range invalidErrors {
+		t.Run(tc.name, func(t *testing.T) {
+			client := generationResponseOverrideClient{generation: &evalhub.CollectionGenerationResource{
+				Resource: evalhub.CollectionGenerationResourceMetadata{ID: "generation-001", Tenant: "test-ns", Owner: "user@example.com", CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:01:00Z"},
+				Request:  evalhub.CollectionGenerationRequestSummary{EvaluationGoal: request.EvaluationGoal, Model: request.Model, MaxBenchmarks: 12, Strictness: "moderate", GenerationEffort: "standard"},
+				Status:   evalhub.CollectionGenerationStatus{State: "failed", Error: tc.error},
+			}}
+			_, response, err := setupApiTestWithEvalHub[HTTPError](
+				http.MethodGet,
+				ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
+				nil, nil, identity, client,
+			)
+
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
+		})
+	}
+}
+
+func TestGetCollectionGenerationAcceptsFailedStatusWithMessage(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	request := validCollectionGenerationRequest()
+	client := generationResponseOverrideClient{generation: &evalhub.CollectionGenerationResource{
+		Resource: evalhub.CollectionGenerationResourceMetadata{ID: "generation-001", Tenant: "test-ns", Owner: "user@example.com", CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:01:00Z"},
+		Request:  evalhub.CollectionGenerationRequestSummary{EvaluationGoal: request.EvaluationGoal, Model: request.Model, MaxBenchmarks: 12, Strictness: "moderate", GenerationEffort: "standard"},
+		Status:   evalhub.CollectionGenerationStatus{State: "failed", Error: json.RawMessage(`{"code":"model_failed","message":"The model request failed."}`)},
+	}}
+
+	result, response, err := setupApiTestWithEvalHub[CollectionGenerationEnvelope](
+		http.MethodGet,
+		ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
+		nil, nil, identity, client,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "failed", result.Data.Status.State)
 }
 
 func TestGetCollectionGenerationRejectsBenchmarkLimitAboveDurableMaximum(t *testing.T) {

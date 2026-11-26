@@ -7,7 +7,7 @@ export const globNamespaceAll = `/${globNamespace}?/*`;
 
 // Temporarily disable goal-based collection creation until the generation API is available.
 // Return true to restore the chooser and goal-builder routes together.
-export const isGoalCollectionBuilderEnabled = (): boolean => false;
+export const isGoalCollectionBuilderEnabled = (): boolean => true;
 
 // Route helpers (used for navigation, resolved relative to the app mount root)
 export const evaluationsBaseRoute = (namespace?: string): string =>

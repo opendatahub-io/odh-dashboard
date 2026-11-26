@@ -139,16 +139,21 @@ const CreateCollectionFromGoalPage: React.FC = () => {
   const canRecommend = canContinueSettings && isDefineGoalValid && !hasDefineGoalErrors;
   const cancelRoute = evaluationCreateSuiteChooserRoute(namespace);
   const selectedProviderIds = [...new Set(frameworkFilter)].toSorted();
-  const generationRequest: CollectionGenerationRequest | undefined = generatorModel
+  const model = generatorModel
+    ? generatorModel.source === 'external'
+      ? {
+          name: generatorModel.name.trim(),
+          url: generatorModel.url.trim(),
+          ...(generatorModel.auth?.secret_ref?.trim()
+            ? { auth: { secret_ref: generatorModel.auth.secret_ref.trim() } }
+            : {}),
+        }
+      : { name: generatorModel.name, url: generatorModel.url }
+    : undefined;
+  const generationRequest: CollectionGenerationRequest | undefined = model
     ? {
         evaluation_goal: evaluationGoal.trim(),
-        model: {
-          name: generatorModel.name,
-          url: generatorModel.url,
-          ...(generatorModel.auth?.secret_ref
-            ? { auth: { secret_ref: generatorModel.auth.secret_ref } }
-            : {}),
-        },
+        model,
         max_benchmarks: maxBenchmarks,
         strictness,
         generation_effort: generationEffort,
@@ -502,7 +507,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
               navAriaLabel="Collection creation steps"
               className="evalhub-goal-collection-wizard"
               cleanup={{
-                fromStepId: 'benchmark-overview',
+                fromStepIds: ['benchmark-overview', 'review'],
                 toStepIds: ['suite-settings', 'define-goal'],
                 onLeave: deleteGeneration,
               }}
