@@ -41,7 +41,12 @@ func (app *App) BackendHealthHandler(w http.ResponseWriter, r *http.Request, _ h
 	if transport == nil {
 		transport = httpclient.NewSharedHTTPTransport(app.config.InsecureSkipVerify, app.rootCAs)
 	}
-	client := &http.Client{Transport: transport}
+	client := &http.Client{
+		Transport: transport,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return errors.New("redirects are not allowed")
+		},
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		app.serviceUnavailableResponse(w, r, fmt.Errorf("failed to request upstream health: %w", err))

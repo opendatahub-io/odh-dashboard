@@ -61,6 +61,34 @@ func TestBackendHealthHandlerChecksUpstreamHealth(t *testing.T) {
 	require.Equal(t, "/health", requestedPath)
 }
 
+func TestBackendHealthHandlerRejectsUpstreamRedirects(t *testing.T) {
+	targetContacted := make(chan struct{}, 1)
+	target := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+		targetContacted <- struct{}{}
+	}))
+	t.Cleanup(target.Close)
+
+	redirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	t.Cleanup(redirect.Close)
+
+	app := backendHealthTestApp(config.EnvConfig{}, redirect.URL)
+	var logs bytes.Buffer
+	app.logger = slog.New(slog.NewTextHandler(&logs, nil))
+	response, request := backendHealthRequest(t)
+
+	app.BackendHealthHandler(response, request, nil)
+
+	require.Equal(t, http.StatusServiceUnavailable, response.Code)
+	require.Contains(t, logs.String(), "redirects are not allowed")
+	select {
+	case <-targetContacted:
+		t.Fatal("backend health probe contacted the redirect target")
+	default:
+	}
+}
+
 func TestBackendHealthHandlerReturnsServiceUnavailableForUnhealthyUpstream(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
