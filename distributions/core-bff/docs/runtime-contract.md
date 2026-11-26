@@ -161,8 +161,10 @@ Outside `DEV_MODE` nothing can replace a missing or rejected caller credential:
   sent), on a separate connection pool; outside `DEV_MODE` it is never presented (see
   [TLS inputs](#tls-inputs)). The typed clients drop it too (`rest.AnonymousClientConfig`).
 - `DEV_MODE` keeps its kubeconfig fallback identity for local development, but only when **no**
-  credential header was sent at all. A credential header that was sent and is empty, malformed or
-  conflicting is rejected with 401, as in production. With `AUTH_METHOD=disabled` no credential is ever read, so under `DEV_MODE`
+  credential header was sent at all. A credential header that was sent, even empty, blocks the
+  fallback. A malformed or conflicting one is rejected with 401, as in production; an empty one is
+  skipped like an absent one in the ordered list (rule 1), so the request is a 401 only when no other
+  configured header carries a token. With `AUTH_METHOD=disabled` no credential is ever read, so under `DEV_MODE`
   every request is the fallback identity and runs as the kubeconfig. On the Kubernetes proxies that
   needs a kubeconfig with a bearer token or a client certificate: with an exec-plugin kubeconfig
   (for example `kubelogin` on AKS) the proxies have no kubeconfig credential to present, so proxied
