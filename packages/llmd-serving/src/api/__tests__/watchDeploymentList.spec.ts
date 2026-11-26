@@ -113,6 +113,51 @@ describe('watchDeploymentList', () => {
     ]);
   });
 
+  it('should add and delete deployments and resume after a bookmark', async () => {
+    const existing = model('existing', '10');
+    const added = model('added', '11');
+    const denied = new K8sStatusError(mock403Error({}));
+    const fetchK8s = jest
+      .fn()
+      .mockResolvedValueOnce(list([existing], '10'))
+      .mockResolvedValueOnce(
+        stream(
+          `${JSON.stringify({ type: 'ADDED', object: added })}\n`,
+          `${JSON.stringify({ type: 'DELETED', object: model('existing', '12') })}\n`,
+          `${JSON.stringify({
+            type: 'BOOKMARK',
+            object: { metadata: { resourceVersion: '13' } },
+          })}\n`,
+        ),
+      )
+      .mockRejectedValueOnce(denied);
+    const onChange = jest.fn();
+    const finished = watchDeploymentList(
+      fetchK8s,
+      LLMInferenceServiceModel,
+      'project',
+      undefined,
+      controller.signal,
+      onChange,
+    );
+
+    await jest.advanceTimersByTimeAsync(1_000);
+    await finished;
+
+    expect(fetchK8s).toHaveBeenCalledTimes(3);
+    expect(fetchK8s).toHaveBeenLastCalledWith(
+      expect.stringContaining('?watch=true&resourceVersion=13&'),
+      expect.anything(),
+    );
+    expect(onChange.mock.calls.map(([result]) => result)).toEqual([
+      [[existing], true, undefined],
+      [[existing], true, undefined],
+      [[existing, added], true, undefined],
+      [[added], true, undefined],
+      [[], false, denied],
+    ]);
+  });
+
   it('should read all list pages and relist when the watch resource version expires', async () => {
     const expired = new K8sStatusError({ ...mock403Error({}), code: 410 });
     const first = model('first', '9');
