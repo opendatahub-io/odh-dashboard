@@ -175,7 +175,8 @@ Outside `DEV_MODE` nothing can replace a missing or rejected caller credential:
 Every configured header (plus `AUTH_TOKEN_HEADER`, which module proxies use as their outbound
 header) is:
 
-- removed from inbound requests before any proxy forwards them; the proxies install the resolved
+- removed from inbound requests before any HTTP proxy forwards them (the WebSocket proxy never copies
+  inbound headers: its upstream handshake is built from scratch); the proxies install the resolved
   caller token themselves (`Authorization: Bearer` for the Kubernetes API);
 - redacted in request debug logs and never written in error text;
 - allowed as a CORS request header and listed in `Vary` on `/api` responses;

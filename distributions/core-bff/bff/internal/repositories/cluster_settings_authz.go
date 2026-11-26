@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	authv1 "k8s.io/api/authorization/v1"
@@ -47,6 +48,10 @@ type ClusterSettingsPlan struct {
 	writes           []clusterSettingsWrite
 }
 
+// accessReviewTimeout bounds the preflight access reviews, as CheckAccess
+// bounds its own.
+const accessReviewTimeout = 10 * time.Second
+
 // PlanUpdate decides every write PUT /api/cluster-settings will make: the
 // OdhDashboardConfig patch, the culler and segment-key ConfigMap writes, and
 // the notebook-controller rollout when one is needed.
@@ -77,6 +82,10 @@ func (r *ClusterSettingsRepository) PlanUpdate(
 	if r.clients.policy != CredentialPolicyCaller {
 		return plan, nil
 	}
+	// Bounded like every other access review (CheckAccess), so a stalled API
+	// server cannot hold the save open.
+	reviewCtx, cancel := context.WithTimeout(ctx, accessReviewTimeout)
+	defer cancel()
 	for _, w := range plan.writes {
 		review := &authv1.SelfSubjectAccessReview{
 			Spec: authv1.SelfSubjectAccessReviewSpec{
@@ -89,7 +98,7 @@ func (r *ClusterSettingsRepository) PlanUpdate(
 				},
 			},
 		}
-		resp, err := cs.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, review, metav1.CreateOptions{})
+		resp, err := cs.AuthorizationV1().SelfSubjectAccessReviews().Create(reviewCtx, review, metav1.CreateOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("access review for %s %s: %w", w.verb, w.resource, err)
 		}

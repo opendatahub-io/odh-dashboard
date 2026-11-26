@@ -623,3 +623,26 @@ func TestClusterSettings_RolloutWithoutNotebookController_Succeeds(t *testing.T)
 	require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
 	assert.Contains(t, writes(caller), "create configmaps", "the culler setting is stored")
 }
+
+// Pass 2 of the full review: a ConfigMap write denied after the review (RBAC
+// changed in between) stops the update; the caller's credential does not go on
+// to restart the notebook controller, even though the PVC size changed.
+func TestClusterSettings_DeniedWriteSkipsRollout(t *testing.T) {
+	caller := newClientPair(&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: notebookControllerDeploy, Namespace: credNS}})
+	allowAllBut(caller, nil)
+	caller.typed.PrependReactor("create", "configmaps", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewForbidden(corev1.Resource("configmaps"), cullerConfigName, errors.New("revoked"))
+	})
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	settings := cullerEnabledSettings()
+	settings.PVCSize = 75
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", settings, defaultDashConfig())
+	require.NoError(t, err)
+	require.True(t, plan.pvcChanged)
+
+	err = repo.UpdateConfigMaps(context.Background(), credNS, plan)
+	require.Error(t, err)
+	assert.True(t, k8serrors.IsForbidden(err))
+	assert.False(t, rolledOut(caller), "no restart after a denied write")
+}

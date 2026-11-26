@@ -109,8 +109,9 @@ delete_owned() {
 
 # created_by_us creates an object with this run's ownership label (plus any
 # extra key=value labels in create_labels) and reports the outcome: 0 created;
-# 1 a confirmed refusal (AlreadyExists, or Forbidden), so the object is not
-# this run's and cleanup never touches it; 2 ambiguous (a client timeout can
+# 1 a confirmed refusal (the server answered AlreadyExists, Forbidden, Invalid
+# or BadRequest, or a local rendering failure sent nothing), so the object is not this run's and cleanup
+# never touches it; 2 ambiguous (a client timeout can
 # follow a server-side create), so cleanup checks the label and deletes only
 # this run's object (delete_owned).
 # On success created_uid holds the new object's UID, which cleanup deletes by.
@@ -121,16 +122,25 @@ created_by_us() {
   # stdout carries only the UID; stderr (errors, server warnings) is kept
   # apart so a warning cannot corrupt it. A create that succeeds without a
   # well-formed UID is treated as ambiguous.
-  out=$("${KUBECTL[@]}" create "$@" --dry-run=client -o json |
-    "${KUBECTL[@]}" label --local -f - "$RUN_LABEL=$RUN_ID" ${create_labels[@]+"${create_labels[@]}"} -o json |
-    "${KUBECTL[@]}" create -f - -o 'jsonpath={.metadata.uid}' 2>"$work/create.err") || rc=$?
+  # The object is rendered and labelled locally first, each step with its own
+  # error check: a local failure sends nothing to the server, so it is a
+  # confirmed "not created" with its real reason, never an ambiguous result.
+  if ! "${KUBECTL[@]}" create "$@" --dry-run=client -o json >"$work/create.json" 2>"$work/create.err" ||
+    ! "${KUBECTL[@]}" label --local -f "$work/create.json" "$RUN_LABEL=$RUN_ID" ${create_labels[@]+"${create_labels[@]}"} \
+      -o json >"$work/create-labelled.json" 2>"$work/create.err"; then
+    return 1
+  fi
+  out=$("${KUBECTL[@]}" create -f "$work/create-labelled.json" -o 'jsonpath={.metadata.uid}' 2>"$work/create.err") || rc=$?
   if ((rc == 0)); then
     [[ "$out" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || return 2
     created_uid=$out
     return 0
   fi
   out=$(<"$work/create.err")
-  [[ "$out" == *"Error from server (AlreadyExists)"* || "$out" == *"Error from server (Forbidden)"* ]] && return 1
+  # The server's own refusals: nothing was created. kubectl prints a 422 as
+  # 'The <Kind> "<name>" is invalid: ...' rather than "Error from server".
+  [[ "$out" =~ Error\ from\ server\ \((AlreadyExists|Forbidden|Invalid|BadRequest)\) ]] && return 1
+  [[ "$out" =~ ^The\ [A-Za-z]+\ \"[^\"]*\"\ is\ invalid: ]] && return 1
   return 2
 }
 

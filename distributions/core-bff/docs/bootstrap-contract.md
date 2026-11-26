@@ -204,9 +204,11 @@ The namespace mutation is the visible difference. On OpenShift a caller who may 
 ServingRuntimes in a project gets the label applied by the service account. On xKS the same caller
 needs `patch` on the Namespace itself; without it the response is `{"applied": false}` and nothing
 is written. The deploy flow already tolerates `applied: false`. Only that denial is `applied: false`
-on xKS: any other failure of the caller's patch (a timeout, an API server error, an admission
-rejection, a missing namespace) is returned as that error, so a client can tell "you may not" from
-"it failed". Caller credentials that cannot be used at all (no usable token) are a `401`, not
+on xKS: any other failure of the caller's patch (a timeout, an API server error, a missing namespace,
+an admission rejection answered with another status) is returned as that error, so a client can tell
+"you may not" from "it failed". A `403` from the API server is a denial whatever produced it: RBAC,
+or an admission webhook or `ValidatingAdmissionPolicy` that denies with `403` (their default); the
+status cannot tell them apart, so both are `applied: false`. Caller credentials that cannot be used at all (no usable token) are a `401`, not
 `applied: false`. OpenShift keeps answering every failed patch with `applied: false`, as before.
 
 The connection-type update, patch and delete are bound the same way to the connection type they
@@ -281,7 +283,9 @@ and returns `403` before the first write if any is denied. This preflight is bes
 transactional: it stops the common case of a caller with partial permissions, but RBAC can change
 between the review and the write, and a write can still fail for other reasons (a conflict, an
 admission webhook). A later write that fails after earlier ones succeeded still leaves a partial
-change, reported as a `403` for a denial or `200 {"success": false}` otherwise.
+change, reported as a `403` for a denial or `200 {"success": false}` otherwise. Any `403` from the
+API server counts as a denial, including one from an admission webhook or policy that denies with
+`403`. A write denied this way also skips the planned notebook-controller rollout.
 
 On xKS the caller therefore needs, on `odhdashboardconfigs` (`opendatahub.io`) in the dashboard
 namespace:

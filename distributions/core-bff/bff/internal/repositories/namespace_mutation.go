@@ -121,9 +121,11 @@ func (r *NamespaceMutationRepository) IsCredentialFailure(err error) bool {
 // IsNotApplied reports whether err from ApplyMutation is answered with the
 // documented {"applied": false}. Under the service-account policy that stays
 // every failure, as before. Under the caller policy only a denial of the
-// caller's own patch is: an upstream failure (a timeout, a 5xx, an admission
-// rejection, a missing namespace) is reported as that failure, so a client can
-// tell "you may not" from "it failed".
+// caller's own patch is: an upstream failure (a timeout, a 5xx, a missing
+// namespace, an admission rejection with a status other than 403) is reported
+// as that failure, so a client can tell "you may not" from "it failed". A 403
+// is a denial whatever produced it: RBAC and an admission webhook or policy
+// that denies with 403 (their default) are indistinguishable by status.
 func (r *NamespaceMutationRepository) IsNotApplied(err error) bool {
 	return r.clients.policy != CredentialPolicyCaller || k8serrors.IsForbidden(err)
 }

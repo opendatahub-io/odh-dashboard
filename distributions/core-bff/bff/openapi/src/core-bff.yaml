@@ -1577,8 +1577,9 @@ paths:
         caller credential policy (xKS) the caller's own credentials apply it, so the caller
         also needs patch on the Namespace; without it the response is 200 with applied false
         and nothing is written. Any other failure of the caller's patch (a timeout, an API
-        server error, an admission rejection, a namespace that does not exist) is returned as
-        that error, not as applied false. A caller identity that cannot be resolved, or a token
+        server error, a namespace that does not exist, an admission rejection with a status other
+        than 403) is returned as that error, not as applied false. Any 403 from the API server,
+        including an admission policy that denies with 403, is a denial (applied false). A caller identity that cannot be resolved, or a token
         the API server rejects, is 401.
       parameters:
         - name: name

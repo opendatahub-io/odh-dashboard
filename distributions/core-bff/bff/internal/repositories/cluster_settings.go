@@ -192,7 +192,9 @@ func (r *ClusterSettingsRepository) UpdateConfigMaps(ctx context.Context, namesp
 	} else if err := r.applyCullerConfig(ctx, cs, namespace, plan); err != nil {
 		writeErr = fmt.Errorf("failed to update culler config: %w", err)
 	}
-	if writeErr != nil && !plan.pvcChanged {
+	// A write the caller was denied (RBAC changed since the review) stops here:
+	// the caller's credential must not go on to restart the controller.
+	if writeErr != nil && (!plan.pvcChanged || k8serrors.IsForbidden(writeErr) || k8serrors.IsUnauthorized(writeErr)) {
 		return writeErr
 	}
 
