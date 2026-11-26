@@ -117,8 +117,9 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 			ingress, found, err := unstructured.NestedSlice(policy.Object, "spec", "ingress")
 			require.NoError(t, err)
 			require.True(t, found)
-			// Rule 0: in-cluster dashboard + MaaS portal. Rule 1: data-science-gateway (Observe UI).
-			require.Len(t, ingress, 2)
+			// Single rule: in-cluster dashboard + MaaS portal. The gateway peer is
+			// intentionally absent until the /perses/api HTTPRoute has a product owner.
+			require.Len(t, ingress, 1)
 			peers := ingress[0].(map[string]interface{})["from"].([]interface{})
 			require.Len(t, peers, 2)
 			portalPeer := peers[1].(map[string]interface{})
@@ -134,20 +135,6 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, found)
 			assert.Equal(t, integrationNamespace, coreNamespace, "dashboard peer must use applicationsNamespace")
-			gatewayPeers := ingress[1].(map[string]interface{})["from"].([]interface{})
-			require.Len(t, gatewayPeers, 1)
-			gatewayPeer := gatewayPeers[0].(map[string]interface{})
-			gatewayNS, found, err := unstructured.NestedString(gatewayPeer, "namespaceSelector", "matchLabels", "kubernetes.io/metadata.name")
-			require.NoError(t, err)
-			require.True(t, found)
-			assert.Equal(t, "openshift-ingress", gatewayNS, "Observe UI gateway→Perses ingress must remain")
-			_, found, err = unstructured.NestedString(gatewayPeer, "podSelector", "matchLabels", "gateway.istio.io/managed")
-			require.NoError(t, err)
-			assert.False(t, found, "gateway peer must not require gateway.istio.io/managed")
-			gatewayName, found, err := unstructured.NestedString(gatewayPeer, "podSelector", "matchLabels", "gateway.networking.k8s.io/gateway-name")
-			require.NoError(t, err)
-			require.True(t, found)
-			assert.Equal(t, "data-science-gateway", gatewayName, "Perses ingress must identify data-science-gateway")
 			dashboard = getDashboard(t)
 			if tt.autoDetect {
 				assert.Nil(t, dashboard.Spec.Observability, "auto-detection must remain in memory")

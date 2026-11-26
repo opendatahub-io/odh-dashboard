@@ -71,7 +71,7 @@ func TestSetPersesAccessApplicationsNamespace(t *testing.T) {
 
 			var policy networkingv1.NetworkPolicy
 			require.NoError(t, runtime.DefaultUnstructuredConverter.FromUnstructured(resources[0].Object, &policy))
-			require.Len(t, policy.Spec.Ingress, 2)
+			require.Len(t, policy.Spec.Ingress, 1)
 
 			got := make([]string, 0, len(policy.Spec.Ingress[0].From))
 			for _, peer := range policy.Spec.Ingress[0].From {
@@ -86,13 +86,6 @@ func TestSetPersesAccessApplicationsNamespace(t *testing.T) {
 				assert.NotContains(t, got, maasPortalPartOf)
 			}
 
-			gateway := policy.Spec.Ingress[1].From[0]
-			require.NotNil(t, gateway.NamespaceSelector)
-			assert.Equal(t, "openshift-ingress", gateway.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"],
-				"gateway peer namespace must not be rewritten")
-			assert.Equal(t, "data-science-gateway", gateway.PodSelector.MatchLabels["gateway.networking.k8s.io/gateway-name"])
-			_, hasManaged := gateway.PodSelector.MatchLabels["gateway.istio.io/managed"]
-			assert.False(t, hasManaged)
 		})
 	}
 

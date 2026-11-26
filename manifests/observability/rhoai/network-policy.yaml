@@ -27,14 +27,3 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-    # Observe UI → Perses via data-science-gateway (Gateway API name only).
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: openshift-ingress
-          podSelector:
-            matchLabels:
-              gateway.networking.k8s.io/gateway-name: data-science-gateway
-      ports:
-        - protocol: TCP
-          port: 8080

@@ -182,27 +182,29 @@ func renderOverlayAllowPorts(t *testing.T, overlay string) networkingv1.NetworkP
 	return networkingv1.NetworkPolicy{}
 }
 
-// TestRHOAIPersesAccessAllowsDataScienceGateway guards Observe UI → Perses via
-// data-science-gateway HTTPRoute (/perses/api). Without the openshift-ingress
-// gateway peer, NetworkPolicy drops that traffic and the UI shows 504.
-// Asserts both the source YAML and the kustomize-rendered observability overlay
-// the reconciler applies.
-func TestRHOAIPersesAccessAllowsDataScienceGateway(t *testing.T) {
+// TestRHOAIPersesAccessAllowsApplications guards the in-cluster consumers
+// (dashboard + MaaS portal pods) of the dashboard-perses-access policy in the
+// source YAML and the kustomize-rendered observability overlay the reconciler
+// applies.
+//
+// The data-science-gateway peer is intentionally absent: no product component
+// creates the /perses/api HTTPRoute yet (test clusters carry a hand-applied
+// workaround route). Re-adding the peer requires landing that route ownership
+// first — see the odh-observability follow-up.
+func TestRHOAIPersesAccessAllowsApplications(t *testing.T) {
 	t.Parallel()
-	assertPersesAccessGateway(t, "rhoai",
+	assertPersesAccessPolicy(t, "rhoai",
 		ingressPeer{"redhat-ods-applications", "app.kubernetes.io/part-of", "rhods-dashboard"},
 		ingressPeer{"redhat-ods-applications", "app.kubernetes.io/part-of", "maas-portal"},
-		ingressPeer{"openshift-ingress", "gateway.networking.k8s.io/gateway-name", "data-science-gateway"},
 	)
 }
 
-// TestODHPersesAccessAllowsDataScienceGateway is the ODH counterpart of
-// TestRHOAIPersesAccessAllowsDataScienceGateway.
-func TestODHPersesAccessAllowsDataScienceGateway(t *testing.T) {
+// TestODHPersesAccessAllowsApplications is the ODH counterpart of
+// TestRHOAIPersesAccessAllowsApplications.
+func TestODHPersesAccessAllowsApplications(t *testing.T) {
 	t.Parallel()
-	assertPersesAccessGateway(t, "odh",
+	assertPersesAccessPolicy(t, "odh",
 		ingressPeer{"opendatahub", "app.kubernetes.io/part-of", "odh-dashboard"},
-		ingressPeer{"openshift-ingress", "gateway.networking.k8s.io/gateway-name", "data-science-gateway"},
 	)
 }
 
@@ -210,13 +212,13 @@ type ingressPeer struct {
 	namespace, podLabelKey, podLabelValue string
 }
 
-func assertPersesAccessGateway(t *testing.T, overlay string, peers ...ingressPeer) {
+func assertPersesAccessPolicy(t *testing.T, overlay string, peers ...ingressPeer) {
 	t.Helper()
 
 	// Source YAML
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "manifests", "observability", overlay, "network-policy.yaml"))
 	require.NoError(t, err)
-	assertPersesAccessPolicy(t, data, peers...)
+	assertPersesAccessPolicyYAML(t, data, peers...)
 
 	// Rendered observability overlay (what the dashboard-operator applies)
 	path := filepath.Join("..", "..", "..", "manifests", "observability", overlay)
@@ -231,10 +233,10 @@ func assertPersesAccessGateway(t *testing.T, overlay string, peers ...ingressPee
 		}
 	}
 	require.NotEmpty(t, rendered, "dashboard-perses-access missing from rendered observability/%s overlay", overlay)
-	assertPersesAccessPolicy(t, rendered, peers...)
+	assertPersesAccessPolicyYAML(t, rendered, peers...)
 }
 
-func assertPersesAccessPolicy(t *testing.T, data []byte, peers ...ingressPeer) {
+func assertPersesAccessPolicyYAML(t *testing.T, data []byte, peers ...ingressPeer) {
 	t.Helper()
 	resource := unstructured.Unstructured{}
 	require.NoError(t, yaml.Unmarshal(data, &resource.Object))
@@ -245,18 +247,12 @@ func assertPersesAccessPolicy(t *testing.T, data []byte, peers ...ingressPeer) {
 		assert.True(t, ingressAllowsNamespacedPod(policy, 8080, peer.namespace, peer.podLabelKey, peer.podLabelValue),
 			"must allow %s/%s=%s on 8080", peer.namespace, peer.podLabelKey, peer.podLabelValue)
 	}
-	// Gateway peer selects by Gateway API name only. A pod that only has that
-	// label must be allowed; an unrelated gateway-name must not.
-	assert.True(t, ingressAllowsNamespacedPodLabels(policy, 8080, "openshift-ingress", map[string]string{
-		"gateway.networking.k8s.io/gateway-name": "data-science-gateway",
-	}), "gateway→Perses peer must allow data-science-gateway pods")
-	assert.True(t, ingressAllowsNamespacedPodLabels(policy, 8080, "openshift-ingress", map[string]string{
-		"gateway.networking.k8s.io/gateway-name": "data-science-gateway",
-		"gateway.istio.io/managed":               "istio.io-gateway-controller",
-	}), "extra labels on the gateway pod must not deny ingress")
+	// No product component creates the /perses/api HTTPRoute yet, so the
+	// policy must not admit openshift-ingress gateway pods. Re-adding this
+	// peer requires the route to land with a real owner first.
 	assert.False(t, ingressAllowsNamespacedPodLabels(policy, 8080, "openshift-ingress", map[string]string{
-		"gateway.networking.k8s.io/gateway-name": "unrelated-gateway",
-	}), "unrelated gateway-name must not match Perses ingress")
+		"gateway.networking.k8s.io/gateway-name": "data-science-gateway",
+	}), "gateway→Perses peer must stay absent until the /perses/api HTTPRoute has a product owner")
 }
 
 func ingressAllowsPort(policy networkingv1.NetworkPolicy, port int32, peerMatches func(networkingv1.NetworkPolicyPeer) bool) bool {
