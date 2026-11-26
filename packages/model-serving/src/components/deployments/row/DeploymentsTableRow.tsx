@@ -101,7 +101,10 @@ export const DeploymentRow: React.FC<{
     'patch',
     namespace,
     name,
-    Boolean(startStopActionExtension && (deployment.status?.stoppedStates || isStatusModalOpen)),
+    Boolean(
+      startStopActionExtension &&
+        (deployment.status?.stoppedStates || isStatusModalOpen || isOpenConfirm),
+    ),
   );
   const project = projects.find((p) => p.metadata.name === namespace);
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);

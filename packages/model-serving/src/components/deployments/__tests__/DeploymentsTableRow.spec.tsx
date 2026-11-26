@@ -6,7 +6,7 @@ import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-prof
 import { useAssignHardwareProfile } from '@odh-dashboard/hardware-profiles/shared/useAssignHardwareProfile';
 import { HostApiCoreContext, type HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
-import { Deployment } from '../../../../extension-points';
+import { Deployment, isModelServingStartStopAction } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRow } from '../row/DeploymentsTableRow';
 
@@ -93,6 +93,25 @@ const renderWithRouter = (component: React.ReactElement) => {
   return render(<MemoryRouter>{component}</MemoryRouter>);
 };
 
+const DeploymentAccessHost: React.FC<
+  React.PropsWithChildren<{ checkAccess: HostApiCoreServices['checkAccess'] }>
+> = ({ checkAccess, children }) => {
+  const core = React.useContext(HostApiCoreContext);
+  const value = React.useMemo(
+    () => ({
+      ...core,
+      checkAccess,
+      deploymentApi: {
+        group: 'serving.kserve.io',
+        resource: 'llminferenceservices',
+        resources: { llminferenceservices: ['update', 'delete', 'patch'] },
+      },
+    }),
+    [core, checkAccess],
+  );
+  return <HostApiCoreContext.Provider value={value}>{children}</HostApiCoreContext.Provider>;
+};
+
 describe('DeploymentsTableRow', () => {
   let onDelete: jest.Mock;
 
@@ -161,24 +180,8 @@ describe('DeploymentsTableRow', () => {
     const checkAccess = jest.fn<Promise<boolean>, Parameters<HostApiCoreServices['checkAccess']>>(
       async () => false,
     );
-    const Host: React.FC<React.PropsWithChildren> = ({ children }) => {
-      const core = React.useContext(HostApiCoreContext);
-      const value = React.useMemo(
-        () => ({
-          ...core,
-          checkAccess,
-          deploymentApi: {
-            group: 'serving.kserve.io',
-            resource: 'llminferenceservices',
-            resources: { llminferenceservices: ['update', 'delete', 'patch'] },
-          },
-        }),
-        [core],
-      );
-      return <HostApiCoreContext.Provider value={value}>{children}</HostApiCoreContext.Provider>;
-    };
     renderWithRouter(
-      <Host>
+      <DeploymentAccessHost checkAccess={checkAccess}>
         <table>
           <tbody>
             <DeploymentRow
@@ -189,7 +192,7 @@ describe('DeploymentsTableRow', () => {
             />
           </tbody>
         </table>
-      </Host>,
+      </DeploymentAccessHost>,
     );
 
     expect(checkAccess).not.toHaveBeenCalled();
@@ -207,6 +210,41 @@ describe('DeploymentsTableRow', () => {
     expect(remove).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(remove);
     expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it('should stop a deployment without stopped states after confirming from the status dialog', async () => {
+    const deployment = mockDeployment({ status: { state: ModelDeploymentState.LOADED } });
+    const patchDeployment = jest.fn().mockResolvedValue(deployment.model);
+    mockUseDeploymentExtension.mockImplementation((predicate) =>
+      predicate === isModelServingStartStopAction
+        ? { properties: { patchDeploymentStoppedStatus: async () => patchDeployment } }
+        : null,
+    );
+    const checkAccess: HostApiCoreServices['checkAccess'] = async ({ verb }) => verb === 'patch';
+
+    renderWithRouter(
+      <DeploymentAccessHost checkAccess={checkAccess}>
+        <table>
+          <tbody>
+            <DeploymentRow
+              deployment={deployment}
+              platformColumns={[]}
+              onDelete={onDelete}
+              rowIndex={0}
+            />
+          </tbody>
+        </table>
+      </DeploymentAccessHost>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ready' }));
+    fireEvent.click(await screen.findByTestId('deployment-status-stop-button'));
+    expect(screen.queryByTestId('deployment-status-modal')).not.toBeInTheDocument();
+    expect(patchDeployment).not.toHaveBeenCalled();
+
+    await act(async () => fireEvent.click(screen.getByTestId('stop-model-button')));
+    expect(patchDeployment).toHaveBeenCalledTimes(1);
+    expect(patchDeployment).toHaveBeenCalledWith(deployment, true);
   });
 
   it('should render the row with a status', () => {
