@@ -75,6 +75,7 @@ const connections = [
     metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
     resource: {
       name: 'warehouse',
+      description: 'Sales data warehouse',
       data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
       format: 'tabular' as const,
       credentials_ref: { secret: 'warehouse' },
@@ -182,6 +183,19 @@ describe('ConnectionsTab', () => {
     renderConnectionsTab({ namespace: 'test-project' });
 
     expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.getByText('Sales data warehouse')).toBeTruthy();
+    expect(screen.getAllByTestId('connection-name-description')).toHaveLength(1);
+    expect(screen.getByTestId('connection-name-description').classList).toContain(
+      'pf-v6-u-font-size-sm',
+    );
+    const descriptionText = screen.getByTestId('connection-name-description-text');
+    expect(descriptionText.style.webkitLineClamp).toBe('2');
+    expect(descriptionText.style.whiteSpace).toBe('pre-wrap');
+    expect(descriptionText.tabIndex).toBe(0);
+    const descriptionContent = Array.from(descriptionText.querySelectorAll('span')).find(
+      (element) => element.style.whiteSpace === 'pre-wrap',
+    );
+    expect(descriptionContent?.style.overflowWrap).toBe('anywhere');
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Unverified')).toBeTruthy();
   });
