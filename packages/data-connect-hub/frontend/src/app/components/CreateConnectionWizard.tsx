@@ -451,16 +451,23 @@ const VerifyConnectionSection: React.FC<VerificationSectionProps> = ({
 
   const fields = connectionType?.resource.credentials_fields ?? [];
   const isVerifyAccessDisabled = !canVerifyConnection || !verifyAccessLoaded;
+  const hasRequiredCredentialValues = fields.every(
+    (field) => !field.required || hasCredentialValue(credentials[field.name]),
+  );
+  const isVerifyDisabled = isVerifyAccessDisabled || isVerifying || !hasRequiredCredentialValues;
+  const verifyTooltipContent = isVerifyAccessDisabled
+    ? verifyAccessLoaded
+      ? getConnectionAccessTooltip('create')
+      : 'Checking access...'
+    : isVerifying
+      ? 'Verifying connection...'
+      : 'Enter all required credentials before verifying.';
   const verifyButton = (
     <Button
       variant="tertiary"
       onClick={onVerify}
       isLoading={isVerifying}
-      isDisabled={
-        isVerifyAccessDisabled ||
-        isVerifying ||
-        fields.some((field) => field.required && !hasCredentialValue(credentials[field.name]))
-      }
+      isAriaDisabled={isVerifyDisabled}
       className="pf-v6-u-mb-md"
       data-testid="verify-connection-button"
     >
@@ -474,12 +481,8 @@ const VerifyConnectionSection: React.FC<VerificationSectionProps> = ({
       <Content component={ContentVariants.p}>
         Verify that the credentials are accurate and the endpoint can be reached.
       </Content>
-      {isVerifyAccessDisabled ? (
-        <Tooltip
-          content={verifyAccessLoaded ? getConnectionAccessTooltip('create') : 'Checking access...'}
-        >
-          {verifyButton}
-        </Tooltip>
+      {isVerifyDisabled ? (
+        <Tooltip content={verifyTooltipContent}>{verifyButton}</Tooltip>
       ) : (
         verifyButton
       )}

@@ -299,7 +299,7 @@ describe('EmbeddableConnectionWizardRemote', () => {
     expect(screen.queryByTestId('credential-URI')).toBeNull();
   });
 
-  it('disables credential verification when the user cannot create connections', async () => {
+  it('keeps credential verification tooltip accessible without create access', async () => {
     mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
     const user = userEvent.setup();
     render(
@@ -314,7 +314,39 @@ describe('EmbeddableConnectionWizardRemote', () => {
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.type(screen.getByTestId('credential-URI'), 's3://warehouse');
 
-    expect(screen.getByTestId('verify-connection-button')).toHaveProperty('disabled', true);
+    const verifyButton = screen.getByTestId('verify-connection-button');
+    expect(verifyButton).toHaveProperty('disabled', false);
+    expect(verifyButton.getAttribute('aria-disabled')).toBe('true');
+
+    verifyButton.focus();
+    expect(verifyButton).toBe(document.activeElement);
+    expect((await screen.findByRole('tooltip')).textContent).toBe(
+      'This action requires the create permission. To request permission, contact your administrator.',
+    );
+  });
+
+  it('keeps credential verification tooltip accessible without required credentials', async () => {
+    const user = userEvent.setup();
+    render(
+      <EmbeddableConnectionWizardRemote
+        isOpen
+        namespace="test-project"
+        initialConnectionTypeId={connectionTypeId}
+      />,
+    );
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    const verifyButton = screen.getByTestId('verify-connection-button');
+    expect(verifyButton).toHaveProperty('disabled', false);
+    expect(verifyButton.getAttribute('aria-disabled')).toBe('true');
+
+    verifyButton.focus();
+    expect(verifyButton).toBe(document.activeElement);
+    expect((await screen.findByRole('tooltip')).textContent).toBe(
+      'Enter all required credentials before verifying.',
+    );
   });
 
   it('creates through the Data Connect Hub BFF and reports the created connection', async () => {
