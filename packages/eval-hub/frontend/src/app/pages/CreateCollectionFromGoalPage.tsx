@@ -41,7 +41,7 @@ import {
   benchmarkOverviewSchema,
   type CollectionBuilderFormValues,
 } from '~/app/schemas/collectionBuilder.schema';
-import type { CollectionBenchmark, CollectionGenerationRequest } from '~/app/types';
+import type { Collection, CollectionBenchmark, CollectionGenerationRequest } from '~/app/types';
 import { buildGoalCollectionCreateRequest } from '~/app/utilities/goalCollectionUtils';
 
 import './CreateCollectionFromGoalPage.scss';
@@ -79,7 +79,6 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     loadError: providersError,
   } = useProviders(namespace ?? '');
   const [submittedRequestFingerprint, setSubmittedRequestFingerprint] = React.useState<string>();
-  const [hasVisitedOverview, setHasVisitedOverview] = React.useState(false);
   const [isRunModalOpen, setIsRunModalOpen] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isRunPending, setIsRunPending] = React.useState(false);
@@ -139,24 +138,29 @@ const CreateCollectionFromGoalPage: React.FC = () => {
   const hasDefineGoalErrors = defineGoalFieldNames.some((fieldName) => defineGoalErrors[fieldName]);
   const canRecommend = canContinueSettings && isDefineGoalValid && !hasDefineGoalErrors;
   const cancelRoute = evaluationCreateSuiteChooserRoute(namespace);
-  // Serialize generation inputs so changes can mark recommendations stale against the submitted snapshot.
   const selectedProviderIds = [...new Set(frameworkFilter)].toSorted();
-  const currentRequestFingerprint = JSON.stringify({
-    evaluationGoal: evaluationGoal.trim(),
-    model: generatorModel
-      ? {
+  const generationRequest: CollectionGenerationRequest | undefined = generatorModel
+    ? {
+        evaluation_goal: evaluationGoal.trim(),
+        model: {
           name: generatorModel.name,
           url: generatorModel.url,
-          auth: generatorModel.auth?.secret_ref
-            ? { secret_ref: generatorModel.auth.secret_ref }
-            : undefined,
-        }
-      : undefined,
-    maxBenchmarks,
-    strictness,
-    generationEffort,
-    provider_filter: selectedProviderIds,
-  });
+          ...(generatorModel.auth?.secret_ref
+            ? { auth: { secret_ref: generatorModel.auth.secret_ref } }
+            : {}),
+        },
+        max_benchmarks: maxBenchmarks,
+        strictness,
+        generation_effort: generationEffort,
+        ...(selectedProviderIds.length > 0
+          ? { provider_filter: selectedProviderIds.join(',') }
+          : {}),
+      }
+    : undefined;
+  // Compare the exact submitted payload with current inputs to detect stale recommendations.
+  const currentRequestFingerprint = generationRequest
+    ? JSON.stringify(generationRequest)
+    : undefined;
   const isGenerationStale =
     Boolean(generationId) &&
     Boolean(submittedRequestFingerprint) &&
@@ -198,7 +202,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
   }, [deleteGeneration, generation?.status.state, generationId]);
 
   const handleRecommend = async (): Promise<boolean> => {
-    if (!generatorModel) {
+    if (!generationRequest || !canRecommend) {
       return false;
     }
 
@@ -214,25 +218,9 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     initializedGenerationId.current = undefined;
     methods.setValue('selectedBenchmarks', [], { shouldDirty: true, shouldValidate: true });
 
-    const request: CollectionGenerationRequest = {
-      evaluation_goal: evaluationGoal.trim(),
-      model: {
-        name: generatorModel.name,
-        url: generatorModel.url,
-        ...(generatorModel.auth?.secret_ref
-          ? { auth: { secret_ref: generatorModel.auth.secret_ref } }
-          : {}),
-      },
-      max_benchmarks: maxBenchmarks,
-      strictness,
-      generation_effort: generationEffort,
-      ...(selectedProviderIds.length > 0 ? { provider_filter: selectedProviderIds.join(',') } : {}),
-    };
-
     try {
-      await startGeneration(request);
+      await startGeneration(generationRequest);
       setSubmittedRequestFingerprint(currentRequestFingerprint);
-      setHasVisitedOverview(true);
       return true;
     } catch {
       return false;
@@ -251,7 +239,6 @@ const CreateCollectionFromGoalPage: React.FC = () => {
   };
 
   const canContinueOverview =
-    hasVisitedOverview &&
     generation?.status.state === 'completed' &&
     !isGenerationStale &&
     benchmarkOverviewSchema.safeParse({ selectedBenchmarks }).success;
@@ -260,62 +247,17 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     generation?.status.state === 'completed' && generation.result
       ? generation.result.collection
       : undefined;
-  const canSave =
-    Boolean(namespace && generatedCollection) &&
-    canContinueSettings &&
-    canRecommend &&
-    canContinueOverview;
+  const canSave = Boolean(namespace && generatedCollection) && canRecommend && canContinueOverview;
   const buildRequest = (): ReturnType<typeof buildGoalCollectionCreateRequest> | undefined => {
-    const collection =
-      generation?.status.state === 'completed' && generation.result
-        ? generation.result.collection
-        : undefined;
-    if (!collection) {
+    if (!generatedCollection) {
       return undefined;
     }
     return buildGoalCollectionCreateRequest(
-      collection,
+      generatedCollection,
       suiteName,
       suiteDescription,
       selectedBenchmarks,
     );
-  };
-
-  const handleSave = async (): Promise<void> => {
-    if (!canSave || !namespace || saveInFlightRef.current) {
-      return;
-    }
-    saveInFlightRef.current = true;
-    setIsSaving(true);
-    try {
-      if (!(await methods.trigger())) {
-        return;
-      }
-      const request = buildRequest();
-      if (!request) {
-        return;
-      }
-      const collection = await createCollection('', namespace, request)({});
-      notification.success(
-        'Collection created',
-        `"${collection.name}" has been added to your collections.`,
-      );
-      try {
-        await deleteGeneration();
-      } catch (cleanupError) {
-        const message =
-          cleanupError instanceof Error ? cleanupError.message : 'An unknown error occurred.';
-        notification.error('Collection created, but recommendation cleanup failed', message);
-      }
-      refreshCollections();
-      navigate(evaluationBenchmarkSuitesRoute(namespace));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-      notification.error('Failed to create collection', message);
-    } finally {
-      saveInFlightRef.current = false;
-      setIsSaving(false);
-    }
   };
 
   const handleSaveAndRun = (): void => {
@@ -324,7 +266,9 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     }
   };
 
-  const resolveCollectionForRun = async (signal?: AbortSignal) => {
+  const createReviewedCollection = async (
+    signal?: AbortSignal,
+  ): Promise<Collection | undefined> => {
     if (!canSave || !namespace || signal?.aborted || saveInFlightRef.current) {
       return undefined;
     }
@@ -361,6 +305,18 @@ const CreateCollectionFromGoalPage: React.FC = () => {
       saveInFlightRef.current = false;
       setIsSaving(false);
     }
+  };
+
+  const handleSave = async (): Promise<void> => {
+    const collection = await createReviewedCollection();
+    if (!collection) {
+      return;
+    }
+    notification.success(
+      'Collection created',
+      `"${collection.name}" has been added to your collections.`,
+    );
+    navigate(evaluationBenchmarkSuitesRoute(namespace));
   };
 
   const handleStopGeneration = (): void => {
@@ -547,7 +503,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
               className="evalhub-goal-collection-wizard"
               cleanup={{
                 fromStepId: 'benchmark-overview',
-                toStepId: 'define-goal',
+                toStepIds: ['suite-settings', 'define-goal'],
                 onLeave: deleteGeneration,
               }}
             />
@@ -560,7 +516,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
               isCollectionFlow
               defaultEvaluationName={suiteName}
               modalId="goal-suite-run-evaluation-modal"
-              resolveCollection={resolveCollectionForRun}
+              resolveCollection={createReviewedCollection}
               onClonePendingChange={setIsRunPending}
               trackingSource="create_suite"
               onSuccess={() => {

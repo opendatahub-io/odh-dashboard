@@ -114,8 +114,7 @@ const GenerationSettingsFields: React.FC<GenerationSettingsFieldsProps> = ({
       }),
     );
   }, [frameworkSearch, providers]);
-  const selectedFrameworksList = selectedFrameworks;
-  const selectedFrameworkLabels = selectedFrameworksList.map((providerId) => {
+  const selectedFrameworkLabels = selectedFrameworks.map((providerId) => {
     const provider = providers.find((item) => item.resource.id === providerId);
     return provider?.title ?? provider?.name ?? providerId;
   });
@@ -160,9 +159,9 @@ const GenerationSettingsFields: React.FC<GenerationSettingsFieldsProps> = ({
   };
 
   const toggleFramework = (providerId: string) => {
-    const next = selectedFrameworksList.includes(providerId)
-      ? selectedFrameworksList.filter((id) => id !== providerId)
-      : [...selectedFrameworksList, providerId];
+    const next = selectedFrameworks.includes(providerId)
+      ? selectedFrameworks.filter((id) => id !== providerId)
+      : [...selectedFrameworks, providerId];
     setValue('frameworkFilter', next, { shouldDirty: true, shouldValidate: true });
   };
 
@@ -331,7 +330,7 @@ const GenerationSettingsFields: React.FC<GenerationSettingsFieldsProps> = ({
               <Select
                 id="framework-filter-select"
                 isOpen={isFrameworkSelectOpen}
-                selected={selectedFrameworksList}
+                selected={selectedFrameworks}
                 onSelect={(_event, value) => {
                   if (typeof value === 'string') {
                     toggleFramework(value);
@@ -378,7 +377,7 @@ const GenerationSettingsFields: React.FC<GenerationSettingsFieldsProps> = ({
                       key={provider.resource.id}
                       value={provider.resource.id}
                       hasCheckbox
-                      isSelected={selectedFrameworksList.includes(provider.resource.id)}
+                      isSelected={selectedFrameworks.includes(provider.resource.id)}
                       data-testid={`framework-filter-option-${provider.resource.id}`}
                     >
                       {provider.title ?? provider.name}
@@ -393,7 +392,7 @@ const GenerationSettingsFields: React.FC<GenerationSettingsFieldsProps> = ({
                 <HelperText>
                   <HelperTextItem data-testid="framework-filter-helper">
                     {providersError
-                      ? selectedFrameworksList.length > 0
+                      ? selectedFrameworks.length > 0
                         ? 'Framework names could not be loaded. Selected framework IDs will still be used.'
                         : 'Frameworks could not be loaded. Leave the selection empty to search all frameworks.'
                       : 'Select frameworks to limit recommendations; leave empty to include them all.'}

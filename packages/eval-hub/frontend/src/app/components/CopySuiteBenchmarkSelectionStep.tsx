@@ -31,11 +31,11 @@ import {
 } from '~/app/components/benchmarkUtils';
 import CopySuiteBenchmarkDetailsOverlay from '~/app/components/CopySuiteBenchmarkDetailsOverlay';
 import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
-import { MAX_BENCHMARKS } from '~/app/pages/useCopySuiteForm';
 import {
   BenchmarkFilterOptions,
   BenchmarkFilterDataType,
   initialBenchmarkFilterData,
+  MAX_COLLECTION_BENCHMARKS,
 } from '~/app/pages/const';
 import {
   filterBenchmarks,
@@ -244,8 +244,8 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
   }, [sortedBenchmarks, effectivePage]);
 
   const selectionCount = selectedBenchmarkKeys.length;
-  const isAtSelectionLimit = selectionCount >= MAX_BENCHMARKS;
-  const hasTooManySelections = selectionCount > MAX_BENCHMARKS;
+  const isAtSelectionLimit = selectionCount >= MAX_COLLECTION_BENCHMARKS;
+  const hasTooManySelections = selectionCount > MAX_COLLECTION_BENCHMARKS;
   const hasActiveFilters = hasActiveBenchmarkFilters(filterData);
   const hasAutoPrefilter =
     (initialCategoryFilters.length > 0 || initialFrameworkFilters.length > 0) &&
@@ -304,7 +304,11 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
   const toggleSelection = React.useCallback(
     (key: string) => {
       setPage(1);
-      const nextKeys = toggleBenchmarkSelectionKey(selectedBenchmarkKeys, key, MAX_BENCHMARKS);
+      const nextKeys = toggleBenchmarkSelectionKey(
+        selectedBenchmarkKeys,
+        key,
+        MAX_COLLECTION_BENCHMARKS,
+      );
       onSelectionChange(nextKeys);
     },
     [onSelectionChange, selectedBenchmarkKeys],
@@ -331,7 +335,8 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
             Benchmarks
           </Title>
           <Content component="p" className="pf-v6-u-mb-lg">
-            Search and select up to {MAX_BENCHMARKS} benchmarks to include in your collection.
+            Search and select up to {MAX_COLLECTION_BENCHMARKS} benchmarks to include in your
+            collection.
           </Content>
 
           <Stack hasGutter className="evalhub-copy-suite-benchmark-catalog__stack">
@@ -533,7 +538,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                   data-testid="benchmark-catalog-selection-summary"
                 >
                   <strong>
-                    Selected benchmarks · {selectionCount} of {MAX_BENCHMARKS}
+                    Selected benchmarks · {selectionCount} of {MAX_COLLECTION_BENCHMARKS}
                   </strong>
                 </Content>
                 {selectionCount > 0 ? (
@@ -589,7 +594,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                     variant="error"
                   >
                     Invalid selection: {selectionCount} benchmarks selected. Select no more than{' '}
-                    {MAX_BENCHMARKS}.
+                    {MAX_COLLECTION_BENCHMARKS}.
                   </HelperTextItem>
                 </HelperText>
               ) : null}

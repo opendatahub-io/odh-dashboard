@@ -1,11 +1,12 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
+import { MAX_COLLECTION_BENCHMARKS } from '~/app/pages/const';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
 
 export const suiteSettingsSchema = z.object({
   suiteName: z.string().trim().min(1, 'Enter a collection name.'),
   suiteDescription: z.string(),
-  maxBenchmarks: z.number().int().min(1).max(20),
+  maxBenchmarks: z.number().int().min(1).max(MAX_COLLECTION_BENCHMARKS),
 });
 
 export const recommendationSettingsSchema = z.object({
@@ -61,7 +62,7 @@ export const benchmarkOverviewSchema = z.object({
       }),
     )
     .min(1, 'Select at least one benchmark.')
-    .max(20, 'Select no more than 20 benchmarks.'),
+    .max(MAX_COLLECTION_BENCHMARKS, `Select no more than ${MAX_COLLECTION_BENCHMARKS} benchmarks.`),
 });
 
 export const collectionSettingsFieldNames = [

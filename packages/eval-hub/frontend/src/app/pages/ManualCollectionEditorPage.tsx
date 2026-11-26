@@ -48,7 +48,8 @@ import CollectionWizard, {
   type CollectionWizardStep,
 } from '~/app/components/collectionBuilder/CollectionWizard';
 import type { Collection } from '~/app/types';
-import { MAX_BENCHMARKS, useCopySuiteForm } from './useCopySuiteForm';
+import { MAX_COLLECTION_BENCHMARKS } from './const';
+import { useCopySuiteForm } from './useCopySuiteForm';
 
 import './ManualCollectionEditorPage.scss';
 
@@ -168,7 +169,9 @@ const ManualCollectionEditorPage: React.FC<ManualCollectionEditorPageProps> = ({
   const pendingCollection =
     isCreateMode || sourceCollection ? form.buildPendingCollection() : undefined;
   const isSelectionValid =
-    form.isSettingsValid && form.benchmarks.length > 0 && form.benchmarks.length <= MAX_BENCHMARKS;
+    form.isSettingsValid &&
+    form.benchmarks.length > 0 &&
+    form.benchmarks.length <= MAX_COLLECTION_BENCHMARKS;
   const isReviewValid = form.isValid && Boolean(pendingCollection);
 
   const renderBreadcrumbLink = React.useCallback(

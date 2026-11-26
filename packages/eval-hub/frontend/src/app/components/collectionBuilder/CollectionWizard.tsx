@@ -36,7 +36,7 @@ export type CollectionWizardAction = {
 
 export type CollectionWizardCleanup = {
   fromStepId: string;
-  toStepId: string;
+  toStepIds: readonly string[];
   onLeave: () => Promise<unknown>;
 };
 
@@ -65,7 +65,7 @@ const CollectionWizardFooter: React.FC<CollectionWizardFooterProps> = ({
     if (
       currentCleanup &&
       previousStepId.current === currentCleanup.fromStepId &&
-      activeStep.id === currentCleanup.toStepId
+      currentCleanup.toStepIds.includes(String(activeStep.id))
     ) {
       void currentCleanup.onLeave().catch(() => {
         // The owning page keeps the cleanup error for the next step to display.

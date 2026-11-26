@@ -750,6 +750,21 @@ describe('CreateCollectionFromGoalPage', () => {
     );
   });
 
+  it('should delete the generation when navigating from Benchmark overview to Collection settings', async () => {
+    await startCompletedGeneration();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collection settings' }));
+
+    expect(await screen.findByTestId('suite-settings-step')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith(
+        '',
+        'test-project',
+        'generation-1',
+      ),
+    );
+  });
+
   it('should keep the generation when navigating from Benchmark overview to Review', async () => {
     await startCompletedGeneration();
 

@@ -16,6 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
 import GenerationSettingsFields from '~/app/components/collectionBuilder/GenerationSettingsFields';
+import { MAX_COLLECTION_BENCHMARKS } from '~/app/pages/const';
 import {
   collectionSettingsFieldNames,
   type CollectionBuilderFormValues,
@@ -129,14 +130,15 @@ const CollectionSettingsStep: React.FC<CollectionSettingsStepProps> = ({
                       <FormHelperText>
                         <HelperText>
                           <HelperTextItem id="suite-builder-max-benchmarks-helper">
-                            Set the maximum number of benchmarks AI should recommend, from 1 to 20.
+                            Set the maximum number of benchmarks AI should recommend, from 1 to{' '}
+                            {MAX_COLLECTION_BENCHMARKS}.
                           </HelperTextItem>
                         </HelperText>
                       </FormHelperText>
                       <Slider
                         id="goal-suite-max-benchmarks"
                         min={1}
-                        max={20}
+                        max={MAX_COLLECTION_BENCHMARKS}
                         step={1}
                         value={field.value}
                         onChange={(_event, value, inputValue) =>

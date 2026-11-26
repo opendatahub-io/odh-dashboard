@@ -36,9 +36,9 @@ import {
 } from '~/app/components/benchmarkUtils';
 import { formatThresholdValue } from '~/app/utilities/evaluationUtils';
 import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
+import { MAX_COLLECTION_BENCHMARKS } from '~/app/pages/const';
 import type {
   CollectionBenchmark,
-  CollectionGenerationBenchmarkReason,
   CollectionGenerationResource,
   FlatBenchmark,
   Provider,
@@ -46,7 +46,6 @@ import type {
 
 import './CollectionGenerationStep.scss';
 
-const MAX_RECOMMENDED_BENCHMARKS = 20;
 const BENCHMARK_LOADING_SKELETON_COUNT = 6;
 
 type CollectionGenerationStepProps = {
@@ -98,30 +97,6 @@ const getPhaseLabel = (phase?: string): string | undefined => {
   return phase ? labels[phase] : undefined;
 };
 
-const getCollectionBenchmarkDefaults = (
-  benchmark: CollectionGenerationBenchmarkReason,
-  providers: Provider[],
-): CollectionBenchmark => {
-  const provider = providers.find((item) => item.resource.id === benchmark.provider_id);
-  const catalogBenchmark = provider?.benchmarks?.find((item) => item.id === benchmark.id);
-  return {
-    id: benchmark.id,
-    provider_id: benchmark.provider_id,
-    ...(catalogBenchmark?.url ? { url: catalogBenchmark.url } : {}),
-    ...(catalogBenchmark?.primary_score
-      ? {
-          primary_score: {
-            metric: catalogBenchmark.primary_score.metric,
-            lower_is_better: catalogBenchmark.primary_score.lower_is_better,
-          },
-        }
-      : {}),
-    ...(catalogBenchmark?.pass_criteria
-      ? { pass_criteria: { threshold: catalogBenchmark.pass_criteria.threshold } }
-      : {}),
-  };
-};
-
 const enrichCollectionBenchmark = (
   benchmark: CollectionBenchmark,
   providers: Provider[],
@@ -149,6 +124,7 @@ type OtherBenchmarksDrawerProps = {
   isOpen: boolean;
   alternatives: AlternativeBenchmark[];
   providers: Provider[];
+  providerBenchmarks: ReadonlyMap<string, FlatBenchmark>;
   selectionLimitReached: boolean;
   onClose: () => void;
   onAdd: (benchmark: CollectionBenchmark) => void;
@@ -158,12 +134,11 @@ const OtherBenchmarksDrawer: React.FC<OtherBenchmarksDrawerProps> = ({
   isOpen,
   alternatives,
   providers,
+  providerBenchmarks,
   selectionLimitReached,
   onClose,
   onAdd,
 }) => {
-  const providerBenchmarks = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);
-
   const panel = (
     <DrawerPanelContent
       isResizable
@@ -249,7 +224,8 @@ const OtherBenchmarksDrawer: React.FC<OtherBenchmarksDrawerProps> = ({
         )}
         {selectionLimitReached ? (
           <Content component="p" className="pf-v6-u-mt-md">
-            Remove a benchmark before adding another. Collections can include up to 20 benchmarks.
+            Remove a benchmark before adding another. Collections can include up to{' '}
+            {MAX_COLLECTION_BENCHMARKS} benchmarks.
           </Content>
         ) : null}
       </DrawerPanelBody>
@@ -321,7 +297,10 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
 
     const available = new Map<string, AlternativeBenchmark>();
     result.explanation.rejected_benchmarks.forEach((reason) => {
-      const benchmark = getCollectionBenchmarkDefaults(reason, providers);
+      const benchmark = enrichCollectionBenchmark(
+        { id: reason.id, provider_id: reason.provider_id },
+        providers,
+      );
       if (!selectedKeys.has(benchmarkKey(benchmark))) {
         available.set(benchmarkKey(benchmark), {
           benchmark,
@@ -339,7 +318,7 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
       const reason = selectedReasons.get(key);
       if (!selectedKeys.has(key) && reason && !available.has(key)) {
         available.set(key, {
-          benchmark,
+          benchmark: enrichCollectionBenchmark(benchmark, providers),
           reason: reason.reason,
           reasonHeading: 'Why this benchmark was recommended',
         });
@@ -384,7 +363,7 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
 
   const addBenchmark = (benchmark: CollectionBenchmark): void => {
     if (
-      selectedBenchmarks.length >= MAX_RECOMMENDED_BENCHMARKS ||
+      selectedBenchmarks.length >= MAX_COLLECTION_BENCHMARKS ||
       selectedKeys.has(benchmarkKey(benchmark))
     ) {
       return;
@@ -736,15 +715,15 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
         <FlexItem>
           <Content component="p" data-testid="collection-generation-selection-count">
             <strong>
-              Selected benchmarks · {selectedBenchmarks.length} of {MAX_RECOMMENDED_BENCHMARKS}
+              Selected benchmarks · {selectedBenchmarks.length} of {MAX_COLLECTION_BENCHMARKS}
             </strong>
           </Content>
         </FlexItem>
       </Flex>
-      {selectedBenchmarks.length > MAX_RECOMMENDED_BENCHMARKS ? (
+      {selectedBenchmarks.length > MAX_COLLECTION_BENCHMARKS ? (
         <Alert
           variant="warning"
-          title={`Select no more than ${MAX_RECOMMENDED_BENCHMARKS} benchmarks to continue`}
+          title={`Select no more than ${MAX_COLLECTION_BENCHMARKS} benchmarks to continue`}
           isInline
           className="pf-v6-u-mb-md"
         >
@@ -763,9 +742,10 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
         isOpen={isAlternativesOpen}
         alternatives={alternatives}
         providers={providers}
-        selectionLimitReached={selectedBenchmarks.length >= MAX_RECOMMENDED_BENCHMARKS}
+        providerBenchmarks={providerBenchmarks}
+        selectionLimitReached={selectedBenchmarks.length >= MAX_COLLECTION_BENCHMARKS}
         onClose={() => setIsAlternativesOpen(false)}
-        onAdd={(benchmark) => addBenchmark(enrichCollectionBenchmark(benchmark, providers))}
+        onAdd={addBenchmark}
       />
       <CopySuiteBenchmarkDetailsOverlay
         benchmark={detailsBenchmark}
