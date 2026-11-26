@@ -17,7 +17,7 @@ import CompareEvaluationsPage from './pages/CompareEvaluationsPage';
 import ChooseCompareBenchmarksPage from './pages/ChooseCompareBenchmarksPage';
 import { evaluationComparePathSegment } from './routeSegments';
 import EvaluationReconfigureLoader from './pages/EvaluationReconfigureLoader';
-import CopySuitePage, { CreateSuitePage, EditSuitePage } from './pages/CopySuitePage';
+import ManualCollectionEditorPage from './pages/ManualCollectionEditorPage';
 import CreateCollectionChooserPage from './pages/CreateCollectionChooserPage';
 import CreateCollectionFromGoalPage from './pages/CreateCollectionFromGoalPage';
 import { evaluationCreateSuiteRoute, isGoalCollectionBuilderEnabled } from './routes';
@@ -80,14 +80,17 @@ const AppRoutes: React.FC = () => (
         />
         <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
         <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
-        <Route path=":namespace/create/collections/new" element={<CreateSuitePage />} />
+        <Route
+          path=":namespace/create/collections/new"
+          element={<ManualCollectionEditorPage mode="create" />}
+        />
         <Route
           path=":namespace/create/collections/:collectionId/edit"
-          element={<EditSuitePage />}
+          element={<ManualCollectionEditorPage mode="edit" />}
         />
         <Route
           path=":namespace/create/collections/:collectionId/copy"
-          element={<CopySuitePage />}
+          element={<ManualCollectionEditorPage mode="copy" />}
         />
         <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />
         <Route path=":namespace/create/start" element={<StartEvaluationRunPage />} />

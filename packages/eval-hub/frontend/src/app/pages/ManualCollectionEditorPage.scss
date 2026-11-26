@@ -46,32 +46,6 @@
   min-height: 0;
 }
 
-.pf-v6-c-wizard.evalhub-copy-suite-page__wizard {
-  --pf-v6-c-wizard__nav-link-main--BorderRadius: var(--pf-t--global--border--radius--small);
-
-  flex: 1 1 auto;
-  min-height: 0;
-
-  .pf-v6-c-wizard__main {
-    min-height: 0;
-  }
-
-  > .pf-v6-l-flex {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: hidden;
-
-    > .pf-m-flex-1 {
-      min-height: 0;
-
-      > .pf-v6-l-flex {
-        min-height: 0;
-        overflow: hidden;
-      }
-    }
-  }
-}
-
 .evalhub-copy-suite-page__breadcrumb-link-disabled {
   color: var(--pf-t--global--text--color--disabled);
 }

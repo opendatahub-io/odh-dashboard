@@ -16,7 +16,12 @@ import {
   getCollectionGeneration,
   verifyConnection,
 } from '~/app/api/k8s';
-import type { CollectionGenerationResource, InferenceServiceItem, Provider } from '~/app/types';
+import type {
+  Collection,
+  CollectionGenerationResource,
+  InferenceServiceItem,
+  Provider,
+} from '~/app/types';
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
@@ -272,6 +277,24 @@ const startPendingGeneration = async (): Promise<void> => {
   await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
   fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
   expect(await screen.findByText('Initializing recommendations')).toBeInTheDocument();
+};
+
+const startCompletedGeneration = async () => {
+  mockCreateCollectionGeneration.mockReturnValue(() => Promise.resolve(completedGeneration));
+  mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(completedGeneration));
+  const rendered = await renderPage();
+  fireEvent.change(screen.getByTestId('goal-suite-name'), {
+    target: { value: 'Answer quality suite' },
+  });
+  await selectRecommendationModel();
+  fireEvent.click(screen.getByTestId('next-suite-settings'));
+  fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+    target: { value: 'Assess answer quality.' },
+  });
+  await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+  fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+  expect(await screen.findByTestId('benchmark-overview-step')).toBeInTheDocument();
+  return rendered;
 };
 
 describe('CreateCollectionFromGoalPage', () => {
@@ -709,6 +732,73 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(screen.getByTestId('goal-suite-review-benchmarks')).toHaveTextContent('HellaSwag');
     expect(screen.getByTestId('goal-suite-save')).toBeEnabled();
     expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+  });
+
+  it('should delete the generation when navigating from Benchmark overview to Define goal', async () => {
+    await startCompletedGeneration();
+
+    expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('suite-builder-back'));
+
+    expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith(
+        '',
+        'test-project',
+        'generation-1',
+      ),
+    );
+  });
+
+  it('should keep the generation when navigating from Benchmark overview to Review', async () => {
+    await startCompletedGeneration();
+
+    fireEvent.click(screen.getByTestId('next-benchmark-overview'));
+
+    expect(await screen.findByTestId('goal-suite-review-step')).toBeInTheDocument();
+    expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+  });
+
+  it('should delete the generation when the page unmounts from Benchmark overview', async () => {
+    const rendered = await startCompletedGeneration();
+
+    rendered.unmount();
+
+    await waitFor(() =>
+      expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith(
+        '',
+        'test-project',
+        'generation-1',
+      ),
+    );
+  });
+
+  it('should disable AI wizard sidebar navigation while saving', async () => {
+    let resolveCollectionSave: ((collection: Collection) => void) | undefined;
+    mockCreateCollection.mockReturnValue(
+      () =>
+        new Promise<Collection>((resolve) => {
+          resolveCollectionSave = resolve;
+        }),
+    );
+    await completeGenerationToReview();
+
+    fireEvent.click(screen.getByTestId('goal-suite-save'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Benchmark overview' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Define goal' })).toBeDisabled();
+    });
+    expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+    await waitFor(() => expect(resolveCollectionSave).toBeDefined());
+
+    await act(async () => {
+      resolveCollectionSave?.({
+        resource: { id: 'created-collection' },
+        name: 'Answer quality suite',
+      });
+    });
+    await waitFor(() => expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(1));
   });
 
   it('should save the reviewed collection and navigate to collections', async () => {

@@ -12,8 +12,6 @@ import {
   PageSection,
   Spinner,
   Title,
-  Wizard,
-  WizardStep,
   useWizardContext,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
@@ -47,13 +45,16 @@ import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmark
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
 import CopySuiteSettingsStep from '~/app/pages/CopySuiteSettingsStep';
 import CollectionReviewStep from '~/app/components/collectionBuilder/CollectionReviewStep';
-import ManualCollectionWizardFooter from '~/app/pages/ManualCollectionWizardFooter';
+import CollectionWizard, {
+  type CollectionWizardAction,
+  type CollectionWizardStep,
+} from '~/app/components/collectionBuilder/CollectionWizard';
 import type { Collection } from '~/app/types';
 import { MAX_BENCHMARKS, useCopySuiteForm } from './useCopySuiteForm';
 
-import './CopySuitePage.scss';
+import './ManualCollectionEditorPage.scss';
 
-type SuiteEditorMode = 'copy' | 'create' | 'edit';
+type ManualCollectionEditorMode = 'create' | 'copy' | 'edit';
 
 type WizardContext = ReturnType<typeof useWizardContext>;
 
@@ -66,11 +67,11 @@ const WizardContextCapture: React.FC<WizardContextCaptureProps> = ({ children })
   return children(context);
 };
 
-type SuiteEditorPageProps = {
-  mode: SuiteEditorMode;
+type ManualCollectionEditorPageProps = {
+  mode: ManualCollectionEditorMode;
 };
 
-const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
+const ManualCollectionEditorPage: React.FC<ManualCollectionEditorPageProps> = ({ mode }) => {
   const isCreateMode = mode === 'create';
   const isEditMode = mode === 'edit';
   const { namespace, collectionId } = useParams<{
@@ -337,6 +338,135 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     </BreadcrumbItem>,
   );
 
+  const cancelAction = (dataTestId: string): CollectionWizardAction => ({
+    label: 'Cancel',
+    variant: 'link',
+    onClick: form.handleCancel,
+    dataTestId,
+  });
+  const steps: CollectionWizardStep[] = [
+    {
+      name: 'Collection settings',
+      id: 'settings',
+      canEnter: !isPageInteractionDisabled,
+      content: <CopySuiteSettingsStep prerequisite={prerequisite} />,
+      actions: [
+        {
+          label: 'Next',
+          variant: 'primary',
+          navigation: 'next',
+          dataTestId: 'copy-suite-next',
+        },
+        cancelAction('copy-suite-cancel'),
+      ],
+    },
+    {
+      name: 'Benchmarks',
+      id: 'selectBenchmarks',
+      canEnter: form.isSettingsValid && !isPageInteractionDisabled,
+      content: (
+        <CopySuiteBenchmarkSelectionStep
+          providers={providers}
+          selectedBenchmarkKeys={form.selectedBenchmarkKeys}
+          collectionCategories={form.suiteDomains}
+          prefilterProviders={!isCreateMode}
+          isInteractionDisabled={isPageInteractionDisabled}
+          onSelectionChange={form.applyBenchmarkSelection}
+        />
+      ),
+      actions: [
+        {
+          label: 'Back',
+          variant: 'secondary',
+          navigation: 'previous',
+          dataTestId: 'copy-suite-back-select-benchmarks',
+        },
+        {
+          label: 'Next',
+          variant: 'primary',
+          navigation: 'next',
+          dataTestId: 'copy-suite-next-select-benchmarks',
+        },
+        cancelAction('copy-suite-cancel-select-benchmarks'),
+      ],
+    },
+    {
+      name: 'Benchmark settings',
+      id: 'benchmarks',
+      canEnter: isSelectionValid && !isPageInteractionDisabled,
+      content: (
+        <WizardContextCapture>
+          {({ goToPrevStep }) => (
+            <CopySuiteBenchmarksStep
+              benchmarks={form.benchmarks}
+              providers={providers}
+              showWeightEdit={form.benchmarks.length > 1}
+              weightSegments={form.weightSegments}
+              minWeightPercent={form.minWeightPercent}
+              isInteractionDisabled={isPageInteractionDisabled}
+              parameterConfig={curatedCollectionConfig?.parameters}
+              onUpdateBenchmark={form.updateBenchmark}
+              onWeightsChange={form.handleWeightsChange}
+              onBack={goToPrevStep}
+            />
+          )}
+        </WizardContextCapture>
+      ),
+      actions: [
+        {
+          label: 'Back',
+          variant: 'secondary',
+          navigation: 'previous',
+          dataTestId: 'copy-suite-back-step-2',
+        },
+        {
+          label: 'Next',
+          variant: 'primary',
+          navigation: 'next',
+          dataTestId: 'copy-suite-next-review',
+        },
+        cancelAction('copy-suite-cancel-step-2'),
+      ],
+    },
+    {
+      name: 'Review',
+      id: 'review',
+      canEnter: isReviewValid && !isPageInteractionDisabled,
+      content: pendingCollection ? (
+        <CollectionReviewStep collection={pendingCollection} providers={providers} />
+      ) : null,
+      actions: [
+        {
+          label: 'Back',
+          variant: 'secondary',
+          navigation: 'previous',
+          dataTestId: 'copy-suite-back-review',
+        },
+        {
+          label: 'Save and run',
+          variant: 'primary',
+          onClick: form.handleSaveAndRun,
+          isDisabled: !isReviewValid,
+          isLoading: form.isSubmitting,
+          dataTestId:
+            mode === 'create'
+              ? 'create-suite-submit'
+              : isEditMode
+                ? 'edit-suite-save-and-run'
+                : 'copy-suite-save-and-run',
+        },
+        {
+          label: isEditMode ? 'Save changes' : 'Add to my collections',
+          variant: 'secondary',
+          onClick: form.handleSaveOnly,
+          isDisabled: !isReviewValid,
+          dataTestId: 'copy-suite-save-only',
+        },
+        cancelAction('copy-suite-cancel-step-2'),
+      ],
+    },
+  ];
+
   return (
     <div className="evalhub-copy-suite-page">
       <ApplicationsPage
@@ -380,77 +510,13 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
               <Content component="p" data-testid="copy-suite-description" className="pf-v6-u-mb-lg">
                 {pageDescription}
               </Content>
-              <Wizard
-                className="evalhub-copy-suite-page__wizard"
-                height="100%"
+              <CollectionWizard
+                steps={steps}
+                isBusy={isPageInteractionDisabled}
                 navAriaLabel="Collection creation steps"
-                footer={
-                  <ManualCollectionWizardFooter
-                    mode={mode}
-                    isSettingsValid={form.isSettingsValid}
-                    isSelectionValid={isSelectionValid}
-                    isValid={isReviewValid}
-                    isBusy={isPageInteractionDisabled}
-                    isSubmitting={form.isSubmitting}
-                    onCancel={form.handleCancel}
-                    onSaveAndRun={form.handleSaveAndRun}
-                    onSaveOnly={form.handleSaveOnly}
-                  />
-                }
-              >
-                <WizardStep
-                  name="Collection settings"
-                  id="settings"
-                  isDisabled={isPageInteractionDisabled}
-                >
-                  <CopySuiteSettingsStep prerequisite={prerequisite} />
-                </WizardStep>
-                <WizardStep
-                  name="Benchmarks"
-                  id="selectBenchmarks"
-                  isDisabled={!form.isSettingsValid || isPageInteractionDisabled}
-                >
-                  <CopySuiteBenchmarkSelectionStep
-                    providers={providers}
-                    selectedBenchmarkKeys={form.selectedBenchmarkKeys}
-                    collectionCategories={form.suiteDomains}
-                    prefilterProviders={!isCreateMode}
-                    isInteractionDisabled={isPageInteractionDisabled}
-                    onSelectionChange={form.applyBenchmarkSelection}
-                  />
-                </WizardStep>
-                <WizardStep
-                  name="Benchmark settings"
-                  id="benchmarks"
-                  isDisabled={!isSelectionValid || isPageInteractionDisabled}
-                >
-                  <WizardContextCapture>
-                    {({ goToPrevStep }) => (
-                      <CopySuiteBenchmarksStep
-                        benchmarks={form.benchmarks}
-                        providers={providers}
-                        showWeightEdit={form.benchmarks.length > 1}
-                        weightSegments={form.weightSegments}
-                        minWeightPercent={form.minWeightPercent}
-                        isInteractionDisabled={isPageInteractionDisabled}
-                        parameterConfig={curatedCollectionConfig?.parameters}
-                        onUpdateBenchmark={form.updateBenchmark}
-                        onWeightsChange={form.handleWeightsChange}
-                        onBack={goToPrevStep}
-                      />
-                    )}
-                  </WizardContextCapture>
-                </WizardStep>
-                <WizardStep
-                  name="Review"
-                  id="review"
-                  isDisabled={!isReviewValid || isPageInteractionDisabled}
-                >
-                  {pendingCollection ? (
-                    <CollectionReviewStep collection={pendingCollection} providers={providers} />
-                  ) : null}
-                </WizardStep>
-              </Wizard>
+                className="evalhub-copy-suite-page__wizard"
+                footerClassName="evalhub-copy-suite-page__wizard-footer"
+              />
             </div>
           </FormProvider>
           {isRunModalOpen && (isCreateMode || pendingCollection) ? (
@@ -487,10 +553,4 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   );
 };
 
-const CopySuitePage: React.FC = () => <SuiteEditorPage mode="copy" />;
-
-export const CreateSuitePage: React.FC = () => <SuiteEditorPage mode="create" />;
-
-export const EditSuitePage: React.FC = () => <SuiteEditorPage mode="edit" />;
-
-export default CopySuitePage;
+export default ManualCollectionEditorPage;

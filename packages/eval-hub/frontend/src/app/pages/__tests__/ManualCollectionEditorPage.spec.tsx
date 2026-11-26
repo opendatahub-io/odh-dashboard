@@ -9,7 +9,7 @@ import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest'
 import { getCollection } from '~/app/api/k8s';
 import { useProviders } from '~/app/hooks/useProviders';
 import { useCopySuiteForm, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
-import CopySuitePage, { CreateSuitePage, EditSuitePage } from '~/app/pages/CopySuitePage';
+import ManualCollectionEditorPage from '~/app/pages/ManualCollectionEditorPage';
 import {
   evaluationBenchmarkSuitesNavigationState,
   evaluationCollectionSelectionNavigationState,
@@ -260,7 +260,7 @@ const renderPage = (collectionId = 'source-collection') =>
       <Routes>
         <Route
           path="/evaluation/:namespace/create/collections/:collectionId/copy"
-          element={<CopySuitePage />}
+          element={<ManualCollectionEditorPage mode="copy" />}
         />
       </Routes>
     </MemoryRouter>,
@@ -280,7 +280,7 @@ const renderGalleryOriginPage = () =>
       <Routes>
         <Route
           path="/evaluation/:namespace/create/collections/:collectionId/copy"
-          element={<CopySuitePage />}
+          element={<ManualCollectionEditorPage mode="copy" />}
         />
       </Routes>
     </MemoryRouter>,
@@ -300,7 +300,7 @@ const renderBenchmarkSuitesOriginPage = (collectionId = 'source-collection') =>
       <Routes>
         <Route
           path="/evaluation/:namespace/create/collections/:collectionId/copy"
-          element={<CopySuitePage />}
+          element={<ManualCollectionEditorPage mode="copy" />}
         />
       </Routes>
     </MemoryRouter>,
@@ -320,7 +320,7 @@ const renderCollectionSelectionOriginPage = () =>
       <Routes>
         <Route
           path="/evaluation/:namespace/create/collections/:collectionId/copy"
-          element={<CopySuitePage />}
+          element={<ManualCollectionEditorPage mode="copy" />}
         />
       </Routes>
     </MemoryRouter>,
@@ -340,7 +340,7 @@ const renderEvaluateOriginPage = () =>
       <Routes>
         <Route
           path="/evaluation/:namespace/create/collections/:collectionId/copy"
-          element={<CopySuitePage />}
+          element={<ManualCollectionEditorPage mode="copy" />}
         />
       </Routes>
     </MemoryRouter>,
@@ -358,7 +358,10 @@ const renderCreatePage = (state?: unknown) =>
     >
       <LocationDisplay />
       <Routes>
-        <Route path="/evaluation/:namespace/create/collections/new" element={<CreateSuitePage />} />
+        <Route
+          path="/evaluation/:namespace/create/collections/new"
+          element={<ManualCollectionEditorPage mode="create" />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -372,7 +375,7 @@ const renderEditPage = (collectionId = 'source-collection') =>
       <Routes>
         <Route
           path="/evaluation/:namespace/create/collections/:collectionId/edit"
-          element={<EditSuitePage />}
+          element={<ManualCollectionEditorPage mode="edit" />}
         />
       </Routes>
     </MemoryRouter>,
@@ -399,7 +402,7 @@ beforeEach(() => {
   mockUseCopySuiteForm.mockReturnValue(makeForm());
 });
 
-describe('CopySuitePage', () => {
+describe('ManualCollectionEditorPage', () => {
   it('should render the reusable blank create suite flow with a create CTA', () => {
     mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
 

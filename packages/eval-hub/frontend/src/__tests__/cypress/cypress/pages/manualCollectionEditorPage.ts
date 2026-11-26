@@ -1,4 +1,4 @@
-class CopySuitePage {
+class ManualCollectionEditorPage {
   visitCreate(namespace: string) {
     cy.visit(`/evaluation/${namespace}/create/collections/new`);
     this.waitForLoad();
@@ -18,7 +18,7 @@ class CopySuitePage {
     cy.findByTestId('copy-suite-editor').should('exist');
   }
 
-  findSuiteNameInput() {
+  findCollectionNameInput() {
     return cy.findByTestId('suite-name-input');
   }
 
@@ -60,8 +60,29 @@ class CopySuitePage {
     return cy.findByTestId('copy-suite-back-select-benchmarks');
   }
 
+  findNextReviewButton() {
+    return cy.findByTestId('copy-suite-next-review');
+  }
+
   findConfigurationStep() {
     return cy.findByTestId('copy-suite-step-benchmarks');
+  }
+
+  findReviewStep() {
+    return cy.findByTestId('copy-suite-review-step');
+  }
+
+  findBenchmarkMetricToggle(index: number) {
+    return cy.findByTestId(`benchmark-metric-toggle-${index}`);
+  }
+
+  findBenchmarkMetricOption(metricName: string) {
+    return cy.findByRole('option', { name: metricName });
+  }
+
+  selectBenchmarkMetric(index: number, metricName: string) {
+    this.findBenchmarkMetricToggle(index).click();
+    this.findBenchmarkMetricOption(metricName).click();
   }
 
   findBenchmarkParameterInput(index: number, parameterKey: string) {
@@ -101,4 +122,4 @@ class CopySuitePage {
   }
 }
 
-export const copySuitePage = new CopySuitePage();
+export const manualCollectionEditorPage = new ManualCollectionEditorPage();

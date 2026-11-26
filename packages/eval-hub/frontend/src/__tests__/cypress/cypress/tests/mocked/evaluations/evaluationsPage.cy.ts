@@ -13,6 +13,7 @@ import {
 } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
 import { collectionBuilderPage } from '~/__tests__/cypress/cypress/pages/collectionBuilderPage';
+import { manualCollectionEditorPage } from '~/__tests__/cypress/cypress/pages/manualCollectionEditorPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import type {
   Collection,
@@ -25,6 +26,11 @@ import type {
 
 const NAMESPACE = 'test-namespace';
 const API_VERSION = { apiVersion: CLIENT_API_VERSION };
+// Set CYPRESS_goalCollectionBuilderEnabled=true when re-enabling the chooser and goal routes.
+const goalBuilderEnabledInCypress =
+  Cypress.env('goalCollectionBuilderEnabled') === true ||
+  Cypress.env('goalCollectionBuilderEnabled') === 'true';
+const itGoalBuilderEnabled = goalBuilderEnabledInCypress ? it : it.skip;
 
 type InterceptOptions = {
   namespaces?: Namespace[];
@@ -112,22 +118,21 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.visit(NAMESPACE);
 
     evaluationsPage.findCreateSuiteHeaderButton().click();
-    cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite`);
-    evaluationsPage.findTitle().should('contain.text', 'Create collection');
-    evaluationsPage
-      .findPageDescription()
-      .should('contain.text', 'Choose how you want to add benchmarks to your collection.');
-    evaluationsPage
-      .findBuildSuiteFromGoalTile()
-      .should('be.visible')
-      .and('not.have.attr', 'aria-disabled');
-
-    evaluationsPage.findChooseOwnBenchmarksTile().click();
+    if (goalBuilderEnabledInCypress) {
+      cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite`);
+      evaluationsPage.findTitle().should('contain.text', 'Create collection');
+      evaluationsPage
+        .findBuildSuiteFromGoalTile()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled');
+      evaluationsPage.findChooseOwnBenchmarksTile().click();
+    }
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/new`);
-    evaluationsPage.findTitle().should('contain.text', 'Create benchmark collection');
+    evaluationsPage.findTitle().should('contain.text', 'Create collection');
+    manualCollectionEditorPage.findCollectionNameInput().should('be.visible');
   });
 
-  it('should validate the collection name and preserve settings when returning from the next step', () => {
+  itGoalBuilderEnabled('should preserve goal form values when returning to an earlier step', () => {
     cy.intercept('**/generation/**').as('collectionBuilderGenerationApi');
     initIntercepts({ providers: [mockProvider()] });
     cy.interceptApi(
@@ -214,7 +219,7 @@ describe('Evaluations Page - Tabs', () => {
     cy.get('@collectionBuilderGenerationApi.all').should('have.length', 0);
   });
 
-  it('should generate recommendations and let the user refine the benchmark selection', () => {
+  itGoalBuilderEnabled('should generate and refine benchmark recommendations', () => {
     const pendingGeneration: CollectionGenerationResource = {
       resource: {
         id: 'generation-flow',

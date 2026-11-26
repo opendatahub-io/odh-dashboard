@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { BreadcrumbItem, PageSection, Wizard, WizardStep } from '@patternfly/react-core';
+import { BreadcrumbItem, PageSection } from '@patternfly/react-core';
+import { MagicIcon } from '@patternfly/react-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm, useFormState, useWatch } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -10,7 +11,10 @@ import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import CollectionGenerationStep from '~/app/components/collectionBuilder/CollectionGenerationStep';
 import DefineGoalStep from '~/app/components/collectionBuilder/DefineGoalStep';
 import CollectionReviewStep from '~/app/components/collectionBuilder/CollectionReviewStep';
-import CollectionBuilderFooter from '~/app/components/collectionBuilder/CollectionBuilderFooter';
+import CollectionWizard, {
+  type CollectionWizardAction,
+  type CollectionWizardStep,
+} from '~/app/components/collectionBuilder/CollectionWizard';
 import CollectionSettingsStep from '~/app/components/collectionBuilder/CollectionSettingsStep';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
@@ -365,6 +369,150 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     });
   };
 
+  const cancelAction: CollectionWizardAction = {
+    label: 'Cancel',
+    variant: 'link',
+    onClick: () => void handleCancel(),
+    dataTestId: 'suite-builder-cancel',
+  };
+  const backAction: CollectionWizardAction = {
+    label: 'Back',
+    variant: 'secondary',
+    navigation: 'previous',
+    dataTestId: 'suite-builder-back',
+  };
+  const steps: CollectionWizardStep[] = [
+    {
+      name: 'Collection settings',
+      id: 'suite-settings',
+      canEnter: !isStarting,
+      actions: [
+        {
+          label: 'Next',
+          variant: 'primary',
+          type: 'submit',
+          form: 'suite-settings-form',
+          requiresNextStep: true,
+          dataTestId: 'next-suite-settings',
+        },
+        cancelAction,
+      ],
+      content: (
+        <CollectionSettingsStep
+          canContinueSettings={canContinueSettings}
+          inferenceServices={inferenceServices}
+          inferenceServicesLoaded={inferenceServicesLoaded}
+          inferenceServicesError={inferenceServicesError}
+          selectedModelIsAvailable={selectedGeneratorModelIsAvailable}
+          providers={providers}
+          providersLoaded={providersLoaded}
+          providersError={providersError}
+        />
+      ),
+    },
+    {
+      name: 'Define goal',
+      id: 'define-goal',
+      canEnter: canContinueSettings && !isStarting,
+      actions: [
+        {
+          label: isStarting ? 'Starting recommendations…' : 'Recommend benchmarks with AI',
+          variant: 'primary',
+          type: 'submit',
+          form: 'define-goal-form',
+          icon: <MagicIcon aria-hidden />,
+          requiresNextStep: true,
+          dataTestId: 'recommend-benchmarks-with-ai',
+        },
+        backAction,
+        cancelAction,
+      ],
+      content: (
+        <DefineGoalStep
+          canRecommend={canRecommend}
+          generationError={createError ?? deleteError}
+          onRecommend={handleRecommend}
+        />
+      ),
+    },
+    {
+      name: 'Benchmark overview',
+      id: 'benchmark-overview',
+      canEnter: canRecommend,
+      actions: [
+        backAction,
+        {
+          label: 'Next',
+          variant: 'primary',
+          navigation: 'next',
+          dataTestId: 'next-benchmark-overview',
+        },
+        cancelAction,
+      ],
+      content: (
+        <CollectionGenerationStep
+          resource={generation}
+          isLoading={isGenerationLoading}
+          isStarting={isStarting}
+          isStopping={isStopping}
+          isStale={isGenerationStale}
+          providers={providers}
+          error={createError ?? deleteError}
+          pollError={pollError}
+          selectedBenchmarks={selectedBenchmarks}
+          onSelectedBenchmarksChange={(benchmarks) =>
+            methods.setValue('selectedBenchmarks', benchmarks, {
+              shouldDirty: true,
+              shouldValidate: true,
+            })
+          }
+          onRetry={() => void handleRecommend()}
+          onRetryPoll={() => void retryPoll()}
+          onStop={handleStopGeneration}
+        />
+      ),
+    },
+    {
+      name: 'Review',
+      id: 'review',
+      canEnter: canSave,
+      actions: [
+        backAction,
+        {
+          label: 'Save and run',
+          variant: 'primary',
+          onClick: handleSaveAndRun,
+          isDisabled: !canSave,
+          dataTestId: 'goal-suite-save-and-run',
+        },
+        {
+          label: isSaving ? 'Saving…' : 'Save',
+          variant: 'secondary',
+          onClick: () => void handleSave(),
+          isDisabled: !canSave,
+          dataTestId: 'goal-suite-save',
+        },
+        cancelAction,
+      ],
+      content: generatedCollection ? (
+        <CollectionReviewStep
+          collection={{
+            ...generatedCollection,
+            name: suiteName,
+            description: suiteDescription,
+            benchmarks: selectedBenchmarks,
+          }}
+          providers={providers}
+          generationSettings={{
+            generatorModel,
+            strictness,
+            generationEffort,
+            frameworkFilter,
+          }}
+        />
+      ) : null,
+    },
+  ];
   return (
     <div className="evalhub-goal-collection-page">
       <ApplicationsPage
@@ -391,96 +539,18 @@ const CreateCollectionFromGoalPage: React.FC = () => {
           isFilled
         >
           <FormProvider {...methods}>
-            <Wizard
-              className="evalhub-goal-collection-wizard"
-              height="100%"
+            <CollectionWizard
+              steps={steps}
+              isBusy={isStarting || isSaving || isRunPending}
               isVisitRequired
               navAriaLabel="Collection creation steps"
-              footer={
-                <CollectionBuilderFooter
-                  canContinueSettings={canContinueSettings}
-                  canRecommend={canRecommend}
-                  canContinueOverview={canContinueOverview}
-                  isStarting={isStarting}
-                  isBusy={isStarting || isSaving || isRunPending}
-                  canSave={canSave}
-                  isSaving={isSaving}
-                  onCancel={() => void handleCancel()}
-                  onSave={() => void handleSave()}
-                  onSaveAndRun={handleSaveAndRun}
-                  onLeaveGenerationStep={deleteGeneration}
-                />
-              }
-            >
-              <WizardStep name="Collection settings" id="suite-settings" isDisabled={isStarting}>
-                <CollectionSettingsStep
-                  canContinueSettings={canContinueSettings}
-                  inferenceServices={inferenceServices}
-                  inferenceServicesLoaded={inferenceServicesLoaded}
-                  inferenceServicesError={inferenceServicesError}
-                  selectedModelIsAvailable={selectedGeneratorModelIsAvailable}
-                  providers={providers}
-                  providersLoaded={providersLoaded}
-                  providersError={providersError}
-                />
-              </WizardStep>
-              <WizardStep
-                name="Define goal"
-                id="define-goal"
-                isDisabled={!canContinueSettings || isStarting}
-              >
-                <DefineGoalStep
-                  canRecommend={canRecommend}
-                  generationError={createError ?? deleteError}
-                  onRecommend={handleRecommend}
-                />
-              </WizardStep>
-              <WizardStep
-                name="Benchmark overview"
-                id="benchmark-overview"
-                isDisabled={!canRecommend}
-              >
-                <CollectionGenerationStep
-                  resource={generation}
-                  isLoading={isGenerationLoading}
-                  isStarting={isStarting}
-                  isStopping={isStopping}
-                  isStale={isGenerationStale}
-                  providers={providers}
-                  error={createError ?? deleteError}
-                  pollError={pollError}
-                  selectedBenchmarks={selectedBenchmarks}
-                  onSelectedBenchmarksChange={(benchmarks) =>
-                    methods.setValue('selectedBenchmarks', benchmarks, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                  onRetry={() => void handleRecommend()}
-                  onRetryPoll={() => void retryPoll()}
-                  onStop={handleStopGeneration}
-                />
-              </WizardStep>
-              <WizardStep name="Review" id="review" isDisabled={!canSave}>
-                {generatedCollection ? (
-                  <CollectionReviewStep
-                    collection={{
-                      ...generatedCollection,
-                      name: suiteName,
-                      description: suiteDescription,
-                      benchmarks: selectedBenchmarks,
-                    }}
-                    providers={providers}
-                    generationSettings={{
-                      generatorModel,
-                      strictness,
-                      generationEffort,
-                      frameworkFilter,
-                    }}
-                  />
-                ) : null}
-              </WizardStep>
-            </Wizard>
+              className="evalhub-goal-collection-wizard"
+              cleanup={{
+                fromStepId: 'benchmark-overview',
+                toStepId: 'define-goal',
+                onLeave: deleteGeneration,
+              }}
+            />
           </FormProvider>
           {isRunModalOpen ? (
             <StartEvaluationRunModal
