@@ -2,6 +2,7 @@ import React from 'react';
 import { Radio, Stack, StackItem } from '@patternfly/react-core';
 import { useLocation } from 'react-router-dom';
 import { z } from 'zod';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import type {
   WizardField,
   WizardFormData,
@@ -55,15 +56,19 @@ const useMaaSPublishTrackingSession = (
   dependencies?: MaaSTrackingDependencies,
 ): { data: null; loaded: true } => {
   const location = useLocation();
+  const trackEvent = useTrackEvent();
   const isEditing = Boolean(
     location.state?.existingDeployment || location.state?.initialData?.isEditing,
   );
   const mode = isEditing ? ModelDeploymentMode.EDIT : ModelDeploymentMode.CREATE;
   const addedAsMaas = dependencies?.addedAsMaas ?? false;
 
+  // Repeated start (on mode or callback change) updates the session without
+  // resetting completion state. Separate from the unmount-only cleanup below,
+  // whose empty deps are intentional.
   React.useEffect(() => {
-    startMaaSPublishTrackingSession(mode);
-  }, [mode]);
+    startMaaSPublishTrackingSession(mode, trackEvent);
+  }, [mode, trackEvent]);
 
   React.useEffect(() => {
     updateMaaSPublishTrackingSession(addedAsMaas);

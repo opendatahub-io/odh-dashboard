@@ -4,7 +4,7 @@ import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { CallerOrganizationContext, groupLabel } from '~/app/shared/GroupName';
 import {
@@ -80,6 +80,7 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
   allowTextFilter = false,
 }) => {
   const [inputText, setInputText] = React.useState('');
+  const trackEvent = useTrackEvent();
   const textOption =
     allowTextFilter && value?.startsWith(MODEL_TEXT_FILTER_PREFIX)
       ? modelTextFilterOption(value.slice(MODEL_TEXT_FILTER_PREFIX.length))
@@ -108,7 +109,7 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
         const selectedOption = selectOptions.find((option) => option.value === selection);
         onChange(String(selection), selectedOption ? String(selectedOption.content) : undefined);
         setInputText('');
-        fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+        trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
           resourceType: EventTrackingResourceType.SUBSCRIPTION,
           filterAttribute,
         } satisfies MaaSSettingsListFilteredProperties);
@@ -136,25 +137,28 @@ const TextFilterField: React.FC<TextFilterFieldProps> = ({
   testId,
   onChange,
   value,
-}) => (
-  <SearchInput
-    value={value ?? ''}
-    aria-label={placeholder}
-    placeholder={placeholder}
-    onChange={(_event, text) => onChange(text)}
-    style={{ minWidth: '380px' }}
-    onClear={() => onChange('')}
-    inputProps={{
-      'data-testid': testId,
-      onBlur: () => {
-        fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
-          resourceType: EventTrackingResourceType.SUBSCRIPTION,
-          filterAttribute,
-        } satisfies MaaSSettingsListFilteredProperties);
-      },
-    }}
-  />
-);
+}) => {
+  const trackEvent = useTrackEvent();
+  return (
+    <SearchInput
+      value={value ?? ''}
+      aria-label={placeholder}
+      placeholder={placeholder}
+      onChange={(_event, text) => onChange(text)}
+      style={{ minWidth: '380px' }}
+      onClear={() => onChange('')}
+      inputProps={{
+        'data-testid': testId,
+        onBlur: () => {
+          trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+            resourceType: EventTrackingResourceType.SUBSCRIPTION,
+            filterAttribute,
+          } satisfies MaaSSettingsListFilteredProperties);
+        },
+      }}
+    />
+  );
+};
 
 /** Free-text subscription search with group and model typeahead selections. */
 const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,10 +12,6 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
@@ -53,6 +50,7 @@ const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] 
 
 const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
   const navigate = useNavigate();
+  const trackEvent = useTrackEvent();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const backUrl = returnTo ?? getSectionUrl('auth-policies');
   const navState = returnTo
@@ -85,7 +83,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
-              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+              trackEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
                 resourceType: EventTrackingResourceType.AUTHPOLICY,
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: policy.phase ?? '',
@@ -93,7 +91,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
               } satisfies MaaSResourceDeletedProperties);
               navigate(backUrl);
             } else {
-              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+              trackEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
                 resourceType: EventTrackingResourceType.AUTHPOLICY,
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: policy.phase ?? '',
@@ -110,6 +108,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
 const ViewAuthPoliciesPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
   const location = useLocation();
+  const trackEvent = useTrackEvent();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
 
@@ -145,7 +144,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
           onSelect={(_event, key) => {
             setActiveTab(key);
             if (key === 'yaml') {
-              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
+              trackEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
                 resourceType: EventTrackingResourceType.AUTHPOLICY,
                 context: EventTrackingContext.DETAILS,
               } satisfies MaaSGovernanceYamlViewedProperties);
