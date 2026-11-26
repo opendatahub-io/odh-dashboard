@@ -291,8 +291,9 @@ On xKS the caller therefore needs, on `odhdashboardconfigs` (`opendatahub.io`) i
 namespace:
 
 - `GET /api/cluster-settings`: `get`, plus `get` on the culler and segment-key ConfigMaps.
-- `PUT /api/cluster-settings`: `get` and `patch`, plus the ConfigMap and Deployment verbs its
-  planned writes need.
+- `PUT /api/cluster-settings`: `get` and `patch`, plus `get` on the culler and segment-key
+  ConfigMaps (the plan and its re-check read them even when no write is planned), plus the ConfigMap
+  and Deployment verbs its planned writes need.
 - `PATCH /api/config`: `get` and `patch`. The patch itself needs only `patch` (its response is built
   from the patched object), but the settings pages read the configuration before they save it.
 

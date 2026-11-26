@@ -893,7 +893,7 @@ paths:
         while a later ConfigMap write reports the conflict. Enabling user tracking without a provisioned segment-key ConfigMap, or while the
         OdhDashboardConfig sets disableTracking, is also 200 with success false, before anything is written. If the notebook-controller
         rollout itself fails after the settings were stored, the response is 200 with success
-        false and a retry does not restart the controller (the stored settings already match);
+        false (or 403/401 under the caller policy when the rollout is denied) and a retry does not restart the controller (the stored settings already match);
         restart it once it can be patched. A notebook-controller Deployment that does not exist is
         nothing to restart, not a failure. Under the caller credential policy (xKS) every planned write is reviewed
         first, and a write the caller may not make is 403 before anything is written (decided by the review's

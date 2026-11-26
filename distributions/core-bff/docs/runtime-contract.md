@@ -186,7 +186,7 @@ WebSocket upgrades are authenticated the same way as any other request, before t
 browser cannot set `Authorization` on a WebSocket, so on xKS the gateway supplies the header.
 
 Covered by `bff/internal/callerauth/credentials_test.go` (precedence and rejections),
-`bff/internal/api/caller_auth_transport_test.go` (every transport through the real handler tree),
+`bff/internal/api/caller_auth_transport_test.go` (routing and identity resolution for every transport through the real handler tree; the proxies themselves are replaced by recorders there),
 `bff/internal/proxy/caller_auth_test.go` (proxy stripping and fail-closed forwarding) and the
 `xks/testCoreBffCallerAuth` and `openshift/testCoreBffCallerAuth` contract suites.
 `scripts/validate-caller-auth.sh` runs the same checks against a live cluster with a throwaway

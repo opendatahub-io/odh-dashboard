@@ -209,18 +209,23 @@ fi
 echo "Cluster: $("${KUBECTL[@]}" config current-context)  namespace: $NS  platform: $PLATFORM"
 ns_rc=0
 create_labels=(purpose=core-bff-caller-auth-validation)
+# Each *_created flag is set before its create, so an interrupt while the
+# create is in flight still leaves cleanup to check the run label (delete_owned
+# with no UID deletes only an object carrying this run's value). A confirmed
+# refusal clears it again.
+ns_created=true
 created_by_us namespace "$NS" || ns_rc=$?
 create_labels=()
 case $ns_rc in
-  0) ns_created=true ns_uid=$created_uid ;;
+  0) ns_uid=$created_uid ;;
   1)
+    ns_created=false
     echo >&2 "could not create namespace $NS ($(head -n1 "$work/create.err")); not touching it"
     exit 1
     ;;
   *)
     # The create may have committed: cleanup deletes it only if it carries
     # this run's label.
-    ns_created=true
     echo >&2 "could not confirm the creation of namespace $NS ($(head -n1 "$work/create.err"))"
     exit 1
     ;;
@@ -408,14 +413,16 @@ if [[ "$PLATFORM" == "XKS" ]]; then
   "${KUBECTL[@]}" -n "$NS" create serviceaccount ns-patcher >/dev/null
   "${KUBECTL[@]}" -n "$NS" create rolebinding ns-patcher-serving --role=serving-editor --serviceaccount="$NS:ns-patcher" >/dev/null
   cr_rc=0
+  cr_created=true
   created_by_us clusterrole "corebff-validate-$NS" --verb=get,patch --resource=namespaces --resource-name="$NS" || cr_rc=$?
-  ((cr_rc != 1)) && cr_created=true
+  ((cr_rc == 1)) && cr_created=false
   cr_uid=$created_uid
   crb_rc=1
   if ((cr_rc == 0)); then
     crb_rc=0
+    crb_created=true
     created_by_us clusterrolebinding "corebff-validate-$NS" --clusterrole="corebff-validate-$NS" --serviceaccount="$NS:ns-patcher" || crb_rc=$?
-    ((crb_rc != 1)) && crb_created=true
+    ((crb_rc == 1)) && crb_created=false
     crb_uid=$created_uid
   fi
   if ((cr_rc == 0 && crb_rc == 0)); then
