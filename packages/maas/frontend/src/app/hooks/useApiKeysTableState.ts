@@ -175,30 +175,26 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
 
   const onStatusToggle = React.useCallback(
     (status: APIKeyDisplayStatus) => {
-      setFilterData((prev) => {
-        const statuses = prev.statuses.includes(status)
-          ? prev.statuses.filter((s) => s !== status)
-          : [...prev.statuses, status];
-        trackStatusFilter(statuses);
-        return { ...prev, statuses };
-      });
+      const statuses = filterData.statuses.includes(status)
+        ? filterData.statuses.filter((s) => s !== status)
+        : [...filterData.statuses, status];
+      trackStatusFilter(statuses);
+      setFilterData((prev) => ({ ...prev, statuses }));
       setPage(1);
       setIsFetching(true);
     },
-    [trackStatusFilter],
+    [filterData.statuses, trackStatusFilter],
   );
 
   const onStatusClear = React.useCallback(
     (status: APIKeyDisplayStatus) => {
-      setFilterData((prev) => {
-        const statuses = prev.statuses.filter((s) => s !== status);
-        trackStatusFilter(statuses);
-        return { ...prev, statuses };
-      });
+      const statuses = filterData.statuses.filter((s) => s !== status);
+      trackStatusFilter(statuses);
+      setFilterData((prev) => ({ ...prev, statuses }));
       setPage(1);
       setIsFetching(true);
     },
-    [trackStatusFilter],
+    [filterData.statuses, trackStatusFilter],
   );
 
   const onSubscriptionChange = React.useCallback(

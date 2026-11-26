@@ -16,20 +16,23 @@ module.exports = require('@odh-dashboard/eslint-config').recommendedReactTypescr
 
 ## Configs
 
-| File                      | Scope                                  |
-| ------------------------- | -------------------------------------- |
-| `base.js`                 | TypeScript + React rules (primary)     |
-| `markdown.js`             | Rules for `.md` code fences            |
-| `node.js`                 | Node.js / CommonJS scripts             |
-| `package-restrictions.js` | Import restriction rules               |
-| `feature-analytics.js`    | Opt-in feature analytics boundary rule |
+| File                      | Scope                                                                  |
+| ------------------------- | ---------------------------------------------------------------------- |
+| `base.js`                 | TypeScript + React rules (primary)                                     |
+| `markdown.js`             | Rules for `.md` code fences                                            |
+| `node.js`                 | Node.js / CommonJS scripts                                             |
+| `package-restrictions.js` | Import restriction rules                                               |
+| `feature-analytics.js`    | Feature analytics boundary preset for shared and custom ESLint configs |
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).
 
 ## Feature Analytics Guards
 
-Enable `@odh-dashboard/no-direct-analytics` for migrated source and unit tests; leave
-infrastructure, host adapters, and Cypress observation outside the selected files.
+The `recommendedCore`, `recommendedTypescript`, and `recommendedReactTypescript` profiles
+enable `@odh-dashboard/no-direct-analytics` at error severity for source and unit-test
+files by default. Standalone ESLint configs should apply the exported `featureAnalytics`
+preset to their source and unit-test trees. Keep exceptions file-scoped for analytics
+implementation, composition roots, host adapters, and Cypress observation.
 
 ```js
 const eslintConfig = require('@odh-dashboard/eslint-config');
@@ -41,7 +44,7 @@ module.exports = {
   overrides: [
     ...config.overrides,
     {
-      files: ['src/migrated/**/*.{ts,tsx}'],
+      files: ['src/**/*.{js,jsx,ts,tsx}'],
       ...eslintConfig.featureAnalytics,
     },
   ],

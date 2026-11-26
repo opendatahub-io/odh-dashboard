@@ -1,10 +1,12 @@
-import { act } from '@testing-library/react';
+import * as React from 'react';
+import { act, renderHook as renderConcurrentHook } from '@testing-library/react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { AnalyticsBrowser } from '@segment/analytics-next';
 import { createSegmentTracking } from '../createSegmentTracking';
 import { fireIdentifyEvent } from '../segmentUtils';
 import { useSegmentSetup, type SegmentSetupOptions } from '../useSegmentSetup';
 import { usePageTracking } from '../usePageTracking';
+import * as segmentInitialization from '../initSegment';
 
 jest.mock('@segment/analytics-next', () => ({ AnalyticsBrowser: { load: jest.fn() } }));
 
@@ -151,9 +153,202 @@ describe('shared host analytics setup', () => {
     await act(async () => undefined);
     tracking.trackEvent('legacy-event', {});
     expect(AnalyticsBrowser.load).not.toHaveBeenCalled();
+    expect(client.identify).not.toHaveBeenCalled();
+    expect(client.page).not.toHaveBeenCalled();
+    expect(client.track).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not rerun setup when only the identify callback changes', async () => {
+    const { setup } = createHost();
+    const { rerender } = renderHook(useSegmentSetup, { initialProps: setup });
+    await act(async () => undefined);
+    expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(1);
     expect(client.identify).toHaveBeenCalledTimes(1);
     expect(client.page).toHaveBeenCalledTimes(1);
-    expect(client.track).toHaveBeenCalledTimes(1);
+
+    const replacementIdentify = jest.fn();
+    rerender({ ...setup, identify: replacementIdentify });
+    await act(async () => undefined);
+
+    expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(1);
+    expect(client.identify).toHaveBeenCalledTimes(1);
+    expect(client.page).toHaveBeenCalledTimes(1);
+    expect(replacementIdentify).not.toHaveBeenCalled();
+  });
+
+  it('should use the latest committed callbacks while a replacement render is suspended', async () => {
+    const { setup } = createHost();
+    let finishInitialization: () => void = () => undefined;
+    const initialization = new Promise<void>((resolve) => {
+      finishInitialization = resolve;
+    });
+    const initSpy = jest
+      .spyOn(segmentInitialization, 'initSegment')
+      .mockReturnValueOnce(initialization);
+    const suspended = new Promise<void>(() => {
+      // Keep the replacement render suspended until the test unmounts it.
+    });
+    const committedIdentify = jest.fn();
+    const committedPage = jest.fn();
+    const uncommittedIdentify = jest.fn();
+    const uncommittedPage = jest.fn();
+
+    try {
+      const { rerender, unmount } = renderConcurrentHook(
+        ({ options, suspend }) => {
+          useSegmentSetup(options);
+          if (suspend) {
+            throw suspended;
+          }
+        },
+        {
+          initialProps: { options: setup, suspend: false },
+          wrapper: ({ children }) =>
+            React.createElement(React.Suspense, { fallback: null }, children),
+        },
+      );
+      rerender({
+        options: { ...setup, identify: committedIdentify, trackPageEvent: committedPage },
+        suspend: false,
+      });
+      rerender({
+        options: { ...setup, identify: uncommittedIdentify, trackPageEvent: uncommittedPage },
+        suspend: true,
+      });
+
+      await act(async () => {
+        finishInitialization();
+        await initialization;
+      });
+
+      expect(initSpy).toHaveBeenCalledTimes(1);
+      expect(committedIdentify).toHaveBeenCalledTimes(1);
+      expect(committedPage).toHaveBeenCalledTimes(1);
+      expect(uncommittedIdentify).not.toHaveBeenCalled();
+      expect(uncommittedPage).not.toHaveBeenCalled();
+      expect(client.identify).not.toHaveBeenCalled();
+      expect(client.page).not.toHaveBeenCalled();
+      unmount();
+    } finally {
+      initSpy.mockRestore();
+    }
+  });
+
+  it.each([true, false])(
+    'should respect original and committed enablement when setup starts enabled=%s',
+    async (initialEnabled) => {
+      const { setup } = createHost();
+      let finishInitialization: () => void = () => undefined;
+      const initialization = new Promise<void>((resolve) => {
+        finishInitialization = resolve;
+      });
+      const initSpy = jest
+        .spyOn(segmentInitialization, 'initSegment')
+        .mockReturnValueOnce(initialization);
+
+      try {
+        const { rerender } = renderHook(useSegmentSetup, {
+          initialProps: { ...setup, enabled: initialEnabled },
+        });
+        rerender({ ...setup, enabled: !initialEnabled });
+
+        await act(async () => {
+          finishInitialization();
+          await initialization;
+        });
+
+        expect(initSpy).toHaveBeenCalledTimes(2);
+        // Only the newly enabled setup may emit; pending disabled setup must not.
+        expect(client.identify).toHaveBeenCalledTimes(initialEnabled ? 0 : 1);
+        expect(client.page).toHaveBeenCalledTimes(initialEnabled ? 0 : 1);
+        expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(initialEnabled ? 0 : 1);
+      } finally {
+        initSpy.mockRestore();
+      }
+    },
+  );
+
+  it.each(['superseded', 'unmounted'] as const)(
+    'should suppress a pending setup after it is %s',
+    async (cleanup) => {
+      const { setup } = createHost();
+      const identify = jest.fn();
+      const trackPageEvent = jest.fn();
+      let finishInitialization: () => void = () => undefined;
+      const initialization = new Promise<void>((resolve) => {
+        finishInitialization = resolve;
+      });
+      const initSpy = jest
+        .spyOn(segmentInitialization, 'initSegment')
+        .mockReturnValueOnce(initialization);
+
+      try {
+        const { rerender, unmount } = renderHook(useSegmentSetup, { initialProps: setup });
+        if (cleanup === 'superseded') {
+          rerender({ ...setup, userKey: 'new-user', identify, trackPageEvent });
+        } else {
+          unmount();
+        }
+
+        await act(async () => {
+          finishInitialization();
+          await initialization;
+        });
+
+        expect(initSpy).toHaveBeenCalledTimes(cleanup === 'superseded' ? 2 : 1);
+        expect(identify).toHaveBeenCalledTimes(cleanup === 'superseded' ? 1 : 0);
+        expect(trackPageEvent).toHaveBeenCalledTimes(cleanup === 'superseded' ? 1 : 0);
+        expect(client.identify).not.toHaveBeenCalled();
+        expect(client.page).not.toHaveBeenCalled();
+      } finally {
+        initSpy.mockRestore();
+      }
+    },
+  );
+
+  it('should suppress the cleaned-up setup continuation during Strict Mode replay', async () => {
+    const { setup } = createHost();
+    renderConcurrentHook(() => useSegmentSetup(setup), { wrapper: React.StrictMode });
+
+    await act(async () => undefined);
+
+    expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(2);
+    expect(client.identify).toHaveBeenCalledTimes(1);
+    expect(client.page).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not duplicate identify when identity and setup inputs change together', async () => {
+    const { setup } = createHost();
+    const { rerender } = renderHook(useSegmentSetup, { initialProps: setup });
+    await act(async () => undefined);
+    expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(1);
+    expect(client.identify).toHaveBeenCalledTimes(1);
+
+    const replacementIdentify = jest.fn();
+    rerender({ ...setup, userKey: 'new-user', identify: replacementIdentify });
+    await act(async () => undefined);
+
+    expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(2);
+    expect(client.identify).toHaveBeenCalledTimes(1);
+    expect(replacementIdentify).toHaveBeenCalledTimes(1);
+    expect(client.page).toHaveBeenCalledTimes(2);
+  });
+
+  it('should not send identify when disabled or not ready', async () => {
+    const { setup } = createHost();
+    const { rerender } = renderHook(useSegmentSetup, { initialProps: setup });
+    await act(async () => undefined);
+    expect(client.identify).toHaveBeenCalledTimes(1);
+
+    const replacementIdentify = jest.fn();
+    rerender({ ...setup, enabled: false, identify: replacementIdentify });
+    await act(async () => undefined);
+    expect(replacementIdentify).not.toHaveBeenCalled();
+    expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(1);
+
+    rerender({ ...setup, ready: false, identify: replacementIdentify });
+    await act(async () => undefined);
+    expect(replacementIdentify).not.toHaveBeenCalled();
   });
 
   it('should reuse setup with another distribution configuration and host-owned identify callback', async () => {

@@ -237,6 +237,11 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['src/**/*.{ts,tsx}'],
+      excludedFiles: ['src/__tests__/cypress/**'],
+      extends: ['@odh-dashboard/eslint-config/feature-analytics'],
+    },
+    {
       files: ['./src/api/**'],
       rules: {
         'no-restricted-imports': [

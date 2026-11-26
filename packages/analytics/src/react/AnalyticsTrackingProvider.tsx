@@ -1,5 +1,10 @@
 import * as React from 'react';
-import type { TrackEvent, TrackPageEvent } from '../types';
+import type {
+  FormTrackingEventProperties,
+  TrackEvent,
+  TrackEventOptions,
+  TrackPageEvent,
+} from '../types';
 
 type TrackingCallbacks = {
   trackEvent: TrackEvent;
@@ -26,3 +31,19 @@ export const useTrackEvent = (): TrackEvent => React.useContext(TrackingContext)
 
 export const useTrackPageEvent = (): TrackPageEvent =>
   React.useContext(TrackingContext).trackPageEvent;
+
+export const useTrackFormEvent = (): ((
+  eventName: string,
+  properties: FormTrackingEventProperties,
+  options?: TrackEventOptions,
+) => void) => {
+  const { trackEvent } = React.useContext(TrackingContext);
+  return React.useCallback(
+    (
+      eventName: string,
+      properties: FormTrackingEventProperties,
+      ...options: [options?: TrackEventOptions]
+    ) => trackEvent(eventName, properties, ...options),
+    [trackEvent],
+  );
+};

@@ -22,8 +22,6 @@ let session: MaaSPublishTrackingSession | null = null;
 export const isDeploymentWizardPath = (pathname: string): boolean =>
   pathname.includes(DEPLOYMENT_WIZARD_PATH);
 
-const noopTrackEvent: TrackEvent = () => undefined;
-
 export const startMaaSPublishTrackingSession = (
   mode: ModelDeploymentMode,
   trackEvent: TrackEvent,
@@ -83,11 +81,11 @@ export const fireMaaSPublishTrackingEvent = (
   overrides?: Partial<Pick<ModelAsMaasPublishedProperties, 'addedAsMaas' | 'mode'>>,
 ): void => {
   const properties = buildProperties(outcome, success, overrides);
-  if (!properties) {
+  if (!properties || !session) {
     return;
   }
-  const trackEvent = session?.trackEvent ?? noopTrackEvent;
-  session = session ? { ...session, completed: true } : null;
+  const { trackEvent } = session;
+  session = { ...session, completed: true };
   trackEvent(
     MaaSEvents.MODEL_AS_MAAS_PUBLISHED,
     properties satisfies ModelAsMaasPublishedProperties,
@@ -100,14 +98,17 @@ export const fireMaaSPublishTrackingEvent = (
  * field only becomes inactive while still on the wizard route, clears without firing.
  */
 export const endMaaSPublishTrackingSession = (leftWizard: boolean): void => {
-  if (leftWizard && session && !session.completed) {
-    if (session.submitAttempted) {
-      fireMaaSPublishTrackingEvent(TrackingOutcome.submit, false);
-    } else {
-      fireMaaSPublishTrackingEvent(TrackingOutcome.cancel, false);
+  try {
+    if (leftWizard && session && !session.completed) {
+      if (session.submitAttempted) {
+        fireMaaSPublishTrackingEvent(TrackingOutcome.submit, false);
+      } else {
+        fireMaaSPublishTrackingEvent(TrackingOutcome.cancel, false);
+      }
     }
+  } finally {
+    session = null;
   }
-  session = null;
 };
 
 /** Test-only: reset module session between tests. */

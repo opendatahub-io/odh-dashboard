@@ -7,15 +7,15 @@ export type SegmentSetupOptions = SegmentConnectionOptions & {
   segmentKey: string;
   /** Whether the host configuration and user information needed for setup are available. */
   ready: boolean;
-  /** Controls SDK initialization; does not stop an existing client or gate delivery callbacks. */
+  /** Controls SDK initialization and gates setup identify/page callbacks; does not stop an existing client. */
   enabled: boolean;
   /** Cluster identifier exposed as window.clusterID for tracking metadata. */
   clusterID: string;
   /** Host identity key whose changes rerun setup, even when callbacks are unchanged. */
   userKey?: string;
-  /** Stable callback that sends host-mapped identity when initSegment resolves. */
+  /** Latest committed callback that sends host-mapped identity when initSegment resolves. */
   identify: () => void;
-  /** Stable callback that sends the setup page event when initSegment resolves. */
+  /** Latest committed callback that sends the setup page event when initSegment resolves. */
   trackPageEvent: TrackPageEvent;
 };
 
@@ -32,25 +32,31 @@ export const useSegmentSetup = ({
   apiHost,
   protocol,
 }: SegmentSetupOptions): void => {
+  const identifyRef = React.useRef(identify);
+  const trackPageEventRef = React.useRef(trackPageEvent);
+  const enabledRef = React.useRef(enabled);
+
+  React.useLayoutEffect(() => {
+    identifyRef.current = identify;
+    trackPageEventRef.current = trackPageEvent;
+    enabledRef.current = enabled;
+  }, [identify, trackPageEvent, enabled]);
+
   React.useEffect(() => {
     if (!segmentKey || !ready) {
       return;
     }
+    let cancelled = false;
     window.clusterID = clusterID;
     initSegment({ segmentKey, enabled, cdnURL, apiHost, protocol }).then(() => {
-      identify();
-      trackPageEvent();
+      if (cancelled || !enabled || !enabledRef.current) {
+        return;
+      }
+      identifyRef.current();
+      trackPageEventRef.current();
     });
-  }, [
-    segmentKey,
-    ready,
-    enabled,
-    clusterID,
-    userKey,
-    identify,
-    trackPageEvent,
-    cdnURL,
-    apiHost,
-    protocol,
-  ]);
+    return () => {
+      cancelled = true;
+    };
+  }, [segmentKey, ready, enabled, clusterID, userKey, cdnURL, apiHost, protocol]);
 };

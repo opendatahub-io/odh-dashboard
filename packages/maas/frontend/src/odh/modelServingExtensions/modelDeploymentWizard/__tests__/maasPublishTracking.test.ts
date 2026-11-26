@@ -105,6 +105,46 @@ describe('maasPublishTracking', () => {
   });
 
   describe('endMaaSPublishTrackingSession', () => {
+    it.each([false, true])(
+      'should propagate delivery errors and clear the session when submitAttempted=%s',
+      (submitAttempted) => {
+        const error = new Error('Tracking failed');
+        trackEvent.mockImplementationOnce(() => {
+          throw error;
+        });
+        startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE, trackEvent);
+        updateMaaSPublishTrackingSession(true);
+        if (submitAttempted) {
+          markMaaSPublishSubmitAttempted();
+        }
+
+        expect(() => endMaaSPublishTrackingSession(true)).toThrow(error);
+        expect(trackEvent).toHaveBeenCalledTimes(1);
+        expect(trackEvent).toHaveBeenCalledWith(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, {
+          outcome: submitAttempted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+          success: false,
+          source: PublishedAsMaasSource.MODEL_DEPLOYMENT_WIZARD,
+          addedAsMaas: true,
+          mode: ModelDeploymentMode.CREATE,
+        });
+
+        const replacement = jest.fn();
+        startMaaSPublishTrackingSession(ModelDeploymentMode.EDIT, replacement);
+        endMaaSPublishTrackingSession(true);
+        endMaaSPublishTrackingSession(true);
+
+        expect(trackEvent).toHaveBeenCalledTimes(1);
+        expect(replacement).toHaveBeenCalledTimes(1);
+        expect(replacement).toHaveBeenCalledWith(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, {
+          outcome: TrackingOutcome.cancel,
+          success: false,
+          source: PublishedAsMaasSource.MODEL_DEPLOYMENT_WIZARD,
+          addedAsMaas: false,
+          mode: ModelDeploymentMode.EDIT,
+        });
+      },
+    );
+
     it('should fire cancel when leaving the wizard without a prior event', () => {
       startMaaSPublishTrackingSession(ModelDeploymentMode.CREATE, trackEvent);
       updateMaaSPublishTrackingSession(true);
