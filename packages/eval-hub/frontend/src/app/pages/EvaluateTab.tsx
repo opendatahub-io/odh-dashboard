@@ -18,10 +18,14 @@ import {
   evaluationEvaluateNavigationState,
   evaluationSingleBenchmarkRoute,
 } from '~/app/routes';
+import { useCanImportCollections } from '~/app/hooks/collections';
 import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+// The import modal pulls in Monaco; load it only when the user opens Import.
+const ImportCollectionModal = React.lazy(() => import('~/app/components/ImportCollectionModal'));
 
 const MAX_VISIBLE_BENCHMARK_SUITES = 5;
 
@@ -45,6 +49,14 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
   const { trackEvalHubEvent } = useEvalHubTracking();
 
   const heading = 'Recent benchmark collections';
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
+  const canImportQuery = useCanImportCollections(namespace);
+  // Import is enabled only on an explicit allowed result: it stays disabled
+  // while the check is pending or has failed, so limited-access users are
+  // never offered a creation flow the upstream authorization rejects.
+  // isError also covers a failed refetch, where React Query keeps the last
+  // (possibly allowed) result.
+  const canImport = canImportQuery.data === true && !canImportQuery.isError;
 
   return (
     <>
@@ -89,6 +101,8 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
             primaryActionLabel="Run"
             createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
             createSuiteRouteState={evaluationEvaluateNavigationState}
+            onImportCollection={() => setIsImportOpen(true)}
+            importDisabled={!canImport}
             onPrimaryAction={onRunCollection}
             onEditCollection={onEditCollection}
             onDuplicateCollection={onDuplicateCollection}
@@ -141,6 +155,16 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
         </StackItem>
         {/* Red Hat validated collections are temporarily hidden until more evaluation targets are available. */}
       </Stack>
+      {isImportOpen ? (
+        <React.Suspense fallback={null}>
+          <ImportCollectionModal
+            isOpen
+            onClose={() => setIsImportOpen(false)}
+            namespace={namespace}
+            surface="my_benchmark_suites"
+          />
+        </React.Suspense>
+      ) : null}
     </>
   );
 };
