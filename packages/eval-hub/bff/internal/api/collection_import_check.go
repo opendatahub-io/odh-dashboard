@@ -8,9 +8,43 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
+
+// Warning bounds: advisory warnings embed untrusted identifiers (benchmark
+// IDs, field names), so both the per-warning identifier length and the total
+// warning count are capped. Without them, a benchmark with an ID near the
+// 1 MiB content cap and hundreds of unknown fields would copy that ID into
+// every warning, allocating gigabytes before the upstream request is made.
+const (
+	maxImportWarningCount     = 100
+	maxImportIdentifierLength = 64
+)
+
+// truncateImportIdentifier bounds an untrusted identifier (benchmark ID,
+// field name) before it is embedded in a warning or error message. The cut is
+// backed off to a rune boundary so multi-byte identifiers are not split.
+func truncateImportIdentifier(value string) string {
+	if len(value) <= maxImportIdentifierLength {
+		return value
+	}
+	cut := value[:maxImportIdentifierLength]
+	for len(cut) > 0 && !utf8.RuneStart(cut[len(cut)-1]) {
+		cut = cut[:len(cut)-1]
+	}
+	return cut + "..."
+}
+
+// appendImportWarning appends a warning unless the total warning count has
+// reached its cap, bounding the memory a single import can spend on warnings.
+func appendImportWarning(warnings []string, format string, args ...any) []string {
+	if len(warnings) >= maxImportWarningCount {
+		return warnings
+	}
+	return append(warnings, fmt.Sprintf(format, args...))
+}
 
 // buildImportCreateRequest validates the parsed document against the server's
 // mandatory fields and converts it to a CreateCollectionRequest. Hard errors
@@ -23,17 +57,17 @@ func buildImportCreateRequest(doc map[string]any) (evalhub.CreateCollectionReque
 
 	for _, field := range sortedKeys(doc) {
 		if _, managed := serverManagedCollectionFields[field]; managed {
-			warnings = append(warnings, fmt.Sprintf("field %q is managed by the server and will be ignored", field))
+			warnings = appendImportWarning(warnings, "field %q is managed by the server and will be ignored", truncateImportIdentifier(field))
 			delete(doc, field)
 			continue
 		}
 		if _, known := knownCollectionImportFields[field]; !known {
-			warnings = append(warnings, fmt.Sprintf("unrecognized field %q will be ignored", field))
+			warnings = appendImportWarning(warnings, "unrecognized field %q will be ignored", truncateImportIdentifier(field))
 			delete(doc, field)
 		}
 	}
 	if description, ok := doc["description"].(string); !ok || strings.TrimSpace(description) == "" {
-		warnings = append(warnings, "no description provided; consider adding one so the collection is easy to identify")
+		warnings = appendImportWarning(warnings, "no description provided; consider adding one so the collection is easy to identify")
 	}
 
 	name, ok := doc["name"].(string)
@@ -52,16 +86,16 @@ func buildImportCreateRequest(doc map[string]any) (evalhub.CreateCollectionReque
 		}
 		label := fmt.Sprintf("benchmark at index %d", index)
 		if id, ok := benchmark["id"].(string); ok && id != "" {
-			label = fmt.Sprintf("benchmark %q", id)
+			label = fmt.Sprintf("benchmark %q", truncateImportIdentifier(id))
 		}
 		for _, field := range sortedKeys(benchmark) {
 			if _, managed := serverManagedBenchmarkFields[field]; managed {
-				warnings = append(warnings, fmt.Sprintf("%s: field %q is managed by the server and will be ignored", label, field))
+				warnings = appendImportWarning(warnings, "%s: field %q is managed by the server and will be ignored", label, truncateImportIdentifier(field))
 				delete(benchmark, field)
 				continue
 			}
 			if _, known := knownBenchmarkImportFields[field]; !known {
-				warnings = append(warnings, fmt.Sprintf("%s: unrecognized field %q will be ignored", label, field))
+				warnings = appendImportWarning(warnings, "%s: unrecognized field %q will be ignored", label, truncateImportIdentifier(field))
 				delete(benchmark, field)
 			}
 		}

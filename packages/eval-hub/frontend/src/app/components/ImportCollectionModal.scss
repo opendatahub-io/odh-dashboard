@@ -37,13 +37,18 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  // Floor at content, not 0: when stacked alerts squeeze the fixed dialog
+  // height, a zero floor lets flexbox collapse this group below the editor's
+  // min-height, and the overflowing reset button paints over the collection
+  // name field below. At min-content the overflow instead extends the modal
+  // body's scroll region, which is the intended behavior.
+  min-height: min-content;
 
   > .pf-v6-c-form__group-control {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    min-height: min-content;
   }
 }
 

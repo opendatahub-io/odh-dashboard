@@ -428,6 +428,58 @@ const MAX_LINE_KEY_COLONS = 64;
 const isBenchmarkEntryBoundary = (line: string): boolean =>
   /^\S/.test(line) || /^\s*-\s/.test(line) || /^\s*[}\]],?\s*$/.test(line);
 
+/**
+ * Parses the id from a block YAML benchmark id line, `- id: value` (value
+ * optionally quoted), or returns null when the line is not one. Scans the
+ * line instead of using the regex equivalent: the regex's lazy value
+ * quantifier followed by `\s*$` backtracks quadratically on a value that is
+ * mostly whitespace, and the scan keeps a crafted line linear in its length.
+ */
+const parseYamlIdLine = (line: string): string | null => {
+  const afterDash = line.trimStart();
+  if (!afterDash.startsWith('-')) {
+    return null;
+  }
+  const afterId = afterDash.slice(1).trimStart();
+  if (!afterId.startsWith('id:')) {
+    return null;
+  }
+  return afterId.slice('id:'.length).trim();
+};
+
+/**
+ * Parses the id from a pretty-printed JSON benchmark id line,
+ * `"id": "value",` (key, colon, and value optionally space-padded), or
+ * returns null when the line is not one. Scans the line instead of using the
+ * regex equivalent: the regex's greedy value quantifier and trailing
+ * `\s*,?\s*` backtrack quadratically on adversarial quote and whitespace
+ * runs, and the scan stays linear.
+ */
+const parseJsonIdLine = (line: string): string | null => {
+  const afterKey = line.trimStart();
+  if (!afterKey.startsWith('"id"')) {
+    return null;
+  }
+  const afterColon = afterKey.slice('"id"'.length).trimStart();
+  if (!afterColon.startsWith(':')) {
+    return null;
+  }
+  const afterOpenQuote = afterColon.slice(1).trimStart();
+  if (!afterOpenQuote.startsWith('"')) {
+    return null;
+  }
+  // The closing quote is the line's last one: the remainder after any
+  // earlier quote would contain it and could not be just whitespace and an
+  // optional comma.
+  const closeQuote = line.lastIndexOf('"');
+  const openQuote = line.length - afterOpenQuote.length;
+  const tail = line.slice(closeQuote + 1).trim();
+  if (closeQuote > openQuote && (tail === '' || tail === ',')) {
+    return line.slice(openQuote + 1, closeQuote);
+  }
+  return null;
+};
+
 type ImportWarningLineIndex = {
   /** First line (0-based) whose text before a colon is exactly the key. */
   plainKeyLines: Map<string, number>;
@@ -465,11 +517,9 @@ const buildImportWarningLineIndex = (lines: string[]): ImportWarningLineIndex =>
     // YAML, `"id": "value",` in pretty-printed JSON. Both are keyed by the
     // verbatim value text; lookups try the quote-wrapped spellings of the
     // parsed id.
-    const yamlIdMatch = /^\s*-\s*id:\s*(.*?)\s*$/.exec(line);
-    const jsonIdMatch = yamlIdMatch === null ? /^\s*"id"\s*:\s*"(.*)"\s*,?\s*$/.exec(line) : null;
-    const idText = yamlIdMatch?.[1] ?? jsonIdMatch?.[1];
+    const idText = parseYamlIdLine(line) ?? parseJsonIdLine(line);
     let isIdLine = false;
-    if (idText !== undefined) {
+    if (idText !== null) {
       isIdLine = true;
       if (!index.benchmarkIdLines.has(idText)) {
         index.benchmarkIdLines.set(idText, lineIndex);

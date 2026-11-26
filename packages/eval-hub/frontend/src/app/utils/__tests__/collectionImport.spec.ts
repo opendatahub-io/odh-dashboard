@@ -377,6 +377,28 @@ describe('createImportWarningLineResolver', () => {
     const resolve = createImportWarningLineResolver(lines);
     expect(resolve({ message: 'm', benchmarkId: 'b', benchmarkField: 'weight' })).toBe(3);
   });
+
+  it('should resolve ids from adversarially whitespace-padded id lines', () => {
+    // Regression test: id lines were matched with regexes whose lazy and
+    // greedy whitespace quantifiers backtrack quadratically on long
+    // whitespace runs, letting a crafted import freeze the preview; the
+    // linear parsers must keep resolving those same shapes.
+    const pad = ' '.repeat(100_000);
+    const yamlLines = ['benchmarks:', `  - id:${pad}quality`, `    mystery: 1`];
+    const resolveYaml = createImportWarningLineResolver(yamlLines);
+    expect(resolveYaml({ message: 'm', benchmarkId: 'quality' })).toBe(2);
+    expect(resolveYaml({ message: 'm', benchmarkId: 'quality', benchmarkField: 'mystery' })).toBe(
+      3,
+    );
+
+    const jsonLines = ['{', `  "id": "quality",${pad}`, '}'];
+    const resolveJson = createImportWarningLineResolver(jsonLines);
+    expect(resolveJson({ message: 'm', benchmarkId: 'quality' })).toBe(2);
+
+    const paddedBlankLines = [pad, '  - id: quality'];
+    const resolveBlank = createImportWarningLineResolver(paddedBlankLines);
+    expect(resolveBlank({ message: 'm', benchmarkId: 'quality' })).toBe(2);
+  });
 });
 
 describe('findNameCollision', () => {

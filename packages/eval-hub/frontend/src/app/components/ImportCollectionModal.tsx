@@ -202,6 +202,9 @@ const ImportCollectionModal: React.FC<ImportCollectionModalProps> = ({
         setIsReadingFile(false);
         setFilename('');
       }
+      // A rejected file never entered the editor, so manual edits make its
+      // validation error stale.
+      setFileError(null);
       cancelPendingNameSync();
       setText(value);
       resetNameField();

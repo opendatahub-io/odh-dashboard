@@ -43,6 +43,32 @@ func (app *App) ImportCollectionHandler(w http.ResponseWriter, r *http.Request, 
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
+	identity := ctx.Value(constants.RequestIdentityKey)
+	requestIdentity, ok := identity.(*kubernetes.RequestIdentity)
+	if !ok || requestIdentity == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return
+	}
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+		return
+	}
+
+	// RequireAccessToService only checks the get verb, and in internal auth
+	// mode the upstream call carries no caller token, so this SAR is the only
+	// enforcement that a read-only tenant cannot create collections.
+	allowed, err := app.repositories.Access.CanCreateEvalHubResources(k8sClient, ctx, requestIdentity, namespace)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if !allowed {
+		app.forbiddenResponse(w, r, "user does not have permission to create collections in this namespace")
+		return
+	}
+
 	var input importCollectionRequest
 	if err := app.readJSONWithLimit(w, r, &input, maxImportBodySize); err != nil {
 		app.badRequestResponse(w, r, err)

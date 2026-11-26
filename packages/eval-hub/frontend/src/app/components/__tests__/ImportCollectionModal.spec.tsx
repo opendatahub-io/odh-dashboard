@@ -444,6 +444,21 @@ describe('ImportCollectionModal', () => {
     expect(findEditor().value).not.toContain('name: file-a');
   });
 
+  it('should clear the file error when the definition is edited after a rejected upload', async () => {
+    renderModal();
+    const oversized = new File([new Uint8Array(1024 * 1024 + 1)], 'big.yaml', {
+      type: 'text/yaml',
+    });
+    setInputFiles(oversized);
+    expect(screen.getByTestId('import-collection-file-error').textContent).toContain(
+      'File exceeds the 1 MiB size limit',
+    );
+
+    await typeContent(validContent);
+    expect(screen.queryByTestId('import-collection-file-error')).not.toBeInTheDocument();
+    expect(screen.getByTestId('import-collection-submit')).toBeEnabled();
+  });
+
   it('should not let a pending file read overwrite edits made after the file was selected', async () => {
     mockReadFile.mockReset();
     renderModal();

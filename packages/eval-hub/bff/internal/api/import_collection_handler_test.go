@@ -550,6 +550,21 @@ func TestImportAccessHandlerDenied(t *testing.T) {
 	assert.False(t, result.Data.Allowed)
 }
 
+func TestImportCollectionHandlerCreatePermissionDenied(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	recorder := &verifyingEHClient{MockEvalHubClient: ehmocks.NewMockEvalHubClient()}
+	result, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodPost,
+		ApiPathPrefix+"/evaluations/collection-imports?namespace=test-ns",
+		importRequest(validImportYAML), &denyingImportK8sFactory{}, identity, recorder,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, response.StatusCode)
+	assert.Equal(t, "Access forbidden", result.Error.Message)
+	// No create call may reach the server when the create SAR is denied.
+	assert.Equal(t, 0, recorder.createCalls)
+}
+
 func TestBuildImportCreateRequestWarningOrder(t *testing.T) {
 	doc := map[string]any{
 		"name":     "ordered",
@@ -567,6 +582,44 @@ func TestBuildImportCreateRequestWarningOrder(t *testing.T) {
 	assert.Equal(t, `unrecognized field "alpha" will be ignored`, warnings[0])
 	assert.Equal(t, `unrecognized field "zebra" will be ignored`, warnings[1])
 	assert.Equal(t, "no description provided; consider adding one so the collection is easy to identify", warnings[2])
+}
+
+// A benchmark ID near the 1 MiB content cap must be truncated before being
+// embedded in warnings, so it cannot be copied into every unknown-field
+// warning for that benchmark and amplify a single import into gigabytes of
+// warning strings.
+func TestBuildImportCreateRequestTruncatesLongIdentifiers(t *testing.T) {
+	longID := strings.Repeat("a", maxImportIdentifierLength+50)
+	doc := map[string]any{
+		"name":        "truncation",
+		"category":    "safety",
+		"description": "described",
+		"benchmarks":  []any{map[string]any{"id": longID, "provider_id": "garak", "mystery": 1}},
+	}
+	request, warnings, err := buildImportCreateRequest(doc)
+	require.NoError(t, err)
+	assert.Equal(t, longID, request.Benchmarks[0].ID)
+	require.Len(t, warnings, 1)
+	assert.Equal(t,
+		fmt.Sprintf("benchmark %q: unrecognized field %q will be ignored", strings.Repeat("a", maxImportIdentifierLength)+"...", "mystery"),
+		warnings[0])
+}
+
+// The advisory warning list is capped: an import with hundreds of unknown
+// fields must not generate an unbounded number of warnings.
+func TestBuildImportCreateRequestCapsWarningCount(t *testing.T) {
+	doc := map[string]any{
+		"name":        "capped",
+		"category":    "safety",
+		"description": "described",
+		"benchmarks":  []any{map[string]any{"id": "quality", "provider_id": "garak"}},
+	}
+	for i := 0; i < maxImportWarningCount+50; i++ {
+		doc[fmt.Sprintf("unknown_field_%03d", i)] = i
+	}
+	_, warnings, err := buildImportCreateRequest(doc)
+	require.NoError(t, err)
+	assert.Len(t, warnings, maxImportWarningCount)
 }
 
 // An explicit weight of 0 must survive serialization to the EvalHub API
