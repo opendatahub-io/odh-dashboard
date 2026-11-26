@@ -158,6 +158,12 @@ pnpm --filter odh-dashboard-frontend cypress:run -- \
   --env AUTORAG_COMPLETION_TIMEOUT_MS=3600000,AUTORAG_CANCELLATION_TIMEOUT_MS=120000
 ```
 
+### Data Connect Hub E2E cluster prerequisites
+
+The Data Connect Hub browser suite requires the DCH backend to be installed and its `dch-rest-service` service to have at least one ready endpoint. The suite locates the service across namespaces, then creates a temporary dashboard project for the route and tab-content checks.
+
+When the backend endpoint is unavailable, the backend-dependent tab-content assertions are skipped before project provisioning. Route and navigation checks still run because the DCH UI module is part of the dashboard under test.
+
 ### Run Tests in Interactive Mode
 
 Use the Cypress Test Runner for an interactive GUI:
