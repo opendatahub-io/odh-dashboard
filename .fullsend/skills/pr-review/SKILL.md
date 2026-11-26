@@ -1172,10 +1172,10 @@ sandbox. Also read structured LLM returns when such a row was dispatched.
   treated as a one-element array) and append each object to the top-level
   `checks[]`, preserving its `id`, `status`, `summary` and `details`.
   Every returned id must be one of the row's registry-declared
-  `checks[]` ids (or the row id itself when the row declares none). An
-  unknown id, a duplicate id, or a missing declared id is a failure for
-  that producer, not an extra row: drop the unknown/duplicate object and
-  write
+  `checks[]` ids (or the row id itself when the row declares none). None
+  of the cases below becomes an extra row: drop an unknown id, collapse a
+  duplicate id to its first occurrence (that surviving row keeps its own
+  status — a dropped duplicate does not fail the producer), and write
   `{ "id": "<declared id>", "status": "could-not-verify", "summary": "The producer did not return a valid check result." }`
   for **each** declared id the producer did not return (a dropped unknown
   id never stands in for a declared one). On malformed, absent, or

@@ -299,8 +299,13 @@ single-check producers need no change.
 A producer that returns more than one check **must** declare them. Sub-check
 ids come from the registry, never from `result.producers.check_ids`: the host
 drops a row whose id no producer declares (recording the limit), and a
-producer that answers its own id while the ledger records sub-check ids is an
-incomplete current result, not the legacy single row.
+producer that declares sub-checks but answers its own id is an incomplete
+current result. The host holds every current result to the declared set no
+matter what the ledger says — a missing, explicitly empty, or inconsistent
+`check_ids` entry cannot drop it back to the legacy single row. The
+pre-multi-check single-row shape is accepted only when the host opts into it
+explicitly with `FULLSEND_LEGACY_SINGLE_CHECK=1` for a legacy replay, never
+because a model-authored field is absent.
 
 | Producer | Declared check ids |
 | --- | --- |

@@ -211,7 +211,7 @@
         },
         "check_ids": {
           "type": "object",
-          "description": "Sub-check ids each check producer returned, keyed by producer id, so ledger accounting covers every rendered row instead of only the producer id. Ids must belong to that producer's registry-declared checks; the host drops a row whose id no producer declares and floors a declared-but-unreturned id to could-not-verify.",
+          "description": "Sub-check ids each check producer returned, keyed by producer id, so ledger accounting covers every rendered row instead of only the producer id. A current producer must record this. Ids must belong to that producer's registry-declared checks; the host drops a row whose id no producer declares and floors a declared-but-unreturned id to could-not-verify. Enforcement never depends on this field being present: a missing, empty or inconsistent entry is still held to the registry declaration.",
           "additionalProperties": {
             "type": "array",
             "items": { "type": "string", "minLength": 1 }

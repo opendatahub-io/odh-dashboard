@@ -254,6 +254,16 @@ def emitted_check_ids(producers, dim_id):
         return []
     return [i for i in ids if isinstance(i, str) and i]
 
+def legacy_single_check_mode():
+    """Legacy one-row compatibility, opted into by the host process only.
+
+    Whether a producer-id row stands in for a producer's declared sub-checks is
+    decided by the host environment, never by model-authored result fields: a
+    current result can omit or empty `check_ids` and must still be held to the
+    registry declaration. Nothing in the normal pipeline sets this."""
+    raw = os.environ.get("FULLSEND_LEGACY_SINGLE_CHECK")
+    return str(raw or "").strip().lower() in ("1", "true", "yes")
+
 def declared_check_ids(dim_id):
     """Sub-check ids a check producer must return.
 
@@ -431,14 +441,23 @@ def reconcile_readiness_checks(result, producers, ran_ids, inspected):
     rows = checks(result)
     producers_order = check_producer_ids(producers)
     registry_loaded = bool(DIMENSION_REGISTRY)
+    legacy = legacy_single_check_mode()
 
-    # A producer that declares sub-checks must not answer its own producer id
-    # once the ledger records sub-check ids. That shape is a current result
-    # that skipped its declared set, not the pre-multi-check legacy row.
+    def declares_subchecks(name):
+        """True when a producer declares its own sub-check ids, not one implicit check."""
+        declared = declared_check_ids(name)
+        return bool(declared) and declared != [name]
+
+    # A producer that declares sub-checks must return those sub-checks; its
+    # producer id is never one of them, so a producer-id row is always an
+    # incomplete current result. Only a host-opted legacy replay still accepts
+    # that row, and the choice comes from the environment, never from a
+    # missing, empty or inconsistent model-authored ledger.
     reject_self_id = set()
-    for name in producers_order:
-        if declared_checks(name) and emitted_check_ids(producers, name):
-            reject_self_id.add(name)
+    if not legacy:
+        for name in producers_order:
+            if declares_subchecks(name):
+                reject_self_id.add(name)
 
     kept = []
     seen = set()
@@ -473,15 +492,9 @@ def reconcile_readiness_checks(result, producers, ran_ids, inspected):
         if not declared:
             continue
         mine_ids = {row.get("id") for row in producer_checks(name, kept)}
-        if (
-            mine_ids == {name}
-            and declared != [name]
-            and not emitted_check_ids(producers, name)
-        ):
-            # Legacy single-row shape predating check_ids: a producer that
-            # answered its own id before it declared sub-checks still gates as
-            # one row. A current result always records check_ids, so this never
-            # lets a declared producer skip its sub-checks.
+        if legacy and mine_ids == {name} and declared != [name]:
+            # Host-opted legacy replay: a result produced before this producer
+            # declared sub-checks still gates as its single producer-id row.
             continue
         for check_id in declared:
             if check_id in mine_ids:
@@ -515,7 +528,12 @@ def reconcile_readiness_checks(result, producers, ran_ids, inspected):
 
     for row in kept:
         check_id = row.get("id")
-        if check_id in ran_ids or check_id in ran_check_ids:
+        # A declared sub-check counts as run only through the ledger of its
+        # owner that ran. The direct dispatch shortcut is for a producer that
+        # answers with its own id (the implicit single check), so a sub-check
+        # id smuggled into dispatched/adapters cannot impersonate its owner.
+        declared_subcheck = registry_loaded and check_id in CHECK_REGISTRY
+        if check_id in ran_check_ids or (check_id in ran_ids and not declared_subcheck):
             continue
         prior = str(row.get("status") or "missing")
         owner = check_owner(check_id)
@@ -2114,10 +2132,21 @@ run_self_test() {
     echo "PASS GITHUB_WORKSPACE-relative FULLSEND_DIR resolves to ${resolved_via_workspace}"
   fi
 
+  # Legacy replay: the host opts into the pre-multi-check single-row contract
+  # through the environment, never through model-authored result fields. Only
+  # fixtures that intentionally exercise that old shape use it.
+  legacy_transform() {
+    ( export FULLSEND_LEGACY_SINGLE_CHECK=1; transform_review_result "$1" )
+  }
+
   render_fixture() {
-    local name="$1" want_action="$2" json="$3" body
+    local name="$1" want_action="$2" json="$3" mode="${4:-current}" body
     printf '%s' "${json}" > "${tmp}/${name}.json"
-    transform_review_result "${tmp}/${name}.json" > "${tmp}/${name}-out.json"
+    if [[ "${mode}" == "legacy" ]]; then
+      legacy_transform "${tmp}/${name}.json" > "${tmp}/${name}-out.json"
+    else
+      transform_review_result "${tmp}/${name}.json" > "${tmp}/${name}-out.json"
+    fi
     if [[ "$(jq -r .action "${tmp}/${name}-out.json")" != "${want_action}" ]]; then
       echo "FAIL ${name}: expected action=${want_action}" >&2
       fail=1
@@ -2533,7 +2562,7 @@ JSON
   render_fixture blocking-plus-judgment request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Naming drift.\",\"why\":\"Export renamed.\"},{\"severity\":\"high\",\"category\":\"logic-error\",\"file\":\"b.ts\",\"line\":4,\"description\":\"Crash.\",\"why\":\"Null dereference.\",\"remediation\":\"Guard the value.\"}],\"product_ask\":{\"status\":\"none\"}}"
 
   # A failed readiness check still blocks when a judgment finding is present.
-  render_fixture judgment-plus-check request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Naming drift.\",\"why\":\"Export renamed.\"}],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem missing.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}},\"product_ask\":{\"status\":\"none\"}}"
+  render_fixture judgment-plus-check request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Naming drift.\",\"why\":\"Export renamed.\"}],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem missing.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}},\"product_ask\":{\"status\":\"none\"}}" legacy
 
   # low/info may ride with approve.
   render_fixture low-rides-approve approve "{${common},\"findings\":[{\"severity\":\"low\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Minor naming nit.\",\"actionable\":true}],\"product_ask\":{\"status\":\"none\"}}"
@@ -2617,7 +2646,7 @@ JSON
   fi
 
   printf '%s' "{${common},\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"warning\",\"summary\":\"No targeted tests were changed.\",\"details\":[\"PR body explains manual verification only.\",\"Second detail line.\"]}],\"todo\":[{\"category\":\"findings\",\"text\":\"Confirm the manual verification note is enough.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/structured.json"
-  transform_review_result "${tmp}/structured.json" > "${tmp}/structured-out.json"
+  legacy_transform "${tmp}/structured.json" > "${tmp}/structured-out.json"
   body=$(jq -r .body "${tmp}/structured-out.json")
   if [[ "$(jq -r .action "${tmp}/structured-out.json")" != "approve" ]] ||
      ! grep -q '### Checks' <<<"${body}" ||
@@ -2677,7 +2706,7 @@ JSON
   fi
 
   printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem section is empty.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/check-fail.json"
-  transform_review_result "${tmp}/check-fail.json" > "${tmp}/check-fail-out.json"
+  legacy_transform "${tmp}/check-fail.json" > "${tmp}/check-fail-out.json"
   if [[ "$(jq -r .action "${tmp}/check-fail-out.json")" != "request-changes" ]] ||
      ! grep -Fq '**Waiting on author** — 1 failed readiness check' <<<"$(jq -r .body "${tmp}/check-fail-out.json")"; then
     echo "FAIL check-fail: failed readiness check must request changes" >&2
@@ -2784,6 +2813,42 @@ JSON
     fail=1
   else
     echo "PASS a declared producer cannot skip its sub-checks with a producer-id row"
+  fi
+
+  # A current result that recorded no returned checks — check_ids present but
+  # empty — is not the legacy shape. The producer-id row is rejected and every
+  # declared check floors to could-not-verify, so it cannot approve.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"pass\",\"summary\":\"Everything is fine, trust me.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"check_ids\":{\"test-impact-review\":[]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-empty-ledger.json"
+  transform_review_result "${tmp}/multi-check-empty-ledger.json" > "${tmp}/multi-check-empty-ledger-out.json"
+  if ! jq -e '.action == "comment" and (.checks | length) == 4 and ([.checks[].status] | unique) == ["could-not-verify"] and (([.checks[].id] | index("test-impact-review")) == null)' "${tmp}/multi-check-empty-ledger-out.json" >/dev/null; then
+    echo "FAIL multi-check-empty-ledger: an explicitly empty ledger must not fall back to the legacy row" >&2
+    fail=1
+  else
+    echo "PASS an explicitly empty check_ids entry floors every declared check"
+  fi
+
+  # Omitting check_ids entirely is the same fail-open. The host enforces the
+  # registry declaration for a current result; only an explicit host-opted
+  # legacy replay may accept the single producer-id row.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"pass\",\"summary\":\"Everything is fine, trust me.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"test-impact-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-no-ledger.json"
+  transform_review_result "${tmp}/multi-check-no-ledger.json" > "${tmp}/multi-check-no-ledger-out.json"
+  if ! jq -e '.action == "comment" and (.checks | length) == 4 and ([.checks[].status] | unique) == ["could-not-verify"]' "${tmp}/multi-check-no-ledger-out.json" >/dev/null; then
+    echo "FAIL multi-check-no-ledger: a missing ledger must not skip declared-check enforcement" >&2
+    fail=1
+  else
+    echo "PASS a missing check_ids ledger is still held to the registry declaration"
+  fi
+
+  # A declared sub-check id smuggled into dispatched cannot impersonate its
+  # owner: it counts as run only through its owner's ledger, so it floors and
+  # nothing approves.
+  printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-automation\",\"status\":\"pass\",\"summary\":\"Units cover the new helper.\"}],\"producers\":{\"dispatched\":[\"test-impact-automation\"],\"adapters\":[],\"skipped\":[{\"id\":\"test-impact-review\",\"reason\":\"budget exhausted\"}],\"returned\":[\"test-impact-automation\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/multi-check-impersonate.json"
+  transform_review_result "${tmp}/multi-check-impersonate.json" > "${tmp}/multi-check-impersonate-out.json"
+  if ! jq -e '.action == "comment" and ([.checks[] | select(.id == "test-impact-automation") | .status] == ["could-not-verify"])' "${tmp}/multi-check-impersonate-out.json" >/dev/null; then
+    echo "FAIL multi-check-impersonate: a dispatched sub-check id must not stand in for its owner" >&2
+    fail=1
+  else
+    echo "PASS a dispatched sub-check id cannot impersonate its owner"
   fi
 
   # An undeclared producer is a single check whose id is the producer id. The
@@ -3020,7 +3085,7 @@ JSON
   # A skipped producer cannot leave a passed check in place. result.producers
   # is the record of what ran; a schema-valid pass for an unrun check must not approve.
   printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"pass\",\"summary\":\"PR body is complete.\"},{\"id\":\"test-impact-review\",\"status\":\"pass\",\"summary\":\"Tests cover the change.\"}],\"producers\":{\"dispatched\":[\"test-impact-review\"],\"adapters\":[],\"skipped\":[{\"id\":\"pr-description-review\",\"reason\":\"not spawned\"}],\"returned\":[\"test-impact-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/skip-check.json"
-  transform_review_result "${tmp}/skip-check.json" > "${tmp}/skip-check-out.json"
+  legacy_transform "${tmp}/skip-check.json" > "${tmp}/skip-check-out.json"
   if ! jq -e '.action == "comment" and .confidence.level == "medium" and ([.checks[] | select(.id == "pr-description-review") | .status] == ["could-not-verify"]) and ([.checks[] | select(.id == "test-impact-review") | .status] == ["pass"])' "${tmp}/skip-check-out.json" >/dev/null; then
     echo "FAIL skip-check: a skipped producer must not keep a passing check or approve" >&2
     fail=1
@@ -3266,7 +3331,7 @@ JSON
         challenger: {status:"skipped",reason:"no findings to adjudicate"}
       }
     }' > "${tmp}/adapter-safe.json"
-  transform_review_result "${tmp}/adapter-safe.json" > "${tmp}/adapter-safe-out.json"
+  legacy_transform "${tmp}/adapter-safe.json" > "${tmp}/adapter-safe-out.json"
   body=$(jq -r .body "${tmp}/adapter-safe-out.json")
   if grep -q 'boom' <<<"${body}"; then
     echo "FAIL adapter-safe: free-form reason reached the comment" >&2
@@ -3295,7 +3360,7 @@ JSON
 
   # Mixed kinds: check / signal / section Type + Result cells (not findings-shaped).
   printf '%s' "{${common},\"findings\":[],\"checks\":[{\"id\":\"test-impact-review\",\"status\":\"pass\",\"summary\":\"Selector tests cover the planner.\"}],\"product_ask\":{\"status\":\"aligned\"},\"risk\":{\"level\":\"high\",\"why\":\"Wide CI surface.\"},\"confidence\":{\"level\":\"medium\",\"why\":\"Unit evidence only.\"},\"producers\":{\"dispatched\":[\"correctness\",\"test-impact-review\",\"rating\",\"product-ask-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\",\"test-impact-review\",\"rating\",\"product-ask-review\"],\"raised\":{\"correctness\":[]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/mixed.json"
-  transform_review_result "${tmp}/mixed.json" > "${tmp}/mixed-out.json"
+  legacy_transform "${tmp}/mixed.json" > "${tmp}/mixed-out.json"
   body=$(jq -r .body "${tmp}/mixed-out.json")
   if ! grep -qE '^\| Correctness \| findings \| ✅ \| No findings\.' <<<"${body}"; then
     echo "FAIL mixed-kind: findings producer Result wrong" >&2

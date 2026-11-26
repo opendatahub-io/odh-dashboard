@@ -113,13 +113,14 @@ Rules:
 
 The mappings in this section apply to the direct-CLI Markdown report only.
 
-For the single-row report, overall status follows the applicable aspects (ignore ➖): any ❌ → failed; else any ⚠️ → warning; else passed when at least one aspect was scored. If every aspect is ➖, the check is not applicable.
+For the single-row report, overall status follows the applicable aspects (ignore ➖), in this precedence: any ❌ → failed; else any `could-not-verify` → could not verify; else any ⚠️ → warning; else passed when at least one aspect was scored. If every aspect is ➖, the check is not applicable. An attached but uninspectable artifact is `could-not-verify`, so it can never roll up to passed.
 
 | Status | Meaning |
 | --- | --- |
 | ✅ passed | Every applicable aspect is ✅ |
 | ⚠️ warning | At least one applicable aspect is ⚠️, and every other applicable aspect is ✅ or ⚠️ |
 | ❌ failed | At least one applicable aspect is ❌ |
+| ❔ could not verify | No aspect failed, and at least one applicable aspect is `could-not-verify` (e.g. an attached artifact that could not be opened). The direct-CLI report cannot confirm the requirement, so it must not claim passed. |
 | ➖ not applicable | Nothing to review (e.g. empty change and no PR body), or every aspect is ➖ |
 
 ## Check ids
@@ -138,7 +139,7 @@ Each id below names an aspect this skill scores. When the caller supplies declar
 ```md
 ## Test Impact Review
 
-**Status:** ✅ passed | ⚠️ warning | ❌ failed | ➖ not applicable
+**Status:** ✅ passed | ⚠️ warning | ❌ failed | ❔ could not verify | ➖ not applicable
 
 | Item | Status | Evidence |
 | --- | --- | --- |
