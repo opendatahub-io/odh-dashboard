@@ -1,6 +1,6 @@
 import React from 'react';
-import { Flex, FlexItem, Icon, Popover, Spinner } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { Flex, FlexItem, Icon, MenuToggle, Popover, Spinner } from '@patternfly/react-core';
+import { ExclamationTriangleIcon, RhUiEllipsisVerticalFillIcon } from '@patternfly/react-icons';
 import { Td, Tbody } from '@patternfly/react-table';
 import {
   ResourceActionsColumn,
@@ -84,14 +84,25 @@ export const DeploymentRow: React.FC<{
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [isStatusModalOpen, setStatusModalOpen] = React.useState(false);
   const [isEditLoading, setEditLoading] = React.useState(false);
+  const [hasOpenedActions, setHasOpenedActions] = React.useState(false);
 
   const { watchDeployment } = useModelDeploymentNotification(deployment);
 
   const { projects } = React.useContext(ProjectsContext);
   const { namespace, name } = deployment.model.metadata;
-  const edit = useDeploymentAccess('update', namespace, name);
-  const remove = useDeploymentAccess('delete', namespace, name);
-  const patch = useDeploymentAccess('patch', namespace, name);
+  const edit = useDeploymentAccess(
+    'update',
+    namespace,
+    name,
+    hasOpenedActions || isStatusModalOpen,
+  );
+  const remove = useDeploymentAccess('delete', namespace, name, hasOpenedActions);
+  const patch = useDeploymentAccess(
+    'patch',
+    namespace,
+    name,
+    Boolean(startStopActionExtension && (deployment.status?.stoppedStates || isStatusModalOpen)),
+  );
   const project = projects.find((p) => p.metadata.name === namespace);
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
   const trackEvent = useTrackEvent();
@@ -280,22 +291,40 @@ export const DeploymentRow: React.FC<{
         <Td isActionCell>
           <ResourceActionsColumn
             resource={deployment.model}
+            actionsToggle={({ onToggle, isOpen, isDisabled, toggleRef }) => (
+              <MenuToggle
+                aria-label="Kebab toggle"
+                ref={toggleRef}
+                isExpanded={isOpen}
+                isDisabled={isDisabled}
+                variant="plain"
+                icon={<RhUiEllipsisVerticalFillIcon />}
+                onClick={(event) => {
+                  setHasOpenedActions(true);
+                  onToggle(event);
+                }}
+              />
+            )}
             items={[
               {
                 title: <span data-testid="edit-inference-service-action">Edit</span>,
-                isDisabled: !edit.allowed,
+                isAriaDisabled: !edit.allowed,
                 tooltipProps: edit.reason ? { content: edit.reason } : undefined,
                 onClick: () => {
-                  navigateToDeploymentWizard(deployment.model.metadata.namespace);
+                  if (edit.allowed) {
+                    navigateToDeploymentWizard(namespace);
+                  }
                 },
               },
               { isSeparator: true },
               {
                 title: <span data-testid="delete-inference-service-action">Delete</span>,
-                isDisabled: !remove.allowed,
+                isAriaDisabled: !remove.allowed,
                 tooltipProps: remove.reason ? { content: remove.reason } : undefined,
                 onClick: () => {
-                  onDelete(deployment);
+                  if (remove.allowed) {
+                    onDelete(deployment);
+                  }
                 },
               },
             ]}

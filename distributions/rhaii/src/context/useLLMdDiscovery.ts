@@ -51,7 +51,7 @@ const discover = async (signal: AbortSignal): Promise<Discovery> => {
 
 export const useLLMdDiscovery = (
   enabled: boolean,
-): { discovery: Discovery; refresh: () => void } => {
+): { discovery: Discovery; attempt: number; refresh: () => void } => {
   const [attempt, refresh] = React.useReducer((value: number) => value + 1, 0);
   const request = React.useMemo(() => ({ enabled, attempt }), [enabled, attempt]);
   const [result, setResult] = React.useState<{ request: typeof request; discovery: Discovery }>();
@@ -96,5 +96,5 @@ export const useLLMdDiscovery = (
     : result?.request === request
     ? result.discovery
     : { status: 'pending' };
-  return { discovery, refresh };
+  return { discovery, attempt, refresh };
 };

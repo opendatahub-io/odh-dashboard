@@ -22,7 +22,7 @@ export const ModelDeploymentsContext = React.createContext<ModelDeploymentsConte
   projects: undefined,
 });
 
-type PlatformDeploymentWatcherProps = {
+type ProjectDeploymentWatcherProps = {
   platformId: string;
   watcher: ModelServingPlatformWatchDeployments;
   project: ProjectKind;
@@ -35,7 +35,7 @@ type PlatformDeploymentWatcherProps = {
   filterFn?: (model: Deployment['model']) => boolean;
 };
 
-const ProjectDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
+const ProjectDeploymentWatcher: React.FC<ProjectDeploymentWatcherProps> = ({
   platformId,
   watcher,
   project,
@@ -59,13 +59,24 @@ const ProjectDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = ({
   return null;
 };
 
-const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = (props) => {
-  const { project, onStateChange, platformId, unloadPlatformDeployments } = props;
+const PlatformDeploymentWatcher: React.FC<
+  ProjectDeploymentWatcherProps & { skipInaccessibleProjects?: boolean }
+> = (props) => {
+  const {
+    project,
+    onStateChange,
+    platformId,
+    unloadPlatformDeployments,
+    skipInaccessibleProjects,
+  } = props;
   const list = useDeploymentAccess('list', project.metadata.name);
   const watch = useDeploymentAccess('watch', project.metadata.name);
   const allowed = list.allowed && watch.allowed;
   const loaded = list.loaded && watch.loaded;
-  const reason = list.reason ?? watch.reason;
+  const reason =
+    skipInaccessibleProjects && (list.denied || watch.denied)
+      ? undefined
+      : list.reason ?? watch.reason;
   React.useEffect(() => {
     if (allowed) {
       return undefined;
@@ -81,6 +92,7 @@ const PlatformDeploymentWatcher: React.FC<PlatformDeploymentWatcherProps> = (pro
 
 type ModelDeploymentsProviderProps = {
   projects: ProjectKind[];
+  skipInaccessibleProjects?: boolean;
   labelSelectors?: { [key: string]: string };
   children: React.ReactNode;
   filterFn?: (model: Deployment['model']) => boolean;
@@ -88,6 +100,7 @@ type ModelDeploymentsProviderProps = {
 
 export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> = ({
   projects,
+  skipInaccessibleProjects,
   labelSelectors,
   children,
   filterFn,
@@ -174,6 +187,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
             onStateChange={updatePlatformDeployments}
             unloadPlatformDeployments={unloadPlatformDeployments}
             filterFn={filterFn}
+            skipInaccessibleProjects={skipInaccessibleProjects}
           />
         ));
       })}

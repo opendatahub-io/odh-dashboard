@@ -41,7 +41,9 @@ const RhaiiAppProvider: React.FC<RhaiiAppProviderProps> = ({ children }) => {
   const store = usePluginStore();
   const [hubEnabled] = useFeatureFlag(SupportedArea.MODEL_SERVING);
   const [llmdConfigured] = useFeatureFlag('enable-llmd-serving');
-  const { discovery, refresh } = useLLMdDiscovery(hubEnabled === true && llmdConfigured === true);
+  const { discovery, attempt, refresh } = useLLMdDiscovery(
+    hubEnabled === true && llmdConfigured === true,
+  );
   const llmdAvailable = discovery.status === 'available';
   React.useEffect(() => {
     store.setFeatureFlags({ [SupportedArea.LLMD_SERVING]: llmdAvailable });
@@ -76,6 +78,8 @@ const RhaiiAppProvider: React.FC<RhaiiAppProviderProps> = ({ children }) => {
           <HardwareProfilesContextProvider>
             <ProjectsContextProvider>
               <HostApiProvider
+                discoveryAttempt={attempt}
+                retryDiscovery={refresh}
                 servingResources={
                   discovery.status === 'available' ? discovery.resources : undefined
                 }

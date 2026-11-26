@@ -6,7 +6,8 @@ export const useDeploymentAccess = (
   verb: K8sVerb,
   namespace?: string,
   name?: string,
-): { allowed: boolean; loaded: boolean; reason?: string } => {
+  enabled = true,
+): { allowed: boolean; loaded: boolean; denied?: boolean; reason?: string } => {
   const { deploymentApi } = useHostApiCore();
   const supported = deploymentApi?.resources[deploymentApi.resource]?.includes(verb) === true;
   const review = useAccessReviewResult(
@@ -17,10 +18,13 @@ export const useDeploymentAccess = (
       namespace,
       name,
     },
-    supported && !!namespace,
+    enabled && supported && !!namespace,
   );
   if (!deploymentApi) {
     return { allowed: true, loaded: true };
+  }
+  if (!enabled) {
+    return { allowed: false, loaded: false };
   }
   if (!namespace) {
     return { allowed: false, loaded: true, reason: 'Select a project to check deployment access.' };
@@ -36,5 +40,10 @@ export const useDeploymentAccess = (
     : !review.allowed
     ? `Access denied to ${target}.`
     : undefined;
-  return { allowed: review.allowed, loaded: review.loaded, reason };
+  return {
+    allowed: review.allowed,
+    loaded: review.loaded,
+    denied: review.loaded && !review.allowed && !review.error,
+    reason,
+  };
 };

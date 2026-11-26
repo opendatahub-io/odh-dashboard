@@ -26,7 +26,8 @@ spec:
     containers:
       - name: main
         image: docker.io/vllm/vllm-openai-cpu:v0.31.0
-        args: [--model, facebook/opt-125m, --dtype, float32, --max-model-len, '1024']
+        # KServe passes the staged model path to vLLM.
+        args: [--dtype, float32, --max-model-len, '1024']
         env:
           - name: HF_HOME
             value: /tmp/hf_home

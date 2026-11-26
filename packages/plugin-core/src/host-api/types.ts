@@ -60,6 +60,9 @@ export type HostApiCoreServices = {
     resources: Readonly<Partial<Record<string, readonly string[]>>>;
     /** Fetches Kubernetes lists and HTTP watch streams through the host transport. */
     watchFetch?: (path: string, options: RequestInit) => Promise<Response>;
+    /** Changes when discovery is retried so stopped watches start a fresh list and watch. */
+    discoveryAttempt?: number;
+    retryDiscovery?: () => void;
   };
 
   /** Fetch (or refresh) the DashboardConfig CR that controls feature flags and platform settings. */

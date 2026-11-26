@@ -106,6 +106,8 @@ const patchSecretWithProtocolAnnotation = (
 const createCoreApi = (
   dashboardNamespace: string,
   servingResources?: Record<string, string[]>,
+  discoveryAttempt?: number,
+  retryDiscovery?: () => void,
 ): HostApiCoreServices => ({
   dashboardNamespace,
   checkAccess,
@@ -114,6 +116,8 @@ const createCoreApi = (
     resource: LLMInferenceServiceModel.plural,
     resources: servingResources ?? {},
     watchFetch: k8sFetch,
+    discoveryAttempt,
+    retryDiscovery,
   },
   fetchDashboardConfig: () =>
     Promise.reject(new Error('DashboardConfig is not available in the RHAII host.')),
@@ -160,16 +164,23 @@ const hostApi: HostApiServices = {
 type HostApiProviderProps = {
   children: React.ReactNode;
   servingResources?: Record<string, string[]>;
+  discoveryAttempt?: number;
+  retryDiscovery?: () => void;
 };
 
 /** Minimal xKS host services needed by the federated model-serving UI. */
 // Tracking is intentionally disabled in RHAII until its Segment delivery integration is implemented.
 // Consumers still need a mounted provider.
-const HostApiProvider: React.FC<HostApiProviderProps> = ({ children, servingResources }) => {
+const HostApiProvider: React.FC<HostApiProviderProps> = ({
+  children,
+  servingResources,
+  discoveryAttempt,
+  retryDiscovery,
+}) => {
   const dashboardNamespace = React.useContext(DashboardNamespaceContext);
   const coreApi = React.useMemo(
-    () => createCoreApi(dashboardNamespace, servingResources),
-    [dashboardNamespace, servingResources],
+    () => createCoreApi(dashboardNamespace, servingResources, discoveryAttempt, retryDiscovery),
+    [dashboardNamespace, servingResources, discoveryAttempt, retryDiscovery],
   );
 
   return (

@@ -15,7 +15,7 @@ export const useDeploymentWatch = <T extends K8sResourceCommon>(
   opts?: K8sAPIOptions,
   labelSelectors?: Record<string, string>,
 ): K8sWatchResult<T[]> => {
-  const watchFetch = useHostApiCore().deploymentApi?.watchFetch;
+  const { watchFetch, discoveryAttempt } = useHostApiCore().deploymentApi ?? {};
   const target = useDeepCompareMemoize({ model, namespace, labelSelectors });
   const sdkResource = React.useMemo(
     () =>
@@ -32,8 +32,8 @@ export const useDeploymentWatch = <T extends K8sResourceCommon>(
   const sdkResult = useK8sWatchResourceList<T[]>(sdkResource, model, opts);
   const externalSignal = opts?.signal;
   const request = React.useMemo(
-    () => ({ target, watchFetch, externalSignal }),
-    [target, watchFetch, externalSignal],
+    () => ({ target, watchFetch, externalSignal, discoveryAttempt }),
+    [target, watchFetch, externalSignal, discoveryAttempt],
   );
   const [httpState, setHttpState] = React.useState<{
     request: typeof request;

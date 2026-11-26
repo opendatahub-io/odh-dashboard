@@ -11,7 +11,7 @@ import type {
 import { ModelDeploymentsContext, ModelDeploymentsProvider } from '../ModelDeploymentsContext';
 import { useDeploymentAccess } from '../useDeploymentAccess';
 
-const projects = ['readable', 'restricted'].map((name) =>
+const projects = ['readable', 'restricted', 'review-error'].map((name) =>
   mockProjectK8sResource({ k8sName: name }),
 );
 const deploymentApi = {
@@ -36,58 +36,76 @@ const Summary: React.FC = () => {
 };
 
 describe('deployment watches on a host with a discovered resource', () => {
-  it('should wait for both read verbs per project and review mutations independently', async () => {
-    let grantWatch!: (value: boolean) => void;
-    const checkAccess = jest.fn<
-      ReturnType<HostApiCoreServices['checkAccess']>,
-      Parameters<HostApiCoreServices['checkAccess']>
-    >(async ({ namespace, verb, name }) => {
-      if (verb === 'watch' && namespace === 'readable') {
-        return new Promise<boolean>((resolve) => {
-          grantWatch = resolve;
-        });
+  it.each([true, false])(
+    'should distinguish denied access from review errors when skipping inaccessible projects is %s',
+    async (skipInaccessibleProjects) => {
+      let grantWatch!: (value: boolean) => void;
+      const checkAccess = jest.fn<
+        ReturnType<HostApiCoreServices['checkAccess']>,
+        Parameters<HostApiCoreServices['checkAccess']>
+      >(async ({ namespace, verb, name }) => {
+        if (verb === 'watch' && namespace === 'readable') {
+          return new Promise<boolean>((resolve) => {
+            grantWatch = resolve;
+          });
+        }
+        if (verb === 'watch' && namespace === 'review-error') {
+          throw new Error('review unavailable');
+        }
+        return (
+          (verb === 'list' && namespace !== 'restricted') ||
+          (verb === 'watch' && namespace === 'restricted') ||
+          (verb === 'delete' && name === 'test-model')
+        );
+      });
+      const watchResult: [Deployment[], boolean, undefined] = [[], true, undefined];
+      const watch = jest.fn(() => watchResult);
+      const store = new PluginStore({
+        llmd: [
+          {
+            type: 'model-serving.platform/watch-deployments',
+            properties: { platform: 'llmd-serving', watch: async () => watch },
+          } satisfies ModelServingPlatformWatchDeploymentsExtension,
+        ],
+      });
+      const Host: React.FC = () => {
+        const core = React.useContext(HostApiCoreContext);
+        const value = React.useMemo(() => ({ ...core, checkAccess, deploymentApi }), [core]);
+        return (
+          <PluginStoreProvider store={store}>
+            <HostApiCoreContext.Provider value={value}>
+              <ModelDeploymentsProvider
+                projects={projects}
+                skipInaccessibleProjects={skipInaccessibleProjects}
+              >
+                <Summary />
+              </ModelDeploymentsProvider>
+            </HostApiCoreContext.Provider>
+          </PluginStoreProvider>
+        );
+      };
+      const view = render(<Host />);
+      expect(
+        await screen.findByText(
+          /Could not check access to watch.*review-error.*review unavailable/,
+        ),
+      ).toBeVisible();
+      const denied = screen.queryByText(/Access denied to list.*restricted/);
+      if (skipInaccessibleProjects) {
+        expect(denied).not.toBeInTheDocument();
+      } else {
+        expect(denied).toBeVisible();
       }
-      if (verb === 'watch') {
-        throw new Error('review unavailable');
-      }
-      return verb === 'list' || (verb === 'delete' && name === 'test-model');
-    });
-    const watchResult: [Deployment[], boolean, undefined] = [[], true, undefined];
-    const watch = jest.fn(() => watchResult);
-    const store = new PluginStore({
-      llmd: [
-        {
-          type: 'model-serving.platform/watch-deployments',
-          properties: { platform: 'llmd-serving', watch: async () => watch },
-        } satisfies ModelServingPlatformWatchDeploymentsExtension,
-      ],
-    });
-    const Host: React.FC = () => {
-      const core = React.useContext(HostApiCoreContext);
-      const value = React.useMemo(() => ({ ...core, checkAccess, deploymentApi }), [core]);
-      return (
-        <PluginStoreProvider store={store}>
-          <HostApiCoreContext.Provider value={value}>
-            <ModelDeploymentsProvider projects={projects}>
-              <Summary />
-            </ModelDeploymentsProvider>
-          </HostApiCoreContext.Provider>
-        </PluginStoreProvider>
-      );
-    };
-    const view = render(<Host />);
-    expect(
-      await screen.findByText(/Could not check access to watch.*restricted.*review unavailable/),
-    ).toBeVisible();
-    expect(watch).not.toHaveBeenCalled();
-    expect(screen.getByText('Delete allowed')).toBeVisible();
-    expect(screen.getByText(/Access denied to create.*readable/)).toBeVisible();
-    await act(async () => grantWatch(true));
-    expect(await screen.findByText('Readable project loaded')).toBeVisible();
-    expect(watch).toHaveBeenCalledWith(projects[0], undefined, undefined);
-    expect(watch).not.toHaveBeenCalledWith(projects[1], undefined, undefined);
-    const reviews = checkAccess.mock.calls.length;
-    view.rerender(<Host />);
-    expect(checkAccess).toHaveBeenCalledTimes(reviews);
-  });
+      expect(watch).not.toHaveBeenCalled();
+      expect(screen.getByText('Delete allowed')).toBeVisible();
+      expect(screen.getByText(/Access denied to create.*readable/)).toBeVisible();
+      await act(async () => grantWatch(true));
+      expect(await screen.findByText('Readable project loaded')).toBeVisible();
+      expect(watch).toHaveBeenCalledWith(projects[0], undefined, undefined);
+      expect(watch).not.toHaveBeenCalledWith(projects[1], undefined, undefined);
+      const reviews = checkAccess.mock.calls.length;
+      view.rerender(<Host />);
+      expect(checkAccess).toHaveBeenCalledTimes(reviews);
+    },
+  );
 });

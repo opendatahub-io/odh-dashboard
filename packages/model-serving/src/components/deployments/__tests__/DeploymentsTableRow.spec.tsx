@@ -1,9 +1,10 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
 import { useAssignHardwareProfile } from '@odh-dashboard/hardware-profiles/shared/useAssignHardwareProfile';
+import { HostApiCoreContext, type HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { Deployment } from '../../../../extension-points';
 import { mockExtensions } from '../../../__tests__/mockUtils';
@@ -154,6 +155,58 @@ describe('DeploymentsTableRow', () => {
     );
 
     expect(screen.getByText('test-data')).toBeInTheDocument();
+  });
+
+  it('should review edit and delete when the menu opens and block denied actions', async () => {
+    const checkAccess = jest.fn<Promise<boolean>, Parameters<HostApiCoreServices['checkAccess']>>(
+      async () => false,
+    );
+    const Host: React.FC<React.PropsWithChildren> = ({ children }) => {
+      const core = React.useContext(HostApiCoreContext);
+      const value = React.useMemo(
+        () => ({
+          ...core,
+          checkAccess,
+          deploymentApi: {
+            group: 'serving.kserve.io',
+            resource: 'llminferenceservices',
+            resources: { llminferenceservices: ['update', 'delete', 'patch'] },
+          },
+        }),
+        [core],
+      );
+      return <HostApiCoreContext.Provider value={value}>{children}</HostApiCoreContext.Provider>;
+    };
+    renderWithRouter(
+      <Host>
+        <table>
+          <tbody>
+            <DeploymentRow
+              deployment={mockDeployment()}
+              platformColumns={[]}
+              onDelete={onDelete}
+              rowIndex={0}
+            />
+          </tbody>
+        </table>
+      </Host>,
+    );
+
+    expect(checkAccess).not.toHaveBeenCalled();
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' })));
+    await waitFor(() => expect(checkAccess).toHaveBeenCalledTimes(2));
+    expect(
+      checkAccess.mock.calls.map(([attrs]) => [attrs.verb, attrs.namespace, attrs.name]),
+    ).toEqual([
+      ['update', 'test-project', 'test-deployment'],
+      ['delete', 'test-project', 'test-deployment'],
+    ]);
+    const edit = screen.getByRole('menuitem', { name: 'Edit' });
+    const remove = screen.getByRole('menuitem', { name: 'Delete' });
+    expect(edit).toHaveAttribute('aria-disabled', 'true');
+    expect(remove).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(remove);
+    expect(onDelete).not.toHaveBeenCalled();
   });
 
   it('should render the row with a status', () => {

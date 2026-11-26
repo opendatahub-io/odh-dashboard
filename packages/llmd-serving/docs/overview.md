@@ -54,7 +54,8 @@
 - RHAII checks discovery before enabling LLMD. Retry discovery after installing the CRD or restoring access.
 - RHAII reviews `list` and `watch` for each project before starting its deployment watcher.
   Creating, editing, starting or stopping, and deleting a deployment use separate verb checks.
-  If a running watch fails, reload the page after restoring access to repeat discovery and authorization.
+  If a watch stops after a permission error, restore access and select **Retry discovery** on the deployments page to start a fresh list and watch.
+- RHOAI llm-d edits preserve existing `baseRefs`, including a reference named after the deployment. A template-backed edit still assembles the associated configuration and ensures its reference is present.
 - **Token auth RBAC**: `setUpTokenAuth` creates Secrets after the CR may exist; missing `create secrets` leaves a partial deployment.
 - **Unresolved-config classification**: When no `LLMInferenceServiceConfig` resolves (no `baseRefs`, non-matching `baseRefs`, or missing configs), `isLLMd` checks for `spec.router.scheduler` (including `scheduler: {}`). Scheduler-backed services show "Distributed inference with llm-d"; all others show "Custom LLMInferenceService" and get a template-less edit-form selection (`CUSTOM_LLM_INFERENCE_SERVICE_OPTION`).
 - **`spec.router`**: Base shape initializes empty `scheduler`, `route`, `gateway`; omitting them can cause operator rejection.
