@@ -568,10 +568,25 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     storedPreferredName,
     addProject,
     projectData,
+    deniedNames,
   });
   React.useEffect(() => {
-    listedInputsRef.current = { unverifiedProjects, storedPreferredName, addProject, projectData };
-  }, [unverifiedProjects, storedPreferredName, addProject, projectData]);
+    listedInputsRef.current = {
+      unverifiedProjects,
+      storedPreferredName,
+      addProject,
+      projectData,
+      deniedNames,
+    };
+  }, [unverifiedProjects, storedPreferredName, addProject, projectData, deniedNames]);
+  // Once the page has stopped waiting for these lookups, a restart (for
+  // example the dashboard namespace arriving late) runs them in the
+  // background instead of taking the loaded page back.
+  const listedLookupsSettledOnceRef = React.useRef(false);
+  const settleListedLookups = React.useCallback(() => {
+    listedLookupsSettledOnceRef.current = true;
+    setListedLookupsSettled(true);
+  }, []);
   React.useEffect(() => {
     if (unifiedProjectSelectorEnabled || status !== 'listing-unavailable') {
       return undefined;
@@ -580,6 +595,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       unverifiedProjects: listed,
       storedPreferredName: preferred,
       projectData: known,
+      deniedNames: denied,
     } = listedInputsRef.current;
     // The stored preference and recent projects too: where the caller cannot
     // list namespaces, nothing is listed, but an exact lookup still works.
@@ -593,16 +609,21 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         ...listed.map((project) => project.metadata.name),
       ]),
     ]
-      .filter((name) => !verified.has(name) && isAvailableProject(name, dashboardNamespace))
+      .filter(
+        (name) =>
+          !verified.has(name) && !denied.has(name) && isAvailableProject(name, dashboardNamespace),
+      )
       .slice(0, VERIFY_LISTED_LIMIT);
     if (names.length === 0) {
-      setListedLookupsSettled(true);
+      settleListedLookups();
       return undefined;
     }
     const controller = new AbortController();
-    setListedLookupsSettled(false);
+    if (!listedLookupsSettledOnceRef.current) {
+      setListedLookupsSettled(false);
+    }
     // The page waits at most this long; later lookups still add projects.
-    const deadline = setTimeout(() => setListedLookupsSettled(true), FETCH_TIMEOUT_MS);
+    const deadline = setTimeout(settleListedLookups, FETCH_TIMEOUT_MS);
     let next = 0;
     const worker = async (): Promise<void> => {
       while (!controller.signal.aborted && next < names.length) {
@@ -622,14 +643,20 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     void Promise.all(Array.from({ length: VERIFY_LISTED_CONCURRENCY }, worker)).then(() => {
       if (!controller.signal.aborted) {
         clearTimeout(deadline);
-        setListedLookupsSettled(true);
+        settleListedLookups();
       }
     });
     return () => {
       controller.abort();
       clearTimeout(deadline);
     };
-  }, [unifiedProjectSelectorEnabled, status, recentNamesAtMount, dashboardNamespace]);
+  }, [
+    unifiedProjectSelectorEnabled,
+    status,
+    recentNamesAtMount,
+    dashboardNamespace,
+    settleListedLookups,
+  ]);
 
   // The deployments page's empty state looks a project up by name while the
   // listing is incomplete and the unified selector, which offers manual entry,

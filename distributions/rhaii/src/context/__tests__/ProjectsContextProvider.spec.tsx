@@ -11,6 +11,7 @@ import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/
 import { KnownLabels, type ProjectKind } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
+import { DashboardNamespaceContext } from '../DashboardNamespaceContext';
 import RhaiiProjectSelector from '../../components/RhaiiProjectSelector';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -1031,6 +1032,47 @@ describe('RHAII working project provider integration', () => {
     await act(async () => {
       await waitForProject('created');
     });
+    expect(loadedStates.slice(firstLoaded)).not.toContain(false);
+  });
+
+  it('should not take back a loaded page when the dashboard namespace arrives late', async () => {
+    mockUseIsAreaAvailable.mockReturnValue({
+      status: false,
+    } as ReturnType<typeof useIsAreaAvailable>);
+    // A lookup that fails (not a denial) leaves the name to look up again.
+    localStorage.setItem('rhaii-recent-namespaces', JSON.stringify(['flaky']));
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError([]));
+    mockFetchNamespaceByName.mockRejectedValue(new Error('lookup failed'));
+    const loadedStates: boolean[] = [];
+    const Watcher: React.FC = () => {
+      loadedStates.push(React.useContext(ProjectsContext).loaded);
+      return null;
+    };
+    let setNamespace: (ns: string) => void = () => undefined;
+    const NamespaceHost: React.FC<React.PropsWithChildren> = ({ children }) => {
+      const [ns, setNs] = React.useState('opendatahub');
+      setNamespace = setNs;
+      return (
+        <DashboardNamespaceContext.Provider value={ns}>
+          {children}
+        </DashboardNamespaceContext.Provider>
+      );
+    };
+    render(
+      <NamespaceHost>
+        <ProjectsContextProvider>
+          <Watcher />
+        </ProjectsContextProvider>
+      </NamespaceHost>,
+    );
+    await waitFor(() => expect(loadedStates.at(-1)).toBe(true));
+    const firstLoaded = loadedStates.indexOf(true);
+
+    await act(async () => {
+      setNamespace('rhaii-dashboard');
+    });
+    // The lookups run again, in the background.
+    await waitFor(() => expect(mockFetchNamespaceByName).toHaveBeenCalledTimes(2));
     expect(loadedStates.slice(firstLoaded)).not.toContain(false);
   });
 

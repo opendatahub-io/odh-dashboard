@@ -37,8 +37,10 @@ export type ProjectsContextType = {
   /**
    * Set while the host cannot list every project the caller may use and
    * offers no other way to enter one (RHAII when namespace discovery is
-   * unavailable): looks a project up by name and, when the caller may use it,
-   * adds it and makes it preferred. Rejects, with a message to show, otherwise.
+   * unavailable): looks a project up by name and, when the caller may browse
+   * it, adds it and makes it preferred. A project the caller may only deploy
+   * to is added as a deployment target, and the call rejects with a message
+   * saying so. Rejects, with a message to show, when the caller may not use it.
    */
   findProject?: (projectName: string) => Promise<ProjectKind>;
 

@@ -23,6 +23,15 @@ const FindProjectByName: React.FC<FindProjectByNameProps> = ({ findProject, onFo
   const [name, setName] = React.useState('');
   const [error, setError] = React.useState<string>();
   const [isSearching, setIsSearching] = React.useState(false);
+  // A lookup still in flight when the form closes (a popover dismissed, a page
+  // left) must not navigate or update the form afterwards.
+  const mountedRef = React.useRef(true);
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -33,11 +42,21 @@ const FindProjectByName: React.FC<FindProjectByNameProps> = ({ findProject, onFo
     setIsSearching(true);
     setError(undefined);
     findProject(projectName)
-      .then(() => onFound(projectName))
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Unable to open that project.');
+      .then(() => {
+        if (mountedRef.current) {
+          onFound(projectName);
+        }
       })
-      .finally(() => setIsSearching(false));
+      .catch((err: unknown) => {
+        if (mountedRef.current) {
+          setError(err instanceof Error ? err.message : 'Unable to open that project.');
+        }
+      })
+      .finally(() => {
+        if (mountedRef.current) {
+          setIsSearching(false);
+        }
+      });
   };
 
   return (
