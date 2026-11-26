@@ -1,7 +1,11 @@
 import React from 'react';
 import { useFetchState, type APIOptions, type FetchStateCallbackPromise } from 'mod-arch-core';
 import { fetchCollections, fetchAssets, fetchVolumes } from '~/app/api/dataRegistry';
-import type { AssetResponse } from '~/app/types';
+import type {
+  AssetResponse,
+  StructuredAssetResponse,
+  UnstructuredAssetResponse,
+} from '~/app/types';
 
 export type RegistryAsset = {
   name: string;
@@ -17,7 +21,7 @@ export type RegistryAsset = {
   rawAsset?: AssetResponse;
 };
 
-const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset => {
+const mapTableAsset = (asset: StructuredAssetResponse, collection: string): RegistryAsset => {
   // Extract connection name from ConnectionRef object
   const connectionRef = asset.connection_ref
     ? asset.connection_ref.type === 'secret'
@@ -39,7 +43,7 @@ const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset 
   };
 };
 
-const mapVolumeAsset = (volume: AssetResponse, collection: string): RegistryAsset => {
+const mapVolumeAsset = (volume: UnstructuredAssetResponse, collection: string): RegistryAsset => {
   // Extract connection name from ConnectionRef object
   const connectionRef = volume.connection_ref
     ? volume.connection_ref.type === 'secret'
