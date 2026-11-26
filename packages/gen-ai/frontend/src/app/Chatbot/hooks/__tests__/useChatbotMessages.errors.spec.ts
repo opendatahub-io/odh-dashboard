@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
+import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
 import { classifyError } from '~/app/utilities/errorClassifier';
 
 const trackEvent = jest.fn();
@@ -88,6 +89,52 @@ describe('useChatbotMessages - Error Handling', () => {
   });
 
   describe('Structured Error Handling', () => {
+    describe.each([false, true])('with streaming enabled: %s', (isStreamingEnabled) => {
+      it.each([
+        [GUARDRAIL_ERROR_CODES.INPUT_VIOLATION, 'Guardrail Activated'],
+        [GUARDRAIL_ERROR_CODES.INPUT_VIOLATION, 'Playground Agent Chat Blocked'],
+        [GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION, 'Playground Agent Chat Blocked'],
+      ])('should handle %s when tracking %s throws', async (code, failingEvent) => {
+        const apiError = {
+          error: {
+            component: 'guardrails',
+            code,
+            message: 'Response blocked by guardrails',
+            retriable: false,
+          },
+        };
+        const createResponse = jest.fn().mockRejectedValue(apiError);
+        const throwingTracker = jest.fn((eventName: string) => {
+          if (eventName === failingEvent) {
+            throw new Error('Tracking unavailable');
+          }
+        });
+        mockUseGenAiAPI.mockReturnValue({
+          api: { createResponse },
+          apiAvailable: true,
+        } as unknown as ReturnType<typeof useGenAiAPI>);
+        const { result } = renderHook(
+          () => useChatbotMessages({ ...defaultProps, isStreamingEnabled }),
+          { wrapper: createTrackingWrapper(throwingTracker) },
+        );
+
+        await act(async () => {
+          await expect(result.current.handleMessageSend('Test message')).resolves.toBeUndefined();
+        });
+
+        expect(createResponse).toHaveBeenCalledTimes(1);
+        expect(throwingTracker).toHaveBeenCalledWith(failingEvent, expect.any(Object));
+        expect(mockClassifyError).toHaveBeenCalledWith(apiError, expect.any(Object));
+        expect(result.current.messages.find((message) => message.role === 'bot')).toEqual(
+          expect.objectContaining({
+            isLoading: false,
+            errorClassification: mockClassifyError.mock.results[0].value,
+          }),
+        );
+        expect(result.current.isLoading).toBe(false);
+      });
+    });
+
     it('should show an attachment context error for an OGX invalid_prompt response', async () => {
       const mockError = {
         error: {

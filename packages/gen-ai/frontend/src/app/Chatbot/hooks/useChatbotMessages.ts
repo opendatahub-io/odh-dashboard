@@ -997,17 +997,21 @@ const useChatbotMessages = ({
         return apiError.error.message;
       })();
 
-      if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
-        trackEvent('Guardrail Activated', { violationDetected: true });
-        trackEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
-          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
-          blockType: 'input',
-        });
-      } else if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
-        trackEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
-          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
-          blockType: 'output',
-        });
+      try {
+        if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+          trackEvent('Guardrail Activated', { violationDetected: true });
+          trackEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+            agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+            blockType: 'input',
+          });
+        } else if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+          trackEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+            agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+            blockType: 'output',
+          });
+        }
+      } catch {
+        // Tracking failures must not bypass guardrail handling.
       }
 
       // Check if this was a user-initiated stop (stop button, not clear conversation)

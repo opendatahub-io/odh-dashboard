@@ -347,6 +347,48 @@ describe('agent-profile URL tracking', () => {
     expect(rendered.result.current.loading).toBe(false);
   });
 
+  it('should use the disabled tracker when pending validation completes', async () => {
+    mockGetAgentProfile.mockResolvedValueOnce(profile);
+    let finishValidation!: (result: AsyncValidationResult) => void;
+    jest.mocked(validateAgentProfileAsync).mockReturnValueOnce(
+      new Promise<AsyncValidationResult>((resolve) => {
+        finishValidation = resolve;
+      }),
+    );
+    const originalTracker = jest.fn();
+    const disabledTracker = jest.fn();
+    let tracking = { trackEvent: originalTracker, trackPageEvent: jest.fn() };
+    const rendered = renderProfileLoader(() => tracking);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(useChatbotConfigStore.getState().loadedProfileId).toBe('profile-1');
+    expect(rendered.result.current.loading).toBe(true);
+
+    tracking = { ...tracking, trackEvent: disabledTracker };
+    rendered.rerender();
+    await act(async () => {
+      finishValidation({
+        warnings: [{ tab: 'knowledge', message: 'Vector store unavailable' }],
+      });
+    });
+
+    expect(originalTracker.mock.calls).toEqual([
+      ['Playground Agent Loaded', { agentID: 'profile-1' }],
+    ]);
+    expect(disabledTracker.mock.calls).toEqual([
+      [
+        'Playground Agent Configuration Unavailable',
+        { agentID: 'profile-1', missingComponents: 'vector_store' },
+      ],
+    ]);
+    expect(mockGetAgentProfile).toHaveBeenCalledTimes(1);
+    expect(validateAgentProfileAsync).toHaveBeenCalledTimes(1);
+    expect(rendered.result.current.loading).toBe(false);
+    expect(rendered.result.current.error).toBeUndefined();
+  });
+
   it('should keep loading until validation completes after the profile is applied', async () => {
     const response = Promise.resolve(profile);
     mockGetAgentProfile.mockReturnValueOnce(response);

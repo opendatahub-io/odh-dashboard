@@ -45,6 +45,9 @@ const useAgentProfileUrlParam = ({
   mcpServerStatusesResolved: boolean;
 }): UseAgentProfileUrlParamResult => {
   const trackEvent = useTrackEvent();
+  // Validation can outlive effect cleanup and must use the current host callback.
+  const trackEventRef = React.useRef(trackEvent);
+  trackEventRef.current = trackEvent;
   const [searchParams] = useSearchParams();
   const agentProfileId = searchParams.get(AGENT_PROFILE_ID_PARAM);
 
@@ -204,7 +207,7 @@ const useAgentProfileUrlParam = ({
           ),
         ];
         if (missingComponents.length > 0) {
-          trackEvent(PLAYGROUND_AGENT_EVENTS.CONFIGURATION_UNAVAILABLE, {
+          trackEventRef.current(PLAYGROUND_AGENT_EVENTS.CONFIGURATION_UNAVAILABLE, {
             agentID: agentProfileId,
             missingComponents: missingComponents.join(','),
           });
