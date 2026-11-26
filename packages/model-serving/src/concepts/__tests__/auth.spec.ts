@@ -3,6 +3,7 @@ import {
   canProvisionTokenAuth,
   generateRole,
   setUpTokenAuth,
+  TOKEN_CHANGE_REFUSED_MESSAGE,
   TOKEN_SETUP_REFUSED_MESSAGE,
   createServiceAccountIfMissing,
   createRoleIfMissing,
@@ -304,6 +305,25 @@ describe('setUpTokenAuth', () => {
         dryRun: true,
       }),
     ).rejects.toThrow(TOKEN_SETUP_REFUSED_MESSAGE);
+  });
+
+  it('should not advise turning tokens off when a deployment that has tokens is refused', async () => {
+    rolesMock.getRole.mockRejectedValue({
+      statusObject: { code: 403, status: 'Failure', message: 'roles is forbidden' },
+    });
+    const existing = [{ apiVersion: 'v1', kind: 'Secret', metadata: { name: 'token-a' } }];
+    await expect(
+      setUpTokenAuth(
+        [],
+        'test-model',
+        'test-ns',
+        true,
+        mockOwner,
+        'inferenceservices',
+        existing as never[],
+        { dryRun: true },
+      ),
+    ).rejects.toThrow(TOKEN_CHANGE_REFUSED_MESSAGE);
   });
 
   it('should reuse an existing Role the caller may not create', async () => {

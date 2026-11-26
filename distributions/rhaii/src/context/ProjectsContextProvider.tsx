@@ -8,6 +8,7 @@ import {
   isAvailableProject,
   NamespacePhase,
 } from '@odh-dashboard/k8s-core';
+import { FindProjectNotice } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { parseStoredWorkingProjectName } from '@odh-dashboard/ui-core/context/workingProjectStorage';
@@ -668,7 +669,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       if (project.canView === false) {
         // Kept as a deployment target, but the deployments page cannot list
         // it, so opening it would show it as not found.
-        throw new Error(
+        throw new FindProjectNotice(
           `You can deploy models to ${name}, but not view its deployments. It is offered when you deploy a model.`,
         );
       }

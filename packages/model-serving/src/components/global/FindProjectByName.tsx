@@ -9,6 +9,7 @@ import {
   HelperTextItem,
   TextInput,
 } from '@patternfly/react-core';
+import { FindProjectNotice } from '@odh-dashboard/ui-core/context/ProjectsContext';
 
 type FindProjectByNameProps = {
   findProject: (projectName: string) => Promise<unknown>;
@@ -22,6 +23,8 @@ type FindProjectByNameProps = {
 const FindProjectByName: React.FC<FindProjectByNameProps> = ({ findProject, onFound }) => {
   const [name, setName] = React.useState('');
   const [error, setError] = React.useState<string>();
+  // A notice: the project was found and kept, but cannot be opened here.
+  const [notice, setNotice] = React.useState<string>();
   const [isSearching, setIsSearching] = React.useState(false);
   // A lookup still in flight when the form closes (a popover dismissed, a page
   // left) must not navigate or update the form afterwards.
@@ -41,6 +44,7 @@ const FindProjectByName: React.FC<FindProjectByNameProps> = ({ findProject, onFo
     }
     setIsSearching(true);
     setError(undefined);
+    setNotice(undefined);
     findProject(projectName)
       .then(() => {
         if (mountedRef.current) {
@@ -48,7 +52,12 @@ const FindProjectByName: React.FC<FindProjectByNameProps> = ({ findProject, onFo
         }
       })
       .catch((err: unknown) => {
-        if (mountedRef.current) {
+        if (!mountedRef.current) {
+          return;
+        }
+        if (err instanceof FindProjectNotice) {
+          setNotice(err.message);
+        } else {
           setError(err instanceof Error ? err.message : 'Unable to open that project.');
         }
       })
@@ -74,6 +83,15 @@ const FindProjectByName: React.FC<FindProjectByNameProps> = ({ findProject, onFo
             <HelperText>
               <HelperTextItem variant="error" data-testid="find-project-error">
                 {error}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        ) : null}
+        {notice ? (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant="warning" data-testid="find-project-notice">
+                {notice}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>

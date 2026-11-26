@@ -18,6 +18,13 @@ export type ProjectDeploymentActions = {
   canManageTokenAuth?: boolean;
 };
 
+/**
+ * Rejection from `findProject` that is not a failure: the project was found
+ * and kept (for example as a deployment target) but cannot be opened. Its
+ * message is shown as a notice rather than an error.
+ */
+export class FindProjectNotice extends Error {}
+
 export type ProjectsContextType = {
   projects: ProjectKind[];
   modelServingProjects: ProjectKind[];

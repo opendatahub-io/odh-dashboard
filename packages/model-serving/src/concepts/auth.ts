@@ -201,6 +201,10 @@ export const canProvisionTokenAuth = (
 export const TOKEN_SETUP_REFUSED_MESSAGE =
   'You do not have permission to set up token authentication in this project. Turn off token authentication to deploy without it, or ask for access.';
 
+/** For a deployment that already has tokens, where turning them off is a change too. */
+export const TOKEN_CHANGE_REFUSED_MESSAGE =
+  "You do not have permission to change this deployment's tokens. Keep its tokens as they are, or ask for access.";
+
 export const setUpTokenAuth = async (
   tokenAuth: TokenAuthEntry[] | undefined,
   deployedModelName: string,
@@ -254,7 +258,11 @@ export const setUpTokenAuth = async (
       // A refused setup stops the deployment (in the dry run, before anything
       // is saved); say what the user can do about it.
       if (getGenericErrorCode(error) === 403) {
-        throw new Error(TOKEN_SETUP_REFUSED_MESSAGE);
+        throw new Error(
+          existingSecrets && existingSecrets.length > 0
+            ? TOKEN_CHANGE_REFUSED_MESSAGE
+            : TOKEN_SETUP_REFUSED_MESSAGE,
+        );
       }
       throw error;
     });

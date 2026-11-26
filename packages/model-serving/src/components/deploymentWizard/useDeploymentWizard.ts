@@ -67,7 +67,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 };
 
 export const TOKEN_AUTH_PERMISSION_WARNING =
-  'You might not have permission to set up token authentication in this project. Existing token resources are reused; if one is missing and cannot be created, the deployment stops before anything is saved.';
+  'You might not have permission to set up token authentication in this project. If its token resources cannot be created, the deployment stops before anything is saved; turn token authentication off to deploy without it.';
 
 /**
  * The token authentication field after deploy-method overrides and the
