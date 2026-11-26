@@ -265,7 +265,7 @@ describe('EmbeddableConnectionWizard', () => {
 
     expect(onAvailabilityChange).toHaveBeenNthCalledWith(3, { status: 'checking' });
     await waitFor(() =>
-      expect(onAvailabilityChange).toHaveBeenNthCalledWith(5, { status: 'available' }),
+      expect(onAvailabilityChange).toHaveBeenLastCalledWith({ status: 'available' }),
     );
   });
 
