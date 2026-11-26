@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -396,6 +395,7 @@ func (kc *TokenKubernetesClient) CheckAccess(ctx context.Context, _ *RequestIden
 // CheckAccess, a review that completes without a decision because an
 // authorizer failed is reported as AccessReviewIndeterminate, not as a denial.
 func (kc *TokenKubernetesClient) ReviewAccess(ctx context.Context, _ *RequestIdentity, attrs AccessReviewAttributes) (AccessReviewResult, error) {
+	requestCtx := ctx
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -414,10 +414,11 @@ func (kc *TokenKubernetesClient) ReviewAccess(ctx context.Context, _ *RequestIde
 	if err != nil {
 		logger := httpcontract.LogContext(kc.Logger, ctx)
 		attrsLog := []any{"verb", attrs.Verb, "group", attrs.Group, "resource", attrs.Resource, "code", httpcontract.SafeErrorCode(err)}
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			// A cancelled or expired request fails every pending review at
-			// once; the caller reports them in aggregate, so one line each
-			// would flood the log.
+		if requestCtx.Err() != nil {
+			// The request was cancelled or its deadline passed, which fails
+			// every pending review at once; the caller reports them in
+			// aggregate, so one line each would flood the log. A review that
+			// times out on its own (a slow authorizer) is still an error.
 			logger.Debug("SSAR review cancelled", attrsLog...)
 		} else {
 			logger.Error("SSAR review failed", attrsLog...)

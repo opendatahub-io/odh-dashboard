@@ -17,7 +17,7 @@ const NoProjectsPage: React.FC = () => {
     <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No projects">
       <EmptyStateBody>
         {findProject
-          ? 'Your projects could not be listed right now. Enter the name of a project you can use, or create one.'
+          ? 'Not every project you can use is listed here. Enter the name of a project you can use, or create one.'
           : 'To deploy a model, first create a project.'}
       </EmptyStateBody>
       <EmptyStateFooter>

@@ -2,7 +2,10 @@ import * as React from 'react';
 import { render, act, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import {
+  ProjectsContext,
+  type ProjectsContextType,
+} from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { KnownLabels, type ProjectKind } from '@odh-dashboard/k8s-core';
@@ -973,6 +976,90 @@ describe('RHAII working project provider integration', () => {
     await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed'));
     expect(mockFetchNamespaceByName).toHaveBeenCalledWith('allowed', undefined);
     expect(screen.getByTestId('route-project')).toHaveTextContent('allowed');
+  });
+
+  it('should drop a denied project from the recent list and keep that list short', async () => {
+    mockUseIsAreaAvailable.mockReturnValue({
+      status: false,
+    } as ReturnType<typeof useIsAreaAvailable>);
+    const stored = Array.from({ length: 15 }, (_, i) => `recent-${i}`);
+    localStorage.setItem('rhaii-recent-namespaces', JSON.stringify(stored));
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError([]));
+    mockFetchNamespaceByName.mockImplementation((name) =>
+      name === 'recent-0'
+        ? Promise.reject(new MockProjectAccessDeniedError())
+        : Promise.resolve(Object.assign(project(name), { canView: true, canDeploy: true })),
+    );
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('recent-1'));
+    // Only the ten most recent names are looked up.
+    expect(mockFetchNamespaceByName).not.toHaveBeenCalledWith('recent-10', expect.anything());
+    const recent: unknown = JSON.parse(localStorage.getItem('rhaii-recent-namespaces') ?? '[]');
+    expect(recent).toEqual(stored.slice(1, 10));
+  });
+
+  it('should keep reporting loaded when a later poll turns the listing partial', async () => {
+    mockUseIsAreaAvailable.mockReturnValue({
+      status: false,
+    } as ReturnType<typeof useIsAreaAvailable>);
+    localStorage.setItem('rhaii-recent-namespaces', JSON.stringify(['allowed']));
+    mockFetchNamespaces.mockResolvedValue([project('allowed')]);
+    let waitForProject: (name: string) => Promise<void> = () => Promise.resolve();
+    const loadedStates: boolean[] = [];
+    const Watcher: React.FC = () => {
+      const ctx = React.useContext(ProjectsContext);
+      waitForProject = ctx.waitForProject;
+      loadedStates.push(ctx.loaded);
+      return null;
+    };
+    render(
+      <ProjectsContextProvider>
+        <Watcher />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() => expect(loadedStates.at(-1)).toBe(true));
+    const firstLoaded = loadedStates.indexOf(true);
+
+    mockFetchNamespaces.mockRejectedValue(
+      new MockNamespaceListUnavailableError([project('allowed'), project('created')]),
+    );
+    mockFetchNamespaceByName.mockResolvedValue(project('created'));
+    await act(async () => {
+      await waitForProject('created');
+    });
+    expect(loadedStates.slice(firstLoaded)).not.toContain(false);
+  });
+
+  it('should not make a project the caller cannot browse the working project', async () => {
+    mockUseIsAreaAvailable.mockReturnValue({
+      status: false,
+    } as ReturnType<typeof useIsAreaAvailable>);
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError([]));
+    mockFetchNamespaceByName.mockResolvedValue(
+      Object.assign(project('deploy-only'), { canView: false, canDeploy: true }),
+    );
+    let findProject: ProjectsContextType['findProject'];
+    const Finder: React.FC = () => {
+      findProject = React.useContext(ProjectsContext).findProject;
+      return null;
+    };
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+        <Finder />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() => expect(findProject).toBeDefined());
+    await act(async () => {
+      await findProject?.('deploy-only');
+    });
+    expect(screen.getByTestId('deploy-targets')).toHaveTextContent('deploy-only');
+    expect(screen.getByTestId('route-project')).toHaveTextContent('none');
+    expect(localStorage.getItem('mod-arch.namespace.lastUsed')).toBeNull();
   });
 
   it('should not offer a lookup by name when the listing is complete', async () => {

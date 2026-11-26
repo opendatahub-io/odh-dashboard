@@ -21,6 +21,7 @@ import fetchNamespaces, {
   type RhaiiProject,
 } from './fetchNamespaces';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
+import { KnownProjectsContext } from './KnownProjectsContext';
 
 const WAIT_FOR_PROJECT_TIMEOUT_MS = 30_000;
 const WAIT_FOR_PROJECT_POLL_MS = 2_000;
@@ -30,16 +31,21 @@ const RECENT_NAMESPACES_KEY = 'rhaii-recent-namespaces';
 // at a time.
 const VERIFY_LISTED_LIMIT = 50;
 const VERIFY_LISTED_CONCURRENCY = 4;
+// Recent projects kept in browser storage; each is looked up again after a
+// discovery failure, so the list stays short.
+const MAX_RECENT_NAMES = 10;
 
 const readRecentNames = (): string[] => {
   try {
     const raw: unknown = JSON.parse(localStorage.getItem(RECENT_NAMESPACES_KEY) ?? '[]');
     return Array.isArray(raw)
-      ? raw.filter(
-          (name): name is string =>
-            typeof name === 'string' &&
-            parseStoredWorkingProjectName(JSON.stringify(name)) === name,
-        )
+      ? raw
+          .filter(
+            (name): name is string =>
+              typeof name === 'string' &&
+              parseStoredWorkingProjectName(JSON.stringify(name)) === name,
+          )
+          .slice(0, MAX_RECENT_NAMES)
       : [];
   } catch {
     return [];
@@ -85,6 +91,10 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
   const [listingUnavailable, setListingUnavailable] = React.useState(false);
   const [listedLookupsSettled, setListedLookupsSettled] = React.useState(false);
+  // Whether the initial load was partial. Only then does the page wait for the
+  // lookups below: a listing that turns partial later (a waitForProject poll)
+  // never takes back a page that already reported itself loaded.
+  const [initialListingUnavailable, setInitialListingUnavailable] = React.useState(false);
   // Recent projects as of mount: looked up after a discovery failure.
   const [recentNamesAtMount] = React.useState(readRecentNames);
   const [storedPreferredName, setStoredPreferredName] = useBrowserStorage<string>(
@@ -116,6 +126,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
           // A partial listing still carries the namespaces the BFF authorized.
           setProjectData(err instanceof NamespaceListUnavailableError ? err.projects ?? [] : []);
           setListingUnavailable(err instanceof NamespaceListUnavailableError);
+          setInitialListingUnavailable(err instanceof NamespaceListUnavailableError);
           setLoadError(
             err instanceof NamespaceListUnavailableError
               ? undefined
@@ -144,6 +155,11 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
 
   const updatePreferredProject = React.useCallback(
     (project: ProjectKind | null) => {
+      // A project the caller may not browse is never the working project: the
+      // pages read the preference through `projects`, which leaves it out.
+      if (project && 'canView' in project && project.canView === false) {
+        return;
+      }
       setPreferredProject(project);
       if (project) {
         setStoredPreferredName(project.metadata.name);
@@ -206,7 +222,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     !unifiedProjectSelectorEnabled &&
     loaded &&
     !loadError &&
-    listingUnavailable &&
+    initialListingUnavailable &&
     (unverifiedProjects.length > 0 || !!storedPreferredName || recentNamesAtMount.length > 0) &&
     !listedLookupsSettled;
 
@@ -343,7 +359,12 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         try {
           localStorage.setItem(
             RECENT_NAMESPACES_KEY,
-            JSON.stringify([name, ...readRecentNames().filter((item) => item !== name)]),
+            JSON.stringify(
+              [name, ...readRecentNames().filter((item) => item !== name)].slice(
+                0,
+                MAX_RECENT_NAMES,
+              ),
+            ),
           );
         } catch {
           // Browser storage is optional; keep the in-memory entry.
@@ -365,6 +386,15 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   const forgetProject = React.useCallback((name: string) => {
     setProjectData((previous) => previous.filter((p) => p.metadata.name !== name));
     setDeniedNames((previous) => new Set(previous).add(name));
+    // A denied or missing project is not looked up again on the next visit.
+    try {
+      localStorage.setItem(
+        RECENT_NAMESPACES_KEY,
+        JSON.stringify(readRecentNames().filter((item) => item !== name)),
+      );
+    } catch {
+      // Browser storage is optional.
+    }
   }, []);
 
   const validateProject = React.useCallback(
@@ -682,20 +712,22 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
 
   return (
     <ProjectsContext.Provider value={contextValue}>
-      {unifiedProjectSelectorEnabled ? (
-        <WorkingProjectProvider
-          status={status}
-          projects={identities}
-          activeProject={preferredProject ? { name: preferredProject.metadata.name } : null}
-          onProjectChange={changeWorkingProject}
-          discoverProject={status === 'listing-unavailable' ? discoverProject : undefined}
-          rememberProject={status === 'listing-unavailable' ? rememberProject : undefined}
-        >
-          {children}
-        </WorkingProjectProvider>
-      ) : (
-        children
-      )}
+      <KnownProjectsContext.Provider value={projectData}>
+        {unifiedProjectSelectorEnabled ? (
+          <WorkingProjectProvider
+            status={status}
+            projects={identities}
+            activeProject={preferredProject ? { name: preferredProject.metadata.name } : null}
+            onProjectChange={changeWorkingProject}
+            discoverProject={status === 'listing-unavailable' ? discoverProject : undefined}
+            rememberProject={status === 'listing-unavailable' ? rememberProject : undefined}
+          >
+            {children}
+          </WorkingProjectProvider>
+        ) : (
+          children
+        )}
+      </KnownProjectsContext.Provider>
     </ProjectsContext.Provider>
   );
 };

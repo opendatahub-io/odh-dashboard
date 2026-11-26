@@ -1,33 +1,33 @@
 import * as React from 'react';
 import { Label } from '@patternfly/react-core';
 import { isAiProject } from '@odh-dashboard/k8s-core';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import WorkingProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/WorkingProjectSelector';
 import { isAiClassificationUnknown } from '../context/aiClassification';
+import { KnownProjectsContext } from '../context/KnownProjectsContext';
 
 const RhaiiProjectSelector: React.FC = () => {
-  const { projects } = React.useContext(ProjectsContext);
+  // Every known project, names listed during a discovery outage included: the
+  // fallback list still carries their AI label.
+  const knownProjects = React.useContext(KnownProjectsContext);
   const aiProjectNames = React.useMemo(
-    () => new Set(projects.filter(isAiProject).map(({ metadata }) => metadata.name)),
-    [projects],
+    () => new Set(knownProjects.filter(isAiProject).map(({ metadata }) => metadata.name)),
+    [knownProjects],
   );
   // A project whose classification is unknown stays under "AI projects only"
-  // (without the AI badge), so the default filter never hides it.
+  // (without the AI badge), so the default filter never hides it. That covers
+  // namespaces discovery could not read and names with no data at all.
   const aiFilterNames = React.useMemo(
     () =>
       new Set(
-        projects
+        knownProjects
           .filter((project) => isAiProject(project) || isAiClassificationUnknown(project))
           .map(({ metadata }) => metadata.name),
       ),
-    [projects],
+    [knownProjects],
   );
-
-  // Names outside `projects` were listed while discovery was unavailable, so
-  // their classification is unknown too; they stay under the default filter.
   const knownNames = React.useMemo(
-    () => new Set(projects.map(({ metadata }) => metadata.name)),
-    [projects],
+    () => new Set(knownProjects.map(({ metadata }) => metadata.name)),
+    [knownProjects],
   );
 
   return (
