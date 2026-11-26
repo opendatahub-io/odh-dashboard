@@ -31,6 +31,7 @@ import { EllipsisVIcon, FilterIcon, InProgressIcon, SearchIcon } from '@patternf
 import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link, useLocation } from 'react-router-dom';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { createConnection, isConnectionAccessForbidden, verifyConnection } from '~/app/api/dch';
 import ConnectionDeleteModal from '~/app/components/ConnectionDeleteModal';
@@ -487,6 +488,29 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                       >
                         {connection.resource.name}
                       </Link>
+                      {connection.resource.description ? (
+                        <div
+                          className="pf-v6-u-font-size-sm pf-v6-u-text-color-subtle"
+                          data-testid="connection-name-description"
+                        >
+                          <TruncatedText
+                            maxLines={2}
+                            content={
+                              <span
+                                style={{
+                                  whiteSpace: 'pre-wrap',
+                                  overflowWrap: 'anywhere',
+                                }}
+                              >
+                                {connection.resource.description}
+                              </span>
+                            }
+                            style={{ whiteSpace: 'pre-wrap' }}
+                            tabIndex={0}
+                            data-testid="connection-name-description-text"
+                          />
+                        </div>
+                      ) : null}
                     </Td>
                     <Td dataLabel="Type">
                       {connectionType?.resource.name ?? connectionTypeId}

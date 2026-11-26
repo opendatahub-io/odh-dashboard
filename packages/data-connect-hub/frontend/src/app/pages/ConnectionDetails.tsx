@@ -282,6 +282,16 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                         <DescriptionListTerm>Name</DescriptionListTerm>
                         <DescriptionListDescription>{connectionName}</DescriptionListDescription>
                       </DescriptionListGroup>
+                      {connection?.resource.description ? (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Description</DescriptionListTerm>
+                          <DescriptionListDescription
+                            style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
+                          >
+                            {connection.resource.description}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      ) : null}
                       <DescriptionListGroup>
                         <DescriptionListTerm>Type</DescriptionListTerm>
                         <DescriptionListDescription>
