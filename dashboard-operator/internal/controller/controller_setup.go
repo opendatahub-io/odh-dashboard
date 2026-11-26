@@ -33,6 +33,8 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Platform:              opts.Platform,
 		Namespace:             opts.Namespace,
 		ApplicationsNamespace: opts.ApplicationsNamespace,
+		ReconcileObserver:     opts.ReconcileObserver,
+		ReconcileObserverOnly: opts.ReconcileObserverOnly,
 	}
 
 	// The Dashboard controller does not currently need to watch Secrets:

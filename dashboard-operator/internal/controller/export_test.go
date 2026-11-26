@@ -4,6 +4,12 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	ctrlpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
+	ctrlreconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 
@@ -80,6 +86,42 @@ func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired
 var ConsoleLinkGVK = consoleLinkGVK
 
 var ConsoleLinkListGVK = consoleLinkListGVK
+
+func (r *DashboardReconciler) ConfigMapUpdatePredicate() ctrlpredicate.TypedPredicate[*corev1.ConfigMap] {
+	return r.configMapUpdatePredicate()
+}
+
+func (r *DashboardReconciler) MapConfigMapToDashboard(ctx context.Context, obj ctrlclient.Object) []ctrlreconcile.Request {
+	return r.mapConfigMapToDashboard(ctx, obj)
+}
+
+func (r *DashboardReconciler) MaaSPortalOperatorNamespacePredicate() ctrlpredicate.Predicate {
+	return r.maasPortalOperatorNamespacePredicate()
+}
+
+func (r *DashboardReconciler) MapMaaSPortalOperatorNamespaceToDashboard(ctx context.Context, obj ctrlclient.Object) []ctrlreconcile.Request {
+	return r.mapMaaSPortalOperatorNamespaceToDashboard(ctx, obj)
+}
+
+func (r *DashboardReconciler) OdhDashboardConfigPredicate() ctrlpredicate.Predicate {
+	return r.odhDashboardConfigPredicate()
+}
+
+func (r *DashboardReconciler) MapOdhDashboardConfigToDashboard(ctx context.Context, obj ctrlclient.Object) []ctrlreconcile.Request {
+	return r.mapOdhDashboardConfigToDashboard(ctx, obj)
+}
+
+func ServiceChangedPredicate() ctrlpredicate.Predicate {
+	return serviceChangedPredicate()
+}
+
+func PodDisruptionBudgetChangedPredicate() ctrlpredicate.Predicate {
+	return podDisruptionBudgetChangedPredicate()
+}
+
+func OwnedResourceEventHandler(scheme *runtime.Scheme, mapper meta.RESTMapper) handler.EventHandler {
+	return handler.EnqueueRequestForOwner(scheme, mapper, &v1alpha1.Dashboard{}, handler.OnlyControllerOwner())
+}
 
 var ScopedOdhDashboardConfigByObject = scopedOdhDashboardConfigByObject
 

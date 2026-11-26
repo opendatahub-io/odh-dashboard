@@ -145,6 +145,12 @@ type Options struct {
 	Platform              cluster.Platform
 	Namespace             string
 	ApplicationsNamespace string
+	// ReconcileObserver is an optional test hook for observing requests
+	// delivered through the production controller wiring.
+	ReconcileObserver func(ctrl.Request)
+	// ReconcileObserverOnly skips business reconciliation after notifying the
+	// observer. It is used only by event-routing integration tests.
+	ReconcileObserverOnly bool
 }
 
 // DashboardReconciler reconciles a Dashboard object.
@@ -156,6 +162,8 @@ type DashboardReconciler struct {
 	Platform              cluster.Platform
 	Namespace             string
 	ApplicationsNamespace string
+	ReconcileObserver     func(ctrl.Request)
+	ReconcileObserverOnly bool
 }
 
 // apiReader makes direct-read semantics explicit while retaining a fake-client
@@ -169,6 +177,12 @@ func (r *DashboardReconciler) apiReader() client.Reader {
 }
 
 func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if r.ReconcileObserver != nil {
+		r.ReconcileObserver(req)
+	}
+	if r.ReconcileObserverOnly {
+		return ctrl.Result{}, nil
+	}
 	logger := log.FromContext(ctx)
 
 	dashboard := &v1alpha1.Dashboard{}
