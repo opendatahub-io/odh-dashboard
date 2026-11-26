@@ -25,6 +25,7 @@ paths:
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint.
+      security: []
   /api/v1/namespaces:
     summary: Path used to get available namespaces.
     description: >-
@@ -55,6 +56,7 @@ paths:
       operationId: getBackendHealth
       summary: Get upstream backend health
       description: Checks the upstream Data Connect Hub REST service health endpoint.
+      security: []
   /api/v1/user:
     summary: Path used to Retrieve a user based on the header.
     description: >-
