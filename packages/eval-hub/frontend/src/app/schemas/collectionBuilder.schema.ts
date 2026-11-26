@@ -68,15 +68,14 @@ export const collectionSettingsFieldNames = [
   'suiteName',
   'suiteDescription',
   'maxBenchmarks',
-] as const;
-
-export const MAX_EVALUATION_GOAL_LENGTH = 10000;
-export const defineGoalFieldNames = [
-  'evaluationGoal',
   'generatorModel',
   'strictness',
   'generationEffort',
+  'frameworkFilter',
 ] as const;
+
+export const MAX_EVALUATION_GOAL_LENGTH = 10000;
+export const defineGoalFieldNames = ['evaluationGoal'] as const;
 
 export const generatorModelSelectionSchema = z.object({
   source: z.enum(['cluster', 'external']),
@@ -104,17 +103,22 @@ const defineGoalShape = {
       MAX_EVALUATION_GOAL_LENGTH,
       `Evaluation goal must be ${MAX_EVALUATION_GOAL_LENGTH.toLocaleString()} characters or fewer.`,
     ),
-  generatorModel: generatorModelSelectionSchema
-    .nullable()
-    .refine((value): boolean => value !== null, {
-      message: 'Select a recommendation model.',
-    }),
-  ...recommendationSettingsSchema.shape,
 };
 
 export const defineGoalSchema = z.object(defineGoalShape);
 
-export const collectionBuilderSchema = suiteSettingsSchema
+export const collectionGenerationSettingsSchema = suiteSettingsSchema
+  .extend({
+    generatorModel: generatorModelSelectionSchema
+      .nullable()
+      .refine((value): boolean => value !== null, {
+        message: 'Select a recommendation model.',
+      }),
+    frameworkFilter: z.array(z.string()),
+  })
+  .extend(recommendationSettingsSchema.shape);
+
+export const collectionBuilderSchema = collectionGenerationSettingsSchema
   .extend(defineGoalShape)
   .extend(benchmarkOverviewSchema.shape);
 
@@ -126,6 +130,7 @@ export const collectionBuilderDefaultValues: CollectionBuilderFormValues = {
   maxBenchmarks: 12,
   strictness: 'moderate',
   generationEffort: 'standard',
+  frameworkFilter: [],
   selectedBenchmarks: [],
   evaluationGoal: '',
   generatorModel: null,

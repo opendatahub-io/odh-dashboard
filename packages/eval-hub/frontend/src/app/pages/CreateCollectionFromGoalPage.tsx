@@ -9,7 +9,7 @@ import { createCollection } from '~/app/api/k8s';
 import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import CollectionGenerationStep from '~/app/components/collectionBuilder/CollectionGenerationStep';
 import DefineGoalStep from '~/app/components/collectionBuilder/DefineGoalStep';
-import GoalCollectionReviewStep from '~/app/components/collectionBuilder/GoalCollectionReviewStep';
+import CollectionReviewStep from '~/app/components/collectionBuilder/CollectionReviewStep';
 import CollectionBuilderFooter from '~/app/components/collectionBuilder/CollectionBuilderFooter';
 import CollectionSettingsStep from '~/app/components/collectionBuilder/CollectionSettingsStep';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
@@ -18,6 +18,7 @@ import useCollectionGeneration from '~/app/hooks/useCollectionGeneration';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
+import { useProviders } from '~/app/hooks/useProviders';
 import { getGeneratorModelEndpoint } from '~/app/utils/generatorModelUtils';
 import {
   evaluationCreateSuiteChooserRoute,
@@ -32,7 +33,7 @@ import {
   defineGoalFieldNames,
   defineGoalSchema,
   collectionSettingsFieldNames,
-  suiteSettingsSchema,
+  collectionGenerationSettingsSchema,
   benchmarkOverviewSchema,
   type CollectionBuilderFormValues,
 } from '~/app/schemas/collectionBuilder.schema';
@@ -68,6 +69,11 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     loaded: inferenceServicesLoaded,
     loadError: inferenceServicesError,
   } = useInferenceServices(namespace ?? '');
+  const {
+    providers,
+    loaded: providersLoaded,
+    loadError: providersError,
+  } = useProviders(namespace ?? '');
   const [submittedRequestFingerprint, setSubmittedRequestFingerprint] = React.useState<string>();
   const [hasVisitedOverview, setHasVisitedOverview] = React.useState(false);
   const [isRunModalOpen, setIsRunModalOpen] = React.useState(false);
@@ -86,12 +92,13 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     control: methods.control,
     name: [...collectionSettingsFieldNames],
   });
-  const [evaluationGoal, generatorModel, strictness, generationEffort] = useWatch({
-    control: methods.control,
-    name: [...defineGoalFieldNames],
-  });
+  const evaluationGoal = useWatch({ control: methods.control, name: 'evaluationGoal' });
+  const generatorModel = useWatch({ control: methods.control, name: 'generatorModel' });
+  const strictness = useWatch({ control: methods.control, name: 'strictness' });
+  const generationEffort = useWatch({ control: methods.control, name: 'generationEffort' });
+  const frameworkFilter = useWatch({ control: methods.control, name: 'frameworkFilter' });
   const selectedBenchmarks = useWatch({ control: methods.control, name: 'selectedBenchmarks' });
-  const { errors } = useFormState({
+  const { errors: collectionSettingsErrors } = useFormState({
     control: methods.control,
     name: [...collectionSettingsFieldNames],
   });
@@ -99,21 +106,18 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     control: methods.control,
     name: [...defineGoalFieldNames],
   });
-  const isSuiteSettingsValid = suiteSettingsSchema.safeParse({
+  const isCollectionSettingsValid = collectionGenerationSettingsSchema.safeParse({
     suiteName,
     suiteDescription,
     maxBenchmarks,
-  }).success;
-  const hasSuiteSettingsErrors = collectionSettingsFieldNames.some(
-    (fieldName) => errors[fieldName],
-  );
-  const canContinueSettings = isSuiteSettingsValid && !hasSuiteSettingsErrors;
-  const isDefineGoalValid = defineGoalSchema.safeParse({
-    evaluationGoal,
     generatorModel,
     strictness,
     generationEffort,
+    frameworkFilter,
   }).success;
+  const hasSuiteSettingsErrors = collectionSettingsFieldNames.some(
+    (fieldName) => collectionSettingsErrors[fieldName],
+  );
   const selectedGeneratorModelIsAvailable =
     generatorModel?.source !== 'cluster' ||
     (inferenceServicesLoaded &&
@@ -123,14 +127,16 @@ const CreateCollectionFromGoalPage: React.FC = () => {
           service.name === generatorModel.name &&
           getGeneratorModelEndpoint(service) === generatorModel.url,
       ));
+  const canContinueSettings =
+    isCollectionSettingsValid && selectedGeneratorModelIsAvailable && !hasSuiteSettingsErrors;
+  const isDefineGoalValid = defineGoalSchema.safeParse({
+    evaluationGoal,
+  }).success;
   const hasDefineGoalErrors = defineGoalFieldNames.some((fieldName) => defineGoalErrors[fieldName]);
-  const canRecommend =
-    canContinueSettings &&
-    isDefineGoalValid &&
-    selectedGeneratorModelIsAvailable &&
-    !hasDefineGoalErrors;
+  const canRecommend = canContinueSettings && isDefineGoalValid && !hasDefineGoalErrors;
   const cancelRoute = evaluationCreateSuiteChooserRoute(namespace);
   // Serialize generation inputs so changes can mark recommendations stale against the submitted snapshot.
+  const selectedProviderIds = [...new Set(frameworkFilter)].toSorted();
   const currentRequestFingerprint = JSON.stringify({
     evaluationGoal: evaluationGoal.trim(),
     model: generatorModel
@@ -145,6 +151,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     maxBenchmarks,
     strictness,
     generationEffort,
+    provider_filter: selectedProviderIds,
   });
   const isGenerationStale =
     Boolean(generationId) &&
@@ -215,6 +222,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
       max_benchmarks: maxBenchmarks,
       strictness,
       generation_effort: generationEffort,
+      ...(selectedProviderIds.length > 0 ? { provider_filter: selectedProviderIds.join(',') } : {}),
     };
 
     try {
@@ -405,7 +413,16 @@ const CreateCollectionFromGoalPage: React.FC = () => {
               }
             >
               <WizardStep name="Collection settings" id="suite-settings" isDisabled={isStarting}>
-                <CollectionSettingsStep canContinueSettings={canContinueSettings} />
+                <CollectionSettingsStep
+                  canContinueSettings={canContinueSettings}
+                  inferenceServices={inferenceServices}
+                  inferenceServicesLoaded={inferenceServicesLoaded}
+                  inferenceServicesError={inferenceServicesError}
+                  selectedModelIsAvailable={selectedGeneratorModelIsAvailable}
+                  providers={providers}
+                  providersLoaded={providersLoaded}
+                  providersError={providersError}
+                />
               </WizardStep>
               <WizardStep
                 name="Define goal"
@@ -413,10 +430,6 @@ const CreateCollectionFromGoalPage: React.FC = () => {
                 isDisabled={!canContinueSettings || isStarting}
               >
                 <DefineGoalStep
-                  inferenceServices={inferenceServices}
-                  inferenceServicesLoaded={inferenceServicesLoaded}
-                  inferenceServicesError={inferenceServicesError}
-                  selectedModelIsAvailable={selectedGeneratorModelIsAvailable}
                   canRecommend={canRecommend}
                   generationError={createError ?? deleteError}
                   onRecommend={handleRecommend}
@@ -433,7 +446,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
                   isStarting={isStarting}
                   isStopping={isStopping}
                   isStale={isGenerationStale}
-                  namespace={namespace ?? ''}
+                  providers={providers}
                   error={createError ?? deleteError}
                   pollError={pollError}
                   selectedBenchmarks={selectedBenchmarks}
@@ -450,12 +463,20 @@ const CreateCollectionFromGoalPage: React.FC = () => {
               </WizardStep>
               <WizardStep name="Review" id="review" isDisabled={!canSave}>
                 {generatedCollection ? (
-                  <GoalCollectionReviewStep
-                    generatedCollection={generatedCollection}
-                    suiteName={suiteName}
-                    suiteDescription={suiteDescription}
-                    selectedBenchmarks={selectedBenchmarks}
-                    namespace={namespace ?? ''}
+                  <CollectionReviewStep
+                    collection={{
+                      ...generatedCollection,
+                      name: suiteName,
+                      description: suiteDescription,
+                      benchmarks: selectedBenchmarks,
+                    }}
+                    providers={providers}
+                    generationSettings={{
+                      generatorModel,
+                      strictness,
+                      generationEffort,
+                      frameworkFilter,
+                    }}
                   />
                 ) : null}
               </WizardStep>

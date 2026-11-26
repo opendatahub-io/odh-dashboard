@@ -5,8 +5,6 @@ import {
   CardBody,
   CardTitle,
   Content,
-  Flex,
-  FlexItem,
   Form,
   FormGroup,
   FormHelperText,
@@ -19,26 +17,18 @@ import {
   useWizardContext,
   Alert,
 } from '@patternfly/react-core';
-import { AngleDownIcon, AngleUpIcon, PencilAltIcon } from '@patternfly/react-icons';
+import { AngleDownIcon, AngleUpIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { defineGoalExamples } from '~/app/components/collectionBuilder/data/defineGoalExamples';
-import RecommendationSettingsModal from '~/app/components/collectionBuilder/RecommendationSettingsModal';
 import {
   defineGoalFieldNames,
-  generatorModelSelectionSchema,
   MAX_EVALUATION_GOAL_LENGTH,
   type CollectionBuilderFormValues,
-  type GeneratorModelSelection,
 } from '~/app/schemas/collectionBuilder.schema';
-import type { InferenceServiceItem } from '~/app/types';
 
 import './DefineGoalStep.scss';
 
 type DefineGoalStepProps = {
-  inferenceServices: InferenceServiceItem[];
-  inferenceServicesLoaded: boolean;
-  inferenceServicesError: Error | undefined;
-  selectedModelIsAvailable: boolean;
   canRecommend: boolean;
   generationError?: Error;
   onRecommend: () => Promise<boolean>;
@@ -47,20 +37,12 @@ type DefineGoalStepProps = {
 const VISIBLE_EXAMPLE_COUNT = 3;
 
 const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
-  inferenceServices,
-  inferenceServicesLoaded,
-  inferenceServicesError,
-  selectedModelIsAvailable,
   canRecommend,
   generationError,
   onRecommend,
 }) => {
   const { control, setValue, trigger } = useFormContext<CollectionBuilderFormValues>();
   const { goToNextStep } = useWizardContext();
-  const selectedModel = useWatch({ control, name: 'generatorModel' });
-  const selectedStrictness = useWatch({ control, name: 'strictness' });
-  const selectedGenerationEffort = useWatch({ control, name: 'generationEffort' });
-  const [isModelModalOpen, setIsModelModalOpen] = React.useState(false);
   const [areAllExamplesVisible, setAreAllExamplesVisible] = React.useState(false);
   const visibleExamples = areAllExamplesVisible
     ? defineGoalExamples
@@ -76,41 +58,6 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
       return;
     }
     void trigger([...defineGoalFieldNames]);
-  };
-
-  const handleOpenModelModal = () => {
-    setIsModelModalOpen(true);
-  };
-
-  const handleCloseModelModal = () => {
-    setIsModelModalOpen(false);
-  };
-
-  const handleSaveSettings = (settings: {
-    model: GeneratorModelSelection;
-    strictness: CollectionBuilderFormValues['strictness'];
-    generationEffort: CollectionBuilderFormValues['generationEffort'];
-  }) => {
-    const parsedModel = generatorModelSelectionSchema.safeParse(settings.model);
-    if (!parsedModel.success) {
-      return;
-    }
-    setValue('generatorModel', parsedModel.data, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    });
-    setValue('strictness', settings.strictness, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    });
-    setValue('generationEffort', settings.generationEffort, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    });
-    handleCloseModelModal();
   };
 
   return (
@@ -137,50 +84,6 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
           label="What would you like to evaluate?"
           fieldId="goal-suite-evaluation-goal"
           isRequired
-          className="evalhub-goal-collection__goal-form-group"
-          labelInfo={
-            <div
-              className="evalhub-goal-collection__goal-label-info"
-              data-testid="recommendation-model-summary"
-            >
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                <FlexItem>
-                  <strong>
-                    Recommendation model
-                    <span
-                      className="pf-v6-c-form__label-required"
-                      aria-hidden="true"
-                      data-testid="recommendation-model-required"
-                    >
-                      *
-                    </span>
-                  </strong>
-                </FlexItem>
-                <FlexItem>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <FlexItem data-testid="selected-recommendation-model">
-                      {selectedModel?.name ?? 'No model selected'}
-                    </FlexItem>
-                    <FlexItem>
-                      <Button
-                        type="button"
-                        variant="plain"
-                        size="sm"
-                        icon={<PencilAltIcon aria-hidden />}
-                        aria-label={
-                          selectedModel
-                            ? 'Edit recommendation model'
-                            : 'Choose recommendation model'
-                        }
-                        onClick={handleOpenModelModal}
-                        data-testid="edit-recommendation-model"
-                      />
-                    </FlexItem>
-                  </Flex>
-                </FlexItem>
-              </Flex>
-            </div>
-          }
         >
           <Controller
             name="evaluationGoal"
@@ -278,35 +181,7 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
             {areAllExamplesVisible ? 'View fewer examples' : 'View more examples'}
           </Button>
         </section>
-        {selectedModel?.source === 'cluster' && !selectedModelIsAvailable ? (
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant="warning" data-testid="selected-recommendation-model-stale">
-                {inferenceServicesError || !inferenceServicesLoaded
-                  ? 'Could not confirm this project model is available. Choose another model or use an external endpoint.'
-                  : 'This project model is no longer available or its endpoint has changed. Choose another model or use an external endpoint.'}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        ) : null}
       </Form>
-
-      <RecommendationSettingsModal
-        key={
-          isModelModalOpen
-            ? `${selectedModel?.source ?? 'no-selection'}-${selectedModel?.name ?? ''}`
-            : 'closed'
-        }
-        isOpen={isModelModalOpen}
-        selectedModel={selectedModel}
-        selectedStrictness={selectedStrictness}
-        selectedGenerationEffort={selectedGenerationEffort}
-        inferenceServices={inferenceServices}
-        inferenceServicesLoaded={inferenceServicesLoaded}
-        inferenceServicesError={inferenceServicesError}
-        onClose={handleCloseModelModal}
-        onSave={handleSaveSettings}
-      />
     </div>
   );
 };

@@ -130,6 +130,11 @@ describe('Evaluations Page - Tabs', () => {
   it('should validate the collection name and preserve settings when returning from the next step', () => {
     cy.intercept('**/generation/**').as('collectionBuilderGenerationApi');
     initIntercepts({ providers: [mockProvider()] });
+    cy.interceptApi(
+      'GET /api/:apiVersion/inferenceservices',
+      { path: API_VERSION },
+      { items: [{ name: 'granite-3b', url: 'https://granite.example.com/v1', ready: true }] },
+    );
     evaluationsPage.visit(NAMESPACE);
 
     evaluationsPage.findCreateSuiteHeaderButton().click();
@@ -152,8 +157,10 @@ describe('Evaluations Page - Tabs', () => {
 
     collectionBuilderPage.findNameInput().clear().type('Reasoning suite');
     collectionBuilderPage.findDescriptionInput().should('have.value', '');
-    collectionBuilderPage.findNextButton().should('be.enabled');
     collectionBuilderPage.findDescriptionInput().type('Check general reasoning performance.');
+    collectionBuilderPage.findRecommendationModelToggle().click();
+    collectionBuilderPage.findRecommendationModelOption('granite-3b').click();
+    collectionBuilderPage.findRecommendationModelToggle().should('have.text', 'granite-3b');
     collectionBuilderPage.findNextButton().should('be.enabled');
     collectionBuilderPage.findNextButton().click();
 
@@ -165,9 +172,6 @@ describe('Evaluations Page - Tabs', () => {
       .findEvaluationGoalInput()
       .should('be.visible')
       .and('have.attr', 'maxlength', '10000');
-    collectionBuilderPage
-      .findSelectedRecommendationModel()
-      .should('have.text', 'No model selected');
     collectionBuilderPage.findRecommendButton().should('be.disabled');
     collectionBuilderPage.findGoalExample('answer-quality').should('be.visible').click();
     collectionBuilderPage
@@ -199,6 +203,7 @@ describe('Evaluations Page - Tabs', () => {
       .should('have.value', 'Check general reasoning performance.');
     collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuenow', '12');
     collectionBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    collectionBuilderPage.findRecommendationModelToggle().should('have.text', 'granite-3b');
     collectionBuilderPage.findCurrentStep('define-goal').click();
     collectionBuilderPage
       .findCurrentStep('define-goal')
@@ -308,12 +313,10 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findCreateSuiteHeaderButton().click();
     evaluationsPage.findBuildSuiteFromGoalTile().click();
     collectionBuilderPage.findNameInput().type('Truthfulness suite');
-    collectionBuilderPage.findNextButton().click();
-    collectionBuilderPage.findGoalExample('answer-quality').click();
-    collectionBuilderPage.findEditRecommendationModelButton().click();
     collectionBuilderPage.findRecommendationModelToggle().click();
     collectionBuilderPage.findRecommendationModelOption('granite-3b').click();
-    collectionBuilderPage.findSaveRecommendationModelButton().click();
+    collectionBuilderPage.findNextButton().click();
+    collectionBuilderPage.findGoalExample('answer-quality').click();
     collectionBuilderPage.findRecommendButton().click();
 
     cy.wait('@createCollectionGeneration').then(({ request }) => {

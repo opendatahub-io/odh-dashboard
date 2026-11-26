@@ -1,0 +1,28 @@
+.evalhub-collection-generation-settings__advanced .pf-v6-c-slider__step-label {
+  white-space: nowrap;
+}
+
+.evalhub-collection-generation-settings {
+  .evalhub-collection-generation-settings__fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pf-t--global--spacer--xl);
+  }
+
+  .evalhub-collection-generation-settings__model-settings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pf-t--global--spacer--md);
+  }
+
+  .evalhub-collection-generation-settings__advanced-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pf-t--global--spacer--lg);
+  }
+
+  .evalhub-collection-generation-settings__model-toggle,
+  .evalhub-collection-generation-settings__framework-toggle {
+    --pf-v6-c-menu-toggle--BorderRadius: var(--pf-t--global--border--radius--small);
+  }
+}

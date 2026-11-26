@@ -228,6 +228,15 @@ const renderPage = async () => {
   return rendered;
 };
 
+const selectRecommendationModel = async (name = 'granite-3b'): Promise<void> => {
+  fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+  fireEvent.click(
+    within(await screen.findByTestId(`recommendation-model-option-${name}`)).getByRole('option', {
+      hidden: true,
+    }),
+  );
+};
+
 const completeGenerationToReview = async (): Promise<void> => {
   await renderPage();
   fireEvent.change(screen.getByTestId('goal-suite-name'), {
@@ -236,19 +245,11 @@ const completeGenerationToReview = async (): Promise<void> => {
   fireEvent.change(screen.getByTestId('goal-suite-description'), {
     target: { value: '  Collection description  ' },
   });
+  await selectRecommendationModel();
   fireEvent.click(screen.getByTestId('next-suite-settings'));
   fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
     target: { value: 'Assess answer quality.' },
   });
-  fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-  fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-  fireEvent.click(
-    within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
-      'option',
-      { hidden: true },
-    ),
-  );
-  fireEvent.click(screen.getByTestId('save-recommendation-model'));
   await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
   fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
   await waitFor(() => expect(mockGetCollectionGeneration).toHaveBeenCalledTimes(1));
@@ -263,19 +264,11 @@ const startPendingGeneration = async (): Promise<void> => {
   fireEvent.change(screen.getByTestId('goal-suite-name'), {
     target: { value: 'Answer quality suite' },
   });
+  await selectRecommendationModel();
   fireEvent.click(screen.getByTestId('next-suite-settings'));
   fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
     target: { value: 'Assess answer quality.' },
   });
-  fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-  fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-  fireEvent.click(
-    within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
-      'option',
-      { hidden: true },
-    ),
-  );
-  fireEvent.click(screen.getByTestId('save-recommendation-model'));
   await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
   fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
   expect(await screen.findByText('Initializing recommendations')).toBeInTheDocument();
@@ -307,7 +300,7 @@ describe('CreateCollectionFromGoalPage', () => {
     mockDeleteCollectionGeneration.mockReturnValue(() => Promise.resolve());
   });
 
-  it('should require only a collection name before allowing the next step', async () => {
+  it('should require the collection name and recommendation model before allowing the next step', async () => {
     await renderPage();
 
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
@@ -316,10 +309,14 @@ describe('CreateCollectionFromGoalPage', () => {
       'Configure your collection, describe your goal, and choose benchmarks.',
     );
     expect(
-      screen.getByText(
-        'Set the collection name, description, and maximum number of benchmarks to recommend.',
-      ),
+      screen.getByText('Set the collection name, description, and number of benchmarks.'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Collection settings', level: 2 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Collection details', level: 3 }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Collection name')).toBeInTheDocument();
     expect(screen.getByText('Create collection', { selector: 'li' })).toBeInTheDocument();
     expect(screen.getByLabelText('Collection creation steps')).toBeInTheDocument();
@@ -328,15 +325,18 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuemax', '20');
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuenow', '12');
     expect(screen.getByRole('spinbutton', { name: 'Max number of benchmarks' })).toHaveValue(12);
+    expect(screen.getByRole('heading', { name: 'Generation settings' })).toBeInTheDocument();
+    expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent('Select a model');
+    expect(screen.getByText('Recommendation model')).toBeInTheDocument();
     expect(
-      screen.getByText('Choose how many benchmarks AI should recommend, up to 20.'),
+      screen.getByText('Set the maximum number of benchmarks AI should recommend, from 1 to 20.'),
     ).toBeInTheDocument();
     expect(maxBenchmarksSlider).toHaveAttribute(
       'aria-describedby',
       'suite-builder-max-benchmarks-helper',
     );
-    expect(screen.queryByTestId('goal-suite-strictness')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('goal-suite-generation-effort')).not.toBeInTheDocument();
+    expect(screen.getByTestId('goal-suite-strictness')).not.toBeVisible();
+    expect(screen.getByTestId('goal-suite-generation-effort')).not.toBeVisible();
     expect(screen.queryByTestId('goal-suite-evaluates')).not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /default/i })).not.toBeInTheDocument();
     expect(
@@ -366,6 +366,7 @@ describe('CreateCollectionFromGoalPage', () => {
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
       target: { value: 'Reasoning suite' },
     });
+    await selectRecommendationModel();
     const maxBenchmarksSlider = screen.getByRole('slider', { name: 'Max number of benchmarks' });
     fireEvent.keyDown(maxBenchmarksSlider, { key: 'ArrowRight' });
     expect(maxBenchmarksSlider).toHaveAttribute('aria-valuenow', '13');
@@ -381,41 +382,45 @@ describe('CreateCollectionFromGoalPage', () => {
     );
   });
 
-  it('should advance after valid settings and preserve values when returning', async () => {
-    const { rerender } = await renderPage();
-    expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
-    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
+  it('should require a recommendation model and preserve generation settings across steps', async () => {
+    await renderPage();
 
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
       target: { value: 'Reasoning suite' },
     });
-    expect(screen.getByTestId('next-suite-settings')).toBeEnabled();
     fireEvent.change(screen.getByTestId('goal-suite-description'), {
       target: { value: 'Check general reasoning performance.' },
     });
-    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
-    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
 
+    await selectRecommendationModel();
+    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
+    expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent('granite-3b');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show advanced settings' }));
+    expect(screen.getByRole('slider', { name: 'Recommendation strictness' })).toHaveAttribute(
+      'aria-valuetext',
+      'Balanced',
+    );
+    expect(screen.getByRole('slider', { name: 'Recommendation depth' })).toHaveAttribute(
+      'aria-valuetext',
+      'Balanced',
+    );
+    expect(screen.getByTestId('framework-filter-toggle')).toHaveTextContent('Select frameworks');
+    expect(screen.getByTestId('framework-filter-helper')).toHaveTextContent(
+      'Select frameworks to limit recommendations; leave empty to include them all.',
+    );
+    fireEvent.click(screen.getByTestId('framework-filter-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('framework-filter-option-provider-a')).getByRole('checkbox'),
+    );
+    expect(screen.getByTestId('framework-filter-toggle')).toHaveTextContent('Provider A');
+
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
     expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Define goal/ })).toBeEnabled();
-    expect(
-      screen.getByText(
-        'Describe what you want to test. AI will suggest benchmarks from the available catalog.',
-      ),
-    ).toBeInTheDocument();
     expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveValue('');
     expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveAttribute('maxlength', '10000');
     expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
-    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
-      'No model selected',
-    );
-    const recommendationModelSummary = screen.getByTestId('recommendation-model-summary');
-    const recommendationModelRequired = within(recommendationModelSummary).getByTestId(
-      'recommendation-model-required',
-    );
-    expect(recommendationModelRequired).toHaveClass('pf-v6-c-form__label-required');
-    expect(recommendationModelRequired).toHaveAttribute('aria-hidden', 'true');
-    expect(recommendationModelRequired).toHaveTextContent('*');
 
     fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
       target: { value: '   ' },
@@ -430,84 +435,24 @@ describe('CreateCollectionFromGoalPage', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
 
-    fireEvent.click(screen.getByTestId('define-goal-view-examples'));
-    expect(screen.getByTestId('define-goal-example-adversarial-content')).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('define-goal-view-examples'));
-    expect(screen.queryByTestId('define-goal-example-code-generation')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Collection settings/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Define goal/ }));
-    expect(screen.getByTestId('define-goal-example-answer-quality')).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    expect(screen.getByTestId('goal-suite-name')).toHaveValue('Reasoning suite');
+    expect(screen.getByTestId('goal-suite-description')).toHaveValue(
+      'Check general reasoning performance.',
     );
-
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    expect(screen.getByText('Recommendation settings')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'This model suggests benchmarks for your goal. It is not the model being evaluated.',
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Required model used to suggest benchmarks, not the model being evaluated.'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('slider', { name: 'Match to evaluation goal' })).toHaveAttribute(
-      'aria-valuetext',
-      'Balanced',
-    );
-    expect(screen.getByRole('slider', { name: 'Recommendation depth' })).toHaveAttribute(
-      'aria-valuetext',
-      'Balanced',
-    );
-    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-    expect(
-      within(screen.getByTestId('recommendation-model-option-missing-url')).getByRole('option', {
-        hidden: true,
-      }),
-    ).toBeDisabled();
-    expect(screen.getByTestId('recommendation-model-option-external')).toBeInTheDocument();
-    fireEvent.click(
-      within(
-        await screen.findByTestId('recommendation-model-option-llama-3.2-1b-instruct'),
-      ).getByRole('option', { hidden: true }),
-    );
-    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
-    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
-      'No model selected',
-    );
-    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
-
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-    fireEvent.click(
-      within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
-        'option',
-        { hidden: true },
-      ),
-    );
-    fireEvent.click(screen.getByTestId('save-recommendation-model'));
-    await waitFor(() =>
-      expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent('granite-3b'),
-    );
-    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled();
-
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-    fireEvent.click(
-      within(screen.getByTestId('recommendation-model-option-external')).getByRole('option', {
-        hidden: true,
-      }),
-    );
-    expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent(
-      'Other (External endpoint)',
-    );
-    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
-    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent('granite-3b');
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
     expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent('granite-3b');
-    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
+    expect(screen.getByTestId('framework-filter-toggle')).toHaveTextContent('Provider A');
+    fireEvent.click(screen.getByRole('button', { name: /Define goal/ }));
+    expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveValue(exampleGoal);
+  });
+
+  it('should block a project model whose endpoint changed after selection', async () => {
+    const { rerender } = await renderPage();
+    fireEvent.change(screen.getByTestId('goal-suite-name'), {
+      target: { value: 'Stale model suite' },
+    });
+    await selectRecommendationModel();
 
     mockUseInferenceServices.mockReturnValue({
       inferenceServices: inferenceServiceFixtures.map((service) =>
@@ -520,63 +465,76 @@ describe('CreateCollectionFromGoalPage', () => {
       warning: undefined,
     });
     rerender(createPageElement());
-    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled());
-    expect(screen.getByTestId('selected-recommendation-model-stale')).toHaveTextContent(
+
+    expect(await screen.findByTestId('selected-recommendation-model-stale')).toHaveTextContent(
       'no longer available or its endpoint has changed',
     );
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    expect(screen.getByTestId('save-recommendation-model')).toBeDisabled();
-    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
+    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
+  });
 
-    mockUseInferenceServices.mockReturnValue({
-      inferenceServices: inferenceServiceFixtures,
+  it('should keep a selected framework ID visible if provider discovery later fails', async () => {
+    const { rerender } = await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Show advanced settings' }));
+    fireEvent.click(screen.getByTestId('framework-filter-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('framework-filter-option-provider-a')).getByRole('checkbox'),
+    );
+
+    mockUseProviders.mockReturnValue({
+      providers: [],
       loaded: true,
-      loadError: undefined,
-      warning: undefined,
+      loadError: new Error('offline'),
     });
     rerender(createPageElement());
-    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
 
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-    fireEvent.click(
-      within(
-        await screen.findByTestId('recommendation-model-option-mistral-7b-instruct'),
-      ).getByRole('option', { hidden: true }),
+    expect(screen.getByTestId('framework-filter-toggle')).toHaveTextContent('provider-a');
+    const showAdvancedSettings = screen.queryByRole('button', { name: 'Show advanced settings' });
+    if (showAdvancedSettings) {
+      fireEvent.click(showAdvancedSettings);
+    }
+    expect(screen.getByTestId('framework-filter-helper')).toHaveTextContent(
+      'Selected framework IDs will still be used.',
     );
-    fireEvent.click(screen.getByTestId('save-recommendation-model'));
-    await waitFor(() =>
-      expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
-        'mistral-7b-instruct',
-      ),
-    );
+  });
 
-    const evaluationGoal = `${exampleGoal} Add a custom check.`;
-    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
-      target: { value: evaluationGoal },
+  it('should mark recommendations stale when the selected frameworks change', async () => {
+    mockCreateCollectionGeneration.mockReturnValue(() => Promise.resolve(completedGeneration));
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(completedGeneration));
+    await renderPage();
+
+    fireEvent.change(screen.getByTestId('goal-suite-name'), {
+      target: { value: 'Filtered suite' },
     });
-    expect(screen.getByTestId('define-goal-example-answer-quality')).toHaveAttribute(
-      'aria-pressed',
-      'false',
+    await selectRecommendationModel();
+    fireEvent.click(screen.getByRole('button', { name: 'Show advanced settings' }));
+    fireEvent.click(screen.getByTestId('framework-filter-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('framework-filter-option-provider-a')).getByRole('checkbox'),
+    );
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+      target: { value: 'Assess answer quality.' },
+    });
+    fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+
+    expect(await screen.findByTestId('benchmark-overview-step')).toBeInTheDocument();
+    expect(mockCreateCollectionGeneration).toHaveBeenCalledWith(
+      '',
+      'test-project',
+      expect.objectContaining({ provider_filter: 'provider-a' }),
     );
     fireEvent.click(screen.getByRole('button', { name: /Collection settings/ }));
-
-    expect(screen.getByTestId('goal-suite-name')).toHaveValue('Reasoning suite');
-    expect(screen.getByTestId('goal-suite-description')).toHaveValue(
-      'Check general reasoning performance.',
+    const showAdvancedSettings = screen.queryByRole('button', { name: 'Show advanced settings' });
+    if (showAdvancedSettings) {
+      fireEvent.click(showAdvancedSettings);
+    }
+    fireEvent.click(screen.getByTestId('framework-filter-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('framework-filter-option-provider-a')).getByRole('checkbox'),
     );
-    fireEvent.change(screen.getByTestId('goal-suite-name'), { target: { value: '' } });
-    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeDisabled());
-    expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
-    fireEvent.change(screen.getByTestId('goal-suite-name'), { target: { value: '  ' } });
-    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeDisabled());
-    fireEvent.change(screen.getByTestId('goal-suite-name'), {
-      target: { value: 'Reasoning suite' },
-    });
-    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
-    fireEvent.click(screen.getByRole('button', { name: /Define goal/ }));
-    expect(screen.getByTestId('define-goal-step')).toBeInTheDocument();
-    expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveValue(evaluationGoal);
+    fireEvent.click(screen.getByRole('button', { name: /Benchmark overview/ }));
+
+    expect(await screen.findByTestId('collection-generation-stale-warning')).toBeInTheDocument();
   });
 
   it('should allow a validated external recommendation model when project model discovery fails', async () => {
@@ -591,32 +549,15 @@ describe('CreateCollectionFromGoalPage', () => {
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
       target: { value: 'External model suite' },
     });
-    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
-    fireEvent.click(screen.getByTestId('next-suite-settings'));
-    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
-      target: { value: 'Evaluate answer quality.' },
-    });
-    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
-
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
     fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-    expect(screen.getByText(/Could not load project models/)).toBeInTheDocument();
     fireEvent.click(
       within(screen.getByTestId('recommendation-model-option-external')).getByRole('option', {
         hidden: true,
       }),
     );
-    expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent(
-      'Other (External endpoint)',
-    );
-    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-    expect(
-      within(screen.getByTestId('recommendation-model-option-external')).getByRole('option', {
-        hidden: true,
-      }),
-    ).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText(/Could not load project models/)).toBeInTheDocument();
     expect(screen.getByTestId('validate-connection-button')).toBeDisabled();
-    expect(screen.getByTestId('save-recommendation-model')).toBeDisabled();
+
     fireEvent.change(screen.getByTestId('model-name-input'), {
       target: { value: 'external-chat-model' },
     });
@@ -627,7 +568,6 @@ describe('CreateCollectionFromGoalPage', () => {
       target: { value: 'evalhub-api-secret' },
     });
     expect(screen.getByTestId('validate-connection-button')).toBeEnabled();
-    expect(screen.getByTestId('save-recommendation-model')).toBeEnabled();
     fireEvent.blur(screen.getByTestId('endpoint-url-input'));
     expect(mockVerifyConnection).not.toHaveBeenCalled();
     mockVerifyConnection.mockReturnValue(() =>
@@ -647,28 +587,20 @@ describe('CreateCollectionFromGoalPage', () => {
       ),
     );
     expect(await screen.findByText('Connection established successfully.')).toBeInTheDocument();
-    expect(screen.getByTestId('save-recommendation-model')).toBeEnabled();
-    fireEvent.click(screen.getByTestId('save-recommendation-model'));
-
-    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
-      'external-chat-model',
+    expect(screen.getByTestId('external-endpoint-compatibility-alert')).toHaveTextContent(
+      'This model must expose an OpenAI-compatible chat/completions endpoint.',
     );
-    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled();
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Collection settings/ }));
     expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent(
       'Other (External endpoint)',
     );
     expect(screen.getByTestId('model-name-input')).toHaveValue('external-chat-model');
     expect(screen.getByTestId('endpoint-url-input')).toHaveValue('https://api.example.com/v1');
     expect(screen.getByTestId('api-key-input')).toHaveValue('evalhub-api-secret');
-    expect(screen.getByTestId('external-endpoint-compatibility-alert')).toHaveTextContent(
-      'This model must expose an OpenAI-compatible chat/completions endpoint.',
-    );
-    expect(screen.getByRole('dialog')).not.toHaveTextContent(/Enter the provider's API base URL/i);
-    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
-    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
-      'external-chat-model',
-    );
   });
 
   it('should generate, poll, edit, and preserve the benchmark recommendation before Review', async () => {
@@ -680,19 +612,16 @@ describe('CreateCollectionFromGoalPage', () => {
     fireEvent.change(screen.getByTestId('goal-suite-description'), {
       target: { value: 'Collection description is not part of the generation request.' },
     });
+    await selectRecommendationModel();
+    fireEvent.click(screen.getByRole('button', { name: 'Show advanced settings' }));
+    fireEvent.click(screen.getByTestId('framework-filter-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('framework-filter-option-provider-a')).getByRole('checkbox'),
+    );
     fireEvent.click(screen.getByTestId('next-suite-settings'));
     fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
       target: { value: 'Assess answer quality.' },
     });
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-    fireEvent.click(
-      within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
-        'option',
-        { hidden: true },
-      ),
-    );
-    fireEvent.click(screen.getByTestId('save-recommendation-model'));
 
     await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
     fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
@@ -718,6 +647,7 @@ describe('CreateCollectionFromGoalPage', () => {
       max_benchmarks: 12,
       strictness: 'moderate',
       generation_effort: 'standard',
+      provider_filter: 'provider-a',
     });
     expect(mockGetCollectionGeneration).toHaveBeenCalledWith('', 'test-project', 'generation-1');
     expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
@@ -763,13 +693,19 @@ describe('CreateCollectionFromGoalPage', () => {
         { exact: true },
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText('Collection details')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { level: 3, name: 'Collection details' }),
+      screen.getByRole('heading', { level: 3, name: 'Generation settings' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Review collection' })).not.toBeInTheDocument();
     expect(screen.getByTestId('goal-suite-review-name')).toHaveTextContent('Answer quality suite');
     expect(screen.getByTestId('goal-suite-review-evaluates')).toHaveTextContent('Model');
-    expect(screen.getByTestId('goal-suite-review-categories')).toHaveTextContent('Trustworthiness');
+    expect(screen.getByTestId('goal-suite-review-category')).toHaveTextContent('Trustworthiness');
+    expect(screen.getByTestId('goal-suite-review-model')).toHaveTextContent('granite-3b');
+    expect(screen.getByTestId('goal-suite-review-frameworks')).toHaveTextContent('Provider A');
+    expect(screen.getByRole('heading', { level: 3, name: 'Benchmarks' })).toBeInTheDocument();
+    expect(screen.queryByText('Evaluation goal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Maximum benchmarks')).not.toBeInTheDocument();
     expect(screen.getByTestId('goal-suite-review-benchmarks')).toHaveTextContent('HellaSwag');
     expect(screen.getByTestId('goal-suite-save')).toBeEnabled();
     expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
@@ -788,16 +724,15 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(screen.getByTestId('goal-suite-review-description')).toHaveTextContent(
       'Collection description',
     );
+    expect(screen.getByTestId('goal-suite-review-model')).toHaveTextContent('granite-3b');
+    expect(screen.getByTestId('goal-suite-review-strictness')).toHaveTextContent('Balanced');
+    expect(screen.getByTestId('goal-suite-review-effort')).toHaveTextContent('Balanced');
+    expect(screen.getByTestId('goal-suite-review-frameworks')).toHaveTextContent('All frameworks');
     const benchmarkReview = screen.getByTestId('goal-suite-review-benchmarks');
     expect(benchmarkReview).toHaveTextContent('truthfulqa_mc1 · Provider A');
     expect(benchmarkReview).toHaveTextContent('Accuracy');
     expect(benchmarkReview).toHaveTextContent('80%');
-    expect(benchmarkReview).toHaveTextContent(/Samples\s*12/);
-    expect(benchmarkReview).toHaveTextContent(/Random seed\s*21/);
-    expect(benchmarkReview).toHaveTextContent(/Batch size\s*4/);
-    expect(benchmarkReview).toHaveTextContent('Options');
-    expect(benchmarkReview).not.toHaveTextContent('Parameters');
-    expect(benchmarkReview).toHaveTextContent('"modes"');
+    expect(benchmarkReview).not.toHaveTextContent(/Samples|Random seed|Batch size/);
 
     fireEvent.click(screen.getByTestId('goal-suite-save'));
 
@@ -894,19 +829,11 @@ describe('CreateCollectionFromGoalPage', () => {
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
       target: { value: 'Answer quality suite' },
     });
+    await selectRecommendationModel();
     fireEvent.click(screen.getByTestId('next-suite-settings'));
     fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
       target: { value: 'Assess answer quality.' },
     });
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-    fireEvent.click(
-      within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
-        'option',
-        { hidden: true },
-      ),
-    );
-    fireEvent.click(screen.getByTestId('save-recommendation-model'));
     await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
     fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
 
@@ -1024,19 +951,11 @@ describe('CreateCollectionFromGoalPage', () => {
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
       target: { value: 'Answer quality suite' },
     });
+    await selectRecommendationModel();
     fireEvent.click(screen.getByTestId('next-suite-settings'));
     fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
       target: { value: 'Assess answer quality.' },
     });
-    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
-    fireEvent.click(
-      within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
-        'option',
-        { hidden: true },
-      ),
-    );
-    fireEvent.click(screen.getByTestId('save-recommendation-model'));
     await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
     fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
 

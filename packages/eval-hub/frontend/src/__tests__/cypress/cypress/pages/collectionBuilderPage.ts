@@ -16,7 +16,7 @@ class CollectionBuilderPage {
   }
 
   findMaxBenchmarksHelper() {
-    return cy.findByText('Choose how many benchmarks AI should recommend, up to 20.');
+    return cy.findByText('Set the maximum number of benchmarks AI should recommend, from 1 to 20.');
   }
 
   findEvaluationGoalInput() {
@@ -31,14 +31,6 @@ class CollectionBuilderPage {
     return cy.findByTestId('define-goal-view-examples');
   }
 
-  findSelectedRecommendationModel() {
-    return cy.findByTestId('selected-recommendation-model');
-  }
-
-  findEditRecommendationModelButton() {
-    return cy.findByTestId('edit-recommendation-model');
-  }
-
   findRecommendationModelToggle() {
     return cy.findByTestId('recommendation-model-toggle');
   }
@@ -47,8 +39,16 @@ class CollectionBuilderPage {
     return cy.findByTestId(`recommendation-model-option-${name}`);
   }
 
-  findSaveRecommendationModelButton() {
-    return cy.findByTestId('save-recommendation-model');
+  findAdvancedSettingsToggle() {
+    return cy.findByRole('button', { name: 'Show advanced settings' });
+  }
+
+  findFrameworkToggle() {
+    return cy.findByTestId('framework-filter-toggle');
+  }
+
+  findFrameworkOption(id: string) {
+    return cy.findByTestId(`framework-filter-option-${id}`);
   }
 
   findRecommendButton() {

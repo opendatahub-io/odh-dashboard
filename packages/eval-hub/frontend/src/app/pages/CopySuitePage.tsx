@@ -46,7 +46,7 @@ import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
 import CopySuiteSettingsStep from '~/app/pages/CopySuiteSettingsStep';
-import ManualCollectionReviewStep from '~/app/pages/ManualCollectionReviewStep';
+import CollectionReviewStep from '~/app/components/collectionBuilder/CollectionReviewStep';
 import ManualCollectionWizardFooter from '~/app/pages/ManualCollectionWizardFooter';
 import type { Collection } from '~/app/types';
 import { MAX_BENCHMARKS, useCopySuiteForm } from './useCopySuiteForm';
@@ -447,10 +447,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
                   isDisabled={!isReviewValid || isPageInteractionDisabled}
                 >
                   {pendingCollection ? (
-                    <ManualCollectionReviewStep
-                      collection={pendingCollection}
-                      providers={providers}
-                    />
+                    <CollectionReviewStep collection={pendingCollection} providers={providers} />
                   ) : null}
                 </WizardStep>
               </Wizard>

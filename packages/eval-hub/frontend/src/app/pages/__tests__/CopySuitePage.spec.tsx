@@ -482,6 +482,10 @@ describe('CopySuitePage', () => {
     );
     expect(screen.getByTestId('copy-suite-review-categories')).toHaveTextContent('Reasoning');
     expect(screen.getByTestId('copy-suite-review-evaluates')).toHaveTextContent('Model');
+    expect(
+      screen.queryByRole('heading', { level: 3, name: 'Generation settings' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Benchmarks' })).toBeInTheDocument();
 
     const reviewedBenchmarks = screen.getByTestId('copy-suite-review-benchmarks');
     expect(reviewedBenchmarks).toHaveTextContent('benchmark-one');

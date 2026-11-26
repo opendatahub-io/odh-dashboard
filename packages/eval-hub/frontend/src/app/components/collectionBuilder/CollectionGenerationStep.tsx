@@ -25,7 +25,6 @@ import {
   Popover,
   Skeleton,
   Title,
-  useWizardContext,
 } from '@patternfly/react-core';
 import { CheckCircleIcon, MagicIcon, TimesIcon } from '@patternfly/react-icons';
 import { createPortal } from 'react-dom';
@@ -35,7 +34,6 @@ import {
   getCategoryColor,
   getMetricDisplayName,
 } from '~/app/components/benchmarkUtils';
-import { useProviders } from '~/app/hooks/useProviders';
 import { formatThresholdValue } from '~/app/utilities/evaluationUtils';
 import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
 import type {
@@ -57,7 +55,7 @@ type CollectionGenerationStepProps = {
   isStarting: boolean;
   isStopping: boolean;
   isStale: boolean;
-  namespace: string;
+  providers: Provider[];
   error?: Error;
   pollError?: Error;
   selectedBenchmarks: CollectionBenchmark[];
@@ -297,7 +295,7 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
   isStarting,
   isStopping,
   isStale,
-  namespace,
+  providers,
   error,
   pollError,
   selectedBenchmarks,
@@ -306,8 +304,6 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
   onRetryPoll,
   onStop,
 }) => {
-  const { activeStep } = useWizardContext();
-  const { providers } = useProviders(activeStep.id === 'benchmark-overview' ? namespace : '');
   const [isAlternativesOpen, setIsAlternativesOpen] = React.useState(false);
   const [detailsBenchmark, setDetailsBenchmark] = React.useState<FlatBenchmark>();
   const providerBenchmarks = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);

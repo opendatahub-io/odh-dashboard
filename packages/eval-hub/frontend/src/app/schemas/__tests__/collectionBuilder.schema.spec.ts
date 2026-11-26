@@ -7,6 +7,7 @@ import {
   collectionBuilderDefaultValues,
   collectionBuilderSchema,
   collectionSettingsFieldNames,
+  collectionGenerationSettingsSchema,
   recommendationSettingsSchema,
   suiteSettingsSchema,
 } from '~/app/schemas/collectionBuilder.schema';
@@ -49,6 +50,10 @@ describe('suite builder schemas', () => {
       'suiteName',
       'suiteDescription',
       'maxBenchmarks',
+      'generatorModel',
+      'strictness',
+      'generationEffort',
+      'frameworkFilter',
     ]);
   });
 
@@ -111,40 +116,44 @@ describe('suite builder schemas', () => {
     ).toBe(false);
   });
 
-  it('should trim, require, and limit the evaluation goal', () => {
+  it('should require the recommendation model and keep generation options in step one', () => {
     expect(
-      defineGoalSchema.parse({
-        ...DEFAULT_RECOMMENDATION_SETTINGS,
-        evaluationGoal: '  Compare responses.  ',
-        generatorModel: RECOMMENDATION_MODEL,
-      }).evaluationGoal,
-    ).toBe('Compare responses.');
-    expect(
-      defineGoalSchema.safeParse({
-        ...DEFAULT_RECOMMENDATION_SETTINGS,
-        evaluationGoal: '   ',
-        generatorModel: RECOMMENDATION_MODEL,
+      collectionGenerationSettingsSchema.safeParse({
+        ...collectionBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
+        generatorModel: null,
       }).success,
     ).toBe(false);
     expect(
-      defineGoalSchema.safeParse({
-        ...DEFAULT_RECOMMENDATION_SETTINGS,
-        evaluationGoal: 'a'.repeat(MAX_EVALUATION_GOAL_LENGTH),
+      collectionGenerationSettingsSchema.parse({
+        ...collectionBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
         generatorModel: RECOMMENDATION_MODEL,
-      }).success,
+        frameworkFilter: ['provider-a'],
+      }),
+    ).toMatchObject({
+      strictness: 'moderate',
+      generationEffort: 'standard',
+      frameworkFilter: ['provider-a'],
+      generatorModel: RECOMMENDATION_MODEL,
+    });
+    expect(defineGoalFieldNames).toEqual(['evaluationGoal']);
+  });
+
+  it('should trim, require, and limit the evaluation goal in step two', () => {
+    expect(
+      defineGoalSchema.parse({
+        evaluationGoal: '  Compare responses.  ',
+      }).evaluationGoal,
+    ).toBe('Compare responses.');
+    expect(defineGoalSchema.safeParse({ evaluationGoal: '   ' }).success).toBe(false);
+    expect(
+      defineGoalSchema.safeParse({ evaluationGoal: 'a'.repeat(MAX_EVALUATION_GOAL_LENGTH) })
+        .success,
     ).toBe(true);
     expect(
       defineGoalSchema.safeParse({
-        ...DEFAULT_RECOMMENDATION_SETTINGS,
         evaluationGoal: 'a'.repeat(MAX_EVALUATION_GOAL_LENGTH + 1),
-        generatorModel: RECOMMENDATION_MODEL,
-      }).success,
-    ).toBe(false);
-    expect(
-      defineGoalSchema.safeParse({
-        ...DEFAULT_RECOMMENDATION_SETTINGS,
-        evaluationGoal: 'Valid goal',
-        generatorModel: null,
       }).success,
     ).toBe(false);
     expect(
@@ -156,16 +165,16 @@ describe('suite builder schemas', () => {
       }).success,
     ).toBe(false);
     expect(
-      defineGoalSchema.safeParse({
-        ...DEFAULT_RECOMMENDATION_SETTINGS,
-        evaluationGoal: 'Valid goal',
+      collectionGenerationSettingsSchema.safeParse({
+        ...collectionBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
         generatorModel: { ...RECOMMENDATION_MODEL, url: 'not-a-url' },
       }).success,
     ).toBe(false);
     expect(
-      defineGoalSchema.safeParse({
-        ...DEFAULT_RECOMMENDATION_SETTINGS,
-        evaluationGoal: 'Valid goal',
+      collectionGenerationSettingsSchema.safeParse({
+        ...collectionBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
         generatorModel: {
           source: 'external',
           name: '  my-external-model  ',
@@ -180,9 +189,9 @@ describe('suite builder schemas', () => {
       auth: { secret_ref: 'external-secret' },
     });
     expect(
-      defineGoalSchema.parse({
-        ...DEFAULT_RECOMMENDATION_SETTINGS,
-        evaluationGoal: 'Valid goal',
+      collectionGenerationSettingsSchema.parse({
+        ...collectionBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
         generatorModel: {
           source: 'external',
           name: 'my-external-model',
@@ -194,12 +203,7 @@ describe('suite builder schemas', () => {
       name: 'my-external-model',
       url: 'https://external.example.com/v1',
     });
-    expect(defineGoalFieldNames).toEqual([
-      'evaluationGoal',
-      'generatorModel',
-      'strictness',
-      'generationEffort',
-    ]);
+    expect(defineGoalFieldNames).toEqual(['evaluationGoal']);
   });
 
   it('should compose the settings and evaluation goal schemas', () => {
