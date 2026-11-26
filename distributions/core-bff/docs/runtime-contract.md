@@ -80,7 +80,7 @@ core-bff refusing to start: invalid configuration (2 problems):
 | Flag                   | Environment          | Default                    | Notes                                                                                                                                                         |
 | ---------------------- | -------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--auth-method`        | `AUTH_METHOD`        | `user_token`               | `user_token` or `disabled`. `disabled` is rejected in a production profile.                                                                                   |
-| `--auth-token-header`  | `AUTH_TOKEN_HEADER`  | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token`; a valid HTTP field name that is not hop-by-hop, `Host` or `Cookie`. `Authorization` needs `AUTH_TOKEN_PREFIX`.        |
+| `--auth-token-header`  | `AUTH_TOKEN_HEADER`  | `x-forwarded-access-token` | Required when `AUTH_METHOD=user_token` and `AUTH_TOKEN_HEADERS` is unset; a valid HTTP field name that is not hop-by-hop, `Host` or `Cookie`. `Authorization` needs `AUTH_TOKEN_PREFIX`. |
 | `--auth-token-prefix`  | `AUTH_TOKEN_PREFIX`  | _(empty)_                  | Set to `Bearer ` when the header is `Authorization`.                                                                                                          |
 | `--auth-token-headers` | `AUTH_TOKEN_HEADERS` | _(empty)_                  | Ordered list of credential headers. When set, replaces `AUTH_TOKEN_HEADER`; `AUTH_TOKEN_PREFIX` must be unset. See [Caller credentials](#caller-credentials). |
 
@@ -163,7 +163,10 @@ Outside `DEV_MODE` nothing can replace a missing or rejected caller credential:
 - `DEV_MODE` keeps its kubeconfig fallback identity for local development, but only when **no**
   credential header was sent at all. A credential header that was sent and is empty, malformed or
   conflicting is rejected with 401, as in production. With `AUTH_METHOD=disabled` no credential is ever read, so under `DEV_MODE`
-  every request is the fallback identity and runs as the kubeconfig. Without `DEV_MODE`, disabled auth
+  every request is the fallback identity and runs as the kubeconfig. On the Kubernetes proxies that
+  needs a kubeconfig with a bearer token or a client certificate: with an exec-plugin kubeconfig
+  (for example `kubelogin` on AKS) the proxies have no kubeconfig credential to present, so proxied
+  requests reach the API server without one. Without `DEV_MODE`, disabled auth
   only works with the mock clients. `DEV_MODE` is a development profile and cannot be enabled in
   production without the profile changing.
 

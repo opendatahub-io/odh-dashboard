@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -92,10 +93,12 @@ func (s clientSource) callerClients(ctx context.Context) (kubernetes.Interface, 
 // server's 401/403 instead of being folded into a 200 MutationResponse with
 // success=false. Under the caller policy an RBAC denial is the expected answer
 // for a caller who lacks the permission, and the client must be able to tell it
-// apart from any other failure. The service-account policy keeps its existing
-// response shape.
+// apart from any other failure. An unresolved caller identity is one too, so it
+// is a 401 here as on every other caller-scoped route. The service-account
+// policy keeps its existing response shape.
 func (s clientSource) surfacesAuthFailure(err error) bool {
-	return s.policy == CredentialPolicyCaller && (k8serrors.IsForbidden(err) || k8serrors.IsUnauthorized(err))
+	return s.policy == CredentialPolicyCaller &&
+		(k8serrors.IsForbidden(err) || k8serrors.IsUnauthorized(err) || errors.Is(err, httpcontract.ErrIdentityUnresolved))
 }
 
 // typed returns the typed clientset for a user-initiated operation.

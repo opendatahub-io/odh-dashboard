@@ -203,8 +203,11 @@ The Kubernetes HTTP and WebSocket proxies always use the caller's token, on ever
 The namespace mutation is the visible difference. On OpenShift a caller who may create
 ServingRuntimes in a project gets the label applied by the service account. On xKS the same caller
 needs `patch` on the Namespace itself; without it the response is `{"applied": false}` and nothing
-is written. The deploy flow already tolerates `applied: false`. Caller credentials that cannot be
-used at all (no usable token) are a `401`, not `applied: false`.
+is written. The deploy flow already tolerates `applied: false`. Only that denial is `applied: false`
+on xKS: any other failure of the caller's patch (a timeout, an API server error, an admission
+rejection, a missing namespace) is returned as that error, so a client can tell "you may not" from
+"it failed". Caller credentials that cannot be used at all (no usable token) are a `401`, not
+`applied: false`. OpenShift keeps answering every failed patch with `applied: false`, as before.
 
 The connection-type update, patch and delete are bound the same way to the connection type they
 validated (its `resourceVersion`): a change in between, or a `PUT` body with a different
@@ -213,9 +216,10 @@ validated (its `resourceVersion`): a change in between, or a `PUT` body with a d
 Under `caller` an RBAC denial from the API server reaches the client as its `403` (or `401`). The
 connection-type, component-removal and cluster-settings endpoints, which otherwise report failures
 as `200 {"success": false}`, do not fold a denial into that shape, so a client can tell "you may
-not" from "it failed". An access review that is neither allowed nor denied but carries an
-`evaluationError` (the authorizer could not decide) still blocks the cluster-settings save before any
-write, but is reported as a failure (`200 {"success": false}`), not as a `403`.
+not" from "it failed". The cluster-settings access reviews are decided by `status.allowed`, like every
+access review (see the [error contract](./error-contract.md)): a review that is not allowed is a `403`
+before any write, even when it carries an `evaluationError`, because the RBAC authorizer reports one for
+an ordinary denial whenever a matching binding names a missing role.
 
 `GET /api/cluster-settings` and `PUT /api/cluster-settings` read the OdhDashboardConfig the same
 way. Under `caller` that is the caller's own read, with no fallback on a denial: a caller who cannot read it
@@ -243,10 +247,12 @@ The writes are planned once, from one read of the cluster, and only the planned 
   tracking off) gets no write and no review. A culler ConfigMap that turns culling on without a readable
   idle time is shown as off but still culls, so saving culling off deletes it, so saving the values `GET` returned while changing
   another setting needs no ConfigMap write access.
-- The OdhDashboardConfig patch carries the `resourceVersion` of the configuration it was computed
-  from, so a save planned from an older read is rejected as a conflict
-  (`200 {"success": false}`) instead of undoing another admin's change. Defaults that were never
-  stored carry no version.
+- The OdhDashboardConfig patch carries the `resourceVersion` of the configuration the request read,
+  so another save that lands between this request's read and its patch is a conflict
+  (`200 {"success": false}`) instead of being overwritten. Defaults that were never stored carry no
+  version. The request body carries no version, so this does not protect the form across `GET` and
+  `PUT`: a form loaded before another admin's save still writes its own values (last writer wins,
+  as before this change).
 - Every ConfigMap operation is bound to the version the plan read. If the cluster changes after the
   plan, the planned write fails instead of switching to another one or overwriting a newer value: a
   planned create fails if the ConfigMap now exists, and a planned update or delete is a conflict if
@@ -265,6 +271,9 @@ The writes are planned once, from one read of the cluster, and only the planned 
   `caller`).
 - A failed read that the plan depends on is an error, never a detected change, so it cannot trigger
   a notebook-controller rollout.
+- A notebook-controller Deployment that does not exist (as on xKS, which has no workbenches) is
+  nothing to restart: the save succeeds instead of reporting a failure after its writes. Under
+  `caller` the planned rollout is still reviewed, so the caller needs `patch` on that Deployment.
 
 Under `caller` the request first reads the current OdhDashboardConfig with the caller's credentials
 (a failed read aborts the request), then runs a `SelfSubjectAccessReview` for every planned write,

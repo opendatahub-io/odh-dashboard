@@ -83,9 +83,12 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 // BuildDashboardConfigPatch builds the JSON merge patch for DashboardConfig fields
 // affected by cluster settings. The patch carries the resourceVersion of the
 // configuration it was computed from, so the API server rejects it with a
-// conflict if another save changed the configuration since: a stale patch
-// cannot undo another admin's change. Defaults that were never stored carry no
-// version and keep the unconditional patch.
+// conflict if another save changed the configuration between this request's
+// read and its patch. The request body carries no version, so this covers
+// concurrent saves inside one request only: a form loaded before another
+// admin's save still writes its own values over that save (last writer wins,
+// as before). Defaults that were never stored carry no version and keep the
+// unconditional patch.
 func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 	settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
 ) ([]byte, error) {
@@ -196,7 +199,9 @@ func (r *ClusterSettingsRepository) UpdateConfigMaps(ctx context.Context, namesp
 	if plan.rollout {
 		// TODO: Gate this notebook-controller restart on a platform capability; XKS
 		// must not expose the notebook (workbench) feature or its settings.
-		if err := r.rolloutDeployment(ctx, cs, namespace, notebookControllerDeploy); err != nil {
+		// No notebook-controller Deployment (xKS has no workbenches) means there
+		// is nothing to restart, not a failed save.
+		if err := r.rolloutDeployment(ctx, cs, namespace, notebookControllerDeploy); err != nil && !k8serrors.IsNotFound(err) {
 			return joinAuthFirst(writeErr, fmt.Errorf("failed to rollout %s: %w", notebookControllerDeploy, err))
 		}
 	}

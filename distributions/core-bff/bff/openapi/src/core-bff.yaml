@@ -894,9 +894,10 @@ paths:
         OdhDashboardConfig sets disableTracking, is also 200 with success false, before anything is written. If the notebook-controller
         rollout itself fails after the settings were stored, the response is 200 with success
         false and a retry does not restart the controller (the stored settings already match);
-        restart it once it can be patched. Under the caller credential policy (xKS) every planned write is reviewed
-        first, and a write the caller may not make is 403 before anything is written; a review the authorizer
-        could not evaluate also stops the save first but is 200 with success false, not 403. When a
+        restart it once it can be patched. A notebook-controller Deployment that does not exist is
+        nothing to restart, not a failure. Under the caller credential policy (xKS) every planned write is reviewed
+        first, and a write the caller may not make is 403 before anything is written (decided by the review's
+        allowed field, also when it carries an evaluationError). When a
         conflict and an authorization failure both occur, the authorization failure decides the
         status. Under the caller policy, when no OdhDashboardConfig instance exists GET shows
         the defaults but PUT returns 404: it does not write against a configuration it could not
@@ -1575,8 +1576,10 @@ paths:
         On OpenShift the dashboard service account then applies the mutation. Under the
         caller credential policy (xKS) the caller's own credentials apply it, so the caller
         also needs patch on the Namespace; without it the response is 200 with applied false
-        and nothing is written. A caller identity that cannot be resolved, or a token the API
-        server rejects, is 401.
+        and nothing is written. Any other failure of the caller's patch (a timeout, an API
+        server error, an admission rejection, a namespace that does not exist) is returned as
+        that error, not as applied false. A caller identity that cannot be resolved, or a token
+        the API server rejects, is 401.
       parameters:
         - name: name
           in: path
@@ -1612,6 +1615,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -18,8 +19,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	k8sclient "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
 func ensureNamespace(t *testing.T, name string) {
@@ -390,4 +394,52 @@ func TestNamespaceMutation_CallerClientsUnavailable_Returns401(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code, rr.Body.String())
 	assert.NotContains(t, rr.Body.String(), `"applied"`)
+}
+
+// Full review: under the caller policy only a denial of the caller's own patch
+// is {"applied": false}; an upstream failure is returned as that failure, so a
+// client can tell "you may not" from "it failed".
+func TestNamespaceMutation_CallerPolicy_UpstreamFailureIsNotADenial(t *testing.T) {
+	const ns = "ns-caller-upstream-failure"
+	ensureNamespace(t, ns)
+
+	for _, tc := range []struct {
+		name     string
+		patchErr error
+		wantCode int
+		applied  bool
+	}{
+		{"denied", k8serr.NewForbidden(corev1.Resource("namespaces"), ns, errors.New("no patch")), http.StatusOK, false},
+		{"gateway timeout", k8serr.NewTimeoutError("the patch timed out", 1), http.StatusGatewayTimeout, false},
+		{"internal error", k8serr.NewInternalError(errors.New("etcd")), http.StatusInternalServerError, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			caller := fake.NewSimpleClientset()
+			caller.PrependReactor("patch", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
+				return true, nil, tc.patchErr
+			})
+			app := newTestApp(func(a *App) {
+				a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+					Platform:          config.PlatformXKS,
+					PlatformConfirmed: true,
+					SAClientset:       testSAClientset,
+					CallerClients: func(context.Context) (k8sclient.Interface, dynamic.Interface, error) {
+						return caller, nil, nil
+					},
+				})
+			})
+			admin := k8mocks.DefaultTestUsers[0]
+			req := httptest.NewRequest(http.MethodGet, "/api/namespaces/"+ns+"/1", nil)
+			req = reqWithIdentity(req, &k8s.RequestIdentity{UserID: admin.UserName, Groups: admin.Groups, Token: k8s.NewBearerToken(admin.Token)})
+			rr := httptest.NewRecorder()
+			app.NamespaceMutationHandler(rr, req, httprouter.Params{{Key: "name", Value: ns}, {Key: "context", Value: "1"}})
+
+			assert.Equal(t, tc.wantCode, rr.Code, rr.Body.String())
+			if tc.wantCode == http.StatusOK {
+				assert.JSONEq(t, `{"applied":false}`, rr.Body.String())
+			} else {
+				assert.NotContains(t, rr.Body.String(), `"applied"`)
+			}
+		})
+	}
 }

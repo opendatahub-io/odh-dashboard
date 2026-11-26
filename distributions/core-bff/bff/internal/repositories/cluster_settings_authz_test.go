@@ -588,23 +588,38 @@ func TestClusterSettings_TrackingOptInWhileDisabled_FailsBeforeWrites(t *testing
 	}
 }
 
-// Review 6072972056 item 4: an access review the authorizer could not evaluate
-// blocks the save before any write, but is reported as an upstream failure,
-// not as a denial of the caller's permission.
-func TestClusterSettings_AccessReviewEvaluationError_IsNotADenial(t *testing.T) {
+// Review 6072972056 item 4, revisited in the full review: a review that is not
+// allowed is a denial (403 before any write) even with an evaluationError, as
+// docs/error-contract.md requires for every access review. The RBAC authorizer
+// sets one for an ordinary denial when a matching binding names a missing role.
+func TestClusterSettings_AccessReviewEvaluationError_DecidedByAllowed(t *testing.T) {
 	caller := newClientPair()
 	caller.typed.PrependReactor("create", "selfsubjectaccessreviews", func(a k8stesting.Action) (bool, runtime.Object, error) {
 		review := a.(k8stesting.CreateAction).GetObject().(*authv1.SelfSubjectAccessReview)
-		review.Status = authv1.SubjectAccessReviewStatus{EvaluationError: "webhook authorizer unavailable"}
+		review.Status = authv1.SubjectAccessReviewStatus{EvaluationError: `clusterrole.rbac.authorization.k8s.io "gone" not found`}
 		return true, review, nil
 	})
 	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
 
 	_, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
 	require.Error(t, err)
-	assert.False(t, k8serrors.IsForbidden(err), "not a denial: %v", err)
-	assert.False(t, repo.SurfacesAuthFailure(err))
-	assert.Contains(t, err.Error(), "could not be evaluated")
-	assert.NotContains(t, err.Error(), "webhook authorizer unavailable", "no upstream text")
+	assert.True(t, k8serrors.IsForbidden(err), "decided by allowed: %v", err)
+	assert.True(t, repo.SurfacesAuthFailure(err))
+	assert.NotContains(t, err.Error(), "gone", "no upstream text")
 	assert.Empty(t, writes(caller))
+}
+
+// Full review: with no notebook-controller Deployment (xKS has no workbenches)
+// a planned rollout is nothing to restart, so the save succeeds after its
+// writes instead of reporting a failure that a retry would not repeat.
+func TestClusterSettings_RolloutWithoutNotebookController_Succeeds(t *testing.T) {
+	caller := newClientPair()
+	allowAllBut(caller, nil)
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	plan, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
+	require.NoError(t, err)
+	require.True(t, plan.rollout, "a culler change plans the rollout")
+	require.NoError(t, repo.UpdateConfigMaps(context.Background(), credNS, plan))
+	assert.Contains(t, writes(caller), "create configmaps", "the culler setting is stored")
 }

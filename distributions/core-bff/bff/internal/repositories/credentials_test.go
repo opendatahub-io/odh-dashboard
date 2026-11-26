@@ -318,3 +318,12 @@ func TestNamespaceMutation_IsCredentialFailure_ByPolicy(t *testing.T) {
 		"a server-side failure building clients is not the caller's credential")
 	assert.False(t, caller.IsCredentialFailure(forbidden), "a denial stays applied:false")
 }
+
+// Full review: an unresolved caller identity reaches the client as a 401 on
+// the cluster-settings, connection-type and component routes too, as on the
+// namespace mutation, never as a 200 success=false body.
+func TestSurfacesAuthFailure_UnresolvedIdentity(t *testing.T) {
+	err := fmt.Errorf("%w: %w", ErrCallerClientsUnavailable, fmt.Errorf("no caller identity: %w", httpcontract.ErrIdentityUnresolved))
+	assert.True(t, clientSource{policy: CredentialPolicyCaller}.surfacesAuthFailure(err))
+	assert.False(t, clientSource{policy: CredentialPolicyServiceAccount}.surfacesAuthFailure(err), "the service-account policy keeps its response shape")
+}

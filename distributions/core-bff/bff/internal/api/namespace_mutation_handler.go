@@ -82,6 +82,10 @@ func (app *App) NamespaceMutationHandler(w http.ResponseWriter, r *http.Request,
 			app.unauthorizedResponse(w, r, err)
 			return
 		}
+		if !app.repositories.NamespaceMutation.IsNotApplied(err) {
+			app.k8sErrorResponse(w, r, err)
+			return
+		}
 		app.LogError(r, err)
 		if writeErr := app.WriteJSON(w, http.StatusOK, &models.NamespaceMutationResponse{Applied: false}, nil); writeErr != nil {
 			app.serverErrorResponse(w, r, writeErr)

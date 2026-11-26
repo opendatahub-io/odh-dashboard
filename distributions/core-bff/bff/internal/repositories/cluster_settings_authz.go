@@ -93,14 +93,11 @@ func (r *ClusterSettingsRepository) PlanUpdate(
 		if err != nil {
 			return nil, fmt.Errorf("access review for %s %s: %w", w.verb, w.resource, err)
 		}
-		if !resp.Status.Allowed && !resp.Status.Denied && resp.Status.EvaluationError != "" {
-			// The authorizer could not decide, which is an upstream failure,
-			// not a denial: the save stays blocked before any write, but the
-			// caller is not told they lack permission. The authorizer's own text
-			// is not passed on (see docs/error-contract.md).
-			return nil, fmt.Errorf("access review for %s %s could not be evaluated, so no cluster setting was changed",
-				w.verb, w.resource)
-		}
+		// Decided by status.allowed even when evaluationError is set, as every
+		// access review in Core BFF is (docs/error-contract.md): the RBAC
+		// authorizer reports an evaluation error for an ordinary denial when a
+		// matching binding names a missing role, so the error cannot tell an
+		// authorizer outage from a denial.
 		if !resp.Status.Allowed {
 			return nil, k8serrors.NewForbidden(
 				schema.GroupResource{Group: w.group, Resource: w.resource}, w.name,

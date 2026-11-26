@@ -28,8 +28,9 @@
 #                port-forward; tokens are never sent over remote plaintext. It must be configured
 #                for PLATFORM. A local BFF is started from ./bff otherwise, using
 #                the current kubeconfig context as its service account.
-#   ADMIN_TOKEN  Token of a caller who may patch namespaces. Defaults to
-#                `oc whoami -t` when oc is logged in; admin rows are skipped without one.
+#   ADMIN_TOKEN  Token of a caller who may patch namespaces. For a BFF started
+#                here it defaults to `oc whoami -t` when oc is logged in; with
+#                BFF_URL it must be set explicitly. Admin rows are skipped without one.
 #   KEEP_NAMESPACE=true  Do not delete the test namespace on exit.
 #   STRICT=true  Fail the run when any check is skipped (for example no node/ws,
 #                no ServingRuntime CRD or no ADMIN_TOKEN).
@@ -234,7 +235,13 @@ subjects: [{kind: ServiceAccount, name: caller-test, namespace: $NS}]
 roleRef: {kind: Role, name: serving-editor, apiGroup: rbac.authorization.k8s.io}
 EOF
 SA=$("${KUBECTL[@]}" -n "$NS" create token caller-test --duration=1h)
-AD=${AD_INPUT:-$(command -v oc >/dev/null 2>&1 && oc --request-timeout=30s whoami -t 2>/dev/null || true)}
+# The oc token is only a default for a BFF started here from the current
+# context: a BFF_URL may front another cluster, so it gets an admin token only
+# when ADMIN_TOKEN names one.
+AD=$AD_INPUT
+if [[ -z "$AD" && -z "${BFF_URL:-}" ]]; then
+  AD=$(command -v oc >/dev/null 2>&1 && oc --request-timeout=30s whoami -t 2>/dev/null || true)
+fi
 unset AD_INPUT
 
 if [[ -z "${BFF_URL:-}" ]]; then
