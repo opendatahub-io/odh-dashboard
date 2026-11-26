@@ -564,3 +564,47 @@ func TestClusterSettings_CullingOnWithoutIdleTime_SaveOffDeletes(t *testing.T) {
 		assert.True(t, k8serrors.IsNotFound(getErr))
 	}
 }
+
+// Review 6072972056 item 3: with tracking disabled in the dashboard config, an
+// opt-in is refused before any write instead of reporting success while the
+// setting stays off. Under both policies, and without reading the segment key.
+func TestClusterSettings_TrackingOptInWhileDisabled_FailsBeforeWrites(t *testing.T) {
+	for _, policy := range []CredentialPolicy{CredentialPolicyCaller, CredentialPolicyServiceAccount} {
+		t.Run(string(policy), func(t *testing.T) {
+			pair := newClientPair(versioned(segmentCM(false), "1"))
+			seen := allowAllBut(pair, nil)
+			repo := &ClusterSettingsRepository{clients: clientSource{policy: policy, caller: callerFrom(pair), saTyped: pair.typed, saDyn: pair.dyn}}
+			cfg := defaultDashConfig()
+			cfg.Spec.DashboardConfig.DisableTracking = true
+
+			_, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config",
+				&models.ClusterSettings{PVCSize: defaultPVCSize, CullerTimeout: defaultCullerTimeout, UserTrackingEnabled: true}, cfg)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "tracking is disabled in the dashboard config")
+			assert.False(t, repo.SurfacesAuthFailure(err), "a 200 success=false, not 403")
+			assert.Empty(t, *seen, "refused before any access review")
+			assert.Empty(t, writes(pair))
+		})
+	}
+}
+
+// Review 6072972056 item 4: an access review the authorizer could not evaluate
+// blocks the save before any write, but is reported as an upstream failure,
+// not as a denial of the caller's permission.
+func TestClusterSettings_AccessReviewEvaluationError_IsNotADenial(t *testing.T) {
+	caller := newClientPair()
+	caller.typed.PrependReactor("create", "selfsubjectaccessreviews", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		review := a.(k8stesting.CreateAction).GetObject().(*authv1.SelfSubjectAccessReview)
+		review.Status = authv1.SubjectAccessReviewStatus{EvaluationError: "webhook authorizer unavailable"}
+		return true, review, nil
+	})
+	repo := &ClusterSettingsRepository{clients: clientSource{policy: CredentialPolicyCaller, caller: callerFrom(caller)}}
+
+	_, err := repo.PlanUpdate(context.Background(), credNS, "odh-dashboard-config", cullerEnabledSettings(), defaultDashConfig())
+	require.Error(t, err)
+	assert.False(t, k8serrors.IsForbidden(err), "not a denial: %v", err)
+	assert.False(t, repo.SurfacesAuthFailure(err))
+	assert.Contains(t, err.Error(), "could not be evaluated")
+	assert.NotContains(t, err.Error(), "webhook authorizer unavailable", "no upstream text")
+	assert.Empty(t, writes(caller))
+}

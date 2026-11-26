@@ -93,6 +93,14 @@ func (r *ClusterSettingsRepository) PlanUpdate(
 		if err != nil {
 			return nil, fmt.Errorf("access review for %s %s: %w", w.verb, w.resource, err)
 		}
+		if !resp.Status.Allowed && !resp.Status.Denied && resp.Status.EvaluationError != "" {
+			// The authorizer could not decide, which is an upstream failure,
+			// not a denial: the save stays blocked before any write, but the
+			// caller is not told they lack permission. The authorizer's own text
+			// is not passed on (see docs/error-contract.md).
+			return nil, fmt.Errorf("access review for %s %s could not be evaluated, so no cluster setting was changed",
+				w.verb, w.resource)
+		}
 		if !resp.Status.Allowed {
 			return nil, k8serrors.NewForbidden(
 				schema.GroupResource{Group: w.group, Resource: w.resource}, w.name,
@@ -151,6 +159,11 @@ func (r *ClusterSettingsRepository) buildPlan(
 	// shows the setting and the form cannot change it, so the plan neither reads
 	// nor writes the segment-key ConfigMap: a save then needs no access to it.
 	plan.trackingManaged = currentConfig != nil && !currentConfig.Spec.DashboardConfig.DisableTracking
+	if !plan.trackingManaged && settings.UserTrackingEnabled {
+		// GET shows tracking off here, and an opt-in cannot be stored: refuse it
+		// before any write instead of reporting success for a setting left off.
+		return nil, fmt.Errorf("user tracking cannot be enabled: tracking is disabled in the dashboard config")
+	}
 	if plan.trackingManaged {
 		segmentKey, err := getConfigMap(ctx, cs, namespace, segmentKeyConfigName)
 		switch {

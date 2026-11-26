@@ -213,7 +213,9 @@ validated (its `resourceVersion`): a change in between, or a `PUT` body with a d
 Under `caller` an RBAC denial from the API server reaches the client as its `403` (or `401`). The
 connection-type, component-removal and cluster-settings endpoints, which otherwise report failures
 as `200 {"success": false}`, do not fold a denial into that shape, so a client can tell "you may
-not" from "it failed".
+not" from "it failed". An access review that is neither allowed nor denied but carries an
+`evaluationError` (the authorizer could not decide) still blocks the cluster-settings save before any
+write, but is reported as a failure (`200 {"success": false}`), not as a `403`.
 
 `GET /api/cluster-settings` and `PUT /api/cluster-settings` read the OdhDashboardConfig the same
 way. Under `caller` that is the caller's own read, with no fallback on a denial: a caller who cannot read it
@@ -230,7 +232,8 @@ The writes are planned once, from one read of the cluster, and only the planned 
   culler ConfigMap has `ENABLE_CULLING: "true"` (in any case), and tracking is off unless the segment-key
   ConfigMap has `segmentKeyEnabled: "true"`. When the OdhDashboardConfig sets `disableTracking`,
   `GET` does not read or show tracking and `PUT` neither reads nor writes the segment-key ConfigMap,
-  so neither needs access to it. Tracking can be enabled only when the segment-key ConfigMap is
+  so neither needs access to it; a save that enables tracking there fails (`200 {"success": false}`)
+  before anything is written instead of reporting success for a setting left off. Tracking can be enabled only when the segment-key ConfigMap is
   provisioned; otherwise the save fails (`200 {"success": false}`) before anything is written. Under
   `caller`, a failed read of either ConfigMap fails `GET` as it fails `PUT`. Under the
   service-account policy `GET` shows an unreadable segment-key ConfigMap as tracking off, as before,
