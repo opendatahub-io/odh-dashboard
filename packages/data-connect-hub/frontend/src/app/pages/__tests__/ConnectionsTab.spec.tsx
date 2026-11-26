@@ -6,19 +6,22 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
 import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useConnections } from '~/app/hooks/useConnections';
-import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
-import { useNamespaces } from '~/app/hooks/useNamespaces';
-import { ConnectionApiError, deleteConnection, verifyConnection } from '~/app/api/dch';
+import {
+  ConnectionApiError,
+  createConnection,
+  deleteConnection,
+  verifyConnection,
+} from '~/app/api/dch';
 import { ConnectionTypeInstance } from '~/app/components/ConnectionType.tsx';
+import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
+import type { CreateConnectionRequest } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnections');
-jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useConnectionAccess');
-jest.mock('~/app/hooks/useNamespaces');
-const mockNotificationSuccess = jest.fn();
-jest.mock('~/app/hooks/useNotification', () => ({
-  useNotification: () => ({ success: mockNotificationSuccess, error: jest.fn() }),
+jest.mock('~/app/components/CreateConnectionWizard', () => ({
+  __esModule: true,
+  default: jest.fn(() => null),
 }));
 jest.mock('~/app/api/dch', () => ({
   ...jest.requireActual<typeof import('~/app/api/dch')>('~/app/api/dch'),
@@ -52,9 +55,10 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 }));
 
 const mockUseConnections = jest.mocked(useConnections);
-const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
-const mockUseNamespaces = jest.mocked(useNamespaces);
+const mockCreateConnectionWizard = jest.mocked(CreateConnectionWizard);
+const mockCreateConnection = jest.mocked(createConnection);
+const mockCreateRequest = jest.fn<ReturnType<typeof createConnection>>();
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
 const mockTrackEvent = jest.fn();
@@ -70,7 +74,7 @@ const renderConnectionsTab = (props: React.ComponentProps<typeof ConnectionsTab>
     </MemoryRouter>,
   );
 
-const connections = [
+const baseConnections = [
   {
     metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
     resource: {
@@ -121,6 +125,11 @@ const connectionTypes = [
   }),
 ];
 
+const connections = baseConnections.map((connection, index) => ({
+  ...connection,
+  resource: { ...connection.resource, data_connection_type: connectionTypes[index] },
+}));
+
 const newConnection = {
   metadata: { id: '550e8400-e29b-41d4-a716-446655440005' },
   resource: {
@@ -141,15 +150,32 @@ const newConnectionType = new ConnectionTypeInstance({
   resource: { name: 'Snowflake', provider: 'snowflake', credentials_fields: [] },
 });
 
+const createRequest: CreateConnectionRequest = {
+  name: 'warehouse',
+  data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
+  format: 'tabular',
+  credentials: { secret: 'warehouse', properties: { URI: 'postgres://example' } },
+  properties: {},
+};
+
 describe('ConnectionsTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockVerifyConnection.mockImplementation(() => () => Promise.resolve());
     mockDeleteConnection.mockImplementation(() => () => Promise.resolve());
     mockUseConnections.mockReturnValue([connections, true, undefined, jest.fn()]);
-    mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
+    mockCreateConnection.mockReturnValue(mockCreateRequest);
+    mockCreateRequest.mockResolvedValue(connections[0]);
+    mockCreateConnectionWizard.mockImplementation(({ isOpen, onClose }) =>
+      isOpen ? (
+        <div data-testid="mock-create-connection-wizard">
+          <button type="button" onClick={onClose}>
+            Close mocked wizard
+          </button>
+        </div>
+      ) : null,
+    );
     mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
-    mockUseNamespaces.mockReturnValue([[{ name: 'test-project' }], true, undefined]);
   });
 
   it('keeps manually deselected types deselected during polling', () => {
@@ -181,9 +207,38 @@ describe('ConnectionsTab', () => {
   it('renders connection names and readable type names', () => {
     renderConnectionsTab({ namespace: 'test-project' });
 
+    expect(mockUseConnections).toHaveBeenCalledWith('test-project', true, {
+      resolveConnectionTypes: true,
+    });
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Unverified')).toBeTruthy();
+  });
+
+  it('falls back to type IDs when resolved types are absent', () => {
+    mockUseConnections.mockReturnValue([baseConnections, true, undefined, jest.fn()]);
+
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    expect(screen.getByText(baseConnections[0].resource.data_connection_type_id)).toBeTruthy();
+    expect(screen.getByText('warehouse')).toBeTruthy();
+  });
+
+  it('shows the loading state while fetching resolved connections', () => {
+    mockUseConnections.mockReturnValue([[], false, undefined, jest.fn()]);
+
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    expect(screen.getByText('Loading data connections')).toBeTruthy();
+  });
+
+  it('shows an error when fetching resolved connections fails', () => {
+    mockUseConnections.mockReturnValue([[], false, new Error('Resolution failed'), jest.fn()]);
+
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    expect(screen.getByText('Unable to load data connections')).toBeTruthy();
+    expect(screen.getByText('Resolution failed')).toBeTruthy();
   });
 
   it('defaults the type filter to unselected without filtering connections', async () => {
@@ -303,17 +358,55 @@ describe('ConnectionsTab', () => {
     );
   });
 
-  it('opens the create connection wizard from the toolbar', async () => {
+  it('opens and closes the create connection wizard from the toolbar', async () => {
     const user = userEvent.setup();
     renderConnectionsTab({ namespace: 'test-project' });
 
+    expect(screen.queryByTestId('mock-create-connection-wizard')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
 
-    expect(screen.getByTestId('create-connection-tearsheet')).toBeTruthy();
-    expect(screen.getAllByText('Connection type').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Connection details').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Configuration').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Review').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('mock-create-connection-wizard')).toBeTruthy();
+    expect(mockCreateConnectionWizard.mock.lastCall?.[0]).toEqual(
+      expect.objectContaining({ isOpen: true, namespace: 'test-project' }),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Close mocked wizard' }));
+
+    expect(screen.queryByTestId('mock-create-connection-wizard')).toBeNull();
+    expect(mockCreateConnectionWizard.mock.lastCall?.[0].isOpen).toBe(false);
+  });
+
+  it('creates a connection in the selected namespace, refreshes, and returns the connection', async () => {
+    const user = userEvent.setup();
+    const refresh = jest.fn();
+    mockUseConnections.mockReturnValue([connections, true, undefined, refresh]);
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+    const onCreate = mockCreateConnectionWizard.mock.lastCall?.[0].onCreate;
+
+    await expect(onCreate?.(createRequest, 'new-project')).resolves.toBe(connections[0]);
+
+    expect(mockCreateConnection).toHaveBeenCalledWith('');
+    expect(mockCreateRequest).toHaveBeenCalledWith({}, 'new-project', createRequest);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes creation failures to the wizard without refreshing the list', async () => {
+    const user = userEvent.setup();
+    const refresh = jest.fn();
+    const error = new Error('Creation failed');
+    mockCreateRequest.mockRejectedValue(error);
+    mockUseConnections.mockReturnValue([connections, true, undefined, refresh]);
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+    const onCreate = mockCreateConnectionWizard.mock.lastCall?.[0].onCreate;
+
+    await expect(onCreate?.(createRequest, 'new-project')).rejects.toBe(error);
+
+    expect(refresh).not.toHaveBeenCalled();
+    expect(screen.getByTestId('mock-create-connection-wizard')).toBeTruthy();
   });
 
   it('tracks starting the create connection flow from the toolbar', async () => {
@@ -358,7 +451,7 @@ describe('ConnectionsTab', () => {
     ).toBeTruthy();
 
     fireEvent.click(button);
-    expect(screen.queryByTestId('create-connection-tearsheet')).toBeNull();
+    expect(screen.queryByTestId('mock-create-connection-wizard')).toBeNull();
     expect(mockTrackEvent).not.toHaveBeenCalledWith('Connections Add Started', {
       project: 'test-project',
       source: 'connections_tab',
@@ -376,8 +469,9 @@ describe('ConnectionsTab', () => {
   it('disables connection polling while the Connections tab is inactive', () => {
     renderConnectionsTab({ namespace: 'test-project', isActive: false });
 
-    expect(mockUseConnections).toHaveBeenCalledWith('test-project', false);
-    expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project', false);
+    expect(mockUseConnections).toHaveBeenCalledWith('test-project', false, {
+      resolveConnectionTypes: true,
+    });
   });
 
   it('filters connections by name', async () => {
@@ -624,15 +718,16 @@ describe('ConnectionsTab', () => {
     await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
     fireEvent.click(within(screen.getByRole('menuitem', { name: 'S3' })).getByRole('checkbox'));
     mockUseConnections.mockReturnValue([
-      [...connections, newConnection],
+      [
+        ...connections,
+        {
+          ...newConnection,
+          resource: { ...newConnection.resource, data_connection_type: newConnectionType },
+        },
+      ],
       true,
       undefined,
       jest.fn(),
-    ]);
-    mockUseConnectionTypes.mockReturnValue([
-      [...connectionTypes, newConnectionType],
-      true,
-      undefined,
     ]);
     rerender(
       <MemoryRouter>
@@ -661,7 +756,6 @@ describe('ConnectionsTab', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'S3' }));
 
     mockUseConnections.mockReturnValue([[connections[1]], true, undefined, jest.fn()]);
-    mockUseConnectionTypes.mockReturnValue([[connectionTypes[1]], true, undefined]);
     rerender(
       <MemoryRouter>
         <ConnectionsTab key="project-two" namespace="project-two" />
@@ -686,6 +780,6 @@ describe('ConnectionsTab', () => {
     ).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Filter by name' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
-    expect(screen.getByTestId('create-connection-tearsheet')).toBeTruthy();
+    expect(screen.getByTestId('mock-create-connection-wizard')).toBeTruthy();
   });
 });

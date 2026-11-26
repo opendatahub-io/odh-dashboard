@@ -64,6 +64,7 @@ export type Connection = {
   resource: {
     name: string;
     data_connection_type_id: string;
+    data_connection_type?: ConnectionType;
     format: 'tabular' | 'binary';
     credentials_ref: { secret: string };
     properties?: Record<string, string>;
