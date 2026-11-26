@@ -24,7 +24,7 @@ spec:
   appName: rhoai
   type: tutorial
   description: |-
-    Use OpenShift AI to build a generative AI assistant for a hospital IT helpdesk: deploy a model from the model catalog, prototype in the playground, add tracing, ground the answers in policy documents with RAG, and connect the assistant to a ticketing system through an MCP server.
+    Use OpenShift AI to build a generative AI assistant for a hospital helpdesk: deploy a model from the model catalog, prototype in the playground, add tracing, ground the answers in policy documents with RAG, and connect the assistant to a ticketing system through an MCP server.
   url: https://rh-aiservices-bu.github.io/hospital-helpdesk/hospital-helpdesk-workshop/index.html
   durationMinutes: 90
   provider: Red Hat
