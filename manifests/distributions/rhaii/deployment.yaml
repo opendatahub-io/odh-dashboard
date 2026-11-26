@@ -96,8 +96,12 @@ spec:
             - --port=8443
             - --deployment-mode=standalone
             - --auth-method=user_token
-            - --auth-token-header=x-forwarded-access-token
-            - --auth-token-prefix=
+            # The xKS gateway forwards the caller's token as Authorization: Bearer
+            # and as x-forwarded-access-token. Read Authorization first and fall
+            # back to x-forwarded-access-token; two different tokens are rejected.
+            # This list replaces --auth-token-header/--auth-token-prefix. See
+            # distributions/core-bff/docs/runtime-contract.md, "Caller credentials".
+            - --auth-token-headers=Authorization,x-forwarded-access-token
             - --platform-type=XKS
             - --static-assets-dir=/static
           env:

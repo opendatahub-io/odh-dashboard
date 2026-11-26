@@ -2,7 +2,7 @@ import { Content, ContentVariants, Flex, FlexItem } from '@patternfly/react-core
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { URL_PREFIX } from '~/app/utilities/const';
 import ApiKeyCountLabel from '~/app/components/ApiKeyCountLabel';
 import {
@@ -22,6 +22,7 @@ const ModelGroupRow: React.FC<{
   rowIndex: number;
 }> = ({ modelGroup, rowIndex }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const trackEvent = useTrackEvent();
 
   return (
     <Tbody isExpanded={isExpanded} data-testid="model-group-row">
@@ -34,7 +35,7 @@ const ModelGroupRow: React.FC<{
             onToggle: () => {
               setIsExpanded((prev) => {
                 const next = !prev;
-                fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_ROW_EXPANDED, {
+                trackEvent(MaaSEvents.MY_SUBSCRIPTIONS_ROW_EXPANDED, {
                   currentView: MySubscriptionsGrouping.MODEL,
                   nestedItemCount: modelGroup.subscriptions.length,
                   expanded: next,
@@ -91,7 +92,7 @@ const ModelGroupRow: React.FC<{
                           data-testid={`subscription-detail-link-${sub.subscriptionIdHeader}`}
                           to={`${URL_PREFIX}/keys-and-subs/subscriptions/${sub.subscriptionIdHeader}`}
                           onClick={() => {
-                            fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
+                            trackEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
                               currentView: MySubscriptionsGrouping.MODEL,
                               location: SubscriptionDetailNavLocation.EXPANDED_NESTED_ROW,
                             } satisfies SubscriptionDetailNavigatedProperties);

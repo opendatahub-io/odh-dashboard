@@ -231,6 +231,16 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['src/**/*.{ts,tsx}'],
+      excludedFiles: ['src/__tests__/cypress/**'],
+      extends: ['@odh-dashboard/eslint-config/feature-analytics'],
+    },
+    {
+      files: ['src/bootstrap.tsx'],
+      rules: { '@odh-dashboard/no-direct-analytics': 'off' },
+    },
+
+    {
       // Workspace packages: disable import/no-extraneous-dependencies for @odh-dashboard packages
       files: ['src/**/*.{ts,tsx}'],
       rules: {

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Alert,
@@ -36,7 +37,6 @@ import {
   TabRoutePageExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { AIModel } from '~/app/types';
@@ -58,6 +58,7 @@ interface TranscriptionModelSectionProps {
 const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSectionProps> = ({
   configId,
 }) => {
+  const trackEvent = useTrackEvent();
   const { aiModels, aiModelsLoaded, maasModels, maasModelsLoaded } =
     React.useContext(ChatbotContext);
   const allModels = React.useMemo(
@@ -127,14 +128,14 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
       updateSelectedAsrModel(configId, value);
       updateAsrModelEnabled(configId, true);
       setStaleWarning(false);
-      fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
+      trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
         modelName: model.display_name || value,
         isDefaultModel: false,
       });
       setIsAllModelsOpen(false);
       setIsDropdownOpen(false);
     },
-    [configId, updateSelectedAsrModel, updateAsrModelEnabled, allModels],
+    [allModels, updateSelectedAsrModel, configId, updateAsrModelEnabled, trackEvent],
   );
 
   const getSelectedDisplayName = (models: AIModel[], modelId: string): string => {

@@ -1,7 +1,7 @@
 /* eslint-disable camelcase, @typescript-eslint/no-require-imports */
 import * as React from 'react';
 import { renderHook, render, screen, within, act } from '@testing-library/react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
 import { CreateResponseRequest, DocumentAttachment, SimplifiedResponseData } from '~/app/types';
@@ -13,13 +13,13 @@ import {
   defaultMcpProps,
 } from './consts';
 
+const trackEvent = jest.fn();
+
 // Mock external dependencies
 jest.mock('@patternfly/chatbot', () => ({}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+
 jest.mock('~/app/utilities/utils', () => {
   let idCounter = 0;
   return {
@@ -39,15 +39,22 @@ jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
 
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
-  useContext: jest.fn(),
+  useContext: (context: React.Context<unknown>) => {
+    const { GenAiContext } = jest.requireActual('~/app/context/GenAiContext');
+    const { ChatbotContext } = jest.requireActual('~/app/context/ChatbotContext');
+    if (context === GenAiContext || context === ChatbotContext) {
+      return mockUseContext(context);
+    }
+    return jest.requireActual<typeof React>('react').useContext(context);
+  },
 }));
 
-const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+const mockUseContext = jest.fn();
 
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(trackEvent);
 
 // Create a properly typed mock for createResponse
 const mockCreateResponse = jest.fn<
@@ -117,7 +124,9 @@ describe('useChatbotMessages', () => {
     it('should initialize with correct default values', () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(result.current.messages).toHaveLength(0);
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
@@ -129,7 +138,9 @@ describe('useChatbotMessages', () => {
   describe('handleMessageSend', () => {
     it('tracks zero document attachments on a plain query', async () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Hello');
@@ -158,7 +169,9 @@ describe('useChatbotMessages', () => {
         ],
       });
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Hello');
@@ -184,8 +197,9 @@ describe('useChatbotMessages', () => {
         return Promise.resolve(mockSuccessResponse);
       });
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -236,8 +250,9 @@ describe('useChatbotMessages', () => {
         return Promise.resolve(mockSuccessResponse);
       });
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -275,8 +290,9 @@ describe('useChatbotMessages', () => {
         return Promise.resolve(mockSuccessResponse);
       });
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -291,7 +307,9 @@ describe('useChatbotMessages', () => {
     it('should successfully send a message and receive a bot response', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Hello, bot!');
@@ -318,7 +336,9 @@ describe('useChatbotMessages', () => {
     it('should disable and re-enable send button during message sending', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       // Initially button should be enabled
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
@@ -334,7 +354,9 @@ describe('useChatbotMessages', () => {
     it('should call createResponse with correct parameters', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Test query');
@@ -371,10 +393,12 @@ describe('useChatbotMessages', () => {
         },
       ];
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(
-          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages(
+            createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+          ),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -407,8 +431,9 @@ describe('useChatbotMessages', () => {
     });
 
     it('should handle missing modelId', async () => {
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ modelId: '' })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ modelId: '' })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -432,12 +457,14 @@ describe('useChatbotMessages', () => {
     it('should call createResponse without vector_store_ids when RAG is disabled', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(
-          createDefaultHookProps({
-            isRagEnabled: false,
-          }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages(
+            createDefaultHookProps({
+              isRagEnabled: false,
+            }),
+          ),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -476,7 +503,9 @@ describe('useChatbotMessages', () => {
         },
       });
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -505,7 +534,9 @@ describe('useChatbotMessages', () => {
         },
       });
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -523,7 +554,9 @@ describe('useChatbotMessages', () => {
         },
       });
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -554,7 +587,9 @@ describe('useChatbotMessages', () => {
         },
       });
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -594,8 +629,9 @@ describe('useChatbotMessages', () => {
         },
       );
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -621,12 +657,14 @@ describe('useChatbotMessages', () => {
     it('should use currentVectorStoreId when RAG is enabled', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(
-          createDefaultHookProps({
-            currentVectorStoreId: 'vs_current_store_123',
-          }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages(
+            createDefaultHookProps({
+              currentVectorStoreId: 'vs_current_store_123',
+            }),
+          ),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -655,10 +693,12 @@ describe('useChatbotMessages', () => {
     it('should include conversation history in system prompt', async () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(
-          createDefaultHookProps({ systemInstruction: 'You are a helpful assistant.' }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages(
+            createDefaultHookProps({ systemInstruction: 'You are a helpful assistant.' }),
+          ),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       // Send first message
@@ -701,10 +741,12 @@ describe('useChatbotMessages', () => {
         },
       ];
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(
-          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages(
+            createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+          ),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -724,7 +766,9 @@ describe('useChatbotMessages', () => {
     it('should handle empty system instruction correctly', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -746,7 +790,7 @@ describe('useChatbotMessages', () => {
               systemInstruction: 'Be helpful.',
             }),
           ),
-        { initialProps: { modelId: 'model-1' } },
+        { wrapper: createTrackingWrapper(trackEvent), initialProps: { modelId: 'model-1' } },
       );
 
       // Send message with first model
@@ -786,7 +830,10 @@ describe('useChatbotMessages', () => {
               systemInstruction,
             }),
           ),
-        { initialProps: { systemInstruction: 'Be concise.' } },
+        {
+          wrapper: createTrackingWrapper(trackEvent),
+          initialProps: { systemInstruction: 'Be concise.' },
+        },
       );
 
       // Send message with first instruction
@@ -831,7 +878,9 @@ describe('useChatbotMessages', () => {
 
       mockCreateResponse.mockResolvedValueOnce(mockResponseWithToolData);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Calculate');
@@ -862,8 +911,9 @@ describe('useChatbotMessages', () => {
         },
       );
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -885,7 +935,9 @@ describe('useChatbotMessages', () => {
 
       mockCreateResponse.mockResolvedValueOnce(mockResponseWithMetrics);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -916,8 +968,9 @@ describe('useChatbotMessages', () => {
         },
       );
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -936,8 +989,9 @@ describe('useChatbotMessages', () => {
     it('should include subscription in payload when provided', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ subscription: 'premium-subscription' })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ subscription: 'premium-subscription' })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -958,7 +1012,9 @@ describe('useChatbotMessages', () => {
     it('should omit subscription from payload when not provided', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Hello without subscription');
@@ -971,8 +1027,9 @@ describe('useChatbotMessages', () => {
     it('should omit subscription from payload when subscription is empty string', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ subscription: '' })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ subscription: '' })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -987,7 +1044,9 @@ describe('useChatbotMessages', () => {
     it('should construct multimodal input when fileId is provided', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Describe this image', undefined, 'file-vision-123');
@@ -1004,7 +1063,9 @@ describe('useChatbotMessages', () => {
     it('should send only input_image when message text is empty', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('', undefined, 'file-vision-456');
@@ -1017,7 +1078,9 @@ describe('useChatbotMessages', () => {
     it('should send plain string input when no fileId is provided', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Plain text message');
@@ -1046,8 +1109,9 @@ describe('useChatbotMessages', () => {
       try {
         mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-        const { result } = renderHook(() =>
-          useChatbotMessages(createDefaultHookProps({ documentAttachments: attachments })),
+        const { result } = renderHook(
+          () => useChatbotMessages(createDefaultHookProps({ documentAttachments: attachments })),
+          { wrapper: createTrackingWrapper(trackEvent) },
         );
 
         // First turn: multimodal message with image
@@ -1088,7 +1152,9 @@ describe('useChatbotMessages', () => {
   describe('inline image rendering', () => {
     it('should set extraContent.beforeMainContent as img element when imagePreview is provided', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Describe this image', undefined, 'file-123', {
@@ -1106,7 +1172,9 @@ describe('useChatbotMessages', () => {
 
     it('should not include markdown image syntax in content when imagePreview is provided', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Describe this image', undefined, 'file-123', {
@@ -1122,7 +1190,9 @@ describe('useChatbotMessages', () => {
 
     it('should render content as empty string when only an image (no text) is sent', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('', undefined, 'file-123', {
@@ -1139,7 +1209,9 @@ describe('useChatbotMessages', () => {
 
     it('should set content to text message when both image and text are provided', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('What is this?', undefined, 'file-123', {
@@ -1155,7 +1227,9 @@ describe('useChatbotMessages', () => {
 
     it('should not set extraContent when no imagePreview is provided', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Hello, bot!');
@@ -1185,7 +1259,9 @@ describe('useChatbotMessages', () => {
 
     it('should show audio without transcript text and keep the transcript in later context', async () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
 
       await act(async () => {
@@ -1206,7 +1282,7 @@ describe('useChatbotMessages', () => {
       expect(userMessage.content).toBe('');
       expect(userMessage.attachments).toBeUndefined();
       expect(player.type).toBe(AudioAttachmentTile);
-      render(player);
+      render(player, { wrapper: createTrackingWrapper(trackEvent) });
       const tile = screen.getByTestId('sent-audio-tile');
       expect(tile).toHaveStyle({ width: '18.75rem', maxWidth: '100%' });
       expect(within(tile).getByText('recording.wav')).toBeInTheDocument();
@@ -1235,7 +1311,9 @@ describe('useChatbotMessages', () => {
 
     it('should show only the typed question while keeping audio transcription in the request', async () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
 
       await act(async () => {
@@ -1268,7 +1346,9 @@ describe('useChatbotMessages', () => {
         .mockReturnValueOnce('blob:first-audio')
         .mockReturnValueOnce('blob:second-audio');
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       const firstFile = new File(['first-audio'], 'first.wav', { type: 'audio/wav' });
       const secondFile = new File(['second-audio'], 'second.wav', { type: 'audio/wav' });
 
@@ -1303,8 +1383,12 @@ describe('useChatbotMessages', () => {
       });
       expect(result.current.messages[0].content).toBe('');
       expect(result.current.messages[2].content).toBe('');
-      render(result.current.messages[0].extraContent?.beforeMainContent);
-      render(result.current.messages[2].extraContent?.beforeMainContent);
+      render(result.current.messages[0].extraContent?.beforeMainContent, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
+      render(result.current.messages[2].extraContent?.beforeMainContent, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       const tiles = screen.getAllByTestId('sent-audio-tile');
       expect(within(tiles[0]).getByText('first.wav')).toBeInTheDocument();
       expect(within(tiles[0]).getByTestId('sent-audio-player')).toHaveAttribute(
@@ -1328,8 +1412,9 @@ describe('useChatbotMessages', () => {
         content_type: 'text/plain',
         size: 5,
       };
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ documentAttachments: [document] })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ documentAttachments: [document] })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
 
@@ -1346,7 +1431,9 @@ describe('useChatbotMessages', () => {
       expect(result.current.messages[0].attachments).toEqual([
         { id: document.file_id, name: document.filename },
       ]);
-      render(result.current.messages[0].extraContent?.beforeMainContent);
+      render(result.current.messages[0].extraContent?.beforeMainContent, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       expect(screen.getByRole('img', { name: 'photo.png' })).toBeInTheDocument();
       expect(screen.getByTestId('sent-audio-tile')).toBeInTheDocument();
       expect(result.current.messages[0].documentAttachments).toEqual([document]);
@@ -1358,8 +1445,12 @@ describe('useChatbotMessages', () => {
         .mockReturnValueOnce('blob:first-pane')
         .mockReturnValueOnce('blob:second-pane');
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
-      const firstPane = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-      const secondPane = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const firstPane = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
+      const secondPane = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       const file = new File(['audio-data'], 'recording.mp3', { type: 'audio/mpeg' });
 
       await act(async () => {
@@ -1389,7 +1480,9 @@ describe('useChatbotMessages', () => {
 
     it('should clear audio URL tracking when URL.revokeObjectURL is unavailable', async () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
 
       await act(async () => {
@@ -1419,7 +1512,9 @@ describe('useChatbotMessages', () => {
 
     it('should unmount with audio when URL.revokeObjectURL is unavailable', async () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
-      const hook = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const hook = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await hook.result.current.handleMessageSend(
@@ -1443,7 +1538,9 @@ describe('useChatbotMessages', () => {
         reasoningContent: 'I need to think about this step by step...',
       };
       mockCreateResponse.mockResolvedValueOnce(responseWithReasoning);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Solve this puzzle');
@@ -1458,7 +1555,9 @@ describe('useChatbotMessages', () => {
 
     it('should not set extraContent.beforeMainContent when no reasoningContent exists', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Hello');
@@ -1494,8 +1593,9 @@ describe('useChatbotMessages', () => {
         },
       );
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -1530,8 +1630,9 @@ describe('useChatbotMessages', () => {
         },
       );
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -1562,8 +1663,9 @@ describe('useChatbotMessages', () => {
         },
       );
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -1595,8 +1697,9 @@ describe('useChatbotMessages', () => {
         },
       );
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -1611,7 +1714,9 @@ describe('useChatbotMessages', () => {
   describe('reasoning effort in payload', () => {
     it('reasoning field is never sent in request payload', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Hello');
@@ -1629,8 +1734,9 @@ describe('useChatbotMessages', () => {
     it('sends X-Session-ID header when isTracingEnabled is true', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isTracingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isTracingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -1648,8 +1754,9 @@ describe('useChatbotMessages', () => {
     it('does not send X-Session-ID header when isTracingEnabled is false', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isTracingEnabled: false })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isTracingEnabled: false })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -1667,7 +1774,9 @@ describe('useChatbotMessages', () => {
     it('does not send X-Session-ID header by default', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('hello');
@@ -1686,8 +1795,9 @@ describe('useChatbotMessages', () => {
         .mockResolvedValueOnce(mockSuccessResponse)
         .mockResolvedValueOnce(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isTracingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isTracingEnabled: true })),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {

@@ -4,8 +4,6 @@ import { AppRoutePaths } from '~/app/routes';
 import { WorkspaceKindSummaryWrapper } from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryWrapper';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
 import { useAppContext } from '~/app/context/AppContext';
-import { DEV_MODE } from '~/shared/utilities/const';
-import { Debug } from './pages/Debug/Debug';
 import { NotFound } from './pages/notFound/NotFound';
 import { WorkspaceKinds } from './pages/WorkspaceKinds/WorkspaceKinds';
 import { WorkspacesWrapper } from './pages/Workspaces/WorkspacesWrapper';
@@ -28,7 +26,7 @@ export type NavDataGroup = NavDataCommon & {
 
 type NavDataItem = NavDataHref | NavDataGroup;
 
-export const useAdminDebugSettings = (): NavDataItem[] => {
+const useAdminNavItems = (): NavDataItem[] => {
   const { user } = useAppContext();
 
   if (!user?.clusterAdmin) {
@@ -40,14 +38,6 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
       label: 'Workspace kinds',
       path: AppRoutePaths.workspaceKinds,
     },
-    ...(DEV_MODE
-      ? [
-          {
-            label: 'Debug',
-            children: [{ label: 'Settings', path: AppRoutePaths.notebookDebugSettings }],
-          },
-        ]
-      : []),
   ];
 };
 
@@ -56,31 +46,21 @@ export const useNavData = (): NavDataItem[] => [
     label: 'Workspaces',
     path: AppRoutePaths.workspaces,
   },
-  ...useAdminDebugSettings(),
+  ...useAdminNavItems(),
 ];
 
-const AppRoutes: React.FC = () => {
-  const { user } = useAppContext();
-
-  return (
-    <Routes>
-      <Route path={AppRoutePaths.workspaceCreate} element={<WorkspaceForm />} />
-      <Route path={AppRoutePaths.workspaceEdit} element={<WorkspaceForm />} />
-      <Route path={AppRoutePaths.workspaces} element={<WorkspacesWrapper />} />
-      <Route path={AppRoutePaths.workspaceKindSummary} element={<WorkspaceKindSummaryWrapper />} />
-      <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
-      <Route path={AppRoutePaths.workspaceKindCreate} element={<WorkspaceKindForm />} />
-      <Route path={AppRoutePaths.workspaceKindEdit} element={<WorkspaceKindForm />} />
-      <Route
-        path={AppRoutePaths.root}
-        element={<Navigate to={AppRoutePaths.workspaces} replace />}
-      />
-      {user?.clusterAdmin && (
-        <Route path={AppRoutePaths.notebookDebugSettings} element={<Debug />} />
-      )}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
+const AppRoutes: React.FC = () => (
+  <Routes>
+    <Route path={AppRoutePaths.workspaceCreate} element={<WorkspaceForm />} />
+    <Route path={AppRoutePaths.workspaceEdit} element={<WorkspaceForm />} />
+    <Route path={AppRoutePaths.workspaces} element={<WorkspacesWrapper />} />
+    <Route path={AppRoutePaths.workspaceKindSummary} element={<WorkspaceKindSummaryWrapper />} />
+    <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
+    <Route path={AppRoutePaths.workspaceKindCreate} element={<WorkspaceKindForm />} />
+    <Route path={AppRoutePaths.workspaceKindEdit} element={<WorkspaceKindForm />} />
+    <Route path={AppRoutePaths.root} element={<Navigate to={AppRoutePaths.workspaces} replace />} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
 
 export default AppRoutes;

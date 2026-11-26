@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Alert,
@@ -18,7 +19,6 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -57,6 +57,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
   onClose,
   onSaved,
 }) => {
+  const trackEvent = useTrackEvent();
   const { api, apiAvailable } = useGenAiAPI();
   const { saveAgentProfile } = useSaveAgentProfile(mcpServers, mcpConfigMapName);
   const { aiModels, maasModels, models: playgroundModels } = React.useContext(ChatbotContext);
@@ -141,7 +142,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
       });
 
       if (mode === 'save-as' || !loadedProfileId) {
-        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.COPY_SAVED, {
+        trackEvent(PLAYGROUND_AGENT_EVENTS.COPY_SAVED, {
           originalAgentID: loadedProfileId ?? '',
           newAgentID: savedProfile.profileId,
         });
@@ -149,7 +150,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
         // Set after onSaved for the same reason as the update branch below.
         useChatbotConfigStore.getState().setLoadedResourceVersion(savedProfile.resourceVersion);
       } else {
-        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVED, {
+        trackEvent(PLAYGROUND_AGENT_EVENTS.SAVED, {
           agentID: loadedProfileId,
         });
         onSaved(loadedProfileId, savedProfile.displayName, description.trim());

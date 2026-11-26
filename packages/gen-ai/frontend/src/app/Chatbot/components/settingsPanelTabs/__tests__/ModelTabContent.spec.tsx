@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import ModelTabContent from '~/app/Chatbot/components/settingsPanelTabs/ModelTabContent';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
+
+const trackEvent = jest.fn();
 
 const mockUseGenAiAudioUploadEnabled = jest.fn(() => true);
 
@@ -40,10 +42,6 @@ jest.mock('~/app/context/ChatbotContext', () => {
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
   default: jest.fn(() => false),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('../../ModelParameterFormGroup', () => ({
@@ -97,7 +95,7 @@ jest.mock('../TranscriptionModelSection', () => ({
   ),
 }));
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(trackEvent);
 
 describe('ModelTabContent', () => {
   const defaultProps = {
@@ -122,13 +120,13 @@ describe('ModelTabContent', () => {
   });
 
   it('renders the Model title', () => {
-    render(<ModelTabContent {...defaultProps} />);
+    render(<ModelTabContent {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.getByRole('heading', { name: 'Model' })).toBeInTheDocument();
   });
 
   it('renders ModelParameterFormGroup with correct temperature props', () => {
-    render(<ModelTabContent {...defaultProps} />);
+    render(<ModelTabContent {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.getByTestId('model-parameter-form-group')).toBeInTheDocument();
     expect(screen.getByTestId('temperature-value')).toHaveTextContent('1');
@@ -136,7 +134,7 @@ describe('ModelTabContent', () => {
   });
 
   it('renders streaming toggle switch', () => {
-    render(<ModelTabContent {...defaultProps} />);
+    render(<ModelTabContent {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     const streamingSwitch = screen.getByRole('switch', { name: /toggle streaming responses/i });
     expect(streamingSwitch).toBeInTheDocument();
@@ -144,7 +142,9 @@ describe('ModelTabContent', () => {
   });
 
   it('renders streaming switch as unchecked when streaming is disabled', () => {
-    render(<ModelTabContent {...defaultProps} isStreamingEnabled={false} />);
+    render(<ModelTabContent {...defaultProps} isStreamingEnabled={false} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const streamingSwitch = screen.getByRole('switch', { name: /toggle streaming responses/i });
     expect(streamingSwitch).not.toBeChecked();
@@ -153,7 +153,9 @@ describe('ModelTabContent', () => {
   it('calls onTemperatureChange and fires tracking event when temperature changes', async () => {
     const user = userEvent.setup();
     const mockOnTemperatureChange = jest.fn();
-    render(<ModelTabContent {...defaultProps} onTemperatureChange={mockOnTemperatureChange} />);
+    render(<ModelTabContent {...defaultProps} onTemperatureChange={mockOnTemperatureChange} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     await user.click(screen.getByTestId('change-temperature-button'));
 
@@ -167,7 +169,9 @@ describe('ModelTabContent', () => {
   it('calls onStreamingToggle when switch is toggled', async () => {
     const user = userEvent.setup();
     const mockOnStreamingToggle = jest.fn();
-    render(<ModelTabContent {...defaultProps} onStreamingToggle={mockOnStreamingToggle} />);
+    render(<ModelTabContent {...defaultProps} onStreamingToggle={mockOnStreamingToggle} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const streamingSwitch = screen.getByRole('switch', { name: /toggle streaming responses/i });
     await user.click(streamingSwitch);
@@ -184,6 +188,7 @@ describe('ModelTabContent', () => {
         isStreamingEnabled={false}
         onStreamingToggle={mockOnStreamingToggle}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     const streamingSwitch = screen.getByRole('switch', { name: /toggle streaming responses/i });
@@ -194,7 +199,9 @@ describe('ModelTabContent', () => {
 
   it('renders TranscriptionModelSection with configId when ASR models exist', () => {
     mockWorkspaceCapabilities.hasASRModel = true;
-    render(<ModelTabContent {...defaultProps} configId="custom-config" />);
+    render(<ModelTabContent {...defaultProps} configId="custom-config" />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const section = screen.getByTestId('transcription-model-section');
     expect(section).toBeInTheDocument();
@@ -203,7 +210,7 @@ describe('ModelTabContent', () => {
 
   it('always renders TranscriptionModelSection even when no ASR models exist', () => {
     mockWorkspaceCapabilities.hasASRModel = false;
-    render(<ModelTabContent {...defaultProps} />);
+    render(<ModelTabContent {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.getByTestId('transcription-model-section')).toBeInTheDocument();
   });
@@ -211,7 +218,7 @@ describe('ModelTabContent', () => {
   it('does not render TranscriptionModelSection when audio upload is disabled', () => {
     mockUseGenAiAudioUploadEnabled.mockReturnValue(false);
 
-    render(<ModelTabContent {...defaultProps} />);
+    render(<ModelTabContent {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.queryByTestId('transcription-model-section')).not.toBeInTheDocument();
   });
@@ -229,7 +236,9 @@ describe('ModelTabContent', () => {
       'whisper-large-v3',
     );
 
-    render(<ModelTabContent {...defaultProps} configId="default" />);
+    render(<ModelTabContent {...defaultProps} configId="default" />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
     expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe(
@@ -245,7 +254,9 @@ describe('ModelTabContent', () => {
     useChatbotConfigStore.getState().updateAsrModelEnabled('default', true);
     useChatbotConfigStore.getState().updateSelectedAsrModel('default', 'whisper-large-v3');
 
-    render(<ModelTabContent {...defaultProps} configId="default" />);
+    render(<ModelTabContent {...defaultProps} configId="default" />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
     expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe(

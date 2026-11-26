@@ -16,7 +16,7 @@ import (
 // Module proxy replies force no-store in ModifyResponse (see forceNoStoreCacheHeaders).
 func (app *App) SetSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sw := &securityHeadersWriter{ResponseWriter: w, req: r}
+		sw := &securityHeadersWriter{ResponseWriter: w, req: r, varyHeaders: app.credentialHeaders()}
 		next.ServeHTTP(sw, r)
 		// Handlers that return without writing leave headers unset; finalize so
 		// security headers and /api no-store still apply. Skip after Hijack.
@@ -29,6 +29,7 @@ func (app *App) SetSecurityHeaders(next http.Handler) http.Handler {
 type securityHeadersWriter struct {
 	http.ResponseWriter
 	req         *http.Request
+	varyHeaders []string
 	wroteHeader bool
 	hijacked    bool
 }
@@ -37,7 +38,7 @@ func (w *securityHeadersWriter) WriteHeader(statusCode int) {
 	if w.wroteHeader {
 		return
 	}
-	applySecurityHeaders(w.Header(), w.req.URL.Path)
+	applySecurityHeaders(w.Header(), w.req.URL.Path, w.varyHeaders...)
 	// Informational 1xx responses are not final; HTTP allows a later final status.
 	// Do not mark the writer committed so the real status (e.g. 404 after 103) can still be written.
 	if statusCode >= 100 && statusCode < 200 {
@@ -83,7 +84,9 @@ func (w *securityHeadersWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return conn, rw, err
 }
 
-func applySecurityHeaders(h http.Header, urlPath string) {
+// credentialHeaders are the configured caller-credential headers; they are
+// added to Vary next to the two well-known token headers.
+func applySecurityHeaders(h http.Header, urlPath string, credentialHeaders ...string) {
 	h.Set(constants.HeaderXContentTypeOptions, constants.XContentTypeOptionsNoSniff)
 	h.Set(constants.HeaderCrossOriginOpenerPolicy, constants.CrossOriginOpenerPolicySameOrigin)
 	h.Set(constants.HeaderXFrameOptions, constants.XFrameOptionsDeny)
@@ -95,6 +98,31 @@ func applySecurityHeaders(h http.Header, urlPath string) {
 	}
 
 	h.Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
+	// API replies are per-identity. no-store already forbids storage, but Vary
+	// also stops an intermediary that ignores it from keying one user's
+	// bootstrap response for another. Both token headers are listed because
+	// either may carry the caller identity depending on the edge.
+	addVary(h, constants.HeaderAuthorization, constants.HeaderForwardedToken, constants.HeaderCookie)
+	addVary(h, credentialHeaders...)
+}
+
+// addVary appends header names to Vary without duplicating entries a handler
+// or an upstream proxy already set.
+func addVary(h http.Header, names ...string) {
+	existing := map[string]bool{}
+	for _, v := range h.Values(constants.HeaderVary) {
+		for _, part := range strings.Split(v, ",") {
+			if p := strings.TrimSpace(part); p != "" {
+				existing[strings.ToLower(p)] = true
+			}
+		}
+	}
+	for _, name := range names {
+		if !existing[strings.ToLower(name)] {
+			h.Add(constants.HeaderVary, name)
+			existing[strings.ToLower(name)] = true
+		}
+	}
 }
 
 // isApiPath reports host and module API paths after PathPrefix strip.

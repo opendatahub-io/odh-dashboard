@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import SaveAgentProfileModal from '~/app/Chatbot/components/SaveAgentProfileModal';
@@ -71,6 +72,7 @@ const renderModal = (mode: 'save-as' | 'save' = 'save-as', isMcpServerStatusChec
         />
       </ChatbotContext.Provider>
     </GenAiContext.Provider>,
+    { wrapper: createTrackingWrapper() },
   );
 
 describe('SaveAgentProfileModal', () => {

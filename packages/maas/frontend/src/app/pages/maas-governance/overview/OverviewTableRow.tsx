@@ -4,7 +4,7 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ActionsColumn, ExpandableRowContent, Tbody, Tr, Td } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
@@ -27,64 +27,70 @@ type OverviewTableRowProps = {
 
 const RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
-const NoSubscriptionsWarning: React.FC = () => (
-  <Popover
-    data-testid="no-subscriptions-warning-popover"
-    onShow={() => {
-      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
-        popoverType: EventTrackingPopoverType.WARNING,
-        status: 'configuration-warning',
-        location: PhaseLabelLocation.OVERVIEW,
-      } satisfies MaaSGovernanceStatusPopoverViewedProperties);
-    }}
-    headerContent="No subscriptions"
-    bodyContent={
-      <p>
-        This model cannot be called through the MaaS API gateway because it is not included in any
-        subscriptions. Create a subscription that includes this model and at least 1 group, or add
-        this model to an existing subscription from the <b>Subscriptions</b> tab.
-      </p>
-    }
-  >
-    <Button
-      variant="plain"
-      data-testid="no-subscriptions-warning"
-      aria-label="No subscriptions warning"
+const NoSubscriptionsWarning: React.FC = () => {
+  const trackEvent = useTrackEvent();
+  return (
+    <Popover
+      data-testid="no-subscriptions-warning-popover"
+      onShow={() => {
+        trackEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+          popoverType: EventTrackingPopoverType.WARNING,
+          status: 'configuration-warning',
+          location: PhaseLabelLocation.OVERVIEW,
+        } satisfies MaaSGovernanceStatusPopoverViewedProperties);
+      }}
+      headerContent="No subscriptions"
+      bodyContent={
+        <p>
+          This model cannot be called through the MaaS API gateway because it is not included in any
+          subscriptions. Create a subscription that includes this model and at least 1 group, or add
+          this model to an existing subscription from the <b>Subscriptions</b> tab.
+        </p>
+      }
     >
-      <ExclamationTriangleIcon color="orange" />
-    </Button>
-  </Popover>
-);
+      <Button
+        variant="plain"
+        data-testid="no-subscriptions-warning"
+        aria-label="No subscriptions warning"
+      >
+        <ExclamationTriangleIcon color="orange" />
+      </Button>
+    </Popover>
+  );
+};
 
-const NoPoliciesWarning: React.FC = () => (
-  <Popover
-    data-testid="no-policies-warning-popover"
-    onShow={() => {
-      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
-        popoverType: EventTrackingPopoverType.WARNING,
-        status: 'configuration-warning',
-        location: PhaseLabelLocation.OVERVIEW,
-      } satisfies MaaSGovernanceStatusPopoverViewedProperties);
-    }}
-    headerContent="No authorization policies"
-    bodyContent={
-      <p>
-        This model cannot be called through the MaaS API gateway because it does not have an
-        authorization policy. Both a subscription and a policy are required for a group to access a
-        model. Create a policy that includes this model and at least 1 group, or add this model to
-        an existing policy from the <b>Authorization policies</b> tab.
-      </p>
-    }
-  >
-    <Button
-      variant="plain"
-      data-testid="no-policies-warning"
-      aria-label="No authorization policies warning"
+const NoPoliciesWarning: React.FC = () => {
+  const trackEvent = useTrackEvent();
+  return (
+    <Popover
+      data-testid="no-policies-warning-popover"
+      onShow={() => {
+        trackEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+          popoverType: EventTrackingPopoverType.WARNING,
+          status: 'configuration-warning',
+          location: PhaseLabelLocation.OVERVIEW,
+        } satisfies MaaSGovernanceStatusPopoverViewedProperties);
+      }}
+      headerContent="No authorization policies"
+      bodyContent={
+        <p>
+          This model cannot be called through the MaaS API gateway because it does not have an
+          authorization policy. Both a subscription and a policy are required for a group to access
+          a model. Create a policy that includes this model and at least 1 group, or add this model
+          to an existing policy from the <b>Authorization policies</b> tab.
+        </p>
+      }
     >
-      <ExclamationTriangleIcon color="orange" />
-    </Button>
-  </Popover>
-);
+      <Button
+        variant="plain"
+        data-testid="no-policies-warning"
+        aria-label="No authorization policies warning"
+      >
+        <ExclamationTriangleIcon color="orange" />
+      </Button>
+    </Popover>
+  );
+};
 
 const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
   row,
@@ -93,6 +99,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
   onToggleExpand,
 }) => {
   const navigate = useNavigate();
+  const trackEvent = useTrackEvent();
 
   return (
     <Tbody isExpanded={isExpanded} data-testid={`overview-model-row-${row.id}-${row.namespace}`}>
@@ -129,7 +136,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             resourceType={PhaseResourceType.MODEL}
             resourceName={row.modelDetails.displayName ?? row.id}
             onClick={() => {
-              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+              trackEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
                 popoverType: EventTrackingPopoverType.STATUS,
                 status: convertStringToPopoverViewedStatus(row.modelDetails.phase),
                 location: PhaseLabelLocation.OVERVIEW,

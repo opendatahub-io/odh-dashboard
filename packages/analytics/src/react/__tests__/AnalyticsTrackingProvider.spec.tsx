@@ -44,10 +44,11 @@ describe('AnalyticsTrackingProvider', () => {
     rendered.result.current.event('Model Selected', {
       count: 0,
       enabled: false,
-      tags: ['validated'],
+      tags: Object.freeze(['validated']),
+      error: null,
     });
     expect(trackEvent.mock.calls).toStrictEqual([
-      ['Model Selected', { count: 0, enabled: false, tags: ['validated'] }],
+      ['Model Selected', { count: 0, enabled: false, tags: ['validated'], error: null }],
     ]);
     expect(trackPageEvent).not.toHaveBeenCalled();
     rendered.result.current.page();

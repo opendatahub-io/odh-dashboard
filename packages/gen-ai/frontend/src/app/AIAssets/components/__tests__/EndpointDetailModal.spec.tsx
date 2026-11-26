@@ -3,11 +3,14 @@ import * as React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import EndpointDetailModal, {
   buildModelUsageExample,
   getBaseURLEndpointType,
 } from '~/app/AIAssets/components/EndpointDetailModal';
 import type { AIModel } from '~/app/types';
+
+const trackEvent = jest.fn();
 
 jest.mock('~/app/utilities/utils', () => ({
   copyToClipboardWithTracking: jest.fn(),
@@ -33,6 +36,7 @@ const renderModal = (model: AIModel, onClose = jest.fn()) =>
     <MemoryRouter>
       <EndpointDetailModal model={model} onClose={onClose} />
     </MemoryRouter>,
+    { wrapper: createTrackingWrapper(trackEvent) },
   );
 
 describe('EndpointDetailModal', () => {

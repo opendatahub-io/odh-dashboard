@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { getAuthPolicyCreateUrl } from '~/app/utilities/maasGovernanceNavigation';
 import {
   EventTrackingFilterAttribute,
@@ -29,51 +29,54 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
   filterData,
   onFilterUpdate,
   returnTo,
-}) => (
-  <FilterToolbar<AuthPoliciesFilterOptions>
-    data-testid="auth-policies-table-toolbar"
-    filterOptions={authPoliciesFilterOptions}
-    filterOptionRenders={{
-      [AuthPoliciesFilterOptions.keyword]: ({ onChange, ...props }) => (
-        <SearchInput
-          {...props}
-          aria-label="Filter by name, resource name, or description"
-          placeholder="Filter by name, resource name, or description"
-          onChange={(_event, value) => onChange(value)}
-          data-testid="auth-policies-filter-name-input"
-          style={{ minWidth: '350px' }}
-          inputProps={{
-            onBlur: () => {
-              fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
-                filterAttribute: EventTrackingFilterAttribute.KEYWORD,
-                resourceType: EventTrackingResourceType.AUTHPOLICY,
-              } satisfies MaaSSettingsListFilteredProperties);
-            },
-          }}
-        />
-      ),
-    }}
-    filterData={filterData}
-    onFilterUpdate={onFilterUpdate}
-  >
-    <ToolbarGroup>
-      <ToolbarItem>
-        <Button
-          variant="primary"
-          component={(props) => (
-            <Link
-              {...props}
-              to={getAuthPolicyCreateUrl()}
-              state={returnTo ? { returnTo } : undefined}
-            />
-          )}
-          data-testid="create-auth-policy-button"
-        >
-          Create authorization policy
-        </Button>
-      </ToolbarItem>
-    </ToolbarGroup>
-  </FilterToolbar>
-);
+}) => {
+  const trackEvent = useTrackEvent();
+  return (
+    <FilterToolbar<AuthPoliciesFilterOptions>
+      data-testid="auth-policies-table-toolbar"
+      filterOptions={authPoliciesFilterOptions}
+      filterOptionRenders={{
+        [AuthPoliciesFilterOptions.keyword]: ({ onChange, ...props }) => (
+          <SearchInput
+            {...props}
+            aria-label="Filter by name, resource name, or description"
+            placeholder="Filter by name, resource name, or description"
+            onChange={(_event, value) => onChange(value)}
+            data-testid="auth-policies-filter-name-input"
+            style={{ minWidth: '350px' }}
+            inputProps={{
+              onBlur: () => {
+                trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+                  filterAttribute: EventTrackingFilterAttribute.KEYWORD,
+                  resourceType: EventTrackingResourceType.AUTHPOLICY,
+                } satisfies MaaSSettingsListFilteredProperties);
+              },
+            }}
+          />
+        ),
+      }}
+      filterData={filterData}
+      onFilterUpdate={onFilterUpdate}
+    >
+      <ToolbarGroup>
+        <ToolbarItem>
+          <Button
+            variant="primary"
+            component={(props) => (
+              <Link
+                {...props}
+                to={getAuthPolicyCreateUrl()}
+                state={returnTo ? { returnTo } : undefined}
+              />
+            )}
+            data-testid="create-auth-policy-button"
+          >
+            Create authorization policy
+          </Button>
+        </ToolbarItem>
+      </ToolbarGroup>
+    </FilterToolbar>
+  );
+};
 
 export default AuthPoliciesToolbar;

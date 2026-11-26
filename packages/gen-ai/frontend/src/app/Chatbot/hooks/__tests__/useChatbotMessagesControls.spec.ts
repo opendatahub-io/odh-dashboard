@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 
@@ -26,10 +27,17 @@ jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
 
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
-  useContext: jest.fn(),
+  useContext: (context: React.Context<unknown>) => {
+    const { GenAiContext } = jest.requireActual('~/app/context/GenAiContext');
+    const { ChatbotContext } = jest.requireActual('~/app/context/ChatbotContext');
+    if (context === GenAiContext || context === ChatbotContext) {
+      return mockUseContext(context);
+    }
+    return jest.requireActual<typeof React>('react').useContext(context);
+  },
 }));
 
-const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+const mockUseContext = jest.fn();
 
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
@@ -112,8 +120,9 @@ describe('useChatbotMessages - controls', () => {
     it('should provide handleStopStreaming function', () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper() },
       );
 
       expect(result.current.handleStopStreaming).toBeDefined();
@@ -171,8 +180,9 @@ describe('useChatbotMessages - controls', () => {
         });
       });
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper() },
       );
 
       // Start sending a message
@@ -277,8 +287,9 @@ describe('useChatbotMessages - controls', () => {
         });
       });
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper() },
       );
 
       // Start sending a message
@@ -326,8 +337,9 @@ describe('useChatbotMessages - controls', () => {
     it('should not break when handleStopStreaming is called without active stream', () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper() },
       );
 
       // Call stop without any active stream
@@ -341,8 +353,9 @@ describe('useChatbotMessages - controls', () => {
     it('should pass abortSignal to createResponse API call when streaming', async () => {
       mockCreateResponse.mockImplementation(() => Promise.resolve(mockSuccessResponse));
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper() },
       );
 
       await act(async () => {
@@ -360,7 +373,9 @@ describe('useChatbotMessages - controls', () => {
     it('should pass abortSignal even when streaming is disabled', async () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(),
+      });
 
       await act(async () => {
         await result.current.handleMessageSend('Test message');
@@ -395,7 +410,9 @@ describe('useChatbotMessages - controls', () => {
         });
       });
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Start sending a message (non-streaming)
       act(() => {
@@ -436,7 +453,9 @@ describe('useChatbotMessages - controls', () => {
     it('should reset messages to initial state', () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Send a message first to add to conversation
       act(() => {
@@ -454,7 +473,9 @@ describe('useChatbotMessages - controls', () => {
     it('should reset all state variables', () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Send a message to change state
       act(() => {
@@ -483,8 +504,9 @@ describe('useChatbotMessages - controls', () => {
         });
       });
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper() },
       );
 
       // Start a message
@@ -510,14 +532,16 @@ describe('useChatbotMessages - controls', () => {
       const customSystemInstruction = 'You are a helpful assistant.';
       const customTemperature = 0.9;
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(
-          createDefaultHookProps({
-            systemInstruction: customSystemInstruction,
-            isStreamingEnabled: true,
-            temperature: customTemperature,
-          }),
-        ),
+      const { result } = renderHook(
+        () =>
+          useChatbotMessages(
+            createDefaultHookProps({
+              systemInstruction: customSystemInstruction,
+              isStreamingEnabled: true,
+              temperature: customTemperature,
+            }),
+          ),
+        { wrapper: createTrackingWrapper() },
       );
 
       // Send a message
@@ -544,7 +568,9 @@ describe('useChatbotMessages - controls', () => {
     });
 
     it('should not throw error when called without active stream', () => {
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Clear conversation without sending any messages
       expect(() => {
@@ -559,7 +585,9 @@ describe('useChatbotMessages - controls', () => {
     it('should clear conversation history but retain RAG configuration', async () => {
       mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Send a message with RAG configuration
       await act(async () => {
@@ -582,7 +610,9 @@ describe('useChatbotMessages - controls', () => {
     });
 
     it('should provide clearConversation function from the hook', () => {
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(),
+      });
 
       expect(result.current.clearConversation).toBeDefined();
       expect(typeof result.current.clearConversation).toBe('function');
@@ -598,7 +628,9 @@ describe('useChatbotMessages - controls', () => {
           }),
       );
 
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+        wrapper: createTrackingWrapper(),
+      });
 
       // Start a message
       act(() => {
@@ -635,8 +667,9 @@ describe('useChatbotMessages - controls', () => {
         });
       });
 
-      const { result } = renderHook(() =>
-        useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      const { result } = renderHook(
+        () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+        { wrapper: createTrackingWrapper() },
       );
 
       // Start streaming a message

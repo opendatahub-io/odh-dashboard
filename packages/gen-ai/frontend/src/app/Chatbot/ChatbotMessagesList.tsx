@@ -1,7 +1,7 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import { Alert, Button, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import type { DocumentAttachment } from '~/app/types';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
@@ -54,6 +54,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   compareMode = false,
   configID = 'default',
 }) => {
+  const trackEvent = useTrackEvent();
   const [expandedCitation, setExpandedCitation] = React.useState<{
     messageId: string;
     citationNumber: number;
@@ -241,7 +242,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                       variant="link"
                       isInline
                       onClick={() => {
-                        fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_OPENED, {
+                        trackEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_OPENED, {
                           source: 'message_button',
                           traceId,
                           compareMode,

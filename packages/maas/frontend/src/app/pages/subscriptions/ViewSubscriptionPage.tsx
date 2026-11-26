@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,10 +12,6 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import {
   MaaSModelRefSummary,
@@ -50,6 +47,7 @@ type SubscriptionActionsProps = {
 
 const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription, returnTo }) => {
   const navigate = useNavigate();
+  const trackEvent = useTrackEvent();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const backUrl = returnTo ?? getSectionUrl('subscriptions');
   const navState = {
@@ -85,7 +83,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
-              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+              trackEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: subscription.phase ?? '',
@@ -93,7 +91,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
               } satisfies MaaSResourceDeletedProperties);
               navigate(backUrl);
             } else {
-              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+              trackEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: subscription.phase ?? '',
@@ -116,6 +114,7 @@ const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSumm
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const location = useLocation();
+  const trackEvent = useTrackEvent();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [subscriptionInfo, loaded, loadError] = useGetSubscriptionInfo(subscriptionName);
   const displaySubscriptionName =
@@ -157,7 +156,7 @@ const ViewSubscriptionPage: React.FC = () => {
           onSelect={(_event, key) => {
             setActiveTab(key);
             if (key === 'yaml') {
-              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
+              trackEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
                 context: EventTrackingContext.DETAILS,
               } satisfies MaaSGovernanceYamlViewedProperties);

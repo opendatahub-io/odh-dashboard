@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Button,
@@ -11,7 +12,6 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
@@ -50,27 +50,30 @@ const dontSeeModelPopoverContent: React.ReactNode = (
 
 export const AIModelStatusPopover: React.FC<{ modelsVisibleCount: number }> = ({
   modelsVisibleCount,
-}) => (
-  <Popover
-    position="bottom"
-    showClose
-    aria-label="Information about making model deployments available"
-    headerComponent="h2"
-    bodyContent={dontSeeModelPopoverContent}
-  >
-    <Button
-      variant={ButtonVariant.link}
-      data-testid="dont-see-model-button"
-      onClick={() => {
-        fireMiscTrackingEvent('Available Endpoints Model Not Found Clicked', {
-          modelsVisibleCount,
-        });
-      }}
+}) => {
+  const trackEvent = useTrackEvent();
+  return (
+    <Popover
+      position="bottom"
+      showClose
+      aria-label="Information about making model deployments available"
+      headerComponent="h2"
+      bodyContent={dontSeeModelPopoverContent}
     >
-      Don&apos;t see the model you&apos;re looking for?
-    </Button>
-  </Popover>
-);
+      <Button
+        variant={ButtonVariant.link}
+        data-testid="dont-see-model-button"
+        onClick={() => {
+          trackEvent('Available Endpoints Model Not Found Clicked', {
+            modelsVisibleCount,
+          });
+        }}
+      >
+        Don&apos;t see the model you&apos;re looking for?
+      </Button>
+    </Popover>
+  );
+};
 
 export const AIModelStatusPopoverContent = (
   <Stack hasGutter>

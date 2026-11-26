@@ -494,7 +494,9 @@ Without this entry, `/core-bff/api/*` requests return 404 from Fastify (no proxy
 ```bash
 # Terminal 1 — start core-bff locally
 cd distributions/core-bff/bff
-go run cmd/main.go --port=8943 --auth-method=disabled
+# disabled auth is a development profile: --dev-mode is required, and the
+# local kubeconfig identity serves the requests
+go run ./cmd --port=8943 --auth-method=disabled --dev-mode
 
 # Terminal 2 — start gen-ai BFF pointing at local core-bff
 cd packages/gen-ai/bff

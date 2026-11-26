@@ -3,15 +3,11 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { bulkRevokeApiKeys, searchApiKeysForCurrentHost } from '~/app/api/api-keys';
 import type { APIKey } from '~/app/types/api-key';
 import AdminRevokeAllApiKeysModal from '~/app/pages/keys-and-subs/apiKeys/AdminRevokeAllApiKeysModal';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
 jest.mock('~/app/api/api-keys');
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({ success: jest.fn() }),
@@ -24,6 +20,7 @@ describe('AdminRevokeAllApiKeysModal', () => {
     const request = jest.fn().mockRejectedValue(new Error(message));
     jest.mocked(bulkRevokeApiKeys).mockReturnValue(request);
     const onClose = jest.fn();
+    const trackEvent = jest.fn();
     const user = userEvent.setup();
     const apiKey: APIKey = {
       id: 'test-key-id',
@@ -34,18 +31,22 @@ describe('AdminRevokeAllApiKeysModal', () => {
     jest
       .mocked(searchApiKeysForCurrentHost)
       .mockReturnValue(jest.fn().mockResolvedValue({ data: [apiKey] }));
-    render(<AdminRevokeAllApiKeysModal onClose={onClose} />);
+    render(
+      <TrackingProvider trackEvent={trackEvent}>
+        <AdminRevokeAllApiKeysModal onClose={onClose} />
+      </TrackingProvider>,
+    );
     await user.type(screen.getByTestId('admin-revoke-username-input'), 'test-user');
     await user.click(screen.getByTestId('admin-revoke-search-button'));
     expect(await screen.findByTestId('admin-revoke-keys-button')).toBeEnabled();
     await user.click(screen.getByTestId('admin-revoke-keys-button'));
     expect(await screen.findByText(message)).toBeVisible();
     expect(request).toHaveBeenCalledTimes(1);
-    expect(fireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(trackEvent).toHaveBeenCalledWith(
       'API Keys Bulk Revoked',
       expect.objectContaining({ success: false, error: 'unknown_error' }),
     );
-    expect(JSON.stringify(jest.mocked(fireFormTrackingEvent).mock.calls)).not.toContain(message);
+    expect(JSON.stringify(trackEvent.mock.calls)).not.toContain(message);
     expect(onClose).not.toHaveBeenCalled();
   });
 });

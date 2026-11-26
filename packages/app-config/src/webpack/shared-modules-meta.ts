@@ -32,8 +32,12 @@ const sharedPluginModules: Record<string, Partial<SharedModuleMetadata>> = {
   '@patternfly/quickstarts': {},
   '@patternfly/react-catalog-view-extension': {},
   '@patternfly/react-charts': {},
-  '@patternfly/react-code-editor': {},
-  '@monaco-editor/react': {},
+  // Eager in the host so the host copies win same-version singleton ties (the MF runtime
+  // otherwise picks the provider with the greatest container name, e.g. `maas`). The host
+  // configures this loader at startup; a remote copy would bring its own unconfigured loader,
+  // which falls back to the CDN AMD loader and breaks UMD modules (RHAI-20772).
+  '@patternfly/react-code-editor': { eager: true },
+  '@monaco-editor/react': { eager: true },
   '@patternfly/react-component-groups': {},
   '@patternfly/react-core': { eager: true, allowFallback: false },
   '@patternfly/react-drag-drop': {},
