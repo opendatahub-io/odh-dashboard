@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import {
   Card,
@@ -14,7 +15,6 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { FileIcon, TimesIcon } from '@patternfly/react-icons';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { FileModel } from '~/app/types';
 import { DELETE_EVENT_NAME } from '~/app/Chatbot/hooks/useFileManagement';
@@ -55,6 +55,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   onDeleteFile,
   isDisabled = false,
 }) => {
+  const trackEvent = useTrackEvent();
   const [fileToDelete, setFileToDelete] = React.useState<FileModel | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
 
@@ -74,7 +75,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   const handleDeleteCancel = () => {
     setIsDeleteModalOpen(false);
     setFileToDelete(null);
-    fireFormTrackingEvent(DELETE_EVENT_NAME, {
+    trackEvent(DELETE_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,
     });
   };

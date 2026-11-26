@@ -1,16 +1,15 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import GuardrailsTabContent from '~/app/Chatbot/components/settingsPanelTabs/GuardrailsTabContent';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 
+const trackEvent = jest.fn();
+
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
   default: jest.fn(() => false),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon', () => ({
@@ -68,6 +67,7 @@ const renderWithContext = (
     <ChatbotContext.Provider value={{ ...baseContextValue, ...contextOverrides }}>
       <GuardrailsTabContent configId={configId} />
     </ChatbotContext.Provider>,
+    { wrapper: createTrackingWrapper(trackEvent) },
   );
 
 describe('GuardrailsTabContent', () => {

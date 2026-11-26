@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Form,
@@ -7,6 +8,7 @@ import {
   Radio,
   Popover,
   Button,
+  Content,
   Spinner,
   EmptyState,
   EmptyStateBody,
@@ -18,7 +20,6 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
@@ -39,6 +40,7 @@ import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 
 interface KnowledgeTabContentProps {
   configId?: string;
+  onNavigateToPrompt?: () => void;
   sourceManagement: UseSourceManagementReturn;
   fileManagement: UseFileManagementReturn;
   alerts: {
@@ -50,10 +52,12 @@ interface KnowledgeTabContentProps {
 
 const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = ({
   configId = DEFAULT_CONFIG_ID,
+  onNavigateToPrompt,
   sourceManagement,
   fileManagement,
   alerts,
 }) => {
+  const trackEvent = useTrackEvent();
   const { namespace } = React.useContext(GenAiContext);
 
   // Per-pane state from Zustand store
@@ -71,7 +75,6 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
 
   const isExternalVectorStoresEnabled = useAiAssetVectorStoresEnabled();
 
-  // Always call the hook (rules of hooks), but the result is only used when flag is ON + external mode
   const [allVectorStores, vectorStoresLoaded] = useFetchVectorStores();
   const externalVectorStores = React.useMemo(
     () => allVectorStores.filter((vs) => vs.metadata.created_by !== 'auto-provisioning'),
@@ -79,6 +82,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
   );
 
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
+  const shouldNavigateToPromptRef = React.useRef(false);
 
   // Auto-enable RAG when a file is successfully uploaded via inline mode.
   // External vector store selection enables RAG directly in the onSelect handler below.
@@ -90,9 +94,67 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
     }
   }, [autoEnableRag, setAutoEnableRag, updateRagEnabled, configId]);
 
-  const selectedStoreName = React.useMemo(
-    () => externalVectorStores.find((s) => s.id === selectedVectorStoreId)?.name,
+  const selectedExternalStore = React.useMemo(
+    () => externalVectorStores.find((store) => store.id === selectedVectorStoreId),
     [selectedVectorStoreId, externalVectorStores],
+  );
+  const hasUsableDocuments =
+    knowledgeMode === 'external'
+      ? vectorStoresLoaded && (selectedExternalStore?.file_counts.completed ?? 0) > 0
+      : fileManagement.files.length > 0;
+
+  const clearPendingPromptNavigation = () => {
+    shouldNavigateToPromptRef.current = false;
+  };
+
+  const troubleshooting = isRagEnabled && hasUsableDocuments && (
+    <Popover
+      position="bottom-start"
+      aria-label="RAG troubleshooting"
+      closeBtnAriaLabel="Close troubleshooting"
+      maxWidth="28rem"
+      onMount={clearPendingPromptNavigation}
+      onShow={clearPendingPromptNavigation}
+      onHidden={() => {
+        if (shouldNavigateToPromptRef.current) {
+          clearPendingPromptNavigation();
+          onNavigateToPrompt?.();
+        }
+      }}
+      bodyContent={(hide) => (
+        <div>
+          <Content component="p" className="pf-v6-u-mb-0">
+            If RAG is enabled but the model is not using retrieved knowledge, add a clear rule in
+            your system prompt. For example, “Use the file_search tool to retrieve relevant
+            information from the uploaded files before answering.”
+          </Content>
+          <div className="pf-v6-u-mt-sm">
+            <Button
+              variant="link"
+              className="pf-v6-u-pl-xs"
+              onClick={() => {
+                shouldNavigateToPromptRef.current = true;
+                hide();
+              }}
+              data-testid="go-to-prompt-tab"
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  borderBottom: '1px dotted var(--pf-t--global--text--color--subtle)',
+                }}
+              >
+                Go to <strong>Prompt</strong> tab
+              </span>
+            </Button>
+          </div>
+        </div>
+      )}
+    >
+      <Button variant="link" data-testid="rag-troubleshooting-button">
+        Troubleshooting
+      </Button>
+    </Popover>
   );
 
   // --- Upload fields (shared between flag-off and flag-on upload mode) ---
@@ -136,7 +198,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
         isDisabled={false}
         onChange={(_, checked) => {
           updateRagEnabled(configId, checked);
-          fireMiscTrackingEvent('Playground RAG Toggle Selected', {
+          trackEvent('Playground RAG Toggle Selected', {
             isRag: checked,
             knowledgeSource: 'upload',
             compareMode,
@@ -149,6 +211,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
 
     return (
       <TabContentWrapper title="RAG" headerActions={headerActions} titleTestId="rag-section-title">
+        {troubleshooting}
         <Form>{uploadFields}</Form>
       </TabContentWrapper>
     );
@@ -198,7 +261,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
           updateRagEnabled(configId, true);
           setIsSelectOpen(false);
           if (selectedStore) {
-            fireMiscTrackingEvent('Playground Collection Dropdown Selected', {
+            trackEvent('Playground Collection Dropdown Selected', {
               collectionName: selectedStore.name,
               collectionId: selectedVSId,
               compareMode,
@@ -216,7 +279,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             isDisabled={false}
             data-testid="external-vector-store-toggle"
           >
-            {selectedStoreName ?? 'Select a vector store'}
+            {selectedExternalStore?.name ?? 'Select a vector store'}
           </MenuToggle>
         )}
         aria-label="Select a vector store"
@@ -283,7 +346,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
       isDisabled={false}
       onChange={(_, checked) => {
         updateRagEnabled(configId, checked);
-        fireMiscTrackingEvent('Playground RAG Toggle Selected', {
+        trackEvent('Playground RAG Toggle Selected', {
           isRag: checked,
           knowledgeSource: knowledgeMode === 'inline' ? 'upload' : 'vectorstore',
           compareMode,
@@ -300,6 +363,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
       headerActions={headerActions}
       titleTestId="knowledge-section-title"
     >
+      {troubleshooting}
       <Form>
         <FormGroup fieldId="knowledge-mode" role="radiogroup" aria-label="RAG source">
           <Radio
@@ -310,7 +374,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             isDisabled={false}
             onChange={() => {
               updateKnowledgeMode(configId, 'inline');
-              fireMiscTrackingEvent('Playground Knowledge Source Switched', {
+              trackEvent('Playground Knowledge Source Switched', {
                 selectedSource: 'upload',
                 previousSource: 'vectorstore',
                 compareMode,
@@ -328,7 +392,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             onChange={() => {
               updateSelectedVectorStoreId(configId, null);
               updateKnowledgeMode(configId, 'external');
-              fireMiscTrackingEvent('Playground Knowledge Source Switched', {
+              trackEvent('Playground Knowledge Source Switched', {
                 selectedSource: 'vectorstore',
                 previousSource: 'upload',
                 compareMode,

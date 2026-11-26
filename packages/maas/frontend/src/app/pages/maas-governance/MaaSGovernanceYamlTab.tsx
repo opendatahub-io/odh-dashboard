@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody, PageSection, Spinner } from '@patternfly/react-core';
 import { CodeEditorControl, Language } from '@patternfly/react-code-editor';
 import { CopyIcon, DownloadIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import useDarkMode from '~/app/hooks/useDarkMode';
 import { useMaaSGovernanceYaml } from '~/app/hooks/useMaaSGovernanceYaml';
 import {
@@ -33,6 +33,7 @@ const MaaSGovernanceYamlTab: React.FC<MaaSGovernanceYamlTabProps> = ({
   resourceName,
   resourceType,
 }) => {
+  const trackEvent = useTrackEvent();
   const isDarkMode = useDarkMode();
   const [yaml, loaded, loadError] = useMaaSGovernanceYaml(resourceName, resourceType);
   const [copied, setCopied] = React.useState(false);
@@ -43,7 +44,7 @@ const MaaSGovernanceYamlTab: React.FC<MaaSGovernanceYamlTabProps> = ({
       : EventTrackingResourceType.AUTHPOLICY;
 
   const fireYamlExported = (action: EventTrackingYAMLAction) => {
-    fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_EXPORTED, {
+    trackEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_EXPORTED, {
       resourceType: trackingResourceType,
       context: EventTrackingContext.DETAILS,
       action,

@@ -1,6 +1,9 @@
 name: rhaii
 productName: "Red Hat AI"
 
+extensionProfiles:
+  modelServing: deployments
+
 packages:
   local:
     - name: rhaii
@@ -11,7 +14,7 @@ packages:
       featureFlags:
         kserve: true
     - package: '@odh-dashboard/llmd-serving'
-      extensionsPath: ./extensions
+      extensionsPath: ./extensions/deployments
       featureFlags:
         llmd-serving: true
 

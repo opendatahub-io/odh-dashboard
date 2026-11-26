@@ -10,7 +10,7 @@ import {
   useZodFormValidation,
 } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { ZodIssue } from 'zod';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { AuthMechanism, SecretSummary } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
@@ -85,6 +85,7 @@ export type UseCreateExternalProviderFormReturn = {
 export const useCreateExternalProviderForm = (
   namespace: string,
 ): UseCreateExternalProviderFormReturn => {
+  const trackEvent = useTrackEvent();
   const { secrets, secretsLoaded, refreshSecrets } = useExternalModelsContext();
   const { isCreating: isCreatingProvider, createExternalProviderCallback } =
     useCreateExternalProvider();
@@ -174,7 +175,7 @@ export const useCreateExternalProviderForm = (
           secretValue: '',
         }));
       }
-      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
+      trackEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
         outcome: TrackingOutcome.submit,
         success: true,
         providerType: convertStringToExternalModelProviderType(formData.provider),
@@ -192,7 +193,7 @@ export const useCreateExternalProviderForm = (
           ? formatOrphanedCredentialSecretSubmitError(message, createdSecretName, 'create')
           : message,
       );
-      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
+      trackEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
         outcome: TrackingOutcome.submit,
         success: false,
         providerType: convertStringToExternalModelProviderType(formData.provider),
@@ -212,6 +213,7 @@ export const useCreateExternalProviderForm = (
     nameDescData,
     namespace,
     refreshSecrets,
+    trackEvent,
   ]);
 
   return {

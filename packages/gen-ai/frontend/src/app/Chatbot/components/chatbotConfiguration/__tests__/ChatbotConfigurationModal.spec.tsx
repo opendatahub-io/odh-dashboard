@@ -3,7 +3,7 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import {
   AIModel,
   ApiErrorClass,
@@ -20,10 +20,7 @@ import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEna
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
 jest.mock('~/app/Chatbot/hooks/useTracingEnabled');
@@ -34,7 +31,7 @@ jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
   default: () => true,
 }));
 
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockFireFormTrackingEvent = jest.mocked(trackEvent);
 const mockInstallLSD = jest.fn();
 const mockInitNemoGuardrails = jest.fn();
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
@@ -177,6 +174,7 @@ const renderModal = (props: RenderModalProps) =>
         onUpdateInitiated={props.onUpdateInitiated}
       />
     </MemoryRouter>,
+    { wrapper: createTrackingWrapper(trackEvent) },
   );
 
 const renderModalWithContext = (props: RenderModalProps) =>
@@ -197,6 +195,7 @@ const renderModalWithContext = (props: RenderModalProps) =>
         />
       </MemoryRouter>
     </GenAiContext.Provider>,
+    { wrapper: createTrackingWrapper(trackEvent) },
   );
 
 const getSelectedModelNames = (): string[] => {

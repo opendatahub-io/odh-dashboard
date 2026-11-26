@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Button,
@@ -18,7 +19,6 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { CloseIcon, FilterIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Table, DashboardEmptyTableView } from 'mod-arch-shared';
 import { AgentDeploymentSummary, AgentProfileSummary } from '~/app/agentProfile/types';
 import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
@@ -55,6 +55,7 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   onDelete,
   onRefresh,
 }) => {
+  const trackEvent = useTrackEvent();
   const [filterData, setFilterData] = React.useState<FilterData>(INITIAL_FILTER);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterKey, setCurrentFilterKey] = React.useState<FilterKey>('name');
@@ -77,12 +78,15 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
     setSearchValue('');
   }, []);
 
-  const handleDeploymentFilterChange = React.useCallback((filterType: DeploymentFilter) => {
-    setDeploymentFilter(filterType);
-    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_STATUS_FILTER_SELECTED, {
-      filterType: filterType === 'not-deployed' ? 'notDeployed' : filterType,
-    });
-  }, []);
+  const handleDeploymentFilterChange = React.useCallback(
+    (filterType: DeploymentFilter) => {
+      setDeploymentFilter(filterType);
+      trackEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_STATUS_FILTER_SELECTED, {
+        filterType: filterType === 'not-deployed' ? 'notDeployed' : filterType,
+      });
+    },
+    [trackEvent],
+  );
 
   const deployedProfileIds = React.useMemo(
     () => new Set(deployments.map((deployment) => deployment.agentProfileId)),

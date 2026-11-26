@@ -1,12 +1,14 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, act, waitFor } from '@testing-library/react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import CreatePrompt from '~/app/Chatbot/components/promptManagementModal/createPrompt';
 import * as chatbotStore from '~/app/Chatbot/store';
 import * as usePlaygroundStoreModule from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
+
+const trackEvent = jest.fn();
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -50,10 +52,6 @@ jest.mock('~/app/context/GenAiContext', () => {
   };
 });
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
 const mockGlobalDirtyPrompt: MLflowPromptVersion = {
   name: 'Copy of global-template',
   version: 0,
@@ -69,7 +67,9 @@ function renderWithQueryClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>, {
+    wrapper: createTrackingWrapper(trackEvent),
+  });
 }
 
 describe('CreatePrompt - Save As mode', () => {
@@ -177,11 +177,11 @@ describe('CreatePrompt - Save As mode', () => {
       screen.getByTestId('prompt-save-button').click();
     });
     await waitFor(() => expect(screen.getByText(message)).toBeVisible());
-    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
+    expect(trackEvent).toHaveBeenCalledWith(
       'Playground Prompt Saved',
       expect.objectContaining({ success: false, error: 'unknown_error' }),
     );
-    expect(JSON.stringify(jest.mocked(fireMiscTrackingEvent).mock.calls)).not.toContain(message);
+    expect(JSON.stringify(jest.mocked(trackEvent).mock.calls)).not.toContain(message);
     expect(mockCloseModal).not.toHaveBeenCalled();
   });
 });

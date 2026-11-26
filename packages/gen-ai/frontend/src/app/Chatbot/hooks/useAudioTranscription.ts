@@ -1,8 +1,5 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
-import {
-  fireMiscTrackingEvent,
-  fireFormTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { uploadMediaFile, transcribeAudio } from '~/app/services/llamaStackService';
@@ -62,6 +59,7 @@ interface UseAudioTranscriptionReturn {
 }
 
 export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
+  const trackEvent = useTrackEvent();
   const [state, setState] = React.useState<AudioTranscriptionState>(INITIAL_STATE);
 
   const abortControllerRef = React.useRef<AbortController | null>(null);
@@ -161,7 +159,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           }
           xhrRef.current = null;
 
-          fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED, {
+          trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED, {
             outcome: TrackingOutcome.submit,
             success: true,
             fileType: file.type || 'unknown',
@@ -171,7 +169,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           setState((prev) => ({ ...prev, phase: 'transcribing', uploadProgress: 100 }));
           transcribeStartTimeRef.current = Date.now();
 
-          fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_STARTED, {
+          trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_STARTED, {
             configID: configIndex ?? 0,
             modelName: asrModelId,
           });
@@ -234,7 +232,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
                 isRetriable: false,
               },
             }));
-            fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
+            trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: false,
               modelName: asrModelId,
@@ -250,7 +248,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
             file,
             transcribedText: result.text,
           }));
-          fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
+          trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
             outcome: TrackingOutcome.submit,
             success: true,
             modelName: asrModelId,
@@ -274,7 +272,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           }
 
           if (transcribeStartTimeRef.current > 0) {
-            fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
+            trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: false,
               modelName: asrModelId,
@@ -282,7 +280,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
               error: errorCategory(error),
             });
           } else {
-            fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED, {
+            trackEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: false,
               fileType: file.type || 'unknown',
@@ -318,7 +316,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           }));
         });
     },
-    [cleanup],
+    [cleanup, trackEvent],
   );
 
   const resumeUpload = React.useCallback(

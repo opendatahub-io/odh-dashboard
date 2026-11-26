@@ -1,14 +1,20 @@
 # OWNERS
 
-approvers:
-  - hardware-profiles-approvers
+filters:
+  '.*':
+    approvers:
+      - hardware-profiles-approvers
+    reviewers:
+      - hardware-profiles-reviewers
+    labels:
+      - area/hardware-profiles
+      - area/components
 
-reviewers:
-  - hardware-profiles-reviewers
-
-labels:
-  - area/hardware-profiles
-  - area/components
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
 
 options:
   no_parent_owners: true

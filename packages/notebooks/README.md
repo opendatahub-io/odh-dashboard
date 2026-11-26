@@ -23,10 +23,7 @@ This guide outlines how to run the upstream Notebooks and integrate it with a lo
 3. **Notebooks UI Requirements:**
    Ensure you have met the [frontend requirements] and [BFF requirements] for the Notebooks UI. You can run Notebooks in either **mocked mode** or **federated mode**. For testing ODH integration, use **federated mode**.
 
-   ```bash
-   cd packages/notebooks/upstream/developing
-   make tilt-up
-   ```
+   For the Tilt environment, run `make tilt-up` from the `developing/` directory in a separate checkout of [opendatahub-io/workbenches](https://github.com/opendatahub-io/workbenches).
 
 ## Notebooks Setup
 

@@ -3,12 +3,13 @@ package api
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"strings"
 
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -27,18 +28,20 @@ func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
 	}
 
 	var loadedAny bool
-	for _, p := range bundlePaths {
+	// An entry that does not load is logged by position, never by value: it
+	// may not be a path at all (a pasted PEM block, say).
+	for i, p := range bundlePaths {
 		p = strings.TrimSpace(p)
 		if p == "" {
 			continue
 		}
 		pemBytes, readErr := os.ReadFile(p)
 		if readErr != nil {
-			logger.Debug("CA bundle not readable, skipping", slog.String("path", p), slog.Any("error", readErr))
+			logger.Debug("CA bundle not readable, skipping", slog.Int("entry", i+1), slog.String("problem", config.FileProblem(readErr)))
 			continue
 		}
 		if ok := rootCAs.AppendCertsFromPEM(pemBytes); !ok {
-			logger.Debug("No certs appended from PEM bundle", slog.String("path", p))
+			logger.Debug("No certs appended from PEM bundle", slog.Int("entry", i+1))
 			continue
 		}
 		loadedAny = true
@@ -52,39 +55,43 @@ func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
 	return rootCAs
 }
 
-func (app *App) ensureRootCAs() {
+// kubernetesProxyRootCAs returns the trust pool for the Kubernetes HTTP and
+// WebSocket proxies: the shared outbound pool (system + BUNDLE_PATHS) plus,
+// once the caller appends it, the kubeconfig or envtest CA. It is always a
+// copy. The kubeconfig CA is trusted for the API server only, so appending it
+// to app.rootCAs in place would also make the model-serving, module, inter-BFF
+// and Prometheus transports trust it, which the runtime contract rules out.
+func (app *App) kubernetesProxyRootCAs() *x509.CertPool {
 	if app.rootCAs != nil {
-		return
+		return app.rootCAs.Clone()
 	}
 	if pool, err := x509.SystemCertPool(); err == nil {
-		app.rootCAs = pool
-	} else {
-		app.rootCAs = x509.NewCertPool()
+		return pool
 	}
+	return x509.NewCertPool()
 }
 
-func (app *App) appendCACerts(pem []byte, source string) error {
+func (app *App) appendCACerts(pool *x509.CertPool, pem []byte, source string) error {
 	if len(pem) == 0 {
 		return nil
 	}
-	app.ensureRootCAs()
-	if !app.rootCAs.AppendCertsFromPEM(pem) {
+	if !pool.AppendCertsFromPEM(pem) {
 		return fmt.Errorf("failed to append CA certs from %s: PEM data contains no valid certificates", source)
 	}
 	app.logger.Debug("Loaded CA certs", slog.String("source", source))
 	return nil
 }
 
-func (app *App) appendCAFromTLSConfig(tlsCfg rest.TLSClientConfig, source string) error {
+func (app *App) appendCAFromTLSConfig(pool *x509.CertPool, tlsCfg rest.TLSClientConfig, source string) error {
 	if len(tlsCfg.CAData) > 0 {
-		return app.appendCACerts(tlsCfg.CAData, source+" inline CA")
+		return app.appendCACerts(pool, tlsCfg.CAData, source+" inline CA")
 	}
 	if tlsCfg.CAFile != "" {
 		pemBytes, err := os.ReadFile(tlsCfg.CAFile)
 		if err != nil {
 			return fmt.Errorf("failed to read %s CA file %s: %w", source, tlsCfg.CAFile, err)
 		}
-		return app.appendCACerts(pemBytes, source+" CA file")
+		return app.appendCACerts(pool, pemBytes, source+" CA file")
 	}
 	return nil
 }
@@ -123,21 +130,55 @@ func (app *App) loadClientCert(tlsCfg rest.TLSClientConfig, source string) ([]tl
 	return nil, nil
 }
 
-func (app *App) loadEnvtestTLS(testEnv *envtest.Environment) ([]tls.Certificate, error) {
+func (app *App) loadEnvtestTLS(pool *x509.CertPool, testEnv *envtest.Environment) ([]tls.Certificate, error) {
 	tlsCfg := testEnv.Config.TLSClientConfig
-	if err := app.appendCACerts(tlsCfg.CAData, "envtest"); err != nil {
+	if err := app.appendCACerts(pool, tlsCfg.CAData, "envtest"); err != nil {
 		return nil, err
 	}
 	return app.loadClientCert(tlsCfg, "envtest")
 }
 
-func (app *App) loadKubeconfigTLS() ([]tls.Certificate, error) {
-	kubeconfig, err := helpers.GetKubeconfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get kubeconfig for TLS: %w", err)
-	}
-	if err := app.appendCAFromTLSConfig(kubeconfig.TLSClientConfig, "kubeconfig"); err != nil {
+// loadKubeconfigTLS adds the kubeconfig CA to pool and returns the client
+// certificate the Kubernetes proxies present, if any.
+//
+// The proxies are caller-scoped: every request carries the caller's bearer
+// token. A kubeconfig client certificate is the BFF's own identity, and the
+// API server does not define which authenticator wins when a request carries
+// both, so presenting it could authorize the call as the certificate owner.
+// It is therefore returned only in DEV_MODE, where the developer's kubeconfig
+// identity is the documented fallback for requests without a token.
+func (app *App) loadKubeconfigTLS(pool *x509.CertPool, kubeconfig *rest.Config, devMode bool) ([]tls.Certificate, error) {
+	if err := app.appendCAFromTLSConfig(pool, kubeconfig.TLSClientConfig, "kubeconfig"); err != nil {
 		return nil, err
 	}
-	return app.loadClientCert(kubeconfig.TLSClientConfig, "kubeconfig")
+	certs, err := app.loadClientCert(kubeconfig.TLSClientConfig, "kubeconfig")
+	if err != nil {
+		return nil, err
+	}
+	if len(certs) > 0 && !devMode {
+		app.logger.Info("Kubeconfig client certificate is not presented on caller-scoped Kubernetes proxy requests; callers authenticate with their own token")
+		return nil, nil
+	}
+	return certs, nil
+}
+
+// requireVerifiedKubeconfig rejects a kubeconfig that disables API server
+// certificate verification (insecure-skip-tls-verify) outside DEV_MODE. Both
+// the service-account clients and the per-caller clients are built from this
+// configuration, and client-go honours its Insecure flag regardless of
+// INSECURE_SKIP_VERIFY, so the production rule has to be applied here.
+func requireVerifiedKubeconfig(cfg config.EnvConfig, kubeconfig *rest.Config) error {
+	if kubeconfig != nil && kubeconfig.Insecure && cfg.IsProductionProfile() {
+		return errors.New("the kubeconfig disables Kubernetes API certificate verification (insecure-skip-tls-verify), which is not supported in a production profile; supply the cluster CA instead, or set DEV_MODE=true for local development")
+	}
+	// A plaintext API server would receive the service-account token (and,
+	// through the discovery probe, before any proxy refuses it) in the clear.
+	// client-go resolves a scheme-less Host to http unless TLS settings are
+	// present, so the scheme it would actually use is checked.
+	if kubeconfig != nil && cfg.IsProductionProfile() {
+		if u, _, err := rest.DefaultServerUrlFor(kubeconfig); err != nil || u.Scheme != "https" {
+			return errors.New("the kubeconfig API server does not resolve to an https:// URL, which is not supported in a production profile; set DEV_MODE=true for a local plaintext API server")
+		}
+	}
+	return nil
 }

@@ -7,10 +7,7 @@ import {
   useWizardContext,
   WizardFooterWrapper,
 } from '@patternfly/react-core';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   ExternalModelProviderContext,
@@ -58,6 +55,7 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
   onAdd,
   onNext,
 }) => {
+  const trackEvent = useTrackEvent();
   const { activeStep, steps, goToNextStep, goToPrevStep, close } = useWizardContext();
   const isFirstStep = activeStep.index === 1;
   const isLastStep = activeStep.index === steps.length;
@@ -69,7 +67,7 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
         return;
       }
     }
-    fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_STEP_CONTINUED, {
+    trackEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_STEP_CONTINUED, {
       providerSource: convertStringToExternalModelProviderSource(providerSource),
       providerType: convertStringToExternalModelProviderType(providerType),
       hasCreatedSecret,
@@ -80,7 +78,7 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
 
   const handleAdd = async () => {
     const success = onAdd ? await onAdd() : false;
-    fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED, {
+    trackEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED, {
       outcome: TrackingOutcome.submit,
       success,
       providerSource: convertStringToExternalModelProviderSource(providerSource),
@@ -142,7 +140,7 @@ const AddProviderReferenceWizardFooter: React.FC<AddProviderReferenceWizardFoote
               variant="link"
               data-testid="provider-ref-wizard-cancel"
               onClick={() => {
-                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED, {
+                trackEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_REFERENCE_ADDED, {
                   outcome: TrackingOutcome.cancel,
                   success: false,
                   providerSource: convertStringToExternalModelProviderSource(providerSource),

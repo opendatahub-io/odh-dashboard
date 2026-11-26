@@ -75,6 +75,11 @@ export type Connection = {
   };
 };
 
+export type ConnectionNameAvailability = {
+  available: boolean;
+  conflicts_with: string[];
+};
+
 export type ConnectionTypeEnumValue = Labelled<string> & Valued<string>;
 
 export type ConnectionTypeCredentialField = {

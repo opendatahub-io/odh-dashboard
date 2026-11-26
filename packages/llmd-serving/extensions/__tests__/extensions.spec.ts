@@ -2,7 +2,7 @@ import { PluginStore } from '@odh-dashboard/plugin-core';
 import { isWizardTrackingPropertiesExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import extensions from '../extensions';
+import extensions from '../index';
 import { extractLlmdDeploymentTrackingProperties } from '../../src/tracking/llmdWizardTracking';
 import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../../src/settings/llmInferenceServiceConfigs/paths';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';
@@ -84,6 +84,22 @@ describe('llm-d deployment tracking registration', () => {
 });
 
 const routeExtensions = extensions.filter((extension) => extension.type === 'app.route');
+
+describe('LLM-d connected resources registration', () => {
+  it('should register connected resources when LLM-d serving is enabled', () => {
+    const store = new PluginStore({ llmd: extensions });
+    const connectedResources = () =>
+      store
+        .getExtensions()
+        .filter((extension) => extension.type === 'app.connections/connected-resources');
+
+    store.setFeatureFlags({ [SupportedArea.LLMD_SERVING]: true });
+    expect(connectedResources()).toHaveLength(1);
+
+    store.setFeatureFlags({ [SupportedArea.LLMD_SERVING]: false });
+    expect(connectedResources()).toHaveLength(0);
+  });
+});
 
 const acceleratorTab = extensions.find(
   (extension) =>

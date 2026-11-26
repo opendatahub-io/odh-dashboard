@@ -32,6 +32,7 @@ import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
 import { useHardwareProfiles } from '~/app/hooks/useHardwareProfiles';
 import { useKueueAvailability } from '~/app/hooks/useKueueAvailability';
 import {
+  benchmarkParameterValuesSchema,
   startEvaluationRunDefaultValues,
   startEvaluationRunSchema,
   type StartEvaluationRunFormValues,
@@ -75,13 +76,16 @@ const getTrackingContext = (
 
 type UseStartEvaluationRunFormParams = {
   namespace: string | undefined;
-  benchmark: FlatBenchmark | undefined;
+  benchmark?: FlatBenchmark;
   collection: Collection | undefined;
   isCollectionFlow: boolean;
+  benchmarkParameterValues?: Record<string, unknown>;
+  benchmarkParameterKeys?: string[];
   allowDeferredCollection?: boolean;
   experiments: MlflowExperiment[];
   experimentsLoaded: boolean;
   initialValues?: ReconfigureFormData;
+  initialRunValues?: Partial<StartEvaluationRunFormValues>;
   defaultEvaluationName?: string;
   defaultSourceMode?: SourceMode;
   trackingSource?: string;
@@ -157,10 +161,13 @@ export function useStartEvaluationRunForm({
   benchmark,
   collection,
   isCollectionFlow,
+  benchmarkParameterValues,
+  benchmarkParameterKeys,
   allowDeferredCollection = false,
   experiments,
   experimentsLoaded,
   initialValues,
+  initialRunValues,
   defaultEvaluationName,
   defaultSourceMode,
   trackingSource = 'evaluations_page',
@@ -208,13 +215,16 @@ export function useStartEvaluationRunForm({
   const form = useForm<StartEvaluationRunFormValues>({
     mode: 'onChange',
     resolver: zodResolver(startEvaluationRunSchema),
-    defaultValues: buildInitialFormValues({
-      initialValues,
-      defaultEvaluationName,
-      defaultSourceMode,
-      defaultThreshold,
-      defaultPrimaryMetric,
-    }),
+    defaultValues: {
+      ...buildInitialFormValues({
+        initialValues,
+        defaultEvaluationName,
+        defaultSourceMode,
+        defaultThreshold,
+        defaultPrimaryMetric,
+      }),
+      ...initialRunValues,
+    },
   });
 
   const {
@@ -284,8 +294,14 @@ export function useStartEvaluationRunForm({
     ],
   });
 
-  const thresholdTouched = !!form.formState.dirtyFields.threshold || isReconfigure;
-  const primaryMetricTouched = !!form.formState.dirtyFields.primaryMetric || isReconfigure;
+  const thresholdTouched =
+    !!form.formState.dirtyFields.threshold ||
+    isReconfigure ||
+    initialRunValues?.threshold !== undefined;
+  const primaryMetricTouched =
+    !!form.formState.dirtyFields.primaryMetric ||
+    isReconfigure ||
+    initialRunValues?.primaryMetric !== undefined;
 
   React.useEffect(() => {
     if (!thresholdTouched) {
@@ -581,12 +597,24 @@ export function useStartEvaluationRunForm({
   const hardwareProfileSelectionLost =
     !!hardwareProfile && hardwareProfileManuallySelectedRef.current && !selectedHardwareProfile;
 
+  const benchmarkParameterErrors = React.useMemo(() => {
+    const result = benchmarkParameterValuesSchema.safeParse(benchmarkParameterValues ?? {});
+    if (result.success) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      result.error.issues.map((issue): [string, string] => [String(issue.path[0]), issue.message]),
+    );
+  }, [benchmarkParameterValues]);
+
   const isValid = React.useMemo(() => {
     if (
       !hardwareProfilesLoaded ||
       evaluationName.trim() === '' ||
       !hasBenchmarks ||
-      !hasExperiment
+      !hasExperiment ||
+      Object.keys(benchmarkParameterErrors).length > 0
     ) {
       return false;
     }
@@ -625,6 +653,7 @@ export function useStartEvaluationRunForm({
     sourceName,
     selectedInferenceServiceName,
     hardwareProfilesLoaded,
+    benchmarkParameterErrors,
     hardwareProfileSelectionLost,
   ]);
 
@@ -814,6 +843,24 @@ export function useStartEvaluationRunForm({
           setIsSubmitting(false);
           return;
         }
+
+        const conflictingParameterKeys = Object.keys(parsed).filter((key) =>
+          benchmarkParameterKeys?.includes(key),
+        );
+        if (conflictingParameterKeys.length > 0) {
+          notification.error(
+            'Conflicting benchmark parameters',
+            `Use the dedicated fields for ${conflictingParameterKeys.join(', ')}. Remove them from the advanced JSON.`,
+          );
+          trackEvalHubEvent(
+            EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
+            { validation_error_category: 'duplicate_benchmark_parameter_keys' },
+            submissionTrackingContext,
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
         Object.assign(parsedArgs, parsed);
 
         for (const [key, val] of Object.entries(parsedArgs)) {
@@ -844,6 +891,9 @@ export function useStartEvaluationRunForm({
         return;
       }
     }
+
+    // Benchmark-declared fields take precedence over advanced JSON values with the same key.
+    Object.assign(parsedArgs, benchmarkParameterValues);
 
     const isNewExperiment = values.experimentMode === 'new';
     const experimentName = isNewExperiment
@@ -1160,6 +1210,7 @@ export function useStartEvaluationRunForm({
     handleAdditionalArgsClear,
     isSubmitting,
     isValid,
+    benchmarkParameterErrors,
     handleSubmit,
     handleCancel,
     benchmarkDisplayName,

@@ -1,0 +1,75 @@
+// The import dialog needs a definite height, not just a min-height: Monaco
+// sizes itself with percentage heights, which only resolve when every ancestor
+// has a definite height. With an indefinite chain the editor collapses to a
+// single line and leaves the rest of the modal body empty.
+.evalhub-import-collection-modal {
+  height: min(90vh, 48rem);
+
+  .pf-v6-c-modal-box__body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    // Several stacked inline alerts can otherwise crowd the editor out of
+    // the fixed dialog height; the editor keeps a floor (below) and the
+    // body scrolls instead of collapsing it.
+    overflow-y: auto;
+  }
+
+  .pf-v6-l-stack {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+// The form stack item carries the flex sizing that hands Monaco the space
+// left over from the dialog height set above. Every ancestor between the
+// stack item and the editor must pass that height through.
+.evalhub-import-collection-modal__form-item,
+.evalhub-import-collection-modal__form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.evalhub-import-collection-modal__definition-group {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  // Floor at content, not 0: when stacked alerts squeeze the fixed dialog
+  // height, a zero floor lets flexbox collapse this group below the editor's
+  // min-height, and the overflowing reset button paints over the collection
+  // name field below. At min-content the overflow instead extends the modal
+  // body's scroll region, which is the intended behavior.
+  min-height: min-content;
+
+  > .pf-v6-c-form__group-control {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: min-content;
+  }
+}
+
+.evalhub-import-collection-modal__editor {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  // Without a floor, stacked alerts in a short viewport can shrink the
+  // editor to near zero; the modal body scrolls once the floor is reached.
+  // Monaco's percentage heights still resolve because the ancestors keep
+  // their definite heights from the dialog height.
+  min-height: 25vh;
+}
+
+.evalhub-m-drag-hover {
+  outline: var(--pf-t--global--border--width--control--default) dashed
+    var(--pf-t--global--border--color--clicked);
+  outline-offset: var(--pf-t--global--spacer--xs);
+}
+
+.evalhub-import-collection-modal__editor-upload {
+  flex: 1 1 auto;
+  min-height: 0;
+}

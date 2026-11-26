@@ -2,11 +2,14 @@ package webhook_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	admissionv1 "k8s.io/api/admission/v1"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -20,6 +23,7 @@ func testScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 
 	s := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(s))
 	require.NoError(t, v1alpha1.AddToScheme(s))
 
 	return s
@@ -89,4 +93,460 @@ func TestSingletonHandler_WithExistingInstance(t *testing.T) {
 			}
 		})
 	}
+}
+
+func dashboardRaw(t *testing.T, notebooksNamespace, modelRegistryNamespace string) []byte {
+	t.Helper()
+	return dashboardRawWithAnnotations(t, notebooksNamespace, modelRegistryNamespace, nil)
+}
+
+func dashboardRawWithAnnotations(t *testing.T, notebooksNamespace, modelRegistryNamespace string, annotations map[string]string) []byte {
+	t.Helper()
+	raw, err := json.Marshal(&v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Annotations: annotations},
+		Spec: v1alpha1.DashboardSpec{
+			NotebooksNamespace:     notebooksNamespace,
+			ModelRegistryNamespace: modelRegistryNamespace,
+		},
+	})
+	require.NoError(t, err)
+	return raw
+}
+
+func TestDashboardHandler_ProtectsNamespacedRBACTargetFields(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		[]string{orchestrator},
+		true,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
+	)
+
+	tests := []struct {
+		name      string
+		operation admissionv1.Operation
+		username  string
+		oldRaw    []byte
+		newRaw    []byte
+		allowed   bool
+	}{
+		{
+			name:      "allow unprivileged create without protected fields",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    dashboardRaw(t, "", ""),
+			allowed:   true,
+		},
+		{
+			name:      "deny unprivileged create with protected field",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    dashboardRaw(t, "arbitrary", ""),
+		},
+		{
+			name:      "deny unprivileged create with model registry namespace",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    dashboardRaw(t, "", "arbitrary"),
+		},
+		{
+			name:      "allow orchestrator create with protected field",
+			operation: admissionv1.Create,
+			username:  orchestrator,
+			newRaw:    dashboardRaw(t, "rhods-notebooks", ""),
+			allowed:   true,
+		},
+		{
+			name:      "deny unprivileged protected field update",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "rhods-notebooks", ""),
+			newRaw:    dashboardRaw(t, "arbitrary", ""),
+		},
+		{
+			name:      "deny unprivileged protected field removal",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "rhods-notebooks", ""),
+			newRaw:    dashboardRaw(t, "", ""),
+		},
+		{
+			name:      "deny unprivileged model registry namespace update",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "", "rhoai-model-registries"),
+			newRaw:    dashboardRaw(t, "", "arbitrary"),
+		},
+		{
+			name:      "deny unprivileged model registry namespace removal",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "", "rhoai-model-registries"),
+			newRaw:    dashboardRaw(t, "", ""),
+		},
+		{
+			name:      "allow orchestrator protected field update",
+			operation: admissionv1.Update,
+			username:  orchestrator,
+			oldRaw:    dashboardRaw(t, "rhods-notebooks", ""),
+			newRaw:    dashboardRaw(t, "custom-notebooks", "rhoai-model-registries"),
+			allowed:   true,
+		},
+		{
+			name:      "allow unprivileged update when protected fields are unchanged",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "rhods-notebooks", "rhoai-model-registries"),
+			newRaw:    dashboardRaw(t, "rhods-notebooks", "rhoai-model-registries"),
+			allowed:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := handler.Handle(context.Background(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: tt.operation,
+					Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+					UserInfo:  authenticationv1.UserInfo{Username: tt.username},
+					Object:    runtime.RawExtension{Raw: tt.newRaw},
+					OldObject: runtime.RawExtension{Raw: tt.oldRaw},
+				},
+			})
+
+			assert.Equal(t, tt.allowed, resp.Allowed)
+			if !tt.allowed {
+				require.NotNil(t, resp.Result)
+				assert.Contains(t, resp.Result.Message, "managed by the ODH orchestrator")
+			}
+		})
+	}
+}
+
+func TestDashboardHandler_EmptyWriterListFailsClosed(t *testing.T) {
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		nil,
+		true,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
+	)
+
+	resp := handler.Handle(context.Background(), admission.Request{
+		AdmissionRequest: admissionv1.AdmissionRequest{
+			Operation: admissionv1.Update,
+			Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+			UserInfo:  authenticationv1.UserInfo{Username: "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"},
+			Object:    runtime.RawExtension{Raw: dashboardRaw(t, "rhods-notebooks", "")},
+			OldObject: runtime.RawExtension{Raw: dashboardRaw(t, "", "")},
+		},
+	})
+
+	assert.False(t, resp.Allowed)
+	require.NotNil(t, resp.Result)
+	assert.Contains(t, resp.Result.Message, "managed by the ODH orchestrator")
+}
+
+func TestDashboardHandler_LegacyModePreservesExistingAdmissionContract(t *testing.T) {
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		nil,
+		false,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
+	)
+
+	targetUpdate := handler.Handle(context.Background(), admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Update,
+		Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+		UserInfo:  authenticationv1.UserInfo{Username: "system:serviceaccount:legacy:orchestrator"},
+		Object:    runtime.RawExtension{Raw: dashboardRaw(t, "rhods-notebooks", "")},
+		OldObject: runtime.RawExtension{Raw: dashboardRaw(t, "", "")},
+	}})
+	assert.True(t, targetUpdate.Allowed, "legacy webhook configuration must not require the new writer list")
+
+	consentUpdate := handler.Handle(context.Background(), admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Update,
+		Resource:  metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"},
+		UserInfo:  authenticationv1.UserInfo{Username: "alice"},
+		Object: runtime.RawExtension{Raw: namespaceRaw(t, map[string]string{
+			v1alpha1.NamespacedRBACOptInLabel: "true",
+		})},
+		OldObject: runtime.RawExtension{Raw: namespaceRaw(t, nil)},
+	}})
+	assert.True(t, consentUpdate.Allowed, "consent policy is inactive during the bounded legacy transition")
+}
+
+func TestDashboardHandler_ProtectsControllerOwnedAnnotations(t *testing.T) {
+	const controllerWriter = "system:serviceaccount:opendatahub:dashboard-operator"
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		nil,
+		false,
+		controllerWriter,
+		"opendatahub",
+	)
+
+	for _, key := range []string{
+		v1alpha1.NamespacedRBACInventoryAnnotation,
+		v1alpha1.NamespacedRBACConsentEnforcedAnnotation,
+	} {
+		t.Run(key, func(t *testing.T) {
+			oldRaw := dashboardRaw(t, "", "")
+			newRaw := dashboardRawWithAnnotations(t, "", "", map[string]string{key: "true"})
+			request := func(username string) admission.Request {
+				return admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: admissionv1.Update,
+					Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+					UserInfo:  authenticationv1.UserInfo{Username: username},
+					Object:    runtime.RawExtension{Raw: newRaw},
+					OldObject: runtime.RawExtension{Raw: oldRaw},
+				}}
+			}
+
+			denied := handler.Handle(context.Background(), request("alice"))
+			assert.False(t, denied.Allowed)
+			require.NotNil(t, denied.Result)
+			assert.Contains(t, denied.Result.Message, "controller-owned")
+			assert.True(t, handler.Handle(context.Background(), request(controllerWriter)).Allowed)
+		})
+	}
+}
+
+func TestDashboardHandler_ProtectsControllerOwnedStateConfigMap(t *testing.T) {
+	const controllerWriter = "system:serviceaccount:opendatahub:dashboard-operator"
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		nil,
+		false,
+		controllerWriter,
+		"opendatahub",
+	)
+	configMapRaw := func(t *testing.T) []byte {
+		t.Helper()
+		raw, err := json.Marshal(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+				Namespace: "opendatahub",
+			},
+			Data: map[string]string{v1alpha1.NamespacedRBACConsentEnforcedKey: "true"},
+		})
+		require.NoError(t, err)
+		return raw
+	}
+	for _, operation := range []admissionv1.Operation{admissionv1.Create, admissionv1.Update, admissionv1.Delete} {
+		t.Run(string(operation), func(t *testing.T) {
+			request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+				Operation: operation,
+				Resource:  metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"},
+				Namespace: "opendatahub",
+				Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+				Object:    runtime.RawExtension{Raw: configMapRaw(t)},
+				OldObject: runtime.RawExtension{Raw: configMapRaw(t)},
+			}}
+			request.UserInfo = authenticationv1.UserInfo{Username: "alice"}
+			denied := handler.Handle(context.Background(), request)
+			assert.False(t, denied.Allowed)
+			request.UserInfo = authenticationv1.UserInfo{Username: controllerWriter}
+			assert.True(t, handler.Handle(context.Background(), request).Allowed)
+		})
+	}
+}
+
+func TestDashboardHandler_DurableEnforcementSurvivesMissingFlag(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	persisted := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{
+		Name: v1alpha1.DashboardInstanceName,
+		Annotations: map[string]string{
+			v1alpha1.NamespacedRBACConsentEnforcedAnnotation: "true",
+		},
+	}}
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(persisted).Build(),
+		[]string{orchestrator},
+		false,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
+	)
+
+	request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Update,
+		Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+		UserInfo:  authenticationv1.UserInfo{Username: "alice"},
+		Object:    runtime.RawExtension{Raw: dashboardRaw(t, "arbitrary", "")},
+		OldObject: runtime.RawExtension{Raw: dashboardRaw(t, "", "")},
+	}}
+	assert.False(t, handler.Handle(context.Background(), request).Allowed)
+	request.UserInfo.Username = orchestrator
+	assert.True(t, handler.Handle(context.Background(), request).Allowed)
+}
+
+func TestDashboardHandler_DurableEnforcementSurvivesDashboardReplacement(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	state := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Namespace: "opendatahub",
+		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+	}, Data: map[string]string{
+		v1alpha1.NamespacedRBACConsentEnforcedKey: "true",
+	}}
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(state).Build(),
+		[]string{orchestrator},
+		false,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
+	)
+
+	request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Create,
+		Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+		UserInfo:  authenticationv1.UserInfo{Username: "alice"},
+		Object:    runtime.RawExtension{Raw: dashboardRaw(t, "arbitrary", "")},
+	}}
+	assert.False(t, handler.Handle(context.Background(), request).Allowed)
+	request.UserInfo.Username = orchestrator
+	assert.True(t, handler.Handle(context.Background(), request).Allowed)
+}
+
+func namespaceRaw(t *testing.T, labels map[string]string) []byte {
+	t.Helper()
+	raw, err := json.Marshal(&corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: "target", Labels: labels},
+	})
+	require.NoError(t, err)
+	return raw
+}
+
+func TestDashboardHandler_ProtectsNamespaceOptInLabel(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		[]string{orchestrator},
+		true,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
+	)
+
+	for _, tt := range []struct {
+		name        string
+		operation   admissionv1.Operation
+		subresource string
+		username    string
+		oldRaw      []byte
+		newRaw      []byte
+		allowed     bool
+	}{
+		{
+			name:      "allow untrusted namespace create without consent",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    namespaceRaw(t, map[string]string{"other": "value"}),
+			allowed:   true,
+		},
+		{
+			name:      "deny untrusted namespace create with consent",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+		},
+		{
+			name:      "allow orchestrator namespace create with consent",
+			operation: admissionv1.Create,
+			username:  orchestrator,
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+			allowed:   true,
+		},
+		{
+			name:      "deny dashboard service account adding consent",
+			operation: admissionv1.Update,
+			username:  "system:serviceaccount:redhat-ods-applications:rhods-dashboard",
+			oldRaw:    namespaceRaw(t, nil),
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+		},
+		{
+			name:      "allow namespace administrator removing consent",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+			newRaw:    namespaceRaw(t, nil),
+			allowed:   true,
+		},
+		{
+			name:      "allow orchestrator changing consent",
+			operation: admissionv1.Update,
+			username:  orchestrator,
+			oldRaw:    namespaceRaw(t, nil),
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+			allowed:   true,
+		},
+		{
+			name:      "allow unrelated namespace label update",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true", "other": "old"}),
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true", "other": "new"}),
+			allowed:   true,
+		},
+		{
+			name:        "deny consent change through namespace subresource",
+			operation:   admissionv1.Update,
+			subresource: "status",
+			username:    "alice",
+			oldRaw:      namespaceRaw(t, nil),
+			newRaw:      namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := handler.Handle(context.Background(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation:   tt.operation,
+					Resource:    metav1.GroupVersionResource{Version: "v1", Resource: "namespaces"},
+					SubResource: tt.subresource,
+					UserInfo:    authenticationv1.UserInfo{Username: tt.username},
+					Object:      runtime.RawExtension{Raw: tt.newRaw},
+					OldObject:   runtime.RawExtension{Raw: tt.oldRaw},
+				},
+			})
+
+			assert.Equal(t, tt.allowed, resp.Allowed)
+			if !tt.allowed {
+				require.NotNil(t, resp.Result)
+				assert.Contains(t, resp.Result.Message, v1alpha1.NamespacedRBACOptInLabel)
+			}
+		})
+	}
+}
+
+func TestDashboardHandler_AllowsStateConfigMapDeleteWhenOperatorNamespaceIsTerminating(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	deletionTimestamp := metav1.Now()
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).WithObjects(&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "opendatahub",
+				DeletionTimestamp: &deletionTimestamp,
+				Finalizers:        []string{"kubernetes"},
+			},
+		}).Build(),
+		[]string{orchestrator},
+		true,
+		"system:serviceaccount:opendatahub:dashboard-operator",
+		"opendatahub",
+	)
+
+	configMapRaw, err := json.Marshal(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: v1alpha1.NamespacedRBACStateConfigMapName, Namespace: "opendatahub",
+	}})
+	require.NoError(t, err)
+	request := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
+		Operation: admissionv1.Delete,
+		Resource:  metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"},
+		Namespace: "opendatahub",
+		Name:      v1alpha1.NamespacedRBACStateConfigMapName,
+		OldObject: runtime.RawExtension{Raw: configMapRaw},
+		UserInfo:  authenticationv1.UserInfo{Username: "namespace-controller"},
+	}}
+
+	assert.True(t, handler.Handle(context.Background(), request).Allowed)
 }

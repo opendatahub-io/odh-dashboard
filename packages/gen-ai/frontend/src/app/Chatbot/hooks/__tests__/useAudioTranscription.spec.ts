@@ -1,24 +1,18 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import {
-  fireMiscTrackingEvent,
-  fireFormTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { uploadMediaFile, transcribeAudio } from '~/app/services/llamaStackService';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+
+const trackEvent = jest.fn();
 
 jest.mock('~/app/services/llamaStackService', () => ({
   uploadMediaFile: jest.fn(),
   transcribeAudio: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
-const mockFireForm = jest.mocked(fireFormTrackingEvent);
+const mockFireMisc = jest.mocked(trackEvent);
+const mockFireForm = jest.mocked(trackEvent);
 
 const mockUploadMediaFile = uploadMediaFile as jest.MockedFunction<typeof uploadMediaFile>;
 const mockTranscribeAudio = transcribeAudio as jest.MockedFunction<typeof transcribeAudio>;
@@ -37,7 +31,9 @@ describe('useAudioTranscription', () => {
   });
 
   it('should initialize with idle state', () => {
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(result.current.state.phase).toBe('idle');
     expect(result.current.state.file).toBeNull();
@@ -56,7 +52,9 @@ describe('useAudioTranscription', () => {
       xhr: xhrMock,
     });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -82,7 +80,9 @@ describe('useAudioTranscription', () => {
       }),
       xhr: { abort: jest.fn() } as unknown as XMLHttpRequest,
     });
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => result.current.startUpload(file, '', 'test-ns'));
@@ -110,7 +110,9 @@ describe('useAudioTranscription', () => {
       }),
       xhr: { abort: jest.fn() } as unknown as XMLHttpRequest,
     });
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const latestFile = createMockFile('latest.wav');
 
     act(() => result.current.startUpload(createMockFile('first.wav'), '', 'test-ns'));
@@ -128,7 +130,9 @@ describe('useAudioTranscription', () => {
   });
 
   it('discards an audio file waiting for a model', () => {
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     act(() => result.current.startUpload(createMockFile(), '', 'test-ns'));
     act(() => result.current.abort());
     act(() => result.current.resumeUpload('untagged-model', 'test-ns'));
@@ -148,7 +152,9 @@ describe('useAudioTranscription', () => {
       }),
     );
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -185,7 +191,9 @@ describe('useAudioTranscription', () => {
     });
     mockTranscribeAudio.mockResolvedValue({ text: 'With subscription' });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -213,7 +221,9 @@ describe('useAudioTranscription', () => {
     });
     mockTranscribeAudio.mockResolvedValue({ text: 'Hello world' });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -239,7 +249,9 @@ describe('useAudioTranscription', () => {
       xhr: xhrMock,
     });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -270,7 +282,9 @@ describe('useAudioTranscription', () => {
     });
     mockTranscribeAudio.mockRejectedValue(new Error('ASR model unavailable'));
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -306,7 +320,9 @@ describe('useAudioTranscription', () => {
     };
     mockTranscribeAudio.mockRejectedValue(apiError);
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile('interview.wav');
 
     act(() => {
@@ -331,7 +347,9 @@ describe('useAudioTranscription', () => {
     });
     mockTranscribeAudio.mockResolvedValue({ text: '   ' });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile('silence.wav');
 
     act(() => {
@@ -363,7 +381,9 @@ describe('useAudioTranscription', () => {
       new Promise(() => {}),
     );
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     act(() => {
       result.current.startUpload(createMockFile(), 'whisper-model', 'test-ns', undefined, 2);
@@ -391,7 +411,9 @@ describe('useAudioTranscription', () => {
       }),
     );
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -422,7 +444,9 @@ describe('useAudioTranscription', () => {
       xhr: xhrMock,
     });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -448,7 +472,9 @@ describe('useAudioTranscription', () => {
     });
     mockTranscribeAudio.mockResolvedValue({ text: 'Hello' });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -476,7 +502,9 @@ describe('useAudioTranscription', () => {
     });
     mockTranscribeAudio.mockResolvedValue({ text: 'Hello' });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -513,7 +541,9 @@ describe('useAudioTranscription', () => {
       });
     mockTranscribeAudio.mockResolvedValue({ text: 'Second recording' });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     act(() => {
       result.current.startUpload(createMockFile('first.wav'), 'model', 'ns');
@@ -545,7 +575,9 @@ describe('useAudioTranscription', () => {
       xhr: xhrMock,
     });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -571,7 +603,9 @@ describe('useAudioTranscription', () => {
       };
     });
 
-    const { result } = renderHook(() => useAudioTranscription());
+    const { result } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {
@@ -594,7 +628,9 @@ describe('useAudioTranscription', () => {
       xhr: xhrMock,
     });
 
-    const { result, unmount } = renderHook(() => useAudioTranscription());
+    const { result, unmount } = renderHook(() => useAudioTranscription(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     const file = createMockFile();
 
     act(() => {

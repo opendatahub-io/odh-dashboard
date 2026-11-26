@@ -3,7 +3,12 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,14 +17,17 @@ import (
 )
 
 // NamespaceMutationRepository handles namespace label/annotation mutations
-// for model serving platform changes. Uses the SA clientset for privileged
-// namespace patches (privileged watcher model).
+// for model serving platform changes. The patch follows the credential policy:
+// on OpenShift the service account patches after the handler's SSAR (privileged
+// watcher model); on xKS the caller patches, so the API server authorizes
+// "patch namespaces" for the caller rather than inferring it from a
+// servingruntimes review.
 type NamespaceMutationRepository struct {
-	saClientset kubernetes.Interface
+	clients clientSource
 }
 
 func NewNamespaceMutationRepository(saClientset kubernetes.Interface) *NamespaceMutationRepository {
-	return &NamespaceMutationRepository{saClientset: saClientset}
+	return &NamespaceMutationRepository{clients: saSource(saClientset, nil)}
 }
 
 // ApplyMutation patches a namespace with the appropriate labels/annotations
@@ -41,7 +49,11 @@ func (r *NamespaceMutationRepository) ApplyMutation(ctx context.Context, namespa
 		opts.DryRun = []string{metav1.DryRunAll}
 	}
 
-	_, err = r.saClientset.CoreV1().Namespaces().Patch(ctx, namespace, types.MergePatchType, patchBytes, opts)
+	cs, err := r.clients.typed(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = cs.CoreV1().Namespaces().Patch(ctx, namespace, types.MergePatchType, patchBytes, opts)
 	if err != nil {
 		return fmt.Errorf("failed to patch namespace %q: %w", namespace, err)
 	}
@@ -93,4 +105,27 @@ func buildMutationPatch(appCase models.NamespaceApplicationCase) (*namespacePatc
 	default:
 		return nil, fmt.Errorf("unsupported namespace mutation context: %d", appCase)
 	}
+}
+
+// IsCredentialFailure reports whether err from ApplyMutation means the caller's
+// own credential could not be used (caller policy only): no resolved identity,
+// or a token the API server rejected. A mutation the credential may not
+// perform, or a server-side failure building clients, is not one. Under the
+// service-account policy a 401 concerns the dashboard's credential, never the
+// caller's.
+func (r *NamespaceMutationRepository) IsCredentialFailure(err error) bool {
+	return r.clients.policy == CredentialPolicyCaller &&
+		(errors.Is(err, httpcontract.ErrIdentityUnresolved) || k8serrors.IsUnauthorized(err))
+}
+
+// IsNotApplied reports whether err from ApplyMutation is answered with the
+// documented {"applied": false}. Under the service-account policy that stays
+// every failure, as before. Under the caller policy only a denial of the
+// caller's own patch is: an upstream failure (a timeout, a 5xx, a missing
+// namespace, an admission rejection with a status other than 403) is reported
+// as that failure, so a client can tell "you may not" from "it failed". A 403
+// is a denial whatever produced it: RBAC and an admission webhook or policy
+// that denies with 403 (their default) are indistinguishable by status.
+func (r *NamespaceMutationRepository) IsNotApplied(err error) bool {
+	return r.clients.policy != CredentialPolicyCaller || k8serrors.IsForbidden(err)
 }

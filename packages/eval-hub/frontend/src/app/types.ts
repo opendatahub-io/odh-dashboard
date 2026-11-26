@@ -483,6 +483,15 @@ export type ListCollectionsParams = CollectionFilterParams & {
   sortBy?: CollectionSortBy;
 };
 
+export type ImportCollectionResponse = {
+  collection: Collection;
+  warnings?: string[];
+};
+
+export type ImportCollectionAccessResponse = {
+  allowed: boolean;
+};
+
 export type CollectionsListResponse = {
   items: Collection[];
   total_count?: number;

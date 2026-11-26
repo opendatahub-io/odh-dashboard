@@ -1,10 +1,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import ChatbotMessageInput, {
   ImageUploadState,
 } from '~/app/Chatbot/components/ChatbotMessageInput';
@@ -17,6 +14,8 @@ import {
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { PLAYGROUND_DOCUMENT_EVENTS } from '~/app/tracking/playgroundDocumentTrackingConstants';
+
+const trackEvent = jest.fn();
 
 jest.mock('@patternfly/chatbot', () => ({
   MessageBar: ({
@@ -173,13 +172,8 @@ jest.mock('@patternfly/react-icons', () => ({
   TimesIcon: () => <span data-testid="icon-remove" />,
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
-const mockFireForm = jest.mocked(fireFormTrackingEvent);
+const mockFireMisc = jest.mocked(trackEvent);
+const mockFireForm = jest.mocked(trackEvent);
 
 describe('ChatbotMessageInput', () => {
   const originalCreateObjectURL = URL.createObjectURL;
@@ -230,6 +224,7 @@ describe('ChatbotMessageInput', () => {
         imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
         showImageCapabilityAlert
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('image-capability-alert')).toHaveTextContent(
@@ -248,7 +243,10 @@ describe('ChatbotMessageInput', () => {
   });
 
   it('shows no vision notice without an image or when the selected model is vision-tagged', () => {
-    const { rerender } = render(<ChatbotMessageInput {...defaultProps} showImageCapabilityAlert />);
+    const { rerender } = render(
+      <ChatbotMessageInput {...defaultProps} showImageCapabilityAlert />,
+      { wrapper: createTrackingWrapper(trackEvent) },
+    );
     expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
 
     rerender(
@@ -268,11 +266,13 @@ describe('ChatbotMessageInput', () => {
       imageUploadState: { ...defaultImageUploadState, fileName: 'photo.png' },
       showImageCapabilityAlert: true,
     };
-    const { unmount } = render(<ChatbotMessageInput {...props} />);
+    const { unmount } = render(<ChatbotMessageInput {...props} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
 
     unmount();
-    render(<ChatbotMessageInput {...props} />);
+    render(<ChatbotMessageInput {...props} />, { wrapper: createTrackingWrapper(trackEvent) });
     expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
   });
 
@@ -287,6 +287,7 @@ describe('ChatbotMessageInput', () => {
           imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
           showImageCapabilityAlert
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
     } finally {
@@ -302,6 +303,7 @@ describe('ChatbotMessageInput', () => {
         imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
         showImageCapabilityAlert
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
     const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('Storage unavailable');
@@ -315,12 +317,16 @@ describe('ChatbotMessageInput', () => {
   });
 
   it('renders the message bar', () => {
-    render(<ChatbotMessageInput {...defaultProps} />);
+    render(<ChatbotMessageInput {...defaultProps} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     expect(screen.getByTestId('chatbot-message-bar')).toBeInTheDocument();
   });
 
   it('renders the footnote with AI warning', () => {
-    render(<ChatbotMessageInput {...defaultProps} />);
+    render(<ChatbotMessageInput {...defaultProps} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     expect(screen.getByTestId('mock-footnote')).toHaveTextContent(
       'This chatbot uses AI. Check for mistakes.',
     );
@@ -329,7 +335,9 @@ describe('ChatbotMessageInput', () => {
   it('calls onSendMessage when a message is sent', async () => {
     const user = userEvent.setup();
     const mockOnSendMessage = jest.fn();
-    render(<ChatbotMessageInput {...defaultProps} onSendMessage={mockOnSendMessage} />);
+    render(<ChatbotMessageInput {...defaultProps} onSendMessage={mockOnSendMessage} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const sendButton = screen.getByTestId('mock-send-button');
     await user.click(sendButton);
@@ -338,28 +346,38 @@ describe('ChatbotMessageInput', () => {
   });
 
   it('shows stop button when isLoading is true', () => {
-    render(<ChatbotMessageInput {...defaultProps} isLoading />);
+    render(<ChatbotMessageInput {...defaultProps} isLoading />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     expect(screen.getByTestId('mock-stop-button')).toBeInTheDocument();
   });
 
   it('does not show stop button when isLoading is false', () => {
-    render(<ChatbotMessageInput {...defaultProps} isLoading={false} />);
+    render(<ChatbotMessageInput {...defaultProps} isLoading={false} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     expect(screen.queryByTestId('mock-stop-button')).not.toBeInTheDocument();
   });
 
   it('disables send button when isSendDisabled is true', () => {
-    render(<ChatbotMessageInput {...defaultProps} isSendDisabled />);
+    render(<ChatbotMessageInput {...defaultProps} isSendDisabled />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     expect(screen.getByTestId('mock-send-button')).toBeDisabled();
   });
 
   it('hides attach menu when showAttachButton is false', () => {
-    render(<ChatbotMessageInput {...defaultProps} showAttachButton={false} />);
+    render(<ChatbotMessageInput {...defaultProps} showAttachButton={false} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
     expect(screen.queryByTestId('mock-attach-menu')).not.toBeInTheDocument();
   });
 
   describe('attach menu', () => {
     it('renders attach menu toggle', () => {
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       expect(screen.getByTestId('mock-attach-toggle')).toHaveAttribute(
         'title',
         'Attach files to this message',
@@ -368,7 +386,9 @@ describe('ChatbotMessageInput', () => {
 
     it('opens attach menu on toggle click and shows three menu items', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
@@ -379,7 +399,9 @@ describe('ChatbotMessageInput', () => {
 
     it('should hide image upload controls when image upload is disabled', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} showImageUpload={false} />);
+      render(<ChatbotMessageInput {...defaultProps} showImageUpload={false} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
@@ -389,7 +411,9 @@ describe('ChatbotMessageInput', () => {
 
     it('should hide audio upload controls when audio upload is disabled', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} showAudioUpload={false} />);
+      render(<ChatbotMessageInput {...defaultProps} showAudioUpload={false} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
@@ -399,7 +423,9 @@ describe('ChatbotMessageInput', () => {
 
     it('disables "Upload image" when isImageUploadDisabled is true (no tooltip)', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} isImageUploadDisabled />);
+      render(<ChatbotMessageInput {...defaultProps} isImageUploadDisabled />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
@@ -415,6 +441,7 @@ describe('ChatbotMessageInput', () => {
           isImageUploadDisabled
           imageDisabledTooltip="Switch to a vision-capable model to upload images."
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
@@ -437,6 +464,7 @@ describe('ChatbotMessageInput', () => {
           isImageUploadDisabled
           imageDisabledTooltip="Deploy a model with vision capabilities to enable image upload."
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
@@ -453,6 +481,7 @@ describe('ChatbotMessageInput', () => {
           isAudioUploadDisabled
           audioDisabledTooltip="Deploy an ASR model to enable audio upload."
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
@@ -471,6 +500,7 @@ describe('ChatbotMessageInput', () => {
           isAudioUploadDisabled
           audioDisabledTooltip="No ASR model"
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
@@ -482,7 +512,9 @@ describe('ChatbotMessageInput', () => {
 
     it('"Upload audio" is disabled when isAudioUploadDisabled is true', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} isAudioUploadDisabled />);
+      render(<ChatbotMessageInput {...defaultProps} isAudioUploadDisabled />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
@@ -498,6 +530,7 @@ describe('ChatbotMessageInput', () => {
           isAudioUploadDisabled
           audioDisabledTooltip="Select a transcription model"
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
@@ -520,6 +553,7 @@ describe('ChatbotMessageInput', () => {
           isAudioUploadDisabled
           audioDisabledTooltip="Select a transcription model"
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
@@ -530,7 +564,9 @@ describe('ChatbotMessageInput', () => {
 
     it('"Upload audio" is enabled when isAudioUploadDisabled is false', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} isAudioUploadDisabled={false} />);
+      render(<ChatbotMessageInput {...defaultProps} isAudioUploadDisabled={false} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
@@ -540,7 +576,9 @@ describe('ChatbotMessageInput', () => {
 
     it('clicking "Upload image" triggers the hidden file input and fires tracking event', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} configIndex={1} isCompareMode />);
+      render(<ChatbotMessageInput {...defaultProps} configIndex={1} isCompareMode />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const fileInput = screen.getByTestId('vision-file-input') as HTMLInputElement;
       const clickSpy = jest.spyOn(fileInput, 'click');
@@ -558,7 +596,9 @@ describe('ChatbotMessageInput', () => {
 
     it('clicking "Upload documents" triggers the hidden document file input', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const fileInput = screen.getByTestId('document-file-input') as HTMLInputElement;
       const clickSpy = jest.spyOn(fileInput, 'click');
@@ -571,7 +611,9 @@ describe('ChatbotMessageInput', () => {
     });
 
     it('uses the direct-attachment picker types instead of the Knowledge upload allowlist', () => {
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const documentInput = screen.getByTestId('document-file-input');
       const knowledgeInputTypes = FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS;
@@ -586,7 +628,9 @@ describe('ChatbotMessageInput', () => {
 
     it('does not trigger file input when "Upload image" is disabled', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} isImageUploadDisabled />);
+      render(<ChatbotMessageInput {...defaultProps} isImageUploadDisabled />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const fileInput = screen.getByTestId('vision-file-input') as HTMLInputElement;
       const clickSpy = jest.spyOn(fileInput, 'click');
@@ -602,7 +646,9 @@ describe('ChatbotMessageInput', () => {
   describe('image upload via hidden input', () => {
     it('triggers onImageUpload when a valid image file is selected', () => {
       const mockOnImageUpload = jest.fn();
-      render(<ChatbotMessageInput {...defaultProps} onImageUpload={mockOnImageUpload} />);
+      render(<ChatbotMessageInput {...defaultProps} onImageUpload={mockOnImageUpload} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const fileInput = screen.getByTestId('vision-file-input') as HTMLInputElement;
       const file = new File(['image-data'], 'photo.jpg', { type: 'image/jpeg' });
@@ -612,7 +658,9 @@ describe('ChatbotMessageInput', () => {
     });
 
     it('shows validation error for unsupported file type', () => {
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const fileInput = screen.getByTestId('vision-file-input') as HTMLInputElement;
       const file = new File(['data'], 'document.gif', { type: 'image/gif' });
@@ -623,7 +671,9 @@ describe('ChatbotMessageInput', () => {
     });
 
     it('shows validation error for file exceeding size limit', () => {
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const fileInput = screen.getByTestId('vision-file-input') as HTMLInputElement;
       const largeContent = new Uint8Array(VISION_UPLOAD_CONFIG.MAX_FILE_SIZE + 1);
@@ -637,7 +687,9 @@ describe('ChatbotMessageInput', () => {
     it('auto-dismisses validation error after timeout', async () => {
       jest.useFakeTimers();
       try {
-        render(<ChatbotMessageInput {...defaultProps} />);
+        render(<ChatbotMessageInput {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const fileInput = screen.getByTestId('vision-file-input') as HTMLInputElement;
         const file = new File(['data'], 'bad.gif', { type: 'image/gif' });
@@ -671,6 +723,7 @@ describe('ChatbotMessageInput', () => {
             transcribedText: 'hello',
           }}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const row = screen.getByTestId('media-attachment-row');
@@ -689,6 +742,7 @@ describe('ChatbotMessageInput', () => {
           {...defaultProps}
           imageUploadState={{ ...defaultImageUploadState, fileName: 'test.jpg' }}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
@@ -696,7 +750,9 @@ describe('ChatbotMessageInput', () => {
     });
 
     it('does not render FileDetailsLabel when no file name', () => {
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       expect(screen.queryByTestId('vision-file-preview')).not.toBeInTheDocument();
     });
 
@@ -710,6 +766,7 @@ describe('ChatbotMessageInput', () => {
             uploading: true,
           }}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('file-loading-spinner')).toBeInTheDocument();
@@ -727,6 +784,7 @@ describe('ChatbotMessageInput', () => {
             fileId: 'file-123',
           }}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.queryByTestId('file-loading-spinner')).not.toBeInTheDocument();
@@ -747,6 +805,7 @@ describe('ChatbotMessageInput', () => {
             fileId: 'file-456',
           }}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await user.click(screen.getByTestId('file-close-button'));
@@ -756,7 +815,9 @@ describe('ChatbotMessageInput', () => {
 
   describe('styling', () => {
     it('applies light mode background', () => {
-      const { container } = render(<ChatbotMessageInput {...defaultProps} isDarkMode={false} />);
+      const { container } = render(<ChatbotMessageInput {...defaultProps} isDarkMode={false} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       const outerDiv = container.firstChild as HTMLElement;
       expect(outerDiv).toHaveStyle({
         backgroundColor: 'var(--pf-t--global--background--color--100)',
@@ -764,7 +825,9 @@ describe('ChatbotMessageInput', () => {
     });
 
     it('applies dark mode background', () => {
-      const { container } = render(<ChatbotMessageInput {...defaultProps} isDarkMode />);
+      const { container } = render(<ChatbotMessageInput {...defaultProps} isDarkMode />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       const outerDiv = container.firstChild as HTMLElement;
       expect(outerDiv).toHaveStyle({
         backgroundColor: 'var(--pf-t--global--dark--background--color--100)',
@@ -781,7 +844,9 @@ describe('ChatbotMessageInput', () => {
 
     it('rejects an unsupported file if it bypasses the file picker filter', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
+      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       // Open menu and click "Upload documents"
       await user.click(screen.getByTestId('mock-attach-toggle'));
@@ -819,7 +884,9 @@ describe('ChatbotMessageInput', () => {
 
     it('rejects files exceeding the 50MB limit and shows validation error', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
+      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
       await user.click(screen.getByTestId('menu-item-upload-documents'));
@@ -844,7 +911,9 @@ describe('ChatbotMessageInput', () => {
 
     it('passes only valid files from a mixed batch', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
+      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
       await user.click(screen.getByTestId('menu-item-upload-documents'));
@@ -871,7 +940,9 @@ describe('ChatbotMessageInput', () => {
 
     it('accepts supported Office documents when the browser reports a generic MIME type', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
+      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
       await user.click(screen.getByTestId('menu-item-upload-documents'));
@@ -889,7 +960,9 @@ describe('ChatbotMessageInput', () => {
     it('validation error auto-dismisses after timeout', async () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
+      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
       await user.click(screen.getByTestId('menu-item-upload-documents'));
@@ -933,6 +1006,7 @@ describe('ChatbotMessageInput', () => {
           onRemoveDocument={onRemoveDocument}
           onViewDocument={onViewDocument}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       fireEvent.click(screen.getByText('notes.txt'));
@@ -944,7 +1018,9 @@ describe('ChatbotMessageInput', () => {
     });
 
     it('shows an in-progress attachment while a document is being added', () => {
-      render(<ChatbotMessageInput {...defaultProps} isDocumentUploading />);
+      render(<ChatbotMessageInput {...defaultProps} isDocumentUploading />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.getByTestId('document-attachment-loading')).toHaveTextContent(
         'Adding Document…',
@@ -953,7 +1029,10 @@ describe('ChatbotMessageInput', () => {
     });
 
     it('uses plural loading text for multiple documents', () => {
-      render(<ChatbotMessageInput {...defaultProps} isDocumentUploading documentUploadCount={2} />);
+      render(
+        <ChatbotMessageInput {...defaultProps} isDocumentUploading documentUploadCount={2} />,
+        { wrapper: createTrackingWrapper(trackEvent) },
+      );
 
       expect(screen.getByTestId('document-attachment-loading')).toHaveTextContent(
         'Adding Documents…',
@@ -964,7 +1043,9 @@ describe('ChatbotMessageInput', () => {
 
   describe('alwaysShowSendButton', () => {
     it('passes alwayShowSendButton to MessageBar when true', () => {
-      const { container } = render(<ChatbotMessageInput {...defaultProps} alwaysShowSendButton />);
+      const { container } = render(<ChatbotMessageInput {...defaultProps} alwaysShowSendButton />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
       const messageBar = container.querySelector('[data-testid="chatbot-message-bar"]');
       expect(messageBar).toBeInTheDocument();
     });
@@ -972,6 +1053,7 @@ describe('ChatbotMessageInput', () => {
     it('passes alwayShowSendButton=false to MessageBar when prop is false', () => {
       const { container } = render(
         <ChatbotMessageInput {...defaultProps} alwaysShowSendButton={false} />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       const messageBar = container.querySelector('[data-testid="chatbot-message-bar"]');
       expect(messageBar).toBeInTheDocument();
@@ -1005,6 +1087,7 @@ describe('ChatbotMessageInput', () => {
               fileName: file.name,
             }}
           />,
+          { wrapper: createTrackingWrapper(trackEvent) },
         );
 
         expect(URL.createObjectURL).toHaveBeenCalledWith(file);
@@ -1055,6 +1138,7 @@ describe('ChatbotMessageInput', () => {
           {...defaultProps}
           audioTranscriptionState={{ ...defaultAudioState, phase: 'waiting-for-model' }}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('audio-model-needed-alert')).toHaveTextContent(
@@ -1075,6 +1159,7 @@ describe('ChatbotMessageInput', () => {
           configIndex={0}
           isCompareMode={false}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
@@ -1102,6 +1187,7 @@ describe('ChatbotMessageInput', () => {
             onAudioUpload={mockOnAudioUpload}
             audioTranscriptionState={defaultAudioState}
           />,
+          { wrapper: createTrackingWrapper(trackEvent) },
         );
 
         const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
@@ -1121,6 +1207,7 @@ describe('ChatbotMessageInput', () => {
           onAudioUpload={mockOnAudioUpload}
           audioTranscriptionState={defaultAudioState}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
@@ -1139,6 +1226,7 @@ describe('ChatbotMessageInput', () => {
           onAudioUpload={mockOnAudioUpload}
           audioTranscriptionState={defaultAudioState}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
@@ -1159,6 +1247,7 @@ describe('ChatbotMessageInput', () => {
           onAudioUpload={mockOnAudioUpload}
           audioTranscriptionState={defaultAudioState}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
@@ -1180,6 +1269,7 @@ describe('ChatbotMessageInput', () => {
           onAudioUpload={mockOnAudioUpload}
           audioTranscriptionState={defaultAudioState}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
@@ -1201,6 +1291,7 @@ describe('ChatbotMessageInput', () => {
           }}
           onAudioCancel={jest.fn()}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
@@ -1218,6 +1309,7 @@ describe('ChatbotMessageInput', () => {
           }}
           onAudioCancel={jest.fn()}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
@@ -1236,6 +1328,7 @@ describe('ChatbotMessageInput', () => {
           }}
           onAudioCancel={mockOnAudioCancel}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
@@ -1268,6 +1361,7 @@ describe('ChatbotMessageInput', () => {
           }}
           onAudioCancel={jest.fn()}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const alert = screen.getByTestId('audio-transcription-error');
@@ -1289,6 +1383,7 @@ describe('ChatbotMessageInput', () => {
             fileName: 'recording.wav',
           }}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const liveRegion = screen.getByTestId('audio-aria-live');
@@ -1306,6 +1401,7 @@ describe('ChatbotMessageInput', () => {
             fileName: 'recording.wav',
           }}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const outerDiv = container.firstChild as HTMLElement;
@@ -1319,6 +1415,7 @@ describe('ChatbotMessageInput', () => {
           isAudioUploadDisabled={false}
           audioTranscriptionState={defaultAudioState}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const outerDiv = container.firstChild as HTMLElement;
@@ -1332,6 +1429,7 @@ describe('ChatbotMessageInput', () => {
           isAudioUploadDisabled={false}
           audioTranscriptionState={defaultAudioState}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.queryByTestId('audio-file-chip')).not.toBeInTheDocument();

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { useGovernanceResourceAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
@@ -94,6 +94,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   conditionType,
   lastTransitionTime,
 }) => {
+  const trackEvent = useTrackEvent();
   const { affectedModels, overviewLoaded } = useGovernanceResourceAffectedModels(
     name,
     phase,
@@ -139,7 +140,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                     returnTo={returnTo}
                     hideSubtext
                     onClick={() => {
-                      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+                      trackEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
                         popoverType: EventTrackingPopoverType.STATUS,
                         status: convertStringToPopoverViewedStatus(phase),
                         location: PhaseLabelLocation.OVERVIEW,
@@ -235,6 +236,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
   returnTo,
   onGroupSelect,
 }) => {
+  const trackEvent = useTrackEvent();
   const allExpanded =
     subscriptions.length > 0 &&
     subscriptions.every((sub) =>
@@ -266,7 +268,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               displayName={sub.displayName}
               linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
               onLinkClick={() =>
-                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
                   resourceType: EventTrackingResourceType.SUBSCRIPTION,
                   source: EventTrackingSource.OVERVIEW_MODEL,
                   resourceStatus: sub.phase ?? '',
@@ -331,6 +333,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
   returnTo,
   onGroupSelect,
 }) => {
+  const trackEvent = useTrackEvent();
   const allExpanded =
     policies.length > 0 &&
     policies.every((policy) =>
@@ -362,7 +365,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               displayName={policy.displayName}
               linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
               onLinkClick={() =>
-                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
                   resourceType: EventTrackingResourceType.AUTHPOLICY,
                   source: EventTrackingSource.OVERVIEW_MODEL,
                   resourceStatus: policy.phase ?? '',
@@ -413,6 +416,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
   policies,
   returnTo,
 }) => {
+  const trackEvent = useTrackEvent();
   const [expandedSubs, setExpandedSubs] = React.useState<Set<string>>(new Set());
   const [expandedPolicies, setExpandedPolicies] = React.useState<Set<string>>(new Set());
   const [highlightedGroup, setHighlightedGroup] = React.useState<string | null>(null);
@@ -428,7 +432,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
 
   const onGroupSelect = React.useCallback(
     (group: string) => {
-      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_GROUP_LABEL_SELECTED, {
+      trackEvent(MaaSEvents.MAAS_GOVERNANCE_GROUP_LABEL_SELECTED, {
         subsCountPerModel: subscriptions.length,
         policyCountPerModel: policies.length,
         subsCountWithSelectedGroup: subscriptions.filter((sub) =>
@@ -439,7 +443,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
         ).length,
       } satisfies MaaSGovernanceGroupLabelSelectedProperties);
     },
-    [subscriptions, policies],
+    [subscriptions, policies, trackEvent],
   );
 
   const toggleAllSubs = React.useCallback(() => {
