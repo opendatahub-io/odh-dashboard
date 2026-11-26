@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import DeleteAgentProfileModal from '~/app/AIAssets/components/agentprofiles/DeleteAgentProfileModal';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
 
@@ -25,6 +26,7 @@ describe('DeleteAgentProfileModal', () => {
   it('should render the modal with the profile name', () => {
     render(
       <DeleteAgentProfileModal profile={makeProfile()} onClose={onClose} onConfirm={onConfirm} />,
+      { wrapper: createTrackingWrapper() },
     );
 
     expect(screen.getByTestId('delete-agent-profile-modal')).toBeInTheDocument();
@@ -37,6 +39,7 @@ describe('DeleteAgentProfileModal', () => {
     const user = userEvent.setup();
     render(
       <DeleteAgentProfileModal profile={makeProfile()} onClose={onClose} onConfirm={onConfirm} />,
+      { wrapper: createTrackingWrapper() },
     );
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -49,6 +52,7 @@ describe('DeleteAgentProfileModal', () => {
     const user = userEvent.setup();
     render(
       <DeleteAgentProfileModal profile={makeProfile()} onClose={onClose} onConfirm={onConfirm} />,
+      { wrapper: createTrackingWrapper() },
     );
 
     await user.click(screen.getByTestId('delete-agent-profile-confirm-button'));
@@ -64,6 +68,7 @@ describe('DeleteAgentProfileModal', () => {
     const user = userEvent.setup();
     render(
       <DeleteAgentProfileModal profile={makeProfile()} onClose={onClose} onConfirm={onConfirm} />,
+      { wrapper: createTrackingWrapper() },
     );
 
     await user.click(screen.getByTestId('delete-agent-profile-confirm-button'));

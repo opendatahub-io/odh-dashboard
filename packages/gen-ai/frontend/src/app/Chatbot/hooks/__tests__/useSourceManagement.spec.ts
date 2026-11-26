@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { renderHook, act } from '@testing-library/react';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import * as React from 'react';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import useSourceManagement from '~/app/Chatbot/hooks/useSourceManagement';
 import { uploadSource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings } from '~/app/types';
@@ -13,9 +13,7 @@ import {
   mockUploadResult,
 } from './useSourceManagement.test-utils';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -23,11 +21,18 @@ jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/Chatbot/hooks/useFileUploadWithPolling');
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
-  useContext: jest.fn(),
+  useContext: (context: React.Context<unknown>) => {
+    const { GenAiContext } = jest.requireActual('~/app/context/GenAiContext');
+    const { ChatbotContext } = jest.requireActual('~/app/context/ChatbotContext');
+    if (context === GenAiContext || context === ChatbotContext) {
+      return mockUseContext(context);
+    }
+    return jest.requireActual<typeof React>('react').useContext(context);
+  },
 }));
 
 const mockUploadSource = uploadSource as jest.Mock;
-const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+const mockUseContext = jest.fn();
 
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
@@ -79,11 +84,13 @@ describe('useSourceManagement', () => {
 
   describe('initialization', () => {
     it('should initialize with correct default values', () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(result.current.filesWithSettings).toEqual([]);
@@ -96,11 +103,13 @@ describe('useSourceManagement', () => {
 
   describe('handleSourceDrop', () => {
     it('should add files to filesWithSettings when files are dropped', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -117,11 +126,13 @@ describe('useSourceManagement', () => {
       const textContent = 'This is test file content';
       const textFile = new File([textContent], 'test.txt', { type: 'text/plain' });
 
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -136,11 +147,13 @@ describe('useSourceManagement', () => {
     it('should handle binary files', async () => {
       const binaryFile = new File(['binary data'], 'test.pdf', { type: 'application/pdf' });
 
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -154,11 +167,13 @@ describe('useSourceManagement', () => {
 
     it('should handle multiple files being dropped', async () => {
       const mockFile2 = new File(['test content 2'], 'test2.txt', { type: 'text/plain' });
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -173,11 +188,13 @@ describe('useSourceManagement', () => {
     });
 
     it('should open source settings modal immediately when files are dropped', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -192,11 +209,13 @@ describe('useSourceManagement', () => {
 
   describe('removeUploadedSource', () => {
     it('should remove file from filesWithSettings', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       // Add a file
@@ -217,11 +236,13 @@ describe('useSourceManagement', () => {
     });
 
     it('should clear currentFileForSettings if removing current file', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       // Add a file and process it
@@ -249,11 +270,13 @@ describe('useSourceManagement', () => {
 
   describe('handleSourceSettingsSubmit', () => {
     it('should upload source successfully with valid settings and namespace', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       // Set up file first
@@ -295,12 +318,14 @@ describe('useSourceManagement', () => {
           }),
       );
       const onFileUploadComplete = jest.fn();
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-          onFileUploadComplete,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+            onFileUploadComplete,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {
@@ -333,11 +358,13 @@ describe('useSourceManagement', () => {
         error: 'Upload failed',
       });
 
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       // Set up file first
@@ -363,13 +390,11 @@ describe('useSourceManagement', () => {
         expect.stringContaining('Upload failed'),
         expect.any(String),
       );
-      expect(fireFormTrackingEvent).toHaveBeenCalledWith(
+      expect(trackEvent).toHaveBeenCalledWith(
         'Playground RAG Upload File',
         expect.objectContaining({ success: false, error: 'unknown_error' }),
       );
-      expect(JSON.stringify(jest.mocked(fireFormTrackingEvent).mock.calls)).not.toContain(
-        'Upload failed',
-      );
+      expect(JSON.stringify(jest.mocked(trackEvent).mock.calls)).not.toContain('Upload failed');
 
       // When upload fails, the file is removed from filesWithSettings (not marked as 'failed')
       expect(result.current.filesWithSettings).toHaveLength(0);
@@ -384,11 +409,13 @@ describe('useSourceManagement', () => {
         },
       });
 
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       // Set up file first
@@ -412,11 +439,13 @@ describe('useSourceManagement', () => {
     });
 
     it('should remove file when settings is null (user cancels)', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       // Set up file first
@@ -445,11 +474,13 @@ describe('useSourceManagement', () => {
     });
 
     it('should handle submit when no current file is set', async () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(result.current.currentFileForSettings).toBeNull();
@@ -467,11 +498,13 @@ describe('useSourceManagement', () => {
 
   describe('additional behaviors', () => {
     it('should not open modal when no files are pending after timer', () => {
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       act(() => jest.advanceTimersByTime(100));
@@ -484,11 +517,13 @@ describe('useSourceManagement', () => {
         embeddingModel: 'test-embedding-model',
       };
 
-      const { result } = renderHook(() =>
-        useSourceManagement({
-          onShowSuccessAlert: mockOnShowSuccessAlert,
-          onShowErrorAlert: mockOnShowErrorAlert,
-        }),
+      const { result } = renderHook(
+        () =>
+          useSourceManagement({
+            onShowSuccessAlert: mockOnShowSuccessAlert,
+            onShowErrorAlert: mockOnShowErrorAlert,
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await act(async () => {

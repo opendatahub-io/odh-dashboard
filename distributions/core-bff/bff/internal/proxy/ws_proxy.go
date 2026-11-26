@@ -28,7 +28,9 @@ type WsProxyConfig struct {
 	K8sHost string
 	// RootCAs is the certificate pool for verifying the K8s API server's certificate.
 	RootCAs *x509.CertPool
-	// ClientCerts are client certificates for mTLS authentication.
+	// ClientCerts are client certificates presented on every upstream dial
+	// (envtest mock mode). The handshake carries no impersonation headers, so
+	// in that mode a WebSocket runs as the certificate's envtest identity.
 	ClientCerts []tls.Certificate
 	// FallbackClientCerts are presented only on handshakes whose identity has
 	// DevFallback set; see K8sProxyConfig.FallbackClientCerts.
@@ -65,7 +67,7 @@ type wsProxy struct {
 func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	httpcontract.EnsureID(w, r)
 	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-	if !ok || identity == nil {
+	if !ok || identity == nil || (!identity.DevFallback && identity.ResolveToken(p.devFallbackToken) == "") {
 		httpcontract.WriteLocal(w, r, http.StatusUnauthorized)
 		return
 	}

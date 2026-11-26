@@ -1,6 +1,6 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { NotReadyError } from 'mod-arch-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { MaaSTokenRequest, MaaSTokenResponse } from '~/app/types';
@@ -15,6 +15,7 @@ type UseGenerateMaaSTokenReturn = {
 };
 
 const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
+  const trackEvent = useTrackEvent();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [tokenData, setTokenData] = React.useState<MaaSTokenResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -41,7 +42,7 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
         const response = await api.generateMaaSToken(request);
         setTokenData(response);
         try {
-          fireFormTrackingEvent('Available Endpoints MaaS Token Generated', {
+          trackEvent('Available Endpoints MaaS Token Generated', {
             outcome: TrackingOutcome.submit,
             success: true,
             assetType: 'maas_model',
@@ -54,7 +55,7 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
         const errorMessage = err instanceof Error ? err.message : 'Failed to generate MaaS token';
         setError(errorMessage);
         try {
-          fireFormTrackingEvent('Available Endpoints MaaS Token Generated', {
+          trackEvent('Available Endpoints MaaS Token Generated', {
             outcome: TrackingOutcome.submit,
             success: false,
             error: errorCategory(err),
@@ -68,7 +69,7 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
         setIsGenerating(false);
       }
     },
-    [api, apiAvailable],
+    [api, apiAvailable, trackEvent],
   );
 
   const resetToken = React.useCallback(() => {

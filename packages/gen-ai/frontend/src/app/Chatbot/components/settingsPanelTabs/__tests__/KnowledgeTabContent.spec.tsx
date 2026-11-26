@@ -1,14 +1,16 @@
 import * as React from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { mockVectorStores } from '~/__mocks__/mockVectorStores';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import KnowledgeTabContent from '~/app/Chatbot/components/settingsPanelTabs/KnowledgeTabContent';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
+
+const trackEvent = jest.fn();
 
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
@@ -23,10 +25,6 @@ jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
 jest.mock('~/app/hooks/useFetchVectorStores', () => ({
   __esModule: true,
   default: jest.fn(() => [[], true]),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
@@ -68,7 +66,7 @@ jest.mock('../../UploadedFilesList', () => ({
   ),
 }));
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(trackEvent);
 const mockUseAiAssetVectorStoresEnabled = jest.mocked(useAiAssetVectorStoresEnabled);
 const mockUseFetchVectorStores = jest.mocked(useFetchVectorStores);
 
@@ -127,20 +125,26 @@ describe('KnowledgeTabContent', () => {
   });
 
   it('renders the RAG title', () => {
-    render(<KnowledgeTabContent {...defaultProps} />);
+    render(<KnowledgeTabContent {...defaultProps} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(screen.getByTestId('rag-section-title')).toHaveTextContent('RAG');
   });
 
   it('renders RAG toggle switch', () => {
-    render(<KnowledgeTabContent {...defaultProps} />);
+    render(<KnowledgeTabContent {...defaultProps} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     expect(ragSwitch).toBeInTheDocument();
   });
 
   it('renders RAG toggle as unchecked when isRagEnabled is false', () => {
-    render(<KnowledgeTabContent {...defaultProps} />);
+    render(<KnowledgeTabContent {...defaultProps} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     expect(ragSwitch).not.toBeChecked();
@@ -150,7 +154,9 @@ describe('KnowledgeTabContent', () => {
     // Set isRagEnabled to true in the store
     useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
 
-    render(<KnowledgeTabContent {...defaultProps} />);
+    render(<KnowledgeTabContent {...defaultProps} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     expect(ragSwitch).toBeChecked();
@@ -165,6 +171,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
@@ -173,7 +180,9 @@ describe('KnowledgeTabContent', () => {
     it('does not show the link when RAG is enabled without uploaded files', () => {
       useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
 
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.queryByTestId('rag-troubleshooting-button')).not.toBeInTheDocument();
     });
@@ -188,6 +197,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('rag-troubleshooting-button')).toHaveTextContent('Troubleshooting');
@@ -220,6 +230,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByTestId('rag-troubleshooting-button')).toBeInTheDocument();
@@ -245,7 +256,9 @@ describe('KnowledgeTabContent', () => {
       mockUseFetchVectorStores.mockReturnValue([[store], true, undefined, jest.fn()]);
       useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
 
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('external-vector-store-toggle'));
       await user.click(
@@ -268,6 +281,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       await user.click(screen.getByTestId('rag-troubleshooting-button'));
@@ -292,6 +306,7 @@ describe('KnowledgeTabContent', () => {
             files: [{ id: '1' }] as UseFileManagementReturn['files'],
           })}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const trigger = screen.getByTestId('rag-troubleshooting-button');
@@ -308,7 +323,9 @@ describe('KnowledgeTabContent', () => {
 
   it('calls updateRagEnabled and fires tracking event when RAG toggle is changed', async () => {
     const user = userEvent.setup();
-    render(<KnowledgeTabContent {...defaultProps} />);
+    render(<KnowledgeTabContent {...defaultProps} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     await user.click(ragSwitch);
@@ -330,7 +347,9 @@ describe('KnowledgeTabContent', () => {
     // Set isRagEnabled to true first
     useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
 
-    render(<KnowledgeTabContent {...defaultProps} />);
+    render(<KnowledgeTabContent {...defaultProps} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const ragSwitch = screen.getByTestId('rag-toggle-switch');
     await user.click(ragSwitch);
@@ -354,7 +373,7 @@ describe('KnowledgeTabContent', () => {
         files: [{ id: '1' }, { id: '2' }] as UseFileManagementReturn['files'],
       }),
     };
-    render(<KnowledgeTabContent {...props} />);
+    render(<KnowledgeTabContent {...props} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.getByTestId('chatbot-source-upload-panel')).toBeInTheDocument();
     expect(screen.getByTestId('uploaded-files-count')).toHaveTextContent('2');
@@ -370,7 +389,7 @@ describe('KnowledgeTabContent', () => {
         isDeleting: true,
       }),
     };
-    render(<KnowledgeTabContent {...props} />);
+    render(<KnowledgeTabContent {...props} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.getByTestId('uploaded-files-list')).toBeInTheDocument();
     expect(screen.getByTestId('files-count')).toHaveTextContent('3');
@@ -386,7 +405,7 @@ describe('KnowledgeTabContent', () => {
         uploadSuccessAlert: <div data-testid="upload-success-alert">Upload Success</div>,
       },
     };
-    render(<KnowledgeTabContent {...props} />);
+    render(<KnowledgeTabContent {...props} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     // The alert is passed to ChatbotSourceUploadPanel, which is mocked
     // So we verify it doesn't throw when provided
@@ -401,7 +420,7 @@ describe('KnowledgeTabContent', () => {
         deleteSuccessAlert: <div data-testid="delete-success-alert">Delete Success</div>,
       },
     };
-    render(<KnowledgeTabContent {...props} />);
+    render(<KnowledgeTabContent {...props} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     // Delete success alert is rendered in AlertGroup
     expect(screen.getByTestId('delete-success-alert')).toBeInTheDocument();
@@ -415,7 +434,7 @@ describe('KnowledgeTabContent', () => {
         errorAlert: <div data-testid="error-alert">Error occurred</div>,
       },
     };
-    render(<KnowledgeTabContent {...props} />);
+    render(<KnowledgeTabContent {...props} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     // The error alert is passed to ChatbotSourceUploadPanel, which is mocked
     expect(screen.getByTestId('chatbot-source-upload-panel')).toBeInTheDocument();
@@ -434,7 +453,9 @@ describe('KnowledgeTabContent', () => {
     });
 
     it('labels the vector store settings as RAG', () => {
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.getByTestId('knowledge-section-title')).toHaveTextContent('RAG');
       expect(screen.getByRole('radiogroup', { name: 'RAG source' })).toBeInTheDocument();
@@ -442,7 +463,9 @@ describe('KnowledgeTabContent', () => {
 
     it('fires tracking event with knowledgeSource upload when knowledgeMode is inline', async () => {
       const user = userEvent.setup();
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('rag-toggle-switch'));
 
@@ -458,7 +481,9 @@ describe('KnowledgeTabContent', () => {
       const user = userEvent.setup();
       useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
 
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('rag-toggle-switch'));
 
@@ -485,7 +510,9 @@ describe('KnowledgeTabContent', () => {
 
     it('fires tracking event when switching to external vector store mode', async () => {
       const user = userEvent.setup();
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('knowledge-mode-external-radio'));
 
@@ -507,7 +534,9 @@ describe('KnowledgeTabContent', () => {
         .getState()
         .updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-inline-abc');
 
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('knowledge-mode-external-radio'));
 
@@ -520,7 +549,9 @@ describe('KnowledgeTabContent', () => {
       const user = userEvent.setup();
       useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
 
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await user.click(screen.getByTestId('knowledge-mode-upload-radio'));
 
@@ -547,7 +578,9 @@ describe('KnowledgeTabContent', () => {
 
     it('fires tracking event when a vector store is selected from the dropdown', async () => {
       const user = userEvent.setup();
-      render(<KnowledgeTabContent {...defaultProps} />);
+      render(<KnowledgeTabContent {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       // Open the select
       await user.click(screen.getByTestId('external-vector-store-toggle'));

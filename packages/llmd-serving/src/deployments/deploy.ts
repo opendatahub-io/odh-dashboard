@@ -18,6 +18,7 @@ import type {
 } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import {
   applyModelEnvVarsAndArgs,
@@ -31,7 +32,6 @@ import {
 import { applyConfigBaseRef } from './server';
 import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from '../wizardFields/deploymentMethodField';
-import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import {
   isLLMInferenceServiceConfig,
   LLMdDeployment,
@@ -233,7 +233,7 @@ export const assembleLLMdDeployment = (
   );
 
   let result: LLMdDeployment = {
-    modelServingPlatformId: LLMD_SERVING_ID,
+    modelServingPlatformId: SupportedArea.LLMD_SERVING,
     model: assembleLLMInferenceService(
       {
         projectName: wizardData.state.project.projectName ?? '',
@@ -383,7 +383,7 @@ export const deployLLMdDeployment = async (
   }
 
   return {
-    modelServingPlatformId: LLMD_SERVING_ID,
+    modelServingPlatformId: SupportedArea.LLMD_SERVING,
     model: llmInferenceService,
     ...(llmInferenceServiceConfig && { server: llmInferenceServiceConfig }),
   };

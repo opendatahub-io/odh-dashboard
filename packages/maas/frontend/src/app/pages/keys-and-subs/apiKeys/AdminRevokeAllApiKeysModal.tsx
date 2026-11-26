@@ -22,7 +22,7 @@ import {
 import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { searchApiKeysForCurrentHost, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -49,6 +49,7 @@ type AdminRevokeAllApiKeysModalProps = {
 };
 
 const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({ onClose }) => {
+  const trackEvent = useTrackEvent();
   const notification = useNotification();
   const [username, setUsername] = React.useState('');
   const [searchedUsername, setSearchedUsername] = React.useState('');
@@ -70,7 +71,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
         return;
       }
       if (!revoked) {
-        fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+        trackEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
           outcome: TrackingOutcome.cancel,
           bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
           keyCount: activeKeys.length,
@@ -79,7 +80,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
       }
       onClose(revoked);
     },
-    [activeKeys.length, onClose, revoking],
+    [activeKeys.length, onClose, revoking, trackEvent],
   );
 
   const handleSearch = React.useCallback(async () => {
@@ -113,7 +114,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
 
     try {
       await bulkRevokeApiKeys()({}, searchedUsername);
-      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+      trackEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: true,
         bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
@@ -124,7 +125,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
       onClose(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to revoke API keys';
-      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+      trackEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: errorCategory(err),
@@ -135,7 +136,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
       setRevokeError(err instanceof Error ? err : new Error(message));
       setRevoking(false);
     }
-  }, [notification, onClose, searchedUsername, activeKeys.length]);
+  }, [notification, onClose, searchedUsername, activeKeys.length, trackEvent]);
 
   return (
     <Modal

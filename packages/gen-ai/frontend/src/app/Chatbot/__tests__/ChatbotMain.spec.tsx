@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { FetchStateObject, Namespace } from 'mod-arch-core';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -22,6 +23,8 @@ import type {
   LlamaStackDistributionModel,
   MCPServerFromAPI,
 } from '~/app/types';
+
+const trackEvent = jest.fn();
 
 // Mock dependencies
 jest.mock('react-router-dom', () => ({
@@ -45,10 +48,7 @@ jest.mock('~/app/Chatbot/store', () => ({
   ...jest.requireActual('~/app/Chatbot/store'),
   useChatbotConfigStore: jest.fn(),
 }));
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireSimpleTrackingEvent: jest.fn(),
-}));
+
 jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
   __esModule: true,
   default: () => true,
@@ -264,6 +264,7 @@ describe('ChatbotMain - Empty State Logic', () => {
           <ChatbotMain />
         </GenAiContext.Provider>
       </ChatbotContext.Provider>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('no-models-empty-state')).toBeInTheDocument();
@@ -350,7 +351,9 @@ describe('ChatbotMain - Empty State Logic', () => {
         </GenAiContext.Provider>
       </ChatbotContext.Provider>
     );
-    const { rerender, unmount } = render(renderMain());
+    const { rerender, unmount } = render(renderMain(), {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
@@ -412,7 +415,7 @@ describe('ChatbotMain - Empty State Logic', () => {
       ).useChatbotConfigStore;
     mockUseChatbotConfigStore.mockImplementation(actualStore);
     act(() => actualStore.getState().resetConfiguration());
-    render(renderMain());
+    render(renderMain(), { wrapper: createTrackingWrapper(trackEvent) });
     act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
     act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
@@ -506,6 +509,7 @@ describe('ChatbotMain - Empty State Logic', () => {
           <ChatbotMain />
         </GenAiContext.Provider>
       </ChatbotContext.Provider>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
     return actualStore;
   };
@@ -857,6 +861,7 @@ describe('ChatbotMain - Playground update state', () => {
           <ChatbotMain />
         </GenAiContext.Provider>
       </ChatbotContext.Provider>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
   const initiateUpdate = () => {

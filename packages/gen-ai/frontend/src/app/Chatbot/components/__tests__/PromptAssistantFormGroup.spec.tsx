@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { act, render, screen } from '@testing-library/react';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { MLflowPromptVersion } from '~/app/types';
 import * as chatbotStore from '~/app/Chatbot/store';
@@ -8,6 +9,8 @@ import * as usePlaygroundStore from '~/app/Chatbot/store/usePlaygroundStore';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
+
+const trackEvent = jest.fn();
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -25,10 +28,6 @@ jest.mock('~/app/Chatbot/store', () => ({
 
 jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
   usePlaygroundStore: jest.fn(),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('~/app/Chatbot/hooks/useConfirmation', () => ({
@@ -182,7 +181,9 @@ describe('PromptAssistantFormGroup', () => {
         const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
         selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
 
-        render(<PromptAssistantFormGroup {...defaultProps} />);
+        render(<PromptAssistantFormGroup {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const scopeLabel = screen.getByTestId('prompt-scope-label');
         expect(scopeLabel).toHaveTextContent('Project');
@@ -192,7 +193,9 @@ describe('PromptAssistantFormGroup', () => {
         const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
         selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
 
-        render(<PromptAssistantFormGroup {...defaultProps} />);
+        render(<PromptAssistantFormGroup {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const scopeLabel = screen.getByTestId('prompt-scope-label');
         expect(scopeLabel).toHaveClass('pf-m-blue');
@@ -204,7 +207,9 @@ describe('PromptAssistantFormGroup', () => {
         const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
         selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
 
-        render(<PromptAssistantFormGroup {...defaultProps} />);
+        render(<PromptAssistantFormGroup {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const scopeLabel = screen.getByTestId('prompt-scope-label');
         expect(scopeLabel).toHaveTextContent('Global');
@@ -214,7 +219,9 @@ describe('PromptAssistantFormGroup', () => {
         const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
         selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
 
-        render(<PromptAssistantFormGroup {...defaultProps} />);
+        render(<PromptAssistantFormGroup {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const scopeLabel = screen.getByTestId('prompt-scope-label');
         expect(scopeLabel).toHaveClass('pf-m-orange');
@@ -226,7 +233,9 @@ describe('PromptAssistantFormGroup', () => {
         const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
         selectActivePrompt.mockReturnValue(() => null);
 
-        render(<PromptAssistantFormGroup {...defaultProps} />);
+        render(<PromptAssistantFormGroup {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         expect(screen.queryByTestId('prompt-scope-label')).not.toBeInTheDocument();
       });
@@ -235,7 +244,9 @@ describe('PromptAssistantFormGroup', () => {
         const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
         selectActivePrompt.mockReturnValue(() => mockPromptWithoutScope);
 
-        render(<PromptAssistantFormGroup {...defaultProps} />);
+        render(<PromptAssistantFormGroup {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         expect(screen.queryByTestId('prompt-scope-label')).not.toBeInTheDocument();
       });
@@ -248,7 +259,9 @@ describe('PromptAssistantFormGroup', () => {
         selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
         selectDirtyPrompt.mockReturnValue(() => mockProjectPrompt);
 
-        render(<PromptAssistantFormGroup {...defaultProps} />);
+        render(<PromptAssistantFormGroup {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const scopeLabel = screen.getByTestId('prompt-scope-label');
         const versionToggle = screen.getByTestId('prompt-version-toggle');
@@ -266,7 +279,9 @@ describe('PromptAssistantFormGroup', () => {
         const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
         selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
 
-        render(<PromptAssistantFormGroup {...defaultProps} />);
+        render(<PromptAssistantFormGroup {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const scopeLabel = screen.getByTestId('prompt-scope-label');
         expect(scopeLabel).toHaveClass('pf-m-compact');
@@ -285,7 +300,9 @@ describe('PromptAssistantFormGroup', () => {
       selectActivePrompt.mockReturnValue(() => activePrompt);
       selectDirtyPrompt.mockReturnValue(() => activePrompt);
 
-      render(<PromptAssistantFormGroup {...defaultProps} />);
+      render(<PromptAssistantFormGroup {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
     }
 
     it('should show enabled Add to prompt registry for global prompts', () => {
@@ -339,6 +356,7 @@ describe('PromptAssistantFormGroup', () => {
           systemInstruction="Unsaved draft instructions"
           onSystemInstructionChange={onSystemInstructionChange}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       screen.getByTestId('prompt-revert-button').click();
@@ -355,7 +373,9 @@ describe('PromptAssistantFormGroup', () => {
     });
 
     it('should hide Revert for an unchanged new prompt', () => {
-      render(<PromptAssistantFormGroup {...defaultProps} />);
+      render(<PromptAssistantFormGroup {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.queryByTestId('prompt-revert-button')).not.toBeInTheDocument();
     });
@@ -364,7 +384,9 @@ describe('PromptAssistantFormGroup', () => {
       const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
 
-      render(<PromptAssistantFormGroup {...defaultProps} />);
+      render(<PromptAssistantFormGroup {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.getByTestId('system-instructions-input')).not.toHaveAttribute('readonly');
     });
@@ -394,6 +416,7 @@ describe('PromptAssistantFormGroup', () => {
               systemInstruction={mockProjectPrompt.template ?? ''}
             />
           </div>,
+          { wrapper: createTrackingWrapper(trackEvent) },
         );
         const field = screen.getByTestId('system-instructions-input') as HTMLTextAreaElement;
         let measuredHeight = 0;

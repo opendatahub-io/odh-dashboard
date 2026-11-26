@@ -2,13 +2,11 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import * as PluginCore from '@odh-dashboard/plugin-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { isAIAssetsTabExtension } from '~/odh/extension-points';
 import { AIAssetsPage } from '~/app/AIAssets/AIAssetsPage';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 // Mock the plugin core hooks
 jest.mock('@odh-dashboard/plugin-core', () => ({
@@ -44,7 +42,7 @@ jest.mock('mod-arch-shared', () => ({
 }));
 
 const mockUseExtensions = jest.mocked(PluginCore.useExtensions);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockTrackEvent = jest.mocked(trackEvent);
 
 describe('AIAssetsPage', () => {
   beforeEach(() => {
@@ -60,6 +58,7 @@ describe('AIAssetsPage', () => {
           <Route path="/assets/:namespace" element={<AIAssetsPage />} />
         </Routes>
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('applications-page')).toBeInTheDocument();
@@ -102,6 +101,7 @@ describe('AIAssetsPage', () => {
           <Route path="/assets/:namespace" element={<AIAssetsPage />} />
         </Routes>
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByText('Models')).toBeInTheDocument();
@@ -138,6 +138,7 @@ describe('AIAssetsPage', () => {
       <MemoryRouter>
         <AIAssetsPage />
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByText('Models')).toBeInTheDocument();
@@ -174,6 +175,7 @@ describe('AIAssetsPage', () => {
       <MemoryRouter>
         <AIAssetsPage />
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('ai-assets-tab-models')).toHaveAttribute('aria-selected', 'true');
@@ -201,6 +203,7 @@ describe('AIAssetsPage', () => {
       <MemoryRouter>
         <AIAssetsPage />
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByText('Test Tab')).toBeInTheDocument();
@@ -214,6 +217,7 @@ describe('AIAssetsPage', () => {
       <MemoryRouter>
         <AIAssetsPage />
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(mockUseExtensions).toHaveBeenCalledWith(isAIAssetsTabExtension);
@@ -254,6 +258,7 @@ describe('AIAssetsPage', () => {
           <Route path="/assets/:namespace/:tab" element={<AIAssetsPage />} />
         </Routes>
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('ai-assets-tab-vectorstores')).toHaveAttribute(
@@ -298,6 +303,7 @@ describe('AIAssetsPage', () => {
           <Route path="/assets/:namespace/:tab" element={<AIAssetsPage />} />
         </Routes>
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('ai-assets-tab-models')).toHaveAttribute('aria-selected', 'true');
@@ -335,6 +341,7 @@ describe('AIAssetsPage', () => {
       <MemoryRouter>
         <AIAssetsPage />
       </MemoryRouter>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     // Check that tab content for the first tab is rendered
@@ -377,11 +384,12 @@ describe('AIAssetsPage', () => {
             <Route path="/assets/:namespace" element={<AIAssetsPage />} />
           </Routes>
         </MemoryRouter>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       fireEvent.click(screen.getByTestId('ai-assets-tab-vectorstores'));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
+      expect(mockTrackEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
         source: 'vectorstores',
       });
     });
@@ -420,11 +428,12 @@ describe('AIAssetsPage', () => {
             <Route path="/assets/:namespace" element={<AIAssetsPage />} />
           </Routes>
         </MemoryRouter>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       fireEvent.click(screen.getByTestId('ai-assets-tab-models'));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
+      expect(mockTrackEvent).toHaveBeenCalledWith('Available Endpoints Tab Switched', {
         source: 'models',
       });
     });

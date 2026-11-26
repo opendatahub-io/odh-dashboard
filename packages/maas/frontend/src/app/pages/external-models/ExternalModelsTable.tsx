@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Alert } from '@patternfly/react-core';
 import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ExternalModel } from '~/app/types/external-models';
 import ExternalModelsTableRow from './ExternalModelsTableRow';
-import { externalModelsColumns } from './columns';
+import { createExternalModelsColumns } from './columns';
 import { isProviderRefMissing } from './utils';
 
 type ExternalModelsTableProps = {
@@ -21,6 +22,8 @@ export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
   emptyTableView,
   setDeleteExternalModel,
 }): React.ReactNode => {
+  const trackEvent = useTrackEvent();
+  const columns = React.useMemo(() => createExternalModelsColumns(trackEvent), [trackEvent]);
   const hasDeletedProviderRefs = externalModels.some((model) =>
     model.providerRefs.some(isProviderRefMissing),
   );
@@ -29,7 +32,7 @@ export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
     <Table
       data-testid="external-models-table"
       data={externalModels}
-      columns={externalModelsColumns}
+      columns={columns}
       enablePagination
       disableRowRenderSupport
       isExpandable
@@ -55,6 +58,7 @@ export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
           key={externalModel.name}
           externalModel={externalModel}
           rowIndex={rowIndex}
+          columns={columns}
           setDeleteExternalModel={setDeleteExternalModel}
         />
       )}

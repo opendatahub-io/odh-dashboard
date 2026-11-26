@@ -75,6 +75,17 @@ func (app *App) NamespaceMutationHandler(w http.ResponseWriter, r *http.Request,
 	dryRun := r.URL.Query().Get("dryRun") == "All"
 
 	if err := app.repositories.NamespaceMutation.ApplyMutation(ctx, namespaceName, appCase, dryRun); err != nil {
+		// applied:false is the documented answer for a mutation the credential
+		// may not perform. A credential that could not be used at all is an
+		// authentication failure, not that answer.
+		if app.repositories.NamespaceMutation.IsCredentialFailure(err) {
+			app.unauthorizedResponse(w, r, err)
+			return
+		}
+		if !app.repositories.NamespaceMutation.IsNotApplied(err) {
+			app.k8sErrorResponse(w, r, err)
+			return
+		}
 		app.LogError(r, err)
 		if writeErr := app.WriteJSON(w, http.StatusOK, &models.NamespaceMutationResponse{Applied: false}, nil); writeErr != nil {
 			app.serverErrorResponse(w, r, writeErr)

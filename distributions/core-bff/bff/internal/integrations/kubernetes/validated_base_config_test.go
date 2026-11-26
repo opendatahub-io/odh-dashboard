@@ -49,6 +49,24 @@ func TestKubernetesClientFactory_CallerClientsUseTheValidatedBaseConfig(t *testi
 	assert.Empty(t, validated.BearerToken, "the shared base config is never modified")
 }
 
+// The validated-base path must keep the shared caller-credential extractor, so
+// the ordered AUTH_TOKEN_HEADERS list still applies (restack onto #10753).
+func TestKubernetesClientFactory_ValidatedBaseKeepsCredentialHeaders(t *testing.T) {
+	factory, err := NewKubernetesClientFactory(config.EnvConfig{
+		AuthMethod:       config.AuthMethodUser,
+		AuthTokenHeader:  config.DefaultAuthTokenHeader,
+		AuthTokenHeaders: []string{"Authorization", "x-forwarded-access-token"},
+	}, slog.Default(), &rest.Config{Host: "https://api.cluster.example:6443"})
+	require.NoError(t, err)
+
+	h := http.Header{}
+	h.Set("Authorization", "Bearer caller-token")
+	identity, err := factory.ExtractRequestIdentity(h)
+	require.NoError(t, err, "a token in the first listed header is accepted")
+	require.NotNil(t, identity)
+	assert.Equal(t, "caller-token", identity.ResolveToken(""))
+}
+
 // The DEV_MODE fallback client runs on the kubeconfig's own credentials, and
 // it too must use the copy validated at startup: a developer who switches
 // context afterwards must not get REST calls on cluster B while the proxies

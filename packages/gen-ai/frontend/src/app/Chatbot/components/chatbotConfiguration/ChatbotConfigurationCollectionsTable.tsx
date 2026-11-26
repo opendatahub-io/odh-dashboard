@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   CheckboxTd,
@@ -19,7 +20,6 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalVectorStoreSummary } from '~/app/types';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { splitLlamaModelId } from '~/app/utilities/utils';
@@ -57,6 +57,7 @@ const ChatbotConfigurationCollectionsTable: React.FC<ChatbotConfigurationCollect
   selectedCollections,
   setSelectedCollections,
 }) => {
+  const trackEvent = useTrackEvent();
   const { tableProps, isSelected, toggleSelection } =
     useCheckboxTableBase<ExternalVectorStoreSummary>(
       allCollections,
@@ -142,7 +143,7 @@ const ChatbotConfigurationCollectionsTable: React.FC<ChatbotConfigurationCollect
                   onToggle={() => {
                     const wasSelected = isSelected(collection);
                     toggleSelection(collection);
-                    fireMiscTrackingEvent('Playground Collection Selected', {
+                    trackEvent('Playground Collection Selected', {
                       collectionName: collection.vector_store_name,
                       isSelected: !wasSelected,
                       providerType: collection.provider_type,

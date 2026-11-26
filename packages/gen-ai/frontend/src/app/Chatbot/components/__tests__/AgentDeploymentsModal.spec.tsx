@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import AgentDeploymentsModal from '~/app/Chatbot/components/AgentDeploymentsModal';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
+const trackEvent = jest.fn();
+
 jest.mock('~/app/hooks/useGenAiAPI');
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+
 jest.mock('~/app/AIAssets/components/agentprofiles/AgentConfigurationCard', () => ({
   __esModule: true,
   default: ({ title, deployedAt }: { title: string; deployedAt?: string }) => (
@@ -101,6 +101,7 @@ describe('AgentDeploymentsModal', () => {
         onClose={onClose}
         onDeleted={onDeleted}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByText('HR Chatbot Deployments')).toBeInTheDocument();
@@ -133,6 +134,7 @@ describe('AgentDeploymentsModal', () => {
         onClose={onClose}
         onDeleted={onDeleted}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await user.click(screen.getByTestId('delete-agent-deployment-button'));
@@ -141,10 +143,9 @@ describe('AgentDeploymentsModal', () => {
 
     await waitFor(() => expect(deleteAgentDeployment).toHaveBeenCalledWith({ id: 'hr-chatbot' }));
     expect(onDeleted).toHaveBeenCalledTimes(1);
-    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
-      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED,
-      { outcome: 'submit' },
-    );
+    expect(trackEvent).toHaveBeenCalledWith(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED, {
+      outcome: 'submit',
+    });
   });
 
   it('tracks cancellation of deployment deletion', async () => {
@@ -157,14 +158,14 @@ describe('AgentDeploymentsModal', () => {
         onClose={onClose}
         onDeleted={onDeleted}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await user.click(screen.getByTestId('delete-agent-deployment-button'));
     await user.click(screen.getByTestId('cancel-delete'));
 
-    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
-      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED,
-      { outcome: 'cancel' },
-    );
+    expect(trackEvent).toHaveBeenCalledWith(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED, {
+      outcome: 'cancel',
+    });
   });
 });

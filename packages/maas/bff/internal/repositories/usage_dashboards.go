@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 
 	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -16,9 +18,27 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// A caller whose token has an organization gets the Portal-specific dashboard when
+// it can be read and the shared one otherwise; any other caller always gets the
+// shared one. The shared
+// names start with "dashboard-", so the RHOAI Dashboard lists them too; the Portal
+// names don't. The RBAC Role in
+// manifests/observability/rhoai/maas-usage-dashboard-role.yaml must allow all four.
 const (
-	userUsageDashboardName  = "dashboard-5-maas-usage-logs"
-	adminUsageDashboardName = "dashboard-4-maas-usage-logs-admin"
+	userUsageDashboardName        = "dashboard-5-maas-usage-logs"
+	adminUsageDashboardName       = "dashboard-4-maas-usage-logs-admin"
+	portalUserUsageDashboardName  = "maas-portal-usage-logs"
+	portalAdminUsageDashboardName = "maas-portal-usage-logs-admin"
+)
+
+// usageDashboardCandidates lists the names to try for one dashboard, in order.
+type usageDashboardCandidates struct {
+	portal, shared string
+}
+
+var (
+	userUsageDashboard  = usageDashboardCandidates{portal: portalUserUsageDashboardName, shared: userUsageDashboardName}
+	adminUsageDashboard = usageDashboardCandidates{portal: portalAdminUsageDashboardName, shared: adminUsageDashboardName}
 )
 
 var (
@@ -33,6 +53,7 @@ type usageDashboardReader func(context.Context, string, string) (map[string]any,
 // The BFF's service account is used for Kubernetes reads; caller authorization
 // must already have succeeded before List is called.
 type UsageDashboardsRepository struct {
+	logger        *slog.Logger
 	namespace     string
 	reader        usageDashboardReader
 	clientMu      sync.Mutex
@@ -40,8 +61,8 @@ type UsageDashboardsRepository struct {
 	clientFactory func() (dynamic.Interface, error)
 }
 
-func NewUsageDashboardsRepository(namespace string, mock bool) *UsageDashboardsRepository {
-	repo := &UsageDashboardsRepository{namespace: namespace, clientFactory: newUsageDashboardClient}
+func NewUsageDashboardsRepository(logger *slog.Logger, namespace string, mock bool) *UsageDashboardsRepository {
+	repo := &UsageDashboardsRepository{logger: logger, namespace: namespace, clientFactory: newUsageDashboardClient}
 	if mock {
 		repo.reader = mocks.ReadUsageDashboard
 		if namespace == "" {
@@ -58,23 +79,65 @@ func (r *UsageDashboardsRepository) List(ctx context.Context, whoAmI *models.Maa
 	if r.namespace == "" {
 		return nil, ErrPersesNamespaceNotConfigured
 	}
-	names := []string{userUsageDashboardName}
+	candidates := []usageDashboardCandidates{userUsageDashboard}
 	if whoAmI.IsAdmin {
-		names = append(names, adminUsageDashboardName)
+		candidates = append(candidates, adminUsageDashboard)
 	}
-	dashboards := make([]map[string]any, 0, len(names))
+	dashboards := make([]map[string]any, 0, len(candidates))
 	reader := r.reader
 	if reader == nil {
 		reader = r.readUsageDashboardWithServiceAccount
 	}
-	for _, name := range names {
-		resource, err := reader(ctx, r.namespace, name)
+	preferPortal := callerHasOrganization(whoAmI)
+	for _, candidate := range candidates {
+		resource, err := r.readUsageDashboard(ctx, reader, candidate, preferPortal)
 		if err != nil {
-			return nil, fmt.Errorf("reading PersesDashboard %q: %w", name, err)
+			return nil, err
 		}
 		dashboards = append(dashboards, resource)
 	}
 	return dashboards, nil
+}
+
+// callerHasOrganization reports whether the caller's token has an org_id claim.
+// whoAmI is MaaS /v1/me's answer for the caller's own token, which sets org_id
+// only from a verified OIDC token's claim, so a client can't set it. OpenShift
+// tokens never have one. This is the right gate for 3.6: the Portal copies' data
+// source goes through maas-api's usage proxy, which on 3.6 requires an
+// organization, so an OIDC caller without org_id couldn't use the copies anyway.
+// If the proxy later accepts tokens without an organization (models-as-a-service
+// #1897), the test for "any verified OIDC caller" is a non-empty iss from /v1/me.
+func callerHasOrganization(whoAmI *models.MaaSWhoAmI) bool {
+	return whoAmI.OrgID != ""
+}
+
+// readUsageDashboard reads the shared dashboard, or, when preferPortal is set,
+// the Portal one first. It falls back to the shared dashboard when the Portal one
+// is NotFound, or Forbidden: the read uses the BFF service account, so Forbidden
+// means its Role doesn't list the Portal names yet (an operator that hasn't
+// reconciled it), not that the caller lacks access. Other errors on the Portal
+// dashboard, and any error on the shared one, are returned.
+func (r *UsageDashboardsRepository) readUsageDashboard(ctx context.Context, reader usageDashboardReader, candidate usageDashboardCandidates, preferPortal bool) (map[string]any, error) {
+	namespace := r.namespace
+	if preferPortal {
+		resource, err := reader(ctx, namespace, candidate.portal)
+		switch {
+		case err == nil:
+			return resource, nil
+		case apierrors.IsForbidden(err):
+			if r.logger != nil {
+				r.logger.Warn("Reading the Portal usage dashboard was forbidden; serving the shared one. The usage-dashboard Role may not be reconciled yet.",
+					slog.String("dashboard", candidate.portal), slog.String("fallback", candidate.shared))
+			}
+		case !apierrors.IsNotFound(err):
+			return nil, fmt.Errorf("reading PersesDashboard %q: %w", candidate.portal, err)
+		}
+	}
+	resource, err := reader(ctx, namespace, candidate.shared)
+	if err != nil {
+		return nil, fmt.Errorf("reading PersesDashboard %q: %w", candidate.shared, err)
+	}
+	return resource, nil
 }
 
 // getClient shares one service-account client across dashboard reads. Failed
@@ -109,7 +172,7 @@ func newUsageDashboardClient() (dynamic.Interface, error) {
 }
 
 // readUsageDashboardWithServiceAccount uses the MaaS BFF workload identity.
-// Its namespaced Role permits get on the two approved resources only.
+// Its namespaced Role permits get on the approved resources only (Portal and shared names).
 func (r *UsageDashboardsRepository) readUsageDashboardWithServiceAccount(ctx context.Context, namespace, name string) (map[string]any, error) {
 	client, err := r.getClient()
 	if err != nil {

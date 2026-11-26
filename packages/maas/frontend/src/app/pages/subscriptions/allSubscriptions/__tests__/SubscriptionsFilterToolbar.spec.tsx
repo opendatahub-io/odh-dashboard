@@ -3,6 +3,7 @@ import { act, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SubscriptionsFilterToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsFilterToolbar';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 import {
   MODEL_TEXT_FILTER_PREFIX,
   SubscriptionsFilterDataType,
@@ -16,6 +17,7 @@ type TypeaheadSelectProps = {
   ) => unknown[];
   onInputChange?: (value: string) => void;
   onToggle?: (open: boolean) => void;
+  onSelect?: (event: unknown, selection: string | number | undefined) => void;
 };
 
 let typeaheadProps: TypeaheadSelectProps;
@@ -47,13 +49,15 @@ const graniteSubscription = {
   modelRefs: [{ name: 'granite-8b' }],
 } as unknown as MaaSSubscription;
 
-const renderToolbar = (filterData: SubscriptionsFilterDataType) =>
+const renderToolbar = (filterData: SubscriptionsFilterDataType, trackEvent = jest.fn()) =>
   render(
-    <SubscriptionsFilterToolbar
-      subscriptions={[graniteSubscription]}
-      filterData={filterData}
-      onFilterUpdate={jest.fn()}
-    />,
+    <TrackingProvider trackEvent={trackEvent}>
+      <SubscriptionsFilterToolbar
+        subscriptions={[graniteSubscription]}
+        filterData={filterData}
+        onFilterUpdate={jest.fn()}
+      />
+    </TrackingProvider>,
   );
 
 describe('SubscriptionsFilterToolbar model typeahead filtering', () => {
@@ -89,5 +93,18 @@ describe('SubscriptionsFilterToolbar model typeahead filtering', () => {
     // Closing the menu without selecting should clear the stale option
     act(() => typeaheadProps.onToggle!(false));
     expect(typeaheadProps.selectOptions.map((option) => option.value)).not.toContain(textOption);
+  });
+
+  it('forwards the filter selection to the host-supplied callback', () => {
+    const trackEvent = jest.fn();
+    renderToolbar({ subscription: '', group: '', model: '' }, trackEvent);
+
+    expect(trackEvent).not.toHaveBeenCalled();
+    act(() => typeaheadProps.onSelect!(null, 'granite-8b'));
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('MaaS Settings List Filtered', {
+      resourceType: 'subscription',
+      filterAttribute: 'model',
+    });
   });
 });

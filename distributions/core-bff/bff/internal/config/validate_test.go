@@ -2,6 +2,7 @@ package config
 
 import (
 	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -159,7 +160,7 @@ func TestValidate_ServiceTargetPorts(t *testing.T) {
 }
 
 func TestValidate_AuthTokenHeaderMustBeAnHTTPFieldName(t *testing.T) {
-	for _, header := range []string{"X Dashboard Token", "x-token:", "x-token\r\n", "(token)", "x-tök"} {
+	for _, header := range []string{"X Dashboard Token", "x-token:", "x-to\r\nken", "(token)", "x-tök"} {
 		cfg := productionConfig()
 		cfg.AuthTokenHeader = header
 		err := cfg.Validate(TLSFiles{})
@@ -429,6 +430,166 @@ func TestValidate_KubernetesNameSettings(t *testing.T) {
 	cfg.DashboardConfigName, cfg.EnabledAppsCM = "odh-dashboard-config", "odh-enabled-applications-config"
 	cfg.PrometheusNamespace, cfg.PrometheusInstance, cfg.PrometheusPort = "openshift-monitoring", "thanos-querier", "9092"
 	require.NoError(t, cfg.Validate(TLSFiles{}))
+}
+
+func TestValidate_AuthTokenHeaders(t *testing.T) {
+	ok := []struct {
+		name    string
+		headers []string
+	}{
+		{"xks dual header", []string{"Authorization", "x-forwarded-access-token"}},
+		{"single entry", []string{"x-forwarded-access-token"}},
+		{"custom header", []string{"X-Entra-Access-Token"}},
+	}
+	for _, tc := range ok {
+		t.Run("accepts "+tc.name, func(t *testing.T) {
+			cfg := productionConfig()
+			cfg.AuthTokenHeaders = tc.headers
+			require.NoError(t, cfg.Validate(TLSFiles{}))
+		})
+	}
+
+	t.Run("list replaces the single header requirement", func(t *testing.T) {
+		cfg := productionConfig()
+		cfg.AuthTokenHeader = ""
+		cfg.AuthTokenHeaders = []string{"Authorization"}
+		require.NoError(t, cfg.Validate(TLSFiles{}))
+	})
+
+	bad := []struct {
+		name    string
+		mutate  func(*EnvConfig)
+		message string
+	}{
+		{"prefix with list", func(c *EnvConfig) {
+			c.AuthTokenHeaders = []string{"Authorization"}
+			c.AuthTokenPrefix = "Bearer "
+		}, "AUTH_TOKEN_PREFIX"},
+		{"invalid name", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Bad Header"} }, "not a valid HTTP field name"},
+		{"blank entry", func(c *EnvConfig) { c.AuthTokenHeaders = []string{" "} }, "not a valid HTTP field name"},
+		{"duplicate ignoring case", func(c *EnvConfig) {
+			c.AuthTokenHeaders = []string{"Authorization", "authorization"}
+		}, "entry 2 repeats an earlier entry"},
+		{"cookie", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Cookie"} }, "names a hop-by-hop, Host or Cookie header"},
+		{"impersonation", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Impersonate-User"} }, "reserved identity, session or correlation header"},
+		{"impersonation extra", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Impersonate-Extra-Scopes"} }, "reserved identity, session or correlation header"},
+		{"front-proxy user", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"X-Remote-User"} }, "reserved identity, session or correlation header"},
+		{"forwarded user", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"X-Forwarded-User"} }, "reserved identity, session or correlation header"},
+		{"request id", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Authorization", "X-Request-ID"} }, "is x-request-id, a reserved"},
+		{"audit id", func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Audit-ID"} }, "is audit-id, a reserved"},
+	}
+	for _, tc := range bad {
+		t.Run("rejects "+tc.name, func(t *testing.T) {
+			cfg := productionConfig()
+			tc.mutate(&cfg)
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.message)
+		})
+	}
+}
+
+// Fullsend (low): the legacy single header gets the same name and
+// forbidden-header checks as AUTH_TOKEN_HEADERS.
+func TestValidate_LegacyAuthTokenHeader(t *testing.T) {
+	for _, header := range []string{"x-forwarded-access-token", "Authorization", "X-Entra-Access-Token"} {
+		t.Run("accepts "+header, func(t *testing.T) {
+			cfg := productionConfig()
+			cfg.AuthTokenHeader = header
+			if header == "Authorization" {
+				cfg.AuthTokenPrefix = "Bearer "
+			}
+			require.NoError(t, cfg.Validate(TLSFiles{}))
+		})
+	}
+
+	for _, tc := range []struct {
+		name, header, message string
+	}{
+		{"invalid name", "Bad Header", "AUTH_TOKEN_HEADER/--auth-token-header (value omitted) is not a valid HTTP field name"},
+		{"cookie", "Cookie", "AUTH_TOKEN_HEADER/--auth-token-header (value omitted) names a hop-by-hop, Host or Cookie header"},
+		{"impersonation", "Impersonate-User", "is impersonate-user, a reserved identity, session or correlation header"},
+		{"impersonation extra", "Impersonate-Extra-Scopes", "a reserved identity, session or correlation header"},
+		{"front-proxy user", "X-Remote-User", "a reserved identity, session or correlation header"},
+		{"forwarded user", "X-Forwarded-User", "a reserved identity, session or correlation header"},
+		{"request id", "X-Request-ID", "is x-request-id, a reserved"},
+		{"audit id", "audit-id", "is audit-id, a reserved"},
+	} {
+		t.Run("rejects "+tc.name, func(t *testing.T) {
+			cfg := productionConfig()
+			cfg.AuthTokenHeader = tc.header
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.message)
+		})
+	}
+
+	// Module proxies still forward the legacy header, so it is checked even
+	// when the ordered list decides which header carries the caller token.
+	t.Run("still checked when the list is set", func(t *testing.T) {
+		cfg := productionConfig()
+		cfg.AuthTokenHeader = "Impersonate-User"
+		cfg.AuthTokenHeaders = []string{"Authorization"}
+		err := cfg.Validate(TLSFiles{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "AUTH_TOKEN_HEADER/--auth-token-header is impersonate-user")
+	})
+}
+
+// A token pasted into a header setting by mistake must not be echoed into the
+// startup error, in either setting.
+func TestValidate_AuthTokenHeaderErrorsDoNotEchoValues(t *testing.T) {
+	const pasted = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJl"
+	for name, mutate := range map[string]func(*EnvConfig){
+		"legacy, invalid":  func(c *EnvConfig) { c.AuthTokenHeader = pasted + " trailing" },
+		"list, invalid":    func(c *EnvConfig) { c.AuthTokenHeaders = []string{"Authorization", pasted + " x"} },
+		"list, duplicated": func(c *EnvConfig) { c.AuthTokenHeaders = []string{pasted, pasted} },
+	} {
+		t.Run(name, func(t *testing.T) {
+			cfg := productionConfig()
+			mutate(&cfg)
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err)
+			assert.NotContains(t, err.Error(), pasted)
+			assert.Contains(t, err.Error(), "value omitted")
+		})
+	}
+}
+
+// A prefix entry is reported by the prefix alone, so an operator-supplied
+// suffix never reaches the startup log, and the whole X-Remote-* family is
+// refused.
+func TestValidate_ForbiddenHeaderPrefixDoesNotEchoSuffix(t *testing.T) {
+	for _, header := range []string{"Impersonate-Extra-s3cretSuffix", "X-Remote-Uid", "x-remote-s3cretSuffix"} {
+		t.Run(header, func(t *testing.T) {
+			cfg := productionConfig()
+			cfg.AuthTokenHeaders = []string{"Authorization", header}
+			err := cfg.Validate(TLSFiles{})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "header (rest of the value omitted)")
+			assert.NotContains(t, err.Error(), "s3cret")
+			assert.NotContains(t, strings.ToLower(err.Error()), "uid")
+		})
+	}
+}
+
+// The startup log records whether the legacy header is set and how many list
+// entries there are, never the names: a token pasted into either setting by
+// mistake is a valid header name.
+func TestLogValue_TokenHeadersArePresenceAndCount(t *testing.T) {
+	const tokenShaped = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJl" //nolint:gosec // G101: fake token-shaped header name for a redaction test
+	cfg := productionConfig()
+	cfg.AuthTokenHeader = tokenShaped
+	cfg.AuthTokenHeaders = []string{"Authorization", tokenShaped + "x"}
+
+	var sb strings.Builder
+	slog.New(slog.NewTextHandler(&sb, nil)).Info("config", slog.Any("config", cfg))
+	out := sb.String()
+
+	assert.Contains(t, out, "config.auth.tokenHeaderSet=true")
+	assert.Contains(t, out, "config.auth.tokenHeaderCount=2")
+	assert.NotContains(t, out, tokenShaped)
+	assert.NotContains(t, out, "Authorization")
 }
 
 // Blank settings: a required one fails startup, an optional one may be empty

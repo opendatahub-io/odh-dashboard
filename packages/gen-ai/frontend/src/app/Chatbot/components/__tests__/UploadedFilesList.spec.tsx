@@ -2,17 +2,15 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import UploadedFilesList from '~/app/Chatbot/components/UploadedFilesList';
 import { FileModel } from '~/app/types';
 import { DELETE_EVENT_NAME } from '~/app/Chatbot/hooks/useFileManagement';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockFireFormTrackingEvent = jest.mocked(trackEvent);
 
 describe('UploadedFilesList', () => {
   const mockFiles: FileModel[] = [
@@ -20,7 +18,7 @@ describe('UploadedFilesList', () => {
       id: 'file-1',
       filename: 'document1.pdf',
       bytes: 1024000,
-      created_at: 1609459200,
+      created_at: new Date(2021, 0, 1).getTime() / 1000,
       purpose: 'assistants',
       object: 'file',
       status: 'completed',
@@ -31,7 +29,7 @@ describe('UploadedFilesList', () => {
       id: 'file-2',
       filename: 'document2.txt',
       bytes: 512,
-      created_at: 1609545600,
+      created_at: new Date(2021, 0, 2).getTime() / 1000,
       purpose: 'assistants',
       object: 'file',
       status: 'completed',
@@ -53,14 +51,18 @@ describe('UploadedFilesList', () => {
   });
 
   it('renders loading state', () => {
-    render(<UploadedFilesList {...defaultProps} isLoading />);
+    render(<UploadedFilesList {...defaultProps} isLoading />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(screen.getByText('Uploaded files')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('renders error state', () => {
-    render(<UploadedFilesList {...defaultProps} error="Failed to load files" />);
+    render(<UploadedFilesList {...defaultProps} error="Failed to load files" />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(screen.getByText('Uploaded files')).toBeInTheDocument();
     expect(screen.getByText('Error loading files')).toBeInTheDocument();
@@ -68,13 +70,15 @@ describe('UploadedFilesList', () => {
   });
 
   it('renders nothing when no files', () => {
-    const { container } = render(<UploadedFilesList {...defaultProps} files={[]} />);
+    const { container } = render(<UploadedFilesList {...defaultProps} files={[]} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(container.firstChild).toBeNull();
   });
 
   it('renders list of files with correct information', () => {
-    render(<UploadedFilesList {...defaultProps} />);
+    render(<UploadedFilesList {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.getByText('Uploaded files')).toBeInTheDocument();
     expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -84,14 +88,14 @@ describe('UploadedFilesList', () => {
   });
 
   it('formats file dates correctly', () => {
-    render(<UploadedFilesList {...defaultProps} />);
+    render(<UploadedFilesList {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.getByText('1000 KB - 01-01-2021')).toBeInTheDocument();
   });
 
   it('opens delete modal when delete button is clicked', async () => {
     const user = userEvent.setup();
-    render(<UploadedFilesList {...defaultProps} />);
+    render(<UploadedFilesList {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
     await user.click(deleteButtons[0]);
@@ -105,7 +109,9 @@ describe('UploadedFilesList', () => {
     const user = userEvent.setup();
     const mockOnDeleteFile = jest.fn();
 
-    render(<UploadedFilesList {...defaultProps} onDeleteFile={mockOnDeleteFile} />);
+    render(<UploadedFilesList {...defaultProps} onDeleteFile={mockOnDeleteFile} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
     await user.click(deleteButtons[0]);
@@ -118,7 +124,7 @@ describe('UploadedFilesList', () => {
 
   it('closes modal and fires cancel event when cancel is clicked', async () => {
     const user = userEvent.setup();
-    render(<UploadedFilesList {...defaultProps} />);
+    render(<UploadedFilesList {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
     await user.click(deleteButtons[0]);
@@ -133,7 +139,9 @@ describe('UploadedFilesList', () => {
   });
 
   it('disables delete buttons when deleting', () => {
-    render(<UploadedFilesList {...defaultProps} isDeleting />);
+    render(<UploadedFilesList {...defaultProps} isDeleting />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
     deleteButtons.forEach((button) => {
@@ -142,7 +150,9 @@ describe('UploadedFilesList', () => {
   });
 
   it('should disable delete buttons when isDisabled is true', () => {
-    render(<UploadedFilesList {...defaultProps} isDisabled />);
+    render(<UploadedFilesList {...defaultProps} isDisabled />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
     deleteButtons.forEach((button) => {
@@ -158,7 +168,9 @@ describe('UploadedFilesList', () => {
       { ...mockFiles[0], id: 'file-gb', bytes: 2147483648 },
     ];
 
-    render(<UploadedFilesList {...defaultProps} files={filesWithVariousSizes} />);
+    render(<UploadedFilesList {...defaultProps} files={filesWithVariousSizes} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(screen.getByText('0 Bytes - 01-01-2021')).toBeInTheDocument();
     expect(screen.getByText('2 KB - 01-01-2021')).toBeInTheDocument();

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Alert,
@@ -34,7 +35,6 @@ import {
   RhUiTaskIcon,
 } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import RhUiUploadIcon from '~/app/images/icons/RhUiUploadIcon';
 import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
@@ -161,6 +161,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   isDefaultConfigDirty = false,
   onRevertToDefaults,
 }) => {
+  const trackEvent = useTrackEvent();
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [, setActiveToolsCount] = React.useState(0);
   const [showResetModal, setShowResetModal] = React.useState(false);
@@ -632,7 +633,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             <Button
               variant={profileApplied ? 'secondary' : 'primary'}
               onClick={() => {
-                fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
+                trackEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
                   agentID: loadedProfileId ?? '',
                   triggerContext: 'settings_drawer_button',
                 });

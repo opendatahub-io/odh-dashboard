@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/textproto"
-	"strings"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/callerauth"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"k8s.io/client-go/rest"
 )
 
@@ -30,12 +28,9 @@ type KubernetesClientFactory interface {
 func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger, base *rest.Config) (KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
 	case config.AuthMethodDisabled, config.AuthMethodUser:
-		k8sFactory := &TokenClientFactory{
-			Logger:                     logger,
-			Header:                     cfg.AuthTokenHeader,
-			Prefix:                     cfg.AuthTokenPrefix,
-			NewTokenKubernetesClientFn: NewTokenKubernetesClient,
-		}
+		// NewTokenClientFactory builds the shared caller-credential extractor;
+		// only the client constructor is replaced when base is set.
+		k8sFactory := NewTokenClientFactory(logger, cfg).(*TokenClientFactory)
 		if base != nil {
 			validated := rest.CopyConfig(base)
 			k8sFactory.NewTokenKubernetesClientFn = func(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
@@ -58,8 +53,13 @@ func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger, base 
 // TokenClientFactory creates Kubernetes clients using user-provided bearer tokens.
 type TokenClientFactory struct {
 	Logger *slog.Logger
+	// Header and Prefix are the single-header settings. They are used only when
+	// Credentials was not built (tests and downstream code that construct the
+	// factory literally); NewTokenClientFactory always sets Credentials.
 	Header string
 	Prefix string
+	// Credentials is the caller-credential extractor shared by every transport.
+	Credentials *callerauth.Extractor
 	// NewTokenKubernetesClientFn is the function used to create token-based Kubernetes clients.
 	// Pass the request context and base logger; resolve audit correlation when logging.
 	// This can be overridden by downstream code to provide custom client creation logic.
@@ -72,44 +72,33 @@ type TokenClientFactory struct {
 
 // NewTokenClientFactory creates a new token-based Kubernetes client factory.
 func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) KubernetesClientFactory {
+	extractor := callerauth.New(cfg)
 	return &TokenClientFactory{
 		Logger:                     logger,
 		Header:                     cfg.AuthTokenHeader,
 		Prefix:                     cfg.AuthTokenPrefix,
+		Credentials:                &extractor,
 		NewTokenKubernetesClientFn: NewTokenKubernetesClient,
 	}
 }
 
+func (f *TokenClientFactory) extractor() callerauth.Extractor {
+	if f.Credentials != nil {
+		return *f.Credentials
+	}
+	return callerauth.Legacy(f.Header, f.Prefix)
+}
+
+// ExtractRequestIdentity resolves the caller credential. The identity carries
+// only the token; the user name is resolved later by SelfSubjectReview, so a
+// header can never assert who the caller is.
 func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error) {
-	// Header.Get cannot tell an absent header from an empty one, and the HTTP
-	// parser trims a whitespace-only value to "". Only an absent header is a
-	// missing credential (which DEV_MODE may replace with the developer's
-	// identity); a header that was sent but is empty is an invalid one.
-	values, present := httpHeader[textproto.CanonicalMIMEHeaderKey(f.Header)]
-	if !present {
-		return nil, fmt.Errorf("missing required header: %s: %w", f.Header, httpcontract.ErrCredentialsMissing)
-	}
-	raw := ""
-	if len(values) > 0 {
-		raw = values[0]
-	}
-	if strings.TrimSpace(raw) == "" {
-		return nil, fmt.Errorf("empty credential header: %w", httpcontract.ErrCredentialsInvalid)
-	}
-
-	token := raw
-	if f.Prefix != "" {
-		if !strings.HasPrefix(raw, f.Prefix) {
-			return nil, fmt.Errorf("malformed credential: %w", httpcontract.ErrCredentialsInvalid)
-		}
-		token = strings.TrimPrefix(raw, f.Prefix)
-	}
-
-	if strings.TrimSpace(token) == "" {
-		return nil, httpcontract.ErrCredentialsInvalid
+	cred, err := f.extractor().Extract(httpHeader)
+	if err != nil {
+		return nil, err
 	}
 	return &RequestIdentity{
-		Token: NewBearerToken(strings.TrimSpace(token)),
+		Token: NewBearerToken(cred.Token),
 	}, nil
 }
 
