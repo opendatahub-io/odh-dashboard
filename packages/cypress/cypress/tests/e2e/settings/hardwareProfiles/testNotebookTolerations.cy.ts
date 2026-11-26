@@ -54,6 +54,7 @@ describe('Notebooks - tolerations tests', () => {
         '@SmokeSet2',
         '@NonConcurrent',
         '@HardwareProfilesCI',
+        '@S390X',
       ],
     },
     () => {
