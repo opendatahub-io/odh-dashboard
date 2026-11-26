@@ -1,3 +1,4 @@
+import { isModelServingEventsDiscovery } from '@odh-dashboard/model-serving/extension-points';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { isWizardTrackingPropertiesExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
@@ -7,6 +8,50 @@ import { extractLlmdDeploymentTrackingProperties } from '../../src/tracking/llmd
 import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../../src/settings/llmInferenceServiceConfigs/paths';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';
 import { ROUTING_CONFIGS_TAB_PATH } from '../../src/settings/routingConfigs/paths';
+
+it('should register LLM-d Events inputs including the unfiltered StatefulSet watch', () => {
+  const inputs = extensions.filter(isModelServingEventsDiscovery);
+  expect(inputs).toEqual([
+    expect.objectContaining({
+      flags: { required: ['llmd-serving'] },
+      properties: {
+        platform: 'llmd-serving',
+        modelNameLabel: 'app.kubernetes.io/name',
+        additionalLabels: { 'app.kubernetes.io/part-of': 'llminferenceservice' },
+        resources: [
+          {
+            apiGroup: 'apps',
+            apiVersion: 'v1',
+            kind: 'Deployment',
+            plural: 'deployments',
+            scope: 'model',
+          },
+          {
+            apiGroup: 'apps',
+            apiVersion: 'v1',
+            kind: 'ReplicaSet',
+            plural: 'replicasets',
+            scope: 'model',
+          },
+          {
+            apiGroup: 'leaderworkerset.x-k8s.io',
+            apiVersion: 'v1',
+            kind: 'LeaderWorkerSet',
+            plural: 'leaderworkersets',
+            scope: 'model',
+          },
+          {
+            apiGroup: 'apps',
+            apiVersion: 'v1',
+            kind: 'StatefulSet',
+            plural: 'statefulsets',
+            scope: 'namespace',
+          },
+        ],
+      },
+    }),
+  ]);
+});
 
 describe('llm-d deployment tracking registration', () => {
   it.each([true, false])(

@@ -49,6 +49,29 @@ export type DeploymentStatus = {
   kueueStatus?: KueueWorkloadStatusWithMessage | null;
 };
 
+export type EventsResourceDescriptor = {
+  apiGroup: string;
+  apiVersion: string;
+  kind: string;
+  plural: string;
+  scope: 'model' | 'namespace';
+};
+
+export type ModelServingEventsDiscovery = Extension<
+  'model-serving.platform/events-discovery',
+  {
+    platform: string;
+    modelNameLabel: string;
+    additionalLabels?: Record<string, string>;
+    resources: readonly EventsResourceDescriptor[];
+  }
+>;
+
+export const isModelServingEventsDiscovery = (
+  extension: Extension,
+): extension is ModelServingEventsDiscovery =>
+  extension.type === 'model-serving.platform/events-discovery';
+
 export type DeploymentEndpoint = {
   type: 'internal' | 'external';
   name?: string;

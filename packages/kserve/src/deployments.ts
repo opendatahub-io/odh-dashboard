@@ -103,13 +103,29 @@ export const useWatchDeployments = (
           model: inferenceService,
           server: servingRuntime,
           status: getKServeDeploymentStatus(inferenceService, deploymentPods, kueueStatus),
+          podDiscovery: {
+            pods: deploymentPods.filter(
+              (pod) =>
+                pod.metadata.labels?.['serving.kserve.io/inferenceservice'] ===
+                inferenceService.metadata.name,
+            ),
+            loaded: deploymentPodsLoaded,
+            error: deploymentPodsError,
+          },
           endpoints: getKServeDeploymentEndpoints(inferenceService),
           apiProtocol: servingRuntime
             ? getAPIProtocolFromServingRuntime(servingRuntime)
             : undefined,
         };
       }),
-    [filteredInferenceServices, servingRuntimes, deploymentPods, kueueStatusByDeploymentKey],
+    [
+      filteredInferenceServices,
+      servingRuntimes,
+      deploymentPods,
+      deploymentPodsLoaded,
+      deploymentPodsError,
+      kueueStatusByDeploymentKey,
+    ],
   );
 
   const effectivelyLoaded = Boolean(

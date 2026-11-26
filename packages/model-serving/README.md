@@ -99,6 +99,8 @@ export type Deployment<
 };
 ```
 
+Platforms can register `model-serving.platform/events-discovery` to describe the controller resources for deployment Events. The hub handles owner-UID traversal and uses `podDiscovery` from the existing platform Pod watch rather than opening another Pod watch.
+
 If you can accomplish everything you need for a deployment using the generic `K8sResourceCommon` types here, the code can live in `model-serving` (for example reading and setting annotations or other metadata properties).
 
 If you need to read / write from the `model.spec`, this will need to be done using extensions and implemented in the specific model serving platform packages.

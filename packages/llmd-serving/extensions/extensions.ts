@@ -2,6 +2,7 @@ import type {
   DeployedModelServingDetails,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeleteModal,
+  ModelServingEventsDiscovery,
   ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { RuntimeImageInstallTargetExtension } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
@@ -386,6 +387,7 @@ const deploymentMethodExtractorExtensionvLLMOnMaaS: WizardFieldExtractorExtensio
 
 const extensions: (
   | AreaExtension
+  | ModelServingEventsDiscovery
   | ModelServingPlatformWatchDeploymentsExtension<LLMdDeployment>
   | DeployedModelServingDetails<LLMdDeployment, FetchStateObject<LLMInferenceServiceConfigKind[]>>
   | ModelServingDeploymentFormDataExtension<LLMdDeployment>
@@ -424,6 +426,46 @@ const extensions: (
       requiredComponents: [DataScienceStackComponent.K_SERVE],
       reliantAreas: [SupportedArea.MODEL_SERVING],
       featureFlags: ['disableLLMd'],
+    },
+  },
+  {
+    type: 'model-serving.platform/events-discovery',
+    flags: { required: [LLMD_SERVING_ID] },
+    properties: {
+      platform: LLMD_SERVING_ID,
+      modelNameLabel: 'app.kubernetes.io/name',
+      additionalLabels: { 'app.kubernetes.io/part-of': 'llminferenceservice' },
+      resources: [
+        {
+          apiGroup: 'apps',
+          apiVersion: 'v1',
+          kind: 'Deployment',
+          plural: 'deployments',
+          scope: 'model',
+        },
+        {
+          apiGroup: 'apps',
+          apiVersion: 'v1',
+          kind: 'ReplicaSet',
+          plural: 'replicasets',
+          scope: 'model',
+        },
+        {
+          apiGroup: 'leaderworkerset.x-k8s.io',
+          apiVersion: 'v1',
+          kind: 'LeaderWorkerSet',
+          plural: 'leaderworkersets',
+          scope: 'model',
+        },
+        {
+          apiGroup: 'apps',
+          apiVersion: 'v1',
+          kind: 'StatefulSet',
+          plural: 'statefulsets',
+          // These carry LeaderWorkerSet labels, not the model labels used for the other lists.
+          scope: 'namespace',
+        },
+      ],
     },
   },
   {

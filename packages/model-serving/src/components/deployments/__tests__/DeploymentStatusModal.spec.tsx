@@ -1,13 +1,23 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, type RenderOptions } from '@testing-library/react';
+import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
+import { PluginStore } from '@odh-dashboard/plugin-core';
 import type { Deployment, DeploymentCondition } from '../../../../extension-points';
 import { ModelDeploymentState } from '../../../shared/types';
 import DeploymentStatusModal from '../DeploymentStatusModal';
 import { createTrackingRender } from '../../../__tests__/TrackingProvider';
 
 const mockTrackEvent = jest.fn();
-const render = createTrackingRender(mockTrackEvent);
+const renderWithTracking = createTrackingRender(mockTrackEvent);
+const emptyStore = new PluginStore({});
+const render = (ui: React.ReactNode, options?: RenderOptions) =>
+  renderWithTracking(ui, {
+    wrapper: ({ children }) => (
+      <PluginStoreProvider store={emptyStore}>{children}</PluginStoreProvider>
+    ),
+    ...options,
+  });
 
 const createMockDeployment = (
   conditions: DeploymentCondition[],
@@ -51,6 +61,33 @@ describe('DeploymentStatusModal', () => {
 
     expect(screen.getByText('Test Model status')).toBeInTheDocument();
     expect(screen.getByText('Deployment requested')).toBeInTheDocument();
+  });
+
+  it('should associate the Events tab with its panel for a registered platform', () => {
+    const store = new PluginStore({
+      kserve: [
+        {
+          type: 'model-serving.platform/events-discovery',
+          properties: {
+            platform: 'kserve',
+            modelNameLabel: 'serving.kserve.io/inferenceservice',
+            resources: [],
+          },
+        },
+      ],
+    });
+    render(<DeploymentStatusModal deployment={createMockDeployment([])} onClose={jest.fn()} />, {
+      wrapper: ({ children }) => (
+        <PluginStoreProvider store={store}>{children}</PluginStoreProvider>
+      ),
+    });
+    const eventsTab = screen.getByRole('tab', { name: 'Events log' });
+    expect(eventsTab).toHaveAttribute('aria-selected', 'false');
+    fireEvent.click(eventsTab);
+    expect(screen.getByRole('tabpanel', { name: 'Events log' })).toHaveAttribute(
+      'id',
+      eventsTab.getAttribute('aria-controls'),
+    );
   });
 
   it('should render all conditions as progress steps', () => {

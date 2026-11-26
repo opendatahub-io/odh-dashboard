@@ -36,6 +36,7 @@ model-serving defines extension points that platform packages implement.
 |---|---|
 | `model-serving.platform` | Registers a serving platform with ID, project requirements, enable card text, and deployed models view |
 | `model-serving.platform/watch-deployments` | Watch hook returning `[deployments, loaded, errors]` for a platform |
+| `model-serving.platform/events-discovery` | Provides a platform ID, model label selector, and controller resource descriptors for the status modal's Events log. Each descriptor specifies whether to apply the selector or watch the kind across the namespace. The modal combines those candidates with Pods from the existing deployment watch and resolves Event sources by owner UID. |
 | `model-serving.platform/fetch-deployment-status` | Fetch a single deployment by name and namespace |
 | `model-serving.platform/exclude-deployment` | Filter resources from another platform's listing to prevent duplicates |
 | `model-serving.platform/delete-deployment` | Delete deployment action and modal per platform |

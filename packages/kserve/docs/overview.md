@@ -12,6 +12,7 @@
   - `model-serving` collects wizard data and calls `deployKServeDeployment` (via the `model-serving.deployment/deploy` extension).
   - Orchestration creates or patches `ServingRuntime` and `InferenceService`, then optional token-auth resources.
   - After deploy, `useWatchDeployments` watches `InferenceService` resources first, then watches matching `ServingRuntime` and labeled `Pod` resources only when inference services remain after exclusion and caller filtering; the results are merged into `KServeDeployment` objects.
+  - `model-serving.platform/events-discovery` configures watches for Deployments and ReplicaSets matching `serving.kserve.io/inferenceservice=<model-name>`. The status modal combines these candidates with Pods from the existing watch and resolves Event sources by owner UID.
 - **No package Module Federation remote:** `model-serving` consumes this package as a TypeScript dependency; `extensions.ts` exports the extension manifest registered by the parent.
   - Notable exports: `@odh-dashboard/kserve/extensions`, `@odh-dashboard/kserve/deployUtils` (shared helpers for other packages).
 - **Feature gating:** `OdhDashboardConfig` (`disableKServe`, `disableKServeMetrics`) and `SupportedArea` values (`K_SERVE`, `K_SERVE_METRICS`) in `extensions.ts` via `flags.required`.
