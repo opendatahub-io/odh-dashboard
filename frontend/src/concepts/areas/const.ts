@@ -58,7 +58,6 @@ export const techPreviewFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
-  disableKueue: true,
   disableProjectScoped: true,
   nimServiceOperator: false,
   agentOpsDeploy: false,
@@ -115,6 +114,7 @@ export const advancedAIMLFlags = {
   autorag: true,
   disablePipelines: false,
   disableDistributedWorkloads: false,
+  disableKueue: false,
   disableModelCatalog: false,
   disableModelRegistry: false,
   disableModelRegistrySecureDB: false,

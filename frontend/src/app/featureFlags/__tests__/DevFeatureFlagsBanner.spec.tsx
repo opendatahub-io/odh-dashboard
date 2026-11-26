@@ -71,6 +71,7 @@ describe('DevFeatureFlagsBanner', () => {
           disableProjects: false,
           disableModelServing: false,
           disablePipelines: false,
+          disableKueue: false,
         }}
         setDevFeatureFlag={setFeatureFlagFn}
         resetDevFeatureFlags={resetFn}
@@ -88,14 +89,14 @@ describe('DevFeatureFlagsBanner', () => {
     // Test Active tab
     expect(result.getByTestId('activeFlagTab')).toBeInTheDocument();
 
-    // Check temp dev flags (disable Kueue is on by default)
-    expect(result.getByTestId('disableKueue-checkbox')).toBeChecked();
+    // Check temp dev flags (disableProjectScoped is on by default)
+    expect(result.getByTestId('disableProjectScoped-checkbox')).toBeChecked();
 
     // Click a temporary dev flag
     act(() => {
-      result.getByTestId('disableKueue-checkbox').click();
+      result.getByTestId('disableProjectScoped-checkbox').click();
     });
-    expect(setFeatureFlagFn).toHaveBeenCalledWith('disableKueue', false);
+    expect(setFeatureFlagFn).toHaveBeenCalledWith('disableProjectScoped', false);
 
     // Click on Legacy tab
     act(() => {
@@ -145,6 +146,16 @@ describe('DevFeatureFlagsBanner', () => {
     });
     expect(setFeatureFlagFn).toHaveBeenCalledWith('disablePipelines', true);
 
+    // disableKueue is a graduated (non dev-temporary) flag, so it lives on the Legacy tab
+    // and defaults to false
+    expect(result.getByTestId('disableKueue-checkbox')).not.toBeChecked();
+    expect(result.getByTestId('disableKueue-value').textContent).toBe('false');
+
+    act(() => {
+      result.getByTestId('disableKueue-checkbox').click();
+    });
+    expect(setFeatureFlagFn).toHaveBeenCalledWith('disableKueue', true);
+
     // click on the dev flags tab
     act(() => {
       result.getByTestId('devFlagTab').click();
@@ -162,13 +173,14 @@ describe('DevFeatureFlagsBanner', () => {
     expect(resetFn).toHaveBeenCalled();
 
     // Verify total number of flag changes
-    expect(setFeatureFlagFn).toHaveBeenCalledTimes(5);
+    expect(setFeatureFlagFn).toHaveBeenCalledTimes(6);
     expect(setFeatureFlagFn.mock.calls).toEqual([
-      ['disableKueue', false],
+      ['disableProjectScoped', false],
       ['disableHome', false],
       ['disableProjects', true],
       ['disableModelServing', true],
       ['disablePipelines', true],
+      ['disableKueue', true],
     ]);
   });
 });

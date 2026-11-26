@@ -3,7 +3,7 @@ import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KnownLabels, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isK8sStatus, passThroughResource } from '../../../utils/pass-through';
-import { getDashboardConfig } from '../../../utils/resourceUtils';
+import { getClusterStatus, getDashboardConfig } from '../../../utils/resourceUtils';
 import { createSelfSubjectAccessReview } from '../../../utils/authUtils';
 
 export const checkAdminNamespacePermission = (
@@ -108,6 +108,15 @@ export const ensureProjectNIMAnnotation = async (
   }
 };
 
+/**
+ * Whether the Kueue component is installed in the DataScienceCluster. Matches the frontend area
+ * availability check, which treats both Managed and Unmanaged as installed.
+ */
+export const isKueueComponentInstalled = (fastify: KubeFastifyInstance): boolean => {
+  const managementState = getClusterStatus(fastify)?.components?.['kueue']?.managementState;
+  return managementState === 'Managed' || managementState === 'Unmanaged';
+};
+
 export const applyNamespaceChange = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
@@ -121,13 +130,16 @@ export const applyNamespaceChange = async (
   let labels = {};
   let checkPermissionsFn = null;
   const config = getDashboardConfig(request);
-  const isKueueDisabled = config.spec.dashboardConfig.disableKueue;
   switch (context) {
     case NamespaceApplicationCase.DSG_CREATION:
       {
+        // Kueue project labeling needs both the flag and the DSC component: labeling a project on a
+        // cluster without Kueue leaves its users with no usable hardware profiles.
+        const isKueueEnabled =
+          !config.spec.dashboardConfig.disableKueue && isKueueComponentInstalled(fastify);
         labels = {
           [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-          ...(!isKueueDisabled && { [KnownLabels.KUEUE_MANAGED]: 'true' }),
+          ...(isKueueEnabled && { [KnownLabels.KUEUE_MANAGED]: 'true' }),
         };
         checkPermissionsFn = checkAdminNamespacePermission;
       }
