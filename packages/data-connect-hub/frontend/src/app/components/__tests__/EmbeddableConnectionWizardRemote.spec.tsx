@@ -115,7 +115,7 @@ describe('EmbeddableConnectionWizardRemote', () => {
       true,
       undefined,
     ]);
-    global.fetch = jest.fn<typeof fetch>().mockResolvedValue({ ok: true, status: 200 } as Response);
+    global.fetch = jest.fn<typeof fetch>().mockResolvedValue({ ok: true, status: 204 } as Response);
     mockTestCredentials.mockImplementation(() => () => Promise.resolve());
     jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(jest.fn());
     mockCreateConnection.mockReturnValue(
@@ -184,7 +184,7 @@ describe('EmbeddableConnectionWizardRemote', () => {
         onAvailabilityChange={onAvailabilityChange}
       />,
     );
-    global.fetch = jest.fn<typeof fetch>().mockResolvedValue({ ok: true, status: 200 } as Response);
+    global.fetch = jest.fn<typeof fetch>().mockResolvedValue({ ok: true, status: 204 } as Response);
     rerender(
       <EmbeddableConnectionWizardRemote
         isOpen
@@ -197,6 +197,26 @@ describe('EmbeddableConnectionWizardRemote', () => {
     await waitFor(() =>
       expect(onAvailabilityChange).toHaveBeenNthCalledWith(4, { status: 'available' }),
     );
+  });
+
+  it('rejects a successful response that does not match the health contract', async () => {
+    const onAvailabilityChange = jest.fn();
+    global.fetch = jest.fn<typeof fetch>().mockResolvedValue({ ok: true, status: 200 } as Response);
+
+    render(
+      <EmbeddableConnectionWizardRemote
+        isOpen
+        namespace="test-project"
+        unavailableFallback={<div data-testid="legacy-connection-modal" />}
+        onAvailabilityChange={onAvailabilityChange}
+      />,
+    );
+
+    expect(await screen.findByTestId('legacy-connection-modal')).toBeTruthy();
+    expect(onAvailabilityChange).toHaveBeenLastCalledWith({
+      status: 'unavailable',
+      reason: 'backend',
+    });
   });
 
   it('does not render the wizard while rechecking availability on reopen', async () => {

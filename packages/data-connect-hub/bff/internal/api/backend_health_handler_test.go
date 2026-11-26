@@ -47,18 +47,22 @@ func TestBackendHealthRouteDoesNotRequireAuthentication(t *testing.T) {
 
 func TestBackendHealthHandlerChecksUpstreamHealth(t *testing.T) {
 	var requestedPath string
+	var authorization string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestedPath = r.URL.Path
+		authorization = r.Header.Get("Authorization")
 		w.WriteHeader(http.StatusOK)
 	}))
 	t.Cleanup(server.Close)
 	app := backendHealthTestApp(config.EnvConfig{}, server.URL)
 	response, request := backendHealthRequest(t)
+	request.Header.Set("Authorization", "Bearer test-token")
 
 	app.BackendHealthHandler(response, request, nil)
 
 	require.Equal(t, http.StatusNoContent, response.Code)
 	require.Equal(t, "/health", requestedPath)
+	require.Equal(t, "Bearer test-token", authorization)
 }
 
 func TestBackendHealthHandlerRejectsUpstreamRedirects(t *testing.T) {

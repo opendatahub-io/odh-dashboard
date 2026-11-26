@@ -86,7 +86,7 @@ describe('EmbeddableConnectionWizard', () => {
       requiredComponents: null,
     });
     mockUseAccessReview.mockReturnValue([true, true]);
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 } as Response);
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 204 } as Response);
   });
 
   it('exposes only the availability-aware wizard facade', () => {

@@ -15,10 +15,11 @@ import type {
 } from '~/types';
 
 const DATA_CONNECT_HUB_BACKEND_HEALTH = '/data-connect-hub/healthcheck/backend';
+const BACKEND_HEALTH_SUCCESS_STATUS = 204;
 
 const checkBackendHealth = async (signal: AbortSignal): Promise<void> => {
   const response = await fetch(DATA_CONNECT_HUB_BACKEND_HEALTH, { signal });
-  if (!response.ok) {
+  if (response.status !== BACKEND_HEALTH_SUCCESS_STATUS) {
     throw new Error(`Connection backend health check failed with status ${response.status}`);
   }
 };

@@ -36,6 +36,9 @@ func (app *App) BackendHealthHandler(w http.ResponseWriter, r *http.Request, _ h
 		app.serviceUnavailableResponse(w, r, fmt.Errorf("failed to create backend health request: %w", err))
 		return
 	}
+	if authorization := r.Header.Get("Authorization"); authorization != "" {
+		request.Header.Set("Authorization", authorization)
+	}
 
 	transport := app.dataConnectHubHTTPTransport
 	if transport == nil {
