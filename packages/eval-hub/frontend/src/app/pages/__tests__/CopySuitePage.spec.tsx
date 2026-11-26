@@ -1173,6 +1173,41 @@ describe('CopySuitePage', () => {
     expect(screen.getAllByRole('button', { name: 'Next' })).toHaveLength(1);
   });
 
+  it('should keep Benchmark settings disabled when no benchmarks are selected', () => {
+    mockUseCopySuiteForm.mockReturnValue(makeForm({ benchmarks: [], isValid: false }));
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+    goToSelectBenchmarksStep();
+
+    expect(screen.getByTestId('copy-suite-next-select-benchmarks')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Benchmark settings/ })).toBeDisabled();
+  });
+
+  it('should allow sidebar navigation to each eligible next step before visiting it', () => {
+    mockUseCopySuiteForm.mockReturnValue(makeForm());
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+
+    expect(screen.getByTestId('copy-suite-next')).toBeEnabled();
+    const selectionStep = screen.getByRole('button', { name: /Benchmarks/ });
+    expect(selectionStep).toBeEnabled();
+    fireEvent.click(selectionStep);
+
+    expect(screen.getByTestId('copy-suite-next-select-benchmarks')).toBeEnabled();
+    const benchmarkSettingsStep = screen.getByRole('button', { name: /Benchmark settings/ });
+    expect(benchmarkSettingsStep).toBeEnabled();
+    fireEvent.click(benchmarkSettingsStep);
+
+    expect(screen.getByTestId('copy-suite-next-review')).toBeEnabled();
+    const reviewStep = screen.getByRole('button', { name: /Review/ });
+    expect(reviewStep).toBeEnabled();
+
+    fireEvent.click(reviewStep);
+    expect(screen.getByTestId('copy-suite-review-step')).toBeInTheDocument();
+  });
+
   it('should preserve settings while navigating through visited sidebar steps', () => {
     mockUseCopySuiteForm.mockReturnValue(makeForm());
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
@@ -1205,6 +1240,7 @@ describe('CopySuitePage', () => {
     goToBenchmarksStep();
 
     expect(screen.getByTestId('copy-suite-next-review')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Review/ })).toBeDisabled();
   });
 
   it('should navigate through the select benchmarks step before configuration', () => {
@@ -1301,10 +1337,7 @@ describe('CopySuitePage', () => {
     fireEvent.click(screen.getByTestId('copy-suite-back-review'));
     expect(screen.getByTestId('benchmark-0-parameter-input-num_examples')).toBeEnabled();
     expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).toHaveAttribute('href');
-    expect(within(screen.getByTestId('benchmark-jump-link-0')).getByRole('link')).toHaveAttribute(
-      'href',
-      '#benchmark-section-0',
-    );
+    expect(screen.queryByTestId('benchmark-jump-link-0')).not.toBeInTheDocument();
   });
 
   it('should block step navigation while a save-only operation is pending', () => {

@@ -132,6 +132,7 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
           use whole-number inputs; other raw metrics retain their provider-defined decimal scale. */}
       {isPercentage ? (
         <Slider
+          className="evalhub-benchmark-threshold-field__slider"
           data-testid={fieldId}
           min={0}
           max={100}

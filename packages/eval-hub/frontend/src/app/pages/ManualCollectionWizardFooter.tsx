@@ -7,12 +7,11 @@ import {
   WizardFooterWrapper,
   useWizardContext,
 } from '@patternfly/react-core';
-import { MAX_BENCHMARKS } from '~/app/pages/useCopySuiteForm';
 
 type ManualCollectionWizardFooterProps = {
   mode: 'copy' | 'create' | 'edit';
   isSettingsValid: boolean;
-  selectedBenchmarkCount: number;
+  isSelectionValid: boolean;
   isValid: boolean;
   isBusy: boolean;
   isSubmitting: boolean;
@@ -24,7 +23,7 @@ type ManualCollectionWizardFooterProps = {
 const ManualCollectionWizardFooter: React.FC<ManualCollectionWizardFooterProps> = ({
   mode,
   isSettingsValid,
-  selectedBenchmarkCount,
+  isSelectionValid,
   isValid,
   isBusy,
   isSubmitting,
@@ -37,7 +36,6 @@ const ManualCollectionWizardFooter: React.FC<ManualCollectionWizardFooterProps> 
   const isSelectionStep = activeStep.id === 'selectBenchmarks';
   const isBenchmarkSettingsStep = activeStep.id === 'benchmarks';
   const isReviewStep = activeStep.id === 'review';
-  const isSelectionValid = selectedBenchmarkCount > 0 && selectedBenchmarkCount <= MAX_BENCHMARKS;
 
   return (
     <WizardFooterWrapper className="evalhub-copy-suite-page__wizard-footer">

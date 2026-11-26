@@ -70,7 +70,10 @@ const CollectionBenchmarkReviewList: React.FC<CollectionBenchmarkReviewListProps
                 <Card isCompact>
                   <CardTitle>
                     {catalogBenchmark?.name ?? benchmark.id}
-                    <Content component="p" className={providerClassName}>
+                    <Content
+                      component="p"
+                      className={`${providerClassName} pf-v6-u-font-family-text pf-v6-u-font-weight-normal`}
+                    >
                       {benchmark.id}
                       {providerName ? ` · ${providerName}` : ''}
                     </Content>

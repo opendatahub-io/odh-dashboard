@@ -124,19 +124,25 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     renderSelectionStep();
 
     expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
-    expect(screen.getByTestId('copy-suite-select-benchmarks-title')).toHaveClass('pf-m-2xl');
-    expect(
-      screen.getByRole('heading', { name: 'Select benchmarks', level: 1 }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-select-benchmarks-title')).toHaveClass('pf-m-xl');
+    expect(screen.getByRole('heading', { name: 'Benchmarks', level: 2 })).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-catalog-checkbox-planning')).toBeChecked();
     expect(screen.getByTestId('benchmark-catalog-checkbox-tasks')).toBeChecked();
     expect(screen.getByTestId('benchmark-catalog-checkbox-mmlu')).not.toBeChecked();
     const selectedRow = screen.getByTestId('benchmark-catalog-checkbox-planning').closest('tr');
     expect(selectedRow).toHaveClass('pf-m-clickable', 'pf-m-selected');
     expect(selectedRow).toHaveAttribute('aria-label', 'Row selected');
-    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveClass(
-      'evalhub-copy-suite-benchmark-catalog__limit-message',
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 2 of 20',
     );
+    expect(screen.getByTestId('benchmark-catalog-selected-benchmarks')).toHaveTextContent(
+      'Planning quality',
+    );
+    expect(screen.getByTestId('benchmark-catalog-selected-benchmarks')).toHaveTextContent(
+      'Task completion',
+    );
+    expect(screen.getByRole('button', { name: 'Clear selection' })).toBeEnabled();
+    expect(screen.queryByTestId('benchmark-catalog-limit-message')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('copy-suite-add-benchmarks-catalog-drawer'),
     ).not.toBeInTheDocument();
@@ -176,6 +182,75 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
         (label) => label.textContent,
       ),
     ).toEqual(['Instruction following', 'Model', 'Reading comprehension']);
+  });
+
+  it('should clear all selected benchmarks', () => {
+    renderSelectionStep();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
+
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 0 of 20',
+    );
+    expect(screen.getByTestId('benchmark-catalog-checkbox-planning')).not.toBeChecked();
+    expect(screen.getByTestId('benchmark-catalog-checkbox-tasks')).not.toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
+  });
+
+  it('should not render the clear selection button when there are no selections', () => {
+    renderSelectionStep({ selectedBenchmarkKeys: [] });
+
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 0 of 20',
+    );
+    expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
+  });
+
+  it('should remove a selected benchmark chip and update its checkbox', () => {
+    renderSelectionStep();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Planning quality' }));
+
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 1 of 20',
+    );
+    expect(screen.getByTestId('benchmark-catalog-checkbox-planning')).not.toBeChecked();
+    expect(screen.getByTestId('benchmark-catalog-checkbox-tasks')).toBeChecked();
+    expect(
+      screen.queryByRole('button', { name: 'Remove Planning quality' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should use the selected key as a fallback chip label when catalog data is missing', () => {
+    renderSelectionStep({ selectedBenchmarkKeys: ['missing-provider:missing-benchmark'] });
+
+    expect(screen.getByTestId('benchmark-catalog-selected-benchmarks')).toHaveTextContent(
+      'missing-provider:missing-benchmark',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Remove missing-provider:missing-benchmark' }),
+    ).toBeInTheDocument();
+  });
+
+  it('should expand and collapse selected benchmark chips after five labels', () => {
+    const providersWithSeven = createProvidersWithBenchmarks(7);
+    renderSelectionStep({
+      providers: providersWithSeven,
+      selectedBenchmarkKeys: Array.from(
+        { length: 7 },
+        (_, index) => `provider-many:benchmark-${String(index).padStart(2, '0')}`,
+      ),
+    });
+
+    expect(screen.getByTestId('benchmark-catalog-selected-benchmarks')).toHaveTextContent(
+      'Benchmark 00',
+    );
+    expect(screen.getByTestId('benchmark-catalog-selected-benchmarks')).toHaveTextContent('2 more');
+    fireEvent.click(screen.getByText('2 more'));
+    expect(screen.getByTestId('benchmark-catalog-selected-benchmarks')).toHaveTextContent(
+      'Benchmark 06',
+    );
+    expect(screen.getByText('Show Less')).toBeInTheDocument();
   });
 
   it('should include model when provider metadata declares another target', () => {
@@ -292,15 +367,19 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(screen.getByTestId('benchmark-catalog-category-filter-badge')).toHaveTextContent('1');
     const prefilterAlert = screen.getByTestId('benchmark-catalog-prefilter-alert');
     expect(prefilterAlert).toHaveTextContent(
-      'Filters were applied automatically to show benchmarks matching the selected collection category.',
+      'Category filters were applied automatically to match your collection category. You can change or clear them.',
     );
     expect(prefilterAlert).toHaveClass('pf-m-plain');
     expect(prefilterAlert.closest('.pf-v6-c-toolbar')).toBeInTheDocument();
-    expect(prefilterAlert).not.toHaveTextContent('Clear all filters');
+    expect(prefilterAlert).not.toHaveTextContent('Clear filters');
+    const clearFiltersButton = screen.getByRole('button', { name: 'Clear filters' });
+    expect(clearFiltersButton).toHaveAttribute('data-testid', 'benchmark-catalog-clear-filters');
+    expect(clearFiltersButton.closest('.pf-v6-c-toolbar__content')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clear all filters' })).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-catalog-checkbox-reasoning')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
 
     expect(screen.queryByTestId('benchmark-catalog-prefilter-alert')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning')).toBeInTheDocument();
@@ -394,11 +473,13 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
 
     expect(screen.getByTestId('benchmark-catalog-framework-filter-badge')).toHaveTextContent('1');
     // framework-only prefilter (no collection categories) must still surface the alert
-    expect(screen.getByTestId('benchmark-catalog-prefilter-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-catalog-prefilter-alert')).toHaveTextContent(
+      'Framework filters were applied automatically based on benchmarks in your collection. You can change or clear them.',
+    );
     expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-catalog-checkbox-reasoning')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
 
     expect(screen.queryByTestId('benchmark-catalog-prefilter-alert')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning')).toBeInTheDocument();
@@ -464,7 +545,7 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     };
     const { rerender } = render(<CopySuiteBenchmarkSelectionStep {...props} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
     expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning-4')).toBeInTheDocument();
 
@@ -545,7 +626,7 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     });
 
     expect(screen.getByText('57-Subject knowledge test')).toBeInTheDocument();
-    expect(screen.queryByText('Planning quality')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-catalog-table')).not.toHaveTextContent('Planning quality');
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Search benchmarks' }), {
       target: { value: 'not-a-benchmark' },
@@ -626,8 +707,8 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     ];
     renderSelectionStep({ providers: providerMany, selectedBenchmarkKeys: initiallySelectedKeys });
 
-    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
-      '0 out of 20 remaining',
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 20 of 20',
     );
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
@@ -636,16 +717,16 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to previous page' })[0]);
     fireEvent.click(screen.getByTestId('benchmark-catalog-checkbox-benchmark-10'));
 
-    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
-      '1 out of 20 remaining',
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 19 of 20',
     );
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
     const releasedBenchmark = screen.getByTestId('benchmark-catalog-checkbox-benchmark-19');
     expect(releasedBenchmark).not.toBeDisabled();
     fireEvent.click(releasedBenchmark);
-    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
-      '0 out of 20 remaining',
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 20 of 20',
     );
   });
 
@@ -663,13 +744,16 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
       'Invalid selection: 21 benchmarks selected. Select no more than 20.',
     );
-    expect(screen.getByTestId('benchmark-catalog-limit-message')).not.toHaveTextContent(
-      '-1 out of 20 remaining',
+    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveClass(
+      'evalhub-copy-suite-benchmark-catalog__limit-message',
+    );
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 21 of 20',
     );
     fireEvent.click(screen.getByTestId('benchmark-catalog-checkbox-benchmark-00'));
 
-    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
-      '0 out of 20 remaining',
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 20 of 20',
     );
   });
 
@@ -708,8 +792,8 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply selection' }));
 
     expect(screen.getByTestId('copy-suite-benchmark-details-overlay')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
-      '0 out of 20 remaining',
+    expect(screen.getByTestId('benchmark-catalog-selection-summary')).toHaveTextContent(
+      'Selected benchmarks · 20 of 20',
     );
   });
 });

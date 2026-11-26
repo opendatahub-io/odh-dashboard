@@ -49,7 +49,7 @@ import CopySuiteSettingsStep from '~/app/pages/CopySuiteSettingsStep';
 import ManualCollectionReviewStep from '~/app/pages/ManualCollectionReviewStep';
 import ManualCollectionWizardFooter from '~/app/pages/ManualCollectionWizardFooter';
 import type { Collection } from '~/app/types';
-import { useCopySuiteForm } from './useCopySuiteForm';
+import { MAX_BENCHMARKS, useCopySuiteForm } from './useCopySuiteForm';
 
 import './CopySuitePage.scss';
 
@@ -176,6 +176,9 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
 
   const pendingCollection =
     isCreateMode || sourceCollection ? form.buildPendingCollection() : undefined;
+  const isSelectionValid =
+    form.isSettingsValid && form.benchmarks.length > 0 && form.benchmarks.length <= MAX_BENCHMARKS;
+  const isReviewValid = form.isValid && Boolean(pendingCollection);
 
   const renderBreadcrumbLink = React.useCallback(
     (to: string, label: React.ReactNode, testId: string) => {
@@ -374,20 +377,19 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
               >
                 {pageTitle}
               </Title>
-              <Content component="p" data-testid="copy-suite-description">
+              <Content component="p" data-testid="copy-suite-description" className="pf-v6-u-mb-lg">
                 {pageDescription}
               </Content>
               <Wizard
                 className="evalhub-copy-suite-page__wizard"
                 height="100%"
-                isVisitRequired
                 navAriaLabel="Collection creation steps"
                 footer={
                   <ManualCollectionWizardFooter
                     mode={mode}
                     isSettingsValid={form.isSettingsValid}
-                    selectedBenchmarkCount={form.benchmarks.length}
-                    isValid={form.isValid && Boolean(pendingCollection)}
+                    isSelectionValid={isSelectionValid}
+                    isValid={isReviewValid}
                     isBusy={isPageInteractionDisabled}
                     isSubmitting={form.isSubmitting}
                     onCancel={form.handleCancel}
@@ -420,7 +422,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
                 <WizardStep
                   name="Benchmark settings"
                   id="benchmarks"
-                  isDisabled={form.benchmarks.length === 0 || isPageInteractionDisabled}
+                  isDisabled={!isSelectionValid || isPageInteractionDisabled}
                 >
                   <WizardContextCapture>
                     {({ goToPrevStep }) => (
@@ -442,7 +444,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
                 <WizardStep
                   name="Review"
                   id="review"
-                  isDisabled={!form.isValid || !pendingCollection || isPageInteractionDisabled}
+                  isDisabled={!isReviewValid || isPageInteractionDisabled}
                 >
                   {pendingCollection ? (
                     <ManualCollectionReviewStep

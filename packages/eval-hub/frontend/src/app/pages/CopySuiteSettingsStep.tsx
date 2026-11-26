@@ -301,12 +301,12 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ prerequis
       <Title
         headingLevel="h2"
         size="xl"
-        className="pf-v6-u-mt-0 pf-v6-u-mb-0"
+        className="pf-v6-u-mb-sm"
         data-testid="copy-suite-step-title"
       >
         Collection settings
       </Title>
-      <Content component="p" data-testid="copy-suite-step-description">
+      <Content component="p" data-testid="copy-suite-step-description" className="pf-v6-u-mb-lg">
         Set the collection name, description, and category.
       </Content>
       <Form id="copy-suite-form" style={{ maxWidth: 840 }} data-testid="copy-suite-form">
