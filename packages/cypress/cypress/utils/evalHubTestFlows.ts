@@ -837,6 +837,7 @@ const advanceCollectionEditorToBenchmarks = (
 
 /** Saves collection changes without starting an evaluation run. */
 const saveCollectionWithoutRun = (): void => {
+  createEvaluationPage.findCopySuiteNextReviewButton().should('be.enabled').click();
   createEvaluationPage.findCopySuiteSaveOnlyButton().should('be.enabled').click();
 };
 
@@ -913,16 +914,18 @@ export const customizeCuratedCollection = (
     .its('length')
     .then((benchmarkCount) => {
       Array.from({ length: benchmarkCount }, (_value, index) => index).forEach((index) => {
-        createEvaluationPage.findBenchmarkJumpLink(index).should('be.visible').click();
         setBenchmarkNumExamples(index, 5, `Set benchmark ${index + 1} to five examples`);
 
         cy.step(`Use Chat Completions for benchmark ${index + 1}`);
-        const advancedParametersToggle = createEvaluationPage.findBenchmarkAdvancedToggle(index);
-        advancedParametersToggle.should('be.visible').then(($toggle) => {
-          if ($toggle.attr('aria-expanded') !== 'true') {
-            cy.wrap($toggle).click();
-          }
-        });
+        createEvaluationPage
+          .findBenchmarkAdvancedToggle(index)
+          .scrollIntoView()
+          .should('be.visible')
+          .then(($toggle) => {
+            if ($toggle.attr('aria-expanded') !== 'true') {
+              cy.wrap($toggle).click();
+            }
+          });
         createEvaluationPage
           .findBenchmarkAdditionalParameters(index)
           .scrollIntoView()
@@ -1324,6 +1327,8 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
         .type(additionalBenchmarkParams.trim(), { parseSpecialCharSequences: false });
     }
   });
+
+  createEvaluationPage.findCopySuiteNextReviewButton().should('be.enabled').click();
 
   if (runAfterSave) {
     cy.step('Save the collection and open the evaluation run form');

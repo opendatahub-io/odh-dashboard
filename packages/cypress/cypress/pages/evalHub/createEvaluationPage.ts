@@ -63,6 +63,10 @@ class CreateEvaluationPage {
     return cy.findByTestId('copy-suite-next-select-benchmarks');
   }
 
+  findCopySuiteNextReviewButton() {
+    return cy.findByTestId('copy-suite-next-review');
+  }
+
   findCopySuiteStepBenchmarks(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('copy-suite-step-benchmarks', options);
   }
@@ -93,10 +97,6 @@ class CreateEvaluationPage {
     return cy
       .findByTestId('copy-suite-benchmark-sections')
       .find('section[data-testid^="benchmark-section-"]');
-  }
-
-  findBenchmarkJumpLink(index: number) {
-    return cy.findByTestId(`benchmark-jump-link-${index}`).findByRole('link');
   }
 
   findCopySuiteSaveOnlyButton() {

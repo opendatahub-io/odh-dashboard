@@ -230,7 +230,7 @@ describe('EvaluationsPage', () => {
           <LocationDisplay />
           <Routes>
             <Route path="/:namespace" element={<EvaluationsPage />} />
-            <Route path="/evaluation/:namespace/create-suite" element={<div />} />
+            <Route path="/evaluation/:namespace/create/collections/new" element={<div />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
@@ -342,13 +342,13 @@ describe('EvaluationsPage', () => {
     );
   });
 
-  it('should navigate to the create suite chooser from the page header', () => {
+  it('should navigate to the manual collection editor from the page header', () => {
     renderPage('test-project');
 
     fireEvent.click(screen.getByTestId('create-suite-header-button'));
 
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
-      '/evaluation/test-project/create-suite',
+      '/evaluation/test-project/create/collections/new',
     );
   });
 
