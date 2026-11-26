@@ -1,12 +1,4 @@
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import type {
-  FormTrackingEventProperties,
-  MiscTrackingEventProperties,
-  TrackingOutcome,
-} from '@odh-dashboard/analytics/types';
+import type { TrackEvent, TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { PLAYGROUND_DOCUMENT_EVENTS } from './playgroundDocumentTrackingConstants';
 
 type DocumentAttachedEventProperties = {
@@ -26,24 +18,16 @@ type DocumentContentViewedEventProperties = {
   error: null;
 };
 
-type SegmentSerializableProperty = string | number | boolean | readonly string[] | null;
-type SegmentSerializable<T> = { [Key in keyof T]: SegmentSerializableProperty };
-
-// Shared helper types omit array and null values. Keep this bridge in Gen AI and ensure
-// every event property stays Segment-serializable before passing it to the shared helper.
-export const fireDocumentAttachedEvent = (properties: DocumentAttachedEventProperties): void => {
-  const serializableProperties: SegmentSerializable<DocumentAttachedEventProperties> = properties;
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const trackingProperties = serializableProperties as unknown as FormTrackingEventProperties;
-  fireFormTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.ATTACHED, trackingProperties);
+export const fireDocumentAttachedEvent = (
+  trackEvent: TrackEvent,
+  properties: DocumentAttachedEventProperties,
+): void => {
+  trackEvent(PLAYGROUND_DOCUMENT_EVENTS.ATTACHED, properties);
 };
 
 export const fireDocumentContentViewedEvent = (
+  trackEvent: TrackEvent,
   properties: DocumentContentViewedEventProperties,
 ): void => {
-  const serializableProperties: SegmentSerializable<DocumentContentViewedEventProperties> =
-    properties;
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const trackingProperties = serializableProperties as unknown as MiscTrackingEventProperties;
-  fireMiscTrackingEvent(PLAYGROUND_DOCUMENT_EVENTS.CONTENT_VIEWED, trackingProperties);
+  trackEvent(PLAYGROUND_DOCUMENT_EVENTS.CONTENT_VIEWED, properties);
 };

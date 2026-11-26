@@ -1,13 +1,11 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { ExternalVectorStoreSummary } from '~/app/types';
 import ChatbotConfigurationCollectionsTable from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationCollectionsTable';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 jest.mock('~/app/hooks/useFetchLlamaModels', () => ({
   __esModule: true,
@@ -62,7 +60,7 @@ jest.mock('mod-arch-shared', () => {
 });
 
 const { useCheckboxTableBase } = jest.requireMock('mod-arch-shared');
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(trackEvent);
 
 const createCollection = (
   overrides?: Partial<ExternalVectorStoreSummary>,
@@ -99,6 +97,7 @@ const renderTable = (props: {
       selectedCollections={props.selectedCollections}
       setSelectedCollections={setSelectedCollections}
     />,
+    { wrapper: createTrackingWrapper(trackEvent) },
   );
 };
 

@@ -2,15 +2,13 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { ExternalVectorStoreSummary, AIModel, LlamaModel, VectorStore } from '~/app/types';
 import VectorStoreTableRow from '~/app/AIAssets/components/vectorstores/VectorStoreTableRow';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -43,7 +41,7 @@ jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
   default: () => true,
 }));
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(trackEvent);
 
 const createStore = (
   overrides?: Partial<ExternalVectorStoreSummary>,
@@ -120,6 +118,7 @@ const renderRow = (props?: {
         </table>
       </MemoryRouter>
     </GenAiContext.Provider>,
+    { wrapper: createTrackingWrapper(trackEvent) },
   );
 };
 
@@ -214,6 +213,7 @@ describe('VectorStoreTableRow', () => {
             </table>
           </MemoryRouter>
         </GenAiContext.Provider>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
@@ -241,6 +241,7 @@ describe('VectorStoreTableRow', () => {
             </table>
           </MemoryRouter>
         </GenAiContext.Provider>,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();

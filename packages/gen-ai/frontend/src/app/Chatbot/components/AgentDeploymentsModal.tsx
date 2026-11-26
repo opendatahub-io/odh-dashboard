@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Alert,
@@ -19,7 +20,6 @@ import {
   Tabs,
   TabTitleText,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AgentConfigurationCard from '~/app/AIAssets/components/agentprofiles/AgentConfigurationCard';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
 import { AIModel } from '~/app/types';
@@ -49,6 +49,7 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
   onClose,
   onDeleted,
 }) => {
+  const trackEvent = useTrackEvent();
   const { api, apiAvailable } = useGenAiAPI();
   const [activeDeploymentName, setActiveDeploymentName] = React.useState(initialDeploymentName);
   const [details, setDetails] = React.useState<Partial<Record<string, AgentDeploymentSummary>>>({});
@@ -236,7 +237,7 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
           title="Delete deployment?"
           testId="delete-agent-deployment-modal"
           onClose={() => {
-            fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED, {
+            trackEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED, {
               outcome: 'cancel',
             });
             setIsDeleteModalOpen(false);
@@ -244,7 +245,7 @@ const AgentDeploymentsModal: React.FC<AgentDeploymentsModalProps> = ({
           }}
           deleting={isDeleting}
           onDelete={() => {
-            fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED, {
+            trackEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DELETE_CONFIRMED, {
               outcome: 'submit',
             });
             void handleDelete();

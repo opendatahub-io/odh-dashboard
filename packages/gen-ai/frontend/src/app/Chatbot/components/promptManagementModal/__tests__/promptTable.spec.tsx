@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import PromptTable from '~/app/Chatbot/components/promptManagementModal/promptTable';
 import { mockMLflowPrompt } from '~/__mocks__/mockMLflowPrompts';
@@ -130,7 +131,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     expect(screen.getByLabelText('Loading prompts')).toBeInTheDocument();
   });
@@ -143,7 +144,7 @@ describe('PromptTable', () => {
       error: new Error('Network error occurred'),
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     expect(screen.getByText('Unable to load prompts')).toBeInTheDocument();
     expect(screen.getByText('Network error occurred')).toBeInTheDocument();
@@ -157,7 +158,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     expect(screen.getByText('No prompts found')).toBeInTheDocument();
     expect(screen.getByText('No saved prompts are available in this project.')).toBeInTheDocument();
@@ -171,7 +172,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     expect(screen.getByText('test-prompt-1')).toBeInTheDocument();
     expect(screen.getByText('test-prompt-2')).toBeInTheDocument();
@@ -186,7 +187,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Version' })).toBeInTheDocument();
@@ -203,7 +204,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
@@ -218,7 +219,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     const row = screen.getByRole('row', { name: /test-prompt-1/ });
     fireEvent.click(row);
@@ -239,7 +240,7 @@ describe('PromptTable', () => {
       error: null,
     }));
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     const row = screen.getByRole('row', { name: /test-prompt-1/ });
     fireEvent.click(row);
@@ -262,7 +263,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     const row = screen.getByRole('row', { name: /test-prompt-1/ });
     fireEvent.click(row);
@@ -279,7 +280,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     const modelCells = screen.getAllByTestId('prompt-model-name');
     expect(modelCells[0]).toHaveTextContent('gpt-4');
@@ -293,7 +294,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     const modelCells = screen.getAllByTestId('prompt-model-name');
     expect(within(modelCells[1]).getByText('-')).toBeInTheDocument();
@@ -320,7 +321,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     const modelCell = screen.getByTestId('prompt-model-name');
     expect(modelCell).toHaveTextContent(longModelName);
@@ -348,7 +349,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     const modelCell = screen.getByTestId('prompt-model-name');
     expect(modelCell).toHaveTextContent(exactModelName);
@@ -375,7 +376,7 @@ describe('PromptTable', () => {
       error: null,
     });
 
-    render(<PromptTable {...defaultProps} />);
+    render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
     const modelCell = screen.getByTestId('prompt-model-name');
     expect(within(modelCell).getByText('-')).toBeInTheDocument();
@@ -411,7 +412,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByTestId('project-prompts-tab')).toBeInTheDocument();
       expect(screen.getByTestId('global-prompts-tab')).toBeInTheDocument();
@@ -426,7 +427,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       const projectTab = screen.getByTestId('project-prompts-tab');
       expect(projectTab).toHaveAttribute('aria-selected', 'true');
@@ -443,7 +444,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByText('project-prompt-1')).toBeInTheDocument();
       expect(screen.getByText('project-prompt-2')).toBeInTheDocument();
@@ -460,7 +461,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       const globalTab = screen.getByTestId('global-prompts-tab');
       fireEvent.click(globalTab);
@@ -480,7 +481,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByText('project-prompt-1')).toBeInTheDocument();
 
@@ -506,7 +507,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByTestId('prompt-table-empty-state')).toBeInTheDocument();
       expect(screen.getByText('No prompts found')).toBeInTheDocument();
@@ -524,7 +525,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       const globalTab = screen.getByTestId('global-prompts-tab');
       fireEvent.click(globalTab);
@@ -547,7 +548,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByTestId('prompt-table-empty-state')).toBeInTheDocument();
 
@@ -578,7 +579,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByText('project-prompt-1')).toBeInTheDocument();
       expect(screen.queryByText('project-prompt-11')).not.toBeInTheDocument();
@@ -604,7 +605,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByText('project-prompt-1')).toBeInTheDocument();
       expect(screen.getByText('project-prompt-2')).toBeInTheDocument();
@@ -631,7 +632,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       const projectRow = screen.getByRole('row', { name: /^project-prompt-1\s/ });
       fireEvent.click(projectRow);
@@ -682,7 +683,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       const globalTab = screen.getByTestId('global-prompts-tab');
       fireEvent.click(globalTab);
@@ -732,7 +733,7 @@ describe('PromptTable - Tab Navigation', () => {
     });
 
     it('should switch the filter type to Model and show the model select', () => {
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       expect(screen.getByTestId('prompt-search-input')).toBeInTheDocument();
       expect(screen.queryByTestId('prompt-model-filter-select')).not.toBeInTheDocument();
@@ -745,7 +746,7 @@ describe('PromptTable - Tab Navigation', () => {
     });
 
     it('should list unique models from the current tab and filter rows by the selected model', () => {
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
       fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
@@ -763,7 +764,7 @@ describe('PromptTable - Tab Navigation', () => {
     });
 
     it('should show the selected model in the toggle with the full name as its title', () => {
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
       fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
@@ -779,7 +780,7 @@ describe('PromptTable - Tab Navigation', () => {
     });
 
     it('should sort by model ascending and descending with unspecified models last', () => {
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       const sortButton = within(screen.getByTestId('prompt-model-column-header')).getByRole(
         'button',
@@ -817,7 +818,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
       fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
@@ -854,7 +855,7 @@ describe('PromptTable - Tab Navigation', () => {
         error: null,
       });
 
-      render(<PromptTable {...defaultProps} />);
+      render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
       fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
       fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
@@ -899,7 +900,7 @@ describe('PromptTable - Tab Navigation', () => {
       });
 
       it('should list models and filter prompts from beyond the first page', () => {
-        render(<PromptTable {...defaultProps} />);
+        render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
         expect(getRowNames()).toHaveLength(10);
         expect(getRowNames()).not.toContain('prompt-granite');
@@ -919,7 +920,7 @@ describe('PromptTable - Tab Navigation', () => {
       });
 
       it('should sort prompts from every page, not just the first', () => {
-        render(<PromptTable {...defaultProps} />);
+        render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
         expect(getRowNames()).not.toContain('prompt-granite');
 
@@ -939,7 +940,7 @@ describe('PromptTable - Tab Navigation', () => {
       });
 
       it('should hide the Model column and its cells', () => {
-        render(<PromptTable {...defaultProps} />);
+        render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
         expect(mockUseFeatureFlag).toHaveBeenCalledWith(PROMPT_MODEL_ASSOCIATIONS);
         expect(screen.queryByRole('columnheader', { name: 'Model' })).not.toBeInTheDocument();
@@ -948,7 +949,7 @@ describe('PromptTable - Tab Navigation', () => {
       });
 
       it('should only offer the Name filter type', () => {
-        render(<PromptTable {...defaultProps} />);
+        render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
         fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
 
@@ -963,7 +964,7 @@ describe('PromptTable - Tab Navigation', () => {
       'should label each cell with its own column when model associations enabled is %s',
       (enabled, columns) => {
         mockUseFeatureFlag.mockReturnValue([enabled, jest.fn()]);
-        render(<PromptTable {...defaultProps} />);
+        render(<PromptTable {...defaultProps} />, { wrapper: createTrackingWrapper() });
 
         expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual(
           columns,

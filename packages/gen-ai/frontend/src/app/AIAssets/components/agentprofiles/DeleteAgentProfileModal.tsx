@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Button,
@@ -9,7 +10,6 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
@@ -24,6 +24,7 @@ const DeleteAgentProfileModal: React.FC<DeleteAgentProfileModalProps> = ({
   onClose,
   onConfirm,
 }) => {
+  const trackEvent = useTrackEvent();
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -32,7 +33,7 @@ const DeleteAgentProfileModal: React.FC<DeleteAgentProfileModalProps> = ({
     setError(null);
     try {
       await onConfirm();
-      fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DETAILS_DELETE_EXECUTED, {
+      trackEvent(PLAYGROUND_AGENT_EVENTS.DETAILS_DELETE_EXECUTED, {
         agentID: profile.profileId,
       });
       onClose();

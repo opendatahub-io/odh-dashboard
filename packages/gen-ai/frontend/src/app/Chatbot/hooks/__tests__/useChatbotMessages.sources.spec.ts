@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { CreateResponseRequest, FileCitationAnnotation, SimplifiedResponseData } from '~/app/types';
 import { mockModelId, mockSuccessResponse, mockNamespace, defaultMcpProps } from './consts';
@@ -26,10 +27,17 @@ jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
 
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
-  useContext: jest.fn(),
+  useContext: (context: React.Context<unknown>) => {
+    const { GenAiContext } = jest.requireActual('~/app/context/GenAiContext');
+    const { ChatbotContext } = jest.requireActual('~/app/context/ChatbotContext');
+    if (context === GenAiContext || context === ChatbotContext) {
+      return mockUseContext(context);
+    }
+    return jest.requireActual<typeof React>('react').useContext(context);
+  },
 }));
 
-const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+const mockUseContext = jest.fn();
 
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
@@ -109,7 +117,9 @@ describe('useChatbotMessages - citations handling', () => {
 
     mockCreateResponse.mockResolvedValueOnce(mockResponseWithAnnotations);
 
-    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+      wrapper: createTrackingWrapper(),
+    });
 
     await act(async () => {
       await result.current.handleMessageSend('Tell me about the document');
@@ -127,7 +137,9 @@ describe('useChatbotMessages - citations handling', () => {
   it('should not include annotations when response has no citations', async () => {
     mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+      wrapper: createTrackingWrapper(),
+    });
 
     await act(async () => {
       await result.current.handleMessageSend('Hello');
@@ -164,8 +176,9 @@ describe('useChatbotMessages - citations handling', () => {
       },
     );
 
-    const { result } = renderHook(() =>
-      useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+    const { result } = renderHook(
+      () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      { wrapper: createTrackingWrapper() },
     );
 
     await act(async () => {
@@ -182,7 +195,9 @@ describe('useChatbotMessages - citations handling', () => {
   it('should not include annotations for error responses', async () => {
     mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
 
-    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+      wrapper: createTrackingWrapper(),
+    });
 
     await act(async () => {
       await result.current.handleMessageSend('This will fail');
@@ -213,7 +228,9 @@ describe('useChatbotMessages - citations handling', () => {
 
     mockCreateResponse.mockResolvedValueOnce(mockResponseWithSources);
 
-    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+      wrapper: createTrackingWrapper(),
+    });
 
     await act(async () => {
       await result.current.handleMessageSend('Query');
@@ -243,7 +260,9 @@ describe('useChatbotMessages - citations handling', () => {
 
     mockCreateResponse.mockResolvedValueOnce(mockResponseWithFileSearch);
 
-    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+      wrapper: createTrackingWrapper(),
+    });
 
     await act(async () => {
       await result.current.handleMessageSend('Search query');
@@ -260,7 +279,9 @@ describe('useChatbotMessages - citations handling', () => {
   it('should not include fileSearchData when response has none', async () => {
     mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
-    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+    const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()), {
+      wrapper: createTrackingWrapper(),
+    });
 
     await act(async () => {
       await result.current.handleMessageSend('Plain query');
@@ -294,8 +315,9 @@ describe('useChatbotMessages - citations handling', () => {
       },
     );
 
-    const { result } = renderHook(() =>
-      useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+    const { result } = renderHook(
+      () => useChatbotMessages(createDefaultHookProps({ isStreamingEnabled: true })),
+      { wrapper: createTrackingWrapper() },
     );
 
     await act(async () => {
