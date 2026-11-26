@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/eval-hub/bff
 
-go 1.26
+go 1.27
 
 require (
 	github.com/getkin/kin-openapi v0.149.0

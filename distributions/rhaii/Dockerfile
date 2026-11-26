@@ -8,7 +8,7 @@
 #   docker build -f distributions/rhaii/Dockerfile --build-arg ENABLE_MODEL_SERVING=true -t rhaii-dashboard:latest .
 
 ARG NODE_BASE_IMAGE=node:22
-ARG GOLANG_BASE_IMAGE=golang:1.25
+ARG GOLANG_BASE_IMAGE=golang:1.27
 ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
 
 # ── Stage 1: UI Builder ──────────────────────────────────────────────────────

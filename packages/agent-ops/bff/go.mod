@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/mod-arch-library/bff
 
-go 1.25
+go 1.27
 
 require (
 	github.com/getkin/kin-openapi v0.149.0
