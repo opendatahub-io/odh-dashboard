@@ -198,8 +198,18 @@ These packages serve distinct roles in the architecture:
   - `ExtensibleDetailTabs` belongs here — it consumes extension data but its job is
     rendering PatternFly layout.
 
-Distributions depend on plugin-core to wire up extensions but have no need for shared
-UI components. Feature packages that render data typically depend on both.
+Distributions depend on plugin-core to wire up extensions and may compose ui-core
+components. Feature packages that render data typically depend on both.
+
+### Project-selector ownership
+
+- Keep reusable selector presentation, context contracts, synchronization, and recent-entry
+  storage/restoration mechanics in `ui-core`. Shared hooks receive provider callbacks rather
+  than choosing a concrete API or inferring authorization from stored namespace names.
+- Keep data-source wiring, authorization-aware namespace lookup, resource adaptation, and
+  provider composition in the host. RHAII supplies Core BFF namespace adapters; RHOAI retains
+  its OpenShift project provider and creation/navigation actions.
+- Feature packages consume the shared contexts; they must not import a distribution adapter.
 
 ---
 

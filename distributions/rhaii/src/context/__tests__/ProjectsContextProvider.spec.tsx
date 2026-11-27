@@ -20,11 +20,13 @@ const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockFetchNamespaces = jest.fn<Promise<ProjectKind[]>, [AbortSignal?]>();
 const mockFetchNamespaceByName = jest.fn<Promise<ProjectKind>, [string, AbortSignal?]>();
 class MockNamespaceListUnavailableError extends Error {}
+class MockNamespaceUnavailableError extends Error {}
 jest.mock('../fetchNamespaces', () => ({
   __esModule: true,
   default: (...args: [AbortSignal?]) => mockFetchNamespaces(...args),
   fetchNamespaceByName: (...args: [string, AbortSignal?]) => mockFetchNamespaceByName(...args),
   NamespaceListUnavailableError: MockNamespaceListUnavailableError,
+  NamespaceUnavailableError: MockNamespaceUnavailableError,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -230,12 +232,43 @@ describe('RHAII working project provider integration', () => {
         expect(screen.getByTestId('working-project')).toHaveTextContent(expected),
       );
       expect(screen.getByTestId('route-project')).toHaveTextContent(expected);
-      expect(JSON.parse(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY) ?? 'null')).toBe(
-        expected,
+      expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBe(
+        stored ? JSON.stringify(stored) : null,
       );
       expect(mockFetchNamespaceByName).not.toHaveBeenCalled();
     },
   );
+
+  it('should retain a missing explicit preference across reloads until the user selects a project', async () => {
+    const storedPreference = JSON.stringify('temporarily-unavailable');
+    localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, storedPreference);
+    const aiProject = project('ai-project');
+    aiProject.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
+    mockFetchNamespaces.mockResolvedValue([aiProject, project('allowed')]);
+    const tree = (
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>
+    );
+    const firstVisit = render(tree);
+    await waitFor(() =>
+      expect(screen.getByTestId('working-project')).toHaveTextContent('ai-project'),
+    );
+    expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBe(storedPreference);
+    firstVisit.unmount();
+    mockFetchNamespaces.mockResolvedValue([
+      project('temporarily-unavailable'),
+      aiProject,
+      project('allowed'),
+    ]);
+    render(tree);
+    await waitFor(() =>
+      expect(screen.getByTestId('working-project')).toHaveTextContent('temporarily-unavailable'),
+    );
+    fireEvent.click(screen.getByText('Select allowed'));
+    expect(screen.getByTestId('working-project')).toHaveTextContent('allowed');
+    expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBe(JSON.stringify('allowed'));
+  });
 
   it('should default to All projects when the listed fallback is non-AI', async () => {
     const user = userEvent.setup();
@@ -610,13 +643,13 @@ describe('RHAII working project provider integration', () => {
     },
   );
 
-  it('should restore recent namespaces without selecting them, rewriting storage or repeating lookups', async () => {
+  it('should restore recent namespaces and prune confirmed revoked entries without selecting them or repeating lookups', async () => {
     const recent = JSON.stringify(['allowed', 'another', 'revoked']);
     localStorage.setItem('rhaii-recent-namespaces', recent);
     mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
     mockFetchNamespaceByName.mockImplementation(async (name) => {
       if (name === 'revoked') {
-        throw new Error('No access');
+        throw new MockNamespaceUnavailableError('No access');
       }
       return project(name);
     });
@@ -631,7 +664,11 @@ describe('RHAII working project provider integration', () => {
     expect(screen.getByTestId('working-project')).toHaveTextContent('none');
     expect(screen.getByTestId('route-project')).toHaveTextContent('none');
     expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBeNull();
-    expect(localStorage.getItem('rhaii-recent-namespaces')).toBe(recent);
+    await waitFor(() =>
+      expect(localStorage.getItem('rhaii-recent-namespaces')).toBe(
+        JSON.stringify(['allowed', 'another']),
+      ),
+    );
     expect(mockFetchNamespaceByName).toHaveBeenCalledTimes(3);
 
     view.rerender(
@@ -643,7 +680,9 @@ describe('RHAII working project provider integration', () => {
     await waitFor(() => expect(screen.getByTestId('working-project')).toHaveTextContent('allowed'));
     // Switching still revalidates access, but does not repeat recent-entry restoration.
     expect(mockFetchNamespaceByName).toHaveBeenCalledTimes(4);
-    expect(localStorage.getItem('rhaii-recent-namespaces')).toBe(recent);
+    expect(localStorage.getItem('rhaii-recent-namespaces')).toBe(
+      JSON.stringify(['allowed', 'another']),
+    );
   });
 
   it('should not activate a stored project when access has been revoked', async () => {

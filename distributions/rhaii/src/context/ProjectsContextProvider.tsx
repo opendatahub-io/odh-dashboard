@@ -20,6 +20,7 @@ import { useWorkingProjectSynchronization } from '@odh-dashboard/ui-core/hooks/u
 import fetchNamespaces, {
   FETCH_TIMEOUT_MS,
   NamespaceListUnavailableError,
+  NamespaceUnavailableError,
   fetchNamespaceByName,
 } from './fetchNamespaces';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
@@ -152,7 +153,8 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     if (storedProject) {
       setPreferredProject(storedProject);
     } else if (unifiedProjectSelectorEnabled) {
-      updatePreferredProject(projects.find(isAiProject) ?? projects[0]);
+      // A fallback is not an explicit choice; retain the saved preference for a later load.
+      setPreferredProject(projects.find(isAiProject) ?? projects[0]);
     }
   }, [
     loaded,
@@ -161,7 +163,6 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     loadError,
     projects,
     storedPreferredName,
-    updatePreferredProject,
   ]);
 
   const waitControllerRef = React.useRef<AbortController | null>(null);
@@ -262,10 +263,23 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     [validateProject],
   );
 
+  const restoreRecentProject = React.useCallback(
+    async (name: string, signal: AbortSignal) => {
+      try {
+        return await validateProject(name, signal);
+      } catch (error) {
+        if (error instanceof NamespaceUnavailableError) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    [validateProject],
+  );
   const rememberRecentProject = useRecentProjects({
     storageKey: RECENT_NAMESPACES_KEY,
     enabled: unifiedProjectSelectorEnabled && loaded && !loadError && listingUnavailable,
-    validateProject,
+    validateProject: restoreRecentProject,
     onProjectRestored: addProject,
   });
 

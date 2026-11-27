@@ -19,7 +19,7 @@ describe('useRecentProjects', () => {
     storageKey,
     enabled: true,
     validateProject: jest
-      .fn<Promise<{ name: string }>, [string, AbortSignal]>()
+      .fn<Promise<{ name: string } | null>, [string, AbortSignal]>()
       .mockImplementation(async (name) => ({ name })),
     onProjectRestored: jest.fn(),
   });
@@ -156,6 +156,88 @@ describe('useRecentProjects', () => {
     expect(localStorage.getItem(storageKey)).toBe(JSON.stringify(['third', 'second', 'first']));
     act(() => result.current('BAD NAME'));
     expect(localStorage.getItem(storageKey)).toBe(JSON.stringify(['third', 'second', 'first']));
+  });
+
+  it('should limit restoration and remembered entries to the ten newest unique names', async () => {
+    const names = Array.from({ length: 12 }, (_, index) => `project-${index}`);
+    localStorage.setItem(storageKey, JSON.stringify(['BAD NAME', names[0], ...names]));
+    const input = options();
+    const { result } = renderHook(() => useRecentProjects(input));
+    await waitFor(() => expect(input.onProjectRestored).toHaveBeenCalledTimes(10));
+    expect(input.validateProject.mock.calls.map(([name]) => name)).toEqual(names.slice(0, 10));
+    act(() => result.current('newest'));
+    expect(JSON.parse(localStorage.getItem(storageKey) ?? 'null')).toEqual([
+      'newest',
+      ...names.slice(0, 9),
+    ]);
+    act(() => result.current(names[4]));
+    expect(JSON.parse(localStorage.getItem(storageKey) ?? 'null')).toEqual([
+      names[4],
+      'newest',
+      ...names.slice(0, 9).filter((name) => name !== names[4]),
+    ]);
+  });
+
+  it('should prune confirmed unavailable names and retry transient failures on the next load', async () => {
+    localStorage.setItem(storageKey, JSON.stringify(['missing', 'retry', 'allowed']));
+    const input = options();
+    input.validateProject.mockImplementation(async (name) => {
+      if (name === 'missing') return null;
+      if (name === 'retry') throw new Error('Service unavailable');
+      return { name };
+    });
+    const first = renderHook(() => useRecentProjects(input));
+    await waitFor(() =>
+      expect(localStorage.getItem(storageKey)).toBe(JSON.stringify(['retry', 'allowed'])),
+    );
+    expect(input.onProjectRestored).toHaveBeenCalledTimes(1);
+    first.unmount();
+    input.validateProject.mockClear();
+    renderHook(() => useRecentProjects(input));
+    await waitFor(() => expect(input.validateProject).toHaveBeenCalledTimes(2));
+    expect(input.validateProject.mock.calls.map(([name]) => name)).toEqual(['retry', 'allowed']);
+  });
+
+  it.each(['unmount', 'disable', 'storage key', 'external addition', 're-add'])(
+    'should not prune delayed failures after %s',
+    async (change) => {
+      localStorage.setItem(storageKey, JSON.stringify(['first']));
+      let resolve: (value: null) => void = () => undefined;
+      const lookup = new Promise<null>((complete) => {
+        resolve = complete;
+      });
+      const input = options();
+      input.validateProject.mockReturnValue(lookup);
+      const { result, rerender, unmount } = renderHook((props) => useRecentProjects(props), {
+        initialProps: input,
+      });
+      await waitFor(() => expect(input.validateProject).toHaveBeenCalledTimes(1));
+      if (change === 'unmount') unmount();
+      else if (change === 'disable') rerender({ ...input, enabled: false });
+      else if (change === 'storage key') rerender({ ...input, storageKey: 'other-recents' });
+      else if (change === 'external addition') {
+        localStorage.setItem(storageKey, JSON.stringify(['newest', 'first']));
+      } else act(() => result.current('first'));
+      const current = localStorage.getItem(storageKey);
+      await act(async () => resolve(null));
+      expect(localStorage.getItem(storageKey)).toBe(current);
+      expect(input.onProjectRestored).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should tolerate a failed prune write without blocking valid restored projects', async () => {
+    localStorage.setItem(storageKey, JSON.stringify(['missing', 'allowed']));
+    const input = options();
+    input.validateProject.mockImplementation(async (name) =>
+      name === 'missing' ? null : { name },
+    );
+    const write = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+    renderHook(() => useRecentProjects(input));
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    expect(input.onProjectRestored).toHaveBeenCalledWith({ name: 'allowed' });
+    expect(localStorage.getItem(storageKey)).toBe(JSON.stringify(['missing', 'allowed']));
   });
 
   it.each(['getter', 'read', 'write'])(

@@ -57,6 +57,9 @@ export const FETCH_TIMEOUT_MS = 30_000;
 
 export class NamespaceListUnavailableError extends Error {}
 
+/** A confirmed lookup denial or missing namespace, not a retryable service failure. */
+export class NamespaceUnavailableError extends Error {}
+
 type NamespaceResponse = {
   data?: { name?: unknown; displayName?: unknown; phase?: unknown; isAiProject?: unknown };
 };
@@ -71,7 +74,7 @@ export const fetchNamespaceByName = async (
   const response = await fetch(`/api/v1/namespaces/${encodeURIComponent(name)}`, { signal });
   if (!response.ok) {
     if (response.status === 403 || response.status === 404) {
-      throw new Error('No access to that project, or it does not exist.');
+      throw new NamespaceUnavailableError('No access to that project, or it does not exist.');
     }
     if (response.status === 401) {
       throw new Error('Sign in again to search for projects.');
