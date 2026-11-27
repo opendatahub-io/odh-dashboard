@@ -2,10 +2,16 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: rhaii-dashboard
+# These are the only operations the RHAII dashboard performs with its own
+# ServiceAccount, and each is a read in the dashboard namespace. Everything a
+# user initiates (writes included) runs with the caller's credentials. The list
+# is the "Service-account permissions" table in
+# distributions/core-bff/docs/bootstrap-contract.md, verb for verb, and
+# distributions/core-bff/bff/internal/bundlecontract/rhaii_rbac_test.go fails if
+# this bundle grants anything else. Change the contract first.
 rules:
-  # Connection types and dashboard settings are stored as ConfigMaps in the
-  # dashboard namespace. The XKS Core BFF reads and administers them with its
-  # ServiceAccount client.
+  # Connection-type templates for GET /api/connection-types[/:name]. Every
+  # authenticated user needs them and is not granted ConfigMap access here.
   - apiGroups:
       - ''
     resources:
@@ -13,26 +19,21 @@ rules:
     verbs:
       - get
       - list
-      - create
-      - update
-      - patch
-      - delete
-  # /api/components lists OdhApplications with the ServiceAccount client. This
-  # is an unconditional install requirement, also on clusters without the
-  # OdhApplication API: the API server authorizes the request before it
-  # resolves the resource, so without this rule an absent API is a 403, not
+  # GET /api/config. Optional on xKS: an absent or forbidden read serves
+  # defaults. Never created or patched by the service account.
+  - apiGroups:
+      - opendatahub.io
+    resources:
+      - odhdashboardconfigs
+    verbs:
+      - get
+  # GET /api/components. An unconditional install requirement, also on clusters
+  # without the OdhApplication API: the API server authorizes the request before
+  # it resolves the resource, so without this rule an absent API is a 403, not
   # the empty list the bootstrap contract promises.
-  # See distributions/core-bff/docs/bootstrap-contract.md.
   - apiGroups:
       - dashboard.opendatahub.io
     resources:
       - odhapplications
     verbs:
       - list
-  # Admins can create custom KServe ServingRuntime resources through the BFF.
-  - apiGroups:
-      - serving.kserve.io
-    resources:
-      - servingruntimes
-    verbs:
-      - create

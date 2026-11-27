@@ -1,27 +1,60 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# CI-only image smoke-test harness. It uses the Core BFF base manifest to run
-# the PR-built RHAII image in Kind; it does not validate the RHAII/XKS
-# production manifest, dashboard-operator reconciliation, or Gateway routing.
+# CI-only image smoke-test harness. It renders the production RHAII bundle
+# (manifests/distributions/rhaii) to run the PR-built image in Kind, and checks
+# the unauthenticated routes only (/healthcheck, the SPA shell, the module
+# remote), so it does not exercise the service-account RBAC; the bundle guard
+# in distributions/core-bff/bff/internal/bundlecontract does. It does not
+# validate dashboard-operator reconciliation or Gateway routing either: Kind
+# runs no xKS platform Gateway, so the HTTPRoute and the Gateway-only
+# NetworkPolicy are dropped and the workflow reaches the Service through a
+# port-forward.
 namespace: opendatahub
 resources:
-  - ../../../distributions/core-bff/manifests/base
+  - ../../../manifests/distributions/rhaii
 patches:
-  # The production rendering path supplies the ServiceAccount namespace. Direct
-  # Kind application does not, so make the binding point to this test namespace.
+  - path: rhaii-kind.patch.yaml
+  # The bundle takes the RoleBinding subject namespace from params.env, which
+  # the installer rewrites. Bind to the ServiceAccount in this namespace.
   - target:
       group: rbac.authorization.k8s.io
-      version: v1
-      kind: ClusterRoleBinding
+      kind: RoleBinding
       name: rhaii-dashboard
     patch: |-
-      apiVersion: rbac.authorization.k8s.io/v1
-      kind: ClusterRoleBinding
+      - op: test
+        path: /subjects/0/name
+        value: rhaii-dashboard
+      - op: replace
+        path: /subjects/0/namespace
+        value: opendatahub
+  - target:
+      group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: rhaii-dashboard
+    patch: |-
+      $patch: delete
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
       metadata:
         name: rhaii-dashboard
-      subjects:
-        - kind: ServiceAccount
-          name: rhaii-dashboard
-          namespace: opendatahub
-  - path: rhaii-kind.patch.yaml
+  - target:
+      group: networking.k8s.io
+      kind: NetworkPolicy
+      name: rhaii-dashboard
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      metadata:
+        name: rhaii-dashboard
+  - target:
+      group: policy
+      kind: PodDisruptionBudget
+      name: rhaii-dashboard
+    patch: |-
+      $patch: delete
+      apiVersion: policy/v1
+      kind: PodDisruptionBudget
+      metadata:
+        name: rhaii-dashboard

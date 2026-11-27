@@ -28,7 +28,8 @@ shapes. Consume generated types instead of duplicating schemas.
 ### 4. Production BFF Last
 
 Replace mocks with Kubernetes-aware logic (repositories, clients, RBAC) before shipping. Verify the
-BFF against a real cluster or the manifests in `manifests/`.
+BFF against a real cluster or the RHAII bundle in `manifests/distributions/rhaii/` (the only shipped
+xKS manifest set; `internal/bundlecontract` pins its service-account RBAC to the bootstrap contract).
 
 ---
 

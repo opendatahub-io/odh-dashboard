@@ -434,9 +434,18 @@ There are two such reads, and both are skipped:
 | `ClusterVersion` + `console-config` ConfigMap | Cluster ID and branding for `/api/status` | Skipped. `initStartupClusterInfoWith` takes the probe as a parameter, so the test asserts it is never reached rather than asserting on a log line.                                     |
 | `apiservers.config.openshift.io/cluster`      | Cluster-wide TLS security profile         | Skipped. `ListenAndServeTLSWithoutClusterProfile` serves Mozilla Intermediate defaults directly — the same policy the fallback would have produced — and keeps certificate hot-reload. |
 
-The `config.openshift.io` rule in `manifests/base/cluster-role.yaml` is therefore inert on a
-**confirmed** xKS platform. Set `ODH_PLATFORM_TYPE=XKS` before dropping it from an xKS-only overlay:
-an auto-detected platform whose probe was inconclusive still reads the profile (below).
+The RHAII bundle (`manifests/distributions/rhaii`) therefore grants nothing on
+`config.openshift.io`: it sets `--platform-type=XKS`, so neither read happens. A deployment that
+auto-detects instead must grant `get` on `clusterversions/version` for the probe, and an
+auto-detected platform whose probe was inconclusive still reads the profile (below), so it also
+needs `get` on `apiservers/cluster`.
+
+The service account holds nothing for the caller-credential paths either. Outside `DEV_MODE` it
+performs only the reads in the bootstrap contract's
+[service-account permissions](./bootstrap-contract.md#service-account-permissions), all in the
+dashboard namespace. In particular it has no `list namespaces`: namespace discovery uses the
+caller's credentials and access reviews only. The bundle's RBAC is pinned to that table by
+`bff/internal/bundlecontract` ([RHAI-50761](https://redhat.atlassian.net/browse/RHAI-50761)).
 
 Auto-detection confirms xKS only when discovery reports the `ClusterVersion` API absent: a bare
 404 on the read is confirmed through `/apis` before it counts (see

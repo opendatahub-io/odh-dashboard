@@ -896,8 +896,10 @@ jobs:
           echo "✅ PASS: BUILD_MODE=RHOAI correctly applied RHOAI branding"
           echo "::endgroup::"
 
-  # Smoke-test the PR-built RHAII image in its own Kind cluster. This uses a
-  # CI-only harness, not the RHAII/XKS production manifest or operator path.
+  # Smoke-test the PR-built RHAII image in its own Kind cluster. The harness
+  # renders the production RHAII bundle minus the Gateway-only objects and
+  # checks unauthenticated routes only; it does not exercise the operator path
+  # or the service-account RBAC.
   rhaii-runtime-validation:
     name: 'Phase 2-3: RHAII Image Runtime Smoke Validation'
     runs-on: ubuntu-latest
@@ -972,7 +974,7 @@ jobs:
           }
           trap cleanup EXIT
 
-          kubectl port-forward -n opendatahub service/rhaii-dashboard 4000:4000 \
+          kubectl port-forward -n opendatahub service/rhaii-dashboard 4000:8443 \
             > /tmp/rhaii-port-forward.log 2>&1 &
           PORT_FORWARD_PID=$!
 

@@ -37,6 +37,10 @@ jobs:
             path: manifests/modules
           - name: MaaS Portal
             path: manifests/distributions/maas-portal
+          - name: RHAII
+            path: manifests/distributions/rhaii
+          - name: RHAII Tilt
+            path: distributions/rhaii/developing/manifests
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4

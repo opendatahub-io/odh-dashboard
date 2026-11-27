@@ -55,7 +55,7 @@ k8s_yaml(os.path.join(tilt_root, "manifests/model-serving-demo-rbac.yaml"))
 
 k8s_resource(
     "rhaii-dashboard",
-    port_forwards=[port_forward(4000, 4000, name="RHAII Dashboard")],
+    port_forwards=[port_forward(4000, 8443, name="RHAII Dashboard")],  # local 4000 -> bundle port 8443
     resource_deps=["model-serving-remote"],
     labels=["rhaii"],
 )
