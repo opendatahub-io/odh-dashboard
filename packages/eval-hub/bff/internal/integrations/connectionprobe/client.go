@@ -112,6 +112,26 @@ func validateBaseURL(baseURL string, allowHTTP bool) error {
 	return nil
 }
 
+// ValidateModelEndpointURL validates the URL shape and transport scheme used by
+// a model endpoint without making a network request. Cluster-local service URLs
+// may use HTTP; other endpoints require HTTPS unless allowHTTP is enabled.
+func ValidateModelEndpointURL(baseURL string, allowHTTP bool) error {
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil || !parsedURL.IsAbs() || parsedURL.Hostname() == "" {
+		return fmt.Errorf("model url must be an absolute HTTP or HTTPS URL with a host")
+	}
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+		return fmt.Errorf("model url must use HTTP or HTTPS")
+	}
+	if parsedURL.User != nil {
+		return fmt.Errorf("model url must not contain embedded credentials; use a secret reference")
+	}
+	if parsedURL.Scheme == "http" && !allowHTTP && !isInternalHost(baseURL) {
+		return fmt.Errorf("model url must use HTTPS in production")
+	}
+	return nil
+}
+
 func validateRequestSSRF(hostname string, logger *slog.Logger) error {
 	ips, err := net.LookupIP(hostname)
 	if err != nil {

@@ -1230,7 +1230,12 @@ components:
         url:
           type: string
           minLength: 1
-          description: Generator model endpoint URL.
+          format: uri
+          pattern: '^https?://[^/@?#]+([/?#].*)?$'
+          description: >-
+            Generator model endpoint URL. Must be an absolute HTTP or HTTPS URL
+            with a host; production external endpoints must use HTTPS. Embedded
+            credentials are not allowed.
         parameters:
           type: object
           additionalProperties: true

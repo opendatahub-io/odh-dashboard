@@ -16,6 +16,7 @@ type MockEvalHubClient struct {
 	mu                                    sync.RWMutex
 	collectionOverrides                   map[string]*evalhub.Collection
 	collectionGenerations                 map[string]*evalhub.CollectionGenerationResource
+	deletedCollectionGenerations          map[collectionGenerationScope]struct{}
 	deletedCollections                    map[string]bool
 	LastDeletedCollectionGenerationID     string
 	LastDeletedCollectionGenerationTenant string
@@ -23,6 +24,11 @@ type MockEvalHubClient struct {
 	LastCollectionGenerationRequest       *evalhub.CreateCollectionGenerationRequest
 	LastCollectionGenerationNamespace     string
 	logsTruncated                         bool
+}
+
+type collectionGenerationScope struct {
+	id     string
+	tenant string
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
@@ -173,6 +179,7 @@ func (m *MockEvalHubClient) CreateCollectionGeneration(
 		Status:  evalhub.CollectionGenerationStatus{State: "pending"},
 	}
 	m.collectionGenerations[generation.Resource.ID] = generation
+	delete(m.deletedCollectionGenerations, collectionGenerationScope{id: generation.Resource.ID, tenant: namespace})
 	return generation, nil
 }
 
@@ -183,6 +190,9 @@ func (m *MockEvalHubClient) SetCollectionGeneration(id string, generation *evalh
 		m.collectionGenerations = make(map[string]*evalhub.CollectionGenerationResource)
 	}
 	m.collectionGenerations[id] = generation
+	if generation != nil {
+		delete(m.deletedCollectionGenerations, collectionGenerationScope{id: id, tenant: generation.Resource.Tenant})
+	}
 }
 
 func (m *MockEvalHubClient) GetCollectionGeneration(
@@ -192,6 +202,9 @@ func (m *MockEvalHubClient) GetCollectionGeneration(
 ) (*evalhub.CollectionGenerationResource, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+	if _, deleted := m.deletedCollectionGenerations[collectionGenerationScope{id: id, tenant: namespace}]; deleted {
+		return nil, nil
+	}
 	generation := m.collectionGenerations[id]
 	if generation == nil && id == "generation-001" {
 		// Contract tests use a fresh mock client per request, so keep one stable
@@ -256,10 +269,14 @@ func (m *MockEvalHubClient) GetCollectionGeneration(
 	return nil, nil
 }
 
-// DeleteCollectionGeneration is a stateless no-op in the local BFF mock.
+// DeleteCollectionGeneration removes mock generation resources for the tenant.
 func (m *MockEvalHubClient) DeleteCollectionGeneration(_ context.Context, id string, namespace string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	scope := collectionGenerationScope{id: id, tenant: namespace}
+	if _, deleted := m.deletedCollectionGenerations[scope]; deleted {
+		return evalhub.NewNotFoundError("collection generation not found")
+	}
 	generation := m.collectionGenerations[id]
 	if generation == nil && id != "generation-001" {
 		return evalhub.NewNotFoundError("collection generation not found")
@@ -267,6 +284,13 @@ func (m *MockEvalHubClient) DeleteCollectionGeneration(_ context.Context, id str
 	if generation != nil && (generation.Resource.ID != id || generation.Resource.Tenant != namespace) {
 		return evalhub.NewNotFoundError("collection generation not found")
 	}
+	if generation != nil {
+		delete(m.collectionGenerations, id)
+	}
+	if m.deletedCollectionGenerations == nil {
+		m.deletedCollectionGenerations = make(map[collectionGenerationScope]struct{})
+	}
+	m.deletedCollectionGenerations[scope] = struct{}{}
 	m.LastDeletedCollectionGenerationID = id
 	m.LastDeletedCollectionGenerationTenant = namespace
 	return nil

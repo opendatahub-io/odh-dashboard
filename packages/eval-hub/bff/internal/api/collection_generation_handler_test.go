@@ -137,6 +137,26 @@ func TestCreateCollectionGenerationHandlerRejectsInvalidRequest(t *testing.T) {
 		}()},
 		{name: "missing model name", body: evalhub.CreateCollectionGenerationRequest{EvaluationGoal: "goal", Model: evalhub.JobModel{URL: "https://models.example.com/v1"}}},
 		{name: "missing model URL", body: evalhub.CreateCollectionGenerationRequest{EvaluationGoal: "goal", Model: evalhub.JobModel{Name: "generator"}}},
+		{name: "unsupported model URL scheme", body: func() evalhub.CreateCollectionGenerationRequest {
+			req := validCollectionGenerationRequest()
+			req.Model.URL = "ftp://models.example.com/v1"
+			return req
+		}()},
+		{name: "model URL without host", body: func() evalhub.CreateCollectionGenerationRequest {
+			req := validCollectionGenerationRequest()
+			req.Model.URL = "https:///v1"
+			return req
+		}()},
+		{name: "model URL with embedded credentials", body: func() evalhub.CreateCollectionGenerationRequest {
+			req := validCollectionGenerationRequest()
+			req.Model.URL = "https://user:password@models.example.com/v1"
+			return req
+		}()},
+		{name: "external HTTP model URL in production", body: func() evalhub.CreateCollectionGenerationRequest {
+			req := validCollectionGenerationRequest()
+			req.Model.URL = "http://models.example.com/v1"
+			return req
+		}()},
 		{name: "maximum benchmark count", body: func() evalhub.CreateCollectionGenerationRequest {
 			req := validCollectionGenerationRequest()
 			req.MaxBenchmarks = &maxBenchmarks
@@ -188,6 +208,22 @@ func TestCreateCollectionGenerationHandlerAcceptsDurableLimits(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, response.StatusCode)
 	assert.Len(t, result.Data.Request.EvaluationGoal, 10000)
 	assert.Equal(t, 100, result.Data.Request.MaxBenchmarks)
+}
+
+func TestCreateCollectionGenerationHandlerAcceptsInternalHTTPModelURL(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	request := validCollectionGenerationRequest()
+	request.Model.URL = "http://model.test-ns.svc.cluster.local:8080/v1"
+
+	result, response, err := setupApiTestWithEvalHub[CollectionGenerationEnvelope](
+		http.MethodPost,
+		ApiPathPrefix+collectionGenerationPath+"?namespace=test-ns",
+		request, nil, identity, ehmocks.NewMockEvalHubClient(),
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusAccepted, response.StatusCode)
+	assert.Equal(t, request.Model.URL, result.Data.Request.Model.URL)
 }
 
 func TestCollectionGenerationHandlersPreserveUpstreamOutageStatuses(t *testing.T) {
@@ -474,7 +510,7 @@ func TestGetCollectionGenerationRejectsBenchmarkLimitAboveDurableMaximum(t *test
 	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
 }
 
-func TestDeleteCollectionGenerationHandlerIsTenantScopedAndNoOpInMock(t *testing.T) {
+func TestDeleteCollectionGenerationHandlerIsTenantScopedInMock(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	mockClient := ehmocks.NewMockEvalHubClient()
 	mockClient.SetCollectionGeneration("generation-001", &evalhub.CollectionGenerationResource{
@@ -489,6 +525,23 @@ func TestDeleteCollectionGenerationHandlerIsTenantScopedAndNoOpInMock(t *testing
 		Status: evalhub.CollectionGenerationStatus{State: "pending"},
 	})
 
+	_, wrongTenantResponse, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodDelete,
+		ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=other-ns",
+		nil, nil, identity, mockClient,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, wrongTenantResponse.StatusCode)
+	assert.Empty(t, mockClient.LastDeletedCollectionGenerationID)
+
+	_, visibleResponse, err := setupApiTestWithEvalHub[CollectionGenerationEnvelope](
+		http.MethodGet,
+		ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
+		nil, nil, identity, mockClient,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, visibleResponse.StatusCode)
+
 	_, response, err := setupApiTestWithEvalHub[struct{}](
 		http.MethodDelete,
 		ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
@@ -499,13 +552,21 @@ func TestDeleteCollectionGenerationHandlerIsTenantScopedAndNoOpInMock(t *testing
 	assert.Equal(t, "generation-001", mockClient.LastDeletedCollectionGenerationID)
 	assert.Equal(t, "test-ns", mockClient.LastDeletedCollectionGenerationTenant)
 
-	_, pollResponse, err := setupApiTestWithEvalHub[CollectionGenerationEnvelope](
+	_, pollResponse, err := setupApiTestWithEvalHub[HTTPError](
 		http.MethodGet,
 		ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
 		nil, nil, identity, mockClient,
 	)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, pollResponse.StatusCode, "the local mock DELETE remains a no-op")
+	assert.Equal(t, http.StatusNotFound, pollResponse.StatusCode)
+
+	_, repeatDeleteResponse, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodDelete,
+		ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns",
+		nil, nil, identity, mockClient,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, repeatDeleteResponse.StatusCode)
 }
 
 type generationDeleteErrorClient struct {

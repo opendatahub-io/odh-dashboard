@@ -701,6 +701,38 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
   });
 
+  it('should submit non-default strictness and generation effort values', async () => {
+    await renderPage();
+    fireEvent.change(screen.getByTestId('goal-suite-name'), {
+      target: { value: 'Answer quality suite' },
+    });
+    await selectRecommendationModel();
+    fireEvent.click(screen.getByRole('button', { name: 'Show advanced settings' }));
+
+    const strictnessSlider = screen.getByRole('slider', { name: 'Recommendation strictness' });
+    const generationEffortSlider = screen.getByRole('slider', { name: 'Recommendation depth' });
+    fireEvent.keyDown(strictnessSlider, { key: 'Home' });
+    fireEvent.keyDown(generationEffortSlider, { key: 'End' });
+    expect(strictnessSlider).toHaveAttribute('aria-valuenow', '0');
+    expect(generationEffortSlider).toHaveAttribute('aria-valuenow', '100');
+
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+      target: { value: 'Assess answer quality.' },
+    });
+    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+
+    await waitFor(() => expect(mockCreateCollectionGeneration).toHaveBeenCalledTimes(1));
+    expect(mockCreateCollectionGeneration).toHaveBeenCalledWith('', 'test-project', {
+      evaluation_goal: 'Assess answer quality.',
+      model: { name: 'granite-3b', url: 'https://granite.example.com' },
+      max_benchmarks: 12,
+      strictness: 'lenient',
+      generation_effort: 'high',
+    });
+  });
+
   it('should generate, poll, edit, and preserve the benchmark recommendation before Review', async () => {
     await renderPage();
 

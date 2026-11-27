@@ -12,6 +12,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/connectionprobe"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
 
@@ -237,6 +238,10 @@ func (app *App) CreateCollectionGenerationHandler(w http.ResponseWriter, r *http
 		return
 	}
 	if err := validateCollectionGenerationRequest(input); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if err := connectionprobe.ValidateModelEndpointURL(input.Model.URL, app.config.DevMode || app.config.InsecureSkipVerify); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
