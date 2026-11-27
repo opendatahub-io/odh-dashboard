@@ -33,43 +33,49 @@ agents:
       source: harness/review.yaml
       # Keep non-review roles on the production default while using Pi's
       # per-persona model routing for reviews. OpenAI models are named here and
-      # per persona, not through models.aliases: Fullsend v0.48 deprecates
-      # aliases that point outside the Claude family, and the aliases would
-      # also remap opus/sonnet for the Claude Code roles. Every persona the
-      # review uploads is listed, so no frontmatter tier resolves to Claude;
-      # rows without a persona run on the agent model.
+      # per persona, not through models.aliases, which would also remap
+      # opus/sonnet for the Claude Code roles. Every persona the review stages
+      # is listed, so no frontmatter tier decides a model. The list is strict:
+      # a name that is not a staged persona fails the review at startup, so
+      # change it together with the overrides in harness/review.yaml.
       runtime: pi
       model: openai/gpt-6.1-sol
       subagents:
+          # Stock personas.
           challenger: opus
           correctness: openai/gpt-6.1-sol
           cross-repo-contracts: openai/gpt-6.1-sol
           docs-currency: openai/gpt-6-luna
           intent-coherence: openai/gpt-6.1-sol
-          investigator: openai/gpt-6-luna
-          # Rating's risk/confidence gates approval; tiny output, so pay for Sol.
-          rating: openai/gpt-6.1-sol
           security: openai/gpt-6.1-sol
           security-triage: openai/gpt-6-luna
           style-conventions: openai/gpt-6-luna
-    # Pin the built-in fix agent to the agents v0.56.1 release (62f25ace),
-    # matching the reusable-dispatch pin in .github/workflows/fullsend.yaml.
-    # v0.55.0+ lets fix propose a new PR title and body when its changes make
-    # them stale (agents#519), on bot- and /fs-fix-triggered runs alike. This
-    # fix.yaml needs a v0.55+ CLI, so the two pins move together. Without this
-    # entry fix tracks fullsend-ai/agents@main. fix.yaml's relative scripts,
-    # skills and schema resolve against this URL, so this pins the whole
-    # agent. To move it, edit the URL to the next release's commit and hash; a
-    # bare `fullsend agent update fix` re-resolves to main.
+          # Staged by the base but never dispatched (risk assessment is off in
+          # harness/review.yaml); listed so its frontmatter tier is not used.
+          risk-assessment: openai/gpt-6-luna
+          # Dashboard personas (.fullsend/personas/).
+          # Rating's risk/confidence gates approval; tiny output, so pay for Sol.
+          rating: openai/gpt-6.1-sol
+          style-review: openai/gpt-6.1-sol
+          rbac-review: openai/gpt-6.1-sol
+          product-ask-review: openai/gpt-6.1-sol
+          test-impact-review: openai/gpt-6.1-sol
+          pr-description-review: openai/gpt-6.1-sol
+    # Pin the built-in fix agent to the agents v0.57.1 release (ea29de9b),
+    # matching the Fullsend version in .github/workflows/fullsend.yaml. Without
+    # this entry fix tracks fullsend-ai/agents@main. fix.yaml's relative
+    # scripts, skills and schema resolve against this URL, so this pins the
+    # whole agent. To move it, edit the URL to the next release's commit and
+    # hash; a bare `fullsend agent update fix` re-resolves to main.
     - name: fix
-      source: https://raw.githubusercontent.com/fullsend-ai/agents/62f25ace461b9c11a712bf5762f6e881892e4b74/harness/fix.yaml#sha256=a3205629ec5d7b5edd1acbd44918fdf6c7b0524e5b86196feef926632f881a7f
+      source: https://raw.githubusercontent.com/fullsend-ai/agents/ea29de9bb8b1729b04c0597b48a5c7aae62deb71/harness/fix.yaml#sha256=994955a340553f30e8a0a43bb438af19c765d6986e5d54cee4783f6cc8b40315
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/
 # Who may start the code agent from Jira, by /fs-code or by adding
 # ready-to-code (labels: allowlist). Jira account IDs, from the profile URL.
-# Needs Fullsend v0.54.0; the review shim's older CLI runs fine with it, but its
-# `fullsend agent add/set/update/remove` reject it.
+# Needs Fullsend v0.54.0 or later, which both the review shim and the Jira
+# pilot workflows run.
 authorization:
     - provider: jira
       write:

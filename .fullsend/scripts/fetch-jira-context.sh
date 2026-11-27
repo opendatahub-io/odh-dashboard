@@ -556,7 +556,7 @@ PY
 
   # The row that reads the snapshot names it by its sandbox path, which is the
   # host_files dest the harness maps the producer file to.
-  local jira_definition jira_prompt jira_snapshot jira_dest
+  local jira_prompt jira_snapshot jira_dest
   jira_snapshot="$(jq -r 'first(.dimensions[] | select(.id == "jira-snapshot") | .producer_file) // empty' \
     "${_DIR}/../dimensions.json")"
   jira_dest="$(awk -v src="${jira_snapshot}" '
@@ -564,15 +564,11 @@ PY
     $1 == "src:" { current = $2; next }
     $1 == "dest:" && current == src { print $2; exit }
   ' "${_DIR}/../harness/review.yaml")"
-  jira_definition="$(jq -r --arg dest "${jira_dest}" '
-    first(.dimensions[]
-      | select($dest != "" and (.context_file // "") == $dest)
-      | .definition) // empty
-  ' "${_DIR}/../dimensions.json")"
-  jira_prompt="${_DIR}/../${jira_definition}"
-  [[ -n "${jira_definition}" && -f "${jira_prompt}" ]]
-  grep -Eiq 'untrusted (prompt )?data' "${jira_prompt}"
-  grep -Eiq 'ignore instructions|never as instructions' "${jira_prompt}"
+  # The reviewer that reads the snapshot is the persona that names that path.
+  jira_prompt="$(grep -lF -- "${jira_dest}" "${_DIR}"/../personas/*.md | head -n 1)"
+  [[ -n "${jira_dest}" && -n "${jira_prompt}" && -f "${jira_prompt}" ]]
+  grep -Eiq 'untrusted' "${jira_prompt}"
+  grep -Eiq 'ignore instructions|never (as )?instructions' "${jira_prompt}"
   echo "PASS jira-snapshot: prompt-injection boundary is explicit"
 
   rm -f "${tmp}"

@@ -11,6 +11,21 @@
 # as JSON by the script and never executed or interpolated into a shell. No PR
 # code is checked out; the guidance list is computed from the default branch.
 #
+# Which Fullsend runs are traced (checked from the run's API metadata, never the artifact):
+#   pull_request         automatic reviews. The run's fullsend.yaml comes from the PR merge
+#                        commit, so the run is traced only if the PR head is in this repository
+#                        (the condition under which the shim forwards secrets), the PR targets
+#                        the default branch, and the PR head leaves fullsend.yaml unchanged, so
+#                        the file that ran is the default branch's. Fork PR runs are dropped.
+#   issue_comment, issues, workflow_dispatch, schedule
+#                        (/fs-review and the like) the run must be on the default branch.
+#   pull_request_target  the PR must target the default branch.
+#   pull_request_review  dropped: it can run a fork's fullsend.yaml and produces no review.
+# What a same-repo PR can still change is whatever the pinned reusable workflow reads from
+# the PR side; its author has write access, and the artifact is treated as untrusted anyway.
+# PR number, author, reviewed commit and verdict come from the GitHub API, for pull_request
+# and pull_request_target runs; other runs are traced without PR identity.
+#
 # Setup (both are needed, the workflow is a no-op without the variable):
 #   environment    fullsend-trace, deployment branches limited to the default branch only
 #   repo variable  FULLSEND_TRACE_OTLP_ENDPOINT  e.g. https://<mlflow>/v1/traces
@@ -92,30 +107,37 @@ jobs:
           [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::run_id must be numeric"; exit 1; }
           # API errors in these checks fail the step (so it can be rerun); only a definite
           # negative result skips the trace.
-          # Only trace runs of this repository's own fullsend.yaml for events that use the base
-          # repository's definition. A fork PR can edit fullsend.yaml and run it on
-          # pull_request or pull_request_review, and that run's artifact must not reach MLflow.
+          # Only trace runs of this repository's own fullsend.yaml that ran the default branch's
+          # definition. A fork PR can edit fullsend.yaml and run it on pull_request or
+          # pull_request_review, and that run's artifact must not reach MLflow.
           src=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq \
-            '"\(.path) \(.event) \(.repository.full_name) \(.head_sha) \(.created_at // "-") \(.head_repository.full_name // "-") \(.head_branch // "")"')
-          read -r src_path src_event src_repo src_sha src_started src_head_repo src_branch <<< "$src"
+            '"\(.path) \(.event) \(.repository.full_name) \(.head_sha) \(.created_at // "-") \(.head_repository.full_name // "-") \(.repository.id // "-") \(.head_repository.id // "-") \(.head_branch // "")"')
+          read -r src_path src_event src_repo src_sha src_started src_head_repo src_repo_id src_head_repo_id src_branch <<< "$src"
           default_branch=$(gh api "repos/$REPO" --jq '.default_branch')
           case "$src_event" in
             pull_request_target | issue_comment | issues | workflow_dispatch | schedule) ;;
+            pull_request)
+              # Same-repo PRs only, by repository ID like the shim's own condition (a deleted
+              # fork has no head repository and is rejected).
+              [[ "$src_repo_id" =~ ^[0-9]+$ && "$src_head_repo_id" == "$src_repo_id" ]] || src_event=""
+              ;;
             *) src_event="" ;;
           esac
-          # Except for pull_request_target (the PR's base branch definition), the run must use
-          # the default branch's fullsend.yaml: a dispatch from another ref could run an edited one.
-          # The branch name alone could be a same-named tag, so the run's commit must also be
-          # on the default branch (identical to or behind its tip).
-          if [[ "$src_event" != pull_request_target ]]; then
+          changes=""
+          # Runs that are not for a PR head must use the default branch's fullsend.yaml: a
+          # dispatch from another ref could run an edited one. The branch name alone could be
+          # a same-named tag, so the run's commit must also be on the default branch
+          # (identical to or behind its tip).
+          if [[ "$src_event" != pull_request_target && "$src_event" != pull_request ]]; then
             on_default=""
             if [[ "$src_branch" == "$default_branch" && "$src_sha" =~ ^[0-9a-f]{40}$ ]]; then
               on_default=$(gh api "repos/$REPO/compare/$default_branch...$src_sha" --jq '.status')
             fi
             [[ "$on_default" == identical || "$on_default" == behind ]] || src_event=""
           else
-            # pull_request_target runs the PR base branch's fullsend.yaml: the base must be the
-            # default branch (an edited file on another branch could be targeted by a PR).
+            # pull_request_target runs the PR base branch's fullsend.yaml, and pull_request the
+            # merge of the base branch and the PR head: the base must be the default branch
+            # (an edited file on another branch could be targeted by a PR).
             # The run's PR is found by its head; none, several or a failed lookup is rejected.
             # The base is checked now, so it must also not have changed since the run was created
             # (a PR retargeted to the default branch afterwards). created_at is the original run's
@@ -137,9 +159,25 @@ jobs:
             if [[ -n "$src_event" ]] && awk -v t="$src_started" '$1 >= t {found=1} END {exit !found}' <<< "$changes"; then
               src_event=""  # retargeted after the run started: its base then is unknown
             fi
+            # On pull_request the PR head must also leave fullsend.yaml as it is at the head's
+            # merge base with the default branch; the merge commit's file is then the default
+            # branch's. (A head already merged into the default branch is its own merge base:
+            # its file is the default branch's too.) A PR that edits the shim is not traced.
+            if [[ "$src_event" == pull_request ]]; then
+              head_blob=""
+              base_blob=""
+              if [[ "$src_sha" =~ ^[0-9a-f]{40}$ ]]; then
+                merge_base=$(gh api "repos/$REPO/compare/$default_branch...$src_sha" --jq '.merge_base_commit.sha')
+                if [[ "$merge_base" =~ ^[0-9a-f]{40}$ ]]; then
+                  head_blob=$(gh api -X GET "repos/$REPO/contents/.github/workflows/fullsend.yaml" -f ref="$src_sha" --jq '.sha')
+                  base_blob=$(gh api -X GET "repos/$REPO/contents/.github/workflows/fullsend.yaml" -f ref="$merge_base" --jq '.sha')
+                fi
+              fi
+              [[ "$head_blob" =~ ^[0-9a-f]{40}$ && "$head_blob" == "$base_blob" ]] || src_event=""
+            fi
           fi
           if [[ "$src_path" != .github/workflows/fullsend.yaml || "$src_repo" != "$REPO" || -z "$src_event" ]]; then
-            echo "::warning::Run $RUN_ID is not a trusted Fullsend run (workflow, event, branch or repository); nothing to trace."
+            echo "::warning::Run $RUN_ID is not a trusted Fullsend run (workflow, event, branch, repository or an edited fullsend.yaml); nothing to trace."
             echo "found=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -179,10 +217,12 @@ jobs:
             || true)
           read -r event head_sha head_repo started finished attempt head_branch <<< "$run" || true
           pr=""
-          # Only a pull_request_target run's head is the PR's head; an issue_comment or review
-          # run reports the default branch, which can't identify the PR. (The commit-to-PR API
-          # returns nothing for a fork's commits, so look up by head owner and branch.)
-          if [[ "$event" == pull_request_target && "$head_sha" =~ ^[0-9a-f]{40}$
+          # Only a pull_request or pull_request_target run's head is the PR's head; an
+          # issue_comment run reports the default branch, which can't identify the PR, and the
+          # run API doesn't expose the comment's PR. (The commit-to-PR API returns nothing for
+          # a fork's commits, so look up by head owner and branch.)
+          if [[ ( "$event" == pull_request || "$event" == pull_request_target )
+                && "$head_sha" =~ ^[0-9a-f]{40}$
                 && "$head_repo" == */* && -n "$head_branch" ]]; then
             pr=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
               -f head="${head_repo%%/*}:$head_branch" \

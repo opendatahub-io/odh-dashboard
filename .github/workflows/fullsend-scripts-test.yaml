@@ -1,14 +1,21 @@
 name: Fullsend scripts test
 
 # Runs the unit tests for the Jira code pilot's dispatch script and workflow
-# contracts (.fullsend/scripts/tests/test_jira_dispatch.py) and for host-side
-# PR image capture (.fullsend/scripts/tests/test_fetch_pr_images.py).
+# contracts (.fullsend/scripts/tests/test_jira_dispatch.py), for host-side
+# PR image capture (.fullsend/scripts/tests/test_fetch_pr_images.py), and the
+# self-tests of the review host scripts and registry.
 # No network calls, no secrets.
 
 on:
   pull_request:
     paths:
       - ".fullsend/scripts/**"
+      - ".fullsend/dimensions.json"
+      - ".fullsend/rating-policy.json"
+      - ".fullsend/schemas/**"
+      - ".fullsend/personas/**"
+      - ".fullsend/harness/**"
+      - ".fullsend/config.yaml"
       - ".github/workflows/fullsend-poll-jira.yaml"
       - ".github/workflows/fullsend-code-jira.yaml"
       - ".github/workflows/fullsend-scripts-test.yaml"
@@ -30,10 +37,19 @@ jobs:
           python-version: "3.12"
 
       - name: Install test dependencies
-        run: python -m pip install "PyYAML==6.0.3"
+        run: python -m pip install "PyYAML==6.0.3" "jsonschema==4.23.0"
 
       - name: Run Jira dispatch tests
         run: python .fullsend/scripts/tests/test_jira_dispatch.py -v
 
       - name: Run PR image capture tests
         run: python .fullsend/scripts/tests/test_fetch_pr_images.py -v
+
+      - name: Validate the producer registry
+        run: bash .fullsend/scripts/validate-dimensions.sh
+
+      - name: Run pre-review self-tests
+        run: bash "${GITHUB_WORKSPACE}/.fullsend/scripts/pre-review.sh" --self-test
+
+      - name: Run post-review self-tests
+        run: bash "${GITHUB_WORKSPACE}/.fullsend/scripts/post-review.sh" --self-test

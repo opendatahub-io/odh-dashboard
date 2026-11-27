@@ -1,20 +1,21 @@
-# Based on the Fullsend-managed scaffold. Local changes: the review/fix event
-# filter on `dispatch`, the host-adapter credentials composed into
-# FULLSEND_GITHUB_RUNNER_SECRETS, and the `stop-fix` job. Keep it in sync with
-# the upstream scaffold when Fullsend is upgraded.
-# Upstream: https://github.com/fullsend-ai/fullsend/blob/main/internal/scaffold/fullsend-repo/templates/shim-per-repo.yaml
+# This file is managed by fullsend. Do not edit it directly.
+# Upstream: https://github.com/fullsend-ai/fullsend/blob/main/internal/scaffold/fullsend-repo/.github/workflows/fullsend.yaml
 ---
 # fullsend shim workflow (per-repo installation mode)
 # Routes events to agent workflows via reusable-dispatch.yml.
-# All agent execution happens in this repo's context — no external
-# config repo is needed.
+# All agent execution happens in this repository's context.
 #
-# Security: pull_request_target runs the BASE branch version of this workflow,
-# preventing PRs from modifying it to exfiltrate credentials.
-# The dispatch shim never checks out PR code. The CodeRabbit and Jira host
-# adapters run inside the review job's pre-script (.fullsend/scripts/
-# pre-review.sh); their credentials reach it through env.runner and never
-# enter the sandbox (ADR 0136).
+# Security: pull request events use pull_request, not pull_request_target
+# (GitHub blocks pull_request_target by default in public repositories;
+# ADR 0164). On pull_request this workflow runs from the PR's own
+# copy and forwards the repository secrets, so the dispatch job runs only for
+# same-repo PRs, whose authors already have write access. Fork PRs are skipped
+# here and again in reusable-dispatch.yml (a fork cannot edit the upstream
+# copy; a vendored copy runs from the PR); a maintainer comments /fs-review
+# to review one. In private repositories keep "Send secrets to workflows
+# from pull requests" and "Send write tokens to workflows from pull
+# requests" (Settings > Actions > General) turned off.
+# reusable-dispatch.yml checks out the base side for pull request events.
 #
 # Routing: this shim forwards the raw event context to reusable-dispatch.yml,
 # which determines the stage and runs the agent inline (ADR 62).
@@ -22,9 +23,6 @@
 #
 # Concurrency: per-role cancel-in-progress groups live in reusable-dispatch.yml
 # stage jobs with -agent- suffix. Roles operate independently (#2452).
-# Do not add workflow-level cancel-in-progress here: job `if` runs after the
-# concurrency group is assigned, so label/review/comment noise would still
-# queue a run, cancel an in-flight review, then skip every job.
 name: fullsend
 
 on:
@@ -32,7 +30,7 @@ on:
     types: [opened, edited, labeled]
   issue_comment:
     types: [created]
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, ready_for_review, closed, labeled, unlabeled]
   pull_request_review:
     types: [submitted]
@@ -41,30 +39,13 @@ permissions: {}
 
 jobs:
   dispatch:
-    # Admit only the events a stage acts on, so unrelated labels or bot reviews
-    # do not burn a Route run. Review: non-draft open/sync/ready, the
-    # `ready-for-review` label, or `/fs-review`. Fix: a `changes_requested`
-    # review or `/fs-fix`.
     if: >-
-      (github.event_name != 'pull_request_target' && github.event_name != 'pull_request_review'
+      (github.event_name != 'pull_request' && github.event_name != 'pull_request_review'
        || github.event.pull_request.head.ref != 'fullsend/scaffold-install')
-      && (
-        (github.event_name == 'pull_request_target'
-         && github.event.pull_request.draft == false
-         && (github.event.action == 'opened'
-          || github.event.action == 'synchronize'
-          || github.event.action == 'ready_for_review'
-          || (github.event.action == 'labeled'
-           && github.event.label.name == 'ready-for-review')))
-        || (github.event_name == 'pull_request_review'
-         && github.event.review.state == 'changes_requested')
-        || (github.event_name == 'issue_comment'
-         && github.event.issue.pull_request
-         && github.event.comment.user.type != 'Bot'
-         && (github.event.comment.body == '/fs-review'
-          || (startsWith(github.event.comment.body, '/fs-fix')
-           && !startsWith(github.event.comment.body, '/fs-fix-stop'))))
-      )
+      && (github.event_name != 'pull_request'
+       || github.event.pull_request.head.repo.id == github.repository_id)
+      && (github.event_name != 'issue_comment'
+       || startsWith(github.event.comment.body, '/fs-'))
     permissions:
       actions: write
       id-token: write
@@ -72,58 +53,25 @@ jobs:
       issues: write
       packages: read
       pull-requests: write
-    # Fullsend v0.56.1. The review harness base and sandbox image in
-    # .fullsend/harness/review.yaml stay on agents v0.48.1: this CLI still
-    # reads that base's `forge:` block (deprecated, lint warning only), and
-    # v0.48.0+ is what FULLSEND_GITHUB_RUNNER_SECRETS needs (ADR 0136). The fix
-    # agent pin in .fullsend/config.yaml moves with this one: agents v0.55.0+
-    # fix.yaml uses `overlays` with `runtime.forge`, which older CLIs lack.
-    # v0.50.0+ also stops the CEL `Harness run (fix)` duplicate (fullsend#8725).
-    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@27c1d6ce1d384fa8b85b6789653fb3505d93c9d3 # v0.56.1
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@d11de3ea0dde5aa652110b6716c19e000c426df7  # v0.57.1
     with:
       event_action: ${{ github.event.action }}
-      install_mode: per-repo
       mint_url: ${{ vars.FULLSEND_MINT_URL }}
       gcp_region: ${{ vars.FULLSEND_GCP_REGION }}
       project_number: ${{ vars.FULLSEND_PROJECT_NUMBER }}
-      jira_base_url: ${{ vars.JIRA_BASE_URL }}
       runner_image: ubuntu-24.04
     secrets:
       FULLSEND_GCP_WIF_PROVIDER: ${{ secrets.FULLSEND_GCP_WIF_PROVIDER }}
       FULLSEND_GCP_PROJECT_ID: ${{ secrets.FULLSEND_GCP_PROJECT_ID }}
       FULLSEND_OPENAI_API_KEY: ${{ secrets.FULLSEND_OPENAI_API_KEY }}
+      FULLSEND_INFERENCE_GATEWAY_API_KEY: ${{ secrets.FULLSEND_INFERENCE_GATEWAY_API_KEY }}
       OTEL_EXPORTER_OTLP_TRACES_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_TRACES_HEADERS }}
       OTEL_EXPORTER_OTLP_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
-      # No JIRA_TOKEN / JIRA_USER_EMAIL: v0.56.0 ignores them, and its
-      # FULLSEND_JIRA_* pair is only sent for Jira-sourced events, which this
-      # shim never routes (the Jira poller has its own workflows). The review's
-      # Jira adapter reads JIRA_API_TOKEN from the bundle below.
-      # Host-adapter credentials for the review pre-script, as the JSON object
-      # ADR 0136 defines. .fullsend/harness/review.yaml references each name in
-      # env.runner. It is composed here from the existing per-integration
-      # secrets, so each one still rotates on its own. Rules this expression
-      # follows:
-      # - Only review-routed events get it (the pull_request_target events
-      #   `dispatch` admits, and `/fs-review`). Fix runs get an empty string,
-      #   which `fullsend run` treats as no bundle; no other harness reads
-      #   these names.
-      # - Every name is always present. `fullsend run` fails the review when an
-      #   env.runner reference is unset, and also when a value is empty, so an
-      #   unset secret is sent as the placeholder "odh-adapter-credential-unset",
-      #   which pre-review.sh reads as empty.
-      # - Each value goes through toJSON(), which quotes and escapes it, so a
-      #   secret holding `"`, `\` or a newline still yields a valid object.
-      # - JIRA_TOKEN, JIRA_USER_EMAIL and JIRA_BASE_URL are refused names: the
-      #   reusable workflow sets them itself on harness-run.
-      FULLSEND_GITHUB_RUNNER_SECRETS: >-
-        ${{ (github.event_name == 'pull_request_target'
-        || (github.event_name == 'issue_comment' && github.event.comment.body == '/fs-review'))
-        && format('{{"CODERABBIT_API_KEY":{0},"JIRA_URL":{1},"JIRA_USERNAME":{2},"JIRA_API_TOKEN":{3}}}',
-        secrets.CODERABBIT_API_KEY != '' && toJSON(secrets.CODERABBIT_API_KEY) || '"odh-adapter-credential-unset"',
-        startsWith(secrets.JIRA_URL, 'https://api.atlassian.com/ex/jira/') && toJSON(secrets.JIRA_URL) || '"odh-adapter-credential-unset"',
-        secrets.JIRA_USERNAME != '' && toJSON(secrets.JIRA_USERNAME) || '"odh-adapter-credential-unset"',
-        secrets.JIRA_API_TOKEN != '' && toJSON(secrets.JIRA_API_TOKEN) || '"odh-adapter-credential-unset"')
-        || '' }}
+      FULLSEND_JIRA_TOKEN: ${{ secrets.FULLSEND_JIRA_TOKEN }}
+      FULLSEND_JIRA_EMAIL: ${{ secrets.FULLSEND_JIRA_EMAIL }}
+      FULLSEND_JIRA_CLIENT_ID: ${{ secrets.FULLSEND_JIRA_CLIENT_ID }}
+      FULLSEND_JIRA_CLIENT_SECRET: ${{ secrets.FULLSEND_JIRA_CLIENT_SECRET }}
+      FULLSEND_GITHUB_RUNNER_SECRETS: ${{ secrets.FULLSEND_GITHUB_RUNNER_SECRETS }}
 
   stop-fix:
     # Job-level if: is intentionally coarse — it only screens for the
@@ -155,13 +103,15 @@ jobs:
           # (admin|maintain|write), not author_association — the latter grants
           # contributor status to anyone with a single merged PR (issue #5421).
           # Mirrors has_repo_permission() in reusable-dispatch.yml, including the
-          # custom-role --jq resolution; keep the two in sync (fullsend#7834).
+          # custom-role --jq resolution; keep the two in sync.
           # The PR author may always stop the fix agent on their own PR.
           authorized=false
           if [[ -n "$COMMENT_USER_LOGIN" && "$COMMENT_USER_LOGIN" == "$ISSUE_USER_LOGIN" ]]; then
             authorized=true
           else
             if api_err=$(mktemp); then
+              # $p is a jq variable; the single quotes are intentional.
+              # shellcheck disable=SC2016
               if role=$(gh api "repos/$REPO/collaborators/$COMMENT_USER_LOGIN/permission" \
                 --jq '.user.permissions as $p
                   | if (.role_name | type) != "string" or .role_name == "" then "none"
@@ -193,7 +143,7 @@ jobs:
           fi
           gh label create "fullsend-no-fix" --repo "$REPO" \
             --description "Skip bot-triggered fix agent runs" --color "FBCA04" \
-            --force 2>/dev/null || true
+            2>/dev/null || true
           gh pr edit "$PR_NUMBER" --repo "$REPO" \
             --add-label "fullsend-no-fix"
           gh pr comment "$PR_NUMBER" --repo "$REPO" \
