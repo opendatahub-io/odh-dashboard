@@ -221,7 +221,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       maasWizardField.findProjectMembersRadio().should('exist').should('be.checked');
 
       // Select subscribed users.
-      maasWizardField.findSubscribedUsersRadio().click();
+      maasWizardField.findSubscribedUsersCard().click();
       maasWizardField.findSubscribedUsersRadio().should('be.checked');
       modelServingWizard.findNextButton().click();
 

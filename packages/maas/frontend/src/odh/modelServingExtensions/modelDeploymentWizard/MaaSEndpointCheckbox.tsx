@@ -1,5 +1,14 @@
 import React from 'react';
-import { Radio, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  CardTitle,
+  Grid,
+  GridItem,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { useLocation } from 'react-router-dom';
 import { z } from 'zod';
 import { useTrackEvent } from '@odh-dashboard/analytics/react';
@@ -91,32 +100,65 @@ type MaaSFieldProps = {
   isDisabled?: boolean;
 };
 
-const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }) => (
-  <StackItem>
-    <Stack hasGutter>
-      <Radio
-        id="project-members-radio"
-        name="model-users"
-        label="Project members"
-        description="Available within the UI to users with access to this project."
-        isChecked={!value?.isChecked}
-        isDisabled={isDisabled}
-        onChange={() => onChange({ isChecked: false })}
-        data-testid="project-members-radio"
-      />
-      <Radio
-        id={id}
-        name="model-users"
-        label="Subscribed users"
-        description="Available via Model-as-a-Service (MaaS) to users with an admin-assigned subscription and authorization policy."
-        isChecked={value?.isChecked}
-        isDisabled={isDisabled}
-        onChange={() => onChange({ isChecked: true })}
-        data-testid={id}
-      />
-    </Stack>
-  </StackItem>
-);
+const audienceOptions = [
+  {
+    key: 'project-members',
+    title: 'Project members',
+    description: 'Available within the UI to users with access to this project.',
+    isMaaS: false,
+  },
+  {
+    key: 'subscribed-users',
+    title: 'Subscribed users',
+    description:
+      'Available as a service (MaaS) to users with an admin-assigned subscription and authorization policy.',
+    isMaaS: true,
+  },
+];
+
+const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }) => {
+  const groupId = React.useId();
+
+  return (
+    <Grid hasGutter span={12} md={6} role="radiogroup" aria-label="Users">
+      {audienceOptions.map(({ key, title, description, isMaaS }) => {
+        const radioId = `${groupId}-${key}`;
+        const titleId = `${radioId}-title`;
+        const descriptionId = `${radioId}-description`;
+
+        return (
+          <GridItem key={key}>
+            <Card
+              isSelectable
+              isSelected={Boolean(value?.isChecked) === isMaaS}
+              isDisabled={isDisabled}
+              isFullHeight
+              data-testid={`${key}-card`}
+            >
+              <CardHeader
+                selectableActions={{
+                  selectableActionId: radioId,
+                  selectableActionAriaLabelledby: titleId,
+                  name: groupId,
+                  variant: 'single',
+                  hasNoOffset: true,
+                  onChange: () => onChange({ isChecked: isMaaS }),
+                  selectableActionProps: {
+                    'aria-describedby': descriptionId,
+                    'data-testid': isMaaS ? id : 'project-members-radio',
+                  },
+                }}
+              >
+                <CardTitle id={titleId}>{title}</CardTitle>
+              </CardHeader>
+              <CardBody id={descriptionId}>{description}</CardBody>
+            </Card>
+          </GridItem>
+        );
+      })}
+    </Grid>
+  );
+};
 
 export type MaaSFieldType = WizardField<MaaSFieldValue, null, MaaSTrackingDependencies>;
 

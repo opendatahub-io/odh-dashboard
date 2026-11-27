@@ -1,31 +1,18 @@
 import React from 'react';
 import type { K8sDSGResource, AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
-import {
-  Form,
-  Stack,
-  StackItem,
-  FormGroup,
-  FormHelperText,
-  FormSection,
-  HelperText,
-  HelperTextItem,
-  Spinner,
-  Alert,
-} from '@patternfly/react-core';
+import { Form, Stack, StackItem, FormGroup, FormSection, Spinner } from '@patternfly/react-core';
 import {
   ServingContainer,
   ServingRuntimeKind,
   isServingRuntimeKind,
   isTemplateKind,
 } from '@odh-dashboard/model-serving/shared';
-import { ExternalRouteField } from '../fields/ExternalRouteField';
-import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
+import UsersAndAvailabilityForm from '../../deployments/UsersAndAvailabilityForm';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import { GenAiStudioAvailabilityFields } from '../fields/ModelAvailabilityFields';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 
 export const accessReviewResource: AccessReviewResourceAttributes = {
@@ -45,10 +32,6 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   externalData,
   allowCreate,
 }) => {
-  const externalRouteData = wizardState.state.externalRoute.data;
-  const tokenAuthData = wizardState.state.tokenAuthentication.data;
-  const { isExternalRouteVisible, shouldAutoCheckTokens } = wizardState.advancedOptions;
-
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer = React.useMemo(() => {
     const selection = wizardState.state.modelServer?.data?.selection;
@@ -102,129 +85,21 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value ?? ''}`) || [];
   };
 
-  const { isGenAiEnabled } = wizardState.state.modelAvailability;
-  const hasUserExtensionFields = React.useMemo(
-    () => wizardState.fields.some((f) => f.parentId === 'model-users'),
-    [wizardState.fields],
-  );
-  const showAvailabilitySection = wizardState.state.modelAvailability.showField && isGenAiEnabled;
-  const maasConfigurationAlert = wizardState.state.modelAvailability.isMaaSSubscriptionSelected && (
-    <Alert
-      className="pf-v6-u-mt-md"
-      variant="info"
-      title="Additional configuration required"
-      data-testid="maas-additional-configuration-alert"
-      isInline
-    >
-      To make the endpoint accessible to users, an admin must configure subscriptions and
-      authorization policies under <strong>Settings &gt; MaaS governance</strong>. To view their API
-      keys, subscriptions, and accessible models, users can go to{' '}
-      <strong>Gen AI studio &gt; API keys</strong>.
-    </Alert>
-  );
-
   if (!wizardState.loaded.advancedOptionsLoaded) {
     return <Spinner data-testid="spinner" />;
   }
-
-  const handleExternalRouteChange = (checked: boolean) => {
-    wizardState.state.externalRoute.setData(checked);
-
-    // When external route is enabled, automatically enable token authentication for security
-    if (checked && (!tokenAuthData || tokenAuthData.length === 0)) {
-      const defaultToken = {
-        uuid: `ml-${Date.now()}`,
-        displayName: 'default-token',
-        error: '',
-      };
-      wizardState.state.tokenAuthentication.setData([defaultToken]);
-    }
-  };
 
   return (
     <>
       <Form>
         <FormSection title="Advanced settings">
           <Stack hasGutter>
-            {hasUserExtensionFields && (
-              <StackItem>
-                <FormGroup label="Users" data-testid="model-users" fieldId="model-users">
-                  <FormHelperText className="pf-v6-u-mb-md">
-                    <HelperText>
-                      <HelperTextItem>
-                        Select which users can discover this endpoint within OpenShift AI.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                  <GenericFieldRenderer
-                    parentId="model-users"
-                    wizardState={wizardState}
-                    externalData={externalData}
-                  />
-                  {!showAvailabilitySection && maasConfigurationAlert}
-                </FormGroup>
-              </StackItem>
-            )}
-            {showAvailabilitySection && (
-              <StackItem>
-                <FormGroup
-                  label="Availability"
-                  data-testid="model-availability"
-                  fieldId="model-availability"
-                >
-                  <FormHelperText className="pf-v6-u-mb-md">
-                    <HelperText>
-                      <HelperTextItem>
-                        Select where users can access endpoint details.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                  <GenAiStudioAvailabilityFields
-                    data={wizardState.state.modelAvailability.data}
-                    setData={wizardState.state.modelAvailability.setData}
-                    isDisabled={wizardState.state.modelAvailability.isDisabled}
-                    showUseCase={!wizardState.state.modelAvailability.isMaaSSubscriptionSelected}
-                  />
-                  {maasConfigurationAlert}
-                </FormGroup>
-              </StackItem>
-            )}
-            <GenericFieldRenderer
-              wizardState={wizardState}
-              externalData={externalData}
-              parentId="networking"
-            />
-            {isExternalRouteVisible && (
-              <StackItem>
-                <FormGroup
-                  label="Model access"
-                  data-testid="external-route-section"
-                  fieldId="model-access"
-                >
-                  <ExternalRouteField
-                    isChecked={externalRouteData}
-                    allowCreate={allowCreate}
-                    onChange={handleExternalRouteChange}
-                  />
-                </FormGroup>
-              </StackItem>
-            )}
             <StackItem>
-              <FormGroup
-                label="Token authentication"
-                data-testid="auth-section"
-                fieldId="alt-form-checkbox-auth"
-              >
-                <TokenAuthenticationField
-                  tokens={tokenAuthData}
-                  allowCreate={allowCreate && !wizardState.state.tokenAuthentication.isDisabled}
-                  onChange={wizardState.state.tokenAuthentication.setData}
-                  shouldAutoCheck={shouldAutoCheckTokens}
-                  isExternalRouteVisible={isExternalRouteVisible}
-                  externalRouteData={externalRouteData}
-                  disabledHelperText={wizardState.state.tokenAuthentication.disabledHelperText}
-                />
-              </FormGroup>
+              <UsersAndAvailabilityForm
+                wizardState={wizardState}
+                externalData={externalData}
+                allowCreate={allowCreate}
+              />
             </StackItem>
 
             <GenericFieldRenderer
