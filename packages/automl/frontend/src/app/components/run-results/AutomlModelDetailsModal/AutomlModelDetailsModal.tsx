@@ -7,13 +7,15 @@ import {
   ContentVariants,
   Flex,
   FlexItem,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
   Popover,
   Title,
 } from '@patternfly/react-core';
+import {
+  Tearsheet,
+  TearsheetBody,
+  TearsheetFooter,
+  TearsheetHeader,
+} from '@patternfly/react-component-groups';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
@@ -102,6 +104,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [visibleTabs]);
 
   const [isPrinting, setIsPrinting] = React.useState(false);
+  // Print readiness: tabs rendered in the print container call onPrintDataReady once their
+  // data fetches settle. The print dialog opens only then — a cold-cache schema fetch
+  // would otherwise be captured as an empty or incomplete table in the PDF.
+  const [isPrintDataReady, setIsPrintDataReady] = React.useState(true);
+  const handlePrintDataReady = React.useCallback(() => setIsPrintDataReady(true), []);
   const backtestMetricsRef = React.useRef<string[]>();
 
   React.useEffect(() => {
@@ -109,7 +116,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [selectedModelName]);
 
   React.useEffect(() => {
-    if (!isPrinting) {
+    if (!isPrinting || !isPrintDataReady) {
       return;
     }
     // `afterprint` fires whether the user prints, saves as PDF, or cancels the dialog — it
@@ -124,7 +131,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
     };
-  }, [isPrinting]);
+  }, [isPrinting, isPrintDataReady]);
 
   const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
   const ActiveComponent = activeTab?.component;
@@ -148,6 +155,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   const tabContentProps = {
     model,
+    namespace,
     taskType,
     parameters,
     createdAt,
@@ -158,6 +166,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     isArtifactsLoading,
     backtestSelectedMetrics: backtestMetricsRef.current,
     onBacktestMetricsChange: handleBacktestMetricsChange,
+    onPrintDataReady: handlePrintDataReady,
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
@@ -167,16 +176,15 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   return (
     <>
-      <Modal
-        variant="large"
+      <Tearsheet
         isOpen={isOpen}
         onClose={onClose}
         aria-labelledby="automl-model-details-title"
         data-testid="automl-model-details-modal"
         className="automl-model-details-modal"
       >
-        <ModalHeader title="Model details" labelId="automl-model-details-title" />
-        <ModalBody>
+        <TearsheetHeader title="Model details" labelId="automl-model-details-title" />
+        <TearsheetBody>
           <AutomlModelDetailsModalHeader
             models={models}
             currentModelName={selectedModelName}
@@ -186,6 +194,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             onSelectModel={(name) => setSelectedModelName(name)}
             onDownload={() => {
               fireAutomlModelDetailsDownloadInitiated(trackEvent);
+              setIsPrintDataReady(false);
               setIsPrinting(true);
             }}
             onSaveNotebook={
@@ -266,13 +275,13 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
               </div>
             </FlexItem>
           </Flex>
-        </ModalBody>
-        <ModalFooter>
+        </TearsheetBody>
+        <TearsheetFooter>
           <Button variant="link" onClick={onClose} data-testid="model-details-close">
             Close
           </Button>
-        </ModalFooter>
-      </Modal>
+        </TearsheetFooter>
+      </Tearsheet>
 
       {/* Print-only container: portalled to document.body so it sits outside
           the PF modal DOM — avoids backdrop/overflow/centering issues across
@@ -299,19 +308,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                     isDownloadDisabled
                   />
                   <Title headingLevel="h2">{tab.label}</Title>
-                  <TabComponent
-                    print
-                    model={model}
-                    taskType={taskType}
-                    parameters={parameters}
-                    createdAt={createdAt}
-                    featureImportance={featureImportance}
-                    confusionMatrix={confusionMatrix}
-                    curves={curves}
-                    backTesting={backTesting}
-                    isArtifactsLoading={isArtifactsLoading}
-                    backtestSelectedMetrics={backtestMetricsRef.current}
-                  />
+                  <TabComponent {...tabContentProps} print />
                 </div>
               );
             })}

@@ -223,6 +223,8 @@ export function useAutomlResults(
               // eslint-disable-next-line camelcase
               test_data: normalizeMetricsToSnakeCase(validated.metrics.test_data),
             },
+            // Optional: present only in model.json files that carry the inference block.
+            ...(validated.inference != null && { inference: validated.inference }),
           };
 
           return { name, model };

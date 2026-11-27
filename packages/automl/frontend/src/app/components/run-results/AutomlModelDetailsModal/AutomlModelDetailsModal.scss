@@ -1,9 +1,8 @@
+/* This class is applied to the Tearsheet's inner wrapper (a flex column),
+   so the body must flex to fill the sheet and the content scrolls inside it. */
 .automl-model-details-modal {
-  --pf-v6-c-modal-box--MaxWidth: 1300px;
-  --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
   --automl-modal--body--PaddingLeft: var(--pf-t--global--spacer--lg);
   --automl-holdout-color: #c9a000;
-  height: 80vh;
 
   :where(.pf-v6-theme-dark) & {
     --automl-holdout-color: #e6b800;
@@ -12,6 +11,8 @@
   .pf-v6-c-modal-box__body {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 }
 
@@ -461,6 +462,68 @@
 
   &.m-negative {
     background-color: var(--pf-t--global--color--status--danger--default);
+  }
+}
+
+/* Model schema table */
+.automl-model-schema-table {
+  th,
+  td {
+    font-size: var(--pf-t--global--font--size--sm);
+  }
+
+  /* Order column: fixed table layout ignores width:1% auto-sizing, so give it an explicit
+     width that fits the "Order" label plus the sort button */
+  th:first-child,
+  td:first-child {
+    width: 8rem;
+    white-space: nowrap;
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 30%;
+  }
+
+  /* Columns AutoGluon dropped — muted so used inputs stand out */
+  tr.m-unused td {
+    color: var(--pf-t--global--text--color--disabled);
+  }
+}
+
+/* Target-column note above the model schema table — styled to match the
+   tab descriptions rendered by the modal (.automl-model-details-tab-description).
+   No padding-left needed: it sits inside .automl-model-details-tab-content,
+   which already indents by xl. The negative top margin cancels that wrapper's
+   lg top spacing and restores the sm gap tab descriptions have, so the note
+   sits directly under the tab title like on other tabs. */
+.automl-model-schema-target-note {
+  margin-block-start: calc(
+    var(--pf-t--global--spacer--sm) - var(--pf-t--global--spacer--lg)
+  );
+  margin-block-end: var(--pf-t--global--spacer--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* Model schema view toolbar — toggle group (table/JSON views) with the column
+   search beside it in the same row. Spacing (above/below the row) comes from
+   PF utility classes on the Toolbar element. */
+.automl-model-schema-toolbar {
+  /* Widen the search so the full "Search by column name" placeholder plus a
+     couple of characters stays visible instead of truncating. */
+  .pf-v6-c-text-input-group__text-input {
+    min-width: 22ch;
+  }
+}
+
+/* Model schema JSON code block — no height cap: the full template stays visible
+   and the page scrolls instead of creating a second vertical scroll area. Long
+   lines still scroll horizontally so they don't overflow the modal. */
+.automl-model-schema-json-codeblock {
+  pre {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: visible;
   }
 }
 

@@ -193,6 +193,7 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findTab('model-information').should('exist');
       automlResultsPage.findTab('model-evaluation').should('exist');
       automlResultsPage.findTab('feature-summary').should('exist');
+      automlResultsPage.findTab('model-schema').should('exist');
       automlResultsPage.findTab('confusion-matrix').should('exist');
     });
 

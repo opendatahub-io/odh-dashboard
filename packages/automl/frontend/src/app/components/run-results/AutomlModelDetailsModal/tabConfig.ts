@@ -16,6 +16,7 @@ import {
 } from '~/app/utilities/const';
 import ModelInformationTab from './tabs/ModelInformationTab';
 import FeatureSummaryTab from './tabs/FeatureSummaryTab';
+import ModelSchemaTab from './tabs/ModelSchemaTab';
 import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 import ROCCurveTab from './tabs/ROCCurveTab';
@@ -25,6 +26,8 @@ import BacktestingTab from './tabs/BacktestingTab';
 export type TabContentProps = {
   // Model 'download' (print-to-pdf) feature; `print` prop is `true` when a tab component is rendered in the PDF content allowing custom rendering if needed.
   print?: boolean;
+  // Kubernetes namespace of the run — needed by tabs that fetch additional artifacts (e.g. the training data schema).
+  namespace?: string;
   model: AutomlModel;
   taskType: TaskType;
   parameters?: Partial<ConfigureSchema>;
@@ -36,6 +39,9 @@ export type TabContentProps = {
   isArtifactsLoading?: boolean;
   backtestSelectedMetrics?: string[];
   onBacktestMetricsChange?: (metrics: string[]) => void;
+  // Print (PDF) support: called by a tab rendered in print mode once its data fetches have
+  // settled, so the modal can wait before opening the print dialog (cold-cache safety).
+  onPrintDataReady?: () => void;
 };
 
 export type TabDefinition = {
@@ -85,6 +91,15 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     section: 'Model configuration',
     visibleFor: NON_TIMESERIES_TYPES,
     component: FeatureSummaryTab,
+  },
+  {
+    key: 'model-schema',
+    label: 'Model schema',
+    tooltip:
+      "Lists the input columns and the data types to send the model to get a prediction. Columns come from the model's input schema (model.json) when available, otherwise from the training data schema. The target column is excluded, except for time-series models where its historical values are required input. Columns AutoGluon did not use are still listed, marked as not used.",
+    section: 'Model configuration',
+    visibleFor: ALL_TASK_TYPES,
+    component: ModelSchemaTab,
   },
   {
     key: 'model-evaluation',
