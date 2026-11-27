@@ -258,7 +258,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     localQueueName ?? undefined,
     notebook != null ? notebook.metadata.name : undefined,
   );
-  const quotaSource = clusterQueue?.spec.cohortName ?? '-';
+  const quotaSource = clusterQueue?.spec.cohortName;
   const consumedResources = clusterQueue
     ? getAllConsumedResources(clusterQueue, assignedFlavorName)
     : [];
@@ -472,18 +472,20 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
                 Quotas and consumption
               </Title>
             </StackItem>
-            <StackItem>
-              <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '10ch' }}>
-                <DescriptionListGroup>
-                  <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-                    Quota source:
-                  </DescriptionListTerm>
-                  <DescriptionListDescription data-testid="quota-source-value">
-                    {hasClusterQueueError ? '-' : quotaSource}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </DescriptionList>
-            </StackItem>
+            {!hasClusterQueueError && quotaSource && (
+              <StackItem>
+                <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '10ch' }}>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm style={{ fontWeight: 'normal' }}>
+                      Quota source:
+                    </DescriptionListTerm>
+                    <DescriptionListDescription data-testid="quota-source-value">
+                      {quotaSource}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                </DescriptionList>
+              </StackItem>
+            )}
             {hasClusterQueueError ? (
               <StackItem>
                 <Content>Unable to load consumption data.</Content>

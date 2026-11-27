@@ -43,7 +43,7 @@ const DeploymentResourcesTab: React.FC<DeploymentResourcesTabProps> = ({
 
   const assignedFlavorName = useAssignedFlavor(namespace, localQueueName, deploymentName);
 
-  const quotaSource = clusterQueue?.spec.cohortName ?? '-';
+  const quotaSource = clusterQueue?.spec.cohortName;
   const consumedResources = clusterQueue
     ? getAllConsumedResources(clusterQueue, assignedFlavorName)
     : [];
@@ -99,18 +99,20 @@ const DeploymentResourcesTab: React.FC<DeploymentResourcesTabProps> = ({
               Quotas and consumption
             </Title>
           </StackItem>
-          <StackItem>
-            <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '10ch' }}>
-              <DescriptionListGroup>
-                <DescriptionListTerm style={{ fontWeight: 'normal' }}>
-                  Quota source:
-                </DescriptionListTerm>
-                <DescriptionListDescription data-testid="quota-source-value">
-                  {hasError ? '-' : quotaSource}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-            </DescriptionList>
-          </StackItem>
+          {!hasError && quotaSource && (
+            <StackItem>
+              <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '10ch' }}>
+                <DescriptionListGroup>
+                  <DescriptionListTerm style={{ fontWeight: 'normal' }}>
+                    Quota source:
+                  </DescriptionListTerm>
+                  <DescriptionListDescription data-testid="quota-source-value">
+                    {quotaSource}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
+            </StackItem>
+          )}
           {hasError ? (
             <StackItem>
               <Content>Unable to load consumption data.</Content>
