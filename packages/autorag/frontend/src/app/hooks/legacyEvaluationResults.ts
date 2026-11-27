@@ -12,7 +12,7 @@ const LegacyEvaluationResultSchema = z.object({
   question_id: z.string().optional(),
   correct_answers: z.array(z.string()),
   answer_contexts: z.array(z.object({ text: z.string(), document_id: z.string() })),
-  scores: z.record(z.string(), z.number().nullable()),
+  scores: z.record(z.string().max(256), z.number().nullable()),
 });
 
 export const LegacyEvaluationResultsSchema = z.array(LegacyEvaluationResultSchema);

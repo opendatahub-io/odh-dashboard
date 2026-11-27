@@ -52,11 +52,29 @@ export const radarAxisNameStyle = (color: string): Record<string, unknown> => ({
  * ECharts renders '\n' as a line break in radar axis names.
  * Evaluator suffixes such as "(unitxt)" are always placed on their own line
  * so labels like "Context correctness (unitxt)" stay fully visible.
+ *
+ * The suffix is extracted with linear string scans rather than a regex:
+ * labels originate from the untrusted evaluation_results.json artifact, and a
+ * regex with an unbounded lazy quantifier backtracked quadratically on crafted
+ * input (CWE-1333).
  */
 export function formatRadarLabel(label: string): string {
-  const match = /^(.*?)(?:\s+(\([^)]+\)))?$/.exec(label);
-  const name = match?.[1]?.trim() || label;
-  const suffix = match?.[2];
+  const trimmed = label.trimEnd();
+  let rawName = trimmed;
+  let suffix: string | undefined;
+  if (trimmed.endsWith(')')) {
+    const open = trimmed.lastIndexOf('(');
+    if (
+      open > 0 &&
+      trimmed.length - open >= 3 && // at least one char inside the parens
+      /\s/.test(trimmed.charAt(open - 1)) && // whitespace before the paren
+      !trimmed.slice(open + 1, -1).includes(')') // no ')' inside the group
+    ) {
+      rawName = trimmed.slice(0, open - 1);
+      suffix = trimmed.slice(open);
+    }
+  }
+  const name = rawName.trim() || label;
   const words = name.split(/\s+/).filter(Boolean);
   let wrapped = name;
   if (words.length === 2) {

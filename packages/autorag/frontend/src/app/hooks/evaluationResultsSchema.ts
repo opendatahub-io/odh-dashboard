@@ -14,7 +14,11 @@ const CanonicalEvaluationResultSchema = z.object({
   correct_answers: z.array(z.string()),
   answer_contexts: z.array(z.object({ text: z.string(), document_key: z.string() })),
   metrics: z.array(
-    z.object({ name: z.string(), evaluator: z.string(), score: z.number().nullable() }),
+    z.object({
+      name: z.string().max(256),
+      evaluator: z.string().max(256),
+      score: z.number().nullable(),
+    }),
   ),
 });
 
