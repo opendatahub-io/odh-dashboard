@@ -87,7 +87,7 @@ func TestMockEvalHubClient_GetCollectionGenerationReturnsCompletedFixture(t *tes
 	}
 }
 
-func TestMockEvalHubClient_CreateCollectionGenerationRemainsPending(t *testing.T) {
+func TestMockEvalHubClient_CreateCollectionGenerationCompletesOnPoll(t *testing.T) {
 	client := NewMockEvalHubClient()
 	generation, err := client.CreateCollectionGeneration(context.Background(), "test-ns", evalhub.CreateCollectionGenerationRequest{
 		EvaluationGoal: "Assess reasoning and factual accuracy",
@@ -106,4 +106,30 @@ func TestMockEvalHubClient_CreateCollectionGenerationRemainsPending(t *testing.T
 	wrongTenant, err := client.GetCollectionGeneration(context.Background(), generation.Resource.ID, "other-ns")
 	require.NoError(t, err)
 	assert.Nil(t, wrongTenant)
+	cancelledContext, cancel := context.WithCancel(context.Background())
+	cancel()
+	cancelled, err := client.GetCollectionGeneration(cancelledContext, generation.Resource.ID, "test-ns")
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, cancelled)
+
+	completed, err := client.GetCollectionGeneration(context.Background(), generation.Resource.ID, "test-ns")
+	require.NoError(t, err)
+	require.NotNil(t, completed)
+	assert.Equal(t, "pending", generation.Status.State)
+	assert.Equal(t, generation.Resource.ID, completed.Resource.ID)
+	assert.Equal(t, "test-ns", completed.Resource.Tenant)
+	assert.Equal(t, generation.Request, completed.Request)
+	assert.Equal(t, "completed", completed.Status.State)
+	var result struct {
+		Collection struct {
+			Benchmarks []evalhub.CollectionBenchmark `json:"benchmarks"`
+		} `json:"collection"`
+	}
+	require.NoError(t, json.Unmarshal(completed.Result, &result))
+	assert.Len(t, result.Collection.Benchmarks, 5)
+
+	polledAgain, err := client.GetCollectionGeneration(context.Background(), generation.Resource.ID, "test-ns")
+	require.NoError(t, err)
+	assert.Equal(t, "completed", polledAgain.Status.State)
+	assert.JSONEq(t, string(completed.Result), string(polledAgain.Result))
 }

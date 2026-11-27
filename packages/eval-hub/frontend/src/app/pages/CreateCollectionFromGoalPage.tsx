@@ -63,7 +63,6 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
     generation,
     isLoading: isGenerationLoading,
     isStarting,
-    isStopping,
     createError,
     deleteError,
     pollError,
@@ -345,12 +344,6 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
     navigate(evaluationBenchmarkSuitesRoute(namespace));
   };
 
-  const handleStopGeneration = (): void => {
-    void stopGeneration().catch(() => {
-      // The hook exposes the delete error to the active generation state.
-    });
-  };
-
   const handleLeaveGeneration = async (): Promise<void> => {
     if (generation?.status.state === 'pending' || generation?.status.state === 'running') {
       await stopGeneration();
@@ -444,7 +437,6 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
           resource={generation}
           isLoading={isGenerationLoading}
           isStarting={isStarting}
-          isStopping={isStopping}
           isStale={isGenerationStale}
           providers={providers}
           error={createError ?? deleteError}
@@ -458,7 +450,6 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
           }
           onRetry={() => void handleRecommend()}
           onRetryPoll={() => void retryPoll()}
-          onStop={handleStopGeneration}
         />
       ),
     },

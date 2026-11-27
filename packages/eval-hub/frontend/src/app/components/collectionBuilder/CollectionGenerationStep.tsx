@@ -53,7 +53,6 @@ type CollectionGenerationStepProps = {
   resource?: CollectionGenerationResource;
   isLoading: boolean;
   isStarting: boolean;
-  isStopping: boolean;
   isStale: boolean;
   providers: Provider[];
   error?: Error;
@@ -62,7 +61,6 @@ type CollectionGenerationStepProps = {
   onSelectedBenchmarksChange: (benchmarks: CollectionBenchmark[]) => void;
   onRetry: () => void;
   onRetryPoll: () => void;
-  onStop: () => void;
 };
 
 type AlternativeBenchmark = {
@@ -247,7 +245,6 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
   resource,
   isLoading,
   isStarting,
-  isStopping,
   isStale,
   providers,
   error,
@@ -256,7 +253,6 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
   onSelectedBenchmarksChange,
   onRetry,
   onRetryPoll,
-  onStop,
 }) => {
   const [isAlternativesOpen, setIsAlternativesOpen] = React.useState(false);
   const [detailsBenchmark, setDetailsBenchmark] = React.useState<FlatBenchmark>();
@@ -502,23 +498,14 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
             {error ? (
               <Alert
                 variant="danger"
-                title="Could not stop recommendations"
+                title="Could not cancel recommendations"
                 isInline
                 data-testid="collection-generation-cancel-error"
               >
                 <Content component="p">{error.message}</Content>
-                <Content component="p">Try again to stop the active recommendation job.</Content>
+                <Content component="p">Choose Back or Cancel to try again.</Content>
               </Alert>
             ) : null}
-            <Button
-              variant="secondary"
-              onClick={onStop}
-              isDisabled={isStarting || isStopping}
-              data-testid="collection-generation-stop"
-              className="pf-v6-u-mt-md"
-            >
-              {isStopping ? 'Stopping…' : 'Stop generating'}
-            </Button>
           </div>
         </div>
         <Grid

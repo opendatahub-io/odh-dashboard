@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/google/uuid"
@@ -15,6 +16,7 @@ import (
 
 const completedGenerationID = "generation-fixture-001"
 const completedGenerationTenant = "default"
+const mockGenerationDelay = 2 * time.Second
 
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
@@ -33,6 +35,7 @@ type MockEvalHubClient struct {
 type mockGenerationState struct {
 	mu                    sync.RWMutex
 	collectionGenerations map[string]*evalhub.CollectionGenerationResource
+	completeOnPoll        map[string]bool
 }
 
 func newMockGenerationState() *mockGenerationState {
@@ -40,6 +43,7 @@ func newMockGenerationState() *mockGenerationState {
 		collectionGenerations: map[string]*evalhub.CollectionGenerationResource{
 			completedGenerationID: completedGenerationFixture(),
 		},
+		completeOnPoll: make(map[string]bool),
 	}
 }
 
@@ -189,6 +193,7 @@ func (m *MockEvalHubClient) CreateCollectionGeneration(
 		Status:  evalhub.CollectionGenerationStatus{State: "pending"},
 	}
 	state.collectionGenerations[generation.Resource.ID] = generation
+	state.completeOnPoll[generation.Resource.ID] = true
 	return generation, nil
 }
 
@@ -197,18 +202,49 @@ func (m *MockEvalHubClient) SetCollectionGeneration(id string, generation *evalh
 	state.mu.Lock()
 	defer state.mu.Unlock()
 	state.collectionGenerations[id] = generation
+	delete(state.completeOnPoll, id)
 }
 
 func (m *MockEvalHubClient) GetCollectionGeneration(
-	_ context.Context,
+	ctx context.Context,
 	id string,
 	namespace string,
 ) (*evalhub.CollectionGenerationResource, error) {
 	state := m.generationState
 	state.mu.RLock()
-	defer state.mu.RUnlock()
 	generation := state.collectionGenerations[id]
+	if generation == nil || generation.Resource.Tenant != namespace {
+		state.mu.RUnlock()
+		return nil, nil
+	}
+	shouldComplete := state.completeOnPoll[id]
+	state.mu.RUnlock()
+	if !shouldComplete {
+		return generation, nil
+	}
+
+	// Leave the loading skeleton visible briefly without blocking cancellation or deletion.
+	timer := time.NewTimer(mockGenerationDelay)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	generation = state.collectionGenerations[id]
 	if generation != nil && generation.Resource.Tenant == namespace {
+		if state.completeOnPoll[id] {
+			// Complete newly submitted mock jobs with the seeded proposal on their first poll.
+			completed := completedGenerationFixture()
+			completed.Resource = generation.Resource
+			completed.Request = generation.Request
+			state.collectionGenerations[id] = completed
+			delete(state.completeOnPoll, id)
+			return completed, nil
+		}
 		return generation, nil
 	}
 	return nil, nil
@@ -297,6 +333,7 @@ func (m *MockEvalHubClient) DeleteCollectionGeneration(_ context.Context, id str
 		return evalhub.NewNotFoundError("collection generation not found")
 	}
 	delete(state.collectionGenerations, id)
+	delete(state.completeOnPoll, id)
 	m.LastDeletedCollectionGenerationID = id
 	m.LastDeletedCollectionGenerationTenant = namespace
 	return nil

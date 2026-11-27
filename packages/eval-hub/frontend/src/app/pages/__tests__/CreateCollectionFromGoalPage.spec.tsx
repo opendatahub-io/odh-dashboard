@@ -1289,50 +1289,7 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(await screen.findByTestId('suite-chooser-route')).toBeInTheDocument();
   });
 
-  it('should stop an active generation, pause polling, and show the retry state', async () => {
-    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
-    let resolveDelete: (() => void) | undefined;
-    mockDeleteCollectionGeneration.mockReturnValue(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveDelete = resolve;
-        }),
-    );
-
-    await startPendingGeneration();
-    const stopButton = screen.getByTestId('collection-generation-stop');
-    expect(stopButton).toBeEnabled();
-    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
-    fireEvent.click(stopButton);
-
-    await waitFor(() => expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(1));
-    expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith('', 'test-project', 'generation-1');
-    expect(screen.getByTestId('collection-generation-stop')).toBeDisabled();
-    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
-    await act(async () => {
-      resolveDelete?.();
-    });
-
-    expect(await screen.findByTestId('collection-generation-cancelled')).toHaveTextContent(
-      'Generation stopped.',
-    );
-    expect(screen.getByTestId('collection-generation-retry')).toBeEnabled();
-    expect(screen.queryByTestId('collection-generation-stop')).not.toBeInTheDocument();
-    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
-    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
-      '/evaluation/test-project/create-suite/from-goal',
-    );
-
-    const generationReadCount = mockGetCollectionGeneration.mock.calls.length;
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 8500);
-      });
-    });
-    expect(mockGetCollectionGeneration).toHaveBeenCalledTimes(generationReadCount);
-  }, 15_000);
-
-  it('should allow stopping an active generation when status polling fails', async () => {
+  it('should allow cancelling an active generation when status polling fails', async () => {
     mockGetCollectionGeneration.mockReturnValue(() =>
       Promise.reject(new Error('The status request failed.')),
     );
@@ -1342,14 +1299,17 @@ describe('CreateCollectionFromGoalPage', () => {
       expect(screen.getByTestId('collection-generation-poll-error')).toBeInTheDocument(),
     );
 
-    expect(screen.getByTestId('collection-generation-stop')).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Stop generating' })).not.toBeInTheDocument();
     expect(screen.getByTestId('collection-generation-retry-poll')).toBeEnabled();
     expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
-    fireEvent.click(screen.getByTestId('collection-generation-stop'));
+    fireEvent.click(screen.getByTestId('suite-builder-cancel'));
 
-    expect(await screen.findByTestId('collection-generation-cancelled')).toBeInTheDocument();
-    expect(screen.getByTestId('collection-generation-retry')).toBeEnabled();
-    expect(screen.queryByTestId('collection-generation-retry-poll')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+        /^\/evaluation\/test-project\/create-suite$/,
+      ),
+    );
+    expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith('', 'test-project', 'generation-1');
   });
 
   it('should clean up a failed generation and allow recommendations to be retried', async () => {
@@ -1408,37 +1368,13 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(mockCreateCollectionGeneration).toHaveBeenCalledTimes(2);
   });
 
-  it('should keep an active generation and allow Stop to retry when DELETE fails', async () => {
+  it('should surface a cancellation error and allow Cancel to retry', async () => {
     mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
     mockDeleteCollectionGeneration
       .mockReturnValueOnce(() =>
         Promise.reject(new Error('The generation could not be cancelled.')),
       )
       .mockReturnValueOnce(() => Promise.resolve());
-
-    await startPendingGeneration();
-    fireEvent.click(screen.getByTestId('collection-generation-stop'));
-
-    expect(await screen.findByTestId('collection-generation-cancel-error')).toHaveTextContent(
-      'The generation could not be cancelled.',
-    );
-    expect(screen.getByText('Initializing recommendations')).toBeInTheDocument();
-    expect(screen.getByTestId('collection-generation-stop')).toBeEnabled();
-    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
-    expect(screen.getByTestId('suite-builder-cancel')).toBeEnabled();
-
-    fireEvent.click(screen.getByTestId('collection-generation-stop'));
-    expect(await screen.findByTestId('collection-generation-cancelled')).toBeInTheDocument();
-    expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(2);
-    expect(screen.getByTestId('collection-generation-retry')).toBeEnabled();
-    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
-  });
-
-  it('should surface a cancellation error while keeping Cancel available to retry', async () => {
-    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
-    mockDeleteCollectionGeneration.mockReturnValue(() =>
-      Promise.reject(new Error('The generation could not be cancelled.')),
-    );
     await renderPage();
 
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
@@ -1463,5 +1399,14 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
       '/evaluation/test-project/create-suite/from-goal',
     );
+    expect(screen.getByTestId('next-benchmark-overview')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('suite-builder-cancel'));
+    await waitFor(() =>
+      expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+        /^\/evaluation\/test-project\/create-suite$/,
+      ),
+    );
+    expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(2);
   });
 });

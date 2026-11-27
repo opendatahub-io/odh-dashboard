@@ -18,7 +18,6 @@ type CollectionGenerationController = {
   generation?: CollectionGenerationResource;
   isLoading: boolean;
   isStarting: boolean;
-  isStopping: boolean;
   createError?: Error;
   deleteError?: Error;
   pollError?: Error;
@@ -181,7 +180,6 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
     generation: generationQuery.data,
     isLoading: Boolean(generationId) && generationQuery.isPending,
     isStarting: createMutation.isPending || isDeletingGeneration,
-    isStopping: isDeletingGeneration,
     createError: createMutation.error ?? undefined,
     deleteError: deleteError ?? undefined,
     pollError: generationQuery.error ?? undefined,

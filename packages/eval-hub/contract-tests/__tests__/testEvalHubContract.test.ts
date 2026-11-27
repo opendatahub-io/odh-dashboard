@@ -214,7 +214,14 @@ describe('EvalHub API Contract Tests', () => {
               // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
               generation_effort: request.generation_effort,
             },
-            status: { state: 'pending' },
+            status: { state: 'completed' },
+            result: {
+              collection: {
+                benchmarks: expect.arrayContaining([
+                  expect.objectContaining({ id: 'truthfulqa_mc1' }),
+                ]),
+              },
+            },
           },
         });
       }
