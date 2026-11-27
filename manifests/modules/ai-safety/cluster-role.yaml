@@ -1,0 +1,15 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: odh-dashboard-ai-safety-ui
+rules:
+  # The HTTPS listener reads the cluster-wide TLS security profile.
+  # API requests to Kubernetes use the authenticated user's token.
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get

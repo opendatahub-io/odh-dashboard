@@ -12,3 +12,4 @@ resources:
   - notebooks
   - data-registry
   - data-connect-hub
+  - ai-safety

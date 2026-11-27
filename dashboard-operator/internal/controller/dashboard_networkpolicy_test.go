@@ -132,6 +132,17 @@ func TestDashboardEgressAllowsFeastRegistry(t *testing.T) {
 	)
 }
 
+// Every registered module must be reachable through the dashboard's proxy.
+func TestDashboardEgressAllowsModules(t *testing.T) {
+	policy := loadDashboardAllowPorts(t)
+	for name, module := range moduleRegistry {
+		t.Run(name, func(t *testing.T) {
+			assert.True(t, egressAllowsPort(policy, module.Port, crossNamespacePeer),
+				"dashboard NetworkPolicy must allow proxy traffic to module %s on port %d", name, module.Port)
+		})
+	}
+}
+
 // TestDashboardEgressAllowsPipelineServer guards RHOAIENG-100654: the dashboard backend
 // proxies pipeline API calls to ds-pipeline-dspa.<ns>.svc:8443 in user-project namespaces,
 // so egress to port 8443 cross-namespace must be allowed.
