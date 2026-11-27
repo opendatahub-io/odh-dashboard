@@ -82,18 +82,17 @@ func TestRHAIIBundle_DeploymentKeepsTheContractPreconditions(t *testing.T) {
 	c := dashboardContainer(t, d)
 	args := c.Args
 
-	assert.Contains(t, args, "--platform-type=XKS")
-	assert.Contains(t, args, "--auth-token-headers=Authorization,x-forwarded-access-token")
-	for _, a := range args {
-		assert.False(t, strings.HasPrefix(a, "--auth-token-header="), "single-header mode %q replaces the ordered list", a)
-		assert.False(t, strings.HasPrefix(a, "--auth-token-prefix="), "%q is ambiguous with an ordered list", a)
+	// The BFF parses flags with the standard flag package: one or two dashes,
+	// "=value" or a separate value, and the last occurrence wins.
+	assert.Equal(t, []string{"XKS"}, lastFlagValue(args, "platform-type"))
+	assert.Equal(t, []string{"Authorization,x-forwarded-access-token"}, lastFlagValue(args, "auth-token-headers"))
+	for _, name := range []string{"auth-token-header", "auth-token-prefix", "admission-mode"} {
+		assert.Nil(t, lastFlagValue(args, name), "--%s must not be set: the ordered list and the xKS admission default are the contract", name)
 	}
 	for _, e := range c.Env {
 		assert.NotContains(t, []string{"ODH_PLATFORM_TYPE", "AUTH_TOKEN_HEADERS", "AUTH_TOKEN_HEADER", "AUTH_TOKEN_PREFIX", "ADMISSION_MODE"},
 			e.Name, "set %s through the reviewed flag, not the environment", e.Name)
 	}
-	assert.NotContains(t, strings.Join(args, " "), "--admission-mode",
-		"the xKS default (authenticated) is what keeps auths out of the contract")
 	assert.Equal(t, dashboardName, d.Spec.Template.Spec.ServiceAccountName)
 }
 
@@ -184,14 +183,49 @@ func TestServiceAccountGrants_FlagsWideningShapes(t *testing.T) {
 	assert.Equal(t, []grant{{cluster: true, resource: "configmaps", verb: "get"}}, got)
 }
 
+// lastFlagValue returns the value the flag package would settle on for name,
+// as a one-element slice, or nil when the flag is absent.
+func lastFlagValue(args []string, name string) []string {
+	var value []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if !strings.HasPrefix(a, "-") {
+			continue
+		}
+		flag := strings.TrimPrefix(strings.TrimPrefix(a, "-"), "-")
+		switch {
+		case strings.HasPrefix(flag, name+"="):
+			value = []string{strings.TrimPrefix(flag, name+"=")}
+		case flag == name && i+1 < len(args):
+			value = []string{args[i+1]}
+			i++
+		case flag == name:
+			value = []string{""}
+		}
+	}
+	return value
+}
+
+func TestLastFlagValue(t *testing.T) {
+	assert.Equal(t, []string{"OpenShift"}, lastFlagValue([]string{"--platform-type=XKS", "-platform-type", "OpenShift"}, "platform-type"))
+	assert.Equal(t, []string{"XKS"}, lastFlagValue([]string{"--platform-type", "XKS"}, "platform-type"))
+	assert.Nil(t, lastFlagValue([]string{"--auth-token-headers=a"}, "auth-token-header"))
+}
+
 // contractGrants parses the first table under contractSection. Each row is
 // "| `resource` (`group`) or (core)[, scope note] | `verb`, `verb` | why |". A
-// resource cell that says "cluster-wide" is a cluster-scoped grant; every
-// other row is namespaced to the dashboard namespace.
+// scope note of exactly "cluster-wide" right after the group makes the row a
+// cluster-scoped grant; every other row is namespaced to the dashboard
+// namespace.
 func contractGrants(t *testing.T) []grant {
 	t.Helper()
 	raw, err := os.ReadFile(filepath.Clean(bootstrapContract))
 	require.NoError(t, err)
+	return parseContract(t, raw)
+}
+
+func parseContract(t *testing.T, raw []byte) []grant {
+	t.Helper()
 
 	var (
 		inSection, inTable bool
@@ -218,19 +252,23 @@ scan:
 	require.Equal(t, "Verbs", rows[0][1])
 
 	code := regexp.MustCompile("`([^`]+)`")
+	// The group is the parenthesis right after the leading `resource`.
+	// A cluster-scoped row says so right after the group: "(`group`), cluster-wide".
+	clusterWide := regexp.MustCompile("^`[^`]+`\\s*\\([^)]*\\),\\s*cluster-wide\\b")
+	groupCell := regexp.MustCompile("^`[^`]+`\\s*(\\(core\\)|\\(`([^`]+)`\\))")
 	var out []grant
 	for _, row := range rows[2:] {
 		require.GreaterOrEqual(t, len(row), 2, "malformed row %q", row)
 		names := code.FindAllStringSubmatch(row[0], -1)
 		require.NotEmpty(t, names, "row %q names no resource", row[0])
-		g := grant{resource: names[0][1], cluster: strings.Contains(row[0], "cluster-wide")}
-		switch {
-		case len(names) >= 2:
-			g.group = names[1][1]
-		case strings.Contains(row[0], "(core)"):
+		g := grant{resource: names[0][1], cluster: clusterWide.MatchString(row[0])}
+		switch m := groupCell.FindStringSubmatch(row[0]); {
+		case m == nil:
+			require.Failf(t, "no API group", "row %q must give the API group right after the resource, as (`group`) or (core)", row[0])
+		case m[1] == "(core)":
 			g.group = ""
 		default:
-			require.Failf(t, "no API group", "row %q must give the API group as (`group`) or (core)", row[0])
+			g.group = m[2]
 		}
 		verbs := code.FindAllStringSubmatch(row[1], -1)
 		require.NotEmpty(t, verbs, "row %q lists no verbs", row[0])
@@ -240,6 +278,24 @@ scan:
 		}
 	}
 	return sortedUnique(out)
+}
+
+func TestParseContract(t *testing.T) {
+	doc := []byte(contractSection + `
+
+| Resource | Verbs | Needed for |
+| --- | --- | --- |
+| ` + "`configmaps` (core), labelled `opendatahub.io/connection-type`" + ` | ` + "`get`, `list`" + ` | not cluster-wide |
+| ` + "`tokenreviews` (`authentication.k8s.io`), cluster-wide" + ` | ` + "`create`" + ` | proxy |
+
+## Next
+| ` + "`secrets` (core)" + ` | ` + "`get`" + ` | outside the section |
+`)
+	assert.Equal(t, []grant{
+		{cluster: true, group: "authentication.k8s.io", resource: "tokenreviews", verb: "create"},
+		{resource: "configmaps", verb: "get"},
+		{resource: "configmaps", verb: "list"},
+	}, parseContract(t, doc))
 }
 
 func splitRow(line string) []string {
@@ -401,8 +457,12 @@ func loadBundle(t *testing.T) bundle {
 	require.NoError(t, err)
 	var k map[string]any
 	require.NoError(t, yaml.NewYAMLOrJSONDecoder(bytes.NewReader(raw), 4096).Decode(&k))
-	for _, key := range []string{"patches", "patchesStrategicMerge", "patchesJson6902", "components", "bases", "transformers", "generators", "crds", "helmCharts"} {
-		require.NotContains(t, k, key, "the RBAC guard reads the bundle's resource files; extend it before using %q", key)
+	// Allowlist: any other kustomization feature (patches, components,
+	// transformers, images, namespace, ...) could change what the files say.
+	allowed := map[string]bool{"apiVersion": true, "kind": true, "resources": true, "configMapGenerator": true,
+		"generatorOptions": true, "labels": true, "replacements": true}
+	for key := range k {
+		require.True(t, allowed[key], "the RBAC guard reads the bundle's resource files; extend it before using %q", key)
 	}
 	resources, ok := k["resources"].([]any)
 	require.True(t, ok, "kustomization.yaml lists no resources")
@@ -420,7 +480,106 @@ func loadBundle(t *testing.T) bundle {
 	require.Len(t, b.deployments, 1, "the bundle must ship exactly one Deployment")
 	b.sa = b.deployments[0].Spec.Template.Spec.ServiceAccountName
 	require.NotEmpty(t, b.sa)
+
+	var reps []replacement
+	if raw, ok := k["replacements"]; ok {
+		js, err := json.Marshal(raw)
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal(js, &reps))
+	}
+	require.Empty(t, replacementViolations(b, reps), "the bundle's replacements break the guard rules")
 	return b
+}
+
+// replacement is the part of a kustomize replacement the guard inspects.
+type replacement struct {
+	Source struct {
+		Kind      string `json:"kind"`
+		Name      string `json:"name"`
+		FieldPath string `json:"fieldPath"`
+	} `json:"source"`
+	Targets []replacementTarget `json:"targets"`
+}
+
+type replacementTarget struct {
+	Select struct {
+		Kind string `json:"kind"`
+		Name string `json:"name"`
+	} `json:"select"`
+	FieldPaths []string `json:"fieldPaths"`
+}
+
+// replacementViolations allows a replacement to touch RBAC objects only to
+// fill in a binding's ServiceAccount subject namespace, and requires every
+// binding subject to carry the placeholder such a replacement rewrites. A
+// hard-coded subject namespace would bind a ServiceAccount the installer
+// never creates, so the deployed one would get nothing.
+func replacementViolations(b bundle, reps []replacement) []string {
+	const placeholder = "rhaii-dashboard-namespace"
+	subjectPath := "subjects.[name=" + b.sa + "].namespace"
+	rbacKinds := map[string]bool{"Role": true, "ClusterRole": true, "RoleBinding": true, "ClusterRoleBinding": true}
+	filled := map[string]bool{}
+	var violations []string
+	for _, r := range reps {
+		for _, target := range r.Targets {
+			kind := target.Select.Kind
+			if kind == "" {
+				violations = append(violations, fmt.Sprintf("a replacement from %s/%s selects targets without a kind", r.Source.Kind, r.Source.Name))
+				continue
+			}
+			if !rbacKinds[kind] {
+				continue
+			}
+			for _, fp := range target.FieldPaths {
+				if (kind == "RoleBinding" || kind == "ClusterRoleBinding") && fp == subjectPath &&
+					r.Source.Kind == "ConfigMap" && r.Source.FieldPath == "data."+placeholder {
+					filled[kind+"/"+target.Select.Name] = true
+					continue
+				}
+				violations = append(violations, fmt.Sprintf("a replacement rewrites %s %s/%s", fp, kind, target.Select.Name))
+			}
+		}
+	}
+	check := func(kind, name string, subjects []rbacv1.Subject) {
+		for _, s := range subjects {
+			if s.Namespace != placeholder {
+				violations = append(violations, fmt.Sprintf("%s/%s subject %q has namespace %q, not the %q placeholder", kind, name, s.Name, s.Namespace, placeholder))
+			}
+		}
+		if !filled[kind+"/"+name] {
+			violations = append(violations, fmt.Sprintf("no replacement fills %s in %s/%s from data.%s", subjectPath, kind, name, placeholder))
+		}
+	}
+	for _, rb := range b.roleBindings {
+		check("RoleBinding", rb.Name, rb.Subjects)
+	}
+	for _, crb := range b.clusterRoleBindings {
+		check("ClusterRoleBinding", crb.Name, crb.Subjects)
+	}
+	return violations
+}
+
+func TestReplacementViolations(t *testing.T) {
+	rb := rbacv1.RoleBinding{ObjectMeta: roleMeta(dashboardName), Subjects: []rbacv1.Subject{{Kind: rbacv1.ServiceAccountKind, Name: dashboardName, Namespace: "rhaii-dashboard-namespace"}}}
+	b := bundle{sa: dashboardName, roleBindings: []rbacv1.RoleBinding{rb}}
+	rep := func(kind, fieldPath string) replacement {
+		var r replacement
+		r.Source.Kind, r.Source.Name, r.Source.FieldPath = "ConfigMap", "rhaii-dashboard-params", "data.rhaii-dashboard-namespace"
+		target := replacementTarget{FieldPaths: []string{fieldPath}}
+		target.Select.Kind, target.Select.Name = kind, dashboardName
+		r.Targets = []replacementTarget{target}
+		return r
+	}
+	subject := rep("RoleBinding", "subjects.[name=rhaii-dashboard].namespace")
+
+	assert.Empty(t, replacementViolations(b, []replacement{subject}))
+	assert.NotEmpty(t, replacementViolations(b, nil), "an unfilled subject namespace is a violation")
+	assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("Role", "rules.0.verbs")}), "rewriting rules is a violation")
+	assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("", "metadata.name")}), "a kind-less selector is a violation")
+
+	hardCoded := bundle{sa: dashboardName, roleBindings: []rbacv1.RoleBinding{rb}}
+	hardCoded.roleBindings[0].Subjects = []rbacv1.Subject{{Kind: rbacv1.ServiceAccountKind, Name: dashboardName, Namespace: "opendatahub"}}
+	assert.NotEmpty(t, replacementViolations(hardCoded, []replacement{subject}), "a hard-coded subject namespace is a violation")
 }
 
 func decodeInto(t *testing.T, path string, b *bundle) {
@@ -431,11 +590,11 @@ func decodeInto(t *testing.T, path string, b *bundle) {
 	dec := yaml.NewYAMLOrJSONDecoder(f, 4096)
 	for {
 		var doc map[string]any
-		if err := dec.Decode(&doc); errors.Is(err, io.EOF) {
+		err := dec.Decode(&doc)
+		if errors.Is(err, io.EOF) {
 			return
-		} else {
-			require.NoError(t, err, path)
 		}
+		require.NoError(t, err, path)
 		if doc == nil {
 			continue
 		}
@@ -462,6 +621,8 @@ func decodeInto(t *testing.T, path string, b *bundle) {
 			var r rbacv1.ClusterRoleBinding
 			require.NoError(t, json.Unmarshal(js, &r))
 			b.clusterRoleBindings = append(b.clusterRoleBindings, r)
+		case "List", "RoleList", "ClusterRoleList", "RoleBindingList", "ClusterRoleBindingList":
+			require.Failf(t, "list document", "%s in %s hides its items from the guard; ship one object per document", doc["kind"], path)
 		case "StatefulSet", "DaemonSet", "Job", "CronJob", "Pod", "ReplicaSet":
 			require.Failf(t, "unexpected workload", "%s in %s runs with a service account the guard does not check", doc["kind"], path)
 		}

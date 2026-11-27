@@ -22,9 +22,23 @@ images:
   newTag: latest
 
 patches:
+# Bind the bundle's Role to the ServiceAccount in this namespace. The bundle
+# takes the subject namespace from params.env, which an installer rewrites;
+# set it here rather than rely on that placeholder's value.
+- target:
+    group: rbac.authorization.k8s.io
+    kind: RoleBinding
+    name: rhaii-dashboard
+  patch: |
+    - op: replace
+      path: /subjects/0/namespace
+      value: opendatahub
 # Tilt loads the image into the Kind node, so it must not be pulled, and one
 # replica is enough locally. The bundle already selects xKS explicitly
-# (--platform-type=XKS); add only the dev-mode fallback identity.
+# (--platform-type=XKS) and reads the production ordered credential headers
+# (Authorization, then x-forwarded-access-token); add only the dev-mode
+# fallback identity, which applies only when no credential header is sent.
+# Resource limits stay at the production values on purpose.
 - target:
     kind: Deployment
     name: rhaii-dashboard

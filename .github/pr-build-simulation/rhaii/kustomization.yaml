@@ -12,6 +12,16 @@ resources:
   - ../../../manifests/distributions/rhaii
 patches:
   - path: rhaii-kind.patch.yaml
+  # The bundle takes the RoleBinding subject namespace from params.env, which
+  # the installer rewrites. Bind to the ServiceAccount in this namespace.
+  - target:
+      group: rbac.authorization.k8s.io
+      kind: RoleBinding
+      name: rhaii-dashboard
+    patch: |-
+      - op: replace
+        path: /subjects/0/namespace
+        value: opendatahub
   - target:
       group: gateway.networking.k8s.io
       kind: HTTPRoute

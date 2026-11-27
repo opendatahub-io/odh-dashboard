@@ -311,8 +311,8 @@ profile the dashboard **service account** needs:
 | `configmaps` (core), dashboard namespace       | `get`, `list` | Connection-type templates (`GET /api/connection-types[/:name]`), filtered to the connection-type labels. Every authenticated user needs them to create a connection and is not granted ConfigMap access in the dashboard namespace.                                                                                        |
 
 All three rules are namespaced and the BFF reads in its dashboard namespace (`NAMESPACE`), so the
-Deployment sets `NAMESPACE` to the pod's own namespace, where the Role is bound. The shipped Roles
-are exercised against an API server without the OdhApplication API in
+Deployment sets `NAMESPACE` to the pod's own namespace, where the Role is bound. The shipped Role
+is exercised against an API server without the OdhApplication API in
 `bff/internal/api/components_sa_rbac_test.go`.
 
 On a confirmed xKS platform the service account needs **no** write verb on any resource, no
@@ -325,15 +325,18 @@ xKS manifest set) grants its service account exactly these rows in a namespaced 
 else: no ClusterRole is bound to it. `bff/internal/bundlecontract` parses this table and fails when
 the bundle grants a verb it does not list, omits one it lists, binds any other role or subject, or
 uses a wildcard, `resourceNames`, a non-resource URL or an aggregated ClusterRole. To change the
-service account's access, change this table first; a row that names `cluster-wide` in its resource
-cell is checked as a cluster-scoped grant. Decided in
+service account's access, change this table first; a row whose resource cell reads
+`` `resource` (`group`), cluster-wide `` is checked as a cluster-scoped grant. Decided in
 [RHAI-50761](https://redhat.atlassian.net/browse/RHAI-50761):
 
-- ConfigMap `create`, `update`, `patch` and `delete`, `servingruntimes` `create` and `namespaces`
-  `patch` are gone from the bundle. The connection-type, enabled-apps, cluster-settings,
-  ServingRuntime and namespace-label writes they served run as the caller on xKS (see the table of
-  user-initiated operations above).
-- `odhdashboardconfigs` `patch` is gone: `PATCH /api/config` patches as the caller.
+- Removed from the RHAII bundle: ConfigMap `create`, `update`, `patch` and `delete`,
+  `servingruntimes` `create`, and the ClusterRole with `namespaces` `patch`. The connection-type,
+  enabled-apps, cluster-settings, ServingRuntime and namespace-label writes they served run as the
+  caller on xKS (see the table of user-initiated operations above).
+- Added to the RHAII bundle: `odhdashboardconfigs` `get`, for `GET /api/config`.
+- The deleted `distributions/core-bff/manifests/base` copy also granted `odhdashboardconfigs`
+  `patch` and the `config.openshift.io` probe reads; neither is needed with
+  `--platform-type=XKS`, and `PATCH /api/config` patches as the caller.
 - The service account gets **no `list namespaces`**: namespace discovery runs entirely as the
   caller.
 

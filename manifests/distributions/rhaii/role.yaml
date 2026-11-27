@@ -7,7 +7,7 @@ metadata:
 # user initiates (writes included) runs with the caller's credentials. The list
 # is the "Service-account permissions" table in
 # distributions/core-bff/docs/bootstrap-contract.md, verb for verb, and
-# distributions/core-bff/bff/internal/api/rhaii_bundle_rbac_test.go fails if
+# distributions/core-bff/bff/internal/bundlecontract/rhaii_rbac_test.go fails if
 # this bundle grants anything else. Change the contract first.
 rules:
   # Connection-type templates for GET /api/connection-types[/:name]. Every
