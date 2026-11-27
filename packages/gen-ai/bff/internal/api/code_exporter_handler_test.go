@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
@@ -1013,5 +1015,50 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "vision_file.id")
 		assert.Contains(t, code, "from openai import OpenAI")
 		assert.Contains(t, code, "pip install openai\n")
+	})
+}
+
+func TestModelNameForCodeExport(t *testing.T) {
+	tests := []struct {
+		in, want string
+	}{
+		{"vllm-inference-1/deepseek-aideepseek-r1-distill", "genai-bff-proxy/deepseek-aideepseek-r1-distill"},
+		{"vllm-inference-1/facebook/opt-125m", "genai-bff-proxy/facebook/opt-125m"},
+		{"maas-vllm-inference-2/llama-2-7b-chat", "genai-bff-proxy/maas-llama-2-7b-chat"},
+		{"llama3.2:3b", "genai-bff-proxy/llama3.2:3b"},
+		{"genai-bff-proxy/llama-32-1b-instruct", "genai-bff-proxy/llama-32-1b-instruct"},
+		{"genai-bff-proxy/publishers/test/models/gemini-proxy", "genai-bff-proxy/publishers/test/models/gemini-proxy"},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, modelNameForCodeExport(tt.in), tt.in)
+	}
+}
+
+func TestGeneratePythonCodeUsesOGXRoutingID(t *testing.T) {
+	app := App{repositories: repositories.NewRepositories()}
+
+	t.Run("namespace model matches Playground OGX id", func(t *testing.T) {
+		code, err := app.generatePythonCode(models.CodeExportRequest{
+			Input: "Hello",
+			Model: "vllm-inference-1/deepseek-aideepseek-r1-distill",
+		}, "", app.repositories.Template)
+		assert.NoError(t, err)
+		const exported = "genai-bff-proxy/deepseek-aideepseek-r1-distill"
+		assert.Contains(t, code, `model_name = "`+exported+`"`)
+		assert.NotContains(t, code, "vllm-inference-1/")
+		assert.Equal(t, exported, qualifyPassthroughModelID("deepseek-aideepseek-r1-distill"))
+	})
+
+	t.Run("maas model keeps the maas discriminator", func(t *testing.T) {
+		code, err := app.generatePythonCode(models.CodeExportRequest{
+			Input: "Hello",
+			Model: "maas-vllm-inference-2/llama-2-7b-chat",
+		}, "", app.repositories.Template)
+		assert.NoError(t, err)
+		const exported = "genai-bff-proxy/maas-llama-2-7b-chat"
+		assert.Contains(t, code, `model_name = "`+exported+`"`)
+		routed := stripPassthroughProviderPrefix(exported)
+		assert.True(t, strings.HasPrefix(routed, constants.MaaSProviderPrefix), routed)
+		assert.Equal(t, "llama-2-7b-chat", normalizeMaaSModelID(routed))
 	})
 }
