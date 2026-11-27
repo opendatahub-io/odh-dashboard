@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,7 +18,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	"sigs.k8s.io/kustomize/api/krusty"
+	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
 
 // Paths relative to this package.
@@ -64,6 +63,7 @@ func TestRHAIIBundle_ServiceAccountRBACMatchesTheContract(t *testing.T) {
 
 	got, violations := serviceAccountGrants(b)
 	require.Empty(t, violations, "the RHAII bundle's service-account RBAC breaks the guard rules")
+	require.Empty(t, namespaceViolations(b), "the RHAII bundle's bindings do not reach the installed ServiceAccount")
 
 	assert.Empty(t, difference(got, want),
 		"the RHAII bundle grants its service account more than %s allows", bootstrapContract)
@@ -103,6 +103,17 @@ func TestRHAIIBundle_DeploymentKeepsTheContractPreconditions(t *testing.T) {
 			e.Name, "%s must not come from the environment: the reviewed flags are the contract", e.Name)
 	}
 	assert.Empty(t, c.EnvFrom, "envFrom could set any of the settings above")
+
+	// The service-account reads target the dashboard namespace, where the Role
+	// is bound: NAMESPACE must be the pod's own namespace (bootstrap contract).
+	assert.Nil(t, lastFlagValue(args, "namespace"), "--namespace would override the pod's own namespace")
+	var namespaceFromPod bool
+	for _, e := range c.Env {
+		if e.Name == "NAMESPACE" {
+			namespaceFromPod = e.ValueFrom != nil && e.ValueFrom.FieldRef != nil && e.ValueFrom.FieldRef.FieldPath == "metadata.namespace"
+		}
+	}
+	assert.True(t, namespaceFromPod, "NAMESPACE must come from the Downward API metadata.namespace")
 	assert.Equal(t, dashboardName, d.Spec.Template.Spec.ServiceAccountName)
 }
 
@@ -321,6 +332,8 @@ func splitRow(line string) []string {
 
 type bundle struct {
 	sa                  string
+	namespaced          []string
+	configMaps          []corev1.ConfigMap
 	deployments         []appsv1.Deployment
 	roles               []rbacv1.Role
 	clusterRoles        []rbacv1.ClusterRole
@@ -461,123 +474,92 @@ func sortedUnique(in []grant) []grant {
 	return out
 }
 
-// loadBundle reads every resource the bundle's kustomization lists. The guard
-// reads files rather than a rendered build, so it refuses kustomization
-// features that could add or change RBAC without appearing in those files.
+// loadBundle renders the bundle with kustomize, in process, and returns the
+// rendered objects. The guard checks what an installer applies, not the source
+// files, so every kustomization feature (replacements, patches, generators,
+// regex selectors, List expansion) is already applied.
 func loadBundle(t *testing.T) bundle {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join(bundleDir, "kustomization.yaml"))
-	require.NoError(t, err)
-	var k map[string]any
-	require.NoError(t, yaml.NewYAMLOrJSONDecoder(bytes.NewReader(raw), 4096).Decode(&k))
-	// Allowlist: any other kustomization feature (patches, components,
-	// transformers, images, namespace, ...) could change what the files say.
-	allowed := map[string]bool{"apiVersion": true, "kind": true, "resources": true, "configMapGenerator": true,
-		"generatorOptions": true, "labels": true, "replacements": true}
-	for key := range k {
-		require.True(t, allowed[key], "the RBAC guard reads the bundle's resource files; extend it before using %q", key)
-	}
-	resources, ok := k["resources"].([]any)
-	require.True(t, ok, "kustomization.yaml lists no resources")
+	return renderBundle(t, filesys.MakeFsOnDisk(), bundleDir)
+}
+
+func renderBundle(t *testing.T, fs filesys.FileSystem, dir string) bundle {
+	t.Helper()
+	resMap, err := krusty.MakeKustomizer(krusty.MakeDefaultOptions()).Run(fs, dir)
+	require.NoError(t, err, "kustomize build %s", dir)
 
 	b := bundle{}
-	for _, r := range resources {
-		name, ok := r.(string)
-		require.True(t, ok)
-		path := filepath.Join(bundleDir, name)
-		info, err := os.Stat(path)
+	for _, res := range resMap.Resources() {
+		js, err := res.MarshalJSON()
 		require.NoError(t, err)
-		require.False(t, info.IsDir(), "resource %q is a directory; extend the guard to follow it", name)
-		decodeInto(t, path, &b)
+		decodeObject(t, res.GetKind(), js, &b)
+		if ns := res.GetNamespace(); ns != "" {
+			b.namespaced = append(b.namespaced, res.GetKind()+"/"+res.GetName()+" in "+ns)
+		}
 	}
 	require.Len(t, b.deployments, 1, "the bundle must ship exactly one Deployment")
 	b.sa = b.deployments[0].Spec.Template.Spec.ServiceAccountName
 	require.NotEmpty(t, b.sa)
-
-	var reps []replacement
-	if raw, ok := k["replacements"]; ok {
-		js, err := json.Marshal(raw)
-		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(js, &reps))
-	}
-	require.Empty(t, replacementViolations(b, reps), "the bundle's replacements break the guard rules")
 	return b
 }
 
-// replacement is the part of a kustomize replacement the guard inspects.
-type replacement struct {
-	Source struct {
-		Kind      string `json:"kind"`
-		Name      string `json:"name"`
-		FieldPath string `json:"fieldPath"`
-	} `json:"source"`
-	Targets []replacementTarget `json:"targets"`
+func decodeObject(t *testing.T, kind string, js []byte, b *bundle) {
+	t.Helper()
+	switch kind {
+	case "Deployment":
+		var d appsv1.Deployment
+		require.NoError(t, json.Unmarshal(js, &d))
+		b.deployments = append(b.deployments, d)
+	case "ConfigMap":
+		var cm corev1.ConfigMap
+		require.NoError(t, json.Unmarshal(js, &cm))
+		b.configMaps = append(b.configMaps, cm)
+	case "Role":
+		var r rbacv1.Role
+		require.NoError(t, json.Unmarshal(js, &r))
+		b.roles = append(b.roles, r)
+	case "ClusterRole":
+		var r rbacv1.ClusterRole
+		require.NoError(t, json.Unmarshal(js, &r))
+		b.clusterRoles = append(b.clusterRoles, r)
+	case "RoleBinding":
+		var r rbacv1.RoleBinding
+		require.NoError(t, json.Unmarshal(js, &r))
+		b.roleBindings = append(b.roleBindings, r)
+	case "ClusterRoleBinding":
+		var r rbacv1.ClusterRoleBinding
+		require.NoError(t, json.Unmarshal(js, &r))
+		b.clusterRoleBindings = append(b.clusterRoleBindings, r)
+	case "StatefulSet", "DaemonSet", "Job", "CronJob", "Pod", "ReplicaSet", "ReplicationController":
+		require.Failf(t, "unexpected workload", "%s runs with a service account the guard does not check", kind)
+	}
 }
 
-type replacementTarget struct {
-	Select struct {
-		Kind string `json:"kind"`
-		Name string `json:"name"`
-	} `json:"select"`
-	FieldPaths []string `json:"fieldPaths"`
-}
-
-var deploymentImagePath = regexp.MustCompile(`^spec\.template\.spec\.(init)?[cC]ontainers\.\[name=[a-z0-9-]+\]\.image$`)
-
-// replacementViolations allows a replacement to touch RBAC objects only to
-// fill in a binding's ServiceAccount subject namespace, and requires every
-// binding subject to carry the placeholder such a replacement rewrites. A
-// hard-coded subject namespace would bind a ServiceAccount the installer
-// never creates, so the deployed one would get nothing.
-func replacementViolations(b bundle, reps []replacement) []string {
-	const placeholder = "rhaii-dashboard-namespace"
-	subjectPath := "subjects.[name=" + b.sa + "].namespace"
-	rbacKinds := map[string]bool{"Role": true, "ClusterRole": true, "RoleBinding": true, "ClusterRoleBinding": true}
-	filled := map[string]bool{}
+// namespaceViolations checks the binding wiring an installer relies on. The
+// bundle is namespace-neutral, so an object that names its own namespace
+// would be applied there instead of where the installer puts the bundle, and
+// a binding subject must name the namespace the installer configures
+// (rhaii-dashboard-params data.rhaii-dashboard-namespace); otherwise the Role
+// binds a ServiceAccount that does not exist and the deployed one gets nothing.
+func namespaceViolations(b bundle) []string {
 	var violations []string
-	for _, r := range reps {
-		for _, target := range r.Targets {
-			kind := target.Select.Kind
-			if kind == "" {
-				violations = append(violations, fmt.Sprintf("a replacement from %s/%s selects targets without a kind", r.Source.Kind, r.Source.Name))
-				continue
-			}
-			if kind == "Deployment" {
-				// Only the image may come from params: anything else in the pod
-				// template (serviceAccountName, automount, args, env) changes
-				// who the pod runs as or which contract it follows.
-				for _, fp := range target.FieldPaths {
-					if !deploymentImagePath.MatchString(fp) {
-						violations = append(violations, fmt.Sprintf("a replacement rewrites %s Deployment/%s; only container images may be replaced", fp, target.Select.Name))
-					}
-				}
-				continue
-			}
-			if kind == "ServiceAccount" {
-				violations = append(violations, fmt.Sprintf("a replacement rewrites ServiceAccount/%s", target.Select.Name))
-				continue
-			}
-			if !rbacKinds[kind] {
-				continue
-			}
-			for _, fp := range target.FieldPaths {
-				if (kind == "RoleBinding" || kind == "ClusterRoleBinding") && fp == subjectPath &&
-					r.Source.Kind == "ConfigMap" && r.Source.FieldPath == "data."+placeholder {
-					filled[kind+"/"+target.Select.Name] = true
-					continue
-				}
-				violations = append(violations, fmt.Sprintf("a replacement rewrites %s %s/%s", fp, kind, target.Select.Name))
-			}
+	for _, n := range b.namespaced {
+		violations = append(violations, n+": the bundle must stay namespace-neutral")
+	}
+	want := ""
+	for _, cm := range b.configMaps {
+		if cm.Name == "rhaii-dashboard-params" {
+			want = cm.Data["rhaii-dashboard-namespace"]
 		}
+	}
+	if want == "" {
+		return append(violations, "rhaii-dashboard-params has no rhaii-dashboard-namespace")
 	}
 	check := func(kind, name string, subjects []rbacv1.Subject) {
 		for _, s := range subjects {
-			if s.Namespace != placeholder {
-				violations = append(violations, fmt.Sprintf("%s/%s subject %q has namespace %q, not the %q placeholder", kind, name, s.Name, s.Namespace, placeholder))
+			if s.Namespace != want {
+				violations = append(violations, fmt.Sprintf("%s/%s subject %q has namespace %q, not the configured %q", kind, name, s.Name, s.Namespace, want))
 			}
-		}
-		if !filled[kind+"/"+name] {
-			violations = append(violations, fmt.Sprintf("no replacement fills %s in %s/%s from data.%s", subjectPath, kind, name, placeholder))
 		}
 	}
 	for _, rb := range b.roleBindings {
@@ -589,84 +571,80 @@ func replacementViolations(b bundle, reps []replacement) []string {
 	return violations
 }
 
-func TestReplacementViolations(t *testing.T) {
-	rb := rbacv1.RoleBinding{ObjectMeta: roleMeta(dashboardName), Subjects: []rbacv1.Subject{{Kind: rbacv1.ServiceAccountKind, Name: dashboardName, Namespace: "rhaii-dashboard-namespace"}}}
-	b := bundle{sa: dashboardName, roleBindings: []rbacv1.RoleBinding{rb}}
-	rep := func(kind, fieldPath string) replacement {
-		var r replacement
-		r.Source.Kind, r.Source.Name, r.Source.FieldPath = "ConfigMap", "rhaii-dashboard-params", "data.rhaii-dashboard-namespace"
-		target := replacementTarget{FieldPaths: []string{fieldPath}}
-		target.Select.Kind, target.Select.Name = kind, dashboardName
-		r.Targets = []replacementTarget{target}
-		return r
+// Kustomize applies replacements, regex selectors and external replacement
+// files before anything is installed; a source-file reading of the bundle
+// misses them. Each case overlays the real bundle with one such change and
+// expects the rendered guard to see it.
+func TestRenderedGuard_SeesKustomizeTransformations(t *testing.T) {
+	overlay := func(t *testing.T, kustomization string, extra map[string]string) bundle {
+		t.Helper()
+		fs := filesys.MakeFsInMemory()
+		require.NoError(t, copyDirInto(fs, bundleDir, "/bundle"))
+		require.NoError(t, fs.WriteFile("/overlay/kustomization.yaml", []byte(kustomization)))
+		for name, body := range extra {
+			require.NoError(t, fs.WriteFile("/overlay/"+name, []byte(body)))
+		}
+		return renderBundle(t, fs, "/overlay")
 	}
-	subject := rep("RoleBinding", "subjects.[name=rhaii-dashboard].namespace")
+	const head = "apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nresources:\n  - ../bundle\n"
 
-	assert.Empty(t, replacementViolations(b, []replacement{subject}))
-	assert.NotEmpty(t, replacementViolations(b, nil), "an unfilled subject namespace is a violation")
-	assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("Role", "rules.0.verbs")}), "rewriting rules is a violation")
-	assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("", "metadata.name")}), "a kind-less selector is a violation")
+	t.Run("regex kind selector widens the Role", func(t *testing.T) {
+		b := overlay(t, head+`configMapGenerator:
+  - name: widen
+    literals: [resource=secrets]
+replacements:
+  - source: {kind: ConfigMap, name: widen, fieldPath: data.resource}
+    targets:
+      - select: {kind: Rol., name: rhaii-dashboard}
+        fieldPaths: [rules.0.resources.0]
+`, nil)
+		got, violations := serviceAccountGrants(b)
+		require.Empty(t, violations)
+		assert.Contains(t, difference(got, contractGrants(t)), "get secrets.core (namespaced)")
+	})
 
-	image := rep("Deployment", "spec.template.spec.containers.[name=rhaii-dashboard].image")
-	assert.Empty(t, replacementViolations(b, []replacement{subject, image}))
-	for _, fp := range []string{
-		"spec.template.spec.serviceAccountName",
-		"spec.template.spec.automountServiceAccountToken",
-		"spec.template.spec.containers.[name=rhaii-dashboard].args.4",
-		"spec.template.spec.containers.[name=rhaii-dashboard].env.0.value",
-	} {
-		assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("Deployment", fp)}), fp)
-	}
-	assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("ServiceAccount", "metadata.name")}))
+	t.Run("external replacement file swaps the ServiceAccount", func(t *testing.T) {
+		b := overlay(t, head+`configMapGenerator:
+  - name: swap
+    literals: [sa=default]
+replacements:
+  - path: swap.yaml
+`, map[string]string{"swap.yaml": `source: {kind: ConfigMap, name: swap, fieldPath: data.sa}
+targets:
+  - select: {kind: Deploymen., name: rhaii-dashboard}
+    fieldPaths: [spec.template.spec.serviceAccountName]
+`})
+		assert.Equal(t, "default", b.sa, "the rendered pod identity is what the guard compares")
+	})
 
-	hardCoded := bundle{sa: dashboardName, roleBindings: []rbacv1.RoleBinding{rb}}
-	hardCoded.roleBindings[0].Subjects = []rbacv1.Subject{{Kind: rbacv1.ServiceAccountKind, Name: dashboardName, Namespace: "opendatahub"}}
-	assert.NotEmpty(t, replacementViolations(hardCoded, []replacement{subject}), "a hard-coded subject namespace is a violation")
+	t.Run("hard-coded subject namespace", func(t *testing.T) {
+		b := overlay(t, head+`patches:
+  - target: {kind: RoleBinding, name: rhaii-dashboard}
+    patch: |
+      - op: replace
+        path: /subjects/0/namespace
+        value: elsewhere
+`, nil)
+		assert.NotEmpty(t, namespaceViolations(b))
+	})
 }
 
-func decodeInto(t *testing.T, path string, b *bundle) {
-	t.Helper()
-	f, err := os.Open(filepath.Clean(path))
-	require.NoError(t, err)
-	defer f.Close()
-	dec := yaml.NewYAMLOrJSONDecoder(f, 4096)
-	for {
-		var doc map[string]any
-		err := dec.Decode(&doc)
-		if errors.Is(err, io.EOF) {
-			return
-		}
-		require.NoError(t, err, path)
-		if doc == nil {
+func copyDirInto(fs filesys.FileSystem, src, dst string) error {
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if e.IsDir() {
 			continue
 		}
-		js, err := json.Marshal(doc)
-		require.NoError(t, err)
-		switch doc["kind"] {
-		case "Deployment":
-			var d appsv1.Deployment
-			require.NoError(t, json.Unmarshal(js, &d))
-			b.deployments = append(b.deployments, d)
-		case "Role":
-			var r rbacv1.Role
-			require.NoError(t, json.Unmarshal(js, &r))
-			b.roles = append(b.roles, r)
-		case "ClusterRole":
-			var r rbacv1.ClusterRole
-			require.NoError(t, json.Unmarshal(js, &r))
-			b.clusterRoles = append(b.clusterRoles, r)
-		case "RoleBinding":
-			var r rbacv1.RoleBinding
-			require.NoError(t, json.Unmarshal(js, &r))
-			b.roleBindings = append(b.roleBindings, r)
-		case "ClusterRoleBinding":
-			var r rbacv1.ClusterRoleBinding
-			require.NoError(t, json.Unmarshal(js, &r))
-			b.clusterRoleBindings = append(b.clusterRoleBindings, r)
-		case "List", "RoleList", "ClusterRoleList", "RoleBindingList", "ClusterRoleBindingList":
-			require.Failf(t, "list document", "%s in %s hides its items from the guard; ship one object per document", doc["kind"], path)
-		case "StatefulSet", "DaemonSet", "Job", "CronJob", "Pod", "ReplicaSet":
-			require.Failf(t, "unexpected workload", "%s in %s runs with a service account the guard does not check", doc["kind"], path)
+		raw, err := os.ReadFile(filepath.Join(src, e.Name()))
+		if err != nil {
+			return err
+		}
+		if err := fs.WriteFile(filepath.Join(dst, e.Name()), raw); err != nil {
+			return err
 		}
 	}
+	return nil
 }

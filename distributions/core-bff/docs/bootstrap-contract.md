@@ -322,9 +322,11 @@ reads `auths/auth` with the service account; set `ODH_PLATFORM_TYPE=XKS` so that
 
 **This table is the shipped RBAC.** The RHAII bundle (`manifests/distributions/rhaii`, the only
 xKS manifest set) grants its service account exactly these rows in a namespaced Role, and nothing
-else: no ClusterRole is bound to it. `bff/internal/bundlecontract` parses this table and fails when
-the bundle grants a verb it does not list, omits one it lists, binds any other role or subject, or
-uses a wildcard, `resourceNames`, a non-resource URL or an aggregated ClusterRole. To change the
+else: no ClusterRole is bound to it. `bff/internal/bundlecontract` renders the bundle with the
+kustomize library the dashboard operator uses, parses this table, and fails when the rendered
+service account is granted a verb the table does not list or lacks one it lists, when the bundle
+binds any other role or subject, uses a wildcard, `resourceNames`, a non-resource URL or an
+aggregated ClusterRole, or when the Deployment leaves the production profile. To change the
 service account's access, change this table first; a row whose resource cell reads
 `` `resource` (`group`), cluster-wide `` is checked as a cluster-scoped grant. Decided in
 [RHAI-50761](https://redhat.atlassian.net/browse/RHAI-50761):

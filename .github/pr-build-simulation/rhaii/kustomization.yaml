@@ -19,6 +19,9 @@ patches:
       kind: RoleBinding
       name: rhaii-dashboard
     patch: |-
+      - op: test
+        path: /subjects/0/name
+        value: rhaii-dashboard
       - op: replace
         path: /subjects/0/namespace
         value: opendatahub

@@ -896,8 +896,9 @@ jobs:
           echo "✅ PASS: BUILD_MODE=RHOAI correctly applied RHOAI branding"
           echo "::endgroup::"
 
-  # Smoke-test the PR-built RHAII image in its own Kind cluster. This uses a
-  # CI-only harness, not the RHAII/XKS production manifest or operator path.
+  # Smoke-test the PR-built RHAII image in its own Kind cluster. The harness
+  # renders the production RHAII bundle (with its reduced RBAC) minus the
+  # Gateway-only objects; it does not exercise the operator path.
   rhaii-runtime-validation:
     name: 'Phase 2-3: RHAII Image Runtime Smoke Validation'
     runs-on: ubuntu-latest

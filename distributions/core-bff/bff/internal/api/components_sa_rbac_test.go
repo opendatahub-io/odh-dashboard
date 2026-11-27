@@ -18,11 +18,14 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
 // shippedRoles are the namespaced Roles the dashboard service account runs
@@ -278,4 +281,76 @@ func TestConnectionTypes_WithTheShippedServiceAccountRole_XKS(t *testing.T) {
 			assert.Equal(t, http.StatusOK, get.Code, get.Body.String())
 		})
 	}
+}
+
+// AC (RHAI-50761): the shipped `get odhdashboardconfigs` rule is load-bearing.
+// Without it a confirmed xKS platform still serves defaults (a forbidden read
+// degrades), so only an installed CRD with a provisioned instance tells the
+// two apart: with the shipped Role the real instance is served, without the
+// rule the defaults are.
+func TestGetConfig_TheShippedRoleServesTheProvisionedInstance_XKS(t *testing.T) {
+	preserve := true
+	crds, err := envtest.InstallCRDs(testEnvInstance.Config, envtest.CRDInstallOptions{CRDs: []*apiextensionsv1.CustomResourceDefinition{{
+		ObjectMeta: metav1.ObjectMeta{Name: "odhdashboardconfigs.opendatahub.io"},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: "opendatahub.io",
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{Plural: "odhdashboardconfigs", Kind: "OdhDashboardConfig", ListKind: "OdhDashboardConfigList"},
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{
+				Name: "v1alpha", Served: true, Storage: true,
+				Schema: &apiextensionsv1.CustomResourceValidation{OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+					Type: "object", XPreserveUnknownFields: &preserve,
+				}},
+			}},
+		},
+	}}})
+	require.NoError(t, err)
+	// Other tests in this package rely on the CRD being absent; wait until it is gone.
+	t.Cleanup(func() {
+		require.NoError(t, envtest.UninstallCRDs(testEnvInstance.Config, envtest.CRDInstallOptions{CRDs: crds}))
+	})
+
+	read := func(t *testing.T, rules []rbacv1.PolicyRule) map[string]any {
+		t.Helper()
+		dyn, namespace := serviceAccountDynamicClient(t, rules)
+		adminDyn, err := dynamic.NewForConfig(testEnvInstance.Config)
+		require.NoError(t, err)
+		_, err = adminDyn.Resource(models.DashboardConfigGVR).Namespace(namespace).Create(context.Background(), &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "opendatahub.io/v1alpha",
+			"kind":       "OdhDashboardConfig",
+			"metadata":   map[string]any{"name": "odh-dashboard-config"},
+			"spec":       map[string]any{"dashboardConfig": map[string]any{}},
+		}}, metav1.CreateOptions{})
+		require.NoError(t, err)
+
+		app := newTestApp(func(a *App) {
+			a.config.Namespace = namespace
+			a.config.DashboardConfigName = "odh-dashboard-config"
+			a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+				Platform: config.PlatformXKS, PlatformConfirmed: true, SADynClient: dyn, Namespace: namespace,
+			})
+		})
+		rr := httptest.NewRecorder()
+		app.GetConfigHandler(rr, httptest.NewRequest(http.MethodGet, "/api/config", nil), nil)
+		require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+		var body map[string]any
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+		return body
+	}
+	uid := func(body map[string]any) any {
+		meta, _ := body["metadata"].(map[string]any)
+		return meta["uid"]
+	}
+
+	role := readRole(t, shippedRoles["RHAII bundle"])
+	assert.NotEmpty(t, uid(read(t, role.Rules)), "the shipped Role must serve the provisioned instance")
+
+	var withoutGet []rbacv1.PolicyRule
+	for _, r := range role.Rules {
+		if len(r.APIGroups) == 1 && r.APIGroups[0] == "opendatahub.io" {
+			continue
+		}
+		withoutGet = append(withoutGet, r)
+	}
+	assert.Empty(t, uid(read(t, withoutGet)), "without the rule a forbidden read serves defaults")
 }
