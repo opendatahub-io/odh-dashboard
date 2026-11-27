@@ -106,7 +106,7 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
 const PopularTagsSkeleton = () => {
   const fontSize = 'var(--pf-t--global--font--size--body--sm)';
   return (
-    <Gallery hasGutter>
+    <Gallery hasGutter data-testid="popular-tags-loading">
       <GalleryItem>
         <Card>
           <CardHeader>
