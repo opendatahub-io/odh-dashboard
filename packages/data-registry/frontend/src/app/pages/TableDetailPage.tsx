@@ -162,15 +162,21 @@ const TableDetailPage: React.FC = () => {
     }
     if (isVolume) {
       await deleteVolume(project, collection, name);
-      notification.success('Volume deleted', `${name} was deleted successfully.`);
+      notification.success(
+        'Volume deleted',
+        `${asset?.display_name || name} was deleted successfully.`,
+      );
     } else {
       await deleteGenericTable(project, collection, name);
-      notification.success('Table deleted', `${name} was deleted successfully.`);
+      notification.success(
+        'Table deleted',
+        `${asset?.display_name || name} was deleted successfully.`,
+      );
     }
     navigate(browseUrl(project));
-  }, [project, collection, name, navigate, isVolume, notification]);
+  }, [asset?.display_name, project, collection, name, navigate, isVolume, notification]);
 
-  const displayName = name || 'Loading...';
+  const displayName = asset?.display_name || asset?.name || name || 'Loading...';
 
   const breadcrumb = (
     <Breadcrumb>

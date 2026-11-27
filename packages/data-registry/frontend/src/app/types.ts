@@ -88,6 +88,7 @@ export type PiiStatus = (typeof PII_STATUS_VALUES)[number];
 
 export type AssetResponseBase = {
   name: string;
+  display_name?: string;
   uuid: string;
   storage_location?: string | null;
   columns?: SchemaField[] | null;
@@ -137,6 +138,7 @@ export type CreateNamespaceRequest = {
 
 export type CreateVolumeRequest = {
   name: string;
+  display_name: string;
   format: UnstructuredFormat;
   storage_location?: string;
   connection_ref?: ConnectionRef | null;
@@ -152,6 +154,7 @@ export type CreateVolumeRequest = {
 
 export type CreateGenericTableRequest = {
   name: string;
+  display_name: string;
   format: StructuredFormat;
   storage_location?: string;
   connection_ref?: ConnectionRef | null;

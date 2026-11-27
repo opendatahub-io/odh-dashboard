@@ -24,6 +24,18 @@ const mockRestGET = jest.mocked(modArchCore.restGET);
 const mockRestDELETE = jest.mocked(modArchCore.restDELETE);
 
 describe('fetchGenericTable', () => {
+  it('should accept a legacy response without display_name', async () => {
+    const legacyAsset = mockAssetResponse({
+      name: 'legacy-table',
+    });
+    delete legacyAsset.display_name;
+    mockRestGET.mockResolvedValue(legacyAsset);
+
+    await expect(
+      fetchGenericTable('test-project', 'default', 'legacy-table'),
+    ).resolves.toMatchObject({ name: 'legacy-table' });
+  });
+
   it('should accept null columns for tables without a schema', async () => {
     mockRestGET.mockResolvedValue({
       ...mockAssetResponse({ name: 'schema-less-table' }),

@@ -4,7 +4,10 @@ import { fetchCollections, fetchAssets, fetchVolumes } from '~/app/api/dataRegis
 import type { AssetResponse } from '~/app/types';
 
 export type RegistryAsset = {
+  /** Human-readable name shown in the UI. */
   name: string;
+  /** Immutable technical name used in routes and API calls. */
+  resourceName: string;
   description: string;
   format: string;
   assetType: 'table' | 'volume';
@@ -26,7 +29,8 @@ const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset 
     : '';
 
   return {
-    name: asset.name,
+    name: asset.display_name || asset.name,
+    resourceName: asset.name,
     description: asset.description || '',
     format: asset.format,
     assetType: asset.asset_type,
@@ -48,7 +52,8 @@ const mapVolumeAsset = (volume: AssetResponse, collection: string): RegistryAsse
     : '';
 
   return {
-    name: volume.name,
+    name: volume.display_name || volume.name,
+    resourceName: volume.name,
     description: volume.description || '',
     format: volume.format,
     assetType: volume.asset_type,

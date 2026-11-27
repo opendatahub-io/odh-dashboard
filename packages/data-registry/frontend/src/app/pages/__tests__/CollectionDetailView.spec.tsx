@@ -18,9 +18,9 @@ const mockCollectionDetail: CollectionDetail = {
   structuredCount: 2,
   unstructuredCount: 1,
   assets: [
-    { name: 'table1', assetType: 'table', format: 'iceberg' },
-    { name: 'table2', assetType: 'table', format: 'delta' },
-    { name: 'volume1', assetType: 'volume', format: 'external' },
+    { name: 'table1', resourceName: 'table1', assetType: 'table', format: 'iceberg' },
+    { name: 'table2', resourceName: 'table2', assetType: 'table', format: 'delta' },
+    { name: 'volume1', resourceName: 'volume1', assetType: 'volume', format: 'external' },
   ],
 };
 

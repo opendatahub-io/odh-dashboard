@@ -54,7 +54,12 @@ describe('useCollectionDetail', () => {
 
     mockFetchAssets.mockResolvedValue({
       assets: [
-        mockAssetResponse({ name: 'table1', format: 'iceberg', collection: 'default' }),
+        mockAssetResponse({
+          name: 'table1',
+          display_name: 'Table one',
+          format: 'iceberg',
+          collection: 'default',
+        }),
         mockAssetResponse({ name: 'table2', format: 'delta', collection: 'default' }),
       ],
     });
@@ -87,9 +92,9 @@ describe('useCollectionDetail', () => {
       structuredCount: 2,
       unstructuredCount: 1,
       assets: [
-        { name: 'table1', assetType: 'table', format: 'iceberg' },
-        { name: 'table2', assetType: 'table', format: 'delta' },
-        { name: 'volume1', assetType: 'volume', format: 'other' },
+        { name: 'Table one', resourceName: 'table1', assetType: 'table', format: 'iceberg' },
+        { name: 'table2', resourceName: 'table2', assetType: 'table', format: 'delta' },
+        { name: 'volume1', resourceName: 'volume1', assetType: 'volume', format: 'other' },
       ],
     });
   });

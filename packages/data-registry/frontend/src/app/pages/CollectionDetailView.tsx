@@ -58,7 +58,7 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
     ? assetDetailUrl(
         project,
         collectionName,
-        asset.name,
+        asset.resourceName,
         asset.assetType === 'volume' ? 'volume' : 'table',
       )
     : undefined;
@@ -100,7 +100,7 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
               onClick={() => setIsKebabOpen((prev) => !prev)}
               isExpanded={isKebabOpen}
               aria-label={`Actions for ${asset.name}`}
-              data-testid={`asset-kebab-${asset.name}`}
+              data-testid={`asset-kebab-${asset.resourceName}`}
             >
               <EllipsisVIcon />
             </MenuToggle>
@@ -186,7 +186,7 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
                   const assetType = asset.assetType === 'table' ? 'Structured' : 'Unstructured';
                   return (
                     <AssetRow
-                      key={`${asset.assetType}-${asset.name}`}
+                      key={`${asset.assetType}-${asset.resourceName}`}
                       asset={asset}
                       assetType={assetType}
                       collectionName={collection.name}

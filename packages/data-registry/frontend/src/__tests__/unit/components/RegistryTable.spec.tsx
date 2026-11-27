@@ -16,6 +16,7 @@ const mockTrackEvent = jest.fn();
 const mockAssets: RegistryAsset[] = [
   {
     name: 'claims-data',
+    resourceName: 'claims-data',
     description: 'Claims processing data',
     format: 'parquet',
     assetType: 'table',
@@ -31,6 +32,7 @@ const mockAssets: RegistryAsset[] = [
   },
   {
     name: 'raw-documents',
+    resourceName: 'raw-documents',
     description: 'PDF documents',
     format: 'documents',
     assetType: 'volume',
@@ -89,6 +91,18 @@ describe('RegistryTable', () => {
     renderTable();
     expect(screen.getByText('claims-data')).toBeTruthy();
     expect(screen.getByText('raw-documents')).toBeTruthy();
+  });
+
+  it('should display the display name while linking with the resource name', () => {
+    renderTable({
+      assets: [{ ...mockAssets[0], name: 'Claims data', resourceName: 'claims-data' }],
+    });
+
+    expect(screen.queryByText('claims-data')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Claims data' })).toHaveAttribute(
+      'href',
+      '/ai-hub/data/browse/assets/table/test-project/analytics/claims-data',
+    );
   });
 
   it('should render format badges', () => {

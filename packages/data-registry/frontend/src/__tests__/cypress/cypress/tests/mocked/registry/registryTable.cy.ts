@@ -410,6 +410,20 @@ describe('Register Volume', () => {
     cy.findByTestId('register-data-button').click();
     cy.findByTestId('register-data-modal').should('exist');
     cy.contains('Register data').should('exist');
+    cy.findByRole('heading', { name: 'Data asset details' }).should('exist');
+    cy.findByTestId('data-project-input')
+      .should('have.value', 'test-project')
+      .and('have.attr', 'readonly');
+    cy.findByTestId('data-name-input').type('Claims Déjà Vu');
+    cy.contains('The resource name will be').should('contain.text', 'claims-deja-vu');
+    cy.findByTestId('data-edit-resource-name').click();
+    cy.findByTestId('data-resource-name-input').should('have.value', 'claims-deja-vu');
+    cy.contains('Cannot exceed 30 characters.').should('exist');
+    cy.contains(
+      'Must start and end with a letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).',
+    ).should('exist');
+    cy.findByRole('button', { name: 'Hide resource name' }).click();
+    cy.findByTestId('data-resource-name-input').should('not.exist');
     cy.contains(
       'A data asset is a metadata record that helps users discover and understand external data. It stores information like location, format, and schema, but not the data itself.',
     ).should('exist');
@@ -421,7 +435,7 @@ describe('Register Volume', () => {
 
     cy.findByTestId('register-data-submit').click();
 
-    cy.contains('Asset name is required').should('exist');
+    cy.contains('Data asset name is required').should('exist');
     cy.contains('Collection is required').should('exist');
   });
 
@@ -484,6 +498,7 @@ describe('Register Volume', () => {
     cy.wait('@createVolume').then((interception) => {
       expect(interception.request.body).to.deep.include({
         name: 'new-volume',
+        display_name: 'new-volume',
         format: 'documents',
         description: 'Test volume',
         storage_location: '/data/docs',

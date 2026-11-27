@@ -348,9 +348,9 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   const handleDelete = React.useCallback(
     async (asset: RegistryAsset) => {
       if (asset.assetType === 'volume') {
-        await deleteVolume(project, asset.collection, asset.name);
+        await deleteVolume(project, asset.collection, asset.resourceName);
       } else {
-        await deleteGenericTable(project, asset.collection, asset.name);
+        await deleteGenericTable(project, asset.collection, asset.resourceName);
       }
       notification.success('Asset deleted', `${asset.name} was deleted successfully.`);
       setDeleteAsset(null);
@@ -896,7 +896,11 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               paginatedAssets.map((asset) => {
                 const badge = getFormatBadge(asset.format);
                 const assetTypeLabel = asset.assetType === 'table' ? 'Structured' : 'Unstructured';
-                const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
+                const assetKey = JSON.stringify([
+                  asset.assetType,
+                  asset.collection,
+                  asset.resourceName,
+                ]);
                 const connectionRef = asset.rawAsset?.connection_ref;
                 const connectionType = connectionRef
                   ? displayConnections.find(
@@ -905,7 +909,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                     )?.connectionType
                   : undefined;
                 const assetTestId = (prefix: string) =>
-                  `${prefix}-${asset.assetType}-${asset.collection}-${asset.name}`;
+                  `${prefix}-${asset.assetType}-${asset.collection}-${asset.resourceName}`;
                 return (
                   <Tr key={assetKey}>
                     <Td dataLabel="Name">
@@ -918,7 +922,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                             to={assetDetailUrl(
                               project,
                               asset.collection,
-                              asset.name,
+                              asset.resourceName,
                               asset.assetType,
                             )}
                             onClick={() => {
@@ -1073,7 +1077,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           assetKind={editAsset.assetType}
           project={project}
           collection={editAsset.collection}
-          name={editAsset.name}
+          name={editAsset.resourceName}
           hasExistingDchConnectionReferences={hasExistingDchConnectionReferences}
           onClose={handleEditClosed}
           onSaved={handleEditSaved}

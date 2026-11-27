@@ -10,6 +10,7 @@ const mockFetchCollectionDetails = jest.mocked(api.fetchCollectionDetails);
 const mockAssets: RegistryAsset[] = [
   {
     name: 'table1',
+    resourceName: 'table1',
     description: '',
     format: 'parquet',
     assetType: 'table',
@@ -21,6 +22,7 @@ const mockAssets: RegistryAsset[] = [
   },
   {
     name: 'volume1',
+    resourceName: 'volume1',
     description: '',
     format: 'application/pdf',
     assetType: 'volume',
@@ -32,6 +34,7 @@ const mockAssets: RegistryAsset[] = [
   },
   {
     name: 'table2',
+    resourceName: 'table2',
     description: '',
     format: 'iceberg',
     assetType: 'table',

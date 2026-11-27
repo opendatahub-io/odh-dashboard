@@ -30,6 +30,7 @@ describe('useAssets', () => {
       assets: [
         mockAssetResponse({
           name: 'test-table',
+          display_name: 'Test table display name',
           description: 'A test table',
           labels: ['production'],
           collection: 'default',
@@ -59,7 +60,8 @@ describe('useAssets', () => {
     expect(assets).toHaveLength(4); // 2 collections × (1 table + 1 volume)
     expect(assets.filter((a) => a.assetType === 'table')).toHaveLength(2);
     expect(assets.filter((a) => a.assetType === 'volume')).toHaveLength(2);
-    expect(assets[0].name).toBe('test-table');
+    expect(assets[0].name).toBe('Test table display name');
+    expect(assets[0].resourceName).toBe('test-table');
     expect(assets[0].format).toBe('parquet');
     expect(assets[0].labels).toEqual(['production']);
     expect(assets[0].properties).toEqual({ domain: 'finance' });

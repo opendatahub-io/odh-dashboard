@@ -1535,6 +1535,14 @@ components:
       properties:
         name:
           type: string
+          maxLength: 30
+          pattern: '^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$'
+          description: Immutable resource name used in API paths and technical integrations.
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 250
+          description: Human-readable data asset name. If omitted, the service uses the resource name.
         format:
           type: string
           description: Asset format. The concrete allowed values are defined by the asset type.
@@ -1561,7 +1569,7 @@ components:
           anyOf:
             - $ref: '#/components/schemas/MaturityType'
             - type: 'null'
-          description: "Lifecycle stage (e.g. experimental, staging, production, deprecated). Round-trips as `properties.maturity`."
+          description: 'Lifecycle stage (e.g. experimental, staging, production, deprecated). Round-trips as `properties.maturity`.'
         domain:
           type: ['string', 'null']
           description: Business domain. Round-trips as `properties.domain`.
@@ -1604,6 +1612,11 @@ components:
         to remove custom property keys. If a property key is present in both `properties` and
         `remove_properties`, removal takes precedence.
       properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 250
+          description: Human-readable data asset name. Omit to preserve the current value.
         format:
           type: string
           description: Asset format. The concrete allowed values are defined by the asset type.
@@ -1633,7 +1646,7 @@ components:
           anyOf:
             - $ref: '#/components/schemas/MaturityType'
             - type: 'null'
-          description: "Lifecycle stage. Updates `properties.maturity` when supplied. Null clears."
+          description: 'Lifecycle stage. Updates `properties.maturity` when supplied. Null clears.'
         domain:
           type: ['string', 'null']
           description: Business domain. Updates `properties.domain` when supplied. Null clears.
@@ -1701,7 +1714,7 @@ components:
           description: Column name
         type:
           type: string
-          description: "Data type (e.g. string, integer, long, float, double, decimal, boolean, date, timestamp, binary)"
+          description: 'Data type (e.g. string, integer, long, float, double, decimal, boolean, date, timestamp, binary)'
         description:
           type: string
           description: Human-readable column description
@@ -1742,10 +1755,14 @@ components:
 
     AssetResponseBase:
       type: object
-      required: [name, uuid, collection, owner, created_at, updated_at]
+      required: [name, display_name, uuid, collection, owner, created_at, updated_at]
       properties:
         name:
           type: string
+          description: Immutable resource name used in API paths and technical integrations.
+        display_name:
+          type: string
+          description: Human-readable data asset name. Legacy assets return the resource name as a fallback.
         uuid:
           type: string
           format: uuid

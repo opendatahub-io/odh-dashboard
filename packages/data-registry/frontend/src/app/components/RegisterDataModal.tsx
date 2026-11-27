@@ -63,6 +63,7 @@ const buildSharedAssetRequest = (
 ): SharedCreateAssetRequest => {
   const request: SharedCreateAssetRequest = {
     name: data.name.trim(),
+    display_name: data.displayName.trim(),
     format: data.format,
   };
   if (data.description) {
@@ -289,7 +290,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         ) : null}
         <FormProvider {...form}>
           <Form className={styles.registrationForm}>
-            <RegistrationIdentitySection />
+            <RegistrationIdentitySection project={project} />
             <DataLocationSection
               project={project}
               connections={connections}

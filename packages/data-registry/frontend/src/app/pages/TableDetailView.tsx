@@ -143,6 +143,13 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
                     <DescriptionListDescription data-testid="asset-name">
+                      {asset.display_name || asset.name || '-'}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Resource name</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="asset-resource-name">
                       {asset.name || '-'}
                     </DescriptionListDescription>
                   </DescriptionListGroup>

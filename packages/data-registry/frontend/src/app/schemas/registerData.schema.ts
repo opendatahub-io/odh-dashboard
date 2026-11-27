@@ -21,12 +21,20 @@ const schemaFieldWithValidation = z.object({
 
 const registerDataBaseSchema = z.object({
   assetType: z.enum(['unstructured', 'structured']),
+  displayName: z
+    .string()
+    .trim()
+    .min(1, 'Data asset name is required')
+    .max(250, 'Data asset name must be 250 characters or fewer'),
   name: z
     .string()
     .trim()
-    .min(1, 'Asset name is required')
-    .max(63, 'Name must be 63 characters or fewer')
-    .regex(ASSET_NAME_REGEX, 'Name must contain only lowercase letters, numbers, and hyphens'),
+    .min(1, 'Resource name is required')
+    .max(30, 'Cannot exceed 30 characters')
+    .regex(
+      ASSET_NAME_REGEX,
+      'Must start and end with a letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).',
+    ),
   description: z.string().max(500, 'Description must be 500 characters or fewer'),
   format: z.string(),
   collection: z.string().min(1, 'Collection is required'),
@@ -72,6 +80,7 @@ export type RegisterDataFormData = z.infer<typeof registerDataSchema>;
 
 export const registerDataDefaults: RegisterDataFormData = {
   assetType: 'structured',
+  displayName: '',
   name: '',
   description: '',
   format: 'other',

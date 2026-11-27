@@ -3,6 +3,11 @@ import { LICENSE_VALUES, MATURITY_VALUES, PII_STATUS_VALUES } from '~/app/types'
 
 export const editAssetSchema = z.object({
   assetType: z.enum(['unstructured', 'structured']),
+  displayName: z
+    .string()
+    .trim()
+    .min(1, 'Data asset name is required')
+    .max(250, 'Data asset name must be 250 characters or fewer'),
   name: z.string(),
   description: z.string().max(500, 'Description must be 500 characters or fewer'),
   format: z.string(),

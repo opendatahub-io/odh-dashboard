@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import EditAssetModal from '~/app/components/EditAssetModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
@@ -193,6 +193,37 @@ describe('EditAssetModal', () => {
     await waitFor(() => expect(mockUpdateGenericTable).toHaveBeenCalled());
     expect(mockUpdateGenericTable.mock.calls[0][3]).not.toHaveProperty('add_labels');
     expect(mockUpdateGenericTable.mock.calls[0][3]).not.toHaveProperty('remove_labels');
+  });
+
+  it('should update the display name without changing the resource name', async () => {
+    const user = userEvent.setup();
+    mockUpdateGenericTable.mockResolvedValue(undefined);
+    render(
+      <EditAssetModal
+        asset={asset}
+        assetKind="table"
+        project="test-project"
+        collection="analytics"
+        name="claims-data"
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('data-resource-name-input')).toHaveValue('claims-data');
+    expect(screen.getByTestId('data-resource-name-input')).toHaveAttribute('readonly');
+    fireEvent.change(screen.getByTestId('data-name-input'), {
+      target: { value: 'Claims data (curated)' },
+    });
+    await user.click(screen.getByTestId('edit-asset-save'));
+
+    await waitFor(() => expect(mockUpdateGenericTable).toHaveBeenCalled());
+    expect(mockUpdateGenericTable).toHaveBeenCalledWith(
+      'test-project',
+      'analytics',
+      'claims-data',
+      expect.objectContaining({ display_name: 'Claims data (curated)' }),
+    );
   });
 
   describe.each(['table', 'volume'] as const)('%s connection updates', (kind) => {
