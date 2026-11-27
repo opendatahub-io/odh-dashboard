@@ -126,6 +126,7 @@ authorization:
               - "70121:8665986b-a71f-433a-ac17-6cdf48859866" # Eder Ignatowicz
               - "70121:dca0fa75-1ce0-42e6-b2f0-f87a6fba6c66" # Guannan Sun
               - "712020:827a9d62-5a58-4f8d-adc4-571c3fb2ad23" # Bill Murdock
+              - "712020:fea73c91-4240-465a-aa6e-668b3973a770" # Alicia Petrunin
       labels: allowlist
 # Shared Fullsend inference project (same one opendatahub-io/notebooks uses).
 # The workflows read the matching FULLSEND_GCP_PROJECT_ID and
