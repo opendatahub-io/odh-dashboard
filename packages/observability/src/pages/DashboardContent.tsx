@@ -15,6 +15,7 @@ import {
   BASE_PATH,
   getDashboardDisplayName,
   hasClusterDetailsVariables,
+  hasNamespaceVariable,
   DASHBOARD_URL_PARAM,
   NAMESPACE_URL_PARAM,
 } from '../utils/dashboardUtils';
@@ -40,23 +41,27 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   ClusterDetailsAdapter,
 }) => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Intercept relative link clicks in the Perses dashboard and use React Router navigation
   const setRelativeLinkHandlerRef = useRelativeLinkHandler(browserBasePath);
 
-  // Get dashboard name from query param
-  const dashboardNameFromUrl = searchParams.get(DASHBOARD_URL_PARAM) || '';
+  // Seed from window.location ONCE: Perses syncToUrl (time range) rewrites the
+  // query string and drops params it does not own (`dashboard=`,
+  // `var-namespace=`). Reading live searchParams would lose the selection after
+  // that rewrite, remount PersesProvider without the URL defaults, and reset
+  // both the tab and the project dropdown on refresh.
+  const [initialSearchParams] = React.useState(() => new URLSearchParams(window.location.search));
 
   // Get initial namespace value from URL to preserve selection across tab switches
   const initialNamespaceValue = React.useMemo(() => {
-    const urlValue = searchParams.get(NAMESPACE_URL_PARAM);
+    const urlValue = initialSearchParams.get(NAMESPACE_URL_PARAM);
     if (!urlValue) {
       return undefined;
     }
     // Handle comma-separated values for multi-select
     return urlValue.includes(',') ? urlValue.split(',') : urlValue;
-  }, [searchParams]);
+  }, [initialSearchParams]);
 
   // Transform dashboards to use static namespace options when projects are available
   // This prevents Perses from running a Prometheus query when we can provide the options directly
@@ -69,14 +74,28 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
     [dashboards, projects, initialNamespaceValue],
   );
 
+  // Sticky tab selection: seeded from the initial URL, updated by tab clicks and
+  // legitimate URL changes (back/forward), but never reset by Perses dropping
+  // the `dashboard=` param from the query string.
+  const [selectedDashboardName, setSelectedDashboardName] = React.useState(
+    () => initialSearchParams.get(DASHBOARD_URL_PARAM) ?? '',
+  );
+
+  React.useEffect(() => {
+    const fromUrl = searchParams.get(DASHBOARD_URL_PARAM);
+    if (fromUrl && fromUrl !== selectedDashboardName) {
+      setSelectedDashboardName(fromUrl);
+    }
+  }, [searchParams, selectedDashboardName]);
+
   // Find the active dashboard by name, defaulting to first dashboard
   const activeDashboardIndex = React.useMemo(() => {
-    if (!dashboardNameFromUrl) {
+    if (!selectedDashboardName) {
       return 0;
     }
-    const index = transformedDashboards.findIndex((d) => d.metadata.name === dashboardNameFromUrl);
+    const index = transformedDashboards.findIndex((d) => d.metadata.name === selectedDashboardName);
     return index >= 0 ? index : 0;
-  }, [transformedDashboards, dashboardNameFromUrl]);
+  }, [transformedDashboards, selectedDashboardName]);
 
   // Handle tab selection - use React Router for normal clicks, allow browser default for cmd/ctrl+click
   const handleTabSelect = React.useCallback(
@@ -86,6 +105,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
         return;
       }
       event.preventDefault();
+      setSelectedDashboardName(String(eventKey));
       // Use replace to avoid creating extra history entries when switching tabs
       navigate(buildDashboardUrl(String(eventKey), searchParams.toString()), {
         replace: true,
@@ -94,12 +114,38 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
     [navigate, searchParams],
   );
 
+  // Active dashboard name must be computed before any early return so the
+  // URL re-assert effect below always runs in the same hook order.
+  const activeDashboardName = transformedDashboards[activeDashboardIndex]?.metadata.name ?? '';
+
+  // Re-assert `dashboard=` after Perses syncToUrl rewrites the query string
+  // without it, so a browser refresh keeps the selected tab. setSearchParams
+  // only — a full navigate() here would loop and wipe the time-range params.
+  React.useEffect(() => {
+    if (!activeDashboardName) {
+      return;
+    }
+    // Never overwrite a URL that already pins a dashboard - the sync effect
+    // above adopts it. Writing here before that adoption lands would ping-pong
+    // between the two effects (URL <-> selection) forever.
+    if (searchParams.get(DASHBOARD_URL_PARAM)) {
+      return;
+    }
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        params.set(DASHBOARD_URL_PARAM, activeDashboardName);
+        return params;
+      },
+      { replace: true },
+    );
+  }, [activeDashboardName, searchParams, setSearchParams]);
+
   if (transformedDashboards.length === 0) {
     return null;
   }
 
   const activeDashboard = transformedDashboards[activeDashboardIndex] || transformedDashboards[0];
-  const activeDashboardName = activeDashboard.metadata.name;
   const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
 
   return (
@@ -111,7 +157,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
         persesProxyBasePath={persesProxyBasePath}
       >
         {needsClusterDetails && <ClusterDetailsAdapter />}
-        <NamespaceUrlSync />
+        {hasNamespaceVariable(activeDashboard) && <NamespaceUrlSync />}
         <ApplicationsPage
           title={DASHBOARD_PAGE_TITLE}
           description={DASHBOARD_PAGE_DESCRIPTION}

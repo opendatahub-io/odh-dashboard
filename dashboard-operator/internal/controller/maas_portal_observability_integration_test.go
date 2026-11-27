@@ -117,6 +117,8 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 			ingress, found, err := unstructured.NestedSlice(policy.Object, "spec", "ingress")
 			require.NoError(t, err)
 			require.True(t, found)
+			// Single rule: in-cluster dashboard + MaaS portal. The gateway peer is
+			// intentionally absent until the /perses/api HTTPRoute has a product owner.
 			require.Len(t, ingress, 1)
 			peers := ingress[0].(map[string]interface{})["from"].([]interface{})
 			require.Len(t, peers, 2)
@@ -132,7 +134,7 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 			coreNamespace, found, err := unstructured.NestedString(peers[0].(map[string]interface{}), "namespaceSelector", "matchLabels", "kubernetes.io/metadata.name")
 			require.NoError(t, err)
 			require.True(t, found)
-			assert.Equal(t, "redhat-ods-applications", coreNamespace, "core dashboard ingress must remain unchanged")
+			assert.Equal(t, integrationNamespace, coreNamespace, "dashboard peer must use applicationsNamespace")
 			dashboard = getDashboard(t)
 			if tt.autoDetect {
 				assert.Nil(t, dashboard.Spec.Observability, "auto-detection must remain in memory")

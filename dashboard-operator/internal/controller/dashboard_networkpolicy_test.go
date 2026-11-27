@@ -10,7 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 )
@@ -178,6 +180,128 @@ func renderOverlayAllowPorts(t *testing.T, overlay string) networkingv1.NetworkP
 	}
 	t.Fatalf("dashboard-allow-ports NetworkPolicy not found in rendered %q overlay", overlay)
 	return networkingv1.NetworkPolicy{}
+}
+
+// TestRHOAIPersesAccessAllowsApplications guards the in-cluster consumers
+// (dashboard + MaaS portal pods) of the dashboard-perses-access policy in the
+// source YAML and the kustomize-rendered observability overlay the reconciler
+// applies.
+//
+// The data-science-gateway peer is intentionally absent: no product component
+// creates the /perses/api HTTPRoute yet (test clusters carry a hand-applied
+// workaround route). Re-adding the peer requires landing that route ownership
+// first — see the odh-observability follow-up.
+func TestRHOAIPersesAccessAllowsApplications(t *testing.T) {
+	t.Parallel()
+	assertPersesAccessPolicy(t, "rhoai",
+		ingressPeer{"redhat-ods-applications", "app.kubernetes.io/part-of", "rhods-dashboard"},
+		ingressPeer{"redhat-ods-applications", "app.kubernetes.io/part-of", "maas-portal"},
+	)
+}
+
+// TestODHPersesAccessAllowsApplications is the ODH counterpart of
+// TestRHOAIPersesAccessAllowsApplications.
+func TestODHPersesAccessAllowsApplications(t *testing.T) {
+	t.Parallel()
+	assertPersesAccessPolicy(t, "odh",
+		ingressPeer{"opendatahub", "app.kubernetes.io/part-of", "odh-dashboard"},
+	)
+}
+
+type ingressPeer struct {
+	namespace, podLabelKey, podLabelValue string
+}
+
+func assertPersesAccessPolicy(t *testing.T, overlay string, peers ...ingressPeer) {
+	t.Helper()
+
+	// Source YAML
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "manifests", "observability", overlay, "network-policy.yaml"))
+	require.NoError(t, err)
+	assertPersesAccessPolicyYAML(t, data, peers...)
+
+	// Rendered observability overlay (what the dashboard-operator applies)
+	path := filepath.Join("..", "..", "..", "manifests", "observability", overlay)
+	resources, err := kustomize.NewEngine().Render(path, kustomize.WithNamespace("redhat-ods-monitoring"))
+	require.NoError(t, err)
+	var rendered []byte
+	for _, resource := range resources {
+		if resource.GetKind() == "NetworkPolicy" && resource.GetName() == "dashboard-perses-access" {
+			rendered, err = yaml.Marshal(resource.Object)
+			require.NoError(t, err)
+			break
+		}
+	}
+	require.NotEmpty(t, rendered, "dashboard-perses-access missing from rendered observability/%s overlay", overlay)
+	assertPersesAccessPolicyYAML(t, rendered, peers...)
+}
+
+func assertPersesAccessPolicyYAML(t *testing.T, data []byte, peers ...ingressPeer) {
+	t.Helper()
+	resource := unstructured.Unstructured{}
+	require.NoError(t, yaml.Unmarshal(data, &resource.Object))
+	var policy networkingv1.NetworkPolicy
+	require.NoError(t, runtime.DefaultUnstructuredConverter.FromUnstructured(resource.Object, &policy))
+	require.Equal(t, "dashboard-perses-access", policy.Name)
+	for _, peer := range peers {
+		assert.True(t, ingressAllowsNamespacedPod(policy, 8080, peer.namespace, peer.podLabelKey, peer.podLabelValue),
+			"must allow %s/%s=%s on 8080", peer.namespace, peer.podLabelKey, peer.podLabelValue)
+	}
+	// No product component creates the /perses/api HTTPRoute yet, so the
+	// policy must not admit openshift-ingress gateway pods. Re-adding this
+	// peer requires the route to land with a real owner first.
+	assert.False(t, ingressAllowsNamespacedPodLabels(policy, 8080, "openshift-ingress", map[string]string{
+		"gateway.networking.k8s.io/gateway-name": "data-science-gateway",
+	}), "gateway→Perses peer must stay absent until the /perses/api HTTPRoute has a product owner")
+}
+
+func ingressAllowsPort(policy networkingv1.NetworkPolicy, port int32, peerMatches func(networkingv1.NetworkPolicyPeer) bool) bool {
+	for _, rule := range policy.Spec.Ingress {
+		portOK := false
+		for _, p := range rule.Ports {
+			// Port-only match is not enough: UDP :8080 must not satisfy TCP ingress asserts.
+			// Nil protocol defaults to TCP in NetworkPolicy.
+			if p.Port != nil && p.Port.IntVal == port &&
+				(p.Protocol == nil || *p.Protocol == corev1.ProtocolTCP) {
+				portOK = true
+				break
+			}
+		}
+		if !portOK {
+			continue
+		}
+		for _, peer := range rule.From {
+			if peerMatches(peer) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func ingressAllowsNamespacedPod(policy networkingv1.NetworkPolicy, port int32, namespace, podLabelKey, podLabelValue string) bool {
+	return ingressAllowsNamespacedPodLabels(policy, port, namespace, map[string]string{podLabelKey: podLabelValue})
+}
+
+// ingressAllowsNamespacedPodLabels is true when some ingress peer for port would
+// admit a pod in `namespace` that carries exactly `podLabels` (NetworkPolicy
+// semantics: peer selectors must match the pod, so peer requirements ⊆ pod labels,
+// including matchExpressions).
+func ingressAllowsNamespacedPodLabels(policy networkingv1.NetworkPolicy, port int32, namespace string, podLabels map[string]string) bool {
+	return ingressAllowsPort(policy, port, func(peer networkingv1.NetworkPolicyPeer) bool {
+		if peer.NamespaceSelector == nil || peer.PodSelector == nil || peer.IPBlock != nil {
+			return false
+		}
+		nsSelector, err := metav1.LabelSelectorAsSelector(peer.NamespaceSelector)
+		if err != nil || !nsSelector.Matches(labels.Set{"kubernetes.io/metadata.name": namespace}) {
+			return false
+		}
+		podSelector, err := metav1.LabelSelectorAsSelector(peer.PodSelector)
+		if err != nil {
+			return false
+		}
+		return podSelector.Matches(labels.Set(podLabels))
+	})
 }
 
 // TestDashboardEgressRenderedOverlays guards RHOAIENG-100654 and RHOAIENG-100638 at the

@@ -9,6 +9,8 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # Dashboard / MaaS portal pods (in-cluster BFF or direct service calls).
+    # applicationsNamespace is rewritten by the dashboard-operator at apply time.
     - from:
         - namespaceSelector:
             matchLabels:

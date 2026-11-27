@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { DashboardResource } from '@perses-dev/core';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import DashboardContent from '../DashboardContent';
@@ -30,7 +30,17 @@ jest.mock('@patternfly/react-core', () => ({
 
 jest.mock('../../perses/embeddable/PersesProvider', () => ({
   __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  default: ({
+    children,
+    dashboardResource,
+  }: {
+    children: React.ReactNode;
+    dashboardResource: { metadata: { name: string } };
+  }) => (
+    <div data-testid="perses-provider" data-dashboard={dashboardResource.metadata.name}>
+      {children}
+    </div>
+  ),
   PersesDashboardGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
@@ -127,6 +137,56 @@ describe('DashboardContent', () => {
 
     expect(screen.getByTestId('current-location').textContent).toBe(
       '/observe-and-monitor/dashboard?dashboard=dashboard-1-model',
+    );
+  });
+
+  it('re-asserts the dashboard param so a refresh keeps the selected tab', async () => {
+    // Perses syncToUrl rewrites the query string without `dashboard=`; the
+    // component must write it back (setSearchParams, not navigate).
+    render(
+      <MemoryRouter
+        basename="/custom-base"
+        initialEntries={['/custom-base/observe-and-monitor/dashboard?start=30m&end=now']}
+      >
+        <CurrentLocation />
+        <DashboardContent
+          dashboards={[dashboard]}
+          projects={[]}
+          browserBasePath="/custom-base"
+          ClusterDetailsAdapter={() => null}
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('current-location').textContent).toBe(
+        '/observe-and-monitor/dashboard?start=30m&end=now&dashboard=dashboard-1-model',
+      ),
+    );
+  });
+
+  it('selects the tab from the URL dashboard param', () => {
+    const secondDashboard = {
+      ...dashboard,
+      metadata: { ...dashboard.metadata, name: 'dashboard-2-usage' },
+      spec: { ...dashboard.spec, display: { name: 'Usage' } },
+    };
+    render(
+      <MemoryRouter
+        basename="/custom-base"
+        initialEntries={['/custom-base/observe-and-monitor/dashboard?dashboard=dashboard-2-usage']}
+      >
+        <DashboardContent
+          dashboards={[dashboard, secondDashboard]}
+          projects={[]}
+          browserBasePath="/custom-base"
+          ClusterDetailsAdapter={() => null}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('perses-provider').getAttribute('data-dashboard')).toBe(
+      'dashboard-2-usage',
     );
   });
 });
