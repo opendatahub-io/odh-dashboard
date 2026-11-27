@@ -50,7 +50,6 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
   const isValidated = isModelValidated(model);
   const isRedHat = isRedHatModel(model);
   const accessLabelVariant = getHfAccessLabelVariant(model);
-  const isGatedAccessDenied = accessLabelVariant === 'gated-denied';
   const { trackSimpleEvent } = useUserInteraction();
 
   const handleValidatedLabelClicked = React.useCallback(() => {
@@ -145,22 +144,18 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
           </Link>
         </CardTitle>
       </CardHeader>
-      {!isGatedAccessDenied && (
-        <>
-          <CardBody>
-            <ModelCatalogCardBody model={model} isValidated={isValidated} source={source} />
-          </CardBody>
-          <CardFooter>
-            <ModelCatalogLabels
-              tasks={model.tasks ?? []}
-              validatedTasks={model.validatedTasks}
-              provider={model.provider}
-              labels={[...allLabels.filter((label) => label !== 'validated'), ...valueLabels]}
-              numLabels={isValidated ? 2 : 3}
-            />
-          </CardFooter>
-        </>
-      )}
+      <CardBody>
+        <ModelCatalogCardBody model={model} isValidated={isValidated} source={source} />
+      </CardBody>
+      <CardFooter>
+        <ModelCatalogLabels
+          tasks={model.tasks ?? []}
+          validatedTasks={model.validatedTasks}
+          provider={model.provider}
+          labels={[...allLabels.filter((label) => label !== 'validated'), ...valueLabels]}
+          numLabels={isValidated ? 2 : 3}
+        />
+      </CardFooter>
     </Card>
   );
 };

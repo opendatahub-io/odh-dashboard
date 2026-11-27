@@ -29,8 +29,8 @@ class ModelDetailsPage {
     return cy.findByTestId('whos-my-admin-link');
   }
 
-  findAccessLabelGatedDenied() {
-    return cy.findByTestId('model-catalog-access-label-gated-denied');
+  findAccessLabelGated() {
+    return cy.findByTestId('model-catalog-access-label-gated');
   }
 
   findTuneModelButton() {

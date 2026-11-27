@@ -36,7 +36,6 @@ import {
   ModelType,
   ModelCatalogTask,
   MATCH_ALL_FILTER_KEYS,
-  HUGGING_FACE_BASE_URL,
 } from '~/concepts/modelCatalog/const';
 import { isSourceStatusWithModels } from '~/concepts/modelCatalogSettings/const';
 import { ModelRegistryCustomProperties, ModelRegistryMetadataType } from '~/app/types';
@@ -179,21 +178,11 @@ export const hasPerformanceArtifacts = (artifacts: CatalogArtifacts[]): boolean 
       artifact.metricsType === MetricsType.performanceMetrics,
   );
 
-export type HfAccessLabelVariant = 'private' | 'gated' | 'gated-denied';
+export type HfAccessLabelVariant = 'private' | 'gated';
 
 export const isGatedAccessType = (accessType: string): boolean => accessType.startsWith('gated');
 
-export const isHfGatedAccessDeniedFromFields = (
-  accessType?: string | null,
-  gatedAccessGranted?: boolean | null,
-): boolean => {
-  if (!accessType || !isGatedAccessType(accessType)) {
-    return false;
-  }
-
-  return gatedAccessGranted !== true;
-};
-
+/** Midstream tracking helper: upstream #3309 removed UI gated-denied, but engagement tracking still needs grant state. */
 export const getHfGatedAccessGranted = (model: CatalogModel): boolean => {
   if (!model.customProperties) {
     return false;
@@ -238,29 +227,12 @@ export const getHfAccessLabelVariant = (model: CatalogModel): HfAccessLabelVaria
     return 'private';
   }
 
-  if (isHfGatedAccessDeniedFromFields(accessType, getHfGatedAccessGranted(model))) {
-    return 'gated-denied';
-  }
-
   if (isGatedAccessType(accessType)) {
     return 'gated';
   }
 
   return null;
 };
-
-export const isHfGatedAccessDenied = (model: CatalogModel): boolean => {
-  const accessType = getHfAccessType(model);
-  if (!accessType) {
-    return false;
-  }
-
-  return isHfGatedAccessDeniedFromFields(accessType, getHfGatedAccessGranted(model));
-};
-
-// TODO: this needs to be updated with the customProperties of the model, where we will have the HF link
-export const getHuggingFaceModelUrl = (model: CatalogModel): string =>
-  `${HUGGING_FACE_BASE_URL}/${model.name}`;
 
 // Utility function to check if a model is validated
 export const isModelValidated = (model: CatalogModel): boolean => {
