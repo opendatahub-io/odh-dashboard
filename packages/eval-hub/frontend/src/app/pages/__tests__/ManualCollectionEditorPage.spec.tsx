@@ -25,6 +25,7 @@ import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import type { Collection, Provider } from '~/app/types';
 
 const { render, renderHook } = setupTrackingTest();
+const mockUseCanCreateCollections = jest.fn();
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
@@ -38,6 +39,11 @@ jest.mock('~/app/api/k8s', () => ({
 
 jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: jest.fn(),
+}));
+
+jest.mock('~/app/hooks/collections', () => ({
+  ...jest.requireActual('~/app/hooks/collections'),
+  useCanCreateCollections: (...args: unknown[]) => mockUseCanCreateCollections(...args),
 }));
 
 jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
@@ -376,6 +382,7 @@ const goToReviewStep = () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUseCanCreateCollections.mockReturnValue({ data: true, isError: false, isPending: false });
   mockGetCollection.mockReturnValue(jest.fn());
   mockUseProviders.mockReturnValue({ providers, loaded: true, loadError: undefined });
   mockUseCopySuiteForm.mockReturnValue(makeForm());
@@ -480,6 +487,38 @@ describe('ManualCollectionEditorPage', () => {
     expect(screen.getByTestId('copy-suite-cancel-step-2')).toBeInTheDocument();
     expect(screen.getByTestId('create-suite-submit')).toHaveTextContent('Save and run');
     expect(screen.getByTestId('copy-suite-save-only')).toHaveTextContent('Add to my collections');
+  });
+
+  it('should disable create saves when collection creation is not permitted', () => {
+    mockUseCanCreateCollections.mockReturnValue({ data: false, isError: false, isPending: false });
+    const form = makeForm();
+    mockUseCopySuiteForm.mockReturnValue(form);
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+
+    renderCreatePage();
+    goToReviewStep();
+
+    expect(screen.getByTestId('create-suite-submit')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-save-only')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('create-suite-submit'));
+    fireEvent.click(screen.getByTestId('copy-suite-save-only'));
+    expect(form.handleSaveAndRun).not.toHaveBeenCalled();
+    expect(form.handleSaveOnly).not.toHaveBeenCalled();
+  });
+
+  it('should keep edit saves available when create permission is not needed', () => {
+    mockUseCanCreateCollections.mockReturnValue({ data: false, isError: false, isPending: false });
+    const form = makeForm();
+    mockUseCopySuiteForm.mockReturnValue(form);
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderEditPage();
+    goToReviewStep();
+
+    expect(screen.getByTestId('edit-suite-save-and-run')).toBeEnabled();
+    expect(screen.getByTestId('copy-suite-save-only')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('copy-suite-save-only'));
+    expect(form.handleSaveOnly).toHaveBeenCalledTimes(1);
   });
 
   it('should use the Evaluate tab as the source when explicitly provided', () => {

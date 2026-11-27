@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/connectionprobe"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
+	kubernetes "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 )
 
 const collectionGenerationPath = "/evaluations/collections/generation"
@@ -137,6 +138,63 @@ func validateCollectionGenerationRequest(input evalhub.CreateCollectionGeneratio
 	return nil
 }
 
+type collectionGenerationCreateBody struct {
+	EvaluationGoal   string           `json:"evaluation_goal"`
+	Model            evalhub.JobModel `json:"model"`
+	ProviderFilter   json.RawMessage  `json:"provider_filter"`
+	MaxBenchmarks    *int             `json:"max_benchmarks"`
+	Strictness       json.RawMessage  `json:"strictness"`
+	GenerationEffort json.RawMessage  `json:"generation_effort"`
+}
+
+func decodeOptionalGenerationString(raw json.RawMessage, field string) (string, error) {
+	if raw == nil {
+		return "", nil
+	}
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "", fmt.Errorf("%s must be a string", field)
+	}
+	if strings.TrimSpace(value) == "" {
+		return "", fmt.Errorf("%s must not be blank when provided", field)
+	}
+	return value, nil
+}
+
+func (app *App) requireEvalHubResourceAccess(w http.ResponseWriter, r *http.Request, verb, action string) bool {
+	ctx := r.Context()
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+	if !ok || identity == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return false
+	}
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+		return false
+	}
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	var allowed bool
+	switch verb {
+	case "create":
+		allowed, err = app.repositories.Access.CanCreateEvalHubResources(k8sClient, ctx, identity, namespace)
+	case "delete":
+		allowed, err = app.repositories.Access.CanDeleteEvalHubResources(k8sClient, ctx, identity, namespace)
+	default:
+		app.serverErrorResponse(w, r, fmt.Errorf("unsupported EvalHub resource permission verb %q", verb))
+		return false
+	}
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return false
+	}
+	if !allowed {
+		app.forbiddenResponse(w, r, fmt.Sprintf("user does not have permission to %s in this namespace", action))
+		return false
+	}
+	return true
+}
+
 func validateCollectionGenerationResourceSchema(generation *evalhub.CollectionGenerationResource, schema *openapi3.Schema) error {
 	if schema == nil {
 		return fmt.Errorf("collection generation response schema is unavailable")
@@ -232,10 +290,33 @@ func (app *App) CreateCollectionGenerationHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	var input evalhub.CreateCollectionGenerationRequest
-	if err := app.ReadJSON(w, r, &input); err != nil {
+	var body collectionGenerationCreateBody
+	if err := app.ReadJSON(w, r, &body); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
+	}
+	providerFilter, err := decodeOptionalGenerationString(body.ProviderFilter, "provider_filter")
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	strictness, err := decodeOptionalGenerationString(body.Strictness, "strictness")
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	generationEffort, err := decodeOptionalGenerationString(body.GenerationEffort, "generation_effort")
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	input := evalhub.CreateCollectionGenerationRequest{
+		EvaluationGoal:   body.EvaluationGoal,
+		Model:            body.Model,
+		ProviderFilter:   providerFilter,
+		MaxBenchmarks:    body.MaxBenchmarks,
+		Strictness:       strictness,
+		GenerationEffort: generationEffort,
 	}
 	if err := validateCollectionGenerationRequest(input); err != nil {
 		app.badRequestResponse(w, r, err)
@@ -245,6 +326,14 @@ func (app *App) CreateCollectionGenerationHandler(w http.ResponseWriter, r *http
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	generationSchema := app.collectionGenerationResourceSchema()
+	if generationSchema == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("collection generation response schema is unavailable"))
+		return
+	}
+	if !app.requireEvalHubResourceAccess(w, r, "create", "create collection generations") {
+		return
+	}
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 	generation, err := client.CreateCollectionGeneration(ctx, namespace, input)
@@ -252,7 +341,7 @@ func (app *App) CreateCollectionGenerationHandler(w http.ResponseWriter, r *http
 		app.evalHubErrorResponse(w, r, err, "failed to create collection generation")
 		return
 	}
-	if err := validateCollectionGenerationResource(generation, namespace, app.collectionGenerationResourceSchema()); err != nil {
+	if err := validateCollectionGenerationResource(generation, namespace, generationSchema); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -313,6 +402,9 @@ func (app *App) DeleteCollectionGenerationHandler(w http.ResponseWriter, r *http
 	}
 	if err := validateCollectionGenerationID(id); err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+	if !app.requireEvalHubResourceAccess(w, r, "delete", "delete collection generations") {
 		return
 	}
 

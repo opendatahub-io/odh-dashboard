@@ -646,7 +646,7 @@ export const importCollection =
       throw new Error('Invalid response format');
     });
 
-export const getCollectionImportAccess =
+export const getCollectionCreationAccess =
   (hostPath: string, namespace: string) =>
   (opts: APIOptions): Promise<ImportCollectionAccessResponse> =>
     handleRestFailures(

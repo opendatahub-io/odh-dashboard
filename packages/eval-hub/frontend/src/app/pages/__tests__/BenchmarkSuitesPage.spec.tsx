@@ -28,7 +28,7 @@ jest.mock('~/app/hooks/collections', () => ({
     mutateAsync: jest.fn(),
     reset: jest.fn(),
   }),
-  useCanImportCollections: () => ({ data: true }),
+  useCanCreateCollections: () => ({ data: true }),
   useImportCollectionMutation: () => ({
     isPending: false,
     reset: jest.fn(),

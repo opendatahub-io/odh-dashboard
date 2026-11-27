@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
 import { MAX_COLLECTION_BENCHMARKS } from '~/app/pages/const';
-import { getUrlValidationError } from '~/app/utils/validationUtils';
+import { getGenerationModelUrlValidationError } from '~/app/utils/validationUtils';
 
 export const suiteSettingsSchema = z.object({
   suiteName: z.string().trim().min(1, 'Enter a collection name.'),
@@ -85,7 +85,7 @@ export const generatorModelSelectionSchema = z.object({
     .string()
     .trim()
     .superRefine((url, context) => {
-      const error = getUrlValidationError(url);
+      const error = getGenerationModelUrlValidationError(url);
       if (error) {
         context.addIssue({ code: 'custom', message: error });
       }

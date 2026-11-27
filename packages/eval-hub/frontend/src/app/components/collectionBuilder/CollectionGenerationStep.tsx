@@ -72,6 +72,48 @@ type AlternativeBenchmark = {
 const benchmarkKey = (benchmark: Pick<CollectionBenchmark, 'id' | 'provider_id'>): string =>
   `${benchmark.provider_id ?? ''}:${benchmark.id}`;
 
+export const buildGenerationAlternatives = (
+  result: NonNullable<CollectionGenerationResource['result']> | undefined,
+  providers: Provider[],
+  selectedKeys: ReadonlySet<string>,
+): AlternativeBenchmark[] => {
+  if (!result) {
+    return [];
+  }
+
+  const available = new Map<string, AlternativeBenchmark>();
+  result.explanation.rejected_benchmarks.forEach((reason) => {
+    const benchmark = enrichCollectionBenchmark(
+      { id: reason.id, provider_id: reason.provider_id },
+      providers,
+    );
+    if (!selectedKeys.has(benchmarkKey(benchmark))) {
+      available.set(benchmarkKey(benchmark), {
+        benchmark,
+        reason: reason.reason,
+        reasonHeading: 'Why it’s an alternative',
+      });
+    }
+  });
+
+  const selectedReasons = new Map(
+    result.explanation.selected_benchmarks.map((reason) => [benchmarkKey(reason), reason]),
+  );
+  result.collection.benchmarks.forEach((benchmark) => {
+    const key = benchmarkKey(benchmark);
+    const reason = selectedReasons.get(key);
+    if (!selectedKeys.has(key) && !available.has(key)) {
+      available.set(key, {
+        benchmark: enrichCollectionBenchmark(benchmark, providers),
+        reason: reason?.reason ?? 'Previously recommended for this evaluation goal.',
+        reasonHeading: 'Why this benchmark was recommended',
+      });
+    }
+  });
+
+  return Array.from(available.values());
+};
+
 const getActionLabel = (actionName?: string): string | undefined => {
   const labels: Record<string, string> = {
     guardrails_check: 'Checking the request',
@@ -266,43 +308,10 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
     [selectedBenchmarks],
   );
 
-  const alternatives = React.useMemo<AlternativeBenchmark[]>(() => {
-    if (!result) {
-      return [];
-    }
-
-    const available = new Map<string, AlternativeBenchmark>();
-    result.explanation.rejected_benchmarks.forEach((reason) => {
-      const benchmark = enrichCollectionBenchmark(
-        { id: reason.id, provider_id: reason.provider_id },
-        providers,
-      );
-      if (!selectedKeys.has(benchmarkKey(benchmark))) {
-        available.set(benchmarkKey(benchmark), {
-          benchmark,
-          reason: reason.reason,
-          reasonHeading: 'Why it’s an alternative',
-        });
-      }
-    });
-
-    const selectedReasons = new Map(
-      result.explanation.selected_benchmarks.map((reason) => [benchmarkKey(reason), reason]),
-    );
-    result.collection.benchmarks.forEach((benchmark) => {
-      const key = benchmarkKey(benchmark);
-      const reason = selectedReasons.get(key);
-      if (!selectedKeys.has(key) && reason && !available.has(key)) {
-        available.set(key, {
-          benchmark: enrichCollectionBenchmark(benchmark, providers),
-          reason: reason.reason,
-          reasonHeading: 'Why this benchmark was recommended',
-        });
-      }
-    });
-
-    return Array.from(available.values());
-  }, [providers, result, selectedKeys]);
+  const alternatives = React.useMemo(
+    () => buildGenerationAlternatives(result, providers, selectedKeys),
+    [providers, result, selectedKeys],
+  );
 
   const selectedReasonByKey = React.useMemo(() => {
     const reasons = new Map<string, string>();

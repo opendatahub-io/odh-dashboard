@@ -87,7 +87,7 @@ func isInternalHost(rawURL string) bool {
 	if err != nil {
 		return false
 	}
-	hostname := parsedURL.Hostname()
+	hostname := strings.ToLower(parsedURL.Hostname())
 	return strings.HasSuffix(hostname, ".svc.cluster.local")
 }
 

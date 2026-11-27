@@ -17,6 +17,7 @@ import {
   Spinner,
   Stack,
   StackItem,
+  Tooltip,
   Tab,
   Tabs,
   TabTitleText,
@@ -47,6 +48,7 @@ import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
 import { useHardwareProfiles } from '~/app/hooks/useHardwareProfiles';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
+import { useCanCreateCollections } from '~/app/hooks/collections';
 import useUser from '~/app/hooks/useUser';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
@@ -92,6 +94,13 @@ const EvaluationsPage: React.FC = () => {
   const isPollingEnabled = usePageVisibility();
 
   const { isHealthy, loaded: healthLoaded, error: healthError } = useEvalHubHealth(namespace);
+  const createAccessQuery = useCanCreateCollections(namespace ?? '');
+  const canCreateCollection = createAccessQuery.data === true && !createAccessQuery.isError;
+  const createPermissionTooltip = createAccessQuery.isPending
+    ? 'Checking permission to create collections in this project...'
+    : createAccessQuery.isError
+      ? 'Unable to verify permission to create collections in this project'
+      : 'You do not have permission to create collections in this project';
 
   const [evaluationsResult, loaded, error, refreshEvaluations] = useEvaluationJobs(
     { namespace },
@@ -334,15 +343,31 @@ const EvaluationsPage: React.FC = () => {
                 description={EVALUATE_DESCRIPTION}
                 headerAction={
                   isHealthy ? (
-                    <Button
-                      variant="primary"
-                      component={(props) => (
-                        <Link {...props} to={evaluationCreateCollectionEntryRoute(namespace)} />
-                      )}
-                      data-testid="create-suite-header-button"
-                    >
-                      Create collection
-                    </Button>
+                    canCreateCollection ? (
+                      <Button
+                        variant="primary"
+                        component={(props) => (
+                          <Link {...props} to={evaluationCreateCollectionEntryRoute(namespace)} />
+                        )}
+                        data-testid="create-suite-header-button"
+                      >
+                        Create collection
+                      </Button>
+                    ) : (
+                      <Tooltip content={createPermissionTooltip}>
+                        {/* Span receives hover and keyboard focus while the button is disabled. */}
+                        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focus proxy for disabled button tooltip */}
+                        <span tabIndex={0}>
+                          <Button
+                            variant="primary"
+                            isDisabled
+                            data-testid="create-suite-header-button"
+                          >
+                            Create collection
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    )
                   ) : undefined
                 }
                 loaded={healthLoaded && (!isHealthy || !isRunsTab || loaded)}

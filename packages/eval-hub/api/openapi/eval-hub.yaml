@@ -1544,6 +1544,12 @@ components:
               properties:
                 benchmarks:
                   minItems: 1
+                  items:
+                    properties:
+                      id:
+                        type: string
+                        minLength: 1
+                        pattern: '\S'
               anyOf:
                 - required: [category]
                 - required: [domains]

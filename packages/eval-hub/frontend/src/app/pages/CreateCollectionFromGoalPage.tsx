@@ -19,6 +19,7 @@ import CollectionSettingsStep from '~/app/components/collectionBuilder/Collectio
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import useCollectionGeneration from '~/app/hooks/useCollectionGeneration';
+import { useCanCreateCollections } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
@@ -56,6 +57,8 @@ type GoalCollectionPageContentProps = {
 const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ namespace }) => {
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
+  const createAccessQuery = useCanCreateCollections(namespace ?? '');
+  const canCreateCollection = createAccessQuery.data === true && !createAccessQuery.isError;
   const notification = useNotification();
   const { refresh: refreshCollections } = useCollectionsContext();
   const {
@@ -90,6 +93,15 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
   const saveInFlightRef = React.useRef(false);
   const savedCollectionRef = React.useRef<{ fingerprint: string; collection: Collection }>();
   const initializedGenerationId = React.useRef<string>();
+  const isMountedRef = React.useRef(false);
+  const currentNamespaceRef = React.useRef(namespace);
+  currentNamespaceRef.current = namespace;
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   const methods = useForm<CollectionBuilderFormValues>({
     defaultValues: collectionBuilderDefaultValues,
     resolver: zodResolver(collectionBuilderSchema),
@@ -281,7 +293,7 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
   };
 
   const handleSaveAndRun = (): void => {
-    if (canSave && !saveInFlightRef.current) {
+    if (canSave && canCreateCollection && !saveInFlightRef.current) {
       setIsRunModalOpen(true);
     }
   };
@@ -289,7 +301,13 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
   const createReviewedCollection = async (
     signal?: AbortSignal,
   ): Promise<Collection | undefined> => {
-    if (!canSave || !namespace || signal?.aborted || saveInFlightRef.current) {
+    if (
+      !canSave ||
+      !canCreateCollection ||
+      !namespace ||
+      signal?.aborted ||
+      saveInFlightRef.current
+    ) {
       return undefined;
     }
     saveInFlightRef.current = true;
@@ -333,6 +351,7 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
   };
 
   const handleSave = async (): Promise<void> => {
+    const saveNamespace = namespace;
     const collection = await createReviewedCollection();
     if (!collection) {
       return;
@@ -341,7 +360,9 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
       'Collection created',
       `"${collection.name}" has been added to your collections.`,
     );
-    navigate(evaluationBenchmarkSuitesRoute(namespace));
+    if (isMountedRef.current && currentNamespaceRef.current === saveNamespace && saveNamespace) {
+      navigate(evaluationBenchmarkSuitesRoute(saveNamespace));
+    }
   };
 
   const handleLeaveGeneration = async (): Promise<void> => {
@@ -463,14 +484,14 @@ const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ n
           label: 'Save and run',
           variant: 'primary',
           onClick: handleSaveAndRun,
-          isDisabled: !canSave,
+          isDisabled: !canSave || !canCreateCollection,
           dataTestId: 'goal-suite-save-and-run',
         },
         {
           label: isSaving ? 'Saving…' : 'Save',
           variant: 'secondary',
           onClick: () => void handleSave(),
-          isDisabled: !canSave,
+          isDisabled: !canSave || !canCreateCollection,
           dataTestId: 'goal-suite-save',
         },
         cancelAction,

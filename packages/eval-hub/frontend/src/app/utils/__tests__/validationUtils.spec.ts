@@ -1,6 +1,7 @@
 import {
   isValidUrl,
   getUrlValidationError,
+  getGenerationModelUrlValidationError,
   getUserFriendlyConnectionError,
   RECOGNIZED_CONNECTION_ERROR_CODES,
 } from '~/app/utils/validationUtils';
@@ -64,6 +65,30 @@ describe('getUrlValidationError', () => {
     expect(
       getUrlValidationError('http://model-predictor.ns.svc.cluster.local:8080/v1'),
     ).toBeUndefined();
+  });
+});
+
+describe('getGenerationModelUrlValidationError', () => {
+  it('allows HTTPS external endpoints', () => {
+    expect(getGenerationModelUrlValidationError('https://models.example.com/v1')).toBeUndefined();
+  });
+
+  it('allows HTTP only for cluster-local endpoints', () => {
+    expect(
+      getGenerationModelUrlValidationError('http://model.ns.svc.cluster.local:8080/v1'),
+    ).toBeUndefined();
+    expect(
+      getGenerationModelUrlValidationError('HTTP://MODEL.NS.SVC.CLUSTER.LOCAL:8080/v1'),
+    ).toBeUndefined();
+    expect(getGenerationModelUrlValidationError('http://models.example.com/v1')).toContain(
+      'must use HTTPS',
+    );
+  });
+
+  it('rejects embedded credentials', () => {
+    expect(
+      getGenerationModelUrlValidationError('https://user:password@models.example.com/v1'),
+    ).toContain('embedded credentials');
   });
 });
 

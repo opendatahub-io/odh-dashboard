@@ -76,6 +76,54 @@ type generationCreateResponseOverrideClient struct {
 	generation *evalhub.CollectionGenerationResource
 }
 
+type generationMutationTrackingClient struct {
+	*ehmocks.MockEvalHubClient
+	createCalls int
+	deleteCalls int
+}
+
+func (c *generationMutationTrackingClient) CreateCollectionGeneration(ctx context.Context, namespace string, request evalhub.CreateCollectionGenerationRequest) (*evalhub.CollectionGenerationResource, error) {
+	c.createCalls++
+	return c.MockEvalHubClient.CreateCollectionGeneration(ctx, namespace, request)
+}
+
+func (c *generationMutationTrackingClient) DeleteCollectionGeneration(ctx context.Context, id, namespace string) error {
+	c.deleteCalls++
+	return c.MockEvalHubClient.DeleteCollectionGeneration(ctx, id, namespace)
+}
+
+type generationAccessK8sFactory struct {
+	createAllowed bool
+	deleteAllowed bool
+}
+
+func (f generationAccessK8sFactory) GetClient(context.Context) (kubernetes.KubernetesClientInterface, error) {
+	return &generationAccessK8sClient{testK8sClient: testK8sClient{}, createAllowed: f.createAllowed, deleteAllowed: f.deleteAllowed}, nil
+}
+
+func (generationAccessK8sFactory) ExtractRequestIdentity(h http.Header) (*kubernetes.RequestIdentity, error) {
+	userID := h.Get("kubeflow-userid")
+	return &kubernetes.RequestIdentity{UserID: userID, Token: "test-token"}, nil
+}
+
+func (generationAccessK8sFactory) ValidateRequestIdentity(*kubernetes.RequestIdentity) error {
+	return nil
+}
+
+type generationAccessK8sClient struct {
+	testK8sClient
+	createAllowed bool
+	deleteAllowed bool
+}
+
+func (c generationAccessK8sClient) CanCreateEvalHubResources(context.Context, *kubernetes.RequestIdentity, string) (bool, error) {
+	return c.createAllowed, nil
+}
+
+func (c generationAccessK8sClient) CanDeleteEvalHubResources(context.Context, *kubernetes.RequestIdentity, string) (bool, error) {
+	return c.deleteAllowed, nil
+}
+
 func (c generationCreateResponseOverrideClient) CreateCollectionGeneration(_ context.Context, _ string, _ evalhub.CreateCollectionGenerationRequest) (*evalhub.CollectionGenerationResource, error) {
 	return c.generation, nil
 }
@@ -100,6 +148,55 @@ func TestCreateCollectionGenerationHandler(t *testing.T) {
 	assert.Equal(t, request.EvaluationGoal, mockClient.LastCollectionGenerationRequest.EvaluationGoal)
 	assert.Equal(t, "model-credentials", mockClient.LastCollectionGenerationRequest.Model.Auth.SecretRef)
 	assert.Equal(t, PathPrefix+ApiPathPrefix+collectionGenerationPath+"/"+result.Data.Resource.ID+"?namespace=test-ns", response.Header.Get("Location"))
+}
+
+func TestCollectionGenerationMutationsRequireWritePermissions(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "read-only-user@example.com"}
+	tests := []struct {
+		name   string
+		method string
+		path   string
+		body   any
+	}{
+		{name: "create denied", method: http.MethodPost, path: ApiPathPrefix + collectionGenerationPath + "?namespace=test-ns", body: validCollectionGenerationRequest()},
+		{name: "delete denied", method: http.MethodDelete, path: ApiPathPrefix + collectionGenerationPath + "/generation-001?namespace=test-ns"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := &generationMutationTrackingClient{MockEvalHubClient: ehmocks.NewMockEvalHubClient()}
+			_, response, err := setupApiTestWithEvalHub[HTTPError](
+				tc.method,
+				tc.path,
+				tc.body,
+				generationAccessK8sFactory{},
+				identity,
+				client,
+			)
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusForbidden, response.StatusCode)
+			assert.Zero(t, client.createCalls)
+			assert.Zero(t, client.deleteCalls)
+		})
+	}
+}
+
+func TestCreateCollectionGenerationFailsBeforeUpstreamWhenSchemaUnavailable(t *testing.T) {
+	client := &generationMutationTrackingClient{MockEvalHubClient: ehmocks.NewMockEvalHubClient()}
+	app := newTestAppWithEvalHub(nil, client)
+	app.openAPI = nil
+	requestBody, err := json.Marshal(validCollectionGenerationRequest())
+	require.NoError(t, err)
+	request := httptest.NewRequest(
+		http.MethodPost,
+		ApiPathPrefix+collectionGenerationPath+"?namespace=test-ns",
+		strings.NewReader(string(requestBody)),
+	)
+	request.Header.Set("kubeflow-userid", "user@example.com")
+	response := httptest.NewRecorder()
+	app.Routes().ServeHTTP(response, request)
+
+	assert.Equal(t, http.StatusInternalServerError, response.Code)
+	assert.Zero(t, client.createCalls)
 }
 
 func TestCreateCollectionGenerationHandlerRejectsCollectionMetadataFields(t *testing.T) {
@@ -187,6 +284,22 @@ func TestCreateCollectionGenerationHandlerRejectsInvalidRequest(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, http.StatusBadRequest, response.StatusCode)
 			assert.Nil(t, mockClient.LastCollectionGenerationRequest)
+		})
+	}
+}
+
+func TestCreateCollectionGenerationRejectsExplicitEmptyOptionalFields(t *testing.T) {
+	for _, field := range []string{"provider_filter", "strictness", "generation_effort"} {
+		t.Run(field, func(t *testing.T) {
+			body := `{"evaluation_goal":"goal","model":{"name":"generator","url":"https://models.example.com/v1"},"` + field + `":""}`
+			client := &generationMutationTrackingClient{MockEvalHubClient: ehmocks.NewMockEvalHubClient()}
+			request := httptest.NewRequest(http.MethodPost, ApiPathPrefix+collectionGenerationPath+"?namespace=test-ns", strings.NewReader(body))
+			request.Header.Set("kubeflow-userid", "user@example.com")
+			response := httptest.NewRecorder()
+			newTestAppWithEvalHub(nil, client).Routes().ServeHTTP(response, request)
+
+			assert.Equal(t, http.StatusBadRequest, response.Code)
+			assert.Zero(t, client.createCalls)
 		})
 	}
 }
@@ -379,6 +492,9 @@ func TestGetCollectionGenerationRejectsMalformedCompletedResult(t *testing.T) {
 		}},
 		{name: "benchmark is missing its required id", mutate: func(result map[string]any) {
 			result["collection"].(map[string]any)["benchmarks"] = []any{map[string]any{"provider_id": "provider"}}
+		}},
+		{name: "benchmark id contains only whitespace", mutate: func(result map[string]any) {
+			result["collection"].(map[string]any)["benchmarks"] = []any{map[string]any{"id": " \t", "provider_id": "provider"}}
 		}},
 		{name: "benchmark has a negative weight", mutate: func(result map[string]any) {
 			result["collection"].(map[string]any)["benchmarks"] = []any{map[string]any{"id": "arc_challenge", "weight": -0.1}}

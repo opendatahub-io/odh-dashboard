@@ -551,6 +551,8 @@ func TestEvalHubClient_CreateCollectionGeneration(t *testing.T) {
 		assert.Equal(t, "Build a reasoning collection", request.EvaluationGoal)
 		assert.Equal(t, "generator", request.Model.Name)
 		assert.Equal(t, "https://models.example.com/v1", request.Model.URL)
+		require.NotNil(t, request.MaxBenchmarks)
+		assert.Equal(t, 100, *request.MaxBenchmarks)
 		if !assert.NotNil(t, request.Model.Auth) {
 			http.Error(w, "missing model auth", http.StatusBadRequest)
 			return
@@ -561,7 +563,7 @@ func TestEvalHubClient_CreateCollectionGeneration(t *testing.T) {
 		w.WriteHeader(http.StatusAccepted)
 		_, _ = w.Write([]byte(`{
 			"resource": {"id":"generation-001","tenant":"test-namespace","owner":"user@example.com","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"},
-			"request": {"evaluation_goal":"Build a reasoning collection","model":{"name":"generator","url":"https://models.example.com/v1"},"max_benchmarks":12,"strictness":"moderate","generation_effort":"standard"},
+			"request": {"evaluation_goal":"Build a reasoning collection","model":{"name":"generator","url":"https://models.example.com/v1"},"max_benchmarks":100,"strictness":"moderate","generation_effort":"standard"},
 			"status": {"state":"pending"}
 		}`))
 	}))
@@ -579,6 +581,7 @@ func TestEvalHubClient_CreateCollectionGeneration(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, "generation-001", result.Resource.ID)
 	assert.Equal(t, "pending", result.Status.State)
+	assert.Equal(t, 100, result.Request.MaxBenchmarks)
 }
 
 func TestEvalHubClient_GetCollectionGeneration(t *testing.T) {

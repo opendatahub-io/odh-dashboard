@@ -31,6 +31,8 @@ type KubernetesClientInterface interface {
 	// CanCreateEvalHubResources performs a SubjectAccessReview for the write verb on the
 	// tenant-scoped virtual EvalHub resource, used to gate collection import in the UI.
 	CanCreateEvalHubResources(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
+	// CanDeleteEvalHubResources performs a SubjectAccessReview for generation cleanup.
+	CanDeleteEvalHubResources(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
 	// GetEvalHubServiceURL lists EvalHub CRs in the namespace (filtered by the ODH dashboard label)
 	// and returns the service URL from the first CR's status.url field.
 	GetEvalHubServiceURL(ctx context.Context, identity *RequestIdentity, namespace string) (string, error)

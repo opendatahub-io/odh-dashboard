@@ -52,6 +52,14 @@ func (m *TokenKubernetesClientMock) CanListEvalHubInstances(_ context.Context, _
 	return true, nil
 }
 
+func (m *TokenKubernetesClientMock) CanCreateEvalHubResources(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
+func (m *TokenKubernetesClientMock) CanDeleteEvalHubResources(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
 func (m *TokenKubernetesClientMock) GetEvalHubServiceURL(_ context.Context, _ *k8s.RequestIdentity, _ string) (string, error) {
 	return "http://mock-evalhub.test.svc.cluster.local", nil
 }

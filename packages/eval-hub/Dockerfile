@@ -45,6 +45,7 @@ RUN go mod download
 COPY pkg/tls/ /pkg/tls/
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
+COPY ${BFF_SOURCE_CODE}/openapi/src/ openapi/src/
 
 # Build the Go application
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bff ./cmd
@@ -54,6 +55,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bf
 FROM ${DISTROLESS_BASE_IMAGE}
 WORKDIR /
 COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=bff-builder /usr/src/app/openapi/src /openapi/src
 COPY --from=ui-builder /usr/src/app/dist ./static/
 USER 65532:65532
 

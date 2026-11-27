@@ -303,6 +303,9 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
 
   const toggleSelection = React.useCallback(
     (key: string) => {
+      if (isInteractionDisabled) {
+        return;
+      }
       setPage(1);
       const nextKeys = toggleBenchmarkSelectionKey(
         selectedBenchmarkKeys,
@@ -311,7 +314,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
       );
       onSelectionChange(nextKeys);
     },
-    [onSelectionChange, selectedBenchmarkKeys],
+    [isInteractionDisabled, onSelectionChange, selectedBenchmarkKeys],
   );
 
   return (

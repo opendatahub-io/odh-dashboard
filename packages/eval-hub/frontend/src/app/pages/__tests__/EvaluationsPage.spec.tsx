@@ -28,6 +28,7 @@ const mockUseEvaluationJobs = jest.fn<
   [EvaluationJobsResult, boolean, Error | undefined, jest.Mock],
   []
 >();
+const mockUseCanCreateCollections = jest.fn();
 
 const mockUseEvalHubHealth = jest.fn<
   { isHealthy: boolean; loaded: boolean; error: Error | undefined },
@@ -169,7 +170,7 @@ jest.mock('~/app/context/CollectionsContext', () => ({
 jest.mock('~/app/hooks/collections', () => ({
   useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
   useDeleteCollectionMutation: (...args: unknown[]) => mockUseDeleteCollectionMutation(...args),
-  useCanImportCollections: () => ({ data: true }),
+  useCanCreateCollections: (...args: unknown[]) => mockUseCanCreateCollections(...args),
   useImportCollectionMutation: () => ({
     isPending: false,
     reset: jest.fn(),
@@ -257,6 +258,7 @@ describe('EvaluationsPage', () => {
       mockRefresh,
     ]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
+    mockUseCanCreateCollections.mockReturnValue({ data: true, isError: false, isPending: false });
     mockUseEvaluationJobDetailPolling.mockReturnValue({
       polledJobDataMap: new Map(),
       isWarning: false,
@@ -352,6 +354,13 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
       evaluationCreateCollectionEntryRoute('test-project'),
     );
+  });
+
+  it('disables the create entry point when collection creation permission is denied', () => {
+    mockUseCanCreateCollections.mockReturnValue({ data: false, isError: false, isPending: false });
+    renderPage('test-project');
+
+    expect(screen.getByTestId('create-suite-header-button')).toBeDisabled();
   });
 
   it('should show prerequisites and gate only judge-model suites behind customization', () => {

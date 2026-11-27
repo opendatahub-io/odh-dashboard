@@ -30,6 +30,7 @@ import {
   projectHomeRoute,
 } from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
+import { useCanCreateCollections } from '~/app/hooks/collections';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import {
   CURATED_SUITE_PAGE_CONFIG,
@@ -77,6 +78,9 @@ const ManualCollectionEditorPage: React.FC<ManualCollectionEditorPageProps> = ({
     namespace: string;
     collectionId: string;
   }>();
+  const createAccessQuery = useCanCreateCollections(isEditMode ? '' : (namespace ?? ''));
+  const canCreateCollection =
+    isEditMode || (createAccessQuery.data === true && !createAccessQuery.isError);
   const location = useLocation();
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
@@ -173,6 +177,16 @@ const ManualCollectionEditorPage: React.FC<ManualCollectionEditorPageProps> = ({
     form.benchmarks.length > 0 &&
     form.benchmarks.length <= MAX_COLLECTION_BENCHMARKS;
   const isReviewValid = form.isValid && Boolean(pendingCollection);
+  const handleSaveAndRun = (): void => {
+    if (canCreateCollection && isReviewValid) {
+      form.handleSaveAndRun();
+    }
+  };
+  const handleSaveOnly = (): void => {
+    if (canCreateCollection && isReviewValid) {
+      void form.handleSaveOnly();
+    }
+  };
 
   const renderBreadcrumbLink = React.useCallback(
     (to: string, label: React.ReactNode, testId: string) => {
@@ -425,8 +439,8 @@ const ManualCollectionEditorPage: React.FC<ManualCollectionEditorPageProps> = ({
         {
           label: 'Save and run',
           variant: 'primary',
-          onClick: form.handleSaveAndRun,
-          isDisabled: !isReviewValid,
+          onClick: handleSaveAndRun,
+          isDisabled: !isReviewValid || !canCreateCollection,
           isLoading: form.isSubmitting,
           dataTestId:
             mode === 'create'
@@ -438,8 +452,8 @@ const ManualCollectionEditorPage: React.FC<ManualCollectionEditorPageProps> = ({
         {
           label: isEditMode ? 'Save changes' : 'Add to my collections',
           variant: 'secondary',
-          onClick: form.handleSaveOnly,
-          isDisabled: !isReviewValid,
+          onClick: handleSaveOnly,
+          isDisabled: !isReviewValid || !canCreateCollection,
           dataTestId: 'copy-suite-save-only',
         },
         cancelAction('copy-suite-cancel-step-2'),

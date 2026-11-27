@@ -116,6 +116,7 @@ func TestIsInternalHost(t *testing.T) {
 		expected bool
 	}{
 		{"cluster-local service", "http://svc.default.svc.cluster.local:8080", true},
+		{"mixed-case cluster-local service", "http://MODEL.NS.SVC.CLUSTER.LOCAL:8080/v1", true},
 		{"cluster-local HTTPS", "https://my-svc.ns.svc.cluster.local/path", true},
 		{"external host", "https://api.example.com", false},
 		{"external with port", "https://api.example.com:443/v1", false},

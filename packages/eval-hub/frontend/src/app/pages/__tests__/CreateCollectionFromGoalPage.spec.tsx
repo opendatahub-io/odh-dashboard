@@ -39,6 +39,13 @@ jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: jest.fn(),
 }));
 
+const mockUseCanCreateCollections = jest.fn();
+
+jest.mock('~/app/hooks/collections', () => ({
+  ...jest.requireActual('~/app/hooks/collections'),
+  useCanCreateCollections: (...args: unknown[]) => mockUseCanCreateCollections(...args),
+}));
+
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(),
 }));
@@ -326,6 +333,7 @@ const startCompletedGeneration = async (
 describe('CreateCollectionFromGoalPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseCanCreateCollections.mockReturnValue({ data: true, isError: false, isPending: false });
     mockUseInferenceServices.mockReturnValue({
       inferenceServices: inferenceServiceFixtures,
       loaded: true,
@@ -678,6 +686,16 @@ describe('CreateCollectionFromGoalPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Collection settings/ }));
     expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent(
       'Other (External endpoint)',
+    );
+    expect(screen.getByTestId('model-name-input')).toHaveValue('external-chat-model');
+    expect(screen.getByTestId('endpoint-url-input')).toHaveValue('https://api.example.com/v1');
+    expect(screen.getByTestId('api-key-input')).toHaveValue('evalhub-api-secret');
+
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('recommendation-model-option-external')).getByRole('option', {
+        hidden: true,
+      }),
     );
     expect(screen.getByTestId('model-name-input')).toHaveValue('external-chat-model');
     expect(screen.getByTestId('endpoint-url-input')).toHaveValue('https://api.example.com/v1');
@@ -1160,6 +1178,74 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(refreshCollections).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
       '/evaluation/test-project/collections',
+    );
+  });
+
+  it('should block saving when collection creation is not permitted', async () => {
+    mockUseCanCreateCollections.mockReturnValue({ data: false, isError: false, isPending: false });
+    await completeGenerationToReview();
+
+    const saveButton = screen.getByTestId('goal-suite-save');
+    expect(saveButton).toBeDisabled();
+    fireEvent.click(saveButton);
+    expect(mockCreateCollection).not.toHaveBeenCalled();
+  });
+
+  it('should report recommendation cleanup failure after creating the collection', async () => {
+    mockCreateCollection.mockReturnValue(() =>
+      Promise.resolve({
+        resource: { id: 'created-collection' },
+        name: 'Answer quality suite',
+        benchmarks: [],
+      }),
+    );
+    mockDeleteCollectionGeneration.mockReturnValue(() =>
+      Promise.reject(new Error('Delete failed')),
+    );
+    await completeGenerationToReview();
+
+    fireEvent.click(screen.getByTestId('goal-suite-save'));
+
+    await waitFor(() => expect(mockCreateCollection).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(notification.error).toHaveBeenCalledWith(
+        'Collection created, but recommendation cleanup failed',
+        'Delete failed',
+      ),
+    );
+    expect(notification.success).toHaveBeenCalledWith(
+      'Collection created',
+      '"Answer quality suite" has been added to your collections.',
+    );
+  });
+
+  it('should not navigate back to the original project after its save resolves elsewhere', async () => {
+    let resolveCollectionSave: ((collection: Collection) => void) | undefined;
+    mockCreateCollection.mockReturnValue(
+      () =>
+        new Promise<Collection>((resolve) => {
+          resolveCollectionSave = resolve;
+        }),
+    );
+    await completeGenerationToReview();
+
+    fireEvent.click(screen.getByTestId('goal-suite-save'));
+    await waitFor(() => expect(resolveCollectionSave).toBeDefined());
+    fireEvent.click(screen.getByRole('link', { name: 'Switch project' }));
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/other-project/create-suite/from-goal',
+    );
+
+    await act(async () => {
+      resolveCollectionSave?.({
+        resource: { id: 'created-collection' },
+        name: 'Answer quality suite',
+      });
+    });
+
+    await waitFor(() => expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/other-project/create-suite/from-goal',
     );
   });
 

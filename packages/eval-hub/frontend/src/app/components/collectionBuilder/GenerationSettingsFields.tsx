@@ -26,6 +26,8 @@ import type {
 } from '~/app/schemas/collectionBuilder.schema';
 import type { InferenceServiceItem, Provider } from '~/app/types';
 import { getGeneratorModelEndpoint } from '~/app/utils/generatorModelUtils';
+import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
+import { getGenerationModelUrlValidationError } from '~/app/utils/validationUtils';
 import './GenerationSettingsFields.scss';
 
 const EXTERNAL_ENDPOINT_VALUE = '__external__';
@@ -63,14 +65,16 @@ const getModelOptions = (inferenceServices: InferenceServiceItem[]): ModelOption
   inferenceServices.map((service) => {
     const url = getGeneratorModelEndpoint(service);
     if (!url) {
+      const incompatibleReason = getIncompatibleModelReason(service);
       return {
         value: service.name,
         name: service.name,
-        disabledReason: !service.ready
-          ? 'This model is unavailable. Check the model’s deployment status.'
-          : service.url?.trim()
-            ? 'This model has an invalid endpoint URL.'
-            : 'This model does not have an endpoint URL.',
+        disabledReason:
+          incompatibleReason ??
+          (service.url?.trim()
+            ? (getGenerationModelUrlValidationError(service.url) ??
+              'This model has an invalid endpoint URL.')
+            : 'This model does not have an endpoint URL.'),
       };
     }
     return {
@@ -124,11 +128,13 @@ const GenerationSettingsFields: React.FC<GenerationSettingsFieldsProps> = ({
     value: string | number | undefined,
   ) => {
     if (value === EXTERNAL_ENDPOINT_VALUE) {
-      setValue(
-        'generatorModel',
-        { source: 'external', name: '', url: '', auth: { secret_ref: '' } },
-        { shouldDirty: true, shouldTouch: true, shouldValidate: true },
-      );
+      if (selectedModel?.source !== 'external') {
+        setValue(
+          'generatorModel',
+          { source: 'external', name: '', url: '', auth: { secret_ref: '' } },
+          { shouldDirty: true, shouldTouch: true, shouldValidate: true },
+        );
+      }
     } else if (typeof value === 'string') {
       const option = modelOptions.find((candidate) => candidate.value === value);
       if (option?.selection) {

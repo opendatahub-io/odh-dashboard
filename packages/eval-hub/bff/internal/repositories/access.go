@@ -28,3 +28,11 @@ func (r *AccessRepository) CanCreateEvalHubResources(client k8s.KubernetesClient
 	}
 	return allowed, nil
 }
+
+func (r *AccessRepository) CanDeleteEvalHubResources(client k8s.KubernetesClientInterface, ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
+	allowed, err := client.CanDeleteEvalHubResources(ctx, identity, namespace)
+	if err != nil {
+		return false, fmt.Errorf("error checking collection generation deletion permissions: %w", err)
+	}
+	return allowed, nil
+}

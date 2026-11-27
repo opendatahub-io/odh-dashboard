@@ -45,6 +45,10 @@ func (m *InternalKubernetesClientMock) CanCreateEvalHubResources(_ context.Conte
 	return true, nil
 }
 
+func (m *InternalKubernetesClientMock) CanDeleteEvalHubResources(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
 // GetEvalHubServiceURL returns a deterministic fake URL for test environments.
 func (m *InternalKubernetesClientMock) GetEvalHubServiceURL(_ context.Context, _ *k8s.RequestIdentity, _ string) (string, error) {
 	return "http://mock-evalhub.test.svc.cluster.local", nil

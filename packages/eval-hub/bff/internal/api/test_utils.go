@@ -189,6 +189,10 @@ func (c *testK8sClient) CanCreateEvalHubResources(_ context.Context, _ *kubernet
 	return true, nil
 }
 
+func (c *testK8sClient) CanDeleteEvalHubResources(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
 func (c *testK8sClient) GetEvalHubServiceURL(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (string, error) {
 	return "http://mock-evalhub:8080", nil
 }

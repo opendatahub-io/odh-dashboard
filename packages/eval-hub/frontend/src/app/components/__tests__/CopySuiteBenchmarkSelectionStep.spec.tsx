@@ -591,6 +591,18 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     ]);
   });
 
+  it('does not change selection when interaction is disabled, including row clicks', () => {
+    const onSelectionChange = jest.fn();
+    renderSelectionStep({ onSelectionChange, isInteractionDisabled: true });
+
+    fireEvent.click(
+      screen.getByTestId('benchmark-catalog-checkbox-mmlu').closest('tr') as HTMLElement,
+    );
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId('benchmark-catalog-checkbox-mmlu')).not.toBeChecked();
+  });
+
   it('should wait for the parent to provide updated selected benchmark keys', () => {
     const onSelectionChange = jest.fn();
     const selectedBenchmarkKeys = ['provider-one:planning', 'provider-one:tasks'];
