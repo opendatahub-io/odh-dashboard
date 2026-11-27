@@ -53,8 +53,11 @@ const TIMESERIES_ONLY_KEYS = new Set([
 const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
   { key: 'train_data_secret_name', label: 'S3 connection' },
-  { key: 'train_data_bucket_name', label: 'S3 connection bucket' },
-  { key: 'train_data_file_key', label: 'Selected files' },
+  { key: 'dataset_split_mode', label: 'Data splitting' },
+  { key: 'train_data_bucket_name', label: 'Training data bucket' },
+  { key: 'train_data_file_key', label: 'Selected training file' },
+  { key: 'test_data_bucket_name', label: 'Test data bucket' },
+  { key: 'test_data_file_key', label: 'Selected test file' },
   { key: 'task_type', label: 'Prediction type' },
   { key: 'label_column', label: 'Label column' },
   { key: 'target', label: 'Target column' },
@@ -137,11 +140,25 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
     }
     const allEntries: [string, unknown][] = Object.entries(parameters);
     const valueByKey = new Map(allEntries);
+    const hasTestData = Boolean(parameters.test_data_file_key?.trim());
+    // Infer the saved split choice rather than relying on the configure form's UI-only mode.
+    if (hasTestData || parameters.train_data_file_key?.trim()) {
+      valueByKey.set(
+        'dataset_split_mode',
+        hasTestData ? 'Use separate datasets' : 'Automatically split data',
+      );
+    } else {
+      valueByKey.delete('dataset_split_mode');
+    }
     const knownKeySet = new Set([...ORDERED_KEYS, ...EXCLUDED_KEYS]);
 
     // Determine which keys to hide based on the current task type
     const isTimeseries = parameters.task_type === TASK_TYPE_TIMESERIES;
-    const hiddenKeys = isTimeseries ? TABULAR_ONLY_KEYS : TIMESERIES_ONLY_KEYS;
+    const hiddenKeys = new Set(isTimeseries ? TABULAR_ONLY_KEYS : TIMESERIES_ONLY_KEYS);
+    if (!hasTestData) {
+      hiddenKeys.add('test_data_bucket_name');
+      hiddenKeys.add('test_data_file_key');
+    }
 
     // Build entries in the display order defined by PANEL_PARAMETERS, skipping empty values
     // and keys that don't apply to the current task type

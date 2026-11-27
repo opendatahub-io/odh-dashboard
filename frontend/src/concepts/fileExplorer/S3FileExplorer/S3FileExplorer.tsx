@@ -21,6 +21,7 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { debounce } from 'lodash-es';
 import FileExplorer, { isFolder } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
 import type {
+  ExplorerFile,
   ExplorerFiles,
   Source,
   Folder,
@@ -63,6 +64,9 @@ export const getBreadcrumbTrail = (targetPath: string): Folder[] => {
 // Components ----------------------------------------------------------------->
 
 interface S3FileExplorerProps {
+  presentation?: 'modal' | 'tearsheet';
+  isCovered?: boolean;
+  renderFilePreview?: (file: ExplorerFile) => React.ReactNode;
   /** Optional unique identifier for the S3FileExplorer. */
   id?: string;
 
@@ -109,6 +113,9 @@ interface S3FileExplorerProps {
   disabledPaths?: Record<string, string>;
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
+  presentation,
+  isCovered,
+  renderFilePreview,
   id,
   apiPath,
   isOpen,
@@ -534,6 +541,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   return (
     <FileExplorer
+      presentation={presentation}
+      isCovered={isCovered}
+      renderFilePreview={renderFilePreview}
       id={id}
       files={filesWithSelection}
       source={sourceToRender}

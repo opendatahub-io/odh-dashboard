@@ -745,6 +745,7 @@ func TestTranslateS3Error(t *testing.T) {
 		{"404 code", &s3CodedError{code: "404"}, ErrObjectNotFound},
 		{"NoSuchBucket code", &s3CodedError{code: "NoSuchBucket"}, ErrBucketNotFound},
 		{"AccessDenied code", &s3CodedError{code: "AccessDenied"}, ErrAccessDenied},
+		{"InvalidRange code", &s3CodedError{code: "InvalidRange"}, ErrInvalidRange},
 		{"unknown returns nil", fmt.Errorf("random"), nil},
 	}
 	for _, tt := range tests {

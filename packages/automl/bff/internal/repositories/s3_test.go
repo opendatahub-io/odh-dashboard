@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
@@ -890,11 +891,77 @@ func TestS3Repository_UploadObjectPassesConfiguredChecksum(t *testing.T) {
 }
 
 func TestS3Repository_GetCSVSchema(t *testing.T) {
+	prefix := "value\n" + strings.Repeat("a\n", 99)
+	for _, tt := range []struct {
+		name    string
+		lastRow string
+		wantErr bool
+	}{
+		{name: "rejects a truncated unquoted record", lastRow: strings.Repeat("b", csvSchemaMaxBytes-len(prefix)+100) + "\n", wantErr: true},
+		{name: "rejects a truncated quoted multiline record", lastRow: "\"first line\n" + strings.Repeat("b", csvSchemaMaxBytes) + "\"\n", wantErr: true},
+		{name: "accepts real EOF without a newline", lastRow: "last"},
+		{name: "accepts real EOF exactly at the byte limit", lastRow: strings.Repeat("b", csvSchemaMaxBytes-len(prefix))},
+		{name: "accepts a complete record at the byte limit with more data", lastRow: strings.Repeat("b", csvSchemaMaxBytes-len(prefix)-1) + "\nmore\n"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			csv := prefix + tt.lastRow
+			k8s := &mockK8sService{
+				getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+					return makeK8sSecret("s", "ns", standardSecretData()), nil
+				},
+			}
+			s3svc := &mockS3Service{
+				getObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error) {
+					var end int
+					if _, err := fmt.Sscanf(input.Range, "bytes=0-%d", &end); err != nil {
+						t.Fatal(err)
+					}
+					return io.NopCloser(strings.NewReader(csv[:min(len(csv), end+1)])), "text/csv", nil
+				},
+			}
+			repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+			result, err := repo.GetCSVSchema(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "wide.csv")
+			if tt.wantErr {
+				if !errors.Is(err, helper.ErrCSVValidation) {
+					t.Fatalf("expected CSV validation error, got %v (sample size %d)", err, result.SampleSize)
+				}
+				if len(result.SampleRows) != 0 {
+					t.Fatal("must not return a truncated sample")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.SampleSize != 100 || result.SampleRows[99][0] != strings.Split(tt.lastRow, "\n")[0] {
+				t.Fatalf("expected 100 complete sample rows, got sample size %d", result.SampleSize)
+			}
+		})
+	}
+
 	t.Run("rejects non-csv key", func(t *testing.T) {
 		repo := NewS3Repository(slog.Default(), nil, nil, nil)
 		_, err := repo.GetCSVSchema(context.Background(), S3RequestContext{}, "data.parquet")
 		if err == nil || !strings.Contains(err.Error(), ".csv") {
 			t.Errorf("expected csv error, got %v", err)
+		}
+	})
+
+	t.Run("classifies an empty object as CSV validation", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+				return makeK8sSecret("s", "ns", standardSecretData()), nil
+			},
+		}
+		s3svc := &mockS3Service{
+			getObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error) {
+				return nil, "", fmt.Errorf("wrapped: %w", s3.ErrInvalidRange)
+			},
+		}
+		repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+		_, err := repo.GetCSVSchema(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "empty.csv")
+		if !errors.Is(err, helper.ErrCSVValidation) {
+			t.Fatalf("expected CSV validation error, got %v", err)
 		}
 	})
 
@@ -923,6 +990,68 @@ func TestS3Repository_GetCSVSchema(t *testing.T) {
 			t.Errorf("Range = %q, want %q", gotRange, csvSchemaRange)
 		}
 	})
+}
+
+func TestS3Repository_GetCSVRowCount(t *testing.T) {
+	k8s := &mockK8sService{
+		getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+			return makeK8sSecret("s", "ns", standardSecretData()), nil
+		},
+	}
+	s3svc := &mockS3Service{
+		getObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error) {
+			if input.Range != fmt.Sprintf("bytes=0-%d", s3.MaxCSVRowCountBytes) || input.Key != "data.csv" {
+				t.Fatalf("expected a bounded CSV read with one overflow byte, got %+v", input)
+			}
+			return io.NopCloser(strings.NewReader("name,value\n" + strings.Repeat("a,1\n", 144))), "text/csv", nil
+		},
+	}
+	repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+	count, err := repo.GetCSVRowCount(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "data.csv")
+	if err != nil || count != 144 {
+		t.Fatalf("expected all 144 rows, got %d, %v", count, err)
+	}
+	_, err = repo.GetCSVRowCount(context.Background(), S3RequestContext{}, "data.parquet")
+	if !errors.Is(err, ErrCSVUploadValidation) {
+		t.Fatalf("expected CSV validation error, got %v", err)
+	}
+}
+
+func TestS3Repository_GetCSVRowCount_GetObjectErrors(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{name: "empty data.csv object", err: s3.ErrInvalidRange},
+		{name: "missing object", err: s3.ErrObjectNotFound},
+		{name: "access denied", err: s3.ErrAccessDenied},
+		{name: "transfer failure", err: io.ErrUnexpectedEOF},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			k8s := &mockK8sService{
+				getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+					return makeK8sSecret("s", "ns", standardSecretData()), nil
+				},
+			}
+			s3svc := &mockS3Service{
+				getObjectFn: func(_ context.Context, _ s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error) {
+					if input.Key != "data.csv" || input.Range != fmt.Sprintf("bytes=0-%d", s3.MaxCSVRowCountBytes) {
+						t.Fatalf("unexpected range request: %+v", input)
+					}
+					return nil, "", tc.err
+				},
+			}
+			repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+			count, err := repo.GetCSVRowCount(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "data.csv")
+			if errors.Is(tc.err, s3.ErrInvalidRange) {
+				if count != 0 || err != nil {
+					t.Fatalf("expected an empty count, got %d, %v", count, err)
+				}
+			} else if count != 0 || !errors.Is(err, tc.err) {
+				t.Fatalf("expected original error %v without a partial count, got %d, %v", tc.err, count, err)
+			}
+		})
+	}
 }
 
 func TestResolveUploadChecksumOptionsFromSecretSources(t *testing.T) {

@@ -94,8 +94,23 @@ export function getAutomlContext({
     // Fallback to default task_type even on parse failure
     // eslint-disable-next-line no-console, camelcase
     console.warn('Failed to parse pipeline runtime parameters:', parseResult.error);
-    // eslint-disable-next-line camelcase
-    parameters = { task_type: getTaskType(pipelineRun) ?? 'timeseries' };
+    const datasetParams = baseSchema
+      /* eslint-disable camelcase -- API parameter names */
+      .pick({
+        train_data_secret_name: true,
+        train_data_bucket_name: true,
+        train_data_file_key: true,
+        test_data_bucket_name: true,
+        test_data_file_key: true,
+      })
+      /* eslint-enable camelcase */
+      .partial()
+      .safeParse(inputParams ?? {});
+    parameters = {
+      ...(datasetParams.success ? datasetParams.data : {}),
+      // eslint-disable-next-line camelcase
+      task_type: getTaskType(pipelineRun) ?? 'timeseries',
+    };
   }
 
   // Populate eval_metric with the task-type default when missing from stored parameters

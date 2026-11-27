@@ -5,6 +5,7 @@ import React from 'react';
 import { AutoXApiProvider } from '@odh-dashboard/autox-core/ui/context';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
+import { useS3GetFileRowCountQuery } from '~/app/hooks/useS3GetFileRowCountQuery';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/useModelEvaluationArtifactsQuery';
 
 const getS3JsonQueryKey = (
@@ -59,6 +60,235 @@ afterEach(async () => {
   (global.fetch as jest.Mock).mockReset();
 });
 
+describe('useS3GetFileRowCountQuery', () => {
+  it('should load the total row count independently of the schema sample', async () => {
+    jest.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify({ data: { row_count: 144 } })]),
+    } as unknown as Response);
+    const { result, rerender } = renderHook(
+      () => useS3GetFileRowCountQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+      { wrapper: createWrapper().Wrapper },
+    );
+
+    expect(result.current.data).toBeUndefined();
+    await waitFor(() => expect(result.current.data?.rowCount).toBe(144));
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('view=row-count'),
+      expect.anything(),
+    );
+    rerender();
+    expect(result.current.data?.rowCount).toBe(144);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reuse both the schema and row count when returning to the selected file', async () => {
+    const columns = [{ name: 'value', type: 'string', task_type: 'binary' }];
+    jest.mocked(global.fetch).mockImplementation(
+      async (url) =>
+        ({
+          ok: true,
+          headers: { get: () => null },
+          blob: async () =>
+            new Blob([
+              JSON.stringify({
+                data:
+                  typeof url === 'string' && url.includes('view=row-count')
+                    ? { row_count: 144 }
+                    : { columns },
+              }),
+            ]),
+        }) as unknown as Response,
+    );
+    const { Wrapper } = createWrapper();
+    const useDataset = () => ({
+      schema: useS3GetFileSchemaQuery('ns', 'secret', 'bucket', 'data.csv'),
+      count: useS3GetFileRowCountQuery('ns', 'secret', 'bucket', 'data.csv'),
+    });
+    const first = renderHook(useDataset, { wrapper: Wrapper });
+    await waitFor(() => {
+      expect(first.result.current.schema.data).toEqual(columns);
+      expect(first.result.current.count.data?.rowCount).toBe(144);
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    first.unmount();
+
+    const second = renderHook(useDataset, { wrapper: Wrapper });
+    // Flush effects and queued query notifications so background requests are observable.
+    await act(() => Promise.resolve());
+    expect(second.result.current.schema.data).toEqual(columns);
+    expect(second.result.current.count.data?.rowCount).toBe(144);
+    expect(second.result.current.schema.isFetching).toBe(false);
+    expect(second.result.current.count.isFetching).toBe(false);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should keep the counted schema snapshot distinct from a later schema-only refresh', async () => {
+    let name = 'original';
+    let rowCount = 144;
+    jest.mocked(global.fetch).mockImplementation(
+      async (url) =>
+        ({
+          ok: true,
+          headers: { get: () => null },
+          blob: async () =>
+            new Blob([
+              JSON.stringify({
+                data:
+                  typeof url === 'string' && url.includes('view=row-count')
+                    ? { row_count: rowCount }
+                    : { columns: [{ name, type: 'string', task_type: 'binary' }] },
+              }),
+            ]),
+        }) as unknown as Response,
+    );
+    const { result } = renderHook(
+      () => ({
+        schema: useS3GetFileSchemaQuery('ns', 'secret', 'bucket', 'data.csv'),
+        count: useS3GetFileRowCountQuery('ns', 'secret', 'bucket', 'data.csv'),
+      }),
+      { wrapper: createWrapper().Wrapper },
+    );
+    await waitFor(() => expect(result.current.count.data?.rowCount).toBe(144));
+    const originalSnapshot = result.current.count.data;
+    expect(originalSnapshot?.schemaUpdatedAt).toBe(result.current.schema.dataUpdatedAt);
+    name = 'replacement';
+    rowCount = 250;
+    await act(async () => {
+      await result.current.schema.refetch();
+    });
+    await waitFor(() => expect(result.current.schema.data[0]?.name).toBe('replacement'));
+    expect(result.current.count.data).toBe(originalSnapshot);
+    expect(result.current.count.data?.schemaUpdatedAt).not.toBe(
+      result.current.schema.dataUpdatedAt,
+    );
+    // A schema-only refresh makes no count request, so it cannot form a refetch cycle.
+    expect(
+      jest
+        .mocked(global.fetch)
+        .mock.calls.filter(([url]) => typeof url === 'string' && url.includes('view=row-count')),
+    ).toHaveLength(1);
+    await act(async () => {
+      await result.current.count.refetch();
+    });
+    await waitFor(() => expect(result.current.count.data?.rowCount).toBe(250));
+    expect(result.current.count.data?.schemaUpdatedAt).toBe(result.current.schema.dataUpdatedAt);
+  });
+
+  it('should refresh a cached separate-mode schema before counting the file in automatic mode', async () => {
+    let name = 'original';
+    let releaseRefresh: () => void = () => {
+      throw new Error('Refresh has not started');
+    };
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    const columns = () => [{ name, type: 'string', task_type: 'binary' }];
+    jest.mocked(global.fetch).mockImplementation(async (url) => {
+      if (typeof url === 'string' && !url.includes('view=row-count') && name === 'replacement') {
+        await refreshGate;
+      }
+      return {
+        ok: true,
+        headers: { get: () => null },
+        blob: async () =>
+          new Blob([
+            JSON.stringify({
+              data:
+                typeof url === 'string' && url.includes('view=row-count')
+                  ? { row_count: 250 }
+                  : { columns: columns() },
+            }),
+          ]),
+      } as unknown as Response;
+    });
+    const { result, rerender } = renderHook(
+      ({ automatic }) => ({
+        schema: useS3GetFileSchemaQuery('ns', 'secret', 'bucket', 'data.csv'),
+        count: useS3GetFileRowCountQuery('ns', 'secret', 'bucket', 'data.csv', automatic),
+      }),
+      { initialProps: { automatic: false }, wrapper: createWrapper().Wrapper },
+    );
+    await waitFor(() => expect(result.current.schema.data[0]?.name).toBe('original'));
+    expect(result.current.count.data).toBeUndefined();
+
+    name = 'replacement';
+    rerender({ automatic: true });
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+    expect(result.current.schema.isFetching).toBe(true);
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('view=row-count'),
+      expect.anything(),
+    );
+    expect(result.current.count.data).toBeUndefined();
+    await act(async () => releaseRefresh());
+    await waitFor(() => expect(result.current.count.data?.rowCount).toBe(250));
+    expect(result.current.schema.data[0]?.name).toBe('replacement');
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it.each([undefined, -1, 1.5, '144'])(
+    'should reject an invalid row count (%s)',
+    async (rowCount) => {
+      jest.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { row_count: rowCount } })]),
+      } as unknown as Response);
+      const { result } = renderHook(
+        () => useS3GetFileRowCountQuery('test-namespace', 'test-secret', 'test-bucket', 'data.csv'),
+        { wrapper: createWrapper().Wrapper },
+      );
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.data).toBeUndefined();
+      expect(result.current.error?.message).toBe(
+        'Unexpected API response: CSV row count is missing or invalid',
+      );
+    },
+  );
+
+  it('should clear the previous count while loading a replacement file', async () => {
+    jest
+      .mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { row_count: 144 } })]),
+      } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        blob: async () => new Blob([JSON.stringify({ data: { row_count: 250 } })]),
+      } as unknown as Response);
+    const { result, rerender } = renderHook(
+      ({ file }) => useS3GetFileRowCountQuery('test-namespace', 'test-secret', 'test-bucket', file),
+      { initialProps: { file: 'first.csv' }, wrapper: createWrapper().Wrapper },
+    );
+    await waitFor(() => expect(result.current.data?.rowCount).toBe(144));
+    rerender({ file: 'second.csv' });
+    expect(result.current.data).toBeUndefined();
+    await waitFor(() => expect(result.current.data?.rowCount).toBe(250));
+  });
+
+  it('should remain disabled for separate datasets', () => {
+    const { result } = renderHook(
+      () =>
+        useS3GetFileRowCountQuery(
+          'test-namespace',
+          'test-secret',
+          'test-bucket',
+          'data.csv',
+          false,
+        ),
+      { wrapper: createWrapper().Wrapper },
+    );
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
+
 describe('useS3GetFileSchemaQuery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -96,6 +326,56 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(result.current.data).toEqual([]);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.fetchStatus).toBe('idle');
+  });
+
+  it('should return bounded raw sample rows and clear them when the file changes', async () => {
+    const response = {
+      data: {
+        columns: [{ name: 'value', type: 'string', task_type: 'binary' }],
+        sample_rows: [['001']],
+        sample_size: 1,
+        parse_warnings: 2,
+      },
+    };
+    jest.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(response)]),
+    } as unknown as Response);
+    const { result, rerender } = renderHook(
+      ({ file }) => useS3GetFileSchemaQuery('ns', 'secret', 'bucket', file),
+      {
+        initialProps: { file: 'first.csv' },
+        wrapper: createWrapper().Wrapper,
+      },
+    );
+    await waitFor(() => expect(result.current.sample?.sampleRows).toEqual([['001']]));
+    expect(result.current.sample?.sampleSize).toBe(1);
+    expect(result.current.sample?.parseWarnings).toBe(2);
+    rerender({ file: 'second.csv' });
+    expect(result.current.sample?.sampleRows).toEqual([]);
+    expect(result.current.data).toEqual([]);
+  });
+
+  it('should reject preview rows that do not match the schema width', async () => {
+    const response = {
+      data: {
+        columns: [{ name: 'value', type: 'string', task_type: 'binary' }],
+        sample_rows: [['one', 'two']],
+        sample_size: 1,
+      },
+    };
+    jest.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(response)]),
+    } as unknown as Response);
+    const { result } = renderHook(
+      () => useS3GetFileSchemaQuery('ns', 'secret', 'bucket', 'file.csv'),
+      { wrapper: createWrapper().Wrapper },
+    );
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.message).toContain('row and column counts do not match');
   });
 
   it('should construct URL with all parameters including bucket', async () => {
@@ -232,7 +512,7 @@ describe('useS3GetFileSchemaQuery', () => {
       await result.current.refetch();
     });
 
-    expect(result.current.data).toEqual(secondColumns);
+    await waitFor(() => expect(result.current.data).toEqual(secondColumns));
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
@@ -362,7 +642,12 @@ describe('useS3GetFileSchemaQuery', () => {
       bucket: 'test-bucket',
       view: 'schema',
     });
-    queryClient.setQueryData(queryKey, [{ name: 'stale-column' }]);
+    queryClient.setQueryData(queryKey, {
+      columns: [{ name: 'stale-column' }],
+      sampleRows: [],
+      sampleSize: 0,
+      parseWarnings: 0,
+    });
     queryClient.setQueryData(s3JsonQueryKey, { data: { columns: [] } });
     queryClient.setQueryData(
       ['files', 'test-namespace', 'test-secret', 'other-bucket', 'data.csv'],
@@ -376,7 +661,12 @@ describe('useS3GetFileSchemaQuery', () => {
 
     act(() => result.current.resetSchemaCache());
 
-    expect(queryClient.getQueryData(queryKey)).toEqual([]);
+    expect(queryClient.getQueryData(queryKey)).toEqual({
+      columns: [],
+      sampleRows: [],
+      sampleSize: 0,
+      parseWarnings: 0,
+    });
     expect(queryClient.getQueryState(s3JsonQueryKey)?.isInvalidated).toBe(true);
     expect(
       queryClient.getQueryData([

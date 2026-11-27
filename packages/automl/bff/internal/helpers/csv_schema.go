@@ -29,6 +29,8 @@ type ColumnSchema struct {
 type CSVSchemaResult struct {
 	Columns       []ColumnSchema `json:"columns"`
 	ParseWarnings int            `json:"parse_warnings"`
+	SampleRows    [][]string     `json:"sample_rows"`
+	SampleSize    int            `json:"sample_size"`
 }
 
 // maxBinaryUniqueValues is the maximum number of distinct values for a column
@@ -80,6 +82,10 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 			break
 		}
 		if err != nil {
+			var parseError *csv.ParseError
+			if !errors.As(err, &parseError) {
+				return CSVSchemaResult{}, fmt.Errorf("error reading CSV record: %w", err)
+			}
 			// Validate the header row for UTF-8 on first parse error, as the error
 			// may indicate binary/non-text content rather than a malformed row.
 			if parseWarnings == 0 {
@@ -119,6 +125,8 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 	return CSVSchemaResult{
 		Columns:       columnSchemas,
 		ParseWarnings: parseWarnings,
+		SampleRows:    dataRows,
+		SampleSize:    len(dataRows),
 	}, nil
 }
 

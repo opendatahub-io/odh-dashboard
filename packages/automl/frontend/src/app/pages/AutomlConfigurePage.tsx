@@ -125,6 +125,8 @@ function AutomlConfigurePage({
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
+  const [isDatasetUploading, setIsDatasetUploading] = useState(false);
+  const [isDatasetSamplingBlocked, setIsDatasetSamplingBlocked] = useState(false);
   const isRecommendedRef = React.useRef(true);
   const funnelStepRef = React.useRef<AutomlFunnelStep>('defineDetails');
   // Cancel is only rendered on step 'create'. `sourceRunId` is set for every reconfigure flow
@@ -222,10 +224,11 @@ function AutomlConfigurePage({
     // Reconfigure keeps form state so users can edit step 1 without losing step 2 selections.
     if (!sourceRunId) {
       const createFieldSet = new Set<string>(createFields);
-      type DefaultKey = keyof typeof configureSchema.defaults;
-      const isDefaultKey = (key: string): key is DefaultKey => key in configureSchema.defaults;
-      for (const key of Object.keys(configureSchema.defaults)) {
-        if (!createFieldSet.has(key) && isDefaultKey(key)) {
+      type ConfigureKey = keyof ConfigureSchema;
+      const isConfigureKey = (key: string): key is ConfigureKey =>
+        key in configureSchema.base.shape;
+      for (const key of Object.keys(configureSchema.base.shape)) {
+        if (!createFieldSet.has(key) && isConfigureKey(key)) {
           form.setValue(key, configureSchema.defaults[key], { shouldValidate: false });
         }
       }
@@ -263,7 +266,12 @@ function AutomlConfigurePage({
           type="submit"
           variant="primary"
           data-testid="automl-create-run-button"
-          isDisabled={!form.formState.isValid || form.formState.isSubmitting}
+          isDisabled={
+            !form.formState.isValid ||
+            form.formState.isSubmitting ||
+            isDatasetUploading ||
+            isDatasetSamplingBlocked
+          }
         >
           {sourceRunId ? 'Create new run' : 'Create run'}
         </Button>
@@ -376,6 +384,10 @@ function AutomlConfigurePage({
               return;
             }
 
+            if (isDatasetUploading || isDatasetSamplingBlocked) {
+              return;
+            }
+
             form.handleSubmit(
               async (data: ConfigureSchema) => {
                 const trackingProperties = {
@@ -467,8 +479,9 @@ function AutomlConfigurePage({
                 <AutomlCreate />
               ) : (
                 <AutomlConfigure
-                  initialValues={initialValues}
                   initialInputDataSecret={initialInputDataSecret}
+                  onDatasetUploadChange={setIsDatasetUploading}
+                  onDatasetSamplingBlockedChange={setIsDatasetSamplingBlocked}
                   onRecommendationChange={(isRecommended) => {
                     isRecommendedRef.current = isRecommended;
                   }}

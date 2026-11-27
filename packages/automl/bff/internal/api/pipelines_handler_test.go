@@ -395,6 +395,24 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "invalid request body",
 		},
 		{
+			name:           "null test-data pair",
+			body:           `{"test_data_bucket_name":null,"test_data_file_key":null}`,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "test_data_bucket_name must be a string, not null",
+		},
+		{
+			name:           "null test file with string bucket",
+			body:           `{"test_data_bucket_name":"b","test_data_file_key":null}`,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "test_data_file_key must be a string, not null",
+		},
+		{
+			name:           "null bucket with string test file",
+			body:           `{"test_data_bucket_name":null,"test_data_file_key":"test.csv"}`,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "test_data_bucket_name must be a string, not null",
+		},
+		{
 			name:           "multiple JSON objects in body",
 			body:           validBody + `{"extra": true}`,
 			repoResult:     nil,
@@ -464,6 +482,22 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			repo.AssertExpectations(t)
 		})
 	}
+}
+
+func TestCreatePipelineRunHandler_SeparateTestDataset(t *testing.T) {
+	h, repo := newTestPipelinesHandler()
+	repo.On("CreateRun", mock.Anything, "test-ns", mock.MatchedBy(func(req models.CreateAutoMLRunRequest) bool {
+		return req.TestDataBucketName != nil && *req.TestDataBucketName == "bucket" &&
+			req.TestDataFileKey != nil && *req.TestDataFileKey == "test.csv"
+	})).Return(&models.PipelineRun{RunID: "new-run-id"}, nil).Once()
+
+	body := `{"display_name":"new-run","train_data_secret_name":"secret","train_data_bucket_name":"bucket","train_data_file_key":"train.csv","test_data_bucket_name":"bucket","test_data_file_key":"test.csv"}`
+	rr := httptest.NewRecorder()
+	req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", "test-ns", body)
+	h.CreatePipelineRunHandler(rr, req, httprouter.Params{})
+
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	repo.AssertExpectations(t)
 }
 
 // ---------- TerminatePipelineRunHandler ----------

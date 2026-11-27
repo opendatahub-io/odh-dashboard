@@ -37,13 +37,14 @@ type Props<DataType> = {
   defaultSortColumn?: number;
   rowRenderer: (data: DataType, rowIndex: number) => React.ReactNode;
   enablePagination?: boolean | 'compact';
+  showBottomPagination?: boolean;
   truncateRenderingAt?: number;
   toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
   onClearFilters?: () => void;
   bottomToolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
   emptyTableView?: React.ReactNode;
   alertContent?: React.ReactNode;
-  caption?: string;
+  caption?: React.ReactNode;
   footerRow?: (pageNumber: number) => React.ReactElement<typeof Tr> | null;
   selectAll?: {
     onSelect: (value: boolean) => void;
@@ -61,6 +62,7 @@ type Props<DataType> = {
   Omit<TableProps, 'ref' | 'data'> &
   Pick<
     PaginationProps,
+    | 'widgetId'
     | 'itemCount'
     | 'onPerPageSelect'
     | 'onSetPage'
@@ -98,6 +100,7 @@ const TableBase = <T,>({
   hasNestedHeader,
   rowRenderer,
   enablePagination,
+  showBottomPagination = true,
   toolbarContent,
   onClearFilters,
   bottomToolbarContent,
@@ -123,6 +126,7 @@ const TableBase = <T,>({
   skeletonRowCount,
   skeletonRowProps = {},
   toggleTemplate,
+  widgetId = 'table-pagination',
   disableItemCount = false,
   hasStickyColumns,
   ...props
@@ -144,7 +148,7 @@ const TableBase = <T,>({
       onPerPageSelect={onPerPageSelect}
       toggleTemplate={toggleTemplate}
       variant={variant}
-      widgetId="table-pagination"
+      widgetId={widgetId}
       perPageOptions={perPageOptions}
       menuAppendTo="inline"
       titles={{
@@ -277,7 +281,7 @@ const TableBase = <T,>({
 
   const table = (
     <Table {...props} {...(hasStickyColumns && { gridBreakPoint: '' })} ref={tableRef}>
-      {caption && <Caption>{caption}</Caption>}
+      {caption != null && typeof caption !== 'boolean' && <Caption>{caption}</Caption>}
       <Thead noWrap hasNestedHeader={hasNestedHeader}>
         {/* Note from PF: following custom style can be removed when we can resolve misalignment issue natively */}
         <Tr>{columns.map((col, i) => renderColumnHeader(col, i))}</Tr>
@@ -329,7 +333,7 @@ const TableBase = <T,>({
           <ToolbarContent alignItems="center">{bottomToolbarContent}</ToolbarContent>
         </Toolbar>
       )}
-      {showPagination && <>{pagination('bottom')}</>}
+      {showPagination && showBottomPagination && <>{pagination('bottom')}</>}
     </>
   );
 };

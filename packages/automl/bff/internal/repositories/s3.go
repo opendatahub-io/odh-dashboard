@@ -270,7 +270,52 @@ func (r *S3Repository) ObjectExists(ctx context.Context, req S3RequestContext, k
 // csvSchemaRange is the HTTP Range header used when fetching CSV data for schema inference.
 // The streaming parser stops after 100 rows, so only the bytes actually read are transferred;
 // this ceiling prevents runaway transfers for extremely wide rows.
-const csvSchemaRange = "bytes=0-1048575" // 1 MB
+// Fetch one extra byte to distinguish the sample boundary from the object's real EOF.
+const csvSchemaMaxBytes = 1 << 20
+const csvSchemaRange = "bytes=0-1048576"
+
+type csvSchemaReader struct {
+	io.LimitedReader
+}
+
+func (r *csvSchemaReader) Read(p []byte) (int, error) {
+	if r.N > 0 {
+		return r.LimitedReader.Read(p)
+	}
+
+	var extra [1]byte
+	n, err := r.R.Read(extra[:])
+	if n > 0 {
+		return 0, fmt.Errorf("%w: could not sample 100 complete data rows within 1 MiB", helper.ErrCSVValidation)
+	}
+	return 0, err
+}
+
+// GetCSVRowCount counts the entire CSV independently of the bounded schema sample.
+// The range includes one byte beyond the row-count limit to detect oversized files.
+func (r *S3Repository) GetCSVRowCount(ctx context.Context, req S3RequestContext, key string) (int64, error) {
+	if !strings.HasSuffix(strings.ToLower(key), ".csv") {
+		return 0, fmt.Errorf("%w: only CSV files are supported (must have .csv extension)", ErrCSVUploadValidation)
+	}
+	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
+	if err != nil {
+		return 0, err
+	}
+	body, _, err := r.s3Service.GetObject(ctx, opts, s3.GetObjectInput{
+		Bucket: bucket,
+		Key:    key,
+		Range:  fmt.Sprintf("bytes=0-%d", s3.MaxCSVRowCountBytes),
+	})
+	// A range starting at byte zero is unsatisfiable only for an empty object.
+	if errors.Is(err, s3.ErrInvalidRange) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("error retrieving CSV file from S3: %w", err)
+	}
+	defer body.Close()
+	return s3.CountCSVRows(ctx, body)
+}
 
 // GetCSVSchema resolves credentials from req, fetches the CSV at key from S3, and
 // infers its column schema. Only CSV files (key ending in .csv) are supported.
@@ -287,11 +332,14 @@ func (r *S3Repository) GetCSVSchema(ctx context.Context, req S3RequestContext, k
 
 	body, _, err := r.s3Service.GetObject(ctx, opts, s3.GetObjectInput{Bucket: bucket, Key: key, Range: csvSchemaRange})
 	if err != nil {
+		if errors.Is(err, s3.ErrInvalidRange) {
+			return helper.CSVSchemaResult{}, fmt.Errorf("%w: CSV file is empty", helper.ErrCSVValidation)
+		}
 		return helper.CSVSchemaResult{}, fmt.Errorf("error retrieving CSV file from S3: %w", err)
 	}
 	defer body.Close()
 
-	return helper.InferCSVSchema(body)
+	return helper.InferCSVSchema(&csvSchemaReader{io.LimitedReader{R: body, N: csvSchemaMaxBytes}})
 }
 
 // extractAWSS3ConnectionOptions extracts S3 connection options from a Kubernetes secret's

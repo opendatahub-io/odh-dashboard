@@ -8,6 +8,10 @@ import type { Connection } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import {
   Alert,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionToggle,
   Button,
   Card,
   CardBody,
@@ -15,40 +19,36 @@ import {
   CardTitle,
   Content,
   Divider,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   EmptyState,
   EmptyStateBody,
   Flex,
+  FlexItem,
   FormHelperText,
   Grid,
   GridItem,
   HelperText,
   HelperTextItem,
   MenuToggle,
-  MultipleFileUpload,
-  MultipleFileUploadMain,
   NumberInput,
   Radio,
   Select,
   SelectList,
   SelectOption,
+  Spinner,
   Split,
   SplitItem,
-  Spinner,
   Stack,
   StackItem,
-  ToggleGroup,
-  ToggleGroupItem,
   Tooltip,
-  Truncate,
 } from '@patternfly/react-core';
-import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
-import type { FileRejection } from 'react-dropzone';
+import {
+  CheckCircleIcon,
+  CubesIcon,
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+} from '@patternfly/react-icons';
 import { findKey } from 'es-toolkit';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
@@ -59,11 +59,12 @@ import {
   SecretSelector,
   type SecretSelection,
 } from '@odh-dashboard/autox-core/ui/components/feature';
-import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
 import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
 import { getInferredPredictionType } from '~/app/utilities/predictionTypeUtils';
+import useDatasetUpload from '~/app/hooks/useDatasetUpload';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
+import { useS3GetFileRowCountQuery } from '~/app/hooks/useS3GetFileRowCountQuery';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
@@ -88,17 +89,7 @@ import {
   isASCIIOnly,
 } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
-import {
-  AUTOML_TRAINING_UPLOAD_MAX_BYTES,
-  AUTOML_TRAINING_UPLOAD_MAX_FILES,
-  AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB,
-  AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
-  getTrainingDataDropRejectedNotification,
-  isAllowedTrainingDataUploadFile,
-  resolveSingleFileDropOutcome,
-  TRAINING_DATA_FILE_ACCEPT,
-  TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
-} from '~/app/utilities/automlTrainingDataFile';
+import { DATASET_SPLIT_AUTO, DATASET_SPLIT_SEPARATE } from '~/app/utilities/datasetSplit';
 import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import {
   fireAutomlS3ConnectionCreated,
@@ -112,13 +103,40 @@ import AutomlPredictionTypeHelperText from './AutomlPredictionTypeHelperText';
 import AutomlPredictionTypeSelector from './AutomlPredictionTypeSelector';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import OptimizationMetricModal from './OptimizationMetricModal';
+import DatasetCompatibilityCheck from './DatasetCompatibilityCheck';
+import DatasetFileDetailsPreview from './DatasetFileDetailsPreview';
+import DatasetFilePreview from './DatasetFilePreview';
+import DatasetSamplingError from './DatasetSamplingError';
+import DatasetFilePicker, { type DatasetFileSourceMode } from './DatasetFilePicker';
+import '@patternfly/react-styles/css/utilities/Sizing/sizing.css';
+import '@patternfly/react-styles/css/utilities/Text/text.css';
 import './AutomlConfigure.scss';
 
 const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
+const SHARED_DATA_CONNECTION_DESCRIPTION =
+  'Training and test data use the same S3 connection and bucket. Changing the connection clears both file selections.';
+
+function focusDatasetToggleBeforeCollapse(dataset: 'training' | 'test'): void {
+  const panel = document.getElementById(`${dataset}-data-accordion-content`);
+  if (panel?.contains(document.activeElement)) {
+    document.getElementById(`${dataset}-data-accordion-toggle`)?.focus();
+  }
+}
+
+function explorerFileFromKey(fileKey?: string): ExplorerFile | undefined {
+  if (!fileKey) {
+    return undefined;
+  }
+  const lastSegment = fileKey.split('/').pop();
+  const fileName = lastSegment || fileKey;
+  const extension = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
+  return { name: fileName, path: `/${fileKey}`, type: extension };
+}
 
 type AutomlConfigureProps = {
-  initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: SecretSelection;
+  onDatasetUploadChange?: (isUploading: boolean) => void;
+  onDatasetSamplingBlockedChange?: (isBlocked: boolean) => void;
   /** Reports whether the currently selected prediction type matches the recommendation derived from the target column. */
   onRecommendationChange?: (isRecommended: boolean) => void;
   /** Reports the furthest configure-step section the user has reached, for funnel exit tracking. */
@@ -126,13 +144,30 @@ type AutomlConfigureProps = {
 };
 
 function AutomlConfigure({
-  initialValues,
   initialInputDataSecret,
+  onDatasetUploadChange,
+  onDatasetSamplingBlockedChange,
   onRecommendationChange,
   onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
   const trackEvent = useTrackEvent();
+  const form = useFormContext<ConfigureSchema>();
+  const {
+    control,
+    setValue,
+    getValues,
+    trigger,
+    formState: { isSubmitting: formIsSubmitting, errors },
+  } = form;
   const { namespace } = useParams();
+  const [datasetNamespace, setDatasetNamespace] = useState(namespace);
+  const namespaceGenerationRef = useRef(0);
+  useLayoutEffect(
+    () => () => {
+      namespaceGenerationRef.current += 1;
+    },
+    [namespace],
+  );
   const [allConnectionTypes] = useWatchConnectionTypes();
   const automlConnectionTypes = React.useMemo(
     () =>
@@ -147,50 +182,65 @@ function AutomlConfigure({
   );
   const [isTargetColumnOpen, setIsTargetColumnOpen] = useState(false);
   const [isMetricModalOpen, setIsMetricModalOpen] = useState(false);
-  const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
+  const [connectionModalGeneration, setConnectionModalGeneration] = useState<number>();
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const initialFileKey = initialValues?.train_data_file_key;
+  const [filePreview, setFilePreview] = useState<{
+    fileKey: string;
+    scope: string;
+    trigger: HTMLElement;
+  }>();
+  const [fileExplorerTarget, setFileExplorerTarget] = useState<'train' | 'test'>('train');
+  const [isTrainingAccordionExpanded, setIsTrainingAccordionExpanded] = useState(false);
+  const [isTestAccordionExpanded, setIsTestAccordionExpanded] = useState(false);
+  const [focusedDataset, setFocusedDataset] = useState<'training' | 'test'>();
+  const initialFileKey = getValues('train_data_file_key');
+  const initialTestFileKey = getValues('test_data_file_key');
 
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
-    initialInputDataSecret,
+    initialInputDataSecret?.name === getValues('train_data_secret_name')
+      ? initialInputDataSecret
+      : undefined,
   );
-  const [trainingDataSourceMode, setTrainingDataSourceMode] = useState<'select' | 'upload'>(
-    'select',
-  );
+  const [trainingDataSourceMode, setTrainingDataSourceMode] =
+    useState<DatasetFileSourceMode>('select');
+  const [testDataSourceMode, setTestDataSourceMode] = useState<DatasetFileSourceMode>('select');
   const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<
     ExplorerFile | undefined
-  >(() => {
-    if (!initialFileKey) {
-      return undefined;
-    }
-    const lastSegment = initialFileKey.split('/').pop();
-    const fileName = lastSegment || initialFileKey;
-    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
-    return { name: fileName, path: `/${initialFileKey}`, type: ext };
-  });
+  >(() => explorerFileFromKey(initialFileKey));
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);
   const [isTrainingDataUploadDropdownOpen, setIsTrainingDataUploadDropdownOpen] = useState(false);
   const trainingDataUploadSeqRef = useRef(0);
+  const pendingTrainingDataCollapseRef = useRef<string>();
   const trainingDataNativeInputRef = useRef<HTMLInputElement>(null);
+  const [selectedTestDataFile, setSelectedTestDataFile] = useState<ExplorerFile | undefined>(() =>
+    explorerFileFromKey(initialTestFileKey),
+  );
+  const [isTestDataFileUploading, setIsTestDataFileUploading] = useState(false);
+  const [isTestDataUploadDropdownOpen, setIsTestDataUploadDropdownOpen] = useState(false);
+  const testDataUploadSeqRef = useRef(0);
+  const pendingTestDataCollapseRef = useRef<string>();
+  const testDataNativeInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    onDatasetUploadChange?.(isTrainingDataFileUploading || isTestDataFileUploading);
+  }, [isTrainingDataFileUploading, isTestDataFileUploading, onDatasetUploadChange]);
+
+  useEffect(() => () => onDatasetUploadChange?.(false), [onDatasetUploadChange]);
+
+  useEffect(
+    () => () => {
+      trainingDataUploadSeqRef.current += 1;
+      testDataUploadSeqRef.current += 1;
+    },
+    [],
+  );
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   // Initialized from initialFileKey so the file-change effect treats the pre-populated
-  // value as the baseline in reconfigure flows, preventing an unnecessary reset on mount.
+  // value as the baseline in reconfigure and Back → Next flows, preventing an unnecessary reset on mount.
   const previousFileKeyRef = useRef<string | undefined>(initialFileKey);
 
   const notification = useNotification();
-
-  const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
-
-  const form = useFormContext<ConfigureSchema>();
-
-  const {
-    control,
-    setValue,
-    getValues,
-    trigger,
-    formState: { isSubmitting: formIsSubmitting },
-  } = form;
 
   const [
     trainDataSecretName,
@@ -202,6 +252,8 @@ function AutomlConfigure({
     idColumn,
     knownCovariatesNames,
     evalMetric,
+    datasetSplitMode,
+    testDataFileKey,
   ] = useWatch({
     control: form.control,
     name: [
@@ -214,6 +266,8 @@ function AutomlConfigure({
       'id_column',
       'known_covariates_names',
       'eval_metric',
+      'dataset_split_mode',
+      'test_data_file_key',
     ],
   });
   const isTargetColumnSelected = Boolean(targetColumn?.trim());
@@ -279,23 +333,152 @@ function AutomlConfigure({
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
-  const showTrainingDataUploadDropzone = !isTrainingDataFileUploading && !trainDataFileKey.trim();
+  const areDocumentsComplete =
+    isFileSelected &&
+    (datasetSplitMode !== DATASET_SPLIT_SEPARATE || Boolean(testDataFileKey?.trim()));
+  const areDatasetFilesDistinct = trainDataFileKey !== testDataFileKey;
+  const hasIdenticalDatasetFiles = !areDatasetFilesDistinct && isFileSelected;
+  const testDataFileError = hasIdenticalDatasetFiles
+    ? 'Test data must use a different file from training data'
+    : errors.test_data_file_key?.message;
+  const selectedDatasetCount =
+    Number(Boolean(trainDataFileKey.trim())) + Number(Boolean(testDataFileKey?.trim()));
 
   const canSelectLearningType = isFileSelected;
   // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
+
+  // Form values still belong to the previous project until the reset effect runs.
+  const isDatasetNamespaceCurrent = datasetNamespace === namespace;
+  const datasetSecretName = isDatasetNamespaceCurrent ? trainDataSecretName : '';
+  const datasetBucketName = isDatasetNamespaceCurrent ? trainDataBucketName : '';
+  const trainingQueryFileKey = isDatasetNamespaceCurrent ? trainDataFileKey : '';
+  const testQueryFileKey = isDatasetNamespaceCurrent ? testDataFileKey : undefined;
 
   const {
     data: schemaColumns = [],
     isLoading: isLoadingColumns,
     isFetching: isFetchingColumns,
+    isPaused: isTrainingSamplePaused,
     error: columnsError,
     resetSchemaCache,
+    sample: trainingSample,
+    dataUpdatedAt: trainingSchemaUpdatedAt,
+    refetch: refetchTrainingSample,
   } = useS3GetFileSchemaQuery(
     namespace ?? '',
-    trainDataSecretName,
-    trainDataBucketName,
-    trainDataFileKey,
+    datasetSecretName,
+    datasetBucketName,
+    trainingQueryFileKey,
   );
+
+  const testSampleQuery = useS3GetFileSchemaQuery(
+    namespace ?? '',
+    datasetSecretName,
+    datasetBucketName,
+    datasetSplitMode === DATASET_SPLIT_SEPARATE ? testQueryFileKey : undefined,
+  );
+
+  const isDatasetSamplingBlocked =
+    datasetSplitMode === DATASET_SPLIT_SEPARATE &&
+    Boolean(
+      isFetchingColumns ||
+      isTrainingSamplePaused ||
+      columnsError ||
+      testSampleQuery.isFetching ||
+      testSampleQuery.isPaused ||
+      testSampleQuery.error,
+    );
+  useEffect(() => {
+    onDatasetSamplingBlockedChange?.(isDatasetSamplingBlocked);
+  }, [isDatasetSamplingBlocked, onDatasetSamplingBlockedChange]);
+  useEffect(() => () => onDatasetSamplingBlockedChange?.(false), [onDatasetSamplingBlockedChange]);
+
+  useEffect(() => {
+    if (datasetSplitMode === DATASET_SPLIT_SEPARATE) {
+      void trigger('test_data_file_key');
+    }
+  }, [trainDataFileKey, datasetSplitMode, trigger]);
+
+  // Collapse after a new file loads, while preserving manual reopening across refetches.
+  useEffect(() => {
+    if (!trainDataFileKey || datasetSplitMode !== DATASET_SPLIT_SEPARATE) {
+      pendingTrainingDataCollapseRef.current = undefined;
+    } else if (
+      areDatasetFilesDistinct &&
+      pendingTrainingDataCollapseRef.current === trainDataFileKey &&
+      !isTrainingDataFileUploading &&
+      !isLoadingColumns &&
+      !isFetchingColumns &&
+      !isTrainingSamplePaused &&
+      !columnsError &&
+      schemaColumns.length > 0
+    ) {
+      pendingTrainingDataCollapseRef.current = undefined;
+      focusDatasetToggleBeforeCollapse('training');
+      setIsTrainingAccordionExpanded(false);
+    }
+  }, [
+    datasetSplitMode,
+    trainDataFileKey,
+    areDatasetFilesDistinct,
+    isTrainingDataFileUploading,
+    isLoadingColumns,
+    isFetchingColumns,
+    isTrainingSamplePaused,
+    columnsError,
+    schemaColumns.length,
+  ]);
+
+  useEffect(() => {
+    if (!testDataFileKey || datasetSplitMode !== DATASET_SPLIT_SEPARATE) {
+      pendingTestDataCollapseRef.current = undefined;
+    } else if (
+      areDatasetFilesDistinct &&
+      pendingTestDataCollapseRef.current === testDataFileKey &&
+      !isTestDataFileUploading &&
+      !testSampleQuery.isFetching &&
+      !testSampleQuery.isPaused &&
+      !testSampleQuery.error &&
+      testSampleQuery.data.length > 0
+    ) {
+      pendingTestDataCollapseRef.current = undefined;
+      focusDatasetToggleBeforeCollapse('test');
+      setIsTestAccordionExpanded(false);
+    }
+  }, [
+    datasetSplitMode,
+    testDataFileKey,
+    areDatasetFilesDistinct,
+    isTestDataFileUploading,
+    testSampleQuery.isFetching,
+    testSampleQuery.isPaused,
+    testSampleQuery.error,
+    testSampleQuery.data.length,
+  ]);
+
+  const previewScope = `${namespace}/${trainDataSecretName}/${trainDataBucketName}`;
+  const previewFileKey = filePreview?.scope === previewScope ? filePreview.fileKey : undefined;
+  const openFilePreview = (fileKey: string, event: React.MouseEvent<HTMLButtonElement>) =>
+    setFilePreview({ fileKey, scope: previewScope, trigger: event.currentTarget });
+
+  const {
+    data: trainingRowCountSnapshot,
+    isFetching: isFetchingRowCount,
+    error: rowCountError,
+    refetch: refetchRowCount,
+  } = useS3GetFileRowCountQuery(
+    namespace ?? '',
+    datasetSecretName,
+    datasetBucketName,
+    trainingQueryFileKey,
+    datasetSplitMode !== DATASET_SPLIT_SEPARATE,
+  );
+
+  const trainingDataRowCount = trainingRowCountSnapshot?.rowCount;
+  const isTrainingRowCountCurrent =
+    trainingRowCountSnapshot?.schemaUpdatedAt === trainingSchemaUpdatedAt;
+
+  const isTrainingRowCountStale = Boolean(trainingRowCountSnapshot && !isTrainingRowCountCurrent);
 
   // KFP MySQL rejects non-ASCII column names in PipelineRuntimeManifest — hide them from picks.
   const columns = React.useMemo(
@@ -315,10 +498,10 @@ function AutomlConfigure({
   const selectedColumn = columns.find((c) => c.name === targetColumn);
 
   useEffect(() => {
-    if (columnsError) {
+    if (columnsError && datasetSplitMode !== DATASET_SPLIT_SEPARATE) {
       notification.warning('Column schema error', columnsError.message);
     }
-  }, [columnsError, notification]);
+  }, [columnsError, datasetSplitMode, notification]);
 
   // Report whether the selected prediction type matches the target column's recommended type
   useEffect(() => {
@@ -363,13 +546,29 @@ function AutomlConfigure({
     });
   }, [selectedSecret, setValue]);
 
-  // reset selected file values if secret or bucket changes (skips mount to preserve reconfigure)
+  // Clear namespace-scoped connection state on navigation, preserving saved values on mount.
   useReconfigureSafeEffect(() => {
+    setDatasetNamespace(namespace);
+    setConnectionModalGeneration(undefined);
+    setSelectedSecret(undefined);
+    setValue('train_data_secret_name', '', { shouldValidate: true });
+    setValue('train_data_bucket_name', '', { shouldValidate: true });
+  }, [namespace, setValue]);
+
+  // reset selected file values if namespace, secret or bucket changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
+    setFilePreview(undefined);
+    setIsFileExplorerOpen(false);
     trainingDataUploadSeqRef.current += 1;
+    testDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
+    setIsTestDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
     setSelectedTrainingDataFile(undefined);
-  }, [trainDataSecretName, trainDataBucketName, setValue]);
+    setValue('test_data_file_key', '', { shouldValidate: true });
+    setValue('test_data_bucket_name', '', { shouldValidate: true });
+    setSelectedTestDataFile(undefined);
+  }, [namespace, trainDataSecretName, trainDataBucketName, setValue]);
 
   // reset training data key when select vs upload mode changes (skips mount to preserve reconfigure)
   useReconfigureSafeEffect(() => {
@@ -378,6 +577,13 @@ function AutomlConfigure({
     setValue('train_data_file_key', '', { shouldValidate: true });
     setSelectedTrainingDataFile(undefined);
   }, [trainingDataSourceMode, setValue]);
+
+  useReconfigureSafeEffect(() => {
+    testDataUploadSeqRef.current += 1;
+    setIsTestDataFileUploading(false);
+    setValue('test_data_file_key', '', { shouldValidate: true });
+    setSelectedTestDataFile(undefined);
+  }, [testDataSourceMode, setValue]);
 
   // reset prediction type and column-related form fields when file selection changes
   useEffect(() => {
@@ -452,91 +658,155 @@ function AutomlConfigure({
     setValue('train_data_file_key', '', { shouldValidate: true });
   }, [setValue]);
 
-  const uploadTrainingDataFile = useCallback(
-    async (file?: File) => {
-      if (!file || !namespace) {
-        return;
-      }
-      if (file.size > AUTOML_TRAINING_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL);
-        return;
-      }
-      if (!isAllowedTrainingDataUploadFile(file)) {
-        notification.error('Invalid file type', 'File type must be CSV.');
-        return;
-      }
-      const uploadRequestId = ++trainingDataUploadSeqRef.current;
-      setValue('train_data_file_key', '', { shouldValidate: true });
-      setIsTrainingDataUploadDropdownOpen(false);
-      setIsTrainingDataFileUploading(true);
-      try {
-        const uploadResult = await uploadFileToS3({
-          namespace,
-          secretName: trainDataSecretName,
-          bucket: trainDataBucketName,
-          key: file.name,
-          file,
-        });
-        if (uploadRequestId !== trainingDataUploadSeqRef.current) {
-          return;
-        }
-        setValue('train_data_file_key', uploadResult.key, { shouldValidate: true });
-        fireTrainingDataMilestoneOnce('upload');
-      } catch (err) {
-        if (uploadRequestId === trainingDataUploadSeqRef.current) {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+  const startTrainingDataUpload = useCallback(() => {
+    pendingTrainingDataCollapseRef.current = undefined;
+    setValue('train_data_file_key', '', { shouldValidate: true });
+    setIsTrainingDataUploadDropdownOpen(false);
+  }, [setValue]);
 
-          notification.error(
-            'Failed to upload file',
-            isConflict
-              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
-              : errorMessage,
-          );
-        }
-      } finally {
-        if (uploadRequestId === trainingDataUploadSeqRef.current) {
-          setIsTrainingDataFileUploading(false);
-        }
-      }
+  const completeTrainingDataUpload = useCallback(
+    (key: string) => {
+      pendingTrainingDataCollapseRef.current = key;
+      setValue('train_data_file_key', key, { shouldValidate: true });
+      fireTrainingDataMilestoneOnce('upload');
     },
-    [
+    [setValue, fireTrainingDataMilestoneOnce],
+  );
+
+  const { uploadFile: uploadTrainingDataFile, processDrop: processTrainingDataDropOutcome } =
+    useDatasetUpload({
       namespace,
-      notification,
-      setValue,
-      trainDataBucketName,
-      trainDataSecretName,
-      uploadFileToS3,
-      fireTrainingDataMilestoneOnce,
-    ],
-  );
-
-  const handleTrainingDataDropRejected = useCallback(
-    (fileRejections: FileRejection[]) => {
-      const payload = getTrainingDataDropRejectedNotification(fileRejections);
-      if (payload) {
-        notification.error(payload.title, payload.description);
-      }
-    },
-    [notification],
-  );
-
-  const processTrainingDataDropOutcome = useCallback(
-    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
-      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
-      if (outcome.kind === 'reject') {
-        handleTrainingDataDropRejected(outcome.fileRejections);
-      } else if (outcome.kind === 'upload') {
-        void uploadTrainingDataFile(outcome.file);
-      }
-    },
-    [handleTrainingDataDropRejected, uploadTrainingDataFile],
-  );
+      secretName: trainDataSecretName,
+      bucket: trainDataBucketName,
+      isActive: trainingDataSourceMode === 'upload',
+      requestSequenceRef: trainingDataUploadSeqRef,
+      onStart: startTrainingDataUpload,
+      onSuccess: completeTrainingDataUpload,
+      onUploadingChange: setIsTrainingDataFileUploading,
+    });
 
   const openTrainingDataReplaceFileDialog = useCallback(() => {
     setIsTrainingDataUploadDropdownOpen(false);
     trainingDataNativeInputRef.current?.click();
   }, []);
+
+  const clearTestDataUpload = useCallback(() => {
+    testDataUploadSeqRef.current += 1;
+    setIsTestDataFileUploading(false);
+    setIsTestDataUploadDropdownOpen(false);
+    setValue('test_data_file_key', '', { shouldValidate: true });
+    setSelectedTestDataFile(undefined);
+  }, [setValue]);
+
+  const startTestDataUpload = useCallback(() => {
+    pendingTestDataCollapseRef.current = undefined;
+    setValue('test_data_file_key', '', { shouldValidate: true });
+    setSelectedTestDataFile(undefined);
+    setIsTestDataUploadDropdownOpen(false);
+  }, [setValue]);
+
+  const completeTestDataUpload = useCallback(
+    (key: string) => {
+      pendingTestDataCollapseRef.current = key;
+      setValue('test_data_file_key', key, { shouldValidate: true });
+      setSelectedTestDataFile(explorerFileFromKey(key));
+    },
+    [setValue],
+  );
+
+  const { uploadFile: uploadTestDataFile, processDrop: processTestDataDropOutcome } =
+    useDatasetUpload({
+      namespace,
+      secretName: trainDataSecretName,
+      bucket: trainDataBucketName,
+      isActive: datasetSplitMode === DATASET_SPLIT_SEPARATE && testDataSourceMode === 'upload',
+      requestSequenceRef: testDataUploadSeqRef,
+      onStart: startTestDataUpload,
+      onSuccess: completeTestDataUpload,
+      onUploadingChange: setIsTestDataFileUploading,
+    });
+
+  const openTestDataReplaceFileDialog = useCallback(() => {
+    setIsTestDataUploadDropdownOpen(false);
+    testDataNativeInputRef.current?.click();
+  }, []);
+
+  const applyDatasetSplitMode = (
+    mode: typeof DATASET_SPLIT_AUTO | typeof DATASET_SPLIT_SEPARATE,
+  ) => {
+    setValue('dataset_split_mode', mode, { shouldValidate: true });
+    if (mode === DATASET_SPLIT_AUTO) {
+      testDataUploadSeqRef.current += 1;
+      setIsTestDataFileUploading(false);
+      setValue('test_data_file_key', '', { shouldValidate: true });
+      setValue('test_data_bucket_name', '', { shouldValidate: true });
+      setSelectedTestDataFile(undefined);
+    }
+  };
+
+  const renderConnectionSelector = (
+    description: string,
+    dataTestId = 'aws-secret-selector',
+  ): React.JSX.Element => (
+    <StackItem>
+      <ConfigureFormGroup label="1. Choose a connection" description={description}>
+        <Flex
+          flexWrap={{ default: 'wrap' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          spaceItems={{ default: 'spaceItemsMd' }}
+        >
+          <FlexItem flex={{ default: 'flex_1' }} className="automl-configure__connection-selector">
+            <Controller
+              control={control}
+              name="train_data_secret_name"
+              render={({ field: { onChange } }) => (
+                <SecretSelector
+                  namespace={String(namespace)}
+                  type="storage"
+                  additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
+                  isDisabled={formIsSubmitting}
+                  value={selectedSecret?.uuid}
+                  valueName={trainDataSecretName}
+                  onChange={(secret) => {
+                    if (!secret) {
+                      setSelectedSecret(undefined);
+                      onChange('');
+                      return;
+                    }
+
+                    const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
+                    const invalid = requiredKeys
+                      ? getMissingRequiredKeys(requiredKeys, Object.keys(secret.data ?? {}))
+                          .length > 0
+                      : true;
+                    setNewConnectionNotLoaded(false);
+                    setSelectedSecret({ ...secret, invalid });
+                    onChange(invalid ? '' : secret.name);
+                  }}
+                  onRefreshReady={(refresh) => {
+                    secretsRefreshRef.current = refresh;
+                  }}
+                  placeholder="Select connection"
+                  toggleWidth="100%"
+                  dataTestId={dataTestId}
+                />
+              )}
+            />
+          </FlexItem>
+          <FlexItem>
+            <Button
+              key={`add-new-connection-${dataTestId}`}
+              variant="secondary"
+              isDisabled={formIsSubmitting}
+              onClick={() => setConnectionModalGeneration(namespaceGenerationRef.current)}
+            >
+              Add new connection
+            </Button>
+          </FlexItem>
+        </Flex>
+      </ConfigureFormGroup>
+    </StackItem>
+  );
 
   if (!namespace) {
     return <Navigate to={automlExperimentsPathname} replace />;
@@ -545,80 +815,102 @@ function AutomlConfigure({
   return (
     <>
       <Grid className="pf-v6-u-h-100" hasGutter>
-        <GridItem span={4}>
+        <GridItem span={12} lg={5} xl2={4}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div style={{ overflow: 'auto' }}>
-              <CardHeader>
-                <Content component="h3">Documents</Content>
-                <Content component="p">
-                  Select or upload documents to train and build machine learning models for tabular
-                  or timeseries data.
-                </Content>
-              </CardHeader>
               <CardBody>
                 <Stack hasGutter>
                   <StackItem>
                     <ConfigureFormGroup
-                      label="S3 connection"
-                      description="Select the S3 connection that contains your desired documents, or add a new connection."
+                      label="Data splitting"
+                      description="Choose how to divide your data for training and testing."
+                      labelHelp={{
+                        header: 'Data splitting',
+                        body: (
+                          <Content>
+                            {datasetSplitMode === DATASET_SPLIT_SEPARATE ? (
+                              <Content component="p">
+                                The system uses your supplied training and test files instead of
+                                splitting a single file.
+                              </Content>
+                            ) : (
+                              <>
+                                <Content component="p">
+                                  The system uses 80% of your data to train the model and 20% to
+                                  test how well it learned.
+                                </Content>
+                                <Content component="p">
+                                  It splits data randomly for regression, keeps categories balanced
+                                  for classification, and uses earlier records for training and
+                                  later records for testing with time series data.
+                                </Content>
+                              </>
+                            )}
+                            <Content component="p">
+                              The system also uses part of the training data to choose the best
+                              model, so you do not need to provide a separate validation file.
+                            </Content>
+                          </Content>
+                        ),
+                      }}
                     >
-                      <Split hasGutter isWrappable>
-                        <SplitItem style={{ width: '10rem' }} isFilled>
-                          {Boolean(namespace) && (
-                            <Controller
-                              control={control}
-                              name="train_data_secret_name"
-                              render={({ field: { onChange } }) => (
-                                <SecretSelector
-                                  namespace={String(namespace)}
-                                  type="storage"
-                                  additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
-                                  isDisabled={formIsSubmitting}
-                                  value={selectedSecret?.uuid}
-                                  onChange={(secret) => {
-                                    if (!secret) {
-                                      setSelectedSecret(undefined);
-                                      onChange('');
-                                      return;
-                                    }
-
-                                    const requiredKeys =
-                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
-                                    const invalid = requiredKeys
-                                      ? getMissingRequiredKeys(
-                                          requiredKeys,
-                                          Object.keys(secret.data ?? {}),
-                                        ).length > 0
-                                      : true;
-                                    setNewConnectionNotLoaded(false);
-                                    setSelectedSecret({ ...secret, invalid });
-                                    onChange(invalid ? '' : secret.name);
-                                  }}
-                                  onRefreshReady={(refresh) => {
-                                    secretsRefreshRef.current = refresh;
-                                  }}
-                                  placeholder="Select connection"
-                                  toggleWidth="16rem"
-                                  dataTestId="aws-secret-selector"
-                                />
-                              )}
-                            />
-                          )}
-                        </SplitItem>
-                        <SplitItem>
-                          <Button
-                            key="add-new-connection"
-                            variant="secondary"
+                      <Stack hasGutter>
+                        <StackItem>
+                          <Radio
+                            id="dataset-split-auto"
+                            name="dataset-split"
+                            data-testid="dataset-split-auto"
+                            label="Automatically split data"
+                            description="Use a single dataset for both training and testing."
+                            isChecked={datasetSplitMode !== DATASET_SPLIT_SEPARATE}
+                            onChange={() => applyDatasetSplitMode(DATASET_SPLIT_AUTO)}
                             isDisabled={formIsSubmitting}
-                            onClick={() => setIsConnectionModalOpen(true)}
-                          >
-                            Add new connection
-                          </Button>
-                        </SplitItem>
-                      </Split>
+                          />
+                        </StackItem>
+                        <StackItem>
+                          <Radio
+                            id="dataset-split-separate"
+                            name="dataset-split"
+                            data-testid="dataset-split-separate"
+                            label="Use separate datasets"
+                            description="Provide individual files for training and testing."
+                            isChecked={datasetSplitMode === DATASET_SPLIT_SEPARATE}
+                            onChange={() => applyDatasetSplitMode(DATASET_SPLIT_SEPARATE)}
+                            isDisabled={formIsSubmitting}
+                          />
+                        </StackItem>
+                      </Stack>
                     </ConfigureFormGroup>
                   </StackItem>
-                  {newConnectionNotLoaded && (
+                  <StackItem>
+                    <Divider />
+                  </StackItem>
+                  <StackItem>
+                    <Split hasGutter>
+                      <SplitItem>
+                        <Content component="h3" data-testid="documents-heading">
+                          Documents
+                        </Content>
+                      </SplitItem>
+                      <SplitItem isFilled />
+                      {datasetSplitMode === DATASET_SPLIT_SEPARATE && (
+                        <SplitItem>
+                          <Content component="small" data-testid="dataset-selection-count">
+                            {selectedDatasetCount} of 2 datasets selected
+                          </Content>
+                        </SplitItem>
+                      )}
+                    </Split>
+                    <Content component="p">
+                      Select or upload the CSV file used to train your model. Choose from an
+                      existing connection, create a new connection, or upload a file.
+                    </Content>
+                  </StackItem>
+                  {datasetSplitMode !== DATASET_SPLIT_SEPARATE &&
+                    renderConnectionSelector(
+                      'Select the S3 connection that contains your training data, or add a new connection.',
+                    )}
+                  {datasetSplitMode !== DATASET_SPLIT_SEPARATE && newConnectionNotLoaded && (
                     <StackItem className="pf-v6-u-mt-md">
                       <Alert variant="warning" isInline title="Connection added">
                         The connection was created but could not be loaded. Please refresh the page
@@ -626,234 +918,478 @@ function AutomlConfigure({
                       </Alert>
                     </StackItem>
                   )}
-                  {Boolean(trainDataSecretName) && (
+                  {(Boolean(trainDataSecretName) ||
+                    datasetSplitMode === DATASET_SPLIT_SEPARATE) && (
                     <>
-                      <StackItem>
-                        <Divider />
-                      </StackItem>
-                      <StackItem className="pf-v6-u-mt-sm">
-                        <ToggleGroup
-                          aria-label="Choose how to add training data"
-                          className="automl-configure__toggle-group-full-width pf-v6-u-mb-md"
-                        >
-                          <ToggleGroupItem
-                            text="Select file from bucket"
-                            buttonId="training-data-input-select"
-                            data-testid="training-data-source-select-toggle"
-                            isSelected={trainingDataSourceMode === 'select'}
-                            isDisabled={formIsSubmitting}
-                            onChange={() => setTrainingDataSourceMode('select')}
-                          />
-                          <ToggleGroupItem
-                            text="Upload file"
-                            buttonId="training-data-input-upload"
-                            data-testid="training-data-source-upload-toggle"
-                            isSelected={trainingDataSourceMode === 'upload'}
-                            isDisabled={formIsSubmitting}
-                            onChange={() => setTrainingDataSourceMode('upload')}
-                          />
-                        </ToggleGroup>
-                      </StackItem>
-
-                      {trainingDataSourceMode === 'select' && (
+                      {datasetSplitMode !== DATASET_SPLIT_SEPARATE && (
+                        <StackItem>
+                          <Divider />
+                        </StackItem>
+                      )}
+                      {datasetSplitMode !== DATASET_SPLIT_SEPARATE && (
                         <>
                           <StackItem>
-                            <Content component="h4">Select file from bucket</Content>
+                            <Content component="h4">2. Choose a file</Content>
                           </StackItem>
+                          <DatasetFilePicker
+                            dataset="training"
+                            testIdPrefix="training-data"
+                            selectDescription="Select one CSV file from this bucket to use as training data for your experiment."
+                            fileKey={trainDataFileKey}
+                            selectedFile={selectedTrainingDataFile}
+                            sourceMode={trainingDataSourceMode}
+                            onSourceModeChange={setTrainingDataSourceMode}
+                            onBrowse={() => {
+                              setFileExplorerTarget('train');
+                              setIsFileExplorerOpen(true);
+                            }}
+                            onRemoveSelection={() => {
+                              setSelectedTrainingDataFile(undefined);
+                              setValue('train_data_file_key', '', {
+                                shouldValidate: true,
+                              });
+                            }}
+                            canSelectFiles={canSelectFiles}
+                            formIsSubmitting={formIsSubmitting}
+                            isUploading={isTrainingDataFileUploading}
+                            isUploadDropdownOpen={isTrainingDataUploadDropdownOpen}
+                            onUploadDropdownOpenChange={setIsTrainingDataUploadDropdownOpen}
+                            nativeInputRef={trainingDataNativeInputRef}
+                            onNativeFileChange={(file) => {
+                              void uploadTrainingDataFile(file);
+                            }}
+                            onDrop={processTrainingDataDropOutcome}
+                            onClearUpload={clearTrainingDataUpload}
+                            onReplaceUpload={openTrainingDataReplaceFileDialog}
+                          />
+                          {isFileSelected &&
+                            !isTrainingDataFileUploading &&
+                            !isLoadingColumns &&
+                            !isFetchingColumns &&
+                            !columnsError &&
+                            !isFetchingRowCount &&
+                            !rowCountError &&
+                            isTrainingRowCountCurrent &&
+                            trainingDataRowCount !== undefined &&
+                            trainingSample &&
+                            trainingSample.sampleSize > 0 &&
+                            schemaColumns.length > 0 && (
+                              <StackItem>
+                                <HelperText aria-live="polite">
+                                  <HelperTextItem
+                                    variant="success"
+                                    icon={<CheckCircleIcon />}
+                                    data-testid="training-data-load-success"
+                                  >
+                                    {trainingSample.parseWarnings > 0 ? (
+                                      <>
+                                        File contains {trainingDataRowCount} data{' '}
+                                        {trainingDataRowCount === 1 ? 'record' : 'records'}. Schema
+                                        inferred from {trainingSample.sampleSize} sampled{' '}
+                                        {trainingSample.sampleSize === 1 ? 'row' : 'rows'} with{' '}
+                                        {schemaColumns.length}{' '}
+                                        {schemaColumns.length === 1 ? 'column' : 'columns'}.
+                                      </>
+                                    ) : (
+                                      <>
+                                        Successfully loaded {trainingDataRowCount}{' '}
+                                        {trainingDataRowCount === 1 ? 'row' : 'rows'} with{' '}
+                                        {schemaColumns.length}{' '}
+                                        {schemaColumns.length === 1 ? 'column' : 'columns'}
+                                      </>
+                                    )}
+                                  </HelperTextItem>
+                                </HelperText>
+                              </StackItem>
+                            )}
+                          {isFileSelected &&
+                            !isTrainingDataFileUploading &&
+                            !isFetchingColumns &&
+                            !columnsError &&
+                            trainingSample &&
+                            trainingSample.parseWarnings > 0 && (
+                              <StackItem>
+                                <HelperText aria-live="polite">
+                                  <HelperTextItem
+                                    variant="warning"
+                                    data-testid="training-data-sampling-warning"
+                                  >
+                                    Skipped {trainingSample.parseWarnings} malformed{' '}
+                                    {trainingSample.parseWarnings === 1 ? 'record' : 'records'}{' '}
+                                    while sampling the schema. The whole-file record count may
+                                    include these records. Review the file before continuing.
+                                  </HelperTextItem>
+                                </HelperText>
+                              </StackItem>
+                            )}
+                          {isFileSelected &&
+                            !columnsError &&
+                            (rowCountError ||
+                              (isTrainingRowCountStale &&
+                                !isFetchingColumns &&
+                                !isTrainingSamplePaused)) && (
+                              <StackItem>
+                                <HelperText aria-live="polite">
+                                  <HelperTextItem variant="warning">
+                                    {rowCountError
+                                      ? `Unable to count rows. ${rowCountError.message}`
+                                      : 'The file preview was refreshed. Refresh the row count to confirm the file details.'}{' '}
+                                    <Button
+                                      variant="link"
+                                      isInline
+                                      isDisabled={
+                                        isFetchingRowCount ||
+                                        isFetchingColumns ||
+                                        isTrainingSamplePaused
+                                      }
+                                      onClick={() => {
+                                        void refetchRowCount();
+                                      }}
+                                    >
+                                      {rowCountError ? 'Retry row count' : 'Refresh row count'}
+                                    </Button>
+                                  </HelperTextItem>
+                                </HelperText>
+                              </StackItem>
+                            )}
+                        </>
+                      )}
+                      {datasetSplitMode === DATASET_SPLIT_SEPARATE && (
+                        <>
                           <StackItem>
-                            <Content component="small">
-                              Select one CSV file from this bucket to use as training data for your
-                              experiment.
-                            </Content>
-                          </StackItem>
-                          <StackItem>
-                            <Button
-                              key="browse-bucket"
-                              variant="secondary"
-                              data-testid="browse-bucket-button"
-                              onClick={() => setIsFileExplorerOpen(true)}
-                              isDisabled={!canSelectFiles || formIsSubmitting}
+                            <Accordion
+                              asDefinitionList={false}
+                              togglePosition="end"
+                              className="automl-configure__dataset-accordion"
                             >
-                              Browse bucket
-                            </Button>
-                          </StackItem>
-                          {selectedTrainingDataFile && (
-                            <StackItem>
-                              <Table aria-label="Selected training data file" variant="compact">
-                                <Thead>
-                                  <Tr>
-                                    <Th>Name</Th>
-                                    <Th>Type</Th>
-                                    <Th />
-                                  </Tr>
-                                </Thead>
-                                <Tbody>
-                                  <Tr>
-                                    <Td dataLabel="Name">
-                                      <span title={selectedTrainingDataFile.path}>
-                                        <Truncate content={selectedTrainingDataFile.name} />
-                                      </span>
-                                    </Td>
-                                    <Td dataLabel="Type">{selectedTrainingDataFile.type}</Td>
-                                    <Td isActionCell>
-                                      <Tooltip content="Remove selection">
-                                        <Button
-                                          size="sm"
-                                          variant="plain"
-                                          aria-label="Remove selection"
-                                          icon={<TimesIcon />}
-                                          isDisabled={formIsSubmitting}
-                                          onClick={() => {
+                              <AccordionItem isExpanded={isTrainingAccordionExpanded}>
+                                <AccordionToggle
+                                  id="training-data-accordion-toggle"
+                                  aria-controls="training-data-accordion-content"
+                                  onFocus={() => setFocusedDataset('training')}
+                                  onBlur={() => setFocusedDataset(undefined)}
+                                  data-testid="training-data-accordion-toggle"
+                                  onClick={() => {
+                                    const isExpanding = !isTrainingAccordionExpanded;
+                                    setIsTrainingAccordionExpanded(isExpanding);
+                                    if (isExpanding) {
+                                      setIsTestAccordionExpanded(false);
+                                    }
+                                  }}
+                                >
+                                  <Split hasGutter>
+                                    <SplitItem className="pf-v6-u-text-nowrap">
+                                      <strong>1. Training data</strong>
+                                    </SplitItem>
+                                    <SplitItem
+                                      isFilled
+                                      className="pf-v6-u-min-width pf-v6-u-font-weight-normal"
+                                    >
+                                      <Flex
+                                        flexWrap={{ default: 'nowrap' }}
+                                        spaceItems={{ default: 'spaceItemsSm' }}
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        justifyContent={{ default: 'justifyContentFlexEnd' }}
+                                      >
+                                        <FlexItem>
+                                          {isFetchingColumns && trainDataFileKey ? (
+                                            <Spinner
+                                              size="sm"
+                                              aria-label="Sampling training data"
+                                            />
+                                          ) : columnsError && trainDataFileKey ? (
+                                            <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
+                                          ) : trainDataFileKey && schemaColumns.length > 0 ? (
+                                            <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" />
+                                          ) : (
+                                            <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
+                                          )}
+                                        </FlexItem>
+                                        <FlexItem
+                                          id="training-data-filename"
+                                          className="pf-v6-u-min-width pf-v6-u-text-truncate"
+                                        >
+                                          {selectedTrainingDataFile?.name ??
+                                            (trainDataFileKey || 'Incomplete')}
+                                        </FlexItem>
+                                      </Flex>
+                                    </SplitItem>
+                                  </Split>
+                                </AccordionToggle>
+                                {trainDataFileKey && (
+                                  <Tooltip
+                                    position="top"
+                                    trigger="mouseenter"
+                                    isVisible={focusedDataset === 'training'}
+                                    aria="none"
+                                    content={selectedTrainingDataFile?.name ?? trainDataFileKey}
+                                    triggerRef={() =>
+                                      document.getElementById('training-data-filename')!
+                                    }
+                                  />
+                                )}
+                                <AccordionContent id="training-data-accordion-content">
+                                  <Stack hasGutter>
+                                    <StackItem>
+                                      <Content component="p">
+                                        Select or upload the CSV file used to train your model.
+                                        Choose from an existing connection, create a new connection,
+                                        or upload a file.
+                                      </Content>
+                                    </StackItem>
+                                    {renderConnectionSelector(
+                                      SHARED_DATA_CONNECTION_DESCRIPTION,
+                                      'training-data-aws-secret-selector',
+                                    )}
+                                    {newConnectionNotLoaded && (
+                                      <StackItem>
+                                        <Alert variant="warning" isInline title="Connection added">
+                                          The connection was created but could not be loaded. Please
+                                          refresh the page to see it.
+                                        </Alert>
+                                      </StackItem>
+                                    )}
+                                    {Boolean(trainDataSecretName) && (
+                                      <>
+                                        <StackItem>
+                                          <Divider />
+                                        </StackItem>
+                                        <StackItem>
+                                          <Content component="h4">2. Choose a file</Content>
+                                        </StackItem>
+                                        <DatasetFilePicker
+                                          dataset="training"
+                                          testIdPrefix="training-data"
+                                          selectDescription="Select one CSV file from this bucket to use as training data for your experiment."
+                                          fileKey={trainDataFileKey}
+                                          selectedFile={selectedTrainingDataFile}
+                                          sourceMode={trainingDataSourceMode}
+                                          onSourceModeChange={setTrainingDataSourceMode}
+                                          onBrowse={() => {
+                                            setFileExplorerTarget('train');
+                                            setIsFileExplorerOpen(true);
+                                          }}
+                                          onRemoveSelection={() => {
                                             setSelectedTrainingDataFile(undefined);
                                             setValue('train_data_file_key', '', {
                                               shouldValidate: true,
                                             });
                                           }}
+                                          canSelectFiles={canSelectFiles}
+                                          formIsSubmitting={formIsSubmitting}
+                                          isUploading={isTrainingDataFileUploading}
+                                          isUploadDropdownOpen={isTrainingDataUploadDropdownOpen}
+                                          onUploadDropdownOpenChange={
+                                            setIsTrainingDataUploadDropdownOpen
+                                          }
+                                          nativeInputRef={trainingDataNativeInputRef}
+                                          onNativeFileChange={(file) => {
+                                            void uploadTrainingDataFile(file);
+                                          }}
+                                          onDrop={processTrainingDataDropOutcome}
+                                          onClearUpload={clearTrainingDataUpload}
+                                          onReplaceUpload={openTrainingDataReplaceFileDialog}
                                         />
-                                      </Tooltip>
-                                    </Td>
-                                  </Tr>
-                                </Tbody>
-                              </Table>
-                            </StackItem>
-                          )}
-                        </>
-                      )}
-
-                      {trainingDataSourceMode === 'upload' && (
-                        <>
-                          <StackItem>
-                            <Content component="h4">Upload file</Content>
-                          </StackItem>
-                          <StackItem>
-                            <Content component="small" id="training-data-upload-description">
-                              Drop a file here or browse to select a file.
-                            </Content>
-                          </StackItem>
-                          <StackItem>
-                            <input
-                              ref={trainingDataNativeInputRef}
-                              type="file"
-                              hidden
-                              data-testid="automl-upload-file-input"
-                              accept={TRAINING_DATA_UPLOAD_NATIVE_ACCEPT}
-                              aria-hidden
-                              tabIndex={-1}
-                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                const input = event.currentTarget;
-                                const file = input.files?.[0];
-                                input.value = '';
-                                if (!file) {
-                                  return;
-                                }
-                                void uploadTrainingDataFile(file);
-                              }}
-                            />
-                            {showTrainingDataUploadDropzone && (
-                              <MultipleFileUpload
-                                aria-describedby="training-data-upload-description"
-                                data-testid="training-data-upload-zone"
-                                dropzoneProps={{
-                                  accept: TRAINING_DATA_FILE_ACCEPT,
-                                  disabled: formIsSubmitting || isTrainingDataFileUploading,
-                                  maxFiles: AUTOML_TRAINING_UPLOAD_MAX_FILES,
-                                  maxSize: AUTOML_TRAINING_UPLOAD_MAX_BYTES,
-                                  multiple: false,
-                                  onDrop: processTrainingDataDropOutcome,
-                                }}
-                              >
-                                <MultipleFileUploadMain
-                                  titleIcon={<UploadIcon />}
-                                  titleText="Drag and drop files here"
-                                  titleTextSeparator="or"
-                                  infoText={`Accepted file types: CSV. Maximum file size: ${AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB} MiB`}
-                                  browseButtonText="Upload"
-                                />
-                              </MultipleFileUpload>
-                            )}
-                            {!showTrainingDataUploadDropzone && (
-                              <Table
-                                aria-label="Training data file upload"
-                                borders
-                                variant="compact"
-                                className="pf-v6-u-w-100"
-                              >
-                                <Thead>
-                                  <Tr>
-                                    <Th>File</Th>
-                                    <Th aria-label="Actions" />
-                                  </Tr>
-                                </Thead>
-                                <Tbody>
-                                  <Tr>
-                                    <Td dataLabel="File" data-testid="uploaded-file-cell">
-                                      <Split hasGutter>
-                                        {isTrainingDataFileUploading && (
-                                          <SplitItem>
-                                            <Spinner
-                                              size="md"
-                                              aria-label="Uploading file"
-                                              data-testid="training-data-upload-spinner"
+                                        {columnsError && (
+                                          <StackItem>
+                                            <DatasetSamplingError
+                                              onRetry={() => {
+                                                void refetchTrainingSample();
+                                              }}
+                                              error={columnsError}
+                                              isRetrying={isFetchingColumns}
                                             />
-                                          </SplitItem>
+                                          </StackItem>
                                         )}
-                                        <SplitItem isFilled>
-                                          {isTrainingDataFileUploading ? (
-                                            'Uploading…'
-                                          ) : (
-                                            <Truncate content={trainDataFileKey} />
-                                          )}
-                                        </SplitItem>
-                                      </Split>
-                                    </Td>
-                                    <Td isActionCell modifier="fitContent">
-                                      <Dropdown
-                                        isOpen={isTrainingDataUploadDropdownOpen}
-                                        onOpenChange={setIsTrainingDataUploadDropdownOpen}
-                                        shouldFocusToggleOnSelect
-                                        toggle={(toggleRef) => (
-                                          <MenuToggle
-                                            ref={toggleRef}
-                                            variant="plain"
-                                            aria-label="Uploaded file actions"
-                                            icon={<EllipsisVIcon />}
-                                            onClick={() =>
-                                              setIsTrainingDataUploadDropdownOpen(
-                                                !isTrainingDataUploadDropdownOpen,
-                                              )
-                                            }
-                                            isExpanded={isTrainingDataUploadDropdownOpen}
-                                            isDisabled={
-                                              formIsSubmitting || isTrainingDataFileUploading
-                                            }
-                                          />
-                                        )}
-                                        popperProps={{ position: 'end', preventOverflow: true }}
+                                      </>
+                                    )}
+                                  </Stack>
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          </StackItem>
+                          <StackItem>
+                            <Accordion
+                              asDefinitionList={false}
+                              togglePosition="end"
+                              className="automl-configure__dataset-accordion"
+                            >
+                              <AccordionItem isExpanded={isTestAccordionExpanded}>
+                                <AccordionToggle
+                                  id="test-data-accordion-toggle"
+                                  aria-controls="test-data-accordion-content"
+                                  onFocus={() => setFocusedDataset('test')}
+                                  onBlur={() => setFocusedDataset(undefined)}
+                                  data-testid="test-data-accordion-toggle"
+                                  onClick={() => {
+                                    const isExpanding = !isTestAccordionExpanded;
+                                    setIsTestAccordionExpanded(isExpanding);
+                                    if (isExpanding) {
+                                      setIsTrainingAccordionExpanded(false);
+                                    }
+                                  }}
+                                >
+                                  <Split hasGutter>
+                                    <SplitItem className="pf-v6-u-text-nowrap">
+                                      <strong>2. Test data</strong>
+                                    </SplitItem>
+                                    <SplitItem
+                                      isFilled
+                                      className="pf-v6-u-min-width pf-v6-u-font-weight-normal"
+                                    >
+                                      <Flex
+                                        flexWrap={{ default: 'nowrap' }}
+                                        spaceItems={{ default: 'spaceItemsSm' }}
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        justifyContent={{ default: 'justifyContentFlexEnd' }}
                                       >
-                                        <DropdownList>
-                                          <DropdownItem
-                                            key="remove"
-                                            data-testid="training-data-upload-remove"
-                                            isDisabled={formIsSubmitting}
-                                            onClick={clearTrainingDataUpload}
-                                          >
-                                            Remove
-                                          </DropdownItem>
-                                          <DropdownItem
-                                            key="replace"
-                                            data-testid="training-data-upload-replace"
-                                            isDisabled={formIsSubmitting}
-                                            onClick={openTrainingDataReplaceFileDialog}
-                                          >
-                                            Replace
-                                          </DropdownItem>
-                                        </DropdownList>
-                                      </Dropdown>
-                                    </Td>
-                                  </Tr>
-                                </Tbody>
-                              </Table>
+                                        <FlexItem>
+                                          {testSampleQuery.isFetching && testDataFileKey ? (
+                                            <Spinner size="sm" aria-label="Sampling test data" />
+                                          ) : (testSampleQuery.error && testDataFileKey) ||
+                                            hasIdenticalDatasetFiles ? (
+                                            <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
+                                          ) : testDataFileKey && testSampleQuery.data.length > 0 ? (
+                                            <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" />
+                                          ) : (
+                                            <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--regular)" />
+                                          )}
+                                        </FlexItem>
+                                        <FlexItem
+                                          id="test-data-filename"
+                                          className="pf-v6-u-min-width pf-v6-u-text-truncate"
+                                        >
+                                          {selectedTestDataFile?.name ??
+                                            (testDataFileKey || 'Incomplete')}
+                                        </FlexItem>
+                                      </Flex>
+                                    </SplitItem>
+                                  </Split>
+                                </AccordionToggle>
+                                {testDataFileKey && (
+                                  <Tooltip
+                                    position="top"
+                                    trigger="mouseenter"
+                                    isVisible={focusedDataset === 'test'}
+                                    aria="none"
+                                    content={selectedTestDataFile?.name ?? testDataFileKey}
+                                    triggerRef={() =>
+                                      document.getElementById('test-data-filename')!
+                                    }
+                                  />
+                                )}
+                                <AccordionContent id="test-data-accordion-content">
+                                  <Stack hasGutter>
+                                    <StackItem>
+                                      <Content component="p">
+                                        Select or upload the CSV file used to test your model.
+                                        Choose from an existing connection, create a new connection,
+                                        or upload a file.
+                                      </Content>
+                                    </StackItem>
+                                    {renderConnectionSelector(
+                                      SHARED_DATA_CONNECTION_DESCRIPTION,
+                                      'test-data-aws-secret-selector',
+                                    )}
+                                    {newConnectionNotLoaded && (
+                                      <StackItem>
+                                        <Alert variant="warning" isInline title="Connection added">
+                                          The connection was created but could not be loaded. Please
+                                          refresh the page to see it.
+                                        </Alert>
+                                      </StackItem>
+                                    )}
+                                    {Boolean(trainDataSecretName) && (
+                                      <>
+                                        <StackItem>
+                                          <Divider />
+                                        </StackItem>
+                                        <StackItem>
+                                          <Content component="h4">2. Choose a file</Content>
+                                        </StackItem>
+                                        <DatasetFilePicker
+                                          dataset="test"
+                                          testIdPrefix="test-data"
+                                          selectDescription="Select one CSV file from this bucket to use as test data for your experiment."
+                                          fileKey={testDataFileKey ?? ''}
+                                          selectedFile={selectedTestDataFile}
+                                          sourceMode={testDataSourceMode}
+                                          onSourceModeChange={setTestDataSourceMode}
+                                          onBrowse={() => {
+                                            setFileExplorerTarget('test');
+                                            setIsFileExplorerOpen(true);
+                                          }}
+                                          onRemoveSelection={() => {
+                                            setSelectedTestDataFile(undefined);
+                                            setValue('test_data_file_key', '', {
+                                              shouldValidate: true,
+                                            });
+                                          }}
+                                          canSelectFiles={canSelectFiles}
+                                          formIsSubmitting={formIsSubmitting}
+                                          isUploading={isTestDataFileUploading}
+                                          isUploadDropdownOpen={isTestDataUploadDropdownOpen}
+                                          onUploadDropdownOpenChange={
+                                            setIsTestDataUploadDropdownOpen
+                                          }
+                                          nativeInputRef={testDataNativeInputRef}
+                                          onNativeFileChange={(file) => {
+                                            void uploadTestDataFile(file);
+                                          }}
+                                          onDrop={processTestDataDropOutcome}
+                                          onClearUpload={clearTestDataUpload}
+                                          onReplaceUpload={openTestDataReplaceFileDialog}
+                                        />
+                                        {testDataFileError && !hasIdenticalDatasetFiles && (
+                                          <StackItem>
+                                            <HelperText>
+                                              <HelperTextItem variant="error">
+                                                {testDataFileError}
+                                              </HelperTextItem>
+                                            </HelperText>
+                                          </StackItem>
+                                        )}
+                                        {testSampleQuery.error && (
+                                          <StackItem>
+                                            <DatasetSamplingError
+                                              onRetry={() => {
+                                                void testSampleQuery.refetch();
+                                              }}
+                                              error={testSampleQuery.error}
+                                              isRetrying={testSampleQuery.isFetching}
+                                            />
+                                          </StackItem>
+                                        )}
+                                      </>
+                                    )}
+                                  </Stack>
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                            {hasIdenticalDatasetFiles && (
+                              <HelperText className="pf-v6-u-mt-sm">
+                                <HelperTextItem variant="error">{testDataFileError}</HelperTextItem>
+                              </HelperText>
                             )}
+                          </StackItem>
+                          <StackItem>
+                            <DatasetCompatibilityCheck
+                              key={`${namespace}/${trainDataSecretName}/${trainDataBucketName}/${trainDataFileKey}/${testDataFileKey}`}
+                              training={trainingSample}
+                              test={testSampleQuery.sample}
+                              trainingFile={trainDataFileKey}
+                              testFile={testDataFileKey ?? ''}
+                              isPaused={isTrainingSamplePaused || testSampleQuery.isPaused}
+                              isChecking={
+                                isFetchingColumns ||
+                                testSampleQuery.isFetching ||
+                                isTrainingDataFileUploading ||
+                                isTestDataFileUploading
+                              }
+                              isCovered={Boolean(previewFileKey)}
+                              hasError={Boolean(columnsError || testSampleQuery.error)}
+                              onViewFile={openFilePreview}
+                            />
                           </StackItem>
                         </>
                       )}
@@ -864,23 +1400,28 @@ function AutomlConfigure({
             </div>
           </Card>
         </GridItem>
-        <GridItem span={8}>
+        <GridItem span={12} lg={7} xl2={8}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div style={{ overflow: 'auto' }}>
               <CardHeader>
                 <Content component="h3">Configure details</Content>
               </CardHeader>
               <CardBody>
-                {!trainDataFileKey ? (
+                {!areDocumentsComplete ? (
                   <EmptyState
                     variant="xs"
-                    titleText="Select a file from your S3 connection or upload a file to get started"
+                    titleText={
+                      datasetSplitMode === DATASET_SPLIT_SEPARATE
+                        ? 'Complete the Documents section'
+                        : 'Select a file from your S3 connection or upload a file to get started'
+                    }
                     headingLevel="h4"
                     icon={CubesIcon}
                   >
                     <EmptyStateBody>
-                      In order to configure details and run an experiment, select a file or upload
-                      one in the Knowledge setup panel.
+                      {datasetSplitMode === DATASET_SPLIT_SEPARATE
+                        ? 'Select training and test data before configuring your prediction task.'
+                        : 'In order to configure details and run an experiment, select a file or upload one in the Documents section.'}
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (
@@ -948,10 +1489,7 @@ function AutomlConfigure({
                                     onClick={() => setIsTargetColumnOpen((prev) => !prev)}
                                     isExpanded={isTargetColumnOpen}
                                     isDisabled={
-                                      !isFileSelected ||
-                                      columns.length === 0 ||
-                                      !!columnsError ||
-                                      formIsSubmitting
+                                      columns.length === 0 || !!columnsError || formIsSubmitting
                                     }
                                     isFullWidth
                                     data-testid="target_column-select"
@@ -1213,19 +1751,24 @@ function AutomlConfigure({
         </GridItem>
       </Grid>
 
-      {isConnectionModalOpen && (
+      {connectionModalGeneration !== undefined && (
         <ConnectionModal
           connectionTypes={automlConnectionTypes}
           project={namespace}
           onClose={() => {
-            setIsConnectionModalOpen(false);
+            if (namespaceGenerationRef.current === connectionModalGeneration) {
+              setConnectionModalGeneration(undefined);
+            }
           }}
           onSubmit={async (connection: Connection) => {
             const refresh = secretsRefreshRef.current;
-            if (!refresh) {
+            if (namespaceGenerationRef.current !== connectionModalGeneration || !refresh) {
               return;
             }
             const list = await refresh();
+            if (namespaceGenerationRef.current !== connectionModalGeneration) {
+              return;
+            }
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
               setNewConnectionNotLoaded(false);
@@ -1259,19 +1802,46 @@ function AutomlConfigure({
         />
       )}
       <S3FileExplorer
-        id="AutoMLConfigure-S3FileExplorer"
+        key={`${previewScope}/${fileExplorerTarget}`}
+        id={`AutoMLConfigure-S3FileExplorer-${fileExplorerTarget}`}
         apiPath="/automl/api/v1/s3"
+        presentation="tearsheet"
+        isCovered={Boolean(previewFileKey)}
+        bucket={datasetBucketName}
+        renderFilePreview={(file) =>
+          file.type.toLowerCase() === 'csv' ? (
+            <DatasetFileDetailsPreview
+              key={file.path}
+              namespace={namespace}
+              secretName={datasetSecretName}
+              bucket={datasetBucketName}
+              fileKey={file.path.replace(/^\//, '')}
+              onViewFile={(event) => openFilePreview(file.path.replace(/^\//, ''), event)}
+            />
+          ) : null
+        }
         namespace={namespace}
-        s3SecretName={selectedSecret?.name}
+        s3SecretName={datasetSecretName}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelectFiles={(files) => {
           if (files.length > 0) {
             const file = files[0];
             const filePath = file.path.replace(/^\//, '');
-            setValue('train_data_file_key', filePath, { shouldValidate: true });
-            setSelectedTrainingDataFile(file);
-            fireTrainingDataMilestoneOnce('select');
+            if (fileExplorerTarget === 'test') {
+              if (filePath !== testDataFileKey) {
+                pendingTestDataCollapseRef.current = filePath;
+              }
+              setValue('test_data_file_key', filePath, { shouldValidate: true });
+              setSelectedTestDataFile(file);
+            } else {
+              if (filePath !== trainDataFileKey) {
+                pendingTrainingDataCollapseRef.current = filePath;
+              }
+              setValue('train_data_file_key', filePath, { shouldValidate: true });
+              setSelectedTrainingDataFile(file);
+              fireTrainingDataMilestoneOnce('select');
+            }
           }
         }}
         allowFolderSelection={false}
@@ -1282,6 +1852,17 @@ function AutomlConfigure({
           '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
         }}
       />
+      {previewFileKey && (
+        <DatasetFilePreview
+          key={`${namespace}/${trainDataSecretName}/${trainDataBucketName}/${previewFileKey}`}
+          namespace={namespace}
+          secretName={datasetSecretName}
+          bucket={datasetBucketName}
+          fileKey={previewFileKey}
+          trigger={filePreview?.trigger}
+          onClose={() => setFilePreview(undefined)}
+        />
+      )}
       <OptimizationMetricModal
         isOpen={isMetricModalOpen}
         onSave={(metric) => {

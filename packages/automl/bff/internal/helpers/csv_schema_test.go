@@ -2,6 +2,7 @@ package helper
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -855,5 +856,24 @@ func TestInferCSVSchema_TwoColumnTemporalMetadata(t *testing.T) {
 				t.Fatalf("unexpected metadata: %+v", result.Columns)
 			}
 		})
+	}
+}
+
+func TestInferCSVSchema_ReturnsBoundedSample(t *testing.T) {
+	rows := numberedRows(130, 3, "001")
+	rows[0][1] = ""
+	csvData := "id,empty,code\ninvalid,row\n" + strings.SplitN(buildCSV([]string{"id", "empty", "code"}, rows), "\n", 2)[1]
+	result, err := InferCSVSchema(strings.NewReader(csvData))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SampleSize != 100 || len(result.SampleRows) != 100 {
+		t.Fatalf("expected 100 sampled rows, got %d", result.SampleSize)
+	}
+	if !reflect.DeepEqual(result.SampleRows, rows[:100]) {
+		t.Fatal("preview must preserve raw valid cells in column order")
+	}
+	if result.ParseWarnings != 1 {
+		t.Fatalf("expected one skipped row, got %d", result.ParseWarnings)
 	}
 }

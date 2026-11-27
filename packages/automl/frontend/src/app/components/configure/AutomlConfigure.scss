@@ -39,3 +39,29 @@
     justify-content: center;
   }
 }
+
+.automl-configure__dataset-accordion {
+  --pf-v6-c-accordion__item--m-expanded--BackgroundColor: var(
+    --pf-t--global--background--color--secondary--default
+  );
+  --pf-v6-c-accordion__toggle--BackgroundColor: var(
+    --pf-t--global--background--color--secondary--default
+  );
+  --pf-v6-c-accordion__toggle--hover--BackgroundColor: var(
+    --pf-t--global--background--color--secondary--default
+  );
+  --pf-v6-c-accordion__item--m-expanded__toggle--BackgroundColor: var(
+    --pf-t--global--background--color--secondary--default
+  );
+  --pf-v6-c-accordion__expandable-content--BackgroundColor: var(
+    --pf-t--global--background--color--secondary--default
+  );
+}
+
+.automl-configure__dataset-file-table {
+  --pf-v6-c-table--BackgroundColor: transparent;
+}
+
+.automl-configure__connection-selector {
+  min-width: min(100%, 12rem);
+}

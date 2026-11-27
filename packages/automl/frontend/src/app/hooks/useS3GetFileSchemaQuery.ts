@@ -13,6 +13,20 @@ export type ColumnSchema = {
   values?: (string | number)[];
 };
 
+export type DatasetSample = {
+  columns: ColumnSchema[];
+  sampleRows: string[][];
+  sampleSize: number;
+  parseWarnings: number;
+};
+
+const EMPTY_SAMPLE: DatasetSample = {
+  columns: [],
+  sampleRows: [],
+  sampleSize: 0,
+  parseWarnings: 0,
+};
+
 export const getS3FileSchemaQueryKey = (
   namespace?: string,
   secretName?: string,
@@ -32,12 +46,18 @@ const ColumnSchemaArraySchema = z.array(
   }),
 );
 
+type FileSchemaQueryResult = Omit<UseQueryResult<DatasetSample, Error>, 'data'> & {
+  data: ColumnSchema[];
+  sample?: DatasetSample;
+  resetSchemaCache: () => void;
+};
+
 export function useS3GetFileSchemaQuery(
   namespace?: string,
   secretName?: string,
   bucket?: string,
   key?: string,
-): UseQueryResult<ColumnSchema[], Error> & { resetSchemaCache: () => void } {
+): FileSchemaQueryResult {
   const { fetchS3Json } = useS3FileFetchers();
   const { invalidateS3JsonCache } = useS3CacheActions();
   const queryClient = useQueryClient();
@@ -49,10 +69,17 @@ export function useS3GetFileSchemaQuery(
     queryKey,
     queryFn: async ({ signal }) => {
       if (!namespace || !secretName || !key) {
-        return [];
+        return EMPTY_SAMPLE;
       }
 
-      const result = await fetchS3Json<{ data?: { columns?: unknown } }>(namespace, key, {
+      const result = await fetchS3Json<{
+        data?: {
+          columns?: unknown;
+          sample_rows?: unknown;
+          sample_size?: unknown;
+          parse_warnings?: unknown;
+        };
+      }>(namespace, key, {
         signal,
         secretName,
         bucket,
@@ -66,7 +93,29 @@ export function useS3GetFileSchemaQuery(
       }
 
       try {
-        return ColumnSchemaArraySchema.parse(columns);
+        const parsedColumns = ColumnSchemaArraySchema.parse(columns);
+        const sampleRows = z
+          .array(z.array(z.string()))
+          .max(100)
+          .parse(result.data?.sample_rows ?? []);
+        const sampleSize = z
+          .number()
+          .int()
+          .min(0)
+          .max(100)
+          .parse(result.data?.sample_size ?? sampleRows.length);
+        const parseWarnings = z
+          .number()
+          .int()
+          .nonnegative()
+          .parse(result.data?.parse_warnings ?? 0);
+        if (
+          sampleSize !== sampleRows.length ||
+          sampleRows.some((row) => row.length !== parsedColumns.length)
+        ) {
+          throw new Error('Invalid sample response: row and column counts do not match');
+        }
+        return { columns: parsedColumns, sampleRows, sampleSize, parseWarnings };
       } catch (error) {
         if (error instanceof z.ZodError) {
           const issues = error.issues
@@ -79,15 +128,22 @@ export function useS3GetFileSchemaQuery(
     },
     enabled: Boolean(namespace && secretName && key),
     retry: false,
-    placeholderData: [],
+    // Opening a preview reuses the selected file snapshot instead of restarting the check.
+    refetchOnMount: false,
+    placeholderData: EMPTY_SAMPLE,
   });
 
   const resetSchemaCache = React.useCallback(() => {
-    queryClient.setQueryData(queryKey, []);
+    queryClient.setQueryData(queryKey, EMPTY_SAMPLE);
     if (namespace && key) {
       void invalidateS3JsonCache(namespace, key);
     }
   }, [invalidateS3JsonCache, key, namespace, queryClient, queryKey]);
 
-  return { ...query, resetSchemaCache };
+  return {
+    ...query,
+    data: query.data?.columns ?? EMPTY_SAMPLE.columns,
+    sample: query.data,
+    resetSchemaCache,
+  };
 }

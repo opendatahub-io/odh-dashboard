@@ -1,0 +1,28 @@
+.automl-dataset-preview {
+  // Keep wide CSV content inside its own scroller instead of expanding the details card.
+  contain: inline-size;
+  overflow-x: auto;
+}
+
+.automl-m-mismatch {
+  --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartWidth: var(
+    --pf-t--global--border--width--strong
+  );
+  --pf-v6-c-table--cell--m-border-left--before--BorderInlineStartColor: var(
+    --pf-t--global--border--color--status--warning--default
+  );
+
+  // Limit emphasis to column headers; keep sample cells and comparison rows neutral.
+  &:is(th) {
+    background-color: color-mix(
+      in srgb,
+      var(--pf-t--global--color--status--warning--default) 20%,
+      var(--pf-t--global--background--color--primary--default)
+    );
+  }
+}
+
+.automl-dataset-file-preview-backdrop {
+  // Place the nested preview above the covered parent's modal box.
+  --pf-v6-c-backdrop--ZIndex: var(--pf-t--global--z-index--xl);
+}

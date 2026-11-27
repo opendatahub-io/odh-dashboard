@@ -18,10 +18,14 @@ import {
   EVAL_METRIC_ALIASES,
 } from '~/app/utilities/const';
 import { generateReconfigureName, getTaskType } from '~/app/utilities/utils';
+import { DATASET_SPLIT_AUTO, DATASET_SPLIT_SEPARATE } from '~/app/utilities/datasetSplit';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
-const configureBasePartial = createConfigureSchema().base.partial();
+const configureBasePartial = createConfigureSchema()
+  // eslint-disable-next-line camelcase -- API parameter names
+  .base.omit({ test_data_bucket_name: true, test_data_file_key: true })
+  .partial();
 
 /**
  * Intermediate loader that fetches the previous pipeline run, resolves connection
@@ -176,6 +180,21 @@ function AutomlReconfigureLoader(): React.JSX.Element {
   }
 
   const parsed = parsedParams?.success ? parsedParams.data : {};
+  const savedTrainingParams = configureBasePartial
+    // eslint-disable-next-line camelcase -- API parameter names
+    .pick({ train_data_secret_name: true, train_data_bucket_name: true, train_data_file_key: true })
+    .safeParse(params ?? {});
+  const trainingParams = savedTrainingParams.success ? savedTrainingParams.data : {};
+  const savedTestBucket = params?.test_data_bucket_name;
+  const savedTestKey = params?.test_data_file_key;
+  const hasSavedTestData =
+    typeof savedTestBucket === 'string' &&
+    Boolean(savedTestBucket.trim()) &&
+    savedTestBucket === trainingParams.train_data_bucket_name &&
+    Boolean(trainingParams.train_data_file_key?.trim()) &&
+    typeof savedTestKey === 'string' &&
+    Boolean(savedTestKey.trim()) &&
+    savedTestKey !== trainingParams.train_data_file_key;
 
   // Prefer the unified key, then legacy timeseries key, then legacy tabular key.
   const targetColumn = parsed.target_column || parsed.target || parsed.label_column || '';
@@ -187,12 +206,22 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     : DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType ?? ''];
   const initialValues: Partial<ConfigureSchema> = {
     ...parsed,
+    ...trainingParams,
+    ...(hasSavedTestData && {
+      test_data_bucket_name: savedTestBucket,
+      test_data_file_key: savedTestKey,
+    }),
+    dataset_split_mode: hasSavedTestData ? DATASET_SPLIT_SEPARATE : DATASET_SPLIT_AUTO,
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
     target_column: targetColumn,
     ...(parsed.preset != null && { preset: parsed.preset }),
     ...(resolvedEvalMetric !== undefined && { eval_metric: resolvedEvalMetric }),
   };
+  if (!hasSavedTestData) {
+    delete initialValues.test_data_bucket_name;
+    delete initialValues.test_data_file_key;
+  }
   /* eslint-enable camelcase */
 
   return (

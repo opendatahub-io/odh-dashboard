@@ -97,8 +97,8 @@ describe('AutomlInputParametersPanel', () => {
     renderPanel();
     expect(screen.getByText('Prediction type')).toBeInTheDocument();
     expect(screen.getByText('S3 connection')).toBeInTheDocument();
-    expect(screen.getByText('S3 connection bucket')).toBeInTheDocument();
-    expect(screen.getByText('Selected files')).toBeInTheDocument();
+    expect(screen.getByText('Training data bucket')).toBeInTheDocument();
+    expect(screen.getByText('Selected training file')).toBeInTheDocument();
     expect(screen.getByText('Top models to consider')).toBeInTheDocument();
     expect(screen.getByText('Label column')).toBeInTheDocument();
   });
@@ -110,6 +110,90 @@ describe('AutomlInputParametersPanel', () => {
     expect(screen.getByText('train.csv')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('target_col')).toBeInTheDocument();
+  });
+
+  it.each([undefined, '', '   '])(
+    'should infer automatic splitting and hide test fields when the saved test key is %p',
+    (testDataFileKey) => {
+      renderPanel({
+        parameters: {
+          ...defaultParameters,
+          dataset_split_mode: 'separate',
+          test_data_bucket_name: 'my-bucket',
+          test_data_file_key: testDataFileKey,
+        },
+      });
+      expect(screen.getByTestId('parameter-dataset_split_mode')).toHaveTextContent(
+        'Automatically split data',
+      );
+      expect(screen.queryByTestId('parameter-test_data_bucket_name')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('parameter-test_data_file_key')).not.toBeInTheDocument();
+    },
+  );
+
+  it('should infer separate datasets and group their matching labels before prediction type', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        dataset_split_mode: 'auto',
+        test_data_bucket_name: 'my-bucket',
+        test_data_file_key: 'test.csv',
+      },
+    });
+    expect(screen.getByTestId('parameter-dataset_split_mode')).toHaveTextContent(
+      'Use separate datasets',
+    );
+    expect(screen.getByTestId('parameter-test_data_bucket_name')).toHaveTextContent(
+      'Test data bucketmy-bucket',
+    );
+    expect(screen.getByTestId('parameter-test_data_file_key')).toHaveTextContent(
+      'Selected test filetest.csv',
+    );
+    const labels = screen.getAllByRole('term').map((term) => term.textContent);
+    expect(
+      labels.slice(labels.indexOf('S3 connection'), labels.indexOf('Prediction type') + 1),
+    ).toEqual([
+      'S3 connection',
+      'Data splitting',
+      'Training data bucket',
+      'Selected training file',
+      'Test data bucket',
+      'Selected test file',
+      'Prediction type',
+    ]);
+  });
+
+  it('should preserve the saved split when an unrelated runtime parameter is invalid', () => {
+    const pipelineRun = createMockPipelineRun({
+      runtime_config: {
+        parameters: {
+          display_name: 'My Run',
+          task_type: 'binary',
+          train_data_secret_name: 's3-connection',
+          train_data_bucket_name: 'my-bucket',
+          train_data_file_key: 'train.csv',
+          preset: 'speed',
+          top_n: -1,
+          test_data_bucket_name: 'my-bucket',
+          test_data_file_key: 'test.csv',
+        },
+      },
+    });
+    const { parameters } = getAutomlContext({ pipelineRun });
+    renderPanel({ parameters }, { pipelineRun });
+
+    expect(screen.getByTestId('parameter-dataset_split_mode')).toHaveTextContent(
+      'Use separate datasets',
+    );
+    expect(screen.getByTestId('parameter-train_data_file_key')).toHaveTextContent('train.csv');
+    expect(screen.getByTestId('parameter-test_data_file_key')).toHaveTextContent('test.csv');
+    expect(screen.queryByTestId('parameter-top_n')).not.toBeInTheDocument();
+  });
+
+  it('should omit data splitting when no saved dataset selection can be recovered', () => {
+    renderPanel({ parameters: { task_type: 'binary', dataset_split_mode: 'auto' } });
+
+    expect(screen.queryByTestId('parameter-dataset_split_mode')).not.toBeInTheDocument();
   });
 
   it('should exclude display_name from the drawer', () => {
