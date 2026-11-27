@@ -1183,6 +1183,7 @@ describe('AutomlConfigure', () => {
 
     it('should preserve a saved connection on mount and clear it on namespace navigation', () => {
       const { rerender } = renderWithInitialValues({
+        dataset_split_mode: 'separate',
         initialInputDataSecret: {
           uuid: 'secret-1',
           name: 'Test Secret 1',
@@ -1196,13 +1197,23 @@ describe('AutomlConfigure', () => {
         test_data_bucket_name: 'test-bucket-1',
         test_data_file_key: 'test.csv',
       });
-      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+      expect(screen.getByTestId('training-data-aws-secret-selector-value')).toHaveTextContent(
+        'Test Secret 1',
+      );
       expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
         'test-namespace',
         'Test Secret 1',
         'test-bucket-1',
         'train.csv',
       );
+
+      expect(mockuseS3GetFileSchemaQuery).toHaveBeenCalledWith(
+        'test-namespace',
+        'Test Secret 1',
+        'test-bucket-1',
+        'test.csv',
+      );
+      expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('test.csv');
 
       const explorerCallsBeforeNavigation = jest.mocked(S3FileExplorer).mock.calls.length;
       const schemaCallsBeforeNavigation = mockuseS3GetFileSchemaQuery.mock.calls.length;
@@ -1230,31 +1241,31 @@ describe('AutomlConfigure', () => {
         expect(key).not.toBe('train.csv');
         expect(key).not.toBe('test.csv');
       });
-      expect(screen.queryByTestId('aws-secret-selector-value')).not.toBeInTheDocument();
-      expect(mockuseS3GetFileSchemaQuery).toHaveBeenLastCalledWith(
-        'other-namespace',
-        '',
-        '',
-        undefined,
-      );
+      expect(
+        screen.queryByTestId('training-data-aws-secret-selector-value'),
+      ).not.toBeInTheDocument();
+      expect(mockuseS3GetFileSchemaQuery).toHaveBeenLastCalledWith('other-namespace', '', '', '');
       expect(jest.mocked(useS3GetFileRowCountQuery)).toHaveBeenLastCalledWith(
         'other-namespace',
         '',
         '',
         '',
-        true,
+        false,
       );
       expect(screen.queryByText('train.csv')).not.toBeInTheDocument();
       expect(screen.queryByText('test.csv')).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-2'));
-      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 2');
+      fireEvent.click(screen.getByTestId('training-data-aws-secret-selector-select-secret-2'));
+      expect(screen.getByTestId('training-data-aws-secret-selector-value')).toHaveTextContent(
+        'Test Secret 2',
+      );
+      expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
       expect(jest.mocked(useS3GetFileRowCountQuery)).toHaveBeenLastCalledWith(
         'other-namespace',
         'Test Secret 2',
         'test-bucket-2',
         '',
-        true,
+        false,
       );
     });
 

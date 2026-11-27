@@ -60,6 +60,78 @@ describe('DatasetFileDetailsPreview', () => {
   });
 
   it.each([DatasetFileDetailsPreview, DatasetFilePreview])(
+    'should wait for a connection without showing an unavailable preview',
+    (Preview) => {
+      jest.mocked(useS3GetFileSchemaQuery).mockReturnValue({
+        sample: { columns: [], sampleRows: [], sampleSize: 0, parseWarnings: 0 },
+        isFetching: false,
+        isPaused: true,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
+      render(
+        <Preview
+          namespace="ns"
+          secretName="s3"
+          fileKey="data.csv"
+          onViewFile={jest.fn()}
+          onClose={jest.fn()}
+        />,
+      );
+      expect(screen.getByRole('status')).toHaveTextContent('Waiting for connection…');
+      expect(screen.queryByText('File preview is unavailable.')).not.toBeInTheDocument();
+      expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    },
+  );
+
+  it('should preserve the current page through refreshing, pausing, and a failed refetch', () => {
+    const query = {
+      sample: {
+        columns: [{ name: 'value', type: 'string', task_type: 'multiclass' }],
+        sampleRows: Array.from({ length: 25 }, (_, index) => [`row-${index + 1}`]),
+        sampleSize: 25,
+        parseWarnings: 0,
+      },
+      isFetching: false,
+      isPaused: false,
+      refetch: jest.fn(),
+      error: null,
+    } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>;
+    jest.mocked(useS3GetFileSchemaQuery).mockReturnValue(query);
+    const preview = (
+      <DatasetFilePreview namespace="ns" secretName="s3" fileKey="data.csv" onClose={jest.fn()} />
+    );
+    const { rerender } = render(preview);
+    fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
+    const table = screen.getByRole('grid');
+
+    for (const state of [
+      { isFetching: true, isPaused: false, error: null },
+      { isFetching: false, isPaused: true, error: null },
+      { isFetching: false, isPaused: false, error: new Error('Sampling failed') },
+      { isFetching: false, isPaused: false, error: null },
+    ]) {
+      jest.mocked(useS3GetFileSchemaQuery).mockReturnValue({ ...query, ...state });
+      rerender(
+        <DatasetFilePreview
+          namespace="ns"
+          secretName="s3"
+          fileKey="data.csv"
+          onClose={jest.fn()}
+        />,
+      );
+      expect(screen.getByRole('grid')).toBe(table);
+      expect(table).toHaveTextContent('row-21');
+      expect(screen.queryByText('row-1')).not.toBeInTheDocument();
+      if (state.isFetching) {
+        expect(screen.getByRole('status')).toHaveTextContent('Refreshing file preview…');
+      } else if (state.isPaused) {
+        expect(screen.getByRole('status')).toHaveTextContent('Waiting for connection…');
+      } else if (state.error) {
+        expect(screen.getByTestId('dataset-sampling-error')).toBeInTheDocument();
+      }
+    }
+  });
+
+  it.each([DatasetFileDetailsPreview, DatasetFilePreview])(
     'should disclose skipped records in a direct preview',
     (Preview) => {
       jest.mocked(useS3GetFileSchemaQuery).mockReturnValue({

@@ -1,6 +1,6 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
-import { Spinner } from '@patternfly/react-core';
+import { Flex, Spinner } from '@patternfly/react-core';
 import { Tearsheet, TearsheetBody, TearsheetHeader } from '@patternfly/react-component-groups';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import DatasetSampleTable from './DatasetSampleTable';
@@ -24,6 +24,13 @@ export default function DatasetFilePreview({
   trigger,
 }: DatasetFilePreviewProps): React.JSX.Element {
   const query = useS3GetFileSchemaQuery(namespace, secretName, bucket, fileKey);
+  const hasSample = Boolean(query.sample?.columns.length && query.sample.sampleRows.length);
+  let loadingMessage = 'Sampling file preview…';
+  if (query.isPaused) {
+    loadingMessage = 'Waiting for connection…';
+  } else if (hasSample) {
+    loadingMessage = 'Refreshing file preview…';
+  }
   const closePreview = () => {
     // Commit the parent's focus-trap activation before scheduling return focus.
     flushSync(onClose);
@@ -50,27 +57,31 @@ export default function DatasetFilePreview({
     >
       <TearsheetHeader title={fileKey.split('/').pop() ?? fileKey} />
       <TearsheetBody>
-        {query.isFetching ? (
-          <Spinner aria-label="Sampling file" />
-        ) : query.error ? (
+        {(query.isPaused || query.isFetching) && (
+          <Flex alignItems={{ default: 'alignItemsCenter' }} role="status">
+            <Spinner size="sm" aria-label="Sampling file" />
+            <span>{loadingMessage}</span>
+          </Flex>
+        )}
+        {query.error && (
           <DatasetSamplingError
             error={query.error}
+            isRetrying={query.isFetching}
             onRetry={() => {
               void query.refetch();
             }}
           />
-        ) : (
-          query.sample && (
-            <DatasetSampleTable
-              sample={query.sample}
-              label={`Preview of ${fileKey}`}
-              showRowRange={false}
-              initialPerPage={20}
-              onRetry={() => {
-                void query.refetch();
-              }}
-            />
-          )
+        )}
+        {query.sample && (hasSample || (!query.isFetching && !query.isPaused && !query.error)) && (
+          <DatasetSampleTable
+            sample={query.sample}
+            label={`Preview of ${fileKey}`}
+            showRowRange={false}
+            initialPerPage={20}
+            onRetry={() => {
+              void query.refetch();
+            }}
+          />
         )}
       </TearsheetBody>
     </Tearsheet>
