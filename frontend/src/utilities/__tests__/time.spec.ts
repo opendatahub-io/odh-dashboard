@@ -286,4 +286,14 @@ describe('convertSecondsToPeriodicTime', () => {
   it('should return an empty string for 0 seconds', () => {
     expect(convertSecondsToPeriodicTime(0)).toBe('');
   });
+
+  it('should keep intervals that are not a whole number of the larger unit', () => {
+    expect(convertSecondsToPeriodicTime(5400)).toBe('90Minute');
+    expect(convertSecondsToPeriodicTime(129600)).toBe('36Hour');
+    expect(convertSecondsToPeriodicTime(864000)).toBe('10Day');
+  });
+
+  it('should round down intervals that are not a whole number of minutes', () => {
+    expect(convertSecondsToPeriodicTime(90)).toBe('1Minute');
+  });
 });

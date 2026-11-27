@@ -153,6 +153,15 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
   const units = Object.values(PeriodicOptions).reverse();
   const unitFactors = Object.values(periodicOptionAsSeconds).reverse();
 
+  // Prefer the largest unit that represents the interval exactly (e.g. 36 hours stays "36Hour")
+  for (let i = 0; i < units.length; i++) {
+    const unitFactor = unitFactors[i];
+
+    if (seconds >= unitFactor && seconds % unitFactor === 0) {
+      return `${seconds / unitFactor}${units[i]}`;
+    }
+  }
+
   for (let i = 0; i < units.length; i++) {
     const unit = units[i];
     const unitFactor = unitFactors[i];
