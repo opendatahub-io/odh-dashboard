@@ -104,6 +104,7 @@ paths:
         resolve_connection_types=true to include each associated type and read its
         provider at resource.data_connection_type.resource.provider in one request.
         Types are resolved with one batch lookup, not one request per connection.
+        An invalid upstream connection fails the request with 500; no partial data is returned.
     post:
       tags:
         - DataOperation

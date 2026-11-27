@@ -9,7 +9,7 @@ import {
   type GoTestFixture,
 } from '@odh-dashboard/contract-tests';
 
-describe('Resolved connection type credentials contract', () => {
+describe('Connection list and type resolution contracts', () => {
   const schema = loadOpenAPISchema('api/openapi/data-connect-hub.yaml');
   let fixture: GoTestFixture | undefined;
   let client: ContractApiClient;
@@ -24,6 +24,35 @@ describe('Resolved connection type credentials contract', () => {
   }, 180000);
 
   afterAll(async () => fixture?.stop());
+
+  describe.each(['', '&resolve_connection_types=false', '&resolve_connection_types=true'])(
+    'List validation with query %s',
+    (query) => {
+      it('should reject an invalid item after a valid item without partial data', async () => {
+        const result = await client.get(`/api/v1/connections?namespace=invalid-connection${query}`);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect({ status: result.error.status, data: result.error.data }).toMatchContract(schema, {
+            ref: '#/components/responses/InternalServerError/content/application~1json/schema',
+            status: 500,
+          });
+          expect(result.error.data).not.toHaveProperty('data');
+        }
+      });
+
+      it('should preserve a successful empty list', async () => {
+        const result = await client.get(`/api/v1/connections?namespace=empty-connections${query}`);
+        expect(result).toMatchContract(schema, {
+          ref: '#/components/responses/ConnectionsResponse/content/application~1json/schema',
+          status: 200,
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.data).toEqual({ data: [] });
+        }
+      });
+    },
+  );
 
   describe.each([
     { name: 'list', suffix: '', response: 'ConnectionsResponse', dataPath: 'data.0' },

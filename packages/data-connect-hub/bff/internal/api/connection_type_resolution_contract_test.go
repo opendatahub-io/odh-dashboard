@@ -52,6 +52,12 @@ func TestConnectionTypeResolutionContractServer(t *testing.T) {
 				payload = map[string]any{"items": []any{object}}
 			}
 		} else if strings.HasSuffix(r.URL.Path, "/connections") {
+			switch namespace {
+			case "invalid-connection":
+				connections = append(connections, Connection{})
+			case "empty-connections":
+				connections = []Connection{}
+			}
 			payload = map[string]any{"items": connections}
 		} else {
 			payload = connections[0]

@@ -40,6 +40,9 @@ func (r *DataConnectHubRepository) ListConnections(ctx context.Context) ([]model
 		response.Items = []models.Connection{}
 	}
 	for i := range response.Items {
+		if err := models.ValidateConnection(response.Items[i]); err != nil {
+			return nil, fmt.Errorf("invalid data connection at index %d: %w", i, err)
+		}
 		normalizeConnection(&response.Items[i])
 	}
 	return response.Items, nil
