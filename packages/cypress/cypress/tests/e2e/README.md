@@ -126,6 +126,13 @@ Focused unit coverage for this OpenShift discovery helper is out of scope becaus
 package has no established unit-test pattern for `oc_commands` utilities; the live E2E path
 provides the regression coverage.
 
+AutoX provisioning also requires the standard OpenShift CA ConfigMaps
+`openshift-config-managed/default-ingress-cert` (`ca-bundle.crt`) and
+`<test-project>/openshift-service-ca.crt` (`service-ca.crt`). The `oc` identity used to run
+the suite must be able to read both ConfigMaps, including the cluster-managed ingress ConfigMap.
+These sources are required for the generated DSPA trust bundle; custom CA publication locations
+are not used by this suite, and TLS verification remains enabled.
+
 Completion/results coverage additionally requires all four live MaaS variables
 in the Cypress test configuration: `MAAS_URL`, `MAAS_API_KEY`,
 `MAAS_GENERATION_MODEL_ID`, and `MAAS_EMBEDDING_MODEL_ID`. `MAAS_URL` must be an

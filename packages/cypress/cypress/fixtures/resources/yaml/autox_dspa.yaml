@@ -10,6 +10,9 @@ spec:
     dbConfigConMaxLifetimeSec: 120
     applyTektonCustomResource: true
     caBundleFileName: ''
+    cABundle:
+      configMapName: autox-dspa-ca-bundle
+      configMapKey: ca-bundle.crt
     deploy: true
     enableSamplePipeline: false
     managedPipelines: {}

@@ -1,5 +1,6 @@
 import { assertAutoXDataConnectionEndpoint, resolveAutoXS3Endpoint } from './autoXS3';
 import { createDataConnection } from './oc_commands/dataConnection';
+import { assertAutoXDspaCABundleReference, createAutoXDspaCABundle } from './oc_commands/autoXDspa';
 import { createDSPASecret, createDSPA } from './oc_commands/dspa';
 import { AWS_BUCKETS, parseS3Endpoint } from './s3Buckets';
 import { createCleanProject } from './projectChecker';
@@ -30,15 +31,13 @@ export const provisionProjectForAutoX = (
   projectName: string,
   dspaSecretName: string,
   bucketKey: 'BUCKET_2' | 'BUCKET_3',
-): void => {
+): Cypress.Chainable<CommandLineResult> => {
   const bucketConfig = AWS_BUCKETS[bucketKey];
   // Use DSPA_S3_ENDPOINT for in-cluster AutoX connectivity (disconnected clusters),
   // falling back to the external ENDPOINT (connected clusters / CI).
   // Must use full FQDN: CYPRESS_DSPA_S3_ENDPOINT=http://minio.ns.svc.cluster.local:9000
   const s3Endpoint = resolveAutoXS3Endpoint(bucketConfig.ENDPOINT);
   const { host, scheme } = parseS3Endpoint(s3Endpoint);
-
-  createCleanProject(projectName);
 
   const dataConnectionReplacements: DataConnectionReplacements = {
     NAMESPACE: projectName,
@@ -48,18 +47,12 @@ export const provisionProjectForAutoX = (
     AWS_S3_ENDPOINT: Buffer.from(s3Endpoint).toString('base64'),
     AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
   };
-  createDataConnection(dataConnectionReplacements).then(() =>
-    assertAutoXDataConnectionEndpoint(projectName, s3Endpoint),
-  );
-
   const dspaSecretReplacements: DspaSecretReplacements = {
     DSPA_SECRET_NAME: dspaSecretName,
     NAMESPACE: projectName,
     AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
     AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
   };
-  createDSPASecret(dspaSecretReplacements);
-
   const dspaReplacements: AutoXDspaReplacements = {
     DSPA_SECRET_NAME: dspaSecretName,
     NAMESPACE: projectName,
@@ -71,7 +64,23 @@ export const provisionProjectForAutoX = (
     MLFLOW_INJECT_USER_ENV_VARS: 'false',
     PIPELINE_STORE: 'database',
   };
-  createDSPA(dspaReplacements, 'resources/yaml/autox_dspa.yaml');
+
+  // RHAI-59341: keep the CA bundle in the shared AutoX path so AutoML and AutoRAG
+  // receive identical TLS trust configuration, with project deletion owning cleanup.
+  return createCleanProject(projectName)
+    .then(() => createAutoXDspaCABundle(projectName))
+    .then(() => createDataConnection(dataConnectionReplacements))
+    .then(() => assertAutoXDataConnectionEndpoint(projectName, s3Endpoint))
+    .then(() => createDSPASecret(dspaSecretReplacements))
+    .then(() => createDSPA(dspaReplacements, 'resources/yaml/autox_dspa.yaml'))
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to apply the AutoX DSPA in ${projectName} (exit ${result.exitCode}).`,
+        );
+      }
+      return assertAutoXDspaCABundleReference(projectName);
+    });
 };
 
 export const AUTORAG_MANAGED_PIPELINE_NAMES = [
