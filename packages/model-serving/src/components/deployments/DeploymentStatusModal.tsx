@@ -387,9 +387,7 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
       />
       <ModalBody>
         <Stack hasGutter>
-          {activeTab === PROGRESS_TAB && (
-            <DeploymentKueueAlert deploymentStatus={deployment.status} />
-          )}
+          <DeploymentKueueAlert deploymentStatus={deployment.status} />
           <StackItem>
             {/* Tab strip is always shown, even when Resources is the only conditional tab, so
                 the modal shape stays consistent as more tabs (e.g. Events) are added later. */}

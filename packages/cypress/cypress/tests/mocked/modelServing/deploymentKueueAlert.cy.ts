@@ -133,7 +133,10 @@ describe('Model deployment Kueue alert', () => {
     cy.screenshot('model-deployment-kueue-queued');
 
     modelServingGlobal.findDeploymentStatusResourcesTab().click();
-    modelServingGlobal.findDeploymentKueueAlert().should('not.exist');
+    modelServingGlobal
+      .findDeploymentStatusResourcesTab()
+      .should('have.attr', 'aria-selected', 'true');
+    modelServingGlobal.findDeploymentKueueAlert().should('be.visible');
     cy.screenshot('model-deployment-kueue-resources-tab');
   });
 
