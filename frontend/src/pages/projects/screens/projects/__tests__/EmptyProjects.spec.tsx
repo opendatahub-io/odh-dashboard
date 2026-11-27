@@ -4,6 +4,10 @@ import '@testing-library/jest-dom';
 import EmptyProjects from '#~/pages/projects/screens/projects/EmptyProjects';
 import { useUser } from '#~/redux/selectors';
 
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useAccessReview: jest.fn(() => [true, true]),
+}));
+
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
   useAppContext: jest.fn(),
