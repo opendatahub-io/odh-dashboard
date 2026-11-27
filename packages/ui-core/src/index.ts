@@ -133,6 +133,8 @@ export type {
   WorkingProjectProviderProps,
   WorkingProjectNavigation,
   WorkingProjectNavigationTransaction,
+  WorkingProjectChangeHandler,
+  WorkingProjectChangeRequest,
 } from './context/WorkingProjectContext';
 export {
   WorkingProjectSelectorLabelValue,

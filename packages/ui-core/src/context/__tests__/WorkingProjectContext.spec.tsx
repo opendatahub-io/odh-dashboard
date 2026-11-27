@@ -40,6 +40,382 @@ const WorkingProjectConsumer: React.FC<WorkingProjectConsumerProps> = ({ onConte
 };
 
 describe('WorkingProjectProvider', () => {
+  it('should create and resolve a pending project change through the registered handler', async () => {
+    const onProjectChange = jest.fn();
+    const onConfirm = jest.fn();
+    let workingProject: WorkingProjectContextType | undefined;
+
+    const Handler: React.FC = () => {
+      const context = useWorkingProject();
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => ({
+            description: 'Discard form progress',
+            onConfirm,
+          })),
+        [register],
+      );
+      workingProject = context;
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[firstProject, secondProject]}
+        activeProject={firstProject}
+        onProjectChange={onProjectChange}
+      >
+        <Handler />
+      </WorkingProjectProvider>,
+    );
+
+    act(() => {
+      workingProject?.requestProjectChange?.(secondProject);
+    });
+
+    expect(workingProject?.pendingProjectChange).toBeDefined();
+    expect(onProjectChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await workingProject?.confirmProjectChange?.();
+    });
+
+    expect(onConfirm).toHaveBeenCalledWith();
+    expect(workingProject?.pendingProjectChange).toBeUndefined();
+  });
+
+  it('should clear a pending project change without invoking the confirmation callback', () => {
+    const onProjectChange = jest.fn();
+    const onConfirm = jest.fn();
+    let workingProject: WorkingProjectContextType | undefined;
+
+    const Handler: React.FC = () => {
+      const context = useWorkingProject();
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => ({
+            description: 'Discard form progress',
+            onConfirm,
+          })),
+        [register],
+      );
+      workingProject = context;
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[firstProject, secondProject]}
+        activeProject={firstProject}
+        onProjectChange={onProjectChange}
+      >
+        <Handler />
+      </WorkingProjectProvider>,
+    );
+
+    act(() => workingProject?.requestProjectChange?.(secondProject));
+    act(() => workingProject?.cancelProjectChange?.());
+
+    expect(workingProject?.pendingProjectChange).toBeUndefined();
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onProjectChange).not.toHaveBeenCalled();
+  });
+
+  it('should clear confirmation state when the confirmation callback throws synchronously', async () => {
+    const onProjectChange = jest.fn();
+    const onConfirm = jest.fn(() => {
+      throw new Error('Confirmation failed');
+    });
+    let workingProject: WorkingProjectContextType | undefined;
+
+    const Handler: React.FC = () => {
+      const context = useWorkingProject();
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => ({
+            description: 'Discard form progress',
+            onConfirm,
+          })),
+        [register],
+      );
+      workingProject = context;
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[firstProject, secondProject]}
+        activeProject={firstProject}
+        onProjectChange={onProjectChange}
+      >
+        <Handler />
+      </WorkingProjectProvider>,
+    );
+
+    act(() => workingProject?.requestProjectChange?.(secondProject));
+
+    await act(async () => {
+      await workingProject?.confirmProjectChange?.();
+    });
+
+    expect(workingProject?.pendingProjectChange).toBeDefined();
+    expect(workingProject?.isConfirmingProjectChange).toBe(false);
+    expect(workingProject?.projectChangeError?.message).toBe('Confirmation failed');
+    expect(onProjectChange).not.toHaveBeenCalled();
+  });
+
+  it('should keep the pending change and expose an error when async confirmation fails', async () => {
+    const onProjectChange = jest.fn();
+    const onConfirm = jest
+      .fn<Promise<void>, []>()
+      .mockRejectedValueOnce(new Error('Unable to switch projects.'))
+      .mockResolvedValueOnce(undefined);
+    let workingProject: WorkingProjectContextType | undefined;
+
+    const Handler: React.FC = () => {
+      const context = useWorkingProject();
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => ({
+            description: 'Discard form progress',
+            onConfirm,
+          })),
+        [register],
+      );
+      workingProject = context;
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[firstProject, secondProject]}
+        activeProject={firstProject}
+        onProjectChange={onProjectChange}
+      >
+        <Handler />
+      </WorkingProjectProvider>,
+    );
+
+    act(() => workingProject?.requestProjectChange?.(secondProject));
+
+    await act(async () => {
+      await workingProject?.confirmProjectChange?.();
+    });
+
+    expect(workingProject?.pendingProjectChange).toBeDefined();
+    expect(workingProject?.projectChangeError?.message).toBe('Unable to switch projects.');
+    expect(workingProject?.isConfirmingProjectChange).toBe(false);
+
+    await act(async () => {
+      await workingProject?.confirmProjectChange?.();
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+    expect(workingProject?.pendingProjectChange).toBeUndefined();
+    expect(workingProject?.projectChangeError).toBeUndefined();
+    expect(onProjectChange).not.toHaveBeenCalled();
+  });
+
+  it('should ignore a stale async confirmation after a newer request replaces it', async () => {
+    let resolveFirst: (() => void) | undefined;
+    const firstOnConfirm = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+    const secondOnConfirm = jest.fn();
+    let workingProject: WorkingProjectContextType | undefined;
+    let registerHandler: WorkingProjectContextType['registerProjectChangeHandler'];
+
+    const Handler: React.FC = () => {
+      const context = useWorkingProject();
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => ({
+            description: 'First request',
+            onConfirm: firstOnConfirm,
+          })),
+        [register],
+      );
+      registerHandler = register;
+      workingProject = context;
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[firstProject, secondProject]}
+        activeProject={firstProject}
+        onProjectChange={jest.fn()}
+      >
+        <Handler />
+      </WorkingProjectProvider>,
+    );
+
+    act(() => workingProject?.requestProjectChange?.(secondProject));
+    let firstConfirmation: Promise<void> | undefined;
+    act(() => {
+      firstConfirmation = Promise.resolve(workingProject?.confirmProjectChange?.());
+    });
+
+    act(() => {
+      registerHandler?.(() => ({
+        description: 'Second request',
+        onConfirm: secondOnConfirm,
+      }));
+      workingProject?.requestProjectChange?.(secondProject);
+    });
+
+    expect(workingProject?.pendingProjectChange?.description).toBe('Second request');
+
+    await act(async () => {
+      resolveFirst?.();
+      await firstConfirmation;
+    });
+
+    expect(workingProject?.pendingProjectChange?.description).toBe('Second request');
+    expect(workingProject?.projectChangeError).toBeUndefined();
+    expect(workingProject?.isConfirmingProjectChange).toBe(false);
+    expect(secondOnConfirm).not.toHaveBeenCalled();
+  });
+
+  it('should keep the project-change handler registered when a request becomes pending', () => {
+    const onProjectChange = jest.fn();
+    const onConfirm = jest.fn();
+    const registerCount = jest.fn();
+    let workingProject: WorkingProjectContextType | undefined;
+
+    const Handler: React.FC = () => {
+      const context = useWorkingProject();
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(() => {
+        registerCount();
+        return register?.(() => ({
+          description: 'Discard form progress',
+          onConfirm,
+        }));
+      }, [register]);
+      workingProject = context;
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[firstProject, secondProject]}
+        activeProject={firstProject}
+        onProjectChange={onProjectChange}
+      >
+        <Handler />
+      </WorkingProjectProvider>,
+    );
+
+    expect(registerCount).toHaveBeenCalledTimes(1);
+
+    act(() => workingProject?.requestProjectChange?.(secondProject));
+
+    expect(registerCount).toHaveBeenCalledTimes(1);
+    expect(workingProject?.pendingProjectChange).toBeDefined();
+  });
+
+  it('should ignore cleanup from an older handler after a newer handler replaces it', () => {
+    const onProjectChange = jest.fn();
+    const firstOnConfirm = jest.fn();
+    const secondOnConfirm = jest.fn();
+    let firstCleanup: (() => void) | undefined;
+    let secondCleanup: (() => void) | undefined;
+    let workingProject: WorkingProjectContextType | undefined;
+
+    let registerHandler: WorkingProjectContextType['registerProjectChangeHandler'];
+    const FirstHandler: React.FC = () => {
+      const context = useWorkingProject();
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(() => {
+        firstCleanup = register?.(() => ({
+          description: 'First handler',
+          onConfirm: firstOnConfirm,
+        }));
+      }, [register]);
+      registerHandler = register;
+      workingProject = context;
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[firstProject, secondProject]}
+        activeProject={firstProject}
+        onProjectChange={onProjectChange}
+      >
+        <FirstHandler />
+      </WorkingProjectProvider>,
+    );
+
+    act(() => workingProject?.requestProjectChange?.(secondProject));
+    expect(workingProject?.pendingProjectChange?.description).toBe('First handler');
+
+    act(() => {
+      secondCleanup = registerHandler?.(() => ({
+        description: 'Second handler',
+        onConfirm: secondOnConfirm,
+      }));
+    });
+
+    expect(workingProject?.pendingProjectChange).toBeUndefined();
+    expect(workingProject?.isConfirmingProjectChange).toBe(false);
+
+    act(() => firstCleanup?.());
+
+    expect(workingProject?.pendingProjectChange).toBeUndefined();
+    act(() => workingProject?.requestProjectChange?.(secondProject));
+    expect(workingProject?.pendingProjectChange?.description).toBe('Second handler');
+    expect(secondCleanup).toBeDefined();
+    expect(firstOnConfirm).not.toHaveBeenCalled();
+  });
+
+  it('should select immediately when no project-change handler is registered', () => {
+    const onProjectChange = jest.fn();
+    const renderResult = renderHook(() => useWorkingProject(), {
+      wrapper: createWrapper([firstProject, secondProject], firstProject, onProjectChange),
+    });
+
+    act(() => renderResult.result.current.requestProjectChange?.(secondProject));
+
+    expect(onProjectChange).toHaveBeenCalledWith(secondProject);
+    expect(renderResult.result.current.pendingProjectChange).toBeUndefined();
+  });
+
+  it('should return immediate asynchronous project changes to the caller', async () => {
+    let resolveChange: (() => void) | undefined;
+    const onProjectChange = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveChange = resolve;
+        }),
+    );
+    const renderResult = renderHook(() => useWorkingProject(), {
+      wrapper: createWrapper([firstProject, secondProject], firstProject, onProjectChange),
+    });
+
+    let change: void | Promise<void> | null = null;
+    act(() => {
+      change = renderResult.result.current.requestProjectChange?.(secondProject);
+    });
+
+    expect(change).toBeInstanceOf(Promise);
+    expect(onProjectChange).toHaveBeenCalledWith(secondProject);
+
+    await act(async () => {
+      resolveChange?.();
+      await change;
+    });
+  });
+
   it('should expose an empty, inactive selection without a provider', () => {
     const renderResult = renderHook(() => useWorkingProject());
 

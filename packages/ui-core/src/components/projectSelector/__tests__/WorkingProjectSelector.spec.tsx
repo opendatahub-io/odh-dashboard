@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import {
   type ProjectIdentity,
+  WorkingProjectContext,
   WorkingProjectProvider,
   WorkingProjectStatusValue,
 } from '../../../context/WorkingProjectContext';
@@ -155,6 +156,71 @@ describe('WorkingProjectSelector', () => {
 
     expect(onCreateProject).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('should show the Create project action when the current route is invalid', () => {
+    const onCreateProject = jest.fn();
+
+    render(
+      <WorkingProjectProvider
+        status={WorkingProjectStatusValue.RouteInvalid}
+        projects={[project]}
+        activeProject={null}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          onCreateProject={onCreateProject}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    const createProjectButton = screen.getByRole('button', { name: 'Create project' });
+    expect(createProjectButton).toBeInTheDocument();
+
+    fireEvent.click(createProjectButton);
+
+    expect(onCreateProject).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('should show the empty project creation view when the current route is invalid and no projects exist', () => {
+    const onCreateProject = jest.fn();
+
+    render(
+      <WorkingProjectProvider
+        status={WorkingProjectStatusValue.RouteInvalid}
+        projects={[]}
+        activeProject={null}
+        onProjectChange={jest.fn()}
+      >
+        <WorkingProjectSelector
+          emptyListContent={(onClose) => (
+            <>
+              <p>No projects are available.</p>
+              <button type="button" onClick={onCreateProject}>
+                Create project
+              </button>
+              <button type="button" onClick={onClose}>
+                Cancel
+              </button>
+            </>
+          )}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+
+    expect(screen.getByText('No projects are available.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create project' })).toBeInTheDocument();
+    expect(screen.queryByText('Available projects')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('working-project-no-results')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+    expect(onCreateProject).toHaveBeenCalledTimes(1);
   });
 
   it('should not duplicate actions supplied by the empty-list content', () => {
@@ -412,6 +478,295 @@ describe('WorkingProjectSelector', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it.each(['success', 'failure'])(
+    'should await an immediate asynchronous project change and handle %s',
+    async (outcome) => {
+      let resolveChange: (() => void) | undefined;
+      let rejectChange: ((error: Error) => void) | undefined;
+      const nextProject = { name: 'project-y', displayName: 'Project Y' };
+      const onProjectChange = jest.fn(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            resolveChange = resolve;
+            rejectChange = reject;
+          }),
+      );
+      const onProjectSelected = jest.fn();
+
+      render(
+        <WorkingProjectProvider
+          projects={[project, nextProject]}
+          activeProject={project}
+          onProjectChange={onProjectChange}
+        >
+          <WorkingProjectSelector
+            emptyListContent={<div>No projects</div>}
+            onProjectSelected={onProjectSelected}
+          />
+        </WorkingProjectProvider>,
+      );
+
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      fireEvent.click(screen.getByTestId('working-project-option-project-y'));
+      const selection = screen.getByRole('button', { name: 'Select' });
+
+      await act(async () => {
+        fireEvent.click(selection);
+      });
+
+      expect(onProjectChange).toHaveBeenCalledWith(nextProject);
+      expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+      expect(onProjectSelected).not.toHaveBeenCalled();
+
+      await act(async () => {
+        if (outcome === 'failure') {
+          rejectChange?.(new Error('Unable to change project.'));
+        } else {
+          resolveChange?.();
+        }
+      });
+
+      if (outcome === 'failure') {
+        expect(screen.getByTestId('error-message-alert')).toHaveTextContent(
+          'Unable to change project.',
+        );
+        expect(screen.getByTestId('modal-submit-button')).toBeEnabled();
+        expect(onProjectSelected).not.toHaveBeenCalled();
+      } else {
+        expect(onProjectSelected).toHaveBeenCalledTimes(1);
+        expect(onProjectSelected).toHaveBeenCalledWith(nextProject);
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  it('should close the selector and show the shared project-change confirmation', async () => {
+    const onProjectChange = jest.fn();
+    const onProjectSelected = jest.fn();
+    const onConfirm = jest.fn();
+    const nextProject = { name: 'project-y', displayName: 'Project Y' };
+    const Handler: React.FC = () => {
+      const context = React.useContext(WorkingProjectContext);
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => ({
+            description: 'Switching projects will discard your progress.',
+            onConfirm: async () => {
+              await onConfirm();
+              onProjectSelected(nextProject);
+            },
+          })),
+        [register],
+      );
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[project, nextProject]}
+        activeProject={project}
+        onProjectChange={onProjectChange}
+      >
+        <Handler />
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          onProjectSelected={onProjectSelected}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    fireEvent.click(screen.getByTestId('working-project-option-project-y'));
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+
+    await waitFor(() =>
+      expect(screen.queryByText('Choose the project you want to work in.')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Switching projects will discard your progress.')).toBeInTheDocument();
+    expect(onProjectChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('confirm-project-switch'));
+    });
+    expect(onConfirm).toHaveBeenCalledWith();
+    expect(onProjectSelected).toHaveBeenCalledTimes(1);
+    expect(onProjectSelected).toHaveBeenCalledWith(nextProject);
+  });
+
+  it('should prevent cancelling the project-change confirmation while it is processing', async () => {
+    let complete: () => void = () => undefined;
+    const onConfirm = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const Handler: React.FC = () => {
+      const context = React.useContext(WorkingProjectContext);
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => ({
+            description: 'Switching projects will discard your progress.',
+            onConfirm,
+          })),
+        [register],
+      );
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[project, { name: 'project-y', displayName: 'Project Y' }]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <Handler />
+        <WorkingProjectSelector emptyListContent={<div>No projects</div>} />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    fireEvent.click(screen.getByTestId('working-project-option-project-y'));
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await waitFor(() => expect(screen.getByTestId('switch-project-modal')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('confirm-project-switch'));
+
+    expect(screen.getByTestId('confirm-project-switch')).toBeDisabled();
+    expect(screen.getByTestId('cancel-project-switch')).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getByTestId('switch-project-modal')).toBeInTheDocument();
+
+    await act(async () => complete());
+    await waitFor(() =>
+      expect(screen.queryByTestId('switch-project-modal')).not.toBeInTheDocument(),
+    );
+  });
+
+  it('should show a confirmation error and allow retrying the project change', async () => {
+    const nextProject = { name: 'project-y', displayName: 'Project Y' };
+    const onProjectSelected = jest.fn();
+    const onConfirm = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('Unable to save the current work.'))
+      .mockImplementationOnce(async () => {
+        onProjectSelected(nextProject);
+      });
+    const Handler: React.FC = () => {
+      const context = React.useContext(WorkingProjectContext);
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => ({
+            description: 'Switching projects will discard your progress.',
+            onConfirm,
+          })),
+        [register],
+      );
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[project, nextProject]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <Handler />
+        <WorkingProjectSelector
+          emptyListContent={<div>No projects</div>}
+          onProjectSelected={onProjectSelected}
+        />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    fireEvent.click(screen.getByTestId('working-project-option-project-y'));
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    await waitFor(() => expect(screen.getByTestId('switch-project-modal')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('confirm-project-switch'));
+    });
+
+    expect(screen.getByTestId('error-message-alert')).toHaveTextContent(
+      'Unable to save the current work.',
+    );
+    expect(screen.getByTestId('confirm-project-switch')).toBeEnabled();
+    expect(screen.getByTestId('cancel-project-switch')).toBeEnabled();
+    expect(screen.getByTestId('switch-project-modal')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('confirm-project-switch'));
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+    expect(onProjectSelected).toHaveBeenCalledTimes(1);
+    expect(onProjectSelected).toHaveBeenCalledWith(nextProject);
+    await waitFor(() =>
+      expect(screen.queryByTestId('switch-project-modal')).not.toBeInTheDocument(),
+    );
+  });
+
+  it.each(['cancel-project-switch', 'modal-close'])(
+    'should reopen the project selector when project switching is cancelled through %s',
+    async (cancelAction) => {
+      const onProjectChange = jest.fn();
+      const onProjectSelected = jest.fn();
+      const Handler: React.FC = () => {
+        const context = React.useContext(WorkingProjectContext);
+        const register = context.registerProjectChangeHandler;
+        React.useLayoutEffect(
+          () =>
+            register?.(() => ({
+              description: 'Switching projects will discard your progress.',
+              onConfirm: () => {
+                onProjectSelected({ name: 'project-y', displayName: 'Project Y' });
+              },
+            })),
+          [register],
+        );
+        return null;
+      };
+
+      render(
+        <WorkingProjectProvider
+          projects={[project, { name: 'project-y', displayName: 'Project Y' }]}
+          activeProject={project}
+          onProjectChange={onProjectChange}
+        >
+          <Handler />
+          <WorkingProjectSelector
+            emptyListContent={<div>No projects</div>}
+            onProjectSelected={onProjectSelected}
+          />
+        </WorkingProjectProvider>,
+      );
+
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      fireEvent.click(screen.getByTestId('working-project-option-project-y'));
+      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+
+      await waitFor(() => expect(screen.getByTestId('switch-project-modal')).toBeInTheDocument());
+
+      if (cancelAction === 'cancel-project-switch') {
+        fireEvent.click(screen.getByTestId('cancel-project-switch'));
+      } else {
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      }
+
+      await waitFor(() =>
+        expect(screen.getByRole('dialog', { name: 'Project selector' })).toBeInTheDocument(),
+      );
+      expect(screen.queryByTestId('switch-project-modal')).not.toBeInTheDocument();
+      expect(screen.getByTestId('working-project-option-project-x')).toBeInTheDocument();
+      expect(onProjectChange).not.toHaveBeenCalled();
+      expect(onProjectSelected).not.toHaveBeenCalled();
+    },
+  );
+
   describe.each([false, true])('initial project filter (manual fallback: %s)', (manualFallback) => {
     it.each([
       { activeName: 'standard-project', expectedFilter: 'All projects' },
@@ -573,6 +928,41 @@ describe('WorkingProjectSelector', () => {
     await act(async () => fireEvent.click(screen.getByTestId('modal-submit-button')));
 
     expect(onProjectChange).toHaveBeenCalledWith(project);
+  });
+
+  it('should keep the selector open when the project-change handler cannot create a request', async () => {
+    const handlerError = new Error('Unable to prepare the project change.');
+    const Handler: React.FC = () => {
+      const context = React.useContext(WorkingProjectContext);
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => {
+            throw handlerError;
+          }),
+        [register],
+      );
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[project, { name: 'project-y', displayName: 'Project Y' }]}
+        activeProject={project}
+        onProjectChange={jest.fn()}
+      >
+        <Handler />
+        <WorkingProjectSelector emptyListContent={<div>No projects</div>} />
+      </WorkingProjectProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    fireEvent.click(screen.getByTestId('working-project-option-project-y'));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Select' })));
+
+    expect(screen.getByRole('dialog', { name: 'Project selector' })).toBeInTheDocument();
+    expect(screen.getByTestId('error-message-alert')).toHaveTextContent(handlerError.message);
+    expect(screen.queryByTestId('switch-project-modal')).not.toBeInTheDocument();
   });
 
   it.each([

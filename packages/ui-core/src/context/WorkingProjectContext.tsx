@@ -15,6 +15,27 @@ export type WorkingProjectNavigation = (
   transaction: WorkingProjectNavigationTransaction,
 ) => void;
 
+export type WorkingProjectChangeRequest = {
+  description: React.ReactNode;
+  /**
+   * Completes the feature-owned project change, including reset, selection, and navigation.
+   * May be synchronous or asynchronous. Failures keep the confirmation modal open for retry.
+   */
+  onConfirm: () => void | Promise<void>;
+};
+
+export type WorkingProjectChangeHandler = (project: ProjectIdentity) => WorkingProjectChangeRequest;
+
+type RegisteredWorkingProjectChangeHandler = {
+  owner: symbol;
+  handler: WorkingProjectChangeHandler;
+};
+
+type PendingWorkingProjectChange = {
+  owner: symbol;
+  request: WorkingProjectChangeRequest;
+};
+
 /** Lifecycle of the host's project source as exposed through the working-project context. */
 export const WorkingProjectStatusValue = {
   /** No working-project provider is mounted above the consumer. */
@@ -75,8 +96,22 @@ export type WorkingProjectContextType = {
   status: WorkingProjectStatus;
   projects: readonly ProjectIdentity[];
   activeProject: ProjectIdentity | null;
-  /** Hosts may return a promise when selection requires access validation. */
+  /**
+   * Selects immediately and bypasses any change handler.
+   * The returned promise completes when host selection finishes.
+   */
   selectProject: (project: ProjectIdentity) => void | Promise<void>;
+  /**
+   * Requests a project change. Without a handler, selection is immediate.
+   * With a handler, the feature owns reset, selection, and navigation in `onConfirm`.
+   */
+  requestProjectChange?: (project: ProjectIdentity) => void | Promise<void>;
+  hasProjectChangeHandler?: boolean;
+  pendingProjectChange?: WorkingProjectChangeRequest;
+  isConfirmingProjectChange?: boolean;
+  projectChangeError?: Error;
+  confirmProjectChange?: () => void | Promise<void>;
+  cancelProjectChange?: () => void;
   /** Optional host-owned discovery; no API or persistence behavior lives in ui-core. */
   discoverProject?: (name: string, signal: AbortSignal) => Promise<ProjectIdentity>;
   rememberProject?: (name: string, signal: AbortSignal) => Promise<void>;
@@ -86,6 +121,12 @@ export type WorkingProjectContextType = {
   cancelProjectNavigation?: () => void;
   /** Register the mounted unsaved-change blocker's reset, without sharing route shapes. */
   registerProjectNavigationBlocker?: (reset: () => void) => () => void;
+  /**
+   * Registers the active feature's project-change behavior.
+   * Return the cleanup function from the owning effect. Only one handler is active.
+   * The shared selector owns confirmation, loading, errors, retry, and cancellation.
+   */
+  registerProjectChangeHandler?: (handler: WorkingProjectChangeHandler) => () => void;
 };
 
 export type WorkingProjectProviderProps = {
@@ -108,6 +149,7 @@ export const WorkingProjectContext = React.createContext<WorkingProjectContextTy
   projects: [],
   activeProject: null,
   selectProject: () => undefined,
+  hasProjectChangeHandler: false,
 });
 
 const noProjects: readonly ProjectIdentity[] = [];
@@ -152,7 +194,39 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
       : projects;
   const status = getWorkingProjectStatus(sourceStatus, knownProjects, activeProject);
   const knownActiveProject = knownProjects.find(({ name }) => name === activeProject?.name) ?? null;
+  const changeHandler = React.useRef<RegisteredWorkingProjectChangeHandler>();
+  const [hasProjectChangeHandler, setHasProjectChangeHandler] = React.useState(false);
+  const [pendingProjectChange, setPendingProjectChange] =
+    React.useState<PendingWorkingProjectChange>();
+  const pendingProjectChangeRef = React.useRef<PendingWorkingProjectChange>();
+  const [isConfirmingProjectChange, setIsConfirmingProjectChange] = React.useState(false);
+  const [projectChangeError, setProjectChangeError] = React.useState<Error>();
+  const registerChangeHandler = React.useCallback((handler: WorkingProjectChangeHandler) => {
+    const owner = Symbol('working-project-change-handler');
 
+    if (pendingProjectChangeRef.current) {
+      pendingProjectChangeRef.current = undefined;
+      setPendingProjectChange(undefined);
+      setIsConfirmingProjectChange(false);
+      setProjectChangeError(undefined);
+    }
+
+    changeHandler.current = { owner, handler };
+    setHasProjectChangeHandler(true);
+
+    return () => {
+      if (changeHandler.current?.owner === owner) {
+        changeHandler.current = undefined;
+        setHasProjectChangeHandler(false);
+      }
+
+      if (pendingProjectChangeRef.current?.owner === owner) {
+        pendingProjectChangeRef.current = undefined;
+        setPendingProjectChange(undefined);
+        setIsConfirmingProjectChange(false);
+      }
+    };
+  }, []);
   const selectProject = React.useCallback(
     (project: ProjectIdentity): void | Promise<void> => {
       const selectableProject = knownProjects.find(({ name }) => name === project.name);
@@ -164,30 +238,105 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
     [onProjectChange, knownProjects],
   );
 
+  const requestProjectChange = React.useCallback(
+    (project: ProjectIdentity): void | Promise<void> => {
+      const selectableProject = knownProjects.find(({ name }) => name === project.name);
+      if (!selectableProject) {
+        return;
+      }
+      if (selectableProject.name === knownActiveProject?.name) {
+        return onProjectChange(selectableProject);
+      }
+      const registration = changeHandler.current;
+      if (registration) {
+        const request = registration.handler(selectableProject);
+        const pending = { owner: registration.owner, request };
+        pendingProjectChangeRef.current = pending;
+        setPendingProjectChange(pending);
+        setIsConfirmingProjectChange(false);
+        setProjectChangeError(undefined);
+        return;
+      }
+      return onProjectChange(selectableProject);
+    },
+    [knownActiveProject?.name, knownProjects, onProjectChange],
+  );
+  const confirmProjectChange = React.useCallback(async () => {
+    const pending = pendingProjectChangeRef.current;
+    if (!pending) {
+      return;
+    }
+    const { request } = pending;
+
+    setIsConfirmingProjectChange(true);
+    setProjectChangeError(undefined);
+    try {
+      await request.onConfirm();
+      if (pendingProjectChangeRef.current === pending) {
+        pendingProjectChangeRef.current = undefined;
+        setPendingProjectChange(undefined);
+      }
+    } catch (error: unknown) {
+      if (pendingProjectChangeRef.current === pending) {
+        setProjectChangeError(
+          error instanceof Error ? error : new Error('Unable to switch projects.'),
+        );
+      }
+    } finally {
+      if (pendingProjectChangeRef.current === pending) {
+        setIsConfirmingProjectChange(false);
+      }
+    }
+  }, []);
+  const cancelProjectChange = React.useCallback(() => {
+    if (isConfirmingProjectChange) {
+      return;
+    }
+    pendingProjectChangeRef.current = undefined;
+    setPendingProjectChange(undefined);
+    setProjectChangeError(undefined);
+  }, [isConfirmingProjectChange]);
+
   const value = React.useMemo(
     () => ({
       status,
       projects: knownProjects,
       activeProject: knownActiveProject,
       selectProject,
+      requestProjectChange,
+      hasProjectChangeHandler,
+      pendingProjectChange: pendingProjectChange?.request,
+      isConfirmingProjectChange,
+      projectChangeError,
+      confirmProjectChange,
+      cancelProjectChange,
       discoverProject,
       rememberProject,
       ...(registerProjectNavigation && { registerProjectNavigation }),
       ...(registerProjectRouteSync && { registerProjectRouteSync }),
       ...(cancelProjectNavigation && { cancelProjectNavigation }),
       ...(registerProjectNavigationBlocker && { registerProjectNavigationBlocker }),
+      registerProjectChangeHandler: registerChangeHandler,
     }),
     [
       status,
       knownProjects,
       knownActiveProject,
       selectProject,
+      requestProjectChange,
+      hasProjectChangeHandler,
+      pendingProjectChange,
+      isConfirmingProjectChange,
+      projectChangeError,
+      confirmProjectChange,
+      cancelProjectChange,
       discoverProject,
       rememberProject,
       registerProjectNavigation,
       registerProjectRouteSync,
       cancelProjectNavigation,
       registerProjectNavigationBlocker,
+      registerChangeHandler,
     ],
   );
 
