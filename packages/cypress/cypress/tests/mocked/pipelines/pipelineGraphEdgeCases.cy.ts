@@ -246,6 +246,35 @@ describe('Pipeline Graph Edge Cases', () => {
 
       pipelineDetails.findTaskNodes().should('have.length', 25);
     });
+
+    it('pans an offscreen task into view when it receives keyboard focus', () => {
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockLargePipeline.pipeline_version_id,
+      );
+
+      for (let i = 0; i < 8; i++) {
+        pipelineDetails.findZoomInButton().click();
+      }
+
+      pipelineDetails.findVisualizationSurface().then(($graph) => {
+        const graphBounds = $graph[0].getBoundingClientRect();
+        pipelineDetails.findTaskButton('task-15').should(($button) => {
+          const buttonBounds = $button[0].getBoundingClientRect();
+          expect(
+            buttonBounds.bottom < graphBounds.top || buttonBounds.top > graphBounds.bottom,
+          ).to.equal(true);
+        });
+
+        pipelineDetails.findTaskButton('task-15').focus().should('be.focused');
+        pipelineDetails.findTaskButton('task-15').should(($button) => {
+          const buttonBounds = $button[0].getBoundingClientRect();
+          expect(buttonBounds.top).to.be.at.least(graphBounds.top);
+          expect(buttonBounds.bottom).to.be.at.most(graphBounds.bottom);
+        });
+      });
+    });
   });
 
   describe('Error Cases', () => {

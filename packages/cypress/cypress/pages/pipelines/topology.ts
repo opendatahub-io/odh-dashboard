@@ -43,7 +43,7 @@ class TaskDrawer extends Contextual<HTMLElement> {
   }
 
   shouldHaveTaskName(name: string) {
-    return this.find().findByTestId('pipeline-task-name').should('contain.text', name);
+    return this.find().findByTestId('pipeline-drawer-task-title').should('contain.text', name);
   }
 }
 
@@ -61,6 +61,127 @@ class PipelinesTopology {
 
   findTaskNode(name: string) {
     return cy.get(`[data-id="${name}"][data-kind="node"][data-type="DEFAULT_TASK_NODE"]`);
+  }
+
+  findTaskLabelText(name: string) {
+    return this.findTaskNode(name).find('.pf-topology-pipelines__pill-text');
+  }
+
+  findTaskHoverTarget(name: string) {
+    return cy.findByTestId(`pipeline-task-node-${name}`);
+  }
+
+  findTaskPillBackground(name: string) {
+    // PatternFly owns the pill shape; scope its class to the named task node.
+    return this.findTaskNode(name).find('.pf-topology-pipelines__pill-background');
+  }
+
+  findTaskStatusCircle(name: string) {
+    // PatternFly draws this status-only circle when it hides task details.
+    return this.findTaskNode(name).find('.pf-topology-pipelines__status-icon-background');
+  }
+
+  findTaskNodeScaleGroup(name: string) {
+    // PatternFly applies hover magnification as scale() on its task-node group.
+    return this.findTaskHoverTarget(name).find('g.pf-topology__pipelines__task-node').first();
+  }
+
+  findEdgePath(id: string) {
+    // PatternFly renders each edge twice; only the ElementWrapper copy has the task handler path.
+    return cy.get(
+      `[data-kind="edge"][data-id="${id}"] [data-test-id="task-handler"] > path[transform]`,
+    );
+  }
+
+  findTaskButton(name: string) {
+    return cy.findByTestId(`pipeline-node-button-${name}`);
+  }
+
+  findGroupToggle(name: string) {
+    return cy.findByTestId(`pipeline-group-toggle-${name}`);
+  }
+
+  findGroupNode(name: string) {
+    return cy.get(`[data-id="${name}"][data-kind="node"]`).first();
+  }
+
+  findGroupHoverSurface(name: string) {
+    return cy.findByTestId(`pipeline-group-hover-surface-${name}`);
+  }
+
+  findCollapsedGroupLabelText(name: string) {
+    return this.findGroupNode(name).find('.pf-topology-pipelines__pill-text');
+  }
+
+  findGroupLabel(name: string) {
+    return cy.findByTestId(`pipeline-group-label-${name}`);
+  }
+
+  findExpandedGroupBackground() {
+    // PatternFly portals expanded group bodies outside the node element and gives them no test ID.
+    // Callers must render exactly one expanded group.
+    return cy.get('.pf-topology__group__background');
+  }
+
+  findExpandedGroupHoverSurface() {
+    // PatternFly renders expanded group bodies in a portal without a test ID.
+    return cy
+      .get('.pf-topology__group')
+      .filter((_, group) => group.querySelector('.pf-topology__group__background') !== null)
+      .last();
+  }
+
+  findGroupActionIcon(name: string) {
+    // PatternFly owns this SVG action icon; scope its class selector to the named group.
+    return cy.findByTestId(`pipeline-group-label-${name}`).find('.pf-topology__node__action-icon');
+  }
+
+  findGroupButton(name: string) {
+    return cy.findByTestId(`pipeline-group-button-${name}`);
+  }
+
+  findGroupTask(name: string) {
+    return cy.findByTestId(`pipeline-group-task-${name}`);
+  }
+
+  findGroupPreviewTask(name: string) {
+    return cy.findByTestId(`pipeline-group-preview-task-${name}`);
+  }
+
+  findGroupDetails(name: string) {
+    return cy.findByTestId(`pipeline-group-details-${name}`);
+  }
+
+  findExpandedGroupDetails(name: string) {
+    return cy.findByTestId(`pipeline-expanded-group-details-${name}`);
+  }
+
+  findGraphButtons() {
+    return cy.get(
+      'button[data-testid^="pipeline-node-button-"], ' +
+        'button[data-testid^="pipeline-group-button-"], ' +
+        'button[data-testid^="pipeline-group-toggle-"], ' +
+        'button[data-testid^="pipeline-expanded-group-details-"]',
+    );
+  }
+
+  findFocusedGraphButton() {
+    return cy.get('button[data-pipeline-node-id]:focus');
+  }
+
+  findGroupLabelText(name: string) {
+    // PatternFly owns the SVG pill text; scope its class to the named group label.
+    return cy
+      .findByTestId(`pipeline-group-label-${name}`)
+      .find('.pf-topology-pipelines__pill-text');
+  }
+
+  findDrawerTaskTitle() {
+    return cy.findByTestId('pipeline-drawer-task-title');
+  }
+
+  findDrawerCloseButton() {
+    return cy.findByRole('button', { name: 'Close drawer panel' });
   }
 
   findTaskNodes() {
@@ -109,10 +230,37 @@ class PipelinesTopology {
     return this.findControlBar().findByRole('button', { name: /reset view/i });
   }
 
+  // PF Topology owns the zoomable graph surface; it has no test ID.
+  findGraphSurface() {
+    return cy.get('[data-surface="true"]');
+  }
+
+  shouldHaveGraphScale(assertScale: (scale: number) => void) {
+    return this.findGraphSurface().should(($surface) => {
+      const match = /scale\(([^)]+)\)/.exec($surface.attr('transform') ?? '');
+      assertScale(Number(match?.[1]));
+    });
+  }
+
+  /** Zoom out by `steps` control-bar clicks (×0.75 each; PatternFly clamps at 0.25). */
+  zoomOut(steps: number) {
+    for (let i = 0; i < steps; i++) {
+      this.findZoomOutButton().click();
+    }
+  }
+
   findArtifactNode(name: string) {
     return cy.get(
       `[data-id="GROUP.root.ARTIFACT.${name}"][data-kind="node"][data-type="ICON_TASK_NODE"]`,
     );
+  }
+
+  findArtifactIcon(name: string) {
+    return cy.findByTestId(`pipeline-artifact-icon-${name}`);
+  }
+
+  findArtifactVisual(name: string) {
+    return cy.findByTestId(`pipeline-artifact-visual-${name}`);
   }
 }
 
