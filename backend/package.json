@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@fastify/accepts": "^5.0.4",
-    "@fastify/http-proxy": "^11.6.0",
+    "@fastify/http-proxy": "^11.7.0",
     "@fastify/sensible": "^6.0.4",
     "@fastify/static": "^10.1.3",
     "@fastify/view": "^12.0.0",
