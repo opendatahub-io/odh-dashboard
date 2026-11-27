@@ -61,6 +61,11 @@ controller-runtime backoff.
 - **Expected pending state**: return `(Result{RequeueAfter: 10s}, nil)` while a primary Deployment or HTTPRoute becomes ready.
 - **Failure status**: calculate conditions before returning reconciliation errors; persist status only when it differs from the stored state.
 
+`status.observedGeneration` is the last spec generation whose reconcile pass
+returned no operation error, including a MaaS Portal operand failure. Failures
+that are only tracked in conditions, such as optional observability, can still
+advance it; use `phase` and the conditions for health.
+
 `status.url` is lifecycle-specific. XKS leaves it empty because its Gateway
 owns the external hostname.
 

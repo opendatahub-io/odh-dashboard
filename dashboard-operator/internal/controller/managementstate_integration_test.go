@@ -92,6 +92,7 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 
 	// CR is preserved and its status reflects the removal.
 	dashboard = getDashboard(t)
+	assert.Equal(t, dashboard.Generation, dashboard.Status.ObservedGeneration)
 	assert.Equal(t, common.PhaseNotReady, dashboard.Status.Phase)
 	assert.Empty(t, dashboard.Status.URL)
 	require.NotNil(t, dashboard.Status.ModuleStatuses)

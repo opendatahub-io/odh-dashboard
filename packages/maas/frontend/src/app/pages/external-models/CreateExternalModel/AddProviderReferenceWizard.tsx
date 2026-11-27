@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, ModalVariant, Wizard, WizardHeader, WizardStep } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useCreateExternalProviderForm } from '~/app/pages/external-providers/createProvider/useCreateExternalProviderForm';
@@ -64,6 +64,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   onAdd,
   eventContext,
 }) => {
+  const trackEvent = useTrackEvent();
   const { refreshExternalProviders, refreshSecrets } = useExternalModelsContext();
   const createProviderForm = useCreateExternalProviderForm(namespace);
 
@@ -97,7 +98,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
       setCreatedProviderOverride(undefined);
       setProviderName('');
 
-      fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_PROVIDER_SOURCE_SELECTED, {
+      trackEvent(MaaSEvents.EXTERNAL_MODEL_WIZARD_PROVIDER_SOURCE_SELECTED, {
         providerSource: convertStringToExternalModelProviderSource(source),
         context: eventContext,
         hasExistingProviders: externalProviders.length > 0,
@@ -107,7 +108,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
         createProviderForm.reset();
       }
     },
-    [createProviderForm, externalProviders, eventContext],
+    [createProviderForm, externalProviders, eventContext, trackEvent],
   );
 
   const isStepOneValid =

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Alert,
@@ -19,7 +20,6 @@ import { Td, Tr } from '@patternfly/react-table';
 import { InfoCircleIcon, OutlinedQuestionCircleIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import CapabilityBadges from '~/app/components/CapabilityBadges';
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
@@ -46,6 +46,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   showActionColumn = false,
   showPlaygroundColumn = false,
 }) => {
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const isVectorStoresEnabled = useAiAssetVectorStoresEnabled();
@@ -61,7 +62,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
       data-testid="try-playground-button"
       variant={ButtonVariant.secondary}
       onClick={() => {
-        fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+        trackEvent('Available Endpoints Playground Launched', {
           assetType,
           assetId: model.model_id,
         });
@@ -160,7 +161,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               data-testid="endpoint-view-button"
               variant={ButtonVariant.link}
               onClick={() => {
-                fireMiscTrackingEvent('Available Endpoints Endpoint Viewed', {
+                trackEvent('Available Endpoints Endpoint Viewed', {
                   modelType: model.model_type || 'inference',
                   endpointSource: model.model_source_type,
                 });
@@ -193,7 +194,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                 data-testid="see-vector-stores-button"
                 variant={ButtonVariant.link}
                 onClick={() => {
-                  fireMiscTrackingEvent('Available Endpoints See Vector Stores Clicked', {
+                  trackEvent('Available Endpoints See Vector Stores Clicked', {
                     modelId: model.model_id,
                   });
                   if (namespace?.name) {

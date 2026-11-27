@@ -206,13 +206,18 @@ func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, da
 // persistDashboardRemovalStatus applies status bookkeeping common to every
 // dashboard removal lifecycle. Each lifecycle owns the conditions, phase, and
 // retained operands it sets before calling this helper.
-func (r *DashboardReconciler) persistDashboardRemovalStatus(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) error {
-	dashboard.Status.ObservedGeneration = dashboard.Generation
+func (r *DashboardReconciler) persistDashboardRemovalStatus(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager, operationErr error) error {
 	dashboard.Status.URL = ""
 	dashboard.Status.Distribution = nil
-	if override := removalStatusOverrideFrom(ctx); override != nil {
+	override := removalStatusOverrideFrom(ctx)
+	if override != nil {
 		override.apply(cm, dashboard)
 		override.applied = true
+	}
+	// observedGeneration advances only for a pass without a returned operation
+	// error: a legacy redirect failure (the override) or a MaaS Portal failure.
+	if override == nil && operationErr == nil {
+		dashboard.Status.ObservedGeneration = dashboard.Generation
 	}
 	cm.Sort()
 	return r.updateStatusIfChanged(ctx, dashboard, previousStatus)
@@ -249,5 +254,5 @@ func (r *DashboardReconciler) persistDashboardRemovalPendingStatus(ctx context.C
 	cm.MarkFalse(conditionDashboardAvailable, conditions.WithReason("RemovalInProgress"), conditions.WithMessage(message), conditions.WithSeverity(common.ConditionSeverityInfo))
 	cm.MarkFalse(string(common.ConditionTypeReady), conditions.WithReason("RemovalInProgress"), conditions.WithMessage(message))
 	dashboard.Status.Phase = common.PhaseNotReady
-	return r.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm)
+	return r.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm, nil)
 }

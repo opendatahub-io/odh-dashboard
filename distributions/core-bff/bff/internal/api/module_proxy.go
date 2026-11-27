@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,6 +11,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
@@ -176,11 +177,11 @@ func normalizeFederationEntries(entries []moduleFederationEntry) ([]normalizedPr
 }
 
 // validateProxyEntries rejects duplicate paths, reserved-route collisions, and invalid service refs.
-func validateProxyEntries(entries []normalizedProxyEntry, authTokenHeader string) error {
+func validateProxyEntries(entries []normalizedProxyEntry, authTokenHeaders ...string) error {
 	if err := validateProxyPaths(entries); err != nil {
 		return err
 	}
-	return validateServiceRefs(entries, authTokenHeader)
+	return validateServiceRefs(entries, authTokenHeaders...)
 }
 
 func validateProxyPaths(entries []normalizedProxyEntry) error {
@@ -236,7 +237,7 @@ func proxyPathsOverlap(a, b string) bool {
 
 // Entry errors name the entry and the field that failed, never the rejected
 // value: the federation config is free-form operator input.
-func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeader string) error {
+func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeaders ...string) error {
 	for _, e := range entries {
 		if e.service.Service.Name == "" {
 			return fmt.Errorf("entry %s has empty service name", e.entryName)
@@ -256,7 +257,7 @@ func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeader string)
 
 		if e.service.Authorize {
 			for k := range e.service.Headers {
-				if reserved, ok := reservedCredentialHeader(k, authTokenHeader); ok {
+				if reserved, ok := reservedCredentialHeader(k, authTokenHeaders...); ok {
 					return fmt.Errorf("entry %s sets a custom %s header while authorize is enabled; credential headers carry only the server-resolved caller token", e.entryName, reserved)
 				}
 			}
@@ -268,20 +269,24 @@ func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeader string)
 
 // reservedCredentialHeaders are the headers that carry the caller credential to
 // an authorized module: Authorization and X-Forwarded-Access-Token always,
-// whichever header ingress is configured to read, plus the configured one.
-// Only the server-resolved token may appear in them.
-func reservedCredentialHeaders(authTokenHeader string) []string {
+// whichever header ingress is configured to read, plus every configured one
+// (AUTH_TOKEN_HEADERS and the legacy AUTH_TOKEN_HEADER). Only the
+// server-resolved token may appear in them.
+func reservedCredentialHeaders(authTokenHeaders ...string) []string {
 	headers := []string{constants.HeaderAuthorization, constants.HeaderForwardedToken}
-	if authTokenHeader != "" && !slices.ContainsFunc(headers, func(h string) bool { return strings.EqualFold(h, authTokenHeader) }) {
-		headers = append(headers, authTokenHeader)
+	for _, h := range authTokenHeaders {
+		h = strings.TrimSpace(h)
+		if h != "" && !slices.ContainsFunc(headers, func(e string) bool { return strings.EqualFold(e, h) }) {
+			headers = append(headers, h)
+		}
 	}
 	return headers
 }
 
 // reservedCredentialHeader reports whether name is a reserved credential
 // header, returning its canonical spelling.
-func reservedCredentialHeader(name, authTokenHeader string) (string, bool) {
-	for _, h := range reservedCredentialHeaders(strings.TrimSpace(authTokenHeader)) {
+func reservedCredentialHeader(name string, authTokenHeaders ...string) (string, bool) {
+	for _, h := range reservedCredentialHeaders(authTokenHeaders...) {
 		if strings.EqualFold(strings.TrimSpace(name), h) {
 			return http.CanonicalHeaderKey(h), true
 		}
@@ -302,7 +307,7 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		PathRewriteFn: func(r *http.Request) string {
 			return pathRewrite + strings.TrimPrefix(r.URL.Path, proxyPath)
 		},
-		StripHeaders: proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
+		StripHeaders: proxy.SensitiveIngressHeaders(app.credentialHeaders()...),
 		// SSRF redirect check, then force no-store (Node rewriteNoStoreCacheHeaders parity).
 		ModifyResponse:     chainModifyResponse(ssrf.NewRedirectValidator(app.logger), forceNoStoreCacheHeaders),
 		SSRFValidateTarget: ssrfValidate,
@@ -336,9 +341,12 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		// DEV_MODE fallback, or a mock without a token) sends none of them.
 		//
 		// Authorization keeps the Bearer prefix; other headers receive the raw
-		// token.
-		authTokenHeader := strings.TrimSpace(app.config.AuthTokenHeader)
-		reserved := reservedCredentialHeaders(authTokenHeader)
+		// token. The reserved set is Authorization, X-Forwarded-Access-Token and
+		// every configured credential header (AUTH_TOKEN_HEADERS in list mode,
+		// plus the legacy AUTH_TOKEN_HEADER): the headers StripHeaders removes
+		// and validateServiceRefs reserves.
+		configured := app.credentialHeaders()
+		reserved := reservedCredentialHeaders(configured...)
 		cfg.SetOutboundHeadersFn = func(r *http.Request, outH http.Header) {
 			for k, v := range customHeaders {
 				outH.Set(k, v)
@@ -355,10 +363,10 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 				return
 			}
 			outH.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
-			// With no ingress header configured only Authorization carries the
-			// token (no raw-token injection); otherwise every reserved header
+			// With no credential header configured only Authorization carries
+			// the token (no raw-token injection); otherwise every reserved header
 			// does, so a module reading any convention sees the same caller.
-			if authTokenHeader == "" {
+			if len(configured) == 0 {
 				return
 			}
 			for _, h := range reserved {
@@ -395,7 +403,7 @@ func (app *App) initModuleProxies() error {
 		return nil
 	}
 
-	if err := validateProxyEntries(normalized, app.config.AuthTokenHeader); err != nil {
+	if err := validateProxyEntries(normalized, app.credentialHeaders()...); err != nil {
 		return err
 	}
 

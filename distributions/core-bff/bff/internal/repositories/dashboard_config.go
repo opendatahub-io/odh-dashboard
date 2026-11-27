@@ -19,14 +19,19 @@ import (
 )
 
 // DashboardConfigRepository handles OdhDashboardConfig CRD operations.
-// Uses a service-account-scoped dynamic client for reads, matching the privileged watcher model
-// privileged watcher model where config is read with SA credentials.
+//
+// GetDashboardConfig is the bootstrap read: it uses the service account on
+// every platform so a non-admin sees the real configuration (documented in
+// docs/bootstrap-contract.md). GetRawDashboardConfig and
+// PatchRawDashboardConfig serve admin endpoints and follow the credential
+// policy: the service account on OpenShift, the caller on xKS.
 type DashboardConfigRepository struct {
 	platform config.PlatformType
 	// platformConfirmed is false when platform was guessed after an
 	// inconclusive startup probe. See newDashboardConfigRepository.
 	platformConfirmed bool
 	saDynClient       dynamic.Interface
+	clients           clientSource
 }
 
 // NewDashboardConfigRepository creates a repository for a confirmed platform.
@@ -42,7 +47,7 @@ func NewDashboardConfigRepository(platform config.PlatformType, saDynClient dyna
 // missing configuration instance, and only a confirmed xKS platform treats a
 // missing or unreadable instance as the expected read-only steady state.
 func newDashboardConfigRepository(platform config.PlatformType, platformConfirmed bool, saDynClient dynamic.Interface) *DashboardConfigRepository {
-	return &DashboardConfigRepository{platform: platform, platformConfirmed: platformConfirmed, saDynClient: saDynClient}
+	return &DashboardConfigRepository{platform: platform, platformConfirmed: platformConfirmed, saDynClient: saDynClient, clients: saSource(nil, saDynClient)}
 }
 
 func (r *DashboardConfigRepository) GetDashboardConfig(
@@ -53,7 +58,51 @@ func (r *DashboardConfigRepository) GetDashboardConfig(
 	if err != nil {
 		return nil, err
 	}
+	return r.mergeDashboardConfig(raw, featureFlagOverrides)
+}
 
+// DefaultDashboardConfig returns the platform defaults the dashboard shows
+// when no OdhDashboardConfig instance exists. It reads nothing.
+func (r *DashboardConfigRepository) DefaultDashboardConfig() (*models.DashboardConfig, error) {
+	raw, err := blankDefaults()
+	if err != nil {
+		return nil, err
+	}
+	return r.mergeDashboardConfig(raw, nil)
+}
+
+// GetAdminDashboardConfig reads the configuration the admin cluster-settings
+// endpoints show and compute their writes from. Under the service-account
+// policy it is the bootstrap read.
+// Under the caller policy it is the caller's own read of the instance, with no
+// fallback: a denied, missing or absent configuration fails the request instead
+// of showing, or diffing against, defaults the caller never saw. GET and PUT use
+// the same read, so a save never writes back defaults the form was shown.
+func (r *DashboardConfigRepository) GetAdminDashboardConfig(
+	ctx context.Context,
+	namespace, name string,
+) (*models.DashboardConfig, error) {
+	if r.clients.policy != CredentialPolicyCaller {
+		return r.GetDashboardConfig(ctx, namespace, name, nil)
+	}
+	raw, err := r.GetRawDashboardConfig(ctx, namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	return r.mergeDashboardConfig(raw, nil)
+}
+
+// MergedDashboardConfig returns the effective configuration for a raw
+// OdhDashboardConfig object, such as the one a successful patch returns.
+func (r *DashboardConfigRepository) MergedDashboardConfig(raw map[string]any) (*models.DashboardConfig, error) {
+	return r.mergeDashboardConfig(raw, nil)
+}
+
+// mergeDashboardConfig layers raw over the code-level defaults and applies the
+// overrides, lockouts and platform overrides that every read applies.
+func (r *DashboardConfigRepository) mergeDashboardConfig(
+	raw map[string]any, featureFlagOverrides map[string]bool,
+) (*models.DashboardConfig, error) {
 	defaultsMap, err := maputil.ToUnstructuredMap(models.BlankDashboardCR)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert defaults: %w", err)
@@ -84,11 +133,12 @@ func (r *DashboardConfigRepository) GetRawDashboardConfig(
 	ctx context.Context,
 	namespace, name string,
 ) (map[string]any, error) {
-	if r.saDynClient == nil {
-		return nil, fmt.Errorf("service account dynamic client not available")
+	dyn, err := r.clients.dynamic(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	result, err := r.saDynClient.Resource(models.DashboardConfigGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	result, err := dyn.Resource(models.DashboardConfigGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get dashboard config %s/%s: %w", namespace, name, err)
 	}
@@ -100,11 +150,12 @@ func (r *DashboardConfigRepository) PatchRawDashboardConfig(
 	ctx context.Context,
 	namespace, name string, patchData []byte, patchType types.PatchType,
 ) (map[string]any, error) {
-	if r.saDynClient == nil {
-		return nil, fmt.Errorf("service account dynamic client not available")
+	dyn, err := r.clients.dynamic(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	result, err := r.saDynClient.Resource(models.DashboardConfigGVR).Namespace(namespace).Patch(
+	result, err := dyn.Resource(models.DashboardConfigGVR).Namespace(namespace).Patch(
 		ctx, name, patchType, patchData, metav1.PatchOptions{},
 	)
 	if err != nil {

@@ -32,7 +32,7 @@ func isolateEnv(t *testing.T) {
 	for _, name := range []string{
 		"PORT", "CERT_FILE", "KEY_FILE", "MOCK_K8S_CLIENT", "MOCK_HTTP_CLIENT", "MOCK_BFF_CLIENTS",
 		"DEV_MODE", "DEV_MODE_CLIENT_PORT", "DEPLOYMENT_MODE", "STATIC_ASSETS_DIR", "LOG_LEVEL",
-		"ALLOWED_ORIGINS", "BUNDLE_PATHS", "AUTH_METHOD", "AUTH_TOKEN_HEADER", "AUTH_TOKEN_PREFIX",
+		"ALLOWED_ORIGINS", "BUNDLE_PATHS", "AUTH_METHOD", "AUTH_TOKEN_HEADER", "AUTH_TOKEN_PREFIX", "AUTH_TOKEN_HEADERS",
 		"INSECURE_SKIP_VERIFY", "ODH_PLATFORM_TYPE", "ADMISSION_MODE", "NAMESPACE", "POD_NAMESPACE", "OC_PROJECT",
 		"OPERATOR_NAMESPACE", "WORKBENCH_NAMESPACE", "DASHBOARD_CONFIG_NAME", "ENABLED_APPS_CM",
 		"MF_REMOTES_CONFIG", "DEV_USER", "DEV_GROUPS", "MODEL_SERVING_HOST",
@@ -615,6 +615,83 @@ func TestParseStartupConfig_UsageDoesNotPrintResolvedDefaults(t *testing.T) {
 	assert.Contains(t, out.String(), "-prometheus-host")
 	assert.NotContains(t, out.String(), "s3cret")
 	assert.NotContains(t, out.String(), "thanos.example.com")
+}
+
+// AUTH_TOKEN_HEADERS is off by default, so the OpenShift single-header contract
+// is what an unconfigured deployment gets.
+func TestParseStartupConfig_AuthTokenHeaders(t *testing.T) {
+	t.Run("default is single-header mode", func(t *testing.T) {
+		isolateEnv(t)
+		sc, err := parse(t)
+		require.NoError(t, err)
+		assert.Empty(t, sc.Env.AuthTokenHeaders)
+		assert.Equal(t, config.DefaultAuthTokenHeader, sc.Env.AuthTokenHeader)
+	})
+
+	t.Run("environment sets an ordered list", func(t *testing.T) {
+		isolateEnv(t)
+		t.Setenv("AUTH_TOKEN_HEADERS", "Authorization, x-forwarded-access-token")
+		sc, err := parse(t)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"Authorization", "x-forwarded-access-token"}, sc.Env.AuthTokenHeaders)
+	})
+
+	t.Run("CLI list replaces the environment list", func(t *testing.T) {
+		isolateEnv(t)
+		t.Setenv("AUTH_TOKEN_HEADERS", "Authorization,x-forwarded-access-token")
+		sc, err := parse(t, "-auth-token-headers", "x-forwarded-access-token")
+		require.NoError(t, err)
+		assert.Equal(t, []string{"x-forwarded-access-token"}, sc.Env.AuthTokenHeaders)
+	})
+
+	// Review 6037661521 item 5: a whitespace-only list is set but names no
+	// header too; it must not silently select the legacy single header.
+	for name, tc := range map[string]struct {
+		env  string
+		args []string
+	}{
+		"blank environment list fails startup":           {env: ","},
+		"blank CLI list fails startup":                   {args: []string{"-auth-token-headers", " , "}},
+		"whitespace-only environment list fails startup": {env: "   "},
+		"whitespace-only CLI list fails startup":         {args: []string{"-auth-token-headers", "   "}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			isolateEnv(t)
+			if tc.env != "" {
+				t.Setenv("AUTH_TOKEN_HEADERS", tc.env)
+			}
+			args := tc.args
+			_, err := parse(t, args...)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "names no header")
+		})
+	}
+
+	// Review (liday-rh): a padded name passes validation, so it must also be
+	// the name every consumer uses, or no request could ever match it.
+	for name, args := range map[string][]string{
+		"padded environment header is normalized": nil,
+		"padded CLI header is normalized":         {"-auth-token-header", "  x-forwarded-access-token "},
+	} {
+		t.Run(name, func(t *testing.T) {
+			isolateEnv(t)
+			if args == nil {
+				t.Setenv("AUTH_TOKEN_HEADER", " x-forwarded-access-token")
+			}
+			sc, err := parse(t, args...)
+			require.NoError(t, err)
+			assert.Equal(t, "x-forwarded-access-token", sc.Env.AuthTokenHeader)
+		})
+	}
+
+	t.Run("a prefix next to the list fails startup", func(t *testing.T) {
+		isolateEnv(t)
+		t.Setenv("AUTH_TOKEN_HEADERS", "Authorization,x-forwarded-access-token")
+		t.Setenv("AUTH_TOKEN_PREFIX", "Bearer ")
+		_, err := parse(t)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "AUTH_TOKEN_PREFIX")
+	})
 }
 
 // Boolean environment settings are strict: a malformed value used to resolve

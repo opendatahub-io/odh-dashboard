@@ -1,13 +1,11 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import DeployAgentModal from '~/app/Chatbot/components/DeployAgentModal';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 jest.mock('~/app/AIAssets/components/agentprofiles/AgentConfigurationCard', () => ({
   __esModule: true,
@@ -45,7 +43,9 @@ describe('DeployAgentModal', () => {
   });
 
   it('shows a deployment name and the reused configuration snapshot', () => {
-    render(<DeployAgentModal profile={profile} namespace="my-project" {...defaultProps} />);
+    render(<DeployAgentModal profile={profile} namespace="my-project" {...defaultProps} />, {
+      wrapper: createTrackingWrapper(trackEvent),
+    });
 
     expect(screen.getByTestId('deploy-agent-name-input')).toHaveValue('hr-chatbot-1');
     expect(
@@ -69,6 +69,7 @@ describe('DeployAgentModal', () => {
         namespace="my-project"
         {...defaultProps}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('configuration-snapshot')).toHaveTextContent(
@@ -84,6 +85,7 @@ describe('DeployAgentModal', () => {
         {...defaultProps}
         existingDeploymentNames={['hr-chatbot-1', 'hr-chatbot-3']}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('deploy-agent-name-input')).toHaveValue('hr-chatbot-2');
@@ -98,6 +100,7 @@ describe('DeployAgentModal', () => {
         {...defaultProps}
         existingDeploymentNames={['hr-chatbot-2']}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     const input = screen.getByTestId('deploy-agent-name-input');
@@ -122,6 +125,7 @@ describe('DeployAgentModal', () => {
         {...defaultProps}
         existingDeploymentNames={[]}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await user.click(screen.getByTestId('deploy-agent-name-input'));
@@ -152,6 +156,7 @@ describe('DeployAgentModal', () => {
         {...defaultProps}
         missingMCPServerAuth={['GitHub-MCP-Server']}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByTestId('deploy-agent-mcp-auth-warning')).toHaveTextContent(
@@ -172,20 +177,19 @@ describe('DeployAgentModal', () => {
         onDeploy={onDeploy}
         onClose={onClose}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await user.click(screen.getByTestId('deploy-agent-submit-button'));
-    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
-      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED,
-      { outcome: 'submit' },
-    );
+    expect(trackEvent).toHaveBeenCalledWith(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, {
+      outcome: 'submit',
+    });
     expect(onDeploy).toHaveBeenCalledWith('hr-chatbot-1');
 
     await user.click(screen.getByTestId('deploy-agent-cancel-button'));
-    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
-      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED,
-      { outcome: 'cancel' },
-    );
+    expect(trackEvent).toHaveBeenCalledWith(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, {
+      outcome: 'cancel',
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -200,14 +204,14 @@ describe('DeployAgentModal', () => {
         isDeploying
         onClose={onClose}
       />,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await user.click(screen.getByRole('button', { name: 'Close' }));
 
-    expect(fireMiscTrackingEvent).not.toHaveBeenCalledWith(
-      PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED,
-      { outcome: 'cancel' },
-    );
+    expect(trackEvent).not.toHaveBeenCalledWith(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, {
+      outcome: 'cancel',
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

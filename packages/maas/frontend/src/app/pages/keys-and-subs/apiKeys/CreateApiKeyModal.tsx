@@ -54,10 +54,7 @@ import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-c
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import {
   EXPIRATION_MODE_VALUES,
@@ -219,6 +216,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   maxExpirationDays,
   apiKeyConfigError,
 }) => {
+  const trackEvent = useTrackEvent();
   const canLockSubscription = Boolean(initialSubscription);
   // When config fails (or returns a non-positive max), skip max enforcement and hide "max" mode.
   const hasKnownMaxExpiration = !apiKeyConfigError && maxExpirationDays > 0;
@@ -422,7 +420,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   const [maasModels] = useFetchState(modelsCallback, []);
 
   const fireKeyCopiedEvent = (copied: boolean) => {
-    fireMiscTrackingEvent(MaaSEvents.API_KEY_COPIED, {
+    trackEvent(MaaSEvents.API_KEY_COPIED, {
       copied,
       initiatedFrom,
     } satisfies ApiKeyCopiedProperties);
@@ -442,10 +440,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
       return;
     }
     if (!createdToken) {
-      fireFormTrackingEvent(
-        MaaSEvents.API_KEY_CREATED,
-        getCreateTrackingProps(TrackingOutcome.cancel),
-      );
+      trackEvent(MaaSEvents.API_KEY_CREATED, getCreateTrackingProps(TrackingOutcome.cancel));
     } else if (!hasCopiedKey.current) {
       fireKeyCopiedEvent(false);
     }
@@ -460,7 +455,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
         (s) => s.subscription_id_header === subscriptionId,
       );
       if (subscriptionIndex >= 0) {
-        fireMiscTrackingEvent(MaaSEvents.API_KEY_CREATION_SUBSCRIPTION_BROWSED, {
+        trackEvent(MaaSEvents.API_KEY_CREATION_SUBSCRIPTION_BROWSED, {
           subscriptionIndex,
           modelCount: sortedSubscriptions[subscriptionIndex].model_refs.length,
           initiatedFrom,
@@ -484,15 +479,12 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
         },
       );
 
-      fireFormTrackingEvent(
-        MaaSEvents.API_KEY_CREATED,
-        getCreateTrackingProps(TrackingOutcome.submit, true),
-      );
+      trackEvent(MaaSEvents.API_KEY_CREATED, getCreateTrackingProps(TrackingOutcome.submit, true));
       setCreatedToken(response.key);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create API key';
       const formatted = formatApiKeyError(msg);
-      fireFormTrackingEvent(
+      trackEvent(
         MaaSEvents.API_KEY_CREATED,
         getCreateTrackingProps(TrackingOutcome.submit, false, errorCategory(err)),
       );

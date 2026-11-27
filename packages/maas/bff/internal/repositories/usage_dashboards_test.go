@@ -1,13 +1,18 @@
 package repositories
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
+	"log/slog"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,6 +20,10 @@ import (
 	"k8s.io/client-go/dynamic"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 )
+
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
 
 func newFakeUsageDashboardClient(t *testing.T) dynamic.Interface {
 	t.Helper()
@@ -36,7 +45,7 @@ func newFakeUsageDashboardClient(t *testing.T) dynamic.Interface {
 }
 
 func TestUsageDashboardClientReuse(t *testing.T) {
-	repo := NewUsageDashboardsRepository("custom-monitoring", false)
+	repo := NewUsageDashboardsRepository(discardLogger(), "custom-monitoring", false)
 	client := newFakeUsageDashboardClient(t)
 	creations := 0
 	repo.clientFactory = func() (dynamic.Interface, error) {
@@ -54,7 +63,7 @@ func TestUsageDashboardClientReuse(t *testing.T) {
 }
 
 func TestUsageDashboardClientInitializationRetry(t *testing.T) {
-	repo := NewUsageDashboardsRepository("custom-monitoring", false)
+	repo := NewUsageDashboardsRepository(discardLogger(), "custom-monitoring", false)
 	client := newFakeUsageDashboardClient(t)
 	setupErr := errors.New("temporary credentials failure")
 	creations := 0
@@ -78,40 +87,158 @@ func TestUsageDashboardClientInitializationRetry(t *testing.T) {
 }
 
 func TestUsageDashboardsRepositoryList(t *testing.T) {
+	shared := []string{userUsageDashboardName, adminUsageDashboardName}
+	portal := []string{portalUserUsageDashboardName, portalAdminUsageDashboardName}
+	all := append(append([]string{}, shared...), portal...)
+	forbiddenPortal := apierrors.NewForbidden(schema.GroupResource{Group: "perses.dev", Resource: "persesdashboards"}, portalUserUsageDashboardName, errors.New("denied"))
+	forbiddenShared := apierrors.NewForbidden(schema.GroupResource{Group: "perses.dev", Resource: "persesdashboards"}, userUsageDashboardName, errors.New("denied"))
+	unavailable := apierrors.NewServiceUnavailable("unavailable")
+	const orgID = "42c3e46f-2477-44d7-a85b-d3b43f6b31fa"
+	orgUser := &models.MaaSWhoAmI{Sub: "user", OrgID: orgID}
+	orgAdmin := &models.MaaSWhoAmI{Sub: "admin", OrgID: orgID, IsAdmin: true}
+	tokenUser := &models.MaaSWhoAmI{Sub: "user"}
+	tokenAdmin := &models.MaaSWhoAmI{Sub: "admin", IsAdmin: true}
 	tests := []struct {
 		name      string
 		user      *models.MaaSWhoAmI
 		namespace string
+		existing  []string
+		readErr   map[string]error
+		wantReads []string
 		wantNames []string
 		wantErr   error
+		notFound  bool
+		wantWarn  string
 	}{
-		{name: "regular user", user: &models.MaaSWhoAmI{Sub: "user"}, namespace: "custom-monitoring", wantNames: []string{userUsageDashboardName}},
-		{name: "admin", user: &models.MaaSWhoAmI{Sub: "admin", IsAdmin: true}, namespace: "custom-monitoring", wantNames: []string{userUsageDashboardName, adminUsageDashboardName}},
+		{
+			name: "user with an organization gets the Portal dashboard when it exists", user: orgUser, namespace: "custom-monitoring", existing: all,
+			wantReads: []string{portalUserUsageDashboardName}, wantNames: []string{portalUserUsageDashboardName},
+		},
+		{
+			name: "admin with an organization gets both Portal dashboards when they exist", user: orgAdmin, namespace: "custom-monitoring", existing: all,
+			wantReads: []string{portalUserUsageDashboardName, portalAdminUsageDashboardName},
+			wantNames: []string{portalUserUsageDashboardName, portalAdminUsageDashboardName},
+		},
+		{
+			name: "user with an organization without Portal dashboards gets the shared one", user: orgUser, namespace: "custom-monitoring", existing: shared,
+			wantReads: []string{portalUserUsageDashboardName, userUsageDashboardName}, wantNames: []string{userUsageDashboardName},
+		},
+		{
+			name: "admin with an organization without Portal dashboards gets both shared ones", user: orgAdmin, namespace: "custom-monitoring", existing: shared,
+			wantReads: []string{portalUserUsageDashboardName, userUsageDashboardName, portalAdminUsageDashboardName, adminUsageDashboardName},
+			wantNames: []string{userUsageDashboardName, adminUsageDashboardName},
+		},
+		{
+			name: "each dashboard falls back on its own for an admin with an organization", user: orgAdmin, namespace: "custom-monitoring",
+			existing:  append([]string{portalUserUsageDashboardName}, shared...),
+			wantReads: []string{portalUserUsageDashboardName, portalAdminUsageDashboardName, adminUsageDashboardName},
+			wantNames: []string{portalUserUsageDashboardName, adminUsageDashboardName},
+		},
+		{
+			name: "OpenShift-token user gets the shared dashboard and the Portal one is not read", user: tokenUser, namespace: "custom-monitoring", existing: all,
+			wantReads: []string{userUsageDashboardName}, wantNames: []string{userUsageDashboardName},
+		},
+		{
+			name: "OpenShift-token admin gets both shared dashboards and the Portal ones are not read", user: tokenAdmin, namespace: "custom-monitoring", existing: all,
+			wantReads: []string{userUsageDashboardName, adminUsageDashboardName},
+			wantNames: []string{userUsageDashboardName, adminUsageDashboardName},
+		},
+		{
+			name: "user with an organization with neither dashboard gets NotFound", user: orgUser, namespace: "custom-monitoring",
+			wantReads: []string{portalUserUsageDashboardName, userUsageDashboardName}, notFound: true,
+		},
+		{
+			name: "OpenShift-token user without the shared dashboard gets NotFound", user: tokenUser, namespace: "custom-monitoring", existing: portal,
+			wantReads: []string{userUsageDashboardName}, notFound: true,
+		},
+		{
+			name: "Forbidden on the Portal dashboard falls back to the shared one with a warning", user: orgUser, namespace: "custom-monitoring", existing: all,
+			readErr:   map[string]error{portalUserUsageDashboardName: forbiddenPortal},
+			wantReads: []string{portalUserUsageDashboardName, userUsageDashboardName}, wantNames: []string{userUsageDashboardName},
+			wantWarn: portalUserUsageDashboardName,
+		},
+		{
+			name: "Forbidden on the shared dashboard is returned", user: orgUser, namespace: "custom-monitoring", existing: shared,
+			readErr:   map[string]error{userUsageDashboardName: forbiddenShared},
+			wantReads: []string{portalUserUsageDashboardName, userUsageDashboardName}, wantErr: forbiddenShared,
+		},
+		{
+			name: "Forbidden on the shared dashboard is returned for an OpenShift-token user", user: tokenUser, namespace: "custom-monitoring", existing: all,
+			readErr:   map[string]error{userUsageDashboardName: forbiddenShared},
+			wantReads: []string{userUsageDashboardName}, wantErr: forbiddenShared,
+		},
+		{
+			name: "another error on the Portal dashboard is returned", user: orgUser, namespace: "custom-monitoring", existing: all,
+			readErr:   map[string]error{portalUserUsageDashboardName: unavailable},
+			wantReads: []string{portalUserUsageDashboardName}, wantErr: unavailable,
+		},
 		{name: "missing user", namespace: "custom-monitoring", wantErr: ErrInvalidMaaSUser},
-		{name: "missing subject", user: &models.MaaSWhoAmI{IsAdmin: true}, namespace: "custom-monitoring", wantErr: ErrInvalidMaaSUser},
-		{name: "missing namespace", user: &models.MaaSWhoAmI{Sub: "user"}, wantErr: ErrPersesNamespaceNotConfigured},
+		{name: "missing subject", user: &models.MaaSWhoAmI{IsAdmin: true, OrgID: orgID}, namespace: "custom-monitoring", wantErr: ErrInvalidMaaSUser},
+		{name: "missing namespace", user: orgUser, wantErr: ErrPersesNamespaceNotConfigured},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var reads []string
-			repo := &UsageDashboardsRepository{namespace: tt.namespace, reader: func(_ context.Context, namespace, name string) (map[string]any, error) {
+			var logs bytes.Buffer
+			repo := &UsageDashboardsRepository{logger: slog.New(slog.NewTextHandler(&logs, nil)), namespace: tt.namespace, reader: func(_ context.Context, namespace, name string) (map[string]any, error) {
 				if namespace != tt.namespace {
 					t.Errorf("namespace = %q, want %q", namespace, tt.namespace)
 				}
 				reads = append(reads, name)
-				return map[string]any{"metadata": map[string]any{"name": name}}, nil
+				if err := tt.readErr[name]; err != nil {
+					return nil, err
+				}
+				for _, existing := range tt.existing {
+					if existing == name {
+						return map[string]any{"metadata": map[string]any{"name": name}}, nil
+					}
+				}
+				return nil, apierrors.NewNotFound(schema.GroupResource{Group: "perses.dev", Resource: "persesdashboards"}, name)
 			}}
 			dashboards, err := repo.List(context.Background(), tt.user)
-			if !errors.Is(err, tt.wantErr) {
+			if tt.notFound {
+				if !apierrors.IsNotFound(err) {
+					t.Fatalf("error = %v, want NotFound", err)
+				}
+			} else if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("error = %v, want %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(reads, tt.wantNames) {
-				t.Fatalf("reads = %v, want %v", reads, tt.wantNames)
+			if !reflect.DeepEqual(reads, tt.wantReads) {
+				t.Fatalf("reads = %v, want %v", reads, tt.wantReads)
 			}
-			if len(dashboards) != len(tt.wantNames) {
-				t.Fatalf("dashboard count = %d, want %d", len(dashboards), len(tt.wantNames))
+			var names []string
+			for _, dashboard := range dashboards {
+				names = append(names, dashboard["metadata"].(map[string]any)["name"].(string))
+			}
+			if !reflect.DeepEqual(names, tt.wantNames) {
+				t.Fatalf("dashboards = %v, want %v", names, tt.wantNames)
+			}
+			logged := logs.String()
+			if tt.wantWarn == "" && logged != "" {
+				t.Fatalf("unexpected log output: %s", logged)
+			}
+			if tt.wantWarn != "" && (!strings.Contains(logged, "level=WARN") || !strings.Contains(logged, "dashboard="+tt.wantWarn) || !strings.Contains(logged, "Role may not be reconciled")) {
+				t.Fatalf("missing warning for %s in log output: %s", tt.wantWarn, logged)
 			}
 		})
+	}
+}
+
+func TestUsageDashboardServiceAccountReaderFallsBack(t *testing.T) {
+	repo := NewUsageDashboardsRepository(discardLogger(), "custom-monitoring", false)
+	client := newFakeUsageDashboardClient(t)
+	repo.clientFactory = func() (dynamic.Interface, error) { return client, nil }
+	orgAdmin := &models.MaaSWhoAmI{Sub: "admin", OrgID: "42c3e46f-2477-44d7-a85b-d3b43f6b31fa", IsAdmin: true}
+	dashboards, err := repo.List(context.Background(), orgAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, dashboard := range dashboards {
+		names = append(names, dashboard["metadata"].(map[string]any)["name"].(string))
+	}
+	if want := []string{userUsageDashboardName, adminUsageDashboardName}; !reflect.DeepEqual(names, want) {
+		t.Fatalf("dashboards = %v, want %v", names, want)
 	}
 }
 

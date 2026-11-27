@@ -238,7 +238,7 @@ func (l xksDashboardLifecycle) removeRHAIIDashboard(
 		conditions.WithMessage("RHAII dashboard has been removed via managementState"))
 	dashboard.Status.Phase = common.PhaseNotReady
 
-	if err := r.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm); err != nil {
+	if err := r.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm, nil); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update XKS removal status: %w", err)
 	}
 

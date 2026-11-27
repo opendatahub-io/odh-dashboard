@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Popover, Button, Label } from '@patternfly/react-core';
 import { PendingIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   AddProviderReferenceSource,
   ExternalModelsInfoPopoverLocation,
@@ -166,26 +166,29 @@ const GOVERNANCE_PAIRING_WARNING_BODY = (
   </div>
 );
 
-export const GovernancePairingWarning: React.FC = () => (
-  <Popover
-    headerContent="Missing MaaS governance setup"
-    bodyContent={GOVERNANCE_PAIRING_WARNING_BODY}
-    data-testid="external-model-governance-pairing-warning-popover"
-  >
-    <Button
-      variant="plain"
-      data-testid="external-model-governance-pairing-warning"
-      aria-label="Missing governance pairing"
-      onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
-          infoTarget: ExternalModelsInfoPopoverTarget.SECONDARY_STATUS,
-          location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
-        } satisfies ExternalModelsInfoPopoverViewedProperties);
-      }}
+export const GovernancePairingWarning: React.FC = () => {
+  const trackEvent = useTrackEvent();
+  return (
+    <Popover
+      headerContent="Missing MaaS governance setup"
+      bodyContent={GOVERNANCE_PAIRING_WARNING_BODY}
+      data-testid="external-model-governance-pairing-warning-popover"
     >
-      <Label color="purple" isCompact>
-        <PendingIcon />
-      </Label>
-    </Button>
-  </Popover>
-);
+      <Button
+        variant="plain"
+        data-testid="external-model-governance-pairing-warning"
+        aria-label="Missing governance pairing"
+        onClick={() => {
+          trackEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
+            infoTarget: ExternalModelsInfoPopoverTarget.SECONDARY_STATUS,
+            location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
+          } satisfies ExternalModelsInfoPopoverViewedProperties);
+        }}
+      >
+        <Label color="purple" isCompact>
+          <PendingIcon />
+        </Label>
+      </Button>
+    </Popover>
+  );
+};

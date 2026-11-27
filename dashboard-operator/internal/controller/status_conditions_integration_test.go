@@ -71,8 +71,8 @@ func TestIntegration_ConditionDegraded_ReflectsModuleHealth(t *testing.T) {
 	assertStatusHealthy(t, getDashboard(t))
 }
 
-func TestIntegration_ObservedGeneration_UpdatedPerReconcile(t *testing.T) {
-	r, _ := setupStatusContractDashboard(t, nil)
+func TestIntegration_ObservedGeneration_AdvancesOnlyAfterSuccessfulReconcile(t *testing.T) {
+	r, manifests := setupStatusContractDashboard(t, nil)
 
 	dashboard := getDashboard(t)
 	require.Equal(t, dashboard.Generation, dashboard.Status.ObservedGeneration)
@@ -85,6 +85,16 @@ func TestIntegration_ObservedGeneration_UpdatedPerReconcile(t *testing.T) {
 	require.Greater(t, dashboard.Generation, initialGeneration)
 	assert.NotEqual(t, dashboard.Generation, dashboard.Status.ObservedGeneration)
 
+	r.ManifestsBasePath = t.TempDir()
+	_, err := r.Reconcile(context.Background(), dashboardRequest())
+	require.Error(t, err)
+
+	dashboard = getDashboard(t)
+	assert.Equal(t, initialGeneration, dashboard.Status.ObservedGeneration)
+	assertConditionStatus(t, dashboard, common.ConditionTypeProvisioningSucceeded, metav1.ConditionFalse)
+	assert.Equal(t, common.PhaseNotReady, dashboard.Status.Phase)
+
+	r.ManifestsBasePath = manifests
 	reconcile(t, r)
 
 	dashboard = getDashboard(t)

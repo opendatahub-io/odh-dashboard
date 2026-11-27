@@ -76,7 +76,7 @@ func (l odhDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.D
 	} else {
 		dashboard.Status.Phase = common.PhaseNotReady
 	}
-	if err := l.reconciler.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm); err != nil {
+	if err := l.reconciler.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm, nil); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update removal status: %w", err)
 	}
 	return ctrl.Result{}, nil

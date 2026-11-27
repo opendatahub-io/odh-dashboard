@@ -68,27 +68,42 @@ const renderHardwareProfileYaml = (
     .replace(/\$\{localQueueName\}/g, localQueueName ?? '');
 };
 
+const EVALHUB_HARDWARE_PROFILE_DELETE_REQUEST_TIMEOUT_SECONDS = 15;
+const EVALHUB_HARDWARE_PROFILE_DELETE_WAIT_TIMEOUT_SECONDS = 60;
+// Covers the request and wait budgets, plus 10 seconds for process startup and exit.
+const EVALHUB_HARDWARE_PROFILE_DELETE_CYPRESS_TIMEOUT_MS = 85000;
+
 export const cleanupEvalHubHardwareProfile = (
   profileName: string,
+  reportFailure?: (message: string) => void,
 ): Cypress.Chainable<CommandLineResult> => {
   const namespace = getEvalHubApplicationsNamespace();
   assertEvalHubResourceName(profileName, 'EvalHub HardwareProfile name');
 
   const deleteCommand =
-    `oc delete hardwareprofiles "${profileName}" -n "${namespace}" ` +
-    '--ignore-not-found --wait=true --timeout=60s';
+    `oc --request-timeout=${EVALHUB_HARDWARE_PROFILE_DELETE_REQUEST_TIMEOUT_SECONDS}s ` +
+    `delete hardwareprofiles "${profileName}" -n "${namespace}" ` +
+    `--ignore-not-found --wait=true --timeout=${EVALHUB_HARDWARE_PROFILE_DELETE_WAIT_TIMEOUT_SECONDS}s`;
   cy.log(`Deleting EvalHub HardwareProfile ${profileName} from ${namespace}`);
 
-  return cy.exec(deleteCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.exitCode !== 0) {
-      throw new Error(
-        `Failed to delete EvalHub HardwareProfile ${profileName} in ${namespace}: ${
-          result.stderr || result.stdout
-        }`,
-      );
-    }
-    return result;
-  });
+  return cy
+    .exec(deleteCommand, {
+      failOnNonZeroExit: false,
+      timeout: EVALHUB_HARDWARE_PROFILE_DELETE_CYPRESS_TIMEOUT_MS,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        const message =
+          `Failed to delete EvalHub HardwareProfile ${profileName} in ${namespace}: ` +
+          `${result.stderr || result.stdout}`;
+        if (reportFailure) {
+          reportFailure(message);
+          return result;
+        }
+        throw new Error(message);
+      }
+      return result;
+    });
 };
 
 export const createEvalHubHardwareProfile = (
@@ -132,24 +147,42 @@ export const setupEvalHubKueueResources = (
       ),
     );
 
-export const deleteEvalHubClusterQueue = (name: string): Cypress.Chainable<CommandLineResult> =>
+export const deleteEvalHubClusterQueue = (
+  name: string,
+  reportFailure?: (message: string) => void,
+): Cypress.Chainable<CommandLineResult> =>
   cy
     .exec(
-      `oc delete clusterqueue ${assertEvalHubResourceName(
+      `oc --request-timeout=15s delete clusterqueue ${assertEvalHubResourceName(
         name,
         'EvalHub ClusterQueue name',
       )} --ignore-not-found --wait=false`,
-      { failOnNonZeroExit: false },
+      { failOnNonZeroExit: false, timeout: 25000 },
     )
-    .then((result) => assertCommandSucceeded(result, `Delete ClusterQueue ${name}`));
+    .then((result) => {
+      if (result.exitCode !== 0 && reportFailure) {
+        reportFailure(`Delete ClusterQueue ${name} failed: ${result.stderr || result.stdout}`);
+        return result;
+      }
+      return assertCommandSucceeded(result, `Delete ClusterQueue ${name}`);
+    });
 
-export const deleteEvalHubResourceFlavor = (name: string): Cypress.Chainable<CommandLineResult> =>
+export const deleteEvalHubResourceFlavor = (
+  name: string,
+  reportFailure?: (message: string) => void,
+): Cypress.Chainable<CommandLineResult> =>
   cy
     .exec(
-      `oc delete resourceflavor ${assertEvalHubResourceName(
+      `oc --request-timeout=15s delete resourceflavor ${assertEvalHubResourceName(
         name,
         'EvalHub ResourceFlavor name',
       )} --ignore-not-found --wait=false`,
-      { failOnNonZeroExit: false },
+      { failOnNonZeroExit: false, timeout: 25000 },
     )
-    .then((result) => assertCommandSucceeded(result, `Delete ResourceFlavor ${name}`));
+    .then((result) => {
+      if (result.exitCode !== 0 && reportFailure) {
+        reportFailure(`Delete ResourceFlavor ${name} failed: ${result.stderr || result.stdout}`);
+        return result;
+      }
+      return assertCommandSucceeded(result, `Delete ResourceFlavor ${name}`);
+    });

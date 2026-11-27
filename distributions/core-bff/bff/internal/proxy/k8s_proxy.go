@@ -7,7 +7,9 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
@@ -20,9 +22,10 @@ import (
 const K8sProxyPrefix = constants.K8sProxyPrefix
 
 // SensitiveIngressHeaders returns header names that must not leak from the ingress
-// layer to upstream services. authTokenHeader is included dynamically because it
-// is configurable (default: x-forwarded-access-token).
-func SensitiveIngressHeaders(authTokenHeader string) []string {
+// layer to upstream services. The caller-credential headers are included
+// dynamically because they are configurable (default: x-forwarded-access-token;
+// on xKS possibly an ordered list such as Authorization,x-forwarded-access-token).
+func SensitiveIngressHeaders(authTokenHeaders ...string) []string {
 	headers := []string{
 		constants.HeaderCookie,
 		constants.HeaderXForwardedFor,
@@ -37,13 +40,15 @@ func SensitiveIngressHeaders(authTokenHeader string) []string {
 		constants.HeaderXRealIP,
 		constants.HeaderForwarded,
 	}
-	// Both identity headers are stripped whichever one is configured: an
+	// Both identity headers are stripped whichever ones are configured: an
 	// upstream that reads the other convention (mod-arch BFFs read
 	// x-forwarded-access-token) must never see a client-supplied value. The
 	// server-resolved token is re-injected where an upstream needs it.
 	headers = append(headers, constants.HeaderForwardedToken)
-	if authTokenHeader != "" && !strings.EqualFold(authTokenHeader, constants.HeaderForwardedToken) {
-		headers = append(headers, authTokenHeader)
+	for _, h := range authTokenHeaders {
+		if h != "" && !slices.ContainsFunc(headers, func(e string) bool { return strings.EqualFold(e, h) }) {
+			headers = append(headers, h)
+		}
 	}
 	return headers
 }
@@ -54,7 +59,8 @@ type K8sProxyConfig struct {
 	K8sHost string
 	// RootCAs is the certificate pool for verifying the K8s API server's certificate.
 	RootCAs *x509.CertPool
-	// ClientCerts are client certificates for mTLS authentication.
+	// ClientCerts are client certificates presented on every proxied request
+	// (envtest mock mode, where impersonation headers carry the identity).
 	ClientCerts []tls.Certificate
 	// FallbackClientCerts are presented only on requests whose identity has
 	// DevFallback set, so a caller that sent its own token is never also
@@ -66,6 +72,9 @@ type K8sProxyConfig struct {
 	AllowHTTP bool
 	// AuthTokenHeader is the header name containing the user's token.
 	AuthTokenHeader string
+	// AuthTokenHeaders are additional caller-credential headers (the ordered
+	// AUTH_TOKEN_HEADERS list). Inbound copies are stripped like AuthTokenHeader.
+	AuthTokenHeaders []string
 	// SetOutboundHeadersFn customizes headers on outbound requests.
 	SetOutboundHeadersFn func(*http.Request, http.Header)
 	// SSRFValidateTarget enables SSRF protection for dial-time DNS resolution.
@@ -112,7 +121,7 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 				out.Set(constants.HeaderAcceptEncoding, constants.ContentEncodingGzip)
 			}
 		},
-		StripHeaders:       SensitiveIngressHeaders(cfg.AuthTokenHeader),
+		StripHeaders:       SensitiveIngressHeaders(append([]string{cfg.AuthTokenHeader}, cfg.AuthTokenHeaders...)...),
 		SSRFValidateTarget: cfg.SSRFValidateTarget,
 		SSRFAllowedHosts:   []string{targetURL.Hostname()},
 		Logger:             cfg.Logger,
@@ -135,6 +144,9 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			}
 			if resp.StatusCode >= http.StatusBadRequest {
 				resp.Header.Del(cfg.AuthTokenHeader)
+				for _, h := range cfg.AuthTokenHeaders {
+					resp.Header.Del(h)
+				}
 			}
 			return httpcontract.KubernetesResponse(resp)
 		},
@@ -143,30 +155,47 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create K8s reverse proxy: %w", err)
 	}
-	if len(cfg.FallbackClientCerts) == 0 {
-		return proxy, nil
-	}
+	handler := &k8sProxyHandler{ReverseProxy: proxy, devFallbackToken: cfg.DevFallbackToken}
 
-	fallbackCfg := proxyCfg
-	fallbackCfg.ClientCerts = withFallbackCerts(cfg.ClientCerts, cfg.FallbackClientCerts)
-	fallback, err := NewReverseProxy(fallbackCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create K8s dev-fallback reverse proxy: %w", err)
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isDevFallback(r) {
-			fallback.ServeHTTP(w, r)
-			return
+	// A separate transport keeps the certificate off every connection a caller
+	// credential uses; pooled connections are never shared between the two.
+	if len(cfg.FallbackClientCerts) > 0 {
+		proxyCfg.ClientCerts = withFallbackCerts(cfg.ClientCerts, cfg.FallbackClientCerts)
+		handler.devFallback, err = NewReverseProxy(proxyCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create K8s dev-fallback reverse proxy: %w", err)
 		}
-		proxy.ServeHTTP(w, r)
-	}), nil
+	}
+	return handler, nil
 }
 
-// isDevFallback reports whether the request runs on the dev-mode kubeconfig
-// identity rather than on a token the caller supplied.
-func isDevFallback(r *http.Request) bool {
+// k8sProxyHandler refuses to forward a request that carries no caller
+// credential. Without it AuthHeaderFn installs no Authorization header and the
+// request would reach the API server anonymously (or, with a client
+// certificate, as the certificate subject). The route is mounted behind
+// InjectRequestIdentity, so this is defence in depth: it keeps the proxy fail
+// closed even if it is ever mounted elsewhere. A DevFallback identity is
+// allowed through because DEV_MODE authenticates with the kubeconfig on purpose;
+// only that identity is sent through devFallback, the transport that presents the
+// kubeconfig client certificate.
+type k8sProxyHandler struct {
+	*httputil.ReverseProxy
+	devFallback      *httputil.ReverseProxy
+	devFallbackToken string
+}
+
+func (h *k8sProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-	return ok && identity != nil && identity.DevFallback
+	if !ok || identity == nil || (!identity.DevFallback && identity.ResolveToken(h.devFallbackToken) == "") {
+		httpcontract.EnsureID(w, r)
+		httpcontract.WriteLocal(w, r, http.StatusUnauthorized)
+		return
+	}
+	if identity.DevFallback && h.devFallback != nil {
+		h.devFallback.ServeHTTP(w, r)
+		return
+	}
+	h.ReverseProxy.ServeHTTP(w, r)
 }
 
 // withFallbackCerts returns a new slice so the base transport's certificate

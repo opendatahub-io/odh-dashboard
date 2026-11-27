@@ -43,8 +43,11 @@ func (l rhoaiDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alp
 		return ctrl.Result{}, errors.Join(err, uploadConfigErr)
 	}
 	r.setMaaSPortalModuleCondition(cm, dashboard, features.statuses)
-	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, features.statuses, observabilityConfigResolved)
-	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, uploadConfigErr, portalRetryAfter, l.availabilityTarget())
+	portalRetryAfter, portalErr := r.reconcileMaaSPortalOperandWithError(ctx, dashboard, cm, features.statuses, observabilityConfigResolved)
+	result, err := r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, uploadConfigErr, portalRetryAfter, l.availabilityTarget())
+	// Reconcile splits the portal error back out: it holds back
+	// observedGeneration without turning the portal retry into error backoff.
+	return result, errors.Join(err, wrapMaaSPortalOperationError(portalErr))
 }
 
 func (l rhoaiDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) (ctrl.Result, error) {
@@ -77,7 +80,7 @@ func (l rhoaiDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1
 	} else if portalManaged {
 		observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm, openShiftObservabilityManifestInfo(r.ManifestsBasePath, r.Platform))
 	}
-	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, statuses, observabilityConfigResolved)
+	portalRetryAfter, portalErr := r.reconcileMaaSPortalOperandWithError(ctx, dashboard, cm, statuses, observabilityConfigResolved)
 	portalRetryAfter = minNonZeroDuration(portalRetryAfter, observabilityRetryAfter)
 
 	preserveObservability := portalManaged && (!observabilityConfigResolved || (dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled))
@@ -111,7 +114,7 @@ func (l rhoaiDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1
 	if portalManaged && dashboard.Spec.Observability == nil && portalRetryAfter == 0 {
 		portalRetryAfter = observabilityRetryInterval
 	}
-	if err := r.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm); err != nil {
+	if err := r.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm, portalErr); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update status after RHOAI removal: %w", err)
 	}
 	return ctrl.Result{RequeueAfter: portalRetryAfter}, nil

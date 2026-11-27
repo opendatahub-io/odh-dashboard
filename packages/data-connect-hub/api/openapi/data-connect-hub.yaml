@@ -322,6 +322,11 @@ components:
       properties:
         name:
           type: string
+        description:
+          type: string
+          nullable: true
+          description: Optional free-form description of the connection.
+          example: Sales data warehouse
         data_connection_type_id:
           type: string
           pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
@@ -402,6 +407,11 @@ components:
             name:
               type: string
               example: warehouse
+            description:
+              type: string
+              nullable: true
+              description: Optional free-form description of the connection.
+              example: Sales data warehouse
             data_connection_type_id:
               type: string
               example: 550e8400-e29b-41d4-a716-446655440003

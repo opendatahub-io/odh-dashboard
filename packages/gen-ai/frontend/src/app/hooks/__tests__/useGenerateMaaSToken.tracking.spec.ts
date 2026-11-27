@@ -1,13 +1,10 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
-// Mock tracking
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 // Mock useGenAiAPI
 const mockGenerateMaaSToken = jest.fn();
@@ -37,20 +34,19 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
 
       mockGenerateMaaSToken.mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith(
-          'Available Endpoints MaaS Token Generated',
-          {
-            outcome: TrackingOutcome.submit,
-            success: true,
-            assetType: 'maas_model',
-            copyTarget: 'service_token',
-          },
-        );
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints MaaS Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
     });
 
@@ -62,26 +58,27 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
 
       mockGenerateMaaSToken.mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken('2025-06-30');
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith(
-          'Available Endpoints MaaS Token Generated',
-          {
-            outcome: TrackingOutcome.submit,
-            success: true,
-            assetType: 'maas_model',
-            copyTarget: 'service_token',
-          },
-        );
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints MaaS Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
     });
 
     it('should pass subscription to API when provided', async () => {
       mockGenerateMaaSToken.mockResolvedValue({ key: 'token-123' });
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken(undefined, 'premium-sub');
 
@@ -92,7 +89,9 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
 
     it('should pass both expiration and subscription to API when provided', async () => {
       mockGenerateMaaSToken.mockResolvedValue({ key: 'token-456' });
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken('2025-06-30', 'basic-sub');
 
@@ -106,7 +105,9 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
 
     it('should not include subscription in API call when not provided', async () => {
       mockGenerateMaaSToken.mockResolvedValue({ key: 'token-789' });
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken();
 
@@ -123,12 +124,14 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
 
       mockGenerateMaaSToken.mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledTimes(1);
+        expect(trackEvent).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -138,42 +141,40 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       const errorMessage = 'Failed to generate token: Unauthorized';
       mockGenerateMaaSToken.mockRejectedValue(new Error(errorMessage));
 
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith(
-          'Available Endpoints MaaS Token Generated',
-          {
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: 'unknown_error',
-            assetType: 'maas_model',
-            copyTarget: 'service_token',
-          },
-        );
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints MaaS Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: 'unknown_error',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
     });
 
     it('should track the controlled error category for non-Error objects', async () => {
       mockGenerateMaaSToken.mockRejectedValue('String error');
 
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith(
-          'Available Endpoints MaaS Token Generated',
-          {
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: 'unknown_error',
-            assetType: 'maas_model',
-            copyTarget: 'service_token',
-          },
-        );
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints MaaS Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: 'unknown_error',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
     });
 
@@ -181,21 +182,20 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       const networkError = new Error('Network request failed');
       mockGenerateMaaSToken.mockRejectedValue(networkError);
 
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith(
-          'Available Endpoints MaaS Token Generated',
-          {
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: 'unknown_error',
-            assetType: 'maas_model',
-            copyTarget: 'service_token',
-          },
-        );
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints MaaS Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: 'unknown_error',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
     });
 
@@ -203,21 +203,20 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       const authError = new Error('Unauthorized: Invalid credentials');
       mockGenerateMaaSToken.mockRejectedValue(authError);
 
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith(
-          'Available Endpoints MaaS Token Generated',
-          {
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: 'unknown_error',
-            assetType: 'maas_model',
-            copyTarget: 'service_token',
-          },
-        );
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints MaaS Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: 'unknown_error',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
     });
   });
@@ -231,13 +230,15 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
 
       mockGenerateMaaSToken.mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       // First generation
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledTimes(1);
+        expect(trackEvent).toHaveBeenCalledTimes(1);
       });
 
       // Reset token
@@ -247,39 +248,35 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledTimes(2);
+        expect(trackEvent).toHaveBeenCalledTimes(2);
       });
 
       // Both calls should have same parameters
-      expect(fireFormTrackingEvent).toHaveBeenCalledWith(
-        'Available Endpoints MaaS Token Generated',
-        {
-          outcome: TrackingOutcome.submit,
-          success: true,
-          assetType: 'maas_model',
-          copyTarget: 'service_token',
-        },
-      );
+      expect(trackEvent).toHaveBeenCalledWith('Available Endpoints MaaS Token Generated', {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        assetType: 'maas_model',
+        copyTarget: 'service_token',
+      });
     });
 
     it('should track success after previous failure', async () => {
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       // First attempt - failure
       mockGenerateMaaSToken.mockRejectedValueOnce(new Error('Server error'));
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenCalledWith(
-          'Available Endpoints MaaS Token Generated',
-          {
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: 'unknown_error',
-            assetType: 'maas_model',
-            copyTarget: 'service_token',
-          },
-        );
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints MaaS Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: 'unknown_error',
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
 
       // Second attempt - success
@@ -292,34 +289,33 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       await result.current.generateToken();
 
       await waitFor(() => {
-        expect(fireFormTrackingEvent).toHaveBeenLastCalledWith(
-          'Available Endpoints MaaS Token Generated',
-          {
-            outcome: TrackingOutcome.submit,
-            success: true,
-            assetType: 'maas_model',
-            copyTarget: 'service_token',
-          },
-        );
+        expect(trackEvent).toHaveBeenLastCalledWith('Available Endpoints MaaS Token Generated', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          assetType: 'maas_model',
+          copyTarget: 'service_token',
+        });
       });
 
-      expect(fireFormTrackingEvent).toHaveBeenCalledTimes(2);
+      expect(trackEvent).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('No Tracking for Other Operations', () => {
     it('should not fire tracking when resetToken is called', () => {
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       result.current.resetToken();
 
-      expect(fireFormTrackingEvent).not.toHaveBeenCalled();
+      expect(trackEvent).not.toHaveBeenCalled();
     });
 
     it('should not fire tracking on initial render', () => {
-      renderHook(() => useGenerateMaaSToken());
+      renderHook(() => useGenerateMaaSToken(), { wrapper: createTrackingWrapper(trackEvent) });
 
-      expect(fireFormTrackingEvent).not.toHaveBeenCalled();
+      expect(trackEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -335,13 +331,15 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
         refreshAllAPI: jest.fn(),
       });
 
-      const { result } = renderHook(() => useGenerateMaaSToken());
+      const { result } = renderHook(() => useGenerateMaaSToken(), {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       // Should throw NotReadyError
       await expect(result.current.generateToken()).rejects.toThrow('API not yet available');
 
       // Should not fire tracking event
-      expect(fireFormTrackingEvent).not.toHaveBeenCalled();
+      expect(trackEvent).not.toHaveBeenCalled();
     });
   });
 });

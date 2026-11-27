@@ -110,3 +110,43 @@ func TestReportedServerURL_MatchesProxyTarget(t *testing.T) {
 	assert.Equal(t, host, reportedServerURL(kc))
 	assert.Equal(t, "api.cluster.example/extra", reportedServerURL(&rest.Config{Host: "api.cluster.example/extra"}), "unresolvable hosts are reported as configured")
 }
+
+// Review (RHOAIENG-96081): in the default mock dev profile (disabled auth,
+// DEV_MODE) the identity is a DevFallback. The REST clients run it as the
+// envtest admin, so the proxy must not impersonate the dev user either.
+func TestImpersonateFromIdentity_DevFallbackNotImpersonated(t *testing.T) {
+	identity := &k8s.RequestIdentity{UserID: "developer", Groups: []string{"system:authenticated"}, DevFallback: true}
+	req := reqWithIdentity(httptest.NewRequest(http.MethodGet, "/", nil), identity)
+	out := http.Header{}
+
+	impersonateFromIdentity(req, out)
+
+	assert.Empty(t, out.Get("Impersonate-User"))
+	assert.Empty(t, out.Values("Impersonate-Group"))
+}
+
+// Review pass 4: the envtest proxies present the admin certificate, so a token
+// that maps to no mocked user must not run as that admin.
+func TestRequireMockUser(t *testing.T) {
+	inner, called := trackingHTTPHandler()
+	h := requireMockUser(inner)
+	for _, tc := range []struct {
+		name     string
+		identity *k8s.RequestIdentity
+		want     bool
+	}{
+		{"unmapped token", &k8s.RequestIdentity{Token: k8s.NewBearerToken("not-a-test-user")}, false},
+		{"mocked test user", &k8s.RequestIdentity{UserID: "user@example.com", Token: k8s.NewBearerToken("t")}, true},
+		{"dev fallback", &k8s.RequestIdentity{DevFallback: true, Token: k8s.NewBearerToken("disabled")}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			*called = false
+			rr := httptest.NewRecorder()
+			h.ServeHTTP(rr, reqWithIdentity(httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/namespaces", nil), tc.identity))
+			assert.Equal(t, tc.want, *called)
+			if !tc.want {
+				assert.Equal(t, http.StatusUnauthorized, rr.Code)
+			}
+		})
+	}
+}

@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Form,
@@ -8,7 +9,6 @@ import {
   HelperTextItem,
   Switch,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   useChatbotConfigStore,
   selectGuardrail,
@@ -27,6 +27,7 @@ interface GuardrailsPanelProps {
 }
 
 const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
+  const trackEvent = useTrackEvent();
   const { models, modelsLoaded, aiModels, maasModels } = React.useContext(ChatbotContext);
   const { data: bffConfig } = useFetchBFFConfig();
 
@@ -59,12 +60,12 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
 
   const handleModelChange = (value: string) => {
     updateGuardrail(configId, value);
-    fireMiscTrackingEvent('Guardrails Model Dropdown Option Selected', { selectedModel: value });
+    trackEvent('Guardrails Model Dropdown Option Selected', { selectedModel: value });
   };
 
   const handleUserInputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
     updateUserInputEnabled(configId, checked);
-    fireMiscTrackingEvent('Guardrails Enabled', {
+    trackEvent('Guardrails Enabled', {
       isEnabled: checked || modelOutputEnabled,
       inputEnabled: checked,
       outputEnabled: modelOutputEnabled,
@@ -73,7 +74,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
 
   const handleModelOutputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
     updateModelOutputEnabled(configId, checked);
-    fireMiscTrackingEvent('Guardrails Enabled', {
+    trackEvent('Guardrails Enabled', {
       isEnabled: userInputEnabled || checked,
       inputEnabled: userInputEnabled,
       outputEnabled: checked,

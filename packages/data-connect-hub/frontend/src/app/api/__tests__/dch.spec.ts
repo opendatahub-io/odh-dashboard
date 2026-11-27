@@ -357,6 +357,47 @@ describe('createConnection', () => {
       delete (globalThis as { fetch?: typeof fetch }).fetch;
     },
   );
+
+  it('sends the optional description and returns it from the created connection', async () => {
+    mockIsModArchResponse.mockReturnValue(true);
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        response(
+          201,
+          JSON.stringify({
+            data: {
+              metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
+              resource: {
+                name: 'warehouse',
+                description: 'Sales data warehouse',
+                // eslint-disable-next-line camelcase
+                data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
+                format: 'tabular',
+                // eslint-disable-next-line camelcase
+                credentials_ref: { secret: 'warehouse' },
+              },
+              status: { state: 'ready' },
+            },
+          }),
+        ),
+      );
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    const result = await createConnection('')({}, 'test-project', {
+      ...request,
+      description: 'Sales data warehouse',
+    });
+
+    expect(result.resource.description).toBe('Sales data warehouse');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/connections?namespace=test-project'),
+      expect.objectContaining({
+        body: expect.stringContaining('"description":"Sales data warehouse"'),
+      }),
+    );
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
 });
 
 describe('testCredentials', () => {

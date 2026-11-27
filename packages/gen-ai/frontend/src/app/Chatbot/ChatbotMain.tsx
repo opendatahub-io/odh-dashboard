@@ -1,13 +1,10 @@
 /* eslint-disable camelcase */
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
-import {
-  fireMiscTrackingEvent,
-  fireSimpleTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
@@ -93,6 +90,7 @@ const canonicalizeMcpToolSelections = (selections: McpToolSelectionsMap): McpToo
   );
 
 const ChatbotMain: React.FunctionComponent = () => {
+  const trackEvent = useTrackEvent();
   const {
     lsdStatus,
     lsdStatusLoaded,
@@ -355,15 +353,18 @@ const ChatbotMain: React.FunctionComponent = () => {
   const hasModels = aiModels.length > 0 || maasModels.length > 0;
 
   // Handle closing a pane - set active pane to the remaining config
-  const handleClosePane = React.useCallback((configIdToClose: string) => {
-    const currentConfigIds = useChatbotConfigStore.getState().configIds;
-    const remainingConfigId = currentConfigIds.find((id) => id !== configIdToClose);
-    useChatbotConfigStore.getState().removeConfiguration(configIdToClose);
-    delete configBaselinesRef.current[configIdToClose];
-    // Set active pane to the remaining config (or default if somehow none remain)
-    setActivePaneConfigId(remainingConfigId || DEFAULT_CONFIG_ID);
-    fireMiscTrackingEvent('Playground Compare Mode Exited', { success: true });
-  }, []);
+  const handleClosePane = React.useCallback(
+    (configIdToClose: string) => {
+      const currentConfigIds = useChatbotConfigStore.getState().configIds;
+      const remainingConfigId = currentConfigIds.find((id) => id !== configIdToClose);
+      useChatbotConfigStore.getState().removeConfiguration(configIdToClose);
+      delete configBaselinesRef.current[configIdToClose];
+      // Set active pane to the remaining config (or default if somehow none remain)
+      setActivePaneConfigId(remainingConfigId || DEFAULT_CONFIG_ID);
+      trackEvent('Playground Compare Mode Exited', { success: true });
+    },
+    [trackEvent],
+  );
 
   const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
   const [loadModalOpen, setLoadModalOpen] = React.useState(false);
@@ -402,7 +403,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     if (!savedSpec || !savedProfileId) {
       return;
     }
-    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.REVERTED, { agentID: savedProfileId });
+    trackEvent(PLAYGROUND_AGENT_EVENTS.REVERTED, { agentID: savedProfileId });
 
     // Reconstruct a minimal AgentProfile from the stored snapshot and re-apply locally —
     // no API call needed since we already have the last-saved spec.
@@ -440,7 +441,7 @@ const ChatbotMain: React.FunctionComponent = () => {
         store.saveToolSelections(DEFAULT_CONFIG_ID, namespace.name, serverUrl, tools);
       });
     }
-  }, [models, mcpServers, namespace?.name]);
+  }, [trackEvent, models, mcpServers, namespace?.name]);
 
   const handleNewAgentConfiguration = React.useCallback(() => {
     // Drop the baselines until the playground re-initializes and captures new ones
@@ -633,8 +634,8 @@ const ChatbotMain: React.FunctionComponent = () => {
         isAsrModelEnabled: primaryBaseline.isAsrModelEnabled,
       };
     }
-    fireMiscTrackingEvent('Playground Compare Mode Entered', { success: true });
-  }, []);
+    trackEvent('Playground Compare Mode Entered', { success: true });
+  }, [trackEvent]);
 
   // Check if there are any models in the project or if no model is selected
   const hasNoModels = models.length === 0;
@@ -696,7 +697,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               actionButtonText="Create playground"
               handleActionButtonClick={() => {
                 setConfigurationModalOpen(true);
-                fireMiscTrackingEvent('Playground Setup Initiated', {
+                trackEvent('Playground Setup Initiated', {
                   source: 'Playground',
                 });
               }}
@@ -712,7 +713,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               onLoad={handleOpenLoad}
               onNew={handleNewAgentConfiguration}
               onDeploy={() => {
-                fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_INITIATED, {
+                trackEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_INITIATED, {
                   source: 'playground',
                 });
                 setDeployModalOpen(true);
@@ -721,13 +722,13 @@ const ChatbotMain: React.FunctionComponent = () => {
               onDeploymentSelect={setSelectedDeploymentName}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
-                fireSimpleTrackingEvent('Playground View Code Selected');
+                trackEvent('Playground View Code Selected', {});
               }}
               onConfigurePlayground={() => setConfigurationModalOpen(true)}
               onDeletePlayground={() => setDeleteModalOpen(true)}
               onNewChat={() => {
                 setIsNewChatModalOpen(true);
-                fireSimpleTrackingEvent('Playground New Chat Selected');
+                trackEvent('Playground New Chat Selected', {});
               }}
               onCompareChat={() => {
                 const hasMessages = hasConversationMessagesRef.current?.();

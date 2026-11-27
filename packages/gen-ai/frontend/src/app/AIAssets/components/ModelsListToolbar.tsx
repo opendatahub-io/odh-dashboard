@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   MenuToggle,
@@ -19,7 +20,6 @@ import {
   ButtonVariant,
 } from '@patternfly/react-core';
 import { FilterIcon, CloseIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AssetsFilterColors, assetsFilterSelectOptions } from '~/app/AIAssets/data/filterOptions';
 import { FilterData } from '~/app/AIAssets/hooks/useAIModelsFilter';
 
@@ -44,6 +44,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
   resultsCount,
   toolbarActions,
 }) => {
+  const trackEvent = useTrackEvent();
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<string>(() => {
     const keys = Object.keys(filterOptions);
@@ -66,7 +67,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
 
   const handleSearch = () => {
     onFilterUpdate(currentFilterType, searchValue);
-    fireMiscTrackingEvent('Available Endpoints Filter Performed', {
+    trackEvent('Available Endpoints Filter Performed', {
       filterType: currentFilterType,
       resultsCount: resultsCount ?? 0,
     });
@@ -78,7 +79,7 @@ const ModelsListToolbar: React.FC<ModelsListToolbarProps> = ({
 
   const handleSelectToggle = (option: string) => {
     onFilterUpdate(currentFilterType, option);
-    fireMiscTrackingEvent('Available Endpoints Filter Performed', {
+    trackEvent('Available Endpoints Filter Performed', {
       filterType: currentFilterType,
       resultsCount: resultsCount ?? 0,
     });

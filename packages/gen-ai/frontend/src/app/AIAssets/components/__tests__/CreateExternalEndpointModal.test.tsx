@@ -2,6 +2,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import '@testing-library/jest-dom';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
 import useGenAiDashboardConfig from '~/app/hooks/useGenAiDashboardConfig';
@@ -33,6 +34,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onVerify={mockOnVerify}
           existingModels={[]}
         />,
+        { wrapper: createTrackingWrapper() },
       );
 
       const verifyButton = screen.getByTestId('create-external-model-verify-button');
@@ -51,6 +53,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onVerify={mockOnVerify}
           existingModels={[]}
         />,
+        { wrapper: createTrackingWrapper() },
       );
 
       // Fill required fields for LLM
@@ -90,6 +93,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onVerify={mockOnVerify}
           existingModels={[]}
         />,
+        { wrapper: createTrackingWrapper() },
       );
 
       // Fill required fields
@@ -134,6 +138,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onVerify={mockOnVerify}
           existingModels={[]}
         />,
+        { wrapper: createTrackingWrapper() },
       );
 
       await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
@@ -180,6 +185,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onVerify={mockOnVerify}
           existingModels={[]}
         />,
+        { wrapper: createTrackingWrapper() },
       );
 
       await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
@@ -222,6 +228,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onVerify={mockOnVerify}
           existingModels={[]}
         />,
+        { wrapper: createTrackingWrapper() },
       );
 
       await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
@@ -263,6 +270,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onVerify={mockOnVerify}
           existingModels={[]}
         />,
+        { wrapper: createTrackingWrapper() },
       );
 
       await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
@@ -304,6 +312,7 @@ describe('CreateExternalEndpointModal - Verification', () => {
           onVerify={mockOnVerify}
           existingModels={[]}
         />,
+        { wrapper: createTrackingWrapper() },
       );
 
       await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
