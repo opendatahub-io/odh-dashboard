@@ -11,6 +11,7 @@ import {
   submitAutomlRun,
   waitForAutomlRunCompletion,
   verifyAutomlResultsInteraction,
+  verifyAutomlReconfiguration,
   verifyAndChangeOptimizationMetric,
 } from '../../../utils/automlTestFlows';
 
@@ -19,6 +20,7 @@ const uuid = generateTestUUID();
 describe('AutoML Regression E2E', { testIsolation: false }, () => {
   let testData: AutomlTestData;
   let projectName: string;
+  let trainingDataFile: string;
   retryableBefore(() =>
     cy
       .fixture('e2e/automl/testAutomlRegression.yaml', 'utf8')
@@ -43,7 +45,9 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
       retries: { runMode: 0, openMode: 0 },
     },
     () => {
-      configureAutomlRun(testData, projectName, uuid);
+      configureAutomlRun(testData, projectName, uuid).then((resolvedKey) => {
+        trainingDataFile = resolvedKey;
+      });
 
       cy.step('Select target column');
       automlConfigurePage.findTargetColumnSelect().should('not.be.disabled').click();
@@ -76,6 +80,13 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
     { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       verifyAutomlResultsInteraction('regression');
+    },
+  );
+  it(
+    'Can restore saved run settings and discard reconfiguration changes',
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
+    () => {
+      verifyAutomlReconfiguration(testData, trainingDataFile);
     },
   );
 });

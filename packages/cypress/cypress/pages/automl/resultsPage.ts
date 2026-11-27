@@ -1,4 +1,8 @@
 class AutomlResultsPage {
+  reload() {
+    return cy.reload();
+  }
+
   findStopRunButton() {
     return cy.findByTestId('stop-run-button');
   }
@@ -62,6 +66,18 @@ class AutomlResultsPage {
 
   findLeaderboardRow(rank: number) {
     return cy.findByTestId(`leaderboard-row-${rank}`);
+  }
+
+  findRankColumnCheck() {
+    return this.findColumnCheck('rank');
+  }
+
+  findRankHeader() {
+    return cy.findByTestId('rank-header');
+  }
+
+  findRankCell(rank: number) {
+    return cy.findByTestId(`rank-${rank}`);
   }
 
   findModelLink(rank: number) {

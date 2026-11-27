@@ -26,9 +26,21 @@ class AutomlConfigurePage {
     return cy.findByTestId('configure-step-subtitle');
   }
 
+  findSourceRunLink() {
+    return cy.findByTestId('configure-breadcrumb-source-run').find('a');
+  }
+
   // Step 2 - Documents panel
   findSecretSelector() {
     return cy.findByTestId('aws-secret-selector');
+  }
+
+  findSelectedSecretInput() {
+    return this.findSecretSelector().find('input');
+  }
+
+  findSelectedTrainingDataFile() {
+    return cy.findByRole('grid', { name: 'Selected training data file' });
   }
 
   findSelectFileToggle() {
@@ -86,6 +98,22 @@ class AutomlConfigurePage {
     return cy.findByTestId(`task-type-card-${type}`);
   }
 
+  findTaskTypeRadio(type: string) {
+    return cy.findByTestId(`task-type-radio-${type}`);
+  }
+
+  findRecommendedTaskTypeBadge(type: string) {
+    return cy.findByTestId(`task-type-badge-recommended-${type}`);
+  }
+
+  findPredictionTypeHelperWithoutTarget() {
+    return cy.findByTestId('prediction-type-helper-no-target');
+  }
+
+  findTargetColumnFormGroup() {
+    return cy.findByTestId('configure-form-group-target-column');
+  }
+
   // Target column (shared across all task types)
   findTargetColumnSelect() {
     return cy.findByTestId('target_column-select');
@@ -129,6 +157,10 @@ class AutomlConfigurePage {
     return cy.findByTestId('optimization-metric-save');
   }
 
+  findOptimizationMetricCancelButton() {
+    return cy.findByTestId('optimization-metric-cancel');
+  }
+
   // Top N models
   findTopNInput() {
     return cy.findByTestId('top-n-input');
@@ -136,6 +168,10 @@ class AutomlConfigurePage {
 
   findTopNInputField() {
     return this.findTopNInput().find('input');
+  }
+
+  findPredictionLengthInputField() {
+    return cy.findByTestId('prediction-length-input').find('input');
   }
 
   findSelectOption(name: string | RegExp) {

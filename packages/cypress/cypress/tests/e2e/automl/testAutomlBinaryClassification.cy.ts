@@ -11,7 +11,9 @@ import {
   configureAutomlRun,
   submitAutomlRun,
   waitForAutomlRunCompletion,
+  verifyAutomlLeaderboardColumns,
   verifyAutomlResultsInteraction,
+  verifyAutomlReconfiguration,
   verifyAndChangeOptimizationMetric,
 } from '../../../utils/automlTestFlows';
 
@@ -20,6 +22,7 @@ const uuid = generateTestUUID();
 describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
   let testData: AutomlTestData;
   let projectName: string;
+  let trainingDataFile: string;
   retryableBefore(() =>
     cy
       .fixture('e2e/automl/testAutomlBinaryClassification.yaml', 'utf8')
@@ -41,7 +44,9 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
     'Can create and submit an AutoML binary classification run',
     { tags: ['@AutoML', '@AutoMLCI', '@Featureflagged'] },
     () => {
-      configureAutomlRun(testData, projectName, uuid);
+      configureAutomlRun(testData, projectName, uuid).then((resolvedKey) => {
+        trainingDataFile = resolvedKey;
+      });
 
       cy.step('Select target column');
       automlConfigurePage.findTargetColumnSelect().should('not.be.disabled').click();
@@ -82,6 +87,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
     'Can interact with results page (leaderboard, model details, download)',
     { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
+      verifyAutomlLeaderboardColumns();
       verifyAutomlResultsInteraction('binary');
     },
   );
@@ -120,6 +126,13 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       cy.step('Cancel register model modal');
       automlResultsPage.findRegisterModelCancelButton().click();
       automlResultsPage.findRegisterModelModal().should('not.exist');
+    },
+  );
+  it(
+    'Can restore saved run settings and discard reconfiguration changes',
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
+    () => {
+      verifyAutomlReconfiguration(testData, trainingDataFile);
     },
   );
 });
