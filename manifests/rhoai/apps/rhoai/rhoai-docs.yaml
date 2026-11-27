@@ -16,6 +16,22 @@ spec:
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
+  name: rhoai-tutorial-hospital-helpdesk
+  annotations:
+    opendatahub.io/categories: 'Getting started,Model serving,Notebook environments,Pipelines'
+spec:
+  displayName: OpenShift AI tutorial - Hospital helpdesk GenAI example
+  appName: rhoai
+  type: tutorial
+  description: |-
+    Use OpenShift AI to build a generative AI assistant for a hospital helpdesk: deploy a model from the model catalog, prototype in the playground, add tracing, ground the answers in policy documents with RAG, and connect the assistant to a ticketing system through an MCP server.
+  url: https://rh-aiservices-bu.github.io/hospital-helpdesk/hospital-helpdesk-workshop/index.html
+  durationMinutes: 90
+  provider: Red Hat
+---
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
   annotations:
     opendatahub.io/categories: 'Getting started,Model training,Notebook environments,Pipelines'
   name: rhoai-documentation

@@ -20,6 +20,7 @@ import { useSpecifiedResources } from './useSpecifiedResources';
 const includedCards = [
   { name: 'create-jupyter-notebook', kind: 'OdhQuickStart' },
   { name: 'rhoai-tutorial-fraud', kind: 'OdhDocument' },
+  { name: 'rhoai-tutorial-hospital-helpdesk', kind: 'OdhDocument' },
   { name: 'rhoai-documentation', kind: 'OdhDocument' },
   { name: 'watson-x-use-case', kind: 'OdhDocument' },
   { name: 'openvino-inference-notebook', kind: 'OdhQuickStart' },
