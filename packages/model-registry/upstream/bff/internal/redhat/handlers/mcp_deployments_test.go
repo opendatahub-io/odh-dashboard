@@ -13,6 +13,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/hub/ui/bff/internal/api"
 	"github.com/kubeflow/hub/ui/bff/internal/config"
@@ -222,6 +223,82 @@ func TestMcpDeploymentDeleteNotFoundReturns404(t *testing.T) {
 }
 
 // --- POST /api/v1/mcp_deployments tests ---
+
+func TestMcpDeploymentCreateAndUpdateValidationErrors(t *testing.T) {
+	invalidCR := apierrors.NewInvalid(
+		schema.GroupKind{Group: "mcp.x-k8s.io", Kind: "MCPServer"},
+		"test-mcp",
+		field.ErrorList{field.Required(field.NewPath("spec", "config", "port"), "must be provided")},
+	)
+	yamlError := fmt.Errorf("%w: invalid configuration YAML: failed to parse YAML", redhatrepos.ErrMcpDeploymentValidation)
+
+	tests := []struct {
+		name        string
+		method      string
+		yaml        string
+		err         error
+		wantMessage string
+	}{
+		{"create malformed YAML", http.MethodPost, "config: [broken", yamlError, "invalid configuration YAML: failed to parse YAML"},
+		{"update malformed YAML", http.MethodPatch, "config: [broken", yamlError, "invalid configuration YAML: failed to parse YAML"},
+		{"create invalid CR", http.MethodPost, "config:\n  port: -1", fmt.Errorf("failed to create MCPServer: %w", invalidCR), "spec.config.port"},
+		{"update invalid CR", http.MethodPatch, "config:\n  port: -1", fmt.Errorf("failed to patch MCPServer: %w", invalidCR), "spec.config.port"},
+		{"create rejected request", http.MethodPost, "config:\n  port: 8080", fmt.Errorf("failed to create MCPServer: %w", apierrors.NewBadRequest("invalid MCPServer configuration")), "invalid MCPServer configuration"},
+		{"update rejected request", http.MethodPatch, "config:\n  port: 8080", fmt.Errorf("failed to patch MCPServer: %w", apierrors.NewBadRequest("invalid MCPServer configuration")), "invalid MCPServer configuration"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := newRedHatTestApp(&fakeKubeFactory{})
+			repo := &mockMcpDeploymentRepo{
+				createFn: func(_ context.Context, _ k8s.KubernetesClientInterface, _ string, req models.McpDeploymentCreateRequest) (models.McpDeployment, error) {
+					if req.YAML != tt.yaml {
+						t.Fatalf("expected create YAML %q, got %q", tt.yaml, req.YAML)
+					}
+					return models.McpDeployment{}, tt.err
+				},
+				updateFn: func(_ context.Context, _ k8s.KubernetesClientInterface, _, _ string, req models.McpDeploymentUpdateRequest) (models.McpDeployment, error) {
+					if req.YAML == nil || *req.YAML != tt.yaml {
+						t.Fatalf("expected update YAML %q, got %v", tt.yaml, req.YAML)
+					}
+					return models.McpDeployment{}, tt.err
+				},
+			}
+			withMcpDeploymentRepo(t, repo)
+
+			var handler httprouter.Handle
+			var path, body string
+			var params httprouter.Params
+			if tt.method == http.MethodPost {
+				handler = overrideMcpDeploymentCreate(app, failDefault(t))
+				path = api.McpDeploymentListPath
+				body = fmt.Sprintf(`{"data":{"name":"test-mcp","image":"quay.io/test:1.0","yaml":%q}}`, tt.yaml)
+			} else {
+				handler = overrideMcpDeploymentUpdate(app, failDefault(t))
+				path = api.McpDeploymentPath
+				body = fmt.Sprintf(`{"data":{"yaml":%q}}`, tt.yaml)
+				params = httprouter.Params{{Key: api.McpDeploymentName, Value: "test-mcp"}}
+			}
+
+			req := httptest.NewRequest(tt.method, path+"?namespace=test-ns", strings.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			rr := httptest.NewRecorder()
+			handler(rr, req, params)
+
+			if rr.Code != http.StatusBadRequest {
+				t.Fatalf("expected status 400, got %d: %s", rr.Code, rr.Body.String())
+			}
+			var response api.ErrorEnvelope
+			decodeResponse(t, rr, &response)
+			if response.Error == nil || response.Error.Code != strconv.Itoa(http.StatusBadRequest) {
+				t.Fatalf("expected error code 400, got %+v", response.Error)
+			}
+			if !strings.Contains(response.Error.Message, tt.wantMessage) {
+				t.Fatalf("expected validation message containing %q, got %+v", tt.wantMessage, response.Error)
+			}
+		})
+	}
+}
 
 func TestMcpDeploymentCreateReturnsCreated(t *testing.T) {
 	factory := &fakeKubeFactory{}

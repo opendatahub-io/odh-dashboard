@@ -239,6 +239,19 @@ func TestBuildMcpServerFromCreateRequest_InvalidYAML(t *testing.T) {
 	if !errors.Is(err, ErrMcpDeploymentValidation) {
 		t.Fatalf("expected ErrMcpDeploymentValidation so the handler returns 400, got %v", err)
 	}
+	if !strings.Contains(err.Error(), "invalid configuration YAML: failed to parse YAML") {
+		t.Fatalf("expected actionable YAML parse error, got %v", err)
+	}
+}
+
+func TestBuildMcpServerFromCreateRequest_YAMLMissingConfigOrRuntime(t *testing.T) {
+	_, err := buildMcpServerFromCreateRequest("default", models.McpDeploymentCreateRequest{
+		Image: "quay.io/mcp/test:1.0",
+		YAML:  "foo: bar",
+	})
+	if !errors.Is(err, ErrMcpDeploymentValidation) || !strings.Contains(err.Error(), "YAML must contain config or runtime") {
+		t.Fatalf("expected actionable validation error for missing YAML keys, got %v", err)
+	}
 }
 
 func TestBuildMcpServerFromCreateRequest_YAMLPortTakesPrecedence(t *testing.T) {
@@ -1217,6 +1230,17 @@ func TestBuildMcpDeploymentPatch_InvalidYAMLReturnsError(t *testing.T) {
 	}
 	if !errors.Is(err, ErrMcpDeploymentValidation) {
 		t.Fatalf("expected ErrMcpDeploymentValidation so the handler returns 400, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "invalid configuration YAML: failed to parse YAML") {
+		t.Fatalf("expected actionable YAML parse error, got %v", err)
+	}
+}
+
+func TestBuildMcpDeploymentPatch_YAMLMissingConfigOrRuntimeReturnsError(t *testing.T) {
+	yamlStr := "foo: bar"
+	_, err := buildMcpDeploymentPatch(models.McpDeploymentUpdateRequest{YAML: &yamlStr})
+	if !errors.Is(err, ErrMcpDeploymentValidation) || !strings.Contains(err.Error(), "YAML must contain config or runtime") {
+		t.Fatalf("expected actionable validation error for missing YAML keys, got %v", err)
 	}
 }
 
