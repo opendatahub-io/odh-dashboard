@@ -293,6 +293,13 @@ describe('shared host analytics setup', () => {
     'should respect original and committed enablement when setup starts enabled=%s',
     async (initialEnabled) => {
       const { setup } = createHost();
+      const identifySpy = jest.fn();
+      const trackPageEventSpy = jest.fn();
+      const enabledSetup = {
+        ...setup,
+        identify: identifySpy,
+        trackPageEvent: trackPageEventSpy,
+      };
       let finishInitialization: () => void = () => undefined;
       const initialization = new Promise<void>((resolve) => {
         finishInitialization = resolve;
@@ -303,9 +310,9 @@ describe('shared host analytics setup', () => {
 
       try {
         const { rerender } = renderHook(useSegmentSetup, {
-          initialProps: { ...setup, enabled: initialEnabled },
+          initialProps: { ...enabledSetup, enabled: initialEnabled },
         });
-        rerender({ ...setup, enabled: !initialEnabled });
+        rerender({ ...enabledSetup, enabled: !initialEnabled });
 
         await act(async () => {
           finishInitialization();
@@ -313,10 +320,18 @@ describe('shared host analytics setup', () => {
         });
 
         expect(initSpy).toHaveBeenCalledTimes(2);
-        // Only the newly enabled setup may emit; pending disabled setup must not.
-        expect(client.identify).toHaveBeenCalledTimes(initialEnabled ? 0 : 1);
-        expect(client.page).toHaveBeenCalledTimes(initialEnabled ? 0 : 1);
+        // Only the enabled setup may emit; the pending attempt must not deliver after the flip.
+        expect(identifySpy).toHaveBeenCalledTimes(initialEnabled ? 0 : 1);
+        expect(trackPageEventSpy).toHaveBeenCalledTimes(initialEnabled ? 0 : 1);
         expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(initialEnabled ? 0 : 1);
+
+        // A subsequent enabled setup recovers and delivers exactly once.
+        rerender({ ...enabledSetup, enabled: true });
+        await act(async () => undefined);
+        expect(initSpy).toHaveBeenCalledTimes(initialEnabled ? 3 : 2);
+        expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(1);
+        expect(identifySpy).toHaveBeenCalledTimes(1);
+        expect(trackPageEventSpy).toHaveBeenCalledTimes(1);
       } finally {
         initSpy.mockRestore();
       }
@@ -327,8 +342,10 @@ describe('shared host analytics setup', () => {
     'should suppress a pending setup after it is %s',
     async (cleanup) => {
       const { setup } = createHost();
-      const identify = jest.fn();
-      const trackPageEvent = jest.fn();
+      const pendingIdentify = jest.fn();
+      const pendingTrackPageEvent = jest.fn();
+      const replacementIdentify = jest.fn();
+      const replacementTrackPageEvent = jest.fn();
       let finishInitialization: () => void = () => undefined;
       const initialization = new Promise<void>((resolve) => {
         finishInitialization = resolve;
@@ -338,9 +355,20 @@ describe('shared host analytics setup', () => {
         .mockReturnValueOnce(initialization);
 
       try {
-        const { rerender, unmount } = renderHook(useSegmentSetup, { initialProps: setup });
+        const { rerender, unmount } = renderHook(useSegmentSetup, {
+          initialProps: {
+            ...setup,
+            identify: pendingIdentify,
+            trackPageEvent: pendingTrackPageEvent,
+          },
+        });
         if (cleanup === 'superseded') {
-          rerender({ ...setup, userKey: 'new-user', identify, trackPageEvent });
+          rerender({
+            ...setup,
+            userKey: 'new-user',
+            identify: replacementIdentify,
+            trackPageEvent: replacementTrackPageEvent,
+          });
         } else {
           unmount();
         }
@@ -351,8 +379,11 @@ describe('shared host analytics setup', () => {
         });
 
         expect(initSpy).toHaveBeenCalledTimes(cleanup === 'superseded' ? 2 : 1);
-        expect(identify).toHaveBeenCalledTimes(cleanup === 'superseded' ? 1 : 0);
-        expect(trackPageEvent).toHaveBeenCalledTimes(cleanup === 'superseded' ? 1 : 0);
+        // The pending attempt must not deliver, including through the latest committed callbacks.
+        expect(pendingIdentify).not.toHaveBeenCalled();
+        expect(pendingTrackPageEvent).not.toHaveBeenCalled();
+        expect(replacementIdentify).toHaveBeenCalledTimes(cleanup === 'superseded' ? 1 : 0);
+        expect(replacementTrackPageEvent).toHaveBeenCalledTimes(cleanup === 'superseded' ? 1 : 0);
         expect(client.identify).not.toHaveBeenCalled();
         expect(client.page).not.toHaveBeenCalled();
       } finally {

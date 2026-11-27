@@ -19,8 +19,13 @@ describe('usePageTracking', () => {
     expect(original).toHaveBeenCalledTimes(1);
     expect(replacement).toHaveBeenCalledTimes(1);
 
-    hook.rerender({ routeKey: '/projects', callback: replacement });
+    const combined = jest.fn();
+    hook.rerender({ routeKey: '/admin', callback: combined });
     expect(replacement).toHaveBeenCalledTimes(1);
-    expect(hook).hookToHaveUpdateCount(4);
+    expect(combined).toHaveBeenCalledTimes(1);
+
+    hook.rerender({ routeKey: '/admin', callback: combined });
+    expect(combined).toHaveBeenCalledTimes(1);
+    expect(hook).hookToHaveUpdateCount(5);
   });
 });
