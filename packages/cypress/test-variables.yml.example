@@ -50,6 +50,8 @@ MAAS_URL: https://maas.apps.your-cluster.com
 # Used by the Keycloak Portal E2E spec; the OpenShift spec discovers its URL.
 MAAS_PORTAL_URL: https://maas.apps.your-cluster.com/maas-portal/
 ENABLE_MAAS_PORTAL_E2E: false
+# Dedicated portal-only cluster lane; this temporarily changes DSC state.
+ENABLE_MAAS_PORTAL_ONLY_E2E: false
 MAAS_PORTAL_MODEL_NAME: your-existing-external-model-name
 # Portal identity-provider credentials, required when ENABLE_MAAS_PORTAL_E2E is true.
 # APPLICATIONS_NAMESPACE above is also required to clean up API keys.

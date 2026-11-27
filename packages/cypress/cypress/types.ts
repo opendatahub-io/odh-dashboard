@@ -341,6 +341,7 @@ export type TestConfig = {
   MAAS_URL?: string;
   MAAS_PORTAL_URL?: string;
   ENABLE_MAAS_PORTAL_E2E?: boolean | string;
+  ENABLE_MAAS_PORTAL_ONLY_E2E?: boolean | string;
   MAAS_PORTAL_MODEL_NAME?: string;
   MAAS_PORTAL_ORGANIZATION_ID?: string;
   MAAS_PORTAL_USER_GROUPS?: string[];

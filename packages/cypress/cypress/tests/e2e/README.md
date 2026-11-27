@@ -91,6 +91,21 @@ Before you begin, ensure you have the following installed:
 
 ## Running Tests
 
+### MaaS Portal portal-only E2E prerequisites
+
+The OpenShift-authenticated MaaS Portal spec requires a dedicated RHOAI 3.6/3.7
+portal-only cluster lane. Set `ENABLE_MAAS_PORTAL_ONLY_E2E: true` only for that
+lane. The test temporarily patches the DSC v3 Dashboard component to
+`standard: Removed` and `maasPortal: Managed`, waits for the Dashboard and
+deployment reconciliation, then restores the captured DSC state and waits for
+the standard Dashboard to become available again.
+
+The cluster must use an operator revision that preserves the portal-only
+projection (see RHOAIENG-99044), have the MaaS Portal and model-serving
+prerequisites installed, and provide the configured `TEST_USER_3` OpenShift
+user. Do not enable this flag on a shared cluster; use the regular
+`testMaaSPortal.cy.ts` spec for the existing Keycloak portal coverage.
+
 ### Data Registry E2E cluster prerequisites
 
 The Data Registry browser test runs against a live cluster. The cluster must have
