@@ -36,6 +36,9 @@ export const EVAL_HUB_EVENTS = {
   COLLECTION_CUSTOMIZE_CLICKED: 'Evaluations Collection Customize Clicked',
   COLLECTION_EDIT_OPENED: 'Evaluations Collection Edit Opened',
   COLLECTION_CREATE_OPENED: 'Evaluations Collection Create Opened',
+  COLLECTION_IMPORT_OPENED: 'Evaluations Collection Import Opened',
+  COLLECTION_IMPORT_SUCCEEDED: 'Evaluations Collection Import Succeeded',
+  COLLECTION_IMPORT_FAILED: 'Evaluations Collection Import Failed',
   COLLECTION_SAVED: 'Evaluations Collection Saved',
   REPORT_GENERATION_TRIGGERED: 'Evaluations Report Generation Triggered',
   COLLECTION_DELETED: 'Evaluations Collection Deleted',
@@ -285,6 +288,10 @@ export type CollectionCreateOpenedProperties = {
   surface: EvalHubCollectionSurface;
 };
 
+export type CollectionImportProperties = {
+  surface: EvalHubCollectionSurface;
+};
+
 export type CollectionSavedProperties = {
   outcome: TrackingOutcome.submit;
   success: boolean;
@@ -369,6 +376,9 @@ export type EvalHubEventProperties = {
   [EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED]: CollectionCustomizeProperties;
   [EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED]: CollectionTileProperties;
   [EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED]: CollectionCreateOpenedProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_IMPORT_OPENED]: CollectionImportProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_IMPORT_SUCCEEDED]: CollectionImportProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_IMPORT_FAILED]: CollectionImportProperties;
   [EVAL_HUB_EVENTS.COLLECTION_SAVED]: CollectionSavedProperties;
   [EVAL_HUB_EVENTS.REPORT_GENERATION_TRIGGERED]: ReportGenerationTriggeredProperties;
   [EVAL_HUB_EVENTS.COLLECTION_DELETED]: CollectionDeletedProperties;
@@ -463,6 +473,9 @@ export const EVAL_HUB_EVENT_PROPERTY_ALLOWLIST = {
   [EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED]: ['collectionName', 'surface'],
   [EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED]: ['collectionName', 'surface'],
   [EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED]: ['surface'],
+  [EVAL_HUB_EVENTS.COLLECTION_IMPORT_OPENED]: ['surface'],
+  [EVAL_HUB_EVENTS.COLLECTION_IMPORT_SUCCEEDED]: ['surface'],
+  [EVAL_HUB_EVENTS.COLLECTION_IMPORT_FAILED]: ['surface'],
   [EVAL_HUB_EVENTS.COLLECTION_SAVED]: [
     'outcome',
     'success',

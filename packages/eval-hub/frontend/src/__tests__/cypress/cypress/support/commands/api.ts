@@ -9,6 +9,7 @@ import type {
   EvalHubHealthResponse,
   EvaluationJob,
   HardwareProfileValidationResponse,
+  ImportCollectionAccessResponse,
   InfoResponse,
   InferenceServicesResponse,
   Provider,
@@ -73,6 +74,11 @@ declare global {
           type: 'GET /api/:apiVersion/evaluations/collections/:collectionId',
           options: { path: { apiVersion: string; collectionId: string } },
           response: ApiResponse<Collection>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/collection-imports/access',
+          options: { path: { apiVersion: string }; query?: Record<string, string> },
+          response: ApiResponse<ImportCollectionAccessResponse>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/:apiVersion/evaluations/jobs',

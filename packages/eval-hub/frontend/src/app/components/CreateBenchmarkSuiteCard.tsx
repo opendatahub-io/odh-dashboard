@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Card, CardBody, Content, Title } from '@patternfly/react-core';
+import { Button, Card, CardBody, Content, Flex, Title, Tooltip } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
@@ -11,6 +11,9 @@ type CreateBenchmarkSuiteCardProps = {
   createSuiteRouteState?: unknown;
   trackingSurface?: EvalHubCollectionSurface;
   onCreateSuite?: () => void;
+  /** Opens the import dialog; when omitted the Import button is not rendered. */
+  onImport?: () => void;
+  importDisabled?: boolean;
 };
 
 const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
@@ -18,6 +21,8 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
   createSuiteRouteState,
   trackingSurface = 'collection_gallery',
   onCreateSuite = () => undefined,
+  onImport,
+  importDisabled = false,
 }) => {
   const { trackEvalHubEvent } = useEvalHubTracking();
   return (
@@ -38,37 +43,62 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
           Build a reusable collection by selecting benchmarks, setting thresholds, and configuring
           pass criteria.
         </Content>
-        {createSuiteRoute ? (
-          <Button
-            className="evalhub-create-suite-card__button"
-            variant="secondary"
-            component={(props) => (
-              <Link {...props} to={createSuiteRoute} state={createSuiteRouteState} />
-            )}
-            onClick={() =>
-              trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
-                surface: trackingSurface,
-              })
-            }
-            data-testid="create-suite-button"
-          >
-            Create collection
-          </Button>
-        ) : (
-          <Button
-            className="evalhub-create-suite-card__button"
-            variant="secondary"
-            onClick={() => {
-              trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
-                surface: trackingSurface,
-              });
-              onCreateSuite();
-            }}
-            data-testid="create-suite-button"
-          >
-            Create collection
-          </Button>
-        )}
+        <Flex
+          className="pf-v6-u-mt-auto"
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+        >
+          {createSuiteRoute ? (
+            <Button
+              variant="secondary"
+              component={(props) => (
+                <Link {...props} to={createSuiteRoute} state={createSuiteRouteState} />
+              )}
+              onClick={() =>
+                trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
+                  surface: trackingSurface,
+                })
+              }
+              data-testid="create-suite-button"
+            >
+              Create collection
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
+                  surface: trackingSurface,
+                });
+                onCreateSuite();
+              }}
+              data-testid="create-suite-button"
+            >
+              Create collection
+            </Button>
+          )}
+          {onImport ? (
+            importDisabled ? (
+              <Tooltip
+                content="You do not have permission to create collections in this project"
+                position="top"
+              >
+                {/* Span wrapper: hover events do not fire on a disabled button;
+                    tabIndex keeps the tooltip reachable by keyboard. */}
+                {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focus proxy for the disabled button so keyboard users can reach the tooltip */}
+                <span tabIndex={0}>
+                  <Button variant="tertiary" isDisabled data-testid="import-collection-button">
+                    Import
+                  </Button>
+                </span>
+              </Tooltip>
+            ) : (
+              <Button variant="tertiary" onClick={onImport} data-testid="import-collection-button">
+                Import
+              </Button>
+            )
+          ) : null}
+        </Flex>
       </CardBody>
     </Card>
   );

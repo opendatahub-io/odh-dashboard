@@ -44,8 +44,14 @@ func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers h
 }
 
 func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+	return app.readJSONWithLimit(w, r, dst, 1_048_576)
+}
 
-	maxBytes := 1_048_576
+// readJSONWithLimit is ReadJSON with a caller-supplied body cap, for
+// endpoints whose payload legitimately exceeds the default (e.g. an import
+// envelope wrapping a near-cap definition with JSON escaping overhead).
+func (app *App) readJSONWithLimit(w http.ResponseWriter, r *http.Request, dst any, maxBytes int) error {
+
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 
 	dec := json.NewDecoder(r.Body)

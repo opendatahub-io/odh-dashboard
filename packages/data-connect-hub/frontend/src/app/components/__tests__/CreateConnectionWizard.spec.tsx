@@ -190,6 +190,91 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', false);
   });
 
+  it('should capture an optional description and submit it when creating a connection', async () => {
+    const user = userEvent.setup();
+    const onCreate =
+      jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<Connection>>();
+    onCreate.mockResolvedValue({
+      metadata: { id: 'connection-id' },
+      resource: {
+        name: 'warehouse',
+        description: 'Sales data warehouse',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials_ref: { secret: 'warehouse' },
+      },
+      status: { state: 'ready' },
+    });
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        onCreate={onCreate}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.getByTestId('connection-description-input').tagName).toBe('TEXTAREA');
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    await user.type(screen.getByTestId('connection-description-input'), '  Sales data warehouse  ');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    const reviewDescription = screen.getByText('Sales data warehouse');
+    const reviewDescriptionItem = reviewDescription.closest('dd') as HTMLElement;
+    expect(reviewDescriptionItem.style.whiteSpace).toBe('pre-wrap');
+    expect(reviewDescriptionItem.style.overflowWrap).toBe('anywhere');
+
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    await waitFor(() =>
+      expect(onCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ description: 'Sales data warehouse' }),
+        'test-project',
+      ),
+    );
+  });
+
+  it('should omit a whitespace-only description from the create request', async () => {
+    const user = userEvent.setup();
+    const onCreate =
+      jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<Connection>>();
+    onCreate.mockResolvedValue({
+      metadata: { id: 'connection-id' },
+      resource: {
+        name: 'warehouse',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials_ref: { secret: 'warehouse' },
+      },
+      status: { state: 'ready' },
+    });
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        onCreate={onCreate}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    await user.type(screen.getByTestId('connection-description-input'), '   ');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(onCreate.mock.calls[0][0].description).toBeUndefined();
+  });
+
   it('tracks connection type selection in the wizard', async () => {
     render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
 
