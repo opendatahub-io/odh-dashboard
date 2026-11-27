@@ -41,7 +41,7 @@ const llmInferenceServiceUsesResource = (
     {
       annotations: llmInferenceService.metadata.annotations,
       imagePullSecrets: llmInferenceService.spec.template?.imagePullSecrets,
-      storageUri: llmInferenceService.spec.model.uri,
+      storageUri: llmInferenceService.spec.model?.uri,
     },
     resourceName,
     resourceKind,

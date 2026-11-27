@@ -19,7 +19,7 @@ export const validateExtraction = (deployment: LLMdDeployment): string[] => {
     );
   }
 
-  const { uri } = deployment.model.spec.model;
+  const uri = deployment.model.spec.model?.uri;
   const hasPVC = !!uri && isPVCUri(uri);
   const hasConnectionAnnotation =
     !!deployment.model.metadata.annotations?.[MetadataAnnotation.ConnectionName];

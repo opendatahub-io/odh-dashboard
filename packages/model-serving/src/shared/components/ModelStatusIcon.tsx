@@ -47,6 +47,15 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     icon: React.ReactNode;
     message?: string;
   } => {
+    if (state === ModelDeploymentState.DELETING) {
+      return {
+        label: 'Deleting',
+        color: 'grey',
+        icon: <InProgressIcon className="ai-u-spin" />,
+        message:
+          'Waiting for Kubernetes and serving controllers to finish deleting this deployment.',
+      };
+    }
     // Highest-priority: service explicitly stopped
     if (stoppedStates?.isStopped) {
       return {

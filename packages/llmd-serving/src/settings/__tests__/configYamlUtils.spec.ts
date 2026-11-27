@@ -128,7 +128,7 @@ describe('overrideLlmConfigFields', () => {
 
   it('should preserve spec', () => {
     const result = overrideLlmConfigFields(makeConfig(), defaultOverrides);
-    expect(result.spec?.model.uri).toBe('hf://test/model');
+    expect(result.spec?.model?.uri).toBe('hf://test/model');
   });
 
   it('should handle config with no existing annotations', () => {

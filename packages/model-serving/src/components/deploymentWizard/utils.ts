@@ -134,23 +134,25 @@ export const deployModel = async (
 
   // ----- Dry Runs -----
 
+  // Preserve resolver context separately while the annotation is omitted for webhook validation.
+  const submittedConnectionName =
+    modelResourceWithNamespace?.metadata.annotations?.[MetadataAnnotation.ConnectionName];
   // If connection name doesn't exist yet, it will fail the dry run
   const dryRunModelResource = structuredClone(modelResourceWithNamespace);
   delete dryRunModelResource?.metadata.annotations?.[MetadataAnnotation.ConnectionName];
 
-  // Dry run order doesn't matter since they don't change cluster state
+  // Validate the connection first so generated names are available to the deployment dry run.
   const dryRuns: Promise<unknown>[] = [];
-  dryRuns.push(
-    handleConnectionCreation(
-      secretOps,
-      wizardState.createConnectionData.data,
-      projectName,
-      wizardState.modelLocationData.data,
-      secretName,
-      true,
-      wizardState.modelLocationData.selectedConnection,
-    ),
+  const connectionDryRun = handleConnectionCreation(
+    secretOps,
+    wizardState.createConnectionData.data,
+    projectName,
+    wizardState.modelLocationData.data,
+    secretName,
+    true,
+    wizardState.modelLocationData.selectedConnection,
   );
+  dryRuns.push(connectionDryRun);
   if (runPreDeploy) {
     dryRuns.push(
       runPreDeploy(
@@ -163,19 +165,21 @@ export const deployModel = async (
 
   if (!overwrite) {
     dryRuns.push(
-      deployMethod.deploy(
-        wizardState,
-        externalData,
-        projectName,
-        existingDeployment,
-        dryRunModelResource,
-        serverResource,
-        serverResourceTemplateName,
-        true,
-        undefined,
-        undefined,
-        initialWizardData,
-        applyAllFieldDataFn,
+      connectionDryRun.then((connection) =>
+        deployMethod.deploy(
+          wizardState,
+          externalData,
+          projectName,
+          existingDeployment,
+          dryRunModelResource,
+          serverResource,
+          serverResourceTemplateName,
+          true,
+          connection?.metadata.name ?? secretName ?? submittedConnectionName,
+          undefined,
+          initialWizardData,
+          applyAllFieldDataFn,
+        ),
       ),
     );
   }

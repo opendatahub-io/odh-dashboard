@@ -242,7 +242,7 @@ describe('assembleLLMdDeployment', () => {
 
     expect(model.metadata.name).toBe('test-llm-inference-service');
     expect(model.metadata.namespace).toBe('test-project');
-    expect(model.spec.model.name).toBe('test-llm-inference-service');
+    expect(model.spec.model?.name).toBe('test-llm-inference-service');
   });
 
   it('should write the resource version when a new deployment uses a DRA hardware profile', () => {

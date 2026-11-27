@@ -34,6 +34,8 @@ import {
 } from '../wizardFields/deploymentMethodField';
 import { isLLMd } from '../formUtils';
 
+const CONNECTION_PATH_ANNOTATION = 'opendatahub.io/connection-path';
+
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
   modelLocationData: ModelLocationData,
@@ -54,19 +56,39 @@ export const applyModelLocation = (
     // Remove the connection name in the dry run or it will conflict during updates
     delete result.metadata.annotations[MetadataAnnotation.ConnectionName];
   }
-  // Adds path annotation for S3
+  // URI and PVC fields already contain the model location. Include it in both
+  // preview and submission instead of relying on connection webhook enrichment.
+  const uri = modelLocationData.fieldValues.URI;
   if (
-    modelLocationData.additionalFields.modelPath &&
-    modelLocationData.connectionTypeObject &&
-    isModelServingCompatible(
-      modelLocationData.connectionTypeObject ?? [],
-      ModelServingCompatibleTypes.S3ObjectStorage,
-    )
+    typeof uri === 'string' &&
+    (modelLocationData.type === ModelLocationType.PVC ||
+      !modelLocationData.connectionTypeObject ||
+      isModelServingCompatible(
+        modelLocationData.connectionTypeObject,
+        ModelServingCompatibleTypes.URI,
+      ))
   ) {
-    result.metadata.annotations['opendatahub.io/connection-path'] =
-      modelLocationData.additionalFields.modelPath;
-  } else {
-    delete result.metadata.annotations['opendatahub.io/connection-path'];
+    result.spec.model = { ...result.spec.model, uri: uri.trim() };
+  }
+  if (modelLocationData.type === ModelLocationType.PVC) {
+    delete result.metadata.annotations[MetadataAnnotation.ConnectionName];
+  }
+  const { connection, connectionTypeObject, additionalFields } = modelLocationData;
+  const { modelPath } = additionalFields;
+  const isS3Connection =
+    modelLocationData.type !== ModelLocationType.PVC &&
+    connectionTypeObject &&
+    isModelServingCompatible(connectionTypeObject, ModelServingCompatibleTypes.S3ObjectStorage);
+  const preserveExistingModelPath =
+    modelLocationData.type !== ModelLocationType.PVC &&
+    !!connection &&
+    connection === llmdInferenceService.metadata.annotations?.[MetadataAnnotation.ConnectionName] &&
+    (connectionSecretName ?? connection) === connection &&
+    (!connectionTypeObject || (isS3Connection && modelPath === undefined));
+  if (isS3Connection && modelPath) {
+    result.metadata.annotations[CONNECTION_PATH_ANNOTATION] = modelPath;
+  } else if (!preserveExistingModelPath) {
+    delete result.metadata.annotations[CONNECTION_PATH_ANNOTATION];
   }
   // Adds uri for OCI
   if (
@@ -174,21 +196,28 @@ export const extractEnvironmentVariables = (
 };
 
 export const getModelLocationUri = (deployment: LLMInferenceServiceKind): string | undefined => {
-  return deployment.spec.model.uri;
+  return deployment.spec.model?.uri;
 };
+
+export const hasNamedModelConfigReference = (baseRefs?: ({ name?: unknown } | null)[]): boolean =>
+  Array.isArray(baseRefs) &&
+  baseRefs.some((ref) => typeof ref?.name === 'string' && ref.name.trim());
 
 const extractAdditionalFields = (deployment: LLMInferenceServiceKind): Record<string, string> => {
   const additionalFields: Record<string, string> = {};
-  const { model } = deployment.spec;
+  const uri = getModelLocationUri(deployment) ?? '';
 
-  const connectionType = getConnectionTypeFromUri(model.uri);
-  if (connectionType === ModelServingCompatibleTypes.S3ObjectStorage) {
-    additionalFields.modelPath =
-      deployment.metadata.annotations?.['opendatahub.io/connection-path'] || '';
+  const connectionType = getConnectionTypeFromUri(uri);
+  const annotatedModelPath = deployment.metadata.annotations?.[CONNECTION_PATH_ANNOTATION];
+  if (
+    connectionType === ModelServingCompatibleTypes.S3ObjectStorage ||
+    (!uri && annotatedModelPath)
+  ) {
+    additionalFields.modelPath = annotatedModelPath ?? '';
   }
 
   if (connectionType === ModelServingCompatibleTypes.OCI) {
-    additionalFields.modelUri = model.uri || '';
+    additionalFields.modelUri = uri;
   }
 
   return additionalFields;
@@ -217,6 +246,14 @@ export const extractModelLocationData = (deployment: {
   const connectionName =
     deployment.model.metadata.annotations?.[MetadataAnnotation.ConnectionName] ||
     imagePullSecrets?.name;
+
+  if (
+    !deployment.model.spec.model &&
+    !connectionName?.trim() &&
+    !hasNamedModelConfigReference(deployment.model.spec.baseRefs)
+  ) {
+    throw new Error('No model location could be read from this deployment.');
+  }
 
   const additionalFields = extractAdditionalFields(deployment.model);
 
@@ -261,8 +298,9 @@ export const applyK8sNameAndNamespace = (
   result.metadata.name = k8sName ?? llmInferenceService.metadata.name;
   result.metadata.namespace = namespace ?? llmInferenceService.metadata.namespace;
   // The served model name defaults to the resource name; follow a rename unless it was set apart (e.g. in YAML)
-  if (result.spec.model.name === llmInferenceService.metadata.name) {
-    result.spec.model.name = result.metadata.name;
+  const { model } = result.spec;
+  if (model && model.name === llmInferenceService.metadata.name) {
+    model.name = result.metadata.name;
   }
   return result;
 };

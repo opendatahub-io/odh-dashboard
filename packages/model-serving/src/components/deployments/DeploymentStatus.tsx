@@ -10,6 +10,9 @@ type DeploymentStatusProps = {
 };
 
 const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ deployment, stoppedStates }) => {
+  if (deployment.model.metadata.deletionTimestamp) {
+    return 'Not available';
+  }
   if (stoppedStates?.isStarting) {
     return 'Pending';
   }

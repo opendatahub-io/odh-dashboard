@@ -12,16 +12,11 @@ import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { aggregateKueueStatusForModel } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import {
-  getInferenceServiceModelState,
   type InferenceServiceKind,
   ModelDeploymentState,
 } from '@odh-dashboard/model-serving/shared';
-import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
-import {
-  getLLMInferenceServiceModelState,
-  getLLMdDeploymentConditions,
-} from '@odh-dashboard/llmd-serving/status';
-import { getKServeDeploymentConditions } from '@odh-dashboard/kserve/status';
+import { getLLMdDeploymentStatus } from '@odh-dashboard/llmd-serving/status';
+import { getKServeDeploymentStatus } from '@odh-dashboard/kserve/status';
 import type { LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
 import {
   getRayJobStatusSync,
@@ -98,6 +93,7 @@ const KUEUE_STATUS_OPTIONS: KueueWorkloadStatus[] = [
 ];
 
 const MODEL_DEPLOYMENT_STATUS_LABELS: Record<ModelDeploymentState, string> = {
+  [ModelDeploymentState.DELETING]: 'Deleting',
   [ModelDeploymentState.PENDING]: 'Starting',
   [ModelDeploymentState.STANDBY]: 'Starting',
   [ModelDeploymentState.FAILED_TO_LOAD]: 'Failed',
@@ -308,6 +304,9 @@ export const getWorkloadOverviewRow = (
   const { status: workloadResourceStatus, kueueStatus } = workload;
   const workloadStatus = workloadResourceStatus.label;
   const workloadOverview = mapWorkloadStatusToOverview(workloadStatus);
+  if (workloadOverview && workload.deploymentStatus?.state === ModelDeploymentState.DELETING) {
+    return { ...workloadOverview, statusFilters: [workloadStatus] };
+  }
   const kueueOverview = kueueStatus ? mapWorkloadStatusToOverview(kueueStatus) : undefined;
   const isTrainJobWorkload = workload.resource.kind === InfrastructureWorkloadKind.TrainJob;
   const kueueBlocksWorkload =
@@ -338,36 +337,11 @@ const getInfrastructureModelDeploymentStatus = (
   kueueStatus: KueueWorkloadStatusWithMessage | null,
 ): InfrastructureWorkloadRow['deploymentStatus'] => {
   if (isInferenceService(resource)) {
-    const state = getInferenceServiceModelState(resource);
-    return {
-      state,
-      message: resource.status?.modelStatus?.lastFailureInfo?.message,
-      conditions: getKServeDeploymentConditions(resource, state, kueueStatus),
-      stoppedStates: getModelDeploymentStoppedStates(
-        state,
-        resource.metadata.annotations,
-        undefined,
-        kueueStatus,
-      ),
-      kueueStatus,
-    };
+    return getKServeDeploymentStatus(resource, [], kueueStatus);
   }
 
   if (isLLMInferenceService(resource)) {
-    const state = getLLMInferenceServiceModelState(resource);
-    return {
-      state,
-      message: resource.status?.conditions?.find((condition) => condition.type === 'Ready')
-        ?.message,
-      conditions: getLLMdDeploymentConditions(resource, kueueStatus),
-      stoppedStates: getModelDeploymentStoppedStates(
-        state,
-        resource.metadata.annotations,
-        undefined,
-        kueueStatus,
-      ),
-      kueueStatus,
-    };
+    return getLLMdDeploymentStatus(resource, [], kueueStatus);
   }
 
   return undefined;
@@ -379,8 +353,7 @@ const getInfrastructureWorkloadFilterStatus = (
   deploymentStatus?: InfrastructureWorkloadRow['deploymentStatus'],
   jobStatus?: InfrastructureWorkloadRow['jobStatus'],
 ): InfrastructureWorkloadStatus => {
-  /** Creates a job status object using the shared label-to-variant mapping. */
-  const getJobStatus = (label: string, message?: string): InfrastructureWorkloadStatus => ({
+  const getStatus = (label: string, message?: string): InfrastructureWorkloadStatus => ({
     label,
     message,
     variant: getStatusVariant(label),
@@ -391,7 +364,7 @@ const getInfrastructureWorkloadFilterStatus = (
     case InfrastructureWorkloadKind.TrainJob:
       if (isTrainJob(resource)) {
         const status = jobStatus ?? getTrainingJobStatusSync(resource);
-        return getJobStatus(
+        return getStatus(
           getStatusInfo(status).label,
           resource.status?.conditions?.find((condition) => condition.status === 'False')?.message,
         );
@@ -400,30 +373,24 @@ const getInfrastructureWorkloadFilterStatus = (
     case InfrastructureWorkloadKind.RayJob:
       if (isRayJob(resource)) {
         const status = getRayJobStatusSync(resource);
-        return getJobStatus(getStatusInfo(status).label, getRayJobStatusMessage(resource));
+        return getStatus(getStatusInfo(status).label, getRayJobStatusMessage(resource));
       }
       break;
     case InfrastructureWorkloadKind.InferenceService:
     case InfrastructureWorkloadKind.LLMInferenceService:
-      if (isInferenceService(resource) || isLLMInferenceService(resource)) {
-        const stoppedStates = getModelDeploymentStoppedStates(
-          deploymentStatus?.state ?? ModelDeploymentState.UNKNOWN,
-          resource.metadata.annotations,
-        );
-        if (stoppedStates.isStopped) {
-          return { label: 'Stopped', variant: 'custom' };
-        }
-        if (!deploymentStatus) {
-          return { label: 'Unknown', variant: 'custom' };
-        }
-        const label = MODEL_DEPLOYMENT_STATUS_LABELS[deploymentStatus.state];
-        return {
-          label,
-          message: deploymentStatus.message,
-          variant: getStatusVariant(label),
-        };
+      if (!deploymentStatus) {
+        break;
       }
-      break;
+      if (
+        deploymentStatus.state !== ModelDeploymentState.DELETING &&
+        deploymentStatus.stoppedStates?.isStopped
+      ) {
+        return { label: 'Stopped', variant: 'custom' };
+      }
+      return getStatus(
+        MODEL_DEPLOYMENT_STATUS_LABELS[deploymentStatus.state],
+        deploymentStatus.message,
+      );
     case InfrastructureWorkloadKind.Notebook:
       break;
   }

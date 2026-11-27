@@ -19,6 +19,7 @@ import type {
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import {
   applyModelEnvVarsAndArgs,
@@ -28,6 +29,7 @@ import {
   applyTokenAuthentication,
   applyDefaultScheduler,
   applyK8sNameAndNamespace,
+  hasNamedModelConfigReference,
 } from './model';
 import { applyConfigBaseRef } from './server';
 import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
@@ -327,6 +329,33 @@ export const deployLLMdDeployment = async (
 ): Promise<LLMdDeployment> => {
   if (!modelResource || !isLLMInferenceService(modelResource)) {
     throw new Error('LLMInferenceService is required');
+  }
+
+  // YAML input has only generic Kubernetes validation at this point.
+  const location: {
+    spec?: { model?: { uri?: unknown }; baseRefs?: ({ name?: unknown } | null)[] };
+  } = modelResource;
+  const { model, baseRefs } = location.spec ?? {};
+  const uri = model?.uri;
+  // KServe can inherit the model URI from a named config. Let it resolve the refs in order.
+  const hasBaseRef = hasNamedModelConfigReference(baseRefs);
+  // Legacy connection-backed deployments may be resolved by the existing
+  // connection webhook. Dry runs omit its annotation until the Secret exists.
+  const connectionName =
+    modelResource.metadata.annotations?.[MetadataAnnotation.ConnectionName] ||
+    connectionSecretName ||
+    (dryRun
+      ? wizardData.modelLocationData.data?.connection ||
+        wizardData.createConnectionData.data.nameDesc?.k8sName.value
+      : undefined);
+  if (
+    !(typeof uri === 'string' && uri.trim()) &&
+    !(typeof connectionName === 'string' && connectionName.trim()) &&
+    !hasBaseRef
+  ) {
+    throw new Error(
+      'Provide a model URI, a connection, or a configuration reference that supplies the model location.',
+    );
   }
 
   const deploymentK8sName =

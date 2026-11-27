@@ -23,6 +23,10 @@ export const getDeploymentStatusSubtitle = (status?: DeploymentStatus | null): s
   }
   const { kueueStatus, message, state } = status;
 
+  if (state === ModelDeploymentState.DELETING) {
+    return message || null;
+  }
+
   if (
     kueueStatus?.status &&
     KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT.includes(kueueStatus.status)
@@ -42,6 +46,9 @@ export const getDeploymentStatusSubtitle = (status?: DeploymentStatus | null): s
 
 /** Text color for the status subtitle, matching the severity of what it's reporting. */
 export const getDeploymentStatusSubtitleColor = (status?: DeploymentStatus | null): string => {
+  if (status?.state === ModelDeploymentState.DELETING) {
+    return RegularColor.var;
+  }
   if (
     status?.kueueStatus?.status &&
     KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT.includes(status.kueueStatus.status)
