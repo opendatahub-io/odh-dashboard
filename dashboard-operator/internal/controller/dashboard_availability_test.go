@@ -1,0 +1,396 @@
+package controller
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
+
+	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+)
+
+const availabilityTestNamespace = "availability-test"
+
+func TestReconcileDashboardAvailability(t *testing.T) {
+	readyDeployment := availabilityDeployment(true)
+	readyRoute := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	staleDeployment := availabilityDeployment(true)
+	staleDeployment.Generation = 2
+	staleDeployment.Status.ObservedGeneration = 1
+	zeroAvailableDeployment := availabilityDeployment(true)
+	zeroAvailableDeployment.Status.AvailableReplicas = 0
+	stalledRolloutDeployment := availabilityDeployment(true)
+	stalledRolloutDeployment.Status.UpdatedReplicas = 0
+	stalledRolloutDeployment.Status.Conditions = append(stalledRolloutDeployment.Status.Conditions, appsv1.DeploymentCondition{
+		Type: appsv1.DeploymentProgressing, Status: corev1.ConditionFalse, Reason: deploymentProgressDeadlineExceeded,
+	})
+	// Default maxSurge mid-rollout for the 2-replica dashboard: one new pod up, both old pods still serving.
+	surgingRolloutDeployment := availabilityDeployment(true)
+	two := int32(2)
+	surgingRolloutDeployment.Spec.Replicas = &two
+	surgingRolloutDeployment.Status.Replicas = 3
+	surgingRolloutDeployment.Status.UpdatedReplicas = 1
+	surgingRolloutDeployment.Status.ReadyReplicas = 3
+	surgingRolloutDeployment.Status.AvailableReplicas = 3
+	surgingRolloutDeployment.Status.Conditions = append(surgingRolloutDeployment.Status.Conditions, appsv1.DeploymentCondition{
+		Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue, Reason: "ReplicaSetUpdated",
+	})
+	zeroDesiredDeployment := availabilityDeployment(true)
+	zero := int32(0)
+	zeroDesiredDeployment.Spec.Replicas = &zero
+
+	tests := []struct {
+		name       string
+		objects    []client.Object
+		readError  bool
+		wantReason string
+		wantRetry  time.Duration
+		wantErr    bool
+		wantReady  bool
+	}{
+		{name: "deployment is missing", wantReason: "DeploymentNotFound", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "deployment is pending", objects: []client.Object{availabilityDeployment(false)}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "deployment status is stale while previous generation serves", objects: []client.Object{staleDeployment, readyRoute}, wantReason: "DeploymentRolloutInProgress", wantRetry: dashboardAvailabilityRetryInterval, wantReady: true},
+		{name: "rolling update with surge keeps serving", objects: []client.Object{surgingRolloutDeployment, readyRoute}, wantReason: "DeploymentRolloutInProgress", wantRetry: dashboardAvailabilityRetryInterval, wantReady: true},
+		{name: "rolling update with rejected route", objects: []client.Object{surgingRolloutDeployment, availabilityRoute("gateway", metav1.ConditionFalse, metav1.ConditionTrue, 0)}, wantReason: "HTTPRouteNotAccepted", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "deployment has no available replicas", objects: []client.Object{zeroAvailableDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "old replica is available while current rollout is stalled", objects: []client.Object{stalledRolloutDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "deployment is scaled to zero", objects: []client.Object{zeroDesiredDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "route is missing", objects: []client.Object{readyDeployment}, wantReason: "HTTPRouteNotFound", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "route status belongs to another parent", objects: []client.Object{readyDeployment, availabilityRoute("other-gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)}, wantReason: "HTTPRouteNotAccepted", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "route is rejected", objects: []client.Object{readyDeployment, availabilityRoute("gateway", metav1.ConditionFalse, metav1.ConditionTrue, 0)}, wantReason: "HTTPRouteNotAccepted", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "route has unresolved references", objects: []client.Object{readyDeployment, availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionFalse, 0)}, wantReason: "HTTPRouteNotAccepted", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "route conditions are stale", objects: []client.Object{readyDeployment, availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 1)}, wantReason: "HTTPRouteNotAccepted", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "primary resources are available", objects: []client.Object{readyDeployment, readyRoute}, wantReason: "ResourcesAvailable", wantReady: true},
+		{name: "deployment read fails", readError: true, wantReason: "DeploymentReadFailed", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := availabilityTestClient(t, tt.objects, tt.readError)
+			dashboard := &v1alpha1.Dashboard{}
+			cm := conditions.NewManager(dashboard, string(common.ConditionTypeReady), conditionDashboardAvailable)
+			reconciler := &DashboardReconciler{Client: client, ApplicationsNamespace: availabilityTestNamespace}
+
+			retryAfter, err := reconciler.reconcileDashboardAvailability(context.Background(), dashboard, cm, dashboardAvailabilityTarget{
+				deploymentName: "dashboard",
+				httpRouteName:  "dashboard",
+			})
+
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, tt.wantRetry, retryAfter)
+			availability := cm.GetCondition(conditionDashboardAvailable)
+			require.NotNil(t, availability)
+			assert.Equal(t, tt.wantReason, availability.Reason)
+			if tt.wantReady {
+				assert.True(t, cm.IsHappy())
+			} else {
+				assert.False(t, cm.IsHappy())
+			}
+		})
+	}
+}
+
+func TestReconcileDashboardAvailabilityRecoversAfterScaleUp(t *testing.T) {
+	zero := int32(0)
+	deployment := availabilityDeployment(true)
+	deployment.Spec.Replicas = &zero
+	deployment.Status.AvailableReplicas = 0
+	route := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	scheme := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, gatewayv1.Install(scheme))
+	cli := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(deployment, route).
+		WithStatusSubresource(deployment).
+		Build()
+	reconciler := &DashboardReconciler{Client: cli, ApplicationsNamespace: availabilityTestNamespace}
+	dashboard := &v1alpha1.Dashboard{}
+	cm := conditions.NewManager(dashboard, string(common.ConditionTypeReady), conditionDashboardAvailable)
+	target := dashboardAvailabilityTarget{deploymentName: deployment.Name, httpRouteName: route.Name}
+
+	retryAfter, err := reconciler.reconcileDashboardAvailability(context.Background(), dashboard, cm, target)
+	require.NoError(t, err)
+	assert.Equal(t, dashboardAvailabilityRetryInterval, retryAfter)
+	assert.Equal(t, "DeploymentNotAvailable", cm.GetCondition(conditionDashboardAvailable).Reason)
+	assert.False(t, cm.IsHappy())
+
+	current := &appsv1.Deployment{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(deployment), current))
+	one := int32(1)
+	current.Spec.Replicas = &one
+	require.NoError(t, cli.Update(context.Background(), current))
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(deployment), current))
+	current.Status.ObservedGeneration = current.Generation
+	current.Status.Replicas = 1
+	current.Status.UpdatedReplicas = 1
+	current.Status.ReadyReplicas = 1
+	current.Status.AvailableReplicas = 1
+	require.NoError(t, cli.Status().Update(context.Background(), current))
+
+	retryAfter, err = reconciler.reconcileDashboardAvailability(context.Background(), dashboard, cm, target)
+	require.NoError(t, err)
+	assert.Zero(t, retryAfter)
+	assert.Equal(t, "ResourcesAvailable", cm.GetCondition(conditionDashboardAvailable).Reason)
+	assert.True(t, cm.IsHappy())
+}
+
+func availabilityTestClient(t *testing.T, objects []client.Object, readError bool) client.Client {
+	t.Helper()
+	scheme := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, gatewayv1.Install(scheme))
+	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...)
+	if readError {
+		builder = builder.WithInterceptorFuncs(interceptor.Funcs{
+			Get: func(context.Context, client.WithWatch, client.ObjectKey, client.Object, ...client.GetOption) error {
+				return errors.New("API unavailable")
+			},
+		})
+	}
+	return builder.Build()
+}
+
+func availabilityDeployment(available bool) *appsv1.Deployment {
+	status := corev1.ConditionFalse
+	availableReplicas := int32(0)
+	if available {
+		status = corev1.ConditionTrue
+		availableReplicas = 1
+	}
+	replicas := int32(1)
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: availabilityTestNamespace},
+		Spec:       appsv1.DeploymentSpec{Replicas: &replicas},
+		Status: appsv1.DeploymentStatus{
+			ObservedGeneration: 0,
+			Replicas:           availableReplicas,
+			UpdatedReplicas:    availableReplicas,
+			ReadyReplicas:      availableReplicas,
+			AvailableReplicas:  availableReplicas,
+			Conditions:         []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: status}},
+		},
+	}
+}
+
+func availabilityRoute(parentName string, accepted, resolved metav1.ConditionStatus, observedGeneration int64) *gatewayv1.HTTPRoute {
+	return &gatewayv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: availabilityTestNamespace},
+		Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
+			ParentRefs: []gatewayv1.ParentReference{{Name: "gateway"}},
+		}},
+		Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: []gatewayv1.RouteParentStatus{{
+			ParentRef: gatewayv1.ParentReference{Name: gatewayv1.ObjectName(parentName)},
+			Conditions: []metav1.Condition{
+				{Type: string(gatewayv1.RouteConditionAccepted), Status: accepted, ObservedGeneration: observedGeneration},
+				{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: resolved, ObservedGeneration: observedGeneration},
+			},
+		}}}},
+	}
+}
+
+func TestRouteParentReferenceMatches(t *testing.T) {
+	group := gatewayv1.Group(gatewayv1.GroupName)
+	kind := gatewayv1.Kind("Gateway")
+	namespace := gatewayv1.Namespace(availabilityTestNamespace)
+	sectionName := gatewayv1.SectionName("https")
+	port := gatewayv1.PortNumber(443)
+
+	tests := []struct {
+		name     string
+		declared gatewayv1.ParentReference
+		reported gatewayv1.ParentReference
+		want     bool
+	}{
+		{
+			name:     "implicit defaults match explicit defaults",
+			declared: gatewayv1.ParentReference{Name: "gateway"},
+			reported: gatewayv1.ParentReference{Name: "gateway", Group: &group, Kind: &kind, Namespace: &namespace},
+			want:     true,
+		},
+		{
+			name:     "broad parent matches reported listener section and port",
+			declared: gatewayv1.ParentReference{Name: "gateway"},
+			reported: gatewayv1.ParentReference{Name: "gateway", SectionName: &sectionName, Port: &port},
+			want:     true,
+		},
+		{
+			name:     "explicit listener section does not match a different reported section",
+			declared: gatewayv1.ParentReference{Name: "gateway", SectionName: &sectionName},
+			reported: gatewayv1.ParentReference{Name: "gateway"},
+			want:     false,
+		},
+		{
+			name:     "explicit listener port does not match a different reported port",
+			declared: gatewayv1.ParentReference{Name: "gateway", Port: &port},
+			reported: gatewayv1.ParentReference{Name: "gateway"},
+			want:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, routeParentReferenceMatches(availabilityTestNamespace, tt.declared, tt.reported))
+		})
+	}
+}
+
+func TestHTTPRouteAvailableWithConcreteReportedListener(t *testing.T) {
+	sectionName := gatewayv1.SectionName("https")
+	port := gatewayv1.PortNumber(443)
+	route := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	route.Status.Parents[0].ParentRef.SectionName = &sectionName
+	route.Status.Parents[0].ParentRef.Port = &port
+
+	assert.True(t, httpRouteAvailable(route))
+}
+
+// The Deployment and HTTPRoute are always read directly, so availability converges even when Gateway API was
+// installed after operator startup and the cache has no HTTPRoute informer (ErrResourceNotCached).
+func TestReconcileDashboardAvailabilityReadsUncachedHTTPRouteDirectly(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, gatewayv1.Install(scheme))
+	route := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	apiReader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true), route).Build()
+
+	tests := []struct {
+		name       string
+		cacheErr   error
+		reader     client.Reader
+		wantReason string
+		wantRetry  time.Duration
+		wantReady  bool
+	}{
+		{
+			name:       "informer missing and route available",
+			cacheErr:   &ctrlcache.ErrResourceNotCached{GVK: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute")},
+			reader:     apiReader,
+			wantReason: "ResourcesAvailable",
+			wantReady:  true,
+		},
+		{
+			name:       "cache mapper predates Gateway API and route available",
+			cacheErr:   &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: gatewayv1.GroupName, Kind: "HTTPRoute"}},
+			reader:     apiReader,
+			wantReason: "ResourcesAvailable",
+			wantReady:  true,
+		},
+		{
+			name:     "Gateway API still not installed",
+			cacheErr: &ctrlcache.ErrResourceNotCached{GVK: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute")},
+			reader: fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true)).WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if _, ok := obj.(*gatewayv1.HTTPRoute); ok {
+						return &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: gatewayv1.GroupName, Kind: "HTTPRoute"}}
+					}
+					return delegate.Get(ctx, key, obj, opts...)
+				},
+			}).Build(),
+			wantReason: "HTTPRouteAPIUnavailable",
+			wantRetry:  dashboardAvailabilityRetryInterval,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cached := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true)).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+						if _, ok := obj.(*gatewayv1.HTTPRoute); ok {
+							return tt.cacheErr
+						}
+						return delegate.Get(ctx, key, obj, opts...)
+					},
+				}).Build()
+			reconciler := &DashboardReconciler{Client: cached, APIReader: tt.reader, ApplicationsNamespace: availabilityTestNamespace}
+			dashboard := &v1alpha1.Dashboard{}
+			cm := conditions.NewManager(dashboard, string(common.ConditionTypeReady), conditionDashboardAvailable)
+
+			retryAfter, err := reconciler.reconcileDashboardAvailability(context.Background(), dashboard, cm, dashboardAvailabilityTarget{
+				deploymentName: "dashboard",
+				httpRouteName:  route.Name,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantRetry, retryAfter)
+			assert.Equal(t, tt.wantReason, cm.GetCondition(conditionDashboardAvailable).Reason)
+			assert.Equal(t, tt.wantReady, cm.IsHappy())
+		})
+	}
+}
+
+// A cached route from before the apply must not make the Dashboard available: the direct read sees
+// the applied generation, whose conditions still refer to the previous one.
+func TestReconcileDashboardAvailabilityIgnoresStaleCachedHTTPRoute(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, gatewayv1.Install(scheme))
+	stale := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	applied := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	applied.Generation = 2
+	for i := range applied.Status.Parents {
+		for j := range applied.Status.Parents[i].Conditions {
+			applied.Status.Parents[i].Conditions[j].ObservedGeneration = 1
+		}
+	}
+	cached := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true), stale).Build()
+	reader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true), applied).Build()
+	reconciler := &DashboardReconciler{Client: cached, APIReader: reader, ApplicationsNamespace: availabilityTestNamespace}
+	dashboard := &v1alpha1.Dashboard{}
+	cm := conditions.NewManager(dashboard, string(common.ConditionTypeReady), conditionDashboardAvailable)
+
+	retryAfter, err := reconciler.reconcileDashboardAvailability(context.Background(), dashboard, cm, dashboardAvailabilityTarget{
+		deploymentName: "dashboard",
+		httpRouteName:  stale.Name,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, dashboardAvailabilityRetryInterval, retryAfter)
+	assert.Equal(t, "HTTPRouteNotAccepted", cm.GetCondition(conditionDashboardAvailable).Reason)
+	assert.False(t, cm.IsHappy())
+}
+
+// A cached Deployment from before a spec change still has matching generation and
+// observedGeneration. Availability must use the direct read, which shows the new generation
+// that has not been observed yet.
+func TestReconcileDashboardAvailabilityIgnoresStaleCachedDeployment(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, gatewayv1.Install(scheme))
+	route := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	applied := availabilityDeployment(true)
+	applied.Generation = 2
+	applied.Status.ObservedGeneration = 1
+	cached := fake.NewClientBuilder().WithScheme(scheme).WithObjects(availabilityDeployment(true), route).Build()
+	reader := fake.NewClientBuilder().WithScheme(scheme).WithObjects(applied, route).Build()
+	reconciler := &DashboardReconciler{Client: cached, APIReader: reader, ApplicationsNamespace: availabilityTestNamespace}
+	dashboard := &v1alpha1.Dashboard{}
+	cm := conditions.NewManager(dashboard, string(common.ConditionTypeReady), conditionDashboardAvailable)
+
+	_, err := reconciler.reconcileDashboardAvailability(context.Background(), dashboard, cm, dashboardAvailabilityTarget{
+		deploymentName: "dashboard",
+		httpRouteName:  route.Name,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "DeploymentRolloutInProgress", cm.GetCondition(conditionDashboardAvailable).Reason)
+}

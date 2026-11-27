@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,12 +15,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
@@ -60,19 +65,87 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	if err := addConfigMapWatches(mgr, controllerBuilder, r); err != nil {
 		return err
 	}
+	certificateWatched, err := addXKSCertificateWatch(mgr, controllerBuilder, r)
+	if err != nil {
+		return err
+	}
 	routeAPIAvailable, err := apiResourceAvailable(mgr.GetRESTMapper(), routev1.SchemeGroupVersion.WithKind("Route"))
 	if err != nil {
 		return fmt.Errorf("discovering OpenShift Route API: %w", err)
 	}
 	r.RouteAPIAvailable = routeAPIAvailable
-	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
+	httpRouteWatched, err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder)
+	if err != nil {
 		return err
 	}
 	dashboardController, err := controllerBuilder.Build(r)
 	if err != nil {
 		return err
 	}
+	// Hand the startup decisions to the late watches rather than rediscovering:
+	// an API that appears between the two checks would otherwise get no watch.
+	if err := addLateOptionalWatches(mgr, dashboardController, r, httpRouteWatched, certificateWatched); err != nil {
+		return err
+	}
 	return addOdhDashboardConfigWatch(mgr, dashboardController, r)
+}
+
+var certificateGVK = schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: "Certificate"}
+
+// addXKSCertificateWatch watches the one Certificate rendered for the XKS
+// dashboard. It uses its own selector-scoped cache so the shared manager cache
+// neither lists nor retains unrelated cert-manager Certificates.
+// It reports whether the watch was registered, so a missing API can be watched
+// later by addLateOptionalWatches.
+func addXKSCertificateWatch(mgr ctrl.Manager, controllerBuilder *builder.Builder, r *DashboardReconciler) (bool, error) {
+	if r.Platform != cluster.XKS {
+		return false, nil
+	}
+	available, err := apiResourceAvailable(mgr.GetRESTMapper(), certificateGVK)
+	if err != nil {
+		return false, fmt.Errorf("discovering cert-manager Certificate API: %w", err)
+	}
+	if !available {
+		ctrl.Log.Info("Certificate API is unavailable; skipping XKS Certificate watch", "groupVersionKind", certificateGVK.String())
+		return false, nil
+	}
+
+	certificateCache, err := newXKSCertificateCache(mgr, r.ApplicationsNamespace)
+	if err != nil {
+		return false, err
+	}
+	certificate := &unstructured.Unstructured{}
+	certificate.SetGroupVersionKind(certificateGVK)
+	controllerBuilder.WatchesRawSource(source.Kind(
+		certificateCache,
+		certificate,
+		handler.TypedEnqueueRequestsFromMapFunc(func(_ context.Context, certificate *unstructured.Unstructured) []reconcile.Request {
+			return r.mapXKSCertificateToDashboard(certificate)
+		}),
+		predicate.TypedFuncs[*unstructured.Unstructured]{
+			UpdateFunc: func(e event.TypedUpdateEvent[*unstructured.Unstructured]) bool {
+				return certificateChanged(e.ObjectOld, e.ObjectNew)
+			},
+		},
+	))
+	return true, nil
+}
+
+func (r *DashboardReconciler) mapXKSCertificateToDashboard(certificate client.Object) []reconcile.Request {
+	if certificate == nil || certificate.GetNamespace() != r.ApplicationsNamespace || certificate.GetName() != rhaiiDashboardTLSName {
+		return nil
+	}
+	return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}}}
+}
+
+// certificateChanged reports spec changes (generation) and metadata drift such
+// as removed labels or owner references, which leave the generation unchanged
+// but still need repair.
+func certificateChanged(oldObject, newObject client.Object) bool {
+	if oldObject == nil || newObject == nil {
+		return true
+	}
+	return oldObject.GetGeneration() != newObject.GetGeneration() || objectMetadataChanged(oldObject, newObject)
 }
 
 func serviceChangedPredicate() predicate.Predicate {
@@ -105,12 +178,18 @@ func objectMetadataChanged(oldObject, newObject client.Object) bool {
 		!equality.Semantic.DeepEqual(oldObject.GetDeletionTimestamp(), newObject.GetDeletionTimestamp())
 }
 
-func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *builder.Builder) error {
+// addOptionalOwnedResourceWatches registers Owns watches for the optional APIs
+// available at startup and reports whether the HTTPRoute watch was among them.
+func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *builder.Builder) (bool, error) {
 	resources, err := optionalOwnedResources(mapper)
 	if err != nil {
-		return err
+		return false, err
 	}
+	httpRouteWatched := false
 	for _, resource := range resources {
+		if _, ok := resource.(*gatewayv1.HTTPRoute); ok {
+			httpRouteWatched = true
+		}
 		// ConsoleLink is watched for ownership drift only and is never read from
 		// cache (teardown lists it directly via the API reader), so a metadata-only
 		// informer suffices. HTTPRoute status drives MaaS portal availability, so it
@@ -121,7 +200,7 @@ func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *
 		}
 		controllerBuilder.Owns(resource)
 	}
-	return nil
+	return httpRouteWatched, nil
 }
 
 func optionalOwnedResources(mapper meta.RESTMapper) ([]client.Object, error) {

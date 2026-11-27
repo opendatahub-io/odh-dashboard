@@ -99,7 +99,6 @@ func TestIntegration_ObservedGeneration_AdvancesOnlyAfterSuccessfulReconcile(t *
 
 	dashboard = getDashboard(t)
 	assert.Equal(t, dashboard.Generation, dashboard.Status.ObservedGeneration)
-	assertConditionStatus(t, dashboard, common.ConditionTypeReady, metav1.ConditionTrue)
 }
 
 func TestIntegration_PhaseTransitions_ReadyNotReady(t *testing.T) {
@@ -147,6 +146,7 @@ func setupStatusContractDashboard(t *testing.T, enabledModules []string) (*ctrlp
 	// The first reconcile adds the finalizer; the second runs the deployment pipeline.
 	reconcile(t, r)
 	reconcile(t, r)
+	establishDashboardAvailability(t, r, odhDashboardName)
 
 	return r, manifests
 }

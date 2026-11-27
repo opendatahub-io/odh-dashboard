@@ -6,7 +6,15 @@ spec:
   selector:
     deployment: rhaii-dashboard
   ports:
+    # kube-rbac-proxy terminates TLS on this port, so the Gateway must
+    # originate TLS for this hop. appProtocol only describes the port; it does
+    # not make a Gateway originate TLS. On xKS the platform GatewayConfig
+    # renders the Istio data-science-tls-rule DestinationRule (TLS on 8443),
+    # the same contract the OpenShift dashboard Service relies on. Other
+    # Gateway implementations need a BackendTLSPolicy; see
+    # docs/dashboard-operator-xks.md.
     - name: dashboard
       protocol: TCP
       port: 8443
-      targetPort: dashboard
+      appProtocol: https
+      targetPort: dashboard-ui

@@ -1,0 +1,197 @@
+# Dashboard Operator: RHAII/XKS
+
+This guide describes the XKS lifecycle for the standalone RHAII dashboard
+bundle. Read the [shared controller contract](dashboard-operator.md) for the
+common CRD, status, removal, and development behavior.
+
+## Scope
+
+XKS renders `manifests/distributions/rhaii`, a namespace-neutral standalone
+bundle with these primary resources:
+
+| Resource | Name |
+| --- | --- |
+| Deployment | `rhaii-dashboard` |
+| Service | `rhaii-dashboard` |
+| HTTPRoute | `rhaii-dashboard` |
+| Certificate and issued Secret | `rhaii-dashboard-tls` |
+| Supporting resources | ServiceAccount, RBAC, NetworkPolicy, and PodDisruptionBudget |
+
+This lifecycle intentionally does not use the OpenShift core overlay,
+federated BFF modules, observability, MaaS Portal, or OpenShift
+cross-namespace RBAC.
+
+### Why a standalone bundle
+
+The OpenShift overlays (`manifests/base`, `odh`, `rhoai`) and the module
+operands under `manifests/modules` assume OpenShift services that plain
+Kubernetes does not have. Examples are serving certificates from the
+`service.beta.openshift.io/serving-cert-secret-name` annotation, Routes and
+ConsoleLinks, and the federated module pods that the OpenShift core pod loads.
+Parameterizing every one of those for xKS would spread platform conditionals
+across the shared overlays and every module. Instead, xKS ships one
+namespace-neutral bundle with only what RHAII needs on Kubernetes:
+cert-manager for TLS, Gateway API for ingress, and kube-rbac-proxy for access
+control. OpenShift-only behavior stays out of it by construction.
+
+As a result, federated modules are not an xKS target. A module onboarded
+through the module registry deploys on ODH and RHOAI only. Running it on xKS
+needs explicit work in this bundle and lifecycle.
+
+## Gateway Prerequisites
+
+Gateway API must be installed. The Dashboard operator does not create the XKS
+authentication Gateway or its external hostname; it supplies the bundle's
+parent reference through Kustomize. By default the bundle targets:
+
+| Parameter | Default |
+| --- | --- |
+| `gateway-name` | `rh-ai-gateway` |
+| `gateway-namespace` | `rh-ai-gateway` |
+
+The Gateway's attachment policy must permit the HTTPRoute. The Gateway owns the
+external hostname, so this lifecycle intentionally leaves `status.url` empty.
+
+### Backend TLS
+
+kube-rbac-proxy terminates TLS on the `rhaii-dashboard` Service port 8443, so
+the Gateway must originate TLS for the Gateway-to-dashboard hop. The Service's
+`appProtocol: https` describes the port; it does not make a Gateway originate
+TLS. A Gateway that sends plaintext gets `400 Client sent an HTTP request to an
+HTTPS server` from the proxy, even while `DashboardAvailable=True`, because
+route admission does not prove reachability.
+
+On xKS, the platform `GatewayConfig` provisions the Istio `rh-ai-gateway` and
+renders the `data-science-tls-rule` DestinationRule in the Gateway namespace,
+which originates TLS on port 8443. This is the same contract the OpenShift
+dashboard Service relies on, so the bundle ships no TLS policy of its own.
+
+Other Gateway API implementations, such as Envoy Gateway, need a
+`BackendTLSPolicy` that targets the `rhaii-dashboard` Service, trusts the CA of
+the configured issuer through a ConfigMap, and validates the hostname
+`rhaii-dashboard.<applications namespace>.svc`. The bundle does not render one:
+the CA must be distributed into the applications namespace, and the
+BackendTLSPolicy CRD is optional.
+
+### Network policy
+
+The `rhaii-dashboard` NetworkPolicy admits port 8443 only from Pods that carry
+`gateway.networking.k8s.io/gateway-name: <gateway-name>` in the
+`<gateway-namespace>` namespace. This matches Istio, which runs the Gateway data
+plane in the Gateway's own namespace. Implementations that run proxies
+elsewhere are blocked: Envoy Gateway runs them in `envoy-gateway-system` by
+default and returns `503` until an additional NetworkPolicy admits them.
+
+Kubelet probes on the dashboard port 8080 and the kube-rbac-proxy health port
+8444 need no rule, because NetworkPolicy always admits traffic from a Pod's
+own node. Both ports stay closed to every other peer. Port 8080 is the
+plaintext upstream behind kube-rbac-proxy.
+
+## Configuration
+
+The operator deploys the bundle to `APPLICATIONS_NAMESPACE`; when that variable
+is unset, it uses the operator namespace. During managed reconciliation, the
+operator injects that namespace as `rhaii-dashboard-namespace`. This keeps
+namespaced resources, RBAC ServiceAccount subjects, and Certificate DNS names
+aligned. The checked-in parameter is only a standalone-render default; do not
+set a different value for an operator-managed deployment.
+
+| Environment variable | Override |
+| --- | --- |
+| `RELATED_IMAGE_ODH_RHAII_DASHBOARD_IMAGE` | RHAII dashboard image |
+| `RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE` | kube-rbac-proxy image |
+
+`RELATED_IMAGE_ODH_RHAII_DASHBOARD_IMAGE` is required for now. The checked-in
+`quay.io/opendatahub/rhaii-dashboard:main` reference is a placeholder for the
+image that has not been published yet, so without the override the Deployment
+stays in `ImagePullBackOff`. Once the image ships, that reference becomes a
+development fallback, not a release selection mechanism.
+
+### Certificate issuer contract
+
+XKS uses cert-manager to maintain the TLS Secret mounted by kube-rbac-proxy.
+The operator reads the issuer reference from the platform-managed Dashboard
+ConfigMap in the operator namespace. The ConfigMap name defaults to
+`odh-dashboard-config` and can be supplied by `OPERATOR_CONFIGMAP_NAME`.
+
+| ConfigMap key | Purpose |
+| --- | --- |
+| `CERT_MANAGER_ISSUER_REF_NAME` | Name of the issuer used by the dashboard Certificate |
+| `CERT_MANAGER_ISSUER_REF_KIND` | Kind of that issuer, such as `ClusterIssuer` or a supported third-party issuer kind |
+| `CERT_MANAGER_ISSUER_REF_GROUP` | Optional API group for a supported third-party issuer; defaults to `cert-manager.io` |
+
+Name and kind are required and validated before rendering. When group is not
+published, the controller uses the native cert-manager API group. The resulting
+`rhaii-dashboard-tls` Certificate and issued Secret are created in the
+applications namespace. Its DNS SANs identify the dashboard Service in that
+namespace.
+
+### Controller Certificate RBAC
+
+The Certificate belongs to the applications namespace, while XKS can run the
+Dashboard operator in a separate operator namespace. Install the controller
+chart with `xks.enabled: true` and `applicationsNamespace` set to that
+applications namespace. The chart then creates a namespaced Role and
+RoleBinding that bind the operator ServiceAccount across namespaces, and sets
+`ODH_PLATFORM_TYPE=XKS` on the controller: platform detection only recognizes
+OpenShift variants, so without it a plain Kubernetes install would run the ODH
+lifecycle.
+
+The binding permits only the fixed `rhaii-dashboard-tls` Certificate. It does
+not grant cluster-wide Certificate access. Platform installers must pass the
+same applications namespace to the chart and the controller's
+`APPLICATIONS_NAMESPACE`; Helm rendering cannot derive a Role namespace from a
+runtime environment variable.
+
+### Access policy
+
+kube-rbac-proxy authorizes each authenticated request with a
+SubjectAccessReview for the synthetic capability
+`dashboard.opendatahub.io/rhaii-dashboard-access` with verb `list`. The bundle
+creates the corresponding `rhaii-dashboard-access` ClusterRole but deliberately
+does not bind it. The XKS installer or platform administrator must bind that
+role to the identities allowed to use the dashboard.
+
+## Conditions
+
+| Condition | XKS meaning |
+| --- | --- |
+| `ProvisioningSucceeded` | The RHAII bundle rendered and applied. |
+| `DashboardAvailable` | The Deployment has observed its current generation and completed its rollout; the HTTPRoute is accepted with resolved references for a declared parent at its current generation. |
+| `Ready` | Provisioning and dashboard availability succeeded and no XKS degradation is reported. |
+
+A rollout or Gateway admission wait is normal progress, reported as
+`DashboardAvailable=False`, rather than `Degraded`. A rolling update of a
+Deployment that is still serving from available pods reports
+`DashboardAvailable=False` with reason `DeploymentRolloutInProgress` at Info
+severity, so `Ready` stays `True`; a rollout that exceeds its progress deadline
+or has no available pods sets `Ready=False`.
+
+## Removal
+
+`managementState: Removed` tears down the standalone bundle and clears its
+status. It deletes the fixed managed Certificate and its issued TLS Secret
+explicitly because cert-manager does not label the output Secret for the
+ordinary managed-resource sweep. It does not run OpenShift migration cleanup
+because the environments are mutually exclusive.
+
+CR deletion is distinct from soft removal. Finalization relies on owner
+references for the namespaced bundle and waits for managed workloads to
+terminate before releasing their NetworkPolicy. XKS creates no
+cross-namespace resources requiring explicit finalizer cleanup.
+
+## Troubleshooting
+
+| Reason | Meaning | Action |
+| --- | --- | --- |
+| `DeploymentNotFound` | The primary workload has not appeared. | Check rendering, apply status, and namespace. |
+| `DeploymentNotAvailable` | The workload has not completed rollout. | Inspect Deployment conditions and Pods. |
+| `HTTPRouteNotFound` | The route has not appeared. | Check rendering, apply status, and namespace. |
+| `HTTPRouteNotAccepted` | The Gateway has not accepted the route or resolved its backend. | Inspect HTTPRoute parent status, Gateway policy, and Service. |
+| `RequiredAPIUnavailable` | cert-manager or Gateway API CRDs are not installed, so the bundle cannot be applied. | Install the missing CRDs; the operator retries every 30 seconds without a restart. |
+| `HTTPRouteAPIUnavailable` | The Gateway API HTTPRoute resource is not installed. | Install Gateway API; availability converges without an operator restart. |
+| `DeploymentRolloutInProgress` | A rolling update is in progress while available Pods keep serving (Info severity). | None; `Ready` stays `True` unless the rollout stalls. |
+| `400 Client sent an HTTP request to an HTTPS server` through the Gateway | The Gateway is not originating TLS to port 8443. | See [Backend TLS](#backend-tls). |
+| `Ready=False` after apply | Availability or a diagnosed condition is still false. | Start with `DashboardAvailable`, then inspect the condition message. |
+
+For bundle parameters and local rendering, see the [manifest guide](../manifests/README.md).

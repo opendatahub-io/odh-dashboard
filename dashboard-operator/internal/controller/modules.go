@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -160,7 +161,7 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 	now := metav1.Now()
 	result := make(map[string]v1alpha1.ModuleStatus, len(moduleRegistry))
 
-	coreRequiresModules := spec.ManagementState != "Removed"
+	coreRequiresModules := spec.ManagementState != common.Removed
 	portal := effectiveMaaSPortal(*spec)
 	maasPortalRequiresModules := portal != nil && portal.ManagementState == "Managed"
 

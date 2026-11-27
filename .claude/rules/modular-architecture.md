@@ -39,6 +39,8 @@ The host app (`frontend/`) uses Module Federation (`@module-federation/enhanced`
 > - Enforce HTTPS origins in non-local environments.
 > - Reject unknown/unsigned remote entries and fail closed.
 
+> **xKS is not a module target.** The dashboard operator's XKS lifecycle deploys only the standalone RHAII bundle (`manifests/distributions/rhaii`); it does not render `manifests/modules` or the OpenShift core pod that loads federated remotes. Onboarding a module does not make it available on xKS. See [docs/dashboard-operator-xks.md](../../docs/dashboard-operator-xks.md#why-a-standalone-bundle).
+
 ## Extension point types (quick reference)
 
 Full details in [docs/extensibility.md](../../docs/extensibility.md).

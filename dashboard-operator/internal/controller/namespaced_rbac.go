@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	dashboardSANameODH   = "odh-dashboard"
-	dashboardSANameRHOAI = "rhods-dashboard"
+	dashboardSANameODH   = odhDashboardResourceName
+	dashboardSANameRHOAI = rhoaiDashboardResourceName
 
 	namespacedRBACManagedLabel = "dashboard.opendatahub.io/namespaced-rbac"
 )
@@ -35,7 +35,7 @@ var errNamespacedRBACConsentMissing = errors.New("namespaced RBAC consent is mis
 // dashboardSAName returns the dashboard ServiceAccount name for the given platform.
 func dashboardSAName(platform cluster.Platform) string {
 	switch platform {
-	case cluster.SelfManagedRhoai, cluster.ManagedRhoai:
+	case cluster.SelfManagedRhoai:
 		return dashboardSANameRHOAI
 	default:
 		return dashboardSANameODH

@@ -9,10 +9,19 @@ spec:
   policyTypes:
     - Ingress
     - Egress
+  # Kubelet probes (dashboard :8080, kube-rbac-proxy health :8444) need no
+  # rule: NetworkPolicy always admits traffic from the Pod's own node. Those
+  # ports stay closed to every other peer; :8080 is the plaintext upstream
+  # behind kube-rbac-proxy and must only be reached over loopback.
   ingress:
     # Only the configured Gateway's data-plane Pods can reach the dashboard.
     # Match the standard Gateway API label as well as its namespace so that
     # other workloads in the Gateway namespace cannot access the Service.
+    # This assumes the Gateway implementation runs its data plane in the
+    # Gateway's namespace with that label, as Istio does for the xKS platform
+    # Gateway. Implementations that run proxies elsewhere (Envoy Gateway's
+    # default envoy-gateway-system) are not admitted; see
+    # docs/dashboard-operator-xks.md.
     - from:
         - namespaceSelector:
             matchLabels:

@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rhaii-dashboard-tls
+spec:
+  secretName: rhaii-dashboard-tls
+  # The namespace segment is replaced from rhaii-dashboard-namespace (see
+  # kustomization.yaml replacements).
+  dnsNames:
+    - rhaii-dashboard.rhaii-dashboard-namespace.svc
+    - rhaii-dashboard.rhaii-dashboard-namespace.svc.cluster.local
+  duration: 8760h
+  renewBefore: 720h
+  issuerRef:
+    # The xKS lifecycle resolves these parameters from the platform-managed
+    # Dashboard ConfigMap before rendering this bundle.
+    group: certificate-issuer-group
+    kind: certificate-issuer-kind
+    name: certificate-issuer-name
