@@ -160,7 +160,9 @@ describe('Subscriptions Page', () => {
     pendingRow.findPhase().should('contain.text', 'Pending');
 
     subscriptionsPage.filterByTypeahead('subscription', 'premium');
-    subscriptionsPage.findRows().should('have.length', 1);
+    // The fragment matches the Premium subscription's display name and the
+    // deleting subscription's premium-users group
+    subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().should('exist').click();
     subscriptionsPage.findRows().should('have.length', 8);
 
@@ -219,8 +221,8 @@ describe('Subscriptions Page', () => {
     // The fragment matches the Enterprise subscription's display name and the
     // Premium subscription's description
     subscriptionsPage.findRows().should('have.length', 2);
-    subscriptionsPage.getRow('Premium Team Subscription').should('exist');
-    subscriptionsPage.getRow('Enterprise Multi-Group Llama Access').should('exist');
+    subscriptionsPage.getRow('Premium Team Subscription').findName().should('exist');
+    subscriptionsPage.getRow('Enterprise Multi-Group Llama Access').findName().should('exist');
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
 
@@ -361,7 +363,9 @@ describe('View Subscription Page', () => {
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     subscriptionsPage.filterByTypeahead('subscription', 'premium');
-    subscriptionsPage.findRows().should('have.length', 1);
+    // The fragment matches the Premium subscription's display name and the
+    // deleting subscription's premium-users group
+    subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
 
