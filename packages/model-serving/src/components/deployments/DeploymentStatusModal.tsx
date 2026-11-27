@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   Button,
   Content,
   ContentVariants,
@@ -45,7 +46,15 @@ import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
-import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/k8s-core/kueue/types';
+import {
+  KueueWorkloadStatus,
+  KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT,
+} from '@odh-dashboard/k8s-core/kueue/types';
+import {
+  appendModelDeploymentPodAdmissionSuffix,
+  formatQueuePosition,
+  getQueuePosition,
+} from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import {
   ModelStatusIcon,
   getDeploymentStatusSubtitleColor,
@@ -227,6 +236,41 @@ const DeploymentProgressDisclaimer: React.FC = () => (
   </HelperText>
 );
 
+const DeploymentKueueAlert: React.FC<{
+  deploymentStatus?: DeploymentStatus | null;
+}> = ({ deploymentStatus }) => {
+  const kueueStatus = deploymentStatus?.kueueStatus;
+  if (
+    !kueueStatus ||
+    deploymentStatus.stoppedStates?.isStopped ||
+    deploymentStatus.stoppedStates?.isStopping ||
+    (kueueStatus.status !== KueueWorkloadStatus.Queued &&
+      kueueStatus.status !== KueueWorkloadStatus.Admitted) ||
+    (kueueStatus.status === KueueWorkloadStatus.Admitted &&
+      deploymentStatus.state !== ModelDeploymentState.PENDING &&
+      deploymentStatus.state !== ModelDeploymentState.LOADING)
+  ) {
+    return null;
+  }
+
+  const { status, queueName } = kueueStatus;
+  const title = appendModelDeploymentPodAdmissionSuffix(
+    status === KueueWorkloadStatus.Admitted
+      ? 'Kueue has admitted this job, looking for available resources to start.'
+      : `Queued: Waiting for quota in ${queueName ?? 'the queue'}`,
+    kueueStatus,
+  );
+  const queuePosition = getQueuePosition(kueueStatus);
+
+  return (
+    <StackItem>
+      <Alert variant="info" isInline title={title} data-testid="deployment-status-kueue-alert">
+        {queuePosition && formatQueuePosition(queuePosition.position, queuePosition.queue)}
+      </Alert>
+    </StackItem>
+  );
+};
+
 const DeploymentProgressTab: React.FC<{
   conditions: DeploymentCondition[];
   deploymentStatus?: DeploymentStatus | null;
@@ -343,6 +387,7 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
       />
       <ModalBody>
         <Stack hasGutter>
+          <DeploymentKueueAlert deploymentStatus={deployment.status} />
           <StackItem>
             {/* Tab strip is always shown, even when Resources is the only conditional tab, so
                 the modal shape stays consistent as more tabs (e.g. Events) are added later. */}

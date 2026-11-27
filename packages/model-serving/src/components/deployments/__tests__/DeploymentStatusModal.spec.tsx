@@ -1,6 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { screen, fireEvent } from '@testing-library/react';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import type { Deployment, DeploymentCondition } from '../../../../extension-points';
 import { ModelDeploymentState } from '../../../shared/types';
 import DeploymentStatusModal from '../DeploymentStatusModal';
@@ -212,6 +213,73 @@ describe('DeploymentStatusModal', () => {
     expect(
       screen.getByText('Steps may occur in any order, depending on the deployment type.'),
     ).toBeInTheDocument();
+  });
+
+  it('should show the queued Kueue state and position in an inline alert', () => {
+    const deployment = createMockDeployment([], {
+      kueueStatus: {
+        status: KueueWorkloadStatus.Queued,
+        queueName: 'constrained-queue',
+        queuePosition: 2,
+      },
+    });
+
+    render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
+
+    const alert = screen.getByTestId('deployment-status-kueue-alert');
+    expect(alert).toHaveTextContent('Queued: Waiting for quota in constrained-queue');
+    expect(alert).toHaveTextContent('2nd in constrained-queue');
+    expect(
+      alert.compareDocumentPosition(screen.getByTestId('deployment-status-tabs')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it.each([
+    ['Stopped', { isRunning: false, isStopped: true, isStarting: false, isStopping: false }],
+    ['Stopping', { isRunning: false, isStopped: false, isStarting: false, isStopping: true }],
+  ])('should not show a queued alert when the deployment is %s', (statusLabel, stoppedStates) => {
+    const deployment = createMockDeployment([], {
+      state: ModelDeploymentState.UNKNOWN,
+      stoppedStates,
+      kueueStatus: { status: KueueWorkloadStatus.Queued, queueName: 'constrained-queue' },
+    });
+
+    render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
+
+    expect(screen.getByText(statusLabel)).toBeInTheDocument();
+    expect(screen.queryByTestId('deployment-status-kueue-alert')).not.toBeInTheDocument();
+  });
+
+  it('should show the admitted Kueue message without a queue position', () => {
+    const deployment = createMockDeployment([], {
+      state: ModelDeploymentState.LOADING,
+      kueueStatus: { status: KueueWorkloadStatus.Admitted, queueName: 'constrained-queue' },
+    });
+
+    render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
+
+    const alert = screen.getByTestId('deployment-status-kueue-alert');
+    expect(alert).toHaveTextContent(
+      'Kueue has admitted this job, looking for available resources to start.',
+    );
+    expect(alert).not.toHaveTextContent('in constrained-queue');
+  });
+
+  it('should not show the starting message for a ready deployment', () => {
+    const deployment = createMockDeployment([], {
+      kueueStatus: { status: KueueWorkloadStatus.Admitted, queueName: 'constrained-queue' },
+    });
+
+    render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
+
+    expect(screen.queryByTestId('deployment-status-kueue-alert')).not.toBeInTheDocument();
+  });
+
+  it('should not show the Kueue alert without a waiting or admitted workload', () => {
+    render(<DeploymentStatusModal deployment={createMockDeployment([])} onClose={jest.fn()} />);
+
+    expect(screen.queryByTestId('deployment-status-kueue-alert')).not.toBeInTheDocument();
   });
 
   it('should always show the tab strip with a Progress tab, even when Kueue/Resources is not available', () => {
