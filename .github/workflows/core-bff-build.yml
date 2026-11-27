@@ -9,6 +9,12 @@ on:
       - '!DOCKERFILE*'
       - '!**.gitignore'
       - '!**.md'
+      # The bundle RBAC guard (bff/internal/bundlecontract) reads these: the
+      # RHAII bundle, the contract table it is checked against, and the
+      # operator's kustomize version it must render with.
+      - 'manifests/distributions/rhaii/**'
+      - 'distributions/core-bff/docs/bootstrap-contract.md'
+      - 'dashboard-operator/go.mod'
 
   pull_request:
     paths:
@@ -19,6 +25,12 @@ on:
       - '!DOCKERFILE*'
       - '!**.gitignore'
       - '!**.md'
+      # The bundle RBAC guard (bff/internal/bundlecontract) reads these: the
+      # RHAII bundle, the contract table it is checked against, and the
+      # operator's kustomize version it must render with.
+      - 'manifests/distributions/rhaii/**'
+      - 'distributions/core-bff/docs/bootstrap-contract.md'
+      - 'dashboard-operator/go.mod'
 
 permissions:
   contents: read

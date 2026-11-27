@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
@@ -19,9 +20,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -305,9 +309,22 @@ func TestGetConfig_TheShippedRoleServesTheProvisionedInstance_XKS(t *testing.T) 
 		},
 	}}})
 	require.NoError(t, err)
-	// Other tests in this package rely on the CRD being absent; wait until it is gone.
+	// Other tests in this package rely on the API being absent. UninstallCRDs
+	// only deletes, so wait until the CRD is gone and discovery stops serving it.
 	t.Cleanup(func() {
 		require.NoError(t, envtest.UninstallCRDs(testEnvInstance.Config, envtest.CRDInstallOptions{CRDs: crds}))
+		ext, err := apiextensionsclient.NewForConfig(testEnvInstance.Config)
+		require.NoError(t, err)
+		disc, err := discovery.NewDiscoveryClientForConfig(testEnvInstance.Config)
+		require.NoError(t, err)
+		require.Eventually(t, func() bool {
+			_, err := ext.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), "odhdashboardconfigs.opendatahub.io", metav1.GetOptions{})
+			if !k8serrors.IsNotFound(err) {
+				return false
+			}
+			_, err = disc.ServerResourcesForGroupVersion("opendatahub.io/v1alpha")
+			return k8serrors.IsNotFound(err)
+		}, 30*time.Second, 100*time.Millisecond, "the OdhDashboardConfig API must be gone before other tests run")
 	})
 
 	read := func(t *testing.T, rules []rbacv1.PolicyRule) map[string]any {

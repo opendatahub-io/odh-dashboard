@@ -629,6 +629,21 @@ targets:
 	})
 }
 
+// The guard claims to render the bundle the way the dashboard operator does,
+// and kustomize semantics (regex selectors, for one) differ between versions.
+// Keep the two modules on the same kustomize/api release.
+func TestKustomizeMatchesTheOperator(t *testing.T) {
+	version := func(path string) string {
+		raw, err := os.ReadFile(filepath.Clean(path))
+		require.NoError(t, err)
+		m := regexp.MustCompile(`(?m)^\s*sigs\.k8s\.io/kustomize/api (v\S+)`).FindSubmatch(raw)
+		require.NotNil(t, m, "%s does not require sigs.k8s.io/kustomize/api", path)
+		return string(m[1])
+	}
+	assert.Equal(t, version("../../../../../dashboard-operator/go.mod"), version("../../go.mod"),
+		"bump sigs.k8s.io/kustomize/api in distributions/core-bff/bff/go.mod to the operator's version")
+}
+
 func copyDirInto(fs filesys.FileSystem, src, dst string) error {
 	entries, err := os.ReadDir(src)
 	if err != nil {
