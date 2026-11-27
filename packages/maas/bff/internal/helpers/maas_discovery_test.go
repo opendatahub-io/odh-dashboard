@@ -3,10 +3,13 @@ package helper
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -460,6 +463,66 @@ func TestDiscoverMaasApiURLWithToken_HTTP(t *testing.T) {
 		}, logger, nil, token)
 		if err == nil {
 			t.Fatal("expected error for malformed JSON response")
+		}
+	})
+}
+
+func TestRestConfigForDiscovery_KubeconfigFallback(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	writeKubeconfig := func(t *testing.T, token string) string {
+		t.Helper()
+		dir := t.TempDir()
+		path := filepath.Join(dir, "config")
+		kubeconfig := fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters:
+- name: test
+  cluster:
+    server: https://127.0.0.1:6443
+    insecure-skip-tls-verify: true
+contexts:
+- name: test
+  context:
+    cluster: test
+    user: test
+current-context: test
+users:
+- name: test
+  user:
+    token: %s
+`, token)
+		if err := os.WriteFile(path, []byte(kubeconfig), 0o600); err != nil {
+			t.Fatalf("write kubeconfig: %v", err)
+		}
+		return path
+	}
+
+	t.Run("falls back to kubeconfig bearer token", func(t *testing.T) {
+		t.Setenv("KUBECONFIG", writeKubeconfig(t, "runner-oc-session-token"))
+		// In-cluster config is unavailable in tests, so the fallback path runs.
+		cfg, err := restConfigForDiscovery(logger)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if cfg.BearerToken != "runner-oc-session-token" {
+			t.Fatalf("bearer token = %q, want runner-oc-session-token", cfg.BearerToken)
+		}
+	})
+
+	t.Run("errors when kubeconfig has no token", func(t *testing.T) {
+		t.Setenv("KUBECONFIG", writeKubeconfig(t, ""))
+		_, err := restConfigForDiscovery(logger)
+		if err == nil {
+			t.Fatal("expected error when kubeconfig has no bearer token")
+		}
+	})
+
+	t.Run("errors when kubeconfig is missing", func(t *testing.T) {
+		t.Setenv("KUBECONFIG", filepath.Join(t.TempDir(), "does-not-exist"))
+		_, err := restConfigForDiscovery(logger)
+		if err == nil {
+			t.Fatal("expected error when no kubeconfig is available")
 		}
 	})
 }

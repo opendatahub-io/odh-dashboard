@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -118,15 +119,38 @@ func ResolveMaasApiInternalURL(cfg config.EnvConfig) (string, error) {
 	return fmt.Sprintf("https://%s.%s.svc.cluster.local:%d", maasAPIServiceName, namespace, maasAPIServicePort), nil
 }
 
+// restConfigForDiscovery returns a rest config with a bearer token for /v1/tenants discovery.
+// In-cluster (service account) is preferred. When the BFF runs outside the cluster
+// (e.g. e2e on a CI runner with an oc login session), it falls back to the local
+// kubeconfig so discovery still has a token to authenticate with.
+func restConfigForDiscovery(logger *slog.Logger) (*clientRest.Config, error) {
+	restCfg, inClusterErr := clientRest.InClusterConfig()
+	if inClusterErr == nil && restCfg.BearerToken != "" {
+		return restCfg, nil
+	}
+	if inClusterErr != nil {
+		logger.Info("Not running in-cluster; falling back to kubeconfig for maas-api tenant discovery",
+			"error", inClusterErr)
+	} else {
+		logger.Info("In-cluster config has no bearer token; falling back to kubeconfig for maas-api tenant discovery")
+	}
+
+	kubeCfg, kubeErr := GetKubeconfig()
+	if kubeErr != nil {
+		return nil, fmt.Errorf("load kubeconfig for maas-api tenant discovery (in-cluster: %v, kubeconfig: %w)", inClusterErr, kubeErr)
+	}
+	if kubeCfg.BearerToken == "" {
+		return nil, fmt.Errorf("kubeconfig has no bearer token for maas-api tenant discovery")
+	}
+	return kubeCfg, nil
+}
+
 // DiscoverMaasApiURL calls GET /v1/tenants on the internal maas-api Service and returns
 // the external gateway URL with /maas-api suffix for passthrough calls.
 func DiscoverMaasApiURL(ctx context.Context, cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool) (string, error) {
-	restCfg, err := clientRest.InClusterConfig()
+	restCfg, err := restConfigForDiscovery(logger)
 	if err != nil {
-		return "", fmt.Errorf("load in-cluster config for maas-api tenant discovery: %w", err)
-	}
-	if restCfg.BearerToken == "" {
-		return "", fmt.Errorf("in-cluster config has no bearer token for maas-api tenant discovery")
+		return "", err
 	}
 
 	// When internal URL/namespace are not overridden, resolve infra NS from DSC product type.
@@ -158,7 +182,14 @@ func discoverMaasApiURLWithToken(ctx context.Context, cfg config.EnvConfig, logg
 		return "", fmt.Errorf("build tenants discovery URL: %w", err)
 	}
 
+	var proxyFunc func(*http.Request) (*url.URL, error)
+	if os.Getenv("E2E_USE_PROXY_FROM_ENV") == "true" {
+		// Match MaasClient: on e2e runners the internal maas-api Service may only be
+		// reachable through the environment proxy.
+		proxyFunc = http.ProxyFromEnvironment
+	}
 	transport := &http.Transport{
+		Proxy: proxyFunc,
 		TLSClientConfig: &tls.Config{
 			RootCAs:            rootCAs,
 			InsecureSkipVerify: cfg.InsecureSkipVerify,

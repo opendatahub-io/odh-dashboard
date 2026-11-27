@@ -1191,13 +1191,23 @@ jobs:
           echo "📦 Warming Go module cache..."
           (cd packages/gen-ai/bff && go mod download 2>&1) || echo "⚠️ go mod download had errors"
 
-          # Set MAAS_API_URL from cluster domain so maas BFF skips oc auto-detection
-          CLUSTER_DOMAIN=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}' 2>/dev/null || true)
-          if [ -n "$CLUSTER_DOMAIN" ]; then
-            echo "MAAS_API_URL=https://maas.${CLUSTER_DOMAIN}/maas-api" >> $GITHUB_ENV
-            echo "✅ MAAS_API_URL set from cluster domain: $CLUSTER_DOMAIN"
+          # Set MAAS_API_URL from cluster domain so maas BFF skips oc auto-detection.
+          # The @MaaSCI job intentionally leaves MAAS_API_URL unset so the maas BFF
+          # performs real /v1/tenants discovery (RHAI-50079): MAAS_BFF_DISCOVERY makes
+          # the maas Makefile pass the empty URL through, and MAAS_DISCOVERY_STRICT
+          # fails the BFF (and this job) if discovery fails instead of silently
+          # falling back. All other jobs keep the hard-coded URL behavior.
+          if [[ "$MATRIX_TAG" == *"@MaaSCI"* ]]; then
+            echo "MAAS_BFF_DISCOVERY=true" >> $GITHUB_ENV
+            echo "🔍 @MaaSCI job: leaving MAAS_API_URL unset so maas BFF runs real /v1/tenants discovery"
           else
-            echo "⚠️ Could not detect cluster domain — maas BFF will attempt auto-detection"
+            CLUSTER_DOMAIN=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}' 2>/dev/null || true)
+            if [ -n "$CLUSTER_DOMAIN" ]; then
+              echo "MAAS_API_URL=https://maas.${CLUSTER_DOMAIN}/maas-api" >> $GITHUB_ENV
+              echo "✅ MAAS_API_URL set from cluster domain: $CLUSTER_DOMAIN"
+            else
+              echo "⚠️ Could not detect cluster domain — maas BFF will attempt auto-detection"
+            fi
           fi
 
       - name: Kill stale processes from previous runs

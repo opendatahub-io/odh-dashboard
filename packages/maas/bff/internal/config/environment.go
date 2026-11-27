@@ -119,11 +119,16 @@ type EnvConfig struct {
 	FederatedPlatform bool
 
 	// MaaS
-	GatewayNamespace          string
-	GatewayName               string
-	MaasApiUrl                string
-	MaasApiInternalUrl        string
-	MaasApiNamespace          string
+	GatewayNamespace   string
+	GatewayName        string
+	MaasApiUrl         string
+	MaasApiInternalUrl string
+	MaasApiNamespace   string
+	// MaasDiscoveryStrict makes maas-api URL discovery failure fatal at startup
+	// instead of starting degraded with background retries. Intended for CI runs
+	// that must exercise real discovery (see RHAI-50079). Only meaningful when
+	// MaasApiUrl is empty.
+	MaasDiscoveryStrict       bool
 	MaaSSubscriptionNamespace string
 	// PersesNamespace is the namespace containing the approved MaaS usage dashboards.
 	PersesNamespace string
