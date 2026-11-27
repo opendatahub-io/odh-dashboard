@@ -11,7 +11,7 @@
     "test-unit-coverage": "jest --silent --coverage",
     "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
     "update-subtree-local": "package-subtree-local --package=@odh-dashboard/model-registry",
-    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-mr-client --mock-mr-catalog-client' odh-ct-bff-consumer --bff-dir upstream/bff",
+    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-mr-client --mock-mr-catalog-client --oci-base-image-config-namespace=kubeflow' odh-ct-bff-consumer --bff-dir upstream/bff",
     "cypress:mock:build": "pnpm run cypress:server:build",
     "cypress:mock:build:coverage": "pnpm run cypress:server:build:coverage",
     "cypress:mock:dev": "pnpm run cypress:server:dev",
