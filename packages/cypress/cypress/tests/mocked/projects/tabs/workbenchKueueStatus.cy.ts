@@ -22,16 +22,32 @@ import { EventModel, ProjectModel, SelfSubjectAccessReviewModel } from '../../..
 import { workbenchPage, workbenchStatusModal } from '../../../../pages/workbench';
 
 const mockCanViewClusterQueue = (allowed = true) =>
-  cy.interceptK8s(
-    'POST',
-    SelfSubjectAccessReviewModel,
-    mockSelfSubjectAccessReview({
-      group: ClusterQueueModel.apiGroup,
-      resource: ClusterQueueModel.plural,
-      verb: 'get',
-      allowed,
-    }),
-  );
+  cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+    const { resourceAttributes } = req.body.spec;
+
+    if (!resourceAttributes) {
+      req.reply(mockSelfSubjectAccessReview({ allowed: true }));
+      return;
+    }
+
+    const isClusterQueueAccessReview =
+      resourceAttributes.group === ClusterQueueModel.apiGroup &&
+      resourceAttributes.resource === ClusterQueueModel.plural &&
+      resourceAttributes.verb === 'get';
+
+    if (isClusterQueueAccessReview) {
+      // Cypress supports request-scoped aliases through this property.
+      // eslint-disable-next-line no-param-reassign
+      req.alias = 'clusterQueueAccessReview';
+    }
+
+    req.reply(
+      mockSelfSubjectAccessReview({
+        ...resourceAttributes,
+        allowed: isClusterQueueAccessReview ? allowed : true,
+      }),
+    );
+  });
 
 const notebookWithKueueQueue = mockNotebookK8sResource({
   lastImageSelection: 'test-imagestream:1.2',
@@ -80,9 +96,9 @@ const mockNotebookEvents = [
   },
 ];
 
-const initKueueEnabledForStatusModal = () => {
+const initKueueEnabledForStatusModal = (canViewClusterQueue = true) => {
   initIntercepts({ notebooks: [notebookWithKueueQueue] });
-  mockCanViewClusterQueue();
+  mockCanViewClusterQueue(canViewClusterQueue);
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
@@ -187,7 +203,7 @@ describe('Workbench page — Kueue & Status', () => {
     workbenchStatusModal.findEventlogTab().should('be.visible').click();
     cy.findByTestId('event-logs').should('be.visible');
 
-    cy.findByTestId('expand-resources').should('not.exist');
+    workbenchStatusModal.findResourcesTab().should('not.exist');
   });
 
   it('Resources tab is visible when Kueue is enabled and component is present', () => {
@@ -201,6 +217,26 @@ describe('Workbench page — Kueue & Status', () => {
     workbenchStatusModal.findProgressTab().should('be.visible');
     workbenchStatusModal.findEventlogTab().should('be.visible');
     workbenchStatusModal.findResourcesTab().should('be.visible');
+  });
+
+  it('Resources tab is hidden when user cannot view ClusterQueues', () => {
+    initKueueEnabledForStatusModal(false);
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
+    notebookRow.findHaveNotebookStatusText().click();
+
+    workbenchStatusModal.find().should('be.visible');
+    workbenchStatusModal.findProgressTab().should('be.visible');
+    workbenchStatusModal.findEventlogTab().should('be.visible');
+    cy.wait('@clusterQueueAccessReview')
+      .its('request.body.spec.resourceAttributes')
+      .should('deep.include', {
+        group: ClusterQueueModel.apiGroup,
+        resource: ClusterQueueModel.plural,
+        verb: 'get',
+      });
+    workbenchStatusModal.findResourcesTab().should('not.exist');
   });
 
   it('Workbench status modal Resources tab displays cluster queue info when Kueue is enabled', () => {
