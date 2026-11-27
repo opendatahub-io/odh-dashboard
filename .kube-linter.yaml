@@ -1,0 +1,186 @@
+# kube-linter configuration for odh-dashboard manifests.
+#
+# Attribution: adapted from the OpenDataHub operator baseline
+#   https://raw.githubusercontent.com/opendatahub-io/opendatahub-operator/4558b26044ce3ed76719e6fb3461357decb5a0b6/.kube-linter.yaml
+#   revision 4558b26044ce3ed76719e6fb3461357decb5a0b6 (2026-01-22)
+#
+# Adaptation record (RHAI-60105 assessment, 2026-11-27, kube-linter v0.8.3):
+#   * Three namespace-composition checks are omitted with rationale below; every
+#     other baseline check is kept unchanged.
+#   * The category comments reflect the source project's policy intentions and
+#     are not proof of CIS/RHAI compliance.
+#
+# Run via: ./hack/lint-manifests.sh (also `make lint-manifests`), which renders
+# every deployment profile with pinned kustomize/helm and lints the result with
+# this config.
+
+checks:
+  # Default checks are not automatically added; only the explicit list below runs.
+  doNotAutoAddDefaults: true
+  # All built-ins are not added; omissions are deliberate, per check.
+  addAllBuiltIn: false
+
+  include:
+    # ===========================================================================
+    # CONTAINER SECURITY - Privilege & Isolation
+    # ===========================================================================
+    - "privileged-container"              # No privileged mode (bypasses all security)
+    - "privilege-escalation-container"    # Prevent allowPrivilegeEscalation=true
+    - "run-as-non-root"                   # Enforce runAsNonRoot (CWE-250)
+    - "host-network"                      # No host network namespace sharing
+    - "host-pid"                          # No host PID namespace sharing
+    - "host-ipc"                          # No host IPC namespace sharing
+    - "docker-sock"                       # No docker.sock mount (container escape)
+    - "sensitive-host-mounts"             # No mounting /, /etc, /sys, /proc, etc.
+    - "writable-host-mount"               # Host mounts must be readOnly
+    - "no-read-only-root-fs"              # Enforce readOnlyRootFilesystem
+    - "drop-net-raw-capability"           # Drop NET_RAW (packet crafting)
+    - "unsafe-proc-mount"                 # Prevent procMount=Unmasked
+    - "unsafe-sysctls"                    # Block dangerous sysctls
+
+    # ===========================================================================
+    # RBAC & ACCESS CONTROL
+    # ===========================================================================
+    # Risk signals, not automatic defects: the dashboard BFF legitimately
+    # manages secrets, and the operator applies operand manifests (see
+    # dashboard-operator/internal/controller/module_deploy.go). Findings here
+    # need manifest-based classification, never blanket RBAC exemptions.
+    - "cluster-admin-role-binding"        # CIS 5.1.1: Restrict cluster-admin
+    - "access-to-secrets"                 # CIS 5.1.2: Limit secret access
+    - "wildcard-in-rules"                 # CIS 5.1.3: No wildcards in RBAC
+    - "access-to-create-pods"             # CIS 5.1.4: Restrict pod creation
+    - "no-system-group-binding"           # Custom check, defined below
+
+    # ===========================================================================
+    # SECRET MANAGEMENT
+    # ===========================================================================
+    - "env-var-secret"                    # No secrets in env vars (use secretKeyRef)
+    - "read-secret-from-env-var"          # CIS 5.4.1: Prefer mounted secrets
+
+    # ===========================================================================
+    # SERVICE ACCOUNT SECURITY
+    # ===========================================================================
+    - "default-service-account"           # Don't use default SA (create dedicated)
+    - "non-existent-service-account"      # Validate SA exists
+
+    # ===========================================================================
+    # NETWORK SECURITY
+    # ===========================================================================
+    - "privileged-ports"                  # No ports < 1024 (require root)
+    - "ssh-port"                          # Flag SSH exposure (port 22)
+    - "exposed-services"                  # No NodePort/LoadBalancer (use Ingress)
+    - "non-isolated-pod"                  # Require NetworkPolicy
+
+    # ===========================================================================
+    # RELIABILITY & AVAILABILITY
+    # ===========================================================================
+    - "no-liveness-probe"                 # Require liveness probes
+    - "no-readiness-probe"                # Require readiness probes
+    - "liveness-port"                     # Liveness probe port must be container-declared
+    - "readiness-port"                    # Readiness probe port must be container-declared
+    - "dangling-servicemonitor"           # ServiceMonitor must resolve to a Service
+    - "unset-cpu-requirements"            # Require CPU requests/limits
+    - "unset-memory-requirements"         # Require memory requests/limits
+
+    # ===========================================================================
+    # CONFIGURATION HYGIENE
+    # ===========================================================================
+    - "duplicate-env-var"                 # No duplicate env var names (last wins)
+
+    # ===========================================================================
+    # IMAGE SECURITY
+    # ===========================================================================
+    - "latest-tag"                        # No 'latest' tag (use immutable tags)
+
+    # ===========================================================================
+    # NAMESPACE ISOLATION - OMITTED for this repository
+    # ===========================================================================
+    # The application manifests under manifests/ are deliberately namespace-less
+    # fragments: manifests/scripts/check-no-hardcoded-namespace.sh enforces that
+    # no namespace is hardcoded, and the deploying controller completes
+    # namespaces at render time via kustomize.WithNamespace
+    # (dashboard-operator/internal/controller/module_deploy.go) or kustomize
+    # replacements (manifests/distributions/maas-portal). Verified by rendering
+    # manifests/modules under a namespace-setting overlay: every use-namespace,
+    # sa-subject-namespace, and sa-subject-exists finding disappears. The
+    # sa-subject-exists findings that remain in bare renders name
+    # platform-provided operator service accounts that are outside this corpus
+    # by design (maas-portal subscription RoleBindings).
+    # What still guards the concern: the API server rejects a ClusterRoleBinding
+    # with a namespace-less ServiceAccount subject on apply, and the deployer's
+    # kustomize render always completes subject namespaces (NameReference
+    # transformer). Re-arm a check by uncommenting its line:
+    # - "use-namespace"                   # CIS 5.7.1, 5.7.4: Don't use default namespace
+    # - "sa-subject-namespace"            # Custom check, defined below
+    # - "sa-subject-exists"               # Custom check, defined below
+
+  # Custom checks defined in customChecks below run even when absent from the
+  # include list, so the two omitted namespace-composition checks are excluded
+  # here as well (same rationale as above). Re-arm by removing the two entries
+  # from this list and uncommenting the include entries above.
+  exclude:
+    - "sa-subject-namespace"
+    - "sa-subject-exists"
+
+customChecks:
+  # Flags ClusterRoleBindings whose subjects include system:* groups. The
+  # manifests/base/rbac/all-users/fetch-ray-dashboard-url.rbac.yaml grant to
+  # system:authenticated is deliberate (get-only reads, RHOAIENG-62527) and is
+  # classified in the assessment, not exempted.
+  - name: "no-system-group-binding"
+    description: "Ensure ClusterRoleBindings do not target system groups"
+    remediation: "Remove references to system groups (e.g., system:authenticated, system:unauthenticated) from ClusterRoleBinding subjects"
+    template: "cel-expression"
+    scope:
+      objectKinds:
+        - ClusterRoleBinding
+    params:
+      check: |
+        has(object.subjects) && dyn(object.subjects).exists(s, s.kind == "Group" && s.name.startsWith("system:"))
+          ? "ClusterRoleBinding references system group"
+          : ""
+  # Defined but not included above (see the namespace-composition omission):
+  # flags ClusterRoleBindings with a ServiceAccount subject that has no
+  # namespace. Such a subject is rejected on apply, but in this repository the
+  # namespace is completed by the deploying operator's kustomize render.
+  - name: "sa-subject-namespace"
+    description: "ServiceAccount subjects in ClusterRoleBindings must have a namespace"
+    remediation: "Set subjects[].namespace for ServiceAccount subjects in ClusterRoleBindings, or compose the fragment under an overlay whose namespace transformer fills it"
+    template: "cel-expression"
+    scope:
+      objectKinds:
+        - ClusterRoleBinding
+    params:
+      check: |
+        has(object.subjects) && dyn(object.subjects).exists(s, s.kind == "ServiceAccount" && !has(s.namespace))
+          ? "ServiceAccount subject is missing its namespace — a ClusterRoleBinding with such a subject is rejected on apply"
+          : ""
+  # Defined but not included above (see the namespace-composition omission):
+  # flags bindings whose ServiceAccount subject names an identity no manifest
+  # in the lint corpus creates. In bare renders of this repository's
+  # namespace-less fragments it fires conservatively on subjects the deployer
+  # completes and on platform-provided operator service accounts.
+  - name: "sa-subject-exists"
+    description: "ServiceAccount subjects in role bindings must reference a ServiceAccount created by the linted manifests"
+    remediation: "Create the ServiceAccount in the same corpus (lint the full rendered deployment profile), fix the subject name or namespace, or remove the subject; platform-provided identities need explicit classification"
+    template: "cel-expression"
+    scope:
+      objectKinds:
+        - RoleBinding
+        - ClusterRoleBinding
+    params:
+      check: |
+        has(object.subjects)
+          && dyn(objects).exists(o, o.kind == "ServiceAccount")
+          && dyn(object.subjects).exists(s,
+               s.kind == "ServiceAccount"
+               && !dyn(objects).exists(o,
+                    o.kind == "ServiceAccount"
+                    && has(o.metadata)
+                    && o.metadata.name == s.name
+                    && (has(s.namespace)
+                        ? (has(o.metadata.namespace) && o.metadata.namespace == s.namespace)
+                        : (object.kind != "RoleBinding"
+                           || (has(object.metadata.namespace) && has(o.metadata.namespace) && o.metadata.namespace == object.metadata.namespace)))))
+          ? "ServiceAccount subject is not created by any manifest in this lint run — the binding grants nothing unless the identity exists elsewhere (platform-provided identities need classification)"
+          : ""
