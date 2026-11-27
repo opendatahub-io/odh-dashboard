@@ -778,6 +778,18 @@ describe('collection generation API', () => {
     expect(mockRestDELETE).not.toHaveBeenCalled();
   });
 
+  it('should treat an already deleted generation as clean', async () => {
+    mockRestDELETE.mockResolvedValue(
+      JSON.stringify({
+        error: { code: 'NOT_FOUND', message: 'collection generation not found' },
+      }),
+    );
+
+    await expect(deleteCollectionGeneration('', 'test-ns', 'generation-1')({})).resolves.toBe(
+      undefined,
+    );
+  });
+
   it('should surface a non-empty delete response as an error', async () => {
     mockRestDELETE.mockResolvedValue('Generation could not be deleted');
 

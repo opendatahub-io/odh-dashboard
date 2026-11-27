@@ -190,26 +190,42 @@ describe('EvalHub API Contract Tests', () => {
       }
 
       const { location } = created.response.headers;
+      // The contract matcher validates the body, but does not narrow its unknown TypeScript type.
+      const createdGeneration = (created.response.data as { data: { resource: { id: string } } })
+        .data;
       expect(location).toBe(
-        '/eval-hub/api/v1/evaluations/collections/generation/generation-001?namespace=default',
+        `/eval-hub/api/v1/evaluations/collections/generation/${createdGeneration.resource.id}?namespace=default`,
       );
       const polled = await apiClient.get(location);
       expect(polled).toMatchContract(apiSchema, {
         ref: '#/components/responses/CollectionGenerationResponse/content/application~1json/schema',
         status: 200,
       });
+      if (polled.success) {
+        expect(polled.response.data).toMatchObject({
+          data: {
+            resource: { id: createdGeneration.resource.id, tenant: 'default' },
+            request: {
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              evaluation_goal: request.evaluation_goal,
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              max_benchmarks: request.max_benchmarks,
+              strictness: request.strictness,
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              generation_effort: request.generation_effort,
+            },
+            status: { state: 'pending' },
+          },
+        });
+      }
 
-      const deleted = await apiClient.delete(
-        '/eval-hub/api/v1/evaluations/collections/generation/generation-001?namespace=default',
-      );
+      const deleted = await apiClient.delete(location);
       expect(deleted.success).toBe(true);
       if (deleted.success) {
         expect(deleted.response.status).toBe(204);
       }
 
-      const deletedUnknown = await apiClient.delete(
-        '/eval-hub/api/v1/evaluations/collections/generation/generation-unknown?namespace=default',
-      );
+      const deletedUnknown = await apiClient.delete(location);
       expect(deletedUnknown.success).toBe(false);
       if (!deletedUnknown.success) {
         expect({
@@ -219,6 +235,21 @@ describe('EvalHub API Contract Tests', () => {
           ref: '#/components/responses/NotFound/content/application~1json/schema',
           status: 404,
         });
+      }
+    });
+
+    it('should expose the completed fixture only to its seeded tenant', async () => {
+      const fixturePath =
+        '/eval-hub/api/v1/evaluations/collections/generation/generation-fixture-001';
+      const fixture = await apiClient.get(`${fixturePath}?namespace=default`);
+      expect(fixture).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionGenerationResponse/content/application~1json/schema',
+        status: 200,
+      });
+      const otherTenant = await apiClient.get(`${fixturePath}?namespace=other-ns`);
+      expect(otherTenant.success).toBe(false);
+      if (!otherTenant.success) {
+        expect(otherTenant.error.status).toBe(404);
       }
     });
   });
@@ -453,8 +484,11 @@ describe('EvalHub API Contract Tests', () => {
             },
           },
         });
-        const warnings: string[] = result.response.data.data.warnings ?? [];
-        expect(warnings.join('\n')).toContain('managed by the server');
+        expect(result.response.data).toMatchObject({
+          data: {
+            warnings: expect.arrayContaining([expect.stringContaining('managed by the server')]),
+          },
+        });
       }
     });
 

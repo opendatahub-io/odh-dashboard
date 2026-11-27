@@ -1,5 +1,9 @@
 import * as z from 'zod';
-import { MODEL_EVALUATION_TARGETS, SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
+import {
+  MAX_COLLECTION_BENCHMARKS,
+  MODEL_EVALUATION_TARGETS,
+  SUITE_EVALUATES_OPTIONS,
+} from '~/app/pages/const';
 import { getBenchmarkParameterLabel } from '~/app/components/benchmarkUtils';
 import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
 import { refineTestDataRef, testDataRefFormSchema } from '~/app/schemas/testDataRef.schema';
@@ -136,7 +140,13 @@ export const copySuiteSchema = copySuiteSettingsSchema
     suiteModalities: z.array(z.string()),
     suiteIndustries: z.array(z.string()),
     suiteEvaluates: z.array(z.enum(SUITE_EVALUATES_OPTIONS)),
-    benchmarks: z.array(copySuiteBenchmarkSchema).min(1, 'At least one benchmark is required'),
+    benchmarks: z
+      .array(copySuiteBenchmarkSchema)
+      .min(1, 'At least one benchmark is required')
+      .max(
+        MAX_COLLECTION_BENCHMARKS,
+        `Select no more than ${MAX_COLLECTION_BENCHMARKS} benchmarks.`,
+      ),
   })
   .superRefine((data, ctx) => {
     data.benchmarks.forEach((benchmark, index) => {

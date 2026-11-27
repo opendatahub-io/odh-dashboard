@@ -455,6 +455,26 @@ describe('useCopySuiteForm', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
   });
 
+  it('should preview source benchmark settings when an edit does not patch benchmarks', async () => {
+    const editSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-one',
+          provider_id: 'provider-one',
+          primary_score: { metric: 'accuracy', lower_is_better: false },
+        },
+      ],
+    };
+    const result = renderForm({ mode: 'edit', sourceCollection: editSourceCollection });
+    await waitFor(() => expect(result.result.current.suiteName).toBe(editSourceCollection.name));
+
+    act(() => result.result.current.setSuiteName('Updated suite'));
+    expect(result.result.current.buildPendingCollection()?.benchmarks).toEqual(
+      editSourceCollection.benchmarks,
+    );
+  });
+
   it('should preserve untouched source benchmark settings when another benchmark is edited', async () => {
     const editSourceCollection: Collection = {
       ...sourceCollection,

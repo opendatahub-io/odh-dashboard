@@ -122,13 +122,11 @@ describe('Import collection', () => {
     );
     // Missing description and both unknown fields should produce warning markers. Read the
     // Monaco model because its rendered squiggles are virtualized with the visible editor lines.
-    importCollectionModal.getWarningMarkers().should((markers) => {
-      expect(markers.map(({ message }) => message)).to.include.members([
-        'No description provided. Consider adding one so the collection is easy to identify.',
-        'Unrecognized field "another_mystery" will be ignored.',
-        'Unrecognized field "mystery" will be ignored.',
-      ]);
-    });
+    importCollectionModal.shouldHaveWarningMarkers([
+      'No description provided. Consider adding one so the collection is easy to identify.',
+      'Unrecognized field "another_mystery" will be ignored.',
+      'Unrecognized field "mystery" will be ignored.',
+    ]);
     importCollectionModal.findSubmitButton().should('be.enabled');
   });
 

@@ -37,6 +37,7 @@ import {
 import { formatThresholdValue } from '~/app/utilities/evaluationUtils';
 import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
 import { MAX_COLLECTION_BENCHMARKS } from '~/app/pages/const';
+import { enrichCollectionBenchmark } from '~/app/utilities/goalCollectionUtils';
 import type {
   CollectionBenchmark,
   CollectionGenerationResource,
@@ -95,29 +96,6 @@ const getPhaseLabel = (phase?: string): string | undefined => {
     finalization: 'Preparing the recommendation',
   };
   return phase ? labels[phase] : undefined;
-};
-
-const enrichCollectionBenchmark = (
-  benchmark: CollectionBenchmark,
-  providers: Provider[],
-): CollectionBenchmark => {
-  const provider = providers.find((item) => item.resource.id === benchmark.provider_id);
-  const catalogBenchmark = provider?.benchmarks?.find((item) => item.id === benchmark.id);
-  return {
-    ...benchmark,
-    ...(benchmark.url || !catalogBenchmark?.url ? {} : { url: catalogBenchmark.url }),
-    ...(benchmark.primary_score || !catalogBenchmark?.primary_score
-      ? {}
-      : {
-          primary_score: {
-            metric: catalogBenchmark.primary_score.metric,
-            lower_is_better: catalogBenchmark.primary_score.lower_is_better,
-          },
-        }),
-    ...(benchmark.pass_criteria || !catalogBenchmark?.pass_criteria
-      ? {}
-      : { pass_criteria: { threshold: catalogBenchmark.pass_criteria.threshold } }),
-  };
 };
 
 type OtherBenchmarksDrawerProps = {
@@ -240,7 +218,7 @@ const OtherBenchmarksDrawer: React.FC<OtherBenchmarksDrawerProps> = ({
       data-testid="collection-generation-alternatives-backdrop"
       aria-hidden={!isOpen}
       onClick={(event) => {
-        if (event.target === event.currentTarget) {
+        if (!(event.target instanceof Element) || !event.target.closest('.pf-v6-c-drawer__panel')) {
           onClose();
         }
       }}
@@ -382,8 +360,8 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
     const providerName = provider?.title ?? provider?.name ?? benchmark.provider_id;
     const category = catalogBenchmark?.category;
     const description = catalogBenchmark?.description;
-    const primaryScore = benchmark.primary_score ?? catalogBenchmark?.primary_score;
-    const passCriteria = benchmark.pass_criteria ?? catalogBenchmark?.pass_criteria;
+    const primaryScore = benchmark.primary_score;
+    const passCriteria = benchmark.pass_criteria;
     const reason = selectedReasonByKey.get(key);
 
     return (

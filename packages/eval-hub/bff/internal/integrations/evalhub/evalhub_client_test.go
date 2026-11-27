@@ -537,15 +537,24 @@ func TestEvalHubClient_CreateCollectionGeneration(t *testing.T) {
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		if !assert.NoError(t, err) {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
 		assert.NotContains(t, string(body), "collection_name")
 		assert.NotContains(t, string(body), "collection_description")
 		var request CreateCollectionGenerationRequest
-		require.NoError(t, json.Unmarshal(body, &request))
+		if !assert.NoError(t, json.Unmarshal(body, &request)) {
+			http.Error(w, "invalid request JSON", http.StatusBadRequest)
+			return
+		}
 		assert.Equal(t, "Build a reasoning collection", request.EvaluationGoal)
 		assert.Equal(t, "generator", request.Model.Name)
 		assert.Equal(t, "https://models.example.com/v1", request.Model.URL)
-		require.NotNil(t, request.Model.Auth)
+		if !assert.NotNil(t, request.Model.Auth) {
+			http.Error(w, "missing model auth", http.StatusBadRequest)
+			return
+		}
 		assert.Equal(t, "model-secret", request.Model.Auth.SecretRef)
 
 		w.Header().Set("Content-Type", "application/json")

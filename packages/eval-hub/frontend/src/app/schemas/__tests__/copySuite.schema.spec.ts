@@ -7,6 +7,7 @@ import {
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
 import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
+import { MAX_COLLECTION_BENCHMARKS } from '~/app/pages/const';
 
 const validValues = (): CopySuiteFormValues => ({
   ...copySuiteDefaultValues,
@@ -27,6 +28,19 @@ const validValues = (): CopySuiteFormValues => ({
 });
 
 describe('copySuiteSchema', () => {
+  it('should reject more benchmarks than a collection can save', () => {
+    const values = validValues();
+    const benchmarks = Array.from({ length: MAX_COLLECTION_BENCHMARKS + 1 }, (_, index) => ({
+      ...values.benchmarks[0],
+      id: `benchmark-${index}`,
+    }));
+
+    expect(
+      copySuiteSchema.safeParse({ ...values, benchmarks: benchmarks.slice(0, -1) }).success,
+    ).toBe(true);
+    expect(copySuiteSchema.safeParse({ ...values, benchmarks }).success).toBe(false);
+  });
+
   it('should require a trimmed collection name and at least one category', () => {
     expect(
       copySuiteSettingsSchema.safeParse({ suiteName: '   ', suiteDomains: ['reasoning'] }).success,

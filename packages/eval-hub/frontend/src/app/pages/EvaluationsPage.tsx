@@ -333,15 +333,17 @@ const EvaluationsPage: React.FC = () => {
                 }
                 description={EVALUATE_DESCRIPTION}
                 headerAction={
-                  <Button
-                    variant="primary"
-                    component={(props) => (
-                      <Link {...props} to={evaluationCreateCollectionEntryRoute(namespace)} />
-                    )}
-                    data-testid="create-suite-header-button"
-                  >
-                    Create collection
-                  </Button>
+                  isHealthy ? (
+                    <Button
+                      variant="primary"
+                      component={(props) => (
+                        <Link {...props} to={evaluationCreateCollectionEntryRoute(namespace)} />
+                      )}
+                      data-testid="create-suite-header-button"
+                    >
+                      Create collection
+                    </Button>
+                  ) : undefined
                 }
                 loaded={healthLoaded && (!isHealthy || !isRunsTab || loaded)}
                 loadError={!isHealthy ? healthError : isRunsTab ? error : undefined}

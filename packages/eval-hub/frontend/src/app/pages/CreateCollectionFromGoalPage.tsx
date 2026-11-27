@@ -42,7 +42,10 @@ import {
   type CollectionBuilderFormValues,
 } from '~/app/schemas/collectionBuilder.schema';
 import type { Collection, CollectionBenchmark, CollectionGenerationRequest } from '~/app/types';
-import { buildGoalCollectionCreateRequest } from '~/app/utilities/goalCollectionUtils';
+import {
+  buildGoalCollectionCreateRequest,
+  enrichCollectionBenchmark,
+} from '~/app/utilities/goalCollectionUtils';
 
 import './CreateCollectionFromGoalPage.scss';
 
@@ -83,6 +86,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
   const [isSaving, setIsSaving] = React.useState(false);
   const [isRunPending, setIsRunPending] = React.useState(false);
   const saveInFlightRef = React.useRef(false);
+  const savedCollectionRef = React.useRef<{ fingerprint: string; collection: Collection }>();
   const initializedGenerationId = React.useRef<string>();
   const methods = useForm<CollectionBuilderFormValues>({
     defaultValues: collectionBuilderDefaultValues,
@@ -184,11 +188,14 @@ const CreateCollectionFromGoalPage: React.FC = () => {
       return;
     }
 
+    if (!providersLoaded && !providersError) {
+      return;
+    }
     const uniqueBenchmarks = new Map<string, CollectionBenchmark>();
     proposal.collection.benchmarks.forEach((benchmark) => {
       const key = `${benchmark.provider_id ?? ''}:${benchmark.id}`;
       if (!uniqueBenchmarks.has(key)) {
-        uniqueBenchmarks.set(key, benchmark);
+        uniqueBenchmarks.set(key, enrichCollectionBenchmark(benchmark, providers));
       }
     });
     methods.setValue('selectedBenchmarks', [...uniqueBenchmarks.values()], {
@@ -196,7 +203,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
       shouldValidate: true,
     });
     initializedGenerationId.current = generationId;
-  }, [generationId, generation, methods]);
+  }, [generationId, generation, methods, providers, providersLoaded, providersError]);
 
   React.useEffect(() => {
     if (generation?.status.state === 'failed') {
@@ -252,7 +259,13 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     generation?.status.state === 'completed' && generation.result
       ? generation.result.collection
       : undefined;
-  const canSave = Boolean(namespace && generatedCollection) && canRecommend && canContinueOverview;
+  const canSave =
+    Boolean(namespace && generatedCollection) &&
+    isCollectionSettingsValid &&
+    !hasSuiteSettingsErrors &&
+    isDefineGoalValid &&
+    !hasDefineGoalErrors &&
+    canContinueOverview;
   const buildRequest = (): ReturnType<typeof buildGoalCollectionCreateRequest> | undefined => {
     if (!generatedCollection) {
       return undefined;
@@ -287,7 +300,12 @@ const CreateCollectionFromGoalPage: React.FC = () => {
       if (!request) {
         return undefined;
       }
+      const fingerprint = JSON.stringify({ namespace, generationId, request });
+      if (savedCollectionRef.current?.fingerprint === fingerprint) {
+        return savedCollectionRef.current.collection;
+      }
       const collection = await createCollection('', namespace, request)({ signal });
+      savedCollectionRef.current = { fingerprint, collection };
       try {
         await deleteGeneration();
       } catch (cleanupError) {
@@ -328,6 +346,14 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     void stopGeneration().catch(() => {
       // The hook exposes the delete error to the active generation state.
     });
+  };
+
+  const handleLeaveGeneration = async (): Promise<void> => {
+    if (generation?.status.state === 'pending' || generation?.status.state === 'running') {
+      await stopGeneration();
+      return;
+    }
+    await deleteGeneration();
   };
 
   const cancelAction: CollectionWizardAction = {
@@ -374,7 +400,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     {
       name: 'Define goal',
       id: 'define-goal',
-      canEnter: canContinueSettings && !isStarting,
+      canEnter: (canContinueSettings || Boolean(generationId)) && !isStarting,
       actions: [
         {
           label: isStarting ? 'Starting recommendations…' : 'Recommend benchmarks with AI',
@@ -399,7 +425,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
     {
       name: 'Benchmark overview',
       id: 'benchmark-overview',
-      canEnter: canRecommend,
+      canEnter: canRecommend || Boolean(generationId),
       actions: [
         backAction,
         {
@@ -509,7 +535,7 @@ const CreateCollectionFromGoalPage: React.FC = () => {
               cleanup={{
                 fromStepIds: ['benchmark-overview', 'review'],
                 toStepIds: ['suite-settings', 'define-goal'],
-                onLeave: deleteGeneration,
+                onLeave: handleLeaveGeneration,
               }}
             />
           </FormProvider>

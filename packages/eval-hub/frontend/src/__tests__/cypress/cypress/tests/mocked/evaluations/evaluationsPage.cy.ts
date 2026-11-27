@@ -121,6 +121,7 @@ describe('Evaluations Page - Tabs', () => {
     if (goalBuilderEnabledInCypress) {
       cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite`);
       evaluationsPage.findTitle().should('contain.text', 'Create collection');
+      cy.testA11y();
       evaluationsPage
         .findBuildSuiteFromGoalTile()
         .should('be.visible')
@@ -130,10 +131,17 @@ describe('Evaluations Page - Tabs', () => {
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/new`);
     evaluationsPage.findTitle().should('contain.text', 'Create collection');
     manualCollectionEditorPage.findCollectionNameInput().should('be.visible');
+    cy.testA11y();
   });
 
   itGoalBuilderEnabled('should preserve goal form values when returning to an earlier step', () => {
-    cy.intercept('**/generation/**').as('collectionBuilderGenerationApi');
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/eval-hub/api/${CLIENT_API_VERSION}/evaluations/collections/generation`,
+      },
+      { statusCode: 500, body: { error: { code: '500', message: 'Unexpected generation' } } },
+    ).as('collectionBuilderGenerationApi');
     initIntercepts({ providers: [mockProvider()] });
     cy.interceptApi(
       'GET /api/:apiVersion/inferenceservices',
@@ -156,6 +164,7 @@ describe('Evaluations Page - Tabs', () => {
     collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemin', '1');
     collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemax', '20');
     collectionBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    cy.testA11y();
     collectionBuilderPage.findNameInput().type('   ');
     collectionBuilderPage.findNameError().should('be.visible');
     collectionBuilderPage.findNextButton().should('be.disabled');
@@ -173,6 +182,7 @@ describe('Evaluations Page - Tabs', () => {
       .findCurrentStep('define-goal')
       .should('have.attr', 'aria-current', 'step');
     collectionBuilderPage.findDefineGoalStep().should('be.visible');
+    cy.testA11y();
     collectionBuilderPage
       .findEvaluationGoalInput()
       .should('be.visible')
@@ -358,6 +368,7 @@ describe('Evaluations Page - Tabs', () => {
     collectionBuilderPage
       .findSelectionCount()
       .should('contain.text', 'Selected benchmarks · 1 of 20');
+    cy.testA11y();
     collectionBuilderPage.findReviewAlternativesButton().click();
     collectionBuilderPage
       .findAlternative('hellaswag')
@@ -366,6 +377,7 @@ describe('Evaluations Page - Tabs', () => {
     collectionBuilderPage
       .findSelectionCount()
       .should('contain.text', 'Selected benchmarks · 2 of 20');
+    cy.testA11y();
     collectionBuilderPage.findCloseAlternativesButton().click();
     collectionBuilderPage.findRemoveSelectedBenchmarkButton('truthfulqa_mc1').click();
     collectionBuilderPage
@@ -374,6 +386,7 @@ describe('Evaluations Page - Tabs', () => {
     collectionBuilderPage.findOverviewNextButton().should('be.enabled');
     collectionBuilderPage.findOverviewNextButton().click();
     collectionBuilderPage.findCurrentStep('review').should('have.attr', 'aria-current', 'step');
+    cy.testA11y();
   });
 
   it('should navigate from a Gallery Customize action to the suite editor', () => {

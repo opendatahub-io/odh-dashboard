@@ -596,6 +596,31 @@ export const deleteCollectionGeneration =
       ),
     ).then((response) => {
       if (typeof response === 'string' && response.trim() !== '') {
+        let errorBody: unknown;
+        try {
+          errorBody = JSON.parse(response);
+        } catch {
+          throw new Error(response);
+        }
+        if (errorBody && typeof errorBody === 'object' && 'error' in errorBody) {
+          const { error } = errorBody;
+          if (
+            error &&
+            typeof error === 'object' &&
+            'code' in error &&
+            (error.code === '404' || error.code === 'NOT_FOUND')
+          ) {
+            return undefined;
+          }
+          if (
+            error &&
+            typeof error === 'object' &&
+            'message' in error &&
+            typeof error.message === 'string'
+          ) {
+            throw new Error(error.message);
+          }
+        }
         throw new Error(response);
       }
       return undefined;

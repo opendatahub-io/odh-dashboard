@@ -63,21 +63,24 @@ describe('Manual collection editor benchmark selection', () => {
 
   it('should select benchmarks on a flat page before configuring a new suite', () => {
     manualCollectionEditorPage.visitCreate(NAMESPACE);
+    cy.testA11y();
     manualCollectionEditorPage.findCollectionNameInput().type('New suite');
     manualCollectionEditorPage.findSettingsNextButton().should('be.disabled');
     manualCollectionEditorPage.selectCategory('grounded_document_understanding');
     manualCollectionEditorPage.findSettingsNextButton().click();
 
     manualCollectionEditorPage.findSelectBenchmarksStep().should('exist');
+    cy.testA11y();
     manualCollectionEditorPage.findBenchmarkCheckbox('bench-alpha').should('not.be.checked');
     manualCollectionEditorPage.findSelectBenchmarksNextButton().should('be.disabled');
 
     manualCollectionEditorPage.findBenchmarkName('bench-alpha').click();
     manualCollectionEditorPage.findDetailsDrawer().should('exist');
-    manualCollectionEditorPage.findDetailsDrawer().findByTestId('select-benchmark-button').click();
+    manualCollectionEditorPage.findSelectBenchmarkButton().click();
 
     manualCollectionEditorPage.findSelectBenchmarksNextButton().click();
     manualCollectionEditorPage.findConfigurationStep().should('exist');
+    cy.testA11y();
   });
 
   it('should preserve existing selections when returning to Benchmarks after Back', () => {
@@ -128,6 +131,7 @@ describe('Manual collection editor benchmark selection', () => {
     manualCollectionEditorPage.selectBenchmarkMetric(0, 'Accuracy');
     manualCollectionEditorPage.findNextReviewButton().click();
     manualCollectionEditorPage.findReviewStep().should('be.visible');
+    cy.testA11y();
     manualCollectionEditorPage.findSaveOnlyButton().click();
 
     cy.wait('@updateSuite').then((interception) => {

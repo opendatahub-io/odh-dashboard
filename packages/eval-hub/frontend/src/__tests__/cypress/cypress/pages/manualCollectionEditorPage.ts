@@ -121,6 +121,10 @@ class ManualCollectionEditorPage {
   findDetailsDrawer() {
     return cy.findByTestId('copy-suite-benchmark-details-drawer');
   }
+
+  findSelectBenchmarkButton() {
+    return this.findDetailsDrawer().findByTestId('select-benchmark-button');
+  }
 }
 
 export const manualCollectionEditorPage = new ManualCollectionEditorPage();

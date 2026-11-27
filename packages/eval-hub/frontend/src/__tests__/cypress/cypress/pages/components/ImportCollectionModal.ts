@@ -11,6 +11,7 @@ type MonacoMarker = {
 };
 
 type MonacoGlobal = {
+  MarkerSeverity: { Warning: number };
   editor: {
     getEditors: () => {
       getDomNode: () => HTMLElement | null;
@@ -76,29 +77,33 @@ export class ImportCollectionModal extends Modal {
     return this.findEditor().find('.squiggly-error');
   }
 
-  /** Monaco model markers for advisory import warnings. */
-  getWarningMarkers(): Cypress.Chainable<MonacoMarker[]> {
+  /** Retry against the live Monaco model until the expected warning markers are published. */
+  shouldHaveWarningMarkers(expectedMessages: string[]): void {
     this.waitForEditorReady();
-    return this.findEditor().then(($container) =>
-      cy.window().then((win) => {
-        const { monaco } = win as unknown as { monaco?: MonacoGlobal };
-        if (!monaco) {
-          throw new Error('Monaco editor was not found on window');
-        }
-        const editor = monaco.editor.getEditors().find((candidate) => {
-          const node = candidate.getDomNode();
-          return node !== null && $container[0].contains(node);
-        });
-        if (!editor) {
-          throw new Error('Monaco editor inside the import dialog was not found');
-        }
-        const model = editor.getModel();
-        if (!model) {
-          throw new Error('The import editor has no Monaco model');
-        }
-        return monaco.editor.getModelMarkers({ owner: 'evalhub-import', resource: model.uri });
-      }),
-    );
+    this.findEditor().should(($container) => {
+      const win = $container[0].ownerDocument.defaultView as unknown as {
+        monaco?: MonacoGlobal;
+      };
+      if (!win.monaco) {
+        throw new Error('Monaco editor was not found on window');
+      }
+      const { monaco } = win;
+      const editor = monaco.editor.getEditors().find((candidate) => {
+        const node = candidate.getDomNode();
+        return node !== null && $container[0].contains(node);
+      });
+      if (!editor) {
+        throw new Error('Monaco editor inside the import dialog was not found');
+      }
+      const model = editor.getModel();
+      if (!model) {
+        throw new Error('The import editor has no Monaco model');
+      }
+      const warnings = monaco.editor
+        .getModelMarkers({ owner: 'evalhub-import', resource: model.uri })
+        .filter((marker) => marker.severity === monaco.MarkerSeverity.Warning);
+      expect(warnings.map(({ message }) => message)).to.include.members(expectedMessages);
+    });
   }
 
   /**

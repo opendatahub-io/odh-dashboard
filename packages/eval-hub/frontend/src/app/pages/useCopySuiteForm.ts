@@ -968,7 +968,7 @@ export function useCopySuiteForm({
 
   const getPendingCollection = React.useCallback((): Collection | undefined => {
     const values = form.getValues();
-    return buildPendingCollection({
+    const pending = buildPendingCollection({
       sourceCollection,
       suiteName: values.suiteName,
       suiteDescription: values.suiteDescription,
@@ -979,7 +979,17 @@ export function useCopySuiteForm({
       suiteEvaluates: values.suiteEvaluates,
       benchmarks: values.benchmarks,
     });
-  }, [sourceCollection, form]);
+    if (!isEditMode || !sourceCollection) {
+      return pending;
+    }
+    const patchedBenchmarks = buildEditBenchmarksPatch({
+      sourceCollection,
+      initialBenchmarks: initialBenchmarksRef.current,
+      currentBenchmarks: values.benchmarks,
+      requestBenchmarks: pending.benchmarks ?? [],
+    });
+    return { ...pending, benchmarks: patchedBenchmarks ?? sourceCollection.benchmarks };
+  }, [sourceCollection, form, isEditMode]);
 
   // Curated gallery collections are system collections with curation_order > 0; clones reset it to 0.
   const isSourceCollectionCurated =

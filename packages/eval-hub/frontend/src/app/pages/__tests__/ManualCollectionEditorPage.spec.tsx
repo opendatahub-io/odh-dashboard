@@ -1200,7 +1200,20 @@ describe('ManualCollectionEditorPage', () => {
   });
 
   it('should preserve settings while navigating through visited sidebar steps', () => {
-    mockUseCopySuiteForm.mockReturnValue(makeForm());
+    const rhfForm = createRhfForm(defaultFormValues);
+    mockUseCopySuiteForm.mockImplementation(() => {
+      const [suiteName, setSuiteName] = React.useState(defaultFormValues.suiteName);
+      const [suiteDescription, setSuiteDescription] = React.useState(
+        defaultFormValues.suiteDescription,
+      );
+      return makeForm({
+        form: rhfForm,
+        suiteName,
+        setSuiteName,
+        suiteDescription,
+        setSuiteDescription,
+      });
+    });
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
     renderPage();
@@ -1213,11 +1226,19 @@ describe('ManualCollectionEditorPage', () => {
     expect(stepNavigation).toHaveTextContent('Benchmark settings');
     expect(stepNavigation).toHaveTextContent('Review');
 
+    fireEvent.change(screen.getByTestId('suite-name-input'), {
+      target: { value: 'Edited collection name' },
+    });
+    fireEvent.change(screen.getByTestId('suite-description-input'), {
+      target: { value: 'Edited collection description' },
+    });
     fireEvent.click(screen.getByTestId('copy-suite-next'));
     fireEvent.click(screen.getByRole('button', { name: /Collection settings/ }));
 
-    expect(screen.getByTestId('suite-name-input')).toHaveValue('Curated suite copy');
-    expect(screen.getByTestId('suite-description-input')).toHaveValue('Description');
+    expect(screen.getByTestId('suite-name-input')).toHaveValue('Edited collection name');
+    expect(screen.getByTestId('suite-description-input')).toHaveValue(
+      'Edited collection description',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /Benchmarks/ }));
     expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();

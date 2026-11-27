@@ -8,15 +8,16 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 func TestMockEvalHubClient_GetCollectionGenerationReturnsCompletedFixture(t *testing.T) {
 	client := NewMockEvalHubClient()
-	generation, err := client.GetCollectionGeneration(context.Background(), "generation-001", "test-ns")
+	generation, err := client.GetCollectionGeneration(context.Background(), completedGenerationID, completedGenerationTenant)
 	require.NoError(t, err)
 	require.NotNil(t, generation)
-	assert.Equal(t, "generation-001", generation.Resource.ID)
-	assert.Equal(t, "test-ns", generation.Resource.Tenant)
+	assert.Equal(t, completedGenerationID, generation.Resource.ID)
+	assert.Equal(t, completedGenerationTenant, generation.Resource.Tenant)
 	assert.Equal(t, "completed", generation.Status.State)
 
 	var result struct {
@@ -53,6 +54,11 @@ func TestMockEvalHubClient_GetCollectionGenerationReturnsCompletedFixture(t *tes
 	assert.NotEmpty(t, result.Collection.Category)
 	assert.NotEmpty(t, result.Collection.Domains)
 	assert.NotEmpty(t, result.YAML)
+	var yamlCollection map[string]any
+	require.NoError(t, yaml.Unmarshal([]byte(result.YAML), &yamlCollection))
+	var proposal map[string]any
+	require.NoError(t, json.Unmarshal(generation.Result, &proposal))
+	assert.Equal(t, proposal["collection"], yamlCollection)
 	assert.NotEmpty(t, result.Rationale)
 	assert.Len(t, result.Collection.Benchmarks, 5)
 	assert.Len(t, result.Explanation.SelectedBenchmarks, 5)
@@ -91,4 +97,13 @@ func TestMockEvalHubClient_CreateCollectionGenerationRemainsPending(t *testing.T
 	require.NotNil(t, generation)
 	assert.Equal(t, "pending", generation.Status.State)
 	assert.Empty(t, generation.Result)
+	second, err := client.CreateCollectionGeneration(context.Background(), "other-ns", evalhub.CreateCollectionGenerationRequest{
+		EvaluationGoal: "A different goal",
+		Model:          evalhub.JobModel{Name: "my-model", URL: "https://models.example.com/v1"},
+	})
+	require.NoError(t, err)
+	assert.NotEqual(t, generation.Resource.ID, second.Resource.ID)
+	wrongTenant, err := client.GetCollectionGeneration(context.Background(), generation.Resource.ID, "other-ns")
+	require.NoError(t, err)
+	assert.Nil(t, wrongTenant)
 }

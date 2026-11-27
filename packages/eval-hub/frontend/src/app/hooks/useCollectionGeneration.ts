@@ -36,6 +36,13 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
   const [stoppedGenerationId, setStoppedGenerationId] = React.useState<string>();
   const deletedGenerationIds = React.useRef(new Set<string>());
   const pendingDeletions = React.useRef(new Map<string, Promise<void>>());
+  const isMounted = React.useRef(false);
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
   const queryKey = React.useMemo(
     () => ['evalhub', 'collectionGeneration', namespace, generationId] as const,
     [namespace, generationId],
@@ -87,6 +94,10 @@ const useCollectionGeneration = (namespace?: string): CollectionGenerationContro
   const startGeneration = React.useCallback(
     async (request: CollectionGenerationRequest): Promise<CollectionGenerationResource> => {
       const resource = await createMutation.mutateAsync(request);
+      if (!isMounted.current) {
+        await deleteCollectionGeneration('', namespace ?? '', resource.resource.id)({});
+        throw new Error('Collection generation was abandoned after leaving the page');
+      }
       deletedGenerationIds.current.delete(resource.resource.id);
       setStoppedGenerationId(undefined);
       queryClient.setQueryData(

@@ -8,15 +8,19 @@ import (
 	"sync"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/google/uuid"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
+	"gopkg.in/yaml.v3"
 )
+
+const completedGenerationID = "generation-fixture-001"
+const completedGenerationTenant = "default"
 
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
 	mu                                    sync.RWMutex
 	collectionOverrides                   map[string]*evalhub.Collection
-	collectionGenerations                 map[string]*evalhub.CollectionGenerationResource
-	deletedCollectionGenerations          map[collectionGenerationScope]struct{}
+	generationState                       *mockGenerationState
 	deletedCollections                    map[string]bool
 	LastDeletedCollectionGenerationID     string
 	LastDeletedCollectionGenerationTenant string
@@ -26,13 +30,21 @@ type MockEvalHubClient struct {
 	logsTruncated                         bool
 }
 
-type collectionGenerationScope struct {
-	id     string
-	tenant string
+type mockGenerationState struct {
+	mu                    sync.RWMutex
+	collectionGenerations map[string]*evalhub.CollectionGenerationResource
+}
+
+func newMockGenerationState() *mockGenerationState {
+	return &mockGenerationState{
+		collectionGenerations: map[string]*evalhub.CollectionGenerationResource{
+			completedGenerationID: completedGenerationFixture(),
+		},
+	}
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
-	return &MockEvalHubClient{}
+	return &MockEvalHubClient{generationState: newMockGenerationState()}
 }
 
 func (m *MockEvalHubClient) SetCollection(id string, c *evalhub.Collection) {
@@ -140,14 +152,12 @@ func (m *MockEvalHubClient) CreateCollectionGeneration(
 	namespace string,
 	req evalhub.CreateCollectionGenerationRequest,
 ) (*evalhub.CollectionGenerationResource, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	state := m.generationState
+	state.mu.Lock()
+	defer state.mu.Unlock()
 
 	m.LastCollectionGenerationNamespace = namespace
 	m.LastCollectionGenerationRequest = &req
-	if m.collectionGenerations == nil {
-		m.collectionGenerations = make(map[string]*evalhub.CollectionGenerationResource)
-	}
 
 	request := evalhub.CollectionGenerationRequestSummary{
 		EvaluationGoal:   req.EvaluationGoal,
@@ -169,7 +179,7 @@ func (m *MockEvalHubClient) CreateCollectionGeneration(
 
 	generation := &evalhub.CollectionGenerationResource{
 		Resource: evalhub.CollectionGenerationResourceMetadata{
-			ID:        "generation-001",
+			ID:        "generation-" + uuid.NewString(),
 			Tenant:    namespace,
 			Owner:     "dev-user@example.com",
 			CreatedAt: "2026-01-01T00:00:00Z",
@@ -178,21 +188,15 @@ func (m *MockEvalHubClient) CreateCollectionGeneration(
 		Request: request,
 		Status:  evalhub.CollectionGenerationStatus{State: "pending"},
 	}
-	m.collectionGenerations[generation.Resource.ID] = generation
-	delete(m.deletedCollectionGenerations, collectionGenerationScope{id: generation.Resource.ID, tenant: namespace})
+	state.collectionGenerations[generation.Resource.ID] = generation
 	return generation, nil
 }
 
 func (m *MockEvalHubClient) SetCollectionGeneration(id string, generation *evalhub.CollectionGenerationResource) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.collectionGenerations == nil {
-		m.collectionGenerations = make(map[string]*evalhub.CollectionGenerationResource)
-	}
-	m.collectionGenerations[id] = generation
-	if generation != nil {
-		delete(m.deletedCollectionGenerations, collectionGenerationScope{id: id, tenant: generation.Resource.Tenant})
-	}
+	state := m.generationState
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	state.collectionGenerations[id] = generation
 }
 
 func (m *MockEvalHubClient) GetCollectionGeneration(
@@ -200,31 +204,33 @@ func (m *MockEvalHubClient) GetCollectionGeneration(
 	id string,
 	namespace string,
 ) (*evalhub.CollectionGenerationResource, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if _, deleted := m.deletedCollectionGenerations[collectionGenerationScope{id: id, tenant: namespace}]; deleted {
-		return nil, nil
+	state := m.generationState
+	state.mu.RLock()
+	defer state.mu.RUnlock()
+	generation := state.collectionGenerations[id]
+	if generation != nil && generation.Resource.Tenant == namespace {
+		return generation, nil
 	}
-	generation := m.collectionGenerations[id]
-	if generation == nil && id == "generation-001" {
-		// Contract tests use a fresh mock client per request, so keep one stable
-		// completed proposal available independently of a preceding POST.
-		generation = &evalhub.CollectionGenerationResource{
-			Resource: evalhub.CollectionGenerationResourceMetadata{
-				ID: "generation-001", Tenant: namespace, Owner: "dev-user@example.com",
-				CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:00:00Z",
-			},
-			Request: evalhub.CollectionGenerationRequestSummary{
-				EvaluationGoal: "Assess reasoning and factual accuracy",
-				Model:          evalhub.JobModel{Name: "my-model", URL: "https://models.example.com/v1"},
-				MaxBenchmarks:  12, Strictness: "moderate", GenerationEffort: "standard",
-			},
-			Status: evalhub.CollectionGenerationStatus{
-				State:       "completed",
-				StartedAt:   "2026-01-01T00:00:01Z",
-				CompletedAt: "2026-01-01T00:00:08Z",
-			},
-			Result: json.RawMessage(`{
+	return nil, nil
+}
+
+func completedGenerationFixture() *evalhub.CollectionGenerationResource {
+	generation := &evalhub.CollectionGenerationResource{
+		Resource: evalhub.CollectionGenerationResourceMetadata{
+			ID: completedGenerationID, Tenant: completedGenerationTenant, Owner: "dev-user@example.com",
+			CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:00:00Z",
+		},
+		Request: evalhub.CollectionGenerationRequestSummary{
+			EvaluationGoal: "Assess reasoning and factual accuracy",
+			Model:          evalhub.JobModel{Name: "my-model", URL: "https://models.example.com/v1"},
+			MaxBenchmarks:  12, Strictness: "moderate", GenerationEffort: "standard",
+		},
+		Status: evalhub.CollectionGenerationStatus{
+			State:       "completed",
+			StartedAt:   "2026-01-01T00:00:01Z",
+			CompletedAt: "2026-01-01T00:00:08Z",
+		},
+		Result: json.RawMessage(`{
 				"collection": {
 					"name": "Reasoning and Accuracy Recommendations",
 					"category": "Capability",
@@ -261,36 +267,36 @@ func (m *MockEvalHubClient) GetCollectionGeneration(
 					{"name":"calibrate_proposal","outcome":"success","summary":"Added example metrics and pass thresholds for the selected benchmarks."}
 				]
 			}`),
-		}
 	}
-	if generation != nil && generation.Resource.Tenant == namespace {
-		return generation, nil
+	var result map[string]any
+	if err := json.Unmarshal(generation.Result, &result); err != nil {
+		panic(err)
 	}
-	return nil, nil
+	collectionYAML, err := yaml.Marshal(result["collection"])
+	if err != nil {
+		panic(err)
+	}
+	result["yaml"] = string(collectionYAML)
+	generation.Result, err = json.Marshal(result)
+	if err != nil {
+		panic(err)
+	}
+	return generation
 }
 
 // DeleteCollectionGeneration removes mock generation resources for the tenant.
 func (m *MockEvalHubClient) DeleteCollectionGeneration(_ context.Context, id string, namespace string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	scope := collectionGenerationScope{id: id, tenant: namespace}
-	if _, deleted := m.deletedCollectionGenerations[scope]; deleted {
+	state := m.generationState
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	generation := state.collectionGenerations[id]
+	if generation == nil {
 		return evalhub.NewNotFoundError("collection generation not found")
 	}
-	generation := m.collectionGenerations[id]
-	if generation == nil && id != "generation-001" {
+	if generation.Resource.ID != id || generation.Resource.Tenant != namespace {
 		return evalhub.NewNotFoundError("collection generation not found")
 	}
-	if generation != nil && (generation.Resource.ID != id || generation.Resource.Tenant != namespace) {
-		return evalhub.NewNotFoundError("collection generation not found")
-	}
-	if generation != nil {
-		delete(m.collectionGenerations, id)
-	}
-	if m.deletedCollectionGenerations == nil {
-		m.deletedCollectionGenerations = make(map[collectionGenerationScope]struct{})
-	}
-	m.deletedCollectionGenerations[scope] = struct{}{}
+	delete(state.collectionGenerations, id)
 	m.LastDeletedCollectionGenerationID = id
 	m.LastDeletedCollectionGenerationTenant = namespace
 	return nil

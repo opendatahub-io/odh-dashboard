@@ -93,13 +93,13 @@ func TestCreateCollectionGenerationHandler(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusAccepted, response.StatusCode)
-	assert.Equal(t, "generation-001", result.Data.Resource.ID)
+	assert.Regexp(t, `^generation-[0-9a-f-]{36}$`, result.Data.Resource.ID)
 	assert.Equal(t, "pending", result.Data.Status.State)
 	assert.Equal(t, "test-ns", mockClient.LastCollectionGenerationNamespace)
 	require.NotNil(t, mockClient.LastCollectionGenerationRequest)
 	assert.Equal(t, request.EvaluationGoal, mockClient.LastCollectionGenerationRequest.EvaluationGoal)
 	assert.Equal(t, "model-credentials", mockClient.LastCollectionGenerationRequest.Model.Auth.SecretRef)
-	assert.Equal(t, PathPrefix+ApiPathPrefix+collectionGenerationPath+"/generation-001?namespace=test-ns", response.Header.Get("Location"))
+	assert.Equal(t, PathPrefix+ApiPathPrefix+collectionGenerationPath+"/"+result.Data.Resource.ID+"?namespace=test-ns", response.Header.Get("Location"))
 }
 
 func TestCreateCollectionGenerationHandlerRejectsCollectionMetadataFields(t *testing.T) {

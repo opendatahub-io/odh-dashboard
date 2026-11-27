@@ -1241,6 +1241,7 @@ describe('EvaluationsPage', () => {
       it('should show the admin unavailable empty state', () => {
         renderPage('test-project');
         expect(screen.getByTestId('evalhub-unavailable-empty-state')).toBeInTheDocument();
+        expect(screen.queryByTestId('create-suite-header-button')).not.toBeInTheDocument();
       });
 
       it('should display the correct admin unavailable message', () => {
