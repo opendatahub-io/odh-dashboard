@@ -41,6 +41,70 @@ func TestOperatorRoleCoversDeployedClusterRoles(t *testing.T) {
 	}
 }
 
+func TestModuleSecretPermissionsAreNamespaced(t *testing.T) {
+	moduleSecretRoles := map[string]bool{
+		"notebooks": false,
+		"gen-ai":    false,
+		"autorag":   false,
+	}
+
+	err := filepath.WalkDir(filepath.Join("..", "..", "..", "manifests", "modules"), func(path string, entry fs.DirEntry, err error) error {
+		if err != nil || entry.IsDir() || filepath.Base(path) != "secret-rbac.yaml" {
+			return err
+		}
+		module := filepath.Base(filepath.Dir(path))
+		if _, wanted := moduleSecretRoles[module]; !wanted {
+			return nil
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
+		for {
+			doc, err := reader.Read()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				return fmt.Errorf("reading %s: %w", path, err)
+			}
+			var role rbacv1.Role
+			if err := yaml.Unmarshal(doc, &role); err != nil {
+				return fmt.Errorf("parsing %s: %w", path, err)
+			}
+			if role.Kind != "Role" {
+				continue
+			}
+			hasSecretRule := false
+			for _, rule := range role.Rules {
+				if slices.Contains(rule.Resources, "secrets") {
+					hasSecretRule = true
+					break
+				}
+			}
+			if !hasSecretRule {
+				return fmt.Errorf("%s does not grant Secret access", path)
+			}
+			moduleSecretRoles[module] = true
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	for module, found := range moduleSecretRoles {
+		assert.True(t, found, "expected module %s to define a namespaced Secret Role", module)
+	}
+
+	clusterRoles := readManifestClusterRoles(t, filepath.Join("..", "..", "..", "manifests"))
+	for _, role := range clusterRoles {
+		for _, rule := range role.Rules {
+			assert.False(t, slices.Contains(rule.Resources, "secrets"),
+				"module ClusterRole %s must not grant Secret access; use a namespaced Role instead", role.Name)
+		}
+	}
+}
+
 func TestOperatorRoleDoesNotAllowImpersonation(t *testing.T) {
 	operatorRole := readClusterRole(t, filepath.Join("..", "..", "config", "rbac", "role.yaml"))
 

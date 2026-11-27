@@ -56,6 +56,17 @@ func operatorServiceAccountName() string {
 	return envOrDefault("OPERATOR_SERVICE_ACCOUNT_NAME", operatorDeploymentName)
 }
 
+// operatorNamespacedRoleName and operatorNamespacedRoleBindingName identify the
+// chart-owned Role and RoleBinding that keep the controller's Secret access inside
+// the applications namespace and consented target namespaces.
+func operatorNamespacedRoleName() string {
+	return operatorDeploymentName + "-namespaced-role"
+}
+
+func operatorNamespacedRoleBindingName() string {
+	return operatorDeploymentName + "-namespaced-rolebinding"
+}
+
 // resolveDistributionConfigMapName returns the name of the chart-rendered config ConfigMap
 // (dashboard.configMapName / .Values.config.name, default odh-dashboard-config). This is the
 // ConfigMap the operator reads for distribution identity and which teardown must preserve. Its
@@ -84,13 +95,15 @@ func envOrDefault(key, fallback string) string {
 func operatorOwnedResources() map[string]bool {
 	base := operatorDeploymentName
 	return map[string]bool{
-		"Deployment/" + base:                              true,
-		"ServiceAccount/" + operatorServiceAccountName():  true,
-		"Service/" + base + "-webhook":                    true, // dashboard.webhookServiceName
-		"ConfigMap/" + resolveDistributionConfigMapName(): true, // dashboard.configMapName
-		"ClusterRole/" + base + "-role":                   true,
-		"ClusterRoleBinding/" + base + "-rolebinding":     true,
-		"NetworkPolicy/" + base + "-metrics":              true, // charts/.../networkpolicy.yaml (protects the running controller pod)
+		"Deployment/" + base:                                 true,
+		"ServiceAccount/" + operatorServiceAccountName():     true,
+		"Service/" + base + "-webhook":                       true, // dashboard.webhookServiceName
+		"ConfigMap/" + resolveDistributionConfigMapName():    true, // dashboard.configMapName
+		"ClusterRole/" + base + "-role":                      true,
+		"ClusterRoleBinding/" + base + "-rolebinding":        true,
+		"Role/" + operatorNamespacedRoleName():               true, // charts/.../rbac.yaml
+		"RoleBinding/" + operatorNamespacedRoleBindingName(): true,
+		"NetworkPolicy/" + base + "-metrics":                 true, // charts/.../networkpolicy.yaml (protects the running controller pod)
 	}
 }
 

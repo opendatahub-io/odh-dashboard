@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dashboard-operator-namespaced-role
+  namespace: opendatahub
+rules:
+  # The controller manages Secrets only in its applications namespace. It does
+  # not watch Secrets, so the watch verb is intentionally omitted.
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - patch
+      - delete

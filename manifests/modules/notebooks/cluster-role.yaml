@@ -21,18 +21,6 @@ rules:
       - list
       - watch
       - create
-      - update
-      - patch
-      - delete
-    resources:
-      - secrets
-  - apiGroups:
-      - ""
-    verbs:
-      - get
-      - list
-      - watch
-      - create
       - delete
     resources:
       - persistentvolumeclaims

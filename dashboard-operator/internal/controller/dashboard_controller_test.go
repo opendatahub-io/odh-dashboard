@@ -1963,6 +1963,38 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 		},
 	}
 
+	operatorRole := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opDep + "-namespaced-role",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardRole := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      delDep + "-role",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	operatorRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opDep + "-namespaced-rolebinding",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      delDep + "-rolebinding",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
 	// The operator's own metrics NetworkPolicy (shipped by the Helm chart) carries the
 	// part-of=dashboard label too, so it must survive teardown; an operand policy must not.
 	operatorNetpol := &networkingv1.NetworkPolicy{
@@ -1983,7 +2015,12 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA, operatorCR, dashboardCR, operatorCRB, dashboardCRB, operatorNetpol, dashboardNetpol).
+		WithObjects(
+			dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA,
+			operatorCR, dashboardCR, operatorCRB, dashboardCRB,
+			operatorRole, dashboardRole, operatorRoleBinding, dashboardRoleBinding,
+			operatorNetpol, dashboardNetpol,
+		).
 		WithStatusSubresource(dashboard).
 		Build()
 
@@ -2040,6 +2077,24 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 	}
 	assert.Contains(t, crbNames, opCRB, "operator ClusterRoleBinding must survive teardown")
 	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
+
+	var roles rbacv1.RoleList
+	require.NoError(t, cli.List(ctx, &roles, client.InNamespace(testNamespace)))
+	var roleNames []string
+	for i := range roles.Items {
+		roleNames = append(roleNames, roles.Items[i].Name)
+	}
+	assert.Contains(t, roleNames, opDep+"-namespaced-role", "operator namespaced Role must survive teardown")
+	assert.NotContains(t, roleNames, delDep+"-role", "non-operator Roles must be deleted")
+
+	var roleBindings rbacv1.RoleBindingList
+	require.NoError(t, cli.List(ctx, &roleBindings, client.InNamespace(testNamespace)))
+	var roleBindingNames []string
+	for i := range roleBindings.Items {
+		roleBindingNames = append(roleBindingNames, roleBindings.Items[i].Name)
+	}
+	assert.Contains(t, roleBindingNames, opDep+"-namespaced-rolebinding", "operator namespaced RoleBinding must survive teardown")
+	assert.NotContains(t, roleBindingNames, delDep+"-rolebinding", "non-operator RoleBindings must be deleted")
 
 	var netpols networkingv1.NetworkPolicyList
 	require.NoError(t, cli.List(ctx, &netpols, client.InNamespace(testNamespace)))

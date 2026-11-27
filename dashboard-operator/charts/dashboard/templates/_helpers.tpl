@@ -64,6 +64,14 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- printf "%sdashboard-operator-rolebinding" .Values.namePrefix }}
 {{- end }}
 
+{{- define "dashboard.namespaceRoleName" -}}
+{{- printf "%s-namespaced-role" (include "dashboard.deploymentName" .) }}
+{{- end }}
+
+{{- define "dashboard.namespaceRoleBindingName" -}}
+{{- printf "%s-namespaced-rolebinding" (include "dashboard.deploymentName" .) }}
+{{- end }}
+
 {{- define "dashboard.configMapName" -}}
 {{- .Values.config.name }}
 {{- end }}
