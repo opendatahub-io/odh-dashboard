@@ -92,6 +92,7 @@
     "./components/DashboardExpandableSection": "./src/components/DashboardExpandableSection.tsx",
     "./components/DashboardExpandableSection.scss": "./src/components/DashboardExpandableSection.scss",
     "./components/EmptyStateErrorMessage": "./src/components/EmptyStateErrorMessage.tsx",
+    "./components/EmptyProjects": "./src/components/EmptyProjects.tsx",
     "./components/NotFound": "./src/components/NotFound.tsx",
     "./components/UnauthorizedError": "./src/components/UnauthorizedError.tsx",
     "./components/UnknownError": "./src/components/UnknownError.tsx",

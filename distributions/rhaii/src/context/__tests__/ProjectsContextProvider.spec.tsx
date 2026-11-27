@@ -744,6 +744,62 @@ describe('RHAII working project provider integration', () => {
     expect(screen.getByTestId('known-projects')).toHaveTextContent('');
   });
 
+  it('should reuse the request-project empty state when listing succeeds without available projects', async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsContextProvider>
+        <RhaiiProjectSelector />
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('source-status')).toHaveTextContent('empty-list'),
+    );
+    const trigger = screen.getByTestId('working-project-selector');
+    await user.click(trigger);
+    const dialog = screen.getByRole('dialog', { name: 'Project selector' });
+    expect(
+      within(dialog).getByRole('heading', { name: 'Start by requesting a project' }),
+    ).toBeVisible();
+    expect(within(dialog).getByRole('img', { name: 'no projects' })).toBeVisible();
+    expect(within(dialog).getByTestId('projects-empty-body-text')).toHaveTextContent(
+      'To request a project, contact your administrator.',
+    );
+    expect(
+      within(dialog).queryByRole('button', { name: 'Create project' }),
+    ).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Add project' })).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    await user.click(trigger);
+    await user.click(screen.getByTestId('projects-empty-admin-help'));
+    expect(await screen.findByTestId('projects-empty-admin-help-content')).toHaveTextContent(
+      'Someone in your IT department or help desk',
+    );
+    expect(mockFetchNamespaceByName).not.toHaveBeenCalled();
+    expect(screen.getByTestId('working-project')).toHaveTextContent('none');
+  });
+
+  it('should keep the manual-entry empty state when namespace listing is unavailable', async () => {
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
+    render(
+      <ProjectsContextProvider>
+        <RhaiiProjectSelector />
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('source-status')).toHaveTextContent('listing-unavailable'),
+    );
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByRole('heading', { name: 'Start by adding a project' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Add project' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeVisible();
+    expect(screen.queryByTestId('projects-empty-admin-help')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create project' })).not.toBeInTheDocument();
+  });
+
   it.each(['', 'allowed'])(
     'should preserve the legacy project context when UPS is disabled (stored: %s)',
     async (stored) => {
