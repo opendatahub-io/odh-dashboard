@@ -1,12 +1,10 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -24,12 +22,13 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/kustomize/api/krusty"
+	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
 
 // shippedRoles are the namespaced Roles the dashboard service account runs
@@ -38,7 +37,7 @@ import (
 // only shipped xKS manifest set (RHAI-50761); internal/bundlecontract pins its
 // RBAC to the bootstrap contract.
 var shippedRoles = map[string]string{
-	"RHAII bundle": "../../../../../manifests/distributions/rhaii/role.yaml",
+	"RHAII bundle": "../../../../../manifests/distributions/rhaii",
 }
 
 // AC (RHOAIENG-96080): on xKS without the OdhApplication API, /api/components
@@ -78,14 +77,25 @@ func TestGetComponents_WithoutTheListRule_APIAbsentIsAnError(t *testing.T) {
 		"a forbidden list must not be mistaken for an absent API")
 }
 
-func readRole(t *testing.T, path string) rbacv1.Role {
+// readRole renders the kustomization in dir, as the operator does, and
+// returns its rhaii-dashboard Role, so these tests exercise the rules that are
+// actually installed rather than the source file.
+func readRole(t *testing.T, dir string) rbacv1.Role {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Clean(path))
+	resMap, err := krusty.MakeKustomizer(krusty.MakeDefaultOptions()).Run(filesys.MakeFsOnDisk(), filepath.Clean(dir))
 	require.NoError(t, err)
-	var role rbacv1.Role
-	require.NoError(t, yaml.NewYAMLOrJSONDecoder(bytes.NewReader(raw), 4096).Decode(&role))
-	require.Equal(t, "Role", role.Kind)
-	return role
+	for _, res := range resMap.Resources() {
+		if res.GetKind() != "Role" || res.GetName() != "rhaii-dashboard" {
+			continue
+		}
+		js, err := res.MarshalJSON()
+		require.NoError(t, err)
+		var role rbacv1.Role
+		require.NoError(t, json.Unmarshal(js, &role))
+		return role
+	}
+	require.FailNow(t, "the bundle renders no rhaii-dashboard Role")
+	return rbacv1.Role{}
 }
 
 // serviceAccountDynamicClient creates a fresh namespace with a service account

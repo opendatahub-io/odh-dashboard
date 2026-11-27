@@ -64,6 +64,7 @@ func TestRHAIIBundle_ServiceAccountRBACMatchesTheContract(t *testing.T) {
 	got, violations := serviceAccountGrants(b)
 	require.Empty(t, violations, "the RHAII bundle's service-account RBAC breaks the guard rules")
 	require.Empty(t, namespaceViolations(b), "the RHAII bundle's bindings do not reach the installed ServiceAccount")
+	require.Empty(t, b.unchecked, "the bundle renders kinds the RBAC guard does not check; extend the guard first")
 
 	assert.Empty(t, difference(got, want),
 		"the RHAII bundle grants its service account more than %s allows", bootstrapContract)
@@ -78,43 +79,92 @@ func TestRHAIIBundle_ServiceAccountRBACMatchesTheContract(t *testing.T) {
 // agreed ordered credential headers (runtime contract, "Caller credentials").
 func TestRHAIIBundle_DeploymentKeepsTheContractPreconditions(t *testing.T) {
 	b := loadBundle(t)
-	d := b.deployment(t)
-	c := dashboardContainer(t, d)
-	args := c.Args
+	assert.Empty(t, profileViolations(b.deployment(t)))
+}
+
+// profileViolations lists how the Deployment departs from the production
+// profile the service-account contract assumes.
+func profileViolations(d appsv1.Deployment) []string {
+	var v []string
+	fail := func(format string, a ...any) { v = append(v, fmt.Sprintf(format, a...)) }
+	pod := d.Spec.Template.Spec
+	if pod.ServiceAccountName != dashboardName {
+		fail("serviceAccountName is %q, not %q", pod.ServiceAccountName, dashboardName)
+	}
+	// Every process in the pod runs as the service account, so no container
+	// may replace the image entrypoint (a command could carry flags parsed
+	// before the reviewed args, or "--" to turn them into positionals), no
+	// init or other container may run the dashboard image with its own args,
+	// and the dashboard container is checked below.
+	if len(pod.InitContainers) > 0 {
+		fail("init containers run as the service account outside the checked profile")
+	}
+	var c *corev1.Container
+	for i := range pod.Containers {
+		if pod.Containers[i].Name == dashboardName {
+			c = &pod.Containers[i]
+		}
+	}
+	if c == nil {
+		return append(v, "the Deployment has no rhaii-dashboard container")
+	}
+	for _, other := range pod.Containers {
+		if len(other.Command) > 0 {
+			fail("container %q overrides the image entrypoint with %v", other.Name, other.Command)
+		}
+		if other.Name != c.Name && other.Image == c.Image {
+			fail("container %q runs the dashboard image outside the checked profile", other.Name)
+		}
+	}
 
 	// The BFF parses flags with the standard flag package: the last occurrence
 	// wins, and a separate value ("--port 8443") cannot be told apart from a
 	// positional argument without the flag's type. Keep every arg in the
 	// unambiguous "--name=value" form so the reads below are exact.
+	args := c.Args
 	for _, a := range args {
-		assert.Regexp(t, `^--[a-z0-9-]+=`, a, "write bundle args as --name=value")
+		if !regexp.MustCompile(`^--[a-z0-9-]+=`).MatchString(a) {
+			fail("arg %q is not in --name=value form", a)
+		}
 	}
-	assert.Equal(t, []string{"XKS"}, lastFlagValue(args, "platform-type"))
-	assert.Equal(t, []string{"Authorization,x-forwarded-access-token"}, lastFlagValue(args, "auth-token-headers"))
-	// The production profile: caller credentials, no DEV_MODE fallback to the
-	// service account, no mocked clients.
-	assert.Equal(t, []string{"user_token"}, lastFlagValue(args, "auth-method"))
-	for _, name := range []string{"auth-token-header", "auth-token-prefix", "admission-mode", "dev-mode", "mock-k8s-client", "insecure-skip-verify"} {
-		assert.Nil(t, lastFlagValue(args, name), "--%s must not be set in the bundle", name)
+	want := map[string]string{
+		"platform-type":      "XKS",
+		"auth-token-headers": "Authorization,x-forwarded-access-token",
+		// Caller credentials: the production profile.
+		"auth-method": "user_token",
 	}
+	for name, value := range want {
+		if got := lastFlagValue(args, name); len(got) != 1 || got[0] != value {
+			fail("--%s is %v, want %q", name, got, value)
+		}
+	}
+	// No DEV_MODE fallback to the service account, no mocked clients, no
+	// single-header mode, no admission override, no namespace override.
+	for _, name := range []string{"auth-token-header", "auth-token-prefix", "admission-mode", "dev-mode", "mock-k8s-client", "insecure-skip-verify", "namespace"} {
+		if lastFlagValue(args, name) != nil {
+			fail("--%s must not be set in the bundle", name)
+		}
+	}
+	forbiddenEnv := map[string]bool{"ODH_PLATFORM_TYPE": true, "AUTH_METHOD": true, "AUTH_TOKEN_HEADERS": true, "AUTH_TOKEN_HEADER": true,
+		"AUTH_TOKEN_PREFIX": true, "ADMISSION_MODE": true, "DEV_MODE": true, "MOCK_K8S_CLIENT": true, "INSECURE_SKIP_VERIFY": true}
+	namespaceFromPod := false
 	for _, e := range c.Env {
-		assert.NotContains(t, []string{"ODH_PLATFORM_TYPE", "AUTH_METHOD", "AUTH_TOKEN_HEADERS", "AUTH_TOKEN_HEADER", "AUTH_TOKEN_PREFIX",
-			"ADMISSION_MODE", "DEV_MODE", "MOCK_K8S_CLIENT", "INSECURE_SKIP_VERIFY"},
-			e.Name, "%s must not come from the environment: the reviewed flags are the contract", e.Name)
-	}
-	assert.Empty(t, c.EnvFrom, "envFrom could set any of the settings above")
-
-	// The service-account reads target the dashboard namespace, where the Role
-	// is bound: NAMESPACE must be the pod's own namespace (bootstrap contract).
-	assert.Nil(t, lastFlagValue(args, "namespace"), "--namespace would override the pod's own namespace")
-	var namespaceFromPod bool
-	for _, e := range c.Env {
+		if forbiddenEnv[e.Name] {
+			fail("%s must not come from the environment: the reviewed flags are the contract", e.Name)
+		}
+		// The service-account reads target the dashboard namespace, where the
+		// Role is bound: NAMESPACE must be the pod's own namespace.
 		if e.Name == "NAMESPACE" {
 			namespaceFromPod = e.ValueFrom != nil && e.ValueFrom.FieldRef != nil && e.ValueFrom.FieldRef.FieldPath == "metadata.namespace"
 		}
 	}
-	assert.True(t, namespaceFromPod, "NAMESPACE must come from the Downward API metadata.namespace")
-	assert.Equal(t, dashboardName, d.Spec.Template.Spec.ServiceAccountName)
+	if len(c.EnvFrom) > 0 {
+		fail("envFrom could set any of the settings above")
+	}
+	if !namespaceFromPod {
+		fail("NAMESPACE must come from the Downward API metadata.namespace")
+	}
+	return v
 }
 
 // The guard itself must catch the shapes that widen access without adding a
@@ -332,6 +382,7 @@ func splitRow(line string) []string {
 
 type bundle struct {
 	sa                  string
+	unchecked           []string
 	namespaced          []string
 	configMaps          []corev1.ConfigMap
 	deployments         []appsv1.Deployment
@@ -354,17 +405,6 @@ func (b bundle) deployment(t *testing.T) appsv1.Deployment {
 	}
 	require.FailNow(t, "the bundle has no rhaii-dashboard Deployment")
 	return appsv1.Deployment{}
-}
-
-func dashboardContainer(t *testing.T, d appsv1.Deployment) corev1.Container {
-	t.Helper()
-	for _, c := range d.Spec.Template.Spec.Containers {
-		if c.Name == dashboardName {
-			return c
-		}
-	}
-	require.FailNow(t, "the Deployment has no rhaii-dashboard container")
-	return corev1.Container{}
 }
 
 // serviceAccountGrants expands every rule the bundle binds to its service
@@ -530,8 +570,12 @@ func decodeObject(t *testing.T, kind string, js []byte, b *bundle) {
 		var r rbacv1.ClusterRoleBinding
 		require.NoError(t, json.Unmarshal(js, &r))
 		b.clusterRoleBindings = append(b.clusterRoleBindings, r)
-	case "StatefulSet", "DaemonSet", "Job", "CronJob", "Pod", "ReplicaSet", "ReplicationController":
-		require.Failf(t, "unexpected workload", "%s runs with a service account the guard does not check", kind)
+	case "ServiceAccount", "Service", "PodDisruptionBudget", "HTTPRoute", "NetworkPolicy":
+	default:
+		// Allowlist: any other kind could run pods (a workload or a CRD that
+		// owns them) or grant access the guard does not read. Extend the guard
+		// for the new kind before adding it to the bundle.
+		b.unchecked = append(b.unchecked, kind)
 	}
 }
 
@@ -615,6 +659,36 @@ targets:
     fieldPaths: [spec.template.spec.serviceAccountName]
 `})
 		assert.Equal(t, "default", b.sa, "the rendered pod identity is what the guard compares")
+	})
+
+	t.Run("command override carries flags", func(t *testing.T) {
+		b := overlay(t, head+`patches:
+  - target: {kind: Deployment, name: rhaii-dashboard}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/command
+        value: [/bff, --dev-mode]
+`, nil)
+		assert.Contains(t, strings.Join(profileViolations(b.deployment(t)), "\n"), "overrides the image entrypoint")
+	})
+
+	t.Run("init container runs the dashboard image", func(t *testing.T) {
+		b := overlay(t, head+`patches:
+  - target: {kind: Deployment, name: rhaii-dashboard}
+    patch: |
+      - op: add
+        path: /spec/template/spec/initContainers
+        value: [{name: init, image: rhaii-dashboard-image, args: [--dev-mode]}]
+`, nil)
+		assert.Contains(t, strings.Join(profileViolations(b.deployment(t)), "\n"), "init containers")
+	})
+
+	t.Run("unchecked kind", func(t *testing.T) {
+		fs := filesys.MakeFsInMemory()
+		require.NoError(t, copyDirInto(fs, bundleDir, "/bundle"))
+		require.NoError(t, fs.WriteFile("/overlay/kustomization.yaml", []byte(head+"  - job.yaml\n")))
+		require.NoError(t, fs.WriteFile("/overlay/job.yaml", []byte("apiVersion: batch/v1\nkind: Job\nmetadata: {name: x}\nspec: {template: {spec: {containers: [{name: x, image: x}], restartPolicy: Never}}}\n")))
+		assert.Equal(t, []string{"Job"}, renderBundle(t, fs, "/overlay").unchecked)
 	})
 
 	t.Run("hard-coded subject namespace", func(t *testing.T) {

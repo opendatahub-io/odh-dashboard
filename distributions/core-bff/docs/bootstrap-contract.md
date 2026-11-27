@@ -345,7 +345,11 @@ service account's access, change this table first; a row whose resource cell rea
 Hand-off: the dashboard operator's xKS operand
 ([RHOAIENG-96147](https://redhat.atlassian.net/browse/RHOAIENG-96147)) renders this bundle and
 must not add service-account rules on top of it; the rhai-on-xks install chart
-([RHOAIENG-96161](https://redhat.atlassian.net/browse/RHOAIENG-96161)) installs it the same way. A
+([RHOAIENG-96161](https://redhat.atlassian.net/browse/RHOAIENG-96161)) installs it the same way.
+Both must set `rhaii-dashboard-namespace` in the bundle's `params.env` to the namespace they apply
+it to: the RoleBinding subject comes from that value, and a namespace transformer alone does not
+rewrite it unless the value happens to be `default`, so the Role would bind a ServiceAccount that
+does not exist and `/api/components` would return 403. A
 sidecar that needs its own service-account access (for example a token-reviewing proxy) adds its
 rows here first. The OpenShift (RHOAI/ODH) service-account RBAC in `manifests/base` is out of scope
 and unchanged.
