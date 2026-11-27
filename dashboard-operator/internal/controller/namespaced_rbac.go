@@ -28,6 +28,9 @@ const (
 	dashboardSANameRHOAI = "rhods-dashboard"
 
 	namespacedRBACManagedLabel = "dashboard.opendatahub.io/namespaced-rbac"
+
+	consoleNamespace    = "openshift-console"
+	consoleConfigSuffix = "console-config"
 )
 
 var errNamespacedRBACConsentMissing = errors.New("namespaced RBAC consent is missing")
@@ -42,10 +45,44 @@ func dashboardSAName(platform cluster.Platform) string {
 	}
 }
 
-// reconcileNamespacedRBAC creates or updates cross-namespace Roles and RoleBindings
+func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+	return errors.Join(r.reconcileConsoleConfigRBAC(ctx), r.reconcileCrossNamespaceRBAC(ctx, dashboard))
+}
+
+func (r *DashboardReconciler) reconcileConsoleConfigRBAC(ctx context.Context) error {
+	if r.Platform == cluster.XKS {
+		return nil
+	}
+	err := r.apiReader().Get(ctx, client.ObjectKey{Name: consoleNamespace}, &corev1.Namespace{})
+	if k8serrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("checking console namespace %s: %w", consoleNamespace, err)
+	}
+	if err := r.applyNamespacedRBAC(ctx, dashboardSAName(r.Platform), r.ApplicationsNamespace, consoleNamespace, consoleConfigSuffix, consoleConfigRBACRules()); err != nil {
+		return fmt.Errorf("console config RBAC in %s: %w", consoleNamespace, err)
+	}
+	return nil
+}
+
+func (r *DashboardReconciler) cleanupConsoleConfigRBAC(ctx context.Context) error {
+	var errs []error
+	for _, obj := range []client.Object{
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Namespace: consoleNamespace, Name: fmt.Sprintf("dashboard-%s-rolebinding", consoleConfigSuffix)}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Namespace: consoleNamespace, Name: fmt.Sprintf("dashboard-%s-role", consoleConfigSuffix)}},
+	} {
+		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %s/%s: %w", consoleNamespace, obj.GetName(), err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// reconcileCrossNamespaceRBAC creates or updates cross-namespace Roles and RoleBindings
 // for the dashboard SA in the notebooks and model-registry namespaces, then GCs
 // any resources left over in namespaces that are no longer in the desired set.
-func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+func (r *DashboardReconciler) reconcileCrossNamespaceRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	enforceConsent, err := r.ensureNamespacedRBACConsentEnforced(ctx, dashboard)
 	if err != nil {
 		return err
@@ -136,10 +173,11 @@ func (r *DashboardReconciler) validateNamespacedRBACTarget(ctx context.Context, 
 // recipient-controlled metadata change.
 // Called on Dashboard deletion and ManagementState=Removed.
 func (r *DashboardReconciler) cleanupNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+	consoleErr := r.cleanupConsoleConfigRBAC(ctx)
 	if err := r.ensureNamespacedRBACGrantInventory(ctx, dashboard); err != nil {
-		return err
+		return errors.Join(consoleErr, err)
 	}
-	return r.gcStaleNamespacedRBAC(ctx, dashboard, map[string]bool{})
+	return errors.Join(consoleErr, r.gcStaleNamespacedRBAC(ctx, dashboard, map[string]bool{}))
 }
 
 // namespacedRBACKey returns the composite GC key for a (namespace, suffix) pair.
@@ -762,6 +800,15 @@ func mergeLabels(existing, additional map[string]string) map[string]string {
 		out[k] = v
 	}
 	return out
+}
+
+func consoleConfigRBACRules() []rbacv1.PolicyRule {
+	return []rbacv1.PolicyRule{{
+		APIGroups:     []string{""},
+		Resources:     []string{"configmaps"},
+		ResourceNames: []string{"console-config"},
+		Verbs:         []string{"get"},
+	}}
 }
 
 // notebooksRBACRules returns the RBAC rules needed by the dashboard SA in the notebooks namespace.

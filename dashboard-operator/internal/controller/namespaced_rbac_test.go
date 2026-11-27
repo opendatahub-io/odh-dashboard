@@ -225,6 +225,78 @@ func TestReconcileNamespacedRBAC_NoNamespaces(t *testing.T) {
 	assert.Empty(t, listRoleBindings(t, cli))
 }
 
+func consoleNamespace() *corev1.Namespace {
+	return &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "openshift-console"}}
+}
+
+func TestReconcileNamespacedRBAC_ConsoleConfig(t *testing.T) {
+	for _, tc := range []struct {
+		platform cluster.Platform
+		saName   string
+	}{
+		{cluster.OpenDataHub, "odh-dashboard"},
+		{cluster.SelfManagedRhoai, "rhods-dashboard"},
+	} {
+		t.Run(string(tc.platform), func(t *testing.T) {
+			r, cli := newReconciler(t, tc.platform, consoleNamespace())
+			require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), newRBACDashboard("", "")))
+
+			role := getRole(t, cli, "openshift-console", "dashboard-console-config-role")
+			require.Equal(t, []rbacv1.PolicyRule{{
+				APIGroups:     []string{""},
+				Resources:     []string{"configmaps"},
+				ResourceNames: []string{"console-config"},
+				Verbs:         []string{"get"},
+			}}, role.Rules)
+
+			rb := getRoleBinding(t, cli, "openshift-console", "dashboard-console-config-rolebinding")
+			require.Equal(t, []rbacv1.Subject{{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      tc.saName,
+				Namespace: testAppNamespace,
+			}}, rb.Subjects)
+			assert.Equal(t, "dashboard-console-config-role", rb.RoleRef.Name)
+		})
+	}
+}
+
+func TestReconcileNamespacedRBAC_XKSSkipsConsoleConfig(t *testing.T) {
+	r, cli := newReconciler(t, cluster.XKS, consoleNamespace())
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), newRBACDashboard(testNotebooksNS, "")))
+
+	roles := listRoles(t, cli)
+	require.Len(t, roles, 1)
+	assert.Equal(t, "dashboard-notebooks-role", roles[0].Name)
+	assert.Len(t, listRoleBindings(t, cli), 1)
+}
+
+func TestReconcileNamespacedRBAC_ConsoleUnavailable(t *testing.T) {
+	ctx := context.Background()
+	t.Run("missing namespace", func(t *testing.T) {
+		r, cli := newReconciler(t, cluster.OpenDataHub)
+		require.NoError(t, r.ReconcileNamespacedRBAC(ctx, newRBACDashboard(testNotebooksNS, testModelRegistryNS)))
+		assert.Len(t, listRoles(t, cli), 2)
+		getRole(t, cli, testNotebooksNS, "dashboard-notebooks-role")
+		getRole(t, cli, testModelRegistryNS, "dashboard-model-registry-role")
+	})
+	t.Run("binding creation failure", func(t *testing.T) {
+		r, cli := newReconciler(t, cluster.OpenDataHub, consoleNamespace())
+		watchClient, ok := cli.(client.WithWatch)
+		require.True(t, ok)
+		r.Client = interceptor.NewClient(watchClient, interceptor.Funcs{
+			Create: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+				if obj.GetName() == "dashboard-console-config-rolebinding" {
+					return assert.AnError
+				}
+				return delegate.Create(ctx, obj, opts...)
+			},
+		})
+		require.ErrorIs(t, r.ReconcileNamespacedRBAC(ctx, newRBACDashboard(testNotebooksNS, testModelRegistryNS)), assert.AnError)
+		getRoleBinding(t, cli, testNotebooksNS, "dashboard-notebooks-rolebinding")
+		getRoleBinding(t, cli, testModelRegistryNS, "dashboard-model-registry-rolebinding")
+	})
+}
+
 func TestReconcileNamespacedRBAC_MigratesInventoryOnlyOnce(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
 	watchClient, ok := cli.(client.WithWatch)
@@ -892,6 +964,17 @@ func TestCleanupNamespacedRBAC(t *testing.T) {
 
 	err := r.CleanupNamespacedRBAC(context.Background())
 	require.NoError(t, err)
+
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestCleanupNamespacedRBAC_RemovesConsoleConfig(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub, consoleNamespace())
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), newRBACDashboard(testNotebooksNS, "")))
+	getRole(t, cli, "openshift-console", "dashboard-console-config-role")
+
+	require.NoError(t, r.CleanupNamespacedRBAC(context.Background()))
 
 	assert.Empty(t, listRoles(t, cli))
 	assert.Empty(t, listRoleBindings(t, cli))
