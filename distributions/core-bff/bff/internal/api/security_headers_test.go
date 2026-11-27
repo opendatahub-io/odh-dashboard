@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -308,4 +309,24 @@ func TestRoutesPanicRetainsSecurityHeaders(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A gateway may carry the identity in a custom AUTH_TOKEN_HEADER; Vary must
+// name it, once, next to the default identity headers.
+func TestSecurityHeaders_VaryNamesTheConfiguredTokenHeader(t *testing.T) {
+	app := newTestApp(func(a *App) { a.config.AuthTokenHeader = "x-auth-request-access-token" })
+	handler := app.SetSecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/status", nil))
+
+	vary := strings.Join(rr.Header().Values("Vary"), ",")
+	assert.Contains(t, vary, "X-Auth-Request-Access-Token")
+	assert.Contains(t, vary, "Authorization")
+
+	app = newTestApp(func(a *App) { a.config.AuthTokenHeader = "x-forwarded-access-token" })
+	rr = httptest.NewRecorder()
+	app.SetSecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})).
+		ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/status", nil))
+	assert.Equal(t, 1, strings.Count(strings.ToLower(strings.Join(rr.Header().Values("Vary"), ",")), "x-forwarded-access-token"),
+		"the default header is not listed twice")
 }

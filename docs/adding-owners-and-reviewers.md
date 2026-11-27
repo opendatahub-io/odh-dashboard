@@ -14,16 +14,27 @@ The repository uses `OWNERS` files plus one root `OWNERS_ALIASES`:
 Every directory under `packages/` must have its own `OWNERS` file:
 
 ```yaml
-approvers:
-  - your-team-approvers
-reviewers:
-  - your-team-reviewers
-labels:
-  - area/your-team
-  - area/components
+filters:
+  '.*':
+    approvers:
+      - your-team-approvers
+    reviewers:
+      - your-team-reviewers
+    labels:
+      - area/your-team
+      - area/components
+
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
+
 options:
   no_parent_owners: true
 ```
+
+Use the `filters:` form, not top-level `approvers:`. Prow treats a file with any top-level `approvers`/`reviewers`/`labels` as a simple config and **silently ignores** its `filters:`, which would drop the `dependency-approvers` grant. `distributions/<name>/OWNERS` and `dashboard-operator/OWNERS` use the same template.
 
 `options.no_parent_owners: true` is required. Without it, Prow inherits the root `OWNERS` catch-all, which makes `general-approvers` valid approvers for every package and defeats per-package ownership. It also stops inheritance of root labels and reviewers, so copy any labels the package needs (including `area/components`) into this file.
 
@@ -34,6 +45,24 @@ Root `OWNERS` filters are only for paths that no scoped `OWNERS` file covers (fo
 Manifest modules follow the same pattern: create `manifests/modules/<module>/OWNERS` with the owning team's approvers/reviewers, the module's `area/*` label(s), `area/manifests`, and `options.no_parent_owners: true`. `manifests/OWNERS` covers the remaining manifests directories with `area/manifests` and `platform-reviewers`. `distributions/` also has its own `OWNERS` with `no_parent_owners: true`.
 
 Do not add `OWNERS` files under `packages/*/upstream/`: synced upstream copies interfere with package ownership and should be excluded from the subtree sync instead.
+
+## Dependency approvers
+
+CVE fixes and dependency bumps often touch `package.json` or `go.mod`/`go.sum` in many packages at once. With per-package ownership, that would need one approver per package. The `dependency-approvers` alias in `OWNERS_ALIASES` is a small, named group that can approve **only dependency manifests**, in every package:
+
+| Path | Who can approve |
+| --- | --- |
+| `pnpm-lock.yaml`, `pnpm-workspace.yaml`, root/`frontend`/`backend` `package.json`, `pkg/*/go.mod` | root `OWNERS` approvers **or** `dependency-approvers` |
+| `packages/<pkg>/{,bff/,cypress/,frontend/,services/}{package.json,go.mod,go.sum}` (same for `distributions/<name>/`, `dashboard-operator/`) | the package team **or** `dependency-approvers` |
+| Everything else (code, `Dockerfile*`, workflows, manifests, `upstream/` trees) | the owning team only |
+
+A multi-package CVE PR that only changes manifests and lockfiles therefore needs a single `/approve` from a dependency approver. If it also contains code changes (for example an API migration), the owning teams still approve those files; Prow lists exactly which `OWNERS` files are outstanding.
+
+`Dockerfile*` is deliberately excluded. Base-image and Go-toolchain bumps are rare upstream (MintMaker pins digests downstream), and Dockerfiles carry arbitrary build steps.
+
+When adding a new package, distribution or Go module, copy the template above so its manifests stay approvable by `dependency-approvers`. A missing filter is not a security risk; the package team's approval is simply required again. Keep the regex anchored (`^...$`) so it never reaches code or `upstream/` trees.
+
+`dependency-approvers` is intentionally **not** in the `OWNERS_ALIASES` approvers filter, so its members cannot approve alias changes. Membership changes follow the same review as any other alias edit; reviewers should treat additions to this group like granting approval rights across every package.
 
 ## Authorization Model
 
@@ -207,13 +236,22 @@ feature-store-reviewers:
 Create `packages/feature-store/OWNERS` (see [Package ownership](#package-ownership)):
 
 ```yaml
-approvers:
-  - feature-store-approvers
-reviewers:
-  - feature-store-reviewers
-labels:
-  - area/feature-store
-  - area/components
+filters:
+  '.*':
+    approvers:
+      - feature-store-approvers
+    reviewers:
+      - feature-store-reviewers
+    labels:
+      - area/feature-store
+      - area/components
+
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
+
 options:
   no_parent_owners: true
 ```

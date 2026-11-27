@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { getModelAccessSubscriptionViewUrl } from '~/app/pages/model-access/utils';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { getSubscriptionViewUrl, isMaaSPortalHost } from '~/app/utilities/maasGovernanceNavigation';
@@ -31,6 +31,7 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
   linkable = false,
   isMaasAdmin = false,
 }) => {
+  const trackEvent = useTrackEvent();
   if (!subscriptionName) {
     return <>—</>;
   }
@@ -48,7 +49,7 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
       to={`${URL_PREFIX}/keys-and-subs/subscriptions/${encodeURIComponent(subscriptionName)}`}
       data-testid="subscription-detail-link"
       onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
+        trackEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
           currentView: MySubscriptionsGrouping.SUBSCRIPTION,
           location: SubscriptionDetailNavLocation.API_KEYS_TABLE,
         } satisfies SubscriptionDetailNavigatedProperties);

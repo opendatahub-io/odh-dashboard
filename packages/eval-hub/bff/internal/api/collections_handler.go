@@ -515,7 +515,7 @@ func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, 
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
 			return
 		}
-		if benchmark.Weight < 0 {
+		if benchmark.Weight != nil && *benchmark.Weight < 0 {
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
 			return
 		}
@@ -593,7 +593,7 @@ func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, p
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
 			return
 		}
-		if benchmark.Weight < 0 {
+		if benchmark.Weight != nil && *benchmark.Weight < 0 {
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
 			return
 		}

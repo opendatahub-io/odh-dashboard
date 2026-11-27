@@ -344,6 +344,7 @@ export type TestConfig = {
   MAAS_PORTAL_MODEL_NAME?: string;
   MAAS_PORTAL_ORGANIZATION_ID?: string;
   MAAS_PORTAL_USER_GROUPS?: string[];
+  MAAS_OWNER_GROUPS?: string[] | string;
   MAAS_API_KEY?: string;
   MAAS_PORTAL_ADMIN_USER?: UserAuthConfig;
   MAAS_PORTAL_USER?: UserAuthConfig;
@@ -1003,11 +1004,13 @@ export type EvalHubTestData = {
   benchmarkProviderId: string;
   /** Benchmark ID of the benchmark card to select (must match provider catalog on the cluster). */
   benchmarkId: string;
+  /** Value entered through the benchmark's dedicated Num examples field. */
+  numExamples?: number;
   /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
   inferenceModelName: string;
   /** MLflow experiment name entered when starting an evaluation. */
   mlflowExperimentName: string;
-  /** JSON object string merged into benchmark parameters (valid JSON object). */
+  /** JSON object string of additional benchmark parameters (valid JSON object). */
   additionalBenchmarkParams: string;
   /** OCI URI for the model (e.g. `oci://quay.io/.../llama-3.2-1b-instruct`). */
   modelOciUri: string;

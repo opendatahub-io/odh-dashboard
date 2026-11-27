@@ -24,8 +24,8 @@ import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormVal
 import { APIOptions } from 'mod-arch-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
@@ -128,6 +128,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   editSource,
 }) => {
   const navigate = useNavigate();
+  const trackEvent = useTrackEvent();
   const { refresh } = useMaaSGovernanceContext();
   const isEditing = !!subscriptionInfo;
   const subscription = subscriptionInfo?.subscription;
@@ -299,7 +300,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           resourceVersion: subscription.resourceVersion,
         };
         await updateSubscription()(apiOpts, subscription.name, request);
-        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_UPDATED, {
+        trackEvent(MaaSEvents.SUBSCRIPTION_UPDATED, {
           outcome: TrackingOutcome.submit,
           success: true,
           groupCount: selectedGroupNames.length,
@@ -319,7 +320,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           createAuthPolicy,
         };
         await createSubscription()(apiOpts, request);
-        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_CREATED, {
+        trackEvent(MaaSEvents.SUBSCRIPTION_CREATED, {
           outcome: TrackingOutcome.submit,
           success: true,
           groupCount: selectedGroupNames.length,
@@ -335,7 +336,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
       navigate(returnTo ?? getSectionUrl('subscriptions'));
     } catch (e) {
       const errMsg = getSubscriptionSubmitError(e, isEditing);
-      fireFormTrackingEvent(
+      trackEvent(
         isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
         isEditing
           ? ({
@@ -611,7 +612,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             variant="link"
             onClick={() => {
               navigate(returnTo ?? getSectionUrl('subscriptions'));
-              fireFormTrackingEvent(
+              trackEvent(
                 isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
                 isEditing
                   ? ({

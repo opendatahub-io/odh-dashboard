@@ -1,11 +1,12 @@
 package main
 
 import (
+	"io"
 	"log/slog"
 	"testing"
 )
 
-func TestNewOriginParser(t *testing.T) {
+func TestNewListParser(t *testing.T) {
 	cases := []struct {
 		name     string
 		input    string
@@ -15,18 +16,19 @@ func TestNewOriginParser(t *testing.T) {
 		{"two items", "https://test.com,https://test2.com", []string{"https://test.com", "https://test2.com"}},
 		{"two items spaced", "https://test.com,    https://test2.com", []string{"https://test.com", "https://test2.com"}},
 		{"empty", "", []string{}},
+		{"only separators", ",, ,", []string{}},
 		{"wildcard", "*", []string{"*"}},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var allowList []string
-			parser := newOriginParser(&allowList, "")
+			allowList := []string{"stale-seeded-default"}
+			parser := newListParser(&allowList)
 			if err := parser(tc.input); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if len(allowList) != len(tc.expected) {
-				t.Fatalf("expected len=%d got=%d", len(tc.expected), len(allowList))
+				t.Fatalf("expected len=%d got=%d (%v)", len(tc.expected), len(allowList), allowList)
 			}
 			for i := range allowList {
 				if allowList[i] != tc.expected[i] {
@@ -35,28 +37,6 @@ func TestNewOriginParser(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestGetEnvAsInt(t *testing.T) {
-	t.Run("returns env value when set", func(t *testing.T) {
-		t.Setenv("TEST_INT", "8080")
-		if got := getEnvAsInt("TEST_INT", 4000); got != 8080 {
-			t.Fatalf("expected 8080, got %d", got)
-		}
-	})
-
-	t.Run("returns default when not set", func(t *testing.T) {
-		if got := getEnvAsInt("TEST_INT_MISSING", 4000); got != 4000 {
-			t.Fatalf("expected 4000, got %d", got)
-		}
-	})
-
-	t.Run("returns default when value is not a number", func(t *testing.T) {
-		t.Setenv("TEST_INT_BAD", "notanumber")
-		if got := getEnvAsInt("TEST_INT_BAD", 4000); got != 4000 {
-			t.Fatalf("expected 4000, got %d", got)
-		}
-	})
 }
 
 func TestGetEnvAsString(t *testing.T) {
@@ -81,35 +61,6 @@ func TestGetEnvAsString(t *testing.T) {
 	})
 }
 
-func TestGetEnvAsBool(t *testing.T) {
-	t.Run("returns true when set to true", func(t *testing.T) {
-		t.Setenv("TEST_BOOL", "true")
-		if got := getEnvAsBool("TEST_BOOL", false); got != true {
-			t.Fatalf("expected true, got %v", got)
-		}
-	})
-
-	t.Run("returns false when set to false", func(t *testing.T) {
-		t.Setenv("TEST_BOOL", "false")
-		if got := getEnvAsBool("TEST_BOOL", true); got != false {
-			t.Fatalf("expected false, got %v", got)
-		}
-	})
-
-	t.Run("returns default when not set", func(t *testing.T) {
-		if got := getEnvAsBool("TEST_BOOL_MISSING", true); got != true {
-			t.Fatalf("expected true, got %v", got)
-		}
-	})
-
-	t.Run("returns default when value is invalid", func(t *testing.T) {
-		t.Setenv("TEST_BOOL_BAD", "notabool")
-		if got := getEnvAsBool("TEST_BOOL_BAD", true); got != true {
-			t.Fatalf("expected true, got %v", got)
-		}
-	})
-}
-
 func TestParseLevel(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -127,7 +78,7 @@ func TestParseLevel(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := parseLevel(tc.input); got != tc.expected {
+			if got := parseLevel(tc.input, io.Discard); got != tc.expected {
 				t.Fatalf("parseLevel(%q) = %v, want %v", tc.input, got, tc.expected)
 			}
 		})

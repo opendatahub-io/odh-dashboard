@@ -2,8 +2,10 @@ package repositories
 
 import (
 	"context"
+	"crypto/x509"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -144,4 +146,107 @@ func TestPrometheusQuery_StatusError(t *testing.T) {
 	var queryErr *models.PrometheusQueryError
 	assert.ErrorAs(t, err, &queryErr)
 	assert.Equal(t, "bad PromQL expression", queryErr.Message)
+}
+
+// Startup requires an https PROMETHEUS_HOST, and net/http would still follow a
+// same-host redirect to http with the caller's Authorization header intact.
+// The downgrade has to be refused before the redirected request is sent.
+func TestPrometheusQuery_RefusesARedirectToPlaintext(t *testing.T) {
+	var plaintextHits atomic.Int32
+	plaintext := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		plaintextHits.Add(1)
+		_, _ = w.Write([]byte(`{"status":"success","data":{}}`))
+	}))
+	defer plaintext.Close()
+
+	secure := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, plaintext.URL+"/api/v1/query", http.StatusFound)
+	}))
+	defer secure.Close()
+
+	pool := x509.NewCertPool()
+	pool.AddCert(secure.Certificate())
+	repo := NewPrometheusRepository(PrometheusConfig{Host: secure.URL, RootCAs: pool})
+
+	_, err := repo.Query(context.Background(), "caller-token", "query=up", "query")
+
+	require.Error(t, err)
+	var unavailable *models.PrometheusUnavailableError
+	require.ErrorAs(t, err, &unavailable)
+	assert.Contains(t, unavailable.Reason, "refusing a redirect")
+	assert.Zero(t, plaintextHits.Load(), "the redirected request must never be sent")
+}
+
+func TestPrometheusQuery_FollowsASameOriginRedirect(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/query" {
+			http.Redirect(w, r, "/moved/api/v1/query", http.StatusTemporaryRedirect)
+			return
+		}
+		assert.Equal(t, "Bearer caller-token", r.Header.Get("Authorization"))
+		_, _ = w.Write([]byte(`{"status":"success","data":{}}`))
+	}))
+	defer srv.Close()
+
+	pool := x509.NewCertPool()
+	pool.AddCert(srv.Certificate())
+	repo := NewPrometheusRepository(PrometheusConfig{Host: srv.URL, RootCAs: pool})
+
+	resp, err := repo.Query(context.Background(), "caller-token", "query=up", "query")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+// net/http keeps the Authorization header on a redirect to the same hostname
+// even when the port changes, so a port-only redirect could hand the caller's
+// token to a different service on the same host.
+func TestPrometheusQuery_RefusesARedirectToAnotherPort(t *testing.T) {
+	var otherHits atomic.Int32
+	other := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		otherHits.Add(1)
+		_, _ = w.Write([]byte(`{"status":"success","data":{}}`))
+	}))
+	defer other.Close()
+
+	origin := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+"/api/v1/query", http.StatusFound)
+	}))
+	defer origin.Close()
+
+	pool := x509.NewCertPool()
+	pool.AddCert(origin.Certificate())
+	pool.AddCert(other.Certificate())
+	repo := NewPrometheusRepository(PrometheusConfig{Host: origin.URL, RootCAs: pool})
+
+	_, err := repo.Query(context.Background(), "caller-token", "query=up", "query")
+
+	require.Error(t, err)
+	var unavailable *models.PrometheusUnavailableError
+	require.ErrorAs(t, err, &unavailable)
+	assert.Contains(t, unavailable.Reason, "refusing a redirect")
+	assert.Zero(t, otherHits.Load(), "the redirected request must never be sent")
+}
+
+// The base URL may end in a slash or carry a path prefix; request paths are
+// joined under it without a double slash.
+func TestPrometheusQuery_JoinsTheBasePath(t *testing.T) {
+	for _, tc := range []struct{ suffix, want string }{
+		{"/", "/api/v1/query"},
+		{"/prom", "/prom/api/v1/query"},
+		{"/prom/", "/prom/api/v1/query"},
+		{"/tenant%2Fblue", "/tenant%2Fblue/api/v1/query"},
+	} {
+		got := make(chan string, 1)
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			got <- r.URL.EscapedPath()
+			_, _ = w.Write([]byte(`{"status":"success","data":{}}`))
+		}))
+		pool := x509.NewCertPool()
+		pool.AddCert(srv.Certificate())
+		repo := NewPrometheusRepository(PrometheusConfig{Host: srv.URL + tc.suffix, RootCAs: pool})
+		_, err := repo.Query(context.Background(), "caller-token", "query=up", "query")
+		require.NoError(t, err, tc.suffix)
+		assert.Equal(t, tc.want, <-got, tc.suffix)
+		srv.Close()
+	}
 }

@@ -240,9 +240,9 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 			return
 		}
 
-		allowed, err := k8sClient.CanListEvalHubInstances(ctx, identity, namespace)
+		allowed, err := app.repositories.Access.CanListEvalHubInstances(k8sClient, ctx, identity, namespace)
 		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to check EvalHub access: %w", err))
+			app.serverErrorResponse(w, r, err)
 			return
 		}
 

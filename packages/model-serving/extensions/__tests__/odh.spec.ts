@@ -1,7 +1,7 @@
 import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
-import extensions from '../odh';
+import extensions from '../deployments';
 import type { ModelServingPlatformExtension } from '../../extension-points';
 
 describe('Model serving shared platform extensions', () => {

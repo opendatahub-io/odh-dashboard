@@ -6,6 +6,7 @@ type Repositories struct {
 	User          *UserRepository
 	Namespace     *NamespaceRepository
 	EvalHubStatus *EvalHubStatusRepository
+	Access        *AccessRepository
 }
 
 func NewRepositories() *Repositories {
@@ -14,5 +15,6 @@ func NewRepositories() *Repositories {
 		User:          NewUserRepository(),
 		Namespace:     NewNamespaceRepository(),
 		EvalHubStatus: NewEvalHubStatusRepository(),
+		Access:        NewAccessRepository(),
 	}
 }

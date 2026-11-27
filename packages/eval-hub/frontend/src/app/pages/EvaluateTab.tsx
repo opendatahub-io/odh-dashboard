@@ -13,15 +13,19 @@ import {
 import { Link } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import {
-  evaluationBenchmarksRoute,
   evaluationBenchmarkSuitesRoute,
   evaluationCreateSuiteRoute,
   evaluationEvaluateNavigationState,
+  evaluationSingleBenchmarkRoute,
 } from '~/app/routes';
+import { useCanImportCollections } from '~/app/hooks/collections';
 import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+// The import modal pulls in Monaco; load it only when the user opens Import.
+const ImportCollectionModal = React.lazy(() => import('~/app/components/ImportCollectionModal'));
 
 const MAX_VISIBLE_BENCHMARK_SUITES = 5;
 
@@ -45,6 +49,14 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
   const { trackEvalHubEvent } = useEvalHubTracking();
 
   const heading = 'Recent benchmark collections';
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
+  const canImportQuery = useCanImportCollections(namespace);
+  // Import is enabled only on an explicit allowed result: it stays disabled
+  // while the check is pending or has failed, so limited-access users are
+  // never offered a creation flow the upstream authorization rejects.
+  // isError also covers a failed refetch, where React Query keeps the last
+  // (possibly allowed) result.
+  const canImport = canImportQuery.data === true && !canImportQuery.isError;
 
   return (
     <>
@@ -89,6 +101,8 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
             primaryActionLabel="Run"
             createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
             createSuiteRouteState={evaluationEvaluateNavigationState}
+            onImportCollection={() => setIsImportOpen(true)}
+            importDisabled={!canImport}
             onPrimaryAction={onRunCollection}
             onEditCollection={onEditCollection}
             onDuplicateCollection={onDuplicateCollection}
@@ -109,18 +123,21 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
                     size="xl"
                     className="evalhub-browse-benchmarks-card__title"
                   >
-                    Browse all benchmarks
+                    Run an individual benchmark
                   </Title>
                   <Content component="p" className="evalhub-browse-benchmarks-card__description">
-                    Explore 100+ individual benchmarks across all evaluation frameworks to run a
-                    one-off evaluation.
+                    Select a benchmark to evaluate an AI asset.
                   </Content>
                 </FlexItem>
                 <FlexItem>
                   <Button
                     variant="secondary"
                     component={(props) => (
-                      <Link {...props} to={evaluationBenchmarksRoute(namespace)} />
+                      <Link
+                        {...props}
+                        to={evaluationSingleBenchmarkRoute(namespace)}
+                        state={evaluationEvaluateNavigationState}
+                      />
                     )}
                     onClick={() =>
                       trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED, {
@@ -129,7 +146,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
                     }
                     data-testid="browse-all-benchmarks-explore"
                   >
-                    Explore
+                    Browse benchmarks
                   </Button>
                 </FlexItem>
               </Flex>
@@ -138,6 +155,16 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
         </StackItem>
         {/* Red Hat validated collections are temporarily hidden until more evaluation targets are available. */}
       </Stack>
+      {isImportOpen ? (
+        <React.Suspense fallback={null}>
+          <ImportCollectionModal
+            isOpen
+            onClose={() => setIsImportOpen(false)}
+            namespace={namespace}
+            surface="my_benchmark_suites"
+          />
+        </React.Suspense>
+      ) : null}
     </>
   );
 };

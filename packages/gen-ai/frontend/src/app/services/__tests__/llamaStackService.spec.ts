@@ -44,6 +44,8 @@ import {
   mockMCPTools,
 } from './llamaStackService.fixtures';
 
+const trackEvent = jest.fn();
+
 // Mock mod-arch-core
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
@@ -264,7 +266,7 @@ describe('llamaStackService', () => {
       it('should create response successfully', async () => {
         mockedRestCREATE.mockResolvedValueOnce({ data: mockBackendResponse });
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockCreateResponseRequest,
         );
 
@@ -320,7 +322,7 @@ describe('llamaStackService', () => {
         };
         mockedRestCREATE.mockResolvedValueOnce({ data: responseWithToolCalls });
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockCreateResponseRequest,
         );
 
@@ -363,7 +365,7 @@ describe('llamaStackService', () => {
         };
         mockedRestCREATE.mockResolvedValueOnce({ data: responseWithoutOutput });
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockCreateResponseRequest,
         );
 
@@ -377,7 +379,7 @@ describe('llamaStackService', () => {
         };
         mockedRestCREATE.mockResolvedValueOnce({ data: responseWithEmptyOutput });
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockCreateResponseRequest,
         );
 
@@ -389,7 +391,9 @@ describe('llamaStackService', () => {
         mockedRestCREATE.mockRejectedValueOnce(mockError);
 
         await expect(
-          createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockCreateResponseRequest),
+          createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          ),
         ).rejects.toThrow();
       });
 
@@ -398,7 +402,9 @@ describe('llamaStackService', () => {
         mockedRestCREATE.mockRejectedValueOnce(mockError);
 
         await expect(
-          createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockCreateResponseRequest),
+          createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          ),
         ).rejects.toThrow();
       });
 
@@ -421,9 +427,9 @@ describe('llamaStackService', () => {
           };
           mockedRestCREATE.mockResolvedValueOnce({ data: response });
 
-          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
-            mockCreateResponseRequest,
-          );
+          const result = await createResponse(trackEvent, URL_PREFIX, {
+            namespace: TEST_NAMESPACE,
+          })(mockCreateResponseRequest);
 
           expect(result.content).toBe('Here is the answer');
           expect(result.reasoningContent).toBe('I need to reason about this');
@@ -447,9 +453,9 @@ describe('llamaStackService', () => {
           };
           mockedRestCREATE.mockResolvedValueOnce({ data: response });
 
-          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
-            mockCreateResponseRequest,
-          );
+          const result = await createResponse(trackEvent, URL_PREFIX, {
+            namespace: TEST_NAMESPACE,
+          })(mockCreateResponseRequest);
 
           expect(result.content).toBe('Actual answer');
           expect(result.reasoningContent).toBe('Some reasoning here');
@@ -458,9 +464,9 @@ describe('llamaStackService', () => {
         it('returns content as-is when no think tags present', async () => {
           mockedRestCREATE.mockResolvedValueOnce({ data: mockBackendResponse });
 
-          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
-            mockCreateResponseRequest,
-          );
+          const result = await createResponse(trackEvent, URL_PREFIX, {
+            namespace: TEST_NAMESPACE,
+          })(mockCreateResponseRequest);
 
           expect(result.content).toBe('This is a test response');
           expect(result.reasoningContent).toBeUndefined();
@@ -484,9 +490,9 @@ describe('llamaStackService', () => {
           };
           mockedRestCREATE.mockResolvedValueOnce({ data: response });
 
-          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
-            mockCreateResponseRequest,
-          );
+          const result = await createResponse(trackEvent, URL_PREFIX, {
+            namespace: TEST_NAMESPACE,
+          })(mockCreateResponseRequest);
 
           expect(result.content).toBe('Direct answer without reasoning');
           expect(result.reasoningContent).toBeUndefined();
@@ -510,7 +516,7 @@ describe('llamaStackService', () => {
         };
         mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockStreamingRequest,
         );
 
@@ -554,7 +560,7 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce(mockResponse);
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockStreamingRequest,
           { onStreamData: mockStreamData },
         );
@@ -622,7 +628,7 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce(mockResponse);
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockStreamingRequest,
           { onStreamData: mockStreamData },
         );
@@ -663,7 +669,7 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce(mockResponse);
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockStreamingRequest,
           { onStreamData: mockStreamData },
         );
@@ -702,10 +708,13 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
 
-        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-          onStreamData: mockStreamData,
-          onToolCall,
-        });
+        await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          {
+            onStreamData: mockStreamData,
+            onToolCall,
+          },
+        );
 
         expect(onToolCall).toHaveBeenCalledTimes(3);
         expect(onToolCall).toHaveBeenNthCalledWith(
@@ -758,10 +767,13 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
 
-        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-          onStreamData: mockStreamData,
-          onToolCall,
-        });
+        await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          {
+            onStreamData: mockStreamData,
+            onToolCall,
+          },
+        );
 
         expect(onToolCall).toHaveBeenCalledTimes(3);
         expect(onToolCall).toHaveBeenNthCalledWith(
@@ -814,10 +826,13 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
 
-        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-          onStreamData: mockStreamData,
-          onToolCall,
-        });
+        await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          {
+            onStreamData: mockStreamData,
+            onToolCall,
+          },
+        );
 
         expect(onToolCall).not.toHaveBeenCalled();
       });
@@ -838,9 +853,12 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-            onStreamData: mockStreamData,
-          }),
+          createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockStreamingRequest,
+            {
+              onStreamData: mockStreamData,
+            },
+          ),
         ).rejects.toMatchObject({
           error: {
             component: 'bff',
@@ -863,9 +881,12 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-            onStreamData: mockStreamData,
-          }),
+          createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockStreamingRequest,
+            {
+              onStreamData: mockStreamData,
+            },
+          ),
         ).rejects.toMatchObject({
           error: {
             component: 'bff',
@@ -887,9 +908,12 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-            onStreamData: mockStreamData,
-          }),
+          createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockStreamingRequest,
+            {
+              onStreamData: mockStreamData,
+            },
+          ),
         ).rejects.toThrow('Unable to read stream');
       });
 
@@ -899,9 +923,12 @@ describe('llamaStackService', () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
         await expect(
-          createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-            onStreamData: mockStreamData,
-          }),
+          createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockStreamingRequest,
+            {
+              onStreamData: mockStreamData,
+            },
+          ),
         ).rejects.toThrow('Network error');
       });
 
@@ -937,9 +964,12 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-            onStreamData: mockStreamData,
-          }),
+          createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockStreamingRequest,
+            {
+              onStreamData: mockStreamData,
+            },
+          ),
         ).rejects.toMatchObject({
           error: {
             component: 'model',
@@ -980,9 +1010,12 @@ describe('llamaStackService', () => {
         mockFetch.mockResolvedValueOnce(mockResponse);
 
         await expect(
-          createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-            onStreamData: mockStreamData,
-          }),
+          createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockStreamingRequest,
+            {
+              onStreamData: mockStreamData,
+            },
+          ),
         ).rejects.toMatchObject({
           error: {
             component: 'bff',
@@ -1015,9 +1048,12 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce(mockResponse);
 
-        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-          onStreamData: mockStreamData,
-        });
+        await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          {
+            onStreamData: mockStreamData,
+          },
+        );
 
         expect(mockFetch).toHaveBeenCalledWith(
           `/gen-ai/lsd/responses?namespace=${TEST_NAMESPACE}`,
@@ -1068,7 +1104,7 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockStreamingRequest,
           { onStreamData: mockStreamData },
         );
@@ -1098,7 +1134,7 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockStreamingRequest,
           { onStreamData: mockStreamData },
         );
@@ -1132,7 +1168,7 @@ describe('llamaStackService', () => {
 
         mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
 
-        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+        const result = await createResponse(trackEvent, URL_PREFIX, { namespace: TEST_NAMESPACE })(
           mockStreamingRequest,
           { onStreamData: mockStreamData },
         );

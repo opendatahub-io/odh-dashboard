@@ -173,6 +173,7 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
                     key={metric}
                     value={metric}
                     isSelected={benchmark.primaryMetric === metric}
+                    data-testid={`benchmark-metric-option-${index}-${metric}`}
                   >
                     {getMetricDisplayName(metric)}
                   </SelectOption>

@@ -6,8 +6,6 @@ import { Storageclasses } from '~/generated/Storageclasses';
 import { Workspacekinds } from '~/generated/Workspacekinds';
 import { Workspaces } from '~/generated/Workspaces';
 import { ApiInstance } from '~/shared/api/types';
-import { DEV_MODE } from '~/shared/utilities/const';
-import { registerDevAuthInterceptor } from '~/shared/utilities/devAuth';
 
 export interface NotebookApis {
   healthCheck: ApiInstance<typeof Healthcheck>;
@@ -29,12 +27,6 @@ export const notebookApisImpl = (path: string): NotebookApis => {
   const secrets = new Secrets(commonConfig);
   const pvc = new Persistentvolumeclaims(commonConfig);
   const storageClasses = new Storageclasses(commonConfig);
-
-  if (DEV_MODE) {
-    [healthCheck, namespaces, workspaces, workspaceKinds, secrets, pvc, storageClasses].forEach(
-      (api) => registerDevAuthInterceptor(api.instance),
-    );
-  }
 
   return { healthCheck, namespaces, workspaces, workspaceKinds, secrets, pvc, storageClasses };
 };

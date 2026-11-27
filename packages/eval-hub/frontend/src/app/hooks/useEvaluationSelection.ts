@@ -1,18 +1,17 @@
 import React from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { Collection, FlatBenchmark } from '~/app/types';
-import { evaluationCreateRoute } from '~/app/routes';
+import type { FlatBenchmark } from '~/app/types';
+import { evaluationEvaluateRoute } from '~/app/routes';
 
 const hasBenchmark = (state: unknown): state is { benchmark: FlatBenchmark } =>
-  typeof state === 'object' && state !== null && 'benchmark' in state;
-
-const hasCollection = (state: unknown): state is { collection: Collection } =>
-  typeof state === 'object' && state !== null && 'collection' in state;
+  typeof state === 'object' &&
+  state !== null &&
+  'benchmark' in state &&
+  typeof state.benchmark === 'object' &&
+  state.benchmark !== null;
 
 type UseEvaluationSelectionResult = {
   benchmark: FlatBenchmark | undefined;
-  collection: Collection | undefined;
-  isCollectionFlow: boolean;
   dataLoaded: boolean;
   loadError: Error | undefined;
 };
@@ -26,26 +25,21 @@ export const useEvaluationSelection = (
   const location = useLocation();
 
   const flowType = searchParams.get('type');
-  const isBenchmarkFlow = flowType === 'benchmark';
-  const isCollectionFlow = flowType === 'collection';
 
-  // Data is passed via router navigation state from the chooser pages.
-  // No API re-fetch needed — the chooser pages already fetched this data.
+  // The benchmark selector passes its selection through router navigation state,
+  // so this page does not need to fetch provider or benchmark data again.
   const benchmark =
-    isBenchmarkFlow && hasBenchmark(location.state) ? location.state.benchmark : undefined;
-  const collection =
-    isCollectionFlow && hasCollection(location.state) ? location.state.collection : undefined;
+    flowType === 'benchmark' && hasBenchmark(location.state) ? location.state.benchmark : undefined;
+  const isBenchmarkFlow = benchmark !== undefined;
 
   React.useEffect(() => {
-    if (!skipRedirect && !isBenchmarkFlow && !isCollectionFlow) {
-      navigate(evaluationCreateRoute(namespace), { replace: true });
+    if (!skipRedirect && !isBenchmarkFlow) {
+      navigate(evaluationEvaluateRoute(namespace), { replace: true });
     }
-  }, [skipRedirect, isBenchmarkFlow, isCollectionFlow, navigate, namespace]);
+  }, [skipRedirect, isBenchmarkFlow, navigate, namespace]);
 
   return {
     benchmark,
-    collection,
-    isCollectionFlow,
     dataLoaded: true,
     loadError: undefined,
   };

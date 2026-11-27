@@ -1,13 +1,11 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import { GenAiAPIs, MCPServer } from '~/app/types';
 import useTokenValidation, { ValidationResult } from '~/app/Chatbot/mcp/hooks/useTokenValidation';
 
+const trackEvent = jest.fn();
+
 // Mock the tracking functions
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
 
 describe('useTokenValidation', () => {
   const mockServer: MCPServer = {
@@ -41,19 +39,21 @@ describe('useTokenValidation', () => {
   });
 
   it('should initialize with empty state', () => {
-    const { result } = renderHook(() =>
-      useTokenValidation({
-        api: mockApi,
-        apiAvailable: true,
-        transformedServers: [mockServer],
-        checkServerStatus: mockCheckServerStatus,
-        onTokenUpdate: mockOnTokenUpdate,
-        getToken: mockGetToken,
-        onFetchTools: mockOnFetchTools,
-        onConfigModalOpen: mockOnConfigModalOpen,
-        onConfigModalClose: mockOnConfigModalClose,
-        onSuccessModalOpen: mockOnSuccessModalOpen,
-      }),
+    const { result } = renderHook(
+      () =>
+        useTokenValidation({
+          api: mockApi,
+          apiAvailable: true,
+          transformedServers: [mockServer],
+          checkServerStatus: mockCheckServerStatus,
+          onTokenUpdate: mockOnTokenUpdate,
+          getToken: mockGetToken,
+          onFetchTools: mockOnFetchTools,
+          onConfigModalOpen: mockOnConfigModalOpen,
+          onConfigModalClose: mockOnConfigModalClose,
+          onSuccessModalOpen: mockOnSuccessModalOpen,
+        }),
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(result.current.validatingServers.size).toBe(0);
@@ -67,19 +67,21 @@ describe('useTokenValidation', () => {
     });
     mockOnFetchTools.mockResolvedValue(undefined);
 
-    const { result } = renderHook(() =>
-      useTokenValidation({
-        api: mockApi,
-        apiAvailable: true,
-        transformedServers: [mockServer],
-        checkServerStatus: mockCheckServerStatus,
-        onTokenUpdate: mockOnTokenUpdate,
-        getToken: mockGetToken,
-        onFetchTools: mockOnFetchTools,
-        onConfigModalOpen: mockOnConfigModalOpen,
-        onConfigModalClose: mockOnConfigModalClose,
-        onSuccessModalOpen: mockOnSuccessModalOpen,
-      }),
+    const { result } = renderHook(
+      () =>
+        useTokenValidation({
+          api: mockApi,
+          apiAvailable: true,
+          transformedServers: [mockServer],
+          checkServerStatus: mockCheckServerStatus,
+          onTokenUpdate: mockOnTokenUpdate,
+          getToken: mockGetToken,
+          onFetchTools: mockOnFetchTools,
+          onConfigModalOpen: mockOnConfigModalOpen,
+          onConfigModalClose: mockOnConfigModalClose,
+          onSuccessModalOpen: mockOnSuccessModalOpen,
+        }),
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     let validationResult: ValidationResult | undefined;
@@ -109,19 +111,21 @@ describe('useTokenValidation', () => {
       message: 'Connection failed',
     });
 
-    const { result } = renderHook(() =>
-      useTokenValidation({
-        api: mockApi,
-        apiAvailable: true,
-        transformedServers: [mockServer],
-        checkServerStatus: mockCheckServerStatus,
-        onTokenUpdate: mockOnTokenUpdate,
-        getToken: mockGetToken,
-        onFetchTools: mockOnFetchTools,
-        onConfigModalOpen: mockOnConfigModalOpen,
-        onConfigModalClose: mockOnConfigModalClose,
-        onSuccessModalOpen: mockOnSuccessModalOpen,
-      }),
+    const { result } = renderHook(
+      () =>
+        useTokenValidation({
+          api: mockApi,
+          apiAvailable: true,
+          transformedServers: [mockServer],
+          checkServerStatus: mockCheckServerStatus,
+          onTokenUpdate: mockOnTokenUpdate,
+          getToken: mockGetToken,
+          onFetchTools: mockOnFetchTools,
+          onConfigModalOpen: mockOnConfigModalOpen,
+          onConfigModalClose: mockOnConfigModalClose,
+          onSuccessModalOpen: mockOnSuccessModalOpen,
+        }),
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     let validationResult: ValidationResult | undefined;
@@ -141,19 +145,21 @@ describe('useTokenValidation', () => {
     mockCheckServerStatus.mockResolvedValue({ status: 'connected' });
     mockOnFetchTools.mockResolvedValue(undefined);
 
-    const { result } = renderHook(() =>
-      useTokenValidation({
-        api: mockApi,
-        apiAvailable: true,
-        transformedServers: [mockServer],
-        checkServerStatus: mockCheckServerStatus,
-        onTokenUpdate: mockOnTokenUpdate,
-        getToken: mockGetToken,
-        onFetchTools: mockOnFetchTools,
-        onConfigModalOpen: mockOnConfigModalOpen,
-        onConfigModalClose: mockOnConfigModalClose,
-        onSuccessModalOpen: mockOnSuccessModalOpen,
-      }),
+    const { result } = renderHook(
+      () =>
+        useTokenValidation({
+          api: mockApi,
+          apiAvailable: true,
+          transformedServers: [mockServer],
+          checkServerStatus: mockCheckServerStatus,
+          onTokenUpdate: mockOnTokenUpdate,
+          getToken: mockGetToken,
+          onFetchTools: mockOnFetchTools,
+          onConfigModalOpen: mockOnConfigModalOpen,
+          onConfigModalClose: mockOnConfigModalClose,
+          onSuccessModalOpen: mockOnSuccessModalOpen,
+        }),
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await act(async () => {
@@ -177,19 +183,21 @@ describe('useTokenValidation', () => {
       autoConnected: false,
     });
 
-    const { result } = renderHook(() =>
-      useTokenValidation({
-        api: mockApi,
-        apiAvailable: true,
-        transformedServers: [mockServer],
-        checkServerStatus: mockCheckServerStatus,
-        onTokenUpdate: mockOnTokenUpdate,
-        getToken: mockGetToken,
-        onFetchTools: mockOnFetchTools,
-        onConfigModalOpen: mockOnConfigModalOpen,
-        onConfigModalClose: mockOnConfigModalClose,
-        onSuccessModalOpen: mockOnSuccessModalOpen,
-      }),
+    const { result } = renderHook(
+      () =>
+        useTokenValidation({
+          api: mockApi,
+          apiAvailable: true,
+          transformedServers: [mockServer],
+          checkServerStatus: mockCheckServerStatus,
+          onTokenUpdate: mockOnTokenUpdate,
+          getToken: mockGetToken,
+          onFetchTools: mockOnFetchTools,
+          onConfigModalOpen: mockOnConfigModalOpen,
+          onConfigModalClose: mockOnConfigModalClose,
+          onSuccessModalOpen: mockOnSuccessModalOpen,
+        }),
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await act(async () => {
@@ -201,19 +209,21 @@ describe('useTokenValidation', () => {
   });
 
   it('should clear validation error for a server', () => {
-    const { result } = renderHook(() =>
-      useTokenValidation({
-        api: mockApi,
-        apiAvailable: true,
-        transformedServers: [mockServer],
-        checkServerStatus: mockCheckServerStatus,
-        onTokenUpdate: mockOnTokenUpdate,
-        getToken: mockGetToken,
-        onFetchTools: mockOnFetchTools,
-        onConfigModalOpen: mockOnConfigModalOpen,
-        onConfigModalClose: mockOnConfigModalClose,
-        onSuccessModalOpen: mockOnSuccessModalOpen,
-      }),
+    const { result } = renderHook(
+      () =>
+        useTokenValidation({
+          api: mockApi,
+          apiAvailable: true,
+          transformedServers: [mockServer],
+          checkServerStatus: mockCheckServerStatus,
+          onTokenUpdate: mockOnTokenUpdate,
+          getToken: mockGetToken,
+          onFetchTools: mockOnFetchTools,
+          onConfigModalOpen: mockOnConfigModalOpen,
+          onConfigModalClose: mockOnConfigModalClose,
+          onSuccessModalOpen: mockOnSuccessModalOpen,
+        }),
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     // Manually set an error (simulating a previous validation failure)
@@ -251,19 +261,21 @@ describe('MCP failure tracking', () => {
           error_details: source === 'raw_error' ? { raw_error: marker } : undefined,
         });
       }
-      const { result } = renderHook(() =>
-        useTokenValidation({
-          api: { getMCPServerStatus: request } as unknown as GenAiAPIs,
-          apiAvailable: true,
-          transformedServers: [],
-          checkServerStatus: jest.fn(),
-          onTokenUpdate: jest.fn(),
-          getToken: jest.fn(),
-          onFetchTools: jest.fn(),
-          onConfigModalOpen: jest.fn(),
-          onConfigModalClose: jest.fn(),
-          onSuccessModalOpen: jest.fn(),
-        }),
+      const { result } = renderHook(
+        () =>
+          useTokenValidation({
+            api: { getMCPServerStatus: request } as unknown as GenAiAPIs,
+            apiAvailable: true,
+            transformedServers: [],
+            checkServerStatus: jest.fn(),
+            onTokenUpdate: jest.fn(),
+            getToken: jest.fn(),
+            onFetchTools: jest.fn(),
+            onConfigModalOpen: jest.fn(),
+            onConfigModalClose: jest.fn(),
+            onSuccessModalOpen: jest.fn(),
+          }),
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
       let response: ValidationResult | undefined;
       await act(async () => {
@@ -271,11 +283,11 @@ describe('MCP failure tracking', () => {
       });
       expect(response).toEqual({ success: false, error: marker });
       expect(result.current.validationErrors.get('https://review.invalid')).toBe(marker);
-      expect(fireFormTrackingEvent).toHaveBeenCalledWith(
+      expect(trackEvent).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ success: false, error: 'unknown_error' }),
       );
-      expect(JSON.stringify(jest.mocked(fireFormTrackingEvent).mock.calls)).not.toContain(marker);
+      expect(JSON.stringify(jest.mocked(trackEvent).mock.calls)).not.toContain(marker);
     },
   );
 });

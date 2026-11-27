@@ -48,8 +48,54 @@ webhooks:
           - v1alpha1
         operations:
           - CREATE
+          - UPDATE
         resources:
           - dashboards
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - configmaps
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - namespaces
+          - namespaces/status
+          - namespaces/finalize
+    matchConditions:
+      - name: namespaced-rbac-target-fields-changed
+        expression: >-
+          request.resource.resource != 'dashboards' ||
+          oldObject == null ||
+          object.?spec.notebooksNamespace.orValue('') != oldObject.?spec.notebooksNamespace.orValue('') ||
+          object.?spec.modelRegistryNamespace.orValue('') != oldObject.?spec.modelRegistryNamespace.orValue('') ||
+          object.?metadata.annotations['dashboard.opendatahub.io/namespaced-rbac-grants'].orValue('') !=
+          oldObject.?metadata.annotations['dashboard.opendatahub.io/namespaced-rbac-grants'].orValue('') ||
+          object.?metadata.annotations['dashboard.opendatahub.io/namespaced-rbac-consent-enforced'].orValue('') !=
+          oldObject.?metadata.annotations['dashboard.opendatahub.io/namespaced-rbac-consent-enforced'].orValue('')
+      - name: namespaced-rbac-consent-label-changed
+        expression: >-
+          request.resource.resource != 'namespaces' ||
+          (request.operation == 'CREATE'
+            ? object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('') == 'true'
+            : object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('') !=
+              oldObject.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue(''))
+      - name: namespaced-rbac-state-changed
+        expression: >-
+          request.resource.resource != 'configmaps' ||
+          (request.operation == 'DELETE'
+            ? request.name == 'dashboard-namespaced-rbac-state'
+            : object.?metadata.name.orValue('') == 'dashboard-namespaced-rbac-state')
     sideEffects: None
     timeoutSeconds: 5
 {{- if .Values.webhook.certManager.enabled }}

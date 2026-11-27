@@ -17,7 +17,7 @@ export type TrackEventOptions = {
 /** Host-supplied custom-event delivery; features own event names and payloads. */
 export type TrackEvent = (
   eventName: string,
-  properties: Record<string, string | number | boolean | string[] | undefined>,
+  properties: Record<string, string | number | boolean | readonly string[] | null | undefined>,
   options?: TrackEventOptions,
 ) => void;
 

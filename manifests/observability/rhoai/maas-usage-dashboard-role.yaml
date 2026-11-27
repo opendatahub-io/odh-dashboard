@@ -5,5 +5,9 @@ metadata:
 rules:
   - apiGroups: [perses.dev]
     resources: [persesdashboards]
-    resourceNames: [dashboard-5-maas-usage-logs, dashboard-4-maas-usage-logs-admin]
+    resourceNames:
+      - dashboard-5-maas-usage-logs
+      - dashboard-4-maas-usage-logs-admin
+      - maas-portal-usage-logs
+      - maas-portal-usage-logs-admin
     verbs: [get]

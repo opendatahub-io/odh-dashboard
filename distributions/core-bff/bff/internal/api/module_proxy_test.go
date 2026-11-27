@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -39,7 +40,7 @@ func TestParseFederationConfig(t *testing.T) {
 				return "/nonexistent/federation-config.json"
 			},
 			wantErr:   true,
-			errSubstr: "/nonexistent/federation-config.json",
+			errSubstr: "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted) could not be read: not found",
 		},
 		{
 			name: "malformed JSON returns error",
@@ -50,7 +51,7 @@ func TestParseFederationConfig(t *testing.T) {
 				return p
 			},
 			wantErr:   true,
-			errSubstr: "failed to parse federation config",
+			errSubstr: "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted) is not valid JSON",
 		},
 		{
 			name: "empty JSON array succeeds",
@@ -75,7 +76,7 @@ func TestParseFederationConfig(t *testing.T) {
 				return p
 			},
 			wantErr:   true,
-			errSubstr: "exceeds maximum size",
+			errSubstr: "exceeds the maximum size",
 		},
 		{
 			name: "valid JSON with multiple entries",
@@ -397,7 +398,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "trailingSlash", service: moduleProxyServiceEntry{Path: "/gen-ai/api/", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
 			},
 			wantErr:   true,
-			errSubstr: "has trailing slash in proxy path /gen-ai/api/ (will be appended automatically)",
+			errSubstr: "has a trailing slash in its proxy path (value omitted; it is appended automatically)",
 		},
 		{
 			name: "ServeMux single-segment wildcard rejected",
@@ -470,7 +471,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 0}}},
 			},
 			wantErr:   true,
-			errSubstr: "invalid service port 0 (must be 1-65535)",
+			errSubstr: "has an invalid service port (value omitted; must be 1-65535)",
 		},
 		{
 			name: "negative service port rejected",
@@ -478,7 +479,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: -1}}},
 			},
 			wantErr:   true,
-			errSubstr: "invalid service port -1 (must be 1-65535)",
+			errSubstr: "has an invalid service port (value omitted; must be 1-65535)",
 		},
 		{
 			name: "service port above TCP range rejected",
@@ -486,7 +487,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 65536}}},
 			},
 			wantErr:   true,
-			errSubstr: "invalid service port 65536 (must be 1-65535)",
+			errSubstr: "has an invalid service port (value omitted; must be 1-65535)",
 		},
 		{
 			name: "invalid RFC 1123 service name rejected",
@@ -539,7 +540,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				}},
 			},
 			wantErr:   true,
-			errSubstr: "custom x-forwarded-access-token header while authorize is enabled",
+			errSubstr: "custom X-Forwarded-Access-Token header while authorize is enabled",
 		},
 		{
 			name:       "authorize with custom auth-token header case-insensitive",
@@ -552,7 +553,7 @@ func TestValidateProxyEntries(t *testing.T) {
 				}},
 			},
 			wantErr:   true,
-			errSubstr: "custom x-forwarded-access-token header while authorize is enabled",
+			errSubstr: "custom X-Forwarded-Access-Token header while authorize is enabled",
 		},
 		{
 			name:       "non-authorized route with auth-token header allowed",
@@ -1011,7 +1012,7 @@ func TestInitModuleProxies_InvalidServiceFields(t *testing.T) {
 					},
 				},
 			},
-			errSubstr: "invalid service port 0 (must be 1-65535)",
+			errSubstr: "has an invalid service port (value omitted; must be 1-65535)",
 		},
 	}
 
@@ -1113,7 +1114,17 @@ func TestInitModuleProxies_MalformedJSON(t *testing.T) {
 	})
 	err := app.initModuleProxies()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to parse federation config")
+	assert.Contains(t, err.Error(), "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted) is not valid JSON")
+	assert.NotContains(t, err.Error(), p, "the path is not echoed")
+	assert.NotContains(t, err.Error(), "not json", "the file contents are not echoed")
+}
+
+// A value that is not a path at all (a pasted secret, say) must not reach the
+// startup error through the wrapped filesystem error.
+func TestParseFederationConfig_DoesNotEchoTheValue(t *testing.T) {
+	_, err := parseFederationConfig("/nonexistent/CANARY-federation.json")
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "CANARY")
 }
 
 func TestInitModuleProxies_NonExistentFile(t *testing.T) {
@@ -1122,7 +1133,8 @@ func TestInitModuleProxies_NonExistentFile(t *testing.T) {
 	})
 	err := app.initModuleProxies()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "/does/not/exist.json")
+	assert.Contains(t, err.Error(), "MF_REMOTES_CONFIG/--mf-remotes-config (value omitted) could not be read: not found")
+	assert.NotContains(t, err.Error(), "/does/not/exist.json")
 }
 
 func TestInitModuleProxies_SkipsNoProxyRoutes(t *testing.T) {
@@ -1299,4 +1311,152 @@ func writeTempConfig(t *testing.T, entries []moduleFederationEntry) string {
 	p := filepath.Join(dir, "federation-config.json")
 	require.NoError(t, os.WriteFile(p, data, 0600))
 	return p
+}
+
+// With AUTH_TOKEN_HEADER=Authorization the inbound x-forwarded-access-token
+// is still stripped; an authorize module that reads that convention gets the
+// resolved caller token, never a client-supplied second identity.
+func TestModuleProxy_StripsTheOtherIdentityHeader(t *testing.T) {
+	type seen struct{ auth, forwarded string }
+	got := make(chan seen, 2)
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got <- seen{r.Header.Get("Authorization"), r.Header.Get("X-Forwarded-Access-Token")}
+	}))
+	defer backend.Close()
+
+	app := newTestApp(func(a *App) {
+		a.config.AuthMethod = config.AuthMethodUser
+		a.config.AuthTokenHeader = "Authorization"
+		a.config.AuthTokenPrefix = "Bearer "
+	})
+	for _, authorize := range []bool{true, false} {
+		handler := createTestProxy(t, app, backend.URL, "/mod/api", "/api", authorize, false, nil)
+		req := reqWithIdentity(httptest.NewRequest(http.MethodGet, "/mod/api/x", nil),
+			&k8s.RequestIdentity{Token: k8s.NewBearerToken("caller-A")})
+		req.Header.Set("Authorization", "Bearer caller-A")
+		req.Header.Set("X-Forwarded-Access-Token", "spoofed-B") //nolint:gosec // G101: test value
+		handler.ServeHTTP(httptest.NewRecorder(), req)
+
+		s := recvWithin(t, got)
+		assert.NotEqual(t, "spoofed-B", s.forwarded, "authorize=%v", authorize)
+		if authorize {
+			assert.Equal(t, "Bearer caller-A", s.auth)
+			assert.Equal(t, "caller-A", s.forwarded, "the module reading x-forwarded-access-token sees the same caller")
+		} else {
+			assert.Empty(t, s.forwarded)
+		}
+	}
+}
+
+// TestInitModuleProxies_AuthorizeOrderedHeaders covers ordered-header mode with
+// an empty legacy AUTH_TOKEN_HEADER: every configured credential header must
+// carry the resolved caller token, so a module that authenticates only through
+// x-forwarded-access-token (or another configured name) accepts the request.
+func TestInitModuleProxies_AuthorizeOrderedHeaders(t *testing.T) {
+	cases := []struct {
+		name    string
+		headers []string
+		require string
+		want    string
+	}{
+		{"forwarded access token", []string{"Authorization", "x-forwarded-access-token"}, "X-Forwarded-Access-Token", "test-token-123"},
+		{"custom raw header", []string{"Authorization", "X-Auth-Request-Access-Token"}, "X-Auth-Request-Access-Token", "test-token-123"},
+		{"authorization keeps bearer", []string{"x-forwarded-access-token", "Authorization"}, "Authorization", "Bearer test-token-123"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var received http.Header
+			// The fixture authenticates only through tc.require.
+			backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				received = r.Header.Clone()
+				if r.Header.Get(tc.require) != tc.want {
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer backend.Close()
+
+			app := newTestApp(func(a *App) {
+				a.config.DevMode = true
+				a.config.AuthTokenHeader = ""
+				a.config.AuthTokenHeaders = tc.headers
+			})
+			proxyHandler := createTestProxy(t, app, backend.URL, "/ordered/api", "/api", true, false, nil)
+
+			admin := k8mocks.DefaultTestUsers[0]
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/ordered/api/v1/items", nil)
+			// Client-supplied values for the configured headers are stripped.
+			for _, h := range tc.headers {
+				req.Header.Set(h, "attacker-token")
+			}
+			req = reqWithIdentity(req, &k8s.RequestIdentity{
+				UserID: admin.UserName,
+				Groups: admin.Groups,
+				Token:  k8s.NewBearerToken("test-token-123"),
+			})
+			proxyHandler.ServeHTTP(rr, req)
+
+			require.Equal(t, http.StatusOK, rr.Code)
+			assert.Equal(t, "Bearer test-token-123", received.Get("Authorization"))
+			assert.Equal(t, "test-token-123", received.Get("X-Forwarded-Access-Token"))
+			for _, h := range tc.headers {
+				assert.Len(t, received.Values(h), 1, h)
+				assert.NotContains(t, received.Get(h), "attacker-token", h)
+			}
+		})
+	}
+}
+
+// Review 6060889411: a tokenless identity (a certificate-only DEV_MODE
+// fallback) forwards no credential header to an authorized module, even when
+// the module config sets a static X-Forwarded-Access-Token or a configured
+// credential header; the static value must not stand in for the caller.
+func TestInitModuleProxies_TokenlessIdentitySendsNoCredentialHeaders(t *testing.T) {
+	cases := []struct {
+		name          string
+		legacyHeader  string
+		orderedHeader []string
+		static        map[string]string
+	}{
+		{"legacy Authorization header", "Authorization", nil,
+			map[string]string{"X-Forwarded-Access-Token": "static-token", "X-Other": "kept"}},
+		{"ordered headers", "", []string{"Authorization", "X-Auth-Request-Access-Token"},
+			map[string]string{"X-Forwarded-Access-Token": "static-token", "X-Auth-Request-Access-Token": "static-token", "X-Other": "kept"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var received http.Header
+			backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				received = r.Header.Clone()
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer backend.Close()
+
+			app := newTestApp(func(a *App) {
+				a.config.DevMode = true
+				a.config.AuthTokenHeader = tc.legacyHeader
+				a.config.AuthTokenHeaders = tc.orderedHeader
+			})
+			app.devFallbackToken = "" // certificate-only kubeconfig
+			proxyHandler := createTestProxy(t, app, backend.URL, "/tokenless/api", "/api", true, false, tc.static)
+
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/tokenless/api/v1/items", nil)
+			req.Header.Set("Authorization", "Bearer client-supplied")
+			req.Header.Set("X-Forwarded-Access-Token", "client-supplied")
+			req = reqWithIdentity(req, &k8s.RequestIdentity{UserID: "developer", DevFallback: true})
+			proxyHandler.ServeHTTP(rr, req)
+
+			require.Equal(t, http.StatusOK, rr.Code)
+			require.NotNil(t, received, "the request reached the module")
+			assert.Empty(t, received.Values("Authorization"))
+			assert.Empty(t, received.Values("X-Forwarded-Access-Token"))
+			for _, h := range tc.orderedHeader {
+				assert.Empty(t, received.Values(h), h)
+			}
+			assert.Equal(t, "kept", received.Get("X-Other"), "non-credential static headers are still sent")
+		})
+	}
 }

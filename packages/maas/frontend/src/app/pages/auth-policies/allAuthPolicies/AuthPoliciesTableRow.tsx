@@ -4,7 +4,7 @@ import { SortableData, ResourceNameTooltip, ResourceTr } from '@odh-dashboard/ui
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import {
   getAuthPolicyEditUrl,
@@ -52,6 +52,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
+  const trackEvent = useTrackEvent();
   const navState = returnTo
     ? { state: { returnTo, editSource: EventTrackingEditSource.LIST_KEBAB } }
     : undefined;
@@ -63,7 +64,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   };
 
   const onViewDetailsAuthPolicy = (authPolicyName: string) => {
-    fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+    trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
       resourceType: EventTrackingResourceType.AUTHPOLICY,
       source: EventTrackingSource.TAB_KEBAB,
       resourceStatus: authPolicy.phase ?? '',
@@ -102,7 +103,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
                 to={getAuthPolicyViewUrl(authPolicy.name)}
                 state={returnTo ? { returnTo } : undefined}
                 onClick={() =>
-                  fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                  trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
                     resourceType: EventTrackingResourceType.AUTHPOLICY,
                     source: EventTrackingSource.TAB_LINK,
                     resourceStatus: authPolicy.phase ?? '',
@@ -136,7 +137,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         resourceUrl={getAuthPolicyViewUrl(authPolicy.name)}
         returnTo={returnTo}
         onClick={() => {
-          fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+          trackEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
             popoverType: EventTrackingPopoverType.STATUS,
             status: convertStringToPopoverViewedStatus(authPolicy.phase),
             location: PhaseLabelLocation.POLICIES_TAB,
@@ -190,7 +191,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
               togglePanel('groups');
               // So it doesn't fire on open and close of the expanded section
               if (expandedPanel !== 'groups') {
-                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
                   resourceType: EventTrackingResourceType.AUTHPOLICY,
                   expandedSection: EventTrackingExpandedSection.GROUPS,
                   resourceStatus: convertStringToPhaseStatus(authPolicy.phase ?? ''),
@@ -215,7 +216,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
               togglePanel('models');
               // So it doesn't fire on open and close of the expanded section
               if (expandedPanel !== 'models') {
-                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
                   resourceType: EventTrackingResourceType.AUTHPOLICY,
                   expandedSection: EventTrackingExpandedSection.MODELS,
                   resourceStatus: convertStringToPhaseStatus(authPolicy.phase ?? ''),
