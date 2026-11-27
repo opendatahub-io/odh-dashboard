@@ -451,6 +451,51 @@ describe('Model Training', () => {
       trainingJobStatusModal.findStatusLabel().should('be.visible');
     });
 
+    it('should show the selected job worker image-pull blocker above the tabs', () => {
+      const jobName = 'image-classification-job';
+      const worker = mockPodK8sResource({
+        name: `${jobName}-worker-0`,
+        namespace: projectName,
+        isRunning: false,
+        labels: { 'jobset.sigs.k8s.io/jobset-name': jobName },
+      });
+      worker.status = {
+        phase: 'Pending',
+        containerStatuses: [
+          {
+            name: worker.spec.containers[0].name,
+            ready: false,
+            state: { waiting: { reason: 'ImagePullBackOff' } },
+          },
+        ],
+      };
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: projectName,
+          queryParams: { labelSelector: `jobset.sigs.k8s.io/jobset-name=${jobName}` },
+        },
+        mockK8sResourceList([worker]),
+      ).as('workerPods');
+
+      modelTrainingGlobal.visit(projectName);
+      trainingJobTable.getTableRow(jobName).findStatus().click();
+      trainingJobStatusModal.shouldBeOpen();
+      cy.wait('@workerPods');
+      trainingJobStatusModal.findDescription().should('be.visible').and('have.text', 'Job status');
+      trainingJobStatusModal
+        .findPodSummary()
+        .should('be.visible')
+        .and('contain.text', 'Unable to pull the container image.')
+        .then(($summary) => {
+          trainingJobStatusModal.findProgressTab().should(($tab) => {
+            expect($summary[0].getBoundingClientRect().bottom).to.be.at.most(
+              $tab[0].getBoundingClientRect().top,
+            );
+          });
+        });
+    });
+
     it('should display Progress tab with tree view sections', () => {
       modelTrainingGlobal.visit(projectName);
 
@@ -704,16 +749,10 @@ describe('Model Training', () => {
           throw new Error('Workload metadata is required');
         }
 
-        // For Queued status, we need Admitted=True but QuotaReserved=False
+        // Queued jobs are waiting for quota and have not been admitted.
         if (jobStatus === TrainingJobState.QUEUED && workload.status?.conditions) {
+          workload.spec.queueName = 'queued-queue';
           workload.status.conditions = [
-            {
-              lastTransitionTime: '2024-03-18T19:15:28Z',
-              message: 'The workload is admitted',
-              reason: 'Admitted',
-              status: 'True',
-              type: 'Admitted',
-            },
             {
               lastTransitionTime: '2024-03-18T19:15:28Z',
               message: 'Waiting for resources',
@@ -1015,6 +1054,14 @@ describe('Model Training', () => {
 
         trainingJobStatusModal.shouldBeOpen();
         trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.QUEUED);
+        trainingJobStatusModal
+          .findStatusSummary()
+          .should('be.visible')
+          .and('contain.text', 'Waiting for resources in queued-queue');
+        trainingJobStatusModal
+          .findDescription()
+          .should('be.visible')
+          .and('have.text', 'Job status');
         // TODO: RHOAIENG-37578 - Retry and Pause/Resume button tests commented out
         // trainingJobStatusModal.findPauseResumeButton().should('be.visible');
         // trainingJobStatusModal.findPauseResumeButton().should('contain', 'Pause Job');

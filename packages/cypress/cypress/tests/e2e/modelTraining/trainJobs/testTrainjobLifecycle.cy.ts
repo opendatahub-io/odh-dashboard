@@ -152,11 +152,8 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
       cy.step('Verify the training job title is displayed in the status modal');
       trainingJobStatusModal.findTitle(trainJobName).should('exist');
 
-      cy.step('Verify the training job description is displayed in the status modal');
-      trainingJobStatusModal
-        .findDescription()
-        .should('be.visible')
-        .and('have.text', trainJobDescription);
+      cy.step('Verify the header description is absent when there is no live summary');
+      trainingJobStatusModal.findDescription().should('not.exist');
 
       cy.step('Switch to Events log tab and verify log entries exist');
       trainingJobStatusModal.selectTab('Events log');

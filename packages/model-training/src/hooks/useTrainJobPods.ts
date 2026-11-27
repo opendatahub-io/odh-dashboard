@@ -13,13 +13,18 @@ type UseTrainJobPodsResult = {
   error: Error | undefined;
 };
 
-const groupPodsByType = (pods: PodKind[]): { initializers: PodKind[]; training: PodKind[] } => {
+const groupPodsByType = (
+  pods: PodKind[],
+  jobName?: string,
+): { initializers: PodKind[]; training: PodKind[] } => {
   const initializers: PodKind[] = [];
   const training: PodKind[] = [];
 
   pods.forEach((pod) => {
-    const podName = pod.metadata.name.toLowerCase();
-    if (podName.includes('initializer')) {
+    const podName = pod.metadata.name;
+    const roleName =
+      jobName && podName.startsWith(`${jobName}-`) ? podName.slice(jobName.length + 1) : podName;
+    if (roleName.toLowerCase().includes('initializer')) {
       initializers.push(pod);
     } else {
       training.push(pod);
@@ -60,7 +65,10 @@ const useTrainJobPods = (job: TrainJobKind | undefined): UseTrainJobPodsResult =
     PodModel,
   );
 
-  const { initializers, training } = React.useMemo(() => groupPodsByType(pods), [pods]);
+  const { initializers, training } = React.useMemo(
+    () => groupPodsByType(pods, job?.metadata.name),
+    [pods, job?.metadata.name],
+  );
 
   return {
     pods,

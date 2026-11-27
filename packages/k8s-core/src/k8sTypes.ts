@@ -136,10 +136,23 @@ export type PodSpec = {
 export type PodContainerStatus = {
   name: string;
   ready: boolean;
+  restartCount?: number;
+  image?: string;
+  imageID?: string;
+  containerID?: string;
+  lastState?: PodContainerStatus['state'];
   state?: {
     running?: boolean | undefined;
-    waiting?: boolean | undefined;
-    terminated?: boolean | undefined;
+    waiting?: boolean | { reason?: string; message?: string };
+    terminated?:
+      | boolean
+      | {
+          exitCode: number;
+          reason?: string;
+          startedAt?: string;
+          finishedAt?: string;
+          containerID?: string;
+        };
   };
 };
 
@@ -218,6 +231,7 @@ export type PodKind = K8sResourceCommon & {
     phase: string;
     conditions?: K8sCondition[];
     containerStatuses?: PodContainerStatus[];
+    initContainerStatuses?: PodContainerStatus[];
   };
 };
 
