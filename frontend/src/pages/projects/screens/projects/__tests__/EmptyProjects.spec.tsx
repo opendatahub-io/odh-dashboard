@@ -79,4 +79,18 @@ describe('EmptyProjects', () => {
     const helpContent = await screen.findByTestId('projects-empty-admin-help-content');
     expect(helpContent).toBeVisible();
   });
+
+  it('should not expose creation or cancel actions without create permission', () => {
+    const onCreateProject = jest.fn();
+    const onCancel = jest.fn();
+    render(
+      <EmptyProjects allowCreate={false} onCreateProject={onCreateProject} onCancel={onCancel} />,
+    );
+    expect(screen.getByRole('heading', { name: 'Start by requesting a project' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'no projects' })).toBeVisible();
+    expect(screen.queryByTestId('create-project')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cancel-create-project')).not.toBeInTheDocument();
+    expect(onCreateProject).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });

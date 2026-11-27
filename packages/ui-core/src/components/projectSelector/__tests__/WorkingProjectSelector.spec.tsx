@@ -157,6 +157,44 @@ describe('WorkingProjectSelector', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('should provide a Close action for a plain-text empty list', () => {
+    const onProjectChange = jest.fn();
+    render(
+      <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={onProjectChange}>
+        <WorkingProjectSelector
+          manualProjectMode
+          emptyListContent="There are no projects in the namespace list."
+        />
+      </WorkingProjectProvider>,
+    );
+    const trigger = screen.getByTestId('working-project-selector');
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(screen.getByText('There are no projects in the namespace list.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Close'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(onProjectChange).not.toHaveBeenCalled();
+    fireEvent.click(trigger);
+    expect(screen.getByText('Close')).toBeInTheDocument();
+  });
+
+  it('should leave function-provided empty-list actions unchanged', () => {
+    render(
+      <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={jest.fn()}>
+        <WorkingProjectSelector
+          emptyListContent={(onClose) => <button onClick={onClose}>Cancel</button>}
+        />
+      </WorkingProjectProvider>,
+    );
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.queryByText('Close')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('should not duplicate actions supplied by the empty-list content', () => {
     render(
       <WorkingProjectProvider projects={[]} activeProject={null} onProjectChange={jest.fn()}>
@@ -961,6 +999,63 @@ describe('WorkingProjectSelector', () => {
     );
     expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
   });
+
+  it.each(['ai-added', 'standard-added'])(
+    'should wait for provider publication before confirming an added project: %s',
+    async (name) => {
+      const activeProject = { name: 'ai-active' };
+      const alternative = { name: 'ai-alternative' };
+      const added = { name };
+      const onProjectChange = jest.fn();
+      const onProjectSelected = jest.fn();
+      const discoverProject = jest.fn().mockResolvedValue(added);
+      const rememberProject = jest.fn().mockResolvedValue(undefined);
+      const tree = (projects: ProjectIdentity[]) => (
+        <WorkingProjectProvider
+          status="listing-unavailable"
+          projects={projects}
+          activeProject={activeProject}
+          onProjectChange={onProjectChange}
+          discoverProject={discoverProject}
+          rememberProject={rememberProject}
+        >
+          <WorkingProjectSelector
+            manualProjectMode
+            emptyListContent="No projects"
+            isAiProject={(projectName) => projectName.startsWith('ai-')}
+            onProjectSelected={onProjectSelected}
+          />
+        </WorkingProjectProvider>
+      );
+      const { rerender } = render(tree([activeProject, alternative]));
+      fireEvent.click(screen.getByTestId('working-project-selector'));
+      fireEvent.click(screen.getByRole('button', { name: 'Add project' }));
+      fireEvent.change(screen.getByTestId('manual-project-name'), { target: { value: name } });
+      fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+      await waitFor(() => expect(screen.getByTestId('modal-submit-button')).toBeEnabled());
+      fireEvent.click(screen.getByTestId('modal-submit-button'));
+      await screen.findByRole('dialog', { name: 'Project selector' });
+      expect(screen.getByRole('button', { name: 'Select' })).toBeDisabled();
+      expect(onProjectChange).not.toHaveBeenCalled();
+      expect(onProjectSelected).not.toHaveBeenCalled();
+
+      rerender(tree([activeProject, alternative, added]));
+      expect(screen.getByRole('radio', { name: new RegExp(name) })).toBeChecked();
+      expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+        name === 'ai-added' ? 'AI projects only' : 'All projects',
+      );
+      expect(screen.getByRole('button', { name: 'Select' })).toBeEnabled();
+      fireEvent.click(screen.getByTestId('working-project-option-ai-alternative'));
+      rerender(tree([activeProject, alternative, added]));
+      expect(screen.getByRole('radio', { name: /ai-alternative/ })).toBeChecked();
+      expect(screen.getByRole('radio', { name: new RegExp(name) })).not.toBeChecked();
+      fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+      await waitFor(() => expect(onProjectSelected).toHaveBeenCalledWith(alternative));
+      expect(onProjectChange).toHaveBeenCalledTimes(1);
+      expect(onProjectChange).toHaveBeenCalledWith(alternative);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    },
+  );
 
   it('should show a plain inline success message only for the xKS fallback', async () => {
     render(

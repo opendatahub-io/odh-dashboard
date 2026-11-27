@@ -1,6 +1,7 @@
 import { isAiProject, KnownLabels } from '@odh-dashboard/k8s-core';
 import fetchNamespaces, {
   NamespaceListUnavailableError,
+  NamespaceUnavailableError,
   fetchNamespaceByName,
 } from '../fetchNamespaces';
 
@@ -187,6 +188,31 @@ describe('fetchNamespaceByName', () => {
   it.each([403, 404])('should reject unauthorized or missing projects (%s)', async (status) => {
     mockFetch({ ok: false, status });
     await expect(fetchNamespaceByName('missing')).rejects.toThrow('No access to that project');
+    await expect(fetchNamespaceByName('missing')).rejects.toBeInstanceOf(NamespaceUnavailableError);
+  });
+
+  it.each([401, 429, 500, 503, 504])(
+    'should not classify HTTP %s as a removable recent entry',
+    async (status) => {
+      mockFetch({ ok: false, status });
+      await expect(fetchNamespaceByName('retry')).rejects.not.toBeInstanceOf(
+        NamespaceUnavailableError,
+      );
+    },
+  );
+
+  it('should not classify malformed or non-active responses as confirmed missing namespaces', async () => {
+    mockFetch({ ok: true, json: async () => ({ data: { name: 'other', phase: 'Active' } }) });
+    await expect(fetchNamespaceByName('expected')).rejects.not.toBeInstanceOf(
+      NamespaceUnavailableError,
+    );
+    mockFetch({
+      ok: true,
+      json: async () => ({ data: { name: 'expected', phase: 'Terminating' } }),
+    });
+    await expect(fetchNamespaceByName('expected')).rejects.not.toBeInstanceOf(
+      NamespaceUnavailableError,
+    );
   });
 
   it('should reject invalid names without a request and mismatched responses', async () => {

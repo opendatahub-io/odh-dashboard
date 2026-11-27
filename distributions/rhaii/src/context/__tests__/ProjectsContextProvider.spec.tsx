@@ -20,11 +20,13 @@ const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockFetchNamespaces = jest.fn<Promise<ProjectKind[]>, [AbortSignal?]>();
 const mockFetchNamespaceByName = jest.fn<Promise<ProjectKind>, [string, AbortSignal?]>();
 class MockNamespaceListUnavailableError extends Error {}
+class MockNamespaceUnavailableError extends Error {}
 jest.mock('../fetchNamespaces', () => ({
   __esModule: true,
   default: (...args: [AbortSignal?]) => mockFetchNamespaces(...args),
   fetchNamespaceByName: (...args: [string, AbortSignal?]) => mockFetchNamespaceByName(...args),
   NamespaceListUnavailableError: MockNamespaceListUnavailableError,
+  NamespaceUnavailableError: MockNamespaceUnavailableError,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -85,6 +87,23 @@ const Consumer: React.FC = () => {
 };
 
 describe('RHAII working project provider integration', () => {
+  const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'scrollIntoView',
+  );
+  beforeAll(() => {
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: jest.fn(),
+    });
+  });
+  afterAll(() => {
+    if (scrollIntoViewDescriptor) {
+      Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', scrollIntoViewDescriptor);
+    } else {
+      delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
   beforeEach(() => jest.useRealTimers());
 
   it('should expose listed projects to both masthead and route consumers', async () => {
@@ -159,6 +178,13 @@ describe('RHAII working project provider integration', () => {
         'ai-project-label',
       ),
     ).toHaveTextContent('AI');
+    expect(
+      within(
+        within(screen.getByTestId('working-project-option-ai-project')).getByTestId(
+          'ai-project-label',
+        ),
+      ).getByRole('img', { hidden: true }),
+    ).toHaveAttribute('aria-hidden', 'true');
     expect(screen.queryByTestId('working-project-option-standard-project')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Project type' }));
@@ -180,7 +206,71 @@ describe('RHAII working project provider integration', () => {
     ).toBeInTheDocument();
   });
 
-  it('should allow selecting non-AI projects when the AI filter has no matches', async () => {
+  it.each([
+    { stored: '', ai: true, expected: 'ai-a' },
+    { stored: '', ai: false, expected: 'standard-a' },
+    { stored: 'standard-b', ai: true, expected: 'standard-b' },
+    { stored: 'deleted', ai: true, expected: 'ai-a' },
+    { stored: 'deleted', ai: false, expected: 'standard-a' },
+  ])(
+    'should resolve listed UPS projects with preference $stored and AI availability $ai',
+    async ({ stored, ai, expected }) => {
+      const namespaces = ['standard-b', 'standard-a', ...(ai ? ['ai-b', 'ai-a'] : [])].map(project);
+      for (const namespace of namespaces) {
+        if (namespace.metadata.name.startsWith('ai-')) {
+          namespace.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
+        }
+      }
+      if (stored) localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify(stored));
+      mockFetchNamespaces.mockResolvedValue(namespaces);
+      render(
+        <ProjectsContextProvider>
+          <Consumer />
+        </ProjectsContextProvider>,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('working-project')).toHaveTextContent(expected),
+      );
+      expect(screen.getByTestId('route-project')).toHaveTextContent(expected);
+      expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBe(
+        stored ? JSON.stringify(stored) : null,
+      );
+      expect(mockFetchNamespaceByName).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should retain a missing explicit preference across reloads until the user selects a project', async () => {
+    const storedPreference = JSON.stringify('temporarily-unavailable');
+    localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, storedPreference);
+    const aiProject = project('ai-project');
+    aiProject.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
+    mockFetchNamespaces.mockResolvedValue([aiProject, project('allowed')]);
+    const tree = (
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>
+    );
+    const firstVisit = render(tree);
+    await waitFor(() =>
+      expect(screen.getByTestId('working-project')).toHaveTextContent('ai-project'),
+    );
+    expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBe(storedPreference);
+    firstVisit.unmount();
+    mockFetchNamespaces.mockResolvedValue([
+      project('temporarily-unavailable'),
+      aiProject,
+      project('allowed'),
+    ]);
+    render(tree);
+    await waitFor(() =>
+      expect(screen.getByTestId('working-project')).toHaveTextContent('temporarily-unavailable'),
+    );
+    fireEvent.click(screen.getByText('Select allowed'));
+    expect(screen.getByTestId('working-project')).toHaveTextContent('allowed');
+    expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBe(JSON.stringify('allowed'));
+  });
+
+  it('should default to All projects when the listed fallback is non-AI', async () => {
     const user = userEvent.setup();
     mockFetchNamespaces.mockResolvedValue([project('standard-project')]);
     render(
@@ -193,9 +283,7 @@ describe('RHAII working project provider integration', () => {
       expect(screen.getByTestId('known-projects')).toHaveTextContent('standard-project'),
     );
     fireEvent.click(screen.getByTestId('working-project-selector'));
-    expect(screen.getByTestId('working-project-no-results')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Project type' }));
-    await user.click(await screen.findByRole('option', { name: /All projects/ }));
+    expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent('All projects');
     await waitFor(() =>
       expect(screen.getByTestId('working-project-option-standard-project')).toBeInTheDocument(),
     );
@@ -204,6 +292,31 @@ describe('RHAII working project provider integration', () => {
     await waitFor(() =>
       expect(screen.getByTestId('working-project-selector')).toHaveTextContent('standard-project'),
     );
+  });
+
+  it('should wait for listed data and preserve a later explicit selection through rerenders', async () => {
+    let resolve: (value: ProjectKind[]) => void = () => undefined;
+    mockFetchNamespaces.mockReturnValue(
+      new Promise((complete) => {
+        resolve = complete;
+      }),
+    );
+    const tree = () => (
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>
+    );
+    const { rerender } = render(tree());
+    expect(screen.getByTestId('source-status')).toHaveTextContent('loading');
+    expect(screen.getByTestId('working-project')).toHaveTextContent('none');
+    const ai = project('ai-project');
+    ai.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
+    await act(async () => resolve([ai, project('allowed')]));
+    expect(screen.getByTestId('working-project')).toHaveTextContent('ai-project');
+    fireEvent.click(screen.getByText('Select allowed'));
+    rerender(tree());
+    expect(screen.getByTestId('working-project')).toHaveTextContent('allowed');
+    expect(screen.getByTestId('route-project')).toHaveTextContent('allowed');
   });
 
   it('should distinguish forbidden listing from empty listing and allow only validated additions', async () => {
@@ -284,6 +397,102 @@ describe('RHAII working project provider integration', () => {
     expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
     expect(trigger).toHaveTextContent('Project: allowed');
   });
+
+  it.each(['added project', 'different project', 'cancel'])(
+    'should preselect an additional non-AI project without activating it before choosing %s',
+    async (outcome) => {
+      mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
+      const aiProject = project('allowed');
+      aiProject.metadata.labels = { [KnownLabels.DASHBOARD_RESOURCE]: 'true' };
+      mockFetchNamespaceByName.mockImplementation(async (name) =>
+        name === 'allowed' ? aiProject : project(name),
+      );
+      render(
+        <ProjectsContextProvider>
+          <RhaiiProjectSelector />
+          <Consumer />
+        </ProjectsContextProvider>,
+      );
+      const trigger = screen.getByTestId('working-project-selector');
+      await waitFor(() => expect(trigger).toHaveTextContent('No projects'));
+
+      const addProject = async (name: string) => {
+        fireEvent.click(screen.getByRole('button', { name: 'Add project' }));
+        fireEvent.change(screen.getByTestId('manual-project-name'), { target: { value: name } });
+        fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+        await waitFor(() => expect(screen.getByTestId('modal-submit-button')).toBeEnabled());
+        fireEvent.click(screen.getByTestId('modal-submit-button'));
+        await waitFor(() =>
+          expect(screen.getByTestId('project-added-notification')).toHaveTextContent(name),
+        );
+      };
+      fireEvent.click(trigger);
+      await addProject('allowed');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(trigger).toHaveTextContent('Project: allowed');
+      fireEvent.click(
+        within(screen.getByTestId('working-project-updated-notification')).getByRole('button'),
+      );
+
+      trigger.focus();
+      fireEvent.click(trigger);
+      expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+        'AI projects only',
+      );
+      await addProject('another');
+      expect(screen.getByRole('dialog', { name: 'Project selector' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+        'All projects',
+      );
+      expect(screen.getByRole('radio', { name: /another/ })).toBeChecked();
+      expect(screen.getByRole('button', { name: 'Select' })).toBeEnabled();
+      expect(screen.getByTestId('working-project')).toHaveTextContent('allowed');
+      expect(screen.getByTestId('route-project')).toHaveTextContent('allowed');
+      expect(JSON.parse(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY) ?? 'null')).toBe(
+        'allowed',
+      );
+      expect(screen.queryByTestId('working-project-updated-notification')).not.toBeInTheDocument();
+
+      // Toast dismissal must not clear or reset the pending selection.
+      fireEvent.click(
+        within(screen.getByTestId('project-added-notification')).getByRole('button', {
+          hidden: true,
+        }),
+      );
+      expect(screen.getByRole('radio', { name: /another/ })).toBeChecked();
+
+      if (outcome === 'cancel') {
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(trigger).toHaveFocus();
+        fireEvent.click(trigger);
+        expect(screen.getByRole('button', { name: 'Project type' })).toHaveTextContent(
+          'AI projects only',
+        );
+        expect(screen.getByRole('radio', { name: /allowed/ })).toBeChecked();
+        expect(screen.getByRole('button', { name: 'Select' })).toBeDisabled();
+        expect(screen.getByTestId('known-projects')).toHaveTextContent('another');
+        expect(screen.getByTestId('working-project')).toHaveTextContent('allowed');
+      } else {
+        if (outcome === 'different project') {
+          await addProject('third');
+          expect(screen.getByRole('radio', { name: /third/ })).toBeChecked();
+          fireEvent.click(screen.getByTestId('working-project-option-another'));
+          expect(screen.getByRole('radio', { name: /another/ })).toBeChecked();
+        }
+        fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+        await waitFor(() => expect(trigger).toHaveTextContent('Project: another'));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.getByTestId('route-project')).toHaveTextContent('another');
+        expect(JSON.parse(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY) ?? 'null')).toBe(
+          'another',
+        );
+        expect(screen.getByTestId('working-project-updated-notification')).toHaveTextContent(
+          "You're now working in another.",
+        );
+      }
+    },
+  );
 
   it('should not switch the working project when another project is added', async () => {
     mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
@@ -404,6 +613,78 @@ describe('RHAII working project provider integration', () => {
     },
   );
 
+  it.each(['listed', 'empty', 'error', 'disabled'])(
+    'should not restore recent namespaces for a %s source',
+    async (source) => {
+      localStorage.setItem('rhaii-recent-namespaces', JSON.stringify(['remembered']));
+      if (source === 'listed') {
+        mockFetchNamespaces.mockResolvedValue([project('allowed')]);
+      } else if (source === 'error') {
+        mockFetchNamespaces.mockRejectedValue(new Error('Service unavailable'));
+      } else if (source === 'disabled') {
+        mockUseIsAreaAvailable.mockReturnValue({
+          status: false,
+        } as ReturnType<typeof useIsAreaAvailable>);
+        mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
+      }
+      let loaded = false;
+      const LoadedConsumer: React.FC = () => {
+        loaded = React.useContext(ProjectsContext).loaded;
+        return <Consumer />;
+      };
+      render(
+        <ProjectsContextProvider>
+          <LoadedConsumer />
+        </ProjectsContextProvider>,
+      );
+      await waitFor(() => expect(loaded).toBe(true));
+      expect(mockFetchNamespaceByName).not.toHaveBeenCalled();
+      expect(screen.getByTestId('known-projects')).not.toHaveTextContent('remembered');
+    },
+  );
+
+  it('should restore recent namespaces and prune confirmed revoked entries without selecting them or repeating lookups', async () => {
+    const recent = JSON.stringify(['allowed', 'another', 'revoked']);
+    localStorage.setItem('rhaii-recent-namespaces', recent);
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
+    mockFetchNamespaceByName.mockImplementation(async (name) => {
+      if (name === 'revoked') {
+        throw new MockNamespaceUnavailableError('No access');
+      }
+      return project(name);
+    });
+    const view = render(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed,another'),
+    );
+    expect(screen.getByTestId('working-project')).toHaveTextContent('none');
+    expect(screen.getByTestId('route-project')).toHaveTextContent('none');
+    expect(localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY)).toBeNull();
+    await waitFor(() =>
+      expect(localStorage.getItem('rhaii-recent-namespaces')).toBe(
+        JSON.stringify(['allowed', 'another']),
+      ),
+    );
+    expect(mockFetchNamespaceByName).toHaveBeenCalledTimes(3);
+
+    view.rerender(
+      <ProjectsContextProvider>
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    fireEvent.click(screen.getByText('Select allowed'));
+    await waitFor(() => expect(screen.getByTestId('working-project')).toHaveTextContent('allowed'));
+    // Switching still revalidates access, but does not repeat recent-entry restoration.
+    expect(mockFetchNamespaceByName).toHaveBeenCalledTimes(4);
+    expect(localStorage.getItem('rhaii-recent-namespaces')).toBe(
+      JSON.stringify(['allowed', 'another']),
+    );
+  });
+
   it('should not activate a stored project when access has been revoked', async () => {
     localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify('allowed'));
     localStorage.setItem('rhaii-recent-namespaces', JSON.stringify(['allowed']));
@@ -502,19 +783,82 @@ describe('RHAII working project provider integration', () => {
     expect(screen.getByTestId('known-projects')).toHaveTextContent('');
   });
 
-  it('should preserve the legacy project context when UPS is disabled', async () => {
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-    } as ReturnType<typeof useIsAreaAvailable>);
-    mockFetchNamespaces.mockResolvedValue([project('allowed')]);
+  it('should reuse the request-project empty state when listing succeeds without available projects', async () => {
+    const user = userEvent.setup();
     render(
       <ProjectsContextProvider>
+        <RhaiiProjectSelector />
         <Consumer />
       </ProjectsContextProvider>,
     );
-    await waitFor(() => expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed'));
-    expect(screen.getByTestId('source-status')).toHaveTextContent('provider-absent');
+    await waitFor(() =>
+      expect(screen.getByTestId('source-status')).toHaveTextContent('empty-list'),
+    );
+    const trigger = screen.getByTestId('working-project-selector');
+    await user.click(trigger);
+    const dialog = screen.getByRole('dialog', { name: 'Project selector' });
+    expect(
+      within(dialog).getByRole('heading', { name: 'Start by requesting a project' }),
+    ).toBeVisible();
+    expect(within(dialog).getByRole('img', { name: 'no projects' })).toBeVisible();
+    expect(within(dialog).getByTestId('projects-empty-body-text')).toHaveTextContent(
+      'To request a project, contact your administrator.',
+    );
+    expect(
+      within(dialog).queryByRole('button', { name: 'Create project' }),
+    ).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Add project' })).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    await user.click(trigger);
+    await user.click(screen.getByTestId('projects-empty-admin-help'));
+    expect(await screen.findByTestId('projects-empty-admin-help-content')).toHaveTextContent(
+      'Someone in your IT department or help desk',
+    );
+    expect(mockFetchNamespaceByName).not.toHaveBeenCalled();
+    expect(screen.getByTestId('working-project')).toHaveTextContent('none');
   });
+
+  it('should keep the manual-entry empty state when namespace listing is unavailable', async () => {
+    mockFetchNamespaces.mockRejectedValue(new MockNamespaceListUnavailableError());
+    render(
+      <ProjectsContextProvider>
+        <RhaiiProjectSelector />
+        <Consumer />
+      </ProjectsContextProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('source-status')).toHaveTextContent('listing-unavailable'),
+    );
+    fireEvent.click(screen.getByTestId('working-project-selector'));
+    expect(screen.getByRole('heading', { name: 'Start by adding a project' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Add project' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeVisible();
+    expect(screen.queryByTestId('projects-empty-admin-help')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create project' })).not.toBeInTheDocument();
+  });
+
+  it.each(['', 'allowed'])(
+    'should preserve the legacy project context when UPS is disabled (stored: %s)',
+    async (stored) => {
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: false,
+      } as ReturnType<typeof useIsAreaAvailable>);
+      mockFetchNamespaces.mockResolvedValue([project('allowed')]);
+      if (stored) localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, JSON.stringify(stored));
+      render(
+        <ProjectsContextProvider>
+          <Consumer />
+        </ProjectsContextProvider>,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('known-projects')).toHaveTextContent('allowed'),
+      );
+      expect(screen.getByTestId('source-status')).toHaveTextContent('provider-absent');
+      expect(screen.getByTestId('route-project')).toHaveTextContent(stored || 'none');
+    },
+  );
 });
 
 afterEach(() => {

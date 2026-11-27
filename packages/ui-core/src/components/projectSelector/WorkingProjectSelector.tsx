@@ -308,10 +308,12 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
     }
   }, [props.projectToReview]);
   const [adding, setAdding] = React.useState(false);
+  const [addedProjectToReview, setAddedProjectToReview] = React.useState<string>();
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const close = () => {
     setOpen(false);
     setAdding(false);
+    setAddedProjectToReview(undefined);
     if (props.projectToReview) {
       props.onProjectReviewClosed?.();
     }
@@ -371,6 +373,9 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
                 props.onProjectSelected?.(project);
                 close();
               } else {
+                if (manualFallback) {
+                  setAddedProjectToReview(project.name);
+                }
                 setAdding(false);
               }
             }}
@@ -378,6 +383,7 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
         ) : (
           <WorkingProjectModal
             {...props}
+            projectToReview={addedProjectToReview ?? props.projectToReview}
             onProjectSelected={(project) => {
               if (manualFallback && project.name !== activeProject?.name) {
                 setUpdatedProject({ ...project, notificationId: ++notificationSequence.current });
@@ -849,6 +855,7 @@ const WorkingProjectModal: React.FC<
       </ModalBody>
       <WorkingProjectSelectorFooter
         isEmptyProjectList={isEmptyProjectList}
+        showEmptyListClose={typeof emptyListContent === 'string'}
         manualFallback={manualFallback}
         showManualEmptyContent={showManualEmptyContent}
         canSelectProject={canSelectProject}
