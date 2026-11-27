@@ -34,14 +34,11 @@ pnpm run lint
 # Run the code formatter
 pnpm run format
 
-# Launch a tool to inspect the bundle size
-pnpm run bundle-profile:analyze
-
-# Start the express server (run a production build first)
+# Serve the production build (run a production build first)
 pnpm run start
 
 # Run type checking without emitting files
-pnpm run type-check
+pnpm run test:type-check
 
 # Run all CI checks (type checking, linting, and test coverage)
 pnpm run ci-checks
@@ -49,21 +46,17 @@ pnpm run ci-checks
 # Clean the dist directory
 pnpm run clean
 
-# Generate a rspack bundle profile
-pnpm run build:bundle-profile
-
-# Build a production bundle and serve it from the mock BFF
-pnpm run cypress:server:build
+# Start the BFF server
 pnpm run cypress:server
 
-# Build, serve via mock BFF, and run Cypress mock tests (CI)
+# Start the mock BFF and development server, then run Cypress mock tests (CI)
 pnpm run test:cypress-ci
 ```
 
 ## Configurations
 
 - [TypeScript Config](./tsconfig.json)
-- [Rspack Config](./rspack.common.js)
+- [Rspack Config](./config/rspack.common.js)
 - [Jest Config](./jest.config.js)
 - [Editor Config](./.editorconfig)
 
@@ -94,7 +87,7 @@ import logo from '~/app/assets/images/logo.svg';
 <span dangerouslySetInnerHTML={{ __html: logo }} />;
 ```
 
-You can also use SVG when applying background images with CSS. To do this, your SVG's must live under a `bgimages` directory (this directory name is configurable in [rspack.common.js](./rspack.common.js#L5)). This is necessary because you may need to use SVG's in several other context (inline images, fonts, icons, etc.) and so we need to be able to differentiate between these usages so the appropriate loader is invoked.
+You can also use SVG when applying background images with CSS. To do this, your SVG's must live under a `bgimages` directory (this directory name is configurable in [rspack.common.js](./config/rspack.common.js#L7)). This is necessary because you may need to use SVG's in several other context (inline images, fonts, icons, etc.) and so we need to be able to differentiate between these usages so the appropriate loader is invoked.
 
 ```css
 body {
@@ -104,7 +97,7 @@ body {
 
 ## Adding custom CSS
 
-When importing CSS from a third-party package for the first time, you may encounter the error `Module parse failed: Unexpected token... You may need an appropriate loader to handle this file typ...`. You need to register the path to the stylesheet directory in [stylePaths.js](./stylePaths.js). We specify these explicitly for performance reasons to avoid rspack needing to crawl through the entire node_modules directory when parsing CSS modules.
+When importing CSS from a third-party package for the first time, you may encounter the error `Module parse failed: Unexpected token... You may need an appropriate loader to handle this file typ...`. You need to register the path to the stylesheet directory in [stylePaths.js](./config/stylePaths.js). We specify these explicitly for performance reasons to avoid rspack needing to crawl through the entire node_modules directory when parsing CSS modules.
 
 ## Code quality tools
 
