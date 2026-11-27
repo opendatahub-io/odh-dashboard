@@ -1,8 +1,14 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { getModuleFederationConfigs } from '@odh-dashboard/app-config';
+import { CSP_NONCE_PLACEHOLDER } from '@odh-dashboard/app-config/security-policy';
 import { DEV_MODE } from '../utils/constants';
 import { errorHandler } from '../utils';
-import { setNoStoreCacheHeaders } from '../utils/securityHeaders';
+import {
+  applyContentSecurityPolicy,
+  createCspNonce,
+  getCspMode,
+  setNoStoreCacheHeaders,
+} from '../utils/securityHeaders';
 
 // The rendered value is placed in an application/json script element. Escape
 // HTML-significant characters so configuration cannot terminate that element.
@@ -27,9 +33,23 @@ export default async (fastify: FastifyInstance): Promise<void> => {
     fastify.log.error(e, errorHandler(e));
   }
 
-  // SPA shell under `/*` — not an API path, so set document cache policy here.
+  // SPA shell under `/*` — not an API path, so set document cache policy here. The CSP is
+  // applied only on this route: module `proxyService` replies that happen to be HTML belong
+  // to an upstream UI and keep their own headers.
+  //
+  // The document is rendered to a string so the per-request nonce can be written into both
+  // the CSP header and the inline theme bootstrap. Rendering and sending are inseparable
+  // otherwise, and a nonce that only appears in one of the two places fails closed: the
+  // theme never applies.
   fastify.get('/*', async (_: FastifyRequest, reply: FastifyReply) => {
     setNoStoreCacheHeaders(reply);
-    return reply.view('index.html', { mfRemotesJson });
+
+    const nonce = createCspNonce();
+    const html = await fastify.view('index.html', { mfRemotesJson });
+
+    reply.type('text/html; charset=utf-8');
+    applyContentSecurityPolicy(reply, getCspMode(), nonce);
+
+    return reply.send(String(html).replaceAll(CSP_NONCE_PLACEHOLDER, nonce));
   });
 };

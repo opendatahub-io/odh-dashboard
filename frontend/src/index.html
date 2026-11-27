@@ -1,28 +1,36 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html lang="en-US" class="pf-v6-theme-felt">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#ffffff" />
     <title><%= htmlRspackPlugin.options.title %></title>
-    <script id="mf-remotes-json" type="application/json"><?- mfRemotesJson ?></script>
-    <script>
+    <script id="mf-remotes-json" type="application/json">
+      <?- mfRemotesJson ?>
+    </script>
+    <!-- PatternFly theme classes are applied before the app boots so tokens are correct on
+         first paint. This is the only inline script in the shell; each server substitutes
+         the per-request nonce so the CSP never needs 'unsafe-inline'. -->
+    <script nonce="__CSP_NONCE__">
       // PatternFly theme classes are applied before the app boots so tokens
-      // are correct on first paint. Felt is always on; light/dark composes
+      // are correct on first paint. Felt is always on (also set statically on <html>
+      // so a failed/slow load still gets the Felt theme); light/dark composes
       // via .pf-v6-theme-dark and glass/high-contrast via their classes.
       // Resolution mirrors ThemeContext (dark follows the color scheme or OS;
       // Glass is the default contrast unless the OS opts out). The legacy
       // odh.dashboard.ui.theme key is migrated
       // once so saved light/dark choices survive. OS "Reduce Transparency"
       // overrides glass when the scheme is system (see App.scss).
-      (function () {
+      (function applyThemeBootstrap() {
         var root = document.documentElement;
+        // Idempotent: index.html already sets this class, so this only matters if the
+        // document is ever served without it.
         root.classList.add('pf-v6-theme-felt');
         try {
           var SCHEME_KEY = 'odh.dashboard.ui.colorScheme';
           var LEGACY_KEY = 'odh.dashboard.ui.theme';
           var CONTRAST_KEY = 'odh.dashboard.ui.contrastMode';
-          var read = function (key) {
+          var read = function read(key) {
             var raw = localStorage.getItem(key);
             if (raw === null) {
               return null;

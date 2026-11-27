@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 
@@ -12,13 +13,59 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertConsoleSecurityHeaders(t *testing.T, h http.Header) {
+func assertBrowserSecurityHeaders(t *testing.T, h http.Header) {
 	t.Helper()
 	assert.Equal(t, constants.ReferrerPolicyStrictOriginWhenCrossOrigin, h.Get(constants.HeaderReferrerPolicy))
 	assert.Equal(t, constants.XContentTypeOptionsNoSniff, h.Get(constants.HeaderXContentTypeOptions))
 	assert.Equal(t, constants.CrossOriginOpenerPolicySameOrigin, h.Get(constants.HeaderCrossOriginOpenerPolicy))
 	assert.Equal(t, constants.XFrameOptionsDeny, h.Get(constants.HeaderXFrameOptions))
 	assert.Equal(t, constants.XDNSPrefetchControlOff, h.Get(constants.HeaderXDNSPrefetchControl))
+}
+
+// cspNonce returns the 'nonce-…' source carried by a policy header value. Every document
+// gets a fresh nonce, so assertions compare against the nonce observed in that response.
+func cspNonce(t *testing.T, policy string) string {
+	t.Helper()
+	for _, directive := range strings.Split(policy, "; ") {
+		for _, source := range strings.Fields(directive) {
+			rest, ok := strings.CutPrefix(source, "'nonce-")
+			if !ok {
+				continue
+			}
+			if assert.True(t, strings.HasSuffix(rest, "'"), "unterminated nonce source %q", source) {
+				return strings.TrimSuffix(rest, "'")
+			}
+		}
+	}
+	t.Fatalf("policy carries no nonce: %q", policy)
+	return ""
+}
+
+// policyWithoutNonce normalizes the per-response nonce so two responses can be compared.
+func policyWithoutNonce(t *testing.T, policy string) string {
+	t.Helper()
+	nonce := cspNonce(t, policy)
+	return strings.ReplaceAll(policy, "'nonce-"+nonce+"'", "'nonce-<nonce>'")
+}
+
+func assertContentSecurityPolicy(t *testing.T, h http.Header) {
+	t.Helper()
+	policy := h.Get(constants.HeaderContentSecurityPolicy)
+	assert.Equal(t, constants.ContentSecurityPolicyWithNonce(cspNonce(t, policy)), policy)
+}
+
+func assertReportOnlyContentSecurityPolicy(t *testing.T, h http.Header) {
+	t.Helper()
+	policy := h.Get(constants.HeaderCSPReportOnly)
+	assert.Equal(t, constants.ContentSecurityPolicyWithNonce(cspNonce(t, policy)), policy)
+	assert.Empty(t, h.Get(constants.HeaderContentSecurityPolicy))
+}
+
+// assertNoContentSecurityPolicy covers both header names: only one is ever sent.
+func assertNoContentSecurityPolicy(t *testing.T, h http.Header) {
+	t.Helper()
+	assert.Empty(t, h.Get(constants.HeaderContentSecurityPolicy))
+	assert.Empty(t, h.Get(constants.HeaderCSPReportOnly))
 }
 
 func assertNoStoreCache(t *testing.T, h http.Header) {

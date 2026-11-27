@@ -10,5 +10,6 @@ export {
   firePageEvent,
   fireIdentifyEvent,
   computeAnonymousUserId,
+  isSegmentReady,
 } from './segmentUtils';
 export type { BaseTrackingEventProperties } from './segmentUtils';

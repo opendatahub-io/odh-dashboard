@@ -35,7 +35,7 @@ Both proxy registration paths pass the resulting CA list to undici through `undi
 | `secureRoute`                       | Wraps handler: resolves user, checks access, then runs handler                                                                                |
 | `secureAdminRoute`                  | Like `secureRoute` but rejects non-admins with 401                                                                                            |
 | `devRoute`                          | Returns 404 outside `APP_ENV=development`                                                                                                     |
-| `OdhDashboardConfig`                | Feature-flag CR; watcher-backed, refreshable with `Cache-Control: no-cache` on GET                                                            |
+| `OdhDashboardConfig`                | Feature-flag CR; watcher-backed (see `ResourceWatcher`)                                                                                       |
 | `ResourceWatcher`                   | In-memory polling cache; synchronous reads, background refresh                                                                                |
 | `passThroughResource` / `proxyCall` | Forward HTTP to cluster or service URLs with the resolved token and shared outbound TLS trust (see [Outbound TLS trust](#outbound-tls-trust)) |
 | `USER_ACCESS_TOKEN`                 | Header `x-forwarded-access-token` carrying the user's bearer token from the auth gateway                                                      |
@@ -48,13 +48,14 @@ Both proxy registration paths pass the resulting CA list to undici through `undi
 
 Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federation proxies) gets browser security headers via an `onSend` hook:
 
-| Header                       | Value                             |
-| ---------------------------- | --------------------------------- |
-| `X-Content-Type-Options`     | `nosniff`                         |
-| `Cross-Origin-Opener-Policy` | `same-origin`                     |
-| `Referrer-Policy`            | `strict-origin-when-cross-origin` |
-| `X-Frame-Options`            | `DENY`                            |
-| `X-DNS-Prefetch-Control`     | `off`                             |
+| Header                       | Value                                                                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `X-Content-Type-Options`     | `nosniff`                                                                                                                                      |
+| `Cross-Origin-Opener-Policy` | `same-origin`                                                                                                                                  |
+| `Referrer-Policy`            | `strict-origin-when-cross-origin`                                                                                                              |
+| `X-Frame-Options`            | `DENY`                                                                                                                                         |
+| `X-DNS-Prefetch-Control`     | `off`                                                                                                                                          |
+| `Content-Security-Policy`    | `text/html` SPA documents only, enforcing or Report-Only per `CSP_MODE`; see [CSP architecture](../../docs/content-security-policy.md) |
 
 `Cache-Control` is selective (not blanket `no-store`):
 
