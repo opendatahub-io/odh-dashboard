@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -85,7 +86,46 @@ func TestRHAIIBundle_DeploymentKeepsTheContractPreconditions(t *testing.T) {
 var nameValueArg = regexp.MustCompile(`^--[a-z0-9-]+=`)
 
 // saMountPath is where client-go's in-cluster config reads the token.
-const saMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
+const (
+	saMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
+	secretsRoot = "/var/run/secrets" //nolint:gosec // G101: a filesystem path, not a credential
+)
+
+// mountPath normalizes a container mount path the way the runtime resolves
+// it: cleaned, and with /run folded into /var/run, which is a symlink to it
+// in the UBI base images.
+func mountPath(raw string) string {
+	p := path.Clean("/" + raw)
+	if p == "/run" || strings.HasPrefix(p, "/run/") {
+		p = "/var" + p
+	}
+	return p
+}
+
+func volumeItemPaths(vol corev1.Volume) []string {
+	var out []string
+	keys := func(items []corev1.KeyToPath) {
+		for _, i := range items {
+			out = append(out, i.Path)
+		}
+	}
+	switch {
+	case vol.Secret != nil:
+		keys(vol.Secret.Items)
+	case vol.ConfigMap != nil:
+		keys(vol.ConfigMap.Items)
+	case vol.Projected != nil:
+		for _, src := range vol.Projected.Sources {
+			if src.Secret != nil {
+				keys(src.Secret.Items)
+			}
+			if src.ConfigMap != nil {
+				keys(src.ConfigMap.Items)
+			}
+		}
+	}
+	return out
+}
 
 // credentialViolations pins where the pod's Kubernetes identity comes from.
 // The BFF resolves a kubeconfig (KUBECONFIG, then ~/.kube/config) before the
@@ -113,16 +153,24 @@ func credentialViolations(pod corev1.PodSpec) []string {
 			fail("container %q uses envFrom, which could set the Kubernetes credentials or endpoint", c.Name)
 		}
 		for _, m := range c.VolumeMounts {
-			path := strings.TrimRight(m.MountPath, "/")
+			p := mountPath(m.MountPath)
 			switch {
-			case strings.Contains(path, ".kube"):
+			case strings.Contains(p, ".kube") || strings.Contains(m.SubPath, ".kube") || strings.Contains(m.SubPathExpr, ".kube"):
 				fail("container %q mounts %s, a kubeconfig location", c.Name, m.MountPath)
-			case path == saMountPath:
-				if !isOwnServiceAccountToken(volumes[m.Name]) || m.SubPath != "" {
+			case p == saMountPath:
+				if !isOwnServiceAccountToken(volumes[m.Name]) || m.SubPath != "" || m.SubPathExpr != "" {
 					fail("container %q mounts %q at %s; only the projected ServiceAccount token may be mounted there", c.Name, m.Name, saMountPath)
 				}
-			case strings.HasPrefix(path, "/var/run/secrets") || strings.HasPrefix(saMountPath, path+"/") || path == "":
+			case p == secretsRoot || strings.HasPrefix(p, secretsRoot+"/") || strings.HasPrefix(secretsRoot, p+"/") || p == "/":
 				fail("container %q mounts %s over the ServiceAccount credentials path", c.Name, m.MountPath)
+			}
+		}
+	}
+	// A volume can also place a kubeconfig through its item paths.
+	for _, vol := range pod.Volumes {
+		for _, item := range volumeItemPaths(vol) {
+			if strings.Contains(item, ".kube") {
+				fail("volume %q projects %s, a kubeconfig location", vol.Name, item)
 			}
 		}
 	}
@@ -787,6 +835,21 @@ targets:
 		"extra mount under /var/run/secrets": `- op: add
   path: /spec/template/spec/containers/0/volumeMounts/-
   value: {name: tmp, mountPath: /var/run/secrets/other}`,
+		"double slash over the token path": `- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value: {name: tmp, mountPath: //var/run/secrets/kubernetes.io/serviceaccount}`,
+		"dot segment over the token path": `- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value: {name: tmp, mountPath: /var/./run/secrets/kubernetes.io/serviceaccount}`,
+		"/run alias of the token path": `- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value: {name: tmp, mountPath: /run/secrets/kubernetes.io/serviceaccount/token}`,
+		"subPathExpr on the token mount": `- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/1/subPathExpr
+  value: token`,
+		"kubeconfig through volume items": `- op: add
+  path: /spec/template/spec/volumes/-
+  value: {name: kc, secret: {secretName: kc, items: [{key: config, path: .kube/config}]}}`,
 		"kubeconfig mount": `- op: add
   path: /spec/template/spec/containers/0/volumeMounts/-
   value: {name: tmp, mountPath: /home/user/.kube}`,
