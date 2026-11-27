@@ -325,6 +325,27 @@ describe('findMaaSModelBySubscriptionRef', () => {
     ).toBe('qwen');
   });
 
+  it('should resolve a namespace-only owned_by catalog entry with a short id', () => {
+    // The openapi GET /models example shows owned_by as the bare namespace
+    // with a short id; this shape must still resolve for its own namespace.
+    const catalog = [
+      {
+        id: 'qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b',
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, { refName: 'qwen', refNamespace: 'team-b' })?.id,
+    ).toBe('qwen');
+
+    // But not for another namespace's ref — the namespace-only owned_by shape
+    // must not bypass the cross-namespace hardening.
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, { refName: 'qwen', refNamespace: 'team-a' }),
+    ).toBeUndefined();
+  });
+
   it('should still exact-match a fully-qualified path ref name when refNamespace is supplied', () => {
     const catalog = [
       {

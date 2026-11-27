@@ -237,7 +237,15 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
   // Prefer exact namespace/name owned_by. Never take the first name-only hit across
   // namespaces (team-a/qwen vs team-b/qwen). Ambiguous short-name matches → skip.
   if (refNamespace) {
-    const byOwnedByExact = models.find((model) => model.owned_by === `${refNamespace}/${refName}`);
+    // owned_by is documented as `namespace/name`, but the upstream /models
+    // response example also shows a namespace-only owned_by with a short id
+    // (id: llama-2-7b-chat, owned_by: model-namespace). Accept that shape too,
+    // it's still namespace-verified, so it cannot cross namespaces.
+    const byOwnedByExact = models.find(
+      (model) =>
+        model.owned_by === `${refNamespace}/${refName}` ||
+        (model.owned_by === refNamespace && model.id === refName),
+    );
     if (byOwnedByExact) {
       return byOwnedByExact;
     }
