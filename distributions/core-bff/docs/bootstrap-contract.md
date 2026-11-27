@@ -325,7 +325,7 @@ xKS manifest set) grants its service account exactly these rows in a namespaced 
 else: no ClusterRole is bound to it. `bff/internal/bundlecontract` renders the bundle with the
 kustomize library the dashboard operator uses, parses this table, and fails when the rendered
 service account is granted a verb the table does not list or lacks one it lists, when the bundle
-binds any other role or subject, uses a wildcard, `resourceNames`, a non-resource URL or an
+binds a role it does not define or any other subject, uses a wildcard, `resourceNames`, a non-resource URL or an
 aggregated or aggregating ClusterRole, renders a kind the guard does not check (extend its
 allowlist with the reason when the bundle needs a new kind), or when the Deployment leaves the
 production profile: the explicit xKS platform, caller credentials with the ordered token headers,
