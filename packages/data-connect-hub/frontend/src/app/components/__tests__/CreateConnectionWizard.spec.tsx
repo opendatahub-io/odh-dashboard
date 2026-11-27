@@ -136,6 +136,22 @@ describe('CreateConnectionWizard', () => {
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
   });
 
+  it('selects a connection type from its card and advances to connection details', async () => {
+    const user = userEvent.setup();
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
+
+    const card = await screen.findByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`);
+    expect(card.querySelector('[id$="-card-title"]')?.textContent?.trim()).toBe('PostgreSQL');
+
+    await user.click(within(card).getByRole('radio', { hidden: true }));
+
+    const nextButton = screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement;
+    await waitFor(() => expect(nextButton.disabled).toBe(false));
+    await user.click(nextButton);
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+  });
+
   it('should hide the connection type step when only one compatible type is available', async () => {
     mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
 

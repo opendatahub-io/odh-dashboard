@@ -393,6 +393,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
               <CreateConnectionButton
                 namespace={namespace}
                 onCreate={() => handleCreateConnection('connections_tab')}
+                testId="connections-toolbar-create-button"
               />
             </ToolbarItem>
           ) : null}
@@ -427,6 +428,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
               <CreateConnectionButton
                 namespace={namespace}
                 onCreate={() => handleCreateConnection('empty_state')}
+                testId="connections-empty-state-create-button"
               />
             </EmptyStateActions>
           </EmptyStateFooter>
