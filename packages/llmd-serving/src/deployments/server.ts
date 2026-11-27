@@ -40,10 +40,10 @@ export const extractModelServerTemplate = (
 };
 
 /**
- * Insert / remove a single config reference selected from form.
+ * Ensure the config selected in the form is referenced.
  * `baseRef` must be same name as the LLMInferenceService.
- * - If baseRef is not provided, the baseRef is removed if present
- * - If baseRef is provided, it makes sure it's added if not present
+ * When no config is supplied, preserve the model's references. The existing
+ * config may still be loading or the caller may lack access to read it.
  */
 export const applyConfigBaseRef = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -57,11 +57,8 @@ export const applyConfigBaseRef = (
     );
   }
 
-  // Add or remove baseRef
   if (baseRef && !result.spec.baseRefs?.some((ref) => ref.name === baseRef)) {
     result.spec.baseRefs = [...(result.spec.baseRefs ?? []), { name: baseRef }];
-  } else if (!baseRef && result.spec.baseRefs?.find((ref) => ref.name === k8sName)) {
-    result.spec.baseRefs = result.spec.baseRefs.filter((ref) => ref.name !== k8sName);
   }
 
   return result;

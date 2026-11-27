@@ -6,7 +6,7 @@ import {
   llmdDeploymentMethodFieldOverride,
   gatewayExtensions,
   llmdTrackingPropertiesExtension,
-  deploymentMethodExtractorExtensionLllmdOnly,
+  llmdOnlyDeploymentMethodExtractorExtension,
   startStopAction,
 } from './deployments';
 import {
@@ -49,7 +49,7 @@ const extensions: LLMDServingExtension[] = [
   ...topologyConfigsExtensions,
   ...gatewayExtensions,
   llmdTrackingPropertiesExtension,
-  deploymentMethodExtractorExtensionLllmdOnly,
+  llmdOnlyDeploymentMethodExtractorExtension,
   deploymentMethodExtractorExtensionvLLMOnMaaS,
   startStopAction,
   ...settingsExtensions,

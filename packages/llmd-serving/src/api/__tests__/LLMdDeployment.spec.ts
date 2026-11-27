@@ -65,14 +65,18 @@ describe('deleteDeployment', () => {
     expect(mockK8sDeleteResource).toHaveBeenCalledWith(
       expect.objectContaining({
         model: LLMInferenceServiceModel,
-        queryOptions: { name: DEPLOYMENT_NAME, ns: NAMESPACE },
+        queryOptions: expect.objectContaining({ name: DEPLOYMENT_NAME, ns: NAMESPACE }),
       }),
     );
   });
 
   it('should delete the accelerator config that shares the deployment name', async () => {
-    await deleteDeployment(makeDeployment({ baseRefs: [{ name: DEPLOYMENT_NAME }] }));
+    const checkAccess = jest.fn().mockResolvedValue(true);
+    await deleteDeployment(makeDeployment({ baseRefs: [{ name: DEPLOYMENT_NAME }] }), {
+      checkAccess,
+    });
 
+    expect(checkAccess).toHaveBeenCalledTimes(1);
     expect(deletedNames(LLMInferenceServiceModel)).toEqual([DEPLOYMENT_NAME]);
     expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([DEPLOYMENT_NAME]);
   });
@@ -120,6 +124,36 @@ describe('deleteDeployment', () => {
     );
 
     expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([DEPLOYMENT_NAME]);
+  });
+
+  it('should check each configuration before starting the model deletion', async () => {
+    const deployment = makeDeployment({
+      baseRefs: [{ name: DEPLOYMENT_NAME }],
+      annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'topology-config' },
+    });
+    const checkAccess = jest.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    await expect(deleteDeployment(deployment, { checkAccess })).rejects.toThrow(
+      'Access denied to delete configuration "topology-config"',
+    );
+    expect(checkAccess).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        resource: 'llminferenceserviceconfigs',
+        verb: 'delete',
+        name: DEPLOYMENT_NAME,
+        namespace: NAMESPACE,
+      }),
+    );
+    expect(checkAccess).toHaveBeenCalledTimes(2);
+    expect(mockK8sDeleteResource).not.toHaveBeenCalled();
+  });
+
+  it('should leave the configurations in place if Kubernetes rejects the model deletion', async () => {
+    mockK8sDeleteResource.mockRejectedValueOnce(k8sStatusError(403));
+    await expect(
+      deleteDeployment(makeDeployment({ baseRefs: [{ name: DEPLOYMENT_NAME }] })),
+    ).rejects.toBeInstanceOf(K8sStatusError);
+    expect(deletedNames(LLMInferenceServiceConfigModel)).toEqual([]);
   });
 
   it('should delete the local accelerator config copy named by the annotation', async () => {
@@ -176,6 +210,6 @@ describe('deleteDeployment', () => {
           annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: localConfigName },
         }),
       ),
-    ).rejects.toBeInstanceOf(K8sStatusError);
+    ).rejects.toThrow('Model deletion was accepted, but configuration cleanup failed.');
   });
 });

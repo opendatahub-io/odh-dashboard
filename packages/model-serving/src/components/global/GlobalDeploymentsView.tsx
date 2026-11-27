@@ -3,7 +3,8 @@ import { ApplicationsPage, ProjectObjectType, ProjectsContext } from '@odh-dashb
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { byName, type ProjectKind } from '@odh-dashboard/k8s-core';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, List, ListItem } from '@patternfly/react-core';
+import { Alert, AlertActionLink, List, ListItem } from '@patternfly/react-core';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import { GlobalNoModelsView } from './GlobalNoModelsView';
 import GlobalDeploymentsTable from './GlobalDeploymentsTable';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
@@ -29,6 +30,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   useSubTabPaths = false,
 }) => {
   const { preferredProject } = React.useContext(ProjectsContext);
+  const retryDiscovery = useHostApiCore().deploymentApi?.retryDiscovery;
   const navigate = useNavigate();
 
   const { hasDeployMethods } = useModelServingDeployMethods();
@@ -58,6 +60,11 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
         title="Error encountered while loading deployments"
         isExpandable
         data-testid="error-loading-deployments"
+        actionLinks={
+          retryDiscovery && (
+            <AlertActionLink onClick={retryDiscovery}>Retry discovery</AlertActionLink>
+          )
+        }
       >
         <List>
           {deploymentsErrors.map((error) => (

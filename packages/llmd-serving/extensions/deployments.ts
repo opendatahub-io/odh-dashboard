@@ -77,7 +77,7 @@ export const llmdTrackingPropertiesExtension: WizardTrackingPropertiesExtension<
   },
 };
 
-export const deploymentMethodExtractorExtensionLllmdOnly: WizardFieldExtractorExtension<
+export const llmdOnlyDeploymentMethodExtractorExtension: WizardFieldExtractorExtension<
   { method: string },
   LLMdDeployment
 > = {
@@ -277,6 +277,7 @@ export const gatewayExtensions: LLMDServingExtension[] = [
 
 export const startStopAction: LLMDServingExtension = {
   type: 'model-serving.deployments-table/start-stop-action',
+  flags: { required: [SupportedArea.LLMD_SERVING] },
   properties: {
     platform: SupportedArea.LLMD_SERVING,
     patchDeploymentStoppedStatus: () =>
@@ -291,7 +292,7 @@ const extensions: LLMDServingExtension[] = [
   llmdDeploymentMethodFieldOverride,
   ...gatewayExtensions,
   llmdTrackingPropertiesExtension,
-  deploymentMethodExtractorExtensionLllmdOnly,
+  llmdOnlyDeploymentMethodExtractorExtension,
   startStopAction,
 ];
 

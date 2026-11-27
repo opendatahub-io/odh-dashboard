@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import * as React from 'react';
-import { render, renderHook, screen, waitFor } from '@testing-library/react';
+import { parse } from 'yaml';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { useK8sWatchResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
+import { type Extension, PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
 import { useTrackEvent, useTrackPageEvent } from '@odh-dashboard/analytics/react';
@@ -97,6 +100,120 @@ describe('RhaiiAppProvider unified selector gate', () => {
       </RhaiiAppProvider>,
     );
     expect(screen.getByTestId('ups-status').textContent).toBe(String(expected));
+  });
+});
+
+describe('RHAII LLMD activation', () => {
+  const manifest: {
+    packages: {
+      bundled: { package: string; extensionsPath: string; featureFlags: Record<string, boolean> }[];
+    };
+    extensionProfiles: { modelServing: string };
+    featureFlags: Record<string, boolean>;
+  } = parse(readFileSync(path.join(__dirname, '../../../distribution.yaml'), 'utf8'));
+  const extensions = (entry: string) => jest.requireActual<{ default: Extension[] }>(entry).default;
+  const groupVersion = 'serving.kserve.io/v1alpha2';
+  const discoveryUrl = `/api/k8s/apis/${groupVersion}`;
+  const resources = [{ name: 'llminferenceservices', namespaced: true, verbs: ['list', 'watch'] }];
+  const response = (status: number, body: unknown) =>
+    ({ status, ok: status === 200, json: async () => body } as Response);
+  const methods = () =>
+    pluginStore
+      .getExtensions()
+      .filter((extension) => extension.type === 'model-serving.deployment/deploy');
+  const setup = (fetchDiscovery: jest.Mock, hub = true, configured?: boolean) => {
+    pluginStore = new PluginStore({
+      ...Object.fromEntries(
+        manifest.packages.bundled.map((entry) => [
+          entry.package,
+          extensions(`${entry.package}/${entry.extensionsPath.slice(2)}`),
+        ]),
+      ),
+      modelServing: extensions(
+        `@odh-dashboard/model-serving/extensions/${manifest.extensionProfiles.modelServing}`,
+      ),
+    });
+    pluginStore.setFeatureFlags({
+      ...manifest.featureFlags,
+      ...Object.assign({}, ...manifest.packages.bundled.map((entry) => entry.featureFlags)),
+      'model-serving-shell': hub,
+      ...(configured !== undefined && { 'enable-llmd-serving': configured }),
+    });
+    globalThis.fetch = jest.fn((url) =>
+      url === discoveryUrl
+        ? fetchDiscovery()
+        : Promise.resolve(response(200, { kube: { namespace: 'test' } })),
+    );
+    return renderHook(
+      () => ({
+        llmd: useIsAreaAvailable(SupportedArea.LLMD_SERVING).status,
+        kserve: useIsAreaAvailable(SupportedArea.K_SERVE).status,
+      }),
+      { wrapper: RhaiiAppProvider },
+    );
+  };
+
+  it.each([
+    [true, false],
+    [false, true],
+  ])('should skip discovery when hub=%s and configuration=%s', (hub, configured) => {
+    const lookup = jest.fn();
+    const { result } = setup(lookup, hub, configured);
+    expect(result.current.llmd).toBe(false);
+    expect(methods()).toHaveLength(0);
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [404, {}, 'does not serve'],
+    [
+      200,
+      { groupVersion, resources: [{ name: 'llminferenceservices/status', namespaced: true }] },
+      'does not serve',
+    ],
+    [403, {}, 'was denied'],
+    [503, {}, 'HTTP 503'],
+    [200, {}, 'Invalid Kubernetes discovery'],
+  ])(
+    'should keep extensions inactive after discovery %s and activate on retry',
+    async (status, body, message) => {
+      const lookup = jest
+        .fn()
+        .mockResolvedValueOnce(response(Number(status), body))
+        .mockResolvedValueOnce(response(200, { groupVersion, resources }));
+      const { result, rerender } = setup(lookup);
+      expect(result.current.llmd).toBe(false);
+      expect(methods()).toHaveLength(0);
+      expect(await screen.findByText(new RegExp(String(message)))).toBeVisible();
+      rerender();
+      expect(lookup).toHaveBeenCalledTimes(1);
+      expect(methods()).toHaveLength(0);
+      fireEvent.click(screen.getByRole('button', { name: 'Retry discovery' }));
+      await waitFor(() => expect(result.current).toEqual({ llmd: true, kserve: false }));
+      expect(methods().map((extension) => extension.properties.platform)).toEqual(['llmd-serving']);
+      expect(
+        pluginStore
+          .getExtensions()
+          .some((extension) => extension.properties.fieldId === 'llmd-serving/gateway'),
+      ).toBe(false);
+      expect(lookup).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('should ignore an obsolete success after configuration is disabled', async () => {
+    let resolve!: (value: Response) => void;
+    const { result } = setup(
+      jest.fn(
+        () =>
+          new Promise<Response>((done) => {
+            resolve = done;
+          }),
+      ),
+    );
+    act(() => pluginStore.setFeatureFlags({ 'enable-llmd-serving': false }));
+    await act(async () => resolve(response(200, { groupVersion, resources })));
+    expect(result.current.llmd).toBe(false);
+    expect(methods()).toHaveLength(0);
   });
 });
 

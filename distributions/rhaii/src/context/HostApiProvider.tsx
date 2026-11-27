@@ -17,9 +17,11 @@ import {
   getSecretsByLabel,
 } from '@odh-dashboard/k8s-core/api/secrets';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { LLMInferenceServiceModel } from '@odh-dashboard/llmd-serving/types';
 import type { K8sResourceCommon, SecretKind } from '@odh-dashboard/k8s-core';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 import { checkAccess } from './checkAccess';
+import { k8sFetch } from './k8sFetch';
 
 const ProjectDetailsContext = React.createContext(null);
 const MODEL_SERVING_CONTEXT_VALUE = {
@@ -101,9 +103,22 @@ const patchSecretWithProtocolAnnotation = (
     ],
   });
 
-const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
+const createCoreApi = (
+  dashboardNamespace: string,
+  servingResources?: Record<string, string[]>,
+  discoveryAttempt?: number,
+  retryDiscovery?: () => void,
+): HostApiCoreServices => ({
   dashboardNamespace,
   checkAccess,
+  deploymentApi: {
+    group: LLMInferenceServiceModel.apiGroup,
+    resource: LLMInferenceServiceModel.plural,
+    resources: servingResources ?? {},
+    watchFetch: k8sFetch,
+    discoveryAttempt,
+    retryDiscovery,
+  },
   fetchDashboardConfig: () =>
     Promise.reject(new Error('DashboardConfig is not available in the RHAII host.')),
   fetchClusterSettings: () =>
@@ -111,7 +126,7 @@ const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
       userTrackingEnabled: false,
       pvcSize: 0,
       cullerTimeout: 0,
-      modelServingPlatformEnabled: { kServe: true, LLMd: true },
+      modelServingPlatformEnabled: { kServe: false, LLMd: !!servingResources },
     }),
   updateClusterSettings: () =>
     Promise.reject(new Error('Cluster settings are not configurable in the RHAII host.')),
@@ -148,14 +163,25 @@ const hostApi: HostApiServices = {
 
 type HostApiProviderProps = {
   children: React.ReactNode;
+  servingResources?: Record<string, string[]>;
+  discoveryAttempt?: number;
+  retryDiscovery?: () => void;
 };
 
 /** Minimal xKS host services needed by the federated model-serving UI. */
 // Tracking is intentionally disabled in RHAII until its Segment delivery integration is implemented.
 // Consumers still need a mounted provider.
-const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
+const HostApiProvider: React.FC<HostApiProviderProps> = ({
+  children,
+  servingResources,
+  discoveryAttempt,
+  retryDiscovery,
+}) => {
   const dashboardNamespace = React.useContext(DashboardNamespaceContext);
-  const coreApi = React.useMemo(() => createCoreApi(dashboardNamespace), [dashboardNamespace]);
+  const coreApi = React.useMemo(
+    () => createCoreApi(dashboardNamespace, servingResources, discoveryAttempt, retryDiscovery),
+    [dashboardNamespace, servingResources, discoveryAttempt, retryDiscovery],
+  );
 
   return (
     <NoopAnalyticsTrackingProvider>

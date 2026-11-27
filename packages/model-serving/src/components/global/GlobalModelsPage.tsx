@@ -91,7 +91,10 @@ const GlobalModelsPageContent: React.FC<GlobalModelsPageContentProps> = ({
   }
 
   return (
-    <ModelDeploymentsProvider projects={projectsToShow}>
+    <ModelDeploymentsProvider
+      projects={projectsToShow}
+      skipInaccessibleProjects={!preferredProject && !namespace}
+    >
       <GlobalDeploymentsView
         projects={projectsToShow}
         projectsLoaded={projectsLoaded}

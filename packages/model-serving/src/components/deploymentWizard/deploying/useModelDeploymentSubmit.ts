@@ -17,6 +17,7 @@ import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
 import { ExternalDataMap, isExternalDataReady } from '../ExternalDataLoader';
 import { useModelDeployedTracking } from '../../../shared/tracking/useModelDeployedTracking';
+import { useDeploymentAccess } from '../../../concepts/useDeploymentAccess';
 
 /**
  * Get the onSubmit function to create / update the deployment.
@@ -40,10 +41,24 @@ export const useModelDeploymentSubmit = (
   isLoading: boolean;
   isReady: boolean;
   isReadinessLoading: boolean;
+  accessReason?: string;
   submitError: Error | null;
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
+  const namespace =
+    resources.model?.metadata.namespace || formState.project.projectName || undefined;
+  const name = resources.model?.metadata.name || existingDeployment?.model.metadata.name;
+  const saveAccess = useDeploymentAccess(
+    existingDeployment ? 'update' : 'create',
+    namespace,
+    existingDeployment ? name : undefined,
+  );
+  const overwriteAccess = useDeploymentAccess(
+    'patch',
+    existingDeployment ? namespace : undefined,
+    name,
+  );
   const { deployMethod, deployMethodLoaded } = useDeployMethod(
     deployMethodActivationInput,
     resources,
@@ -79,6 +94,11 @@ export const useModelDeploymentSubmit = (
       setIsLoading(true);
 
       try {
+        const accessReason =
+          overwrite && existingDeployment ? overwriteAccess.reason : saveAccess.reason;
+        if (accessReason) {
+          throw new Error(accessReason);
+        }
         if (viewMode === 'form' && !validation.isAllValid) {
           throw new Error('Invalid form data');
         }
@@ -173,16 +193,23 @@ export const useModelDeploymentSubmit = (
       runPostDeploy,
       exitWizardOnSubmit,
       fireModelDeployedTracking,
+      saveAccess.reason,
+      overwriteAccess.reason,
     ],
   );
 
   return React.useMemo(
     () => ({
       onSave,
-      onOverwrite: deployMethod?.properties.supportsOverwrite ? () => onSave(true) : undefined,
+      onOverwrite:
+        deployMethod?.properties.supportsOverwrite &&
+        (!existingDeployment || overwriteAccess.allowed)
+          ? () => onSave(true)
+          : undefined,
       isLoading,
-      isReady,
+      isReady: isReady && saveAccess.allowed,
       isReadinessLoading,
+      accessReason: saveAccess.reason,
       submitError,
       clearSubmitError: () => setSubmitError(null),
     }),
@@ -193,6 +220,10 @@ export const useModelDeploymentSubmit = (
       isReady,
       isReadinessLoading,
       submitError,
+      existingDeployment,
+      overwriteAccess.allowed,
+      saveAccess.allowed,
+      saveAccess.reason,
     ],
   );
 };

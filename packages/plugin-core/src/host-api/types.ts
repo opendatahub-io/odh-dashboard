@@ -53,6 +53,18 @@ export type HostApiCoreServices = {
   /** Perform a SelfSubjectAccessReview to check whether the current user has a specific permission. */
   checkAccess: (attrs: Required<AccessReviewResourceAttributes>) => Promise<boolean>;
 
+  /** On a single-backend host, the deployment API and verbs advertised by Kubernetes discovery. */
+  deploymentApi?: {
+    group: string;
+    resource: string;
+    resources: Readonly<Partial<Record<string, readonly string[]>>>;
+    /** Fetches Kubernetes lists and HTTP watch streams through the host transport. */
+    watchFetch?: (path: string, options: RequestInit) => Promise<Response>;
+    /** Changes when discovery is retried so stopped watches start a fresh list and watch. */
+    discoveryAttempt?: number;
+    retryDiscovery?: () => void;
+  };
+
   /** Fetch (or refresh) the DashboardConfig CR that controls feature flags and platform settings. */
   fetchDashboardConfig: (forceRefresh?: boolean) => Promise<DashboardConfigKind>;
 

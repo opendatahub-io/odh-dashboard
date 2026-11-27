@@ -193,10 +193,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableKServeRaw'],
     reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
   },
-  [SupportedArea.LLMD_SERVING]: {
-    featureFlags: ['disableLLMd'],
-    reliantAreas: [SupportedArea.K_SERVE, SupportedArea.MODEL_SERVING],
-  },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
   },

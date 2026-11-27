@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import { DeleteModal } from '@odh-dashboard/ui-core';
 import {
   isModelServingDeleteModal,
   Deployment,
   type ModelServingDeleteModalComponentProps,
+  type ModelServingDeleteOptions,
 } from '@odh-dashboard/model-serving/extension-points';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
+import { useDeploymentAccess } from '../../concepts/useDeploymentAccess';
 
 type DeleteModelServingModalProps = {
   onClose: (deleted: boolean) => void;
@@ -29,6 +32,9 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const { namespace, name } = deployment.model.metadata;
+  const { allowed, reason } = useDeploymentAccess('delete', namespace, name);
+  const { deploymentApi, checkAccess } = useHostApiCore();
 
   const [deleteModal, deleteModalLoaded] = useResolvedDeploymentExtension(
     isModelServingDeleteModal,
@@ -42,14 +48,20 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
   };
 
   const deletePrimaryResource = React.useCallback(
-    async (options?: { dryRun?: boolean }) => {
+    async (options?: ModelServingDeleteOptions) => {
+      if (!allowed) {
+        throw new Error(reason);
+      }
       if (!deleteModal) {
         throw new Error('The delete action is not available');
       }
 
-      await deleteModal.properties.onDelete(deployment, options);
+      await deleteModal.properties.onDelete(
+        deployment,
+        deploymentApi ? { ...options, checkAccess } : options,
+      );
     },
-    [deleteModal, deployment],
+    [allowed, reason, deleteModal, deployment, deploymentApi, checkAccess],
   );
 
   const onDelete = async () => {

@@ -65,7 +65,7 @@ describe('LLM-d deployment extension entry point', () => {
       (extension) => extension.type === 'model-serving.deployments-table/start-stop-action',
     );
     expect(action?.properties).toMatchObject({ platform: 'llmd-serving' });
-    expect(action?.flags).toBeUndefined();
+    expect(action?.flags).toEqual({ required: ['llmd-serving'] });
   });
 
   it('should preserve the named exports of the full public entry point', () => {

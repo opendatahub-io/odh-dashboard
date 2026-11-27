@@ -889,9 +889,6 @@ importers:
       '@odh-dashboard/k8s-core':
         specifier: workspace:*
         version: link:../../packages/k8s-core
-      '@odh-dashboard/kserve':
-        specifier: workspace:*
-        version: link:../../packages/kserve
       '@odh-dashboard/llmd-serving':
         specifier: workspace:*
         version: link:../../packages/llmd-serving
@@ -4976,9 +4973,6 @@ importers:
       '@odh-dashboard/k8s-core':
         specifier: workspace:*
         version: link:../k8s-core
-      '@odh-dashboard/kserve':
-        specifier: workspace:*
-        version: link:../kserve
       '@odh-dashboard/model-serving':
         specifier: workspace:*
         version: link:../model-serving

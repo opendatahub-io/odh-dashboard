@@ -23,7 +23,6 @@
     "@module-federation/runtime": "^0.24.1",
     "@odh-dashboard/analytics": "workspace:*",
     "@odh-dashboard/base-distribution": "workspace:*",
-    "@odh-dashboard/kserve": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
     "@odh-dashboard/llmd-serving": "workspace:*",
     "@odh-dashboard/model-serving": "workspace:*",

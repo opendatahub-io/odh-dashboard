@@ -10,6 +10,7 @@ import type {
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/hardware-profiles/shared';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
 import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
 import type { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 
@@ -224,6 +225,8 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
 
 export type ModelServingDeleteOptions = {
   dryRun?: boolean;
+  /** Review any additional resources the platform will delete before the first mutation. */
+  checkAccess?: HostApiCoreServices['checkAccess'];
 };
 
 export type ModelServingDeleteModalComponentProps<D extends Deployment = Deployment> = {

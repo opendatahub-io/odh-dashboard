@@ -2,6 +2,7 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared';
 import { useServingRuntimeTemplates } from './servingRuntimeTemplates/useServingRuntimeTemplates';
 import { useModelServingDeployMethods } from './useModelServingDeployMethods';
+import { useDeploymentAccess } from './useDeploymentAccess';
 
 /** Platforms whose deploy path still depends on serving-runtime templates. */
 const PLATFORMS_REQUIRING_SERVING_RUNTIME_TEMPLATES = new Set(['kserve']);
@@ -14,6 +15,7 @@ export const useCanMakeNewDeployment = (
 } => {
   const { deployMethods, hasDeployMethods } = useModelServingDeployMethods();
   const isMissingDeployMethods = !hasDeployMethods;
+  const create = useDeploymentAccess('create', project?.metadata.name);
 
   const { isKueueDisabled } = useKueueConfiguration(project ?? undefined);
 
@@ -24,14 +26,17 @@ export const useCanMakeNewDeployment = (
   const isMissingTemplates =
     needsServingRuntimeTemplates && globalTemplates.length === 0 && globalTemplatesLoaded;
 
-  const disabled = isMissingTemplates || isKueueDisabled || isMissingDeployMethods;
+  // The all-projects action opens the project chooser. The wizard reviews the selected target.
+  const accessReason = project && !create.allowed ? create.reason : undefined;
+  const disabled =
+    isMissingTemplates || isKueueDisabled || isMissingDeployMethods || !!accessReason;
   const disabledReason = isMissingTemplates
     ? 'At least one serving runtime must be enabled to deploy a model. Contact your administrator.'
     : isKueueDisabled
     ? 'Kueue is not enabled. Contact your administrator.'
     : isMissingDeployMethods
     ? 'At least one model serving platform must be enabled to deploy a model. Contact your administrator.'
-    : 'Deploying a model is not possible. Contact your administrator.';
+    : accessReason ?? 'Deploying a model is not possible. Contact your administrator.';
 
   return { disabled, disabledReason };
 };

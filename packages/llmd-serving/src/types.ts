@@ -188,12 +188,12 @@ export const isLLMInferenceServiceConfig = (
 
 export type LLMdDeployment = Deployment<LLMInferenceServiceKind, LLMInferenceServiceConfigKind>;
 
-export const LLMInferenceServiceModel: K8sModelCommon = {
+export const LLMInferenceServiceModel = {
   apiVersion: 'v1alpha2',
   apiGroup: 'serving.kserve.io',
   kind: 'LLMInferenceService',
   plural: 'llminferenceservices',
-};
+} satisfies K8sModelCommon;
 
 export const LLMInferenceServiceConfigModel = {
   apiVersion: 'v1alpha2',

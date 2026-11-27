@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAccessReviewResult, useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import useFetch, { FetchStateObject, NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import {
@@ -17,6 +18,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
+import { useDeploymentWatch } from './useDeploymentWatch';
 import { CONFIG_TYPE_LABEL } from '../const';
 import {
   LLMInferenceServiceConfigModel,
@@ -229,11 +231,27 @@ export const listLLMInferenceServiceConfigs = async (
 export const useFetchLLMInferenceServiceConfigs = (
   namespace: string,
 ): FetchStateObject<LLMInferenceServiceConfigKind[]> => {
+  const { deploymentApi } = useHostApiCore();
+  const { apiGroup: group, plural: resource } = LLMInferenceServiceConfigModel;
+  const served = !deploymentApi || deploymentApi.resources[resource]?.includes('list') === true;
+  const review = useAccessReviewResult(
+    { group, resource, verb: 'list', namespace },
+    !!deploymentApi && served && !!namespace,
+  );
   const fetchCallbackPromise = React.useCallback(async () => {
+    if (!served) {
+      throw new Error(`Kubernetes does not serve list for ${resource}.`);
+    }
+    if (deploymentApi && (!namespace || !review.loaded)) {
+      throw new NotReadyError('Waiting for config list access.');
+    }
+    if (deploymentApi && !review.allowed) {
+      throw review.error ?? new Error(`Access denied to list ${resource} in ${namespace}.`);
+    }
     return listLLMInferenceServiceConfigs(namespace);
-  }, [namespace]);
+  }, [deploymentApi, namespace, resource, review.allowed, review.error, review.loaded, served]);
 
-  return useFetch(fetchCallbackPromise, []);
+  return useFetch(fetchCallbackPromise, [], { initialPromisePurity: true });
 };
 
 export const useWatchLLMInferenceServiceConfigs = (
@@ -242,21 +260,11 @@ export const useWatchLLMInferenceServiceConfigs = (
   opts?: K8sAPIOptions,
   enabled = true,
 ): K8sWatchResult<LLMInferenceServiceConfigKind[]> => {
-  const result = useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
-    enabled
-      ? {
-          isList: true,
-          groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
-          namespace,
-          ...(matchLabels && {
-            selector: {
-              matchLabels,
-            },
-          }),
-        }
-      : null,
+  const result = useDeploymentWatch<LLMInferenceServiceConfigKind>(
     LLMInferenceServiceConfigModel,
+    enabled ? namespace : undefined,
     opts,
+    matchLabels,
   );
 
   return enabled ? result : EMPTY_LLM_INFERENCE_SERVICE_CONFIGS_RESULT;

@@ -17,8 +17,9 @@
 - Follow the repository [package topology](../../../docs/package-topology.md): `llmd-serving` is a
   spoke of the `model-serving` hub, and feature packages may depend on core shared libraries.
 - The remaining `@odh-dashboard/internal` imports are transitional; do not introduce new uses of
-  that boundary. LLMD requires the model-serving shell area and the KServe DSC component, but not
-  the KServe feature area or KServe UI extensions.
+  that boundary. RHOAI activates LLMD through the model-serving shell, the KServe DSC component,
+  and the dashboard configuration. RHAII loads the LLMD deployment profile with the model-serving
+  hub and discovers the namespaced serving API through the Core BFF Kubernetes proxy.
 
 | Legacy import                                               | Modular import                                         | Symbols                                     |
 | ----------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------- |
@@ -38,21 +39,23 @@
 | **Deployment strategy**    | Rolling vs recreate via `deploymentStrategyField`.                                          |
 | **Hardware profile paths** | `LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS` JSONPaths for `applyHardwareProfileConfig`. |
 | **External route**         | Public route via LLM-d gateway; `externalRouteField`.                                       |
-| **isLLMdDeployActive**     | `deployUtils.ts`; true only when `disableLLMd` is off and `K_SERVE` area exists.            |
 
 ## Interactions
 
 | Dependency                     | Type                       | Details                                                                                          |
 | ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------ |
 | `@odh-dashboard/model-serving` | Package                    | Extension-point interfaces this package implements                                               |
-| `@odh-dashboard/kserve`        | Transitional package edge  | No production import; declared dependency and frontend-area activation are scheduled for removal |
 | `@odh-dashboard/internal`      | Transitional monolith edge | Use the modular destinations listed in Modular Dependency Boundaries; do not add new imports     |
 | `LLMInferenceService` CRD      | Kubernetes API             | Group `serving.kserve.io`, `v1alpha2`                                                            |
 | Main ODH Dashboard             | Host application           | Loads extensions; model-serving wizard and table                                                 |
 
 ## Known Issues / Gotchas
 
-- **CRD required**: If `LLMInferenceService` is missing but the area is enabled, `useWatchDeployments` can hit 404.
+- RHAII checks discovery before enabling LLMD. Retry discovery after installing the CRD or restoring access.
+- RHAII reviews `list` and `watch` for each project before starting its deployment watcher.
+  Creating, editing, starting or stopping, and deleting a deployment use separate verb checks.
+  If a watch stops after a permission error, restore access and select **Retry discovery** on the deployments page to start a fresh list and watch.
+- RHOAI llm-d edits preserve existing `baseRefs`, including a reference named after the deployment. A template-backed edit still assembles the associated configuration and ensures its reference is present.
 - **Token auth RBAC**: `setUpTokenAuth` creates Secrets after the CR may exist; missing `create secrets` leaves a partial deployment.
 - **Unresolved-config classification**: When no `LLMInferenceServiceConfig` resolves (no `baseRefs`, non-matching `baseRefs`, or missing configs), `isLLMd` checks for `spec.router.scheduler` (including `scheduler: {}`). Scheduler-backed services show "Distributed inference with llm-d"; all others show "Custom LLMInferenceService" and get a template-less edit-form selection (`CUSTOM_LLM_INFERENCE_SERVICE_OPTION`).
 - **`spec.router`**: Base shape initializes empty `scheduler`, `route`, `gateway`; omitting them can cause operator rejection.

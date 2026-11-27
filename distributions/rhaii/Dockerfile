@@ -30,7 +30,6 @@ COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
 
 # Copy feature packages used by the RHAII distribution.
 COPY --chown=default:root packages/model-serving/ ./packages/model-serving/
-COPY --chown=default:root packages/kserve/ ./packages/kserve/
 COPY --chown=default:root packages/llmd-serving/ ./packages/llmd-serving/
 COPY --chown=default:root packages/analytics/ ./packages/analytics/
 COPY --chown=default:root packages/trustyai/ ./packages/trustyai/

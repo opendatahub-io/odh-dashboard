@@ -43,7 +43,7 @@ const LLMInferenceServiceServingDetails: React.FC<Props> = ({ deployment, data }
   const childConfigVersion = server?.metadata.annotations?.['opendatahub.io/runtime-version'];
   const templateName = server?.metadata.annotations?.['opendatahub.io/template-name'];
 
-  const isTemplateRemoved = !parentConfig && !!templateName && !!llmInferenceServiceConfigs;
+  const isTemplateRemoved = !parentConfig && !!templateName && data?.loaded && !data.error;
 
   const versionStatus =
     parentConfigVersion && childConfigVersion
