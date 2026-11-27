@@ -114,6 +114,10 @@ func (p *PodTemplateMutate) Validate(prefix *field.Path) []*field.Error {
 // TODO: figure out how we want to handle labels/annotations
 //   - we do not want users to be able to set labels/annotations
 //   - but we probably want them to be returned in the response
+//
+// NOTE: entries in this field are currently NOT allowed and blocked via a CRD
+// CEL validation rules until the security model for Workspace-level Pod
+// metadata is defined and implemented
 type PodMetadataMutate struct {
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
@@ -191,7 +195,7 @@ func (p *PodVolumeMount) Validate(prefix *field.Path) []*field.Error {
 type PodSecretMount struct {
 	SecretName  string `json:"secretName"`
 	MountPath   string `json:"mountPath"`
-	DefaultMode int32  `json:"defaultMode,omitempty"`
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
 }
 
 // Validate validates the PodSecretMount struct.
@@ -208,9 +212,9 @@ func (p *PodSecretMount) Validate(prefix *field.Path) []*field.Error {
 
 	// validate the default mode
 	defaultModePath := prefix.Child("defaultMode")
-	if p.DefaultMode != 0 {
-		if p.DefaultMode < 0 || p.DefaultMode > 511 {
-			errs = append(errs, field.Invalid(defaultModePath, p.DefaultMode, "defaultMode must be between 0 and 511"))
+	if p.DefaultMode != nil {
+		if *p.DefaultMode < 0 || *p.DefaultMode > 511 {
+			errs = append(errs, field.Invalid(defaultModePath, *p.DefaultMode, "defaultMode must be between 0 and 511"))
 		}
 	}
 

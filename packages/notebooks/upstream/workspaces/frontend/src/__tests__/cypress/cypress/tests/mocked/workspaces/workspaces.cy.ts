@@ -197,6 +197,27 @@ describe('Workspaces', () => {
       });
     });
 
+    it('displays the applicable status button and omits Start and Stop from the menu', () => {
+      const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(
+        DEFAULT_NAMESPACE,
+        2,
+      );
+
+      navigateToNamespace(mockNamespace.name);
+
+      mockWorkspaces.forEach((workspace) => {
+        workspaces.assertWorkspaceStatusAction(
+          workspace.name,
+          workspace.state === V1Beta1WorkspaceState.WorkspaceStateRunning
+            ? 'stop'
+            : workspace.state === V1Beta1WorkspaceState.WorkspaceStateError
+              ? 'none'
+              : 'start',
+        );
+      });
+      workspaces.assertNoStartOrStopMenuActions(mockWorkspaces[0].name);
+    });
+
     it('should display "unknown" for last activity when epoch is 0', () => {
       const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
       const mockWorkspace = buildMockWorkspace({
@@ -222,6 +243,86 @@ describe('Workspaces', () => {
       navigateToNamespace(mockNamespace.name);
 
       workspaces.assertWorkspaceRowLastActivity(0, 'unknown');
+    });
+
+    it('displays general workspace details in workspace details drawer', () => {
+      const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+      const mockWorkspace = buildMockWorkspace({
+        name: 'pod-info-workspace',
+        workspaceKind: buildMockWorkspaceKindInfo({ name: 'jupyterlab' }),
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/namespaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([mockNamespace]),
+      ).as('getNamespaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([mockWorkspace]),
+      ).as('getWorkspaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName: mockWorkspace.name,
+          },
+        },
+        mockModArchResponse(
+          buildMockWorkspaceDetails({
+            pod: { name: 'workspace-abc-0', nodeName: 'node-gpu-01' },
+          }),
+        ),
+      ).as('getPodDetails');
+
+      navigateToNamespace(mockNamespace.name);
+
+      workspaces.findAction({ action: 'viewDetails', workspaceName: mockWorkspace.name }).click();
+      cy.wait('@getPodDetails');
+
+      workspaceDetailsDrawer.assertOverviewTabContentContainsText('Kind');
+      workspaceDetailsDrawer.assertOverviewTabContentContainsText('jupyterlab');
+      workspaceDetailsDrawer.assertOverviewTabContentContainsText('Pod config');
+
+      workspaceDetailsDrawer.assertPodName('workspace-abc-0');
+      workspaceDetailsDrawer.assertPodNodeName('node-gpu-01');
+    });
+
+    it('hides pod information section in workspace details drawer when pod is null', () => {
+      const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(
+        DEFAULT_NAMESPACE,
+        1,
+      );
+      const mockWorkspace = mockWorkspaces[0];
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName: mockWorkspace.name,
+          },
+        },
+        mockModArchResponse(
+          buildMockWorkspaceDetails({
+            pod: undefined,
+          }),
+        ),
+      ).as('getPodDetailsNull');
+
+      navigateToNamespace(mockNamespace.name);
+
+      workspaces.findAction({ action: 'viewDetails', workspaceName: mockWorkspace.name }).click();
+      cy.wait('@getPodDetailsNull');
+
+      workspaceDetailsDrawer.assertPodNameNotExists();
+      workspaceDetailsDrawer.assertPodNodeNameNotExists();
     });
   });
 
@@ -828,7 +929,7 @@ describe('Workspaces', () => {
       });
 
       it('should successfully start a paused workspace', () => {
-        workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStartButton(TEST_WORKSPACE_NAME).click();
         startModal.findStartButton().click();
 
         cy.wait('@startWorkspace').then((interception) => {
@@ -839,7 +940,7 @@ describe('Workspaces', () => {
       });
 
       it('should cancel workspace start when cancel button is clicked', () => {
-        workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStartButton(TEST_WORKSPACE_NAME).click();
         startModal.findCancelButton().click();
         startModal.assertModalNotExists();
         cy.get('@startWorkspace.all').should('have.length', 0);
@@ -863,7 +964,7 @@ describe('Workspaces', () => {
           },
         ).as('startWorkspaceError');
 
-        workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStartButton(TEST_WORKSPACE_NAME).click();
         startModal.findStartButton().click();
 
         cy.wait('@startWorkspaceError');
@@ -894,7 +995,7 @@ describe('Workspaces', () => {
       });
 
       it('should successfully stop a running workspace', () => {
-        workspaces.findAction({ action: 'stop', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStopButton(TEST_WORKSPACE_NAME).click();
         stopModal.findStopButton().click();
 
         cy.wait('@stopWorkspace').then((interception) => {
@@ -905,7 +1006,7 @@ describe('Workspaces', () => {
       });
 
       it('should cancel workspace stop when cancel button is clicked', () => {
-        workspaces.findAction({ action: 'stop', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStopButton(TEST_WORKSPACE_NAME).click();
         stopModal.findCancelButton().click();
         stopModal.assertModalNotExists();
         cy.get('@stopWorkspace.all').should('have.length', 0);
@@ -929,7 +1030,7 @@ describe('Workspaces', () => {
           },
         ).as('stopWorkspaceError');
 
-        workspaces.findAction({ action: 'stop', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStopButton(TEST_WORKSPACE_NAME).click();
         stopModal.findStopButton().click();
 
         cy.wait('@stopWorkspaceError');

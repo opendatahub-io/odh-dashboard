@@ -340,10 +340,10 @@ func run() (status int) {
 		return 1
 	}
 
-	// Create a filtered cache client for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
+	// Create a filtered cache client for ConfigMaps with the label 'workspaces.kubeflow.org/image-source=true'
 	imageSourceConfigMapClient, err := helper.BuildImageSourceConfigMapClient(mgr)
 	if err != nil {
-		logger.Error("failed to create 'notebooks.kubeflow.org/image-source=true' label "+
+		logger.Error("failed to create 'workspaces.kubeflow.org/image-source=true' label "+
 			"filtered ConfigMap client", "error", err)
 		return 1
 	}

@@ -57,6 +57,34 @@ class Workspaces {
       .should('have.text', state);
   }
 
+  findStartButton(workspaceName: string) {
+    return this.findWorkspaceTableRow(workspaceName)
+      .findByTestId('action-column')
+      .findByTestId(`start${workspaceName}`);
+  }
+
+  findStopButton(workspaceName: string) {
+    return this.findWorkspaceTableRow(workspaceName)
+      .findByTestId('action-column')
+      .findByTestId(`stop${workspaceName}`);
+  }
+
+  assertWorkspaceStatusAction(workspaceName: string, action: 'start' | 'stop' | 'none') {
+    const actionsCell = this.findWorkspaceTableRow(workspaceName).findByTestId('action-column');
+    actionsCell
+      .findByTestId(`start${workspaceName}`)
+      .should(action === 'start' ? 'exist' : 'not.exist');
+    actionsCell
+      .findByTestId(`stop${workspaceName}`)
+      .should(action === 'stop' ? 'exist' : 'not.exist');
+  }
+
+  assertNoStartOrStopMenuActions(workspaceName: string) {
+    this.openWorkspaceActionDropdown(workspaceName);
+    cy.findByTestId('action-start').should('not.exist');
+    cy.findByTestId('action-stop').should('not.exist');
+  }
+
   assertWorkspaceRowImage(index: number, image: string) {
     return cy
       .findByTestId(`workspace-row-${index}`)
@@ -190,15 +218,19 @@ class Workspaces {
   }
 
   openWorkspaceActionDropdown(workspaceName: string) {
-    this.findWorkspaceTableRow(workspaceName).findByTestId('action-column').find('button').click();
+    this.findWorkspaceTableRow(workspaceName)
+      .findByTestId('action-column')
+      .findByRole('button', { name: 'Kebab toggle' })
+      .click();
   }
 
-  findAction(args: {
-    action: 'delete' | 'start' | 'stop' | 'viewDetails' | 'edit';
-    workspaceName: string;
-  }) {
+  findAction(args: { action: 'delete' | 'viewDetails' | 'edit'; workspaceName: string }) {
     this.openWorkspaceActionDropdown(args.workspaceName);
     return cy.findByTestId(`action-${args.action}`);
+  }
+
+  clickViewDetailsAction(workspaceName: string) {
+    return this.findAction({ action: 'viewDetails', workspaceName }).click();
   }
 
   toggleRowExpansion(rowIndex: number) {
@@ -388,6 +420,65 @@ class WorkspaceDetailsDrawer {
     return this.find().findByTestId('activity-tab');
   }
 
+  findResourcesTab() {
+    return this.find().findByTestId('resources-tab');
+  }
+
+  findResourcesTabContent() {
+    return this.find().findByTestId('resources-tab-content');
+  }
+
+  findResourceCard(resourceKey: string) {
+    return this.findResourcesTabContent().findByTestId(`resource-card-${resourceKey}`);
+  }
+
+  assertResourceCardExists(resourceKey: string) {
+    this.findResourceCard(resourceKey).should('exist');
+  }
+
+  assertResourceCardHeading(resourceKey: string, heading: string) {
+    this.findResourceCard(resourceKey).should('contain.text', heading);
+  }
+
+  assertResourceRequest(resourceKey: string, value: string) {
+    this.findResourcesTabContent()
+      .findByTestId(`resource-request-${resourceKey}`)
+      .should('contain.text', value);
+  }
+
+  assertResourceLimit(resourceKey: string, value: string) {
+    this.findResourcesTabContent()
+      .findByTestId(`resource-limit-${resourceKey}`)
+      .should('contain.text', value);
+  }
+
+  assertResourceUsage(resourceKey: string, value: string) {
+    this.findResourcesTabContent()
+      .findByTestId(`resource-usage-${resourceKey}`)
+      .should('contain.text', value);
+  }
+
+  assertResourcesTabContentContainsText(text: string) {
+    this.findResourcesTabContent().should('contain.text', text);
+  }
+
+  assertResourceErrorAlert(testId: string) {
+    this.findResourcesTabContent().findByTestId(testId).should('exist');
+  }
+
+  findResourceContainerSelect() {
+    return this.findResourcesTabContent().findByTestId('resource-container-select');
+  }
+
+  assertResourceContainerSelectShows(optionName: string) {
+    this.findResourceContainerSelect().should('contain.text', optionName);
+  }
+
+  selectResourceContainer(optionName: string) {
+    this.findResourceContainerSelect().click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
+
   findLogsTab() {
     return this.find().findByTestId('logs-tab');
   }
@@ -505,6 +596,30 @@ class WorkspaceDetailsDrawer {
     this.findActivityTab().should('have.attr', 'aria-selected', selected ? 'true' : 'false');
   }
 
+  findPodName() {
+    return this.find().findByTestId('pod-name');
+  }
+
+  findPodNodeName() {
+    return this.find().findByTestId('pod-node-name');
+  }
+
+  assertPodName(name: string) {
+    this.findPodName().should('be.visible').and('have.text', name);
+  }
+
+  assertPodNameNotExists() {
+    this.findPodName().should('not.exist');
+  }
+
+  assertPodNodeName(nodeName: string) {
+    this.findPodNodeName().should('be.visible').and('have.text', nodeName);
+  }
+
+  assertPodNodeNameNotExists() {
+    this.findPodNodeName().should('not.exist');
+  }
+
   findActionsToggle() {
     return this.find().findByTestId('workspace-details-action-toggle');
   }
@@ -541,8 +656,16 @@ class DeleteModal {
     return this.find().findByTestId('delete-modal-input');
   }
 
+  typeConfirmationName(name: string) {
+    return this.findConfirmationInput().type(name);
+  }
+
   findSubmitButton() {
     return this.find().findByTestId('delete-button');
+  }
+
+  clickSubmit() {
+    return this.findSubmitButton().click();
   }
 
   findCancelButton() {

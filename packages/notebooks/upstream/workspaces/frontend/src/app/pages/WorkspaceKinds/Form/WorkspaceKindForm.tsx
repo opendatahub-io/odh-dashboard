@@ -130,6 +130,14 @@ const convertToFormData = (
           ...t,
         })),
         restrictions: { deny: false },
+        podMetadata: {
+          labels: v.spec.podMetadata?.labels ?? {},
+          annotations: v.spec.podMetadata?.annotations ?? {},
+        },
+        statefulSetMetadata: {
+          labels: v.spec.statefulSetMetadata?.labels ?? {},
+          annotations: v.spec.statefulSetMetadata?.annotations ?? {},
+        },
       })),
     },
     podTemplate: {
@@ -137,8 +145,8 @@ const convertToFormData = (
         labels: podTemplate.podMetadata?.labels ?? {},
         annotations: podTemplate.podMetadata?.annotations ?? {},
       },
-      volumeMounts: {
-        home: podTemplate.volumeMounts.home,
+      volumeMountPaths: {
+        home: podTemplate.volumeMountPaths.home,
       },
       activityProbe: podTemplate.activityProbe,
     },

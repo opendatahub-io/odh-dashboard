@@ -56,7 +56,7 @@
       "workspaces/controller/manifests/kustomize/base/namespace/",
       "workspaces/controller/manifests/kustomize/base/kustomization.yaml"
     ],
-    "commit": "118240a70c81c7727a2462ad5732f61c2e737bbc"
+    "commit": "56db4fff7e1561d0e46ef753e415fbd427db28b6"
   },
   "module-federation": {
     "name": "notebooks",

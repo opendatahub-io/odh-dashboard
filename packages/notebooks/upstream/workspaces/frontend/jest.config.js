@@ -31,8 +31,9 @@ module.exports = {
   },
 
   // include projects from node_modules as required
+  // cspell:ignore patternfly delaunator
   transformIgnorePatterns: [
-    'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-shared|mod-arch-core|mod-arch-kubeflow)',
+    'node_modules/(?!yaml|lodash-es|uuid|random-words|@patternfly|delaunator|mod-arch-shared|mod-arch-core|mod-arch-kubeflow)',
   ],
 
   // A list of paths to snapshot serializer modules Jest should use for snapshot testing

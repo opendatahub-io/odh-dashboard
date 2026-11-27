@@ -5,7 +5,7 @@ import {
   V1Beta1ActivityProbe,
   WorkspacekindsActivityRule,
   WorkspacekindsPodMetadata,
-  WorkspacekindsPodVolumeMounts,
+  WorkspacekindsPodVolumeMountPaths,
   WorkspacekindsWorkspaceKindListItem,
   WorkspacesPodSecretMount,
   WorkspacesPodTemplateOptionsMutate,
@@ -35,7 +35,8 @@ export type WorkspacesPodSecretMountValue = WithAttached<WorkspacesPodSecretMoun
 export type WorkspacesPodVolumeMountValue = WithAttached<WorkspacesPodVolumeMount>;
 
 export interface WorkspaceFormProperties {
-  workspaceName: string;
+  displayName: string;
+  name: string;
   homeVolume: WorkspacesPodVolumeMountValue | undefined;
   volumes: WorkspacesPodVolumeMountValue[];
   secrets: WorkspacesPodSecretMountValue[];
@@ -112,7 +113,7 @@ export interface WorkspaceKindPodConfigData {
 }
 export interface WorkspaceKindPodTemplateData {
   podMetadata: WorkspacekindsPodMetadata;
-  volumeMounts: WorkspacekindsPodVolumeMounts;
+  volumeMountPaths: WorkspacekindsPodVolumeMountPaths;
   activityProbe?: V1Beta1ActivityProbe;
   extraVolumeMounts?: WorkspacesPodVolumeMount[];
 }

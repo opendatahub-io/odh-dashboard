@@ -873,16 +873,6 @@ describe('Edit workspace kind', () => {
         editWorkspaceKind.assertPodMetadataSectionVisible();
       });
 
-      it('should display additional volumes section when expanded', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.assertAdditionalVolumesSectionVisible();
-      });
-
       it('should add a new label', () => {
         const { mockWorkspaceKind } = setupEditWorkspaceKind();
 
@@ -1000,174 +990,6 @@ describe('Edit workspace kind', () => {
         editWorkspaceKind.assertAnnotationKey(1, 'annotation2');
         editWorkspaceKind.assertAnnotationValue(1, 'value2');
       });
-
-      it('should open create volume modal when clicking Create Volume button', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.clickCreateVolume();
-
-        editWorkspaceKind.assertVolumeModalVisible(true);
-        editWorkspaceKind.assertVolumeModalTitle('Create New Volume');
-      });
-
-      it('should create a new volume', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.assertVolumeCount(0);
-
-        editWorkspaceKind.clickCreateVolume();
-        editWorkspaceKind.typePvcName('my-pvc');
-        editWorkspaceKind.submitVolumeModal();
-        cy.wait('@createPvc');
-
-        editWorkspaceKind.assertVolumeModalVisible(false);
-        editWorkspaceKind.assertVolumeCount(1);
-        editWorkspaceKind.assertVolumeInTable('my-pvc');
-      });
-
-      it('should create a volume with read-only access', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.clickCreateVolume();
-        editWorkspaceKind.typePvcName('readonly-pvc');
-        editWorkspaceKind.toggleReadOnly();
-        editWorkspaceKind.assertReadOnlyChecked(true);
-        editWorkspaceKind.submitVolumeModal();
-        cy.wait('@createPvc');
-
-        editWorkspaceKind.assertVolumeCount(1);
-        editWorkspaceKind.assertVolumeInTable('readonly-pvc');
-      });
-
-      it('should cancel volume creation', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.clickCreateVolume();
-        editWorkspaceKind.typePvcName('cancelled-pvc');
-        editWorkspaceKind.cancelVolumeModal();
-
-        editWorkspaceKind.assertVolumeModalVisible(false);
-        editWorkspaceKind.assertVolumeCount(0);
-      });
-
-      it('should open edit volume modal when clicking edit from actions menu', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.clickCreateVolume();
-        editWorkspaceKind.typePvcName('edit-test-pvc');
-        editWorkspaceKind.submitVolumeModal();
-        cy.wait('@createPvc');
-
-        editWorkspaceKind.clickVolumeRowKebab(0);
-        editWorkspaceKind.clickEditVolume('edit-test-pvc');
-
-        editWorkspaceKind.assertVolumeModalVisible(true);
-        editWorkspaceKind.assertVolumeModalTitle('Edit Volume');
-        editWorkspaceKind.assertMountPath('/data/edit-test-pvc');
-      });
-
-      it('should edit an existing volume mount path', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.clickCreateVolume();
-        editWorkspaceKind.typePvcName('original-pvc');
-        editWorkspaceKind.submitVolumeModal();
-        cy.wait('@createPvc');
-
-        editWorkspaceKind.clickVolumeRowKebab(0);
-        editWorkspaceKind.clickEditVolume('original-pvc');
-
-        editWorkspaceKind.typeMountPath('/edited');
-        editWorkspaceKind.submitVolumeModal();
-
-        editWorkspaceKind.assertVolumeCount(1);
-        editWorkspaceKind.assertVolumeInTable('original-pvc');
-      });
-
-      it('should open detach modal when clicking detach from actions menu', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.clickCreateVolume();
-        editWorkspaceKind.typePvcName('detach-test-pvc');
-        editWorkspaceKind.submitVolumeModal();
-        cy.wait('@createPvc');
-
-        editWorkspaceKind.clickVolumeRowKebab(0);
-        editWorkspaceKind.clickDetachVolume();
-
-        editWorkspaceKind.assertDetachVolumeModalVisible(true);
-      });
-
-      it('should cancel volume detachment', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.clickCreateVolume();
-        editWorkspaceKind.typePvcName('cancel-detach-pvc');
-        editWorkspaceKind.submitVolumeModal();
-        cy.wait('@createPvc');
-
-        editWorkspaceKind.clickVolumeRowKebab(0);
-        editWorkspaceKind.clickDetachVolume();
-        editWorkspaceKind.cancelDetachVolume();
-
-        editWorkspaceKind.assertDetachVolumeModalVisible(false);
-        editWorkspaceKind.assertVolumeCount(1);
-        editWorkspaceKind.assertVolumeInTable('cancel-detach-pvc');
-      });
-
-      it('should detach a volume when confirming detachment', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-        visitEditWorkspaceKind(mockWorkspaceKind.name);
-
-        editWorkspaceKind.expandPodTemplateSection();
-
-        editWorkspaceKind.clickCreateVolume();
-        editWorkspaceKind.typePvcName('detach-pvc');
-        editWorkspaceKind.submitVolumeModal();
-        cy.wait('@createPvc');
-
-        editWorkspaceKind.assertVolumeCount(1);
-
-        editWorkspaceKind.clickVolumeRowKebab(0);
-        editWorkspaceKind.clickDetachVolume();
-        editWorkspaceKind.confirmDetachVolume();
-
-        editWorkspaceKind.assertDetachVolumeModalVisible(false);
-        editWorkspaceKind.assertVolumeCount(0);
-      });
     });
 
     describe('Activity Rules', () => {
@@ -1176,11 +998,18 @@ describe('Edit workspace kind', () => {
           activityRules: [
             {
               config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
-              match: {
-                matchNamespace: {
-                  selector: { matchLabels: { tier: 'development' } },
+              match: [
+                {
+                  matchNamespace: {
+                    selector: { matchLabels: { tier: 'development' } },
+                  },
                 },
-              },
+                {
+                  matchPodConfig: {
+                    selector: { matchLabels: { cpu: '100m' } },
+                  },
+                },
+              ],
               effect: { pauseWorkspace: true },
             },
             {
@@ -1197,9 +1026,16 @@ describe('Edit workspace kind', () => {
         editWorkspaceKind.assertActivityRuleRowCount(2);
         editWorkspaceKind.assertActivityRuleTimeoutCell(0, '1 hour');
         editWorkspaceKind.assertActivityRuleMinRunningCell(0, '5 minutes');
+        editWorkspaceKind.assertActivityRuleNamespaceMatchCell(0, 'tier=development');
+        editWorkspaceKind.assertActivityRulePodConfigMatchCell(0, 'cpu=100m');
         editWorkspaceKind.assertActivityRuleEffectCell(0, 'Pause Workspace');
         editWorkspaceKind.assertActivityRuleTimeoutCell(1, '1 day');
-        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '-');
+        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '0 seconds');
+        editWorkspaceKind.assertActivityRuleNamespaceMatchCell(1, '-');
+        editWorkspaceKind.assertActivityRulePodConfigMatchCell(1, '-');
+        editWorkspaceKind.assertActivityRuleEffectCell(0, 'Pause Workspace');
+        editWorkspaceKind.assertActivityRuleTimeoutCell(1, '1 day');
+        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '0 seconds');
         editWorkspaceKind.assertActivityRuleEffectCell(1, 'Pause Workspace');
       });
 

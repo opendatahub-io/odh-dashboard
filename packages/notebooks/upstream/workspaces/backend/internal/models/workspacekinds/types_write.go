@@ -25,9 +25,11 @@ import (
 
 // WorkspaceKindCreate represents the full WorkspaceKind spec for create operations.
 type WorkspaceKindCreate struct {
-	Name        string                                      `json:"name"`
-	Spawner     kubefloworgv1beta1.WorkspaceKindSpawner     `json:"spawner"`
-	PodTemplate kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
+	Name          string                                      `json:"name"`
+	Spawner       kubefloworgv1beta1.WorkspaceKindSpawner     `json:"spawner"`
+	PodTemplate   kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
+	ActivityRules []kubefloworgv1beta1.ActivityRule           `json:"activityRules,omitempty"`
+	FilterRules   []kubefloworgv1beta1.FilterRule             `json:"filterRules,omitempty"`
 }
 
 // WorkspaceKindUpdate represents the full WorkspaceKind spec for update operations.
@@ -42,6 +44,7 @@ type WorkspaceKindUpdate struct {
 	Spawner       kubefloworgv1beta1.WorkspaceKindSpawner     `json:"spawner"`
 	PodTemplate   kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
 	ActivityRules []kubefloworgv1beta1.ActivityRule           `json:"activityRules,omitempty"`
+	FilterRules   []kubefloworgv1beta1.FilterRule             `json:"filterRules,omitempty"`
 }
 
 // Validate performs validation on the WorkspaceKindUpdate struct

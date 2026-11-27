@@ -51,6 +51,8 @@ const buildMockPodConfigValue = (
   labels: [],
   hidden: false,
   restrictions: { deny: false },
+  podMetadata: { labels: {}, annotations: {} },
+  statefulSetMetadata: { labels: {}, annotations: {} },
 });
 
 describe('Summary step', () => {
@@ -140,7 +142,7 @@ describe('Summary step', () => {
     createWorkspace.clickNext();
 
     // Step 4: Properties
-    createWorkspace.typeWorkspaceName('test-workspace');
+    createWorkspace.typeDisplayName('test-workspace');
     createWorkspace.attachHomeVolume('home-pvc');
     createWorkspace.clickNext();
   };

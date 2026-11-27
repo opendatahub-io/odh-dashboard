@@ -10,7 +10,6 @@ import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
 import useActivityNotifications from '~/app/hooks/useActivityNotifications';
-import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 import NamespaceSelector from '~/app/components/NamespaceSelector';
 
 export const Workspaces: React.FunctionComponent = () => {
@@ -25,19 +24,6 @@ export const Workspaces: React.FunctionComponent = () => {
     { id: 'viewDetails' },
     { id: 'edit' },
     { id: 'delete', onActionDone: refreshWorkspaces },
-    { id: 'separator' },
-    {
-      id: 'stop',
-      isVisible: (w) => w.state === V1Beta1WorkspaceState.WorkspaceStateRunning,
-      onActionDone: refreshWorkspaces,
-    },
-    {
-      id: 'start',
-      isVisible: (w) =>
-        w.state !== V1Beta1WorkspaceState.WorkspaceStateRunning &&
-        w.state !== V1Beta1WorkspaceState.WorkspaceStateError,
-      onActionDone: refreshWorkspaces,
-    },
   ]);
 
   if (workspacesLoadError) {

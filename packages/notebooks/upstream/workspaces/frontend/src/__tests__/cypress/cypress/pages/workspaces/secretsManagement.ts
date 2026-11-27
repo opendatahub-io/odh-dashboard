@@ -1,3 +1,5 @@
+import { assertSecretModalErrorInFooter } from '~/__tests__/cypress/cypress/pages/components/secretModalFooter';
+
 // Page object model for Secrets Management
 
 class SecretsManagementPage {
@@ -120,6 +122,18 @@ class SecretsModal {
     return this.find().findAllByTestId('key-input');
   }
 
+  typeKey(index: number, key: string) {
+    return this.findKeyInput().eq(index).clear().type(key);
+  }
+
+  findErrorAlert() {
+    return this.find().findByTestId('error-alert');
+  }
+
+  assertErrorAlertInFooter() {
+    return assertSecretModalErrorInFooter(this.findErrorAlert());
+  }
+
   assertModalVisible() {
     this.find().should('be.visible');
   }
@@ -136,6 +150,14 @@ class SecretsModal {
 class SecretsAttachModal {
   find() {
     return cy.findByTestId('secrets-attach-modal');
+  }
+
+  assertSecretOptionAvailable(secretName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.find().findByPlaceholderText('Select a secret').click();
+    return cy
+      .contains('.pf-v6-c-menu__list-item', secretName)
+      .should('be.visible')
+      .and('not.have.class', 'pf-m-disabled');
   }
 
   assertModalVisible(): Cypress.Chainable<JQuery<HTMLElement>> {

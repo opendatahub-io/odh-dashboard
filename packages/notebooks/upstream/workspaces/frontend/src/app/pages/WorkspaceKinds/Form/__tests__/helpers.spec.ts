@@ -1,15 +1,20 @@
 import {
+  buildActivityRuleMatch,
   getResources,
   convertFormDataToUpdate,
   formatSeconds,
+  getActivityRuleMatchLabels,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { mockPodConfig } from '~/__mocks__/mockResources';
 import { WorkspaceKindFormData, WorkspaceKindPodConfigValue, ImagePullPolicy } from '~/app/types';
 import {
   WorkspacekindsWorkspaceKindUpdate,
+  V1Beta1FilterRuleScope,
   V1Beta1WorkspaceKindAssetMediaType,
+  V1LabelSelectorOperator,
   V1PullPolicy,
   V1ResourceList,
+  WorkspacekindsActivityRuleMatch,
 } from '~/generated/data-contracts';
 
 const buildMockApiUpdate = (
@@ -72,9 +77,12 @@ const buildMockApiUpdate = (
       labels: { app: 'test' },
       annotations: { note: 'test-annotation' },
     },
+    podSpec: {
+      mainContainer: {},
+    },
     ports: [{ id: 'http', defaultDisplayName: 'HTTP', protocol: 'HTTP' as never }],
     serviceAccount: { clusterRoles: [{ name: 'default-editor' }] },
-    volumeMounts: { home: '/home/jovyan' },
+    volumeMountPaths: { home: '/home/jovyan' },
   },
   ...overrides,
 });
@@ -120,6 +128,8 @@ const buildMockFormData = (overrides?: Partial<WorkspaceKindFormData>): Workspac
         },
         nodeSelector: { 'kubernetes.io/os': 'linux' },
         restrictions: { deny: false },
+        podMetadata: { labels: {}, annotations: {} },
+        statefulSetMetadata: { labels: {}, annotations: {} },
       },
     ],
   },
@@ -128,10 +138,10 @@ const buildMockFormData = (overrides?: Partial<WorkspaceKindFormData>): Workspac
       labels: { app: 'test' },
       annotations: { note: 'test-annotation' },
     },
-    volumeMounts: { home: '/home/jovyan' },
+    volumeMountPaths: { home: '/home/jovyan' },
     activityProbe: {
       probeIntervalSeconds: 3600,
-      jupyter: { lastActivity: true, portId: 'http' },
+      podExec: { script: '#!/usr/bin/env bash\nexit 0' },
     },
   },
   ...overrides,
@@ -177,6 +187,8 @@ describe('getResources', () => {
       labels: [],
       hidden: false,
       restrictions: { deny: false },
+      podMetadata: { labels: {}, annotations: {} },
+      statefulSetMetadata: { labels: {}, annotations: {} },
     };
 
     const result = getResources(emptyConfig);
@@ -228,7 +240,7 @@ describe('convertFormDataToUpdate', () => {
       labels: { app: 'test' },
       annotations: { note: 'test-annotation' },
     });
-    expect(result.podTemplate.volumeMounts).toEqual({ home: '/home/jovyan' });
+    expect(result.podTemplate.volumeMountPaths).toEqual({ home: '/home/jovyan' });
   });
 
   it('should map image config values correctly', () => {
@@ -261,6 +273,27 @@ describe('convertFormDataToUpdate', () => {
     expect(pod.spec.nodeSelector).toEqual({ 'kubernetes.io/os': 'linux' });
   });
 
+  it('should preserve non-form top-level fields from original via spreading', () => {
+    const original = buildMockApiUpdate();
+
+    (original as unknown as Record<string, unknown>).futureApiField = {
+      enabled: true,
+      nested: {
+        value: 'preserve-me',
+      },
+    };
+
+    const formData = buildMockFormData();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect((result as unknown as Record<string, unknown>).futureApiField).toEqual({
+      enabled: true,
+      nested: {
+        value: 'preserve-me',
+      },
+    });
+  });
+
   it('should preserve non-form fields from original via spreading', () => {
     const original = buildMockApiUpdate();
     // Add a non-form field to a pod config spec
@@ -269,7 +302,13 @@ describe('convertFormDataToUpdate', () => {
     ).affinity = {
       nodeAffinity: {
         requiredDuringSchedulingIgnoredDuringExecution: {
-          nodeSelectorTerms: [{ matchExpressions: [{ key: 'gpu', operator: 'Exists' }] }],
+          nodeSelectorTerms: [
+            {
+              matchExpressions: [
+                { key: 'gpu', operator: V1LabelSelectorOperator.LabelSelectorOpExists },
+              ],
+            },
+          ],
         },
       },
     };
@@ -298,6 +337,7 @@ describe('convertFormDataToUpdate', () => {
     expect((result.podTemplate as unknown as Record<string, unknown>).extraEnv).toEqual([
       { name: 'MY_VAR', value: 'test' },
     ]);
+    expect(result.podTemplate.serviceAccount).toEqual(original.podTemplate.serviceAccount);
   });
 
   it('should preserve culling config from form data', () => {
@@ -308,7 +348,7 @@ describe('convertFormDataToUpdate', () => {
 
     expect(result.podTemplate.activityProbe).toEqual({
       probeIntervalSeconds: 3600,
-      jupyter: { lastActivity: true, portId: 'http' },
+      podExec: { script: '#!/usr/bin/env bash\nexit 0' },
     });
   });
 
@@ -392,24 +432,24 @@ describe('convertFormDataToUpdate', () => {
     });
   });
 
-  it('should preserve the original volumeMounts.home (immutable field)', () => {
+  it('should preserve the original volumeMountPaths.home (immutable field)', () => {
     const formData = buildMockFormData({
       podTemplate: {
         podMetadata: { labels: {}, annotations: {} },
-        volumeMounts: { home: '/home/changed-by-user' },
+        volumeMountPaths: { home: '/home/changed-by-user' },
       },
     });
     const original = buildMockApiUpdate();
     const result = convertFormDataToUpdate(formData, original);
 
-    expect(result.podTemplate.volumeMounts).toEqual({ home: '/home/jovyan' });
+    expect(result.podTemplate.volumeMountPaths).toEqual({ home: '/home/jovyan' });
   });
 
-  it('should format seconds below 60 as raw seconds', () => {
-    expect(formatSeconds(0)).toBe('0s');
-    expect(formatSeconds(1)).toBe('1s');
-    expect(formatSeconds(15)).toBe('15s');
-    expect(formatSeconds(59)).toBe('59s');
+  it('should format seconds below 60 as whole seconds', () => {
+    expect(formatSeconds(0)).toBe('0 seconds');
+    expect(formatSeconds(1)).toBe('1 second');
+    expect(formatSeconds(15)).toBe('15 seconds');
+    expect(formatSeconds(59)).toBe('59 seconds');
   });
 
   it('should format exact minutes', () => {
@@ -458,11 +498,13 @@ describe('convertFormDataToUpdate', () => {
         {
           id: 'rule-1',
           config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
-          match: {
-            matchNamespace: {
-              selector: { matchLabels: { tier: 'development' } },
+          match: [
+            {
+              matchNamespace: {
+                selector: { matchLabels: { tier: 'development' } },
+              },
             },
-          },
+          ],
           effect: { pauseWorkspace: true },
         },
         {
@@ -478,11 +520,13 @@ describe('convertFormDataToUpdate', () => {
     expect(result.activityRules).toHaveLength(2);
     expect(result.activityRules![0]).toEqual({
       config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
-      match: {
-        matchNamespace: {
-          selector: { matchLabels: { tier: 'development' } },
+      match: [
+        {
+          matchNamespace: {
+            selector: { matchLabels: { tier: 'development' } },
+          },
         },
-      },
+      ],
       effect: { pauseWorkspace: true },
     });
     expect(result.activityRules![1]).toEqual({
@@ -505,5 +549,102 @@ describe('convertFormDataToUpdate', () => {
     const result = convertFormDataToUpdate(formData, original);
 
     expect(result.activityRules).toEqual([]);
+  });
+
+  it('should preserve filterRules from the original update', () => {
+    const original = buildMockApiUpdate({
+      filterRules: [
+        {
+          scope: V1Beta1FilterRuleScope.FilterRuleScopeWorkspaceKind,
+          effect: {
+            ui: {
+              hide: true,
+            },
+          },
+          match: [
+            {
+              matchNamespace: {
+                selector: {
+                  matchLabels: {
+                    team: 'team_1',
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const formData = buildMockFormData();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.filterRules).toEqual(original.filterRules);
+  });
+});
+
+describe('getActivityRuleMatchLabels', () => {
+  it('should return undefined for an omitted match list', () => {
+    expect(getActivityRuleMatchLabels(undefined, 'matchNamespace')).toBeUndefined();
+  });
+
+  it('should return only the labels of the requested matcher', () => {
+    const match: WorkspacekindsActivityRuleMatch[] = [
+      { matchNamespace: { selector: { matchLabels: { tier: 'development' } } } },
+      { matchPodConfig: { selector: { matchLabels: { cpu: '100m' } } } },
+    ];
+    expect(getActivityRuleMatchLabels(match, 'matchNamespace')).toEqual({ tier: 'development' });
+    expect(getActivityRuleMatchLabels(match, 'matchPodConfig')).toEqual({ cpu: '100m' });
+  });
+
+  it('should merge labels across multiple conditions using the same matcher', () => {
+    const match: WorkspacekindsActivityRuleMatch[] = [
+      { matchNamespace: { selector: { matchLabels: { tier: 'development' } } } },
+      { matchNamespace: { selector: { matchLabels: { team: 'ml' } } } },
+    ];
+    expect(getActivityRuleMatchLabels(match, 'matchNamespace')).toEqual({
+      tier: 'development',
+      team: 'ml',
+    });
+  });
+
+  it('should return undefined when the matcher only uses matchExpressions', () => {
+    const match: WorkspacekindsActivityRuleMatch[] = [
+      {
+        matchPodConfig: {
+          selector: {
+            matchExpressions: [
+              { key: 'cpu', operator: V1LabelSelectorOperator.LabelSelectorOpExists },
+            ],
+          },
+        },
+      },
+    ];
+    expect(getActivityRuleMatchLabels(match, 'matchPodConfig')).toBeUndefined();
+  });
+});
+
+describe('buildActivityRuleMatch', () => {
+  it('should return undefined when no labels are given', () => {
+    expect(buildActivityRuleMatch({})).toBeUndefined();
+    expect(buildActivityRuleMatch({ namespaceLabels: {}, podConfigLabels: {} })).toBeUndefined();
+  });
+
+  it('should build one condition per matcher with labels', () => {
+    expect(
+      buildActivityRuleMatch({
+        namespaceLabels: { tier: 'development' },
+        podConfigLabels: { cpu: '100m' },
+      }),
+    ).toEqual([
+      { matchNamespace: { selector: { matchLabels: { tier: 'development' } } } },
+      { matchPodConfig: { selector: { matchLabels: { cpu: '100m' } } } },
+    ]);
+  });
+
+  it('should omit the condition for a matcher without labels', () => {
+    expect(buildActivityRuleMatch({ podConfigLabels: { cpu: '100m' } })).toEqual([
+      { matchPodConfig: { selector: { matchLabels: { cpu: '100m' } } } },
+    ]);
   });
 });

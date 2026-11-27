@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
-	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -124,8 +123,10 @@ func main() {
 	// Get controller namespace (from service account file or POD_NAMESPACE env var)
 	cfg.ControllerNamespace = getControllerNamespace("kubeflow-workspaces")
 
+	// Production default: JSON logs at info, stack traces on errors.
+	// Raise verbosity with --zap-devel or --zap-log-level (for example "debug" or "2").
 	opts := zap.Options{
-		Development: true,
+		Development: false,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -203,6 +204,7 @@ func main() {
 					&corev1.Secret{},
 				},
 			},
+			FieldOwner: helper.ControllerFieldOwner,
 		},
 		Metrics: metricsserver.Options{
 			BindAddress:    metricsAddr,
@@ -211,23 +213,11 @@ func main() {
 			TLSOpts:        tlsOpts,
 			FilterProvider: filters.WithAuthenticationAndAuthorization,
 		},
-		WebhookServer:          webhookServer,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "kubeflow-workspace-controller",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
-		//
-		// TODO: check if we are doing anything which would prevent us from using this option.
-		// LeaderElectionReleaseOnCancel: true,
+		WebhookServer:                 webhookServer,
+		HealthProbeBindAddress:        probeAddr,
+		LeaderElection:                enableLeaderElection,
+		LeaderElectionID:              "kubeflow-workspaces-controller",
+		LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -256,15 +246,13 @@ func main() {
 	}
 
 	if err = (&controllerInternal.WorkspaceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Config: cfg,
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+		Scheme:    mgr.GetScheme(),
+		Config:    cfg,
 		PodExecutor: &helper.RemoteCommandExecutor{
 			Clientset:  clientset,
 			RestConfig: restCfg,
-		},
-		HTTPProber: &helper.DefaultHTTPProber{
-			Client: &http.Client{},
 		},
 	}).SetupWithManager(mgr, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),

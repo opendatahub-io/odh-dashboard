@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
@@ -9,7 +9,6 @@ import {
   ModalVariant,
   ModalHeader,
   ModalBody,
-  ModalFooter,
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Select } from '@patternfly/react-core/dist/esm/components/Select';
@@ -19,6 +18,7 @@ import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { SecretsSecretListItem, V1SecretType } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+import { ModalErrorFooter } from '~/shared/components/ModalErrorFooter';
 import useSecret, { SecretKeyValuePair } from '~/app/hooks/useSecret';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 
@@ -58,7 +58,9 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   const [secretName, setSecretName] = useState('');
   const [keyValuePairs, setKeyValuePairs] = useState<SecretKeyValuePair[]>([EMPTY_KEY_VALUE_PAIR]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Only errors returned by the API live in state; validation errors are derived from the form values below
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [immutable, setImmutable] = useState(false);
 
   const [secretDetails, isSecretLoaded, secretLoadError] = useSecret({
@@ -86,12 +88,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
     }
   }, [isSecretLoaded, secretDetails, isEditMode]);
 
-  // Set error from secret fetch
-  useEffect(() => {
-    if (secretLoadError) {
-      setError('Failed to load secret contents');
-    }
-  }, [secretLoadError]);
+  const loadError = secretLoadError ? 'Failed to load secret contents' : null;
 
   const validateSecretName = useCallback(
     (name: string): string | null => {
@@ -151,11 +148,19 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
     return null;
   }, [secretName, keyValuePairs, validateSecretName, validateKey]);
 
+  // Recomputed from the current values, so it clears as soon as the input becomes valid
+  const validationError = useMemo(() => validateForm(), [validateForm]);
+
+  // A load failure blocks the whole form, so it takes priority; validation errors are only shown
+  // after the first submit attempt and then follow the current values
+  const error = loadError ?? submitError ?? (hasAttemptedSubmit ? validationError : null);
+
   const resetForm = useCallback(() => {
     setSecretName('');
     setKeyValuePairs([EMPTY_KEY_VALUE_PAIR]);
     setImmutable(false);
-    setError(null);
+    setSubmitError(null);
+    setHasAttemptedSubmit(false);
   }, []);
 
   const buildContentsPayload = useCallback(() => {
@@ -167,14 +172,13 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   }, [keyValuePairs]);
 
   const handleSubmit = useCallback(async () => {
-    const validationError = validateForm();
+    setHasAttemptedSubmit(true);
     if (validationError) {
-      setError(validationError);
       return;
     }
 
     setIsSubmitting(true);
-    setError(null);
+    setSubmitError(null);
 
     try {
       const contents = buildContentsPayload();
@@ -206,14 +210,14 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
       }
     } catch (err) {
       const action = isEditMode ? 'update' : 'create';
-      setError(
+      setSubmitError(
         err instanceof Error ? err.message : `Failed to ${action} secret. Please try again.`,
       );
     } finally {
       setIsSubmitting(false);
     }
   }, [
-    validateForm,
+    validationError,
     buildContentsPayload,
     secretName,
     isEditMode,
@@ -246,11 +250,6 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
     >
       <ModalHeader title={modalTitle} labelId="create-secret-modal-title" />
       <ModalBody>
-        {error && (
-          <Alert variant={AlertVariant.danger} isInline title="Error" data-testid="error-alert">
-            {error}
-          </Alert>
-        )}
         {isEditMode && !isSecretLoaded && !secretLoadError && (
           <Alert variant={AlertVariant.info} isInline title="Loading">
             Loading secret data...
@@ -275,7 +274,10 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
               data-testid="secret-name-input"
               isRequired
               value={secretName}
-              onChange={(_event, value) => setSecretName(value)}
+              onChange={(_event, value) => {
+                setSecretName(value);
+                setSubmitError(null);
+              }}
               aria-label="Secret name"
               isDisabled={isEditMode}
             />
@@ -310,7 +312,10 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
                 </div>
               }
               isChecked={immutable}
-              onChange={(_event, checked) => setImmutable(checked)}
+              onChange={(_event, checked) => {
+                setImmutable(checked);
+                setSubmitError(null);
+              }}
               isDisabled={isEditMode && secretDetails.immutable}
             />
           </FormGroup>
@@ -342,7 +347,10 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
           </ThemeAwareFormGroupWrapper>
           <EditableRowsTable
             rows={keyValuePairs}
-            setRows={setKeyValuePairs}
+            setRows={(rows) => {
+              setKeyValuePairs(rows);
+              setSubmitError(null);
+            }}
             title="Secret data"
             description="Key/value pairs stored in the secret."
             buttonLabel="key-value pair"
@@ -353,7 +361,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
           />
         </Form>
       </ModalBody>
-      <ModalFooter>
+      <ModalErrorFooter error={error} errorTestId="error-alert">
         <Button
           key="submit"
           variant="primary"
@@ -378,7 +386,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
         >
           Cancel
         </Button>
-      </ModalFooter>
+      </ModalErrorFooter>
     </Modal>
   );
 };

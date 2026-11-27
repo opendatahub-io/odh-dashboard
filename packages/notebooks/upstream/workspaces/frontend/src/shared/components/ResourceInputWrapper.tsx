@@ -6,7 +6,7 @@ import {
 import { NumberInput } from '@patternfly/react-core/dist/esm/components/NumberInput';
 import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import {
-  CPU_UNITS,
+  CPU_UNITS_FOR_SELECTION,
   MEMORY_UNITS_FOR_SELECTION,
   STORAGE_UNITS_FOR_SELECTION,
   TIME_UNIT_FOR_SELECTION,
@@ -31,7 +31,7 @@ const unitMap: {
 } = {
   memory: MEMORY_UNITS_FOR_SELECTION,
   storage: STORAGE_UNITS_FOR_SELECTION,
-  cpu: CPU_UNITS,
+  cpu: CPU_UNITS_FOR_SELECTION,
   time: TIME_UNIT_FOR_SELECTION,
 };
 
@@ -159,11 +159,15 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
     [type],
   );
 
+  const parsedInputValue = parseFloat(inputValue);
+  const displayValue =
+    Number.isNaN(parsedInputValue) || (parsedInputValue === 0 && min > 0) ? 1 : parsedInputValue;
+
   return (
     <Split className="workspacekind-form-resource-input">
       <SplitItem>
         <NumberInput
-          value={parseFloat(inputValue) || 1}
+          value={displayValue}
           placeholder={placeholder}
           onMinus={handleDecrement}
           onChange={handleNumberInputChange}

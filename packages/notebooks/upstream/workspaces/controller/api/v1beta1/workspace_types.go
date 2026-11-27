@@ -69,11 +69,17 @@ type WorkspacePodTemplate struct {
 
 type WorkspacePodMetadata struct {
 	// labels to be applied to the Pod resource
+	//  - entries are currently NOT allowed, until the security model
+	//    for Workspace-level Pod metadata is defined
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxProperties:=0
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to be applied to the Pod resource
+	//  - entries are currently NOT allowed, until the security model
+	//    for Workspace-level Pod metadata is defined
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxProperties:=0
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
@@ -82,7 +88,7 @@ type WorkspacePodVolumes struct {
 	//  - this PVC must already exist in the Namespace
 	//  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
 	//  - the mount path is defined in the WorkspaceKind under
-	//    `spec.podTemplate.volumeMounts.home`
+	//    `spec.podTemplate.volumeMountPaths.home`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
@@ -154,7 +160,7 @@ type PodSecretMount struct {
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:validation:Maximum:=511
 	// +kubebuilder:default=420
-	DefaultMode int32 `json:"defaultMode,omitempty"`
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
 }
 
 type WorkspacePodOptions struct {
@@ -203,7 +209,8 @@ type WorkspaceStatus struct {
 	//  - true if any `spec.podTemplate.options` have a redirect
 	//    and so will be patched on the next restart
 	//  - true if the WorkspaceKind has changed one of its common `podTemplate` fields
-	//    like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
+	//    like `podMetadata`, `podSpec.mainContainer.livenessProbe`,
+	//    `podSpec.mainContainer.extraEnv`, or `podSpec.mainContainer.securityContext`
 	// +kubebuilder:default=false
 	PendingRestart bool `json:"pendingRestart"`
 
@@ -265,7 +272,7 @@ type WorkspaceActivityLastProbe struct {
 	// a human-readable message about the probe result
 	//  - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
 	// +kubebuilder:default=""
-	// +kubebuilder:example="Jupyter probe succeeded"
+	// +kubebuilder:example="PodExec probe succeeded"
 	Message string `json:"message"`
 }
 
@@ -338,10 +345,10 @@ type WorkspacePodStatus struct {
 
 	// the name of the ServiceAccount that the Pod runs as
 	//  - this ServiceAccount is created and owned by the Workspace, and is stable for its lifetime
-	//  - it is reported here so that Roles, RoleBindings, and Istio AuthorizationPolicies
-	//    which reference the ServiceAccount do not have to recompute its name
+	//  - the name has a random suffix, so it is reported here for Roles, RoleBindings,
+	//    and Istio AuthorizationPolicies which need to reference the ServiceAccount
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:example="ws-my-workspace"
+	// +kubebuilder:example="ws-my-workspace-abcde"
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
 	// information about the Pod's containers
