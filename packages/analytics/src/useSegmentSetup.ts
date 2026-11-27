@@ -35,6 +35,7 @@ export const useSegmentSetup = ({
   const identifyRef = React.useRef(identify);
   const trackPageEventRef = React.useRef(trackPageEvent);
   const enabledRef = React.useRef(enabled);
+  const setupGenerationRef = React.useRef(0);
 
   React.useLayoutEffect(() => {
     identifyRef.current = identify;
@@ -42,21 +43,26 @@ export const useSegmentSetup = ({
     enabledRef.current = enabled;
   }, [identify, trackPageEvent, enabled]);
 
+  React.useLayoutEffect(
+    () => () => {
+      // Invalidate at commit, before new callbacks can reach the previous client.
+      setupGenerationRef.current += 1;
+    },
+    [segmentKey, ready, enabled, clusterID, userKey, cdnURL, apiHost, protocol],
+  );
+
   React.useEffect(() => {
     if (!segmentKey || !ready) {
       return;
     }
-    let cancelled = false;
+    const setupGeneration = setupGenerationRef.current;
     window.clusterID = clusterID;
     initSegment({ segmentKey, enabled, cdnURL, apiHost, protocol }).then(() => {
-      if (cancelled || !enabled || !enabledRef.current) {
+      if (setupGeneration !== setupGenerationRef.current || !enabled || !enabledRef.current) {
         return;
       }
       identifyRef.current();
       trackPageEventRef.current();
     });
-    return () => {
-      cancelled = true;
-    };
   }, [segmentKey, ready, enabled, clusterID, userKey, cdnURL, apiHost, protocol]);
 };

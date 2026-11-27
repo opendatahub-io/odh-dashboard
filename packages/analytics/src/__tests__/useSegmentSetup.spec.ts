@@ -211,9 +211,12 @@ describe('shared host analytics setup', () => {
         options: { ...setup, identify: committedIdentify, trackPageEvent: committedPage },
         suspend: false,
       });
-      rerender({
-        options: { ...setup, identify: uncommittedIdentify, trackPageEvent: uncommittedPage },
-        suspend: true,
+      // Keep the committed tree visible; hiding it with a fallback runs layout cleanup.
+      React.startTransition(() => {
+        rerender({
+          options: { ...setup, identify: uncommittedIdentify, trackPageEvent: uncommittedPage },
+          suspend: true,
+        });
       });
 
       await act(async () => {
@@ -386,5 +389,136 @@ describe('shared host analytics setup', () => {
       { count: 2, clusterID: 'distribution-cluster' },
       { app: { version: '2.5' } },
     );
+  });
+});
+
+describe('Segment setup commit invalidation', () => {
+  it('should invalidate superseded setup before passive cleanup runs', async () => {
+    try {
+      await jest.isolateModulesAsync(async () => {
+        jest.doMock('scheduler', () => jest.requireActual('scheduler/unstable_mock'));
+        // The shared test setup already imports React DOM; isolate it to use the controlled scheduler.
+        const isolatedReact = jest.requireActual<typeof import('react')>('react');
+        const { createRoot } =
+          jest.requireActual<typeof import('react-dom/client')>('react-dom/client');
+        const segmentSDK =
+          jest.requireMock<typeof import('@segment/analytics-next')>('@segment/analytics-next');
+        const trackingModule = jest.requireActual<typeof import('../createSegmentTracking')>(
+          '../createSegmentTracking',
+        );
+        const segmentUtils =
+          jest.requireActual<typeof import('../segmentUtils')>('../segmentUtils');
+        const segmentSetup =
+          jest.requireActual<typeof import('../useSegmentSetup')>('../useSegmentSetup');
+        const scheduler = jest.requireActual<{
+          unstable_flushUntilNextPaint: () => void;
+          unstable_flushAllWithoutAsserting: () => void;
+        }>('scheduler/unstable_mock');
+        const committedUsers: Array<string | undefined> = [];
+        let renderCount = 0;
+        const Setup = (options: SegmentSetupOptions) => {
+          renderCount += 1;
+          segmentSetup.useSegmentSetup(options);
+          isolatedReact.useLayoutEffect(() => {
+            committedUsers.push(options.userKey);
+          }, [options.userKey]);
+          return null;
+        };
+        const originalAnalytics = Object.getOwnPropertyDescriptor(window, 'analytics');
+        const originalClusterID = Object.getOwnPropertyDescriptor(window, 'clusterID');
+        const actEnvironment = Object.getOwnPropertyDescriptor(
+          globalThis,
+          'IS_REACT_ACT_ENVIRONMENT',
+        );
+        // Drive React's scheduler explicitly so act cannot flush away the commit/passive gap.
+        Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', {
+          configurable: true,
+          writable: true,
+          value: false,
+        });
+        const root = createRoot(document.createElement('div'));
+        const oldClient = { identify: jest.fn(), page: jest.fn() };
+        const newClient = { identify: jest.fn(), page: jest.fn() };
+        jest
+          .mocked(segmentSDK.AnalyticsBrowser.load)
+          .mockReset()
+          .mockReturnValueOnce(oldClient as unknown as AnalyticsBrowser)
+          .mockReturnValueOnce(newClient as unknown as AnalyticsBrowser);
+        const params = () => ({
+          clusterID: window.clusterID ?? '',
+          devMode: false,
+          version: '1.0',
+        });
+        const tracking = trackingModule.createSegmentTracking(params);
+        const setup: SegmentSetupOptions = {
+          segmentKey: 'old-key',
+          cdnURL: 'https://cdn.example.test',
+          apiHost: 'events.example.test/v1',
+          ready: true,
+          enabled: true,
+          clusterID: 'old-cluster',
+          userKey: 'old-user',
+          identify: () =>
+            segmentUtils.fireIdentifyEvent(
+              { userID: 'old-user', isAdmin: false, canCreateProjects: true },
+              params(),
+            ),
+          trackPageEvent: tracking.trackPageEvent,
+        };
+
+        try {
+          root.render(isolatedReact.createElement(Setup, setup));
+          scheduler.unstable_flushUntilNextPaint();
+          root.render(
+            isolatedReact.createElement(Setup, {
+              ...setup,
+              segmentKey: 'new-key',
+              clusterID: 'new-cluster',
+              userKey: 'new-user',
+              identify: () =>
+                segmentUtils.fireIdentifyEvent(
+                  { userID: 'new-user', isAdmin: false, canCreateProjects: true },
+                  params(),
+                ),
+            }),
+          );
+          // Flush the initial passive setup and replacement commit, stopping before its passive effects.
+          scheduler.unstable_flushUntilNextPaint();
+          expect(committedUsers).toEqual(['old-user', 'new-user']);
+          expect(renderCount).toBe(2);
+          expect(segmentSDK.AnalyticsBrowser.load).toHaveBeenCalledTimes(1);
+          expect(window.analytics).toBe(oldClient);
+          expect(window.clusterID).toBe('old-cluster');
+
+          // The real initializer has resolved; its continuation runs before passive cleanup.
+          await Promise.resolve();
+          expect(oldClient.identify).not.toHaveBeenCalled();
+          expect(oldClient.page).not.toHaveBeenCalled();
+
+          scheduler.unstable_flushAllWithoutAsserting();
+          await Promise.resolve();
+          expect(segmentSDK.AnalyticsBrowser.load).toHaveBeenCalledTimes(2);
+          expect(window.analytics).toBe(newClient);
+          expect(newClient.identify.mock.calls).toEqual([
+            ['new-user', { clusterID: 'new-cluster', isAdmin: false, canCreateProjects: true }],
+          ]);
+          expect(newClient.page).toHaveBeenCalledTimes(1);
+        } finally {
+          root.unmount();
+          scheduler.unstable_flushAllWithoutAsserting();
+          for (const [target, key, descriptor] of [
+            [window, 'analytics', originalAnalytics],
+            [window, 'clusterID', originalClusterID],
+            [globalThis, 'IS_REACT_ACT_ENVIRONMENT', actEnvironment],
+          ] as const) {
+            if (descriptor) Object.defineProperty(target, key, descriptor);
+            else Reflect.deleteProperty(target, key);
+          }
+          jest.mocked(segmentSDK.AnalyticsBrowser.load).mockReset();
+        }
+      });
+    } finally {
+      jest.dontMock('scheduler');
+    }
   });
 });

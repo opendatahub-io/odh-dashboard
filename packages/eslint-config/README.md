@@ -30,22 +30,18 @@ module.exports = require('@odh-dashboard/eslint-config').recommendedReactTypescr
 
 The `recommendedCore`, `recommendedTypescript`, and `recommendedReactTypescript` profiles
 enable `@odh-dashboard/no-direct-analytics` at error severity for source and unit-test
-files by default. Standalone ESLint configs should apply the exported `featureAnalytics`
-preset to their source and unit-test trees. Keep exceptions file-scoped for analytics
-implementation, composition roots, host adapters, and Cypress observation.
+files by default; no additional override is needed when using these profiles. Custom ESLint
+configs that do not use these profiles should extend the preset in their existing `overrides`
+array, as shown below. Keep exceptions file-scoped for analytics implementation, composition
+roots, host adapters, and Cypress observation.
 
 ```js
-const eslintConfig = require('@odh-dashboard/eslint-config');
-
-const config = eslintConfig.recommendedReactTypescript(__dirname);
-
 module.exports = {
-  ...config,
   overrides: [
-    ...config.overrides,
     {
       files: ['src/**/*.{js,jsx,ts,tsx}'],
-      ...eslintConfig.featureAnalytics,
+      excludedFiles: ['src/__tests__/cypress/**'],
+      extends: ['@odh-dashboard/eslint-config/feature-analytics'],
     },
   ],
 };

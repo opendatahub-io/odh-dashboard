@@ -1,5 +1,4 @@
 const path = require('path');
-const { featureAnalytics } = require('@odh-dashboard/eslint-config');
 
 module.exports = {
   parser: '@typescript-eslint/parser',
@@ -238,9 +237,9 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['src/**/*.{ts,tsx}'],
+      files: ['src/**/*.{js,jsx,ts,tsx}'],
       excludedFiles: ['src/__tests__/cypress/**'],
-      ...featureAnalytics,
+      extends: ['@odh-dashboard/eslint-config/feature-analytics'],
     },
     {
       files: ['./src/odh/extensions.ts', './src/odh/extension-points/**'],

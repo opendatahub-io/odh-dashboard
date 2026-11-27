@@ -124,6 +124,37 @@ describe('useApiKeysTableState tracking', () => {
     });
   });
 
+  it.each(['onStatusToggle', 'onStatusClear'] as const)(
+    'should update filters and pagination before a throwing tracker in %s',
+    (action) => {
+      const trackingError = new Error('Tracking failed');
+      const trackEvent = jest.fn(() => {
+        throw trackingError;
+      });
+      const { result } = renderHook(useApiKeysTableState, {
+        wrapper: ({ children }) => (
+          <TrackingProvider trackEvent={trackEvent}>{children}</TrackingProvider>
+        ),
+      });
+
+      act(() => {
+        result.current.onSetPage(3);
+      });
+      act(() => {
+        expect(() => result.current[action]('expired')).toThrow(trackingError);
+      });
+
+      expect(result.current.filterData.statuses).toEqual(['active', 'inactive']);
+      expect(result.current.page).toBe(1);
+      expect(result.current.isFetching).toBe(true);
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+      expect(trackEvent).toHaveBeenCalledWith('API Keys Status Filter Applied', {
+        selectedStatuses: JSON.stringify(['active', 'inactive']),
+        selectedCount: 2,
+      });
+    },
+  );
+
   it.each<{
     action: 'onStatusToggle' | 'onStatusClear';
     status: APIKeyDisplayStatus;

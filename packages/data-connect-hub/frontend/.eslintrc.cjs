@@ -148,7 +148,7 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['src/**/*.{ts,tsx}'],
+      files: ['src/**/*.{js,jsx,ts,tsx}'],
       excludedFiles: ['src/__tests__/cypress/**'],
       extends: ['@odh-dashboard/eslint-config/feature-analytics'],
     },

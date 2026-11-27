@@ -178,10 +178,10 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
       const statuses = filterData.statuses.includes(status)
         ? filterData.statuses.filter((s) => s !== status)
         : [...filterData.statuses, status];
-      trackStatusFilter(statuses);
       setFilterData((prev) => ({ ...prev, statuses }));
       setPage(1);
       setIsFetching(true);
+      trackStatusFilter(statuses);
     },
     [filterData.statuses, trackStatusFilter],
   );
@@ -189,10 +189,10 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   const onStatusClear = React.useCallback(
     (status: APIKeyDisplayStatus) => {
       const statuses = filterData.statuses.filter((s) => s !== status);
-      trackStatusFilter(statuses);
       setFilterData((prev) => ({ ...prev, statuses }));
       setPage(1);
       setIsFetching(true);
+      trackStatusFilter(statuses);
     },
     [filterData.statuses, trackStatusFilter],
   );
