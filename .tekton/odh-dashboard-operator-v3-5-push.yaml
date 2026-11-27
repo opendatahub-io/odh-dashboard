@@ -1,0 +1,83 @@
+
+apiVersion: tekton.dev/v1
+# konflux build manual retrigger - 2026-11-19 06:04:17
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/red-hat-data-services/odh-dashboard?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    build.appstudio.openshift.io/build-nudge-files: "build/operator-nudging.yaml"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      konflux_cluster == "stone-prod-p02"
+      && event == "push"
+      && target_branch == "rhoai-3.5"
+      && ( files.all.exists(p, !p.matches('^\\.tekton/')) || ".tekton/odh-dashboard-operator-v3-5-push.yaml".pathChanged() )
+  labels:
+    appstudio.openshift.io/application: rhoai-v3-5
+    appstudio.openshift.io/component: odh-dashboard-operator-v3-5
+    pipelines.appstudio.openshift.io/type: build
+  name: odh-dashboard-operator-v3-5-on-push
+  namespace: rhoai-tenant
+spec:
+  params:
+  - name: git-url
+    value: '{{source_url}}'
+  - name: revision
+    value: '{{revision}}'
+  - name: additional-tags
+    value:
+    - '{{target_branch}}-{{revision}}'
+  - name: output-image
+    value: quay.io/rhoai/odh-dashboard-operator-rhel9:{{target_branch}}
+  - name: rhoai-version
+    value: "3.5.5"
+  - name: dockerfile
+    value: Dockerfile.konflux.dashboard-operator
+  - name: path-context
+    value: .
+  - name: hermetic
+    value: true
+  - name: prefetch-input
+    value: |
+      [{"type": "npm", "path": "."} , {"type": "gomod", "path": "dashboard-operator"}]
+  - name: build-platforms
+    value:
+    - linux/x86_64
+    - linux-m2xlarge/arm64
+    - linux/ppc64le
+    - linux/s390x
+  pipelineRef:
+    params:
+    - name: url
+      value: https://github.com/red-hat-data-services/konflux-central.git
+    - name: revision
+      value: '{{ target_branch }}'
+    - name: pathInRepo
+      value: pipelines/multi-arch-container-build.yaml
+    resolver: git
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-odh-dashboard-operator-v3-5
+    podTemplate:
+      imagePullSecrets:
+      - name: redhat-appstudio-staginguser-pull-secret
+  timeouts:
+    pipeline: 2h
+#restart
+  taskRunSpecs:
+  - pipelineTaskName: rpms-signature-scan
+    stepSpecs:
+    - name: rpms-signature-scan
+      computeResources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+  workspaces:
+  - name: git-auth
+    secret:
+      secretName: "{{ git_auth_secret }}"

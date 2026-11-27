@@ -2,52 +2,73 @@ apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
   annotations:
-    build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
+    build.appstudio.openshift.io/repo: https://github.com/red-hat-data-services/odh-dashboard?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "true"
+    build.appstudio.redhat.com/pull_request_number: "{{pull_request_number}}"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "pull_request"
-      && target_branch == "main"
-      && ( "packages/agent-ops/**".pathChanged()
-            || ".tekton/odh-mod-arch-agent-ops-pull-request.yaml".pathChanged() )
-  creationTimestamp: null
+    pipelinesascode.tekton.dev/on-comment: "^/build-konflux"
+    pipelinesascode.tekton.dev/on-label: "[kfbuild-all, kfbuild-odh-mod-arch-agent-ops]"
+    pipelinesascode.tekton.dev/on-target-branch: "[{{target_branch}}]"
+    pipelinesascode.tekton.dev/on-event: "[pull_request]"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
   labels:
-    appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-mod-arch-agent-ops-ci
+    appstudio.openshift.io/application: automation
+    appstudio.openshift.io/component: pull-request-pipelines-odh-mod-arch-agent-ops
     pipelines.appstudio.openshift.io/type: build
-  name: odh-mod-arch-agent-ops-ci-on-pull-request
-  namespace: open-data-hub-tenant
+  name: odh-mod-arch-agent-ops-on-pull-request-{{pull_request_number}}
+  namespace: rhoai-tenant
 spec:
+  timeouts:
+    pipeline: 8h
   params:
   - name: git-url
     value: '{{source_url}}'
   - name: revision
     value: '{{revision}}'
-  - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-agent-ops:odh-pr
-  - name: dockerfile
-    value: packages/agent-ops/Dockerfile.workspace
-  - name: path-context
-    value: .
-  - name: pipeline-type
-    value: pull-request
   - name: additional-tags
     value:
-    - 'odh-pr-{{revision}}'
+    - 'pr-{{pull_request_number}}-into-{{target_branch}}'
+  - name: additional-labels
+    value:
+    - version=on-pr-{{revision}}
+    - io.openshift.tags=odh-mod-arch-agent-ops
+  - name: output-image
+    value: quay.io/rhoai/pull-request-pipelines:odh-mod-arch-agent-ops-{{revision}}
+  - name: build-platforms
+    value:
+    - linux/x86_64
+    - linux-m2xlarge/arm64
+    - linux/ppc64le
+    - linux/s390x
+  - name: image-expires-after
+    value: 5d
+  - name: dockerfile
+    value: Dockerfile.konflux.agent-ops
+  - name: path-context
+    value: .
+  - name: hermetic
+    value: true
+  - name: prefetch-input
+    value: |
+      [{"type": "npm", "path": "."}]
+  - name: build-image-index
+    value: true
+  - name: enable-slack-failure-notification
+    value: "false"
+  - name: additional-build-secret
+    value: "rhel-ai-private-index-auth"
   pipelineRef:
     resolver: git
     params:
     - name: url
-      value: https://github.com/opendatahub-io/odh-konflux-central.git
+      value: https://github.com/red-hat-data-services/konflux-central.git
     - name: revision
-      value: main
+      value: '{{ target_branch }}'
     - name: pathInRepo
-      value: pipeline/multi-arch-container-build.yaml
+      value: pipelines/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-mod-arch-agent-ops-ci
+    serviceAccountName: build-pipeline-pull-request-pipelines
   workspaces:
   - name: git-auth
     secret:
