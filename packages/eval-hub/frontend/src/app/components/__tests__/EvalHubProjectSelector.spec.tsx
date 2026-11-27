@@ -2,7 +2,13 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import * as ModArchCore from 'mod-arch-core';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
+
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn(),
+}));
 
 const mockNavigate = jest.fn();
 
@@ -44,6 +50,9 @@ describe('EvalHubProjectSelector', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest
+      .mocked(useIsAreaAvailable)
+      .mockReturnValue({ status: false } as ReturnType<typeof useIsAreaAvailable>);
     mockUseNamespaceSelector.mockReturnValue({
       namespaces: [{ name: 'project-a' }, { name: 'new-project' }],
       updatePreferredNamespace: mockUpdatePreferredNamespace,
@@ -59,6 +68,24 @@ describe('EvalHubProjectSelector', () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId('project-selector')).toBeInTheDocument();
+  });
+
+  it('should keep project recovery available when UPS is enabled', () => {
+    jest
+      .mocked(useIsAreaAvailable)
+      .mockReturnValue({ status: true } as ReturnType<typeof useIsAreaAvailable>);
+    render(
+      <MemoryRouter>
+        <EvalHubProjectSelector namespace="project-a" getRedirectPath={mockGetRedirectPath} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('project-selector')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('select-project'));
+    expect(mockUpdatePreferredNamespace).toHaveBeenCalledWith({ name: 'new-project' });
+    expect(mockNavigate).toHaveBeenCalledWith({
+      pathname: '/eval-hub/new-project',
+      search: '',
+    });
   });
 
   it('should pass namespace to the selector', () => {

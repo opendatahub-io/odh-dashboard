@@ -148,6 +148,35 @@ describe('useWorkingProjectRouteSync', () => {
     );
   });
 
+  it('should discard the suffix, query, and hash when location preservation is disabled', () => {
+    mockUseLocation.mockReturnValue({
+      pathname: '/assets/project-a/models/model-a',
+      search: '?selected=model-a',
+      hash: '#details',
+      state: { model: 'model-a' },
+      key: 'initial',
+    });
+    const { rerender } = renderHook(
+      ({ activeProjectName }: { activeProjectName: string }) =>
+        useWorkingProjectRouteSync({
+          activeProjectName,
+          routeProjectName: 'project-a',
+          projects,
+          selectProject,
+          enabled: true,
+          getProjectPath: (name) => `/assets/${name}`,
+          preserveLocationOnProjectChange: false,
+        }),
+      { initialProps: { activeProjectName: 'project-a' } },
+    );
+
+    expect(navigate).not.toHaveBeenCalled();
+    rerender({ activeProjectName: 'project-b' });
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith({ pathname: '/assets/project-b' }, { replace: true });
+  });
+
   it('should not select or navigate for an invalid route project', () => {
     renderHook(() =>
       useWorkingProjectRouteSync({

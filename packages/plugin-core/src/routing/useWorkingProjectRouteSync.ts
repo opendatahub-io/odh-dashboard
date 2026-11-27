@@ -13,6 +13,8 @@ export type WorkingProjectRouteSyncOptions = {
   selectProject: (project: RouteProjectIdentity) => void;
   enabled: boolean;
   getProjectPath: ((projectName: string) => string) | null;
+  /** Set false to discard the current suffix, query, and hash when changing projects. */
+  preserveLocationOnProjectChange?: boolean;
   registerProjectRouteSync?: (route?: RouteProjectInput) => () => void;
 };
 
@@ -70,6 +72,7 @@ export const useWorkingProjectRouteSync = ({
   selectProject,
   enabled,
   getProjectPath,
+  preserveLocationOnProjectChange = true,
   registerProjectRouteSync,
 }: WorkingProjectRouteSyncOptions): void => {
   const navigate = useNavigate();
@@ -88,6 +91,10 @@ export const useWorkingProjectRouteSync = ({
         return null;
       }
 
+      if (!preserveLocationOnProjectChange) {
+        return { pathname: getProjectPath(projectName) };
+      }
+
       return {
         pathname: getProjectRouteWithSuffix(
           location.pathname,
@@ -99,7 +106,14 @@ export const useWorkingProjectRouteSync = ({
         hash: location.hash,
       };
     },
-    [getProjectPath, location.hash, location.pathname, location.search, routeProjectName],
+    [
+      getProjectPath,
+      location.hash,
+      location.pathname,
+      location.search,
+      preserveLocationOnProjectChange,
+      routeProjectName,
+    ],
   );
   const handledRouteProject = React.useRef<string | undefined>();
   const pendingRouteSelection = React.useRef<
