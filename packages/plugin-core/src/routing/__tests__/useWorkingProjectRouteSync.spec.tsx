@@ -1,9 +1,10 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getProjectRouteWithSuffix,
   updateProjectQueryParam,
   useWorkingProjectRouteSync,
+  type WorkingProjectRouteSyncOptions,
 } from '../useWorkingProjectRouteSync';
 
 jest.mock('react-router-dom', () => ({
@@ -372,6 +373,68 @@ describe('useWorkingProjectRouteSync', () => {
     );
   });
 
+  describe('route state preservation', () => {
+    it('should keep the route suffix, query and hash by default', () => {
+      mockUseLocation.mockReturnValue({
+        pathname: '/pipelines/project-a/runs/run-1',
+        search: '?pipeline_version=3',
+        hash: '#logs',
+      } as ReturnType<typeof useLocation>);
+      const { rerender } = renderHook(
+        ({ activeProjectName }: { activeProjectName: string }) =>
+          useWorkingProjectRouteSync({
+            activeProjectName,
+            routeProjectName: 'project-a',
+            projects,
+            selectProject,
+            enabled: true,
+            getProjectPath: (name) => `/pipelines/${name}`,
+          }),
+        { initialProps: { activeProjectName: 'project-a' } },
+      );
+
+      rerender({ activeProjectName: 'project-b' });
+
+      expect(navigate).toHaveBeenCalledWith(
+        {
+          pathname: '/pipelines/project-b/runs/run-1',
+          search: '?pipeline_version=3',
+          hash: '#logs',
+        },
+        { replace: true },
+      );
+    });
+
+    it('should discard the route suffix, query and hash when route state preservation is off', () => {
+      mockUseLocation.mockReturnValue({
+        pathname: '/pipelines/project-a/runs/run-1',
+        search: '?pipeline_version=3',
+        hash: '#logs',
+      } as ReturnType<typeof useLocation>);
+      const { rerender } = renderHook(
+        ({ activeProjectName }: { activeProjectName: string }) =>
+          useWorkingProjectRouteSync({
+            activeProjectName,
+            routeProjectName: 'project-a',
+            projects,
+            selectProject,
+            enabled: true,
+            getProjectPath: (name) => `/pipelines/${name}`,
+            preserveRouteState: false,
+          }),
+        { initialProps: { activeProjectName: 'project-a' } },
+      );
+
+      rerender({ activeProjectName: 'project-b' });
+
+      // Another project's run id and query would request a resource that does not belong to it.
+      expect(navigate).toHaveBeenCalledWith(
+        { pathname: '/pipelines/project-b' },
+        { replace: true },
+      );
+    });
+  });
+
   const noNavigationCases: NoNavigationCase[] = [
     {
       name: 'UPS is disabled',
@@ -490,6 +553,65 @@ describe('useWorkingProjectRouteSync', () => {
     expect(registerProjectRouteSync).toHaveBeenLastCalledWith({
       kind: 'project',
       name: 'project-a',
+    });
+  });
+
+  describe('route registration contract', () => {
+    type RegisterProjectRouteSync = NonNullable<
+      WorkingProjectRouteSyncOptions['registerProjectRouteSync']
+    >;
+
+    const getProjectPath = (projectName: string) => `/pipelines/${projectName}`;
+
+    const renderRouteRegistration = (routeProjectName: string) => {
+      const registerProjectRouteSync = jest.fn<
+        ReturnType<RegisterProjectRouteSync>,
+        Parameters<RegisterProjectRouteSync>
+      >(() => () => undefined);
+
+      renderHook(() =>
+        useWorkingProjectRouteSync({
+          activeProjectName: 'project-a',
+          routeProjectName,
+          projects,
+          selectProject,
+          enabled: true,
+          getProjectPath,
+          registerProjectRouteSync,
+        }),
+      );
+
+      return registerProjectRouteSync;
+    };
+
+    it('should recover an invalid route to the project name the host passes', () => {
+      const registerProjectRouteSync = renderRouteRegistration('unknown');
+
+      const registered = registerProjectRouteSync.mock.calls[0][0];
+      expect(registered).toEqual({ kind: 'invalid', recover: expect.any(Function) });
+      if (registered?.kind !== 'invalid') {
+        throw new Error(
+          `expected an invalid route registration, received ${JSON.stringify(registered)}`,
+        );
+      }
+      expect(navigate).not.toHaveBeenCalled();
+
+      // The host decides which project to fall back to, so recovery must follow its argument
+      // instead of the project that happens to be active.
+      act(() => {
+        registered.recover?.('project-b');
+      });
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith(getProjectPath('project-b'), { replace: true });
+    });
+
+    it('should register a valid route project without a recovery handler', () => {
+      const registerProjectRouteSync = renderRouteRegistration('project-b');
+
+      const registered = registerProjectRouteSync.mock.calls[0][0];
+      expect(registered).toStrictEqual({ kind: 'project', name: 'project-b' });
+      expect(registered).not.toHaveProperty('recover');
     });
   });
 });

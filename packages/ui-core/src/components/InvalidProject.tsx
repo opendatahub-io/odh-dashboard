@@ -7,6 +7,8 @@ export type InvalidProjectProps = {
   namespace?: string;
   getRedirectPath: (namespace: string) => string;
   syncWorkingProject?: boolean;
+  /** Skip the embedded selector when the host already renders one (unified project selector). */
+  hideProjectSelector?: boolean;
 };
 
 const InvalidProject: React.FC<InvalidProjectProps> = ({
@@ -14,17 +16,20 @@ const InvalidProject: React.FC<InvalidProjectProps> = ({
   title,
   getRedirectPath,
   syncWorkingProject,
+  hideProjectSelector,
 }) => (
   <EmptyStateErrorMessage
     title={title || 'Project not found'}
     bodyText={`${namespace ? `Project ${namespace}` : 'The project'} was not found.`}
   >
-    <ProjectSelectorNavigator
-      getRedirectPath={getRedirectPath}
-      syncWorkingProject={syncWorkingProject}
-      invalidDropdownPlaceholder="Select project"
-      primary
-    />
+    {!hideProjectSelector && (
+      <ProjectSelectorNavigator
+        getRedirectPath={getRedirectPath}
+        syncWorkingProject={syncWorkingProject}
+        invalidDropdownPlaceholder="Select project"
+        primary
+      />
+    )}
   </EmptyStateErrorMessage>
 );
 

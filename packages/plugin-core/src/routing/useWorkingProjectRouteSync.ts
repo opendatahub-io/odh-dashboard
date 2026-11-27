@@ -14,6 +14,13 @@ export type WorkingProjectRouteSyncOptions = {
   enabled: boolean;
   getProjectPath: ((projectName: string) => string) | null;
   registerProjectRouteSync?: (route?: RouteProjectInput) => () => void;
+  /**
+   * Keep the current route suffix, query and hash when the project changes.
+   * Surfaces whose suffixes carry resource identifiers that are scoped to the current project
+   * (pipeline runs, artifacts, executions, definitions) set this to `false` so a project switch
+   * lands on the section base route instead of requesting an identifier from another project.
+   */
+  preserveRouteState?: boolean;
 };
 
 export type ProjectRouteLocation = {
@@ -71,6 +78,7 @@ export const useWorkingProjectRouteSync = ({
   enabled,
   getProjectPath,
   registerProjectRouteSync,
+  preserveRouteState = true,
 }: WorkingProjectRouteSyncOptions): void => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -88,6 +96,10 @@ export const useWorkingProjectRouteSync = ({
         return null;
       }
 
+      if (!preserveRouteState) {
+        return { pathname: getProjectPath(projectName) };
+      }
+
       return {
         pathname: getProjectRouteWithSuffix(
           location.pathname,
@@ -99,7 +111,14 @@ export const useWorkingProjectRouteSync = ({
         hash: location.hash,
       };
     },
-    [getProjectPath, location.hash, location.pathname, location.search, routeProjectName],
+    [
+      getProjectPath,
+      location.hash,
+      location.pathname,
+      location.search,
+      preserveRouteState,
+      routeProjectName,
+    ],
   );
   const handledRouteProject = React.useRef<string | undefined>();
   const pendingRouteSelection = React.useRef<

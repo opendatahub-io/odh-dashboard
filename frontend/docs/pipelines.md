@@ -17,7 +17,7 @@
 | Project detail — Pipelines tab | `/projects/:namespace` (Pipelines tab) | same as above |
 
 - Global routes live under `develop-train`; each embeds `/:namespace`, resolved by `GlobalPipelineCoreLoader`.
-- If the URL has no namespace, the user is redirected to their preferred project.
+- If the URL has no namespace, `GlobalPipelineCoreLoader` resolves it to the shared active project, the one selected in the masthead. While the `unifiedProjectSelector` dev flag is off, the fallback is the stored project, then the preferred project, then the first project.
 - Gating uses `SupportedArea.DS_PIPELINES` (dashboard config + DSC).
 - From a project, the Pipelines section is rendered under `frontend/src/pages/projects/screens/detail/pipelines/PipelinesSection.tsx`.
 
@@ -69,4 +69,4 @@
 - **Import file size:** Client-side limit before upload (see `not-a-pipeline-2-megabytes.yaml` fixture).
 - **MLMD in dev:** With `DEV_MODE`, [grpc-web-devtools](https://github.com/SafetyCulture/grpc-web-devtools) helps inspect gRPC-web; otherwise network tab is opaque.
 - **DSPipeline spec:** Context checks `spec.dspVersion === 'v2'` for `hasCompatibleVersion`; older spec can warn even if reachable.
-- **Bookmarking:** Namespace-less `/develop-train/pipelines/...` redirects to preferred (or first) project—bookmarks without `/:namespace` can surprise users.
+- **Bookmarking:** Namespace-less `/develop-train/pipelines/...` resolves to the active project, which follows the masthead selection, so a bookmark without `/:namespace` can open a different project than the one selected when it was saved.
