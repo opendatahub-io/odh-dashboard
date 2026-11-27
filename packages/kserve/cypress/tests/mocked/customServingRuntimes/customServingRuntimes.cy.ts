@@ -79,6 +79,43 @@ describe('Custom serving runtimes', () => {
     servingRuntimeTemplates.getRowById('template-1').find().should('exist');
   });
 
+  it('should show the selected model type count when the dropdown is closed', () => {
+    servingRuntimeTemplates.findAddButton().click();
+    servingRuntimeTemplates.findSelectModelTypeButton().should('have.text', 'Select model types');
+
+    servingRuntimeTemplates.findSelectModelTypeButton().click();
+    servingRuntimeTemplates.findPredictiveModelOption().check();
+    servingRuntimeTemplates.findSelectModelTypeButton().click();
+    servingRuntimeTemplates
+      .findSelectModelTypeButton()
+      .should('have.attr', 'aria-expanded', 'false')
+      .and('contain.text', '1');
+
+    servingRuntimeTemplates.findSelectModelTypeButton().click();
+    servingRuntimeTemplates.findGenerativeAIModelOption().check();
+    servingRuntimeTemplates.findSelectModelTypeButton().click();
+    servingRuntimeTemplates
+      .findSelectModelTypeButton()
+      .should('have.attr', 'aria-expanded', 'false')
+      .and('contain.text', '2');
+
+    servingRuntimeTemplates.findSelectModelTypeButton().click();
+    servingRuntimeTemplates.findPredictiveModelOption().uncheck();
+    servingRuntimeTemplates.findSelectModelTypeButton().click();
+    servingRuntimeTemplates
+      .findSelectModelTypeButton()
+      .should('have.attr', 'aria-expanded', 'false')
+      .and('contain.text', '1');
+
+    servingRuntimeTemplates.findSelectModelTypeButton().click();
+    servingRuntimeTemplates.findGenerativeAIModelOption().uncheck();
+    servingRuntimeTemplates.findSelectModelTypeButton().click();
+    servingRuntimeTemplates
+      .findSelectModelTypeButton()
+      .should('have.attr', 'aria-expanded', 'false')
+      .and('have.text', 'Select model types');
+  });
+
   it('should add a new single model serving runtime', () => {
     cy.interceptOdh(
       'POST /api/servingRuntimes/',
