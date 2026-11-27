@@ -478,8 +478,11 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	// A transient bundle apply error reports an actionable condition, requests a
 	// retry, and retains the previously verified endpoint.
 	updated = getDashboard(t)
+	previousObservedGeneration := updated.Status.ObservedGeneration
 	updated.Spec.Gateway.Domain = "failed.example.com"
 	require.NoError(t, k8sClient.Update(ctx, updated))
+	failedGeneration := updated.Generation
+	assert.Greater(t, failedGeneration, previousObservedGeneration)
 	watchClient, err := client.NewWithWatch(restCfg, client.Options{Scheme: k8sClient.Scheme()})
 	require.NoError(t, err)
 	failingReconciler := *r
@@ -500,6 +503,14 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	updated = getDashboard(t)
 	assert.Equal(t, "MaaSPortalDeployFailed", conditionReason(updated, "MaaSPortalAvailable"))
 	assert.Equal(t, "https://updated.example.com/maas-portal/", updated.Status.MaaSPortalURL)
+	assert.Equal(t, previousObservedGeneration, updated.Status.ObservedGeneration,
+		"portal apply failures must leave observedGeneration behind the failed spec generation")
+
+	// Clear the injected failure and verify the next successful reconcile advances
+	// observedGeneration to the pending spec generation.
+	reconcile(t, r)
+	updated = getDashboard(t)
+	assert.Equal(t, failedGeneration, updated.Status.ObservedGeneration)
 
 	// service-ca normally creates this unlabelled Secret; model it explicitly to
 	// verify portal removal does not rely on owner-reference garbage collection.
@@ -527,6 +538,57 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 		assert.Nil(t, getPortalResource(t, resource.apiVersion, resource.kind, resource.name), "%s/%s should be removed", resource.kind, resource.name)
 	}
 	assert.Empty(t, getDashboard(t).Status.MaaSPortalURL)
+}
+
+func TestIntegration_MaaSPortalManagedFailurePreservesObservedGeneration(t *testing.T) {
+	base := createIntegrationManifests(t, []string{"maas", "gen-ai"})
+	writeMaaSPortalManifest(t, base)
+	r := &ctrlpkg.DashboardReconciler{
+		Client: k8sClient, Scheme: k8sClient.Scheme(), ManifestsBasePath: base,
+		Platform: cluster.SelfManagedRhoai, Namespace: integrationNamespace, ApplicationsNamespace: integrationNamespace,
+	}
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		ManagementSpec: common.ManagementSpec{ManagementState: "Managed"},
+		Gateway:        &v1alpha1.GatewaySpec{Domain: "managed.example.com"},
+		Modules:        disableAllModulesExcept("maas", "genAi"),
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+	})
+	ctx := context.Background()
+	require.NoError(t, k8sClient.Create(ctx, dashboard))
+	t.Cleanup(func() {
+		deleteDashboard(t)
+		cleanupMaaSPortalResources(t, r)
+		cleanupModuleResources(t)
+	})
+
+	reconcile(t, r)
+	reconcile(t, r)
+	previousObservedGeneration := getDashboard(t).Status.ObservedGeneration
+	updated := getDashboard(t)
+	updated.Spec.Gateway.Domain = "managed-failed.example.com"
+	require.NoError(t, k8sClient.Update(ctx, updated))
+	failedGeneration := updated.Generation
+
+	watchClient, err := client.NewWithWatch(restCfg, client.Options{Scheme: k8sClient.Scheme()})
+	require.NoError(t, err)
+	failingReconciler := *r
+	failingReconciler.Client = interceptor.NewClient(watchClient, interceptor.Funcs{
+		Apply: func(ctx context.Context, delegate client.WithWatch, configuration runtime.ApplyConfiguration, options ...client.ApplyOption) error {
+			data, err := json.Marshal(configuration)
+			if err != nil {
+				return err
+			}
+			if strings.Contains(string(data), `"kind":"Deployment"`) && strings.Contains(string(data), `"name":"maas-portal"`) {
+				return errors.New("simulated managed MaaS Portal apply failure")
+			}
+			return delegate.Apply(ctx, configuration, options...)
+		},
+	})
+	reconcile(t, &failingReconciler)
+	assert.Equal(t, previousObservedGeneration, getDashboard(t).Status.ObservedGeneration)
+
+	reconcile(t, r)
+	assert.Equal(t, failedGeneration, getDashboard(t).Status.ObservedGeneration)
 }
 
 // TestIntegration_MaaSPortalResourcesPreservedWhenCoreRemoved verifies
