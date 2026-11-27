@@ -118,7 +118,7 @@ func (app *App) serveIndexHTML(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(constants.HeaderContentLength, strconv.Itoa(len(body)))
 	w.WriteHeader(http.StatusOK)
 	if r.Method != http.MethodHead {
-		_, _ = w.Write(body)
+		_, _ = w.Write(body) // #nosec G705 -- static shell + crypto/rand nonce only
 	}
 }
 
