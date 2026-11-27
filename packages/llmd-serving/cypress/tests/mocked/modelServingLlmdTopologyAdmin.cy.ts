@@ -106,7 +106,7 @@ describe('LLMD Topology Admin Settings', () => {
         '/settings/model-resources-operations/model-deployment-settings/topology-configurations/add/workload-single-node',
       );
       // The form actually mounted (URL + missing tab chrome alone don't prove it).
-      topologyConfigurations.findAppTitle().should('have.text', 'Add Single node configuration');
+      topologyConfigurations.findAppTitle().should('have.text', 'Add single node configuration');
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
       topologyConfigurations.findTabPageTitle().should('not.exist');
@@ -239,12 +239,16 @@ describe('LLMD Topology Admin Settings', () => {
 
       topologyConfigurations.visit(false);
       topologyConfigurations.findEmptyStateAddButton().click();
-      topologyConfigurations.findAppTitle().should('have.text', 'Add Single node configuration');
+      topologyConfigurations.findAppTitle().should('have.text', 'Add single node configuration');
 
       topologyConfigurations.findDisplayNameInput().type('New topology');
       // The YAML editor only mounts once a configuration source is chosen
       // (showEditor gates on configSource === 'editor' in create mode).
       topologyConfigurations.selectConfigSource('editor');
+      topologyConfigurations
+        .getYamlEditor()
+        .containsText('Add a single node configuration')
+        .should('be.visible');
       topologyConfigurations.getYamlEditor().setValue('metadata:\n  name: placeholder');
       topologyConfigurations.findSubmitButton().should('be.enabled').click();
 

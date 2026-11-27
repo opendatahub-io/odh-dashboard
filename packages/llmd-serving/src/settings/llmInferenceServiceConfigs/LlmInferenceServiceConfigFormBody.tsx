@@ -277,7 +277,11 @@ const LlmInferenceServiceConfigFormBody: React.FC<LlmInferenceServiceConfigFormB
         isRequired
         fieldId="llm-inference-service-config-yaml"
       >
-        <ConfigYAMLEditor code={yamlCode} onCodeChange={setYamlCode} />
+        <ConfigYAMLEditor
+          code={yamlCode}
+          onCodeChange={setYamlCode}
+          emptyStateTitle="Add an LLM inference service configuration"
+        />
       </FormGroup>
       {error ? (
         <Alert

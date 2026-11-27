@@ -8,6 +8,7 @@ import { TopologyConfigContext } from '../TopologyConfigContext';
 import TopologyConfigurationCreateEdit from '../TopologyConfigurationCreateEdit';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../paths';
 import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
+import ConfigYAMLEditor from '../../ConfigYAMLEditor';
 
 const { wrapper } = createTestProviders();
 
@@ -143,6 +144,35 @@ describe('TopologyConfigurationCreateEdit', () => {
       fireEvent.change(nameInput, { target: { value: 'My Custom Topology' } });
 
       expect(screen.getByText('my-custom-topology', { exact: false })).toBeInTheDocument();
+    });
+  });
+
+  describe('sentence-case topology instructions', () => {
+    it.each([
+      [TopologyType.SINGLE_NODE, 'single node'],
+      [TopologyType.MULTI_NODE, 'multi-node'],
+      [TopologyType.SINGLE_NODE_DISAGGREGATED, 'single node disaggregated'],
+      [TopologyType.MULTI_NODE_DISAGGREGATED, 'multi-node disaggregated'],
+    ])('should use sentence case in the title and empty editor for %s', (topologyType, label) => {
+      renderAtAdd(topologyType);
+
+      expect(screen.getByTestId('app-page')).toHaveAttribute(
+        'data-title',
+        `Add ${label} configuration`,
+      );
+
+      jest
+        .mocked(ConfigYAMLEditor)
+        .mockImplementationOnce(
+          jest.requireActual<typeof import('../../ConfigYAMLEditor')>('../../ConfigYAMLEditor')
+            .default,
+        );
+      fireEvent.click(screen.getByTestId('config-source-select'));
+      fireEvent.click(screen.getByRole('option', { name: 'Open code editor' }));
+
+      expect(
+        screen.getByRole('heading', { name: `Add a ${label} configuration` }),
+      ).toBeInTheDocument();
     });
   });
 

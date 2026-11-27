@@ -14,6 +14,7 @@ import {
 import type { LLMInferenceServiceConfigKind } from '../../../types';
 import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../paths';
+import ConfigYAMLEditor from '../../ConfigYAMLEditor';
 
 const { wrapper } = createTestProviders();
 
@@ -69,6 +70,21 @@ describe('LlmInferenceServiceConfigAddForm', () => {
         'Add a new inference service configuration that will be available for users on this cluster.',
       );
       expect(screen.getByTestId('llm-inference-service-config-name')).toHaveValue('');
+    });
+
+    it('should identify the inference service configuration in the empty YAML editor', () => {
+      jest
+        .mocked(ConfigYAMLEditor)
+        .mockImplementationOnce(
+          jest.requireActual<typeof import('../../ConfigYAMLEditor')>('../../ConfigYAMLEditor')
+            .default,
+        );
+
+      render(<LlmInferenceServiceConfigAddForm mode="add" />, { wrapper });
+
+      expect(
+        screen.getByRole('heading', { name: 'Add an LLM inference service configuration' }),
+      ).toBeInTheDocument();
     });
 
     it('should disable Create button when name is empty', () => {
