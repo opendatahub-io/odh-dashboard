@@ -67,6 +67,27 @@ describe('Data Connect Hub BFF Contract Tests', () => {
       });
     });
 
+    it('should resolve connection types when listing connections', async () => {
+      const result = await apiClient.get(
+        '/api/v1/connections?namespace=default&resolve_connection_types=true',
+      );
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.data).toHaveProperty(
+          'data.0.resource.data_connection_type.resource.provider',
+          'postgres',
+        );
+        expect(result.response.data).toHaveProperty(
+          'data.1.resource.data_connection_type.resource.provider',
+          's3',
+        );
+      }
+    });
+
     it('should create a connection for a project', async () => {
       const result = await apiClient.post('/api/v1/connections?namespace=default', {
         name: 'warehouse',
@@ -123,6 +144,23 @@ describe('Data Connect Hub BFF Contract Tests', () => {
         ref: '#/components/responses/ConnectionResponse/content/application~1json/schema',
         status: 200,
       });
+    });
+
+    it('should resolve the type when retrieving a connection', async () => {
+      const result = await apiClient.get(
+        `/api/v1/connections/${connectionId}?namespace=default&resolve_connection_types=true`,
+      );
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.data).toHaveProperty(
+          'data.resource.data_connection_type.resource.provider',
+          'postgres',
+        );
+      }
     });
 
     it('should return not found for an unknown connection', async () => {

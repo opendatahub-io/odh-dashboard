@@ -1,6 +1,7 @@
 package integrations
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -17,6 +18,7 @@ import (
 )
 
 type HTTPClientInterface interface {
+	GETWithContext(context.Context, string) ([]byte, error)
 	GET(url string) ([]byte, error)
 	POST(url string, body io.Reader) ([]byte, error)
 	PATCH(url string, body io.Reader) ([]byte, error)
@@ -87,10 +89,14 @@ func (c *HTTPClient) GetRequestID() string {
 }
 
 func (c *HTTPClient) GET(url string) ([]byte, error) {
+	return c.GETWithContext(context.Background(), url)
+}
+
+func (c *HTTPClient) GETWithContext(ctx context.Context, url string) ([]byte, error) {
 	requestId := uuid.NewString()
 
 	fullURL := c.baseURL + url
-	req, err := http.NewRequest("GET", fullURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
 	if err != nil {
 		return nil, err
 	}

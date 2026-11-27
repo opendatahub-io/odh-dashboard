@@ -38,7 +38,6 @@ import ConnectionDeleteModal from '~/app/components/ConnectionDeleteModal';
 import CreateConnectionButton from '~/app/components/CreateConnectionButton';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
 import { ConnectionTypeLabel } from '~/app/components/ConnectionType';
-import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
 import {
@@ -82,8 +81,9 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     'delete',
   );
   const isVerifyAccessDisabled = !canVerifyConnection || !verifyAccessLoaded;
-  const [connections, loaded, error, refresh] = useConnections(namespace, isActive);
-  const [connectionTypes, typesLoaded, typesError] = useConnectionTypes(namespace, isActive);
+  const [connections, loaded, error, refresh] = useConnections(namespace, isActive, {
+    resolveConnectionTypes: true,
+  });
   const [nameFilter, setNameFilter] = React.useState('');
   const [selectedTypes, setSelectedTypes] = React.useState<string[] | null>(null);
   const [typeOpen, setTypeOpen] = React.useState(false);
@@ -117,7 +117,14 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     },
     [],
   );
-  const connectionTypesMap = new Map(connectionTypes.map((type) => [type.metadata.id, type]));
+  const connectionTypesMap = new Map(
+    connections.flatMap((connection) => {
+      const connectionType = connection.resource.data_connection_type;
+      return connectionType
+        ? [[connection.resource.data_connection_type_id, connectionType] as const]
+        : [];
+    }),
+  );
   const typeIds = React.useMemo(
     () =>
       Array.from(
@@ -159,8 +166,8 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   if (!namespace) {
     return null;
   }
-  if (error || typesError) {
-    if (isConnectionAccessForbidden(error) || isConnectionAccessForbidden(typesError)) {
+  if (error) {
+    if (isConnectionAccessForbidden(error)) {
       return <UnauthorizedError accessDomain="connections" />;
     }
     return (
@@ -170,12 +177,12 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           titleText="Unable to load data connections"
           variant={EmptyStateVariant.lg}
         >
-          <EmptyStateBody>{(error ?? typesError)?.message}</EmptyStateBody>
+          <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
       </PageSection>
     );
   }
-  if (!loaded || !typesLoaded) {
+  if (!loaded) {
     return (
       <PageSection isFilled hasBodyWrapper={false}>
         <EmptyState
@@ -620,13 +627,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                                 properties: {
                                   project: namespace,
                                   connectionTypeProvider:
-                                    getConnectionTypeProvider(
-                                      connectionTypes.find(
-                                        (type) =>
-                                          type.metadata.id ===
-                                          connection.resource.data_connection_type_id,
-                                      ),
-                                    ) ?? 'unknown',
+                                    getConnectionTypeProvider(connectionType) ?? 'unknown',
                                 },
                               });
                               setDeleteTarget(connection);

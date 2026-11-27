@@ -95,29 +95,37 @@ describe('getConnections', () => {
     mockIsModArchResponse.mockReturnValue(true);
   });
 
-  it('returns connections from a valid response', async () => {
-    const connection = {
-      metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
-      resource: {
-        name: 'warehouse',
-        data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
-        format: 'tabular' as const,
-        credentials_ref: { secret: 'warehouse' },
-      },
-      status: { state: 'ready' as const },
-    };
-    const fetchMock = jest
-      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
-      .mockResolvedValue(response(200, JSON.stringify({ data: [connection] })));
-    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+  it.each([undefined, { resolveConnectionTypes: false }, { resolveConnectionTypes: true }])(
+    'returns connections with resolution options %j',
+    async (options) => {
+      const connection = {
+        metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
+        resource: {
+          name: 'warehouse',
+          data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
+          ...(options?.resolveConnectionTypes && {
+            data_connection_type: mockConnectionType().original,
+          }),
+          format: 'tabular' as const,
+          credentials_ref: { secret: 'warehouse' },
+        },
+        status: { state: 'ready' as const },
+      };
+      const fetchMock = jest
+        .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+        .mockResolvedValue(response(200, JSON.stringify({ data: [connection] })));
+      Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
 
-    await expect(getConnections('')({}, 'test-project')).resolves.toEqual([connection]);
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/data-connect-hub/api/v1/connections?namespace=test-project',
-      expect.objectContaining({ method: 'GET' }),
-    );
-    delete (globalThis as { fetch?: typeof fetch }).fetch;
-  });
+      await expect(getConnections('')({}, 'test-project', options)).resolves.toEqual([connection]);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `/data-connect-hub/api/v1/connections?namespace=test-project${
+          options?.resolveConnectionTypes ? '&resolve_connection_types=true' : ''
+        }`,
+        expect.objectContaining({ method: 'GET' }),
+      );
+      delete (globalThis as { fetch?: typeof fetch }).fetch;
+    },
+  );
 
   it('preserves HTTP 403 failures', async () => {
     const fetchMock = jest

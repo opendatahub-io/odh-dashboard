@@ -69,6 +69,8 @@ const isConnection = (value: unknown): value is Connection => {
       value.resource.description === null ||
       typeof value.resource.description === 'string') &&
     typeof value.resource.data_connection_type_id === 'string' &&
+    (value.resource.data_connection_type === undefined ||
+      isConnectionType(value.resource.data_connection_type)) &&
     (value.resource.format === 'tabular' || value.resource.format === 'binary') &&
     isRecord(value.resource.credentials_ref) &&
     typeof value.resource.credentials_ref.secret === 'string' &&
@@ -116,8 +118,15 @@ const isConnectionType = (value: unknown): value is ConnectionType =>
 
 export const getConnections =
   (hostPath: string) =>
-  async (opts: APIOptions, namespace: string): Promise<Connection[]> => {
+  async (
+    opts: APIOptions,
+    namespace: string,
+    options?: { resolveConnectionTypes: boolean },
+  ): Promise<Connection[]> => {
     const searchParams = new URLSearchParams({ namespace });
+    if (options?.resolveConnectionTypes) {
+      searchParams.set('resolve_connection_types', 'true');
+    }
     const response = await fetch(
       `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections?${searchParams.toString()}`,
       {

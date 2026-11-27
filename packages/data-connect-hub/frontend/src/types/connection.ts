@@ -1,3 +1,5 @@
+import type { ConnectionType } from '~/types/connection-type';
+
 export type Connection = {
   metadata: {
     id: string;
@@ -9,6 +11,7 @@ export type Connection = {
     name: string;
     description?: string | null;
     data_connection_type_id: string;
+    data_connection_type?: ConnectionType;
     format: 'tabular' | 'binary';
     credentials_ref: { secret: string };
     properties?: Record<string, string>;

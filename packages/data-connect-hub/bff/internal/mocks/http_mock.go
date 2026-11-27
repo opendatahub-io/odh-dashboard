@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	"context"
 	"io"
 
 	"github.com/stretchr/testify/mock"
@@ -31,4 +32,11 @@ func (m *MockHTTPClient) DELETE(url string) ([]byte, error) {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (m *MockHTTPClient) GETWithContext(ctx context.Context, url string) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return m.GET(url)
 }
