@@ -1,22 +1,29 @@
-[Dev setup & Requirements]: dev-setup.md
-[Full environment setup]: environment-setup.md
-[Architecture]: architecture.md
-[Testing]: testing.md
-[Environment Variables]: env-variables.md
+# Data Registry Dashboard Documentation
 
-# Data Registry UI Documentation
+The Dashboard package provides the Data Registry UI and its Go BFF. The registry
+API and its metadata store run separately on the cluster.
 
-These pages describe the current Data Registry dashboard package: its local
-development modes, request flow, test strategy, and configuration. The package
-does not deploy the upstream Data Registry service or its database.
+## Use the Dashboard
 
-## Developer Readmes
+Open **AI Hub → Data**, select a project, and browse its collections and
+assets. Registration stores metadata and an optional connection reference;
+the data stays in its source. Follow the [customer walkthrough](https://github.com/red-hat-data-services/red-hat-ai-examples/tree/main/examples/data-registry)
+for asset registration, notebook access, and sharing.
 
-- [Dev setup & Requirements] — install dependencies and run mock or federated development.
-- [Architecture] — understand the dashboard module, BFF, API, and registry data model.
-- [Testing] — run frontend, BFF, contract, and Cypress checks.
-- [Environment Variables] — configure the frontend, BFF, and upstream API connection.
+## Develop or Deploy
 
-## Full Environment Setup
+| Goal                                                  | Start here                                                                                                                                                              |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Develop the UI without a cluster                      | [Development setup](dev-setup.md) and [mocked tests](testing.md)                                                                                                        |
+| Run the dashboard locally against an existing cluster | [Local dashboard integration](environment-setup.md)                                                                                                                     |
+| Enable the backend and dashboard on RHOAI 3.6         | [Cluster configuration walkthrough](https://github.com/red-hat-data-services/red-hat-ai-examples/blob/main/examples/data-registry/01-configure-data-registry/README.md) |
 
-- [Full environment setup] — create the backend FeatureStore and connect a local dashboard, frontend, and BFF.
+Local integration and cluster deployment both use the federated UI. Standalone
+mode is for package development; it does not describe where the backend runs.
+
+## Reference
+
+- [Architecture](architecture.md) — Dashboard, BFF, and registry request flow.
+- [Environment variables](env-variables.md) — local UI and BFF configuration.
+- [Testing](testing.md) — frontend, BFF, contract, and Cypress checks.
+- [Data Registry API guide](https://github.com/opendatahub-io/data-registry/tree/main/docs/user-guide) and [OpenAPI contract](https://github.com/opendatahub-io/data-registry/blob/main/api-contract/data-registry-api.yaml) — direct API use, authentication, authorization, and schemas.

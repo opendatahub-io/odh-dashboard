@@ -1,6 +1,6 @@
-# Vendored from the Data Registry backend's API contract.
-# Source: https://gitlab.cee.redhat.com/data-strategy/data-registry-production/-/blob/main/api-contract/data-registry-api.yaml
-# This file is manually synced — re-fetch from the source above when the backend contract changes.
+# Vendored snapshot of the Data Registry backend's API contract.
+# Public source of truth: https://github.com/opendatahub-io/data-registry/blob/main/api-contract/data-registry-api.yaml
+# This file is manually synced; compare content with upstream even when info.version matches.
 # Do not hand-edit paths/schemas here without updating the upstream source of truth first (RHAI-415).
 openapi: 3.1.0
 info:

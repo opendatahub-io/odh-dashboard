@@ -80,11 +80,7 @@ mod-arch-starter/
 ├── manifests/                   # Kubernetes manifests
 │   ├── base/                    # Base Kustomize resources
 │   └── overlays/                # Environment-specific overlays
-├── docs/                        # Project documentation
-│   ├── install.md               # Installation guide
-│   ├── local-deployment-guide.md
-│   ├── local-deployment-guide-ui.md
-│   └── kubeflow-development-guide.md
+├── docs/                        # Project documentation; start with README.md
 ├── scripts/                     # Utility scripts
 ├── Dockerfile                   # Container image build
 ├── Makefile                     # Root-level make commands
@@ -398,7 +394,7 @@ make test   # Run tests
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.24+** for the BFF and **Node 22+** for the frontend
+1. Use **Go 1.26+** for the BFF and **Node 22+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Stick to **PatternFly components** and utilities; Material UI appears only when Kubeflow flavor
    explicitly requires it
@@ -410,39 +406,11 @@ make test   # Run tests
 
 ---
 
-## Installation via CLI
-
-Bootstrap a fresh copy without cloning the repo:
-
-```bash
-pnpm dlx mod-arch-installer my-module --flavor kubeflow
-```
-
-### CLI Options
-
-| Flag                           | Description                              | Default  |
-| ------------------------------ | ---------------------------------------- | -------- |
-| `--flavor <kubeflow\|default>` | Kubeflow (MUI) or PatternFly-only flavor | kubeflow |
-| `--skip-install`               | Skip `pnpm install` in frontend          | false    |
-| `--no-git`                     | Skip git initialization                  | false    |
-
-### Flavor Differences
-
-| Aspect            | Kubeflow Flavor   | Default Flavor           |
-| ----------------- | ----------------- | ------------------------ |
-| Theme             | Material UI       | PatternFly only          |
-| mod-arch-core     | Included          | Included                 |
-| mod-arch-shared   | Included          | **Not included**         |
-| mod-arch-kubeflow | Included          | **Not included**         |
-| ThemeProvider     | MUI ThemeProvider | None (PatternFly native) |
-
----
-
 ## Additional Resources
 
-- [Installation Guide](docs/install.md)
-- [Local Deployment Guide](docs/local-deployment-guide.md)
-- [Kubeflow Development Guide](docs/kubeflow-development-guide.md)
+- [Data Registry Documentation](docs/README.md)
+- [Local Development](docs/dev-setup.md)
+- [Local Dashboard Integration](docs/environment-setup.md)
 - [Frontend Dev Setup](frontend/docs/dev-setup.md)
 - [Frontend Testing](frontend/docs/testing.md)
 - [BFF Documentation](bff/README.md)
