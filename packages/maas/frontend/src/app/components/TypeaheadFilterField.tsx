@@ -82,6 +82,12 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
     value,
     isFragment: false,
   });
+  // FilterToolbar chip deletion and parent clear-all change the controlled
+  // value without passing through onSelect; reconcile the replay guard so
+  // reapplying the same filter afterwards still counts as a new application.
+  if (lastApplied.current.value !== value) {
+    lastApplied.current = { value, isFragment: false };
+  }
 
   // A committed fragment (or a navigation-initialized display name) has no
   // option with a matching resource value; synthesize one so it stays visible
