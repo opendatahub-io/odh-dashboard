@@ -148,6 +148,69 @@ describe('useWorkingProjectRouteSync', () => {
     );
   });
 
+  it.each([undefined, true, false])(
+    'should preserve location on project switches only when enabled (option: %s)',
+    (preserveLocationOnProjectChange) => {
+      mockUseLocation.mockReturnValue({
+        pathname: '/assets/project-a/models',
+        search: '?run=old-run',
+        hash: '#details',
+      } as ReturnType<typeof useLocation>);
+      const { rerender } = renderHook(
+        ({ activeProjectName }: { activeProjectName: string }) =>
+          useWorkingProjectRouteSync({
+            activeProjectName,
+            routeProjectName: 'project-a',
+            projects,
+            selectProject,
+            enabled: true,
+            getProjectPath: (name) => `/assets/${name}`,
+            preserveLocationOnProjectChange,
+          }),
+        { initialProps: { activeProjectName: 'project-a' } },
+      );
+
+      expect(navigate).not.toHaveBeenCalled();
+      rerender({ activeProjectName: 'project-b' });
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith(
+        preserveLocationOnProjectChange === false
+          ? { pathname: '/assets/project-b' }
+          : { pathname: '/assets/project-b/models', search: '?run=old-run', hash: '#details' },
+        { replace: true },
+      );
+      expect(selectProject).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should select a deep-linked project without navigating when location preservation is disabled', () => {
+    mockUseLocation.mockReturnValue({
+      pathname: '/assets/project-b/models',
+      search: '?run=linked-run',
+      hash: '#details',
+    } as ReturnType<typeof useLocation>);
+    const { rerender } = renderHook(
+      ({ activeProjectName }: { activeProjectName: string }) =>
+        useWorkingProjectRouteSync({
+          activeProjectName,
+          routeProjectName: 'project-b',
+          projects,
+          selectProject,
+          enabled: true,
+          getProjectPath: (name) => `/assets/${name}`,
+          preserveLocationOnProjectChange: false,
+        }),
+      { initialProps: { activeProjectName: 'project-a' } },
+    );
+
+    rerender({ activeProjectName: 'project-b' });
+
+    expect(selectProject).toHaveBeenCalledTimes(1);
+    expect(selectProject).toHaveBeenCalledWith(projects[1]);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('should not select or navigate for an invalid route project', () => {
     renderHook(() =>
       useWorkingProjectRouteSync({

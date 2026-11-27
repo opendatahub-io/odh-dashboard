@@ -115,6 +115,13 @@ function AutoragConfigurePage({
   );
 
   const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   // The actual baseline the form starts from — not just `initialValues`, which the reconfigure
   // loader may leave partially populated (e.g. a field it couldn't parse from the source run's
@@ -539,9 +546,12 @@ function AutoragConfigurePage({
                         success: true,
                       });
                     }
-                    navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`, {
-                      state: { entrySource: 'direct' },
-                    });
+                    // A project switch unmounts this form; a late response must not restore it.
+                    if (mounted.current) {
+                      navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`, {
+                        state: { entrySource: 'direct' },
+                      });
+                    }
                   } catch (error) {
                     fireAutoragRunTriggered(trackEvent, {
                       ...runTrackingProperties,
@@ -557,6 +567,9 @@ function AutoragConfigurePage({
                         success: false,
                         error: AUTORAG_FAILURE_CATEGORY,
                       });
+                    }
+                    if (!mounted.current) {
+                      return;
                     }
                     catchUIError(error, () =>
                       notification.error(

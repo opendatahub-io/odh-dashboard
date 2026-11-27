@@ -2,6 +2,7 @@ import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import { NoProjects } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useNavigate, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import ProjectSelectorNavigator from '~/app/components/common/ProjectSelectorNavigator';
@@ -16,10 +17,16 @@ import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/util
 
 const NoProjectsIcon = () => <img src={emptyStateImage} alt="AutoRAG Infrastructure" />;
 
-function AutoragExperimentsPage(): React.JSX.Element {
+const LegacyProjectRedirect: React.FC = () => {
   usePreferredNamespaceRedirect();
+  return null;
+};
 
+function AutoragExperimentsPage(): React.JSX.Element {
   const navigate = useNavigate();
+  const unifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
     useNamespaceSelectorWithPersistence();
@@ -35,11 +42,11 @@ function AutoragExperimentsPage(): React.JSX.Element {
   const [experimentsListStatus, setExperimentsListStatus] =
     React.useState<AutoragExperimentsListStatus>({ loaded: false, hasExperiments: false });
 
-  // When the route namespace changes, drop prior list status so the header cannot briefly reflect
-  // the previous project. useLayoutEffect runs before paint and before child useEffect; a passive
-  // useEffect here can run after AutoragExperiments has already reported the new namespace and
-  // overwrite correct state (header button stuck hidden).
-
+  // Legacy routes use an unkeyed Outlet and can reuse this page across namespace changes,
+  // so reset the previous project's header status here. UPS already remounts this page via
+  // AutoragProjectRoute's namespace-keyed Outlet; retain this reset for the legacy path.
+  // Use a layout effect so the reset precedes the child's passive status notification;
+  // a passive reset could overwrite the new status and leave the create-run button hidden.
   React.useLayoutEffect(() => {
     setExperimentsListStatus({ loaded: false, hasExperiments: false });
   }, [namespace]);
@@ -56,15 +63,17 @@ function AutoragExperimentsPage(): React.JSX.Element {
       alignItems={{ default: 'alignItemsCenter' }}
       className="pf-v6-u-w-100"
     >
-      <FlexItem>
-        <ProjectSelectorNavigator
-          namespace={namespace}
-          getRedirectPath={getRedirectPath}
-          showTitle
-        />
-      </FlexItem>
-      {showHeaderCreateRunButton ? (
+      {!unifiedProjectSelectorEnabled && (
         <FlexItem>
+          <ProjectSelectorNavigator
+            namespace={namespace}
+            getRedirectPath={getRedirectPath}
+            showTitle
+          />
+        </FlexItem>
+      )}
+      {showHeaderCreateRunButton ? (
+        <FlexItem align={{ default: 'alignRight' }}>
           <Button
             variant="primary"
             data-testid="autorag-header-create-run-button"
@@ -82,30 +91,33 @@ function AutoragExperimentsPage(): React.JSX.Element {
   );
 
   return (
-    <ApplicationsPage
-      title={<AutoragHeader />}
-      headerContent={headerContent}
-      description={
-        <p>
-          Automatically test and tune retrieval, indexing, and model settings to improve
-          Retrieval-Augmented Generation (RAG) response quality.
-        </p>
-      }
-      empty={showEmpty}
-      emptyStatePage={
-        noNamespaces ? (
-          <NoProjects productName="AutoRAG" icon={NoProjectsIcon} />
-        ) : (
-          <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
-        )
-      }
-      loadError={namespacesLoadError}
-      loaded={namespacesLoaded}
-      provideChildrenPadding
-      removeChildrenTopPadding
-    >
-      <AutoragExperiments onExperimentsListStatus={setExperimentsListStatus} />
-    </ApplicationsPage>
+    <>
+      {!unifiedProjectSelectorEnabled && <LegacyProjectRedirect />}
+      <ApplicationsPage
+        title={<AutoragHeader />}
+        headerContent={headerContent}
+        description={
+          <p>
+            Automatically test and tune retrieval, indexing, and model settings to improve
+            Retrieval-Augmented Generation (RAG) response quality.
+          </p>
+        }
+        empty={showEmpty}
+        emptyStatePage={
+          noNamespaces ? (
+            <NoProjects productName="AutoRAG" icon={NoProjectsIcon} />
+          ) : (
+            <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
+          )
+        }
+        loadError={namespacesLoadError}
+        loaded={namespacesLoaded}
+        provideChildrenPadding
+        removeChildrenTopPadding
+      >
+        <AutoragExperiments onExperimentsListStatus={setExperimentsListStatus} />
+      </ApplicationsPage>
+    </>
   );
 }
 

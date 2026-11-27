@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
@@ -991,6 +991,42 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('Configure step - Create run', () => {
+    it.each(['success', 'error'])(
+      'should not restore an unmounted project after a delayed %s response',
+      async (outcome) => {
+        let resolveRun: (value: { run_id: string }) => void = () => undefined;
+        let rejectRun: (reason: Error) => void = () => undefined;
+        mockMutateAsync.mockReturnValueOnce(
+          new Promise<{ run_id: string }>((resolve, reject) => {
+            resolveRun = resolve;
+            rejectRun = reject;
+          }),
+        );
+        const user = userEvent.setup();
+        const view = renderWithProviders(<AutoragConfigurePage />);
+        await user.type(await screen.findByLabelText(/Name/i), 'Test Experiment');
+        await user.click(await screen.findByTestId('maas-secret-selector-select-secret'));
+        await user.click(await screen.findByRole('button', { name: 'Next' }));
+        await user.click(await screen.findByTestId('aws-secret-selector-select-secret'));
+        await user.click(await screen.findByRole('button', { name: 'Browse bucket' }));
+        await user.click(await screen.findByTestId('file-explorer-select-file'));
+        const runButton = await screen.findByRole('button', { name: 'Create run' });
+        await waitFor(() => expect(runButton).toBeEnabled());
+        await user.click(runButton);
+        await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledTimes(1));
+        view.unmount();
+        await act(async () => {
+          if (outcome === 'success') {
+            resolveRun({ run_id: 'old-project-run' });
+          } else {
+            rejectRun(new Error('Old project request failed'));
+          }
+        });
+        expect(mockNavigate).not.toHaveBeenCalled();
+        expect(mockNotificationError).not.toHaveBeenCalled();
+      },
+    );
+
     it('should call mutateAsync when Create run button is clicked with valid form', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });

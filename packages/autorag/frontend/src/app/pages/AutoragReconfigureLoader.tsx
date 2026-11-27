@@ -1,7 +1,6 @@
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
 import { getMissingRequiredKeys, parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useParams } from 'react-router';
@@ -11,6 +10,7 @@ import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
 import { useNotification } from '~/app/hooks/useNotification';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import {
@@ -166,9 +166,8 @@ const parseReconfigureParameters = (params: Record<string, unknown>): Reconfigur
 
 function AutoragReconfigureLoader(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
