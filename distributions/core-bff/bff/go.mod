@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff
 
-go 1.27
+go 1.27.2
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.25

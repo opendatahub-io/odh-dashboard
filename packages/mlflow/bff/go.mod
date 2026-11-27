@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/mlflow/bff
 
-go 1.27
+go 1.27.2
 
 require (
 	github.com/google/uuid v1.6.0

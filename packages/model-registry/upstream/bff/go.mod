@@ -1,6 +1,6 @@
 module github.com/kubeflow/hub/ui/bff
 
-go 1.27
+go 1.27.2
 
 require (
 	github.com/brianvoe/gofakeit/v7 v7.15.0
