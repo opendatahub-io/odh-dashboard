@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,13 +26,24 @@ var mcpLifecycleOperatorGVR = schema.GroupVersionResource{
 	Resource: "mcplifecycleoperators",
 }
 
+var mcpGatewayExtensionGVR = schema.GroupVersionResource{
+	Group: "mcp.kuadrant.io", Version: "v1alpha1", Resource: "mcpgatewayextensions",
+}
+
+var gatewayGVR = schema.GroupVersionResource{
+	Group: "gateway.networking.k8s.io", Version: "v1", Resource: "gateways",
+}
+
 const (
 	mcpLifecycleOperatorName       = "default"
 	mcpLifecycleOperatorGetTimeout = 10 * time.Second
 
 	mcpDeployReadinessOperatorNotReadyMessage         = "The MCP lifecycle operator is not ready."
 	mcpDeployReadinessGatewayStatusUnavailableMessage = "MCP gateway availability could not be determined."
+	mcpDeployReadinessInstallerRBACMessage            = "The dashboard installer service account is not authorized to read the Gateway prerequisites. Verify the Project Matrix Gateway installer RBAC binding and retry."
 	mcpDeployReadinessNoGatewayAvailableMessage       = "No MCP gateway is available on this cluster."
+	mcpSupportLevel                                   = models.McpSupportLevelTechnologyPreview
+	mcpSupportMessage                                 = "MCP Catalog, MCP Lifecycle, and MCP Gateway are Technology Preview features in this platform release."
 )
 
 // MCPLifecycleOperatorReader reads the MCPLifecycleOperator singleton.
@@ -105,7 +117,79 @@ func (r *serviceAccountMCPLifecycleOperatorReader) Get(ctx context.Context) (*un
 	}
 	ctx, cancel := context.WithTimeout(ctx, mcpLifecycleOperatorGetTimeout)
 	defer cancel()
-	return client.Resource(mcpLifecycleOperatorGVR).Get(ctx, mcpLifecycleOperatorName, metav1.GetOptions{})
+	operator, err := client.Resource(mcpLifecycleOperatorGVR).Get(ctx, mcpLifecycleOperatorName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// Recent MCP Lifecycle releases keep the operator Ready condition but no longer
+	// copy discovered gateways into status.availableMCPGateways. Resolve the current
+	// MCPGatewayExtension/Gateway pair directly so the readiness gate follows the
+	// live Gateway API implementation instead of an obsolete status shape.
+	if _, found, _ := unstructured.NestedSlice(operator.Object, "status", "availableMCPGateways"); !found {
+		available, resolveErr := currentMCPGatewayEntries(ctx, client)
+		if resolveErr != nil {
+			return nil, resolveErr
+		}
+		if err := unstructured.SetNestedSlice(operator.Object, available, "status", "availableMCPGateways"); err != nil {
+			return nil, fmt.Errorf("failed to attach current MCP gateway status: %w", err)
+		}
+	}
+
+	return operator, nil
+}
+
+func currentMCPGatewayEntries(ctx context.Context, client dynamic.Interface) ([]interface{}, error) {
+	extensions, err := client.Resource(mcpGatewayExtensionGVR).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list MCP gateway extensions: %w", err)
+	}
+
+	entries := make([]interface{}, 0, len(extensions.Items))
+	for _, extension := range extensions.Items {
+		ready, conditionErr := isConditionTrue(&extension, "Ready")
+		if conditionErr != nil || !ready {
+			continue
+		}
+
+		target, found, err := unstructured.NestedMap(extension.Object, "spec", "targetRef")
+		if err != nil || !found {
+			continue
+		}
+		gatewayName, _, _ := unstructured.NestedString(target, "name")
+		gatewayNamespace, _, _ := unstructured.NestedString(target, "namespace")
+		if gatewayName == "" {
+			continue
+		}
+		if gatewayNamespace == "" {
+			gatewayNamespace = extension.GetNamespace()
+		}
+
+		gateway, err := client.Resource(gatewayGVR).Namespace(gatewayNamespace).Get(ctx, gatewayName, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return nil, fmt.Errorf("failed to read MCP gateway %s/%s: %w", gatewayNamespace, gatewayName, err)
+		}
+		listeners, _, err := unstructured.NestedSlice(gateway.Object, "status", "listeners")
+		if err != nil || len(listeners) == 0 {
+			continue
+		}
+
+		entries = append(entries, map[string]interface{}{
+			"name":      extension.GetName(),
+			"namespace": extension.GetNamespace(),
+			"ready":     true,
+			"gateway": map[string]interface{}{
+				"name":      gatewayName,
+				"namespace": gatewayNamespace,
+				"listeners": listeners,
+			},
+		})
+	}
+
+	return entries, nil
 }
 
 // StaticMCPLifecycleOperatorReader returns a fixed object. Used in mock mode.
@@ -159,6 +243,10 @@ func EvaluateMcpGatewayReadiness(obj *unstructured.Unstructured, getErr error) (
 		if apierrors.IsNotFound(getErr) {
 			return notDeployable(models.McpDeployReadinessOperatorNotReady, mcpDeployReadinessOperatorNotReadyMessage), nil
 		}
+		if isForbiddenReadinessError(getErr) {
+			return notDeployable(models.McpDeployReadinessInstallerRBACUnavailable, mcpDeployReadinessInstallerRBACMessage),
+				fmt.Errorf("dashboard installer service account is not authorized to read MCP Gateway prerequisites: %w", getErr)
+		}
 		return notDeployable(models.McpDeployReadinessGatewayStatusUnavailable, mcpDeployReadinessGatewayStatusUnavailableMessage),
 			fmt.Errorf("failed to read MCPLifecycleOperator %q: %w", mcpLifecycleOperatorName, getErr)
 	}
@@ -185,19 +273,29 @@ func EvaluateMcpGatewayReadiness(obj *unstructured.Unstructured, getErr error) (
 	}
 	for _, g := range gateways {
 		if isUsableGateway(g) {
-			return models.McpServerDeployReadiness{GatewayRequired: true, Deployable: true}, nil
+			return supportStatus(models.McpServerDeployReadiness{GatewayRequired: true, Deployable: true}), nil
 		}
 	}
 	return notDeployable(models.McpDeployReadinessNoGatewayAvailable, mcpDeployReadinessNoGatewayAvailableMessage), nil
 }
 
+func isForbiddenReadinessError(err error) bool {
+	return apierrors.IsForbidden(err) || strings.Contains(strings.ToLower(err.Error()), "forbidden")
+}
+
 func notDeployable(reason models.McpDeployReadinessReason, message string) models.McpServerDeployReadiness {
-	return models.McpServerDeployReadiness{
+	return supportStatus(models.McpServerDeployReadiness{
 		GatewayRequired: true,
 		Deployable:      false,
 		Reason:          reason,
 		Message:         message,
-	}
+	})
+}
+
+func supportStatus(readiness models.McpServerDeployReadiness) models.McpServerDeployReadiness {
+	readiness.SupportLevel = mcpSupportLevel
+	readiness.SupportMessage = mcpSupportMessage
+	return readiness
 }
 
 // isUsableGateway reports whether a discovered gateway is ready and has at least one

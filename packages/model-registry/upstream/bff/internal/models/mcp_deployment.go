@@ -37,6 +37,9 @@ type McpDeployment struct {
 	YAML       string                   `json:"yaml,omitempty"`
 	Conditions []McpDeploymentCondition `json:"conditions"`
 	Address    *McpDeploymentAddress    `json:"address,omitempty"`
+	// GatewayAddress is the externally exposed MCP Gateway client endpoint. It
+	// is distinct from Address, which is the cluster-local backend Service URL.
+	GatewayAddress *McpDeploymentAddress `json:"gatewayAddress,omitempty"`
 }
 
 type McpDeploymentList struct {
@@ -45,13 +48,36 @@ type McpDeploymentList struct {
 }
 
 type McpDeploymentCreateRequest struct {
-	Name            string `json:"name,omitempty"`
-	DisplayName     string `json:"displayName,omitempty"`
-	ServerName      string `json:"serverName,omitempty"`
-	RegistryServer  string `json:"registryServer,omitempty"`
-	RegistryVersion string `json:"registryVersion,omitempty"`
-	Image           string `json:"image"`
-	YAML            string `json:"yaml,omitempty"`
+	Name                string                      `json:"name,omitempty"`
+	DisplayName         string                      `json:"displayName,omitempty"`
+	ServerName          string                      `json:"serverName,omitempty"`
+	RegistryServer      string                      `json:"registryServer,omitempty"`
+	RegistryVersion     string                      `json:"registryVersion,omitempty"`
+	Image               string                      `json:"image"`
+	YAML                string                      `json:"yaml,omitempty"`
+	Prerequisites       []McpDeploymentPrerequisite `json:"prerequisites,omitempty"`
+	GatewayRegistration *McpGatewayRegistration     `json:"gatewayRegistration,omitempty"`
+}
+
+// McpGatewayRegistration describes the catalog-facing metadata used to expose
+// a deployed MCPServer through the discovered MCP Gateway. The BFF resolves
+// the actual Gateway and listener from the live cluster; callers never provide
+// cluster infrastructure names.
+type McpGatewayRegistration struct {
+	Category []string `json:"category,omitempty"`
+	Hint     string   `json:"hint,omitempty"`
+	Prefix   string   `json:"prefix,omitempty"`
+	Path     string   `json:"path,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
+}
+
+// McpDeploymentPrerequisite is intentionally limited to non-secret resources
+// that a catalog-guided install may create idempotently.
+type McpDeploymentPrerequisite struct {
+	Type        string            `json:"type"`
+	Name        string            `json:"name"`
+	ClusterRole string            `json:"clusterRole,omitempty"`
+	Data        map[string]string `json:"data,omitempty"`
 }
 
 type McpDeploymentUpdateRequest struct {

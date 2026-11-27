@@ -18,6 +18,8 @@ const renderRow = (
   onDeleteClick = jest.fn(),
   onEditClick = jest.fn(),
   showRegisteredVersion = true,
+  onViewStatus = jest.fn(),
+  isNewInstall = false,
 ) =>
   render(
     <MemoryRouter>
@@ -28,6 +30,8 @@ const renderRow = (
             showRegisteredVersion={showRegisteredVersion}
             onDeleteClick={onDeleteClick}
             onEditClick={onEditClick}
+            onViewStatus={onViewStatus}
+            isNewInstall={isNewInstall}
           />
         </Tbody>
       </PfTable>
@@ -96,6 +100,11 @@ describe('McpDeploymentsTableRow', () => {
     expect(screen.getByTestId('mcp-deployment-name')).toHaveTextContent('kubernetes-mcp');
   });
 
+  it('should mark the deployment created by the completed install handoff', () => {
+    renderRow(createMockDeployment(), jest.fn(), jest.fn(), true, jest.fn(), true);
+    expect(screen.getByTestId('mcp-new-install-label')).toHaveTextContent('New install');
+  });
+
   it('should render a non-empty formatted creation date', () => {
     const deployment = createMockDeployment();
     renderRow(deployment);
@@ -127,6 +136,7 @@ describe('McpDeploymentsTableRow', () => {
       createMockDeployment({
         conditions: createReadyConditions(),
         address: { url: 'kubernetes-test:8080' },
+        gatewayAddress: { url: 'https://mcp-gateway.example.com/mcp' },
       }),
     );
     const viewLink = screen.getByTestId('mcp-deployment-service-view');
@@ -136,10 +146,23 @@ describe('McpDeploymentsTableRow', () => {
     const popover = await screen.findByTestId('mcp-deployment-connection-url');
     expect(popover).toBeInTheDocument();
     expect(popover).toHaveTextContent('kubernetes-test:8080');
+    expect(await screen.findByTestId('mcp-deployment-gateway-url')).toHaveTextContent(
+      'https://mcp-gateway.example.com/mcp',
+    );
   });
 
   it('should render dash when deployment is not ready', () => {
     renderRow(createMockDeployment({ conditions: createFailedConditions() }));
     expect(screen.getByTestId('mcp-deployment-service-unavailable')).toBeInTheDocument();
+  });
+
+  it('should expose a durable installation status action', async () => {
+    const user = userEvent.setup();
+    const onViewStatus = jest.fn();
+    const deployment = createMockDeployment();
+    renderRow(deployment, jest.fn(), jest.fn(), true, onViewStatus);
+    await user.click(screen.getByRole('button', { name: /kebab/i }));
+    await user.click(screen.getByText('View installation status'));
+    expect(onViewStatus).toHaveBeenCalledWith(deployment);
   });
 });

@@ -59,7 +59,7 @@ func TestEvaluateMcpGatewayReadiness(t *testing.T) {
 		wantLogErr bool
 	}{
 		{name: "CR not found", getErr: notFound, reason: models.McpDeployReadinessOperatorNotReady},
-		{name: "read forbidden", getErr: forbidden, reason: models.McpDeployReadinessGatewayStatusUnavailable, wantLogErr: true},
+		{name: "read forbidden", getErr: forbidden, reason: models.McpDeployReadinessInstallerRBACUnavailable, wantLogErr: true},
 		{name: "other read error", getErr: errors.New("connection refused"), reason: models.McpDeployReadinessGatewayStatusUnavailable, wantLogErr: true},
 		{name: "nil object", reason: models.McpDeployReadinessOperatorNotReady},
 		{name: "no Ready condition", obj: mcpLifecycleOperator("", []interface{}{discoveredGateway("a", true, "mcps")}), reason: models.McpDeployReadinessOperatorNotReady},
@@ -92,6 +92,9 @@ func TestEvaluateMcpGatewayReadiness(t *testing.T) {
 				assert.Empty(t, got.Message)
 			} else {
 				assert.NotEmpty(t, got.Message)
+			}
+			if tt.name == "read forbidden" {
+				assert.Contains(t, got.Message, "installer service account")
 			}
 		})
 	}

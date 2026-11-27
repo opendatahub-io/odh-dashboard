@@ -65,6 +65,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('McpDeploymentsTable', () => {
   const onDeleteClick = jest.fn();
   const onEditClick = jest.fn();
+  const onViewStatus = jest.fn();
   const onClearFilters = jest.fn();
 
   beforeEach(() => {
@@ -80,6 +81,7 @@ describe('McpDeploymentsTable', () => {
         onClearFilters={onClearFilters}
         onDeleteClick={onDeleteClick}
         onEditClick={onEditClick}
+        onViewStatus={onViewStatus}
       />,
       { wrapper },
     );
@@ -99,6 +101,7 @@ describe('McpDeploymentsTable', () => {
         onClearFilters={onClearFilters}
         onDeleteClick={onDeleteClick}
         onEditClick={onEditClick}
+        onViewStatus={onViewStatus}
       />,
       { wrapper },
     );
@@ -115,6 +118,7 @@ describe('McpDeploymentsTable', () => {
         onClearFilters={onClearFilters}
         onDeleteClick={onDeleteClick}
         onEditClick={onEditClick}
+        onViewStatus={onViewStatus}
       />,
       { wrapper },
     );
@@ -130,6 +134,7 @@ describe('McpDeploymentsTable', () => {
         onClearFilters={onClearFilters}
         onDeleteClick={onDeleteClick}
         onEditClick={onEditClick}
+        onViewStatus={onViewStatus}
       />,
       { wrapper },
     );
@@ -147,6 +152,7 @@ describe('McpDeploymentsTable', () => {
         onClearFilters={onClearFilters}
         onDeleteClick={onDeleteClick}
         onEditClick={onEditClick}
+        onViewStatus={onViewStatus}
       />,
       { wrapper },
     );
