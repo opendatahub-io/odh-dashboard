@@ -264,6 +264,13 @@
  * fill: currentColor, so completed/failed/active must override that token.
  */
 .automl-tree-node {
+  /* Keep selection tied to the node status instead of PatternFly's blue fill. */
+  --automl-tree-node--selection--Stroke: var(--pf-t--global--border--color--control--default);
+  --pf-topology__node--m-selected--Background--Fill: var(
+    --pf-t--global--background--color--primary--default
+  );
+  --pf-topology__node--m-selected--Background--Stroke: var(--automl-tree-node--selection--Stroke);
+
   cursor: pointer;
 
   .pf-topology__node__background {
@@ -284,6 +291,9 @@
 
   &.pf-m-danger,
   &--failed {
+    --automl-tree-node--selection--Stroke: var(
+      --pf-t--global--border--color--status--danger--default
+    );
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--danger--default);
     --pf-topology__node--m-danger--Background--Stroke: var(
       --pf-t--global--border--color--status--danger--default
@@ -302,6 +312,7 @@
   }
 
   &--pending {
+    --automl-tree-node--selection--Stroke: var(--pf-t--global--border--color--control--default);
     --pf-topology__node__background--Fill: transparent;
     --pf-topology__node__background--Stroke: transparent;
     --pf-topology__node__background--StrokeWidth: 0;
@@ -311,9 +322,19 @@
       stroke: none;
       filter: none;
     }
+
+    &.pf-m-hover .pf-topology__node__background,
+    &.pf-m-selected .pf-topology__node__background {
+      fill: var(--pf-t--global--background--color--primary--default);
+      stroke: var(--automl-tree-node--selection--Stroke);
+      stroke-width: var(--pf-t--global--border--width--strong);
+    }
   }
 
   &--success {
+    --automl-tree-node--selection--Stroke: var(
+      --pf-t--global--border--color--status--success--default
+    );
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);
 
     .pf-topology__node__background {
@@ -325,6 +346,7 @@
 
   &--active.pf-m-info,
   &--active {
+    --automl-tree-node--selection--Stroke: var(--pf-t--global--border--color--brand--default);
     --pf-topology__node--Color: var(--pf-t--global--icon--color--brand--default);
     --pf-topology__node--m-info--Background--Fill: var(
       --pf-t--global--background--color--primary--default
@@ -344,6 +366,9 @@
   }
 
   &--just-completed.pf-m-success {
+    --automl-tree-node--selection--Stroke: var(
+      --pf-t--global--border--color--status--success--default
+    );
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);
     --pf-topology__node--m-success--Background--Stroke: var(
       --pf-t--global--border--color--status--success--default
@@ -382,7 +407,22 @@
       --pf-topology__node--m-info--Background--Fill: transparent;
       --pf-topology__node--m-info--Background--Stroke: transparent;
     }
+
+    /* Small branch dots get an outline on interaction, colored by their run state. */
+    &.pf-m-hover .pf-topology__node__background,
+    &.pf-m-selected .pf-topology__node__background {
+      fill: transparent;
+      stroke: var(--automl-tree-node--selection--Stroke);
+      stroke-width: var(--pf-t--global--border--width--strong);
+    }
   }
+}
+
+.automl-tree-node--winner,
+.automl-tree-node--winner-1,
+.automl-tree-node--winner-2,
+.automl-tree-node--winner-3 {
+  --automl-tree-node--selection--Stroke: var(--automl-tree-node--winner--Color);
 }
 
 .automl-tree-node-layer > .automl-tree-node__failed-badge {
