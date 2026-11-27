@@ -4,6 +4,22 @@ import type { CommandLineResult } from '../../types';
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 /**
+ * Reads a single HardwareProfile as JSON.
+ *
+ * @param hardwareProfile - Exact `metadata.name` of the profile.
+ * @param options.allowNotFound - When true, a missing profile does not fail the command, so the
+ *   caller can inspect `exitCode` and the `NotFound` message in `stderr`.
+ * @returns A Cypress.Chainable resolving to the `oc get` result.
+ */
+export const getHardwareProfile = (
+  hardwareProfile: string,
+  { allowNotFound = false }: { allowNotFound?: boolean } = {},
+): Cypress.Chainable<CommandLineResult> =>
+  cy.exec(`oc get hardwareprofiles ${hardwareProfile} -n ${applicationNamespace} -o json`, {
+    failOnNonZeroExit: !allowNotFound,
+  });
+
+/**
  * `cleanupHardwareProfiles` searches for a HardwareProfile in the specified namespace that contains a provided name.
  *
  * If a HardwareProfile is found, it is deleted using `oc`. If no matching profile is found, a message is logged.
@@ -58,4 +74,22 @@ export const createCleanHardwareProfile = (
       }
     });
   });
+};
+
+/**
+ * Delete a single HardwareProfile by exact name.
+ *
+ * Unlike `cleanupHardwareProfiles` (plural), which uses substring matching
+ * via `jq contains()`, this function targets only the profile whose
+ * `metadata.name` equals the given name exactly.
+ *
+ * Uses `--ignore-not-found` so it succeeds even if the profile was already
+ * deleted or never created.
+ */
+export const cleanupHardwareProfile = (
+  hardwareProfile: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete hardwareprofiles ${hardwareProfile} -n ${applicationNamespace} --ignore-not-found`;
+  cy.log(`Deleting HardwareProfile (exact name): ${hardwareProfile}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
