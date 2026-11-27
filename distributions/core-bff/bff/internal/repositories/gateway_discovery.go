@@ -21,7 +21,7 @@ const (
 	gatewayListPageSize = 500
 	// gatewayListMaxPages stops a list whose continue tokens never end.
 	gatewayListMaxPages = 100
-	// gatewayDiscoveryTimeout bounds the discovery (every list page and the
+	// GatewayDiscoveryTimeout bounds the discovery (every list page and the
 	// namespace read). model-serving-api uses 5s for a cached list; the caller's
 	// direct, paged list gets the access-review budget instead. The handler
 	// applies the same budget to the access review and discovery together.
@@ -157,8 +157,10 @@ func (r *GatewayDiscoveryRepository) listGateways(ctx context.Context) ([]gatewa
 		}
 		list, err := dyn.Resource(models.GatewayGVR).List(ctx, opts)
 		if err != nil {
-			if k8serrors.IsNotFound(err) {
+			if page == 0 && k8serrors.IsNotFound(err) {
 				// The Gateway API is not installed: there is nothing to attach to.
+				// Later in a paged list the same error means the API went away
+				// mid-list, which must not read as "no gateways".
 				return nil, nil
 			}
 			return nil, fmt.Errorf("failed to list gateways: %w", err)
@@ -219,17 +221,35 @@ func (r *GatewayDiscoveryRepository) readNamespace(ctx context.Context, namespac
 	}
 }
 
-// hasSelectorListeners reports whether any listener needs namespace labels:
-// a Selector listener with a selector (a nil selector admits nothing).
+// hasSelectorListeners reports whether any listener needs namespace labels
+// beyond kubernetes.io/metadata.name: a Selector listener whose selector parses
+// and uses another label. A nil or unparsable selector admits nothing, and an
+// empty or name-only selector is decided from the name, so neither needs the
+// read (or its failure modes).
 func hasSelectorListeners(gateways []gatewayObject) bool {
 	for i := range gateways {
 		for _, l := range gateways[i].Spec.Listeners {
-			if from := listenerFrom(l); from != nil && *from == gatewayRoutesFromSelector && l.AllowedRoutes.Namespaces.Selector != nil {
+			if selector, ok := listenerSelector(l); ok && !usesOnlyNameLabel(selector) {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+// listenerSelector returns the parsed namespace selector of a Selector
+// listener. ok is false when the listener is not a Selector listener or its
+// selector is missing or does not parse.
+func listenerSelector(l gatewayListener) (labels.Selector, bool) {
+	from := listenerFrom(l)
+	if from == nil || *from != gatewayRoutesFromSelector || l.AllowedRoutes.Namespaces.Selector == nil {
+		return nil, false
+	}
+	selector, err := metav1.LabelSelectorAsSelector(l.AllowedRoutes.Namespaces.Selector)
+	if err != nil {
+		return nil, false
+	}
+	return selector, true
 }
 
 // discoveryLogger is the request's trace logger when there is one.
@@ -262,11 +282,8 @@ func listenerAdmits(l gatewayListener, gwNamespace, target string, view namespac
 	case gatewayRoutesFromSame:
 		return gwNamespace == target, true
 	case gatewayRoutesFromSelector:
-		if l.AllowedRoutes.Namespaces.Selector == nil {
-			return false, true
-		}
-		selector, err := metav1.LabelSelectorAsSelector(l.AllowedRoutes.Namespaces.Selector)
-		if err != nil {
+		selector, ok := listenerSelector(l)
+		if !ok {
 			return false, true
 		}
 		if !view.complete && !usesOnlyNameLabel(selector) {

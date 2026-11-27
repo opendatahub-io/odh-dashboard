@@ -61,7 +61,7 @@ bundle. OpenShift keeps the proxy unchanged.**
 4. The RHAII bundle ships a ClusterRole `rhaii-dashboard-gateway-reader`
    (`gateway.networking.k8s.io/gateways: list`), unbound, documented next to the dashboard
    access role: the installer binds it to the same users or groups that may use the dashboard.
-   Without the binding, the route returns the 403 error envelope and the wizard shows its existing
+   Without the binding, the route returns the API server's 403 (`v1.Status`) and the wizard shows its existing
    "Unable to fetch resources" message.
 5. RHAII's `HostApiProvider` provides `ModelServingDataContext` with `getGatewayOptions`, so the
    field works as soon as `llmd-gateway-field` is turned on. Turning the flag on is a product call
@@ -123,7 +123,9 @@ Behaviour that differs from model-serving-api, on purpose:
 
 - A failed access review is an error instead of an empty list, so "no gateways" and "the check did
   not run" stay distinguishable: the API server's status when it answered (401 for a rejected
-  token, 403, 429), 504 on timeout, otherwise 500.
+  token, 403, 429), 504 on timeout, otherwise 500. A review the API server completes with
+  `allowed: false` is a denial even when it carries an `evaluationError` (an authorizer webhook
+  failure, for example), as everywhere in Core BFF and upstream, so that case is an empty list.
 - A Gateway list the caller may not perform is the API server's 403 (Kubernetes `v1.Status`).
   Upstream never sees it, because its ServiceAccount lists.
 - A cluster without the Gateway API returns an empty list instead of a 500.

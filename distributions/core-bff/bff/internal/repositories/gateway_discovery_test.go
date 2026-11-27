@@ -236,6 +236,94 @@ func TestGatewayDiscovery_UnreadableNamespaceStillDecidesNameSelectors(t *testin
 	assert.Equal(t, []string{"everything", "name-match", "name-in"}, got)
 }
 
+// With a partial view (namespace unreadable), every operator on the name key is
+// decided exactly as with the full labels, and anything else is skipped.
+func TestGatewayDiscovery_PartialViewOperators(t *testing.T) {
+	expr := func(key, op string, values ...any) map[string]any {
+		e := map[string]any{"key": key, "operator": op}
+		if values != nil {
+			e["values"] = values
+		}
+		return e
+	}
+	tests := []struct {
+		name     string
+		selector map[string]any
+		admitted bool
+		skipped  bool
+	}{
+		{"name NotIn other", map[string]any{"matchExpressions": []any{expr(corev1.LabelMetadataName, "NotIn", "other")}}, true, false},
+		{"name NotIn self", map[string]any{"matchExpressions": []any{expr(corev1.LabelMetadataName, "NotIn", "project")}}, false, false},
+		{"name Exists", map[string]any{"matchExpressions": []any{expr(corev1.LabelMetadataName, "Exists")}}, true, false},
+		{"name DoesNotExist", map[string]any{"matchExpressions": []any{expr(corev1.LabelMetadataName, "DoesNotExist")}}, false, false},
+		{"name In plus team Exists", map[string]any{"matchExpressions": []any{
+			expr(corev1.LabelMetadataName, "In", "project"), expr("team", "Exists"),
+		}}, false, true},
+		{"team DoesNotExist", map[string]any{"matchExpressions": []any{expr("team", "DoesNotExist")}}, false, true},
+		{"unparsable", map[string]any{"matchExpressions": []any{expr("team", "Bogus")}}, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dyn := newGatewayDyn(testGateway("gw-ns", "gw", []any{
+				testListener("sel", map[string]any{"from": "Selector", "selector": tt.selector}),
+				// Forces the namespace read, so every case runs on the partial view.
+				testListener("team", map[string]any{"from": "Selector", "selector": map[string]any{"matchLabels": map[string]any{"team": "x"}}}),
+			}, nil, nil))
+			typed := fake.NewSimpleClientset()
+			typed.PrependReactor("get", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
+				return true, nil, k8serrors.NewForbidden(schema.GroupResource{Resource: "namespaces"}, "project", errors.New("denied"))
+			})
+			var buf bytes.Buffer
+			ctx := context.WithValue(context.Background(), constants.TraceLoggerKey, slog.New(slog.NewTextHandler(&buf, nil)))
+			refs, err := callerRepo(t, typed, dyn).Discover(ctx, "project")
+			require.NoError(t, err)
+			assert.Equal(t, tt.admitted, len(refs) == 1, "admitted")
+			skipped := 1 // the "team" listener
+			if tt.skipped {
+				skipped++
+			}
+			assert.Contains(t, buf.String(), fmt.Sprintf("skippedListeners=%d", skipped))
+		})
+	}
+}
+
+// Selectors decidable from the name need no namespace read, so its failures
+// cannot fail the request.
+func TestGatewayDiscovery_NameOnlySelectorsNeedNoNamespaceRead(t *testing.T) {
+	dyn := newGatewayDyn(testGateway("gw-ns", "gw", []any{
+		testListener("everything", map[string]any{"from": "Selector", "selector": map[string]any{}}),
+		testListener("name", map[string]any{"from": "Selector", "selector": map[string]any{"matchLabels": map[string]any{corev1.LabelMetadataName: "project"}}}),
+		testListener("unparsable", map[string]any{"from": "Selector", "selector": map[string]any{"matchExpressions": []any{
+			map[string]any{"key": "team", "operator": "Bogus"},
+		}}}),
+	}, nil, nil))
+	typed := fake.NewSimpleClientset()
+	typed.PrependReactor("get", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewTooManyRequests("slow down", 1)
+	})
+	refs, err := callerRepo(t, typed, dyn).Discover(context.Background(), "project")
+	require.NoError(t, err)
+	assert.Len(t, refs, 2)
+	assert.Empty(t, typed.Actions())
+}
+
+// NotFound is "no Gateway API" only on the first page; later it means the API
+// went away mid-list and must not read as "no gateways".
+func TestGatewayDiscovery_NotFoundMidListIsAnError(t *testing.T) {
+	dyn := pagedDyn{fn: func(_ context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+		if opts.Continue == "" {
+			list := &unstructured.UnstructuredList{}
+			list.SetContinue("page-2")
+			list.Items = []unstructured.Unstructured{*testGateway("gw-ns", "gw", []any{testListener("http", map[string]any{"from": "All"})}, nil, nil)}
+			return list, nil
+		}
+		return nil, k8serrors.NewNotFound(schema.GroupResource{Group: "gateway.networking.k8s.io", Resource: "gateways"}, "")
+	}}
+	_, err := callerRepo(t, fake.NewSimpleClientset(), dyn).Discover(context.Background(), "project")
+	require.Error(t, err)
+	assert.True(t, k8serrors.IsNotFound(err))
+}
+
 // A Selector listener with no selector admits nothing and needs no read.
 func TestGatewayDiscovery_NilSelectorNeedsNoNamespaceRead(t *testing.T) {
 	dyn := newGatewayDyn(testGateway("gw-ns", "gw", []any{testListener("nil", map[string]any{"from": "Selector"})}, nil, nil))
@@ -248,7 +336,7 @@ func TestGatewayDiscovery_NilSelectorNeedsNoNamespaceRead(t *testing.T) {
 
 func TestGatewayDiscovery_NamespaceReadFailureIsAnError(t *testing.T) {
 	dyn := newGatewayDyn(testGateway("gw-ns", "gw", []any{
-		testListener("selector", map[string]any{"from": "Selector", "selector": map[string]any{}}),
+		testListener("selector", map[string]any{"from": "Selector", "selector": map[string]any{"matchLabels": map[string]any{"team": "a"}}}),
 	}, nil, nil))
 	typed := fake.NewSimpleClientset()
 	typed.PrependReactor("get", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
