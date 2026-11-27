@@ -82,17 +82,27 @@ func TestRHAIIBundle_DeploymentKeepsTheContractPreconditions(t *testing.T) {
 	c := dashboardContainer(t, d)
 	args := c.Args
 
-	// The BFF parses flags with the standard flag package: one or two dashes,
-	// "=value" or a separate value, and the last occurrence wins.
+	// The BFF parses flags with the standard flag package: the last occurrence
+	// wins, and a separate value ("--port 8443") cannot be told apart from a
+	// positional argument without the flag's type. Keep every arg in the
+	// unambiguous "--name=value" form so the reads below are exact.
+	for _, a := range args {
+		assert.Regexp(t, `^--[a-z0-9-]+=`, a, "write bundle args as --name=value")
+	}
 	assert.Equal(t, []string{"XKS"}, lastFlagValue(args, "platform-type"))
 	assert.Equal(t, []string{"Authorization,x-forwarded-access-token"}, lastFlagValue(args, "auth-token-headers"))
-	for _, name := range []string{"auth-token-header", "auth-token-prefix", "admission-mode"} {
-		assert.Nil(t, lastFlagValue(args, name), "--%s must not be set: the ordered list and the xKS admission default are the contract", name)
+	// The production profile: caller credentials, no DEV_MODE fallback to the
+	// service account, no mocked clients.
+	assert.Equal(t, []string{"user_token"}, lastFlagValue(args, "auth-method"))
+	for _, name := range []string{"auth-token-header", "auth-token-prefix", "admission-mode", "dev-mode", "mock-k8s-client", "insecure-skip-verify"} {
+		assert.Nil(t, lastFlagValue(args, name), "--%s must not be set in the bundle", name)
 	}
 	for _, e := range c.Env {
-		assert.NotContains(t, []string{"ODH_PLATFORM_TYPE", "AUTH_TOKEN_HEADERS", "AUTH_TOKEN_HEADER", "AUTH_TOKEN_PREFIX", "ADMISSION_MODE"},
-			e.Name, "set %s through the reviewed flag, not the environment", e.Name)
+		assert.NotContains(t, []string{"ODH_PLATFORM_TYPE", "AUTH_METHOD", "AUTH_TOKEN_HEADERS", "AUTH_TOKEN_HEADER", "AUTH_TOKEN_PREFIX",
+			"ADMISSION_MODE", "DEV_MODE", "MOCK_K8S_CLIENT", "INSECURE_SKIP_VERIFY"},
+			e.Name, "%s must not come from the environment: the reviewed flags are the contract", e.Name)
 	}
+	assert.Empty(t, c.EnvFrom, "envFrom could set any of the settings above")
 	assert.Equal(t, dashboardName, d.Spec.Template.Spec.ServiceAccountName)
 }
 
@@ -184,13 +194,14 @@ func TestServiceAccountGrants_FlagsWideningShapes(t *testing.T) {
 }
 
 // lastFlagValue returns the value the flag package would settle on for name,
-// as a one-element slice, or nil when the flag is absent.
+// as a one-element slice, or nil when the flag is absent. Like flag.Parse it
+// stops at "--" and at the first argument that is not a flag.
 func lastFlagValue(args []string, name string) []string {
 	var value []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]
-		if !strings.HasPrefix(a, "-") {
-			continue
+		if a == "--" || a == "-" || !strings.HasPrefix(a, "-") {
+			break
 		}
 		flag := strings.TrimPrefix(strings.TrimPrefix(a, "-"), "-")
 		switch {
@@ -210,6 +221,8 @@ func TestLastFlagValue(t *testing.T) {
 	assert.Equal(t, []string{"OpenShift"}, lastFlagValue([]string{"--platform-type=XKS", "-platform-type", "OpenShift"}, "platform-type"))
 	assert.Equal(t, []string{"XKS"}, lastFlagValue([]string{"--platform-type", "XKS"}, "platform-type"))
 	assert.Nil(t, lastFlagValue([]string{"--auth-token-headers=a"}, "auth-token-header"))
+	assert.Equal(t, []string{"XKS"}, lastFlagValue([]string{"--platform-type=XKS", "--", "--platform-type=OpenShift"}, "platform-type"))
+	assert.Equal(t, []string{"XKS"}, lastFlagValue([]string{"--platform-type=XKS", "extra", "--platform-type=OpenShift"}, "platform-type"))
 }
 
 // contractGrants parses the first table under contractSection. Each row is
@@ -509,6 +522,8 @@ type replacementTarget struct {
 	FieldPaths []string `json:"fieldPaths"`
 }
 
+var deploymentImagePath = regexp.MustCompile(`^spec\.template\.spec\.(init)?[cC]ontainers\.\[name=[a-z0-9-]+\]\.image$`)
+
 // replacementViolations allows a replacement to touch RBAC objects only to
 // fill in a binding's ServiceAccount subject namespace, and requires every
 // binding subject to carry the placeholder such a replacement rewrites. A
@@ -525,6 +540,21 @@ func replacementViolations(b bundle, reps []replacement) []string {
 			kind := target.Select.Kind
 			if kind == "" {
 				violations = append(violations, fmt.Sprintf("a replacement from %s/%s selects targets without a kind", r.Source.Kind, r.Source.Name))
+				continue
+			}
+			if kind == "Deployment" {
+				// Only the image may come from params: anything else in the pod
+				// template (serviceAccountName, automount, args, env) changes
+				// who the pod runs as or which contract it follows.
+				for _, fp := range target.FieldPaths {
+					if !deploymentImagePath.MatchString(fp) {
+						violations = append(violations, fmt.Sprintf("a replacement rewrites %s Deployment/%s; only container images may be replaced", fp, target.Select.Name))
+					}
+				}
+				continue
+			}
+			if kind == "ServiceAccount" {
+				violations = append(violations, fmt.Sprintf("a replacement rewrites ServiceAccount/%s", target.Select.Name))
 				continue
 			}
 			if !rbacKinds[kind] {
@@ -576,6 +606,18 @@ func TestReplacementViolations(t *testing.T) {
 	assert.NotEmpty(t, replacementViolations(b, nil), "an unfilled subject namespace is a violation")
 	assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("Role", "rules.0.verbs")}), "rewriting rules is a violation")
 	assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("", "metadata.name")}), "a kind-less selector is a violation")
+
+	image := rep("Deployment", "spec.template.spec.containers.[name=rhaii-dashboard].image")
+	assert.Empty(t, replacementViolations(b, []replacement{subject, image}))
+	for _, fp := range []string{
+		"spec.template.spec.serviceAccountName",
+		"spec.template.spec.automountServiceAccountToken",
+		"spec.template.spec.containers.[name=rhaii-dashboard].args.4",
+		"spec.template.spec.containers.[name=rhaii-dashboard].env.0.value",
+	} {
+		assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("Deployment", fp)}), fp)
+	}
+	assert.NotEmpty(t, replacementViolations(b, []replacement{subject, rep("ServiceAccount", "metadata.name")}))
 
 	hardCoded := bundle{sa: dashboardName, roleBindings: []rbacv1.RoleBinding{rb}}
 	hardCoded.roleBindings[0].Subjects = []rbacv1.Subject{{Kind: rbacv1.ServiceAccountKind, Name: dashboardName, Namespace: "opendatahub"}}

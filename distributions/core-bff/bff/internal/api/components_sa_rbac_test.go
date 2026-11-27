@@ -117,14 +117,21 @@ func serviceAccountDynamicClient(t *testing.T, rules []rbacv1.PolicyRule) (dynam
 	}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	cfg := rest.CopyConfig(testEnvInstance.Config)
-	cfg.Impersonate = rest.ImpersonationConfig{
-		UserName: "system:serviceaccount:" + ns.Name + ":" + sa,
-		Groups:   []string{"system:serviceaccounts", "system:serviceaccounts:" + ns.Name, "system:authenticated"},
-	}
+	cfg := impersonateServiceAccount(ns.Name, sa)
 	dyn, err := dynamic.NewForConfig(cfg)
 	require.NoError(t, err)
 	return dyn, ns.Name
+}
+
+// impersonateServiceAccount returns a config for the envtest API server that
+// acts as the named service account, with the groups the API server gives it.
+func impersonateServiceAccount(namespace, name string) *rest.Config {
+	cfg := rest.CopyConfig(testEnvInstance.Config)
+	cfg.Impersonate = rest.ImpersonationConfig{
+		UserName: "system:serviceaccount:" + namespace + ":" + name,
+		Groups:   []string{"system:serviceaccounts", "system:serviceaccounts:" + namespace, "system:authenticated"},
+	}
+	return cfg
 }
 
 func getComponentsAs(t *testing.T, dyn dynamic.Interface, namespace string) *httptest.ResponseRecorder {
@@ -212,11 +219,7 @@ func TestStartupPlatform_WithTheDocumentedProbeRule_ConfirmsXKS(t *testing.T) {
 		_ = admin.RbacV1().ClusterRoles().Delete(context.Background(), cr.Name, metav1.DeleteOptions{})
 	})
 
-	cfg := rest.CopyConfig(testEnvInstance.Config)
-	cfg.Impersonate = rest.ImpersonationConfig{
-		UserName: "system:serviceaccount:" + namespace + ":" + sa,
-		Groups:   []string{"system:serviceaccounts", "system:serviceaccounts:" + namespace, "system:authenticated"},
-	}
+	cfg := impersonateServiceAccount(namespace, sa)
 	typed, err := kubernetes.NewForConfig(cfg)
 	require.NoError(t, err)
 	dyn, err := dynamic.NewForConfig(cfg)
@@ -248,12 +251,7 @@ func TestConnectionTypes_WithTheShippedServiceAccountRole_XKS(t *testing.T) {
 			}, metav1.CreateOptions{})
 			require.NoError(t, err)
 
-			cfg := rest.CopyConfig(testEnvInstance.Config)
-			cfg.Impersonate = rest.ImpersonationConfig{
-				UserName: "system:serviceaccount:" + namespace + ":rhaii-dashboard",
-				Groups:   []string{"system:serviceaccounts", "system:serviceaccounts:" + namespace, "system:authenticated"},
-			}
-			typed, err := kubernetes.NewForConfig(cfg)
+			typed, err := kubernetes.NewForConfig(impersonateServiceAccount(namespace, "rhaii-dashboard"))
 			require.NoError(t, err)
 
 			app := newTestApp(func(a *App) {
