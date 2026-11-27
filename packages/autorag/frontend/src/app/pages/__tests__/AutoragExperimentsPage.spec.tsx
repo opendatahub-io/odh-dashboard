@@ -1,8 +1,30 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { FlexItem } from '@patternfly/react-core';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  useWorkingProject,
+  WorkingProjectStatusValue,
+} from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import AutoragExperimentsPage from '~/app/pages/AutoragExperimentsPage';
+
+jest.mock('@patternfly/react-core', () => {
+  const actual =
+    jest.requireActual<typeof import('@patternfly/react-core')>('@patternfly/react-core');
+  return { ...actual, FlexItem: jest.fn(actual.FlexItem) };
+});
+
+jest.mock('@odh-dashboard/ui-core/context/WorkingProjectContext', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core/context/WorkingProjectContext'),
+  useWorkingProject: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn(),
+}));
 
 let mockListStatusReport: { loaded: boolean; hasExperiments: boolean } = {
   loaded: false,
@@ -30,10 +52,6 @@ jest.mock('~/app/components/experiments/AutoragExperiments', () => {
   }
   return { __esModule: true, default: MockAutoragExperiments };
 });
-
-jest.mock('~/app/hooks/usePreferredNamespaceRedirect', () => ({
-  usePreferredNamespaceRedirect: jest.fn(),
-}));
 
 const mockUseNamespaceSelector = jest.fn();
 jest.mock('mod-arch-core', () => ({
@@ -78,9 +96,16 @@ const defaultNamespaceSelector = {
   namespacesLoadError: undefined,
 };
 
+let location: ReturnType<typeof useLocation>;
+const LocationObserver = () => {
+  location = useLocation();
+  return null;
+};
+
 function uiAtPath(initialPath: string) {
   return (
     <MemoryRouter key={initialPath} initialEntries={[initialPath]}>
+      <LocationObserver />
       <Routes>
         <Route path="/experiments/:namespace?" element={<AutoragExperimentsPage />} />
       </Routes>
@@ -95,9 +120,83 @@ function renderPage(initialPath: string) {
 describe('AutoragExperimentsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(useWorkingProject).mockReturnValue({
+      status: WorkingProjectStatusValue.Listed,
+      projects: [{ name: 'test-ns' }, { name: 'other-ns' }],
+      activeProject: { name: 'test-ns' },
+      selectProject: jest.fn(),
+    });
+    jest
+      .mocked(useIsAreaAvailable)
+      .mockReturnValue({ status: false } as ReturnType<typeof useIsAreaAvailable>);
     mockListStatusReport = { loaded: false, hasExperiments: false };
     autoragMockChildNotifyLog.length = 0;
     mockUseNamespaceSelector.mockReturnValue(defaultNamespaceSelector);
+  });
+
+  it('should hide project controls under UPS without hiding the create-run action', () => {
+    jest
+      .mocked(useIsAreaAvailable)
+      .mockReturnValue({ status: true } as ReturnType<typeof useIsAreaAvailable>);
+    mockListStatusReport = { loaded: true, hasExperiments: true };
+    renderPage('/experiments/test-ns');
+    expect(screen.queryByTestId('project-nav')).not.toBeInTheDocument();
+    expect(screen.getByTestId('autorag-header-create-run-button')).toBeInTheDocument();
+  });
+
+  it.each([true, false])(
+    'should keep the create-run action right-aligned when UPS is %s',
+    (enabled) => {
+      jest
+        .mocked(useIsAreaAvailable)
+        .mockReturnValue({ status: enabled } as ReturnType<typeof useIsAreaAvailable>);
+      mockListStatusReport = { loaded: true, hasExperiments: true };
+      renderPage('/experiments/test-ns');
+
+      expect(screen.getByTestId('autorag-header-create-run-button')).toBeInTheDocument();
+      expect(FlexItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          align: { default: 'alignRight' },
+          children: expect.objectContaining({
+            props: expect.objectContaining({ 'data-testid': 'autorag-header-create-run-button' }),
+          }),
+        }),
+        expect.anything(),
+      );
+      if (enabled) {
+        expect(screen.queryByTestId('project-nav')).not.toBeInTheDocument();
+      } else {
+        expect(screen.getByTestId('project-nav')).toBeInTheDocument();
+      }
+    },
+  );
+
+  it('should leave bare-route selection to UPS instead of the legacy fallback', () => {
+    jest
+      .mocked(useIsAreaAvailable)
+      .mockReturnValue({ status: true } as ReturnType<typeof useIsAreaAvailable>);
+    const view = renderPage('/experiments');
+    view.rerender(uiAtPath('/experiments'));
+    expect(location.pathname).toBe('/experiments');
+  });
+
+  it.each([
+    [undefined, 'test-ns'],
+    [{ name: 'other-ns' }, 'other-ns'],
+    [{ name: 'stale-ns' }, 'test-ns'],
+  ])('should preserve legacy redirection for preference %j', (preferredNamespace, expected) => {
+    mockUseNamespaceSelector.mockReturnValue({ ...defaultNamespaceSelector, preferredNamespace });
+    renderPage('/experiments');
+    expect(location.pathname).toBe(`/experiments/${expected}`);
+  });
+
+  it('should wait for legacy namespaces and redirect once they arrive', () => {
+    mockUseNamespaceSelector.mockReturnValue({ namespaces: [], namespacesLoaded: false });
+    const view = renderPage('/experiments');
+    expect(location.pathname).toBe('/experiments');
+    mockUseNamespaceSelector.mockReturnValue(defaultNamespaceSelector);
+    view.rerender(uiAtPath('/experiments'));
+    expect(location.pathname).toBe('/experiments/test-ns');
   });
 
   it('does not show header create run button while list status is loading', () => {
