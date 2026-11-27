@@ -91,7 +91,9 @@ rules:
 # runs as the caller. In DEV_MODE a request without a credential header runs
 # as this ServiceAccount, so give it the dashboard-namespace writes the admin
 # pages make (connection types, enabled apps, cluster settings, PATCH
-# /api/config). Dev-only: never part of the RHAII bundle.
+# /api/config). The model-serving namespace-label write needs cluster-scoped
+# `patch namespaces`, which is not granted here (nor was it before). Dev-only:
+# never part of the RHAII bundle.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:

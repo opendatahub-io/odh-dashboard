@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	iofs "io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -271,6 +272,8 @@ func profileViolations(d appsv1.Deployment) []string {
 	}
 	// No DEV_MODE fallback to the service account, no mocked clients, no
 	// single-header mode, no admission override, no namespace override.
+	// Presence is the violation, whatever the value ("--dev-mode=false"
+	// included): the bundle relies on the defaults.
 	for _, name := range []string{"auth-token-header", "auth-token-prefix", "admission-mode", "dev-mode", "mock-k8s-client", "mock-http-client", "mock-bff-clients", "insecure-skip-verify", "namespace"} {
 		if lastFlagValue(args, name) != nil {
 			fail("--%s must not be set in the bundle", name)
@@ -916,21 +919,19 @@ func indent(s, prefix string) string {
 }
 
 func copyDirInto(fs filesys.FileSystem, src, dst string) error {
-	entries, err := os.ReadDir(src)
+	root, err := os.OpenRoot(src)
 	if err != nil {
 		return err
 	}
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
+	defer root.Close()
+	return iofs.WalkDir(root.FS(), ".", func(p string, d iofs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
 		}
-		raw, err := os.ReadFile(filepath.Join(src, e.Name()))
+		raw, err := root.ReadFile(p)
 		if err != nil {
 			return err
 		}
-		if err := fs.WriteFile(filepath.Join(dst, e.Name()), raw); err != nil {
-			return err
-		}
-	}
-	return nil
+		return fs.WriteFile(filepath.Join(dst, p), raw)
+	})
 }
