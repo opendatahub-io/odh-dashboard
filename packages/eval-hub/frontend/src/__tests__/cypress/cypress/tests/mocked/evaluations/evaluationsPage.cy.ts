@@ -216,7 +216,7 @@ describe('Evaluations Page - Tabs', () => {
     collectionBuilderPage
       .findEvaluationGoalInput()
       .should('have.value', 'A custom evaluation goal.');
-    cy.get('@collectionBuilderGenerationApi.all').should('have.length', 0);
+    evaluationsPage.findCollectionBuilderGenerationApiCalls().should('have.length', 0);
   });
 
   itGoalBuilderEnabled('should generate and refine benchmark recommendations', () => {

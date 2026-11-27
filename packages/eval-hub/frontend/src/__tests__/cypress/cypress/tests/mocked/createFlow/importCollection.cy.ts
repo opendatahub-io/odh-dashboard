@@ -118,9 +118,10 @@ describe('Import collection', () => {
     evaluationsPage.findImportCollectionButton().click();
 
     importCollectionModal.setValue(
-      'name: warn-me\ncategory: safety\nmystery: 1\nbenchmarks:\n  - id: bench-alpha\n    provider_id: test-provider\n',
+      'name: warn-me\ncategory: safety\nmystery: 1\nanother_mystery: 2\nbenchmarks:\n  - id: bench-alpha\n    provider_id: test-provider\n',
     );
-    // Missing description plus the unrecognized field produce warning markers.
+    // Missing description and unknown fields produce advisory warnings. The two unknown
+    // fields each have a source line that can be marked in the editor.
     importCollectionModal.findWarningSquiggles().should('have.length.at.least', 2);
     importCollectionModal.findSubmitButton().should('be.enabled');
   });

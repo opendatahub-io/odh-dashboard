@@ -16,6 +16,7 @@ class ManualCollectionEditorPage {
 
   private waitForLoad() {
     cy.findByTestId('copy-suite-editor').should('exist');
+    cy.testA11y();
   }
 
   findCollectionNameInput() {

@@ -770,6 +770,21 @@ describe('collection generation API', () => {
       { ...opts, parseJSON: false },
     );
   });
+
+  it('should reject an empty generation ID without making a request', async () => {
+    await expect(deleteCollectionGeneration('', 'test-ns', '')({})).rejects.toThrow(
+      'Collection generation ID must not be empty',
+    );
+    expect(mockRestDELETE).not.toHaveBeenCalled();
+  });
+
+  it('should surface a non-empty delete response as an error', async () => {
+    mockRestDELETE.mockResolvedValue('Generation could not be deleted');
+
+    await expect(deleteCollectionGeneration('', 'test-ns', 'generation-1')({})).rejects.toThrow(
+      'Generation could not be deleted',
+    );
+  });
 });
 
 describe('getCollections', () => {

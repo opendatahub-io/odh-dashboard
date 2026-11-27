@@ -295,9 +295,11 @@ const startPendingGeneration = async (): Promise<void> => {
   expect(await screen.findByText('Initializing recommendations')).toBeInTheDocument();
 };
 
-const startCompletedGeneration = async () => {
-  mockCreateCollectionGeneration.mockReturnValue(() => Promise.resolve(completedGeneration));
-  mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(completedGeneration));
+const startCompletedGeneration = async (
+  generation: CollectionGenerationResource = completedGeneration,
+) => {
+  mockCreateCollectionGeneration.mockReturnValue(() => Promise.resolve(generation));
+  mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(generation));
   const rendered = await renderPage();
   fireEvent.change(screen.getByTestId('goal-suite-name'), {
     target: { value: 'Answer quality suite' },
@@ -805,6 +807,28 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(screen.getByTestId('goal-suite-review-benchmarks')).toHaveTextContent('HellaSwag');
     expect(screen.getByTestId('goal-suite-save')).toBeEnabled();
     expect(mockDeleteCollectionGeneration).not.toHaveBeenCalled();
+  });
+
+  it('should remove a provider-less benchmark from its details drawer', async () => {
+    const providerlessGeneration: CollectionGenerationResource = {
+      ...completedGeneration,
+      result: {
+        ...completedGeneration.result,
+        collection: {
+          ...completedGeneration.result.collection,
+          benchmarks: [{ id: 'truthfulqa_mc1' }],
+        },
+      },
+    };
+    await startCompletedGeneration(providerlessGeneration);
+
+    fireEvent.click(screen.getByTestId('collection-generation-benchmark-name-truthfulqa_mc1'));
+    expect(await screen.findByTestId('benchmark-drawer-panel')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('select-benchmark-button'));
+
+    expect(screen.getByTestId('collection-generation-selection-count')).toHaveTextContent(
+      'Selected benchmarks · 0 of 20',
+    );
   });
 
   it('should delete the generation when navigating from Benchmark overview to Define goal', async () => {

@@ -282,6 +282,8 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
 }) => {
   const [isAlternativesOpen, setIsAlternativesOpen] = React.useState(false);
   const [detailsBenchmark, setDetailsBenchmark] = React.useState<FlatBenchmark>();
+  const [detailsSelectedBenchmark, setDetailsSelectedBenchmark] =
+    React.useState<CollectionBenchmark>();
   const providerBenchmarks = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);
   const completedResource = resource?.status.state === 'completed' ? resource : undefined;
   const result = completedResource?.result;
@@ -344,6 +346,7 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
       ? providerBenchmarks.get(benchmarkKey(benchmark))
       : undefined;
     const provider = providers.find((item) => item.resource.id === benchmark.provider_id);
+    setDetailsSelectedBenchmark(benchmark);
     setDetailsBenchmark(
       catalogBenchmark ?? {
         id: benchmark.id,
@@ -750,15 +753,16 @@ const CollectionGenerationStep: React.FC<CollectionGenerationStepProps> = ({
       <CopySuiteBenchmarkDetailsOverlay
         benchmark={detailsBenchmark}
         isOpen={!!detailsBenchmark}
-        onClose={() => setDetailsBenchmark(undefined)}
-        onPrimaryAction={(benchmark) => {
-          const selected = selectedBenchmarks.find(
-            (item) => item.id === benchmark.id && item.provider_id === benchmark.providerId,
-          );
-          if (selected) {
-            removeBenchmark(selected);
+        onClose={() => {
+          setDetailsBenchmark(undefined);
+          setDetailsSelectedBenchmark(undefined);
+        }}
+        onPrimaryAction={() => {
+          if (detailsSelectedBenchmark) {
+            removeBenchmark(detailsSelectedBenchmark);
           }
           setDetailsBenchmark(undefined);
+          setDetailsSelectedBenchmark(undefined);
         }}
         primaryActionLabel="Remove benchmark"
       />

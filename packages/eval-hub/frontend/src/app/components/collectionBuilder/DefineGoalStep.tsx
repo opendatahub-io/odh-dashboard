@@ -122,18 +122,7 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
           />
         </FormGroup>
 
-        <section
-          className="evalhub-goal-collection__examples"
-          aria-labelledby="define-goal-examples-title"
-        >
-          <Title
-            headingLevel="h3"
-            size="lg"
-            id="define-goal-examples-title"
-            className="pf-v6-u-mb-sm"
-          >
-            Start with an example
-          </Title>
+        <section className="evalhub-goal-collection__examples" aria-label="Goal examples">
           <Content component="p" className="pf-v6-u-mb-md">
             Select an example, then edit it to suit your use case.
           </Content>

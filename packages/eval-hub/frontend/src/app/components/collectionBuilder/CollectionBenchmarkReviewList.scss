@@ -1,7 +1,4 @@
 .evalhub-collection-benchmark-review__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-
   .pf-v6-l-gallery__item {
     display: flex;
   }
@@ -12,13 +9,5 @@
 
   .pf-v6-c-description-list.pf-m-compact {
     --pf-v6-c-description-list--m-compact--RowGap: var(--pf-t--global--spacer--sm);
-  }
-
-  @media screen and (min-width: 768px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media screen and (min-width: 1200px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

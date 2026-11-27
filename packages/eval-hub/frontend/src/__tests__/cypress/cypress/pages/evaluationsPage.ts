@@ -75,6 +75,10 @@ class EvaluationsPage {
     return cy.findByTestId('app-page-title');
   }
 
+  findCollectionBuilderGenerationApiCalls() {
+    return cy.get('@collectionBuilderGenerationApi.all');
+  }
+
   findPageDescription() {
     return cy.findByTestId('app-page-description');
   }
