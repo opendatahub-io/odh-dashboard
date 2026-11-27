@@ -1,6 +1,13 @@
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import CreateConnectionWizard, { getPropertyErrors } from '~/app/components/CreateConnectionWizard';
@@ -9,6 +16,7 @@ import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useCreateConnectionNamespaces } from '~/app/hooks/useCreateConnectionNamespaces';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import { useConnectionNameAvailability } from '~/app/hooks/useConnectionNameAvailability';
 import { testCredentials } from '~/app/api/dch';
 import type { Connection, CreateConnectionRequest, NamespaceKind } from '~/app/types';
@@ -16,6 +24,7 @@ import type { Connection, CreateConnectionRequest, NamespaceKind } from '~/app/t
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
 jest.mock('~/app/hooks/useCreateConnectionNamespaces');
+jest.mock('~/app/hooks/useConnectionAccess');
 jest.mock('~/app/hooks/useConnectionNameAvailability');
 const mockNotificationSuccess = jest.fn();
 const mockNotificationError = jest.fn();
@@ -34,6 +43,7 @@ jest.mock('~/app/api/dch', () => ({
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockUseCreateConnectionNamespaces = jest.mocked(useCreateConnectionNamespaces);
+const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
 const mockUseConnectionNameAvailability = jest.mocked(useConnectionNameAvailability);
 const mockTestCredentials = jest.mocked(testCredentials);
 const mockTrackEvent = jest.fn();
@@ -81,6 +91,7 @@ describe('CreateConnectionWizard', () => {
       true,
       undefined,
     ]);
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
     mockUseConnectionNameAvailability.mockReturnValue([
       { available: true, conflicts_with: [] },
       true,
@@ -123,6 +134,67 @@ describe('CreateConnectionWizard', () => {
     expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect(screen.getByTestId('connection-project-select').textContent).toContain('test-project');
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
+  });
+
+  it('should hide the connection type step when only one compatible type is available', async () => {
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Connection type' })).toBeNull();
+    expect(screen.queryByText('PostgreSQL')).toBeNull();
+  });
+
+  it('should not duplicate wizard steps when the connection type step becomes hidden', async () => {
+    mockUseConnectionTypes.mockReturnValue([[], false, undefined]);
+    const { rerender } = render(
+      <CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />,
+    );
+
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+    rerender(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /Review/ })).toHaveLength(1);
+  });
+
+  it('should disable back on the first visible step and return from configuration', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Back' })).toHaveProperty('disabled', true);
+
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('heading', { name: 'Configuration' })).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('heading', { name: 'Details' })).toBeTruthy();
+  });
+
+  it('should auto-select the sole compatible type when the initial type is incompatible', async () => {
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{ data_connection_type_id: unknownConnectionTypeId }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Connection type' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+
+    fireEvent.change(screen.getByTestId('connection-name-input'), {
+      target: { value: 'warehouse' },
+    });
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', false);
   });
 
   it('should capture an optional description and submit it when creating a connection', async () => {
@@ -208,6 +280,104 @@ describe('CreateConnectionWizard', () => {
 
     await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
     expect(onCreate.mock.calls[0][0].description).toBeUndefined();
+  });
+
+  it('should not close a reopened session when a previous creation completes', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const createdConnection: Connection = {
+      metadata: { id: 'connection-id' },
+      resource: {
+        name: 'warehouse',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials_ref: { secret: 'warehouse' },
+      },
+      status: { state: 'ready' },
+    };
+    let resolveCreation!: (connection: Connection) => void;
+    const onCreate =
+      jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<Connection>>();
+    onCreate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreation = resolve;
+        }),
+    );
+    const props = {
+      namespace: 'test-project',
+      onClose,
+      onCreate,
+      initialFormData: { data_connection_type_id: postgresqlConnectionTypeId },
+    };
+    const { rerender } = render(<CreateConnectionWizard {...props} isOpen />);
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    rerender(<CreateConnectionWizard {...props} isOpen={false} />);
+    rerender(<CreateConnectionWizard {...props} isOpen />);
+    await user.type(await screen.findByTestId('connection-name-input'), 'new-warehouse');
+
+    await act(async () => {
+      resolveCreation(createdConnection);
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockNotificationSuccess).not.toHaveBeenCalled();
+    expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe(
+      'new-warehouse',
+    );
+  });
+
+  it('should not emit completion after the wizard unmounts', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const createdConnection: Connection = {
+      metadata: { id: 'connection-id' },
+      resource: {
+        name: 'warehouse',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials_ref: { secret: 'warehouse' },
+      },
+      status: { state: 'ready' },
+    };
+    let resolveCreation!: (connection: Connection) => void;
+    const onCreate =
+      jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<Connection>>();
+    onCreate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreation = resolve;
+        }),
+    );
+    const { unmount } = render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        onCreate={onCreate}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    unmount();
+    await act(async () => {
+      resolveCreation(createdConnection);
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockNotificationSuccess).not.toHaveBeenCalled();
   });
 
   it('tracks connection type selection in the wizard', async () => {
@@ -1182,6 +1352,65 @@ describe('CreateConnectionWizard', () => {
     expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
   });
 
+  it('closes without a warning when a single type is automatically selected', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    mockUseConnectionTypes.mockReturnValue([[connectionTypes[0]], true, undefined]);
+
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    await user.click(screen.getByTestId('cancel-connection-wizard-button'));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
+  });
+
+  it('resets credentials when automatically replacing an incompatible initial type', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        new ConnectionTypeInstance({
+          ...connectionTypes[0].toJSON(),
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              {
+                name: 'URI',
+                label: 'URI',
+                required: true,
+                type: 'string',
+                default_value: 'postgres://default',
+              },
+            ],
+          },
+        }),
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          data_connection_type_id: unknownConnectionTypeId,
+          credentials: { secret: 'existing-connection', properties: { OLD_CREDENTIAL: 'value' } },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect((screen.getByTestId('credential-URI') as HTMLInputElement).value).toBe(
+      'postgres://default',
+    );
+  });
+
   it('does not treat asynchronously loaded credential defaults as user changes', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();
@@ -1341,7 +1570,7 @@ describe('CreateConnectionWizard', () => {
     expect(screen.queryByRole('heading', { name: 'Verify connection' })).toBeNull();
   });
 
-  it('filters projects where the user cannot create connections', async () => {
+  it('filters projects without connection creation prerequisites', async () => {
     const user = userEvent.setup();
     mockUseNamespaces.mockReturnValue([
       [
@@ -1385,7 +1614,7 @@ describe('CreateConnectionWizard', () => {
     await user.click(screen.getByTestId('connection-project-access-popover-link'));
     expect(
       await screen.findByText(
-        'This list includes only projects in which you have permission to create connections. To request changes to your permissions, contact your administrator.',
+        'This list includes only projects in which you have permission to create connections and read connection types. To request changes to your permissions, contact your administrator.',
       ),
     ).toBeTruthy();
   });

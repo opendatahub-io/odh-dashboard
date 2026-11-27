@@ -60,7 +60,7 @@ describe('ConnectionTypeDetails', () => {
     mockCreateConnectionWizard.mockImplementation(({ isOpen, onClose, onCreate }) =>
       isOpen ? (
         <div data-testid="mock-create-connection-wizard">
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={() => onClose('cancelled')}>
             Close mocked wizard
           </button>
           <button type="button" onClick={() => void onCreate?.(createRequest, 'new-project')}>
@@ -152,6 +152,31 @@ describe('ConnectionTypeDetails', () => {
       project: 'test-project',
       source: 'connection_type_catalog',
     });
+    expect(screen.queryByTestId('mock-create-connection-wizard')).toBeNull();
+  });
+
+  it('should disable creating a connection when connection types cannot be read', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionType.mockReturnValue([mockConnectionType(), true, undefined]);
+    mockUseConnectionAccess.mockImplementation(
+      (_namespace: string, verb: string, resource = 'data-connections') => ({
+        isAllowed: verb === 'create' && resource === 'data-connections',
+        loaded: true,
+      }),
+    );
+
+    renderDetails();
+    const button = screen.getByTestId('connection-type-details-create-connection');
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+
+    await user.hover(button);
+    expect(
+      screen.getByText(
+        'This action requires the get permission on data-connection-types. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(button);
     expect(screen.queryByTestId('mock-create-connection-wizard')).toBeNull();
   });
 

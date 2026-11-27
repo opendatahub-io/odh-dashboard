@@ -98,7 +98,7 @@ module.exports = merge(
       open: false,
       proxy: [
         {
-          context: ['/api', '/data-connect-hub/api'],
+          context: ['/api', '/data-connect-hub/api', '/healthcheck'],
           target: {
             host: PROXY_HOST,
             protocol: PROXY_PROTOCOL,

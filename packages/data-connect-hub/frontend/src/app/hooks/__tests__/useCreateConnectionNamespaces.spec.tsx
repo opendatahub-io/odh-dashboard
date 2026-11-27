@@ -23,9 +23,11 @@ describe('useCreateConnectionNamespaces', () => {
     } as unknown as ReturnType<typeof useHostApiCore>);
   });
 
-  it('returns only namespaces where the user can create connections', async () => {
+  it('returns only namespaces with connection creation prerequisites', async () => {
     checkAccessMock.mockImplementation(
-      async (attributes: { namespace: string }) => attributes.namespace === 'writable-project',
+      async ({ namespace, resource }: { namespace: string; resource: string }) =>
+        namespace === 'writable-project' ||
+        (namespace === 'read-only-project' && resource === 'data-connections'),
     );
 
     const { result } = renderHook(() => useCreateConnectionNamespaces(namespaces, true));
@@ -40,6 +42,14 @@ describe('useCreateConnectionNamespaces', () => {
         group: 'dataconnecthub.opendatahub.io',
         resource: 'data-connections',
         verb: 'create',
+        namespace: 'read-only-project',
+      }),
+    );
+    expect(checkAccessMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        group: 'dataconnecthub.opendatahub.io',
+        resource: 'data-connection-types',
+        verb: 'get',
         namespace: 'read-only-project',
       }),
     );

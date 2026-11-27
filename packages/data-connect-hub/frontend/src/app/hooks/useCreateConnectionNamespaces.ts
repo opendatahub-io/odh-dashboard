@@ -9,6 +9,35 @@ export const useCreateConnectionNamespaces = (
 ): [NamespaceKind[], boolean, Error | undefined] => {
   const { checkAccess } = useHostApiCore();
 
+  const hasConnectionCreationPrerequisites = React.useCallback(
+    async (namespace: string): Promise<boolean> => {
+      try {
+        const [canCreateConnection, canGetConnectionTypes] = await Promise.all([
+          checkAccess({
+            group: 'dataconnecthub.opendatahub.io',
+            resource: 'data-connections',
+            verb: 'create',
+            name: '',
+            namespace,
+            subresource: '',
+          }),
+          checkAccess({
+            group: 'dataconnecthub.opendatahub.io',
+            resource: 'data-connection-types',
+            verb: 'get',
+            name: '',
+            namespace,
+            subresource: '',
+          }),
+        ]);
+        return canCreateConnection && canGetConnectionTypes;
+      } catch {
+        return false;
+      }
+    },
+    [checkAccess],
+  );
+
   const callback = React.useCallback<FetchStateCallbackPromise<NamespaceKind[]>>(
     async (_opts: APIOptions) => {
       if (!fetchEnabled) {
@@ -17,25 +46,14 @@ export const useCreateConnectionNamespaces = (
 
       return Promise.all(
         namespaces.map(async (namespace) => {
-          try {
-            const allowed = await checkAccess({
-              group: 'dataconnecthub.opendatahub.io',
-              resource: 'data-connections',
-              verb: 'create',
-              name: '',
-              namespace: namespace.name,
-              subresource: '',
-            });
-            return allowed ? namespace : null;
-          } catch {
-            return null;
-          }
+          const allowed = await hasConnectionCreationPrerequisites(namespace.name);
+          return allowed ? namespace : null;
         }),
       ).then((accessibleNamespaces) =>
         accessibleNamespaces.filter((namespace): namespace is NamespaceKind => namespace !== null),
       );
     },
-    [checkAccess, fetchEnabled, namespaces],
+    [fetchEnabled, hasConnectionCreationPrerequisites, namespaces],
   );
 
   const [accessibleNamespaces, loaded, error] = useFetchState<NamespaceKind[]>(callback, [], {
