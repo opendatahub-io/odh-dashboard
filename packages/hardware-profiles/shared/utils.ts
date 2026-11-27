@@ -283,14 +283,29 @@ export const assemblePodSpecOptions = (
   return podSpecOptions;
 };
 
+const hasContainerResources = (resources?: ContainerResources): resources is ContainerResources =>
+  !!resources &&
+  (Object.keys(resources.requests ?? {}).length > 0 ||
+    Object.keys(resources.limits ?? {}).length > 0 ||
+    !!resources.claims?.length);
+
+export type ApplyHardwareProfileConfigOptions = {
+  existingBinding?: HardwareProfileBinding;
+  existingContainerResources?: ContainerResources;
+  existingTolerations?: Toleration[];
+  existingNodeSelector?: NodeSelector;
+};
+
 export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   cr: T,
   config: HardwareProfileConfig,
   paths?: CrPathConfig,
-  existingBinding: HardwareProfileBinding = getExistingHardwareProfileData(
-    cr,
-    cr.metadata?.namespace,
-  ),
+  {
+    existingBinding = getExistingHardwareProfileData(cr, cr.metadata?.namespace),
+    existingContainerResources,
+    existingTolerations,
+    existingNodeSelector,
+  }: ApplyHardwareProfileConfigOptions = {},
 ): T => {
   const result = structuredClone(cr);
   const { selectedProfile, resources, useExistingSettings } = config;
@@ -313,12 +328,7 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     };
     // Empty resources mean the workload had none. Writing them could create a container that
     // does not exist, for example on an LLMInferenceService whose container comes from baseRef.
-    const hasResources =
-      !!resources &&
-      (Object.keys(resources.requests ?? {}).length > 0 ||
-        Object.keys(resources.limits ?? {}).length > 0 ||
-        !!resources.claims?.length);
-    if (resources && hasResources && paths?.containerResourcesPath) {
+    if (hasContainerResources(resources) && paths?.containerResourcesPath) {
       set(result, paths.containerResourcesPath, resources);
     }
     return result;
@@ -340,9 +350,24 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     delete result.metadata.annotations['opendatahub.io/hardware-profile-resource-version'];
   }
 
-  if (!useExistingSettings && selectedProfile && paths) {
-    if (resources && paths.containerResourcesPath) {
-      set(result, paths.containerResourcesPath, resources);
+  if (paths?.containerResourcesPath) {
+    // The form keeps the last selected profile's values; "Use existing settings" reads the workload's own.
+    if (useExistingSettings) {
+      if (hasContainerResources(existingContainerResources)) {
+        set(result, paths.containerResourcesPath, structuredClone(existingContainerResources));
+      }
+    } else if (selectedProfile && resources) {
+      set(result, paths.containerResourcesPath, structuredClone(resources));
+    }
+  }
+
+  // Without a profile annotation nothing re-injects scheduling, so keep what the workload has.
+  if (useExistingSettings) {
+    if (paths?.tolerationsPath && existingTolerations?.length) {
+      set(result, paths.tolerationsPath, structuredClone(existingTolerations));
+    }
+    if (paths?.nodeSelectorPath && Object.keys(existingNodeSelector ?? {}).length > 0) {
+      set(result, paths.nodeSelectorPath, structuredClone(existingNodeSelector));
     }
   }
   return result;

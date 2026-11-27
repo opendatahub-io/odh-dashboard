@@ -16,8 +16,13 @@ import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8s
 import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
-import type { PodKind } from '@odh-dashboard/k8s-core';
-import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
+import type { NotebookKind, PodKind } from '@odh-dashboard/k8s-core';
+import {
+  IdentifierResourceType,
+  SchedulingType,
+  TolerationEffect,
+  TolerationOperator,
+} from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   LocalQueueModel,
@@ -667,60 +672,98 @@ describe('Workbench Hardware Profiles', () => {
       cy.findByRole('option', { name: 'Use existing settings' }).should('not.exist');
     });
 
-    it('should auto-select "Use existing settings" when resources do not match any profile', () => {
+    const unmatchedResources = {
+      requests: { cpu: '10', memory: '6Gi' },
+      limits: { cpu: '10', memory: '6Gi' },
+    };
+    const unmatchedTolerations = [
+      {
+        key: 'some-new-key',
+        operator: TolerationOperator.EXISTS,
+        effect: TolerationEffect.NO_SCHEDULE,
+      },
+    ];
+    const unmatchedNodeSelector = { 'some-label': 'some-value' };
+
+    // Notebook with resources that match no profile and no hardware profile annotation.
+    // Submitting with the default envFrom would need secret intercepts, so submit tests pass none.
+    const initUnmatchedResourcesIntercepts = (
+      envFrom?: Parameters<typeof mockNotebookK8sResource>[0]['envFrom'],
+    ) => {
       initIntercepts();
-      // Mock notebook with non-matching resources and no hardware profile annotation
       cy.interceptK8sList(
         NotebookModel,
         mockK8sResourceList([
           mockNotebookK8sResource({
+            envFrom,
+            resources: unmatchedResources,
             opts: {
-              metadata: {
-                name: 'test-notebook',
-                annotations: {
-                  'openshift.io/display-name': 'Test Notebook',
-                },
-              },
               spec: {
                 template: {
-                  spec: {
-                    containers: [
-                      {
-                        name: 'test-notebook',
-                        resources: {
-                          requests: {
-                            cpu: '10',
-                            memory: '6Gi',
-                          },
-                          limits: {
-                            cpu: '10',
-                            memory: '6Gi',
-                          },
-                        },
-                      },
-                    ],
-                    tolerations: [
-                      {
-                        key: 'some-new-key',
-                      },
-                    ],
-                    nodeSelector: {},
-                  },
+                  spec: { tolerations: unmatchedTolerations, nodeSelector: unmatchedNodeSelector },
                 },
               },
             },
           }),
         ]),
       );
-
       cy.interceptK8sList(
         PVCModel,
         mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
       );
+    };
+
+    const submitAndVerifyExistingSettingsKept = () => {
+      cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+      cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+
+      editSpawnerPage.findSubmitButton().click();
+
+      const verifyExistingSettingsKept = (body: NotebookKind) => {
+        const { containers, tolerations, nodeSelector } = body.spec.template.spec;
+        expect(containers[0].name).to.equal('test-notebook');
+        expect(containers[0].resources).to.deep.equal(unmatchedResources);
+        expect(tolerations).to.deep.equal(unmatchedTolerations);
+        expect(nodeSelector).to.deep.equal(unmatchedNodeSelector);
+      };
+      cy.wait('@editWorkbenchDryRun').then((interception) => {
+        verifyExistingSettingsKept(interception.request.body);
+      });
+      cy.wait('@editWorkbench').then((interception) => {
+        verifyExistingSettingsKept(interception.request.body);
+      });
+    };
+
+    it('should auto-select "Use existing settings" when resources do not match any profile', () => {
+      initUnmatchedResourcesIntercepts();
 
       editSpawnerPage.visit('test-notebook');
       editSpawnerPage.findAlertMessage().should('not.exist');
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+    });
+
+    it('should keep the existing resources, tolerations and nodeSelector when saving with "Use existing settings"', () => {
+      initUnmatchedResourcesIntercepts([]);
+
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+
+      submitAndVerifyExistingSettingsKept();
+    });
+
+    it('should keep the existing settings after switching to a profile and back', () => {
+      initUnmatchedResourcesIntercepts([]);
+
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.findProfileOption(/Small Profile/).click();
+      hardwareProfileSection.findSelect().should('contain.text', 'Small Profile');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.findProfileOption(/Use existing settings/).click();
+      hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+
+      submitAndVerifyExistingSettingsKept();
     });
 
     it('should show an assigned DRA hardware profile as selected with the customization section', () => {
