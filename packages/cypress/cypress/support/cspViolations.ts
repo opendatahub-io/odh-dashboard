@@ -35,9 +35,9 @@ import {
   type DocumentLoadStatus,
   beginDocumentLoad,
   describeViolation,
+  documentLoadFor,
   documentLoadStatus,
   findUnexpected,
-  latestDocumentLoad,
   toAllowlist,
   toRecord,
 } from '../utils/csp/violations';
@@ -178,7 +178,7 @@ const classificationError = (error: unknown): Error =>
 // on its own; a later load of the same URL does not reuse the earlier result.
 Cypress.on('window:before:load', (win) => {
   documentLoaded = true;
-  const load = beginDocumentLoad(loads, win.location.href);
+  const load = beginDocumentLoad(loads, win.location.href, win.document);
   if (!Cypress.env('MOCK')) {
     loadClassifications.set(
       load.id,
@@ -227,8 +227,10 @@ afterEach(() => {
 
     // `#root` proves the loaded document is the dashboard shell. If the response read for
     // this load was another document, the session or a replica answered instead, and that
-    // response says nothing about the loaded document.
-    const currentLoad = latestDocumentLoad(loads, win.location.href);
+    // response says nothing about the loaded document. The load is matched to its document,
+    // not to its URL: client-side navigation rewrites `location.href` without a new load.
+    // `loads.at(-1)` covers a document restored without a fresh `window:before:load`.
+    const currentLoad = documentLoadFor(loads, win.document) ?? loads.at(-1);
     if (win.document.querySelector('#root') && currentLoad?.status !== 'verified') {
       violations = [];
       throw new Error(

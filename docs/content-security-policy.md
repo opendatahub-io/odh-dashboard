@@ -111,9 +111,12 @@ unauthenticated `report-uri`/`report-to` endpoint would answer `401`. Violations
 in the browser by the reporter in `frontend/src/concepts/csp`: every violation is logged with
 `console.warn`; each unique violation (disposition, effective directive, blocked host) is
 forwarded through the host tracking adapter as a `CSP Violation` event, so it carries the same
-cluster and version metadata as the rest of the dashboard telemetry. Outside development it is
-forwarded at most once per browser per 24 hours, and only once `isSegmentReady()` reports the
-SDK is initialized, so a startup violation is retried by a later occurrence instead of being
-lost. URLs are stripped of credentials, query strings and fragments; an unparseable URL is
-reported as `invalid`. Development sends no telemetry; violations are still logged with
+cluster and version metadata as the rest of the dashboard telemetry. Capture starts at module
+load of the dashboard entry (`bufferCspViolationsUntilReporter`) and is replayed when the
+reporter installs on the first render, so violations raised while the document loads, and while
+SDK initialization withholds the tree, are recorded. Violations raised before the SDK is
+initialized are held and delivered once `isSegmentReady()` reports it is available. Outside
+development each one is forwarded at most once per browser per 24 hours, and its throttle
+window opens only when it is actually delivered. URLs are stripped of credentials, query
+strings and fragments; an unparseable URL is reported as `invalid`. Development sends no telemetry; violations are still logged with
 `console.warn`.

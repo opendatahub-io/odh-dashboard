@@ -17,9 +17,9 @@ type UseCspViolationReporterOptions = {
  * this session. This is the single entry point for capture: mount it once near the
  * root of the app and leave it mounted.
  *
- * Capture starts when the effect runs, which is after the first render. Violations
- * raised while the document itself is still loading are covered by the Cypress guard
- * in `packages/cypress/cypress/support/cspViolations.ts`, not by this reporter.
+ * Capture starts when the effect runs, which is after the first render. Violations raised
+ * before that are buffered by `bufferCspViolationsUntilReporter`, which the dashboard entry
+ * module starts before rendering, and replayed when this effect installs the reporter.
  */
 export const useCspViolationReporter = ({
   enabled = true,

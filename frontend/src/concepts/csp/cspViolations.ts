@@ -194,6 +194,48 @@ const reportViolation = (report: CspViolationReport): void => {
 };
 
 /**
+ * Violations raised before a reporter is installed: one report per unique violation, capped
+ * so a page that never installs a reporter cannot grow unbounded.
+ *
+ * The legacy dashboard starts buffering at module load of `bootstrap.tsx`, earlier than the
+ * first React render and much earlier than SDK initialization, which withholds the tree
+ * until the SDK is configured. The inline theme bootstrap, the initial styles and bundles,
+ * and module evaluation all raise violations before a reporter could otherwise mount.
+ * Installing a reporter replays them through the same handling as live events.
+ */
+const MAX_BUFFERED_BEFORE_REPORTER = 50;
+const bufferedBeforeReporter = new Map<string, CspViolationReport>();
+let bufferingBeforeReporter = false;
+let bufferListenerInstalled = false;
+
+/**
+ * Starts recording violations before any reporter is installed. Renders nothing and needs
+ * no React context, so it can run at module load. Idempotent, and safe to call again after
+ * a reporter took over, because the buffer only replays on install.
+ */
+export const bufferCspViolationsUntilReporter = (): void => {
+  bufferingBeforeReporter = true;
+  if (bufferListenerInstalled) {
+    return;
+  }
+  bufferListenerInstalled = true;
+  document.addEventListener('securitypolicyviolation', (event) => {
+    if (!bufferingBeforeReporter) {
+      return;
+    }
+    const { origin, pathname } = window.location;
+    const report = toReport(event, pathname, origin);
+    const key = violationKey(report);
+    if (
+      bufferedBeforeReporter.has(key) ||
+      bufferedBeforeReporter.size < MAX_BUFFERED_BEFORE_REPORTER
+    ) {
+      bufferedBeforeReporter.set(key, report);
+    }
+  });
+};
+
+/**
  * Installs the violation listener. Returns a cleanup function.
  *
  * - Every violation is logged with `console.warn`.
@@ -219,6 +261,10 @@ export const installCspViolationReporter = ({
     subscribers.forEach((listener) => listener(report));
   };
 
+  // Violations held until the Segment SDK is available. The adapter drops events before it
+  // initializes, so a violation raised during startup would otherwise never be delivered.
+  const pendingDelivery = new Map<string, CspViolationReport>();
+
   // Development logs instead of sending, so there is nothing to throttle: the per-violation
   // warning above is the development signal. Outside development the same violation is
   // forwarded at most once per browser per 24 hours.
@@ -231,18 +277,29 @@ export const installCspViolationReporter = ({
     if (key in throttle) {
       return;
     }
-    reportViolation(report);
-    // The adapter drops events until the Segment SDK is initialized, so only open the
-    // window once delivery can happen. Otherwise a startup violation would suppress the
-    // next occurrence for 24 hours without ever reaching telemetry.
-    if (isSegmentReady()) {
-      writeThrottle(storage, { ...throttle, [key]: timestamp });
+
+    if (!isSegmentReady()) {
+      pendingDelivery.set(key, report);
+      return;
     }
+
+    // Delivery is possible now. Hand over what was held while the SDK initialized, then
+    // this violation; each opens its throttle window only when it actually reaches the
+    // adapter, so nothing is suppressed for 24 hours without being sent. Dropping the held
+    // copy of this key first keeps this violation from being delivered twice.
+    pendingDelivery.delete(key);
+    const held = [...pendingDelivery.entries()];
+    pendingDelivery.clear();
+    held.forEach(([heldKey, heldReport]) => {
+      reportViolation(heldReport);
+      throttle[heldKey] = timestamp;
+    });
+    reportViolation(report);
+    throttle[key] = timestamp;
+    writeThrottle(storage, throttle);
   };
 
-  const handler = (event: SecurityPolicyViolationEvent): void => {
-    const { origin, pathname } = windowRef.location;
-    const report = toReport(event, pathname, origin);
+  const handleReport = (report: CspViolationReport): void => {
     const key = violationKey(report);
 
     // eslint-disable-next-line no-console
@@ -253,6 +310,18 @@ export const installCspViolationReporter = ({
     notifySubscribers(report, key);
     sendTelemetry(report, key);
   };
+
+  const handler = (event: SecurityPolicyViolationEvent): void => {
+    const { origin, pathname } = windowRef.location;
+    handleReport(toReport(event, pathname, origin));
+  };
+
+  // Take over from the early buffer. This reporter's own listener covers live events from
+  // here on, so buffering stops and whatever was recorded before is handled now.
+  bufferingBeforeReporter = false;
+  const buffered = [...bufferedBeforeReporter.values()];
+  bufferedBeforeReporter.clear();
+  buffered.forEach(handleReport);
 
   documentRef.addEventListener('securitypolicyviolation', handler);
 

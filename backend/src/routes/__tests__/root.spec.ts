@@ -1,6 +1,6 @@
 import { CSP_NONCE_PLACEHOLDER } from '@odh-dashboard/app-config/security-policy';
 import root from '../root';
-import { CSP_HEADER_REPORT_ONLY } from '../../utils/securityHeaders';
+import { CSP_HEADER_REPORT_ONLY, CSP_MODE_ENV_VAR } from '../../utils/securityHeaders';
 
 type Handler = (request: unknown, reply: unknown) => Promise<unknown>;
 
@@ -44,6 +44,23 @@ const registerRoute = async (): Promise<Handler> => {
 };
 
 describe('SPA shell CSP nonce', () => {
+  const originalCspMode = process.env[CSP_MODE_ENV_VAR];
+
+  beforeEach(() => {
+    // These tests read the Report-Only header. Pin the mode instead of relying on the
+    // ambient environment or on the temporary unset-means-Report-Only default, which the
+    // enforcement follow-up flips.
+    process.env[CSP_MODE_ENV_VAR] = 'report-only';
+  });
+
+  afterEach(() => {
+    if (originalCspMode === undefined) {
+      delete process.env[CSP_MODE_ENV_VAR];
+    } else {
+      process.env[CSP_MODE_ENV_VAR] = originalCspMode;
+    }
+  });
+
   it('writes the header nonce into the document', async () => {
     const handler = await registerRoute();
     const { reply, headers, body } = buildReply();

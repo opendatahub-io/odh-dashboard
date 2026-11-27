@@ -4,6 +4,7 @@ import {
   CSP_VIOLATION_THROTTLE_MS,
   INVALID_URL_MARKER,
   blockedHost,
+  bufferCspViolationsUntilReporter,
   clearCspViolationThrottle,
   installCspViolationReporter,
   sanitizeUrl,
@@ -248,6 +249,57 @@ describe('installCspViolationReporter', () => {
 
     expect(track).toHaveBeenCalledTimes(1);
     expect(storage.data[CSP_VIOLATION_STORAGE_KEY]).toContain('script-src|evil.example');
+  });
+
+  it('replays violations buffered before the reporter was installed', () => {
+    bufferCspViolationsUntilReporter();
+    document.dispatchEvent(
+      makeViolation({
+        effectiveDirective: 'script-src',
+        blockedURI: 'https://evil.example/boot.js',
+      }),
+    );
+
+    // Nothing handles violations until a reporter installs, but they are not lost.
+    expect(console.warn).not.toHaveBeenCalled();
+    expect(track).not.toHaveBeenCalled();
+
+    install();
+
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith(
+      CSP_VIOLATION_SEGMENT_EVENT,
+      expect.objectContaining({ effectiveDirective: 'script-src', blockedHost: 'evil.example' }),
+      expect.anything(),
+    );
+  });
+
+  it('delivers violations held while the Segment SDK was unavailable', () => {
+    delete window.analytics;
+    const storage = memoryStorage();
+    cleanup = installCspViolationReporter({ storage });
+
+    document.dispatchEvent(
+      makeViolation({
+        effectiveDirective: 'script-src',
+        blockedURI: 'https://evil.example/boot.js',
+      }),
+    );
+    expect(track).not.toHaveBeenCalled();
+
+    window.analytics = { track };
+    document.dispatchEvent(
+      makeViolation({
+        effectiveDirective: 'img-src',
+        blockedURI: 'https://evil.example/later.png',
+      }),
+    );
+
+    expect(track).toHaveBeenCalledTimes(2);
+    expect(Object.keys(JSON.parse(storage.data[CSP_VIOLATION_STORAGE_KEY]))).toEqual(
+      expect.arrayContaining(['enforce|script-src|evil.example', 'enforce|img-src|evil.example']),
+    );
   });
 
   it('does not send or throttle in development mode', () => {

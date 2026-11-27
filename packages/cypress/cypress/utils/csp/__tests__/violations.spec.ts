@@ -4,13 +4,13 @@ import {
   type DocumentLoad,
   beginDocumentLoad,
   describeViolation,
+  documentLoadFor,
   documentLoadStatus,
   documentsOf,
   filterByDocument,
   findUnexpected,
   hostFromURI,
   isAllowlisted,
-  latestDocumentLoad,
   toAllowlist,
   toRecord,
 } from '../violations';
@@ -159,16 +159,49 @@ describe('describeViolation', () => {
 });
 
 describe('document loads', () => {
+  const fakeDocument = (): Document => ({} as Document);
+
   it('classifies each load of the same URL on its own', () => {
     const loads: DocumentLoad[] = [];
-    const first = beginDocumentLoad(loads, 'https://dashboard.example/');
+    const first = beginDocumentLoad(loads, 'https://dashboard.example/', fakeDocument());
     first.status = 'not-a-dashboard-document';
-    const second = beginDocumentLoad(loads, 'https://dashboard.example/');
+    const second = beginDocumentLoad(loads, 'https://dashboard.example/', fakeDocument());
     second.status = 'verified';
 
     expect(first.id).not.toBe(second.id);
     expect(documentLoadStatus(loads, first.id)).toBe('not-a-dashboard-document');
     expect(documentLoadStatus(loads, second.id)).toBe('verified');
-    expect(latestDocumentLoad(loads, 'https://dashboard.example/')).toBe(second);
+    expect(documentLoadFor(loads, second.doc)).toBe(second);
+  });
+
+  it('resolves each document to the load that produced it', () => {
+    const loads: DocumentLoad[] = [];
+    const firstDocument = fakeDocument();
+    const secondDocument = fakeDocument();
+    const first = beginDocumentLoad(loads, 'https://dashboard.example/', firstDocument);
+    const second = beginDocumentLoad(loads, 'https://dashboard.example/', secondDocument);
+
+    expect(documentLoadFor(loads, firstDocument)).toBe(first);
+    expect(documentLoadFor(loads, secondDocument)).toBe(second);
+    expect(documentLoadFor(loads, fakeDocument())).toBeUndefined();
+    expect(documentLoadFor(loads, undefined)).toBeUndefined();
+  });
+
+  it('keeps the load across client-side navigation, which never changes the document', () => {
+    const loads: DocumentLoad[] = [];
+    const doc = fakeDocument();
+    const load = beginDocumentLoad(loads, 'https://dashboard.example/', doc);
+    load.status = 'verified';
+
+    // pushState/replaceState, a query string and a fragment all keep the same document,
+    // so a URL-keyed lookup would have missed while the document lookup still resolves.
+    for (const navigatedUrl of [
+      'https://dashboard.example/projects',
+      'https://dashboard.example/projects?page=2',
+      'https://dashboard.example/projects#details',
+    ]) {
+      expect(loads.find((entry) => entry.url === navigatedUrl)).toBeUndefined();
+      expect(documentLoadFor(loads, doc)).toBe(load);
+    }
   });
 });

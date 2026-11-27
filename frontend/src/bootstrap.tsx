@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks';
+import { bufferCspViolationsUntilReporter } from '#~/concepts/csp/cspViolations';
 import { useCspViolationReporter } from '#~/concepts/csp/useCspViolationReporter';
 import { sdkStore, store } from './redux/store/store';
 import App from './app/App';
@@ -13,6 +14,11 @@ import ErrorBoundary from './components/error/ErrorBoundary';
 import RouteErrorElement from './components/error/RouteErrorElement';
 import { ReduxContext } from './redux/context';
 import { installMonacoLoader } from './concepts/dashboard/codeEditor/monacoLoader';
+
+// Record violations from the first moment this module runs. The reporter mounts on the first
+// render and replays what this buffered, so violations raised while the document loads and
+// while SDK initialization withholds the tree are not lost.
+bufferCspViolationsUntilReporter();
 
 // Configure the one shared Monaco loader before any host or remote code editor can mount.
 installMonacoLoader();
@@ -28,16 +34,19 @@ const router = createBrowserRouter([
   {
     path: '*',
     element: (
-      <SDKInitialize>
-        <BrowserStorageContextProvider>
-          <ThemeProvider>
-            <CspViolationCapture />
-            <NotificationProvider>
-              <App />
-            </NotificationProvider>
-          </ThemeProvider>
-        </BrowserStorageContextProvider>
-      </SDKInitialize>
+      <>
+        {/* Installed before SDK initialization, which renders nothing until the SDK is ready. */}
+        <CspViolationCapture />
+        <SDKInitialize>
+          <BrowserStorageContextProvider>
+            <ThemeProvider>
+              <NotificationProvider>
+                <App />
+              </NotificationProvider>
+            </ThemeProvider>
+          </BrowserStorageContextProvider>
+        </SDKInitialize>
+      </>
     ),
     errorElement: <RouteErrorElement />,
   },

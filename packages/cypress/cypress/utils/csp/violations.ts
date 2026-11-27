@@ -79,24 +79,38 @@ export type DocumentLoad = {
   id: number;
   url: string;
   status?: DocumentLoadStatus;
+  /** The document this load produced, so a lookup survives client-side navigation. */
+  doc?: Document;
 };
 
 /** Records a new load. The id is never reused, including when `url` was loaded before. */
-export const beginDocumentLoad = (loads: DocumentLoad[], url: string): DocumentLoad => {
+export const beginDocumentLoad = (
+  loads: DocumentLoad[],
+  url: string,
+  doc?: Document,
+): DocumentLoad => {
   const previous = loads.at(-1);
   const load: DocumentLoad = {
     id: previous === undefined ? 0 : previous.id + 1,
     url,
+    doc,
   };
   loads.push(load);
   return load;
 };
 
-/** The most recent recorded load of `url`. */
-export const latestDocumentLoad = (
+/**
+ * The load that produced `doc`.
+ *
+ * Matched by document rather than URL. Client-side navigation rewrites `location.href`
+ * (path, query string, fragment) without loading a new document, so the URL keeps moving
+ * while the document identity stays the same.
+ */
+export const documentLoadFor = (
   loads: readonly DocumentLoad[],
-  url: string,
-): DocumentLoad | undefined => loads.findLast((load) => load.url === url);
+  doc: Document | undefined,
+): DocumentLoad | undefined =>
+  doc === undefined ? undefined : loads.findLast((load) => load.doc === doc);
 
 /** The classification stored for one load, independent of any other load of its URL. */
 export const documentLoadStatus = (
